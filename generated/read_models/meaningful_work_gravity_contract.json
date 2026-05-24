@@ -1,0 +1,1065 @@
+{
+  "anti_sludge_detection_policy": {
+    "build_cue_routing": "If the durable fix is out of lane, finish the direct task and park a Build Cue candidate.",
+    "context_rediscovery_patterns": [
+      "large repo scans when generated read-models answer the question",
+      "re-reading stale prompts instead of current contract/readback state",
+      "manual Mac/PC relay prompts repeated without post-office metadata"
+    ],
+    "deterministic_alternative_hint": "Prefer receipt/readback, schema validation, token refs, and generated read-models before model retries.",
+    "excessive_model_call_patterns": [
+      "model retries replacing deterministic parser or validator",
+      "new agent packet where a local fixture test would prove the boundary",
+      "summarization churn without a saved read-model"
+    ],
+    "fake_progress_patterns": [
+      "readiness report that does not name a receipt, state row, artifact, or blocker",
+      "screen closeout that does not reflect backend readback",
+      "claimed generated artifact without file path and hash"
+    ],
+    "hardcoded_path_patterns": [
+      "Mac-only path embedded in backend contract",
+      "client-specific Coupa or AP assumption in reusable layer",
+      "C-drive artifact writes from WSL backend"
+    ],
+    "next_safe_move": "Use this policy in reviews and future Work Terrain cues; do not activate a live detector here.",
+    "one_off_prompt_glue_patterns": [
+      "bespoke shuttle instructions repeated after a registry exists",
+      "custom capture packet with UI-only fields",
+      "hardcoded client route leaking into generic framework code"
+    ],
+    "policy_id": "anti_sludge_detection_policy_v0",
+    "raw_pii_risk_patterns": [
+      "raw private body in generated JSON",
+      "public raw hash of sensitive value",
+      "credential, cookie, token, bank, tax, or remit data in normal read-model"
+    ],
+    "retry_loop_patterns": [
+      "same missing fact requested repeatedly without durable capture",
+      "same validation failure retried without narrowing input",
+      "agent handoff restarts from scratch instead of using a context packet"
+    ],
+    "sludge_patterns": [
+      "repeated context rediscovery",
+      "looping agent retries",
+      "fake readback without state",
+      "UI success without backend proof",
+      "repeated bespoke shuttle prompts where a registry can help",
+      "one-off hardcoded rails where a reusable contract is cheap",
+      "broad scans instead of bounded read-model use",
+      "moralizing audit bloat",
+      "compute-saving analysis that itself burns unnecessary compute"
+    ]
+  },
+  "authority_boundary": {
+    "agent_activation_allowed": false,
+    "approval_submission_allowed": false,
+    "backend_state_mutation_allowed": false,
+    "browser_automation_allowed": false,
+    "coupa_access_allowed": false,
+    "credential_handling_allowed": false,
+    "email_send_allowed": false,
+    "git_push_pull_fetch_allowed": false,
+    "gmail_access_allowed": false,
+    "live_agent_nudging_allowed": false,
+    "live_build_cue_write_allowed": false,
+    "live_compute_commons_allowed": false,
+    "live_device_enrollment_allowed": false,
+    "live_external_action_allowed": false,
+    "live_idle_compute_allowed": false,
+    "live_meaningful_work_scoring_allowed": false,
+    "live_model_call_allowed": false,
+    "live_network_allowed": false,
+    "live_remote_workload_allowed": false,
+    "live_runtime_dispatch_allowed": false,
+    "live_scope_expansion_allowed": false,
+    "live_task_rerouting_allowed": false,
+    "live_tool_execution_allowed": false,
+    "mac_sync_import_allowed": false,
+    "mission_control_swift_change_allowed": false,
+    "model_call_allowed": false,
+    "queue_execution_allowed": false,
+    "raw_body_ingestion_allowed": false,
+    "runtime_dispatch_allowed": false,
+    "telegram_send_allowed": false,
+    "tool_execution_allowed": false
+  },
+  "builder_blocker_types": [
+    "MORALIZING_LANGUAGE",
+    "HIDDEN_SCOPE_EXPANSION",
+    "TASK_HIJACK",
+    "VISIBLE_IMPACT_SCORE",
+    "FAKE_EFFICIENCY_CLAIM",
+    "REPEATED_CONTEXT_REDISCOVERY",
+    "ONE_OFF_GLUE_WHERE_REGISTRY_EXISTS",
+    "RAW_PII_IN_NORMAL_READMODEL",
+    "UNBOUNDED_COMPUTE_COMMONS",
+    "OPT_IN_BYPASS",
+    "HARMFUL_WORKLOAD",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "builder_blockers_by_id": {
+    "blocker_fake_efficiency_claim": {
+      "blocker_id": "blocker_fake_efficiency_claim",
+      "blocker_type": "FAKE_EFFICIENCY_CLAIM",
+      "builder_action_required": "Remove numeric claims or cite a measured receipt.",
+      "condition": "The contract claims numeric energy or token savings without measurement.",
+      "elioperator_warning": "ELIOPERATOR: Do not invent savings. Say the efficiency posture is qualitative unless measured.",
+      "fail_closed": true,
+      "next_safe_move": "Use qualitative work-per-watt language.",
+      "severity": "MUST_PATCH_BEFORE_MIGRATION"
+    },
+    "blocker_harmful_workload": {
+      "blocker_id": "blocker_harmful_workload",
+      "blocker_type": "HARMFUL_WORKLOAD",
+      "builder_action_required": "Refuse and record no execution path.",
+      "condition": "Workload asks for spam, fraud, surveillance, malware, mining, or unsafe autonomy-sensitive compute.",
+      "elioperator_warning": "ELIOPERATOR: This workload is outside the safety boundary.",
+      "fail_closed": true,
+      "next_safe_move": "Do not route to commons.",
+      "severity": "BLOCKS_SAFE_MIGRATION"
+    },
+    "blocker_hidden_scope_expansion": {
+      "blocker_id": "blocker_hidden_scope_expansion",
+      "blocker_type": "HIDDEN_SCOPE_EXPANSION",
+      "builder_action_required": "Finish the immediate task and park the optional path.",
+      "condition": "The system starts a reusable rail, Build Cue write, runtime action, or commons work without explicit scope.",
+      "elioperator_warning": "ELIOPERATOR: This expands the lane. Do not do it unless Winship asks.",
+      "fail_closed": true,
+      "next_safe_move": "Route to Work Terrain only as a candidate.",
+      "severity": "BLOCKS_SAFE_MIGRATION"
+    },
+    "blocker_moralizing_language": {
+      "blocker_id": "blocker_moralizing_language",
+      "blocker_type": "MORALIZING_LANGUAGE",
+      "builder_action_required": "Replace moral language with optional, task-first guidance.",
+      "condition": "Builder text ranks or shames the operator instead of offering a bounded option.",
+      "elioperator_warning": "ELIOPERATOR: This sounds like a judgment. Say the tradeoff plainly and leave the choice with the operator.",
+      "fail_closed": true,
+      "next_safe_move": "Keep the compass non-coercive.",
+      "severity": "BLOCKS_SAFE_MIGRATION"
+    },
+    "blocker_one_off_glue_where_registry_exists": {
+      "blocker_id": "blocker_one_off_glue_where_registry_exists",
+      "blocker_type": "ONE_OFF_GLUE_WHERE_REGISTRY_EXISTS",
+      "builder_action_required": "Do not rewrite working rail; add future metadata alignment.",
+      "condition": "A bespoke handoff package is repeated after post-office metadata exists.",
+      "elioperator_warning": "ELIOPERATOR: Finish the current handoff, then park the registry-shaped version.",
+      "fail_closed": false,
+      "next_safe_move": "Use compatibility audit before migration.",
+      "severity": "SHOULD_PATCH"
+    },
+    "blocker_opt_in_bypass": {
+      "blocker_id": "blocker_opt_in_bypass",
+      "blocker_type": "OPT_IN_BYPASS",
+      "builder_action_required": "Block execution and require operator consent design.",
+      "condition": "A workload runs or enrolls a device before explicit opt-in.",
+      "elioperator_warning": "ELIOPERATOR: Consent is required. Default off means no work runs.",
+      "fail_closed": true,
+      "next_safe_move": "Keep compute commons inactive.",
+      "severity": "BLOCKS_SAFE_MIGRATION"
+    },
+    "blocker_raw_pii_in_normal_readmodel": {
+      "blocker_id": "blocker_raw_pii_in_normal_readmodel",
+      "blocker_type": "RAW_PII_IN_NORMAL_READMODEL",
+      "builder_action_required": "Redact raw value and use tokenized/protected reference posture.",
+      "condition": "Normal generated JSON or operator markdown includes raw protected material.",
+      "elioperator_warning": "ELIOPERATOR: Protected values need token refs or protected evidence posture, not raw read-model text.",
+      "fail_closed": true,
+      "next_safe_move": "Apply sensitive policy and rerun scans.",
+      "severity": "BLOCKS_SAFE_MIGRATION"
+    },
+    "blocker_repeated_context_rediscovery": {
+      "blocker_id": "blocker_repeated_context_rediscovery",
+      "blocker_type": "REPEATED_CONTEXT_REDISCOVERY",
+      "builder_action_required": "Prefer generated read-models, manifests, and receipt refs.",
+      "condition": "A worker repeats broad scans after a generated read-model or receipt can answer the narrow question.",
+      "elioperator_warning": "ELIOPERATOR: Use the proof layer before burning context again.",
+      "fail_closed": false,
+      "next_safe_move": "Route durable fix to Build Cue if repeated.",
+      "severity": "SHOULD_PATCH"
+    },
+    "blocker_task_hijack": {
+      "blocker_id": "blocker_task_hijack",
+      "blocker_type": "TASK_HIJACK",
+      "builder_action_required": "Return to the direct task and preserve only cheap guardrails.",
+      "condition": "Compounding work replaces the requested concrete task.",
+      "elioperator_warning": "ELIOPERATOR: The direct task comes first. Do not turn the compass into a detour.",
+      "fail_closed": true,
+      "next_safe_move": "Complete the immediate operator task.",
+      "severity": "BLOCKS_SAFE_MIGRATION"
+    },
+    "blocker_unbounded_compute_commons": {
+      "blocker_id": "blocker_unbounded_compute_commons",
+      "blocker_type": "UNBOUNDED_COMPUTE_COMMONS",
+      "builder_action_required": "Keep candidate blocked until explicit policy exists.",
+      "condition": "Commons workload lacks consent, visibility, resource caps, audit receipts, or safety review.",
+      "elioperator_warning": "ELIOPERATOR: No hidden compute. Commons is opt-in, visible, capped, and stoppable or it does not exist.",
+      "fail_closed": true,
+      "next_safe_move": "Do not create runtime or enrollment behavior.",
+      "severity": "BLOCKS_SAFE_MIGRATION"
+    },
+    "blocker_visible_impact_score": {
+      "blocker_id": "blocker_visible_impact_score",
+      "blocker_type": "VISIBLE_IMPACT_SCORE",
+      "builder_action_required": "Remove score/ranking fields from visible surfaces.",
+      "condition": "A UI or readback exposes a gamified impact score or moral ranking.",
+      "elioperator_warning": "ELIOPERATOR: This turns the compass into a scoreboard. Use an internal signal and operator-readable option instead.",
+      "fail_closed": true,
+      "next_safe_move": "Use qualitative signal labels only.",
+      "severity": "BLOCKS_SAFE_MIGRATION"
+    }
+  },
+  "compounding_opportunities_by_id": {
+    "opportunity_capital_hilton_invoice_rails": {
+      "compounding_path": "Preserve visual-agnostic capture, post-office metadata, and reusable-fact privacy contracts.",
+      "cost_to_preserve_path": "low when added as contract/read-model during the lane",
+      "deterministic_substrate_opportunity": "SQLite receipt/readback plus generated read-models",
+      "direct_solution": "Capture real invoice facts, generate/read back local state, and prepare artifact/readiness rails.",
+      "future_client_ship_reuse": "invoice capture and delivery facts pattern can be specialized per client later",
+      "immediate_task_ref": "capital_hilton_invoice_delivery",
+      "next_safe_move": "Keep solving the invoice; park larger reuse as Work Terrain.",
+      "operator_choice": "Operator may keep this as the Capital Hilton lane or ask for reusable build-out later.",
+      "opportunity_id": "opportunity_capital_hilton_invoice_rails",
+      "privacy_or_security_improvement": "protected evidence references and tokenization contract",
+      "public_good_potential": "low direct, high process safety",
+      "recommended_handling": "COMPLETE_AND_NOTE_BUILD_CUE",
+      "reusable_rail_candidate": "capture_request_to_receipt_readback_to_closeout",
+      "risk_of_scope_creep": "medium if rails replace invoice progress"
+    },
+    "opportunity_compute_commons_scout": {
+      "compounding_path": "Opt-in compute commons candidate model with consent, caps, safety, and receipts.",
+      "cost_to_preserve_path": "low as a contract",
+      "deterministic_substrate_opportunity": "eligibility read-model before any runtime design",
+      "direct_solution": "Do not execute. Capture only a concept and eligibility checklist.",
+      "future_client_ship_reuse": "possible only after explicit opt-in program exists",
+      "immediate_task_ref": "future_public_good_validation_workload",
+      "next_safe_move": "Keep concept-only and block all live compute authority.",
+      "operator_choice": "Review later; no live compute here.",
+      "opportunity_id": "opportunity_compute_commons_scout",
+      "privacy_or_security_improvement": "default-off consent and no-private-data policy",
+      "public_good_potential": "possible for safe validation batches",
+      "recommended_handling": "DEFER_TO_WORK_TERRAIN",
+      "reusable_rail_candidate": "compute_commons_candidate_review_packet",
+      "risk_of_scope_creep": "high if interpreted as device enrollment"
+    },
+    "opportunity_low_stakes_one_off": {
+      "compounding_path": "No durable rail needed.",
+      "cost_to_preserve_path": "not worth extra ceremony",
+      "deterministic_substrate_opportunity": "none beyond ordinary tests if code changes",
+      "direct_solution": "Answer or check directly.",
+      "future_client_ship_reuse": "low",
+      "immediate_task_ref": "small_local_answer_or_file_check",
+      "next_safe_move": "Do the small task and stop.",
+      "operator_choice": "Complete directly.",
+      "opportunity_id": "opportunity_low_stakes_one_off",
+      "privacy_or_security_improvement": "none",
+      "public_good_potential": "low",
+      "recommended_handling": "COMPLETE_DIRECTLY_ONLY",
+      "reusable_rail_candidate": "none",
+      "risk_of_scope_creep": "high if over-modeled"
+    }
+  },
+  "compute_commons_candidates_by_id": {
+    "candidate_opt_in_disabled_default": {
+      "can_run_without_private_data": false,
+      "candidate_id": "candidate_opt_in_disabled_default",
+      "consent_required": true,
+      "data_access_required": "none allowed",
+      "eligibility_status": "OPT_IN_DISABLED",
+      "elioperator_prompt": "Nothing can run. Compute Commons is a future opt-in idea, not a live system.",
+      "local_resource_caps": [],
+      "mission_alignment_summary": "Default-off policy blocks it.",
+      "next_safe_move": "Do not build runtime behavior in this lane.",
+      "operator_benefit": "not available until opt-in",
+      "privacy_class": "not_applicable_default_off",
+      "public_good_potential": "not evaluated",
+      "rejection_reasons": [
+        "Compute Commons is concept-only and default off."
+      ],
+      "resource_request_summary": "No resource use allowed.",
+      "safety_review_required": true,
+      "workload_summary": "Any commons workload before operator opt-in exists."
+    },
+    "candidate_public_good_validation_batch": {
+      "can_run_without_private_data": true,
+      "candidate_id": "candidate_public_good_validation_batch",
+      "consent_required": true,
+      "data_access_required": "no private local data",
+      "eligibility_status": "ELIGIBLE_FOR_OPERATOR_REVIEW",
+      "elioperator_prompt": "This is eligible only for review. Nothing runs unless you explicitly opt in and approve the workload boundary.",
+      "local_resource_caps": [
+        "operator-approved time window",
+        "thermal cap required",
+        "battery and user-activity pause required",
+        "disk and network caps required before runtime"
+      ],
+      "mission_alignment_summary": "Potentially useful if the workload is safe, transparent, and operator-approved.",
+      "next_safe_move": "Park as future review candidate; do not execute.",
+      "operator_benefit": "Can contribute useful validation without distracting from operator tasks, if opted in.",
+      "privacy_class": "sanitized_public_or_project_test_data_only",
+      "public_good_potential": "possible after review",
+      "rejection_reasons": [],
+      "resource_request_summary": "Bounded local batch with explicit caps, no background daemon, and no private-data access.",
+      "safety_review_required": true,
+      "workload_summary": "Idle local machine could help run a public-good test suite or validation batch."
+    },
+    "candidate_unknown_external_gpu_file_access": {
+      "can_run_without_private_data": false,
+      "candidate_id": "candidate_unknown_external_gpu_file_access",
+      "consent_required": true,
+      "data_access_required": "private local file access requested",
+      "eligibility_status": "BLOCKED_PRIVACY_RISK",
+      "elioperator_prompt": "Blocked. Unknown external compute with file access is not eligible for commons review.",
+      "local_resource_caps": [],
+      "mission_alignment_summary": "Unknown and not safely bounded.",
+      "next_safe_move": "Reject until workload, data boundary, and safety posture are explicit.",
+      "operator_benefit": "not established",
+      "privacy_class": "unknown_fail_closed",
+      "public_good_potential": "unknown",
+      "rejection_reasons": [
+        "private local data access requested",
+        "workload purpose unknown",
+        "resource boundary missing",
+        "safety review missing"
+      ],
+      "resource_request_summary": "Unbounded compute with file access requested.",
+      "safety_review_required": true,
+      "workload_summary": "Unknown external workload requests compute time and file access."
+    }
+  },
+  "compute_commons_eligibility_statuses": [
+    "ELIGIBLE_FOR_OPERATOR_REVIEW",
+    "NEEDS_MORE_DETAIL",
+    "BLOCKED_PRIVACY_RISK",
+    "BLOCKED_RESOURCE_RISK",
+    "BLOCKED_HARMFUL_USE",
+    "BLOCKED_LEGAL_OR_SAFETY_BOUNDARY",
+    "OPT_IN_DISABLED",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "compute_efficiency_signals_by_id": {
+    "compute_signal_capture_readback_proof": {
+      "deterministic_alternative": "receipt/state/readback and closeout",
+      "estimated_context_reduction": "qualitative reduction from proof replacing repeated explanation",
+      "guardrail": "Do not turn efficiency into a moral score.",
+      "local_first_substitution": "SQLite readback and JSON parse before any new model pass",
+      "meaningful_work_per_watt_note": "Use the cheapest deterministic proof that answers the operator question.",
+      "next_safe_move": "Keep receipts and readbacks as the proof layer.",
+      "retry_reduction_potential": "lower when idempotency and duplicate no-op are explicit",
+      "signal_id": "compute_signal_capture_readback_proof",
+      "waste_type": "UI success without backend proof",
+      "work_item_ref": "capital_hilton_capture_loop"
+    },
+    "compute_signal_post_office_metadata": {
+      "deterministic_alternative": "typed post-office metadata and readback contracts",
+      "estimated_context_reduction": "qualitative reduction from less rediscovery",
+      "guardrail": "No fake numeric energy savings; only qualitative posture unless measured.",
+      "local_first_substitution": "generated read-model and local tests before model retries",
+      "meaningful_work_per_watt_note": "Prefer durable local contracts over repeated model churn when the pattern is known.",
+      "next_safe_move": "Use this as a Build Cue signal, not a live optimizer.",
+      "retry_reduction_potential": "fewer repeated package-shape fixes once fields are standardized",
+      "signal_id": "compute_signal_post_office_metadata",
+      "waste_type": "repeated bespoke relay prompts",
+      "work_item_ref": "manual_mac_pc_handoff_churn"
+    }
+  },
+  "contract_status": "DETERMINISTIC_NON_EXECUTING_MEANINGFUL_WORK_GRAVITY_CONTRACT",
+  "elioperator_nudges_by_id": {
+    "nudge_handoff_churn": {
+      "anti_manipulation_check": "No live automation and no claim that migration already happened.",
+      "immediate_task_impact": "Current handoff still completes.",
+      "next_safe_move": "Record the candidate; do not replace the working rail.",
+      "no_action_option": "Keep the manual package path for now.",
+      "nudge_id": "nudge_handoff_churn",
+      "nudge_type": "anti_sludge_warning",
+      "operator_text": "This looks like a repeated handoff pattern. I will finish the current task and park a Build Cue so we can reduce relay churn later.",
+      "optional_path": "Use post-office metadata later.",
+      "trigger_ref": "signal_repeated_handoff_churn",
+      "why_it_matters": "Repeated manual relay burns context and attention."
+    },
+    "nudge_lane_expansion_stop": {
+      "anti_manipulation_check": "Plain statement, no pressure.",
+      "immediate_task_impact": "Keeps the current task bounded.",
+      "next_safe_move": "Stay inside the requested lane.",
+      "no_action_option": "Proceed with the original task only.",
+      "nudge_id": "nudge_lane_expansion_stop",
+      "nudge_type": "scope_boundary",
+      "operator_text": "This would expand the lane. I am not doing that unless you ask.",
+      "optional_path": "Ask for a follow-up lane if the expansion is useful.",
+      "trigger_ref": "operator_sovereignty_guardrail_v0",
+      "why_it_matters": "Operator sovereignty beats clever scope expansion."
+    },
+    "nudge_preserve_reusable_rail": {
+      "anti_manipulation_check": "No score, shame, urgency trick, or hidden reroute.",
+      "immediate_task_impact": "Must not slow or replace the direct task.",
+      "next_safe_move": "Ask only if preserving the path would expand the lane.",
+      "no_action_option": "Complete the current task and leave reuse alone.",
+      "nudge_id": "nudge_preserve_reusable_rail",
+      "nudge_type": "optional_reusable_rail",
+      "operator_text": "This can stay a one-off fix, or we can preserve the reusable rail cheaply while we are already here.",
+      "optional_path": "Park a Build Cue or add a narrow contract when already in scope.",
+      "trigger_ref": "opportunity_capital_hilton_invoice_rails",
+      "why_it_matters": "A tiny durable rail can reduce future relay churn."
+    },
+    "nudge_visible_score_blocked": {
+      "anti_manipulation_check": "Blocks gamification and shame framing.",
+      "immediate_task_impact": "Blocks score UI, not useful direct work.",
+      "next_safe_move": "Keep signal internal and non-numeric.",
+      "no_action_option": "Remove scoring language entirely.",
+      "nudge_id": "nudge_visible_score_blocked",
+      "nudge_type": "builder_warning",
+      "operator_text": "This turns the compass into a scoreboard. Use an internal signal and operator-readable option instead.",
+      "optional_path": "Use qualitative signal labels and ELIOPERATOR choices.",
+      "trigger_ref": "blocker_visible_impact_score",
+      "why_it_matters": "Visible scores can manipulate behavior and invite ranking."
+    }
+  },
+  "examples": {
+    "agent_nudge": {
+      "nudge_ref": "nudge_preserve_reusable_rail",
+      "summary": "A future agent may note a reusable rail, but it must finish the immediate task first."
+    },
+    "blocked_compute_workload": {
+      "candidate_ref": "candidate_unknown_external_gpu_file_access",
+      "eligibility_status": "BLOCKED_PRIVACY_RISK",
+      "summary": "Unknown external compute with file access is blocked."
+    },
+    "capital_hilton": {
+      "handling": "COMPLETE_AND_NOTE_BUILD_CUE",
+      "opportunity_ref": "opportunity_capital_hilton_invoice_rails",
+      "signal_ref": "signal_capital_hilton_steel_thread",
+      "summary": "Immediate invoice work produced capture/readback, post-office, reusable facts, and tokenization rails."
+    },
+    "compute_commons_candidate": {
+      "candidate_ref": "candidate_public_good_validation_batch",
+      "eligibility_status": "ELIGIBLE_FOR_OPERATOR_REVIEW",
+      "summary": "Safe public-good validation may be reviewed later; opt-in and caps required."
+    },
+    "elioperator_warning": {
+      "blocker_ref": "blocker_visible_impact_score",
+      "nudge_ref": "nudge_visible_score_blocked",
+      "summary": "Visible impact score is blocked; use qualitative signal language instead."
+    },
+    "handoff_churn": {
+      "handling": "COMPLETE_AND_NOTE_BUILD_CUE",
+      "nudge_ref": "nudge_handoff_churn",
+      "signal_ref": "signal_repeated_handoff_churn",
+      "summary": "Finish current handoff and park post-office metadata/registry candidate."
+    },
+    "low_stakes_one_off": {
+      "handling": "COMPLETE_DIRECTLY_ONLY",
+      "opportunity_ref": "opportunity_low_stakes_one_off",
+      "signal_ref": "signal_low_stakes_one_off",
+      "summary": "Small tasks may remain small; no moralizing and no extra rail."
+    },
+    "privacy_improvement": {
+      "handling": "COMPLETE_AND_ADD_TINY_GUARDRAIL",
+      "signal_ref": "signal_privacy_tokenization",
+      "summary": "Tokenization is a safety rail; no live protected-store mutation in this contract."
+    }
+  },
+  "generated_at": "2026-05-24T19:33:34+00:00",
+  "gravity_contract": {
+    "anti_sludge_policy": "Detect retry loops, fake progress, one-off prompt glue, broad rediscovery, and hardcoded rails; route durable fixes to Build Cue.",
+    "authority_boundary": {
+      "agent_activation_allowed": false,
+      "approval_submission_allowed": false,
+      "backend_state_mutation_allowed": false,
+      "browser_automation_allowed": false,
+      "coupa_access_allowed": false,
+      "credential_handling_allowed": false,
+      "email_send_allowed": false,
+      "git_push_pull_fetch_allowed": false,
+      "gmail_access_allowed": false,
+      "live_agent_nudging_allowed": false,
+      "live_build_cue_write_allowed": false,
+      "live_compute_commons_allowed": false,
+      "live_device_enrollment_allowed": false,
+      "live_external_action_allowed": false,
+      "live_idle_compute_allowed": false,
+      "live_meaningful_work_scoring_allowed": false,
+      "live_model_call_allowed": false,
+      "live_network_allowed": false,
+      "live_remote_workload_allowed": false,
+      "live_runtime_dispatch_allowed": false,
+      "live_scope_expansion_allowed": false,
+      "live_task_rerouting_allowed": false,
+      "live_tool_execution_allowed": false,
+      "mac_sync_import_allowed": false,
+      "mission_control_swift_change_allowed": false,
+      "model_call_allowed": false,
+      "queue_execution_allowed": false,
+      "raw_body_ingestion_allowed": false,
+      "runtime_dispatch_allowed": false,
+      "telegram_send_allowed": false,
+      "tool_execution_allowed": false
+    },
+    "build_cue_integration_policy": "Future work should land as Build Cue or Work Terrain candidates, not hidden live scope expansion.",
+    "compounding_opportunity_policy": "Compounding paths may be noted, guarded, or parked only when they are cheap, bounded, and do not slow the direct task.",
+    "compute_efficiency_policy": "Use qualitative work-per-watt posture unless measured; avoid fake numeric energy claims.",
+    "contract_id": "meaningful_work_gravity_contract_v0",
+    "doctrine": [
+      "Complete the immediate operator task first.",
+      "Do not hijack, moralize, shame, rank, or manipulate.",
+      "When a useful reusable rail is cheap and safe, preserve it or park a Build Cue candidate.",
+      "Prefer deterministic local rails over repeated model churn.",
+      "Convert future opportunities into optional Build Cue or Work Terrain candidates, not active scope creep.",
+      "Compute Commons is future opt-in only and default off."
+    ],
+    "immediate_task_policy": "The current operator task remains the lane unless the operator changes it or a hard safety boundary blocks it.",
+    "next_safe_move": "Review the contract, then wire future Build Cue integration only after an explicit lane asks for it.",
+    "non_goals": [
+      "no live scoring system",
+      "no distributed compute system",
+      "no task scheduler",
+      "no device agent",
+      "no network lane",
+      "no runtime, queue, or tool execution",
+      "no moral ranking engine",
+      "no productization"
+    ],
+    "operator_sovereignty_policy": "The operator can keep a task one-off. Suggestions must be optional and written in plain ELIOPERATOR language.",
+    "opt_in_compute_commons_policy": "Future idle compute assistance is default off, consent-gated, resource-capped, private-data-free, and audit-receipted.",
+    "privacy_policy": "Protected values remain tokenized or referenced. Raw private bodies, credentials, and protected material stay out of normal read-models."
+  },
+  "machine_proof": {
+    "agent_nudge_example_present": true,
+    "all_live_authority_flags_false": true,
+    "all_work_categories_present": true,
+    "anti_sludge_detection_policy_model_present": true,
+    "anti_sludge_policy_present": true,
+    "blocked_compute_workload_example_present": true,
+    "builder_blockers_present": false,
+    "capital_hilton_example_present": true,
+    "compounding_opportunity_examples_present": true,
+    "compounding_opportunity_model_present": true,
+    "compute_commons_candidate_example_present": true,
+    "compute_commons_candidate_model_present": true,
+    "compute_commons_default_off": true,
+    "compute_commons_forbidden_uses_present": true,
+    "compute_commons_opt_in_required": true,
+    "compute_efficiency_avoids_fake_numeric_claims": true,
+    "compute_efficiency_signal_model_present": true,
+    "content_hash": "sha256:83bd12407c8f6f12bb91502b4cebdc0e5d710ad3ef746754bccfaee88900ff84",
+    "credentials_or_secrets_included": false,
+    "elioperator_nudge_model_present": true,
+    "elioperator_nudges_present": true,
+    "handoff_churn_example_present": true,
+    "hidden_scope_expansion_blocked": true,
+    "live_compute_commons_activation_added": false,
+    "low_stakes_one_off_example_present": true,
+    "meaningful_work_builder_blocker_model_present": true,
+    "meaningful_work_gravity_contract_model_present": true,
+    "meaningful_work_signal_model_present": true,
+    "moralizing_language_blocked": true,
+    "operator_sovereignty_guardrail_model_present": true,
+    "operator_sovereignty_guardrails_present": true,
+    "opt_in_compute_commons_concept_model_present": true,
+    "privacy_improvement_example_present": true,
+    "raw_private_bodies_included": false,
+    "raw_sensitive_fixture_values_included": false,
+    "visible_score_gamification_blocked": true
+  },
+  "meaningful_work_signal_types": [
+    "meaningful_work_signal",
+    "compounding_opportunity",
+    "anti_sludge_warning",
+    "reusable_rail_candidate",
+    "operator_sovereignty_check",
+    "compute_commons_candidate",
+    "consent_required",
+    "unknown_fail_closed"
+  ],
+  "meaningful_work_signals_by_id": {
+    "signal_capital_hilton_steel_thread": {
+      "build_cue_candidate_ref": "post_office_metadata_alignment_followup",
+      "client_productizable_pattern_potential": "strong pattern for future client ships",
+      "compounding_value": "Leaves visual-agnostic capture, receipt/readback, artifact preview, and delivery-facts rails behind.",
+      "energy_compute_efficiency_potential": "less repeated context and fewer bespoke handoff prompts",
+      "harmful_risk": "low when external send/Coupa gates stay closed",
+      "immediate_operator_value": "Move a real invoice closer to payment.",
+      "meaningful_work_signal_type": "compounding_opportunity",
+      "next_safe_move": "Use existing readbacks and keep external authority gated.",
+      "public_good_or_community_potential": "indirect, through safer reusable operator systems",
+      "reusable_rail_potential": "high",
+      "safety_privacy_potential": "high",
+      "signal_id": "signal_capital_hilton_steel_thread",
+      "sludge_risk": "medium if every handoff remains bespoke",
+      "suggested_operator_nudge": "Finish invoice lane first; preserve reusable rails only when they are already in hand.",
+      "work_category": "immediate_operator_need",
+      "work_item_ref": "capital_hilton_invoice_steel_thread"
+    },
+    "signal_compute_commons_public_good_candidate": {
+      "build_cue_candidate_ref": "future_compute_commons_review_lane",
+      "client_productizable_pattern_potential": "medium",
+      "compounding_value": "Future opted-in ships might help validation workloads without private data.",
+      "energy_compute_efficiency_potential": "idle compute may be useful only when explicitly consented and bounded",
+      "harmful_risk": "high without consent, privacy, and workload safety review",
+      "immediate_operator_value": "No immediate execution; concept only.",
+      "meaningful_work_signal_type": "compute_commons_candidate",
+      "next_safe_move": "Do not run anything; model candidate eligibility only.",
+      "public_good_or_community_potential": "possible, after review",
+      "reusable_rail_potential": "medium",
+      "safety_privacy_potential": "high if strict consent and caps exist",
+      "signal_id": "signal_compute_commons_public_good_candidate",
+      "sludge_risk": "high if it becomes hidden background work",
+      "suggested_operator_nudge": "Keep default off; require explicit opt-in and resource caps.",
+      "work_category": "public_good_or_community_usefulness",
+      "work_item_ref": "future_idle_validation_batch"
+    },
+    "signal_low_stakes_one_off": {
+      "build_cue_candidate_ref": null,
+      "client_productizable_pattern_potential": "low",
+      "compounding_value": "none required",
+      "energy_compute_efficiency_potential": "best handled directly without extra contract work",
+      "harmful_risk": "low",
+      "immediate_operator_value": "Solve a small operator request quickly.",
+      "meaningful_work_signal_type": "operator_sovereignty_check",
+      "next_safe_move": "Complete directly and stop.",
+      "public_good_or_community_potential": "not applicable",
+      "reusable_rail_potential": "low",
+      "safety_privacy_potential": "low",
+      "signal_id": "signal_low_stakes_one_off",
+      "sludge_risk": "low if completed directly; high if over-governed",
+      "suggested_operator_nudge": "No need to expand this lane.",
+      "work_category": "low_compounding_sludge",
+      "work_item_ref": "low_stakes_one_off_task"
+    },
+    "signal_privacy_tokenization": {
+      "build_cue_candidate_ref": "future_protected_value_handler",
+      "client_productizable_pattern_potential": "high",
+      "compounding_value": "Future workflows can reuse safe labels and token refs without exposing raw values.",
+      "energy_compute_efficiency_potential": "less repeated private-data handling",
+      "harmful_risk": "medium if raw protected values leak",
+      "immediate_operator_value": "Protect reusable facts from leaking raw sensitive values.",
+      "meaningful_work_signal_type": "reusable_rail_candidate",
+      "next_safe_move": "Preserve tokenization rules; do not mutate a live vault here.",
+      "public_good_or_community_potential": "safer reusable software pattern",
+      "reusable_rail_potential": "high",
+      "safety_privacy_potential": "high",
+      "signal_id": "signal_privacy_tokenization",
+      "sludge_risk": "medium if privacy is handled ad hoc each time",
+      "suggested_operator_nudge": "Keep this as a contract until a protected local handler exists.",
+      "work_category": "safety_privacy_improvement",
+      "work_item_ref": "cross_lane_reusable_block_registry_contract"
+    },
+    "signal_repeated_handoff_churn": {
+      "build_cue_candidate_ref": "cross_surface_handoff_registry_metadata_alignment",
+      "client_productizable_pattern_potential": "high",
+      "compounding_value": "Post-office metadata can reduce repeated relay instructions later.",
+      "energy_compute_efficiency_potential": "fewer repeated scans and prompt rewrites",
+      "harmful_risk": "low if metadata stays additive",
+      "immediate_operator_value": "Keep current handoff working.",
+      "meaningful_work_signal_type": "anti_sludge_warning",
+      "next_safe_move": "Use metadata-only alignment; do not replace working rails.",
+      "public_good_or_community_potential": "indirect, through calmer operator workflows",
+      "reusable_rail_potential": "high",
+      "safety_privacy_potential": "medium",
+      "signal_id": "signal_repeated_handoff_churn",
+      "sludge_risk": "high if each package remains custom",
+      "suggested_operator_nudge": "Finish the current package and park the registry alignment path.",
+      "work_category": "efficiency_waste_reduction",
+      "work_item_ref": "manual_mac_pc_readback_shuttle"
+    }
+  },
+  "model_schemas": {
+    "anti_sludge_detection_policy": {
+      "model_name": "AntiSludgeDetectionPolicy",
+      "required_fields": [
+        "policy_id",
+        "sludge_patterns",
+        "retry_loop_patterns",
+        "context_rediscovery_patterns",
+        "fake_progress_patterns",
+        "excessive_model_call_patterns",
+        "one_off_prompt_glue_patterns",
+        "hardcoded_path_patterns",
+        "raw_pii_risk_patterns",
+        "deterministic_alternative_hint",
+        "build_cue_routing",
+        "next_safe_move"
+      ]
+    },
+    "compounding_opportunity": {
+      "model_name": "CompoundingOpportunity",
+      "recommended_handlings": [
+        "COMPLETE_DIRECTLY_ONLY",
+        "COMPLETE_AND_NOTE_BUILD_CUE",
+        "COMPLETE_AND_ADD_TINY_GUARDRAIL",
+        "ASK_OPERATOR_TO_PRESERVE_PATH",
+        "DEFER_TO_WORK_TERRAIN",
+        "REFUSE_FOR_SAFETY",
+        "UNKNOWN_NEEDS_FRAMING"
+      ],
+      "required_fields": [
+        "opportunity_id",
+        "immediate_task_ref",
+        "direct_solution",
+        "compounding_path",
+        "reusable_rail_candidate",
+        "privacy_or_security_improvement",
+        "deterministic_substrate_opportunity",
+        "future_client_ship_reuse",
+        "public_good_potential",
+        "cost_to_preserve_path",
+        "risk_of_scope_creep",
+        "operator_choice",
+        "recommended_handling",
+        "next_safe_move"
+      ]
+    },
+    "compute_commons_candidate": {
+      "eligibility_statuses": [
+        "ELIGIBLE_FOR_OPERATOR_REVIEW",
+        "NEEDS_MORE_DETAIL",
+        "BLOCKED_PRIVACY_RISK",
+        "BLOCKED_RESOURCE_RISK",
+        "BLOCKED_HARMFUL_USE",
+        "BLOCKED_LEGAL_OR_SAFETY_BOUNDARY",
+        "OPT_IN_DISABLED",
+        "UNKNOWN_FAIL_CLOSED"
+      ],
+      "model_name": "ComputeCommonsCandidate",
+      "required_fields": [
+        "candidate_id",
+        "workload_summary",
+        "mission_alignment_summary",
+        "resource_request_summary",
+        "privacy_class",
+        "data_access_required",
+        "can_run_without_private_data",
+        "operator_benefit",
+        "public_good_potential",
+        "safety_review_required",
+        "consent_required",
+        "local_resource_caps",
+        "eligibility_status",
+        "rejection_reasons",
+        "elioperator_prompt",
+        "next_safe_move"
+      ]
+    },
+    "compute_efficiency_signal": {
+      "model_name": "ComputeEfficiencySignal",
+      "required_fields": [
+        "signal_id",
+        "work_item_ref",
+        "waste_type",
+        "deterministic_alternative",
+        "estimated_context_reduction",
+        "retry_reduction_potential",
+        "local_first_substitution",
+        "meaningful_work_per_watt_note",
+        "guardrail",
+        "next_safe_move"
+      ]
+    },
+    "elioperator_nudge": {
+      "model_name": "ELIOperatorNudge",
+      "required_fields": [
+        "nudge_id",
+        "trigger_ref",
+        "nudge_type",
+        "operator_text",
+        "why_it_matters",
+        "immediate_task_impact",
+        "optional_path",
+        "no_action_option",
+        "anti_manipulation_check",
+        "next_safe_move"
+      ]
+    },
+    "meaningful_work_builder_blocker": {
+      "blocker_types": [
+        "MORALIZING_LANGUAGE",
+        "HIDDEN_SCOPE_EXPANSION",
+        "TASK_HIJACK",
+        "VISIBLE_IMPACT_SCORE",
+        "FAKE_EFFICIENCY_CLAIM",
+        "REPEATED_CONTEXT_REDISCOVERY",
+        "ONE_OFF_GLUE_WHERE_REGISTRY_EXISTS",
+        "RAW_PII_IN_NORMAL_READMODEL",
+        "UNBOUNDED_COMPUTE_COMMONS",
+        "OPT_IN_BYPASS",
+        "HARMFUL_WORKLOAD",
+        "UNKNOWN_FAIL_CLOSED"
+      ],
+      "model_name": "MeaningfulWorkBuilderBlocker",
+      "required_fields": [
+        "blocker_id",
+        "blocker_type",
+        "condition",
+        "severity",
+        "elioperator_warning",
+        "builder_action_required",
+        "fail_closed",
+        "next_safe_move"
+      ]
+    },
+    "meaningful_work_gravity_contract": {
+      "model_name": "MeaningfulWorkGravityContract",
+      "required_fields": [
+        "contract_id",
+        "doctrine",
+        "immediate_task_policy",
+        "compounding_opportunity_policy",
+        "anti_sludge_policy",
+        "operator_sovereignty_policy",
+        "privacy_policy",
+        "compute_efficiency_policy",
+        "build_cue_integration_policy",
+        "opt_in_compute_commons_policy",
+        "non_goals",
+        "authority_boundary",
+        "next_safe_move"
+      ]
+    },
+    "meaningful_work_signal": {
+      "model_name": "MeaningfulWorkSignal",
+      "required_fields": [
+        "signal_id",
+        "work_item_ref",
+        "work_category",
+        "meaningful_work_signal_type",
+        "immediate_operator_value",
+        "compounding_value",
+        "reusable_rail_potential",
+        "safety_privacy_potential",
+        "energy_compute_efficiency_potential",
+        "public_good_or_community_potential",
+        "client_productizable_pattern_potential",
+        "sludge_risk",
+        "harmful_risk",
+        "suggested_operator_nudge",
+        "build_cue_candidate_ref",
+        "next_safe_move"
+      ],
+      "signal_types": [
+        "meaningful_work_signal",
+        "compounding_opportunity",
+        "anti_sludge_warning",
+        "reusable_rail_candidate",
+        "operator_sovereignty_check",
+        "compute_commons_candidate",
+        "consent_required",
+        "unknown_fail_closed"
+      ],
+      "work_categories": [
+        "immediate_operator_need",
+        "reusable_system_rail",
+        "safety_privacy_improvement",
+        "efficiency_waste_reduction",
+        "client_productizable_pattern",
+        "creative_artistic_value",
+        "learning_onboarding_value",
+        "public_good_or_community_usefulness",
+        "low_compounding_sludge",
+        "harmful_refuse",
+        "unknown_needs_framing"
+      ]
+    },
+    "operator_sovereignty_guardrail": {
+      "model_name": "OperatorSovereigntyGuardrail",
+      "required_fields": [
+        "guardrail_id",
+        "immediate_task_first",
+        "optional_expansion_only",
+        "no_moralizing",
+        "no_hidden_scope_expansion",
+        "no_gamified_score",
+        "no_social_scoring",
+        "no_shame_language",
+        "no_task_hijack",
+        "operator_override_allowed",
+        "refusal_only_for_hard_safety_boundary",
+        "elioperator_required",
+        "next_safe_move"
+      ]
+    },
+    "opt_in_compute_commons_concept": {
+      "model_name": "OptInComputeCommonsConcept",
+      "required_fields": [
+        "concept_id",
+        "description",
+        "eligibility_policy",
+        "consent_policy",
+        "resource_boundary",
+        "privacy_boundary",
+        "workload_safety_policy",
+        "mission_alignment_policy",
+        "operator_visibility",
+        "opt_in_status",
+        "opt_out_policy",
+        "audit_receipts_required",
+        "forbidden_uses",
+        "non_goals",
+        "next_safe_move"
+      ]
+    }
+  },
+  "operator_sovereignty_guardrail": {
+    "elioperator_required": true,
+    "guardrail_id": "operator_sovereignty_guardrail_v0",
+    "immediate_task_first": true,
+    "next_safe_move": "Use the gravity signal as a compass, never as a command over the operator.",
+    "no_gamified_score": true,
+    "no_hidden_scope_expansion": true,
+    "no_moralizing": true,
+    "no_shame_language": true,
+    "no_social_scoring": true,
+    "no_task_hijack": true,
+    "operator_override_allowed": true,
+    "optional_expansion_only": true,
+    "refusal_only_for_hard_safety_boundary": true
+  },
+  "opt_in_compute_commons_concept": {
+    "audit_receipts_required": true,
+    "concept_id": "opt_in_compute_commons_concept_v0",
+    "consent_policy": "Explicit opt-in required for the program and for workload class; operator can decline, pause, or stop.",
+    "description": "Future ships or devices may voluntarily offer bounded idle compute for mission-aligned workloads after explicit review.",
+    "eligibility_policy": "Candidate must be safe, described plainly, able to run without private local data, and reviewed before any execution design.",
+    "forbidden_uses": [
+      "hidden compute use",
+      "private local data access",
+      "credential access",
+      "crypto mining",
+      "spam or fraud",
+      "surveillance",
+      "malware",
+      "weaponization or autonomy-sensitive compute without strict refusal or review",
+      "unbounded thermal, battery, network, disk, or user-activity impact",
+      "legal or safety boundary bypass"
+    ],
+    "mission_alignment_policy": "Workload must have a clear operator-approved mission or public-good purpose.",
+    "next_safe_move": "Keep this as a scout contract until a future explicit design lane exists.",
+    "non_goals": [
+      "no live compute-sharing behavior",
+      "no device enrollment",
+      "no scheduler",
+      "no background jobs",
+      "no daemon",
+      "no watcher",
+      "no network workload"
+    ],
+    "operator_visibility": "Operator must see what would run, why, under what caps, and how to stop it.",
+    "opt_in_status": "DEFAULT_OFF_CONCEPT_ONLY",
+    "opt_out_policy": "Operator can opt out or pause any future commons participation at any time.",
+    "privacy_boundary": "Default no access to private local data, credentials, cookies, tokens, private documents, or protected stores.",
+    "resource_boundary": "Resource caps, thermal limits, battery limits, user-activity limits, disk limits, and network limits are mandatory before runtime exists.",
+    "workload_safety_policy": "No hidden compute, mining, spam, fraud, surveillance, malware, or autonomy-sensitive work without strict refusal or review."
+  },
+  "purpose": "Define Meaningful Work Gravity as a bounded compass and model a future opt-in Compute Commons scout.",
+  "read_model_id": "meaningful_work_gravity_contract",
+  "recommended_handlings": [
+    "COMPLETE_DIRECTLY_ONLY",
+    "COMPLETE_AND_NOTE_BUILD_CUE",
+    "COMPLETE_AND_ADD_TINY_GUARDRAIL",
+    "ASK_OPERATOR_TO_PRESERVE_PATH",
+    "DEFER_TO_WORK_TERRAIN",
+    "REFUSE_FOR_SAFETY",
+    "UNKNOWN_NEEDS_FRAMING"
+  ],
+  "relationship_inventory": {
+    "agent_conversation_handoff_step_packet_contract": {
+      "path": "generated/read_models/agent_conversation_handoff_step_packet_contract.json",
+      "present": true,
+      "ref": "agent_conversation_handoff_step_packet_contract",
+      "used_as": "relationship_reference_only_no_content_duplication"
+    },
+    "agent_execution_packet_compiler_contract": {
+      "path": "generated/read_models/agent_execution_packet_compiler_contract.json",
+      "present": true,
+      "ref": "agent_execution_packet_compiler_contract",
+      "used_as": "relationship_reference_only_no_content_duplication"
+    },
+    "bridge_routing_operator_attention_contract": {
+      "path": "generated/read_models/bridge_routing_operator_attention_contract.json",
+      "present": true,
+      "ref": "bridge_routing_operator_attention_contract",
+      "used_as": "relationship_reference_only_no_content_duplication"
+    },
+    "cross_lane_reusable_block_registry_contract": {
+      "path": "generated/read_models/cross_lane_reusable_block_registry_contract.json",
+      "present": true,
+      "ref": "cross_lane_reusable_block_registry_contract",
+      "used_as": "relationship_reference_only_no_content_duplication"
+    },
+    "cross_surface_artifact_handoff_registry_contract": {
+      "path": "generated/read_models/cross_surface_artifact_handoff_registry_contract.json",
+      "present": true,
+      "ref": "cross_surface_artifact_handoff_registry_contract",
+      "used_as": "relationship_reference_only_no_content_duplication"
+    },
+    "cross_surface_handoff_registry_metadata_alignment": {
+      "path": "generated/read_models/cross_surface_handoff_registry_metadata_alignment.json",
+      "present": true,
+      "ref": "cross_surface_handoff_registry_metadata_alignment",
+      "used_as": "relationship_reference_only_no_content_duplication"
+    },
+    "guardian_protected_access_gate_spec": {
+      "path": "generated/read_models/guardian_protected_access_gate_spec.json",
+      "present": true,
+      "ref": "guardian_protected_access_gate_spec",
+      "used_as": "relationship_reference_only_no_content_duplication"
+    },
+    "guided_capture_protected_evidence_path_contract": {
+      "path": "generated/read_models/guided_capture_protected_evidence_path_contract.json",
+      "present": true,
+      "ref": "guided_capture_protected_evidence_path_contract",
+      "used_as": "relationship_reference_only_no_content_duplication"
+    },
+    "make_winship_life_easier_batch_manifest": {
+      "path": "generated/read_models/make_winship_life_easier_batch_manifest.json",
+      "present": true,
+      "ref": "make_winship_life_easier_batch_manifest",
+      "used_as": "relationship_reference_only_no_content_duplication"
+    },
+    "openclaw_sensitive_policy": {
+      "path": "openclaw_sensitive_policy.py",
+      "present": true,
+      "ref": "openclaw_sensitive_policy",
+      "used_as": "relationship_reference_only_no_content_duplication"
+    },
+    "operator_question_assist_scope_expansion_contract": {
+      "path": "generated/read_models/operator_question_assist_scope_expansion_contract.json",
+      "present": true,
+      "ref": "operator_question_assist_scope_expansion_contract",
+      "used_as": "relationship_reference_only_no_content_duplication"
+    },
+    "work_terrain_build_cue_reconciliation_queue": {
+      "path": "generated/read_models/work_terrain_build_cue_reconciliation_queue.json",
+      "present": true,
+      "ref": "work_terrain_build_cue_reconciliation_queue",
+      "used_as": "relationship_reference_only_no_content_duplication"
+    },
+    "work_terrain_surface_map_build_cue_scout": {
+      "path": "generated/read_models/work_terrain_surface_map_build_cue_scout.json",
+      "present": true,
+      "ref": "work_terrain_surface_map_build_cue_scout",
+      "used_as": "relationship_reference_only_no_content_duplication"
+    }
+  },
+  "schema_version": "meaningful_work_gravity_contract_v0",
+  "security_privacy_rules": {
+    "compute_commons_default_off": true,
+    "credentials_tokens_cookies_private_keys_forbidden": true,
+    "no_raw_pii_in_generated_read_models": true,
+    "no_raw_private_bodies": true,
+    "no_raw_protected_values_in_operator_markdown": true,
+    "tokenization_contract_referenced_not_invoked": true
+  },
+  "work_categories": [
+    "immediate_operator_need",
+    "reusable_system_rail",
+    "safety_privacy_improvement",
+    "efficiency_waste_reduction",
+    "client_productizable_pattern",
+    "creative_artistic_value",
+    "learning_onboarding_value",
+    "public_good_or_community_usefulness",
+    "low_compounding_sludge",
+    "harmful_refuse",
+    "unknown_needs_framing"
+  ]
+}

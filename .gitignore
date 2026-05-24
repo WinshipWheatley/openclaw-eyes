@@ -846,6 +846,7 @@
 !cross_surface_artifact_handoff_registry_contract.py
 !cross_surface_handoff_registry_compatibility_audit.py
 !cross_surface_handoff_registry_metadata_alignment.py
+!meaningful_work_gravity_contract.py
 !mission_control_capture_request_intake.py
 !operator_work_mode_schema_bandwidth_policy.py
 !operator_solve_path_decision_node_contract.py
@@ -896,6 +897,7 @@
 !scripts/export_cross_surface_artifact_handoff_registry_contract.py
 !scripts/export_cross_surface_handoff_registry_compatibility_audit.py
 !scripts/export_cross_surface_handoff_registry_metadata_alignment.py
+!scripts/export_meaningful_work_gravity_contract.py
 !scripts/import_mission_control_capture_request.py
 !scripts/export_operator_work_mode_schema_bandwidth_policy.py
 !scripts/export_operator_solve_path_decision_node_contract.py
@@ -938,6 +940,7 @@
 !tests/test_cross_surface_artifact_handoff_registry_contract.py
 !tests/test_cross_surface_handoff_registry_compatibility_audit.py
 !tests/test_cross_surface_handoff_registry_metadata_alignment.py
+!tests/test_meaningful_work_gravity_contract.py
 !tests/test_mission_control_capture_request_intake.py
 !tests/test_operator_work_mode_schema_bandwidth_policy.py
 !tests/test_operator_solve_path_decision_node_contract.py
