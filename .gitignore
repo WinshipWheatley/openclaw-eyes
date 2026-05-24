@@ -839,6 +839,7 @@
 !capital_hilton_proof_quieting_progress_state.py
 !capital_hilton_coupa_po_retrieval_automation_candidate.py
 !capital_hilton_invoice_delivery_steel_thread.py
+!capital_hilton_invoice_artifact_generator.py
 !mission_control_capture_request_intake.py
 !operator_work_mode_schema_bandwidth_policy.py
 !operator_solve_path_decision_node_contract.py
@@ -882,6 +883,7 @@
 !scripts/export_capital_hilton_proof_quieting_progress_state.py
 !scripts/export_capital_hilton_coupa_po_retrieval_automation_candidate.py
 !scripts/export_capital_hilton_invoice_delivery_steel_thread.py
+!scripts/export_capital_hilton_invoice_artifact_generator.py
 !scripts/import_mission_control_capture_request.py
 !scripts/export_operator_work_mode_schema_bandwidth_policy.py
 !scripts/export_operator_solve_path_decision_node_contract.py
@@ -917,6 +919,7 @@
 !tests/test_capital_hilton_proof_quieting_progress_state.py
 !tests/test_capital_hilton_coupa_po_retrieval_automation_candidate.py
 !tests/test_capital_hilton_invoice_delivery_steel_thread.py
+!tests/test_capital_hilton_invoice_artifact_generator.py
 !tests/test_mission_control_capture_request_intake.py
 !tests/test_operator_work_mode_schema_bandwidth_policy.py
 !tests/test_operator_solve_path_decision_node_contract.py
@@ -943,6 +946,9 @@
 !generated/read_models/*.json
 !generated/read_models/*.txt
 !generated/read_models/*.md
+!generated/finance_packets/
+!generated/finance_packets/capital_hilton_invoice_artifact_preview_v0/
+!generated/finance_packets/capital_hilton_invoice_artifact_preview_v0/*.md
 !generated/context_packs/
 !generated/context_packs/**/
 !generated/context_packs/**/*.json
