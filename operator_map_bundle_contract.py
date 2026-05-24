@@ -90,6 +90,14 @@ OPERATOR_SOLVE_PATH_DECISION_NODE_CONTRACT_READ_MODEL_PATH = "generated/read_mod
 GUIDED_CAPTURE_PROTECTED_EVIDENCE_PATH_CONTRACT_READ_MODEL_PATH = "generated/read_models/guided_capture_protected_evidence_path_contract.json"
 WORKFLOW_SESSION_CHANNEL_PROJECTION_APPROVAL_BUS_CONTRACT_READ_MODEL_PATH = "generated/read_models/workflow_session_channel_projection_approval_bus_contract.json"
 AUTOMATION_READINESS_FEASIBILITY_EVALUATOR_CONTRACT_READ_MODEL_PATH = "generated/read_models/automation_readiness_feasibility_evaluator_contract.json"
+WORKFLOW_BLOCK_INTENT_LIVE_DRAFT_CONTRACT_READ_MODEL_PATH = "generated/read_models/workflow_block_intent_live_draft_contract.json"
+BRIDGE_ROUTING_OPERATOR_ATTENTION_CONTRACT_READ_MODEL_PATH = "generated/read_models/bridge_routing_operator_attention_contract.json"
+AGENT_CONVERSATION_HANDOFF_STEP_PACKET_CONTRACT_READ_MODEL_PATH = "generated/read_models/agent_conversation_handoff_step_packet_contract.json"
+AGENT_EXECUTION_PACKET_COMPILER_CONTRACT_READ_MODEL_PATH = "generated/read_models/agent_execution_packet_compiler_contract.json"
+OPERATOR_QUESTION_ASSIST_SCOPE_EXPANSION_CONTRACT_READ_MODEL_PATH = "generated/read_models/operator_question_assist_scope_expansion_contract.json"
+WORK_TERRAIN_SURFACE_MAP_BUILD_CUE_SCOUT_READ_MODEL_PATH = "generated/read_models/work_terrain_surface_map_build_cue_scout.json"
+WORK_TERRAIN_BUILD_CUE_RECONCILIATION_QUEUE_READ_MODEL_PATH = "generated/read_models/work_terrain_build_cue_reconciliation_queue.json"
+CONTEXT_SELECTION_READ_MODEL_PATH = "generated/read_models/context_selection.json"
 
 ESSENTIAL_SURFACES = (
     {
@@ -266,6 +274,41 @@ ESSENTIAL_SURFACES = (
         "surface_id": "automation_readiness_feasibility_evaluator_contract",
         "path": AUTOMATION_READINESS_FEASIBILITY_EVALUATOR_CONTRACT_READ_MODEL_PATH,
         "role": "automation bottleneck, readiness, infrastructure, and dead-on-arrival feasibility summary",
+    },
+    {
+        "surface_id": "workflow_block_intent_live_draft_contract",
+        "path": WORKFLOW_BLOCK_INTENT_LIVE_DRAFT_CONTRACT_READ_MODEL_PATH,
+        "role": "workflow block live drafts, explicit capture boundary, and current/draft/captured state distinction",
+    },
+    {
+        "surface_id": "bridge_routing_operator_attention_contract",
+        "path": BRIDGE_ROUTING_OPERATOR_ATTENTION_CONTRACT_READ_MODEL_PATH,
+        "role": "Bridge/Helm vs World vs Below Deck vs Shipyard attention routing summary",
+    },
+    {
+        "surface_id": "agent_conversation_handoff_step_packet_contract",
+        "path": AGENT_CONVERSATION_HANDOFF_STEP_PACKET_CONTRACT_READ_MODEL_PATH,
+        "role": "agent conversation handoff, liveness/progress, and structured operator return summary",
+    },
+    {
+        "surface_id": "agent_execution_packet_compiler_contract",
+        "path": AGENT_EXECUTION_PACKET_COMPILER_CONTRACT_READ_MODEL_PATH,
+        "role": "workflow block to focused agent packet compiler summary with context/capability boundaries",
+    },
+    {
+        "surface_id": "operator_question_assist_scope_expansion_contract",
+        "path": OPERATOR_QUESTION_ASSIST_SCOPE_EXPANSION_CONTRACT_READ_MODEL_PATH,
+        "role": "smart question assist, domain familiarity hints, help-to-workflow paths, and scope expansion missions",
+    },
+    {
+        "surface_id": "work_terrain_surface_map_build_cue_scout",
+        "path": WORK_TERRAIN_SURFACE_MAP_BUILD_CUE_SCOUT_READ_MODEL_PATH,
+        "role": "shallow-first Work Terrain surface map, clusters, deep-dive candidates, and scout recommendations",
+    },
+    {
+        "surface_id": "work_terrain_build_cue_reconciliation_queue",
+        "path": WORK_TERRAIN_BUILD_CUE_RECONCILIATION_QUEUE_READ_MODEL_PATH,
+        "role": "prioritized Work Terrain build/reconciliation queue above the Surface Map Scout",
     },
     {
         "surface_id": "operator_workbench_actor_host_registry",
@@ -2668,6 +2711,273 @@ def _summarize_automation_readiness_feasibility_evaluator_contract(payload: dict
     }
 
 
+def _machine_all_authority_false(payload: dict[str, Any]) -> bool:
+    machine = payload.get("machine_proof") if isinstance(payload.get("machine_proof"), dict) else {}
+    boundary = payload.get("authority_boundary") if isinstance(payload.get("authority_boundary"), dict) else {}
+    return (
+        machine.get("all_authority_flags_false") is True
+        or machine.get("safety_boundaries_all_false") is True
+        or all(value is False for value in boundary.values())
+    )
+
+
+def _summarize_workflow_block_intent_live_draft_contract(payload: dict[str, Any]) -> dict[str, Any]:
+    machine = payload.get("machine_proof") if isinstance(payload.get("machine_proof"), dict) else {}
+    return {
+        "section_id": "workflow_block_intent_live_draft_contract",
+        "source_read_model_ref": WORKFLOW_BLOCK_INTENT_LIVE_DRAFT_CONTRACT_READ_MODEL_PATH,
+        "source_operator_ref": "generated/read_models/workflow_block_intent_live_draft_contract_OPERATOR.md",
+        "present": bool(payload),
+        "primary_app_contract": True,
+        "individual_contract_read_model_remains_proof_detail": True,
+        "app_facing_summary": "Workflow blocks can be edited as live drafts; current state, active draft, and future captured state remain distinct.",
+        "draft_intent_count": machine.get("draft_intent_count"),
+        "workspace_count": machine.get("workspace_count"),
+        "agent_proposal_count": machine.get("agent_proposal_count"),
+        "validation_result_count": machine.get("validation_result_count"),
+        "capture_boundary_count": machine.get("capture_boundary_count"),
+        "conversational_flow_count": machine.get("conversational_flow_count"),
+        "current_vs_draft_vs_captured_state_distinct": machine.get("current_vs_draft_vs_captured_state_distinct") is True,
+        "draft_input_updates_downstream_preview": machine.get("draft_input_updates_downstream_preview") is True,
+        "capture_boundary_is_explicit": machine.get("capture_boundary_is_explicit") is True,
+        "agent_proposal_cannot_commit_truth": machine.get("agent_proposal_cannot_commit_truth") is True,
+        "validator_cannot_execute": machine.get("validator_cannot_execute") is True,
+        "no_durable_write_or_execution": _machine_all_authority_false(payload),
+        "action_authority_granted": not _machine_all_authority_false(payload),
+        "next_safe_move": "Use live drafts for preview; wait for future capture/receipt writer lanes before durable state changes.",
+    }
+
+
+def _summarize_bridge_routing_operator_attention_contract(payload: dict[str, Any]) -> dict[str, Any]:
+    machine = payload.get("machine_proof") if isinstance(payload.get("machine_proof"), dict) else {}
+    return {
+        "section_id": "bridge_routing_operator_attention_contract",
+        "source_read_model_ref": BRIDGE_ROUTING_OPERATOR_ATTENTION_CONTRACT_READ_MODEL_PATH,
+        "source_operator_ref": "generated/read_models/bridge_routing_operator_attention_contract_OPERATOR.md",
+        "present": bool(payload),
+        "primary_app_contract": True,
+        "individual_contract_read_model_remains_proof_detail": True,
+        "app_facing_summary": "Bridge routes captain-level attention. Worlds do work. Engineering stays below deck.",
+        "attention_record_count": machine.get("attention_record_count"),
+        "routing_decision_count": machine.get("routing_decision_count"),
+        "world_surface_count": machine.get("world_surface_count"),
+        "below_deck_detail_count": machine.get("below_deck_detail_count"),
+        "crew_briefing_count": machine.get("crew_briefing_count"),
+        "shipyard_record_count": machine.get("shipyard_record_count"),
+        "alert_policy_count": machine.get("alert_policy_count"),
+        "capital_hilton_routes_to_finance_world": machine.get("capital_hilton_routes_to_finance_world") is True,
+        "capital_hilton_not_raw_helm_workspace": machine.get("capital_hilton_not_raw_helm_workspace") is True,
+        "proof_debug_detail_below_deck_by_default": machine.get("proof_debug_detail_below_deck_by_default") is True,
+        "engineering_contained_does_not_interrupt": machine.get("engineering_contained_does_not_interrupt") is True,
+        "shipyard_separates_developer_noise": machine.get("shipyard_separates_developer_noise") is True,
+        "red_alert_interrupts_only_when_captain_decision_required": (
+            machine.get("red_alert_interrupts_only_when_captain_decision_required") is True
+        ),
+        "action_authority_granted": not _machine_all_authority_false(payload),
+        "next_safe_move": "Route only captain-level decisions to Helm; keep proof/status/debug below deck or in Shipyard.",
+    }
+
+
+def _summarize_agent_conversation_handoff_step_packet_contract(payload: dict[str, Any]) -> dict[str, Any]:
+    machine = payload.get("machine_proof") if isinstance(payload.get("machine_proof"), dict) else {}
+    status_states = payload.get("status_states") if isinstance(payload.get("status_states"), list) else []
+    required_states = ("THINKING", "TYPING", "MAKING_PACKET", "WAITING_ON_SYSTEM", "WAITING_ON_OPERATOR", "OFFLINE", "STALLED", "TIMED_OUT", "BLOCKED")
+    return {
+        "section_id": "agent_conversation_handoff_step_packet_contract",
+        "source_read_model_ref": AGENT_CONVERSATION_HANDOFF_STEP_PACKET_CONTRACT_READ_MODEL_PATH,
+        "source_operator_ref": "generated/read_models/agent_conversation_handoff_step_packet_contract_OPERATOR.md",
+        "present": bool(payload),
+        "primary_app_contract": True,
+        "individual_contract_read_model_remains_proof_detail": True,
+        "app_facing_summary": "Agents receive and return structured handoffs; liveness states keep Winship from guessing whether work is moving, waiting, offline, or stalled.",
+        "handoff_session_count": machine.get("handoff_session_count"),
+        "step_packet_count": machine.get("step_packet_count"),
+        "exchange_count": machine.get("exchange_count"),
+        "operator_handoff_count": machine.get("operator_handoff_count"),
+        "liveness_status_count": machine.get("liveness_status_count"),
+        "timeout_policy_count": machine.get("timeout_policy_count"),
+        "visibility_policy_count": machine.get("visibility_policy_count"),
+        "required_liveness_states_present": set(required_states) <= set(status_states),
+        "status_states": [state for state in required_states if state in status_states],
+        "agent_system_exchanges_below_deck_by_default": (
+            machine.get("agent_system_exchanges_below_deck_by_default") is True
+        ),
+        "operator_handoff_only_when_needed": machine.get("operator_handoff_only_when_needed") is True,
+        "no_live_agent_or_message_execution": _machine_all_authority_false(payload),
+        "action_authority_granted": not _machine_all_authority_false(payload),
+        "next_safe_move": "Show calm liveness/progress and hand back only when operator input is needed.",
+    }
+
+
+def _summarize_agent_execution_packet_compiler_contract(payload: dict[str, Any]) -> dict[str, Any]:
+    machine = payload.get("machine_proof") if isinstance(payload.get("machine_proof"), dict) else {}
+    upstream = (
+        payload.get("upstream_substrate_context_selection_refs_by_id", {}).get("context_selection_knowledge_packet_v0", {})
+        if isinstance(payload.get("upstream_substrate_context_selection_refs_by_id"), dict)
+        else {}
+    )
+    return {
+        "section_id": "agent_execution_packet_compiler_contract",
+        "source_read_model_ref": AGENT_EXECUTION_PACKET_COMPILER_CONTRACT_READ_MODEL_PATH,
+        "source_operator_ref": "generated/read_models/agent_execution_packet_compiler_contract_OPERATOR.md",
+        "present": bool(payload),
+        "primary_app_contract": True,
+        "individual_contract_read_model_remains_proof_detail": True,
+        "app_facing_summary": "Agents get focused packets, not the whole ship. Tools are capabilities, not authority.",
+        "execution_packet_count": machine.get("execution_packet_count"),
+        "compiler_count": machine.get("compiler_count"),
+        "context_policy_count": machine.get("context_policy_count"),
+        "capability_policy_count": machine.get("capability_policy_count"),
+        "return_shape_count": machine.get("return_shape_count"),
+        "packet_chain_count": machine.get("packet_chain_count"),
+        "operator_context_hint_count": machine.get("operator_context_hint_count"),
+        "upstream_context_selection_ref_count": machine.get("upstream_context_selection_ref_count"),
+        "context_selection_upstream_substrate": upstream.get("classification") == "UPSTREAM_SUBSTRATE_CONTEXT_SELECTION",
+        "context_selection_source_ref": upstream.get("source_read_model_ref") or CONTEXT_SELECTION_READ_MODEL_PATH,
+        "context_selection_consumable_ref_types": upstream.get("consumable_ref_types", []),
+        "upstream_compiler_grants_no_tool_runtime_execution_authority": (
+            machine.get("upstream_compiler_grants_no_tool_runtime_execution_authority") is True
+        ),
+        "packets_are_narrow_focused": machine.get("packets_are_narrow_focused") is True,
+        "packets_include_allowed_and_blocked_capabilities": (
+            machine.get("packets_include_allowed_and_blocked_capabilities") is True
+        ),
+        "return_shapes_reject_freeform_only": machine.get("return_shapes_reject_freeform_only") is True,
+        "no_live_execution": _machine_all_authority_false(payload),
+        "action_authority_granted": not _machine_all_authority_false(payload),
+        "next_safe_move": "Compile only focused packet shapes; do not run models, tools, MCPs, scripts, hooks, or agents.",
+    }
+
+
+def _summarize_operator_question_assist_scope_expansion_contract(payload: dict[str, Any]) -> dict[str, Any]:
+    machine = payload.get("machine_proof") if isinstance(payload.get("machine_proof"), dict) else {}
+    return {
+        "section_id": "operator_question_assist_scope_expansion_contract",
+        "source_read_model_ref": OPERATOR_QUESTION_ASSIST_SCOPE_EXPANSION_CONTRACT_READ_MODEL_PATH,
+        "source_operator_ref": "generated/read_models/operator_question_assist_scope_expansion_contract_OPERATOR.md",
+        "present": bool(payload),
+        "primary_app_contract": True,
+        "individual_contract_read_model_remains_proof_detail": True,
+        "app_facing_summary": "OpenClaw turns unfamiliar work into navigable missions.",
+        "question_assist_count": machine.get("question_assist_count"),
+        "domain_hint_count": machine.get("domain_hint_count"),
+        "scope_mission_count": machine.get("scope_mission_count"),
+        "workflow_path_count": machine.get("workflow_path_count"),
+        "agent_behavior_count": machine.get("agent_behavior_count"),
+        "jargon_explained_without_hidden_terms": machine.get("jargon_explained_without_hidden_terms") is True,
+        "help_paths_become_workflow_options": machine.get("help_paths_become_workflow_options") is True,
+        "discovery_option_present": machine.get("discovery_option_present") is True,
+        "guided_capture_option_present": machine.get("guided_capture_option_present") is True,
+        "domain_familiarity_hint_compact": machine.get("domain_familiarity_hint_compact") is True,
+        "deeper_support_packet_optional_on_demand": machine.get("deeper_support_packet_optional_on_demand") is True,
+        "agents_cannot_commit_truth_or_execute": machine.get("agents_cannot_commit_truth_or_execute") is True,
+        "legal_financial_advice_authority": False,
+        "action_authority_granted": not _machine_all_authority_false(payload),
+        "next_safe_move": "Turn unfamiliar-domain uncertainty into block choices, discovery paths, guided capture, or agent help.",
+    }
+
+
+def _summarize_work_terrain_surface_map_build_cue_scout(payload: dict[str, Any]) -> dict[str, Any]:
+    machine = payload.get("machine_proof") if isinstance(payload.get("machine_proof"), dict) else {}
+    return {
+        "section_id": "work_terrain_surface_map_build_cue_scout",
+        "source_read_model_ref": WORK_TERRAIN_SURFACE_MAP_BUILD_CUE_SCOUT_READ_MODEL_PATH,
+        "source_operator_ref": "generated/read_models/work_terrain_surface_map_build_cue_scout_OPERATOR.md",
+        "present": bool(payload),
+        "primary_app_contract": True,
+        "individual_contract_read_model_remains_proof_detail": True,
+        "app_facing_summary": "Shallow-first terrain map: surface records, clusters, deep-dive candidates, and scout recommendations.",
+        "record_count": len(payload.get("default_records", [])) if isinstance(payload.get("default_records"), list) else machine.get("default_record_count"),
+        "cluster_count": len(payload.get("default_clusters", [])) if isinstance(payload.get("default_clusters"), list) else None,
+        "deep_dive_candidate_count": len(payload.get("default_deep_dives", [])) if isinstance(payload.get("default_deep_dives"), list) else None,
+        "scout_recommendation_count": len(payload.get("default_scout_recommendations", [])) if isinstance(payload.get("default_scout_recommendations"), list) else None,
+        "shallow_first_doctrine_represented": machine.get("shallow_first_doctrine_represented") is True,
+        "workflow_packet_cluster_represented": machine.get("workflow_packet_cluster_represented") is True,
+        "operator_question_assist_cluster_represented": machine.get("operator_question_assist_cluster_represented") is True,
+        "no_raw_body_ingestion": machine.get("no_raw_body_ingestion") is True,
+        "no_auto_build_or_live_execution": machine.get("no_live_execution") is True,
+        "action_authority_granted": not _machine_all_authority_false(payload),
+        "next_safe_move": "Map broadly first, then select build-cue candidates without raw body ingestion or auto-build.",
+    }
+
+
+def _summarize_work_terrain_build_cue_reconciliation_queue(payload: dict[str, Any]) -> dict[str, Any]:
+    machine = payload.get("machine_proof") if isinstance(payload.get("machine_proof"), dict) else {}
+    queue = payload.get("default_queue") if isinstance(payload.get("default_queue"), dict) else {}
+    return {
+        "section_id": "work_terrain_build_cue_reconciliation_queue",
+        "source_read_model_ref": WORK_TERRAIN_BUILD_CUE_RECONCILIATION_QUEUE_READ_MODEL_PATH,
+        "source_operator_ref": "generated/read_models/work_terrain_build_cue_reconciliation_queue_OPERATOR.md",
+        "present": bool(payload),
+        "primary_app_contract": True,
+        "individual_contract_read_model_remains_proof_detail": True,
+        "app_facing_summary": "Build Cue prioritizes build/reconciliation candidates so good ideas land without auto-building.",
+        "candidate_count": machine.get("default_candidate_count"),
+        "ready_to_build_count": queue.get("ready_to_build_count"),
+        "blocked_count": queue.get("blocked_count"),
+        "parked_count": queue.get("parked_count"),
+        "below_deck_count": queue.get("below_deck_count"),
+        "priority_order": queue.get("priority_order", []),
+        "next_recommended_candidate": queue.get("next_recommended_candidate"),
+        "distinguishes_ready_blocked_parked_stale_unsafe_below_deck": True,
+        "packet_compiler_relationship_cue_represented": machine.get("packet_compiler_relationship_cue_represented") is True,
+        "operator_question_assist_cue_represented": machine.get("operator_question_assist_cue_represented") is True,
+        "no_mutation_promotion_or_auto_build": machine.get("no_live_execution") is True and machine.get("no_raw_body_ingestion") is True,
+        "action_authority_granted": not _machine_all_authority_false(payload),
+        "next_safe_move": queue.get("next_safe_move") or "Review priorities before committing to prompts.",
+    }
+
+
+def _summarize_consolidated_workflow_agent_bridge_scope_relationships(snapshot: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "section_id": "workflow_agent_bridge_scope_expansion_relationships",
+        "present": True,
+        "app_facing_summary": "Workflow blocks define work; Bridge routes attention; agents get focused packets; Question Assist turns uncertainty into paths; Atlas maps terrain and Build Cue turns good gaps into candidate lanes.",
+        "work_terrain_chain": {
+            "query_relationship_classification_gap_detector_feeds_surface_map_scout": True,
+            "surface_map_scout_feeds_build_cue_queue": True,
+            "source_refs": [
+                OPENCLAW_WORK_TERRAIN_QUERY_CONTRACT_READ_MODEL_PATH,
+                OPENCLAW_WORK_TERRAIN_RELATIONSHIP_INDEX_READ_MODEL_PATH,
+                OPENCLAW_WORK_TERRAIN_CLASSIFICATION_CANDIDATE_READ_MODEL_PATH,
+                OPENCLAW_WORK_TERRAIN_GAP_DETECTOR_READ_MODEL_PATH,
+                WORK_TERRAIN_SURFACE_MAP_BUILD_CUE_SCOUT_READ_MODEL_PATH,
+                WORK_TERRAIN_BUILD_CUE_RECONCILIATION_QUEUE_READ_MODEL_PATH,
+            ],
+        },
+        "context_selection_to_execution_packets": {
+            "context_selection_is_upstream_substrate": snapshot["agent_execution_packet_compiler_contract"].get("context_selection_upstream_substrate") is True,
+            "provides_allowed_context_read_model_source_card_proof_refs": True,
+            "does_not_grant_execution_authority": snapshot["agent_execution_packet_compiler_contract"].get("upstream_compiler_grants_no_tool_runtime_execution_authority") is True,
+            "source_ref": CONTEXT_SELECTION_READ_MODEL_PATH,
+        },
+        "workflow_block_to_agent_and_capture": {
+            "live_draft_feeds_conversation_handoff": True,
+            "live_draft_feeds_execution_packet_compiler": True,
+            "future_capture_receipt_writer_lanes_required": True,
+            "durable_write_execution_now": False,
+        },
+        "bridge_visibility_routing": {
+            "helm_vs_world_vs_below_deck_vs_shipyard": True,
+            "prevents_proof_status_card_walls": True,
+            "capital_hilton_finance_world_not_raw_helm": snapshot["bridge_routing_operator_attention_contract"].get("capital_hilton_not_raw_helm_workspace") is True,
+        },
+        "question_assist_to_workflow_paths": {
+            "feeds_block_choices": True,
+            "feeds_discovery_paths": snapshot["operator_question_assist_scope_expansion_contract"].get("discovery_option_present") is True,
+            "feeds_guided_capture_options": snapshot["operator_question_assist_scope_expansion_contract"].get("guided_capture_option_present") is True,
+            "feeds_agent_help": True,
+            "feeds_scope_expansion_missions": True,
+            "supports_telegram_and_mission_control": True,
+        },
+        "authority_posture": {
+            "no_live_authority_added": True,
+            "no_receipt_state_writer_added": True,
+            "no_invoice_email_send_browser_coupa_gmail_telegram_credential_authority": True,
+        },
+    }
+
+
 def _safe_portrait_asset_ref(value: Any) -> dict[str, Any] | None:
     if not isinstance(value, dict):
         return None
@@ -3013,6 +3323,34 @@ def build_openclaw_map_snapshot(
         AUTOMATION_READINESS_FEASIBILITY_EVALUATOR_CONTRACT_READ_MODEL_PATH,
         repo_root=repo_root,
     )
+    workflow_block_intent_live_draft_contract = _read_json_if_present(
+        WORKFLOW_BLOCK_INTENT_LIVE_DRAFT_CONTRACT_READ_MODEL_PATH,
+        repo_root=repo_root,
+    )
+    bridge_routing_operator_attention_contract = _read_json_if_present(
+        BRIDGE_ROUTING_OPERATOR_ATTENTION_CONTRACT_READ_MODEL_PATH,
+        repo_root=repo_root,
+    )
+    agent_conversation_handoff_step_packet_contract = _read_json_if_present(
+        AGENT_CONVERSATION_HANDOFF_STEP_PACKET_CONTRACT_READ_MODEL_PATH,
+        repo_root=repo_root,
+    )
+    agent_execution_packet_compiler_contract = _read_json_if_present(
+        AGENT_EXECUTION_PACKET_COMPILER_CONTRACT_READ_MODEL_PATH,
+        repo_root=repo_root,
+    )
+    operator_question_assist_scope_expansion_contract = _read_json_if_present(
+        OPERATOR_QUESTION_ASSIST_SCOPE_EXPANSION_CONTRACT_READ_MODEL_PATH,
+        repo_root=repo_root,
+    )
+    work_terrain_surface_map_build_cue_scout = _read_json_if_present(
+        WORK_TERRAIN_SURFACE_MAP_BUILD_CUE_SCOUT_READ_MODEL_PATH,
+        repo_root=repo_root,
+    )
+    work_terrain_build_cue_reconciliation_queue = _read_json_if_present(
+        WORK_TERRAIN_BUILD_CUE_RECONCILIATION_QUEUE_READ_MODEL_PATH,
+        repo_root=repo_root,
+    )
     terrain_awareness = _read_json_if_present(AGENT_TERRAIN_READ_MODEL_PATH, repo_root=repo_root)
     snapshot: dict[str, Any] = {
         "schema_version": MAP_SNAPSHOT_SCHEMA_VERSION,
@@ -3111,6 +3449,27 @@ def build_openclaw_map_snapshot(
         "automation_readiness_feasibility_evaluator_contract": _summarize_automation_readiness_feasibility_evaluator_contract(
             automation_readiness_feasibility_evaluator_contract
         ),
+        "workflow_block_intent_live_draft_contract": _summarize_workflow_block_intent_live_draft_contract(
+            workflow_block_intent_live_draft_contract
+        ),
+        "bridge_routing_operator_attention_contract": _summarize_bridge_routing_operator_attention_contract(
+            bridge_routing_operator_attention_contract
+        ),
+        "agent_conversation_handoff_step_packet_contract": _summarize_agent_conversation_handoff_step_packet_contract(
+            agent_conversation_handoff_step_packet_contract
+        ),
+        "agent_execution_packet_compiler_contract": _summarize_agent_execution_packet_compiler_contract(
+            agent_execution_packet_compiler_contract
+        ),
+        "operator_question_assist_scope_expansion_contract": _summarize_operator_question_assist_scope_expansion_contract(
+            operator_question_assist_scope_expansion_contract
+        ),
+        "work_terrain_surface_map_build_cue_scout": _summarize_work_terrain_surface_map_build_cue_scout(
+            work_terrain_surface_map_build_cue_scout
+        ),
+        "work_terrain_build_cue_reconciliation_queue": _summarize_work_terrain_build_cue_reconciliation_queue(
+            work_terrain_build_cue_reconciliation_queue
+        ),
         "proof_references": {
             "policy": "proof references point to read-model paths and receipts; raw private bodies are not embedded",
             "essential_surfaces": _essential_surface_records(repo_root),
@@ -3157,6 +3516,9 @@ def build_openclaw_map_snapshot(
         "credentials_included": False,
         "secrets_included": False,
     }
+    snapshot["workflow_agent_bridge_scope_expansion_relationships"] = _summarize_consolidated_workflow_agent_bridge_scope_relationships(
+        snapshot
+    )
     snapshot_hash = _content_hash(snapshot)
     snapshot["snapshot_hash"] = snapshot_hash
     snapshot["map_generation_id"] = f"map_{snapshot_hash.removeprefix('sha256:')[:20]}"
@@ -3408,6 +3770,26 @@ def build_operator_map_bundle_contract(
             "automation_bottleneck_assessment_count": snapshot["automation_readiness_feasibility_evaluator_contract"]["bottleneck_assessment_count"],
             "automation_readiness_evaluation_count": snapshot["automation_readiness_feasibility_evaluator_contract"]["readiness_evaluation_count"],
             "automation_all_authority_flags_false": snapshot["automation_readiness_feasibility_evaluator_contract"]["all_authority_flags_false"],
+            "workflow_block_live_draft_present": snapshot["workflow_block_intent_live_draft_contract"]["present"],
+            "workflow_block_draft_intent_count": snapshot["workflow_block_intent_live_draft_contract"]["draft_intent_count"],
+            "workflow_block_capture_boundary_count": snapshot["workflow_block_intent_live_draft_contract"]["capture_boundary_count"],
+            "bridge_routing_attention_present": snapshot["bridge_routing_operator_attention_contract"]["present"],
+            "bridge_attention_record_count": snapshot["bridge_routing_operator_attention_contract"]["attention_record_count"],
+            "bridge_capital_hilton_routes_to_finance_world": snapshot["bridge_routing_operator_attention_contract"]["capital_hilton_routes_to_finance_world"],
+            "agent_handoff_present": snapshot["agent_conversation_handoff_step_packet_contract"]["present"],
+            "agent_handoff_session_count": snapshot["agent_conversation_handoff_step_packet_contract"]["handoff_session_count"],
+            "agent_liveness_status_count": snapshot["agent_conversation_handoff_step_packet_contract"]["liveness_status_count"],
+            "agent_execution_packet_compiler_present": snapshot["agent_execution_packet_compiler_contract"]["present"],
+            "agent_execution_packet_count": snapshot["agent_execution_packet_compiler_contract"]["execution_packet_count"],
+            "context_selection_upstream_substrate": snapshot["agent_execution_packet_compiler_contract"]["context_selection_upstream_substrate"],
+            "operator_question_assist_present": snapshot["operator_question_assist_scope_expansion_contract"]["present"],
+            "operator_question_assist_count": snapshot["operator_question_assist_scope_expansion_contract"]["question_assist_count"],
+            "operator_scope_mission_count": snapshot["operator_question_assist_scope_expansion_contract"]["scope_mission_count"],
+            "work_terrain_surface_map_scout_present": snapshot["work_terrain_surface_map_build_cue_scout"]["present"],
+            "work_terrain_surface_map_record_count": snapshot["work_terrain_surface_map_build_cue_scout"]["record_count"],
+            "work_terrain_build_cue_queue_present": snapshot["work_terrain_build_cue_reconciliation_queue"]["present"],
+            "work_terrain_build_cue_candidate_count": snapshot["work_terrain_build_cue_reconciliation_queue"]["candidate_count"],
+            "workflow_agent_bridge_scope_relationships_present": snapshot["workflow_agent_bridge_scope_expansion_relationships"]["present"],
             "security_audit_readiness_present": snapshot["security_audit_readiness"]["present"],
             "security_ready_for_pass": snapshot["security_audit_readiness"]["ready_for_security_pass"],
             "security_approval_granted": snapshot["security_audit_readiness"]["security_approval_granted"],
@@ -3859,6 +4241,95 @@ def build_operator_map_bundle_contract(
             "action_authority_granted": snapshot["automation_readiness_feasibility_evaluator_contract"]["action_authority_granted"],
             "individual_contract_read_model_remains_proof_detail": True,
         },
+        "workflow_block_intent_live_draft_contract_integration": {
+            "summary_included_in_snapshot": snapshot["workflow_block_intent_live_draft_contract"]["present"],
+            "draft_intent_count": snapshot["workflow_block_intent_live_draft_contract"]["draft_intent_count"],
+            "workspace_count": snapshot["workflow_block_intent_live_draft_contract"]["workspace_count"],
+            "capture_boundary_count": snapshot["workflow_block_intent_live_draft_contract"]["capture_boundary_count"],
+            "current_vs_draft_vs_captured_state_distinct": snapshot["workflow_block_intent_live_draft_contract"]["current_vs_draft_vs_captured_state_distinct"],
+            "capture_boundary_is_explicit": snapshot["workflow_block_intent_live_draft_contract"]["capture_boundary_is_explicit"],
+            "no_durable_write_or_execution": snapshot["workflow_block_intent_live_draft_contract"]["no_durable_write_or_execution"],
+            "action_authority_granted": snapshot["workflow_block_intent_live_draft_contract"]["action_authority_granted"],
+            "individual_contract_read_model_remains_proof_detail": True,
+        },
+        "bridge_routing_operator_attention_contract_integration": {
+            "summary_included_in_snapshot": snapshot["bridge_routing_operator_attention_contract"]["present"],
+            "attention_record_count": snapshot["bridge_routing_operator_attention_contract"]["attention_record_count"],
+            "routing_decision_count": snapshot["bridge_routing_operator_attention_contract"]["routing_decision_count"],
+            "world_surface_count": snapshot["bridge_routing_operator_attention_contract"]["world_surface_count"],
+            "below_deck_detail_count": snapshot["bridge_routing_operator_attention_contract"]["below_deck_detail_count"],
+            "capital_hilton_routes_to_finance_world": snapshot["bridge_routing_operator_attention_contract"]["capital_hilton_routes_to_finance_world"],
+            "proof_debug_detail_below_deck_by_default": snapshot["bridge_routing_operator_attention_contract"]["proof_debug_detail_below_deck_by_default"],
+            "engineering_contained_does_not_interrupt": snapshot["bridge_routing_operator_attention_contract"]["engineering_contained_does_not_interrupt"],
+            "shipyard_separates_developer_noise": snapshot["bridge_routing_operator_attention_contract"]["shipyard_separates_developer_noise"],
+            "action_authority_granted": snapshot["bridge_routing_operator_attention_contract"]["action_authority_granted"],
+            "individual_contract_read_model_remains_proof_detail": True,
+        },
+        "agent_conversation_handoff_step_packet_contract_integration": {
+            "summary_included_in_snapshot": snapshot["agent_conversation_handoff_step_packet_contract"]["present"],
+            "handoff_session_count": snapshot["agent_conversation_handoff_step_packet_contract"]["handoff_session_count"],
+            "step_packet_count": snapshot["agent_conversation_handoff_step_packet_contract"]["step_packet_count"],
+            "operator_handoff_count": snapshot["agent_conversation_handoff_step_packet_contract"]["operator_handoff_count"],
+            "liveness_status_count": snapshot["agent_conversation_handoff_step_packet_contract"]["liveness_status_count"],
+            "required_liveness_states_present": snapshot["agent_conversation_handoff_step_packet_contract"]["required_liveness_states_present"],
+            "agent_system_exchanges_below_deck_by_default": snapshot["agent_conversation_handoff_step_packet_contract"]["agent_system_exchanges_below_deck_by_default"],
+            "operator_handoff_only_when_needed": snapshot["agent_conversation_handoff_step_packet_contract"]["operator_handoff_only_when_needed"],
+            "no_live_agent_or_message_execution": snapshot["agent_conversation_handoff_step_packet_contract"]["no_live_agent_or_message_execution"],
+            "action_authority_granted": snapshot["agent_conversation_handoff_step_packet_contract"]["action_authority_granted"],
+            "individual_contract_read_model_remains_proof_detail": True,
+        },
+        "agent_execution_packet_compiler_contract_integration": {
+            "summary_included_in_snapshot": snapshot["agent_execution_packet_compiler_contract"]["present"],
+            "execution_packet_count": snapshot["agent_execution_packet_compiler_contract"]["execution_packet_count"],
+            "compiler_count": snapshot["agent_execution_packet_compiler_contract"]["compiler_count"],
+            "context_policy_count": snapshot["agent_execution_packet_compiler_contract"]["context_policy_count"],
+            "capability_policy_count": snapshot["agent_execution_packet_compiler_contract"]["capability_policy_count"],
+            "return_shape_count": snapshot["agent_execution_packet_compiler_contract"]["return_shape_count"],
+            "packet_chain_count": snapshot["agent_execution_packet_compiler_contract"]["packet_chain_count"],
+            "context_selection_upstream_substrate": snapshot["agent_execution_packet_compiler_contract"]["context_selection_upstream_substrate"],
+            "upstream_compiler_grants_no_tool_runtime_execution_authority": snapshot["agent_execution_packet_compiler_contract"]["upstream_compiler_grants_no_tool_runtime_execution_authority"],
+            "packets_are_narrow_focused": snapshot["agent_execution_packet_compiler_contract"]["packets_are_narrow_focused"],
+            "action_authority_granted": snapshot["agent_execution_packet_compiler_contract"]["action_authority_granted"],
+            "individual_contract_read_model_remains_proof_detail": True,
+        },
+        "operator_question_assist_scope_expansion_contract_integration": {
+            "summary_included_in_snapshot": snapshot["operator_question_assist_scope_expansion_contract"]["present"],
+            "question_assist_count": snapshot["operator_question_assist_scope_expansion_contract"]["question_assist_count"],
+            "domain_hint_count": snapshot["operator_question_assist_scope_expansion_contract"]["domain_hint_count"],
+            "scope_mission_count": snapshot["operator_question_assist_scope_expansion_contract"]["scope_mission_count"],
+            "workflow_path_count": snapshot["operator_question_assist_scope_expansion_contract"]["workflow_path_count"],
+            "jargon_explained_without_hidden_terms": snapshot["operator_question_assist_scope_expansion_contract"]["jargon_explained_without_hidden_terms"],
+            "help_paths_become_workflow_options": snapshot["operator_question_assist_scope_expansion_contract"]["help_paths_become_workflow_options"],
+            "domain_familiarity_hint_compact": snapshot["operator_question_assist_scope_expansion_contract"]["domain_familiarity_hint_compact"],
+            "legal_financial_advice_authority": snapshot["operator_question_assist_scope_expansion_contract"]["legal_financial_advice_authority"],
+            "action_authority_granted": snapshot["operator_question_assist_scope_expansion_contract"]["action_authority_granted"],
+            "individual_contract_read_model_remains_proof_detail": True,
+        },
+        "work_terrain_surface_map_build_cue_scout_integration": {
+            "summary_included_in_snapshot": snapshot["work_terrain_surface_map_build_cue_scout"]["present"],
+            "record_count": snapshot["work_terrain_surface_map_build_cue_scout"]["record_count"],
+            "cluster_count": snapshot["work_terrain_surface_map_build_cue_scout"]["cluster_count"],
+            "deep_dive_candidate_count": snapshot["work_terrain_surface_map_build_cue_scout"]["deep_dive_candidate_count"],
+            "scout_recommendation_count": snapshot["work_terrain_surface_map_build_cue_scout"]["scout_recommendation_count"],
+            "shallow_first_doctrine_represented": snapshot["work_terrain_surface_map_build_cue_scout"]["shallow_first_doctrine_represented"],
+            "no_raw_body_ingestion": snapshot["work_terrain_surface_map_build_cue_scout"]["no_raw_body_ingestion"],
+            "no_auto_build_or_live_execution": snapshot["work_terrain_surface_map_build_cue_scout"]["no_auto_build_or_live_execution"],
+            "action_authority_granted": snapshot["work_terrain_surface_map_build_cue_scout"]["action_authority_granted"],
+            "individual_contract_read_model_remains_proof_detail": True,
+        },
+        "work_terrain_build_cue_reconciliation_queue_integration": {
+            "summary_included_in_snapshot": snapshot["work_terrain_build_cue_reconciliation_queue"]["present"],
+            "candidate_count": snapshot["work_terrain_build_cue_reconciliation_queue"]["candidate_count"],
+            "ready_to_build_count": snapshot["work_terrain_build_cue_reconciliation_queue"]["ready_to_build_count"],
+            "blocked_count": snapshot["work_terrain_build_cue_reconciliation_queue"]["blocked_count"],
+            "parked_count": snapshot["work_terrain_build_cue_reconciliation_queue"]["parked_count"],
+            "below_deck_count": snapshot["work_terrain_build_cue_reconciliation_queue"]["below_deck_count"],
+            "distinguishes_ready_blocked_parked_stale_unsafe_below_deck": snapshot["work_terrain_build_cue_reconciliation_queue"]["distinguishes_ready_blocked_parked_stale_unsafe_below_deck"],
+            "no_mutation_promotion_or_auto_build": snapshot["work_terrain_build_cue_reconciliation_queue"]["no_mutation_promotion_or_auto_build"],
+            "action_authority_granted": snapshot["work_terrain_build_cue_reconciliation_queue"]["action_authority_granted"],
+            "individual_contract_read_model_remains_proof_detail": True,
+        },
+        "workflow_agent_bridge_scope_expansion_relationships_integration": snapshot["workflow_agent_bridge_scope_expansion_relationships"],
         "sqlite_position": {
             "pc_sqlite_remains_durable_terrain_source": True,
             "mac_reads_immutable_exported_snapshot_not_live_pc_sqlite": True,
@@ -4086,6 +4557,46 @@ def format_openclaw_map_operator(snapshot: dict[str, Any], manifest: dict[str, A
     automation_readiness_contract = (
         snapshot.get("automation_readiness_feasibility_evaluator_contract", {})
         if isinstance(snapshot.get("automation_readiness_feasibility_evaluator_contract"), dict)
+        else {}
+    )
+    live_draft_contract = (
+        snapshot.get("workflow_block_intent_live_draft_contract", {})
+        if isinstance(snapshot.get("workflow_block_intent_live_draft_contract"), dict)
+        else {}
+    )
+    bridge_routing_contract = (
+        snapshot.get("bridge_routing_operator_attention_contract", {})
+        if isinstance(snapshot.get("bridge_routing_operator_attention_contract"), dict)
+        else {}
+    )
+    agent_handoff_contract = (
+        snapshot.get("agent_conversation_handoff_step_packet_contract", {})
+        if isinstance(snapshot.get("agent_conversation_handoff_step_packet_contract"), dict)
+        else {}
+    )
+    agent_execution_packet_contract = (
+        snapshot.get("agent_execution_packet_compiler_contract", {})
+        if isinstance(snapshot.get("agent_execution_packet_compiler_contract"), dict)
+        else {}
+    )
+    question_assist_contract = (
+        snapshot.get("operator_question_assist_scope_expansion_contract", {})
+        if isinstance(snapshot.get("operator_question_assist_scope_expansion_contract"), dict)
+        else {}
+    )
+    surface_map_scout = (
+        snapshot.get("work_terrain_surface_map_build_cue_scout", {})
+        if isinstance(snapshot.get("work_terrain_surface_map_build_cue_scout"), dict)
+        else {}
+    )
+    build_cue_queue = (
+        snapshot.get("work_terrain_build_cue_reconciliation_queue", {})
+        if isinstance(snapshot.get("work_terrain_build_cue_reconciliation_queue"), dict)
+        else {}
+    )
+    consolidated_relationships = (
+        snapshot.get("workflow_agent_bridge_scope_expansion_relationships", {})
+        if isinstance(snapshot.get("workflow_agent_bridge_scope_expansion_relationships"), dict)
         else {}
     )
     capital_facts = (
@@ -4408,6 +4919,99 @@ def format_openclaw_map_operator(snapshot: dict[str, Any], manifest: dict[str, A
             f"- Coupa/PO source read-model ref: `{automation_readiness_contract.get('coupa_po_retrieval_automation_candidate_source_read_model_ref')}`",
             f"- Manual fallback treated as target: `{str(not automation_readiness_contract.get('manual_fallback_is_not_target', False)).lower()}`",
             f"- Action authority granted: `{str(automation_readiness_contract.get('action_authority_granted')).lower()}`",
+            "",
+            "## Workflow Blocks / Agents / Bridge / Scope Expansion Layer",
+            "",
+            "- Bridge routes. Worlds do work. Engineering stays below deck.",
+            "- Agents get focused packets, not the whole ship.",
+            "- OpenClaw turns unfamiliar work into navigable missions.",
+            "- Atlas maps terrain; Build Cue turns good gaps into candidate lanes.",
+            "- No live authority has been added.",
+            "",
+            "### Workflow Block Intent / Live Draft",
+            "",
+            f"- Summary present: `{str(live_draft_contract.get('present')).lower()}`",
+            "- Workflow blocks can be edited as live drafts.",
+            f"- Draft intents: `{live_draft_contract.get('draft_intent_count')}`",
+            f"- Workspaces: `{live_draft_contract.get('workspace_count')}`",
+            f"- Capture boundaries: `{live_draft_contract.get('capture_boundary_count')}`",
+            f"- Current/draft/captured state distinct: `{str(live_draft_contract.get('current_vs_draft_vs_captured_state_distinct')).lower()}`",
+            f"- Explicit capture boundary: `{str(live_draft_contract.get('capture_boundary_is_explicit')).lower()}`",
+            f"- Durable write/execution now: `{str(not live_draft_contract.get('no_durable_write_or_execution', False)).lower()}`",
+            "",
+            "### Bridge Routing / Operator Attention",
+            "",
+            f"- Summary present: `{str(bridge_routing_contract.get('present')).lower()}`",
+            f"- Attention records: `{bridge_routing_contract.get('attention_record_count')}`",
+            f"- Routing decisions: `{bridge_routing_contract.get('routing_decision_count')}`",
+            f"- World surfaces: `{bridge_routing_contract.get('world_surface_count')}`",
+            f"- Below Deck details: `{bridge_routing_contract.get('below_deck_detail_count')}`",
+            f"- Capital Hilton routes to Finance World: `{str(bridge_routing_contract.get('capital_hilton_routes_to_finance_world')).lower()}`",
+            f"- Proof/debug below deck by default: `{str(bridge_routing_contract.get('proof_debug_detail_below_deck_by_default')).lower()}`",
+            f"- Shipyard separates build noise: `{str(bridge_routing_contract.get('shipyard_separates_developer_noise')).lower()}`",
+            "",
+            "### Agent Conversation Handoff / Step Packet",
+            "",
+            f"- Summary present: `{str(agent_handoff_contract.get('present')).lower()}`",
+            f"- Handoff sessions: `{agent_handoff_contract.get('handoff_session_count')}`",
+            f"- Step packets: `{agent_handoff_contract.get('step_packet_count')}`",
+            f"- Operator handoffs: `{agent_handoff_contract.get('operator_handoff_count')}`",
+            f"- Liveness states represented: `{', '.join(agent_handoff_contract.get('status_states', []))}`",
+            f"- Operator handoff only when needed: `{str(agent_handoff_contract.get('operator_handoff_only_when_needed')).lower()}`",
+            f"- Live agent/message execution: `{str(not agent_handoff_contract.get('no_live_agent_or_message_execution', False)).lower()}`",
+            "",
+            "### Agent Execution Packet Compiler",
+            "",
+            f"- Summary present: `{str(agent_execution_packet_contract.get('present')).lower()}`",
+            f"- Execution packets: `{agent_execution_packet_contract.get('execution_packet_count')}`",
+            f"- Compilers: `{agent_execution_packet_contract.get('compiler_count')}`",
+            f"- Context policies: `{agent_execution_packet_contract.get('context_policy_count')}`",
+            f"- Capability policies: `{agent_execution_packet_contract.get('capability_policy_count')}`",
+            f"- Return shapes: `{agent_execution_packet_contract.get('return_shape_count')}`",
+            f"- Context Selection upstream substrate: `{str(agent_execution_packet_contract.get('context_selection_upstream_substrate')).lower()}`",
+            f"- Upstream grants tool/runtime authority: `{str(not agent_execution_packet_contract.get('upstream_compiler_grants_no_tool_runtime_execution_authority', False)).lower()}`",
+            f"- Packets narrow/focused: `{str(agent_execution_packet_contract.get('packets_are_narrow_focused')).lower()}`",
+            "",
+            "### Operator Question Assist / Scope Expansion",
+            "",
+            f"- Summary present: `{str(question_assist_contract.get('present')).lower()}`",
+            f"- Question assists: `{question_assist_contract.get('question_assist_count')}`",
+            f"- Domain hints: `{question_assist_contract.get('domain_hint_count')}`",
+            f"- Scope missions: `{question_assist_contract.get('scope_mission_count')}`",
+            f"- Workflow paths: `{question_assist_contract.get('workflow_path_count')}`",
+            f"- Jargon explained without hidden terms: `{str(question_assist_contract.get('jargon_explained_without_hidden_terms')).lower()}`",
+            f"- Help paths become workflow options: `{str(question_assist_contract.get('help_paths_become_workflow_options')).lower()}`",
+            f"- Legal/financial advice authority: `{str(question_assist_contract.get('legal_financial_advice_authority')).lower()}`",
+            "",
+            "### Work Terrain Surface Map / Build Cue Scout",
+            "",
+            f"- Summary present: `{str(surface_map_scout.get('present')).lower()}`",
+            f"- Surface records: `{surface_map_scout.get('record_count')}`",
+            f"- Clusters: `{surface_map_scout.get('cluster_count')}`",
+            f"- Deep-dive candidates: `{surface_map_scout.get('deep_dive_candidate_count')}`",
+            f"- Scout recommendations: `{surface_map_scout.get('scout_recommendation_count')}`",
+            f"- Shallow-first doctrine: `{str(surface_map_scout.get('shallow_first_doctrine_represented')).lower()}`",
+            f"- Raw body ingestion: `{str(not surface_map_scout.get('no_raw_body_ingestion', False)).lower()}`",
+            f"- Auto-build/live execution: `{str(not surface_map_scout.get('no_auto_build_or_live_execution', False)).lower()}`",
+            "",
+            "### Work Terrain Build-Cue Reconciliation Queue",
+            "",
+            f"- Summary present: `{str(build_cue_queue.get('present')).lower()}`",
+            f"- Candidates: `{build_cue_queue.get('candidate_count')}`",
+            f"- Ready: `{build_cue_queue.get('ready_to_build_count')}`",
+            f"- Blocked: `{build_cue_queue.get('blocked_count')}`",
+            f"- Parked: `{build_cue_queue.get('parked_count')}`",
+            f"- Below deck: `{build_cue_queue.get('below_deck_count')}`",
+            f"- Distinguishes ready/blocked/parked/stale/unsafe/below deck: `{str(build_cue_queue.get('distinguishes_ready_blocked_parked_stale_unsafe_below_deck')).lower()}`",
+            f"- Mutation/promotion/auto-build: `{str(not build_cue_queue.get('no_mutation_promotion_or_auto_build', False)).lower()}`",
+            "",
+            "### Relationship Summary",
+            "",
+            f"- Work Terrain Query / Relationship / Classification / Gap -> Surface Map Scout -> Build Cue Queue: `{str(consolidated_relationships.get('work_terrain_chain', {}).get('surface_map_scout_feeds_build_cue_queue')).lower()}`",
+            f"- Context Selection / Knowledge Packet is upstream substrate for execution packets: `{str(consolidated_relationships.get('context_selection_to_execution_packets', {}).get('context_selection_is_upstream_substrate')).lower()}`",
+            f"- Workflow live drafts feed handoff and packet compiler before future capture/receipt writer lanes: `{str(consolidated_relationships.get('workflow_block_to_agent_and_capture', {}).get('future_capture_receipt_writer_lanes_required')).lower()}`",
+            f"- Bridge prevents proof/status card walls: `{str(consolidated_relationships.get('bridge_visibility_routing', {}).get('prevents_proof_status_card_walls')).lower()}`",
+            f"- Question Assist feeds block choices, discovery, guided capture, agent help, and scope-expansion missions: `{str(consolidated_relationships.get('question_assist_to_workflow_paths', {}).get('feeds_scope_expansion_missions')).lower()}`",
             "",
             "## Security Audit Readiness Summary",
             "",

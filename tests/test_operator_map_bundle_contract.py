@@ -3,7 +3,10 @@ import json
 from pathlib import Path
 
 import automation_readiness_feasibility_evaluator_contract
+import agent_conversation_handoff_step_packet_contract
+import agent_execution_packet_compiler_contract
 import operator_map_bundle_contract as bundle
+import bridge_routing_operator_attention_contract
 import chief_test_harness_cross_off_receipt_contract
 import capital_hilton_coupa_po_retrieval_automation_candidate
 import guided_capture_protected_evidence_path_contract
@@ -24,6 +27,7 @@ import openclaw_work_terrain_reconciliation_batch_manifest
 import openclaw_work_terrain_relationship_index
 import operator_solve_path_decision_node_contract
 import operator_work_mode_schema_bandwidth_policy
+import operator_question_assist_scope_expansion_contract
 import package_preview_receipt_contract
 import parked_autonomous_capital_pipeline_experiment
 import post_security_governance_batch_manifest
@@ -31,7 +35,10 @@ import security_audit_readiness_packet
 import security_delta_review_contract
 import security_pass_contract
 import tool_adapter_receipt_contract
+import workflow_block_intent_live_draft_contract
 import workflow_session_channel_projection_approval_bus_contract
+import work_terrain_build_cue_reconciliation_queue
+import work_terrain_surface_map_build_cue_scout
 from generated_read_model_files import canonical_generated_read_model_expected_files
 from scripts.export_operator_map_bundle import main as export_main
 
@@ -483,6 +490,53 @@ def _fixture_repo(root: Path) -> Path:
         read_models / "automation_readiness_feasibility_evaluator_contract.json",
         automation_readiness_feasibility_evaluator_contract.build_automation_readiness_feasibility_evaluator_contract(
             repo_root=root,
+            generated_at=FIXED_NOW,
+        ),
+    )
+    _write_json(
+        read_models / "workflow_block_intent_live_draft_contract.json",
+        workflow_block_intent_live_draft_contract.build_workflow_block_intent_live_draft_contract(
+            repo_root=root,
+            generated_at=FIXED_NOW,
+        ),
+    )
+    _write_json(
+        read_models / "bridge_routing_operator_attention_contract.json",
+        bridge_routing_operator_attention_contract.build_bridge_routing_operator_attention_contract(
+            repo_root=root,
+            generated_at=FIXED_NOW,
+        ),
+    )
+    _write_json(
+        read_models / "agent_conversation_handoff_step_packet_contract.json",
+        agent_conversation_handoff_step_packet_contract.build_agent_conversation_handoff_step_packet_contract(
+            repo_root=root,
+            generated_at=FIXED_NOW,
+        ),
+    )
+    _write_json(
+        read_models / "agent_execution_packet_compiler_contract.json",
+        agent_execution_packet_compiler_contract.build_agent_execution_packet_compiler_contract(
+            repo_root=root,
+            generated_at=FIXED_NOW,
+        ),
+    )
+    _write_json(
+        read_models / "operator_question_assist_scope_expansion_contract.json",
+        operator_question_assist_scope_expansion_contract.build_operator_question_assist_scope_expansion_contract(
+            repo_root=root,
+            generated_at=FIXED_NOW,
+        ),
+    )
+    _write_json(
+        read_models / "work_terrain_surface_map_build_cue_scout.json",
+        work_terrain_surface_map_build_cue_scout.build_work_terrain_surface_map_build_cue_scout(
+            generated_at=FIXED_NOW,
+        ),
+    )
+    _write_json(
+        read_models / "work_terrain_build_cue_reconciliation_queue.json",
+        work_terrain_build_cue_reconciliation_queue.build_work_terrain_build_cue_reconciliation_queue(
             generated_at=FIXED_NOW,
         ),
     )
@@ -1398,6 +1452,115 @@ def test_map_snapshot_contains_make_winship_life_easier_summaries(tmp_path):
     assert automation["action_authority_granted"] is False
 
 
+def test_map_snapshot_contains_workflow_blocks_agents_bridge_scope_and_build_cue_summaries(tmp_path):
+    _fixture_repo(tmp_path)
+    snapshot = bundle.build_openclaw_map_snapshot(repo_root=tmp_path, generated_at=FIXED_NOW)
+
+    live_draft = snapshot["workflow_block_intent_live_draft_contract"]
+    bridge = snapshot["bridge_routing_operator_attention_contract"]
+    handoff = snapshot["agent_conversation_handoff_step_packet_contract"]
+    packet = snapshot["agent_execution_packet_compiler_contract"]
+    question = snapshot["operator_question_assist_scope_expansion_contract"]
+    scout = snapshot["work_terrain_surface_map_build_cue_scout"]
+    queue = snapshot["work_terrain_build_cue_reconciliation_queue"]
+    relationships = snapshot["workflow_agent_bridge_scope_expansion_relationships"]
+
+    assert live_draft["present"] is True
+    assert live_draft["section_id"] == "workflow_block_intent_live_draft_contract"
+    assert live_draft["draft_intent_count"] == 4
+    assert live_draft["workspace_count"] == 2
+    assert live_draft["capture_boundary_count"] == 4
+    assert live_draft["current_vs_draft_vs_captured_state_distinct"] is True
+    assert live_draft["capture_boundary_is_explicit"] is True
+    assert live_draft["no_durable_write_or_execution"] is True
+    assert live_draft["action_authority_granted"] is False
+
+    assert bridge["present"] is True
+    assert bridge["section_id"] == "bridge_routing_operator_attention_contract"
+    assert bridge["attention_record_count"] == 7
+    assert bridge["routing_decision_count"] == 7
+    assert bridge["world_surface_count"] == 4
+    assert bridge["capital_hilton_routes_to_finance_world"] is True
+    assert bridge["capital_hilton_not_raw_helm_workspace"] is True
+    assert bridge["proof_debug_detail_below_deck_by_default"] is True
+    assert bridge["shipyard_separates_developer_noise"] is True
+    assert bridge["action_authority_granted"] is False
+
+    assert handoff["present"] is True
+    assert handoff["section_id"] == "agent_conversation_handoff_step_packet_contract"
+    assert handoff["handoff_session_count"] == 6
+    assert handoff["step_packet_count"] == 6
+    assert handoff["liveness_status_count"] == 8
+    assert handoff["required_liveness_states_present"] is True
+    assert {"THINKING", "TYPING", "MAKING_PACKET", "WAITING_ON_OPERATOR", "OFFLINE", "STALLED", "TIMED_OUT", "BLOCKED"} <= set(handoff["status_states"])
+    assert handoff["operator_handoff_only_when_needed"] is True
+    assert handoff["no_live_agent_or_message_execution"] is True
+    assert handoff["action_authority_granted"] is False
+
+    assert packet["present"] is True
+    assert packet["section_id"] == "agent_execution_packet_compiler_contract"
+    assert packet["execution_packet_count"] == 6
+    assert packet["compiler_count"] == 4
+    assert packet["context_policy_count"] == 4
+    assert packet["capability_policy_count"] == 5
+    assert packet["return_shape_count"] == 6
+    assert packet["context_selection_upstream_substrate"] is True
+    assert packet["context_selection_source_ref"] == "generated/read_models/context_selection.json"
+    assert {"allowed_context_refs", "read_model_refs", "source_card_refs", "proof_refs"} <= set(
+        packet["context_selection_consumable_ref_types"]
+    )
+    assert packet["upstream_compiler_grants_no_tool_runtime_execution_authority"] is True
+    assert packet["packets_are_narrow_focused"] is True
+    assert packet["action_authority_granted"] is False
+
+    assert question["present"] is True
+    assert question["section_id"] == "operator_question_assist_scope_expansion_contract"
+    assert question["question_assist_count"] == 6
+    assert question["domain_hint_count"] == 1
+    assert question["scope_mission_count"] == 2
+    assert question["workflow_path_count"] == 8
+    assert question["jargon_explained_without_hidden_terms"] is True
+    assert question["help_paths_become_workflow_options"] is True
+    assert question["domain_familiarity_hint_compact"] is True
+    assert question["legal_financial_advice_authority"] is False
+    assert question["action_authority_granted"] is False
+
+    assert scout["present"] is True
+    assert scout["section_id"] == "work_terrain_surface_map_build_cue_scout"
+    assert scout["record_count"] == 5
+    assert scout["cluster_count"] == 5
+    assert scout["deep_dive_candidate_count"] == 1
+    assert scout["scout_recommendation_count"] == 5
+    assert scout["shallow_first_doctrine_represented"] is True
+    assert scout["no_raw_body_ingestion"] is True
+    assert scout["no_auto_build_or_live_execution"] is True
+    assert scout["action_authority_granted"] is False
+
+    assert queue["present"] is True
+    assert queue["section_id"] == "work_terrain_build_cue_reconciliation_queue"
+    assert queue["candidate_count"] == 5
+    assert queue["ready_to_build_count"] == 3
+    assert queue["blocked_count"] == 2
+    assert queue["parked_count"] == 1
+    assert queue["below_deck_count"] == 1
+    assert queue["distinguishes_ready_blocked_parked_stale_unsafe_below_deck"] is True
+    assert queue["no_mutation_promotion_or_auto_build"] is True
+    assert queue["action_authority_granted"] is False
+
+    assert relationships["present"] is True
+    assert relationships["work_terrain_chain"]["query_relationship_classification_gap_detector_feeds_surface_map_scout"] is True
+    assert relationships["work_terrain_chain"]["surface_map_scout_feeds_build_cue_queue"] is True
+    assert relationships["context_selection_to_execution_packets"]["context_selection_is_upstream_substrate"] is True
+    assert relationships["context_selection_to_execution_packets"]["provides_allowed_context_read_model_source_card_proof_refs"] is True
+    assert relationships["context_selection_to_execution_packets"]["does_not_grant_execution_authority"] is True
+    assert relationships["workflow_block_to_agent_and_capture"]["live_draft_feeds_conversation_handoff"] is True
+    assert relationships["workflow_block_to_agent_and_capture"]["live_draft_feeds_execution_packet_compiler"] is True
+    assert relationships["workflow_block_to_agent_and_capture"]["durable_write_execution_now"] is False
+    assert relationships["bridge_visibility_routing"]["prevents_proof_status_card_walls"] is True
+    assert relationships["question_assist_to_workflow_paths"]["supports_telegram_and_mission_control"] is True
+    assert relationships["authority_posture"]["no_live_authority_added"] is True
+
+
 def test_post_security_governance_batch_integration_is_reflected_in_contract(tmp_path):
     payload = _build(tmp_path)
 
@@ -1519,6 +1682,31 @@ def test_post_security_governance_batch_integration_is_reflected_in_contract(tmp
     assert payload["automation_readiness_feasibility_evaluator_contract_integration"]["manual_fallback_is_not_target"] is True
     assert payload["automation_readiness_feasibility_evaluator_contract_integration"]["coupa_po_retrieval_automation_candidate_stable_map_surfaced"] is False
     assert payload["automation_readiness_feasibility_evaluator_contract_integration"]["action_authority_granted"] is False
+    assert payload["workflow_block_intent_live_draft_contract_integration"]["summary_included_in_snapshot"] is True
+    assert payload["workflow_block_intent_live_draft_contract_integration"]["capture_boundary_is_explicit"] is True
+    assert payload["workflow_block_intent_live_draft_contract_integration"]["action_authority_granted"] is False
+    assert payload["bridge_routing_operator_attention_contract_integration"]["summary_included_in_snapshot"] is True
+    assert payload["bridge_routing_operator_attention_contract_integration"]["capital_hilton_routes_to_finance_world"] is True
+    assert payload["bridge_routing_operator_attention_contract_integration"]["proof_debug_detail_below_deck_by_default"] is True
+    assert payload["bridge_routing_operator_attention_contract_integration"]["action_authority_granted"] is False
+    assert payload["agent_conversation_handoff_step_packet_contract_integration"]["summary_included_in_snapshot"] is True
+    assert payload["agent_conversation_handoff_step_packet_contract_integration"]["required_liveness_states_present"] is True
+    assert payload["agent_conversation_handoff_step_packet_contract_integration"]["action_authority_granted"] is False
+    assert payload["agent_execution_packet_compiler_contract_integration"]["summary_included_in_snapshot"] is True
+    assert payload["agent_execution_packet_compiler_contract_integration"]["context_selection_upstream_substrate"] is True
+    assert payload["agent_execution_packet_compiler_contract_integration"]["upstream_compiler_grants_no_tool_runtime_execution_authority"] is True
+    assert payload["agent_execution_packet_compiler_contract_integration"]["action_authority_granted"] is False
+    assert payload["operator_question_assist_scope_expansion_contract_integration"]["summary_included_in_snapshot"] is True
+    assert payload["operator_question_assist_scope_expansion_contract_integration"]["help_paths_become_workflow_options"] is True
+    assert payload["operator_question_assist_scope_expansion_contract_integration"]["legal_financial_advice_authority"] is False
+    assert payload["operator_question_assist_scope_expansion_contract_integration"]["action_authority_granted"] is False
+    assert payload["work_terrain_surface_map_build_cue_scout_integration"]["summary_included_in_snapshot"] is True
+    assert payload["work_terrain_surface_map_build_cue_scout_integration"]["no_raw_body_ingestion"] is True
+    assert payload["work_terrain_surface_map_build_cue_scout_integration"]["action_authority_granted"] is False
+    assert payload["work_terrain_build_cue_reconciliation_queue_integration"]["summary_included_in_snapshot"] is True
+    assert payload["work_terrain_build_cue_reconciliation_queue_integration"]["distinguishes_ready_blocked_parked_stale_unsafe_below_deck"] is True
+    assert payload["work_terrain_build_cue_reconciliation_queue_integration"]["action_authority_granted"] is False
+    assert payload["workflow_agent_bridge_scope_expansion_relationships_integration"]["context_selection_to_execution_packets"]["does_not_grant_execution_authority"] is True
 
 
 def test_bundle_hash_changes_when_map_content_changes(tmp_path):
@@ -1700,6 +1888,30 @@ def test_export_script_writes_contract_and_stable_map_files(tmp_path, capsys):
     assert "Automation Readiness / Feasibility" in operator_text
     assert "Bottleneck assessments: `6`" in operator_text
     assert "Capital Hilton Coupa/PO bottleneck present: `true`" in operator_text
+    assert "Workflow Blocks / Agents / Bridge / Scope Expansion Layer" in operator_text
+    assert "Bridge routes. Worlds do work. Engineering stays below deck." in operator_text
+    assert "Agents get focused packets, not the whole ship." in operator_text
+    assert "OpenClaw turns unfamiliar work into navigable missions." in operator_text
+    assert "Atlas maps terrain; Build Cue turns good gaps into candidate lanes." in operator_text
+    assert "No live authority has been added." in operator_text
+    assert "Workflow Block Intent / Live Draft" in operator_text
+    assert "Current/draft/captured state distinct: `true`" in operator_text
+    assert "Bridge Routing / Operator Attention" in operator_text
+    assert "Capital Hilton routes to Finance World: `true`" in operator_text
+    assert "Agent Conversation Handoff / Step Packet" in operator_text
+    assert "Liveness states represented:" in operator_text
+    assert "MAKING_PACKET" in operator_text
+    assert "Agent Execution Packet Compiler" in operator_text
+    assert "Context Selection upstream substrate: `true`" in operator_text
+    assert "Upstream grants tool/runtime authority: `false`" in operator_text
+    assert "Operator Question Assist / Scope Expansion" in operator_text
+    assert "Help paths become workflow options: `true`" in operator_text
+    assert "Work Terrain Surface Map / Build Cue Scout" in operator_text
+    assert "Surface records: `5`" in operator_text
+    assert "Work Terrain Build-Cue Reconciliation Queue" in operator_text
+    assert "Candidates: `5`" in operator_text
+    assert "Relationship Summary" in operator_text
+    assert "Context Selection / Knowledge Packet is upstream substrate for execution packets: `true`" in operator_text
     assert "Action authority granted: `false`" in operator_text
 
 

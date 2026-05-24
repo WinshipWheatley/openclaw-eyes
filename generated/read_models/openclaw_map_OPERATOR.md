@@ -2,17 +2,17 @@
 
 ## What Mission Control Should Read
 
-- Map generation: `map_fa2eb18cb51aaf46e523`
-- Bundle hash: `sha256:f1c56ecc5e39a3b58a0f78f094a9a94ffc35fac10539324f74c4c6353a75d491`
+- Map generation: `map_026ef93525eeecb84798`
+- Bundle hash: `sha256:334659e94b5f815635e0d4fc82fb5bb4b6a1a379da2ab80c6e4a560ea2fdde9b`
 - Stable files: `openclaw_map_snapshot.json`, `openclaw_map_manifest.json`, `openclaw_map_OPERATOR.md`
 - Raw generated read-models remain proof/detail, not the front-door app dependency.
 
 ## Current Sync Truth
 
-- Raw canonical expected: `291`
-- Raw observed: `218`
-- Raw missing expected: `73`
-- Raw hash mismatch: `4`
+- Raw canonical expected: `311`
+- Raw observed: `298`
+- Raw missing expected: `14`
+- Raw hash mismatch: `0`
 - Raw lifecycle: `actionable_sync_failure`
 - Check Transmission source: `sync_health controls Check Transmission freshness; taxonomy must not override fresher proof`
 
@@ -313,6 +313,99 @@
 - Coupa/PO source read-model ref: `generated/read_models/capital_hilton_coupa_po_retrieval_automation_candidate.json`
 - Manual fallback treated as target: `false`
 - Action authority granted: `false`
+
+## Workflow Blocks / Agents / Bridge / Scope Expansion Layer
+
+- Bridge routes. Worlds do work. Engineering stays below deck.
+- Agents get focused packets, not the whole ship.
+- OpenClaw turns unfamiliar work into navigable missions.
+- Atlas maps terrain; Build Cue turns good gaps into candidate lanes.
+- No live authority has been added.
+
+### Workflow Block Intent / Live Draft
+
+- Summary present: `true`
+- Workflow blocks can be edited as live drafts.
+- Draft intents: `4`
+- Workspaces: `2`
+- Capture boundaries: `4`
+- Current/draft/captured state distinct: `true`
+- Explicit capture boundary: `true`
+- Durable write/execution now: `false`
+
+### Bridge Routing / Operator Attention
+
+- Summary present: `true`
+- Attention records: `7`
+- Routing decisions: `7`
+- World surfaces: `4`
+- Below Deck details: `7`
+- Capital Hilton routes to Finance World: `true`
+- Proof/debug below deck by default: `true`
+- Shipyard separates build noise: `true`
+
+### Agent Conversation Handoff / Step Packet
+
+- Summary present: `true`
+- Handoff sessions: `6`
+- Step packets: `6`
+- Operator handoffs: `6`
+- Liveness states represented: `THINKING, TYPING, MAKING_PACKET, WAITING_ON_SYSTEM, WAITING_ON_OPERATOR, OFFLINE, STALLED, TIMED_OUT, BLOCKED`
+- Operator handoff only when needed: `true`
+- Live agent/message execution: `false`
+
+### Agent Execution Packet Compiler
+
+- Summary present: `true`
+- Execution packets: `6`
+- Compilers: `4`
+- Context policies: `4`
+- Capability policies: `5`
+- Return shapes: `6`
+- Context Selection upstream substrate: `true`
+- Upstream grants tool/runtime authority: `false`
+- Packets narrow/focused: `true`
+
+### Operator Question Assist / Scope Expansion
+
+- Summary present: `true`
+- Question assists: `6`
+- Domain hints: `1`
+- Scope missions: `2`
+- Workflow paths: `8`
+- Jargon explained without hidden terms: `true`
+- Help paths become workflow options: `true`
+- Legal/financial advice authority: `false`
+
+### Work Terrain Surface Map / Build Cue Scout
+
+- Summary present: `true`
+- Surface records: `5`
+- Clusters: `5`
+- Deep-dive candidates: `1`
+- Scout recommendations: `5`
+- Shallow-first doctrine: `true`
+- Raw body ingestion: `false`
+- Auto-build/live execution: `false`
+
+### Work Terrain Build-Cue Reconciliation Queue
+
+- Summary present: `true`
+- Candidates: `5`
+- Ready: `3`
+- Blocked: `2`
+- Parked: `1`
+- Below deck: `1`
+- Distinguishes ready/blocked/parked/stale/unsafe/below deck: `true`
+- Mutation/promotion/auto-build: `false`
+
+### Relationship Summary
+
+- Work Terrain Query / Relationship / Classification / Gap -> Surface Map Scout -> Build Cue Queue: `true`
+- Context Selection / Knowledge Packet is upstream substrate for execution packets: `true`
+- Workflow live drafts feed handoff and packet compiler before future capture/receipt writer lanes: `true`
+- Bridge prevents proof/status card walls: `true`
+- Question Assist feeds block choices, discovery, guided capture, agent help, and scope-expansion missions: `true`
 
 ## Security Audit Readiness Summary
 

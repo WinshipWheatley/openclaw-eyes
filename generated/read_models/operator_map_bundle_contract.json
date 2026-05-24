@@ -1,5 +1,18 @@
 {
   "agent_activation_allowed": false,
+  "agent_conversation_handoff_step_packet_contract_integration": {
+    "action_authority_granted": false,
+    "agent_system_exchanges_below_deck_by_default": true,
+    "handoff_session_count": 6,
+    "individual_contract_read_model_remains_proof_detail": true,
+    "liveness_status_count": 8,
+    "no_live_agent_or_message_execution": true,
+    "operator_handoff_count": 6,
+    "operator_handoff_only_when_needed": true,
+    "required_liveness_states_present": true,
+    "step_packet_count": 6,
+    "summary_included_in_snapshot": true
+  },
   "agent_council_integration": {
     "agent_dossier_cards_count": 12,
     "agent_dossier_cards_included_in_snapshot": true,
@@ -19,6 +32,20 @@
     "preview_only": true,
     "system_loop_cards_present": true,
     "tool_execution_allowed": false
+  },
+  "agent_execution_packet_compiler_contract_integration": {
+    "action_authority_granted": false,
+    "capability_policy_count": 5,
+    "compiler_count": 4,
+    "context_policy_count": 4,
+    "context_selection_upstream_substrate": true,
+    "execution_packet_count": 6,
+    "individual_contract_read_model_remains_proof_detail": true,
+    "packet_chain_count": 2,
+    "packets_are_narrow_focused": true,
+    "return_shape_count": 6,
+    "summary_included_in_snapshot": true,
+    "upstream_compiler_grants_no_tool_runtime_execution_authority": true
   },
   "app_facing_paths_do_not_change_when_new_raw_read_model_added": true,
   "atomic_sync_lifecycle": {
@@ -68,6 +95,19 @@
     "readiness_evaluation_count": 4,
     "summary_included_in_snapshot": true,
     "telegram_approval_split_brain_bottleneck_present": true
+  },
+  "bridge_routing_operator_attention_contract_integration": {
+    "action_authority_granted": false,
+    "attention_record_count": 7,
+    "below_deck_detail_count": 7,
+    "capital_hilton_routes_to_finance_world": true,
+    "engineering_contained_does_not_interrupt": true,
+    "individual_contract_read_model_remains_proof_detail": true,
+    "proof_debug_detail_below_deck_by_default": true,
+    "routing_decision_count": 7,
+    "shipyard_separates_developer_noise": true,
+    "summary_included_in_snapshot": true,
+    "world_surface_count": 4
   },
   "browser_oauth_account_access_allowed": false,
   "capital_hilton_answer_candidate_receipt_integration": {
@@ -181,7 +221,7 @@
     "test_harness_receipt_model_present": true
   },
   "cleanup_remount_repair_allowed": false,
-  "contract_hash": "sha256:dc341b10513947b8a31858e19df3f59ca0338f5fa7ae993d5d13413942c9e003",
+  "contract_hash": "sha256:43f27405c3622ff8cc2d64bd1e96f8e338627c0a25afb5ae86afa49719c370b3",
   "contract_status": "stable_map_bundle_sync_contract_metadata_only",
   "credentials_included": false,
   "external_model_api_allowed": false,
@@ -198,7 +238,7 @@
     "OpenClaw artifact writes to the PC C drive",
     "broad private file inspection or raw private body ingestion"
   ],
-  "generated_at": "2026-05-23T19:51:30+00:00",
+  "generated_at": "2026-05-24T01:13:35+00:00",
   "gmail_calendar_coupa_telegram_allowed": false,
   "guided_capture_protected_evidence_path_contract_integration": {
     "action_authority_granted": false,
@@ -275,10 +315,10 @@
       "send_submit_approval_allowed": false,
       "tool_plugin_execution_allowed": false
     },
-    "bundle_hash": "sha256:f1c56ecc5e39a3b58a0f78f094a9a94ffc35fac10539324f74c4c6353a75d491",
-    "canonical_read_model_count": 284,
-    "created_at": "2026-05-23T19:51:30+00:00",
-    "essential_surface_count": 37,
+    "bundle_hash": "sha256:334659e94b5f815635e0d4fc82fb5bb4b6a1a379da2ab80c6e4a560ea2fdde9b",
+    "canonical_read_model_count": 300,
+    "created_at": "2026-05-24T01:13:35+00:00",
+    "essential_surface_count": 44,
     "excluded_surfaces": [
       {
         "category": "raw_private_bodies",
@@ -309,9 +349,9 @@
       },
       {
         "front_door_file_dependency": false,
-        "hash": "sha256:6cdc788162fd260bc77f0868fa3b629d40380bb21d409676c65d783d87371cec",
-        "hash_included_in_bundle": true,
-        "hash_omitted_reason": null,
+        "hash": null,
+        "hash_included_in_bundle": false,
+        "hash_omitted_reason": "volatile_self_report_read_model_excluded_from_map_bundle_hash",
         "path": "generated/read_models/system_health_lights_taxonomy.json",
         "present": true,
         "raw_body_imported": false,
@@ -322,9 +362,9 @@
       },
       {
         "front_door_file_dependency": false,
-        "hash": "sha256:6914ab9fbbbf5ffffab3ab90b54530cbc34c63df28e65085f8ac75c040f765e8",
-        "hash_included_in_bundle": true,
-        "hash_omitted_reason": null,
+        "hash": null,
+        "hash_included_in_bundle": false,
+        "hash_omitted_reason": "volatile_self_report_read_model_excluded_from_map_bundle_hash",
         "path": "generated/read_models/operator_threshold_map_contract.json",
         "present": true,
         "raw_body_imported": false,
@@ -751,6 +791,97 @@
       },
       {
         "front_door_file_dependency": false,
+        "hash": "sha256:446c89cad95d4ffd003448740af056b4808c4fce0e938097181c2c063481d659",
+        "hash_included_in_bundle": true,
+        "hash_omitted_reason": null,
+        "path": "generated/read_models/workflow_block_intent_live_draft_contract.json",
+        "present": true,
+        "raw_body_imported": false,
+        "read_model_id": "workflow_block_intent_live_draft_contract",
+        "role": "workflow block live drafts, explicit capture boundary, and current/draft/captured state distinction",
+        "schema_version": "workflow_block_intent_live_draft_contract_v0",
+        "surface_id": "workflow_block_intent_live_draft_contract"
+      },
+      {
+        "front_door_file_dependency": false,
+        "hash": "sha256:4b68f9d2421af877bb518833f21e03fbdd28ff99f42f76dc165c1624c75c67ae",
+        "hash_included_in_bundle": true,
+        "hash_omitted_reason": null,
+        "path": "generated/read_models/bridge_routing_operator_attention_contract.json",
+        "present": true,
+        "raw_body_imported": false,
+        "read_model_id": "bridge_routing_operator_attention_contract",
+        "role": "Bridge/Helm vs World vs Below Deck vs Shipyard attention routing summary",
+        "schema_version": "bridge_routing_operator_attention_contract_v0",
+        "surface_id": "bridge_routing_operator_attention_contract"
+      },
+      {
+        "front_door_file_dependency": false,
+        "hash": "sha256:faed5a245b92e5c1a660f4738715c9ebba656c3fe6d46a020b7d3c4cbcce8b90",
+        "hash_included_in_bundle": true,
+        "hash_omitted_reason": null,
+        "path": "generated/read_models/agent_conversation_handoff_step_packet_contract.json",
+        "present": true,
+        "raw_body_imported": false,
+        "read_model_id": "agent_conversation_handoff_step_packet_contract",
+        "role": "agent conversation handoff, liveness/progress, and structured operator return summary",
+        "schema_version": "agent_conversation_handoff_step_packet_contract_v0",
+        "surface_id": "agent_conversation_handoff_step_packet_contract"
+      },
+      {
+        "front_door_file_dependency": false,
+        "hash": "sha256:11b1970fa7d236233cc02a70170f42f37e87c8903251ff06f00a0d41f243782c",
+        "hash_included_in_bundle": true,
+        "hash_omitted_reason": null,
+        "path": "generated/read_models/agent_execution_packet_compiler_contract.json",
+        "present": true,
+        "raw_body_imported": false,
+        "read_model_id": "agent_execution_packet_compiler_contract",
+        "role": "workflow block to focused agent packet compiler summary with context/capability boundaries",
+        "schema_version": "agent_execution_packet_compiler_contract_v0",
+        "surface_id": "agent_execution_packet_compiler_contract"
+      },
+      {
+        "front_door_file_dependency": false,
+        "hash": "sha256:84723705d3b6adabfc760976933a29596bc5beed69972097e6b309bab7eccde3",
+        "hash_included_in_bundle": true,
+        "hash_omitted_reason": null,
+        "path": "generated/read_models/operator_question_assist_scope_expansion_contract.json",
+        "present": true,
+        "raw_body_imported": false,
+        "read_model_id": "operator_question_assist_scope_expansion_contract",
+        "role": "smart question assist, domain familiarity hints, help-to-workflow paths, and scope expansion missions",
+        "schema_version": "operator_question_assist_scope_expansion_contract_v0",
+        "surface_id": "operator_question_assist_scope_expansion_contract"
+      },
+      {
+        "front_door_file_dependency": false,
+        "hash": "sha256:709c1cf15d6fb900b3f3a0f470b81ab1aa2496d6aabe8414b08ca44475118d27",
+        "hash_included_in_bundle": true,
+        "hash_omitted_reason": null,
+        "path": "generated/read_models/work_terrain_surface_map_build_cue_scout.json",
+        "present": true,
+        "raw_body_imported": false,
+        "read_model_id": "work_terrain_surface_map_build_cue_scout",
+        "role": "shallow-first Work Terrain surface map, clusters, deep-dive candidates, and scout recommendations",
+        "schema_version": "work_terrain_surface_map_build_cue_scout_v0",
+        "surface_id": "work_terrain_surface_map_build_cue_scout"
+      },
+      {
+        "front_door_file_dependency": false,
+        "hash": "sha256:6fee3a424ef94b8e4684abb7f541096498c5f676537ffe8f11ffa7ec99152a91",
+        "hash_included_in_bundle": true,
+        "hash_omitted_reason": null,
+        "path": "generated/read_models/work_terrain_build_cue_reconciliation_queue.json",
+        "present": true,
+        "raw_body_imported": false,
+        "read_model_id": "work_terrain_build_cue_reconciliation_queue",
+        "role": "prioritized Work Terrain build/reconciliation queue above the Surface Map Scout",
+        "schema_version": "work_terrain_build_cue_reconciliation_queue_v0",
+        "surface_id": "work_terrain_build_cue_reconciliation_queue"
+      },
+      {
+        "front_door_file_dependency": false,
         "hash": "sha256:c39add01adc4a39c7ef2f99e0e6d96323327fdf77d112526eebc1f4bc77b4439",
         "hash_included_in_bundle": true,
         "hash_omitted_reason": null,
@@ -782,20 +913,24 @@
       "openclaw_map_snapshot.json",
       "operator_map_bundle_contract.json",
       "operator_map_bundle_contract_OPERATOR.md",
+      "operator_threshold_map_contract.json",
+      "operator_threshold_map_contract_OPERATOR.md",
       "sync_health.json",
-      "sync_health_OPERATOR.md"
+      "sync_health_OPERATOR.md",
+      "system_health_lights_taxonomy.json",
+      "system_health_lights_taxonomy_OPERATOR.md"
     ],
-    "map_generation_id": "map_fa2eb18cb51aaf46e523",
+    "map_generation_id": "map_026ef93525eeecb84798",
     "missing_or_stale_surfaces": [],
     "proof_reference_policy": "Map snapshot stores summaries and read-model references, not raw proof bodies.",
-    "raw_generated_read_model_file_count_including_map_bundle_self": 291,
+    "raw_generated_read_model_file_count_including_map_bundle_self": 311,
     "raw_private_body_policy": "blocked_excluded_from_bundle",
     "read_model_id": "openclaw_map_manifest",
-    "read_model_manifest_hash": "sha256:5e3f6fca44ec3538e1dd7dda375d0cc500164dce36fbabeb8f26d24458103efc",
+    "read_model_manifest_hash": "sha256:bd917eeb5bf0f42daba560c8d1889452f6f8a5879823f1f29d1a787f9e98c971",
     "schema_version": "openclaw_map_manifest_v0",
-    "snapshot_hash": "sha256:fa2eb18cb51aaf46e523195c6cdf40afd2327af8a16cfcf8fab8d5892f866635",
-    "source_commit_if_available_local_only": "d39cfb0c8ffb3ac60aaf1f2cb957b278f30349e6",
-    "source_read_model_count_excluding_map_bundle_self_and_sync_health_self_report": 284,
+    "snapshot_hash": "sha256:026ef93525eeecb84798e4d064f4b331e6d78e8a0b8a555686d82f5dcb325b87",
+    "source_commit_if_available_local_only": "4fea5ea92cc250c243c56ea7df72313d9e4f66c5",
+    "source_read_model_count_excluding_map_bundle_self_and_sync_health_self_report": 300,
     "source_repo": "Repo A /home/openclaw",
     "source_sqlite_receipt_hash_if_available": null,
     "source_sqlite_receipt_hash_note": "PC SQLite remains canonical terrain; map v0 does not hash live SQLite.",
@@ -810,9 +945,17 @@
   "map_snapshot_summary": {
     "agent_council_preview_only": true,
     "agent_dossier_cards_count": 12,
+    "agent_execution_packet_compiler_present": true,
+    "agent_execution_packet_count": 6,
+    "agent_handoff_present": true,
+    "agent_handoff_session_count": 6,
+    "agent_liveness_status_count": 8,
     "automation_all_authority_flags_false": true,
     "automation_bottleneck_assessment_count": 6,
     "automation_readiness_evaluation_count": 4,
+    "bridge_attention_record_count": 7,
+    "bridge_capital_hilton_routes_to_finance_world": true,
+    "bridge_routing_attention_present": true,
     "capital_hilton_answer_candidates_count": 10,
     "capital_hilton_automatic_progression_allowed": false,
     "capital_hilton_automatic_quieting_allowed": false,
@@ -839,6 +982,7 @@
     "capital_hilton_protected_reference_placeholder_count": 7,
     "chief_test_harness_cross_off_present": true,
     "chief_test_harness_cross_off_source_mutation_allowed": false,
+    "context_selection_upstream_substrate": true,
     "featured_agents": [
       "cassandra",
       "chief",
@@ -852,16 +996,16 @@
     "guided_capture_privacy_guard_count": 8,
     "health_state": {
       "check_transmission_summary": {
-        "current_status": "WARNING",
+        "current_status": "QUIET",
         "final_mac_mirror_pending": false,
         "final_mac_self_report_mirror_pending": false,
         "pc_import_proof_complete": false,
-        "why": "Stable map bundle pending"
+        "why": "Stable map bundle current"
       },
       "current_light_states": {
         "brake_parking_brake": "ON_NORMAL",
         "check_engine": "WARNING",
-        "check_transmission": "WARNING",
+        "check_transmission": "QUIET",
         "low_fuel_low_battery": "WARNING",
         "oil_pressure_coolant": "WARNING",
         "traction_control": "QUIET"
@@ -874,7 +1018,7 @@
     "make_winship_life_easier_batch_present": true,
     "make_winship_life_easier_batch_status": "COMPLETE_PENDING_STABLE_MAP_IMPORT",
     "make_winship_life_easier_completed_lanes_count": 5,
-    "map_generation_id": "map_fa2eb18cb51aaf46e523",
+    "map_generation_id": "map_026ef93525eeecb84798",
     "markdown_atlas_body_ingestion_allowed": false,
     "markdown_atlas_recommended_next_run": "RUN_METADATA_ONLY_ON_EXISTING_REGISTERED_ROOTS",
     "markdown_atlas_scope_expansion_present": true,
@@ -890,6 +1034,9 @@
     "operator_attention_promotion_present": true,
     "operator_attention_promotion_quiet_helm_policy_present": true,
     "operator_decision_node_count": 8,
+    "operator_question_assist_count": 6,
+    "operator_question_assist_present": true,
+    "operator_scope_mission_count": 2,
     "operator_solve_path_count": 5,
     "operator_work_mode_bandwidth_modes_count": 4,
     "operator_work_mode_helm_default_bandwidth_mode": "LOW_BANDWIDTH",
@@ -914,7 +1061,7 @@
     "security_pass_trust_clearance_modeling_approved": true,
     "security_pass_worker_output_intake_metadata_approved": true,
     "security_ready_for_pass": true,
-    "snapshot_hash": "sha256:fa2eb18cb51aaf46e523195c6cdf40afd2327af8a16cfcf8fab8d5892f866635",
+    "snapshot_hash": "sha256:026ef93525eeecb84798e4d064f4b331e6d78e8a0b8a555686d82f5dcb325b87",
     "threshold_capital_hilton": {
       "display_name": "Capital Hilton Invoice Lane",
       "lane_id": "capital_hilton",
@@ -936,7 +1083,15 @@
       "target_world": null
     },
     "tool_adapter_receipt_examples_count": 12,
+    "work_terrain_build_cue_candidate_count": 5,
+    "work_terrain_build_cue_queue_present": true,
+    "work_terrain_surface_map_record_count": 5,
+    "work_terrain_surface_map_scout_present": true,
+    "workflow_agent_bridge_scope_relationships_present": true,
     "workflow_approval_bus_count": 5,
+    "workflow_block_capture_boundary_count": 4,
+    "workflow_block_draft_intent_count": 4,
+    "workflow_block_live_draft_present": true,
     "workflow_session_count": 5
   },
   "markdown_atlas_scope_expansion_integration": {
@@ -1053,6 +1208,19 @@
     "shared_fix_path_handling_present": true,
     "summary_included_in_snapshot": true
   },
+  "operator_question_assist_scope_expansion_contract_integration": {
+    "action_authority_granted": false,
+    "domain_familiarity_hint_compact": true,
+    "domain_hint_count": 1,
+    "help_paths_become_workflow_options": true,
+    "individual_contract_read_model_remains_proof_detail": true,
+    "jargon_explained_without_hidden_terms": true,
+    "legal_financial_advice_authority": false,
+    "question_assist_count": 6,
+    "scope_mission_count": 2,
+    "summary_included_in_snapshot": true,
+    "workflow_path_count": 8
+  },
   "operator_solve_path_decision_node_contract_integration": {
     "action_authority_granted": false,
     "capital_hilton_solve_path_present": true,
@@ -1107,7 +1275,7 @@
     "completion_marker": {
       "backend_head": "200c3e134c2b16e75a2090d33b8498d188396e6e",
       "copied_file_count": 218,
-      "generated_at": "2026-05-21T18:25:34+00:00",
+      "generated_at": "2026-05-23T23:36:01+00:00",
       "hash_mismatch_files": [],
       "missing_expected_files": [],
       "next_expected_responder": null,
@@ -1129,32 +1297,29 @@
     "request_marker": {
       "backend_head": null,
       "copied_file_count": null,
-      "generated_at": "2026-05-21T18:24:43+00:00",
-      "hash_mismatch_files": [
-        "system_health_lights_taxonomy.json",
-        "system_health_lights_taxonomy_OPERATOR.md"
-      ],
+      "generated_at": "2026-05-23T23:34:48+00:00",
+      "hash_mismatch_files": [],
       "missing_expected_files": [
-        "operator_threshold_map_contract.json",
-        "operator_threshold_map_contract_OPERATOR.md"
+        "workflow_block_intent_live_draft_contract.json",
+        "workflow_block_intent_live_draft_contract_OPERATOR.md"
       ],
       "next_expected_responder": "mac_read_model_sync_agent",
       "path": "/mnt/e/openclaw/shuttle/to_mac/read_model_sync_required.json",
       "present": true,
-      "reason": "Mac generated-read-model mirror is stale: it is missing canonical backend files and has hash-mismatched files.",
+      "reason": "Mac generated-read-model folder is behind backend canonical generated/read_models.",
       "status": null
     },
     "returned_manifest_absolute_root": "/Users/hwinshipwheatley/openclaw_generated_read_models",
-    "returned_manifest_path_record_count": 218,
+    "returned_manifest_path_record_count": 298,
     "returned_manifest_points_to_expected_mac_root": true,
     "returned_manifest_present": true,
     "sync_health_summary": {
-      "canonical_expected": 291,
+      "canonical_expected": 311,
       "display_status": "needs_mac_sync",
-      "hash_mismatch": 4,
+      "hash_mismatch": 0,
       "mirror_status": "needs_mac_sync",
-      "missing_expected": 73,
-      "observed": 218,
+      "missing_expected": 14,
+      "observed": 298,
       "operator_action_required": true,
       "present": true,
       "raw_file_count_is_not_front_door_app_truth": true,
@@ -1333,6 +1498,88 @@
     "summary_included_in_snapshot": true
   },
   "tool_plugin_execution_allowed": false,
+  "work_terrain_build_cue_reconciliation_queue_integration": {
+    "action_authority_granted": false,
+    "below_deck_count": 1,
+    "blocked_count": 2,
+    "candidate_count": 5,
+    "distinguishes_ready_blocked_parked_stale_unsafe_below_deck": true,
+    "individual_contract_read_model_remains_proof_detail": true,
+    "no_mutation_promotion_or_auto_build": true,
+    "parked_count": 1,
+    "ready_to_build_count": 3,
+    "summary_included_in_snapshot": true
+  },
+  "work_terrain_surface_map_build_cue_scout_integration": {
+    "action_authority_granted": false,
+    "cluster_count": 5,
+    "deep_dive_candidate_count": 1,
+    "individual_contract_read_model_remains_proof_detail": true,
+    "no_auto_build_or_live_execution": true,
+    "no_raw_body_ingestion": true,
+    "record_count": 5,
+    "scout_recommendation_count": 5,
+    "shallow_first_doctrine_represented": true,
+    "summary_included_in_snapshot": true
+  },
+  "workflow_agent_bridge_scope_expansion_relationships_integration": {
+    "app_facing_summary": "Workflow blocks define work; Bridge routes attention; agents get focused packets; Question Assist turns uncertainty into paths; Atlas maps terrain and Build Cue turns good gaps into candidate lanes.",
+    "authority_posture": {
+      "no_invoice_email_send_browser_coupa_gmail_telegram_credential_authority": true,
+      "no_live_authority_added": true,
+      "no_receipt_state_writer_added": true
+    },
+    "bridge_visibility_routing": {
+      "capital_hilton_finance_world_not_raw_helm": true,
+      "helm_vs_world_vs_below_deck_vs_shipyard": true,
+      "prevents_proof_status_card_walls": true
+    },
+    "context_selection_to_execution_packets": {
+      "context_selection_is_upstream_substrate": true,
+      "does_not_grant_execution_authority": true,
+      "provides_allowed_context_read_model_source_card_proof_refs": true,
+      "source_ref": "generated/read_models/context_selection.json"
+    },
+    "present": true,
+    "question_assist_to_workflow_paths": {
+      "feeds_agent_help": true,
+      "feeds_block_choices": true,
+      "feeds_discovery_paths": true,
+      "feeds_guided_capture_options": true,
+      "feeds_scope_expansion_missions": true,
+      "supports_telegram_and_mission_control": true
+    },
+    "section_id": "workflow_agent_bridge_scope_expansion_relationships",
+    "work_terrain_chain": {
+      "query_relationship_classification_gap_detector_feeds_surface_map_scout": true,
+      "source_refs": [
+        "generated/read_models/openclaw_work_terrain_query_contract.json",
+        "generated/read_models/openclaw_work_terrain_relationship_index.json",
+        "generated/read_models/openclaw_work_terrain_classification_candidate.json",
+        "generated/read_models/openclaw_work_terrain_gap_detector.json",
+        "generated/read_models/work_terrain_surface_map_build_cue_scout.json",
+        "generated/read_models/work_terrain_build_cue_reconciliation_queue.json"
+      ],
+      "surface_map_scout_feeds_build_cue_queue": true
+    },
+    "workflow_block_to_agent_and_capture": {
+      "durable_write_execution_now": false,
+      "future_capture_receipt_writer_lanes_required": true,
+      "live_draft_feeds_conversation_handoff": true,
+      "live_draft_feeds_execution_packet_compiler": true
+    }
+  },
+  "workflow_block_intent_live_draft_contract_integration": {
+    "action_authority_granted": false,
+    "capture_boundary_count": 4,
+    "capture_boundary_is_explicit": true,
+    "current_vs_draft_vs_captured_state_distinct": true,
+    "draft_intent_count": 4,
+    "individual_contract_read_model_remains_proof_detail": true,
+    "no_durable_write_or_execution": true,
+    "summary_included_in_snapshot": true,
+    "workspace_count": 2
+  },
   "workflow_session_channel_projection_approval_bus_contract_integration": {
     "action_authority_granted": false,
     "approval_bus_count": 5,
