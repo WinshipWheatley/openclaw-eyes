@@ -842,6 +842,7 @@
 !capital_hilton_invoice_artifact_generator.py
 !capital_hilton_delivery_facts_capture_bridge.py
 !capital_hilton_delivery_facts_capture_writer.py
+!conversational_workflow_memory_contract.py
 !cross_lane_reusable_block_registry_contract.py
 !cross_surface_artifact_handoff_registry_contract.py
 !cross_surface_handoff_registry_compatibility_audit.py
@@ -895,6 +896,7 @@
 !scripts/export_capital_hilton_invoice_artifact_generator.py
 !scripts/export_capital_hilton_delivery_facts_capture_bridge.py
 !scripts/import_capital_hilton_delivery_facts_capture.py
+!scripts/export_conversational_workflow_memory_contract.py
 !scripts/export_cross_lane_reusable_block_registry_contract.py
 !scripts/export_cross_surface_artifact_handoff_registry_contract.py
 !scripts/export_cross_surface_handoff_registry_compatibility_audit.py
@@ -940,6 +942,7 @@
 !tests/test_capital_hilton_invoice_artifact_generator.py
 !tests/test_capital_hilton_delivery_facts_capture_bridge.py
 !tests/test_capital_hilton_delivery_facts_capture_writer.py
+!tests/test_conversational_workflow_memory_contract.py
 !tests/test_cross_lane_reusable_block_registry_contract.py
 !tests/test_cross_surface_artifact_handoff_registry_contract.py
 !tests/test_cross_surface_handoff_registry_compatibility_audit.py
