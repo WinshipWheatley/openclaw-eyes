@@ -407,12 +407,12 @@
     "stale_candidate_policy": "Filter stale prompts from active queue; log them in historical logs only.",
     "supersession_policy": "Ensure old docs remain traceable but keep them out of active build priority."
   },
-  "generated_at": "2026-05-24T00:47:25+00:00",
+  "generated_at": "2026-05-24T00:49:07+00:00",
   "machine_proof": {
     "build_cue_candidate_model_exists": true,
     "build_cue_queue_model_exists": true,
     "capital_hilton_capture_rail_cue_represented": true,
-    "content_hash": "sha256:957429666f306e18de064d7bc9d272420ce8c90da024ecc40d6425534f527de4",
+    "content_hash": "sha256:0efc70ded6bbf292daabcc6b6f70be7e711384038ad1b04cc33ce671dd2d59a4",
     "default_candidate_count": 5,
     "no_credentials": true,
     "no_live_execution": true,
