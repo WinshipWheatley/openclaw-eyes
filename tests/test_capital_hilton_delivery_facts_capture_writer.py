@@ -255,6 +255,70 @@ def test_file_import_accepts_single_capture_request(tmp_path, capsys):
     assert output["readback"][0]["external_action_performed"] is False
 
 
+def test_file_import_accepts_visual_agnostic_basis_request(tmp_path, capsys):
+    request_path = tmp_path / "delivery_capture_basis.json"
+    db_path = tmp_path / "delivery.sqlite"
+    payload = asdict(writer.fixture_po_coupa_needs_discovery_request())
+    payload.pop("idempotency_key")
+    payload.pop("payload_hash")
+    payload.update(
+        {
+            "client_ref": "capital_hilton",
+            "tenant_ref": "openclaw_local",
+            "world_ref": "finance",
+            "lane_ref": "capital_hilton_invoice",
+            "source_channel": "mission_control_capture_outbox",
+            "request_created_at_policy": "backend computes canonical receipt timing",
+            "current_person_profile_ref": "winship_operator_profile",
+            "idempotency_key_basis": {
+                "workflow_session_ref": payload["workflow_session_ref"],
+                "block_id": payload["block_id"],
+                "operation": payload["operation"],
+                "receipt_type_requested": payload["receipt_type_requested"],
+                "proposed_posture": payload["proposed_posture"],
+                "proposed_value": payload["proposed_value"],
+                "protected_reference_metadata": payload["protected_reference_metadata"],
+            },
+            "payload_hash_basis": {
+                "workflow_session_ref": payload["workflow_session_ref"],
+                "world_ref": "finance",
+                "lane_ref": "capital_hilton_invoice",
+                "block_id": payload["block_id"],
+                "operation": payload["operation"],
+                "proposed_posture": payload["proposed_posture"],
+                "receipt_type_requested": payload["receipt_type_requested"],
+                "tenant_ref": "openclaw_local",
+                "client_ref": "capital_hilton",
+            },
+        }
+    )
+    request_path.write_text(writer.stable_json(payload), encoding="utf-8")
+
+    assert import_main(["--file", str(request_path), "--db", str(db_path), "--format", "json"]) == 0
+    output = json.loads(capsys.readouterr().out)
+
+    assert output["validation"][0]["validation_status"] == "VALID_FOR_LOCAL_CAPTURE"
+    assert output["readback"][0]["write_status"] == "WRITTEN_TO_LOCAL_LEDGER"
+    assert output["readback"][0]["captured_posture"] == "NEEDS_DISCOVERY"
+    assert output["readback"][0]["idempotency_key"].startswith("capital_hilton_delivery_fact:")
+    assert output["readback"][0]["payload_hash"].startswith("sha256:")
+    assert output["readback"][0]["external_action_performed"] is False
+
+
+def test_file_import_rejects_visual_specific_payload_keys(tmp_path):
+    request_path = tmp_path / "delivery_capture_bad_ui_key.json"
+    payload = asdict(writer.fixture_po_coupa_needs_discovery_request())
+    payload["button_id"] = "capture-po-button"
+    request_path.write_text(writer.stable_json(payload), encoding="utf-8")
+
+    try:
+        writer.load_capture_request_file(request_path)
+    except ValueError as exc:
+        assert "unsupported top-level field" in str(exc) or "forbidden field" in str(exc)
+    else:
+        raise AssertionError("visual-specific payload key should fail closed")
+
+
 def test_import_fixture_exports_json_operator_and_summary(tmp_path, capsys):
     export_root = tmp_path / "read_models"
     db_path = tmp_path / "delivery.sqlite"

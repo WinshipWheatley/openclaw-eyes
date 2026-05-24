@@ -93,6 +93,23 @@ REQUIRED_CAPTURE_REQUEST_FIELDS = (
     "next_safe_move",
 )
 
+OPTIONAL_CAPTURE_REQUEST_FIELDS = (
+    "idempotency_key_basis",
+    "payload_hash_basis",
+    "request_created_at_policy",
+    "source_channel",
+    "client_ref",
+    "tenant_ref",
+    "world_ref",
+    "lane_ref",
+    "current_person_profile_ref",
+    "origin_app",
+    "fronting_agent",
+    "addressed_actor",
+    "assigned_roles",
+    "role_based_actor_refs",
+)
+
 REQUIRED_VALIDATION_FIELDS = (
     "validation_id",
     "capture_request_ref",
@@ -200,6 +217,14 @@ FORBIDDEN_REQUEST_KEYS = (
     "password",
     "session_cookie",
     "access_token",
+    "ui_component_name",
+    "screen_coordinates",
+    "button_id",
+    "screen_x",
+    "screen_y",
+    "mac_layout",
+    "view_frame",
+    "control_id",
 )
 
 SAFE_AP_EMAIL_ROUTE_CANDIDATES = (
@@ -680,10 +705,17 @@ def _contains_forbidden_key(value: Any) -> str | None:
 
 
 def _request_from_payload(payload: Mapping[str, Any]) -> CapitalHiltonDeliveryFactCaptureRequest:
-    missing = [field for field in REQUIRED_CAPTURE_REQUEST_FIELDS if field not in payload]
+    required_direct_fields = tuple(
+        field for field in REQUIRED_CAPTURE_REQUEST_FIELDS if field not in {"idempotency_key", "payload_hash"}
+    )
+    missing = [field for field in required_direct_fields if field not in payload]
+    if "idempotency_key" not in payload and "idempotency_key_basis" not in payload:
+        missing.append("idempotency_key")
+    if "payload_hash" not in payload and "payload_hash_basis" not in payload:
+        missing.append("payload_hash")
     if missing:
         raise ValueError(f"missing required field: {missing[0]}")
-    unknown = sorted(set(payload) - set(REQUIRED_CAPTURE_REQUEST_FIELDS))
+    unknown = sorted(set(payload) - set(REQUIRED_CAPTURE_REQUEST_FIELDS) - set(OPTIONAL_CAPTURE_REQUEST_FIELDS))
     if unknown:
         raise ValueError(f"unsupported top-level field: {unknown[0]}")
     forbidden = _contains_forbidden_key(payload)
@@ -692,7 +724,7 @@ def _request_from_payload(payload: Mapping[str, Any]) -> CapitalHiltonDeliveryFa
     authority = payload["authority_scope_requested"]
     if not isinstance(authority, Mapping):
         raise ValueError("authority_scope_requested must be an object")
-    return CapitalHiltonDeliveryFactCaptureRequest(
+    request = CapitalHiltonDeliveryFactCaptureRequest(
         capture_request_id=str(payload["capture_request_id"]),
         origin_surface=str(payload["origin_surface"]),
         origin_actor=str(payload["origin_actor"]),
@@ -706,11 +738,16 @@ def _request_from_payload(payload: Mapping[str, Any]) -> CapitalHiltonDeliveryFa
         proposed_value=dict(payload["proposed_value"]),
         protected_reference_metadata=dict(payload["protected_reference_metadata"]),
         receipt_type_requested=str(payload["receipt_type_requested"]),
-        idempotency_key=str(payload["idempotency_key"]),
-        payload_hash=str(payload["payload_hash"]),
+        idempotency_key=str(payload.get("idempotency_key", "")),
+        payload_hash=str(payload.get("payload_hash", "")),
         authority_scope_requested={str(key): bool(value) for key, value in authority.items()},
         blocked_actions=tuple(str(item) for item in payload["blocked_actions"]),
         next_safe_move=str(payload["next_safe_move"]),
+    )
+    return replace(
+        request,
+        idempotency_key=request.idempotency_key or derive_idempotency_key(request),
+        payload_hash=request.payload_hash or derive_payload_hash(request),
     )
 
 
@@ -830,10 +867,15 @@ def validate_capture_request(
             "external_execution",
             "email_send",
             "email_draft",
+            "approval_submission",
+            "browser_automation",
             "coupa_access",
             "gmail_access",
+            "telegram_send",
+            "credential_handling",
             "protected_body_ingestion",
             "model_or_tool_execution",
+            "runtime_dispatch",
         )
     ):
         status = "BLOCKED_BY_AUTHORITY"
@@ -865,7 +907,27 @@ def validate_capture_request(
         _precondition("supported_operation", adapter is not None and request.operation in adapter["allowed_operations"], "Operation must match block adapter."),
         _precondition("stable_idempotency_key", request.idempotency_key == derive_idempotency_key(request), "Idempotency key binds session, block, operation, receipt type, posture, value, and metadata."),
         _precondition("stable_payload_hash", request.payload_hash == derive_payload_hash(request), "Payload hash excludes timestamps and raw bodies."),
-        _precondition("no_external_authority_requested", not any(request.authority_scope_requested.get(key) for key in ("external_execution", "email_send", "email_draft", "coupa_access", "gmail_access", "protected_body_ingestion", "model_or_tool_execution")), "Capture request is local only."),
+        _precondition(
+            "no_external_authority_requested",
+            not any(
+                request.authority_scope_requested.get(key)
+                for key in (
+                    "external_execution",
+                    "email_send",
+                    "email_draft",
+                    "approval_submission",
+                    "browser_automation",
+                    "coupa_access",
+                    "gmail_access",
+                    "telegram_send",
+                    "credential_handling",
+                    "protected_body_ingestion",
+                    "model_or_tool_execution",
+                    "runtime_dispatch",
+                )
+            ),
+            "Capture request is local only.",
+        ),
     )
 
     return CapitalHiltonDeliveryFactIntakeValidation(
@@ -1016,6 +1078,54 @@ ORDER BY block_id
             }
             for row in rows
         }
+    finally:
+        conn.close()
+
+
+def read_delivery_fact_receipts(
+    workflow_session_ref: str = WORKFLOW_SESSION_REF,
+    *,
+    db_path: str | Path | None = None,
+) -> tuple[dict[str, Any], ...]:
+    path = init_delivery_fact_capture_schema(db_path)
+    conn = sqlite3.connect(path)
+    try:
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute(
+            """
+SELECT receipt_id, capture_request_id, workflow_session_ref, world, lane, block_id,
+       operation, receipt_type, idempotency_key, payload_hash, origin_surface,
+       origin_actor, previous_posture, captured_posture, captured_value_json,
+       protected_reference_metadata_json, external_action_performed, created_at
+FROM capital_hilton_delivery_fact_capture_receipts
+WHERE workflow_session_ref=?
+ORDER BY created_at, receipt_id
+""".strip(),
+            (workflow_session_ref,),
+        ).fetchall()
+        return tuple(
+            {
+                "receipt_id": row["receipt_id"],
+                "capture_request_id": row["capture_request_id"],
+                "workflow_session_ref": row["workflow_session_ref"],
+                "world": row["world"],
+                "lane": row["lane"],
+                "block_id": row["block_id"],
+                "operation": row["operation"],
+                "receipt_type": row["receipt_type"],
+                "idempotency_key": row["idempotency_key"],
+                "payload_hash": row["payload_hash"],
+                "origin_surface": row["origin_surface"],
+                "origin_actor": row["origin_actor"],
+                "previous_posture": row["previous_posture"],
+                "captured_posture": row["captured_posture"],
+                "captured_value": _json_loads(row["captured_value_json"]),
+                "protected_reference_metadata": _json_loads(row["protected_reference_metadata_json"]),
+                "external_action_performed": bool(row["external_action_performed"]),
+                "created_at": row["created_at"],
+            }
+            for row in rows
+        )
     finally:
         conn.close()
 
@@ -1375,6 +1485,7 @@ def build_capital_hilton_delivery_facts_capture_writer(
 ) -> dict[str, Any]:
     validations, readbacks = apply_fixture_capture_requests(db_path=db_path, created_at=generated_at)
     rows = read_delivery_fact_state(db_path=db_path)
+    receipts = read_delivery_fact_receipts(db_path=db_path)
     closeout = build_closeout(readbacks, db_path=db_path)
     receipt_payloads = tuple(
         build_receipt_payload(request, validation)
@@ -1397,6 +1508,11 @@ def build_capital_hilton_delivery_facts_capture_writer(
             "capture_request": {
                 "model_name": "CapitalHiltonDeliveryFactCaptureRequest",
                 "required_fields": list(REQUIRED_CAPTURE_REQUEST_FIELDS),
+                "optional_visual_agnostic_fields": list(OPTIONAL_CAPTURE_REQUEST_FIELDS),
+                "hash_key_alternatives": {
+                    "idempotency": ("idempotency_key", "idempotency_key_basis"),
+                    "payload_hash": ("payload_hash", "payload_hash_basis"),
+                },
             },
             "intake_validation": {
                 "model_name": "CapitalHiltonDeliveryFactIntakeValidation",
@@ -1427,6 +1543,7 @@ def build_capital_hilton_delivery_facts_capture_writer(
         "receipt_payloads": [asdict(item) for item in receipt_payloads],
         "state_update_targets": [asdict(item) for item in state_targets],
         "readbacks": [asdict(item) for item in readbacks],
+        "sqlite_receipt_readback": list(receipts),
         "sqlite_state_readback": rows,
         "delivery_facts_closeout": asdict(closeout),
         "known_unknown_facts_after_capture": {
@@ -1471,6 +1588,7 @@ def build_capital_hilton_delivery_facts_capture_writer(
             "ap_route_candidate_needs_confirmation_fixture_validates": validations[1].validation_status in {"VALID_FOR_LOCAL_CAPTURE", "DUPLICATE_NOOP"},
             "protected_evidence_reference_fixture_validates": validations[2].validation_status in {"VALID_FOR_LOCAL_CAPTURE", "DUPLICATE_NOOP"},
             "local_write_readback_worked": all(item.write_status in {"WRITTEN_TO_LOCAL_LEDGER", "DUPLICATE_NOOP"} for item in readbacks),
+            "sqlite_receipt_readback_exists": bool(receipts),
             "po_coupa_posture_readback_needs_discovery": rows.get("proof_po_reference", {}).get("posture") == "NEEDS_DISCOVERY",
             "ap_route_remains_candidate_not_confirmed": rows.get("ap_email_route", {}).get("posture") == "AP_EMAIL_CANDIDATE_NEEDS_CONFIRMATION"
             and not rows.get("ap_email_route", {}).get("value", {}).get("confirmed_recipient"),
@@ -1727,6 +1845,7 @@ __all__ = [
     "main",
     "make_capture_request",
     "read_delivery_fact_state",
+    "read_delivery_fact_receipts",
     "stable_json",
     "validate_capture_request",
     "write_capture_request",

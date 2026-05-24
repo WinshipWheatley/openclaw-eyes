@@ -32,11 +32,11 @@
   },
   "contract_status": "NARROW_LOCAL_SQLITE_CAPTURE_FOR_DELIVERY_FACT_POSTURES",
   "delivery_facts_closeout": {
-    "closeout_id": "delivery_closeout_cfac75bfe62ce8bfb857",
+    "closeout_id": "delivery_closeout_8e3f6c824d4c711847cc",
     "delivery_fact_readback_refs": [
       "delivery_readback_9b15038f4a3978f0f238",
       "delivery_readback_993067fdf2aeb3c0ac98",
-      "delivery_readback_f0b655daa0827af9c3c1"
+      "delivery_readback_747d3b5d4b249821b876"
     ],
     "next_safe_move": "Render closeout and next delivery-fact questions; do not send or submit.",
     "suggested_next_operator_question": "Do you have a PO/Coupa/payment reference, and should the invoice go to Annette.Sunga@hilton.com?",
@@ -350,29 +350,17 @@
       "write_allowed": false
     },
     {
-      "accepted_adapter_ref": "capital_hilton_delivery_facts_capture_writer.protected_reference_sqlite_adapter",
+      "accepted_adapter_ref": null,
       "ambiguity_flags": [],
       "capture_request_ref": "capital_hilton_protected_reference_required_for_delivery_facts",
       "duplicate_detection": {
-        "duplicate": false,
+        "duplicate": true,
         "idempotency_key": "capital_hilton_delivery_fact:capital_hilton_invoice_workflow_session:protected_evidence_reference:set_protected_reference_required:PROTECTED_EVIDENCE_REQUIRED_RECEIPT:61c2f38a1c9195f0f3ca",
         "same_payload_policy": "no second receipt/state update"
       },
       "external_execution_allowed": false,
-      "next_safe_move": "Write to local delivery-fact SQLite adapter and read back state.",
-      "normalized_request": {
-        "guardian_review_required": true,
-        "normal_read_model_body_allowed": false,
-        "protected_evidence_posture": "PROTECTED_REFERENCE_REQUIRED",
-        "protected_reference_metadata": {
-          "guardian_review_required": true,
-          "normal_read_model_body_allowed": false,
-          "reference_status": "REQUIRED_NOT_CAPTURED",
-          "source_hint": "PO/Coupa/payment reference evidence may require protected screen reference later.",
-          "target_kind": "COUPA_PO_SCREEN_REFERENCE"
-        },
-        "raw_body_stored": false
-      },
+      "next_safe_move": "Return fail-closed validation result.",
+      "normalized_request": {},
       "precondition_results": [
         {
           "check": "supported_workflow",
@@ -405,14 +393,14 @@
           "passed": true
         }
       ],
-      "rejected_reason": null,
+      "rejected_reason": "Same idempotency key already captured; retry is a no-op.",
       "required_receipt_type": "PROTECTED_EVIDENCE_REQUIRED_RECEIPT",
-      "validation_id": "delivery_validation_247083031c2dd1bc400a",
-      "validation_status": "VALID_FOR_LOCAL_CAPTURE",
-      "write_allowed": true
+      "validation_id": "delivery_validation_73f76a5cb024a9b4b05a",
+      "validation_status": "DUPLICATE_NOOP",
+      "write_allowed": false
     }
   ],
-  "generated_at": "2026-05-24T13:47:08+00:00",
+  "generated_at": "2026-05-24T16:00:03+00:00",
   "known_unknown_facts_after_capture": {
     "candidate": [
       "AP route candidate: Annette.Sunga@hilton.com",
@@ -446,7 +434,7 @@
     "ap_route_remains_candidate_not_confirmed": true,
     "capture_request_model_exists": true,
     "closeout_exists": true,
-    "content_hash": "sha256:19892ebb4db3aa4a154c7c0b67590aede7e8eb146a36870ea408899281c49644",
+    "content_hash": "sha256:00cb0d6b041797fe872d3e9f19179a36a043cb9687a7741015575fe7763bf597",
     "credential_material_included": false,
     "credentials_cookies_tokens_forbidden": true,
     "delivery_readiness_remains_blocked": true,
@@ -459,6 +447,7 @@
     "raw_private_content_included": false,
     "readback_exists": true,
     "receipt_payload_exists": true,
+    "sqlite_receipt_readback_exists": true,
     "state_update_target_exists": true,
     "validation_model_exists": true
   },
@@ -491,7 +480,33 @@
       ]
     },
     "capture_request": {
+      "hash_key_alternatives": {
+        "idempotency": [
+          "idempotency_key",
+          "idempotency_key_basis"
+        ],
+        "payload_hash": [
+          "payload_hash",
+          "payload_hash_basis"
+        ]
+      },
       "model_name": "CapitalHiltonDeliveryFactCaptureRequest",
+      "optional_visual_agnostic_fields": [
+        "idempotency_key_basis",
+        "payload_hash_basis",
+        "request_created_at_policy",
+        "source_channel",
+        "client_ref",
+        "tenant_ref",
+        "world_ref",
+        "lane_ref",
+        "current_person_profile_ref",
+        "origin_app",
+        "fronting_agent",
+        "addressed_actor",
+        "assigned_roles",
+        "role_based_actor_refs"
+      ],
       "required_fields": [
         "capture_request_id",
         "origin_surface",
@@ -604,7 +619,7 @@
         "credential_handling_performed": false,
         "po_coupa_posture": "NEEDS_DISCOVERY",
         "po_reference": null,
-        "proof_status": "needs_discovery"
+        "proof_status": "needs_proof"
       },
       "delivery_readiness_after_capture": {
         "ap_email_route_status": "AP_EMAIL_CANDIDATE_NEEDS_CONFIRMATION",
@@ -706,19 +721,19 @@
         "po_coupa_status": "NEEDS_DISCOVERY",
         "protected_evidence_status": "PROTECTED_REFERENCE_REQUIRED"
       },
-      "duplicate_retry_result": "not_duplicate_first_write",
+      "duplicate_retry_result": "DUPLICATE_NOOP_NO_SECOND_RECEIPT_OR_STATE_ROW",
       "external_action_performed": false,
       "idempotency_key": "capital_hilton_delivery_fact:capital_hilton_invoice_workflow_session:protected_evidence_reference:set_protected_reference_required:PROTECTED_EVIDENCE_REQUIRED_RECEIPT:61c2f38a1c9195f0f3ca",
-      "next_safe_move": "Read back local delivery-fact state and derive closeout.",
+      "next_safe_move": "Duplicate retry confirmed as no-op.",
       "payload_hash": "sha256:69101934ccb87ca0fe9d20e3a453970584b066998cb4ccdf7fd4a7b6d37304ef",
       "previous_posture": "PROTECTED_REFERENCE_REQUIRED",
       "protected_reference_refs": [
         "protected_reference_metadata:capital_hilton_protected_reference_required_for_delivery_facts"
       ],
-      "readback_id": "delivery_readback_f0b655daa0827af9c3c1",
+      "readback_id": "delivery_readback_747d3b5d4b249821b876",
       "receipt_type": "PROTECTED_EVIDENCE_REQUIRED_RECEIPT",
       "workflow_session_ref": "capital_hilton_invoice_workflow_session",
-      "write_status": "WRITTEN_TO_LOCAL_LEDGER"
+      "write_status": "DUPLICATE_NOOP"
     }
   ],
   "receipt_payloads": [
@@ -850,19 +865,7 @@
       "payload_hash": "sha256:69101934ccb87ca0fe9d20e3a453970584b066998cb4ccdf7fd4a7b6d37304ef",
       "previous_posture": "PROTECTED_REFERENCE_REQUIRED",
       "proof_status_after_capture": "protected_reference_posture_captured_no_raw_body",
-      "proposed_value": {
-        "guardian_review_required": true,
-        "normal_read_model_body_allowed": false,
-        "protected_evidence_posture": "PROTECTED_REFERENCE_REQUIRED",
-        "protected_reference_metadata": {
-          "guardian_review_required": true,
-          "normal_read_model_body_allowed": false,
-          "reference_status": "REQUIRED_NOT_CAPTURED",
-          "source_hint": "PO/Coupa/payment reference evidence may require protected screen reference later.",
-          "target_kind": "COUPA_PO_SCREEN_REFERENCE"
-        },
-        "raw_body_stored": false
-      },
+      "proposed_value": {},
       "protected_reference_metadata": {
         "guardian_review_required": true,
         "normal_read_model_body_allowed": false,
@@ -877,6 +880,149 @@
     }
   ],
   "schema_version": "capital_hilton_delivery_facts_capture_writer_v0",
+  "sqlite_receipt_readback": [
+    {
+      "block_id": "ap_email_route",
+      "capture_request_id": "capital_hilton_ap_route_candidate_needs_confirmation",
+      "captured_posture": "AP_EMAIL_CANDIDATE_NEEDS_CONFIRMATION",
+      "captured_value": {
+        "ap_email_route_posture": "AP_EMAIL_CANDIDATE_NEEDS_CONFIRMATION",
+        "confirmed_recipient": null,
+        "email_route_candidates": [
+          {
+            "address": "Annette.Sunga@hilton.com",
+            "allowed_use": "to_candidate_pending_review",
+            "candidate_ref": "capital_hilton_annette_sunga_ap_candidate",
+            "candidate_status": "CANDIDATE_NEEDS_OPERATOR_CONFIRMATION",
+            "name": "Annette Sunga"
+          },
+          {
+            "address": "Chyna.Hardin@hilton.com",
+            "allowed_use": "cc_candidate_pending_review",
+            "candidate_ref": "capital_hilton_chyna_hardin_cc_candidate",
+            "candidate_status": "CANDIDATE_NEEDS_OPERATOR_CONFIRMATION",
+            "name": "Chyna Hardin"
+          },
+          {
+            "address": "lawrencevalcovic@hilton.com",
+            "allowed_use": "cc_candidate_pending_review",
+            "candidate_ref": "capital_hilton_lawrence_valcovic_cc_candidate",
+            "candidate_status": "CANDIDATE_NEEDS_OPERATOR_CONFIRMATION",
+            "name": "Lawrence / Will Valcovic"
+          }
+        ],
+        "email_send_performed": false,
+        "gmail_access_performed": false,
+        "proof_status": "candidate_not_confirmed"
+      },
+      "created_at": "2026-05-24T13:46:41+00:00",
+      "external_action_performed": false,
+      "idempotency_key": "capital_hilton_delivery_fact:capital_hilton_invoice_workflow_session:ap_email_route:set_ap_route_candidate_needs_confirmation:OPERATOR_AP_EMAIL_ROUTE_CANDIDATE:c28d5400cc5e326fcc3f",
+      "lane": "Capital Hilton",
+      "operation": "set_ap_route_candidate_needs_confirmation",
+      "origin_actor": "winship_operator",
+      "origin_surface": "mission_control_future_or_local_fixture",
+      "payload_hash": "sha256:9aaa3f619997aa8c67b2ee32481b0dbc90c18e445e59d263eceda0162e3ea50b",
+      "previous_posture": "AP_EMAIL_CANDIDATE_NEEDS_CONFIRMATION",
+      "protected_reference_metadata": {},
+      "receipt_id": "ch_delivery_receipt_09ea5919f9407c163be8",
+      "receipt_type": "OPERATOR_AP_EMAIL_ROUTE_CANDIDATE",
+      "workflow_session_ref": "capital_hilton_invoice_workflow_session",
+      "world": "Finance"
+    },
+    {
+      "block_id": "proof_po_reference",
+      "capture_request_id": "capital_hilton_po_coupa_needs_discovery",
+      "captured_posture": "NEEDS_DISCOVERY",
+      "captured_value": {
+        "coupa_access_performed": false,
+        "coupa_reference": null,
+        "credential_handling_performed": false,
+        "po_coupa_posture": "NEEDS_DISCOVERY",
+        "po_reference": null,
+        "proof_status": "needs_discovery"
+      },
+      "created_at": "2026-05-24T13:46:41+00:00",
+      "external_action_performed": false,
+      "idempotency_key": "capital_hilton_delivery_fact:capital_hilton_invoice_workflow_session:proof_po_reference:set_needs_discovery:OPERATOR_PROOF_PO_DISCOVERY_POSTURE:fbe90eff5b41b888a58a",
+      "lane": "Capital Hilton",
+      "operation": "set_needs_discovery",
+      "origin_actor": "winship_operator",
+      "origin_surface": "mission_control_future_or_local_fixture",
+      "payload_hash": "sha256:88a9e28d8a39696d720b39e450cb9767a839fe3f08275b6b96edc955d528afb1",
+      "previous_posture": "NEEDS_DISCOVERY",
+      "protected_reference_metadata": {},
+      "receipt_id": "ch_delivery_receipt_0d8f147d0c0199c05d60",
+      "receipt_type": "OPERATOR_PROOF_PO_DISCOVERY_POSTURE",
+      "workflow_session_ref": "capital_hilton_invoice_workflow_session",
+      "world": "Finance"
+    },
+    {
+      "block_id": "protected_evidence_reference",
+      "capture_request_id": "capital_hilton_protected_reference_required_for_delivery_facts",
+      "captured_posture": "PROTECTED_REFERENCE_REQUIRED",
+      "captured_value": {
+        "guardian_review_required": true,
+        "normal_read_model_body_allowed": false,
+        "protected_evidence_posture": "PROTECTED_REFERENCE_REQUIRED",
+        "protected_reference_metadata": {
+          "guardian_review_required": true,
+          "normal_read_model_body_allowed": false,
+          "reference_status": "REQUIRED_NOT_CAPTURED",
+          "source_hint": "PO/Coupa/payment reference evidence may require protected screen reference later.",
+          "target_kind": "COUPA_PO_SCREEN_REFERENCE"
+        },
+        "raw_body_stored": false
+      },
+      "created_at": "2026-05-24T13:47:08+00:00",
+      "external_action_performed": false,
+      "idempotency_key": "capital_hilton_delivery_fact:capital_hilton_invoice_workflow_session:protected_evidence_reference:set_protected_reference_required:PROTECTED_EVIDENCE_REQUIRED_RECEIPT:61c2f38a1c9195f0f3ca",
+      "lane": "Capital Hilton",
+      "operation": "set_protected_reference_required",
+      "origin_actor": "winship_operator",
+      "origin_surface": "mission_control_future_or_local_fixture",
+      "payload_hash": "sha256:69101934ccb87ca0fe9d20e3a453970584b066998cb4ccdf7fd4a7b6d37304ef",
+      "previous_posture": "PROTECTED_REFERENCE_REQUIRED",
+      "protected_reference_metadata": {
+        "guardian_review_required": true,
+        "normal_read_model_body_allowed": false,
+        "reference_status": "REQUIRED_NOT_CAPTURED",
+        "source_hint": "PO/Coupa/payment reference evidence may require protected screen reference later.",
+        "target_kind": "COUPA_PO_SCREEN_REFERENCE"
+      },
+      "receipt_id": "ch_delivery_receipt_d9366a46dc0057bab161",
+      "receipt_type": "PROTECTED_EVIDENCE_REQUIRED_RECEIPT",
+      "workflow_session_ref": "capital_hilton_invoice_workflow_session",
+      "world": "Finance"
+    },
+    {
+      "block_id": "proof_po_reference",
+      "capture_request_id": "capital_hilton_proof_po_reference_set_needs_discovery_operator_posture",
+      "captured_posture": "NEEDS_DISCOVERY",
+      "captured_value": {
+        "coupa_access_performed": false,
+        "coupa_reference": null,
+        "credential_handling_performed": false,
+        "po_coupa_posture": "NEEDS_DISCOVERY",
+        "po_reference": null,
+        "proof_status": "needs_proof"
+      },
+      "created_at": "2026-05-24T15:58:42+00:00",
+      "external_action_performed": false,
+      "idempotency_key": "capital_hilton_delivery_fact:capital_hilton_invoice_workflow_session:proof_po_reference:set_needs_discovery:OPERATOR_PROOF_PO_DISCOVERY_POSTURE:6d952601cf02e9d0fa2a",
+      "lane": "Capital Hilton",
+      "operation": "set_needs_discovery",
+      "origin_actor": "operator",
+      "origin_surface": "finance_capital_hilton_delivery_facts",
+      "payload_hash": "sha256:a6b2793f49fb4e5521984b88db8dccfb179be3e5ea5bdfe67f512f8515b24601",
+      "previous_posture": "NEEDS_DISCOVERY",
+      "protected_reference_metadata": {},
+      "receipt_id": "ch_delivery_receipt_dedaea68629bdc8d003a",
+      "receipt_type": "OPERATOR_PROOF_PO_DISCOVERY_POSTURE",
+      "workflow_session_ref": "capital_hilton_invoice_workflow_session",
+      "world": "Finance"
+    }
+  ],
   "sqlite_state_readback": {
     "ap_email_route": {
       "payload_hash": "sha256:9aaa3f619997aa8c67b2ee32481b0dbc90c18e445e59d263eceda0162e3ea50b",
@@ -917,19 +1063,19 @@
       }
     },
     "proof_po_reference": {
-      "payload_hash": "sha256:88a9e28d8a39696d720b39e450cb9767a839fe3f08275b6b96edc955d528afb1",
+      "payload_hash": "sha256:a6b2793f49fb4e5521984b88db8dccfb179be3e5ea5bdfe67f512f8515b24601",
       "posture": "NEEDS_DISCOVERY",
       "protected_reference_metadata": {},
-      "receipt_ref": "ch_delivery_receipt_0d8f147d0c0199c05d60",
+      "receipt_ref": "ch_delivery_receipt_dedaea68629bdc8d003a",
       "state_id": "ch_delivery_state_8a4fb289efc696c438b2",
-      "updated_at": "2026-05-24T13:46:41+00:00",
+      "updated_at": "2026-05-24T15:58:42+00:00",
       "value": {
         "coupa_access_performed": false,
         "coupa_reference": null,
         "credential_handling_performed": false,
         "po_coupa_posture": "NEEDS_DISCOVERY",
         "po_reference": null,
-        "proof_status": "needs_discovery"
+        "proof_status": "needs_proof"
       }
     },
     "protected_evidence_reference": {
@@ -1026,19 +1172,7 @@
         "approval_packet_stays_locked",
         "send_submit_stays_locked"
       ],
-      "field_updates": {
-        "guardian_review_required": true,
-        "normal_read_model_body_allowed": false,
-        "protected_evidence_posture": "PROTECTED_REFERENCE_REQUIRED",
-        "protected_reference_metadata": {
-          "guardian_review_required": true,
-          "normal_read_model_body_allowed": false,
-          "reference_status": "REQUIRED_NOT_CAPTURED",
-          "source_hint": "PO/Coupa/payment reference evidence may require protected screen reference later.",
-          "target_kind": "COUPA_PO_SCREEN_REFERENCE"
-        },
-        "raw_body_stored": false
-      },
+      "field_updates": {},
       "next_safe_move": "Apply state update only through enabled delivery-fact adapter.",
       "proof_requirements_after_update": [
         "PO/Coupa proof still required unless explicit confirmed reference is later captured",
