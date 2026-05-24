@@ -1,0 +1,2740 @@
+{
+  "agent_behaviors": [
+    {
+      "agent_ref": "Cassandra",
+      "allowed_response_shapes": [
+        "compact explanation",
+        "workflow path choices",
+        "operator question",
+        "agent packet candidate"
+      ],
+      "behavior_id": "cassandra_telegram_po_help_behavior",
+      "blocked_response_shapes": [
+        "truth commit",
+        "proof complete",
+        "execution done",
+        "send completed",
+        "passive lecture only"
+      ],
+      "compact_context_policy": "Use compact domain hint and current workflow block only.",
+      "domain_hint_refs": [
+        "winship_compact_domain_familiarity_hint"
+      ],
+      "next_safe_move": "Answer compactly and map uncertainty into a workflow path.",
+      "question_assist_refs": [
+        "telegram_po_meaning_question_assist",
+        "capital_hilton_po_coupa_question_assist"
+      ],
+      "surface": "Telegram",
+      "when_to_ask_operator": "Ask only for the missing block choice: Find PO, Look in packets, Ask later, or Park.",
+      "when_to_explain": "Explain when the operator asks what a term means or a block is unfamiliar.",
+      "when_to_request_deeper_packet": "Only when compact hint plus current block is not enough.",
+      "when_to_stop_and_handoff": "Stop before claiming proof, committing truth, sending, or accessing external systems.",
+      "when_to_use_analogy": "Use a routing/signal-flow analogy only if it clarifies payment-routing context."
+    },
+    {
+      "agent_ref": "Chief",
+      "allowed_response_shapes": [
+        "concise blocker briefing",
+        "safe next diagnostic block",
+        "Engineering Contained status"
+      ],
+      "behavior_id": "chief_build_question_behavior",
+      "blocked_response_shapes": [
+        "repair executed",
+        "shell output from new command",
+        "truth commit",
+        "broad scan summary"
+      ],
+      "compact_context_policy": "Use current diagnostic refs only; keep proof below deck.",
+      "domain_hint_refs": [
+        "winship_compact_domain_familiarity_hint"
+      ],
+      "next_safe_move": "Brief the blocker or stay Engineering Contained.",
+      "question_assist_refs": [
+        "chief_build_troubleshooting_question_assist"
+      ],
+      "surface": "Chief conversation",
+      "when_to_ask_operator": "Ask only when a captain-level repair or prioritization decision is needed.",
+      "when_to_explain": "Explain build blockers when operator asks what is blocking the build.",
+      "when_to_request_deeper_packet": "Request deeper support only for a focused diagnostic packet.",
+      "when_to_stop_and_handoff": "Stop before shell, repair, cleanup, broad scan, or state write.",
+      "when_to_use_analogy": "Use studio signal-flow analogy for upstream/downstream failure only when useful."
+    },
+    {
+      "agent_ref": "Guardian/Hermes",
+      "allowed_response_shapes": [
+        "review question",
+        "risk checklist",
+        "park option",
+        "Guardian/Hermes review choices"
+      ],
+      "behavior_id": "guardian_legal_question_behavior",
+      "blocked_response_shapes": [
+        "legal advice",
+        "approval granted",
+        "contract action executed",
+        "truth commit"
+      ],
+      "compact_context_policy": "Use precise legal terms plus plain explanation; no personal dossier.",
+      "domain_hint_refs": [
+        "winship_compact_domain_familiarity_hint"
+      ],
+      "next_safe_move": "Turn legal uncertainty into review choices with authority false.",
+      "question_assist_refs": [
+        "legal_contract_domain_question_assist"
+      ],
+      "surface": "Guardian review",
+      "when_to_ask_operator": "Ask whether to summarize, identify risk, escalate, or park.",
+      "when_to_explain": "Explain terms when they block an operator decision.",
+      "when_to_request_deeper_packet": "Only when review scope needs a focused packet.",
+      "when_to_stop_and_handoff": "Stop before legal advice, approval, submission, or action.",
+      "when_to_use_analogy": "Use analogy only to clarify process, never to replace legal terms."
+    }
+  ],
+  "agent_behaviors_by_id": {
+    "cassandra_telegram_po_help_behavior": {
+      "agent_ref": "Cassandra",
+      "allowed_response_shapes": [
+        "compact explanation",
+        "workflow path choices",
+        "operator question",
+        "agent packet candidate"
+      ],
+      "behavior_id": "cassandra_telegram_po_help_behavior",
+      "blocked_response_shapes": [
+        "truth commit",
+        "proof complete",
+        "execution done",
+        "send completed",
+        "passive lecture only"
+      ],
+      "compact_context_policy": "Use compact domain hint and current workflow block only.",
+      "domain_hint_refs": [
+        "winship_compact_domain_familiarity_hint"
+      ],
+      "next_safe_move": "Answer compactly and map uncertainty into a workflow path.",
+      "question_assist_refs": [
+        "telegram_po_meaning_question_assist",
+        "capital_hilton_po_coupa_question_assist"
+      ],
+      "surface": "Telegram",
+      "when_to_ask_operator": "Ask only for the missing block choice: Find PO, Look in packets, Ask later, or Park.",
+      "when_to_explain": "Explain when the operator asks what a term means or a block is unfamiliar.",
+      "when_to_request_deeper_packet": "Only when compact hint plus current block is not enough.",
+      "when_to_stop_and_handoff": "Stop before claiming proof, committing truth, sending, or accessing external systems.",
+      "when_to_use_analogy": "Use a routing/signal-flow analogy only if it clarifies payment-routing context."
+    },
+    "chief_build_question_behavior": {
+      "agent_ref": "Chief",
+      "allowed_response_shapes": [
+        "concise blocker briefing",
+        "safe next diagnostic block",
+        "Engineering Contained status"
+      ],
+      "behavior_id": "chief_build_question_behavior",
+      "blocked_response_shapes": [
+        "repair executed",
+        "shell output from new command",
+        "truth commit",
+        "broad scan summary"
+      ],
+      "compact_context_policy": "Use current diagnostic refs only; keep proof below deck.",
+      "domain_hint_refs": [
+        "winship_compact_domain_familiarity_hint"
+      ],
+      "next_safe_move": "Brief the blocker or stay Engineering Contained.",
+      "question_assist_refs": [
+        "chief_build_troubleshooting_question_assist"
+      ],
+      "surface": "Chief conversation",
+      "when_to_ask_operator": "Ask only when a captain-level repair or prioritization decision is needed.",
+      "when_to_explain": "Explain build blockers when operator asks what is blocking the build.",
+      "when_to_request_deeper_packet": "Request deeper support only for a focused diagnostic packet.",
+      "when_to_stop_and_handoff": "Stop before shell, repair, cleanup, broad scan, or state write.",
+      "when_to_use_analogy": "Use studio signal-flow analogy for upstream/downstream failure only when useful."
+    },
+    "guardian_legal_question_behavior": {
+      "agent_ref": "Guardian/Hermes",
+      "allowed_response_shapes": [
+        "review question",
+        "risk checklist",
+        "park option",
+        "Guardian/Hermes review choices"
+      ],
+      "behavior_id": "guardian_legal_question_behavior",
+      "blocked_response_shapes": [
+        "legal advice",
+        "approval granted",
+        "contract action executed",
+        "truth commit"
+      ],
+      "compact_context_policy": "Use precise legal terms plus plain explanation; no personal dossier.",
+      "domain_hint_refs": [
+        "winship_compact_domain_familiarity_hint"
+      ],
+      "next_safe_move": "Turn legal uncertainty into review choices with authority false.",
+      "question_assist_refs": [
+        "legal_contract_domain_question_assist"
+      ],
+      "surface": "Guardian review",
+      "when_to_ask_operator": "Ask whether to summarize, identify risk, escalate, or park.",
+      "when_to_explain": "Explain terms when they block an operator decision.",
+      "when_to_request_deeper_packet": "Only when review scope needs a focused packet.",
+      "when_to_stop_and_handoff": "Stop before legal advice, approval, submission, or action.",
+      "when_to_use_analogy": "Use analogy only to clarify process, never to replace legal terms."
+    }
+  },
+  "agent_question_assist_behavior_schema": {
+    "agents_do_not_commit_truth_or_execute_action": true,
+    "agents_do_not_invent_operator_preferences": true,
+    "agents_explain_conversationally": true,
+    "agents_request_deeper_support_only_when_needed": true,
+    "agents_turn_uncertainty_into_block_choices_not_lectures": true,
+    "agents_use_compact_domain_hints": true,
+    "required_fields": [
+      "behavior_id",
+      "agent_ref",
+      "surface",
+      "question_assist_refs",
+      "domain_hint_refs",
+      "compact_context_policy",
+      "when_to_explain",
+      "when_to_use_analogy",
+      "when_to_ask_operator",
+      "when_to_request_deeper_packet",
+      "when_to_stop_and_handoff",
+      "allowed_response_shapes",
+      "blocked_response_shapes",
+      "next_safe_move"
+    ],
+    "structure": "AgentQuestionAssistBehavior",
+    "surfaces": [
+      "Mission Control",
+      "Telegram",
+      "Cassandra/Clara conversation",
+      "Chief conversation",
+      "Guardian review",
+      "Hermes advisory",
+      "Niles project flow",
+      "future agents"
+    ]
+  },
+  "authority_boundary": {
+    "agent_response_execution_allowed": false,
+    "approval_submission_allowed": false,
+    "browser_automation_allowed": false,
+    "calendar_access_allowed": false,
+    "coupa_access_allowed": false,
+    "credential_handling_allowed": false,
+    "email_send_allowed": false,
+    "file_cleanup_archive_promotion_allowed": false,
+    "file_write_allowed": false,
+    "financial_advice_authority": false,
+    "git_push_pull_fetch_allowed": false,
+    "gmail_access_allowed": false,
+    "hook_execution_allowed": false,
+    "invoice_generation_allowed": false,
+    "ledger_write_allowed": false,
+    "legal_advice_authority": false,
+    "live_question_assist_execution_allowed": false,
+    "mac_sync_import_allowed": false,
+    "mcp_execution_allowed": false,
+    "mission_control_swift_change_allowed": false,
+    "model_call_allowed": false,
+    "network_operation_allowed": false,
+    "queue_execution_allowed": false,
+    "raw_body_ingestion_allowed": false,
+    "receipt_write_allowed": false,
+    "runtime_dispatch_allowed": false,
+    "script_execution_allowed": false,
+    "state_write_allowed": false,
+    "telegram_send_allowed": false,
+    "tool_execution_allowed": false
+  },
+  "contract_status": "DETERMINISTIC_NON_EXECUTING_QUESTION_ASSIST_CONTRACT",
+  "doctrine": {
+    "jargon_explained_without_hiding_terms": true,
+    "no_live_execution": true,
+    "non_patronizing_support_required": true,
+    "question_help_is_not_passive_tooltip": true,
+    "systems_engineering_not_vibes": true,
+    "uncertainty_becomes_workflow_paths": true
+  },
+  "domain_familiarity_hints": [
+    {
+      "analogy_sources": [
+        "ship/bridge",
+        "studio signal flow",
+        "live-show routing",
+        "production pipeline"
+      ],
+      "compact_summary": "Winship is strong in music/audio/video/creative and Mac workflow thinking; use compact analogies for finance, legal, security, or backend complexity only when useful.",
+      "context_dependent_domains": [
+        "finance/AP/Coupa",
+        "legal process",
+        "security engineering",
+        "backend systems architecture"
+      ],
+      "deeper_support_available": true,
+      "deeper_support_trigger": "Request only when the current question needs more domain support than the compact hint provides.",
+      "hint_id": "winship_compact_domain_familiarity_hint",
+      "include_by_default": true,
+      "next_safe_move": "Carry the compact hint in packets and request deeper support only on demand.",
+      "operator_ref": "Winship",
+      "preferred_explanation_modes": [
+        "cockpit/ship/captain analogy",
+        "studio signal-flow analogy",
+        "live-show routing analogy",
+        "production pipeline analogy"
+      ],
+      "privacy_boundary": "This is a compact support hint, not a personal dossier; do not infer hidden preferences.",
+      "strong_domains": [
+        "music production",
+        "audio engineering",
+        "live sound",
+        "video production",
+        "creative project workflows",
+        "Mac/app workflow thinking"
+      ],
+      "support_style": [
+        "explain jargon without hiding it",
+        "do not patronize",
+        "offer help me figure this out paths",
+        "use familiar-domain analogies only when useful",
+        "turn uncertainty into workflow options"
+      ],
+      "unfamiliar_or_high_friction_domains": [
+        "finance/AP/Coupa",
+        "legal process",
+        "security engineering"
+      ]
+    }
+  ],
+  "domain_familiarity_hints_by_id": {
+    "winship_compact_domain_familiarity_hint": {
+      "analogy_sources": [
+        "ship/bridge",
+        "studio signal flow",
+        "live-show routing",
+        "production pipeline"
+      ],
+      "compact_summary": "Winship is strong in music/audio/video/creative and Mac workflow thinking; use compact analogies for finance, legal, security, or backend complexity only when useful.",
+      "context_dependent_domains": [
+        "finance/AP/Coupa",
+        "legal process",
+        "security engineering",
+        "backend systems architecture"
+      ],
+      "deeper_support_available": true,
+      "deeper_support_trigger": "Request only when the current question needs more domain support than the compact hint provides.",
+      "hint_id": "winship_compact_domain_familiarity_hint",
+      "include_by_default": true,
+      "next_safe_move": "Carry the compact hint in packets and request deeper support only on demand.",
+      "operator_ref": "Winship",
+      "preferred_explanation_modes": [
+        "cockpit/ship/captain analogy",
+        "studio signal-flow analogy",
+        "live-show routing analogy",
+        "production pipeline analogy"
+      ],
+      "privacy_boundary": "This is a compact support hint, not a personal dossier; do not infer hidden preferences.",
+      "strong_domains": [
+        "music production",
+        "audio engineering",
+        "live sound",
+        "video production",
+        "creative project workflows",
+        "Mac/app workflow thinking"
+      ],
+      "support_style": [
+        "explain jargon without hiding it",
+        "do not patronize",
+        "offer help me figure this out paths",
+        "use familiar-domain analogies only when useful",
+        "turn uncertainty into workflow options"
+      ],
+      "unfamiliar_or_high_friction_domains": [
+        "finance/AP/Coupa",
+        "legal process",
+        "security engineering"
+      ]
+    }
+  },
+  "generated_at": "2026-05-24T12:00:00+00:00",
+  "hard_rule": {
+    "does_not_call_agents_or_models": true,
+    "does_not_create_runtime_authority": true,
+    "does_not_execute_tools": true,
+    "does_not_implement_live_telegram": true,
+    "does_not_implement_live_ui": true,
+    "does_not_mutate_workflow_state": true,
+    "does_not_write_receipts": true,
+    "may_grant_authority": false,
+    "read_model_only": true
+  },
+  "machine_proof": {
+    "agent_behavior_count": 3,
+    "agent_packet_candidate_present": true,
+    "agent_question_assist_behavior_model_present": true,
+    "agents_cannot_commit_truth_or_execute": true,
+    "all_authority_flags_false": true,
+    "block_draft_option_present": true,
+    "capital_hilton_po_coupa_help_present": true,
+    "chief_build_troubleshooting_help_present": true,
+    "content_hash": "sha256:b65a2d957f6a1153ac60188f35d3fc89f6f3d04ad33681319f2e1465781fe363",
+    "credentials_or_secrets_included": false,
+    "deeper_support_packet_optional_on_demand": true,
+    "discovery_option_present": true,
+    "domain_familiarity_hint_compact": true,
+    "domain_hint_count": 1,
+    "guided_capture_option_present": true,
+    "help_paths_become_workflow_options": true,
+    "jargon_explained_without_hidden_terms": true,
+    "legal_contract_help_present": true,
+    "new_workflow_scope_expansion_present": true,
+    "operator_domain_familiarity_hint_model_present": true,
+    "operator_question_assist_model_present": true,
+    "operator_scope_expansion_mission_model_present": true,
+    "question_assist_count": 6,
+    "question_assist_workflow_path_model_present": true,
+    "rate_confirmation_help_present": true,
+    "raw_private_bodies_included": false,
+    "scope_mission_count": 2,
+    "telegram_agent_help_present": true,
+    "workflow_path_count": 8
+  },
+  "north_star": "OpenClaw turns unfamiliar work into navigable missions.",
+  "operator_domain_familiarity_hint_schema": {
+    "agents_should_not_assume_ignorance": true,
+    "agents_should_not_flood_personal_dossier": true,
+    "analogies_clarify_without_replacing_terms": true,
+    "compact_hints_may_travel_in_packets": true,
+    "deeper_support_on_demand_only": true,
+    "jargon_remains_visible_with_explanation": true,
+    "required_fields": [
+      "hint_id",
+      "operator_ref",
+      "strong_domains",
+      "context_dependent_domains",
+      "unfamiliar_or_high_friction_domains",
+      "preferred_explanation_modes",
+      "analogy_sources",
+      "support_style",
+      "include_by_default",
+      "compact_summary",
+      "deeper_support_available",
+      "deeper_support_trigger",
+      "privacy_boundary",
+      "next_safe_move"
+    ],
+    "structure": "OperatorDomainFamiliarityHint"
+  },
+  "operator_question_assist_schema": {
+    "executes_live_search_or_action": false,
+    "help_me_figure_this_out_becomes_workflow_options": true,
+    "help_must_be_more_than_passive_documentation": true,
+    "help_must_explain_jargon_without_hiding_it": true,
+    "help_must_not_be_patronizing": true,
+    "required_fields": [
+      "assist_id",
+      "question_ref",
+      "workflow_session_ref",
+      "block_ref",
+      "world",
+      "lane",
+      "question_text",
+      "domain_terms",
+      "plain_language_explanation",
+      "why_this_matters",
+      "valid_answer_types",
+      "example_good_answers",
+      "common_confusions",
+      "proof_or_evidence_needed",
+      "if_you_dont_know_options",
+      "discovery_path_options",
+      "guided_capture_options",
+      "agent_assist_options",
+      "downstream_effects",
+      "authority_boundary",
+      "next_safe_move"
+    ],
+    "structure": "OperatorQuestionAssist",
+    "supports_mission_control_and_conversation_agents": true
+  },
+  "operator_scope_expansion_mission_schema": {
+    "encouragement_calm_grounded_not_hype": true,
+    "operator_asked_only_what_system_cannot_safely_infer": true,
+    "required_fields": [
+      "mission_id",
+      "title",
+      "originating_question_ref",
+      "target_world",
+      "target_lane",
+      "unfamiliar_domain",
+      "operator_confidence_hint",
+      "mission_blocks",
+      "system_can_fill_blocks",
+      "operator_needed_blocks",
+      "recommended_crew",
+      "question_assist_refs",
+      "proof_or_capture_refs",
+      "safety_gates",
+      "suggested_first_move",
+      "encouragement_style",
+      "overreach_warning",
+      "next_safe_move"
+    ],
+    "risky_domains_include_safety_gates": true,
+    "structure": "OperatorScopeExpansionMission",
+    "system_breaks_uncertainty_into_blocks": true,
+    "system_fills_known_blocks_from_evidence_when_possible": true,
+    "unfamiliar_work_becomes_navigable_mission": true
+  },
+  "path_types": [
+    "EXPLAIN_TERM",
+    "SHOW_EXAMPLES",
+    "HELP_ME_CHOOSE",
+    "FIND_PROOF",
+    "ASK_AGENT_TO_CLARIFY",
+    "CREATE_DISCOVERY_PATH",
+    "CREATE_GUIDED_CAPTURE_PATH",
+    "CREATE_BLOCK_DRAFT_INTENT",
+    "PARK_UNTIL_LATER",
+    "ESCALATE_TO_GUARDIAN",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "question_assist_workflow_path_schema": {
+    "all_paths_preview_only_non_executing": true,
+    "discovery_claims_need_discovery_options": true,
+    "help_paths_are_selectable_workflow_paths": true,
+    "passive_advice_is_not_enough": true,
+    "path_types": [
+      "EXPLAIN_TERM",
+      "SHOW_EXAMPLES",
+      "HELP_ME_CHOOSE",
+      "FIND_PROOF",
+      "ASK_AGENT_TO_CLARIFY",
+      "CREATE_DISCOVERY_PATH",
+      "CREATE_GUIDED_CAPTURE_PATH",
+      "CREATE_BLOCK_DRAFT_INTENT",
+      "PARK_UNTIL_LATER",
+      "ESCALATE_TO_GUARDIAN",
+      "UNKNOWN_FAIL_CLOSED"
+    ],
+    "required_fields": [
+      "path_id",
+      "assist_ref",
+      "path_label",
+      "path_type",
+      "what_it_does",
+      "operator_input_needed",
+      "system_input_needed",
+      "agent_support_needed",
+      "proof_needed",
+      "creates_discovery_substep",
+      "creates_guided_capture_path",
+      "creates_block_draft_intent",
+      "creates_agent_packet_candidate",
+      "blocked_actions",
+      "authority_boundary",
+      "next_safe_move"
+    ],
+    "structure": "QuestionAssistWorkflowPath"
+  },
+  "question_assists": [
+    {
+      "agent_assist_options": [
+        "cassandra_capital_hilton_po_question_behavior"
+      ],
+      "assist_id": "capital_hilton_po_coupa_question_assist",
+      "authority_boundary": {
+        "agent_response_execution_allowed": false,
+        "approval_submission_allowed": false,
+        "browser_automation_allowed": false,
+        "calendar_access_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "email_send_allowed": false,
+        "file_cleanup_archive_promotion_allowed": false,
+        "file_write_allowed": false,
+        "financial_advice_authority": false,
+        "git_push_pull_fetch_allowed": false,
+        "gmail_access_allowed": false,
+        "hook_execution_allowed": false,
+        "invoice_generation_allowed": false,
+        "ledger_write_allowed": false,
+        "legal_advice_authority": false,
+        "live_question_assist_execution_allowed": false,
+        "mac_sync_import_allowed": false,
+        "mcp_execution_allowed": false,
+        "mission_control_swift_change_allowed": false,
+        "model_call_allowed": false,
+        "network_operation_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "receipt_write_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "script_execution_allowed": false,
+        "state_write_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false
+      },
+      "block_ref": "po_or_payment_reference",
+      "common_confusions": [
+        "Operator confirmation is not the same as external proof.",
+        "A missing PO is not a dead end; it becomes a discovery path."
+      ],
+      "discovery_path_options": [
+        "look_for_po_number_path",
+        "look_for_coupa_reference_path",
+        "look_for_ap_payment_metadata_path"
+      ],
+      "domain_terms": [
+        {
+          "plain_explanation": "A payment-routing reference that can tell AP how to match or approve the invoice.",
+          "precise_term": "purchase order",
+          "term": "PO"
+        },
+        {
+          "plain_explanation": "The possible portal context where a customer may track purchase orders or invoice references.",
+          "precise_term": "procurement or invoice portal",
+          "term": "Coupa"
+        },
+        {
+          "plain_explanation": "A reference that helps the customer route and pay the invoice correctly.",
+          "precise_term": "AP metadata",
+          "term": "payment reference"
+        }
+      ],
+      "downstream_effects": [
+        "invoice packet reference field may update",
+        "proof-needed block may open",
+        "approval/send remains locked"
+      ],
+      "example_good_answers": [
+        "PO 12345",
+        "No PO, use Capital Hilton AP contact metadata",
+        "I do not know; start discovery."
+      ],
+      "guided_capture_options": [
+        "capital_hilton_create_po_guided_capture_path"
+      ],
+      "if_you_dont_know_options": [
+        "Create PO/reference discovery path",
+        "Create guided capture path",
+        "Ask Cassandra/Clara later",
+        "Park as unknown"
+      ],
+      "lane": "Capital Hilton",
+      "next_safe_move": "Pick the reference type if known, or choose a discovery/capture path.",
+      "plain_language_explanation": "Keep the real terms visible: PO means purchase order, Coupa is the possible portal context, and payment reference means the metadata that helps AP route the invoice.",
+      "proof_or_evidence_needed": "Proof may be needed before final send or payment-routing claim.",
+      "question_ref": "capital_hilton_po_coupa_help_question",
+      "question_text": "What should OpenClaw try to find about PO / Coupa / payment reference?",
+      "valid_answer_types": [
+        "PO number",
+        "Coupa invoice reference",
+        "AP/payment metadata",
+        "no known reference",
+        "I do not know yet"
+      ],
+      "why_this_matters": "The right reference can prevent payment delay without forcing Winship to manage portal mechanics.",
+      "workflow_session_ref": "capital_hilton_invoice_workflow_session",
+      "world": "Finance"
+    },
+    {
+      "agent_assist_options": [
+        "cassandra_rate_confirmation_behavior"
+      ],
+      "assist_id": "capital_hilton_rate_confirmation_question_assist",
+      "authority_boundary": {
+        "agent_response_execution_allowed": false,
+        "approval_submission_allowed": false,
+        "browser_automation_allowed": false,
+        "calendar_access_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "email_send_allowed": false,
+        "file_cleanup_archive_promotion_allowed": false,
+        "file_write_allowed": false,
+        "financial_advice_authority": false,
+        "git_push_pull_fetch_allowed": false,
+        "gmail_access_allowed": false,
+        "hook_execution_allowed": false,
+        "invoice_generation_allowed": false,
+        "ledger_write_allowed": false,
+        "legal_advice_authority": false,
+        "live_question_assist_execution_allowed": false,
+        "mac_sync_import_allowed": false,
+        "mcp_execution_allowed": false,
+        "mission_control_swift_change_allowed": false,
+        "model_call_allowed": false,
+        "network_operation_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "receipt_write_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "script_execution_allowed": false,
+        "state_write_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false
+      },
+      "block_ref": "rate_confirmation",
+      "common_confusions": [
+        "A remembered rate can be useful but may still need proof before final send."
+      ],
+      "discovery_path_options": [
+        "rate_proof_discovery_path"
+      ],
+      "domain_terms": [
+        {
+          "plain_explanation": "The amount used to calculate subtotal for each gig.",
+          "precise_term": "billing rate per performance",
+          "term": "rate"
+        }
+      ],
+      "downstream_effects": [
+        "subtotal preview changes",
+        "invoice artifact preview becomes stale",
+        "approval remains locked"
+      ],
+      "example_good_answers": [
+        "$400 per gig is right for this invoice",
+        "Use $450 instead",
+        "I need a proof path."
+      ],
+      "guided_capture_options": [
+        "rate_source_guided_capture_path"
+      ],
+      "if_you_dont_know_options": [
+        "create rate proof discovery path",
+        "ask Cassandra/Clara to clarify",
+        "park rate"
+      ],
+      "lane": "Capital Hilton",
+      "next_safe_move": "Confirm, correct, or create a rate proof discovery path.",
+      "plain_language_explanation": "The rate stays visible as a finance term, with the simple meaning beside it: dollars per gig.",
+      "proof_or_evidence_needed": "Rate source may be needed before final send or artifact approval.",
+      "question_ref": "capital_hilton_rate_confirmation_question",
+      "question_text": "Is $400 per gig still the correct rate?",
+      "valid_answer_types": [
+        "confirm current rate",
+        "correct rate",
+        "I do not know",
+        "needs proof"
+      ],
+      "why_this_matters": "The rate drives subtotal, but operator confirmation is not the same as outside proof.",
+      "workflow_session_ref": "capital_hilton_invoice_workflow_session",
+      "world": "Finance"
+    },
+    {
+      "agent_assist_options": [
+        "guardian_legal_question_behavior",
+        "hermes_legal_question_behavior"
+      ],
+      "assist_id": "legal_contract_domain_question_assist",
+      "authority_boundary": {
+        "agent_response_execution_allowed": false,
+        "approval_submission_allowed": false,
+        "browser_automation_allowed": false,
+        "calendar_access_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "email_send_allowed": false,
+        "file_cleanup_archive_promotion_allowed": false,
+        "file_write_allowed": false,
+        "financial_advice_authority": false,
+        "git_push_pull_fetch_allowed": false,
+        "gmail_access_allowed": false,
+        "hook_execution_allowed": false,
+        "invoice_generation_allowed": false,
+        "ledger_write_allowed": false,
+        "legal_advice_authority": false,
+        "live_question_assist_execution_allowed": false,
+        "mac_sync_import_allowed": false,
+        "mcp_execution_allowed": false,
+        "mission_control_swift_change_allowed": false,
+        "model_call_allowed": false,
+        "network_operation_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "receipt_write_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "script_execution_allowed": false,
+        "state_write_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false
+      },
+      "block_ref": "contract_clause_question",
+      "common_confusions": [
+        "Explanation is not legal advice.",
+        "Guardian review is not lawyer approval."
+      ],
+      "discovery_path_options": [
+        "legal_clause_question_list_path"
+      ],
+      "domain_terms": [
+        {
+          "plain_explanation": "A specific section of the agreement with obligations or limits.",
+          "precise_term": "contract provision",
+          "term": "clause"
+        },
+        {
+          "plain_explanation": "Something that may cost money, create obligation, or limit future options.",
+          "precise_term": "legal or business exposure",
+          "term": "risk"
+        }
+      ],
+      "downstream_effects": [
+        "review checklist may update",
+        "legal action remains blocked",
+        "approval remains unavailable"
+      ],
+      "example_good_answers": [
+        "Summarize the payment clause",
+        "Flag any termination risk",
+        "Park this for lawyer review."
+      ],
+      "guided_capture_options": [],
+      "if_you_dont_know_options": [
+        "ask Guardian/Hermes for review",
+        "park for lawyer review",
+        "create question list"
+      ],
+      "lane": "Contract Review",
+      "next_safe_move": "Create a review question or park for qualified review; do not treat this as legal advice.",
+      "plain_language_explanation": "The system can summarize terms and identify questions, but it does not provide legal advice.",
+      "proof_or_evidence_needed": "Source clause reference is needed; raw private bodies remain outside this contract.",
+      "question_ref": "legal_contract_clause_help_question",
+      "question_text": "What does this clause mean and what should I worry about?",
+      "valid_answer_types": [
+        "summarize clause",
+        "identify risk",
+        "ask Guardian/Hermes",
+        "park for lawyer review"
+      ],
+      "why_this_matters": "Legal work is high-friction and should become review blocks with Guardian/Hermes gates.",
+      "workflow_session_ref": "legal_contract_review_scope_expansion_mission",
+      "world": "Legal/Guardian"
+    },
+    {
+      "agent_assist_options": [
+        "chief_build_question_behavior"
+      ],
+      "assist_id": "chief_build_troubleshooting_question_assist",
+      "authority_boundary": {
+        "agent_response_execution_allowed": false,
+        "approval_submission_allowed": false,
+        "browser_automation_allowed": false,
+        "calendar_access_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "email_send_allowed": false,
+        "file_cleanup_archive_promotion_allowed": false,
+        "file_write_allowed": false,
+        "financial_advice_authority": false,
+        "git_push_pull_fetch_allowed": false,
+        "gmail_access_allowed": false,
+        "hook_execution_allowed": false,
+        "invoice_generation_allowed": false,
+        "ledger_write_allowed": false,
+        "legal_advice_authority": false,
+        "live_question_assist_execution_allowed": false,
+        "mac_sync_import_allowed": false,
+        "mcp_execution_allowed": false,
+        "mission_control_swift_change_allowed": false,
+        "model_call_allowed": false,
+        "network_operation_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "receipt_write_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "script_execution_allowed": false,
+        "state_write_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false
+      },
+      "block_ref": "current_build_blocker",
+      "common_confusions": [
+        "A diagnostic summary is not repair execution."
+      ],
+      "discovery_path_options": [
+        "chief_safe_diagnostic_block_path"
+      ],
+      "domain_terms": [
+        {
+          "plain_explanation": "The part of the system that stops the next safe validation or build step.",
+          "precise_term": "current failure point",
+          "term": "blocker"
+        },
+        {
+          "plain_explanation": "Like a live-sound signal path: find where the signal first fails before fixing later stages.",
+          "precise_term": "dependency direction",
+          "term": "upstream/downstream"
+        }
+      ],
+      "downstream_effects": [
+        "Shipyard attention may update",
+        "Bridge only sees captain-level decision if needed"
+      ],
+      "example_good_answers": [
+        "Show the first failing validation",
+        "Create a safe diagnostic block."
+      ],
+      "guided_capture_options": [],
+      "if_you_dont_know_options": [
+        "ask Chief for concise blocker briefing",
+        "create diagnostic path",
+        "park"
+      ],
+      "lane": "Check Engine",
+      "next_safe_move": "Ask Chief for a blocker briefing from current refs only.",
+      "plain_language_explanation": "Chief can use signal-path language: find the first failure point, show refs, and stop before repair.",
+      "proof_or_evidence_needed": "Focused read-model/test refs are needed; no shell or broad scan is granted.",
+      "question_ref": "chief_build_blocker_question",
+      "question_text": "What is blocking the build?",
+      "valid_answer_types": [
+        "show likely blocker",
+        "show proof refs",
+        "create diagnostic block",
+        "park"
+      ],
+      "why_this_matters": "Repair can be unsafe without proof, rollback, and a captain decision.",
+      "workflow_session_ref": "check_engine_diagnostic_session",
+      "world": "Build"
+    },
+    {
+      "agent_assist_options": [
+        "cassandra_new_workflow_scope_behavior",
+        "niles_project_scope_behavior"
+      ],
+      "assist_id": "monthly_client_recap_scope_question_assist",
+      "authority_boundary": {
+        "agent_response_execution_allowed": false,
+        "approval_submission_allowed": false,
+        "browser_automation_allowed": false,
+        "calendar_access_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "email_send_allowed": false,
+        "file_cleanup_archive_promotion_allowed": false,
+        "file_write_allowed": false,
+        "financial_advice_authority": false,
+        "git_push_pull_fetch_allowed": false,
+        "gmail_access_allowed": false,
+        "hook_execution_allowed": false,
+        "invoice_generation_allowed": false,
+        "ledger_write_allowed": false,
+        "legal_advice_authority": false,
+        "live_question_assist_execution_allowed": false,
+        "mac_sync_import_allowed": false,
+        "mcp_execution_allowed": false,
+        "mission_control_swift_change_allowed": false,
+        "model_call_allowed": false,
+        "network_operation_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "receipt_write_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "script_execution_allowed": false,
+        "state_write_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false
+      },
+      "block_ref": "new_workflow_outline",
+      "common_confusions": [
+        "Setting up a workflow does not execute it."
+      ],
+      "discovery_path_options": [
+        "client_recap_scope_discovery_path"
+      ],
+      "domain_terms": [
+        {
+          "plain_explanation": "A repeatable set of blocks for collecting updates, drafting a recap, reviewing, and sending later.",
+          "precise_term": "repeating client delivery process",
+          "term": "recap workflow"
+        }
+      ],
+      "downstream_effects": [
+        "new block draft may appear",
+        "no send or runtime action occurs"
+      ],
+      "example_good_answers": [
+        "Draft the blocks first",
+        "Review it with me",
+        "Park until next week."
+      ],
+      "guided_capture_options": [],
+      "if_you_dont_know_options": [
+        "create block draft intent",
+        "ask agent to propose scope",
+        "park"
+      ],
+      "lane": "Scope Expansion",
+      "next_safe_move": "Choose whether to review proposed blocks together or let the system draft a preview.",
+      "plain_language_explanation": "This is a new mission, not an instant action. The system can propose blocks first.",
+      "proof_or_evidence_needed": "Terrain/source refs may help fill client, cadence, deliverables, and send route.",
+      "question_ref": "monthly_client_recap_new_workflow_question",
+      "question_text": "Can we set up a monthly client recap?",
+      "valid_answer_types": [
+        "review proposed blocks",
+        "let system draft first",
+        "park",
+        "ask for scope help"
+      ],
+      "why_this_matters": "New work becomes navigable when the system separates known blocks from operator-needed blocks.",
+      "workflow_session_ref": "monthly_client_recap_scope_expansion_mission",
+      "world": "Client Delivery"
+    },
+    {
+      "agent_assist_options": [
+        "cassandra_telegram_po_help_behavior"
+      ],
+      "assist_id": "telegram_po_meaning_question_assist",
+      "authority_boundary": {
+        "agent_response_execution_allowed": false,
+        "approval_submission_allowed": false,
+        "browser_automation_allowed": false,
+        "calendar_access_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "email_send_allowed": false,
+        "file_cleanup_archive_promotion_allowed": false,
+        "file_write_allowed": false,
+        "financial_advice_authority": false,
+        "git_push_pull_fetch_allowed": false,
+        "gmail_access_allowed": false,
+        "hook_execution_allowed": false,
+        "invoice_generation_allowed": false,
+        "ledger_write_allowed": false,
+        "legal_advice_authority": false,
+        "live_question_assist_execution_allowed": false,
+        "mac_sync_import_allowed": false,
+        "mcp_execution_allowed": false,
+        "mission_control_swift_change_allowed": false,
+        "model_call_allowed": false,
+        "network_operation_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "receipt_write_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "script_execution_allowed": false,
+        "state_write_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false
+      },
+      "block_ref": "po_or_payment_reference",
+      "common_confusions": [
+        "A definition alone is not enough; there should be a workflow path."
+      ],
+      "discovery_path_options": [
+        "telegram_find_po_path",
+        "telegram_existing_packet_lookup_path"
+      ],
+      "domain_terms": [
+        {
+          "plain_explanation": "A customer-side reference used to approve, route, or match an invoice.",
+          "precise_term": "purchase order",
+          "term": "PO"
+        }
+      ],
+      "downstream_effects": [
+        "may create discovery substep",
+        "may create agent packet candidate",
+        "send remains blocked"
+      ],
+      "example_good_answers": [
+        "Find PO",
+        "Park this"
+      ],
+      "guided_capture_options": [
+        "capital_hilton_create_po_guided_capture_path"
+      ],
+      "if_you_dont_know_options": [
+        "look in existing packets",
+        "ask AP/contact later",
+        "park this"
+      ],
+      "lane": "Capital Hilton",
+      "next_safe_move": "Answer compactly and offer Find PO, Look in existing packets, Ask later, or Park.",
+      "plain_language_explanation": "PO stays named as PO, but Cassandra can say it is the customer reference AP may need.",
+      "proof_or_evidence_needed": "Proof is needed only if the workflow later claims a specific reference.",
+      "question_ref": "telegram_what_does_po_mean_question",
+      "question_text": "What does PO mean here?",
+      "valid_answer_types": [
+        "Find PO",
+        "Look in existing packets",
+        "Ask AP/contact later",
+        "Park this"
+      ],
+      "why_this_matters": "The answer should give Winship choices, not just a definition.",
+      "workflow_session_ref": "capital_hilton_invoice_workflow_session",
+      "world": "Finance"
+    }
+  ],
+  "question_assists_by_id": {
+    "capital_hilton_po_coupa_question_assist": {
+      "agent_assist_options": [
+        "cassandra_capital_hilton_po_question_behavior"
+      ],
+      "assist_id": "capital_hilton_po_coupa_question_assist",
+      "authority_boundary": {
+        "agent_response_execution_allowed": false,
+        "approval_submission_allowed": false,
+        "browser_automation_allowed": false,
+        "calendar_access_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "email_send_allowed": false,
+        "file_cleanup_archive_promotion_allowed": false,
+        "file_write_allowed": false,
+        "financial_advice_authority": false,
+        "git_push_pull_fetch_allowed": false,
+        "gmail_access_allowed": false,
+        "hook_execution_allowed": false,
+        "invoice_generation_allowed": false,
+        "ledger_write_allowed": false,
+        "legal_advice_authority": false,
+        "live_question_assist_execution_allowed": false,
+        "mac_sync_import_allowed": false,
+        "mcp_execution_allowed": false,
+        "mission_control_swift_change_allowed": false,
+        "model_call_allowed": false,
+        "network_operation_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "receipt_write_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "script_execution_allowed": false,
+        "state_write_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false
+      },
+      "block_ref": "po_or_payment_reference",
+      "common_confusions": [
+        "Operator confirmation is not the same as external proof.",
+        "A missing PO is not a dead end; it becomes a discovery path."
+      ],
+      "discovery_path_options": [
+        "look_for_po_number_path",
+        "look_for_coupa_reference_path",
+        "look_for_ap_payment_metadata_path"
+      ],
+      "domain_terms": [
+        {
+          "plain_explanation": "A payment-routing reference that can tell AP how to match or approve the invoice.",
+          "precise_term": "purchase order",
+          "term": "PO"
+        },
+        {
+          "plain_explanation": "The possible portal context where a customer may track purchase orders or invoice references.",
+          "precise_term": "procurement or invoice portal",
+          "term": "Coupa"
+        },
+        {
+          "plain_explanation": "A reference that helps the customer route and pay the invoice correctly.",
+          "precise_term": "AP metadata",
+          "term": "payment reference"
+        }
+      ],
+      "downstream_effects": [
+        "invoice packet reference field may update",
+        "proof-needed block may open",
+        "approval/send remains locked"
+      ],
+      "example_good_answers": [
+        "PO 12345",
+        "No PO, use Capital Hilton AP contact metadata",
+        "I do not know; start discovery."
+      ],
+      "guided_capture_options": [
+        "capital_hilton_create_po_guided_capture_path"
+      ],
+      "if_you_dont_know_options": [
+        "Create PO/reference discovery path",
+        "Create guided capture path",
+        "Ask Cassandra/Clara later",
+        "Park as unknown"
+      ],
+      "lane": "Capital Hilton",
+      "next_safe_move": "Pick the reference type if known, or choose a discovery/capture path.",
+      "plain_language_explanation": "Keep the real terms visible: PO means purchase order, Coupa is the possible portal context, and payment reference means the metadata that helps AP route the invoice.",
+      "proof_or_evidence_needed": "Proof may be needed before final send or payment-routing claim.",
+      "question_ref": "capital_hilton_po_coupa_help_question",
+      "question_text": "What should OpenClaw try to find about PO / Coupa / payment reference?",
+      "valid_answer_types": [
+        "PO number",
+        "Coupa invoice reference",
+        "AP/payment metadata",
+        "no known reference",
+        "I do not know yet"
+      ],
+      "why_this_matters": "The right reference can prevent payment delay without forcing Winship to manage portal mechanics.",
+      "workflow_session_ref": "capital_hilton_invoice_workflow_session",
+      "world": "Finance"
+    },
+    "capital_hilton_rate_confirmation_question_assist": {
+      "agent_assist_options": [
+        "cassandra_rate_confirmation_behavior"
+      ],
+      "assist_id": "capital_hilton_rate_confirmation_question_assist",
+      "authority_boundary": {
+        "agent_response_execution_allowed": false,
+        "approval_submission_allowed": false,
+        "browser_automation_allowed": false,
+        "calendar_access_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "email_send_allowed": false,
+        "file_cleanup_archive_promotion_allowed": false,
+        "file_write_allowed": false,
+        "financial_advice_authority": false,
+        "git_push_pull_fetch_allowed": false,
+        "gmail_access_allowed": false,
+        "hook_execution_allowed": false,
+        "invoice_generation_allowed": false,
+        "ledger_write_allowed": false,
+        "legal_advice_authority": false,
+        "live_question_assist_execution_allowed": false,
+        "mac_sync_import_allowed": false,
+        "mcp_execution_allowed": false,
+        "mission_control_swift_change_allowed": false,
+        "model_call_allowed": false,
+        "network_operation_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "receipt_write_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "script_execution_allowed": false,
+        "state_write_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false
+      },
+      "block_ref": "rate_confirmation",
+      "common_confusions": [
+        "A remembered rate can be useful but may still need proof before final send."
+      ],
+      "discovery_path_options": [
+        "rate_proof_discovery_path"
+      ],
+      "domain_terms": [
+        {
+          "plain_explanation": "The amount used to calculate subtotal for each gig.",
+          "precise_term": "billing rate per performance",
+          "term": "rate"
+        }
+      ],
+      "downstream_effects": [
+        "subtotal preview changes",
+        "invoice artifact preview becomes stale",
+        "approval remains locked"
+      ],
+      "example_good_answers": [
+        "$400 per gig is right for this invoice",
+        "Use $450 instead",
+        "I need a proof path."
+      ],
+      "guided_capture_options": [
+        "rate_source_guided_capture_path"
+      ],
+      "if_you_dont_know_options": [
+        "create rate proof discovery path",
+        "ask Cassandra/Clara to clarify",
+        "park rate"
+      ],
+      "lane": "Capital Hilton",
+      "next_safe_move": "Confirm, correct, or create a rate proof discovery path.",
+      "plain_language_explanation": "The rate stays visible as a finance term, with the simple meaning beside it: dollars per gig.",
+      "proof_or_evidence_needed": "Rate source may be needed before final send or artifact approval.",
+      "question_ref": "capital_hilton_rate_confirmation_question",
+      "question_text": "Is $400 per gig still the correct rate?",
+      "valid_answer_types": [
+        "confirm current rate",
+        "correct rate",
+        "I do not know",
+        "needs proof"
+      ],
+      "why_this_matters": "The rate drives subtotal, but operator confirmation is not the same as outside proof.",
+      "workflow_session_ref": "capital_hilton_invoice_workflow_session",
+      "world": "Finance"
+    },
+    "chief_build_troubleshooting_question_assist": {
+      "agent_assist_options": [
+        "chief_build_question_behavior"
+      ],
+      "assist_id": "chief_build_troubleshooting_question_assist",
+      "authority_boundary": {
+        "agent_response_execution_allowed": false,
+        "approval_submission_allowed": false,
+        "browser_automation_allowed": false,
+        "calendar_access_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "email_send_allowed": false,
+        "file_cleanup_archive_promotion_allowed": false,
+        "file_write_allowed": false,
+        "financial_advice_authority": false,
+        "git_push_pull_fetch_allowed": false,
+        "gmail_access_allowed": false,
+        "hook_execution_allowed": false,
+        "invoice_generation_allowed": false,
+        "ledger_write_allowed": false,
+        "legal_advice_authority": false,
+        "live_question_assist_execution_allowed": false,
+        "mac_sync_import_allowed": false,
+        "mcp_execution_allowed": false,
+        "mission_control_swift_change_allowed": false,
+        "model_call_allowed": false,
+        "network_operation_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "receipt_write_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "script_execution_allowed": false,
+        "state_write_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false
+      },
+      "block_ref": "current_build_blocker",
+      "common_confusions": [
+        "A diagnostic summary is not repair execution."
+      ],
+      "discovery_path_options": [
+        "chief_safe_diagnostic_block_path"
+      ],
+      "domain_terms": [
+        {
+          "plain_explanation": "The part of the system that stops the next safe validation or build step.",
+          "precise_term": "current failure point",
+          "term": "blocker"
+        },
+        {
+          "plain_explanation": "Like a live-sound signal path: find where the signal first fails before fixing later stages.",
+          "precise_term": "dependency direction",
+          "term": "upstream/downstream"
+        }
+      ],
+      "downstream_effects": [
+        "Shipyard attention may update",
+        "Bridge only sees captain-level decision if needed"
+      ],
+      "example_good_answers": [
+        "Show the first failing validation",
+        "Create a safe diagnostic block."
+      ],
+      "guided_capture_options": [],
+      "if_you_dont_know_options": [
+        "ask Chief for concise blocker briefing",
+        "create diagnostic path",
+        "park"
+      ],
+      "lane": "Check Engine",
+      "next_safe_move": "Ask Chief for a blocker briefing from current refs only.",
+      "plain_language_explanation": "Chief can use signal-path language: find the first failure point, show refs, and stop before repair.",
+      "proof_or_evidence_needed": "Focused read-model/test refs are needed; no shell or broad scan is granted.",
+      "question_ref": "chief_build_blocker_question",
+      "question_text": "What is blocking the build?",
+      "valid_answer_types": [
+        "show likely blocker",
+        "show proof refs",
+        "create diagnostic block",
+        "park"
+      ],
+      "why_this_matters": "Repair can be unsafe without proof, rollback, and a captain decision.",
+      "workflow_session_ref": "check_engine_diagnostic_session",
+      "world": "Build"
+    },
+    "legal_contract_domain_question_assist": {
+      "agent_assist_options": [
+        "guardian_legal_question_behavior",
+        "hermes_legal_question_behavior"
+      ],
+      "assist_id": "legal_contract_domain_question_assist",
+      "authority_boundary": {
+        "agent_response_execution_allowed": false,
+        "approval_submission_allowed": false,
+        "browser_automation_allowed": false,
+        "calendar_access_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "email_send_allowed": false,
+        "file_cleanup_archive_promotion_allowed": false,
+        "file_write_allowed": false,
+        "financial_advice_authority": false,
+        "git_push_pull_fetch_allowed": false,
+        "gmail_access_allowed": false,
+        "hook_execution_allowed": false,
+        "invoice_generation_allowed": false,
+        "ledger_write_allowed": false,
+        "legal_advice_authority": false,
+        "live_question_assist_execution_allowed": false,
+        "mac_sync_import_allowed": false,
+        "mcp_execution_allowed": false,
+        "mission_control_swift_change_allowed": false,
+        "model_call_allowed": false,
+        "network_operation_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "receipt_write_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "script_execution_allowed": false,
+        "state_write_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false
+      },
+      "block_ref": "contract_clause_question",
+      "common_confusions": [
+        "Explanation is not legal advice.",
+        "Guardian review is not lawyer approval."
+      ],
+      "discovery_path_options": [
+        "legal_clause_question_list_path"
+      ],
+      "domain_terms": [
+        {
+          "plain_explanation": "A specific section of the agreement with obligations or limits.",
+          "precise_term": "contract provision",
+          "term": "clause"
+        },
+        {
+          "plain_explanation": "Something that may cost money, create obligation, or limit future options.",
+          "precise_term": "legal or business exposure",
+          "term": "risk"
+        }
+      ],
+      "downstream_effects": [
+        "review checklist may update",
+        "legal action remains blocked",
+        "approval remains unavailable"
+      ],
+      "example_good_answers": [
+        "Summarize the payment clause",
+        "Flag any termination risk",
+        "Park this for lawyer review."
+      ],
+      "guided_capture_options": [],
+      "if_you_dont_know_options": [
+        "ask Guardian/Hermes for review",
+        "park for lawyer review",
+        "create question list"
+      ],
+      "lane": "Contract Review",
+      "next_safe_move": "Create a review question or park for qualified review; do not treat this as legal advice.",
+      "plain_language_explanation": "The system can summarize terms and identify questions, but it does not provide legal advice.",
+      "proof_or_evidence_needed": "Source clause reference is needed; raw private bodies remain outside this contract.",
+      "question_ref": "legal_contract_clause_help_question",
+      "question_text": "What does this clause mean and what should I worry about?",
+      "valid_answer_types": [
+        "summarize clause",
+        "identify risk",
+        "ask Guardian/Hermes",
+        "park for lawyer review"
+      ],
+      "why_this_matters": "Legal work is high-friction and should become review blocks with Guardian/Hermes gates.",
+      "workflow_session_ref": "legal_contract_review_scope_expansion_mission",
+      "world": "Legal/Guardian"
+    },
+    "monthly_client_recap_scope_question_assist": {
+      "agent_assist_options": [
+        "cassandra_new_workflow_scope_behavior",
+        "niles_project_scope_behavior"
+      ],
+      "assist_id": "monthly_client_recap_scope_question_assist",
+      "authority_boundary": {
+        "agent_response_execution_allowed": false,
+        "approval_submission_allowed": false,
+        "browser_automation_allowed": false,
+        "calendar_access_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "email_send_allowed": false,
+        "file_cleanup_archive_promotion_allowed": false,
+        "file_write_allowed": false,
+        "financial_advice_authority": false,
+        "git_push_pull_fetch_allowed": false,
+        "gmail_access_allowed": false,
+        "hook_execution_allowed": false,
+        "invoice_generation_allowed": false,
+        "ledger_write_allowed": false,
+        "legal_advice_authority": false,
+        "live_question_assist_execution_allowed": false,
+        "mac_sync_import_allowed": false,
+        "mcp_execution_allowed": false,
+        "mission_control_swift_change_allowed": false,
+        "model_call_allowed": false,
+        "network_operation_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "receipt_write_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "script_execution_allowed": false,
+        "state_write_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false
+      },
+      "block_ref": "new_workflow_outline",
+      "common_confusions": [
+        "Setting up a workflow does not execute it."
+      ],
+      "discovery_path_options": [
+        "client_recap_scope_discovery_path"
+      ],
+      "domain_terms": [
+        {
+          "plain_explanation": "A repeatable set of blocks for collecting updates, drafting a recap, reviewing, and sending later.",
+          "precise_term": "repeating client delivery process",
+          "term": "recap workflow"
+        }
+      ],
+      "downstream_effects": [
+        "new block draft may appear",
+        "no send or runtime action occurs"
+      ],
+      "example_good_answers": [
+        "Draft the blocks first",
+        "Review it with me",
+        "Park until next week."
+      ],
+      "guided_capture_options": [],
+      "if_you_dont_know_options": [
+        "create block draft intent",
+        "ask agent to propose scope",
+        "park"
+      ],
+      "lane": "Scope Expansion",
+      "next_safe_move": "Choose whether to review proposed blocks together or let the system draft a preview.",
+      "plain_language_explanation": "This is a new mission, not an instant action. The system can propose blocks first.",
+      "proof_or_evidence_needed": "Terrain/source refs may help fill client, cadence, deliverables, and send route.",
+      "question_ref": "monthly_client_recap_new_workflow_question",
+      "question_text": "Can we set up a monthly client recap?",
+      "valid_answer_types": [
+        "review proposed blocks",
+        "let system draft first",
+        "park",
+        "ask for scope help"
+      ],
+      "why_this_matters": "New work becomes navigable when the system separates known blocks from operator-needed blocks.",
+      "workflow_session_ref": "monthly_client_recap_scope_expansion_mission",
+      "world": "Client Delivery"
+    },
+    "telegram_po_meaning_question_assist": {
+      "agent_assist_options": [
+        "cassandra_telegram_po_help_behavior"
+      ],
+      "assist_id": "telegram_po_meaning_question_assist",
+      "authority_boundary": {
+        "agent_response_execution_allowed": false,
+        "approval_submission_allowed": false,
+        "browser_automation_allowed": false,
+        "calendar_access_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "email_send_allowed": false,
+        "file_cleanup_archive_promotion_allowed": false,
+        "file_write_allowed": false,
+        "financial_advice_authority": false,
+        "git_push_pull_fetch_allowed": false,
+        "gmail_access_allowed": false,
+        "hook_execution_allowed": false,
+        "invoice_generation_allowed": false,
+        "ledger_write_allowed": false,
+        "legal_advice_authority": false,
+        "live_question_assist_execution_allowed": false,
+        "mac_sync_import_allowed": false,
+        "mcp_execution_allowed": false,
+        "mission_control_swift_change_allowed": false,
+        "model_call_allowed": false,
+        "network_operation_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "receipt_write_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "script_execution_allowed": false,
+        "state_write_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false
+      },
+      "block_ref": "po_or_payment_reference",
+      "common_confusions": [
+        "A definition alone is not enough; there should be a workflow path."
+      ],
+      "discovery_path_options": [
+        "telegram_find_po_path",
+        "telegram_existing_packet_lookup_path"
+      ],
+      "domain_terms": [
+        {
+          "plain_explanation": "A customer-side reference used to approve, route, or match an invoice.",
+          "precise_term": "purchase order",
+          "term": "PO"
+        }
+      ],
+      "downstream_effects": [
+        "may create discovery substep",
+        "may create agent packet candidate",
+        "send remains blocked"
+      ],
+      "example_good_answers": [
+        "Find PO",
+        "Park this"
+      ],
+      "guided_capture_options": [
+        "capital_hilton_create_po_guided_capture_path"
+      ],
+      "if_you_dont_know_options": [
+        "look in existing packets",
+        "ask AP/contact later",
+        "park this"
+      ],
+      "lane": "Capital Hilton",
+      "next_safe_move": "Answer compactly and offer Find PO, Look in existing packets, Ask later, or Park.",
+      "plain_language_explanation": "PO stays named as PO, but Cassandra can say it is the customer reference AP may need.",
+      "proof_or_evidence_needed": "Proof is needed only if the workflow later claims a specific reference.",
+      "question_ref": "telegram_what_does_po_mean_question",
+      "question_text": "What does PO mean here?",
+      "valid_answer_types": [
+        "Find PO",
+        "Look in existing packets",
+        "Ask AP/contact later",
+        "Park this"
+      ],
+      "why_this_matters": "The answer should give Winship choices, not just a definition.",
+      "workflow_session_ref": "capital_hilton_invoice_workflow_session",
+      "world": "Finance"
+    }
+  },
+  "read_model_id": "operator_question_assist_scope_expansion_contract",
+  "relationship_refs": {
+    "agent_conversation_handoff_step_packet_contract": {
+      "path": "generated/read_models/agent_conversation_handoff_step_packet_contract.json",
+      "present": true
+    },
+    "agent_execution_packet_compiler_contract": {
+      "path": "generated/read_models/agent_execution_packet_compiler_contract.json",
+      "present": true
+    },
+    "bridge_routing_operator_attention_contract": {
+      "path": "generated/read_models/bridge_routing_operator_attention_contract.json",
+      "present": true
+    },
+    "guided_capture_protected_evidence_path_contract": {
+      "path": "generated/read_models/guided_capture_protected_evidence_path_contract.json",
+      "present": true
+    },
+    "operator_solve_path_decision_node_contract": {
+      "path": "generated/read_models/operator_solve_path_decision_node_contract.json",
+      "present": true
+    },
+    "work_terrain_build_cue_reconciliation_queue": {
+      "path": "generated/read_models/work_terrain_build_cue_reconciliation_queue.json",
+      "present": true
+    },
+    "work_terrain_surface_map_build_cue_scout": {
+      "path": "generated/read_models/work_terrain_surface_map_build_cue_scout.json",
+      "present": true
+    },
+    "workflow_block_intent_live_draft_contract": {
+      "path": "generated/read_models/workflow_block_intent_live_draft_contract.json",
+      "present": true
+    }
+  },
+  "schema_version": "operator_question_assist_scope_expansion_contract_v0",
+  "scope_expansion_missions": [
+    {
+      "encouragement_style": "calm grounded support, not hype",
+      "mission_blocks": [
+        "client",
+        "cadence",
+        "source updates",
+        "recap draft",
+        "review",
+        "send approval"
+      ],
+      "mission_id": "monthly_client_recap_scope_expansion_mission",
+      "next_safe_move": "Create a block draft intent preview if the operator chooses to proceed.",
+      "operator_confidence_hint": "Operator can review blocks with familiar production-pipeline framing.",
+      "operator_needed_blocks": [
+        "client identity",
+        "recap tone",
+        "send route",
+        "approval preference"
+      ],
+      "originating_question_ref": "monthly_client_recap_new_workflow_question",
+      "overreach_warning": "No workflow execution, send, or state write occurs from this mission draft.",
+      "proof_or_capture_refs": [
+        "terrain source refs if available"
+      ],
+      "question_assist_refs": [
+        "monthly_client_recap_scope_question_assist"
+      ],
+      "recommended_crew": [
+        "Cassandra/Clara",
+        "Niles",
+        "Hermes"
+      ],
+      "safety_gates": [
+        "approval bus before send",
+        "receipt-backed state writer future lane"
+      ],
+      "suggested_first_move": "Review proposed blocks or let the system draft a preview.",
+      "system_can_fill_blocks": [
+        "candidate cadence from prompt",
+        "known project/client refs if available"
+      ],
+      "target_lane": "Scope Expansion",
+      "target_world": "Client Delivery",
+      "title": "Monthly Client Recap Workflow",
+      "unfamiliar_domain": "repeatable client delivery workflow"
+    },
+    {
+      "encouragement_style": "calm support with precise domain terms preserved",
+      "mission_blocks": [
+        "source clause ref",
+        "plain summary",
+        "risk questions",
+        "Guardian/Hermes review",
+        "lawyer park option"
+      ],
+      "mission_id": "legal_contract_review_scope_expansion_mission",
+      "next_safe_move": "Create a review-question path or park safely.",
+      "operator_confidence_hint": "System can summarize terms and organize questions, while preserving legal-review boundaries.",
+      "operator_needed_blocks": [
+        "source clause selection",
+        "review depth",
+        "park/escalate choice"
+      ],
+      "originating_question_ref": "legal_contract_clause_help_question",
+      "overreach_warning": "No legal advice, approval, or action authority is granted.",
+      "proof_or_capture_refs": "source clause reference only; raw private body blocked",
+      "question_assist_refs": [
+        "legal_contract_domain_question_assist"
+      ],
+      "recommended_crew": [
+        "Guardian",
+        "Hermes"
+      ],
+      "safety_gates": [
+        "legal advice authority false",
+        "Guardian/Hermes review is not lawyer approval"
+      ],
+      "suggested_first_move": "Choose summarize, identify risk, ask Guardian/Hermes, or park for lawyer review.",
+      "system_can_fill_blocks": [
+        "plain terminology explanation",
+        "question checklist"
+      ],
+      "target_lane": "Contract Review",
+      "target_world": "Legal/Guardian",
+      "title": "Contract Question Review Mission",
+      "unfamiliar_domain": "legal process"
+    }
+  ],
+  "scope_expansion_missions_by_id": {
+    "legal_contract_review_scope_expansion_mission": {
+      "encouragement_style": "calm support with precise domain terms preserved",
+      "mission_blocks": [
+        "source clause ref",
+        "plain summary",
+        "risk questions",
+        "Guardian/Hermes review",
+        "lawyer park option"
+      ],
+      "mission_id": "legal_contract_review_scope_expansion_mission",
+      "next_safe_move": "Create a review-question path or park safely.",
+      "operator_confidence_hint": "System can summarize terms and organize questions, while preserving legal-review boundaries.",
+      "operator_needed_blocks": [
+        "source clause selection",
+        "review depth",
+        "park/escalate choice"
+      ],
+      "originating_question_ref": "legal_contract_clause_help_question",
+      "overreach_warning": "No legal advice, approval, or action authority is granted.",
+      "proof_or_capture_refs": "source clause reference only; raw private body blocked",
+      "question_assist_refs": [
+        "legal_contract_domain_question_assist"
+      ],
+      "recommended_crew": [
+        "Guardian",
+        "Hermes"
+      ],
+      "safety_gates": [
+        "legal advice authority false",
+        "Guardian/Hermes review is not lawyer approval"
+      ],
+      "suggested_first_move": "Choose summarize, identify risk, ask Guardian/Hermes, or park for lawyer review.",
+      "system_can_fill_blocks": [
+        "plain terminology explanation",
+        "question checklist"
+      ],
+      "target_lane": "Contract Review",
+      "target_world": "Legal/Guardian",
+      "title": "Contract Question Review Mission",
+      "unfamiliar_domain": "legal process"
+    },
+    "monthly_client_recap_scope_expansion_mission": {
+      "encouragement_style": "calm grounded support, not hype",
+      "mission_blocks": [
+        "client",
+        "cadence",
+        "source updates",
+        "recap draft",
+        "review",
+        "send approval"
+      ],
+      "mission_id": "monthly_client_recap_scope_expansion_mission",
+      "next_safe_move": "Create a block draft intent preview if the operator chooses to proceed.",
+      "operator_confidence_hint": "Operator can review blocks with familiar production-pipeline framing.",
+      "operator_needed_blocks": [
+        "client identity",
+        "recap tone",
+        "send route",
+        "approval preference"
+      ],
+      "originating_question_ref": "monthly_client_recap_new_workflow_question",
+      "overreach_warning": "No workflow execution, send, or state write occurs from this mission draft.",
+      "proof_or_capture_refs": [
+        "terrain source refs if available"
+      ],
+      "question_assist_refs": [
+        "monthly_client_recap_scope_question_assist"
+      ],
+      "recommended_crew": [
+        "Cassandra/Clara",
+        "Niles",
+        "Hermes"
+      ],
+      "safety_gates": [
+        "approval bus before send",
+        "receipt-backed state writer future lane"
+      ],
+      "suggested_first_move": "Review proposed blocks or let the system draft a preview.",
+      "system_can_fill_blocks": [
+        "candidate cadence from prompt",
+        "known project/client refs if available"
+      ],
+      "target_lane": "Scope Expansion",
+      "target_world": "Client Delivery",
+      "title": "Monthly Client Recap Workflow",
+      "unfamiliar_domain": "repeatable client delivery workflow"
+    }
+  },
+  "starship_operating_model_alignment": {
+    "bridge": "Bridge should show help only where it aids current work.",
+    "captain": "Captain should be able to attempt unfamiliar missions with crew support.",
+    "crew": "Crew brief and guide, not spam.",
+    "engineering": "Engineering/proof remains below deck.",
+    "operating_radius": "The ship expands the captain's practical operating radius.",
+    "unknowns": "Unknowns become navigable mission blocks.",
+    "worlds": "Worlds contain domain-specific assistance and workflow paths."
+  },
+  "surfaces": [
+    "Mission Control",
+    "Telegram",
+    "Cassandra/Clara conversation",
+    "Chief conversation",
+    "Guardian review",
+    "Hermes advisory",
+    "Niles project flow",
+    "future agents"
+  ],
+  "workflow_paths": [
+    {
+      "agent_support_needed": "Cassandra/Clara may prepare a focused discovery packet later.",
+      "assist_ref": "capital_hilton_po_coupa_question_assist",
+      "authority_boundary": {
+        "agent_response_execution_allowed": false,
+        "approval_submission_allowed": false,
+        "browser_automation_allowed": false,
+        "calendar_access_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "email_send_allowed": false,
+        "file_cleanup_archive_promotion_allowed": false,
+        "file_write_allowed": false,
+        "financial_advice_authority": false,
+        "git_push_pull_fetch_allowed": false,
+        "gmail_access_allowed": false,
+        "hook_execution_allowed": false,
+        "invoice_generation_allowed": false,
+        "ledger_write_allowed": false,
+        "legal_advice_authority": false,
+        "live_question_assist_execution_allowed": false,
+        "mac_sync_import_allowed": false,
+        "mcp_execution_allowed": false,
+        "mission_control_swift_change_allowed": false,
+        "model_call_allowed": false,
+        "network_operation_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "receipt_write_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "script_execution_allowed": false,
+        "state_write_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false
+      },
+      "blocked_actions": [
+        "live execution",
+        "receipt/state write",
+        "model/tool/MCP/script/hook execution",
+        "invoice/email/send action",
+        "browser/Coupa/Gmail/Telegram access",
+        "legal or financial advice authority"
+      ],
+      "creates_agent_packet_candidate": true,
+      "creates_block_draft_intent": false,
+      "creates_discovery_substep": true,
+      "creates_guided_capture_path": false,
+      "next_safe_move": "Preview discovery substep; do not access Coupa.",
+      "operator_input_needed": "Confirm that PO lookup is the desired path.",
+      "path_id": "look_for_po_number_path",
+      "path_label": "Look for PO number",
+      "path_type": "CREATE_DISCOVERY_PATH",
+      "proof_needed": "PO proof/reference before final payment-routing claim.",
+      "system_input_needed": "Existing source-card/proof refs if available.",
+      "what_it_does": "Creates a proof/reference discovery substep for a purchase order number."
+    },
+    {
+      "agent_support_needed": "Agent packet candidate may ask what evidence exists.",
+      "assist_ref": "capital_hilton_po_coupa_question_assist",
+      "authority_boundary": {
+        "agent_response_execution_allowed": false,
+        "approval_submission_allowed": false,
+        "browser_automation_allowed": false,
+        "calendar_access_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "email_send_allowed": false,
+        "file_cleanup_archive_promotion_allowed": false,
+        "file_write_allowed": false,
+        "financial_advice_authority": false,
+        "git_push_pull_fetch_allowed": false,
+        "gmail_access_allowed": false,
+        "hook_execution_allowed": false,
+        "invoice_generation_allowed": false,
+        "ledger_write_allowed": false,
+        "legal_advice_authority": false,
+        "live_question_assist_execution_allowed": false,
+        "mac_sync_import_allowed": false,
+        "mcp_execution_allowed": false,
+        "mission_control_swift_change_allowed": false,
+        "model_call_allowed": false,
+        "network_operation_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "receipt_write_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "script_execution_allowed": false,
+        "state_write_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false
+      },
+      "blocked_actions": [
+        "live execution",
+        "receipt/state write",
+        "model/tool/MCP/script/hook execution",
+        "invoice/email/send action",
+        "browser/Coupa/Gmail/Telegram access",
+        "legal or financial advice authority"
+      ],
+      "creates_agent_packet_candidate": true,
+      "creates_block_draft_intent": false,
+      "creates_discovery_substep": true,
+      "creates_guided_capture_path": false,
+      "next_safe_move": "Create a non-executing discovery candidate.",
+      "operator_input_needed": "Choose this if Coupa/reference context seems relevant.",
+      "path_id": "look_for_coupa_reference_path",
+      "path_label": "Look for Coupa invoice reference",
+      "path_type": "CREATE_DISCOVERY_PATH",
+      "proof_needed": "Portal reference proof if a specific reference is claimed later.",
+      "system_input_needed": "Existing read-model/source-card refs only.",
+      "what_it_does": "Creates a discovery substep for existing Coupa/reference metadata."
+    },
+    {
+      "agent_support_needed": "Cassandra/Clara can summarize existing refs later.",
+      "assist_ref": "capital_hilton_po_coupa_question_assist",
+      "authority_boundary": {
+        "agent_response_execution_allowed": false,
+        "approval_submission_allowed": false,
+        "browser_automation_allowed": false,
+        "calendar_access_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "email_send_allowed": false,
+        "file_cleanup_archive_promotion_allowed": false,
+        "file_write_allowed": false,
+        "financial_advice_authority": false,
+        "git_push_pull_fetch_allowed": false,
+        "gmail_access_allowed": false,
+        "hook_execution_allowed": false,
+        "invoice_generation_allowed": false,
+        "ledger_write_allowed": false,
+        "legal_advice_authority": false,
+        "live_question_assist_execution_allowed": false,
+        "mac_sync_import_allowed": false,
+        "mcp_execution_allowed": false,
+        "mission_control_swift_change_allowed": false,
+        "model_call_allowed": false,
+        "network_operation_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "receipt_write_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "script_execution_allowed": false,
+        "state_write_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false
+      },
+      "blocked_actions": [
+        "live execution",
+        "receipt/state write",
+        "model/tool/MCP/script/hook execution",
+        "invoice/email/send action",
+        "browser/Coupa/Gmail/Telegram access",
+        "legal or financial advice authority"
+      ],
+      "creates_agent_packet_candidate": true,
+      "creates_block_draft_intent": false,
+      "creates_discovery_substep": true,
+      "creates_guided_capture_path": false,
+      "next_safe_move": "Use existing refs only; ask operator if none are present.",
+      "operator_input_needed": "Choose AP/payment metadata as the likely target.",
+      "path_id": "look_for_ap_payment_metadata_path",
+      "path_label": "Look for AP/payment metadata",
+      "path_type": "FIND_PROOF",
+      "proof_needed": "Proof pointer if metadata affects final artifact.",
+      "system_input_needed": "Safe metadata refs already present in read-models.",
+      "what_it_does": "Points the workflow toward existing AP/payment metadata references."
+    },
+    {
+      "agent_support_needed": "None now; future agent may prepare capture guidance.",
+      "assist_ref": "capital_hilton_po_coupa_question_assist",
+      "authority_boundary": {
+        "agent_response_execution_allowed": false,
+        "approval_submission_allowed": false,
+        "browser_automation_allowed": false,
+        "calendar_access_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "email_send_allowed": false,
+        "file_cleanup_archive_promotion_allowed": false,
+        "file_write_allowed": false,
+        "financial_advice_authority": false,
+        "git_push_pull_fetch_allowed": false,
+        "gmail_access_allowed": false,
+        "hook_execution_allowed": false,
+        "invoice_generation_allowed": false,
+        "ledger_write_allowed": false,
+        "legal_advice_authority": false,
+        "live_question_assist_execution_allowed": false,
+        "mac_sync_import_allowed": false,
+        "mcp_execution_allowed": false,
+        "mission_control_swift_change_allowed": false,
+        "model_call_allowed": false,
+        "network_operation_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "receipt_write_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "script_execution_allowed": false,
+        "state_write_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false
+      },
+      "blocked_actions": [
+        "live execution",
+        "receipt/state write",
+        "model/tool/MCP/script/hook execution",
+        "invoice/email/send action",
+        "browser/Coupa/Gmail/Telegram access",
+        "legal or financial advice authority"
+      ],
+      "creates_agent_packet_candidate": false,
+      "creates_block_draft_intent": false,
+      "creates_discovery_substep": false,
+      "creates_guided_capture_path": true,
+      "next_safe_move": "Model the guided capture path; do not capture files or screenshots.",
+      "operator_input_needed": "Confirm that guided capture is the desired path.",
+      "path_id": "capital_hilton_create_po_guided_capture_path",
+      "path_label": "Create guided capture path",
+      "path_type": "CREATE_GUIDED_CAPTURE_PATH",
+      "proof_needed": "Protected evidence receipt in a future lane.",
+      "system_input_needed": "Target artifact policy from guided capture contract.",
+      "what_it_does": "Creates a future guided capture candidate for a PO/reference screen or source."
+    },
+    {
+      "agent_support_needed": "Cassandra/Clara may prepare rate-proof packet later.",
+      "assist_ref": "capital_hilton_rate_confirmation_question_assist",
+      "authority_boundary": {
+        "agent_response_execution_allowed": false,
+        "approval_submission_allowed": false,
+        "browser_automation_allowed": false,
+        "calendar_access_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "email_send_allowed": false,
+        "file_cleanup_archive_promotion_allowed": false,
+        "file_write_allowed": false,
+        "financial_advice_authority": false,
+        "git_push_pull_fetch_allowed": false,
+        "gmail_access_allowed": false,
+        "hook_execution_allowed": false,
+        "invoice_generation_allowed": false,
+        "ledger_write_allowed": false,
+        "legal_advice_authority": false,
+        "live_question_assist_execution_allowed": false,
+        "mac_sync_import_allowed": false,
+        "mcp_execution_allowed": false,
+        "mission_control_swift_change_allowed": false,
+        "model_call_allowed": false,
+        "network_operation_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "receipt_write_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "script_execution_allowed": false,
+        "state_write_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false
+      },
+      "blocked_actions": [
+        "live execution",
+        "receipt/state write",
+        "model/tool/MCP/script/hook execution",
+        "invoice/email/send action",
+        "browser/Coupa/Gmail/Telegram access",
+        "legal or financial advice authority"
+      ],
+      "creates_agent_packet_candidate": true,
+      "creates_block_draft_intent": false,
+      "creates_discovery_substep": true,
+      "creates_guided_capture_path": false,
+      "next_safe_move": "Open rate proof discovery as preview only.",
+      "operator_input_needed": "Choose proof discovery if the rate is uncertain.",
+      "path_id": "rate_proof_discovery_path",
+      "path_label": "Find rate proof",
+      "path_type": "CREATE_DISCOVERY_PATH",
+      "proof_needed": "Rate source before final send if required by workflow.",
+      "system_input_needed": "Existing source-card/proof refs if available.",
+      "what_it_does": "Creates a discovery substep for the $400/gig rate source."
+    },
+    {
+      "agent_support_needed": "Guardian/Hermes can later prepare a review packet.",
+      "assist_ref": "legal_contract_domain_question_assist",
+      "authority_boundary": {
+        "agent_response_execution_allowed": false,
+        "approval_submission_allowed": false,
+        "browser_automation_allowed": false,
+        "calendar_access_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "email_send_allowed": false,
+        "file_cleanup_archive_promotion_allowed": false,
+        "file_write_allowed": false,
+        "financial_advice_authority": false,
+        "git_push_pull_fetch_allowed": false,
+        "gmail_access_allowed": false,
+        "hook_execution_allowed": false,
+        "invoice_generation_allowed": false,
+        "ledger_write_allowed": false,
+        "legal_advice_authority": false,
+        "live_question_assist_execution_allowed": false,
+        "mac_sync_import_allowed": false,
+        "mcp_execution_allowed": false,
+        "mission_control_swift_change_allowed": false,
+        "model_call_allowed": false,
+        "network_operation_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "receipt_write_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "script_execution_allowed": false,
+        "state_write_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false
+      },
+      "blocked_actions": [
+        "live execution",
+        "receipt/state write",
+        "model/tool/MCP/script/hook execution",
+        "invoice/email/send action",
+        "browser/Coupa/Gmail/Telegram access",
+        "legal or financial advice authority"
+      ],
+      "creates_agent_packet_candidate": true,
+      "creates_block_draft_intent": true,
+      "creates_discovery_substep": false,
+      "creates_guided_capture_path": false,
+      "next_safe_move": "Create a review draft path; do not provide legal advice.",
+      "operator_input_needed": "Choose review or park.",
+      "path_id": "legal_guardian_review_path",
+      "path_label": "Ask Guardian/Hermes for review",
+      "path_type": "ESCALATE_TO_GUARDIAN",
+      "proof_needed": "Source reference and review receipt in future lanes.",
+      "system_input_needed": "Clause/source reference, not raw private body.",
+      "what_it_does": "Creates a review path for a legal/contract question without legal advice authority."
+    },
+    {
+      "agent_support_needed": "Cassandra/Niles can propose blocks later.",
+      "assist_ref": "monthly_client_recap_scope_question_assist",
+      "authority_boundary": {
+        "agent_response_execution_allowed": false,
+        "approval_submission_allowed": false,
+        "browser_automation_allowed": false,
+        "calendar_access_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "email_send_allowed": false,
+        "file_cleanup_archive_promotion_allowed": false,
+        "file_write_allowed": false,
+        "financial_advice_authority": false,
+        "git_push_pull_fetch_allowed": false,
+        "gmail_access_allowed": false,
+        "hook_execution_allowed": false,
+        "invoice_generation_allowed": false,
+        "ledger_write_allowed": false,
+        "legal_advice_authority": false,
+        "live_question_assist_execution_allowed": false,
+        "mac_sync_import_allowed": false,
+        "mcp_execution_allowed": false,
+        "mission_control_swift_change_allowed": false,
+        "model_call_allowed": false,
+        "network_operation_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "receipt_write_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "script_execution_allowed": false,
+        "state_write_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false
+      },
+      "blocked_actions": [
+        "live execution",
+        "receipt/state write",
+        "model/tool/MCP/script/hook execution",
+        "invoice/email/send action",
+        "browser/Coupa/Gmail/Telegram access",
+        "legal or financial advice authority"
+      ],
+      "creates_agent_packet_candidate": true,
+      "creates_block_draft_intent": true,
+      "creates_discovery_substep": false,
+      "creates_guided_capture_path": false,
+      "next_safe_move": "Create a draft block chain preview.",
+      "operator_input_needed": "Confirm whether to review together or let the system draft first.",
+      "path_id": "client_recap_scope_block_draft_path",
+      "path_label": "Draft monthly recap blocks",
+      "path_type": "CREATE_BLOCK_DRAFT_INTENT",
+      "proof_needed": "Project/source refs only if the workflow claims existing facts.",
+      "system_input_needed": "Existing terrain/client refs if available.",
+      "what_it_does": "Turns a new workflow request into reviewable blocks."
+    },
+    {
+      "agent_support_needed": "Cassandra can prepare a focused packet later.",
+      "assist_ref": "telegram_po_meaning_question_assist",
+      "authority_boundary": {
+        "agent_response_execution_allowed": false,
+        "approval_submission_allowed": false,
+        "browser_automation_allowed": false,
+        "calendar_access_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "email_send_allowed": false,
+        "file_cleanup_archive_promotion_allowed": false,
+        "file_write_allowed": false,
+        "financial_advice_authority": false,
+        "git_push_pull_fetch_allowed": false,
+        "gmail_access_allowed": false,
+        "hook_execution_allowed": false,
+        "invoice_generation_allowed": false,
+        "ledger_write_allowed": false,
+        "legal_advice_authority": false,
+        "live_question_assist_execution_allowed": false,
+        "mac_sync_import_allowed": false,
+        "mcp_execution_allowed": false,
+        "mission_control_swift_change_allowed": false,
+        "model_call_allowed": false,
+        "network_operation_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "receipt_write_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "script_execution_allowed": false,
+        "state_write_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false
+      },
+      "blocked_actions": [
+        "live execution",
+        "receipt/state write",
+        "model/tool/MCP/script/hook execution",
+        "invoice/email/send action",
+        "browser/Coupa/Gmail/Telegram access",
+        "legal or financial advice authority"
+      ],
+      "creates_agent_packet_candidate": true,
+      "creates_block_draft_intent": false,
+      "creates_discovery_substep": true,
+      "creates_guided_capture_path": false,
+      "next_safe_move": "Offer compact path choices; do not send or access external systems.",
+      "operator_input_needed": "Tap or say Find PO later.",
+      "path_id": "telegram_find_po_path",
+      "path_label": "Find PO",
+      "path_type": "ASK_AGENT_TO_CLARIFY",
+      "proof_needed": "Proof only if a specific PO is claimed.",
+      "system_input_needed": "Same workflow/session/block shape as Mission Control.",
+      "what_it_does": "Lets Cassandra answer compactly and offer a focused PO discovery path."
+    }
+  ],
+  "workflow_paths_by_id": {
+    "capital_hilton_create_po_guided_capture_path": {
+      "agent_support_needed": "None now; future agent may prepare capture guidance.",
+      "assist_ref": "capital_hilton_po_coupa_question_assist",
+      "authority_boundary": {
+        "agent_response_execution_allowed": false,
+        "approval_submission_allowed": false,
+        "browser_automation_allowed": false,
+        "calendar_access_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "email_send_allowed": false,
+        "file_cleanup_archive_promotion_allowed": false,
+        "file_write_allowed": false,
+        "financial_advice_authority": false,
+        "git_push_pull_fetch_allowed": false,
+        "gmail_access_allowed": false,
+        "hook_execution_allowed": false,
+        "invoice_generation_allowed": false,
+        "ledger_write_allowed": false,
+        "legal_advice_authority": false,
+        "live_question_assist_execution_allowed": false,
+        "mac_sync_import_allowed": false,
+        "mcp_execution_allowed": false,
+        "mission_control_swift_change_allowed": false,
+        "model_call_allowed": false,
+        "network_operation_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "receipt_write_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "script_execution_allowed": false,
+        "state_write_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false
+      },
+      "blocked_actions": [
+        "live execution",
+        "receipt/state write",
+        "model/tool/MCP/script/hook execution",
+        "invoice/email/send action",
+        "browser/Coupa/Gmail/Telegram access",
+        "legal or financial advice authority"
+      ],
+      "creates_agent_packet_candidate": false,
+      "creates_block_draft_intent": false,
+      "creates_discovery_substep": false,
+      "creates_guided_capture_path": true,
+      "next_safe_move": "Model the guided capture path; do not capture files or screenshots.",
+      "operator_input_needed": "Confirm that guided capture is the desired path.",
+      "path_id": "capital_hilton_create_po_guided_capture_path",
+      "path_label": "Create guided capture path",
+      "path_type": "CREATE_GUIDED_CAPTURE_PATH",
+      "proof_needed": "Protected evidence receipt in a future lane.",
+      "system_input_needed": "Target artifact policy from guided capture contract.",
+      "what_it_does": "Creates a future guided capture candidate for a PO/reference screen or source."
+    },
+    "client_recap_scope_block_draft_path": {
+      "agent_support_needed": "Cassandra/Niles can propose blocks later.",
+      "assist_ref": "monthly_client_recap_scope_question_assist",
+      "authority_boundary": {
+        "agent_response_execution_allowed": false,
+        "approval_submission_allowed": false,
+        "browser_automation_allowed": false,
+        "calendar_access_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "email_send_allowed": false,
+        "file_cleanup_archive_promotion_allowed": false,
+        "file_write_allowed": false,
+        "financial_advice_authority": false,
+        "git_push_pull_fetch_allowed": false,
+        "gmail_access_allowed": false,
+        "hook_execution_allowed": false,
+        "invoice_generation_allowed": false,
+        "ledger_write_allowed": false,
+        "legal_advice_authority": false,
+        "live_question_assist_execution_allowed": false,
+        "mac_sync_import_allowed": false,
+        "mcp_execution_allowed": false,
+        "mission_control_swift_change_allowed": false,
+        "model_call_allowed": false,
+        "network_operation_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "receipt_write_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "script_execution_allowed": false,
+        "state_write_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false
+      },
+      "blocked_actions": [
+        "live execution",
+        "receipt/state write",
+        "model/tool/MCP/script/hook execution",
+        "invoice/email/send action",
+        "browser/Coupa/Gmail/Telegram access",
+        "legal or financial advice authority"
+      ],
+      "creates_agent_packet_candidate": true,
+      "creates_block_draft_intent": true,
+      "creates_discovery_substep": false,
+      "creates_guided_capture_path": false,
+      "next_safe_move": "Create a draft block chain preview.",
+      "operator_input_needed": "Confirm whether to review together or let the system draft first.",
+      "path_id": "client_recap_scope_block_draft_path",
+      "path_label": "Draft monthly recap blocks",
+      "path_type": "CREATE_BLOCK_DRAFT_INTENT",
+      "proof_needed": "Project/source refs only if the workflow claims existing facts.",
+      "system_input_needed": "Existing terrain/client refs if available.",
+      "what_it_does": "Turns a new workflow request into reviewable blocks."
+    },
+    "legal_guardian_review_path": {
+      "agent_support_needed": "Guardian/Hermes can later prepare a review packet.",
+      "assist_ref": "legal_contract_domain_question_assist",
+      "authority_boundary": {
+        "agent_response_execution_allowed": false,
+        "approval_submission_allowed": false,
+        "browser_automation_allowed": false,
+        "calendar_access_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "email_send_allowed": false,
+        "file_cleanup_archive_promotion_allowed": false,
+        "file_write_allowed": false,
+        "financial_advice_authority": false,
+        "git_push_pull_fetch_allowed": false,
+        "gmail_access_allowed": false,
+        "hook_execution_allowed": false,
+        "invoice_generation_allowed": false,
+        "ledger_write_allowed": false,
+        "legal_advice_authority": false,
+        "live_question_assist_execution_allowed": false,
+        "mac_sync_import_allowed": false,
+        "mcp_execution_allowed": false,
+        "mission_control_swift_change_allowed": false,
+        "model_call_allowed": false,
+        "network_operation_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "receipt_write_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "script_execution_allowed": false,
+        "state_write_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false
+      },
+      "blocked_actions": [
+        "live execution",
+        "receipt/state write",
+        "model/tool/MCP/script/hook execution",
+        "invoice/email/send action",
+        "browser/Coupa/Gmail/Telegram access",
+        "legal or financial advice authority"
+      ],
+      "creates_agent_packet_candidate": true,
+      "creates_block_draft_intent": true,
+      "creates_discovery_substep": false,
+      "creates_guided_capture_path": false,
+      "next_safe_move": "Create a review draft path; do not provide legal advice.",
+      "operator_input_needed": "Choose review or park.",
+      "path_id": "legal_guardian_review_path",
+      "path_label": "Ask Guardian/Hermes for review",
+      "path_type": "ESCALATE_TO_GUARDIAN",
+      "proof_needed": "Source reference and review receipt in future lanes.",
+      "system_input_needed": "Clause/source reference, not raw private body.",
+      "what_it_does": "Creates a review path for a legal/contract question without legal advice authority."
+    },
+    "look_for_ap_payment_metadata_path": {
+      "agent_support_needed": "Cassandra/Clara can summarize existing refs later.",
+      "assist_ref": "capital_hilton_po_coupa_question_assist",
+      "authority_boundary": {
+        "agent_response_execution_allowed": false,
+        "approval_submission_allowed": false,
+        "browser_automation_allowed": false,
+        "calendar_access_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "email_send_allowed": false,
+        "file_cleanup_archive_promotion_allowed": false,
+        "file_write_allowed": false,
+        "financial_advice_authority": false,
+        "git_push_pull_fetch_allowed": false,
+        "gmail_access_allowed": false,
+        "hook_execution_allowed": false,
+        "invoice_generation_allowed": false,
+        "ledger_write_allowed": false,
+        "legal_advice_authority": false,
+        "live_question_assist_execution_allowed": false,
+        "mac_sync_import_allowed": false,
+        "mcp_execution_allowed": false,
+        "mission_control_swift_change_allowed": false,
+        "model_call_allowed": false,
+        "network_operation_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "receipt_write_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "script_execution_allowed": false,
+        "state_write_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false
+      },
+      "blocked_actions": [
+        "live execution",
+        "receipt/state write",
+        "model/tool/MCP/script/hook execution",
+        "invoice/email/send action",
+        "browser/Coupa/Gmail/Telegram access",
+        "legal or financial advice authority"
+      ],
+      "creates_agent_packet_candidate": true,
+      "creates_block_draft_intent": false,
+      "creates_discovery_substep": true,
+      "creates_guided_capture_path": false,
+      "next_safe_move": "Use existing refs only; ask operator if none are present.",
+      "operator_input_needed": "Choose AP/payment metadata as the likely target.",
+      "path_id": "look_for_ap_payment_metadata_path",
+      "path_label": "Look for AP/payment metadata",
+      "path_type": "FIND_PROOF",
+      "proof_needed": "Proof pointer if metadata affects final artifact.",
+      "system_input_needed": "Safe metadata refs already present in read-models.",
+      "what_it_does": "Points the workflow toward existing AP/payment metadata references."
+    },
+    "look_for_coupa_reference_path": {
+      "agent_support_needed": "Agent packet candidate may ask what evidence exists.",
+      "assist_ref": "capital_hilton_po_coupa_question_assist",
+      "authority_boundary": {
+        "agent_response_execution_allowed": false,
+        "approval_submission_allowed": false,
+        "browser_automation_allowed": false,
+        "calendar_access_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "email_send_allowed": false,
+        "file_cleanup_archive_promotion_allowed": false,
+        "file_write_allowed": false,
+        "financial_advice_authority": false,
+        "git_push_pull_fetch_allowed": false,
+        "gmail_access_allowed": false,
+        "hook_execution_allowed": false,
+        "invoice_generation_allowed": false,
+        "ledger_write_allowed": false,
+        "legal_advice_authority": false,
+        "live_question_assist_execution_allowed": false,
+        "mac_sync_import_allowed": false,
+        "mcp_execution_allowed": false,
+        "mission_control_swift_change_allowed": false,
+        "model_call_allowed": false,
+        "network_operation_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "receipt_write_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "script_execution_allowed": false,
+        "state_write_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false
+      },
+      "blocked_actions": [
+        "live execution",
+        "receipt/state write",
+        "model/tool/MCP/script/hook execution",
+        "invoice/email/send action",
+        "browser/Coupa/Gmail/Telegram access",
+        "legal or financial advice authority"
+      ],
+      "creates_agent_packet_candidate": true,
+      "creates_block_draft_intent": false,
+      "creates_discovery_substep": true,
+      "creates_guided_capture_path": false,
+      "next_safe_move": "Create a non-executing discovery candidate.",
+      "operator_input_needed": "Choose this if Coupa/reference context seems relevant.",
+      "path_id": "look_for_coupa_reference_path",
+      "path_label": "Look for Coupa invoice reference",
+      "path_type": "CREATE_DISCOVERY_PATH",
+      "proof_needed": "Portal reference proof if a specific reference is claimed later.",
+      "system_input_needed": "Existing read-model/source-card refs only.",
+      "what_it_does": "Creates a discovery substep for existing Coupa/reference metadata."
+    },
+    "look_for_po_number_path": {
+      "agent_support_needed": "Cassandra/Clara may prepare a focused discovery packet later.",
+      "assist_ref": "capital_hilton_po_coupa_question_assist",
+      "authority_boundary": {
+        "agent_response_execution_allowed": false,
+        "approval_submission_allowed": false,
+        "browser_automation_allowed": false,
+        "calendar_access_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "email_send_allowed": false,
+        "file_cleanup_archive_promotion_allowed": false,
+        "file_write_allowed": false,
+        "financial_advice_authority": false,
+        "git_push_pull_fetch_allowed": false,
+        "gmail_access_allowed": false,
+        "hook_execution_allowed": false,
+        "invoice_generation_allowed": false,
+        "ledger_write_allowed": false,
+        "legal_advice_authority": false,
+        "live_question_assist_execution_allowed": false,
+        "mac_sync_import_allowed": false,
+        "mcp_execution_allowed": false,
+        "mission_control_swift_change_allowed": false,
+        "model_call_allowed": false,
+        "network_operation_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "receipt_write_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "script_execution_allowed": false,
+        "state_write_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false
+      },
+      "blocked_actions": [
+        "live execution",
+        "receipt/state write",
+        "model/tool/MCP/script/hook execution",
+        "invoice/email/send action",
+        "browser/Coupa/Gmail/Telegram access",
+        "legal or financial advice authority"
+      ],
+      "creates_agent_packet_candidate": true,
+      "creates_block_draft_intent": false,
+      "creates_discovery_substep": true,
+      "creates_guided_capture_path": false,
+      "next_safe_move": "Preview discovery substep; do not access Coupa.",
+      "operator_input_needed": "Confirm that PO lookup is the desired path.",
+      "path_id": "look_for_po_number_path",
+      "path_label": "Look for PO number",
+      "path_type": "CREATE_DISCOVERY_PATH",
+      "proof_needed": "PO proof/reference before final payment-routing claim.",
+      "system_input_needed": "Existing source-card/proof refs if available.",
+      "what_it_does": "Creates a proof/reference discovery substep for a purchase order number."
+    },
+    "rate_proof_discovery_path": {
+      "agent_support_needed": "Cassandra/Clara may prepare rate-proof packet later.",
+      "assist_ref": "capital_hilton_rate_confirmation_question_assist",
+      "authority_boundary": {
+        "agent_response_execution_allowed": false,
+        "approval_submission_allowed": false,
+        "browser_automation_allowed": false,
+        "calendar_access_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "email_send_allowed": false,
+        "file_cleanup_archive_promotion_allowed": false,
+        "file_write_allowed": false,
+        "financial_advice_authority": false,
+        "git_push_pull_fetch_allowed": false,
+        "gmail_access_allowed": false,
+        "hook_execution_allowed": false,
+        "invoice_generation_allowed": false,
+        "ledger_write_allowed": false,
+        "legal_advice_authority": false,
+        "live_question_assist_execution_allowed": false,
+        "mac_sync_import_allowed": false,
+        "mcp_execution_allowed": false,
+        "mission_control_swift_change_allowed": false,
+        "model_call_allowed": false,
+        "network_operation_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "receipt_write_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "script_execution_allowed": false,
+        "state_write_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false
+      },
+      "blocked_actions": [
+        "live execution",
+        "receipt/state write",
+        "model/tool/MCP/script/hook execution",
+        "invoice/email/send action",
+        "browser/Coupa/Gmail/Telegram access",
+        "legal or financial advice authority"
+      ],
+      "creates_agent_packet_candidate": true,
+      "creates_block_draft_intent": false,
+      "creates_discovery_substep": true,
+      "creates_guided_capture_path": false,
+      "next_safe_move": "Open rate proof discovery as preview only.",
+      "operator_input_needed": "Choose proof discovery if the rate is uncertain.",
+      "path_id": "rate_proof_discovery_path",
+      "path_label": "Find rate proof",
+      "path_type": "CREATE_DISCOVERY_PATH",
+      "proof_needed": "Rate source before final send if required by workflow.",
+      "system_input_needed": "Existing source-card/proof refs if available.",
+      "what_it_does": "Creates a discovery substep for the $400/gig rate source."
+    },
+    "telegram_find_po_path": {
+      "agent_support_needed": "Cassandra can prepare a focused packet later.",
+      "assist_ref": "telegram_po_meaning_question_assist",
+      "authority_boundary": {
+        "agent_response_execution_allowed": false,
+        "approval_submission_allowed": false,
+        "browser_automation_allowed": false,
+        "calendar_access_allowed": false,
+        "coupa_access_allowed": false,
+        "credential_handling_allowed": false,
+        "email_send_allowed": false,
+        "file_cleanup_archive_promotion_allowed": false,
+        "file_write_allowed": false,
+        "financial_advice_authority": false,
+        "git_push_pull_fetch_allowed": false,
+        "gmail_access_allowed": false,
+        "hook_execution_allowed": false,
+        "invoice_generation_allowed": false,
+        "ledger_write_allowed": false,
+        "legal_advice_authority": false,
+        "live_question_assist_execution_allowed": false,
+        "mac_sync_import_allowed": false,
+        "mcp_execution_allowed": false,
+        "mission_control_swift_change_allowed": false,
+        "model_call_allowed": false,
+        "network_operation_allowed": false,
+        "queue_execution_allowed": false,
+        "raw_body_ingestion_allowed": false,
+        "receipt_write_allowed": false,
+        "runtime_dispatch_allowed": false,
+        "script_execution_allowed": false,
+        "state_write_allowed": false,
+        "telegram_send_allowed": false,
+        "tool_execution_allowed": false
+      },
+      "blocked_actions": [
+        "live execution",
+        "receipt/state write",
+        "model/tool/MCP/script/hook execution",
+        "invoice/email/send action",
+        "browser/Coupa/Gmail/Telegram access",
+        "legal or financial advice authority"
+      ],
+      "creates_agent_packet_candidate": true,
+      "creates_block_draft_intent": false,
+      "creates_discovery_substep": true,
+      "creates_guided_capture_path": false,
+      "next_safe_move": "Offer compact path choices; do not send or access external systems.",
+      "operator_input_needed": "Tap or say Find PO later.",
+      "path_id": "telegram_find_po_path",
+      "path_label": "Find PO",
+      "path_type": "ASK_AGENT_TO_CLARIFY",
+      "proof_needed": "Proof only if a specific PO is claimed.",
+      "system_input_needed": "Same workflow/session/block shape as Mission Control.",
+      "what_it_does": "Lets Cassandra answer compactly and offer a focused PO discovery path."
+    }
+  }
+}

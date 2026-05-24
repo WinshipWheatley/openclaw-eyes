@@ -846,6 +846,7 @@
 !bridge_routing_operator_attention_contract.py
 !agent_conversation_handoff_step_packet_contract.py
 !agent_execution_packet_compiler_contract.py
+!operator_question_assist_scope_expansion_contract.py
 !make_winship_life_easier_batch_manifest.py
 !openclaw_work_terrain_query_contract.py
 !openclaw_work_terrain_relationship_index.py
@@ -886,6 +887,7 @@
 !scripts/export_bridge_routing_operator_attention_contract.py
 !scripts/export_agent_conversation_handoff_step_packet_contract.py
 !scripts/export_agent_execution_packet_compiler_contract.py
+!scripts/export_operator_question_assist_scope_expansion_contract.py
 !scripts/export_make_winship_life_easier_batch_manifest.py
 !scripts/export_openclaw_work_terrain_query_contract.py
 !scripts/export_openclaw_work_terrain_relationship_index.py
@@ -918,6 +920,7 @@
 !tests/test_bridge_routing_operator_attention_contract.py
 !tests/test_agent_conversation_handoff_step_packet_contract.py
 !tests/test_agent_execution_packet_compiler_contract.py
+!tests/test_operator_question_assist_scope_expansion_contract.py
 !tests/test_make_winship_life_easier_batch_manifest.py
 !tests/test_openclaw_work_terrain_query_contract.py
 !tests/test_openclaw_work_terrain_relationship_index.py
