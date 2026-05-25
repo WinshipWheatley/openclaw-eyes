@@ -1,0 +1,1507 @@
+{
+  "allowed_scope": [
+    "deterministic route classification",
+    "package recommendation",
+    "generated read-model",
+    "tests",
+    "ELIOPERATOR report"
+  ],
+  "authority_boundary": {
+    "approval_submission_allowed": false,
+    "browser_automation_allowed": false,
+    "coupa_access_allowed": false,
+    "credential_handling_allowed": false,
+    "email_send_allowed": false,
+    "git_push_pull_fetch_allowed": false,
+    "live_agent_dispatch_allowed": false,
+    "live_auto_dispatch_allowed": false,
+    "live_cross_machine_send_allowed": false,
+    "live_external_action_allowed": false,
+    "live_model_call_allowed": false,
+    "live_worker_execution_allowed": false,
+    "live_workflow_run_allowed": false,
+    "mac_sync_import_allowed": false,
+    "mission_control_swift_change_allowed": false,
+    "network_allowed": false,
+    "raw_body_ingestion_allowed": false
+  },
+  "confidence_values": [
+    "HIGH",
+    "MEDIUM",
+    "LOW",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "contract_status": "DETERMINISTIC_NON_EXECUTING_WORKER_ROUTING_INTELLIGENCE",
+  "examples": {
+    "authority_too_broad_blocker": {
+      "active_blockers": [
+        "AUTHORITY_TOO_BROAD",
+        "EXTERNAL_ACTION_INCLUDED"
+      ],
+      "elioperator_warning": "This UI route includes external send/Coupa authority. Strip that authority and keep only UI/boundary review.",
+      "input": "Make the Mission Control UI call Gmail and Coupa and send the invoice.",
+      "package_recommendation": {
+        "context_excluded": [
+          "credentials",
+          "tokens",
+          "cookies",
+          "raw private bodies",
+          "protected evidence bodies",
+          "external account contents",
+          "private document bodies"
+        ],
+        "context_needed": [
+          "operator goal",
+          "Mac app surface",
+          "approved shuttle package refs if relevant",
+          "expected build/test/screenshot validation"
+        ],
+        "expected_return_format": [
+          "STATUS",
+          "SUMMARY",
+          "RESULT",
+          "VALIDATION",
+          "COMMIT",
+          "BOUNDARY CHECK"
+        ],
+        "next_safe_move": "Prepare a Mac Codex package with external authority stripped and gated.",
+        "operator_card_summary": "Route to MAC_CODEX on MAC: The request involves Apple/Mac-side app behavior, UI, validation, local import/render, or Apple app integration.",
+        "package_title": "MAC_CODEX package for MAC_MAIL_BOUNDARY_REVIEW",
+        "package_type": "MAC_WORKER_PACKAGE",
+        "recommendation_id": "recommendation_decision_mac_codex_5a54486082",
+        "route_decision_ref": "decision_mac_codex_5a54486082",
+        "target_machine": "MAC",
+        "target_worker_type": "MAC_CODEX",
+        "validation_required": [
+          "focused validation for the worker lane",
+          "authority scan",
+          "PII/secret scan"
+        ]
+      },
+      "route_decision": {
+        "alternate_workers": [
+          "GEMINI_AGY for read-only critique",
+          "GUARDIAN for approval boundary if external action is involved"
+        ],
+        "blocked_workers": [
+          "PC_CODEX for direct Swift/Mac UI edits",
+          "any worker with live send/submit authority"
+        ],
+        "confidence": "MEDIUM",
+        "decision_id": "decision_mac_codex_5a54486082",
+        "handoff_required": true,
+        "next_safe_move": "Prepare a Mac Codex package with external authority stripped and gated.",
+        "operator_request_summary": "Make the Mission Control UI call Gmail and Coupa and send the invoice.",
+        "package_required": true,
+        "route_reason": "The request involves Apple/Mac-side app behavior, UI, validation, local import/render, or Apple app integration.",
+        "selected_environment": "Mission Control Mac repo",
+        "selected_machine": "MAC",
+        "selected_worker_type": "MAC_CODEX",
+        "source_chat_ref": "operator_chat_authority_too_broad",
+        "task_type": "MAC_MAIL_BOUNDARY_REVIEW"
+      }
+    },
+    "gemini_agy_audit": {
+      "active_blockers": [],
+      "input": "Audit whether the chat-first pivot should reuse existing card contracts.",
+      "package_recommendation": {
+        "context_excluded": [
+          "credentials",
+          "tokens",
+          "cookies",
+          "raw private bodies",
+          "protected evidence bodies",
+          "external account contents",
+          "private document bodies"
+        ],
+        "context_needed": [
+          "sanitized summaries",
+          "specific audit question",
+          "read-only source excerpts",
+          "desired report format"
+        ],
+        "expected_return_format": [
+          "STATUS",
+          "SUMMARY",
+          "RESULT",
+          "VALIDATION",
+          "COMMIT",
+          "BOUNDARY CHECK"
+        ],
+        "next_safe_move": "Prepare a read-only scout package with edits, commits, execution, credentials, and external action forbidden.",
+        "operator_card_summary": "Route to GEMINI_AGY on EXTERNAL_MODEL: The request is read-only scouting, critique, architecture review, gotcha discovery, or prompt shaping.",
+        "package_title": "GEMINI_AGY package for READ_ONLY_AUDIT",
+        "package_type": "READ_ONLY_SCOUT_PACKAGE",
+        "recommendation_id": "recommendation_decision_gemini_agy_283c5191d3",
+        "route_decision_ref": "decision_gemini_agy_283c5191d3",
+        "target_machine": "EXTERNAL_MODEL",
+        "target_worker_type": "GEMINI_AGY",
+        "validation_required": [
+          "focused validation for the worker lane",
+          "authority scan",
+          "PII/secret scan"
+        ]
+      },
+      "route_decision": {
+        "alternate_workers": [
+          "PC_CODEX for implementation after scout",
+          "MAC_CODEX for Mac UI implementation after scout"
+        ],
+        "blocked_workers": [
+          "workers with file edit authority",
+          "workers with external action authority"
+        ],
+        "confidence": "HIGH",
+        "decision_id": "decision_gemini_agy_283c5191d3",
+        "handoff_required": true,
+        "next_safe_move": "Prepare a read-only scout package with edits, commits, execution, credentials, and external action forbidden.",
+        "operator_request_summary": "Audit whether the chat-first pivot should reuse existing card contracts.",
+        "package_required": true,
+        "route_reason": "The request is read-only scouting, critique, architecture review, gotcha discovery, or prompt shaping.",
+        "selected_environment": "read-only scout packet",
+        "selected_machine": "EXTERNAL_MODEL",
+        "selected_worker_type": "GEMINI_AGY",
+        "source_chat_ref": "operator_chat_gemini_audit",
+        "task_type": "READ_ONLY_AUDIT"
+      }
+    },
+    "mac_codex_apple_app_integration": {
+      "active_blockers": [],
+      "input": "Add Logic Pro project recognition to the Mac app.",
+      "package_recommendation": {
+        "context_excluded": [
+          "credentials",
+          "tokens",
+          "cookies",
+          "raw private bodies",
+          "protected evidence bodies",
+          "external account contents",
+          "private document bodies"
+        ],
+        "context_needed": [
+          "operator goal",
+          "Mac app surface",
+          "approved shuttle package refs if relevant",
+          "expected build/test/screenshot validation"
+        ],
+        "expected_return_format": [
+          "STATUS",
+          "SUMMARY",
+          "RESULT",
+          "VALIDATION",
+          "COMMIT",
+          "BOUNDARY CHECK"
+        ],
+        "next_safe_move": "Prepare a Mac Codex package with external authority stripped and gated.",
+        "operator_card_summary": "Route to MAC_CODEX on MAC: The request involves Apple/Mac-side app behavior, UI, validation, local import/render, or Apple app integration.",
+        "package_title": "MAC_CODEX package for APPLE_APP_INTEGRATION_SCOUT_OR_UI",
+        "package_type": "MAC_WORKER_PACKAGE",
+        "recommendation_id": "recommendation_decision_mac_codex_4dd55da109",
+        "route_decision_ref": "decision_mac_codex_4dd55da109",
+        "target_machine": "MAC",
+        "target_worker_type": "MAC_CODEX",
+        "validation_required": [
+          "focused validation for the worker lane",
+          "authority scan",
+          "PII/secret scan"
+        ]
+      },
+      "route_decision": {
+        "alternate_workers": [
+          "GEMINI_AGY for read-only critique",
+          "GUARDIAN for approval boundary if external action is involved"
+        ],
+        "blocked_workers": [
+          "PC_CODEX for direct Swift/Mac UI edits",
+          "any worker with live send/submit authority"
+        ],
+        "confidence": "HIGH",
+        "decision_id": "decision_mac_codex_4dd55da109",
+        "handoff_required": true,
+        "next_safe_move": "Prepare a Mac Codex package with external authority stripped and gated.",
+        "operator_request_summary": "Add Logic Pro project recognition to the Mac app.",
+        "package_required": true,
+        "route_reason": "The request involves Apple/Mac-side app behavior, UI, validation, local import/render, or Apple app integration.",
+        "selected_environment": "Mission Control Mac repo",
+        "selected_machine": "MAC",
+        "selected_worker_type": "MAC_CODEX",
+        "source_chat_ref": "operator_chat_logic_pro",
+        "task_type": "APPLE_APP_INTEGRATION_SCOUT_OR_UI"
+      }
+    },
+    "mac_codex_mail_boundary": {
+      "active_blockers": [
+        "AUTHORITY_TOO_BROAD",
+        "EXTERNAL_ACTION_INCLUDED"
+      ],
+      "input": "Make Mail send the invoice.",
+      "package_recommendation": {
+        "context_excluded": [
+          "credentials",
+          "tokens",
+          "cookies",
+          "raw private bodies",
+          "protected evidence bodies",
+          "external account contents",
+          "private document bodies"
+        ],
+        "context_needed": [
+          "operator goal",
+          "Mac app surface",
+          "approved shuttle package refs if relevant",
+          "expected build/test/screenshot validation"
+        ],
+        "expected_return_format": [
+          "STATUS",
+          "SUMMARY",
+          "RESULT",
+          "VALIDATION",
+          "COMMIT",
+          "BOUNDARY CHECK"
+        ],
+        "next_safe_move": "Prepare a Mac Codex package with external authority stripped and gated.",
+        "operator_card_summary": "Route to MAC_CODEX on MAC: The request involves Apple/Mac-side app behavior, UI, validation, local import/render, or Apple app integration.",
+        "package_title": "MAC_CODEX package for MAC_MAIL_BOUNDARY_REVIEW",
+        "package_type": "MAC_WORKER_PACKAGE",
+        "recommendation_id": "recommendation_decision_mac_codex_faf8e634e7",
+        "route_decision_ref": "decision_mac_codex_faf8e634e7",
+        "target_machine": "MAC",
+        "target_worker_type": "MAC_CODEX",
+        "validation_required": [
+          "focused validation for the worker lane",
+          "authority scan",
+          "PII/secret scan"
+        ]
+      },
+      "route_decision": {
+        "alternate_workers": [
+          "GEMINI_AGY for read-only critique",
+          "GUARDIAN for approval boundary if external action is involved"
+        ],
+        "blocked_workers": [
+          "PC_CODEX for direct Swift/Mac UI edits",
+          "any worker with live send/submit authority"
+        ],
+        "confidence": "MEDIUM",
+        "decision_id": "decision_mac_codex_faf8e634e7",
+        "handoff_required": true,
+        "next_safe_move": "Prepare a Mac Codex package with external authority stripped and gated.",
+        "operator_request_summary": "Make Mail send the invoice.",
+        "package_required": true,
+        "route_reason": "The request involves Apple/Mac-side app behavior, UI, validation, local import/render, or Apple app integration.",
+        "selected_environment": "Mission Control Mac repo",
+        "selected_machine": "MAC",
+        "selected_worker_type": "MAC_CODEX",
+        "source_chat_ref": "operator_chat_mail_send_invoice",
+        "task_type": "MAC_MAIL_BOUNDARY_REVIEW"
+      }
+    },
+    "mac_codex_ui": {
+      "active_blockers": [],
+      "input": "Fix the Mission Control chat UI so cards render inside the chat and the composer is bottom anchored.",
+      "package_recommendation": {
+        "context_excluded": [
+          "credentials",
+          "tokens",
+          "cookies",
+          "raw private bodies",
+          "protected evidence bodies",
+          "external account contents",
+          "private document bodies"
+        ],
+        "context_needed": [
+          "operator goal",
+          "Mac app surface",
+          "approved shuttle package refs if relevant",
+          "expected build/test/screenshot validation"
+        ],
+        "expected_return_format": [
+          "STATUS",
+          "SUMMARY",
+          "RESULT",
+          "VALIDATION",
+          "COMMIT",
+          "BOUNDARY CHECK"
+        ],
+        "next_safe_move": "Prepare a Mac Codex package with external authority stripped and gated.",
+        "operator_card_summary": "Route to MAC_CODEX on MAC: The request involves Apple/Mac-side app behavior, UI, validation, local import/render, or Apple app integration.",
+        "package_title": "MAC_CODEX package for SWIFTUI_APP_UI",
+        "package_type": "MAC_WORKER_PACKAGE",
+        "recommendation_id": "recommendation_decision_mac_codex_e118797184",
+        "route_decision_ref": "decision_mac_codex_e118797184",
+        "target_machine": "MAC",
+        "target_worker_type": "MAC_CODEX",
+        "validation_required": [
+          "focused validation for the worker lane",
+          "authority scan",
+          "PII/secret scan"
+        ]
+      },
+      "route_decision": {
+        "alternate_workers": [
+          "GEMINI_AGY for read-only critique",
+          "GUARDIAN for approval boundary if external action is involved"
+        ],
+        "blocked_workers": [
+          "PC_CODEX for direct Swift/Mac UI edits",
+          "any worker with live send/submit authority"
+        ],
+        "confidence": "HIGH",
+        "decision_id": "decision_mac_codex_e118797184",
+        "handoff_required": true,
+        "next_safe_move": "Prepare a Mac Codex package with external authority stripped and gated.",
+        "operator_request_summary": "Fix the Mission Control chat UI so cards render inside the chat and the composer is bottom anchored.",
+        "package_required": true,
+        "route_reason": "The request involves Apple/Mac-side app behavior, UI, validation, local import/render, or Apple app integration.",
+        "selected_environment": "Mission Control Mac repo",
+        "selected_machine": "MAC",
+        "selected_worker_type": "MAC_CODEX",
+        "source_chat_ref": "operator_chat_mac_ui",
+        "task_type": "SWIFTUI_APP_UI"
+      }
+    },
+    "pc_codex_backend": {
+      "active_blockers": [],
+      "input": "Build the chat readback card mirror from router readbacks.",
+      "package_recommendation": {
+        "context_excluded": [
+          "credentials",
+          "tokens",
+          "cookies",
+          "raw private bodies",
+          "protected evidence bodies",
+          "external account contents",
+          "private document bodies"
+        ],
+        "context_needed": [
+          "operator goal",
+          "Repo A file scope",
+          "source read-model refs",
+          "validation commands",
+          "commit policy"
+        ],
+        "expected_return_format": [
+          "STATUS",
+          "SUMMARY",
+          "RESULT",
+          "VALIDATION",
+          "COMMIT",
+          "BOUNDARY CHECK"
+        ],
+        "next_safe_move": "Prepare a PC Codex package with Repo A validation requirements.",
+        "operator_card_summary": "Route to PC_CODEX on PC_WSL: The request involves canonical Repo A backend, Python, read-models, tests, scripts, package/shuttle generation, or router/intake/readback work.",
+        "package_title": "PC_CODEX package for BACKEND_READMODEL",
+        "package_type": "PC_WORKER_PACKAGE",
+        "recommendation_id": "recommendation_decision_pc_codex_67bb7d2f04",
+        "route_decision_ref": "decision_pc_codex_67bb7d2f04",
+        "target_machine": "PC_WSL",
+        "target_worker_type": "PC_CODEX",
+        "validation_required": [
+          "focused validation for the worker lane",
+          "authority scan",
+          "PII/secret scan"
+        ]
+      },
+      "route_decision": {
+        "alternate_workers": [
+          "GEMINI_AGY for read-only audit"
+        ],
+        "blocked_workers": [
+          "MAC_CODEX for canonical backend mutation"
+        ],
+        "confidence": "HIGH",
+        "decision_id": "decision_pc_codex_67bb7d2f04",
+        "handoff_required": true,
+        "next_safe_move": "Prepare a PC Codex package with Repo A validation requirements.",
+        "operator_request_summary": "Build the chat readback card mirror from router readbacks.",
+        "package_required": true,
+        "route_reason": "The request involves canonical Repo A backend, Python, read-models, tests, scripts, package/shuttle generation, or router/intake/readback work.",
+        "selected_environment": "/home/openclaw",
+        "selected_machine": "PC_WSL",
+        "selected_worker_type": "PC_CODEX",
+        "source_chat_ref": "operator_chat_pc_backend",
+        "task_type": "BACKEND_READMODEL"
+      }
+    },
+    "pc_codex_package": {
+      "active_blockers": [],
+      "input": "Package the readback mirror to Mac.",
+      "package_recommendation": {
+        "context_excluded": [
+          "credentials",
+          "tokens",
+          "cookies",
+          "raw private bodies",
+          "protected evidence bodies",
+          "external account contents",
+          "private document bodies"
+        ],
+        "context_needed": [
+          "operator goal",
+          "Repo A file scope",
+          "source read-model refs",
+          "validation commands",
+          "commit policy"
+        ],
+        "expected_return_format": [
+          "STATUS",
+          "SUMMARY",
+          "RESULT",
+          "VALIDATION",
+          "COMMIT",
+          "BOUNDARY CHECK"
+        ],
+        "next_safe_move": "Prepare a PC Codex package with Repo A validation requirements.",
+        "operator_card_summary": "Route to PC_CODEX on PC_WSL: The request involves canonical Repo A backend, Python, read-models, tests, scripts, package/shuttle generation, or router/intake/readback work.",
+        "package_title": "PC_CODEX package for SHUTTLE_PACKAGE",
+        "package_type": "PC_WORKER_PACKAGE",
+        "recommendation_id": "recommendation_decision_pc_codex_6cf7b0437d",
+        "route_decision_ref": "decision_pc_codex_6cf7b0437d",
+        "target_machine": "PC_WSL",
+        "target_worker_type": "PC_CODEX",
+        "validation_required": [
+          "focused validation for the worker lane",
+          "authority scan",
+          "PII/secret scan"
+        ]
+      },
+      "route_decision": {
+        "alternate_workers": [
+          "GEMINI_AGY for read-only audit"
+        ],
+        "blocked_workers": [
+          "MAC_CODEX for canonical backend mutation"
+        ],
+        "confidence": "HIGH",
+        "decision_id": "decision_pc_codex_6cf7b0437d",
+        "handoff_required": true,
+        "next_safe_move": "Prepare a PC Codex package with Repo A validation requirements.",
+        "operator_request_summary": "Package the readback mirror to Mac.",
+        "package_required": true,
+        "route_reason": "The request involves canonical Repo A backend, Python, read-models, tests, scripts, package/shuttle generation, or router/intake/readback work.",
+        "selected_environment": "/home/openclaw",
+        "selected_machine": "PC_WSL",
+        "selected_worker_type": "PC_CODEX",
+        "source_chat_ref": "operator_chat_pc_package",
+        "task_type": "SHUTTLE_PACKAGE"
+      }
+    },
+    "unknown_make_it_better": {
+      "active_blockers": [
+        "AMBIGUOUS_REQUEST",
+        "MISSING_CONTEXT"
+      ],
+      "input": "Make it better.",
+      "package_recommendation": {
+        "context_excluded": [
+          "credentials",
+          "tokens",
+          "cookies",
+          "raw private bodies",
+          "protected evidence bodies",
+          "external account contents",
+          "private document bodies"
+        ],
+        "context_needed": [
+          "target surface",
+          "desired outcome",
+          "allowed files or lane",
+          "success criteria"
+        ],
+        "expected_return_format": [
+          "STATUS",
+          "SUMMARY",
+          "RESULT",
+          "VALIDATION",
+          "COMMIT",
+          "BOUNDARY CHECK"
+        ],
+        "next_safe_move": "Ask whether this is Mac app work, Repo A backend work, read-only scouting, comms drafting, or safety review.",
+        "operator_card_summary": "Route to UNKNOWN_NEEDS_ROUTING on UNKNOWN: Request is too broad to choose a worker, machine, files, or success criteria safely.",
+        "package_title": "UNKNOWN_NEEDS_ROUTING package for UNKNOWN_NEEDS_FRAMING",
+        "package_type": "UNKNOWN_NEEDS_ROUTING",
+        "recommendation_id": "recommendation_decision_unknown_1b96bc9031",
+        "route_decision_ref": "decision_unknown_1b96bc9031",
+        "target_machine": "UNKNOWN",
+        "target_worker_type": "UNKNOWN_NEEDS_ROUTING",
+        "validation_required": [
+          "focused validation for the worker lane",
+          "authority scan",
+          "PII/secret scan"
+        ]
+      },
+      "route_decision": {
+        "alternate_workers": [
+          "MAC_CODEX",
+          "PC_CODEX",
+          "GEMINI_AGY",
+          "GUARDIAN",
+          "CASSANDRA"
+        ],
+        "blocked_workers": [],
+        "confidence": "LOW",
+        "decision_id": "decision_unknown_1b96bc9031",
+        "handoff_required": false,
+        "next_safe_move": "Ask whether this is Mac app work, Repo A backend work, read-only scouting, comms drafting, or safety review.",
+        "operator_request_summary": "Make it better.",
+        "package_required": false,
+        "route_reason": "Request is too broad to choose a worker, machine, files, or success criteria safely.",
+        "selected_environment": "none",
+        "selected_machine": "UNKNOWN",
+        "selected_worker_type": "UNKNOWN_NEEDS_ROUTING",
+        "source_chat_ref": "operator_chat_unknown_make_it_better",
+        "task_type": "UNKNOWN_NEEDS_FRAMING"
+      }
+    },
+    "wrong_worker_blocker": {
+      "active_blockers": [
+        "WRONG_WORKER_SELECTED",
+        "WRONG_MACHINE_SELECTED"
+      ],
+      "attempted_machine": "PC_WSL",
+      "attempted_worker_type": "PC_CODEX",
+      "elioperator_warning": "This is Mac app work. Route it to Mac Codex, not PC Codex.",
+      "expected_machine": "MAC",
+      "expected_worker_type": "MAC_CODEX",
+      "input": "Fix the Mission Control chat UI so cards render inside the chat and the composer is bottom anchored.",
+      "next_safe_move": "Prepare a Mac Codex package with SwiftUI scope and no external authority."
+    }
+  },
+  "generated_at": "2026-05-25T00:00:00+00:00",
+  "machine_proof": {
+    "agent_dispatch_performed": false,
+    "all_live_authority_flags_false": true,
+    "apple_app_integration_routes_correctly": true,
+    "authority_too_broad_blocker_exists": true,
+    "auto_dispatch_performed": false,
+    "blockers_present": true,
+    "content_hash": "6d417254aab03c1d40b538b1479f826b23e9bd9b6a3f5e037ca8bd6cc936428c",
+    "credentials_or_secrets_included": false,
+    "cross_machine_send_performed": false,
+    "external_action_performed": false,
+    "gemini_agy_routes_correctly": true,
+    "git_push_pull_fetch_run": false,
+    "mac_codex_ui_routes_correctly": true,
+    "mac_mail_boundary_blocks_send": true,
+    "mac_sync_import_run": false,
+    "machines_present": true,
+    "mission_control_swift_changed": false,
+    "model_call_performed": false,
+    "network_used": false,
+    "pc_codex_backend_routes_correctly": true,
+    "pc_codex_package_routes_correctly": true,
+    "raw_pii_in_packages": false,
+    "raw_private_bodies_included": false,
+    "supported_workers_present": true,
+    "unknown_routes_to_clarification": true,
+    "worker_execution_performed": false,
+    "worker_package_recommendation_model_present": true,
+    "worker_route_decision_model_present": true,
+    "worker_routing_blocker_model_present": true,
+    "worker_routing_intelligence_model_present": true,
+    "worker_routing_rule_model_present": true,
+    "workflow_run_performed": false,
+    "wrong_worker_blocker_exists": true
+  },
+  "machines": [
+    "MAC",
+    "PC_WSL",
+    "LOCAL_ONLY",
+    "EXTERNAL_MODEL",
+    "UNKNOWN"
+  ],
+  "model_schemas": {
+    "worker_package_recommendation": {
+      "required_fields": [
+        "recommendation_id",
+        "route_decision_ref",
+        "package_type",
+        "package_title",
+        "target_worker_type",
+        "target_machine",
+        "context_needed",
+        "context_excluded",
+        "validation_required",
+        "expected_return_format",
+        "operator_card_summary",
+        "next_safe_move"
+      ]
+    },
+    "worker_route_decision": {
+      "required_fields": [
+        "decision_id",
+        "source_chat_ref",
+        "operator_request_summary",
+        "selected_worker_type",
+        "selected_machine",
+        "selected_environment",
+        "task_type",
+        "confidence",
+        "route_reason",
+        "alternate_workers",
+        "blocked_workers",
+        "handoff_required",
+        "package_required",
+        "next_safe_move"
+      ]
+    },
+    "worker_routing_blocker": {
+      "required_fields": [
+        "blocker_id",
+        "blocker_type",
+        "condition",
+        "severity",
+        "elioperator_warning",
+        "fail_closed",
+        "next_safe_move"
+      ]
+    },
+    "worker_routing_intelligence": {
+      "required_fields": [
+        "router_id",
+        "doctrine",
+        "supported_workers",
+        "routing_rules",
+        "confidence_policy",
+        "ambiguity_policy",
+        "authority_policy",
+        "package_policy",
+        "readback_policy",
+        "next_safe_move"
+      ]
+    },
+    "worker_routing_rule": {
+      "required_fields": [
+        "rule_id",
+        "worker_type",
+        "machine",
+        "match_patterns",
+        "task_types",
+        "positive_examples",
+        "negative_examples",
+        "allowed_actions",
+        "forbidden_actions",
+        "confidence_boost",
+        "next_safe_move"
+      ]
+    }
+  },
+  "operator_markdown_mode": "ELIOPERATOR",
+  "read_model_id": "worker_routing_intelligence",
+  "relationship_refs": {
+    "agent_conversation_handoff_step_packet_contract": "same-chat worker result/readback return shape",
+    "agent_execution_packet_compiler_contract": "downstream worker package authority filtering",
+    "conversational_workflow_router_contract": "upstream chat/workflow classification",
+    "conversational_workflow_router_intake": "Mac chat request intake source",
+    "cross_machine_worker_dispatch_package": "uses the same worker/machine lane vocabulary and package boundary posture",
+    "openclaw_sensitive_policy": "privacy and credential exclusion posture",
+    "workflow_execution_package_compiler": "consumes route decisions as package target recommendations"
+  },
+  "schema_version": "worker_routing_intelligence_v0",
+  "supported_workers": [
+    "MAC_CODEX",
+    "PC_CODEX",
+    "GEMINI_AGY",
+    "LOCAL_OLLAMA",
+    "GUARDIAN",
+    "CASSANDRA",
+    "UNKNOWN_NEEDS_ROUTING"
+  ],
+  "worker_routing_blockers_by_id": {
+    "worker_routing_blocker_ambiguous_request": {
+      "blocker_id": "worker_routing_blocker_ambiguous_request",
+      "blocker_type": "AMBIGUOUS_REQUEST",
+      "condition": "The request is too vague to route safely.",
+      "elioperator_warning": "Ask whether this is Mac app work, Repo A backend work, scout work, comms, or safety review.",
+      "fail_closed": true,
+      "next_safe_move": "Return a human-readable routing blocker and do not dispatch a worker.",
+      "severity": "HIGH"
+    },
+    "worker_routing_blocker_authority_too_broad": {
+      "blocker_id": "worker_routing_blocker_authority_too_broad",
+      "blocker_type": "AUTHORITY_TOO_BROAD",
+      "condition": "A route or prompt includes authority beyond the worker lane.",
+      "elioperator_warning": "The package is too broad. Strip execution/send/submit authority and keep only the lane-safe work.",
+      "fail_closed": true,
+      "next_safe_move": "Return a human-readable routing blocker and do not dispatch a worker.",
+      "severity": "HIGH"
+    },
+    "worker_routing_blocker_credential_in_package": {
+      "blocker_id": "worker_routing_blocker_credential_in_package",
+      "blocker_type": "CREDENTIAL_IN_PACKAGE",
+      "condition": "The package includes credentials or credential-like material.",
+      "elioperator_warning": "Remove credentials and fail closed.",
+      "fail_closed": true,
+      "next_safe_move": "Return a human-readable routing blocker and do not dispatch a worker.",
+      "severity": "HIGH"
+    },
+    "worker_routing_blocker_external_action_included": {
+      "blocker_id": "worker_routing_blocker_external_action_included",
+      "blocker_type": "EXTERNAL_ACTION_INCLUDED",
+      "condition": "The request includes Gmail/Coupa/browser/send/approval/external action authority.",
+      "elioperator_warning": "External action is not part of worker routing. Keep it locked behind governed adapters.",
+      "fail_closed": true,
+      "next_safe_move": "Return a human-readable routing blocker and do not dispatch a worker.",
+      "severity": "HIGH"
+    },
+    "worker_routing_blocker_missing_context": {
+      "blocker_id": "worker_routing_blocker_missing_context",
+      "blocker_type": "MISSING_CONTEXT",
+      "condition": "The request lacks target surface, desired outcome, or validation criteria.",
+      "elioperator_warning": "Ask for the missing context before routing.",
+      "fail_closed": true,
+      "next_safe_move": "Return a human-readable routing blocker and do not dispatch a worker.",
+      "severity": "HIGH"
+    },
+    "worker_routing_blocker_raw_pii_in_package": {
+      "blocker_id": "worker_routing_blocker_raw_pii_in_package",
+      "blocker_type": "RAW_PII_IN_PACKAGE",
+      "condition": "The package includes raw private identifiers or private bodies.",
+      "elioperator_warning": "Use sanitized summaries and metadata-only refs.",
+      "fail_closed": true,
+      "next_safe_move": "Return a human-readable routing blocker and do not dispatch a worker.",
+      "severity": "HIGH"
+    },
+    "worker_routing_blocker_unknown_fail_closed": {
+      "blocker_id": "worker_routing_blocker_unknown_fail_closed",
+      "blocker_type": "UNKNOWN_FAIL_CLOSED",
+      "condition": "The router cannot classify the request.",
+      "elioperator_warning": "Fail closed and ask a clarifying question.",
+      "fail_closed": true,
+      "next_safe_move": "Return a human-readable routing blocker and do not dispatch a worker.",
+      "severity": "CRITICAL"
+    },
+    "worker_routing_blocker_wrong_machine_selected": {
+      "blocker_id": "worker_routing_blocker_wrong_machine_selected",
+      "blocker_type": "WRONG_MACHINE_SELECTED",
+      "condition": "A request is routed to the wrong machine environment.",
+      "elioperator_warning": "This belongs on the other machine. Re-route before packaging.",
+      "fail_closed": true,
+      "next_safe_move": "Return a human-readable routing blocker and do not dispatch a worker.",
+      "severity": "HIGH"
+    },
+    "worker_routing_blocker_wrong_worker_selected": {
+      "blocker_id": "worker_routing_blocker_wrong_worker_selected",
+      "blocker_type": "WRONG_WORKER_SELECTED",
+      "condition": "A request is routed to a worker that cannot safely own the surface.",
+      "elioperator_warning": "This looks like the wrong worker. Pick the worker that owns the actual surface.",
+      "fail_closed": true,
+      "next_safe_move": "Return a human-readable routing blocker and do not dispatch a worker.",
+      "severity": "HIGH"
+    }
+  },
+  "worker_routing_intelligence": {
+    "ambiguity_policy": [
+      "Do not guess hidden scope.",
+      "Route vague requests to UNKNOWN_NEEDS_ROUTING.",
+      "Ask whether the request is Mac app work, Repo A backend work, read-only scouting, communications drafting, or safety review."
+    ],
+    "authority_policy": [
+      "No route grants live execution.",
+      "External action language is stripped or blocked.",
+      "Credentials and raw private bodies are excluded from packages.",
+      "Send/submit/approval requires future governed adapters and receipts."
+    ],
+    "confidence_policy": [
+      "HIGH when deterministic domain and machine patterns clearly match one worker.",
+      "MEDIUM when a worker lane is clear but authority must be stripped or reviewed.",
+      "LOW when target surface or success criteria are ambiguous.",
+      "Unknowns fail closed into clarification."
+    ],
+    "doctrine": [
+      "One chat window is the operator surface.",
+      "The router chooses the right worker.",
+      "The package carries the right context.",
+      "The worker acts only inside its lane.",
+      "The result returns to the same chat.",
+      "Truth comes from receipts/readbacks.",
+      "Routing is not dispatch."
+    ],
+    "next_safe_move": "Use deterministic route decisions to prepare a package recommendation, then wait for explicit operator send.",
+    "package_policy": [
+      "Route decisions produce package recommendations only.",
+      "Context is scoped to worker and task.",
+      "Package recommendations include validation and expected return format.",
+      "Cross-machine send remains false in this contract."
+    ],
+    "readback_policy": [
+      "Worker results return to the same chat as readbacks/cards.",
+      "Worker claims are not truth without receipts/readbacks.",
+      "Blocked routes explain the next safe move in human language."
+    ],
+    "router_id": "worker_routing_intelligence_v0",
+    "routing_rules": [
+      {
+        "allowed_actions": [
+          "Swift/Mac app edits",
+          "Xcode build/test",
+          "screenshot validation",
+          "bounded Mac file copy/import from approved shuttle packages",
+          "Mac-local UI inspection"
+        ],
+        "confidence_boost": "HIGH when Apple/Mac-side UI, validation, or integration terms appear.",
+        "forbidden_actions": [
+          "Repo A backend mutation",
+          "PC/WSL canonical state writes",
+          "external Gmail/Coupa/browser actions",
+          "credential handling",
+          "live send/submit",
+          "broad filesystem scans",
+          "hidden watchers/daemons",
+          "arbitrary AppleScript/JXA automation",
+          "DAW/media-app mutation without explicit approval/backup/receipt posture"
+        ],
+        "machine": "MAC",
+        "match_patterns": [
+          "swiftui",
+          "appkit",
+          "xcode",
+          "mission control ui",
+          "macos app",
+          "app layout",
+          "composer",
+          "cards inside the chat",
+          "card render inside chat",
+          "screenshot validation",
+          "app build",
+          "build/run validation",
+          "entitlements",
+          "sandboxing",
+          "mac-local",
+          "mac readback package",
+          "mounted volume",
+          "file picker",
+          "document picker",
+          "screen capture",
+          "logic pro",
+          "ableton",
+          "final cut",
+          "davinci resolve",
+          "mail",
+          "calendar",
+          "contacts",
+          "messages",
+          "telegram desktop",
+          "mac app"
+        ],
+        "negative_examples": [
+          "Build the backend read-model.",
+          "Generate the PC-to-Mac package."
+        ],
+        "next_safe_move": "Prepare a Mac Codex package; strip external action authority.",
+        "positive_examples": [
+          "Fix the Mission Control chat UI so cards render inside the chat.",
+          "Add Logic Pro project recognition to the Mac app.",
+          "Import this Mac readback package."
+        ],
+        "rule_id": "rule_mac_codex_mac_app",
+        "task_types": [
+          "SWIFTUI_APP_UI",
+          "APPLE_APP_INTEGRATION_SCOUT_OR_UI",
+          "MAC_PACKAGE_IMPORT_RENDER",
+          "MAC_MAIL_BOUNDARY_REVIEW"
+        ],
+        "worker_type": "MAC_CODEX"
+      },
+      {
+        "allowed_actions": [
+          "Python edits",
+          "pytest",
+          "generated read-models",
+          "bounded SQLite/receipt work when explicitly scoped",
+          "package/shuttle generation",
+          "authority/PII scans"
+        ],
+        "confidence_boost": "HIGH when Repo A, backend, Python, read-model, router, compiler, or shuttle terms appear.",
+        "forbidden_actions": [
+          "Mac Swift edits",
+          "Mac app UI changes",
+          "external account access",
+          "Gmail/Coupa/browser/Telegram actions",
+          "credential handling",
+          "raw private body ingestion",
+          "live send/submit/approval"
+        ],
+        "machine": "PC_WSL",
+        "match_patterns": [
+          "repo a",
+          "backend",
+          "python",
+          "sqlite",
+          "receipt",
+          "read-model",
+          "read model",
+          "tests",
+          "pytest",
+          "script",
+          "contract",
+          "pc-to-mac",
+          "to mac package",
+          "shuttle package",
+          "package the readback",
+          "pc package",
+          "post office",
+          "router intake",
+          "router/readback",
+          "readback card mirror",
+          "workflow package compiler",
+          "package compiler",
+          "worker routing intelligence",
+          "pii",
+          "tokenization",
+          "protected evidence contract",
+          "work terrain",
+          "build cue",
+          "capital hilton backend"
+        ],
+        "negative_examples": [
+          "Fix the SwiftUI app layout.",
+          "Take a screenshot of the Mac app."
+        ],
+        "next_safe_move": "Prepare a PC Codex package with validation commands and generated read-model targets.",
+        "positive_examples": [
+          "Build the backend read-model.",
+          "Consume this Mac request.",
+          "Generate the PC-to-Mac package.",
+          "Add the package compiler."
+        ],
+        "rule_id": "rule_pc_codex_repo_a_backend",
+        "task_types": [
+          "BACKEND_READMODEL",
+          "BACKEND_INTAKE",
+          "BACKEND_PACKAGE_COMPILER",
+          "SHUTTLE_PACKAGE"
+        ],
+        "worker_type": "PC_CODEX"
+      },
+      {
+        "allowed_actions": [
+          "read-only scout",
+          "audit",
+          "visual/taste critique",
+          "architecture review",
+          "prompt shaping",
+          "gotcha discovery"
+        ],
+        "confidence_boost": "HIGH when the request is explicitly scout/audit/critique/prompt shaping.",
+        "forbidden_actions": [
+          "file edits",
+          "commits",
+          "live execution",
+          "external action",
+          "credential access"
+        ],
+        "machine": "EXTERNAL_MODEL",
+        "match_patterns": [
+          "audit",
+          "scout",
+          "critique",
+          "taste",
+          "architecture review",
+          "prompt shaping",
+          "what should codex do next",
+          "gotcha",
+          "read-only report"
+        ],
+        "negative_examples": [
+          "Edit the Python file.",
+          "Commit the SwiftUI fix."
+        ],
+        "next_safe_move": "Prepare a sanitized read-only scout packet.",
+        "positive_examples": [
+          "Audit whether the chat-first pivot should reuse existing card contracts.",
+          "What should Codex do next?"
+        ],
+        "rule_id": "rule_gemini_agy_read_only_scout",
+        "task_types": [
+          "READ_ONLY_AUDIT",
+          "PROMPT_SHAPING",
+          "DESIGN_CRITIQUE"
+        ],
+        "worker_type": "GEMINI_AGY"
+      },
+      {
+        "allowed_actions": [
+          "bounded local summarization",
+          "classification",
+          "low-risk reasoning"
+        ],
+        "confidence_boost": "MEDIUM unless an approved local model path is known.",
+        "forbidden_actions": [
+          "external action",
+          "sensitive external capability",
+          "credential access",
+          "tool execution"
+        ],
+        "machine": "LOCAL_ONLY",
+        "match_patterns": [
+          "local summarization",
+          "local classification",
+          "low-risk reasoning",
+          "offline chat support",
+          "local model",
+          "ollama"
+        ],
+        "negative_examples": [
+          "Edit Repo A backend files.",
+          "Send the invoice."
+        ],
+        "next_safe_move": "Prepare local-only context if the local model rail exists.",
+        "positive_examples": [
+          "Summarize this low-risk local note with a local model."
+        ],
+        "rule_id": "rule_local_ollama_local_reasoning",
+        "task_types": [
+          "LOCAL_SUMMARY_OR_CLASSIFICATION"
+        ],
+        "worker_type": "LOCAL_OLLAMA"
+      },
+      {
+        "allowed_actions": [
+          "approval review",
+          "protected evidence boundary review",
+          "security posture review"
+        ],
+        "confidence_boost": "HIGH for approval/protected/safety-boundary language.",
+        "forbidden_actions": [
+          "live approval submission",
+          "external action",
+          "credential access",
+          "raw protected body exposure"
+        ],
+        "machine": "LOCAL_ONLY",
+        "match_patterns": [
+          "approval",
+          "protected evidence",
+          "sensitive boundary",
+          "security posture",
+          "should this be allowed",
+          "guardian"
+        ],
+        "negative_examples": [
+          "Implement the backend module.",
+          "Fix the SwiftUI layout."
+        ],
+        "next_safe_move": "Prepare a Guardian review package.",
+        "positive_examples": [
+          "Should this be allowed?",
+          "Review protected evidence boundary."
+        ],
+        "rule_id": "rule_guardian_boundary",
+        "task_types": [
+          "APPROVAL_OR_PROTECTED_BOUNDARY_REVIEW"
+        ],
+        "worker_type": "GUARDIAN"
+      },
+      {
+        "allowed_actions": [
+          "communication drafting",
+          "review packet language",
+          "operator-facing follow-up"
+        ],
+        "confidence_boost": "HIGH for drafting/review-language requests without send authority.",
+        "forbidden_actions": [
+          "send",
+          "approval bypass",
+          "credential handling",
+          "external action"
+        ],
+        "machine": "LOCAL_ONLY",
+        "match_patterns": [
+          "communication drafting",
+          "draft email",
+          "review packet language",
+          "invoice-facing copy",
+          "email-facing copy",
+          "operator-facing follow-up",
+          "cassandra"
+        ],
+        "negative_examples": [
+          "Send the invoice now.",
+          "Build the backend read-model."
+        ],
+        "next_safe_move": "Prepare a drafting package with send authority excluded.",
+        "positive_examples": [
+          "Draft the invoice follow-up language for review."
+        ],
+        "rule_id": "rule_cassandra_comms",
+        "task_types": [
+          "COMMUNICATION_DRAFTING"
+        ],
+        "worker_type": "CASSANDRA"
+      },
+      {
+        "allowed_actions": [
+          "ask clarifying question",
+          "show routing options"
+        ],
+        "confidence_boost": "LOW; ask for target surface and outcome.",
+        "forbidden_actions": [
+          "worker dispatch",
+          "file edits",
+          "external action"
+        ],
+        "machine": "UNKNOWN",
+        "match_patterns": [
+          "make it better",
+          "fix it",
+          "help"
+        ],
+        "negative_examples": [
+          "Fix the Mission Control chat UI.",
+          "Build the backend read-model."
+        ],
+        "next_safe_move": "Ask what surface and outcome the operator means.",
+        "positive_examples": [
+          "Make it better."
+        ],
+        "rule_id": "rule_unknown_needs_routing",
+        "task_types": [
+          "UNKNOWN_NEEDS_FRAMING"
+        ],
+        "worker_type": "UNKNOWN_NEEDS_ROUTING"
+      }
+    ],
+    "supported_workers": [
+      "MAC_CODEX",
+      "PC_CODEX",
+      "GEMINI_AGY",
+      "LOCAL_OLLAMA",
+      "GUARDIAN",
+      "CASSANDRA",
+      "UNKNOWN_NEEDS_ROUTING"
+    ]
+  },
+  "worker_routing_rules_by_id": {
+    "rule_cassandra_comms": {
+      "allowed_actions": [
+        "communication drafting",
+        "review packet language",
+        "operator-facing follow-up"
+      ],
+      "confidence_boost": "HIGH for drafting/review-language requests without send authority.",
+      "forbidden_actions": [
+        "send",
+        "approval bypass",
+        "credential handling",
+        "external action"
+      ],
+      "machine": "LOCAL_ONLY",
+      "match_patterns": [
+        "communication drafting",
+        "draft email",
+        "review packet language",
+        "invoice-facing copy",
+        "email-facing copy",
+        "operator-facing follow-up",
+        "cassandra"
+      ],
+      "negative_examples": [
+        "Send the invoice now.",
+        "Build the backend read-model."
+      ],
+      "next_safe_move": "Prepare a drafting package with send authority excluded.",
+      "positive_examples": [
+        "Draft the invoice follow-up language for review."
+      ],
+      "rule_id": "rule_cassandra_comms",
+      "task_types": [
+        "COMMUNICATION_DRAFTING"
+      ],
+      "worker_type": "CASSANDRA"
+    },
+    "rule_gemini_agy_read_only_scout": {
+      "allowed_actions": [
+        "read-only scout",
+        "audit",
+        "visual/taste critique",
+        "architecture review",
+        "prompt shaping",
+        "gotcha discovery"
+      ],
+      "confidence_boost": "HIGH when the request is explicitly scout/audit/critique/prompt shaping.",
+      "forbidden_actions": [
+        "file edits",
+        "commits",
+        "live execution",
+        "external action",
+        "credential access"
+      ],
+      "machine": "EXTERNAL_MODEL",
+      "match_patterns": [
+        "audit",
+        "scout",
+        "critique",
+        "taste",
+        "architecture review",
+        "prompt shaping",
+        "what should codex do next",
+        "gotcha",
+        "read-only report"
+      ],
+      "negative_examples": [
+        "Edit the Python file.",
+        "Commit the SwiftUI fix."
+      ],
+      "next_safe_move": "Prepare a sanitized read-only scout packet.",
+      "positive_examples": [
+        "Audit whether the chat-first pivot should reuse existing card contracts.",
+        "What should Codex do next?"
+      ],
+      "rule_id": "rule_gemini_agy_read_only_scout",
+      "task_types": [
+        "READ_ONLY_AUDIT",
+        "PROMPT_SHAPING",
+        "DESIGN_CRITIQUE"
+      ],
+      "worker_type": "GEMINI_AGY"
+    },
+    "rule_guardian_boundary": {
+      "allowed_actions": [
+        "approval review",
+        "protected evidence boundary review",
+        "security posture review"
+      ],
+      "confidence_boost": "HIGH for approval/protected/safety-boundary language.",
+      "forbidden_actions": [
+        "live approval submission",
+        "external action",
+        "credential access",
+        "raw protected body exposure"
+      ],
+      "machine": "LOCAL_ONLY",
+      "match_patterns": [
+        "approval",
+        "protected evidence",
+        "sensitive boundary",
+        "security posture",
+        "should this be allowed",
+        "guardian"
+      ],
+      "negative_examples": [
+        "Implement the backend module.",
+        "Fix the SwiftUI layout."
+      ],
+      "next_safe_move": "Prepare a Guardian review package.",
+      "positive_examples": [
+        "Should this be allowed?",
+        "Review protected evidence boundary."
+      ],
+      "rule_id": "rule_guardian_boundary",
+      "task_types": [
+        "APPROVAL_OR_PROTECTED_BOUNDARY_REVIEW"
+      ],
+      "worker_type": "GUARDIAN"
+    },
+    "rule_local_ollama_local_reasoning": {
+      "allowed_actions": [
+        "bounded local summarization",
+        "classification",
+        "low-risk reasoning"
+      ],
+      "confidence_boost": "MEDIUM unless an approved local model path is known.",
+      "forbidden_actions": [
+        "external action",
+        "sensitive external capability",
+        "credential access",
+        "tool execution"
+      ],
+      "machine": "LOCAL_ONLY",
+      "match_patterns": [
+        "local summarization",
+        "local classification",
+        "low-risk reasoning",
+        "offline chat support",
+        "local model",
+        "ollama"
+      ],
+      "negative_examples": [
+        "Edit Repo A backend files.",
+        "Send the invoice."
+      ],
+      "next_safe_move": "Prepare local-only context if the local model rail exists.",
+      "positive_examples": [
+        "Summarize this low-risk local note with a local model."
+      ],
+      "rule_id": "rule_local_ollama_local_reasoning",
+      "task_types": [
+        "LOCAL_SUMMARY_OR_CLASSIFICATION"
+      ],
+      "worker_type": "LOCAL_OLLAMA"
+    },
+    "rule_mac_codex_mac_app": {
+      "allowed_actions": [
+        "Swift/Mac app edits",
+        "Xcode build/test",
+        "screenshot validation",
+        "bounded Mac file copy/import from approved shuttle packages",
+        "Mac-local UI inspection"
+      ],
+      "confidence_boost": "HIGH when Apple/Mac-side UI, validation, or integration terms appear.",
+      "forbidden_actions": [
+        "Repo A backend mutation",
+        "PC/WSL canonical state writes",
+        "external Gmail/Coupa/browser actions",
+        "credential handling",
+        "live send/submit",
+        "broad filesystem scans",
+        "hidden watchers/daemons",
+        "arbitrary AppleScript/JXA automation",
+        "DAW/media-app mutation without explicit approval/backup/receipt posture"
+      ],
+      "machine": "MAC",
+      "match_patterns": [
+        "swiftui",
+        "appkit",
+        "xcode",
+        "mission control ui",
+        "macos app",
+        "app layout",
+        "composer",
+        "cards inside the chat",
+        "card render inside chat",
+        "screenshot validation",
+        "app build",
+        "build/run validation",
+        "entitlements",
+        "sandboxing",
+        "mac-local",
+        "mac readback package",
+        "mounted volume",
+        "file picker",
+        "document picker",
+        "screen capture",
+        "logic pro",
+        "ableton",
+        "final cut",
+        "davinci resolve",
+        "mail",
+        "calendar",
+        "contacts",
+        "messages",
+        "telegram desktop",
+        "mac app"
+      ],
+      "negative_examples": [
+        "Build the backend read-model.",
+        "Generate the PC-to-Mac package."
+      ],
+      "next_safe_move": "Prepare a Mac Codex package; strip external action authority.",
+      "positive_examples": [
+        "Fix the Mission Control chat UI so cards render inside the chat.",
+        "Add Logic Pro project recognition to the Mac app.",
+        "Import this Mac readback package."
+      ],
+      "rule_id": "rule_mac_codex_mac_app",
+      "task_types": [
+        "SWIFTUI_APP_UI",
+        "APPLE_APP_INTEGRATION_SCOUT_OR_UI",
+        "MAC_PACKAGE_IMPORT_RENDER",
+        "MAC_MAIL_BOUNDARY_REVIEW"
+      ],
+      "worker_type": "MAC_CODEX"
+    },
+    "rule_pc_codex_repo_a_backend": {
+      "allowed_actions": [
+        "Python edits",
+        "pytest",
+        "generated read-models",
+        "bounded SQLite/receipt work when explicitly scoped",
+        "package/shuttle generation",
+        "authority/PII scans"
+      ],
+      "confidence_boost": "HIGH when Repo A, backend, Python, read-model, router, compiler, or shuttle terms appear.",
+      "forbidden_actions": [
+        "Mac Swift edits",
+        "Mac app UI changes",
+        "external account access",
+        "Gmail/Coupa/browser/Telegram actions",
+        "credential handling",
+        "raw private body ingestion",
+        "live send/submit/approval"
+      ],
+      "machine": "PC_WSL",
+      "match_patterns": [
+        "repo a",
+        "backend",
+        "python",
+        "sqlite",
+        "receipt",
+        "read-model",
+        "read model",
+        "tests",
+        "pytest",
+        "script",
+        "contract",
+        "pc-to-mac",
+        "to mac package",
+        "shuttle package",
+        "package the readback",
+        "pc package",
+        "post office",
+        "router intake",
+        "router/readback",
+        "readback card mirror",
+        "workflow package compiler",
+        "package compiler",
+        "worker routing intelligence",
+        "pii",
+        "tokenization",
+        "protected evidence contract",
+        "work terrain",
+        "build cue",
+        "capital hilton backend"
+      ],
+      "negative_examples": [
+        "Fix the SwiftUI app layout.",
+        "Take a screenshot of the Mac app."
+      ],
+      "next_safe_move": "Prepare a PC Codex package with validation commands and generated read-model targets.",
+      "positive_examples": [
+        "Build the backend read-model.",
+        "Consume this Mac request.",
+        "Generate the PC-to-Mac package.",
+        "Add the package compiler."
+      ],
+      "rule_id": "rule_pc_codex_repo_a_backend",
+      "task_types": [
+        "BACKEND_READMODEL",
+        "BACKEND_INTAKE",
+        "BACKEND_PACKAGE_COMPILER",
+        "SHUTTLE_PACKAGE"
+      ],
+      "worker_type": "PC_CODEX"
+    },
+    "rule_unknown_needs_routing": {
+      "allowed_actions": [
+        "ask clarifying question",
+        "show routing options"
+      ],
+      "confidence_boost": "LOW; ask for target surface and outcome.",
+      "forbidden_actions": [
+        "worker dispatch",
+        "file edits",
+        "external action"
+      ],
+      "machine": "UNKNOWN",
+      "match_patterns": [
+        "make it better",
+        "fix it",
+        "help"
+      ],
+      "negative_examples": [
+        "Fix the Mission Control chat UI.",
+        "Build the backend read-model."
+      ],
+      "next_safe_move": "Ask what surface and outcome the operator means.",
+      "positive_examples": [
+        "Make it better."
+      ],
+      "rule_id": "rule_unknown_needs_routing",
+      "task_types": [
+        "UNKNOWN_NEEDS_FRAMING"
+      ],
+      "worker_type": "UNKNOWN_NEEDS_ROUTING"
+    }
+  }
+}
