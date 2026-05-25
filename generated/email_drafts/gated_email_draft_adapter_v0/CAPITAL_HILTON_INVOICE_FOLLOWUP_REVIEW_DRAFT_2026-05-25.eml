@@ -1,0 +1,20 @@
+X-OpenClaw-Review-Only: true
+X-OpenClaw-Provider-Target: LOCAL_EML_FILE
+X-OpenClaw-Recipient-Refs: recipient_ref:annette_capital_hilton_candidate
+X-OpenClaw-Attachment-Refs: email_attachment_ref:capital_hilton_pdf_2026-05-25
+Subject: Capital Hilton Invoice Follow-Up
+Content-Type: text/plain; charset=utf-8
+
+Hi Annette,
+
+I'm sending over the Winship-branded invoice PDF for the recent Capital Hilton dates for your local records and payment follow-up. My understanding is that the official payment rail remains the Coupa supplier portal / PO process.
+
+Please let me know if you need anything else from me to keep the payment moving.
+
+Best,
+Winship
+
+Attachment refs only:
+- email_attachment_ref:capital_hilton_pdf_2026-05-25
+
+Boundary: local review artifact only. Nothing was sent, submitted, uploaded, opened, or approved.
