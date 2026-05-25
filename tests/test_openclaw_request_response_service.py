@@ -128,6 +128,10 @@ def test_service_processes_chat_request_and_writes_per_request_response(tmp_path
     assert (response_dir / service.MANIFEST_EXPORT_NAME).exists()
     assert response["source_request_id"] == request["request_id"]
     assert response["terminal"] is True
+    assert response["response_id"]
+    assert response["audience_mode"] == "ELIWINSHIP"
+    assert response["display_mode"] == "COMPACT_CHAT"
+    assert response["headline"]
     assert response["operator_message"]
     assert response["how_to_fix"]
     assert "RESPONSE_READY" not in response["operator_message"]
@@ -166,6 +170,22 @@ def test_service_routes_capital_hilton_status_query_to_mac_response(tmp_path, ca
     assert payload["service_status"]["service_status"] == "REQUEST_PROCESSED"
     assert response["source_request_id"] == request["request_id"]
     assert latest["source_request_id"] == request["request_id"]
+    assert response["response_kind"] == "CAPITAL_HILTON_INVOICE_STATUS"
+    assert response["headline"] == "Capital Hilton invoice is not ready yet"
+    assert response["one_line_answer"] == (
+        "OpenClaw has the delivery basis, but the workflow is locked because required approvals and proofs are missing."
+    )
+    assert response["eliwinship"] == (
+        "You have the invoice basis and draft rails. "
+        "You still need the Coupa PO/reference and approval receipts before anything can send or submit."
+    )
+    assert response["primary_blocker"] == "Missing confirmed Coupa PO/reference"
+    assert response["next_action"] == "Confirm the Coupa PO/reference and record it as a source reference."
+    assert response["missing_items_short"][:2] == [
+        "Confirmed Coupa PO/reference",
+        "Guardian and operator approval receipts",
+    ]
+    assert response["proof_refs"] == ["generated/read_models/capital_hilton_invoice_operator_readback.json"]
     assert response["operator_headline"] == "Capital Hilton invoice workflow is not ready yet"
     assert "Nothing has been sent, submitted, opened, approved, or marked complete" in response["operator_message"]
     assert response["how_to_fix"]
@@ -203,6 +223,8 @@ def test_service_processes_file_metadata_request_and_writes_response(tmp_path, c
 
     assert response["request_type"] == "FILE_METADATA"
     assert response["operator_headline"] == "File reference captured"
+    assert response["response_kind"] == "FILE_METADATA_READBACK"
+    assert response["headline"] == "File reference captured"
     assert response["operator_message"]
     assert response["how_to_fix"]
     assert response["terminal"] is True

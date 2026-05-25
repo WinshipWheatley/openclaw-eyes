@@ -1,4 +1,5 @@
 {
+  "audience_mode": "ELIWINSHIP",
   "authority_boundary": {
     "credential_handling_allowed": false,
     "git_push_pull_fetch_allowed": false,
@@ -34,6 +35,11 @@
   "cards_available": true,
   "context_package_refs": [],
   "contract_status": "BOUNDED_OPENCLAW_REQUEST_LIFECYCLE_PROCESSOR",
+  "created_at": "2026-05-25T22:32:41+00:00",
+  "debug_refs": [
+    "generated/read_models/capital_hilton_invoice_operator_readback.json",
+    "generated/read_models/capital_hilton_invoice_operator_readback_OPERATOR.md"
+  ],
   "detail_disclosure": {
     "can_mark_invoice_sent": false,
     "can_run_workflow": false,
@@ -58,20 +64,25 @@
     "model_or_worker_response_adapter_called": false,
     "operator_readback_ref": "generated/read_models/capital_hilton_invoice_operator_readback_OPERATOR.md",
     "request_classification": {
-      "classification_id": "request_classification_62da93dc9704877b6c19",
+      "classification_id": "request_classification_a469bf72e2868e6c502a",
       "classification_reason": "Filename matches Mission Control chat request pattern, and message asks for Capital Hilton invoice status.",
       "future_supported": false,
       "next_safe_move": "Export the unified Capital Hilton invoice operator readback and return it to Mac chat.",
       "request_family": "CHAT",
       "selected_rail": "capital_hilton_invoice_operator_readback",
-      "source_request_filename": "mission_control_chat_request_capital_hilton_status_service_20260525_223000.json"
+      "source_request_filename": "mission_control_chat_request_capital_hilton_invoice_workflow_1779747656229_5bf670150d8b.json"
     },
     "selected_readback_ref": "generated/read_models/capital_hilton_invoice_operator_readback.json"
   },
+  "detail_summary": "Delivery basis is modeled for four Capital Hilton performance dates at $1,600 total. The invoice and draft rails are available for review, but send/submit/completion remain locked until proof and approval receipts exist.",
+  "display_mode": "COMPACT_CHAT",
+  "eliwinship": "You have the invoice basis and draft rails. You still need the Coupa PO/reference and approval receipts before anything can send or submit.",
   "file_readback_refs": [],
-  "generated_at": "2026-05-25T22:16:01+00:00",
+  "generated_at": "2026-05-25T22:32:41+00:00",
+  "headline": "Capital Hilton invoice is not ready yet",
   "how_to_fix": "Confirm the Coupa PO/reference, verify protected refs, then create Guardian and exact operator approval receipts. After future gated send/submit lanes produce receipts, rerun completion proof aggregation.",
   "internal_status": "RESPONSE_READY",
+  "mac_render_hint": "COMPACT_WITH_DISCLOSURE",
   "machine_proof": {
     "agent_dispatch_performed": false,
     "all_live_authority_flags_false": true,
@@ -81,7 +92,7 @@
     "blocked_has_how_to_fix": true,
     "broad_scan_performed": false,
     "browser_access_performed": false,
-    "content_hash": "sha256:1be8a24f55ad2e3c4eb9b497c868aef3e56795666843cb4fb060d43d9e3437fa",
+    "content_hash": "sha256:744b6d91825f056625f716a322f1030a6f26505dfe464120eba21095d7360b61",
     "coupa_access_or_submit_performed": false,
     "credential_handling_performed": false,
     "credentials_or_secrets_included": false,
@@ -121,18 +132,35 @@
     "watcher_started": false,
     "workflow_execution_performed": false
   },
+  "missing_items_short": [
+    "Confirmed Coupa PO/reference",
+    "Guardian and operator approval receipts",
+    "Email send receipt and attachment proof",
+    "Future Coupa submit receipt if Coupa is required"
+  ],
+  "next_action": "Confirm the Coupa PO/reference and record it as a source reference.",
   "next_safe_move": "Confirm the Coupa PO/reference, then create Guardian and exact operator approval receipts before any future gated send or submit adapter can act.",
+  "one_line_answer": "OpenClaw has the delivery basis, but the workflow is locked because required approvals and proofs are missing.",
   "operator_headline": "Capital Hilton invoice workflow is not ready yet",
   "operator_message": "Capital Hilton invoice is not ready to run yet. OpenClaw has the delivery basis, but still needs confirmed Coupa PO/reference, protected Coupa credential ref for any future portal login, Guardian and exact operator approval receipts for send and submit, future email send receipt and attachment proof. Nothing has been sent, submitted, opened, approved, or marked complete.",
+  "primary_blocker": "Missing confirmed Coupa PO/reference",
+  "primary_status": "Locked until proof and approval receipts exist",
+  "proof_refs": [
+    "generated/read_models/capital_hilton_invoice_operator_readback.json"
+  ],
+  "raw_internal_status": "RESPONSE_READY",
   "read_model_id": "openclaw_response_for_mac",
   "readback_files": [
     "generated/read_models/capital_hilton_invoice_operator_readback.json",
     "generated/read_models/capital_hilton_invoice_operator_readback_OPERATOR.md"
   ],
   "request_type": "CHAT",
+  "response_id": "openclaw_response_83d491719ac40b353b0a",
+  "response_kind": "CAPITAL_HILTON_INVOICE_STATUS",
   "schema_version": "openclaw_request_processor_v0",
-  "source_request_filename": "mission_control_chat_request_capital_hilton_status_service_20260525_223000.json",
-  "source_request_id": "capital_hilton_invoice_status_service_20260525_223000",
+  "source_request_filename": "mission_control_chat_request_capital_hilton_invoice_workflow_1779747656229_5bf670150d8b.json",
+  "source_request_id": "capital_hilton_invoice_workflow_1779747656229_5bf670150d8b",
+  "terminal": true,
   "visible_cards": [
     {
       "bullets": [

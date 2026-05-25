@@ -81,6 +81,19 @@ INTERNAL_STATUSES = (
     "UNKNOWN_FAIL_CLOSED",
 )
 
+AUDIENCE_MODES = (
+    "ELIWINSHIP",
+    "TECHNICAL",
+    "DEBUG",
+)
+
+DISPLAY_MODES = (
+    "COMPACT_CHAT",
+    "DETAIL_DISCLOSURE",
+    "PROOF_VIEW",
+    "DEBUG_ONLY",
+)
+
 RESPONDER_TARGET_TYPES = (
     "DETERMINISTIC_ROUTER",
     "FILE_METADATA_INTAKE",
@@ -261,6 +274,18 @@ def _content_hash(payload: dict[str, Any]) -> str:
     clone = json.loads(stable_json(payload))
     clone.get("machine_proof", {}).pop("content_hash", None)
     return "sha256:" + hashlib.sha256(stable_json(clone).encode("utf-8")).hexdigest()
+
+
+def _terminal_for_status(status: str) -> bool:
+    return status in {
+        "RESPONSE_READY",
+        "BLOCKED_WITH_REASON",
+        "FAILED_WITH_REASON",
+        "TIMED_OUT_WITH_REASON",
+        "DUPLICATE_NOOP_WITH_READBACK",
+        "NO_REQUEST_AVAILABLE",
+        "UNKNOWN_FAIL_CLOSED",
+    }
 
 
 def _short_hash(*parts: Any) -> str:
@@ -606,6 +631,129 @@ def _should_export_package_compiler(raw_request: Mapping[str, Any]) -> bool:
         for key in ("operator_message", "sanitized_message_summary", "operator_goal")
     ).lower()
     return ("make" in text and "happen" in text) or "package" in text or "workflow preparation" in text
+
+
+def _first_sentence(text: str) -> str:
+    stripped = " ".join(text.split())
+    if not stripped:
+        return ""
+    for delimiter in (". ", "? ", "! "):
+        if delimiter in stripped:
+            return stripped.split(delimiter, 1)[0].strip() + delimiter.strip()
+    return stripped
+
+
+def _safe_generated_ref(ref: object) -> str:
+    text = str(ref)
+    name = Path(text).name
+    if text.startswith("generated/read_models/"):
+        return text
+    if name and (name.endswith(".json") or name.endswith(".md")):
+        return f"generated/read_models/{name}"
+    return text
+
+
+def _safe_proof_refs(response: OpenClawResponseForMac) -> tuple[str, ...]:
+    refs = []
+    for ref in response.readback_files:
+        safe_ref = _safe_generated_ref(ref)
+        if safe_ref.startswith("generated/read_models/") and safe_ref.endswith(".json"):
+            refs.append(safe_ref)
+    return tuple(dict.fromkeys(refs))
+
+
+def _debug_refs(response: OpenClawResponseForMac) -> tuple[str, ...]:
+    refs: list[str] = []
+    refs.extend(_safe_generated_ref(ref) for ref in response.readback_files)
+    refs.extend(_safe_generated_ref(ref) for ref in response.card_mirror_refs)
+    refs.extend(_safe_generated_ref(ref) for ref in response.file_readback_refs)
+    refs.extend(_safe_generated_ref(ref) for ref in response.context_package_refs)
+    return tuple(dict.fromkeys(ref for ref in refs if ref))
+
+
+def _primary_status_label(internal_status: str) -> str:
+    if internal_status == "RESPONSE_READY":
+        return "Ready for review"
+    if internal_status in {"BLOCKED_WITH_REASON", "FAILED_WITH_REASON", "TIMED_OUT_WITH_REASON"}:
+        return "Blocked"
+    if internal_status == "DUPLICATE_NOOP_WITH_READBACK":
+        return "Already handled"
+    if internal_status == "NO_REQUEST_AVAILABLE":
+        return "No request waiting"
+    return "Fail closed"
+
+
+def _is_capital_hilton_status_response(response: OpenClawResponseForMac) -> bool:
+    detail = response.detail_disclosure
+    return (
+        str(detail.get("selected_readback_ref") or "").endswith(capital_hilton_invoice_operator_readback.JSON_EXPORT_NAME)
+        or str(detail.get("request_classification", {}).get("selected_rail") if isinstance(detail.get("request_classification"), Mapping) else "")
+        == "capital_hilton_invoice_operator_readback"
+    )
+
+
+def _layered_response_fields(response: OpenClawResponseForMac, *, created_at: str) -> dict[str, Any]:
+    if _is_capital_hilton_status_response(response):
+        return {
+            "response_id": f"openclaw_response_{_short_hash(response.source_request_id, response.request_type, created_at)}",
+            "response_kind": "CAPITAL_HILTON_INVOICE_STATUS",
+            "audience_mode": "ELIWINSHIP",
+            "display_mode": "COMPACT_CHAT",
+            "headline": "Capital Hilton invoice is not ready yet",
+            "one_line_answer": (
+                "OpenClaw has the delivery basis, but the workflow is locked because required approvals and proofs are missing."
+            ),
+            "eliwinship": (
+                "You have the invoice basis and draft rails. "
+                "You still need the Coupa PO/reference and approval receipts before anything can send or submit."
+            ),
+            "primary_status": "Locked until proof and approval receipts exist",
+            "primary_blocker": "Missing confirmed Coupa PO/reference",
+            "next_action": "Confirm the Coupa PO/reference and record it as a source reference.",
+            "missing_items_short": (
+                "Confirmed Coupa PO/reference",
+                "Guardian and operator approval receipts",
+                "Email send receipt and attachment proof",
+                "Future Coupa submit receipt if Coupa is required",
+            ),
+            "detail_summary": (
+                "Delivery basis is modeled for four Capital Hilton performance dates at $1,600 total. "
+                "The invoice and draft rails are available for review, but send/submit/completion remain locked until proof and approval receipts exist."
+            ),
+            "proof_refs": _safe_proof_refs(response),
+            "debug_refs": _debug_refs(response),
+            "raw_internal_status": response.internal_status,
+            "mac_render_hint": "COMPACT_WITH_DISCLOSURE",
+        }
+
+    headline = response.operator_headline or _primary_status_label(response.internal_status)
+    one_line = _first_sentence(response.operator_message) or headline
+    blocker = response.blocked_reason or ("None" if response.internal_status == "RESPONSE_READY" else response.why_it_happened)
+    next_action = response.next_safe_move or response.how_to_fix
+    if response.request_type == "FILE_METADATA":
+        response_kind = "FILE_METADATA_READBACK"
+    elif response.request_type == "CHAT":
+        response_kind = "CHAT_READBACK"
+    else:
+        response_kind = "REQUEST_READBACK"
+    return {
+        "response_id": f"openclaw_response_{_short_hash(response.source_request_id, response.request_type, created_at)}",
+        "response_kind": response_kind,
+        "audience_mode": "ELIWINSHIP",
+        "display_mode": "COMPACT_CHAT",
+        "headline": headline,
+        "one_line_answer": one_line,
+        "eliwinship": one_line,
+        "primary_status": _primary_status_label(response.internal_status),
+        "primary_blocker": str(blocker),
+        "next_action": str(next_action),
+        "missing_items_short": (),
+        "detail_summary": response.why_it_happened,
+        "proof_refs": _safe_proof_refs(response),
+        "debug_refs": _debug_refs(response),
+        "raw_internal_status": response.internal_status,
+        "mac_render_hint": "COMPACT_WITH_DISCLOSURE",
+    }
 
 
 def _capital_hilton_status_text(raw_request: Mapping[str, Any]) -> str:
@@ -1371,12 +1519,16 @@ def build_payloads(
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     generated_at = generated_at or utc_now()
     status = _processor_status_from_response(response, blockers=blockers)
+    layered_fields = _layered_response_fields(response, created_at=generated_at)
     response_payload: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
         "read_model_id": RESPONSE_READ_MODEL_ID,
         "contract_status": CONTRACT_STATUS,
         "generated_at": generated_at,
+        "created_at": generated_at,
+        **layered_fields,
         **asdict(response),
+        "terminal": _terminal_for_status(response.internal_status),
         "authority_boundary": AUTHORITY_BOUNDARY,
     }
     status_payload: dict[str, Any] = {
@@ -1385,6 +1537,8 @@ def build_payloads(
         "contract_status": CONTRACT_STATUS,
         "generated_at": generated_at,
         "internal_statuses": INTERNAL_STATUSES,
+        "audience_modes": AUDIENCE_MODES,
+        "display_modes": DISPLAY_MODES,
         "request_families": REQUEST_FAMILIES,
         "responder_target_types": RESPONDER_TARGET_TYPES,
         "processor_status": asdict(status),
@@ -1489,6 +1643,11 @@ def build_summary(
         "how_to_fix": response_payload["how_to_fix"],
         "cards_available": response_payload["cards_available"],
         "readback_files": response_payload["readback_files"],
+        "response_kind": response_payload["response_kind"],
+        "audience_mode": response_payload["audience_mode"],
+        "display_mode": response_payload["display_mode"],
+        "headline": response_payload["headline"],
+        "one_line_answer": response_payload["one_line_answer"],
         "terminal_quality_passed": status_payload["machine_proof"]["terminal_quality_passed"],
         "all_live_authority_flags_false": status_payload["machine_proof"]["all_live_authority_flags_false"],
         "future_lm_targets_not_called": status_payload["machine_proof"]["future_lm_targets_not_called"],

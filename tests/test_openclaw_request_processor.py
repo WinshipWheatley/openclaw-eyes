@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -71,6 +72,28 @@ def _read_status(export_root: Path) -> dict:
     return json.loads((export_root / processor.STATUS_JSON_EXPORT_NAME).read_text(encoding="utf-8"))
 
 
+def _sentence_count(text: str) -> int:
+    return len([part for part in re.split(r"[.!?]+", text) if part.strip()])
+
+
+def _assert_eliwinship_safe(text: str) -> None:
+    assert _sentence_count(text) <= 3
+    assert not re.search(r"(^|\s)(/[A-Za-z0-9_.-]+)+", text)
+    assert not re.search(r"sha256:[0-9a-f]{16,}|\\b[0-9a-f]{32,}\\b", text.lower())
+    forbidden = (
+        "source_request_id",
+        "operator_message",
+        "raw_internal_status",
+        "capital_hilton_invoice_operator_readback",
+        "workflow_execution_package_compiler",
+        "gated_email_send_adapter",
+        "coupa_supplier_portal_package_compiler",
+    )
+    lowered = text.lower()
+    for token in forbidden:
+        assert token not in lowered
+
+
 def test_newest_chat_request_is_selected(tmp_path):
     inbox = tmp_path / "inbox"
     inbox.mkdir()
@@ -121,6 +144,11 @@ def test_file_argument_processes_specific_chat_request(tmp_path, capsys):
     assert response["internal_status"] == "RESPONSE_READY"
     assert response["operator_headline"] == "I found the PC readback"
     assert "Here's what OpenClaw understood" in response["operator_message"]
+    assert response["response_kind"] == "CHAT_READBACK"
+    assert response["audience_mode"] == "ELIWINSHIP"
+    assert response["display_mode"] == "COMPACT_CHAT"
+    assert response["headline"]
+    assert response["eliwinship"]
     assert "RESPONSE_READY" not in response["operator_headline"]
     assert "RESPONSE_READY" not in response["operator_message"]
     assert response["cards_available"] is True
@@ -143,6 +171,9 @@ def test_file_argument_processes_specific_file_request(tmp_path, capsys):
     assert response["request_type"] == "FILE_METADATA"
     assert response["internal_status"] == "RESPONSE_READY"
     assert response["operator_headline"] == "File reference captured"
+    assert response["response_kind"] == "FILE_METADATA_READBACK"
+    assert response["headline"] == "File reference captured"
+    assert response["eliwinship"]
     assert "Capital Hilton invoice.xlsx" in response["operator_message"]
     assert "RESPONSE_READY" not in response["operator_message"]
     assert response["file_readback_refs"]
@@ -164,6 +195,34 @@ def test_capital_hilton_status_query_routes_to_unified_operator_readback(tmp_pat
     assert response["request_type"] == "CHAT"
     assert response["internal_status"] == "RESPONSE_READY"
     assert response["operator_headline"] == "Capital Hilton invoice workflow is not ready yet"
+    assert response["headline"] == "Capital Hilton invoice is not ready yet"
+    assert response["response_kind"] == "CAPITAL_HILTON_INVOICE_STATUS"
+    assert response["audience_mode"] == "ELIWINSHIP"
+    assert response["display_mode"] == "COMPACT_CHAT"
+    assert response["mac_render_hint"] == "COMPACT_WITH_DISCLOSURE"
+    assert response["one_line_answer"] == (
+        "OpenClaw has the delivery basis, but the workflow is locked because required approvals and proofs are missing."
+    )
+    assert response["eliwinship"] == (
+        "You have the invoice basis and draft rails. "
+        "You still need the Coupa PO/reference and approval receipts before anything can send or submit."
+    )
+    _assert_eliwinship_safe(response["eliwinship"])
+    assert response["primary_status"] == "Locked until proof and approval receipts exist"
+    assert response["primary_blocker"] == "Missing confirmed Coupa PO/reference"
+    assert response["next_action"] == "Confirm the Coupa PO/reference and record it as a source reference."
+    assert isinstance(response["missing_items_short"], list)
+    assert response["missing_items_short"] == [
+        "Confirmed Coupa PO/reference",
+        "Guardian and operator approval receipts",
+        "Email send receipt and attachment proof",
+        "Future Coupa submit receipt if Coupa is required",
+    ]
+    assert "four Capital Hilton performance dates at $1,600 total" in response["detail_summary"]
+    assert response["proof_refs"]
+    assert all(ref.startswith("generated/read_models/") for ref in response["proof_refs"])
+    assert all("/tmp/" not in ref for ref in response["proof_refs"])
+    assert response["raw_internal_status"] == response["internal_status"]
     assert "Capital Hilton invoice is not ready" in response["operator_message"]
     assert "Nothing has been sent, submitted, opened, approved, or marked complete" in response["operator_message"]
     assert "RESPONSE_READY" not in response["operator_message"]
@@ -185,7 +244,9 @@ def test_capital_hilton_mark_invoice_sent_question_returns_false_without_proof(t
     response = json.loads(capsys.readouterr().out)
 
     assert response["operator_headline"] == "Capital Hilton invoice workflow is not ready yet"
+    assert response["headline"] == "Capital Hilton invoice is not ready yet"
     assert response["detail_disclosure"]["can_mark_invoice_sent"] is False
+    assert response["primary_blocker"] == "Missing confirmed Coupa PO/reference"
     assert "approval receipts" in response["how_to_fix"]
     assert "INVOICE SENT" not in response["operator_headline"]
     assert response["machine_proof"]["external_action_performed"] is False

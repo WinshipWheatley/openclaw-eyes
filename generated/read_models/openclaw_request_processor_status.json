@@ -1,4 +1,9 @@
 {
+  "audience_modes": [
+    "ELIWINSHIP",
+    "TECHNICAL",
+    "DEBUG"
+  ],
   "authority_boundary": {
     "credential_handling_allowed": false,
     "git_push_pull_fetch_allowed": false,
@@ -30,7 +35,13 @@
     "raw_body_ingestion_allowed": false
   },
   "contract_status": "BOUNDED_OPENCLAW_REQUEST_LIFECYCLE_PROCESSOR",
-  "generated_at": "2026-05-25T22:16:01+00:00",
+  "display_modes": [
+    "COMPACT_CHAT",
+    "DETAIL_DISCLOSURE",
+    "PROOF_VIEW",
+    "DEBUG_ONLY"
+  ],
+  "generated_at": "2026-05-25T22:32:41+00:00",
   "internal_statuses": [
     "REQUEST_FOUND",
     "REQUEST_PROCESSING",
@@ -52,7 +63,7 @@
     "blocked_has_how_to_fix": true,
     "broad_scan_performed": false,
     "browser_access_performed": false,
-    "content_hash": "sha256:c3bcaaadb0efa7f1b0afe29554fc8a4464a790284ccbfc5bc1f72124a64bb240",
+    "content_hash": "sha256:395f46de837c1093e7641e0c93d3b070d25127a4eb6a131d094c814045621c7d",
     "coupa_access_or_submit_performed": false,
     "credential_handling_performed": false,
     "credentials_or_secrets_included": false,
@@ -139,8 +150,8 @@
     "how_to_fix": "Confirm the Coupa PO/reference, verify protected refs, then create Guardian and exact operator approval receipts. After future gated send/submit lanes produce receipts, rerun completion proof aggregation.",
     "latest_processed_request": {
       "request_type": "CHAT",
-      "source_request_filename": "mission_control_chat_request_capital_hilton_status_service_20260525_223000.json",
-      "source_request_id": "capital_hilton_invoice_status_service_20260525_223000",
+      "source_request_filename": "mission_control_chat_request_capital_hilton_invoice_workflow_1779747656229_5bf670150d8b.json",
+      "source_request_id": "capital_hilton_invoice_workflow_1779747656229_5bf670150d8b",
       "workflow_ref": "capital_hilton_invoice_workflow"
     },
     "next_safe_move": "Confirm the Coupa PO/reference, then create Guardian and exact operator approval receipts before any future gated send or submit adapter can act.",
@@ -148,13 +159,13 @@
     "operator_message": "Capital Hilton invoice is not ready to run yet. OpenClaw has the delivery basis, but still needs confirmed Coupa PO/reference, protected Coupa credential ref for any future portal login, Guardian and exact operator approval receipts for send and submit, future email send receipt and attachment proof. Nothing has been sent, submitted, opened, approved, or marked complete.",
     "processor_id": "openclaw_request_processor_v0",
     "request_classification": {
-      "classification_id": "request_classification_62da93dc9704877b6c19",
+      "classification_id": "request_classification_a469bf72e2868e6c502a",
       "classification_reason": "Filename matches Mission Control chat request pattern, and message asks for Capital Hilton invoice status.",
       "future_supported": false,
       "next_safe_move": "Export the unified Capital Hilton invoice operator readback and return it to Mac chat.",
       "request_family": "CHAT",
       "selected_rail": "capital_hilton_invoice_operator_readback",
-      "source_request_filename": "mission_control_chat_request_capital_hilton_status_service_20260525_223000.json"
+      "source_request_filename": "mission_control_chat_request_capital_hilton_invoice_workflow_1779747656229_5bf670150d8b.json"
     },
     "request_families": [
       "CHAT",
