@@ -538,7 +538,7 @@ def _existing_duplicate_response(
     request_id = str(raw_request.get("request_id") or "")
     if not request_id or latest.get("source_request_id") != request_id:
         return None
-    if status.get("processor_status", {}).get("terminal_result") in {"FAILED_WITH_REASON", "NO_REQUEST_AVAILABLE"}:
+    if status.get("processor_status", {}).get("terminal_result") != "RESPONSE_READY":
         return None
     try:
         existing_response = json.loads(response_path.read_text(encoding="utf-8"))

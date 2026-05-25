@@ -27,7 +27,7 @@
     "unbounded_loop_by_default_allowed": false
   },
   "contract_status": "BOUNDED_LOCAL_OPENCLAW_REQUEST_RESPONSE_SERVICE",
-  "generated_at": "2026-05-25T18:32:29+00:00",
+  "generated_at": "2026-05-25T21:46:42+00:00",
   "machine_proof": {
     "agent_dispatch_performed": false,
     "all_authority_boundary_flags_false": true,
@@ -36,7 +36,7 @@
     "attachment_performed": false,
     "bounded_run_mode": true,
     "browser_access_performed": false,
-    "content_hash": "sha256:d6352a645606fb746f4e64389100b8099e8be32c3a472c228852082656324ede",
+    "content_hash": "sha256:29b1d7743e0edf66c7ef8d3ac130dc819353c2181a439eb12c05f3400983b03b",
     "coupa_access_or_submit_performed": false,
     "credential_handling_performed": false,
     "duplicate_tracking_present": true,
@@ -214,45 +214,71 @@
         "source_request_filename": "mission_control_file_intake_request_1779733941879_08f42aee6376.json",
         "source_request_id": "capital_hilton_file_metadata_1779733941879_08f42aee6376",
         "workflow_ref": "capital_hilton_invoice_workflow"
+      },
+      {
+        "created_at": "2026-05-25T21:46:35+00:00",
+        "idempotency_key": "mission_control_chat:capital_hilton_invoice_workflow:b4175dc883e78c15fb37",
+        "internal_status": "RESPONSE_READY",
+        "operator_headline": "I found the PC readback",
+        "payload_hash": "b4175dc883e78c15fb3735569f870c5fd5be342f7cf5ee65561619af1adf5efa",
+        "request_key": "request_id:capital_hilton_invoice_workflow_1779734162334_b4175dc883e7",
+        "request_type": "CHAT",
+        "response_file": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_invoice_workflow_1779734162334_b4175dc883e7.json",
+        "source_request_filename": "mission_control_chat_request_capital_hilton_invoice_workflow_1779734162334_b4175dc883e7.json",
+        "source_request_id": "capital_hilton_invoice_workflow_1779734162334_b4175dc883e7",
+        "workflow_ref": "capital_hilton_invoice_workflow"
+      },
+      {
+        "created_at": "2026-05-25T21:46:42+00:00",
+        "idempotency_key": "mission_control_file_metadata:capital_hilton_invoice_workflow:1779734559852:99bd5e3900cfa89068e5",
+        "internal_status": "RESPONSE_READY",
+        "operator_headline": "File reference captured",
+        "payload_hash": "99bd5e3900cfa89068e5c26aeeb6ea7b7b1164d1a62949c77f2ee3399de149d2",
+        "request_key": "request_id:capital_hilton_file_metadata_1779734559852_99bd5e3900cf",
+        "request_type": "FILE_METADATA",
+        "response_file": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_file_metadata_1779734559852_99bd5e3900cf.json",
+        "source_request_filename": "mission_control_file_intake_request_1779734559852_99bd5e3900cf.json",
+        "source_request_id": "capital_hilton_file_metadata_1779734559852_99bd5e3900cf",
+        "workflow_ref": "capital_hilton_invoice_workflow"
       }
     ],
     "errors_or_blockers": [],
     "inbox": "/mnt/e/openclaw/mission_control_capture_requests/inbox",
     "latest_response": {
-      "how_to_fix": "Send a metadata-only file request with supported file type, idempotency key, payload hash, hidden path ref, and no raw body.",
-      "internal_status": "BLOCKED_WITH_REASON",
+      "how_to_fix": "No fix is needed. Use the source ref in a visual workspace later, or request governed extraction when that rail exists.",
+      "internal_status": "RESPONSE_READY",
       "latest_response_file": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_latest.json",
       "manifest_file": "/mnt/e/openclaw/mission_control_responses/to_mac/response_manifest.json",
-      "next_safe_move": "Send a metadata-only file reference with idempotency and payload hash.",
-      "operator_headline": "File reference blocked",
-      "operator_message": "I could not capture that file reference yet. The file request was blocked before any body was read.",
+      "next_safe_move": "Show the file reference card and ask whether to use it in a visual workspace.",
+      "operator_headline": "File reference captured",
+      "operator_message": "OpenClaw captured a file reference for 'openclaw_metadata_only_test.txt'. The file body was not read.",
       "request_type": "FILE_METADATA",
-      "response_file": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_file_metadata_1779733941879_08f42aee6376.json",
-      "source_request_filename": "mission_control_file_intake_request_1779733941879_08f42aee6376.json",
-      "source_request_id": "capital_hilton_file_metadata_1779733941879_08f42aee6376",
+      "response_file": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_file_metadata_1779734559852_99bd5e3900cf.json",
+      "source_request_filename": "mission_control_file_intake_request_1779734559852_99bd5e3900cf.json",
+      "source_request_id": "capital_hilton_file_metadata_1779734559852_99bd5e3900cf",
       "terminal": true
     },
-    "next_safe_move": "Send a metadata-only file reference with idempotency and payload hash.",
+    "next_safe_move": "Show the file reference card and ask whether to use it in a visual workspace.",
     "processed_count": 1,
     "processed_requests": [
       {
-        "created_at": "2026-05-25T18:32:22+00:00",
-        "idempotency_key": "mission_control_file_metadata:capital_hilton_invoice_workflow:1779733941879:08f42aee6376bf5d595f",
-        "internal_status": "BLOCKED_WITH_REASON",
-        "operator_headline": "File reference blocked",
-        "payload_hash": "08f42aee6376bf5d595f80e24f7381d1ae5bdd0fbe96f9c3c1f6e440d51729c0",
-        "request_key": "request_id:capital_hilton_file_metadata_1779733941879_08f42aee6376",
+        "created_at": "2026-05-25T21:46:42+00:00",
+        "idempotency_key": "mission_control_file_metadata:capital_hilton_invoice_workflow:1779734559852:99bd5e3900cfa89068e5",
+        "internal_status": "RESPONSE_READY",
+        "operator_headline": "File reference captured",
+        "payload_hash": "99bd5e3900cfa89068e5c26aeeb6ea7b7b1164d1a62949c77f2ee3399de149d2",
+        "request_key": "request_id:capital_hilton_file_metadata_1779734559852_99bd5e3900cf",
         "request_type": "FILE_METADATA",
-        "response_file": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_file_metadata_1779733941879_08f42aee6376.json",
-        "source_request_filename": "mission_control_file_intake_request_1779733941879_08f42aee6376.json",
-        "source_request_id": "capital_hilton_file_metadata_1779733941879_08f42aee6376",
+        "response_file": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_file_metadata_1779734559852_99bd5e3900cf.json",
+        "source_request_filename": "mission_control_file_intake_request_1779734559852_99bd5e3900cf.json",
+        "source_request_id": "capital_hilton_file_metadata_1779734559852_99bd5e3900cf",
         "workflow_ref": "capital_hilton_invoice_workflow"
       }
     ],
     "response_path": "/mnt/e/openclaw/mission_control_responses/to_mac",
-    "run_mode": "watch_seconds=5",
+    "run_mode": "once",
     "service_status": "REQUEST_PROCESSED",
-    "skipped_duplicate_count": 11,
+    "skipped_duplicate_count": 12,
     "skipped_duplicates": [
       {
         "reason": "already processed by local request/response service",
@@ -319,6 +345,12 @@
         "request_key": "request_id:capital_hilton_file_metadata_1779733941879_08f42aee6376",
         "source_request_filename": "mission_control_file_intake_request_1779733941879_08f42aee6376.json",
         "source_request_id": "capital_hilton_file_metadata_1779733941879_08f42aee6376"
+      },
+      {
+        "reason": "already processed by local request/response service",
+        "request_key": "request_id:capital_hilton_invoice_workflow_1779734162334_b4175dc883e7",
+        "source_request_filename": "mission_control_chat_request_capital_hilton_invoice_workflow_1779734162334_b4175dc883e7.json",
+        "source_request_id": "capital_hilton_invoice_workflow_1779734162334_b4175dc883e7"
       }
     ]
   },

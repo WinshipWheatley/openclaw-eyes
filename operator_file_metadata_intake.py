@@ -13,6 +13,7 @@ import argparse
 import fnmatch
 import hashlib
 import json
+import re
 import sys
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
@@ -30,6 +31,8 @@ READ_MODEL_ID = "operator_file_metadata_readback"
 JSON_EXPORT_NAME = f"{READ_MODEL_ID}.json"
 OPERATOR_EXPORT_NAME = f"{READ_MODEL_ID}_OPERATOR.md"
 CONTRACT_STATUS = "DETERMINISTIC_METADATA_ONLY_FILE_INTAKE_ADAPTER"
+PC_PAYLOAD_HASH_POLICY = "pc_stable_json_sha256_request_minus_payload_hash_with_sha256_prefix"
+MAC_METADATA_PAYLOAD_HASH_POLICY = "mac_bare_sha256_metadata_digest_bound_to_request_id_and_idempotency_key"
 
 SUPPORTED_INTAKE_MODES = (
     "REFERENCE_ONLY",
@@ -371,6 +374,63 @@ def compute_request_payload_hash(request: Mapping[str, Any]) -> str:
     return _sha256_payload(clone)
 
 
+def _bare_sha256_digest(value: Any) -> str:
+    text = str(value or "").strip()
+    if text.startswith("sha256:"):
+        text = text.removeprefix("sha256:")
+    return text.lower()
+
+
+def _is_bare_sha256(value: Any) -> bool:
+    return bool(re.fullmatch(r"[0-9a-f]{64}", _bare_sha256_digest(value)))
+
+
+def _mac_metadata_digest_is_identity_bound(request: Mapping[str, Any]) -> bool:
+    """Accept the Mac v0 metadata hash only when it is bound to request identity.
+
+    Mission Control emits a bare digest and mirrors that digest into both the
+    request_id suffix and idempotency_key. Repo A cannot reconstruct any Mac-only
+    hidden path material, so it validates the visible cross-field binding and
+    keeps the normal metadata-only/body-free checks in force.
+    """
+
+    supplied = _bare_sha256_digest(request.get("payload_hash"))
+    if not _is_bare_sha256(supplied):
+        return False
+    request_id = str(request.get("request_id") or "")
+    idempotency_key = str(request.get("idempotency_key") or "")
+    workflow_ref = str(request.get("workflow_ref") or "")
+    return (
+        request_id.endswith(supplied[:12])
+        and idempotency_key.startswith("mission_control_file_metadata:")
+        and idempotency_key.endswith(supplied[:20])
+        and (not workflow_ref or f":{workflow_ref}:" in idempotency_key)
+    )
+
+
+def payload_hash_validation_details(request: Mapping[str, Any]) -> dict[str, Any]:
+    pc_expected = compute_request_payload_hash(request)
+    supplied = str(request.get("payload_hash") or "")
+    supplied_bare = _bare_sha256_digest(supplied)
+    pc_expected_bare = _bare_sha256_digest(pc_expected)
+    pc_match = supplied in {pc_expected, pc_expected_bare}
+    mac_match = _mac_metadata_digest_is_identity_bound(request)
+    return {
+        "supplied_payload_hash": supplied,
+        "pc_expected_payload_hash": pc_expected,
+        "pc_expected_bare_payload_hash": pc_expected_bare,
+        "pc_hash_policy": PC_PAYLOAD_HASH_POLICY,
+        "mac_hash_policy": MAC_METADATA_PAYLOAD_HASH_POLICY,
+        "pc_match": pc_match,
+        "mac_metadata_contract_match": mac_match,
+        "accepted": pc_match or mac_match,
+    }
+
+
+def payload_hash_matches_request_metadata_contract(request: Mapping[str, Any]) -> bool:
+    return bool(payload_hash_validation_details(request)["accepted"])
+
+
 def _content_hash(payload: dict[str, Any]) -> str:
     clone = json.loads(stable_json(payload))
     clone.get("machine_proof", {}).pop("content_hash", None)
@@ -617,7 +677,7 @@ def validate_request_shape(request: Mapping[str, Any], *, request_path: Path | N
         blockers.append(_blocker("MISSING_IDEMPOTENCY_KEY", "Request is missing idempotency_key."))
     if not request.get("payload_hash"):
         blockers.append(_blocker("MISSING_PAYLOAD_HASH", "Request is missing payload_hash."))
-    elif request.get("payload_hash") != compute_request_payload_hash(request):
+    elif not payload_hash_matches_request_metadata_contract(request):
         blockers.append(_blocker("UNKNOWN_FAIL_CLOSED", "payload_hash does not match request metadata."))
     if not request.get("file_display_name") or not _path_ref_present(request):
         blockers.append(_blocker("UNKNOWN_FAIL_CLOSED", "Request must include file_display_name and a hidden path ref."))
@@ -777,6 +837,7 @@ def build_payload_from_request(
     source_request_path: Path | None = None,
 ) -> dict[str, Any]:
     generated_at = generated_at or utc_now()
+    payload_hash_policy = payload_hash_validation_details(raw_request)
     ok, blockers = validate_request_shape(raw_request, request_path=source_request_path)
     request = normalize_request(raw_request)
     if ok:
@@ -806,6 +867,7 @@ def build_payload_from_request(
         receipt=receipt,
         blockers=blockers,
         route_mode=route_mode,
+        payload_hash_policy=payload_hash_policy,
     )
 
 
@@ -866,6 +928,7 @@ def _build_payload(
     receipt: OperatorFileIntakeReceipt,
     blockers: tuple[OperatorFileIntakeBlocker, ...],
     route_mode: str,
+    payload_hash_policy: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
@@ -877,6 +940,7 @@ def _build_payload(
         "approved_inbox_policy": "mission_control_file_intake_request inbox path hidden in operator cards",
         "supported_filename_pattern": REQUEST_FILENAME_PATTERN,
         "supported_intake_modes": SUPPORTED_INTAKE_MODES,
+        "payload_hash_policy": dict(payload_hash_policy or payload_hash_validation_details(asdict(intake_request))),
         "model_schemas": _model_schemas(),
         "intake_request": asdict(intake_request),
         "source_ref_record": asdict(source_ref) if source_ref else None,

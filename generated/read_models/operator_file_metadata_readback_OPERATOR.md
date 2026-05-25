@@ -2,14 +2,19 @@
 
 ELIOPERATOR: This readback captures file metadata as a safe source reference. It does not read the file body or execute anything.
 
-- Route mode: `REQUEST_BLOCKED`.
-- Readback status: `BLOCKED_INVALID_REQUEST`.
+- Route mode: `REQUEST_ACCEPTED_METADATA_ONLY`.
+- Readback status: `SOURCE_REF_CREATED`.
 
-## File reference blocked
+## File reference captured
 
-OpenClaw did not capture this file reference because the request was not safe metadata-only.
+OpenClaw captured a file reference for 'openclaw_metadata_only_test.txt'. The file body was not read.
 
-- ELIOPERATOR: payload_hash does not match request metadata.
+- Referenced source: openclaw_metadata_only_test.txt.
+- Detected type: rich_text_doc.
+- The file body was not read, parsed, OCRed, or sent to a model.
+- This can be used later as a source for a visual workspace or governed extraction.
+- Full private paths are hidden from the normal read-model.
+- Protected evidence posture is required before raw/protected use.
 
 ## What did not happen
 
@@ -22,4 +27,4 @@ OpenClaw did not capture this file reference because the request was not safe me
 - Persistent source registry is not connected yet.
 - Idempotency is validated, but duplicate persistence is not claimed.
 
-Next safe move: Send a metadata-only file reference with idempotency and payload hash.
+Next safe move: Show the file reference card and ask whether to use it in a visual workspace.

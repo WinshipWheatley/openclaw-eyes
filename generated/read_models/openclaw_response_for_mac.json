@@ -35,24 +35,25 @@
   "context_package_refs": [],
   "contract_status": "BOUNDED_OPENCLAW_REQUEST_LIFECYCLE_PROCESSOR",
   "detail_disclosure": {
-    "duplicate_result": "existing readback reused",
-    "existing_response_ref": "openclaw_response_for_mac.json",
+    "file_readback_ref": "generated/read_models/operator_file_metadata_readback.json",
+    "persistent_registry_write": false,
     "request_classification": {
-      "classification_id": "request_classification_a7a81b3e4dfa6dac5c1a",
+      "classification_id": "request_classification_0ca6357fad811b67ed60",
       "classification_reason": "Filename matches Mission Control file metadata intake pattern.",
       "future_supported": false,
       "next_safe_move": "Run the selected deterministic rail once and write a Mac-readable response.",
       "request_family": "FILE_METADATA",
       "selected_rail": "operator_file_metadata_intake",
-      "source_request_filename": "mission_control_file_intake_request_1779725517406_ac5c49721a8d.json"
-    }
+      "source_request_filename": "mission_control_file_intake_request_1779734559852_99bd5e3900cf.json"
+    },
+    "source_ref_id": "source_ref:c6599933fc28ea7ee121"
   },
   "file_readback_refs": [
     "generated/read_models/operator_file_metadata_readback.json"
   ],
-  "generated_at": "2026-05-25T18:17:16+00:00",
-  "how_to_fix": "Use the existing readback, or resend a new request with a new request id and idempotency key if the content changed.",
-  "internal_status": "DUPLICATE_NOOP_WITH_READBACK",
+  "generated_at": "2026-05-25T21:46:42+00:00",
+  "how_to_fix": "No fix is needed. Use the source ref in a visual workspace later, or request governed extraction when that rail exists.",
+  "internal_status": "RESPONSE_READY",
   "machine_proof": {
     "agent_dispatch_performed": false,
     "all_live_authority_flags_false": true,
@@ -62,7 +63,7 @@
     "blocked_has_how_to_fix": true,
     "broad_scan_performed": false,
     "browser_access_performed": false,
-    "content_hash": "sha256:4e350e6c38047c0a97085d2f94ae61dc6ba1787fd793a5fccab72dc2259dabff",
+    "content_hash": "sha256:b0541ea213a8a0387bde811a9248f87559999169987bfd9b4899bdadd1d95724",
     "coupa_access_or_submit_performed": false,
     "credential_handling_performed": false,
     "credentials_or_secrets_included": false,
@@ -102,9 +103,9 @@
     "watcher_started": false,
     "workflow_execution_performed": false
   },
-  "next_safe_move": "Show the existing readback in Mac chat.",
-  "operator_headline": "OpenClaw already processed this request",
-  "operator_message": "OpenClaw already processed this request. No duplicate was written. Here is the existing readback.",
+  "next_safe_move": "Show the file reference card and ask whether to use it in a visual workspace.",
+  "operator_headline": "File reference captured",
+  "operator_message": "OpenClaw captured a file reference for 'openclaw_metadata_only_test.txt'. The file body was not read.",
   "read_model_id": "openclaw_response_for_mac",
   "readback_files": [
     "generated/read_models/operator_file_metadata_readback.json",
@@ -112,22 +113,28 @@
   ],
   "request_type": "FILE_METADATA",
   "schema_version": "openclaw_request_processor_v0",
-  "source_request_filename": "mission_control_file_intake_request_1779725517406_ac5c49721a8d.json",
-  "source_request_id": "capital_hilton_file_metadata_1779725517406_08f42aee6376",
+  "source_request_filename": "mission_control_file_intake_request_1779734559852_99bd5e3900cf.json",
+  "source_request_id": "capital_hilton_file_metadata_1779734559852_99bd5e3900cf",
   "visible_cards": [
     {
       "bullets": [
-        "ELIOPERATOR: payload_hash does not match request metadata."
+        "Referenced source: openclaw_metadata_only_test.txt.",
+        "Detected type: rich_text_doc.",
+        "The file body was not read, parsed, OCRed, or sent to a model.",
+        "This can be used later as a source for a visual workspace or governed extraction.",
+        "Full private paths are hidden from the normal read-model.",
+        "Protected evidence posture is required before raw/protected use."
       ],
-      "status_tone": "blocked",
-      "title": "File reference blocked"
+      "status_tone": "ready",
+      "title": "File reference captured"
     }
   ],
   "what_happened": [
-    "Found an existing processor readback for the same request id.",
-    "No duplicate source or workflow write was made."
+    "PC validated the file metadata request.",
+    "PC created a metadata-only source ref readback.",
+    "No file body was read or parsed."
   ],
-  "why_it_happened": "The generated processor status already matches this request id.",
+  "why_it_happened": "The request passed metadata-only validation.",
   "worker_route_refs": [],
   "workflow_ref": "capital_hilton_invoice_workflow"
 }

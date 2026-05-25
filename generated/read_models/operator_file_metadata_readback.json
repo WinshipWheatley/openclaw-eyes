@@ -1,15 +1,5 @@
 {
-  "active_blockers_by_id": {
-    "operator_file_intake_blocker_unknown_fail_closed": {
-      "blocker_id": "operator_file_intake_blocker_unknown_fail_closed",
-      "blocker_type": "UNKNOWN_FAIL_CLOSED",
-      "condition": "payload_hash does not match request metadata.",
-      "elioperator_warning": "ELIOPERATOR: payload_hash does not match request metadata.",
-      "fail_closed": true,
-      "next_safe_move": "Return a blocked readback and ask for a safer metadata-only request.",
-      "severity": "BLOCKS_SAFE_FILE_INTAKE"
-    }
-  },
+  "active_blockers_by_id": {},
   "approved_inbox_policy": "mission_control_file_intake_request inbox path hidden in operator cards",
   "authority_boundary": {
     "credential_handling_allowed": false,
@@ -30,21 +20,21 @@
     "raw_body_ingestion_allowed": false
   },
   "contract_status": "DETERMINISTIC_METADATA_ONLY_FILE_INTAKE_ADAPTER",
-  "generated_at": "2026-05-25T18:15:41+00:00",
+  "generated_at": "2026-05-25T21:48:45+00:00",
   "intake_receipt": {
     "created_at_policy": "deterministic generated read-model timestamp; no SQLite registry write",
     "credential_handling": false,
     "duplicate_result": "NOT_PERSISTED_NO_DUPLICATE_CHECK",
     "external_authority": false,
-    "idempotency_key": "mission_control_file_metadata:capital_hilton_invoice_workflow:08f42aee6376bf5d595f",
-    "intake_status": "REQUEST_BLOCKED",
+    "idempotency_key": "mission_control_file_metadata:capital_hilton_invoice_workflow:1779734559852:99bd5e3900cfa89068e5",
+    "intake_status": "METADATA_CAPTURED",
     "next_safe_move": "Add a future metadata-only source registry before claiming duplicate persistence.",
-    "payload_hash": "ac5c49721a8d767172b2272e05a8b071a55f32adf18b72e0143c76daa1739eff",
+    "payload_hash": "99bd5e3900cfa89068e5c26aeeb6ea7b7b1164d1a62949c77f2ee3399de149d2",
     "persistent_registry_write": false,
     "raw_body_ingestion": false,
-    "receipt_id": "operator_file_intake_receipt_f996a431d6f26ae9d5e5",
-    "source_ref_id": null,
-    "source_request_ref": "capital_hilton_file_metadata_1779725517406_08f42aee6376"
+    "receipt_id": "operator_file_intake_receipt_076e6e9dba4d1c329c3a",
+    "source_ref_id": "source_ref:c6599933fc28ea7ee121",
+    "source_request_ref": "capital_hilton_file_metadata_1779734559852_99bd5e3900cf"
   },
   "intake_request": {
     "authority_boundary": {
@@ -66,19 +56,19 @@
       "raw_body_ingestion_allowed": false
     },
     "client_ref": "capital_hilton",
-    "created_at": "2026-05-25T16:11:57Z",
+    "created_at": "2026-05-25T18:42:39Z",
     "file_display_name": "openclaw_metadata_only_test.txt",
     "file_extension": ".txt",
     "file_kind_hint": "doc_text",
     "file_size_bytes": 76,
-    "idempotency_key": "mission_control_file_metadata:capital_hilton_invoice_workflow:08f42aee6376bf5d595f",
+    "idempotency_key": "mission_control_file_metadata:capital_hilton_invoice_workflow:1779734559852:99bd5e3900cfa89068e5",
     "lane_ref": "capital_hilton",
     "local_path_ref_policy": "provided_path_ref_hidden_from_normal_read_model",
     "operator_goal": "intake_file_metadata",
     "origin_surface": "mission_control_mac",
-    "payload_hash": "ac5c49721a8d767172b2272e05a8b071a55f32adf18b72e0143c76daa1739eff",
+    "payload_hash": "99bd5e3900cfa89068e5c26aeeb6ea7b7b1164d1a62949c77f2ee3399de149d2",
     "privacy_class": "client_private_or_operator_provided",
-    "request_id": "capital_hilton_file_metadata_1779725517406_08f42aee6376",
+    "request_id": "capital_hilton_file_metadata_1779734559852_99bd5e3900cf",
     "requested_intake_mode": "METADATA_ONLY",
     "source_channel": "mission_control_chat_plus_menu",
     "tenant_ref": "operator_winship_local",
@@ -90,7 +80,7 @@
     "all_live_authority_flags_false": true,
     "app_automation_performed": false,
     "blockers_present": true,
-    "content_hash": "sha256:9fb943a6a8d879a73b730638de64006deb5417c2de172fb1abdc1e023f3af88c",
+    "content_hash": "sha256:d690cfa2f6b3eee2e7ea46dec1290caafb19dbdeffccd4a04becb6bf39ad6702",
     "credential_handling_performed": false,
     "credentials_or_secrets_included": false,
     "duplicate_noop_available": false,
@@ -129,26 +119,65 @@
     "unknown_file_type_blocked": false
   },
   "metadata_readback": {
-    "headline": "File reference blocked",
+    "headline": "File reference captured",
     "human_bullets": [
-      "ELIOPERATOR: payload_hash does not match request metadata."
+      "Referenced source: openclaw_metadata_only_test.txt.",
+      "Detected type: rich_text_doc.",
+      "The file body was not read, parsed, OCRed, or sent to a model.",
+      "This can be used later as a source for a visual workspace or governed extraction.",
+      "Full private paths are hidden from the normal read-model.",
+      "Protected evidence posture is required before raw/protected use."
     ],
     "missing_registry_rails": [
       "persistent source registry",
       "duplicate idempotency ledger",
       "future governed extraction adapter"
     ],
-    "next_safe_move": "Send a metadata-only file reference with idempotency and payload hash.",
+    "next_safe_move": "Show the file reference card and ask whether to use it in a visual workspace.",
     "operator_choices": [
       "Use in visual workspace later",
       "Request governed extraction later",
       "Cancel"
     ],
-    "readback_id": "operator_file_metadata_readback_a17ceddafe048ad09411",
-    "readback_status": "BLOCKED_INVALID_REQUEST",
-    "source_ref": null,
-    "source_request_ref": "capital_hilton_file_metadata_1779725517406_08f42aee6376",
-    "summary": "OpenClaw did not capture this file reference because the request was not safe metadata-only."
+    "readback_id": "operator_file_metadata_readback_4c742c345e0e5f6a10ec",
+    "readback_status": "SOURCE_REF_CREATED",
+    "source_ref": {
+      "allowed_use": [
+        "show safe label in chat",
+        "bind into visual workspace",
+        "route metadata to a governed package",
+        "request future gated extraction if approved"
+      ],
+      "client_ref": "capital_hilton",
+      "extraction_status": "NOT_EXTRACTED_BODY_NOT_READ",
+      "file_extension": ".txt",
+      "file_size_bytes": 76,
+      "file_type": "rich_text_doc",
+      "hash_or_fingerprint_policy": "metadata_fingerprint_only_body_not_read",
+      "lane_ref": "capital_hilton",
+      "next_safe_move": "Use this source ref in a visual workspace or future gated extraction request.",
+      "privacy_class": "client_private_or_operator_provided",
+      "prohibited_use": [
+        "raw body to LLM",
+        "file content parsing",
+        "OCR",
+        "spreadsheet/PDF/image parsing",
+        "folder scan",
+        "external action",
+        "app automation"
+      ],
+      "protected_ref_required": true,
+      "requested_intake_mode": "METADATA_ONLY",
+      "safe_display_label": "openclaw_metadata_only_test.txt",
+      "sensitivity_class": "PROTECTED_SOURCE_METADATA",
+      "source_ref_id": "source_ref:c6599933fc28ea7ee121",
+      "source_surface": "mission_control_mac",
+      "tenant_ref": "operator_winship_local",
+      "workflow_ref": "capital_hilton_invoice_workflow",
+      "world_ref": "finance"
+    },
+    "source_request_ref": "capital_hilton_file_metadata_1779734559852_99bd5e3900cf",
+    "summary": "OpenClaw captured a file reference for 'openclaw_metadata_only_test.txt'. The file body was not read."
   },
   "model_schemas": {
     "operator_file_intake_blocker": {
@@ -293,6 +322,16 @@
     }
   },
   "operator_markdown_mode": "ELIOPERATOR",
+  "payload_hash_policy": {
+    "accepted": true,
+    "mac_hash_policy": "mac_bare_sha256_metadata_digest_bound_to_request_id_and_idempotency_key",
+    "mac_metadata_contract_match": true,
+    "pc_expected_bare_payload_hash": "37464ffac5594300ecf4312cae7fe3ecdc81b23e34b4b6869631cca376a6a79b",
+    "pc_expected_payload_hash": "sha256:37464ffac5594300ecf4312cae7fe3ecdc81b23e34b4b6869631cca376a6a79b",
+    "pc_hash_policy": "pc_stable_json_sha256_request_minus_payload_hash_with_sha256_prefix",
+    "pc_match": false,
+    "supplied_payload_hash": "99bd5e3900cfa89068e5c26aeeb6ea7b7b1164d1a62949c77f2ee3399de149d2"
+  },
   "read_model_id": "operator_file_metadata_readback",
   "relationship_refs": {
     "file_intake_visual_workspace_contract": "operator_file_intake_visual_workspace_contract_v0",
@@ -300,9 +339,43 @@
     "protected_evidence": "protected_evidence_reference_receipt_v0",
     "sensitive_policy": "openclaw_sensitive_policy"
   },
-  "route_mode": "REQUEST_BLOCKED",
+  "route_mode": "REQUEST_ACCEPTED_METADATA_ONLY",
   "schema_version": "operator_file_metadata_intake_v0",
-  "source_ref_record": null,
+  "source_ref_record": {
+    "allowed_use": [
+      "show safe label in chat",
+      "bind into visual workspace",
+      "route metadata to a governed package",
+      "request future gated extraction if approved"
+    ],
+    "client_ref": "capital_hilton",
+    "extraction_status": "NOT_EXTRACTED_BODY_NOT_READ",
+    "file_extension": ".txt",
+    "file_size_bytes": 76,
+    "file_type": "rich_text_doc",
+    "hash_or_fingerprint_policy": "metadata_fingerprint_only_body_not_read",
+    "lane_ref": "capital_hilton",
+    "next_safe_move": "Use this source ref in a visual workspace or future gated extraction request.",
+    "privacy_class": "client_private_or_operator_provided",
+    "prohibited_use": [
+      "raw body to LLM",
+      "file content parsing",
+      "OCR",
+      "spreadsheet/PDF/image parsing",
+      "folder scan",
+      "external action",
+      "app automation"
+    ],
+    "protected_ref_required": true,
+    "requested_intake_mode": "METADATA_ONLY",
+    "safe_display_label": "openclaw_metadata_only_test.txt",
+    "sensitivity_class": "PROTECTED_SOURCE_METADATA",
+    "source_ref_id": "source_ref:c6599933fc28ea7ee121",
+    "source_surface": "mission_control_mac",
+    "tenant_ref": "operator_winship_local",
+    "workflow_ref": "capital_hilton_invoice_workflow",
+    "world_ref": "finance"
+  },
   "source_registry_status": {
     "metadata_only_sqlite_write_performed": false,
     "missing_registry_rail": "persistent source registry / duplicate idempotency ledger not connected",

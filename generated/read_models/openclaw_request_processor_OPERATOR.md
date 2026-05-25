@@ -1,16 +1,17 @@
 # OpenClaw Request Processor Status
 
-Status: DUPLICATE_NOOP_WITH_READBACK
+Status: RESPONSE_READY
 
-OpenClaw already processed this request. No duplicate was written. Here is the existing readback.
+OpenClaw captured a file reference for 'openclaw_metadata_only_test.txt'. The file body was not read.
 
 What happened:
-- Found an existing processor readback for the same request id.
-- No duplicate source or workflow write was made.
+- PC validated the file metadata request.
+- PC created a metadata-only source ref readback.
+- No file body was read or parsed.
 
-Why: The generated processor status already matches this request id.
+Why: The request passed metadata-only validation.
 
-How to fix: Use the existing readback, or resend a new request with a new request id and idempotency key if the content changed.
+How to fix: No fix is needed. Use the source ref in a visual workspace later, or request governed extraction when that rail exists.
 
 Selected rail: operator_file_metadata_intake
 
@@ -22,4 +23,4 @@ Boundary:
 - Bounded one-request processor only.
 - No daemon, watcher, worker execution, workflow execution, model/tool execution, or external action.
 
-Next safe move: Show the existing readback in Mac chat.
+Next safe move: Show the file reference card and ask whether to use it in a visual workspace.

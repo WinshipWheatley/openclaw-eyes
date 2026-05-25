@@ -132,6 +132,30 @@ def test_file_argument_processes_specific_file_request(tmp_path, capsys):
     assert response["file_readback_refs"]
 
 
+def test_file_argument_accepts_mac_metadata_hash_contract(tmp_path, capsys):
+    request_path = tmp_path / "mission_control_file_intake_request_1779734559852_99bd5e3900cf.json"
+    request = file_intake.make_fixture_request("spreadsheet", created_at=FIXED_NOW)
+    mac_hash = "99bd5e3900cfa89068e5c26aeeb6ea7b7b1164d1a62949c77f2ee3399de149d2"
+    request.update(
+        {
+            "request_id": f"capital_hilton_file_metadata_1779734559852_{mac_hash[:12]}",
+            "idempotency_key": f"mission_control_file_metadata:{request['workflow_ref']}:1779734559852:{mac_hash[:20]}",
+            "payload_hash": mac_hash,
+        }
+    )
+    request_path.write_text(file_intake.stable_json(request), encoding="utf-8")
+    export_root = tmp_path / "read_models"
+
+    assert process_main(["--file", str(request_path), "--export-root", str(export_root), "--generated-at", FIXED_NOW, "--format", "json"]) == 0
+    response = json.loads(capsys.readouterr().out)
+
+    assert response["source_request_id"] == request["request_id"]
+    assert response["request_type"] == "FILE_METADATA"
+    assert response["internal_status"] == "RESPONSE_READY"
+    assert response["operator_headline"] == "File reference captured"
+    assert response["blocked_reason"] is None
+
+
 def test_future_context_request_is_blocked_with_missing_rail(tmp_path, capsys):
     request_path = tmp_path / "mission_control_context_request_build.json"
     request = _write_future_request(request_path)
@@ -267,6 +291,45 @@ def test_duplicate_noop_includes_existing_readback(tmp_path, capsys):
     assert "existing readback" in response["operator_message"]
     assert response["readback_files"]
     assert "DUPLICATE_NOOP_WITH_READBACK" not in response["operator_message"]
+
+
+def test_blocked_existing_status_is_reprocessed_after_local_fix(tmp_path, capsys):
+    request_path = tmp_path / "mission_control_file_intake_request_1779734559852_99bd5e3900cf.json"
+    request = file_intake.make_fixture_request("spreadsheet", created_at=FIXED_NOW)
+    mac_hash = "99bd5e3900cfa89068e5c26aeeb6ea7b7b1164d1a62949c77f2ee3399de149d2"
+    request.update(
+        {
+            "request_id": f"capital_hilton_file_metadata_1779734559852_{mac_hash[:12]}",
+            "idempotency_key": f"mission_control_file_metadata:{request['workflow_ref']}:1779734559852:{mac_hash[:20]}",
+            "payload_hash": mac_hash,
+        }
+    )
+    request_path.write_text(file_intake.stable_json(request), encoding="utf-8")
+    export_root = tmp_path / "read_models"
+    export_root.mkdir()
+    (export_root / processor.STATUS_JSON_EXPORT_NAME).write_text(
+        json.dumps(
+            {
+                "processor_status": {
+                    "latest_processed_request": {
+                        "source_request_id": request["request_id"],
+                        "source_request_filename": request_path.name,
+                        "workflow_ref": request["workflow_ref"],
+                        "request_type": "FILE_METADATA",
+                    },
+                    "terminal_result": "BLOCKED_WITH_REASON",
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    assert process_main(["--file", str(request_path), "--export-root", str(export_root), "--generated-at", FIXED_NOW, "--format", "json"]) == 0
+    response = json.loads(capsys.readouterr().out)
+
+    assert response["internal_status"] == "RESPONSE_READY"
+    assert response["operator_headline"] == "File reference captured"
+    assert response["blocked_reason"] is None
 
 
 def test_blocked_file_raw_body_has_why_and_how_to_fix(tmp_path, capsys):

@@ -38,6 +38,37 @@ def test_fixture_request_hash_helper_is_deterministic():
     assert first["idempotency_key"]
 
 
+def test_mac_metadata_payload_hash_contract_is_accepted():
+    request = intake.make_fixture_request("spreadsheet", created_at=FIXED_NOW)
+    mac_hash = "99bd5e3900cfa89068e5c26aeeb6ea7b7b1164d1a62949c77f2ee3399de149d2"
+    request.update(
+        {
+            "request_id": f"capital_hilton_file_metadata_1779734559852_{mac_hash[:12]}",
+            "idempotency_key": f"mission_control_file_metadata:{request['workflow_ref']}:1779734559852:{mac_hash[:20]}",
+            "payload_hash": mac_hash,
+        }
+    )
+
+    ok, blockers = intake.validate_request_shape(request)
+    details = intake.payload_hash_validation_details(request)
+
+    assert ok is True
+    assert not blockers
+    assert details["pc_match"] is False
+    assert details["mac_metadata_contract_match"] is True
+    assert details["accepted"] is True
+
+
+def test_unbound_bare_payload_hash_is_blocked():
+    request = intake.make_fixture_request("spreadsheet", created_at=FIXED_NOW)
+    request["payload_hash"] = "1" * 64
+
+    ok, blockers = intake.validate_request_shape(request)
+
+    assert ok is False
+    assert any(blocker.condition == "payload_hash does not match request metadata." for blocker in blockers)
+
+
 def test_required_models_exist_in_readback(tmp_path, capsys):
     _, payload = _import_fixture(tmp_path, capsys)
     proof = payload["machine_proof"]
