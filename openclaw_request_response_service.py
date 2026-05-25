@@ -15,6 +15,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import sys
 import time
@@ -29,6 +30,9 @@ import openclaw_request_processor as processor
 DEFAULT_EXPORT_ROOT = Path("generated/read_models")
 APPROVED_INBOX = processor.APPROVED_INBOX
 DEFAULT_RESPONSE_DIR = Path("/mnt/e/openclaw/mission_control_responses/to_mac")
+DEFAULT_IDLE_POLL_INTERVAL = 1.0
+DEFAULT_ACTIVE_POLL_INTERVAL = 0.05
+DEFAULT_ACTIVE_WINDOW_SECONDS = 180.0
 
 SCHEMA_VERSION = "openclaw_request_response_service_v1"
 STATUS_READ_MODEL_ID = "openclaw_request_response_service_status"
@@ -46,6 +50,8 @@ SERVICE_STATUSES = (
     "FAILED_WITH_REASON",
     "UNKNOWN_FAIL_CLOSED",
 )
+
+WATCH_MODES = ("idle", "active", "stopped")
 
 AUTHORITY_BOUNDARY = {
     "broad_filesystem_watch_allowed": False,
@@ -116,6 +122,17 @@ class ServiceRunResult:
     latest_response: dict[str, Any] | None
     errors_or_blockers: tuple[str, ...]
     next_safe_move: str
+    mode: str = "stopped"
+    current_poll_interval: float = 0.0
+    idle_poll_interval: float = DEFAULT_IDLE_POLL_INTERVAL
+    active_poll_interval: float = DEFAULT_ACTIVE_POLL_INTERVAL
+    active_window_seconds: float = DEFAULT_ACTIVE_WINDOW_SECONDS
+    active_window_remaining_seconds: float = 0.0
+    last_watch_mode_before_stop: str = "idle"
+    last_poll_interval: float = 0.0
+    last_processed_request_id: str | None = None
+    last_response_path: str | None = None
+    bounded_stop_reason: str = "completed"
 
 
 def utc_now() -> str:
@@ -124,6 +141,13 @@ def utc_now() -> str:
 
 def stable_json(payload: Any) -> str:
     return json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
+
+
+def _atomic_write_text(path: Path, text: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temp_path = path.with_name(f".{path.name}.{os.getpid()}.{time.monotonic_ns()}.tmp")
+    temp_path.write_text(text, encoding="utf-8")
+    temp_path.replace(path)
 
 
 def _content_hash(payload: dict[str, Any]) -> str:
@@ -343,8 +367,8 @@ def publish_response_for_mac(
     latest_file = response_dir / LATEST_RESPONSE_EXPORT_NAME
     manifest_file = response_dir / MANIFEST_EXPORT_NAME
     published_payload = _published_response_payload(response_payload, created_at=created_at)
-    response_file.write_text(stable_json(published_payload), encoding="utf-8")
-    latest_file.write_text(stable_json(published_payload), encoding="utf-8")
+    _atomic_write_text(response_file, stable_json(published_payload))
+    _atomic_write_text(latest_file, stable_json(published_payload))
 
     manifest = _read_manifest(response_dir)
     responses = manifest.get("responses")
@@ -371,7 +395,7 @@ def publish_response_for_mac(
             "responses": responses[-200:],
         }
     )
-    manifest_file.write_text(stable_json(manifest), encoding="utf-8")
+    _atomic_write_text(manifest_file, stable_json(manifest))
     return PublishedResponse(
         response_file=response_file.as_posix(),
         latest_response_file=latest_file.as_posix(),
@@ -478,6 +502,17 @@ def process_one_pending_request(
             latest_response=None,
             errors_or_blockers=(),
             next_safe_move=next_safe_move,
+            mode="stopped",
+            current_poll_interval=0.0,
+            idle_poll_interval=DEFAULT_IDLE_POLL_INTERVAL,
+            active_poll_interval=DEFAULT_ACTIVE_POLL_INTERVAL,
+            active_window_seconds=DEFAULT_ACTIVE_WINDOW_SECONDS,
+            active_window_remaining_seconds=0.0,
+            last_watch_mode_before_stop="idle",
+            last_poll_interval=0.0,
+            last_processed_request_id=None,
+            last_response_path=None,
+            bounded_stop_reason="duplicate_only" if skipped else "no_pending_request",
         )
 
     identity = read_request_identity(request_path)
@@ -512,6 +547,17 @@ def process_one_pending_request(
         latest_response=asdict(published),
         errors_or_blockers=errors,
         next_safe_move=published.next_safe_move or "Show the response in Mac chat.",
+        mode="stopped",
+        current_poll_interval=0.0,
+        idle_poll_interval=DEFAULT_IDLE_POLL_INTERVAL,
+        active_poll_interval=DEFAULT_ACTIVE_POLL_INTERVAL,
+        active_window_seconds=DEFAULT_ACTIVE_WINDOW_SECONDS,
+        active_window_remaining_seconds=0.0,
+        last_watch_mode_before_stop="active",
+        last_poll_interval=0.0,
+        last_processed_request_id=identity.source_request_id,
+        last_response_path=published.response_file,
+        bounded_stop_reason="processed_with_errors" if errors else "processed_one_request",
     )
 
 
@@ -522,21 +568,34 @@ def run_watch(
     export_root: Path = DEFAULT_EXPORT_ROOT,
     generated_at: str | None = None,
     watch_seconds: int = 5,
-    poll_interval: float = 0.5,
+    poll_interval: float = DEFAULT_IDLE_POLL_INTERVAL,
+    active_poll_interval: float = DEFAULT_ACTIVE_POLL_INTERVAL,
+    active_window_seconds: float = DEFAULT_ACTIVE_WINDOW_SECONDS,
     max_requests: int = 1,
 ) -> ServiceRunResult:
     created_at = generated_at or utc_now()
-    deadline = time.monotonic() + max(0, watch_seconds)
+    watch_duration = max(0.0, float(watch_seconds))
+    deadline = time.monotonic() + watch_duration
     request_limit = max(1, max_requests)
+    idle_interval = max(0.05, float(poll_interval))
+    active_interval = max(0.01, float(active_poll_interval))
+    active_window = max(0.0, float(active_window_seconds))
+    active_until = 0.0
     processed: list[dict[str, Any]] = []
     skipped: list[dict[str, Any]] = []
     errors: list[str] = []
     latest_response: dict[str, Any] | None = None
     in_memory_processed_keys: set[str] = set()
+    last_watch_mode = "idle"
+    last_poll_interval = 0.0
+    stop_reason = "watch_seconds_elapsed"
     while True:
-        if time.monotonic() >= deadline:
+        now = time.monotonic()
+        if now >= deadline:
+            stop_reason = "watch_seconds_elapsed"
             break
         if len(processed) >= request_limit:
+            stop_reason = "max_requests_reached"
             break
         result = process_one_pending_request(
             inbox=inbox,
@@ -556,10 +615,28 @@ def run_watch(
             latest_response = result.latest_response
             errors.extend(result.errors_or_blockers)
             created_at = utc_now()
+            active_until = time.monotonic() + active_window
+            last_watch_mode = "active"
+            last_poll_interval = 0.0
             continue
-        if time.monotonic() >= deadline:
+        now = time.monotonic()
+        if now >= deadline:
+            stop_reason = "watch_seconds_elapsed"
             break
-        time.sleep(min(max(poll_interval, 0.05), max(0.0, deadline - time.monotonic())))
+        active_remaining = max(0.0, active_until - now)
+        if active_remaining > 0:
+            current_mode = "active"
+            requested_sleep = active_interval
+        else:
+            current_mode = "idle"
+            requested_sleep = idle_interval
+        sleep_for = min(requested_sleep, max(0.0, deadline - now))
+        if sleep_for <= 0:
+            stop_reason = "watch_seconds_elapsed"
+            break
+        last_watch_mode = current_mode
+        last_poll_interval = sleep_for
+        time.sleep(sleep_for)
     deduped_skipped = _dedupe_records(skipped)
     if processed:
         status = "REQUEST_PROCESSED" if not errors else "FAILED_WITH_REASON"
@@ -575,9 +652,16 @@ def run_watch(
             if deduped_skipped
             else "No supported request arrived before timeout; keep the service available for the next Mac request."
         )
+    last_processed_request_id = str(processed[-1].get("source_request_id")) if processed else None
+    last_response_path = str(latest_response.get("response_file")) if latest_response and latest_response.get("response_file") else None
+    active_window_remaining = max(0.0, active_until - time.monotonic())
     return ServiceRunResult(
         service_status=status,
-        run_mode=f"watch_seconds={watch_seconds},max_requests={request_limit}",
+        run_mode=(
+            f"watch_seconds={watch_seconds},max_requests={request_limit},"
+            f"idle_poll_interval={idle_interval},active_poll_interval={active_interval},"
+            f"active_window_seconds={active_window}"
+        ),
         inbox=inbox.as_posix(),
         response_path=response_dir.as_posix(),
         processed_count=len(processed),
@@ -587,6 +671,17 @@ def run_watch(
         latest_response=latest_response,
         errors_or_blockers=tuple(errors),
         next_safe_move=str(next_safe_move),
+        mode="stopped",
+        current_poll_interval=0.0,
+        idle_poll_interval=idle_interval,
+        active_poll_interval=active_interval,
+        active_window_seconds=active_window,
+        active_window_remaining_seconds=active_window_remaining,
+        last_watch_mode_before_stop=last_watch_mode,
+        last_poll_interval=last_poll_interval,
+        last_processed_request_id=last_processed_request_id,
+        last_response_path=last_response_path,
+        bounded_stop_reason=stop_reason,
     )
 
 
@@ -624,6 +719,13 @@ def _machine_proof(result: ServiceRunResult) -> dict[str, Any]:
         "terminal_response_written": result.processed_count == 0 or bool(result.latest_response and result.latest_response.get("terminal") is True),
         "duplicate_tracking_present": True,
         "duplicate_keys_include_request_id_idempotency_filename_payload_hash": True,
+        "active_session_watch_present": True,
+        "idle_poll_interval_configured": result.idle_poll_interval,
+        "active_poll_interval_configured": result.active_poll_interval,
+        "active_window_seconds_configured": result.active_window_seconds,
+        "active_window_remaining_recorded": result.active_window_remaining_seconds >= 0,
+        "max_requests_configured": result.run_mode == "once" or "max_requests=" in result.run_mode,
+        "atomic_response_writes": True,
         "no_request_deletion": True,
         "no_request_mutation": True,
         "no_broad_scan": True,
@@ -667,20 +769,29 @@ def build_service_status_payload(
         "contract_status": CONTRACT_STATUS,
         "generated_at": generated_at,
         "service_status_values": SERVICE_STATUSES,
+        "watch_modes": WATCH_MODES,
         "service_status": {
             **asdict(result),
+            "processed_request_count": result.processed_count,
             "all_processed_request_records": all_records,
         },
         "supported_request_patterns": processor.SUPPORTED_REQUEST_PATTERNS,
         "run_modes": {
             "once": "Process one pending supported request and exit.",
             "watch_seconds": "Poll the configured inbox for a bounded number of seconds, then exit.",
+            "idle_poll_interval": "Backoff interval used outside an active request window.",
+            "active_poll_interval": "Fast poll interval used briefly after a new supported request is processed.",
+            "active_window_seconds": "Bounded responsive window before backing off to idle polling.",
             "max_requests": "Caps how many new requests a watch run may process before exiting.",
             "persistent_service": "Not installed or enabled in this lane.",
         },
         "manual_run_help": {
             "once": "python3 scripts/run_openclaw_request_response_service.py --once --format json",
-            "bounded_watch": "python3 scripts/run_openclaw_request_response_service.py --watch-seconds 10 --poll-interval 1 --max-requests 1 --format json",
+            "bounded_watch": (
+                "python3 scripts/run_openclaw_request_response_service.py --watch-seconds 10 "
+                "--poll-interval 1 --active-poll-interval 0.05 --active-window-seconds 180 "
+                "--max-requests 1 --format json"
+            ),
             "approved_inbox": APPROVED_INBOX.as_posix(),
             "response_dir": DEFAULT_RESPONSE_DIR.as_posix(),
         },
@@ -689,6 +800,7 @@ def build_service_status_payload(
             "per_request_filename": "openclaw_response_for_mac_<source_request_id>.json",
             "latest_filename": LATEST_RESPONSE_EXPORT_NAME,
             "manifest_filename": MANIFEST_EXPORT_NAME,
+            "atomic_write_policy": "write temporary JSON then rename into place",
         },
         "authority_boundary": AUTHORITY_BOUNDARY,
     }
@@ -708,6 +820,14 @@ def format_status_markdown(payload: Mapping[str, Any]) -> str:
             "",
             f"Inbox: {status['inbox']}",
             f"Response path: {status['response_path']}",
+            f"Mode: {status.get('mode', 'unknown')}",
+            f"Idle poll interval: {status.get('idle_poll_interval', 'unknown')}",
+            f"Active poll interval: {status.get('active_poll_interval', 'unknown')}",
+            f"Active window remaining: {status.get('active_window_remaining_seconds', 'unknown')}",
+            f"Processed request count: {status.get('processed_request_count', status.get('processed_count', 0))}",
+            f"Last request: {status.get('last_processed_request_id') or 'none'}",
+            f"Last response: {status.get('last_response_path') or 'none'}",
+            f"Stop reason: {status.get('bounded_stop_reason', 'unknown')}",
             "",
             "Latest response:",
             f"- File: {latest.get('response_file', 'none')}",
@@ -730,8 +850,8 @@ def write_service_status(payload: dict[str, Any], export_root: Path = DEFAULT_EX
     export_root.mkdir(parents=True, exist_ok=True)
     json_path = export_root / STATUS_JSON_EXPORT_NAME
     operator_path = export_root / STATUS_OPERATOR_EXPORT_NAME
-    json_path.write_text(stable_json(payload), encoding="utf-8")
-    operator_path.write_text(format_status_markdown(payload), encoding="utf-8")
+    _atomic_write_text(json_path, stable_json(payload))
+    _atomic_write_text(operator_path, format_status_markdown(payload))
     return json_path, operator_path
 
 
@@ -749,6 +869,15 @@ def build_summary(payload: Mapping[str, Any], paths: tuple[Path, Path]) -> dict[
         "response_path": status["response_path"],
         "processed_count": status["processed_count"],
         "skipped_duplicate_count": status["skipped_duplicate_count"],
+        "mode": status.get("mode"),
+        "current_poll_interval": status.get("current_poll_interval"),
+        "idle_poll_interval": status.get("idle_poll_interval"),
+        "active_poll_interval": status.get("active_poll_interval"),
+        "active_window_seconds": status.get("active_window_seconds"),
+        "active_window_remaining_seconds": status.get("active_window_remaining_seconds"),
+        "last_processed_request_id": status.get("last_processed_request_id"),
+        "last_response_path": status.get("last_response_path"),
+        "bounded_stop_reason": status.get("bounded_stop_reason"),
         "latest_response_file": latest.get("response_file"),
         "operator_headline": latest.get("operator_headline"),
         "operator_message": latest.get("operator_message"),
@@ -764,7 +893,9 @@ def run_service(
     *,
     once: bool = True,
     watch_seconds: int | None = None,
-    poll_interval: float = 0.5,
+    poll_interval: float = DEFAULT_IDLE_POLL_INTERVAL,
+    active_poll_interval: float = DEFAULT_ACTIVE_POLL_INTERVAL,
+    active_window_seconds: float = DEFAULT_ACTIVE_WINDOW_SECONDS,
     max_requests: int = 1,
     inbox: Path = APPROVED_INBOX,
     response_dir: Path = DEFAULT_RESPONSE_DIR,
@@ -779,6 +910,8 @@ def run_service(
             generated_at=generated_at,
             watch_seconds=watch_seconds,
             poll_interval=poll_interval,
+            active_poll_interval=active_poll_interval,
+            active_window_seconds=active_window_seconds,
             max_requests=max_requests,
         )
     else:
@@ -797,7 +930,19 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Run bounded local OpenClaw request/response service.")
     parser.add_argument("--once", action="store_true", help="Process one pending request and exit. This is the default.")
     parser.add_argument("--watch-seconds", type=int, default=None, help="Bounded polling window, then exit.")
-    parser.add_argument("--poll-interval", type=float, default=0.5)
+    parser.add_argument("--poll-interval", type=float, default=DEFAULT_IDLE_POLL_INTERVAL, help="Idle poll interval in seconds.")
+    parser.add_argument(
+        "--active-poll-interval",
+        type=float,
+        default=DEFAULT_ACTIVE_POLL_INTERVAL,
+        help="Fast poll interval in seconds during the bounded active window.",
+    )
+    parser.add_argument(
+        "--active-window-seconds",
+        type=float,
+        default=DEFAULT_ACTIVE_WINDOW_SECONDS,
+        help="Seconds to keep fast polling after a new supported request is processed.",
+    )
     parser.add_argument("--max-requests", type=int, default=1, help="Maximum new requests to process in a watch run.")
     parser.add_argument("--inbox", default=str(APPROVED_INBOX))
     parser.add_argument("--response-dir", default=str(DEFAULT_RESPONSE_DIR))
@@ -809,6 +954,8 @@ def main(argv: list[str] | None = None) -> int:
         once=args.once,
         watch_seconds=args.watch_seconds,
         poll_interval=args.poll_interval,
+        active_poll_interval=args.active_poll_interval,
+        active_window_seconds=args.active_window_seconds,
         max_requests=args.max_requests,
         inbox=Path(args.inbox),
         response_dir=Path(args.response_dir),

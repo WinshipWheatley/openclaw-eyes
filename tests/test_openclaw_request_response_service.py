@@ -63,6 +63,19 @@ def _safe_response_path(response_dir: Path, request_id: str) -> Path:
     return response_dir / f"openclaw_response_for_mac_{service._safe_filename_part(request_id)}.json"
 
 
+class _FakeClock:
+    def __init__(self) -> None:
+        self.now = 0.0
+        self.sleeps: list[float] = []
+
+    def monotonic(self) -> float:
+        return self.now
+
+    def sleep(self, seconds: float) -> None:
+        self.sleeps.append(seconds)
+        self.now += seconds
+
+
 def test_service_scans_only_selected_inbox(tmp_path, capsys):
     inbox = tmp_path / "approved_inbox"
     outside = tmp_path / "outside"
@@ -121,12 +134,16 @@ def test_service_processes_chat_request_and_writes_per_request_response(tmp_path
     payload = json.loads(capsys.readouterr().out)
     response_path = _safe_response_path(response_dir, request["request_id"])
     response = json.loads(response_path.read_text(encoding="utf-8"))
+    latest = json.loads((response_dir / service.LATEST_RESPONSE_EXPORT_NAME).read_text(encoding="utf-8"))
+    manifest = json.loads((response_dir / service.MANIFEST_EXPORT_NAME).read_text(encoding="utf-8"))
 
     assert payload["service_status"]["service_status"] == "REQUEST_PROCESSED"
     assert response_path.exists()
     assert (response_dir / service.LATEST_RESPONSE_EXPORT_NAME).exists()
     assert (response_dir / service.MANIFEST_EXPORT_NAME).exists()
     assert response["source_request_id"] == request["request_id"]
+    assert latest["source_request_id"] == request["request_id"]
+    assert manifest["latest_response_file"].endswith(service.LATEST_RESPONSE_EXPORT_NAME)
     assert response["terminal"] is True
     assert response["response_id"]
     assert response["audience_mode"] == "ELIWINSHIP"
@@ -363,8 +380,80 @@ def test_watch_seconds_exits_without_unbounded_loop(tmp_path, capsys):
     payload = json.loads(capsys.readouterr().out)
 
     assert payload["service_status"]["service_status"] == "WATCH_TIMED_OUT_IDLE"
+    assert payload["service_status"]["mode"] == "stopped"
+    assert payload["service_status"]["bounded_stop_reason"] == "watch_seconds_elapsed"
     assert payload["machine_proof"]["bounded_run_mode"] is True
     assert payload["machine_proof"]["unbounded_loop_default"] is False
+
+
+def test_watch_mode_uses_idle_poll_interval_when_idle(tmp_path, monkeypatch):
+    inbox = tmp_path / "inbox"
+    response_dir = tmp_path / "responses"
+    export_root = tmp_path / "read_models"
+    inbox.mkdir()
+    clock = _FakeClock()
+    monkeypatch.setattr(service.time, "monotonic", clock.monotonic)
+    monkeypatch.setattr(service.time, "sleep", clock.sleep)
+
+    result = service.run_watch(
+        inbox=inbox,
+        response_dir=response_dir,
+        export_root=export_root,
+        generated_at=FIXED_NOW,
+        watch_seconds=2,
+        poll_interval=1.0,
+        active_poll_interval=0.05,
+        active_window_seconds=1.0,
+        max_requests=1,
+    )
+    payload = service.build_service_status_payload(result, export_root=export_root, generated_at=FIXED_NOW)
+
+    assert result.processed_count == 0
+    assert clock.sleeps == [1.0, 1.0]
+    assert payload["service_status"]["mode"] == "stopped"
+    assert payload["service_status"]["last_watch_mode_before_stop"] == "idle"
+    assert payload["service_status"]["current_poll_interval"] == 0.0
+    assert payload["service_status"]["idle_poll_interval"] == 1.0
+    assert payload["service_status"]["active_poll_interval"] == 0.05
+    assert payload["service_status"]["bounded_stop_reason"] == "watch_seconds_elapsed"
+
+
+def test_watch_mode_uses_active_poll_window_then_backs_off(tmp_path, monkeypatch):
+    inbox = tmp_path / "inbox"
+    response_dir = tmp_path / "responses"
+    export_root = tmp_path / "read_models"
+    inbox.mkdir()
+    _write_unique_file_request(inbox / "mission_control_file_intake_request_active.json", "active_window")
+    clock = _FakeClock()
+    monkeypatch.setattr(service.time, "monotonic", clock.monotonic)
+    monkeypatch.setattr(service.time, "sleep", clock.sleep)
+
+    result = service.run_watch(
+        inbox=inbox,
+        response_dir=response_dir,
+        export_root=export_root,
+        generated_at=FIXED_NOW,
+        watch_seconds=1.2,
+        poll_interval=1.0,
+        active_poll_interval=0.05,
+        active_window_seconds=0.11,
+        max_requests=2,
+    )
+    payload = service.build_service_status_payload(result, export_root=export_root, generated_at=FIXED_NOW)
+    latest = result.latest_response or {}
+
+    assert result.processed_count == 1
+    assert 0.05 in clock.sleeps
+    assert any(seconds >= 1.0 for seconds in clock.sleeps)
+    assert payload["service_status"]["mode"] == "stopped"
+    assert payload["service_status"]["last_watch_mode_before_stop"] == "idle"
+    assert payload["service_status"]["last_processed_request_id"] == (
+        "mission_control_file_intake_request_spreadsheet_fixture_active_window"
+    )
+    assert payload["service_status"]["last_response_path"] == latest.get("response_file")
+    assert payload["machine_proof"]["active_session_watch_present"] is True
+    assert payload["machine_proof"]["atomic_response_writes"] is True
+    assert json.loads(Path(latest["response_file"]).read_text(encoding="utf-8"))["terminal"] is True
 
 
 def test_watch_seconds_with_pending_request_does_not_reprocess_same_file_forever(tmp_path, capsys):
@@ -479,7 +568,8 @@ def test_watch_mode_honors_max_requests(tmp_path, capsys):
     payload = json.loads(capsys.readouterr().out)
 
     assert payload["service_status"]["processed_count"] == 1
-    assert payload["service_status"]["run_mode"] == "watch_seconds=1,max_requests=1"
+    assert payload["service_status"]["run_mode"].startswith("watch_seconds=1,max_requests=1")
+    assert payload["service_status"]["bounded_stop_reason"] == "max_requests_reached"
 
 
 def test_no_request_deletion_no_raw_body_ingestion_no_external_authority(tmp_path, capsys):

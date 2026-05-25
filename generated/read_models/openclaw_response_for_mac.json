@@ -35,7 +35,7 @@
   "cards_available": true,
   "context_package_refs": [],
   "contract_status": "BOUNDED_OPENCLAW_REQUEST_LIFECYCLE_PROCESSOR",
-  "created_at": "2026-05-25T22:32:41+00:00",
+  "created_at": "2026-05-25T22:42:54+00:00",
   "debug_refs": [
     "generated/read_models/capital_hilton_invoice_operator_readback.json",
     "generated/read_models/capital_hilton_invoice_operator_readback_OPERATOR.md"
@@ -64,13 +64,13 @@
     "model_or_worker_response_adapter_called": false,
     "operator_readback_ref": "generated/read_models/capital_hilton_invoice_operator_readback_OPERATOR.md",
     "request_classification": {
-      "classification_id": "request_classification_a469bf72e2868e6c502a",
+      "classification_id": "request_classification_6b34ff85aa0f4ca04b27",
       "classification_reason": "Filename matches Mission Control chat request pattern, and message asks for Capital Hilton invoice status.",
       "future_supported": false,
       "next_safe_move": "Export the unified Capital Hilton invoice operator readback and return it to Mac chat.",
       "request_family": "CHAT",
       "selected_rail": "capital_hilton_invoice_operator_readback",
-      "source_request_filename": "mission_control_chat_request_capital_hilton_invoice_workflow_1779747656229_5bf670150d8b.json"
+      "source_request_filename": "mission_control_chat_request_capital_hilton_status_layered_20260525_224500.json"
     },
     "selected_readback_ref": "generated/read_models/capital_hilton_invoice_operator_readback.json"
   },
@@ -78,7 +78,7 @@
   "display_mode": "COMPACT_CHAT",
   "eliwinship": "You have the invoice basis and draft rails. You still need the Coupa PO/reference and approval receipts before anything can send or submit.",
   "file_readback_refs": [],
-  "generated_at": "2026-05-25T22:32:41+00:00",
+  "generated_at": "2026-05-25T22:42:54+00:00",
   "headline": "Capital Hilton invoice is not ready yet",
   "how_to_fix": "Confirm the Coupa PO/reference, verify protected refs, then create Guardian and exact operator approval receipts. After future gated send/submit lanes produce receipts, rerun completion proof aggregation.",
   "internal_status": "RESPONSE_READY",
@@ -92,7 +92,7 @@
     "blocked_has_how_to_fix": true,
     "broad_scan_performed": false,
     "browser_access_performed": false,
-    "content_hash": "sha256:744b6d91825f056625f716a322f1030a6f26505dfe464120eba21095d7360b61",
+    "content_hash": "sha256:828ff24fc5dddcf271a916ebe9d070dc865855c7ca9c8dc1e9d8e30e86907d01",
     "coupa_access_or_submit_performed": false,
     "credential_handling_performed": false,
     "credentials_or_secrets_included": false,
@@ -155,11 +155,11 @@
     "generated/read_models/capital_hilton_invoice_operator_readback_OPERATOR.md"
   ],
   "request_type": "CHAT",
-  "response_id": "openclaw_response_83d491719ac40b353b0a",
+  "response_id": "openclaw_response_39311d3e4cf2aa2cb93e",
   "response_kind": "CAPITAL_HILTON_INVOICE_STATUS",
   "schema_version": "openclaw_request_processor_v0",
-  "source_request_filename": "mission_control_chat_request_capital_hilton_invoice_workflow_1779747656229_5bf670150d8b.json",
-  "source_request_id": "capital_hilton_invoice_workflow_1779747656229_5bf670150d8b",
+  "source_request_filename": "mission_control_chat_request_capital_hilton_status_layered_20260525_224500.json",
+  "source_request_id": "capital_hilton_invoice_status_layered_service_20260525_224500",
   "terminal": true,
   "visible_cards": [
     {
