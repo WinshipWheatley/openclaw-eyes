@@ -1,0 +1,1767 @@
+{
+  "allowed_contract_scope": [
+    "deterministic contract/read-model generation",
+    "graph/projection examples",
+    "tests",
+    "ELIOPERATOR report"
+  ],
+  "authority_boundary": {
+    "credential_handling_allowed": false,
+    "git_push_pull_fetch_allowed": false,
+    "live_agent_retrieval_allowed": false,
+    "live_cross_scope_query_allowed": false,
+    "live_db_migration_allowed": false,
+    "live_delete_allowed": false,
+    "live_external_action_allowed": false,
+    "live_folder_move_allowed": false,
+    "live_folder_tree_update_allowed": false,
+    "live_memory_write_allowed": false,
+    "live_raw_file_body_ingestion_allowed": false,
+    "live_raw_transcript_ingestion_allowed": false,
+    "live_reorganization_allowed": false,
+    "mac_sync_import_allowed": false,
+    "mission_control_swift_change_allowed": false,
+    "network_allowed": false,
+    "raw_body_ingestion_allowed": false
+  },
+  "blocker_types": [
+    "STRICT_TREE_ASSUMED_AS_TRUTH",
+    "CROSS_CLIENT_LEAK",
+    "MISSING_TENANT_SCOPE",
+    "MISSING_CLIENT_SCOPE",
+    "RAW_TRANSCRIPT_EXPOSURE",
+    "RAW_FILE_BODY_EXPOSURE",
+    "PROVENANCE_MISSING",
+    "DESTRUCTIVE_MOVE_ATTEMPTED",
+    "SILENT_REORG_ATTEMPTED",
+    "STALE_PROJECTION",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "contract_status": "DETERMINISTIC_NON_MUTATING_MEMORY_GRAPH_FOLDER_PROJECTION",
+  "db_rail_status": {
+    "live_db_migration_supported_in_this_lane": false,
+    "live_db_write_supported_in_this_lane": false,
+    "missing_live_rail": "approved semantic graph writer/retrieval rail",
+    "semantic_tables_present_in_backend_sqlite_schema": true
+  },
+  "examples": {
+    "build_mission_control": {
+      "graph_bindings": [
+        "Mac Codex prompts",
+        "screenshots",
+        "readback cards",
+        "SwiftUI task history"
+      ],
+      "node_refs": [
+        "node_build_mission_control_chat_surface"
+      ],
+      "projection": [
+        "build",
+        "mission_control",
+        "chat_surface"
+      ],
+      "relationship_refs": [
+        "rel_chat_surface_links_readback_cards"
+      ]
+    },
+    "finance_capital_hilton": {
+      "graph_bindings": [
+        "invoice workflow procedure",
+        "delivery fact receipts",
+        "invoice artifact refs",
+        "router readbacks",
+        "payment tracking refs"
+      ],
+      "node_refs": [
+        "node_finance_capital_hilton_invoices"
+      ],
+      "projection": [
+        "finance",
+        "capital_hilton",
+        "invoices"
+      ],
+      "relationship_refs": [
+        "rel_invoices_supports_proof",
+        "rel_invoices_generated_router_readback"
+      ]
+    },
+    "multi_folder_chat": {
+      "expected_behavior": [
+        "Graph relationships link topic candidates to multiple folder projections.",
+        "No destructive move occurs.",
+        "Provenance is preserved.",
+        "Future topic slicer can refine this later."
+      ],
+      "node_refs": [
+        "node_multifolder_chat_setlists"
+      ],
+      "relationship_refs": [
+        "rel_multifolder_chat_links_x32",
+        "rel_multifolder_chat_links_song",
+        "rel_multifolder_chat_links_booking_followup"
+      ],
+      "start_projection": [
+        "music",
+        "live_music",
+        "setlists"
+      ],
+      "topic_candidates": [
+        "X32 routing",
+        "new song arrangement",
+        "booking follow-up"
+      ]
+    },
+    "music_live_x32": {
+      "graph_bindings": [
+        "X32 routing notes link to live show setup.",
+        "X32 routing notes link to Behringer X32 source refs.",
+        "X32 routing notes link to troubleshooting chats."
+      ],
+      "node_refs": [
+        "node_music_live_x32",
+        "node_music_x32_routing",
+        "node_music_x32_show_files"
+      ],
+      "projection": [
+        "music",
+        "live_music",
+        "x32",
+        "routing",
+        "show_files"
+      ],
+      "relationship_refs": [
+        "rel_x32_routing_links_show_setup",
+        "rel_multifolder_chat_links_x32"
+      ]
+    },
+    "music_studio_album_song": {
+      "graph_bindings": [
+        "album spreadsheet source ref",
+        "song rich text doc source ref",
+        "Logic project metadata source ref",
+        "mix notes thread"
+      ],
+      "node_refs": [
+        "node_music_song"
+      ],
+      "projection": [
+        "music",
+        "studio",
+        "album",
+        "song_name"
+      ],
+      "relationship_refs": [
+        "rel_song_links_album_spreadsheet",
+        "rel_song_links_logic_metadata"
+      ]
+    },
+    "struna_mac_version": {
+      "classification_note": "Projected under build for v0; music relationship is preserved as a reviewed cross-link candidate.",
+      "graph_bindings": [
+        "Draper ownership context summary",
+        "Winship 25 percent Mac-version agreement summary",
+        "licensing/use note",
+        "app files/source refs"
+      ],
+      "node_refs": [
+        "node_struna_mac_version"
+      ],
+      "projection": [
+        "build",
+        "struna",
+        "mac_version"
+      ],
+      "relationship_refs": [
+        "rel_build_links_struna",
+        "rel_struna_related_music"
+      ]
+    }
+  },
+  "existing_sqlite_graph_tables": [
+    "semantic_records",
+    "semantic_relationships",
+    "provenance_refs"
+  ],
+  "folder_projection_blockers_by_id": {
+    "folder_projection_blocker_cross_client_leak": {
+      "blocker_id": "folder_projection_blocker_cross_client_leak",
+      "blocker_type": "CROSS_CLIENT_LEAK",
+      "condition": "A relationship crosses client scope without explicit permission.",
+      "elioperator_warning": "Fail closed and require reviewed scope boundary.",
+      "fail_closed": true,
+      "next_safe_move": "Return an operator-readable blocker and avoid memory/folder mutation.",
+      "severity": "CRITICAL"
+    },
+    "folder_projection_blocker_destructive_move_attempted": {
+      "blocker_id": "folder_projection_blocker_destructive_move_attempted",
+      "blocker_type": "DESTRUCTIVE_MOVE_ATTEMPTED",
+      "condition": "Projection tries to move/delete real folders or source material.",
+      "elioperator_warning": "Block move/delete and show a suggested projection update only.",
+      "fail_closed": true,
+      "next_safe_move": "Return an operator-readable blocker and avoid memory/folder mutation.",
+      "severity": "HIGH"
+    },
+    "folder_projection_blocker_missing_client_scope": {
+      "blocker_id": "folder_projection_blocker_missing_client_scope",
+      "blocker_type": "MISSING_CLIENT_SCOPE",
+      "condition": "A node or relationship lacks client_ref or local/operator scope.",
+      "elioperator_warning": "Do not project client-ambiguous memory.",
+      "fail_closed": true,
+      "next_safe_move": "Return an operator-readable blocker and avoid memory/folder mutation.",
+      "severity": "HIGH"
+    },
+    "folder_projection_blocker_missing_tenant_scope": {
+      "blocker_id": "folder_projection_blocker_missing_tenant_scope",
+      "blocker_type": "MISSING_TENANT_SCOPE",
+      "condition": "A node or relationship lacks tenant_ref.",
+      "elioperator_warning": "Do not project unscopeable memory.",
+      "fail_closed": true,
+      "next_safe_move": "Return an operator-readable blocker and avoid memory/folder mutation.",
+      "severity": "HIGH"
+    },
+    "folder_projection_blocker_provenance_missing": {
+      "blocker_id": "folder_projection_blocker_provenance_missing",
+      "blocker_type": "PROVENANCE_MISSING",
+      "condition": "A node or relationship lacks provenance refs.",
+      "elioperator_warning": "Keep it out of current projection until provenance exists.",
+      "fail_closed": true,
+      "next_safe_move": "Return an operator-readable blocker and avoid memory/folder mutation.",
+      "severity": "HIGH"
+    },
+    "folder_projection_blocker_raw_file_body_exposure": {
+      "blocker_id": "folder_projection_blocker_raw_file_body_exposure",
+      "blocker_type": "RAW_FILE_BODY_EXPOSURE",
+      "condition": "Raw file body appears in normal projection output.",
+      "elioperator_warning": "Use metadata/source refs only.",
+      "fail_closed": true,
+      "next_safe_move": "Return an operator-readable blocker and avoid memory/folder mutation.",
+      "severity": "HIGH"
+    },
+    "folder_projection_blocker_raw_transcript_exposure": {
+      "blocker_id": "folder_projection_blocker_raw_transcript_exposure",
+      "blocker_type": "RAW_TRANSCRIPT_EXPOSURE",
+      "condition": "Raw transcript text appears in normal projection output.",
+      "elioperator_warning": "Use topic summaries and source refs only.",
+      "fail_closed": true,
+      "next_safe_move": "Return an operator-readable blocker and avoid memory/folder mutation.",
+      "severity": "HIGH"
+    },
+    "folder_projection_blocker_silent_reorg_attempted": {
+      "blocker_id": "folder_projection_blocker_silent_reorg_attempted",
+      "blocker_type": "SILENT_REORG_ATTEMPTED",
+      "condition": "Projection silently reorganizes memory without review.",
+      "elioperator_warning": "Require operator review for disruptive reorganization.",
+      "fail_closed": true,
+      "next_safe_move": "Return an operator-readable blocker and avoid memory/folder mutation.",
+      "severity": "HIGH"
+    },
+    "folder_projection_blocker_stale_projection": {
+      "blocker_id": "folder_projection_blocker_stale_projection",
+      "blocker_type": "STALE_PROJECTION",
+      "condition": "Projection no longer matches source graph/readback refs.",
+      "elioperator_warning": "Mark stale and regenerate from graph/readbacks.",
+      "fail_closed": true,
+      "next_safe_move": "Return an operator-readable blocker and avoid memory/folder mutation.",
+      "severity": "HIGH"
+    },
+    "folder_projection_blocker_strict_tree_assumed_as_truth": {
+      "blocker_id": "folder_projection_blocker_strict_tree_assumed_as_truth",
+      "blocker_type": "STRICT_TREE_ASSUMED_AS_TRUTH",
+      "condition": "A worker treats folder path as canonical memory truth.",
+      "elioperator_warning": "Use semantic graph refs as truth and folder paths as projections only.",
+      "fail_closed": true,
+      "next_safe_move": "Return an operator-readable blocker and avoid memory/folder mutation.",
+      "severity": "HIGH"
+    },
+    "folder_projection_blocker_unknown_fail_closed": {
+      "blocker_id": "folder_projection_blocker_unknown_fail_closed",
+      "blocker_type": "UNKNOWN_FAIL_CLOSED",
+      "condition": "Projection state cannot be classified.",
+      "elioperator_warning": "Fail closed and ask for review.",
+      "fail_closed": true,
+      "next_safe_move": "Return an operator-readable blocker and avoid memory/folder mutation.",
+      "severity": "CRITICAL"
+    }
+  },
+  "folder_projection_nodes_by_ref": {
+    "proj_build": {
+      "child_refs": [
+        "proj_build_mission_control",
+        "proj_build_struna_mac_version"
+      ],
+      "display_name": "build",
+      "folder_path": "build",
+      "linked_refs": [],
+      "next_safe_move": "Render as build world root.",
+      "node_ref": "node_world_build",
+      "node_type": "WORLD",
+      "parent_projection_node_ref": null,
+      "privacy_class": "internal",
+      "projection_node_ref": "proj_build",
+      "suggested_badge": "",
+      "unread_or_changed_status": "current"
+    },
+    "proj_build_mission_control": {
+      "child_refs": [
+        "proj_build_mission_control_chat_surface"
+      ],
+      "display_name": "mission_control",
+      "folder_path": "build/mission_control",
+      "linked_refs": [],
+      "next_safe_move": "Render as Mission Control project folder.",
+      "node_ref": "node_build_mission_control",
+      "node_type": "PROJECT_FOLDER",
+      "parent_projection_node_ref": "proj_build",
+      "privacy_class": "internal",
+      "projection_node_ref": "proj_build_mission_control",
+      "suggested_badge": "",
+      "unread_or_changed_status": "current"
+    },
+    "proj_build_mission_control_chat_surface": {
+      "child_refs": [],
+      "display_name": "chat_surface",
+      "folder_path": "build/mission_control/chat_surface",
+      "linked_refs": [
+        "source_ref_mac_codex_prompts",
+        "source_ref_screenshots_metadata",
+        "artifact_ref_readback_cards",
+        "receipt_swiftui_task_history"
+      ],
+      "next_safe_move": "Show active chat surface work without exposing raw prompts or screenshots.",
+      "node_ref": "node_build_mission_control_chat_surface",
+      "node_type": "PROJECT_FOLDER",
+      "parent_projection_node_ref": "proj_build_mission_control",
+      "privacy_class": "internal",
+      "projection_node_ref": "proj_build_mission_control_chat_surface",
+      "suggested_badge": "active work",
+      "unread_or_changed_status": "changed"
+    },
+    "proj_build_struna_mac_version": {
+      "child_refs": [],
+      "display_name": "struna_mac_version",
+      "folder_path": "build/struna/mac_version",
+      "linked_refs": [
+        "receipt_struna_ownership_context_summary",
+        "receipt_struna_mac_version_agreement_summary",
+        "receipt_struna_licensing_use_note",
+        "source_ref_struna_app_files"
+      ],
+      "next_safe_move": "Keep as reviewed summary refs; do not expose legal/private bodies.",
+      "node_ref": "node_struna_mac_version",
+      "node_type": "PROJECT_FOLDER",
+      "parent_projection_node_ref": "proj_build",
+      "privacy_class": "private_summary_only",
+      "projection_node_ref": "proj_build_struna_mac_version",
+      "suggested_badge": "private summary",
+      "unread_or_changed_status": "needs_review"
+    },
+    "proj_finance": {
+      "child_refs": [
+        "proj_finance_capital_hilton"
+      ],
+      "display_name": "finance",
+      "folder_path": "finance",
+      "linked_refs": [],
+      "next_safe_move": "Render as finance world root.",
+      "node_ref": "node_world_finance",
+      "node_type": "WORLD",
+      "parent_projection_node_ref": null,
+      "privacy_class": "internal",
+      "projection_node_ref": "proj_finance",
+      "suggested_badge": "",
+      "unread_or_changed_status": "current"
+    },
+    "proj_finance_capital_hilton": {
+      "child_refs": [
+        "proj_finance_capital_hilton_invoices"
+      ],
+      "display_name": "capital_hilton",
+      "folder_path": "finance/capital_hilton",
+      "linked_refs": [],
+      "next_safe_move": "Render as client scope.",
+      "node_ref": "node_finance_capital_hilton",
+      "node_type": "PROJECT_FOLDER",
+      "parent_projection_node_ref": "proj_finance",
+      "privacy_class": "internal",
+      "projection_node_ref": "proj_finance_capital_hilton",
+      "suggested_badge": "",
+      "unread_or_changed_status": "current"
+    },
+    "proj_finance_capital_hilton_invoices": {
+      "child_refs": [],
+      "display_name": "invoices",
+      "folder_path": "finance/capital_hilton/invoices",
+      "linked_refs": [
+        "procedure_ref_capital_hilton_invoice_workflow",
+        "receipt_capital_hilton_delivery_facts",
+        "artifact_ref_capital_hilton_invoice_pdf_future",
+        "receipt_router_readback_capital_hilton",
+        "receipt_payment_tracking_ref"
+      ],
+      "next_safe_move": "Show invoice workflow links and readbacks; do not expose raw payment refs.",
+      "node_ref": "node_finance_capital_hilton_invoices",
+      "node_type": "PROJECT_FOLDER",
+      "parent_projection_node_ref": "proj_finance_capital_hilton",
+      "privacy_class": "finance_boundary",
+      "projection_node_ref": "proj_finance_capital_hilton_invoices",
+      "suggested_badge": "readbacks",
+      "unread_or_changed_status": "changed"
+    },
+    "proj_music": {
+      "child_refs": [
+        "proj_music_live_music",
+        "proj_music_studio"
+      ],
+      "display_name": "music",
+      "folder_path": "music",
+      "linked_refs": [],
+      "next_safe_move": "Render as a world root in the Mac sidebar.",
+      "node_ref": "node_world_music",
+      "node_type": "WORLD",
+      "parent_projection_node_ref": null,
+      "privacy_class": "internal",
+      "projection_node_ref": "proj_music",
+      "suggested_badge": "",
+      "unread_or_changed_status": "current"
+    },
+    "proj_music_album": {
+      "child_refs": [
+        "proj_music_song"
+      ],
+      "display_name": "album",
+      "folder_path": "music/studio/album",
+      "linked_refs": [],
+      "next_safe_move": "Render as album folder.",
+      "node_ref": "node_music_album",
+      "node_type": "PROJECT_FOLDER",
+      "parent_projection_node_ref": "proj_music_studio",
+      "privacy_class": "internal",
+      "projection_node_ref": "proj_music_album",
+      "suggested_badge": "",
+      "unread_or_changed_status": "current"
+    },
+    "proj_music_live_music": {
+      "child_refs": [
+        "proj_music_live_x32"
+      ],
+      "display_name": "live_music",
+      "folder_path": "music/live_music",
+      "linked_refs": [],
+      "next_safe_move": "Render as a projected folder.",
+      "node_ref": "node_music_live_music",
+      "node_type": "PROJECT_FOLDER",
+      "parent_projection_node_ref": "proj_music",
+      "privacy_class": "internal",
+      "projection_node_ref": "proj_music_live_music",
+      "suggested_badge": "",
+      "unread_or_changed_status": "current"
+    },
+    "proj_music_live_x32": {
+      "child_refs": [
+        "proj_music_x32_routing"
+      ],
+      "display_name": "x32",
+      "folder_path": "music/live_music/x32",
+      "linked_refs": [
+        "node_multifolder_chat_setlists"
+      ],
+      "next_safe_move": "Show linked chat badges without moving the chat.",
+      "node_ref": "node_music_live_x32",
+      "node_type": "PROJECT_FOLDER",
+      "parent_projection_node_ref": "proj_music_live_music",
+      "privacy_class": "internal",
+      "projection_node_ref": "proj_music_live_x32",
+      "suggested_badge": "linked chat",
+      "unread_or_changed_status": "current"
+    },
+    "proj_music_song": {
+      "child_refs": [],
+      "display_name": "song_name",
+      "folder_path": "music/studio/album/song_name",
+      "linked_refs": [
+        "source_ref_album_spreadsheet",
+        "source_ref_song_rich_text_doc",
+        "source_ref_logic_project_metadata",
+        "receipt_mix_notes_thread"
+      ],
+      "next_safe_move": "Show related source refs in details, not raw bodies.",
+      "node_ref": "node_music_song",
+      "node_type": "PROJECT_FOLDER",
+      "parent_projection_node_ref": "proj_music_album",
+      "privacy_class": "internal",
+      "projection_node_ref": "proj_music_song",
+      "suggested_badge": "3 source refs",
+      "unread_or_changed_status": "current"
+    },
+    "proj_music_studio": {
+      "child_refs": [
+        "proj_music_album"
+      ],
+      "display_name": "studio",
+      "folder_path": "music/studio",
+      "linked_refs": [],
+      "next_safe_move": "Render as studio folder.",
+      "node_ref": "node_music_studio",
+      "node_type": "PROJECT_FOLDER",
+      "parent_projection_node_ref": "proj_music",
+      "privacy_class": "internal",
+      "projection_node_ref": "proj_music_studio",
+      "suggested_badge": "",
+      "unread_or_changed_status": "current"
+    },
+    "proj_music_x32_routing": {
+      "child_refs": [
+        "proj_music_x32_show_files"
+      ],
+      "display_name": "routing",
+      "folder_path": "music/live_music/x32/routing",
+      "linked_refs": [
+        "source_ref_behringer_x32_notes",
+        "receipt_x32_show_setup_readback"
+      ],
+      "next_safe_move": "Render routing as a topic slice under X32.",
+      "node_ref": "node_music_x32_routing",
+      "node_type": "TOPIC_SLICE",
+      "parent_projection_node_ref": "proj_music_live_x32",
+      "privacy_class": "internal",
+      "projection_node_ref": "proj_music_x32_routing",
+      "suggested_badge": "proof links",
+      "unread_or_changed_status": "current"
+    },
+    "proj_music_x32_show_files": {
+      "child_refs": [],
+      "display_name": "show_files",
+      "folder_path": "music/live_music/x32/routing/show_files",
+      "linked_refs": [
+        "source_ref_x32_scene_metadata"
+      ],
+      "next_safe_move": "Show source refs only.",
+      "node_ref": "node_music_x32_show_files",
+      "node_type": "SOURCE_REF",
+      "parent_projection_node_ref": "proj_music_x32_routing",
+      "privacy_class": "metadata_only",
+      "projection_node_ref": "proj_music_x32_show_files",
+      "suggested_badge": "source refs",
+      "unread_or_changed_status": "current"
+    }
+  },
+  "folder_tree_projection": {
+    "changed_nodes": [
+      "proj_finance_capital_hilton_invoices",
+      "proj_build_mission_control_chat_surface"
+    ],
+    "mac_render_ready": true,
+    "next_safe_move": "Let Mac read this projection as sidebar data; do not mutate real folders or memory state.",
+    "operator_review_items": [
+      "Struna may belong under music or build; v0 projects it under build and preserves a music relation.",
+      "Multi-topic setlist chat needs future topic slicing before any folder promotion."
+    ],
+    "projected_tree": [
+      {
+        "child_refs": [
+          "proj_music_live_music",
+          "proj_music_studio"
+        ],
+        "display_name": "music",
+        "folder_path": "music",
+        "linked_refs": [],
+        "node_ref": "node_world_music",
+        "privacy_class": "internal",
+        "projection_node_ref": "proj_music",
+        "suggested_badge": ""
+      },
+      {
+        "child_refs": [
+          "proj_music_live_x32"
+        ],
+        "display_name": "live_music",
+        "folder_path": "music/live_music",
+        "linked_refs": [],
+        "node_ref": "node_music_live_music",
+        "privacy_class": "internal",
+        "projection_node_ref": "proj_music_live_music",
+        "suggested_badge": ""
+      },
+      {
+        "child_refs": [
+          "proj_music_x32_routing"
+        ],
+        "display_name": "x32",
+        "folder_path": "music/live_music/x32",
+        "linked_refs": [
+          "node_multifolder_chat_setlists"
+        ],
+        "node_ref": "node_music_live_x32",
+        "privacy_class": "internal",
+        "projection_node_ref": "proj_music_live_x32",
+        "suggested_badge": "linked chat"
+      },
+      {
+        "child_refs": [
+          "proj_music_x32_show_files"
+        ],
+        "display_name": "routing",
+        "folder_path": "music/live_music/x32/routing",
+        "linked_refs": [
+          "source_ref_behringer_x32_notes",
+          "receipt_x32_show_setup_readback"
+        ],
+        "node_ref": "node_music_x32_routing",
+        "privacy_class": "internal",
+        "projection_node_ref": "proj_music_x32_routing",
+        "suggested_badge": "proof links"
+      },
+      {
+        "child_refs": [],
+        "display_name": "show_files",
+        "folder_path": "music/live_music/x32/routing/show_files",
+        "linked_refs": [
+          "source_ref_x32_scene_metadata"
+        ],
+        "node_ref": "node_music_x32_show_files",
+        "privacy_class": "metadata_only",
+        "projection_node_ref": "proj_music_x32_show_files",
+        "suggested_badge": "source refs"
+      },
+      {
+        "child_refs": [
+          "proj_music_album"
+        ],
+        "display_name": "studio",
+        "folder_path": "music/studio",
+        "linked_refs": [],
+        "node_ref": "node_music_studio",
+        "privacy_class": "internal",
+        "projection_node_ref": "proj_music_studio",
+        "suggested_badge": ""
+      },
+      {
+        "child_refs": [
+          "proj_music_song"
+        ],
+        "display_name": "album",
+        "folder_path": "music/studio/album",
+        "linked_refs": [],
+        "node_ref": "node_music_album",
+        "privacy_class": "internal",
+        "projection_node_ref": "proj_music_album",
+        "suggested_badge": ""
+      },
+      {
+        "child_refs": [],
+        "display_name": "song_name",
+        "folder_path": "music/studio/album/song_name",
+        "linked_refs": [
+          "source_ref_album_spreadsheet",
+          "source_ref_song_rich_text_doc",
+          "source_ref_logic_project_metadata",
+          "receipt_mix_notes_thread"
+        ],
+        "node_ref": "node_music_song",
+        "privacy_class": "internal",
+        "projection_node_ref": "proj_music_song",
+        "suggested_badge": "3 source refs"
+      },
+      {
+        "child_refs": [
+          "proj_finance_capital_hilton"
+        ],
+        "display_name": "finance",
+        "folder_path": "finance",
+        "linked_refs": [],
+        "node_ref": "node_world_finance",
+        "privacy_class": "internal",
+        "projection_node_ref": "proj_finance",
+        "suggested_badge": ""
+      },
+      {
+        "child_refs": [
+          "proj_finance_capital_hilton_invoices"
+        ],
+        "display_name": "capital_hilton",
+        "folder_path": "finance/capital_hilton",
+        "linked_refs": [],
+        "node_ref": "node_finance_capital_hilton",
+        "privacy_class": "internal",
+        "projection_node_ref": "proj_finance_capital_hilton",
+        "suggested_badge": ""
+      },
+      {
+        "child_refs": [],
+        "display_name": "invoices",
+        "folder_path": "finance/capital_hilton/invoices",
+        "linked_refs": [
+          "procedure_ref_capital_hilton_invoice_workflow",
+          "receipt_capital_hilton_delivery_facts",
+          "artifact_ref_capital_hilton_invoice_pdf_future",
+          "receipt_router_readback_capital_hilton",
+          "receipt_payment_tracking_ref"
+        ],
+        "node_ref": "node_finance_capital_hilton_invoices",
+        "privacy_class": "finance_boundary",
+        "projection_node_ref": "proj_finance_capital_hilton_invoices",
+        "suggested_badge": "readbacks"
+      },
+      {
+        "child_refs": [
+          "proj_build_mission_control",
+          "proj_build_struna_mac_version"
+        ],
+        "display_name": "build",
+        "folder_path": "build",
+        "linked_refs": [],
+        "node_ref": "node_world_build",
+        "privacy_class": "internal",
+        "projection_node_ref": "proj_build",
+        "suggested_badge": ""
+      },
+      {
+        "child_refs": [
+          "proj_build_mission_control_chat_surface"
+        ],
+        "display_name": "mission_control",
+        "folder_path": "build/mission_control",
+        "linked_refs": [],
+        "node_ref": "node_build_mission_control",
+        "privacy_class": "internal",
+        "projection_node_ref": "proj_build_mission_control",
+        "suggested_badge": ""
+      },
+      {
+        "child_refs": [],
+        "display_name": "chat_surface",
+        "folder_path": "build/mission_control/chat_surface",
+        "linked_refs": [
+          "source_ref_mac_codex_prompts",
+          "source_ref_screenshots_metadata",
+          "artifact_ref_readback_cards",
+          "receipt_swiftui_task_history"
+        ],
+        "node_ref": "node_build_mission_control_chat_surface",
+        "privacy_class": "internal",
+        "projection_node_ref": "proj_build_mission_control_chat_surface",
+        "suggested_badge": "active work"
+      },
+      {
+        "child_refs": [],
+        "display_name": "struna_mac_version",
+        "folder_path": "build/struna/mac_version",
+        "linked_refs": [
+          "receipt_struna_ownership_context_summary",
+          "receipt_struna_mac_version_agreement_summary",
+          "receipt_struna_licensing_use_note",
+          "source_ref_struna_app_files"
+        ],
+        "node_ref": "node_struna_mac_version",
+        "privacy_class": "private_summary_only",
+        "projection_node_ref": "proj_build_struna_mac_version",
+        "suggested_badge": "private summary"
+      }
+    ],
+    "projection_id": "folder_projection_world_project_sidebar_v0",
+    "projection_status": "UPDATED_READY_FOR_MAC",
+    "root_nodes": [
+      "proj_music",
+      "proj_finance",
+      "proj_build"
+    ],
+    "stale_nodes": [],
+    "suggested_updates": [
+      "Render cross-folder linked refs as aliases/badges, not duplicate folder copies.",
+      "Keep Struna under build for v0 and mark music relationship as reviewed cross-link candidate.",
+      "Use Finance/Capital Hilton/Invoices as the sidebar projection for invoice readbacks."
+    ],
+    "world_ref": "cross_world"
+  },
+  "generated_at": "2026-05-25T00:00:00+00:00",
+  "machine_proof": {
+    "agent_retrieval_run": false,
+    "all_live_authority_flags_false": true,
+    "all_nodes_have_provenance": true,
+    "all_nodes_have_scope": true,
+    "all_relationships_have_provenance": true,
+    "all_relationships_have_scope": true,
+    "blockers_present": true,
+    "build_mission_control_example_exists": true,
+    "content_hash": "5b1faba5df63a363c958c7f4bd05b66d00baf1fe230eb8c212e1e362e1bd6f0b",
+    "credentials_or_secrets_included": false,
+    "cross_client_leak_blocker_exists": true,
+    "cross_scope_query_run": false,
+    "external_action_performed": false,
+    "finance_capital_hilton_example_exists": true,
+    "folder_projection_blocker_model_present": true,
+    "folder_projection_mac_render_ready": true,
+    "folder_projection_node_model_present": true,
+    "folder_tree_projection_model_present": true,
+    "git_push_pull_fetch_run": false,
+    "graph_vs_folder_doctrine_exists": true,
+    "live_db_migration_created": false,
+    "live_memory_write_performed": false,
+    "mac_sync_import_run": false,
+    "mission_control_swift_changed": false,
+    "multi_folder_chat_link_example_exists": true,
+    "music_live_x32_example_exists": true,
+    "music_studio_album_song_example_exists": true,
+    "node_types_present": true,
+    "projection_statuses_present": true,
+    "provenance_missing_blocker_exists": true,
+    "raw_file_body_ingested": false,
+    "raw_private_bodies_included": false,
+    "raw_transcript_ingested": false,
+    "relationship_types_present": true,
+    "reorganization_or_folder_move_performed": false,
+    "scope_partition_policy_model_present": true,
+    "semantic_memory_graph_contract_model_present": true,
+    "semantic_memory_node_model_present": true,
+    "semantic_memory_relationship_model_present": true,
+    "sqlite_graph_tables_available_in_schema_contract": true,
+    "strict_tree_as_truth_blocker_exists": true,
+    "struna_example_exists": true,
+    "world_project_memory_graph_elioperator_report_model_present": true
+  },
+  "model_schemas": {
+    "folder_projection_blocker": {
+      "required_fields": [
+        "blocker_id",
+        "blocker_type",
+        "condition",
+        "severity",
+        "elioperator_warning",
+        "fail_closed",
+        "next_safe_move"
+      ]
+    },
+    "folder_projection_node": {
+      "required_fields": [
+        "projection_node_ref",
+        "node_ref",
+        "parent_projection_node_ref",
+        "display_name",
+        "folder_path",
+        "node_type",
+        "child_refs",
+        "linked_refs",
+        "unread_or_changed_status",
+        "suggested_badge",
+        "privacy_class",
+        "next_safe_move"
+      ]
+    },
+    "folder_tree_projection": {
+      "required_fields": [
+        "projection_id",
+        "world_ref",
+        "root_nodes",
+        "projected_tree",
+        "changed_nodes",
+        "suggested_updates",
+        "operator_review_items",
+        "stale_nodes",
+        "projection_status",
+        "mac_render_ready",
+        "next_safe_move"
+      ]
+    },
+    "scope_partition_policy": {
+      "required_fields": [
+        "policy_id",
+        "tenant_ref",
+        "client_ref",
+        "world_ref",
+        "allowed_cross_links",
+        "blocked_cross_links",
+        "cross_client_leak_policy",
+        "next_safe_move"
+      ]
+    },
+    "semantic_memory_graph_contract": {
+      "required_fields": [
+        "contract_id",
+        "doctrine",
+        "graph_truth_policy",
+        "folder_projection_policy",
+        "node_policy",
+        "relationship_policy",
+        "provenance_policy",
+        "tenant_scope_policy",
+        "privacy_boundary",
+        "authority_boundary",
+        "next_safe_move"
+      ]
+    },
+    "semantic_memory_node": {
+      "required_fields": [
+        "node_ref",
+        "node_type",
+        "world_ref",
+        "client_ref",
+        "tenant_ref",
+        "safe_display_label",
+        "summary",
+        "privacy_class",
+        "sensitivity_class",
+        "source_refs",
+        "artifact_refs",
+        "procedure_refs",
+        "receipt_refs",
+        "provenance_refs",
+        "current_status",
+        "next_safe_move"
+      ]
+    },
+    "semantic_memory_relationship": {
+      "required_fields": [
+        "relationship_ref",
+        "source_node_ref",
+        "target_node_ref",
+        "relationship_type",
+        "confidence",
+        "operator_review_required",
+        "provenance_ref",
+        "tenant_ref",
+        "client_ref",
+        "next_safe_move"
+      ]
+    },
+    "world_project_memory_graph_elioperator_report": {
+      "required_fields": [
+        "report_id",
+        "plain_summary",
+        "what_this_enables",
+        "what_this_does_not_do_yet",
+        "how_graph_vs_folder_projection_works",
+        "how_mac_sidebar_should_use_projection",
+        "how_scope_boundaries_work",
+        "how_provenance_is_preserved",
+        "next_safe_move"
+      ]
+    }
+  },
+  "node_types": [
+    "WORLD",
+    "PROJECT_FOLDER",
+    "CHAT_THREAD",
+    "TOPIC_SLICE",
+    "SOURCE_REF",
+    "ARTIFACT",
+    "PROCEDURE",
+    "RECEIPT",
+    "VISUAL_WORKSPACE",
+    "UNKNOWN"
+  ],
+  "operator_markdown_mode": "ELIOPERATOR",
+  "projection_statuses": [
+    "CURRENT",
+    "UPDATED_READY_FOR_MAC",
+    "NEEDS_OPERATOR_REVIEW",
+    "STALE",
+    "BLOCKED",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "read_model_id": "world_project_memory_graph_projection",
+  "relationship_refs": {
+    "backend_sqlite_schema": "semantic_records, semantic_relationships, provenance_refs target schema already present",
+    "corpus_atlas": "metadata-first source inventory patterns",
+    "cross_lane_reusable_block_registry_contract": "reusable fact tokenization and scope posture",
+    "cross_surface_artifact_handoff_registry_contract": "artifact/readback handoff refs",
+    "evidence_kettle": "receipt/source evidence metadata patterns",
+    "openclaw_sensitive_policy": "sensitive path and source-set boundary posture",
+    "operator_file_intake_visual_workspace_contract": "visual workspace and source-ref posture",
+    "operator_file_metadata_intake": "metadata-only source ref creation",
+    "worker_routing_intelligence": "Mac/PC/Gemini worker routing boundaries",
+    "workflow_execution_package_compiler": "workflow package/readiness examples"
+  },
+  "relationship_types": [
+    "CONTAINS",
+    "LINKS_TO",
+    "RELATED_TO",
+    "SUMMARIZES",
+    "DERIVED_FROM",
+    "GENERATED",
+    "SUPPORTS_PROOF",
+    "BELONGS_TO_SCOPE",
+    "SUGGESTED_REORG",
+    "UNKNOWN"
+  ],
+  "schema_version": "world_project_memory_graph_projection_v0",
+  "scope_partition_policies_by_id": {
+    "scope_policy_capital_hilton_finance": {
+      "allowed_cross_links": [
+        "Capital Hilton invoice procedures",
+        "Capital Hilton receipts",
+        "Capital Hilton artifact refs"
+      ],
+      "blocked_cross_links": [
+        "other client finance details",
+        "raw payment references in normal read-models",
+        "credential material"
+      ],
+      "client_ref": "capital_hilton",
+      "cross_client_leak_policy": "Capital Hilton invoice graph edges must not leak to other clients without explicit reviewed reusable summary.",
+      "next_safe_move": "Keep Capital Hilton nodes and relationships scoped to capital_hilton unless explicitly generalized.",
+      "policy_id": "scope_policy_capital_hilton_finance",
+      "tenant_ref": "openclaw_local_operator",
+      "world_ref": "finance"
+    },
+    "scope_policy_local_operator_music": {
+      "allowed_cross_links": [
+        "music live/studio links",
+        "build Struna relationship candidate",
+        "local reusable music knowledge"
+      ],
+      "blocked_cross_links": [
+        "client-private finance facts",
+        "credentials",
+        "raw private bodies"
+      ],
+      "client_ref": "local_operator",
+      "cross_client_leak_policy": "Fail closed if a music graph edge would expose client-private finance or legal facts.",
+      "next_safe_move": "Keep local/operator music scope separate from client-private scopes.",
+      "policy_id": "scope_policy_local_operator_music",
+      "tenant_ref": "openclaw_local_operator",
+      "world_ref": "music"
+    },
+    "scope_policy_openclaw_build": {
+      "allowed_cross_links": [
+        "Mission Control build history",
+        "readback card artifacts",
+        "safe screenshots metadata",
+        "Mac/PC worker prompts as summaries"
+      ],
+      "blocked_cross_links": [
+        "raw private screenshots",
+        "credentials",
+        "external account data"
+      ],
+      "client_ref": "openclaw",
+      "cross_client_leak_policy": "Build knowledge can link to workflow examples only through safe summaries and provenance refs.",
+      "next_safe_move": "Use build nodes for implementation work while preserving client boundaries.",
+      "policy_id": "scope_policy_openclaw_build",
+      "tenant_ref": "openclaw_local_operator",
+      "world_ref": "build"
+    },
+    "scope_policy_struna_private_summary": {
+      "allowed_cross_links": [
+        "Draper ownership context summary",
+        "Winship 25 percent Mac-version agreement summary",
+        "licensing/use note",
+        "app source refs"
+      ],
+      "blocked_cross_links": [
+        "raw legal body",
+        "private contract body",
+        "credential material"
+      ],
+      "client_ref": "struna",
+      "cross_client_leak_policy": "Struna summaries are private summary refs and must not be mixed into unrelated client scopes.",
+      "next_safe_move": "Keep Struna projected under build until operator reviews whether music is a better primary sidebar path.",
+      "policy_id": "scope_policy_struna_private_summary",
+      "tenant_ref": "openclaw_local_operator",
+      "world_ref": "build"
+    }
+  },
+  "semantic_memory_graph_contract": {
+    "authority_boundary": {
+      "credential_handling_allowed": false,
+      "git_push_pull_fetch_allowed": false,
+      "live_agent_retrieval_allowed": false,
+      "live_cross_scope_query_allowed": false,
+      "live_db_migration_allowed": false,
+      "live_delete_allowed": false,
+      "live_external_action_allowed": false,
+      "live_folder_move_allowed": false,
+      "live_folder_tree_update_allowed": false,
+      "live_memory_write_allowed": false,
+      "live_raw_file_body_ingestion_allowed": false,
+      "live_raw_transcript_ingestion_allowed": false,
+      "live_reorganization_allowed": false,
+      "mac_sync_import_allowed": false,
+      "mission_control_swift_change_allowed": false,
+      "network_allowed": false,
+      "raw_body_ingestion_allowed": false
+    },
+    "contract_id": "semantic_memory_graph_folder_projection_v0",
+    "doctrine": [
+      "Semantic graph is truth.",
+      "Folder tree is a human projection.",
+      "Chats, topic slices, source refs, artifacts, procedures, receipts, and agents attach to graph nodes.",
+      "Cross-links are normal and must not be flattened into destructive folder moves.",
+      "Receipts, source refs, and provenance decide truth."
+    ],
+    "folder_projection_policy": [
+      "Generate Mac/sidebar folder projections from graph nodes and relationships.",
+      "Allow aliases and linked refs instead of duplicating memory.",
+      "Ambiguous or disruptive organization changes require operator review.",
+      "Destructive move, delete, and silent reorganization are forbidden."
+    ],
+    "graph_truth_policy": [
+      "Use semantic_records, semantic_relationships, and provenance_refs as the target canonical graph rail when a live writer is approved.",
+      "Do not treat a folder path as the source of truth.",
+      "Do not infer private facts from a projection path.",
+      "Do not write memory from this read-model slice."
+    ],
+    "next_safe_move": "Export this deterministic projection for Mac/sidebar rendering; do not write memory or move folders.",
+    "node_policy": [
+      "Every node carries tenant_ref and client_ref or explicit local/operator scope.",
+      "Node summaries are safe labels and metadata summaries, not raw transcript or file bodies.",
+      "Unknown node types fail closed."
+    ],
+    "privacy_boundary": [
+      "No raw transcripts in normal read-models.",
+      "No raw file bodies in normal read-models.",
+      "Use safe display labels instead of sensitive private paths.",
+      "Protected evidence remains reference-only unless future governed review exists."
+    ],
+    "provenance_policy": [
+      "Every node and relationship must carry provenance refs.",
+      "Projection updates preserve source refs, receipt refs, and generated readback refs.",
+      "Missing provenance blocks promotion to a current projection."
+    ],
+    "relationship_policy": [
+      "Relationships may cross folders within a permitted scope.",
+      "Cross-client relationships fail closed unless explicitly reviewed and allowed.",
+      "Suggested reorganization relationships are candidates, not truth."
+    ],
+    "tenant_scope_policy": [
+      "Tenant and client scope are required by default.",
+      "Reusable/general knowledge must be separated from client-private facts.",
+      "Cross-client leakage fails closed."
+    ]
+  },
+  "semantic_memory_nodes_by_ref": {
+    "node_build_mission_control": {
+      "artifact_refs": [],
+      "client_ref": "openclaw",
+      "current_status": "projected_current",
+      "next_safe_move": "Keep this as a semantic graph node and project it into sidebar paths without moving source material.",
+      "node_ref": "node_build_mission_control",
+      "node_type": "PROJECT_FOLDER",
+      "privacy_class": "internal",
+      "procedure_refs": [],
+      "provenance_refs": [
+        "prov_node_build_mission_control"
+      ],
+      "receipt_refs": [],
+      "safe_display_label": "Mission Control",
+      "sensitivity_class": "metadata_only",
+      "source_refs": [],
+      "summary": "Mission Control app and operator surface work.",
+      "tenant_ref": "openclaw_local_operator",
+      "world_ref": "build"
+    },
+    "node_build_mission_control_chat_surface": {
+      "artifact_refs": "artifact_ref_readback_cards",
+      "client_ref": "openclaw",
+      "current_status": "projected_current",
+      "next_safe_move": "Keep this as a semantic graph node and project it into sidebar paths without moving source material.",
+      "node_ref": "node_build_mission_control_chat_surface",
+      "node_type": "PROJECT_FOLDER",
+      "privacy_class": "internal",
+      "procedure_refs": [],
+      "provenance_refs": [
+        "prov_node_build_mission_control_chat_surface"
+      ],
+      "receipt_refs": [
+        "receipt_swiftui_task_history"
+      ],
+      "safe_display_label": "Chat Surface",
+      "sensitivity_class": "metadata_only",
+      "source_refs": [
+        "source_ref_mac_codex_prompts",
+        "source_ref_screenshots_metadata"
+      ],
+      "summary": "Chat-first Mission Control work linked to prompts, screenshots, readback cards, and SwiftUI task history.",
+      "tenant_ref": "openclaw_local_operator",
+      "world_ref": "build"
+    },
+    "node_finance_capital_hilton": {
+      "artifact_refs": [],
+      "client_ref": "capital_hilton",
+      "current_status": "projected_current",
+      "next_safe_move": "Keep this as a semantic graph node and project it into sidebar paths without moving source material.",
+      "node_ref": "node_finance_capital_hilton",
+      "node_type": "PROJECT_FOLDER",
+      "privacy_class": "internal",
+      "procedure_refs": [],
+      "provenance_refs": [
+        "prov_node_finance_capital_hilton"
+      ],
+      "receipt_refs": [],
+      "safe_display_label": "Capital Hilton",
+      "sensitivity_class": "metadata_only",
+      "source_refs": [],
+      "summary": "Capital Hilton finance scope.",
+      "tenant_ref": "openclaw_local_operator",
+      "world_ref": "finance"
+    },
+    "node_finance_capital_hilton_invoices": {
+      "artifact_refs": [
+        "artifact_ref_capital_hilton_invoice_pdf_future"
+      ],
+      "client_ref": "capital_hilton",
+      "current_status": "projected_current",
+      "next_safe_move": "Keep this as a semantic graph node and project it into sidebar paths without moving source material.",
+      "node_ref": "node_finance_capital_hilton_invoices",
+      "node_type": "PROJECT_FOLDER",
+      "privacy_class": "internal",
+      "procedure_refs": [
+        "procedure_ref_capital_hilton_invoice_workflow"
+      ],
+      "provenance_refs": [
+        "prov_node_finance_capital_hilton_invoices"
+      ],
+      "receipt_refs": [
+        "receipt_capital_hilton_delivery_facts",
+        "receipt_router_readback_capital_hilton",
+        "receipt_payment_tracking_ref"
+      ],
+      "safe_display_label": "Invoices",
+      "sensitivity_class": "metadata_only",
+      "source_refs": [
+        "source_ref_capital_hilton_invoice_preview"
+      ],
+      "summary": "Capital Hilton invoice workflow projection linked to procedures, receipts, artifacts, and readbacks.",
+      "tenant_ref": "openclaw_local_operator",
+      "world_ref": "finance"
+    },
+    "node_multifolder_chat_setlists": {
+      "artifact_refs": [],
+      "client_ref": "local_operator",
+      "current_status": "projected_current",
+      "next_safe_move": "Keep this as a semantic graph node and project it into sidebar paths without moving source material.",
+      "node_ref": "node_multifolder_chat_setlists",
+      "node_type": "CHAT_THREAD",
+      "privacy_class": "internal",
+      "procedure_refs": [],
+      "provenance_refs": [
+        "prov_node_multifolder_chat_setlists"
+      ],
+      "receipt_refs": [
+        "receipt_multifolder_topic_candidates"
+      ],
+      "safe_display_label": "Setlist chat with cross-links",
+      "sensitivity_class": "metadata_only",
+      "source_refs": [
+        "source_ref_setlist_chat_summary"
+      ],
+      "summary": "A chat that starts in setlists and also discusses X32 routing, song arrangement, and booking follow-up.",
+      "tenant_ref": "openclaw_local_operator",
+      "world_ref": "music"
+    },
+    "node_music_album": {
+      "artifact_refs": [],
+      "client_ref": "local_operator",
+      "current_status": "projected_current",
+      "next_safe_move": "Keep this as a semantic graph node and project it into sidebar paths without moving source material.",
+      "node_ref": "node_music_album",
+      "node_type": "PROJECT_FOLDER",
+      "privacy_class": "internal",
+      "procedure_refs": [],
+      "provenance_refs": [
+        "prov_node_music_album"
+      ],
+      "receipt_refs": [],
+      "safe_display_label": "Album",
+      "sensitivity_class": "metadata_only",
+      "source_refs": [],
+      "summary": "Album project folder projection from graph records.",
+      "tenant_ref": "openclaw_local_operator",
+      "world_ref": "music"
+    },
+    "node_music_live_music": {
+      "artifact_refs": [],
+      "client_ref": "local_operator",
+      "current_status": "projected_current",
+      "next_safe_move": "Keep this as a semantic graph node and project it into sidebar paths without moving source material.",
+      "node_ref": "node_music_live_music",
+      "node_type": "PROJECT_FOLDER",
+      "privacy_class": "internal",
+      "procedure_refs": [],
+      "provenance_refs": [
+        "prov_node_music_live_music"
+      ],
+      "receipt_refs": [],
+      "safe_display_label": "Live Music",
+      "sensitivity_class": "metadata_only",
+      "source_refs": [],
+      "summary": "Live performance material and operational notes.",
+      "tenant_ref": "openclaw_local_operator",
+      "world_ref": "music"
+    },
+    "node_music_live_x32": {
+      "artifact_refs": [],
+      "client_ref": "local_operator",
+      "current_status": "projected_current",
+      "next_safe_move": "Keep this as a semantic graph node and project it into sidebar paths without moving source material.",
+      "node_ref": "node_music_live_x32",
+      "node_type": "PROJECT_FOLDER",
+      "privacy_class": "internal",
+      "procedure_refs": [],
+      "provenance_refs": [
+        "prov_node_music_live_x32"
+      ],
+      "receipt_refs": [],
+      "safe_display_label": "X32",
+      "sensitivity_class": "metadata_only",
+      "source_refs": [],
+      "summary": "Behringer X32 live routing and show setup context.",
+      "tenant_ref": "openclaw_local_operator",
+      "world_ref": "music"
+    },
+    "node_music_song": {
+      "artifact_refs": [],
+      "client_ref": "local_operator",
+      "current_status": "projected_current",
+      "next_safe_move": "Keep this as a semantic graph node and project it into sidebar paths without moving source material.",
+      "node_ref": "node_music_song",
+      "node_type": "PROJECT_FOLDER",
+      "privacy_class": "internal",
+      "procedure_refs": [],
+      "provenance_refs": [
+        "prov_node_music_song"
+      ],
+      "receipt_refs": [
+        "receipt_mix_notes_thread"
+      ],
+      "safe_display_label": "Song",
+      "sensitivity_class": "metadata_only",
+      "source_refs": [
+        "source_ref_album_spreadsheet",
+        "source_ref_song_rich_text_doc",
+        "source_ref_logic_project_metadata"
+      ],
+      "summary": "A song node that links spreadsheet, rich text doc, Logic project metadata, and mix notes.",
+      "tenant_ref": "openclaw_local_operator",
+      "world_ref": "music"
+    },
+    "node_music_studio": {
+      "artifact_refs": [],
+      "client_ref": "local_operator",
+      "current_status": "projected_current",
+      "next_safe_move": "Keep this as a semantic graph node and project it into sidebar paths without moving source material.",
+      "node_ref": "node_music_studio",
+      "node_type": "PROJECT_FOLDER",
+      "privacy_class": "internal",
+      "procedure_refs": [],
+      "provenance_refs": [
+        "prov_node_music_studio"
+      ],
+      "receipt_refs": [],
+      "safe_display_label": "Studio",
+      "sensitivity_class": "metadata_only",
+      "source_refs": [],
+      "summary": "Studio and recording project material.",
+      "tenant_ref": "openclaw_local_operator",
+      "world_ref": "music"
+    },
+    "node_music_x32_routing": {
+      "artifact_refs": [],
+      "client_ref": "local_operator",
+      "current_status": "projected_current",
+      "next_safe_move": "Keep this as a semantic graph node and project it into sidebar paths without moving source material.",
+      "node_ref": "node_music_x32_routing",
+      "node_type": "TOPIC_SLICE",
+      "privacy_class": "internal",
+      "procedure_refs": [],
+      "provenance_refs": [
+        "prov_node_music_x32_routing"
+      ],
+      "receipt_refs": [
+        "receipt_x32_show_setup_readback"
+      ],
+      "safe_display_label": "X32 routing",
+      "sensitivity_class": "metadata_only",
+      "source_refs": [
+        "source_ref_behringer_x32_notes"
+      ],
+      "summary": "Routing notes linked to show setup, source refs, and troubleshooting chats.",
+      "tenant_ref": "openclaw_local_operator",
+      "world_ref": "music"
+    },
+    "node_music_x32_show_files": {
+      "artifact_refs": [],
+      "client_ref": "local_operator",
+      "current_status": "projected_current",
+      "next_safe_move": "Keep this as a semantic graph node and project it into sidebar paths without moving source material.",
+      "node_ref": "node_music_x32_show_files",
+      "node_type": "SOURCE_REF",
+      "privacy_class": "internal",
+      "procedure_refs": [],
+      "provenance_refs": [
+        "prov_node_music_x32_show_files"
+      ],
+      "receipt_refs": [],
+      "safe_display_label": "show files",
+      "sensitivity_class": "metadata_only",
+      "source_refs": [
+        "source_ref_x32_scene_metadata"
+      ],
+      "summary": "Metadata-only source refs for live show files; no raw file body in projection.",
+      "tenant_ref": "openclaw_local_operator",
+      "world_ref": "music"
+    },
+    "node_struna_mac_version": {
+      "artifact_refs": [],
+      "client_ref": "struna",
+      "current_status": "projected_current",
+      "next_safe_move": "Keep this as a semantic graph node and project it into sidebar paths without moving source material.",
+      "node_ref": "node_struna_mac_version",
+      "node_type": "PROJECT_FOLDER",
+      "privacy_class": "internal",
+      "procedure_refs": [],
+      "provenance_refs": [
+        "prov_node_struna_mac_version"
+      ],
+      "receipt_refs": [
+        "receipt_struna_ownership_context_summary",
+        "receipt_struna_mac_version_agreement_summary",
+        "receipt_struna_licensing_use_note"
+      ],
+      "safe_display_label": "Struna Mac Version",
+      "sensitivity_class": "private_summary_only",
+      "source_refs": [
+        "source_ref_struna_app_files"
+      ],
+      "summary": "Struna Mac-version projection with ownership/agreement summaries and app source refs; legal/private bodies remain hidden.",
+      "tenant_ref": "openclaw_local_operator",
+      "world_ref": "build"
+    },
+    "node_world_build": {
+      "artifact_refs": [],
+      "client_ref": "local_operator",
+      "current_status": "projected_current",
+      "next_safe_move": "Keep this as a semantic graph node and project it into sidebar paths without moving source material.",
+      "node_ref": "node_world_build",
+      "node_type": "WORLD",
+      "privacy_class": "internal",
+      "procedure_refs": [],
+      "provenance_refs": [
+        "prov_node_world_build"
+      ],
+      "receipt_refs": [],
+      "safe_display_label": "Build",
+      "sensitivity_class": "metadata_only",
+      "source_refs": [],
+      "summary": "Build world root for OpenClaw and Mission Control implementation work.",
+      "tenant_ref": "openclaw_local_operator",
+      "world_ref": "build"
+    },
+    "node_world_finance": {
+      "artifact_refs": [],
+      "client_ref": "local_operator",
+      "current_status": "projected_current",
+      "next_safe_move": "Keep this as a semantic graph node and project it into sidebar paths without moving source material.",
+      "node_ref": "node_world_finance",
+      "node_type": "WORLD",
+      "privacy_class": "internal",
+      "procedure_refs": [],
+      "provenance_refs": [
+        "prov_node_world_finance"
+      ],
+      "receipt_refs": [],
+      "safe_display_label": "Finance",
+      "sensitivity_class": "metadata_only",
+      "source_refs": [],
+      "summary": "Finance world root for client billing and payment workflows.",
+      "tenant_ref": "openclaw_local_operator",
+      "world_ref": "finance"
+    },
+    "node_world_music": {
+      "artifact_refs": [],
+      "client_ref": "local_operator",
+      "current_status": "projected_current",
+      "next_safe_move": "Keep this as a semantic graph node and project it into sidebar paths without moving source material.",
+      "node_ref": "node_world_music",
+      "node_type": "WORLD",
+      "privacy_class": "internal",
+      "procedure_refs": [],
+      "provenance_refs": [
+        "prov_node_world_music"
+      ],
+      "receipt_refs": [],
+      "safe_display_label": "Music",
+      "sensitivity_class": "metadata_only",
+      "source_refs": [],
+      "summary": "Music world root for live, studio, song, and project material.",
+      "tenant_ref": "openclaw_local_operator",
+      "world_ref": "music"
+    }
+  },
+  "semantic_memory_relationships_by_ref": {
+    "rel_album_contains_song": {
+      "client_ref": "local_operator",
+      "confidence": "HIGH",
+      "next_safe_move": "Preserve this graph relationship and project it as a folder child or linked alias without destructive moves.",
+      "operator_review_required": false,
+      "provenance_ref": "prov_rel_album_contains_song",
+      "relationship_ref": "rel_album_contains_song",
+      "relationship_type": "CONTAINS",
+      "source_node_ref": "node_music_album",
+      "target_node_ref": "node_music_song",
+      "tenant_ref": "openclaw_local_operator"
+    },
+    "rel_build_contains_mission_control": {
+      "client_ref": "openclaw",
+      "confidence": "HIGH",
+      "next_safe_move": "Preserve this graph relationship and project it as a folder child or linked alias without destructive moves.",
+      "operator_review_required": false,
+      "provenance_ref": "prov_rel_build_contains_mission_control",
+      "relationship_ref": "rel_build_contains_mission_control",
+      "relationship_type": "CONTAINS",
+      "source_node_ref": "node_world_build",
+      "target_node_ref": "node_build_mission_control",
+      "tenant_ref": "openclaw_local_operator"
+    },
+    "rel_build_links_struna": {
+      "client_ref": "struna",
+      "confidence": "HIGH",
+      "next_safe_move": "Preserve this graph relationship and project it as a folder child or linked alias without destructive moves.",
+      "operator_review_required": true,
+      "provenance_ref": "prov_rel_build_links_struna",
+      "relationship_ref": "rel_build_links_struna",
+      "relationship_type": "CONTAINS",
+      "source_node_ref": "node_world_build",
+      "target_node_ref": "node_struna_mac_version",
+      "tenant_ref": "openclaw_local_operator"
+    },
+    "rel_capital_hilton_contains_invoices": {
+      "client_ref": "capital_hilton",
+      "confidence": "HIGH",
+      "next_safe_move": "Preserve this graph relationship and project it as a folder child or linked alias without destructive moves.",
+      "operator_review_required": false,
+      "provenance_ref": "prov_rel_capital_hilton_contains_invoices",
+      "relationship_ref": "rel_capital_hilton_contains_invoices",
+      "relationship_type": "CONTAINS",
+      "source_node_ref": "node_finance_capital_hilton",
+      "target_node_ref": "node_finance_capital_hilton_invoices",
+      "tenant_ref": "openclaw_local_operator"
+    },
+    "rel_chat_surface_links_readback_cards": {
+      "client_ref": "openclaw",
+      "confidence": "HIGH",
+      "next_safe_move": "Preserve this graph relationship and project it as a folder child or linked alias without destructive moves.",
+      "operator_review_required": false,
+      "provenance_ref": "prov_rel_chat_surface_links_readback_cards",
+      "relationship_ref": "rel_chat_surface_links_readback_cards",
+      "relationship_type": "LINKS_TO",
+      "source_node_ref": "node_build_mission_control_chat_surface",
+      "target_node_ref": "artifact_ref_readback_cards",
+      "tenant_ref": "openclaw_local_operator"
+    },
+    "rel_finance_contains_capital_hilton": {
+      "client_ref": "capital_hilton",
+      "confidence": "HIGH",
+      "next_safe_move": "Preserve this graph relationship and project it as a folder child or linked alias without destructive moves.",
+      "operator_review_required": false,
+      "provenance_ref": "prov_rel_finance_contains_capital_hilton",
+      "relationship_ref": "rel_finance_contains_capital_hilton",
+      "relationship_type": "CONTAINS",
+      "source_node_ref": "node_world_finance",
+      "target_node_ref": "node_finance_capital_hilton",
+      "tenant_ref": "openclaw_local_operator"
+    },
+    "rel_invoices_generated_router_readback": {
+      "client_ref": "capital_hilton",
+      "confidence": "HIGH",
+      "next_safe_move": "Preserve this graph relationship and project it as a folder child or linked alias without destructive moves.",
+      "operator_review_required": false,
+      "provenance_ref": "prov_rel_invoices_generated_router_readback",
+      "relationship_ref": "rel_invoices_generated_router_readback",
+      "relationship_type": "GENERATED",
+      "source_node_ref": "receipt_router_readback_capital_hilton",
+      "target_node_ref": "node_finance_capital_hilton_invoices",
+      "tenant_ref": "openclaw_local_operator"
+    },
+    "rel_invoices_supports_proof": {
+      "client_ref": "capital_hilton",
+      "confidence": "HIGH",
+      "next_safe_move": "Preserve this graph relationship and project it as a folder child or linked alias without destructive moves.",
+      "operator_review_required": false,
+      "provenance_ref": "prov_rel_invoices_supports_proof",
+      "relationship_ref": "rel_invoices_supports_proof",
+      "relationship_type": "SUPPORTS_PROOF",
+      "source_node_ref": "node_finance_capital_hilton_invoices",
+      "target_node_ref": "receipt_capital_hilton_delivery_facts",
+      "tenant_ref": "openclaw_local_operator"
+    },
+    "rel_live_music_contains_x32": {
+      "client_ref": "local_operator",
+      "confidence": "HIGH",
+      "next_safe_move": "Preserve this graph relationship and project it as a folder child or linked alias without destructive moves.",
+      "operator_review_required": false,
+      "provenance_ref": "prov_rel_live_music_contains_x32",
+      "relationship_ref": "rel_live_music_contains_x32",
+      "relationship_type": "CONTAINS",
+      "source_node_ref": "node_music_live_music",
+      "target_node_ref": "node_music_live_x32",
+      "tenant_ref": "openclaw_local_operator"
+    },
+    "rel_mission_control_contains_chat_surface": {
+      "client_ref": "openclaw",
+      "confidence": "HIGH",
+      "next_safe_move": "Preserve this graph relationship and project it as a folder child or linked alias without destructive moves.",
+      "operator_review_required": false,
+      "provenance_ref": "prov_rel_mission_control_contains_chat_surface",
+      "relationship_ref": "rel_mission_control_contains_chat_surface",
+      "relationship_type": "CONTAINS",
+      "source_node_ref": "node_build_mission_control",
+      "target_node_ref": "node_build_mission_control_chat_surface",
+      "tenant_ref": "openclaw_local_operator"
+    },
+    "rel_multifolder_chat_links_booking_followup": {
+      "client_ref": "local_operator",
+      "confidence": "LOW",
+      "next_safe_move": "Preserve this graph relationship and project it as a folder child or linked alias without destructive moves.",
+      "operator_review_required": true,
+      "provenance_ref": "prov_rel_multifolder_chat_links_booking_followup",
+      "relationship_ref": "rel_multifolder_chat_links_booking_followup",
+      "relationship_type": "RELATED_TO",
+      "source_node_ref": "node_multifolder_chat_setlists",
+      "target_node_ref": "topic_booking_followup",
+      "tenant_ref": "openclaw_local_operator"
+    },
+    "rel_multifolder_chat_links_song": {
+      "client_ref": "local_operator",
+      "confidence": "MEDIUM",
+      "next_safe_move": "Preserve this graph relationship and project it as a folder child or linked alias without destructive moves.",
+      "operator_review_required": true,
+      "provenance_ref": "prov_rel_multifolder_chat_links_song",
+      "relationship_ref": "rel_multifolder_chat_links_song",
+      "relationship_type": "RELATED_TO",
+      "source_node_ref": "node_multifolder_chat_setlists",
+      "target_node_ref": "node_music_song",
+      "tenant_ref": "openclaw_local_operator"
+    },
+    "rel_multifolder_chat_links_x32": {
+      "client_ref": "local_operator",
+      "confidence": "MEDIUM",
+      "next_safe_move": "Preserve this graph relationship and project it as a folder child or linked alias without destructive moves.",
+      "operator_review_required": true,
+      "provenance_ref": "prov_rel_multifolder_chat_links_x32",
+      "relationship_ref": "rel_multifolder_chat_links_x32",
+      "relationship_type": "RELATED_TO",
+      "source_node_ref": "node_multifolder_chat_setlists",
+      "target_node_ref": "node_music_x32_routing",
+      "tenant_ref": "openclaw_local_operator"
+    },
+    "rel_music_contains_live_music": {
+      "client_ref": "local_operator",
+      "confidence": "HIGH",
+      "next_safe_move": "Preserve this graph relationship and project it as a folder child or linked alias without destructive moves.",
+      "operator_review_required": false,
+      "provenance_ref": "prov_rel_music_contains_live_music",
+      "relationship_ref": "rel_music_contains_live_music",
+      "relationship_type": "CONTAINS",
+      "source_node_ref": "node_world_music",
+      "target_node_ref": "node_music_live_music",
+      "tenant_ref": "openclaw_local_operator"
+    },
+    "rel_music_contains_studio": {
+      "client_ref": "local_operator",
+      "confidence": "HIGH",
+      "next_safe_move": "Preserve this graph relationship and project it as a folder child or linked alias without destructive moves.",
+      "operator_review_required": false,
+      "provenance_ref": "prov_rel_music_contains_studio",
+      "relationship_ref": "rel_music_contains_studio",
+      "relationship_type": "CONTAINS",
+      "source_node_ref": "node_world_music",
+      "target_node_ref": "node_music_studio",
+      "tenant_ref": "openclaw_local_operator"
+    },
+    "rel_song_links_album_spreadsheet": {
+      "client_ref": "local_operator",
+      "confidence": "MEDIUM",
+      "next_safe_move": "Preserve this graph relationship and project it as a folder child or linked alias without destructive moves.",
+      "operator_review_required": false,
+      "provenance_ref": "prov_rel_song_links_album_spreadsheet",
+      "relationship_ref": "rel_song_links_album_spreadsheet",
+      "relationship_type": "LINKS_TO",
+      "source_node_ref": "node_music_song",
+      "target_node_ref": "source_ref_album_spreadsheet",
+      "tenant_ref": "openclaw_local_operator"
+    },
+    "rel_song_links_logic_metadata": {
+      "client_ref": "local_operator",
+      "confidence": "MEDIUM",
+      "next_safe_move": "Preserve this graph relationship and project it as a folder child or linked alias without destructive moves.",
+      "operator_review_required": false,
+      "provenance_ref": "prov_rel_song_links_logic_metadata",
+      "relationship_ref": "rel_song_links_logic_metadata",
+      "relationship_type": "LINKS_TO",
+      "source_node_ref": "node_music_song",
+      "target_node_ref": "source_ref_logic_project_metadata",
+      "tenant_ref": "openclaw_local_operator"
+    },
+    "rel_struna_related_music": {
+      "client_ref": "struna",
+      "confidence": "MEDIUM",
+      "next_safe_move": "Preserve this graph relationship and project it as a folder child or linked alias without destructive moves.",
+      "operator_review_required": true,
+      "provenance_ref": "prov_rel_struna_related_music",
+      "relationship_ref": "rel_struna_related_music",
+      "relationship_type": "RELATED_TO",
+      "source_node_ref": "node_struna_mac_version",
+      "target_node_ref": "node_world_music",
+      "tenant_ref": "openclaw_local_operator"
+    },
+    "rel_studio_contains_album": {
+      "client_ref": "local_operator",
+      "confidence": "HIGH",
+      "next_safe_move": "Preserve this graph relationship and project it as a folder child or linked alias without destructive moves.",
+      "operator_review_required": false,
+      "provenance_ref": "prov_rel_studio_contains_album",
+      "relationship_ref": "rel_studio_contains_album",
+      "relationship_type": "CONTAINS",
+      "source_node_ref": "node_music_studio",
+      "target_node_ref": "node_music_album",
+      "tenant_ref": "openclaw_local_operator"
+    },
+    "rel_x32_contains_routing": {
+      "client_ref": "local_operator",
+      "confidence": "HIGH",
+      "next_safe_move": "Preserve this graph relationship and project it as a folder child or linked alias without destructive moves.",
+      "operator_review_required": false,
+      "provenance_ref": "prov_rel_x32_contains_routing",
+      "relationship_ref": "rel_x32_contains_routing",
+      "relationship_type": "CONTAINS",
+      "source_node_ref": "node_music_live_x32",
+      "target_node_ref": "node_music_x32_routing",
+      "tenant_ref": "openclaw_local_operator"
+    },
+    "rel_x32_routing_contains_show_files": {
+      "client_ref": "local_operator",
+      "confidence": "HIGH",
+      "next_safe_move": "Preserve this graph relationship and project it as a folder child or linked alias without destructive moves.",
+      "operator_review_required": false,
+      "provenance_ref": "prov_rel_x32_routing_contains_show_files",
+      "relationship_ref": "rel_x32_routing_contains_show_files",
+      "relationship_type": "CONTAINS",
+      "source_node_ref": "node_music_x32_routing",
+      "target_node_ref": "node_music_x32_show_files",
+      "tenant_ref": "openclaw_local_operator"
+    },
+    "rel_x32_routing_links_show_setup": {
+      "client_ref": "local_operator",
+      "confidence": "HIGH",
+      "next_safe_move": "Preserve this graph relationship and project it as a folder child or linked alias without destructive moves.",
+      "operator_review_required": false,
+      "provenance_ref": "prov_rel_x32_routing_links_show_setup",
+      "relationship_ref": "rel_x32_routing_links_show_setup",
+      "relationship_type": "LINKS_TO",
+      "source_node_ref": "node_music_x32_routing",
+      "target_node_ref": "node_music_x32_show_files",
+      "tenant_ref": "openclaw_local_operator"
+    }
+  },
+  "world_project_memory_graph_elioperator_report": {
+    "how_graph_vs_folder_projection_works": "Graph nodes and relationships preserve truth and provenance; folder paths are just a human-readable projection with aliases for cross-links.",
+    "how_mac_sidebar_should_use_projection": "Mission Control should render projected roots and children, show badges for linked refs, and treat review/stale flags as display state only.",
+    "how_provenance_is_preserved": "Nodes and relationships carry provenance refs back to source refs, artifacts, receipts, generated readbacks, or summaries.",
+    "how_scope_boundaries_work": "Every node and relationship has tenant/client/world scope; cross-client leakage blocks projection unless explicitly reviewed.",
+    "next_safe_move": "Use this read-model as a Mac/sidebar input and add future reviewed graph writers only behind receipts.",
+    "plain_summary": "OpenClaw can project Worlds and folders for the Mac sidebar while keeping the semantic graph as truth.",
+    "report_id": "world_project_memory_graph_elioperator_report_v0",
+    "what_this_does_not_do_yet": "It does not write memory, migrate SQLite, ingest transcripts or files, run retrieval, reorganize folders, move/delete files, or call agents.",
+    "what_this_enables": "Mac can read a deterministic sidebar projection for worlds, projects, topic slices, source refs, artifacts, procedures, receipts, and visual workspaces."
+  }
+}
