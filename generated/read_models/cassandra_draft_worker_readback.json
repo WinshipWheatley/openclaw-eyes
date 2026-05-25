@@ -1,0 +1,316 @@
+{
+  "active_blockers": [],
+  "authority_boundary": {
+    "agent_dispatch_allowed": false,
+    "credential_handling_allowed": false,
+    "draft_allowed": true,
+    "external_action_allowed": false,
+    "git_push_pull_fetch_allowed": false,
+    "live_draft_create_allowed": false,
+    "live_gmail_access_allowed": false,
+    "live_mail_access_allowed": false,
+    "live_send_allowed": false,
+    "mac_sync_import_allowed": false,
+    "mission_control_swift_change_allowed": false,
+    "raw_attachment_body_ingestion_allowed": false,
+    "raw_body_ingestion_allowed": false,
+    "raw_email_body_ingestion_allowed": false,
+    "telegram_output_allowed": false,
+    "workflow_execution_allowed": false
+  },
+  "blocker_types": [
+    "SEND_ATTEMPTED",
+    "LIVE_GMAIL_ACCESS_ATTEMPTED",
+    "LIVE_MAIL_ACCESS_ATTEMPTED",
+    "CREDENTIAL_INCLUDED",
+    "RAW_SECRET_INCLUDED",
+    "RAW_EMAIL_BODY_INCLUDED",
+    "RAW_ATTACHMENT_BODY_INCLUDED",
+    "RECIPIENT_NOT_CONFIRMED",
+    "ATTACHMENT_REF_MISSING",
+    "APPROVAL_GATE_MISSING",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "capital_hilton_example": {
+    "approval_boundary": "Guardian/operator approval required before future send.",
+    "attachment_refs": [
+      "artifact_ref_winship_invoice_excel_pdf_candidate"
+    ],
+    "body_summary": "Concise Capital Hilton invoice follow-up draft; candidate text only.",
+    "locked": [
+      "email_send",
+      "live_gmail_access",
+      "live_mail_access",
+      "live_gmail_draft_create",
+      "attachment_upload_or_send",
+      "guardian_approval_execution",
+      "coupa_access_or_submit"
+    ],
+    "missing": [
+      "exact Coupa PO/reference if required before final send",
+      "confirmed Annette contact route",
+      "final invoice artifact/hash"
+    ],
+    "recipient_ref": "contact_ref_annette_candidate_tokenized",
+    "subject": "Capital Hilton Invoice Follow-Up"
+  },
+  "context_package": {
+    "artifact_refs": [
+      "artifact_ref_winship_invoice_excel_pdf_candidate",
+      "source_ref_capital_hilton_invoice_workflow_readback"
+    ],
+    "excluded_context": [
+      {
+        "item": "raw Gmail body",
+        "reason": "raw email bodies are not allowed in draft context packages"
+      },
+      {
+        "item": "raw attachment body",
+        "reason": "attachments are refs only in v0"
+      },
+      {
+        "item": "credentials or secrets",
+        "reason": "Cassandra receives tokenized refs and safe summaries only"
+      },
+      {
+        "item": "send authority",
+        "reason": "future Guardian/operator approval and send adapter are required"
+      }
+    ],
+    "forbidden_claims": [
+      "email was sent",
+      "Gmail draft was created",
+      "Mail draft was created",
+      "Coupa was accessed or submitted",
+      "Guardian approved the send",
+      "invoice artifact was generated in this lane"
+    ],
+    "included_context": [
+      "Capital Hilton invoice workflow draft is understood.",
+      "Four-date / $400 basis is treated as workflow context, not final send proof.",
+      "Winship-branded Excel/PDF invoice artifact is referenced by artifact ref only.",
+      "Coupa supplier portal / PO process remains the official payment rail if context is confirmed.",
+      "Recipient is an Annette candidate represented by a tokenized contact ref."
+    ],
+    "known_facts": [
+      "Candidate recipient is Annette, pending confirmation.",
+      "Email purpose is local records and payment follow-up.",
+      "The official payment route remains Coupa/PO if verified by source context.",
+      "The invoice attachment is represented by artifact ref only."
+    ],
+    "locked_actions": [
+      "email_send",
+      "live_gmail_access",
+      "live_mail_access",
+      "live_gmail_draft_create",
+      "attachment_upload_or_send",
+      "guardian_approval_execution",
+      "coupa_access_or_submit"
+    ],
+    "missing_items": [
+      "exact Coupa PO/reference if required before final send",
+      "confirmed Annette contact route",
+      "final invoice artifact/hash"
+    ],
+    "next_safe_move": "Review the candidate draft, confirm recipient/artifact/PO details, then request Guardian approval before any future send.",
+    "package_id": "cassandra_context_package_cassandra_draft_capital_hilton_invoice_followup_v0",
+    "privacy_boundary": "No raw credentials, secrets, email bodies, protected evidence bodies, or attachment bodies are included.",
+    "request_ref": "cassandra_draft_capital_hilton_invoice_followup_v0",
+    "source_refs": [
+      "generated/read_models/workflow_execution_package_compiler.json",
+      "generated/read_models/google_broker_readonly_readback.json",
+      "generated/read_models/cassandra_draft_review_packet.json"
+    ],
+    "tokenized_contact_refs": [
+      "contact_ref_annette_candidate_tokenized"
+    ],
+    "truth_boundary": "Candidate draft only. Receipts/readbacks decide truth; this wrapper does not execute communication."
+  },
+  "contract_status": "DRAFT_ONLY_COMMUNICATIONS_WORKER_WRAPPER",
+  "draft_candidate": {
+    "approval_boundary_notice": "Guardian/operator approval is required before any external send.",
+    "attachment_display_refs": [
+      "artifact_ref_winship_invoice_excel_pdf_candidate"
+    ],
+    "draft_body": "Hi Annette,\n\nI'm sending over the Winship-branded invoice PDF for the recent Capital Hilton dates for your local records and payment follow-up. My understanding is that the official payment rail remains the Coupa supplier portal / PO process.\n\nPlease let me know if you need anything else from me to keep the payment moving.\n\nBest,\nWinship",
+    "draft_id": "cassandra_draft_candidate_cassandra_draft_capital_hilton_invoice_followup_v0",
+    "draft_subject": "Capital Hilton Invoice Follow-Up",
+    "missing_placeholders": [
+      "exact Coupa PO/reference if required before final send",
+      "confirmed Annette contact route",
+      "final invoice artifact/hash"
+    ],
+    "next_safe_move": "Review the candidate draft, confirm recipient/artifact/PO details, then request Guardian approval before any future send.",
+    "recipient_display_ref": "contact_ref_annette_candidate_tokenized",
+    "request_ref": "cassandra_draft_capital_hilton_invoice_followup_v0",
+    "send_blocked_notice": "Nothing has been sent, submitted, uploaded, or drafted in Gmail/Mail.",
+    "tone_notes": "Tone profile: concise_professional_warm; concise and professional.",
+    "truth_boundary_notice": "Candidate draft only. Receipts/readbacks decide truth; this wrapper does not execute communication."
+  },
+  "generated_at": "2026-05-25T18:48:23+00:00",
+  "machine_proof": {
+    "agent_dispatch_performed": false,
+    "all_external_authority_flags_false": true,
+    "candidate_draft_generated": true,
+    "credentials_accessed": false,
+    "email_sent": false,
+    "fixture_or_local_deterministic_mode": true,
+    "git_push_pull_fetch_run": false,
+    "gmail_or_mail_accessed": false,
+    "gmail_or_mail_draft_created": false,
+    "mac_sync_import_run": false,
+    "mission_control_swift_changed": false,
+    "raw_attachment_body_included": false,
+    "raw_email_body_included": false,
+    "repo_b_cassandra_called": false,
+    "telegram_output_sent": false,
+    "workflow_execution_performed": false
+  },
+  "mode": "CASSANDRA_DRAFT_ONLY_FIXTURE",
+  "policy": {
+    "approval_required_before_send": true,
+    "credential_handling_allowed": false,
+    "draft_allowed": true,
+    "external_action_allowed": false,
+    "live_draft_create_allowed": false,
+    "live_gmail_access_allowed": false,
+    "live_mail_access_allowed": false,
+    "live_send_allowed": false,
+    "next_safe_move": "Use this wrapper for review-only candidate drafts; use a separate governed adapter for any future send.",
+    "policy_id": "cassandra_draft_worker_policy_v0",
+    "raw_body_ingestion_allowed": false
+  },
+  "read_model_id": "cassandra_draft_worker_readback",
+  "readback": {
+    "approval_required": true,
+    "draft_candidate_ref": "cassandra_draft_candidate_cassandra_draft_capital_hilton_invoice_followup_v0",
+    "generated_at": "2026-05-25T18:48:23+00:00",
+    "locked_actions": [
+      "email_send",
+      "live_gmail_access",
+      "live_mail_access",
+      "live_gmail_draft_create",
+      "attachment_upload_or_send",
+      "guardian_approval_execution",
+      "coupa_access_or_submit"
+    ],
+    "missing_inputs": [
+      "exact Coupa PO/reference if required before final send",
+      "confirmed Annette contact route",
+      "final invoice artifact/hash"
+    ],
+    "next_safe_move": "Review the wording, confirm Annette/contact route, confirm the invoice artifact/hash and PO/reference, then request Guardian approval before any future send.",
+    "operator_headline": "Cassandra draft ready for review",
+    "operator_message": "A candidate Capital Hilton follow-up email is ready. Nothing has been sent or created in Gmail/Mail.",
+    "readback_id": "cassandra_draft_readback_cassandra_draft_capital_hilton_invoice_followup_v0",
+    "request_ref": "cassandra_draft_capital_hilton_invoice_followup_v0",
+    "status": "DRAFT_READY_FOR_REVIEW"
+  },
+  "readback_statuses": [
+    "DRAFT_READY_FOR_REVIEW",
+    "MISSING_INPUTS",
+    "BLOCKED_PRIVACY_BOUNDARY",
+    "BLOCKED_NO_RECIPIENT",
+    "BLOCKED_NO_CONTEXT",
+    "CASSANDRA_UNAVAILABLE",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "repo_b_cassandra_status": {
+    "env_flags_for_future_subprocess": {
+      "OPENCLAW_CASSANDRA_MODE": "DRAFT_ONLY",
+      "OPENCLAW_EXTERNAL_ACTION_ALLOWED": "0",
+      "OPENCLAW_GMAIL_ALLOWED": "0",
+      "OPENCLAW_SEND_ALLOWED": "0",
+      "OPENCLAW_TELEGRAM_ALLOWED": "0"
+    },
+    "inspected_files": [
+      "/home/openclaw_external/openclaw-runtime/cassandra_brain.py",
+      "/home/openclaw_external/openclaw-runtime/chief_email_brain.py",
+      "/home/openclaw_external/openclaw-runtime/cassandra_outreach.py",
+      "/home/openclaw_external/openclaw-runtime/cassandra_capability.py"
+    ],
+    "reason_not_called": "Repo B general email path is tied to live LLM/SMTP/approval notification behavior; outreach dry-run is fixed-purpose and not a scoped package draft callable.",
+    "repo_b_cassandra_path": "/home/openclaw_external/openclaw-runtime",
+    "safe_general_draft_callable_found": false,
+    "subprocess_used": false,
+    "timeout_ms": 5000
+  },
+  "request": {
+    "approval_required": true,
+    "attachment_refs": [
+      "artifact_ref_winship_invoice_excel_pdf_candidate"
+    ],
+    "authority_boundary": {
+      "agent_dispatch_allowed": false,
+      "credential_handling_allowed": false,
+      "draft_allowed": true,
+      "external_action_allowed": false,
+      "git_push_pull_fetch_allowed": false,
+      "live_draft_create_allowed": false,
+      "live_gmail_access_allowed": false,
+      "live_mail_access_allowed": false,
+      "live_send_allowed": false,
+      "mac_sync_import_allowed": false,
+      "mission_control_swift_change_allowed": false,
+      "raw_attachment_body_ingestion_allowed": false,
+      "raw_body_ingestion_allowed": false,
+      "raw_email_body_ingestion_allowed": false,
+      "telegram_output_allowed": false,
+      "workflow_execution_allowed": false
+    },
+    "client_ref": "capital_hilton",
+    "communication_goal": "Prepare a candidate email to Annette with the Winship-branded Excel/PDF invoice attached by reference for local records and payment follow-up, while Coupa/PO remains the official payment rail.",
+    "created_at": "2026-05-25T18:48:23+00:00",
+    "draft_type": "INVOICE_FOLLOWUP_EMAIL",
+    "lane_ref": "capital_hilton",
+    "missing_inputs": [
+      "exact Coupa PO/reference if required before final send",
+      "confirmed Annette contact route",
+      "final invoice artifact/hash"
+    ],
+    "privacy_class": "private_tokenized_business_context",
+    "request_id": "cassandra_draft_capital_hilton_invoice_followup_v0",
+    "required_points": [
+      "Winship-branded invoice PDF is for local records and payment follow-up.",
+      "Official payment rail remains Coupa supplier portal / PO process.",
+      "Ask for anything else needed to keep payment moving.",
+      "Do not claim send, submit, approval, or invoice generation happened."
+    ],
+    "send_authority": false,
+    "source_artifact_refs": [
+      "artifact_ref_winship_invoice_excel_pdf_candidate",
+      "source_ref_capital_hilton_invoice_workflow_readback"
+    ],
+    "source_chat_request_ref": "mission_control_chat_capital_hilton_workflow_ref",
+    "source_context_refs": [
+      "generated/read_models/workflow_execution_package_compiler.json",
+      "generated/read_models/google_broker_readonly_readback.json",
+      "generated/read_models/cassandra_draft_review_packet.json"
+    ],
+    "target_contact_status": "CANDIDATE_NEEDS_OPERATOR_CONFIRMATION",
+    "target_recipient_ref": "contact_ref_annette_candidate_tokenized",
+    "tenant_ref": "openclaw_local",
+    "tone_profile": "concise_professional_warm",
+    "workflow_ref": "capital_hilton_invoice_delivery_workflow",
+    "world_ref": "finance"
+  },
+  "schema_version": "cassandra_draft_worker_wrapper_v0",
+  "security_summary": {
+    "credential_exposure": false,
+    "external_actions": false,
+    "live_gmail_or_mail_access": false,
+    "raw_attachment_body_exposure": false,
+    "raw_email_body_exposure": false,
+    "raw_secret_exposure": false,
+    "send_or_live_draft_create": false,
+    "telegram_output": false
+  },
+  "supported_draft_types": [
+    "INVOICE_FOLLOWUP_EMAIL",
+    "PAYMENT_STATUS_EMAIL",
+    "CLIENT_UPDATE_EMAIL",
+    "INTERNAL_NOTE",
+    "GENERAL_DRAFT",
+    "UNKNOWN_NEEDS_FRAMING"
+  ]
+}
