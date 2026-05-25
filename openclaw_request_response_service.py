@@ -922,18 +922,23 @@ def _write_mac_handoff_package(
         source_request_filename=request_path.name,
         created_at=created_at,
     )
-    if mac_handoff_dir.is_symlink():
+    if mac_handoff_dir.is_symlink() or not mac_handoff_dir.exists() or not mac_handoff_dir.is_dir():
         payload = dict(payload)
         blockers = list(payload.get("blockers") or ())
+        condition = (
+            "Mac handoff output path is a symlink and cannot be used safely."
+            if mac_handoff_dir.is_symlink()
+            else "Mac handoff output path does not exist as an approved directory."
+        )
         blockers.append(
             {
                 "blocker_id": f"mac_worker_handoff_blocker_{_safe_filename_part(identity.source_request_id)}_path",
                 "blocker_type": "MAC_HANDOFF_PATH_UNAVAILABLE",
-                "condition": "Mac handoff output path is a symlink and cannot be used safely.",
+                "condition": condition,
                 "severity": "critical",
-                "elioperator_warning": "ELIOPERATOR: Mac handoff output path is a symlink and cannot be used safely.",
+                "elioperator_warning": f"ELIOPERATOR: {condition}",
                 "fail_closed": True,
-                "next_safe_move": "Use the approved non-symlink Mac handoff directory.",
+                "next_safe_move": "Build the Mac worker request watcher/handoff lane, or handle this manually in Mac Codex for now.",
             }
         )
         payload["blockers"] = tuple(blockers)
@@ -1075,22 +1080,30 @@ def _mac_handoff_blocked_processor_payload(
     )
     blocker_types = tuple(str(blocker.get("blocker_type") or "UNKNOWN_FAIL_CLOSED") for blocker in blockers)
     blocker_summary = ", ".join(blocker_types) or "UNKNOWN_FAIL_CLOSED"
+    handoff_path_unavailable = "MAC_HANDOFF_PATH_UNAVAILABLE" in blocker_types
     how_to_fix = (
         str(blockers[0].get("next_safe_move"))
         if blockers and blockers[0].get("next_safe_move")
         else "Reframe the request as a scoped Mac readback or validation handoff with no external action authority."
+    )
+    internal_status = "BLOCKED_MAC_HANDOFF_UNAVAILABLE" if handoff_path_unavailable else "BLOCKED_WITH_REASON"
+    headline = "Mac handoff is not wired yet" if handoff_path_unavailable else "Mac handoff blocked"
+    message = (
+        "OpenClaw understood that this needs Mac-side processing, but the Mac worker handoff rail is not available yet."
+        if handoff_path_unavailable
+        else (
+            "OpenClaw understood this is Mac-owned work, but the handoff package failed closed because the request "
+            "included unsafe authority or unsupported Mac worker scope."
+        )
     )
     response = processor.OpenClawResponseForMac(
         source_request_id=identity.source_request_id,
         source_request_filename=request_path.name,
         workflow_ref=identity.workflow_ref,
         request_type=identity.request_type,
-        internal_status="BLOCKED_WITH_REASON",
-        operator_headline="Mac handoff blocked",
-        operator_message=(
-            "OpenClaw understood this is Mac-owned work, but the handoff package failed closed because the request "
-            "included unsafe authority or unsupported Mac worker scope."
-        ),
+        internal_status=internal_status,
+        operator_headline=headline,
+        operator_message=message,
         what_happened=(
             "PC detected the request and selected a Mac-owned route.",
             "PC checked the request against the Mac handoff package safety rules.",
@@ -1345,6 +1358,21 @@ def process_one_pending_request(
             mac_handoff_dir=mac_handoff_dir,
             created_at=created_at,
         )
+        if handoff_path is not None:
+            route = RouteDecision(
+                routing_status="WAITING_FOR_MAC_READBACK",
+                selected_worker_target=route.selected_worker_target,
+                selected_machine=route.selected_machine,
+                processing_status="WAITING_FOR_MAC_READBACK",
+                operator_headline="Waiting for Mac readback",
+                operator_message="OpenClaw routed this to Mac and wrote a bounded handoff package. Nothing has been executed.",
+                next_safe_move="Wait for the Mac worker readback.",
+                route_reason=route.route_reason,
+                pc_handled=False,
+                mac_handoff_required=True,
+                future_worker_blocked=False,
+                terminal_block_status=None,
+            )
     heartbeat_payload = _heartbeat_payload(
         identity,
         request_path,
@@ -1354,18 +1382,61 @@ def process_one_pending_request(
     )
     heartbeat = publish_processing_heartbeat_for_mac(heartbeat_payload, response_dir=response_dir)
 
+    if route.mac_handoff_required and handoff_path is not None:
+        record = {
+            "source_request_id": identity.source_request_id,
+            "source_request_filename": request_path.name,
+            "request_key": identity.request_key,
+            "identity_keys": _identity_keys(request_path, identity),
+            "idempotency_key": identity.idempotency_key,
+            "payload_hash": identity.payload_hash,
+            "workflow_ref": identity.workflow_ref,
+            "request_type": identity.request_type,
+            "response_file": None,
+            "internal_status": "WAITING_FOR_MAC_READBACK",
+            "operator_headline": heartbeat.operator_headline,
+            "routing_status": route.routing_status,
+            "selected_worker_target": route.selected_worker_target,
+            "selected_machine": route.selected_machine,
+            "processing_heartbeat_path": heartbeat.heartbeat_file,
+            "mac_handoff_path": handoff_path.as_posix(),
+            "created_at": created_at,
+        }
+        return ServiceRunResult(
+            service_status="REQUEST_ROUTED_WAITING_FOR_MAC_READBACK",
+            run_mode="once",
+            inbox=inbox.as_posix(),
+            response_path=response_dir.as_posix(),
+            processed_count=1,
+            skipped_duplicate_count=len(skipped),
+            processed_requests=(record,),
+            skipped_duplicates=skipped,
+            latest_response=None,
+            errors_or_blockers=(),
+            next_safe_move=route.next_safe_move,
+            mode="stopped",
+            current_poll_interval=0.0,
+            idle_poll_interval=DEFAULT_IDLE_POLL_INTERVAL,
+            active_poll_interval=DEFAULT_ACTIVE_POLL_INTERVAL,
+            active_window_seconds=DEFAULT_ACTIVE_WINDOW_SECONDS,
+            active_window_remaining_seconds=0.0,
+            last_watch_mode_before_stop="active",
+            last_poll_interval=0.0,
+            last_processed_request_id=identity.source_request_id,
+            last_response_path=None,
+            bounded_stop_reason="waiting_for_mac_readback",
+            last_processing_started_request_id=identity.source_request_id,
+            last_routing_status=route.routing_status,
+            selected_worker_target=route.selected_worker_target,
+            selected_machine=route.selected_machine,
+            processing_heartbeat_path=heartbeat.heartbeat_file,
+            terminal_response_path=None,
+            active_request_count=1,
+            **_cache_result_fields(cache),
+        )
+
     try:
-        if route.mac_handoff_required and handoff_path is not None and handoff_payload is not None:
-            response_payload = _mac_handoff_ready_processor_payload(
-                request_path=request_path,
-                identity=identity,
-                route=route,
-                created_at=created_at,
-                handoff_path=handoff_path,
-                handoff_payload=handoff_payload,
-            )
-            errors = ()
-        elif route.mac_handoff_required and handoff_payload is not None:
+        if route.mac_handoff_required and handoff_payload is not None:
             response_payload = _mac_handoff_blocked_processor_payload(
                 request_path=request_path,
                 identity=identity,
@@ -1527,11 +1598,16 @@ def run_watch(
         time.sleep(sleep_for)
     deduped_skipped = _dedupe_records(skipped)
     if processed:
-        status = "REQUEST_PROCESSED" if not errors else "FAILED_WITH_REASON"
+        waiting_for_mac = any(record.get("internal_status") == "WAITING_FOR_MAC_READBACK" for record in processed)
+        status = (
+            "REQUEST_ROUTED_WAITING_FOR_MAC_READBACK"
+            if waiting_for_mac
+            else "REQUEST_PROCESSED" if not errors else "FAILED_WITH_REASON"
+        )
         next_safe_move = (
             latest_response.get("next_safe_move")
             if latest_response
-            else "Show the latest response in Mac chat."
+            else "Wait for the Mac worker readback."
         )
     else:
         status = "REQUEST_SKIPPED_DUPLICATE" if deduped_skipped else "WATCH_TIMED_OUT_IDLE"

@@ -425,12 +425,13 @@ def test_service_reuses_read_model_cache_during_one_watch_run(tmp_path, capsys):
     assert payload["machine_proof"]["read_model_cache_does_not_skip_request_validation"] is True
 
 
-def test_mac_routed_request_writes_handoff_package_and_terminal_response(tmp_path, capsys):
+def test_mac_routed_request_with_handoff_waits_for_mac_readback(tmp_path, capsys):
     inbox = tmp_path / "inbox"
     response_dir = tmp_path / "responses"
     export_root = tmp_path / "read_models"
     mac_handoff_dir = tmp_path / "mac_handoffs"
     inbox.mkdir()
+    mac_handoff_dir.mkdir()
     request_path = inbox / "mission_control_chat_request_mac_ui.json"
     request = _write_custom_chat_request(
         request_path,
@@ -457,12 +458,12 @@ def test_mac_routed_request_writes_handoff_package_and_terminal_response(tmp_pat
     ) == 0
     payload = json.loads(capsys.readouterr().out)
     heartbeat = json.loads(_safe_heartbeat_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
-    response = json.loads(_safe_response_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
     handoff_path = mac_handoff_dir / f"mac_worker_handoff_{service._safe_filename_part(request['request_id'])}.json"
     handoff_payload = json.loads(handoff_path.read_text(encoding="utf-8"))
 
-    assert payload["service_status"]["service_status"] == "REQUEST_PROCESSED"
-    assert heartbeat["routing_status"] == "ROUTED_TO_MAC"
+    assert payload["service_status"]["service_status"] == "REQUEST_ROUTED_WAITING_FOR_MAC_READBACK"
+    assert payload["service_status"]["active_request_count"] == 1
+    assert heartbeat["routing_status"] == "WAITING_FOR_MAC_READBACK"
     assert heartbeat["selected_worker_target"] == "MAC_CODEX"
     assert heartbeat["selected_machine"] == "MAC"
     assert heartbeat["mac_handoff_path"] == handoff_path.as_posix()
@@ -472,21 +473,63 @@ def test_mac_routed_request_writes_handoff_package_and_terminal_response(tmp_pat
     assert handoff_payload["handoff_package"]["target_surface"] == "mission_control_mac_app"
     assert "xcodebuild build" in handoff_payload["handoff_package"]["validation_expectations"]
     assert handoff_payload["terminal"] is False
-    assert response["internal_status"] == "RESPONSE_READY"
-    assert response["operator_headline"] == "Routed to Mac"
-    assert response["eliwinship"] == (
-        "OpenClaw understood this needs Mac-side work. "
-        "The handoff package is ready for the Mac worker; nothing has been executed yet."
+    assert not _safe_response_path(response_dir, request["request_id"]).exists()
+    assert payload["service_status"]["last_routing_status"] == "WAITING_FOR_MAC_READBACK"
+    assert payload["service_status"]["selected_worker_target"] == "MAC_CODEX"
+    assert payload["service_status"]["terminal_response_path"] is None
+    assert payload["service_status"]["processing_heartbeat_path"].endswith(
+        f"openclaw_processing_for_mac_{service._safe_filename_part(request['request_id'])}.json"
     )
-    assert response["next_action"] == "Next: Run the Mac worker handoff lane."
+
+
+def test_mac_routed_request_without_handoff_path_blocks_with_how_to_fix(tmp_path, capsys):
+    inbox = tmp_path / "inbox"
+    response_dir = tmp_path / "responses"
+    export_root = tmp_path / "read_models"
+    mac_handoff_dir = tmp_path / "missing" / "mac_handoffs"
+    inbox.mkdir()
+    request_path = inbox / "mission_control_chat_request_mac_ui_no_path.json"
+    request = _write_custom_chat_request(
+        request_path,
+        message="Please update the SwiftUI Mac app layout for Mission Control chat cards.",
+        suffix="mac_ui_no_path",
+    )
+
+    assert service_main(
+        [
+            "--once",
+            "--inbox",
+            str(inbox),
+            "--response-dir",
+            str(response_dir),
+            "--mac-handoff-dir",
+            str(mac_handoff_dir),
+            "--export-root",
+            str(export_root),
+            "--generated-at",
+            FIXED_NOW,
+            "--format",
+            "json",
+        ]
+    ) == 0
+    payload = json.loads(capsys.readouterr().out)
+    heartbeat = json.loads(_safe_heartbeat_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
+    response = json.loads(_safe_response_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
+
+    assert payload["service_status"]["service_status"] == "REQUEST_PROCESSED"
+    assert heartbeat["routing_status"] == "ROUTED_TO_MAC"
+    assert heartbeat["selected_worker_target"] == "MAC_CODEX"
+    assert heartbeat["mac_handoff_path"] is None
+    _assert_heartbeat_no_success_claims(heartbeat)
+    assert response["internal_status"] == "BLOCKED_MAC_HANDOFF_UNAVAILABLE"
+    assert response["operator_headline"] == "Mac handoff is not wired yet"
     assert response["terminal"] is True
     assert response["source_request_id"] == request["request_id"]
-    assert response["how_to_fix"] == "Run the Mac worker handoff lane, or handle it manually in Mac Codex for now."
+    assert response["how_to_fix"] == (
+        "Build the Mac worker request watcher/handoff lane, or handle this manually in Mac Codex for now."
+    )
     assert "sent" not in response["operator_message"].lower()
-    assert payload["service_status"]["last_routing_status"] == "ROUTED_TO_MAC"
-    assert payload["service_status"]["selected_worker_target"] == "MAC_CODEX"
-    assert payload["service_status"]["terminal_response_path"] == _safe_response_path(response_dir, request["request_id"]).as_posix()
-    assert payload["service_status"]["last_response_path"] == _safe_response_path(response_dir, request["request_id"]).as_posix()
+    assert not mac_handoff_dir.exists()
 
 
 def test_mac_routed_external_action_request_blocks_without_handoff(tmp_path, capsys):
@@ -495,6 +538,7 @@ def test_mac_routed_external_action_request_blocks_without_handoff(tmp_path, cap
     export_root = tmp_path / "read_models"
     mac_handoff_dir = tmp_path / "mac_handoffs"
     inbox.mkdir()
+    mac_handoff_dir.mkdir()
     request_path = inbox / "mission_control_chat_request_mail_send.json"
     request = _write_custom_chat_request(
         request_path,

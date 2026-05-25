@@ -31,7 +31,7 @@
     "unbounded_loop_by_default_allowed": false
   },
   "contract_status": "BOUNDED_LOCAL_OPENCLAW_REQUEST_RESPONSE_SERVICE",
-  "generated_at": "2026-05-25T23:39:19+00:00",
+  "generated_at": "2026-05-25T23:43:27+00:00",
   "machine_proof": {
     "active_poll_interval_configured": 0.05,
     "active_session_watch_present": true,
@@ -46,7 +46,7 @@
     "bounded_run_mode": true,
     "browser_access_performed": false,
     "cloud_audio_performed": false,
-    "content_hash": "sha256:52b07ea6409f2d8cfe6d5ff3e2fab8d6df5149479fb5e3a104779839eb811cde",
+    "content_hash": "sha256:52efa4f90f5a1832322505f2e6205162f51bf6ac2d2d8655a90211d04ea2dec7",
     "coupa_access_or_submit_performed": false,
     "credential_handling_performed": false,
     "duplicate_keys_include_request_id_idempotency_filename_payload_hash": true,
@@ -444,7 +444,7 @@
     "idle_poll_interval": 1.0,
     "inbox": "/mnt/e/openclaw/mission_control_capture_requests/inbox",
     "last_cached_paths": [],
-    "last_poll_interval": 0.31031383108347654,
+    "last_poll_interval": 0.33251945907250047,
     "last_processed_request_id": null,
     "last_processing_started_request_id": null,
     "last_response_path": null,
