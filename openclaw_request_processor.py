@@ -13,6 +13,7 @@ import argparse
 import fnmatch
 import hashlib
 import json
+import re
 import sys
 import time
 from dataclasses import asdict, dataclass
@@ -201,11 +202,16 @@ MACHINE_SLUDGE_TERMS = (
     "operator_message",
     "raw_internal_status",
     "spoken_response_packet",
+    "visual_event_package",
     "capital_hilton_invoice_operator_readback",
     "workflow_execution_package_compiler",
     "gated_email_send_adapter",
     "coupa_supplier_portal_package_compiler",
     "openclaw_request_processor",
+    "openclaw_request_response_service",
+    "openclaw_response_for_mac",
+    "generated/read_models",
+    "sqlite",
 )
 
 SPOKEN_FORBIDDEN_CLAIMS = (
@@ -243,6 +249,79 @@ VOICE_DIRECTIONS = {
     "CODEX": "technical_precise",
     "OPENCLAW_SYSTEM": "neutral_clear",
     "UNKNOWN": "neutral_clear",
+}
+
+COMPACT_RESPONSE_FIELDS = (
+    "headline",
+    "one_line_answer",
+    "eliwinship",
+    "primary_status",
+    "primary_blocker",
+    "next_action",
+)
+
+BAD_PHRASE_REPLACEMENTS = (
+    ("basically sent", "not complete"),
+    ("ready to send", "not cleared to send"),
+    ("looks ready to send", "not cleared to send"),
+    ("deployed", "validated locally"),
+    ("100% correct", "validated against current proof"),
+    ("flawless", "validated against current proof"),
+    ("don't worry about the gate", "the gate remains required"),
+    ("dont worry about the gate", "the gate remains required"),
+    ("I fixed it", "local change prepared"),
+    ("I sent", "send not claimed"),
+    ("sent it", "send not claimed"),
+    ("I submitted", "submit not claimed"),
+    ("submitted it", "submit not claimed"),
+    ("submitted without submit receipt", "not submitted without receipt"),
+)
+
+BAD_PHRASES = tuple(phrase for phrase, _replacement in BAD_PHRASE_REPLACEMENTS)
+
+AGENT_TASTE_FORBIDDEN = {
+    "CHIEF": (
+        "you got this",
+        "awesome",
+        "crush it",
+        "unstoppable",
+        "motivational",
+        "no worries",
+    ),
+    "CASSANDRA": (
+        "i sent",
+        "sent it",
+        "emailed",
+        "delivered to",
+        "ready to send",
+    ),
+    "GUARDIAN": (
+        "panic",
+        "catastrophe",
+        "disaster",
+        "terrifying",
+        "emergency!!!",
+    ),
+    "NILES": (
+        "i fixed the routing",
+        "updated the show file",
+        "saved the session",
+        "sent",
+        "submitted",
+    ),
+    "CODEX": (
+        "deployed",
+        "launched production",
+        "pushed to prod",
+        "100% correct",
+        "flawless",
+    ),
+    "OPENCLAW_SYSTEM": (
+        "buddy",
+        "pal",
+        "awesome",
+        "crush",
+    ),
 }
 
 RESPONDER_TARGET_TYPES = (
@@ -812,12 +891,19 @@ def _word_limited(text: str, max_words: int) -> str:
     return " ".join(words[:max_words]).rstrip(".,;:") + "."
 
 
+def _replace_bad_phrases(text: str) -> str:
+    cleaned = str(text)
+    for phrase, replacement in BAD_PHRASE_REPLACEMENTS:
+        cleaned = re.sub(re.escape(phrase), replacement, cleaned, flags=re.IGNORECASE)
+    return cleaned
+
+
 def _sanitize_cockpit_text(text: str) -> str:
-    cleaned = " ".join(str(text).split())
+    cleaned = " ".join(_replace_bad_phrases(str(text)).split())
     parts: list[str] = []
     for word in cleaned.split():
         lowered = word.lower().strip(".,;:()[]{}")
-        if lowered.startswith("generated/read_models/") or lowered.startswith("/"):
+        if lowered.startswith("generated/read_models/") or lowered.startswith("/") or "\\" in lowered:
             parts.append("detail")
             continue
         if lowered.startswith("sha256:") or (len(lowered) >= 32 and all(char in "0123456789abcdef" for char in lowered)):
@@ -847,7 +933,10 @@ def _render_next_action(text: str) -> str:
 def _apply_cockpit_prose_limits(fields: dict[str, Any]) -> dict[str, Any]:
     limited = dict(fields)
     limited["headline"] = _word_limited(_sanitize_cockpit_text(str(limited.get("headline") or "")), 6)
+    limited["one_line_answer"] = _word_limited(_sanitize_cockpit_text(str(limited.get("one_line_answer") or "")), 30)
     limited["eliwinship"] = _word_limited(_sanitize_cockpit_text(str(limited.get("eliwinship") or "")), 40)
+    limited["primary_status"] = _word_limited(_sanitize_cockpit_text(str(limited.get("primary_status") or "")), 12)
+    limited["primary_blocker"] = _word_limited(_first_sentence(_sanitize_cockpit_text(str(limited.get("primary_blocker") or "None"))), 12)
     limited["next_action"] = _render_next_action(str(limited.get("next_action") or "Review the response."))
     missing = limited.get("missing_items_short") or ()
     if isinstance(missing, str):
@@ -856,6 +945,157 @@ def _apply_cockpit_prose_limits(fields: dict[str, Any]) -> dict[str, Any]:
         missing_items = tuple(str(item) for item in missing)
     limited["missing_items_short"] = tuple(_sanitize_cockpit_text(item) for item in missing_items[:3])
     return limited
+
+
+def _field_limit_errors(fields: Mapping[str, Any], spoken_packet: Mapping[str, Any] | None = None) -> tuple[str, ...]:
+    errors: list[str] = []
+    limits = {
+        "headline": 6,
+        "eliwinship": 40,
+        "next_action": 12,
+    }
+    for field, max_words in limits.items():
+        value = str(fields.get(field) or "")
+        if len(value.split()) > max_words:
+            errors.append(f"FIELD_TOO_LONG:{field}")
+    next_action = str(fields.get("next_action") or "")
+    if next_action and not next_action.startswith("Next:"):
+        errors.append("NEXT_ACTION_MISSING_PREFIX")
+    missing = fields.get("missing_items_short") or ()
+    if isinstance(missing, str):
+        missing_count = 1
+    else:
+        missing_count = len(tuple(missing))
+    if missing_count > 3:
+        errors.append("TOO_MANY_MISSING_ITEMS")
+    primary_blocker = str(fields.get("primary_blocker") or "")
+    if primary_blocker.count(".") > 1 or primary_blocker.count(";") > 0:
+        errors.append("PRIMARY_BLOCKER_NOT_SINGLE_CLEAR_BLOCKER")
+    if spoken_packet:
+        script = str(spoken_packet.get("spoken_script") or "")
+        if len(script.split()) > 40:
+            errors.append("SPOKEN_SCRIPT_TOO_LONG")
+    return tuple(errors)
+
+
+def _machine_sludge_hits(fields: Mapping[str, Any]) -> tuple[str, ...]:
+    hits: list[str] = []
+    for field in COMPACT_RESPONSE_FIELDS:
+        text = str(fields.get(field) or "")
+        lowered = text.lower()
+        if any(term in lowered for term in MACHINE_SLUDGE_TERMS):
+            hits.append(f"MACHINE_SLUDGE:{field}")
+        if "generated/read_models" in lowered or "mission_control_" in lowered or "request_id" in lowered:
+            hits.append(f"MACHINE_REF:{field}")
+        if any(status in text for status in INTERNAL_STATUSES):
+            hits.append(f"INTERNAL_STATUS:{field}")
+        for token in text.split():
+            stripped = token.strip(".,;:()[]{}").lower()
+            if stripped.startswith("/") or "\\" in stripped:
+                hits.append(f"FILE_PATH:{field}")
+                break
+            if stripped.startswith("sha256:") or (len(stripped) >= 32 and all(char in "0123456789abcdef" for char in stripped)):
+                hits.append(f"HASH:{field}")
+                break
+            if stripped.endswith(".py") or stripped.endswith(".sqlite"):
+                hits.append(f"TECHNICAL_ARTIFACT:{field}")
+                break
+    return tuple(dict.fromkeys(hits))
+
+
+def _bad_phrase_hits(text: str) -> tuple[str, ...]:
+    lowered = str(text).lower()
+    return tuple(phrase for phrase in BAD_PHRASES if phrase.lower() in lowered)
+
+
+def _agent_taste_errors(author: str, text: str, *, high_risk_override_applied: bool = False) -> tuple[str, ...]:
+    role = author if author in AGENT_TASTE_FORBIDDEN else "OPENCLAW_SYSTEM"
+    lowered = text.lower()
+    errors = [f"{role}_FORBIDDEN:{phrase}" for phrase in AGENT_TASTE_FORBIDDEN[role] if phrase in lowered]
+    if role == "NILES" and high_risk_override_applied:
+        errors.append("NILES_HIGH_RISK_PLAYFUL_VIBE_NOT_SUPPRESSED")
+    return tuple(errors)
+
+
+def _sentence_fingerprints(text: str) -> tuple[str, ...]:
+    fingerprints: list[str] = []
+    for sentence in re.split(r"[.!?]+", str(text)):
+        words = [word.strip(".,;:()[]{}").lower() for word in sentence.split()]
+        words = [word for word in words if word]
+        if len(words) > 6:
+            fingerprints.append(" ".join(words))
+    return tuple(fingerprints)
+
+
+def _duplicate_sentence_hits(payload: Mapping[str, Any]) -> tuple[str, ...]:
+    seen: dict[str, str] = {}
+    duplicates: list[str] = []
+    spoken = payload.get("spoken_response_packet") if isinstance(payload.get("spoken_response_packet"), Mapping) else {}
+    fields = {
+        "operator_message": payload.get("operator_message"),
+        "how_to_fix": payload.get("how_to_fix"),
+        "next_safe_move": payload.get("next_safe_move"),
+        "eliwinship": payload.get("eliwinship"),
+        "spoken_script": spoken.get("spoken_script") if isinstance(spoken, Mapping) else "",
+    }
+    for field, value in fields.items():
+        for fingerprint in _sentence_fingerprints(str(value or "")):
+            if fingerprint in seen:
+                duplicates.append(f"DUPLICATE_SENTENCE:{seen[fingerprint]}:{field}")
+            else:
+                seen[fingerprint] = field
+    return tuple(duplicates)
+
+
+def _enforce_layered_response_taste(fields: dict[str, Any]) -> dict[str, Any]:
+    return _apply_cockpit_prose_limits(fields)
+
+
+def _enforce_spoken_packet_taste(packet: dict[str, Any]) -> dict[str, Any]:
+    clean = dict(packet)
+    clean["spoken_script"] = _word_limited(_sanitize_spoken_text(str(clean.get("spoken_script") or "")), 40)
+    clean["spoken_summary"] = _word_limited(_sanitize_spoken_text(str(clean.get("spoken_summary") or "")), 12)
+    clean["next_safe_move"] = _sanitize_spoken_text(str(clean.get("next_safe_move") or "Review the response."))
+    return clean
+
+
+def _response_taste_guardrails(payload: Mapping[str, Any]) -> dict[str, Any]:
+    compact_text = " ".join(str(payload.get(field) or "") for field in COMPACT_RESPONSE_FIELDS)
+    spoken_packet = payload.get("spoken_response_packet") if isinstance(payload.get("spoken_response_packet"), Mapping) else {}
+    spoken_text = str(spoken_packet.get("spoken_script") or "") if isinstance(spoken_packet, Mapping) else ""
+    bad_phrases = tuple(dict.fromkeys(_bad_phrase_hits(compact_text) + _bad_phrase_hits(spoken_text)))
+    machine_sludge = _machine_sludge_hits(payload)
+    field_errors = _field_limit_errors(payload, spoken_packet if isinstance(spoken_packet, Mapping) else None)
+    author = str(payload.get("response_author") or "OPENCLAW_SYSTEM")
+    agent_errors = _agent_taste_errors(
+        author,
+        f"{compact_text} {spoken_text}",
+        high_risk_override_applied=bool(payload.get("high_risk_override_applied")),
+    )
+    duplicates = _duplicate_sentence_hits(payload)
+    errors = tuple(dict.fromkeys(field_errors + machine_sludge + tuple(f"BAD_PHRASE:{hit}" for hit in bad_phrases) + agent_errors + duplicates))
+    return {
+        "field_limits": {
+            "headline_max_words": 6,
+            "eliwinship_max_words": 40,
+            "next_action_max_words": 12,
+            "missing_items_short_max_items": 3,
+            "spoken_script_max_words": 40,
+        },
+        "compact_fields_checked": COMPACT_RESPONSE_FIELDS,
+        "field_limits_passed": not field_errors,
+        "machine_sludge_filtered": not machine_sludge,
+        "machine_sludge_hits": machine_sludge,
+        "bad_phrase_blockers_passed": not bad_phrases,
+        "bad_phrase_blockers": bad_phrases,
+        "agent_voice_rules_passed": not agent_errors,
+        "agent_voice_errors": agent_errors,
+        "duplicate_sentence_reduction_passed": not duplicates,
+        "duplicate_sentence_hits": duplicates,
+        "taste_errors": errors,
+        "taste_passed": not errors,
+        "next_safe_move": "Use compact fields for Mac chat; keep debug refs in detail-only surfaces.",
+    }
 
 
 def _safe_generated_ref(ref: object) -> str:
@@ -1011,11 +1251,15 @@ def _generic_spoken_script(layered_fields: Mapping[str, Any]) -> str:
     headline = _sanitize_spoken_text(str(layered_fields.get("headline") or "OpenClaw response ready."))
     blocker = _sanitize_spoken_text(str(layered_fields.get("primary_blocker") or ""))
     next_action = _sanitize_spoken_text(str(layered_fields.get("next_action") or "Next: Review the response."))
+    headline_sentence = headline.rstrip(".!?")
     if blocker and blocker.lower() != "none":
-        script = f"{headline}. Blocked by {blocker}. {next_action}"
+        script = f"{headline_sentence}. Blocked by {blocker}. {next_action}"
     else:
         one_line = _sanitize_spoken_text(str(layered_fields.get("one_line_answer") or ""))
-        script = f"{headline}. {one_line} {next_action}".strip()
+        if one_line.rstrip(".!?").lower() == headline_sentence.lower():
+            script = f"{headline_sentence}. {next_action}"
+        else:
+            script = f"{headline_sentence}. {one_line} {next_action}".strip()
     return _word_limited(script, 40)
 
 
@@ -2142,9 +2386,9 @@ def build_payloads(
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     generated_at = generated_at or utc_now()
     status = _processor_status_from_response(response, blockers=blockers)
-    layered_fields = _layered_response_fields(response, created_at=generated_at)
+    layered_fields = _enforce_layered_response_taste(_layered_response_fields(response, created_at=generated_at))
     voice_fields = _voice_authorship_fields(response, layered_fields)
-    spoken_packet = _spoken_response_packet(response, layered_fields, voice_fields)
+    spoken_packet = _enforce_spoken_packet_taste(_spoken_response_packet(response, layered_fields, voice_fields))
     visual_package = _visual_event_package(response, layered_fields, voice_fields)
     response_payload: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
@@ -2160,6 +2404,8 @@ def build_payloads(
         "terminal": _terminal_for_status(response.internal_status),
         "authority_boundary": AUTHORITY_BOUNDARY,
     }
+    taste_guardrails = _response_taste_guardrails(response_payload)
+    response_payload["taste_guardrails"] = taste_guardrails
     status_payload: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
         "read_model_id": STATUS_READ_MODEL_ID,
@@ -2202,6 +2448,13 @@ def build_payloads(
             "local_model_call_performed": False,
             "visual_playback_performed": False,
             "visual_provider_call_performed": False,
+            "response_taste_guardrails_present": True,
+            "response_taste_passed": taste_guardrails["taste_passed"],
+            "response_field_limits_passed": taste_guardrails["field_limits_passed"],
+            "compact_fields_machine_sludge_free": taste_guardrails["machine_sludge_filtered"],
+            "bad_phrase_blockers_passed": taste_guardrails["bad_phrase_blockers_passed"],
+            "agent_voice_taste_rules_passed": taste_guardrails["agent_voice_rules_passed"],
+            "duplicate_sentence_reduction_passed": taste_guardrails["duplicate_sentence_reduction_passed"],
         }
     )
     response_payload["machine_proof"] = json.loads(stable_json(status_payload["machine_proof"]))

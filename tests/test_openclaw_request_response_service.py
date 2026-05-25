@@ -379,6 +379,10 @@ def test_service_routes_capital_hilton_status_query_to_mac_response(tmp_path, ca
     assert "approval complete" in visual["forbidden_visual_claims"]
     assert visual["provider_policy"]["cloud_generation_allowed"] is False
     assert visual["provider_policy"]["local_asset_preferred"] is True
+    assert response["taste_guardrails"]["taste_passed"] is True
+    assert response["taste_guardrails"]["machine_sludge_filtered"] is True
+    assert response["taste_guardrails"]["bad_phrase_blockers_passed"] is True
+    assert response["machine_proof"]["response_taste_passed"] is True
     assert response["proof_refs"] == ["generated/read_models/capital_hilton_invoice_operator_readback.json"]
     assert response["operator_headline"] == "Capital Hilton invoice workflow is not ready yet"
     assert "Nothing has been sent, submitted, opened, approved, or marked complete" in response["operator_message"]
@@ -685,6 +689,8 @@ def test_service_processes_file_metadata_request_and_writes_response(tmp_path, c
     assert "file analyzed" in visual["forbidden_visual_claims"]
     assert "file body read" in visual["forbidden_visual_claims"]
     assert visual["provider_policy"]["cloud_generation_allowed"] is False
+    assert response["taste_guardrails"]["taste_passed"] is True
+    assert response["machine_proof"]["response_taste_passed"] is True
     assert response["operator_message"]
     assert response["how_to_fix"]
     assert response["terminal"] is True

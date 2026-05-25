@@ -143,6 +143,19 @@ def _assert_visual_package_safe(package: dict) -> None:
     assert package["visual_event_type"] not in {"SUCCESS_CONFIRMED", "COMPLETION_CONFIRMED"}
 
 
+def _assert_taste_guardrails_pass(response: dict) -> None:
+    taste = response["taste_guardrails"]
+    assert taste["taste_passed"] is True
+    assert taste["field_limits_passed"] is True
+    assert taste["machine_sludge_filtered"] is True
+    assert taste["bad_phrase_blockers_passed"] is True
+    assert taste["agent_voice_rules_passed"] is True
+    assert taste["duplicate_sentence_reduction_passed"] is True
+    assert not taste["taste_errors"]
+    assert response["machine_proof"]["response_taste_guardrails_present"] is True
+    assert response["machine_proof"]["response_taste_passed"] is True
+
+
 def _minimal_response(message: str, *, request_type: str = "CHAT", workflow_ref: str = "workflow_fixture") -> processor.OpenClawResponseForMac:
     return processor.OpenClawResponseForMac(
         source_request_id="voice_selection_fixture",
@@ -279,6 +292,7 @@ def test_file_argument_processes_specific_file_request(tmp_path, capsys):
     assert "file analyzed" in visual["forbidden_visual_claims"]
     assert "file body read" in visual["forbidden_visual_claims"]
     assert visual["provider_policy"]["preferred_provider_family"] == "STATIC_VISUAL_CARD"
+    _assert_taste_guardrails_pass(response)
     _assert_cockpit_copy_safe(response)
     assert "Capital Hilton invoice.xlsx" in response["operator_message"]
     assert "RESPONSE_READY" not in response["operator_message"]
@@ -363,6 +377,7 @@ def test_capital_hilton_status_query_routes_to_unified_operator_readback(tmp_pat
     assert visual["provider_policy"]["preferred_provider_family"] == "MAC_ANIMATION_NATIVE"
     assert visual["provider_policy"]["cloud_generation_allowed"] is False
     assert visual["provider_policy"]["local_asset_preferred"] is True
+    _assert_taste_guardrails_pass(response)
     _assert_cockpit_copy_safe(response)
     assert "four Capital Hilton performance dates at $1,600 total" in response["detail_summary"]
     assert response["proof_refs"]
@@ -428,6 +443,67 @@ def test_voice_selection_fixtures_cover_cassandra_guardian_and_niles_override():
     assert niles_voice["vibe_profile_ref"] == "vibe:guardian:strict_proof"
     assert niles_voice["high_risk_override_applied"] is True
     assert codex_voice["response_author"] == "CODEX"
+
+
+def test_response_taste_bad_phrase_fixtures_are_marked_invalid():
+    bad_payload = {
+        "headline": "Looks ready to send",
+        "one_line_answer": "This is basically sent.",
+        "eliwinship": "Don't worry about the gate. I fixed it.",
+        "primary_status": "RESPONSE_READY",
+        "primary_blocker": "None",
+        "next_action": "Next: Deployed.",
+        "response_author": "CHIEF",
+        "spoken_response_packet": {"spoken_script": "It is 100% correct and flawless."},
+        "high_risk_override_applied": False,
+    }
+    taste = processor._response_taste_guardrails(bad_payload)
+
+    assert taste["taste_passed"] is False
+    assert "ready to send" in taste["bad_phrase_blockers"]
+    assert "basically sent" in taste["bad_phrase_blockers"]
+    assert "deployed" in taste["bad_phrase_blockers"]
+    assert "100% correct" in taste["bad_phrase_blockers"]
+    assert any(error.startswith("BAD_PHRASE:") for error in taste["taste_errors"])
+    assert any(error.startswith("INTERNAL_STATUS:") for error in taste["taste_errors"])
+
+
+def test_agent_specific_taste_rules_cover_cassandra_guardian_codex_and_chief():
+    cassandra = _minimal_response("Cassandra draft review is ready. Send authority remains locked.")
+    cassandra_payload, _ = processor.build_payloads(cassandra, generated_at=FIXED_NOW)
+    assert cassandra_payload["response_author"] == "CASSANDRA"
+    _assert_taste_guardrails_pass(cassandra_payload)
+    cassandra_bad = dict(cassandra_payload)
+    cassandra_bad["eliwinship"] = "I sent it to Annette."
+    cassandra_taste = processor._response_taste_guardrails(cassandra_bad)
+    assert cassandra_taste["taste_passed"] is False
+    assert any(error.startswith("CASSANDRA_FORBIDDEN:") for error in cassandra_taste["taste_errors"])
+
+    guardian = _minimal_response("Blocked. This action needs a specific approval packet and proof refs before it can proceed.")
+    guardian_payload, _ = processor.build_payloads(guardian, generated_at=FIXED_NOW)
+    assert guardian_payload["response_author"] == "GUARDIAN"
+    _assert_taste_guardrails_pass(guardian_payload)
+    guardian_bad = dict(guardian_payload)
+    guardian_bad["eliwinship"] = "Panic. This is a catastrophe."
+    guardian_taste = processor._response_taste_guardrails(guardian_bad)
+    assert any(error.startswith("GUARDIAN_FORBIDDEN:") for error in guardian_taste["taste_errors"])
+
+    codex = _minimal_response("Build lane passed locally. Tests passed. No push occurred.")
+    codex_payload, _ = processor.build_payloads(codex, generated_at=FIXED_NOW)
+    assert codex_payload["response_author"] == "CODEX"
+    _assert_taste_guardrails_pass(codex_payload)
+    codex_bad = dict(codex_payload)
+    codex_bad["eliwinship"] = "Deployed."
+    codex_taste = processor._response_taste_guardrails(codex_bad)
+    assert any(error.startswith("CODEX_FORBIDDEN:") for error in codex_taste["taste_errors"])
+
+    chief = _minimal_response("Capital Hilton is blocked by missing approval receipts.", workflow_ref="capital_hilton_invoice_workflow")
+    chief_payload, _ = processor.build_payloads(chief, generated_at=FIXED_NOW)
+    chief_bad = dict(chief_payload)
+    chief_bad["response_author"] = "CHIEF"
+    chief_bad["eliwinship"] = "You got this, this is awesome."
+    chief_taste = processor._response_taste_guardrails(chief_bad)
+    assert any(error.startswith("CHIEF_FORBIDDEN:") for error in chief_taste["taste_errors"])
 
 
 def test_file_argument_accepts_mac_metadata_hash_contract(tmp_path, capsys):
