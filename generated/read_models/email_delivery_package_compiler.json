@@ -1,0 +1,1366 @@
+{
+  "authority_boundary": {
+    "credential_handling_allowed": false,
+    "git_push_pull_fetch_allowed": false,
+    "live_agent_dispatch_allowed": false,
+    "live_approval_execution_allowed": false,
+    "live_attachment_body_read_allowed": false,
+    "live_attachment_send_allowed": false,
+    "live_browser_allowed": false,
+    "live_coupa_access_allowed": false,
+    "live_email_delivery_allowed": false,
+    "live_email_send_allowed": false,
+    "live_external_action_allowed": false,
+    "live_gmail_draft_create_allowed": false,
+    "live_gmail_send_allowed": false,
+    "live_invoice_generation_allowed": false,
+    "live_mail_send_allowed": false,
+    "live_workflow_run_allowed": false,
+    "mac_sync_import_allowed": false,
+    "mission_control_swift_change_allowed": false,
+    "network_allowed": false,
+    "raw_body_ingestion_allowed": false
+  },
+  "blocker_types": [
+    "RECIPIENT_MISSING",
+    "RECIPIENT_UNCONFIRMED",
+    "DRAFT_MISSING",
+    "ATTACHMENT_REF_MISSING",
+    "ATTACHMENT_HASH_MISSING",
+    "APPROVAL_MISSING",
+    "SEND_GATE_MISSING",
+    "RAW_EMAIL_ADDRESS_EXPOSED",
+    "RAW_ATTACHMENT_BODY_INCLUDED",
+    "SEND_ATTEMPTED",
+    "EXTERNAL_ACTION_ATTEMPTED",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "capital_hilton_required_package": {
+    "known": [
+      "client: Capital Hilton",
+      "workflow: capital_hilton_invoice_workflow",
+      "draft type: INVOICE_FOLLOWUP_EMAIL",
+      "recipient: Annette candidate/confirmed ref",
+      "attachment: Winship-branded Excel/PDF invoice artifact ref",
+      "official payment rail: Coupa/PO",
+      "purpose: local records and payment follow-up"
+    ],
+    "operator_readback": "OpenClaw has assembled a delivery package for the Capital Hilton invoice email. Nothing has been sent. The package still needs Guardian/operator approval before any future send adapter can act."
+  },
+  "compiler": {
+    "approval_policy": [
+      "Action Covenant and Guardian approval request refs are required before future send.",
+      "Operator approval receipt is future proof, not created here.",
+      "Approval execution remains disabled."
+    ],
+    "attachment_policy": [
+      "Attachments are refs to artifacts, never raw file bodies.",
+      "Attachment hash/fingerprint proof is required.",
+      "Missing attachment ref or hash blocks package readiness."
+    ],
+    "authority_boundary": {
+      "credential_handling_allowed": false,
+      "git_push_pull_fetch_allowed": false,
+      "live_agent_dispatch_allowed": false,
+      "live_approval_execution_allowed": false,
+      "live_attachment_body_read_allowed": false,
+      "live_attachment_send_allowed": false,
+      "live_browser_allowed": false,
+      "live_coupa_access_allowed": false,
+      "live_email_delivery_allowed": false,
+      "live_email_send_allowed": false,
+      "live_external_action_allowed": false,
+      "live_gmail_draft_create_allowed": false,
+      "live_gmail_send_allowed": false,
+      "live_invoice_generation_allowed": false,
+      "live_mail_send_allowed": false,
+      "live_workflow_run_allowed": false,
+      "mac_sync_import_allowed": false,
+      "mission_control_swift_change_allowed": false,
+      "network_allowed": false,
+      "raw_body_ingestion_allowed": false
+    },
+    "compiler_id": "email_delivery_package_compiler_v0",
+    "delivery_readback_policy": [
+      "Readback is human-readable.",
+      "Blocked/not-ready readbacks include how_to_fix.",
+      "Do not say email ready to send unless recipient, draft, attachment refs, and approval packet are present.",
+      "Never say sent."
+    ],
+    "doctrine": [
+      "Compiler creates a delivery package, not a send action.",
+      "Package must bind recipient refs, draft refs, attachment refs, approval refs, send gate, and proof requirements.",
+      "Package must state missing items and blocked actions clearly.",
+      "Readbacks must never claim delivery or say sent.",
+      "External authority remains false."
+    ],
+    "next_safe_move": "Use this compiler after draft/artifact/contact refs exist and before Guardian/operator approval.",
+    "proof_policy": [
+      "Completion requires recipient confirmation, reviewed draft, invoice artifact ref, artifact hash/fingerprint, Guardian packet, exact operator approval receipt, future send receipt, and attachment/send proof.",
+      "INVOICE SENT is a future target only."
+    ],
+    "recipient_policy": [
+      "Recipient uses safe display labels and tokenized contact refs.",
+      "Raw email address is not exposed in normal read-models.",
+      "Candidate recipients can be packaged for review but cannot be considered send-ready."
+    ],
+    "send_gate_policy": [
+      "Send gate records missing items and exact approval phrase.",
+      "send_allowed false, send_executed false, external_authority false in this lane.",
+      "A future gated adapter must produce send and attachment proof receipts."
+    ],
+    "source_draft_policy": [
+      "Draft comes from Cassandra draft worker or other scoped draft ref.",
+      "Body may be summarized or referenced; raw private mail bodies are not included.",
+      "A missing draft blocks package readiness."
+    ]
+  },
+  "contract_status": "DETERMINISTIC_NON_SENDING_EMAIL_DELIVERY_PACKAGE_COMPILER",
+  "delivery_statuses": [
+    "NOT_SENT",
+    "READY_PACKAGE_ONLY",
+    "FUTURE_SEND_TARGET",
+    "BLOCKED_MISSING_PROOF",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "email_delivery_blockers": [
+    {
+      "blocker_id": "email_delivery_blocker_recipient_missing",
+      "blocker_type": "RECIPIENT_MISSING",
+      "condition": "No recipient/contact ref is present.",
+      "elioperator_warning": "Recipient/contact route is missing.",
+      "fail_closed": true,
+      "next_safe_move": "Confirm recipient or use read-only contact confirmation.",
+      "severity": "high"
+    },
+    {
+      "blocker_id": "email_delivery_blocker_recipient_unconfirmed",
+      "blocker_type": "RECIPIENT_UNCONFIRMED",
+      "condition": "Recipient is only a candidate.",
+      "elioperator_warning": "Recipient must be confirmed before any future send.",
+      "fail_closed": true,
+      "next_safe_move": "Confirm Annette/contact route.",
+      "severity": "medium"
+    },
+    {
+      "blocker_id": "email_delivery_blocker_draft_missing",
+      "blocker_type": "DRAFT_MISSING",
+      "condition": "Reviewed draft ref is missing.",
+      "elioperator_warning": "Draft ref is missing.",
+      "fail_closed": true,
+      "next_safe_move": "Create or attach Cassandra draft worker readback.",
+      "severity": "high"
+    },
+    {
+      "blocker_id": "email_delivery_blocker_attachment_missing",
+      "blocker_type": "ATTACHMENT_REF_MISSING",
+      "condition": "Invoice artifact/attachment ref is missing.",
+      "elioperator_warning": "Attachment ref is missing.",
+      "fail_closed": true,
+      "next_safe_move": "Attach invoice artifact ref.",
+      "severity": "high"
+    },
+    {
+      "blocker_id": "email_delivery_blocker_attachment_hash_missing",
+      "blocker_type": "ATTACHMENT_HASH_MISSING",
+      "condition": "Attachment ref lacks hash/fingerprint proof.",
+      "elioperator_warning": "Attachment hash/fingerprint is missing.",
+      "fail_closed": true,
+      "next_safe_move": "Hash/fingerprint the artifact before send review.",
+      "severity": "high"
+    },
+    {
+      "blocker_id": "email_delivery_blocker_approval_missing",
+      "blocker_type": "APPROVAL_MISSING",
+      "condition": "Action Covenant or Guardian approval request is missing.",
+      "elioperator_warning": "Approval packet is missing.",
+      "fail_closed": true,
+      "next_safe_move": "Create Action Covenant and Guardian approval request.",
+      "severity": "critical"
+    },
+    {
+      "blocker_id": "email_delivery_blocker_send_gate_missing",
+      "blocker_type": "SEND_GATE_MISSING",
+      "condition": "Send gate model is absent.",
+      "elioperator_warning": "Send gate is missing.",
+      "fail_closed": true,
+      "next_safe_move": "Regenerate package with EmailSendGate.",
+      "severity": "critical"
+    },
+    {
+      "blocker_id": "email_delivery_blocker_raw_email",
+      "blocker_type": "RAW_EMAIL_ADDRESS_EXPOSED",
+      "condition": "Raw private email address appears in normal read-model output.",
+      "elioperator_warning": "Raw email address exposure is blocked.",
+      "fail_closed": true,
+      "next_safe_move": "Use tokenized recipient refs and safe labels.",
+      "severity": "critical"
+    },
+    {
+      "blocker_id": "email_delivery_blocker_raw_attachment",
+      "blocker_type": "RAW_ATTACHMENT_BODY_INCLUDED",
+      "condition": "Attachment body or file bytes are included in package/read-model.",
+      "elioperator_warning": "Raw attachment body is blocked.",
+      "fail_closed": true,
+      "next_safe_move": "Use attachment refs and hash/fingerprint refs only.",
+      "severity": "critical"
+    },
+    {
+      "blocker_id": "email_delivery_blocker_send_attempt",
+      "blocker_type": "SEND_ATTEMPTED",
+      "condition": "Package compiler attempts to send email or attachment.",
+      "elioperator_warning": "Send attempt is blocked.",
+      "fail_closed": true,
+      "next_safe_move": "Return package/readback only.",
+      "severity": "critical"
+    },
+    {
+      "blocker_id": "email_delivery_blocker_external_action",
+      "blocker_type": "EXTERNAL_ACTION_ATTEMPTED",
+      "condition": "Compiler attempts external account, browser, Coupa, Mail, Gmail, or runtime action.",
+      "elioperator_warning": "External action is blocked.",
+      "fail_closed": true,
+      "next_safe_move": "Stay in deterministic read-model generation.",
+      "severity": "critical"
+    },
+    {
+      "blocker_id": "email_delivery_blocker_unknown",
+      "blocker_type": "UNKNOWN_FAIL_CLOSED",
+      "condition": "Unknown package state or unsafe request.",
+      "elioperator_warning": "Unknown email delivery package state fails closed.",
+      "fail_closed": true,
+      "next_safe_move": "Ask for scoped recipient/draft/attachment/approval refs.",
+      "severity": "high"
+    }
+  ],
+  "examples": {
+    "attempted_send": {
+      "attachment": {
+        "approved_for_attachment": true,
+        "artifact_ref": "artifact_ref:winship_branded_capital_hilton_invoice_pdf",
+        "artifact_type": "invoice_pdf",
+        "attachment_ref": "attachment_ref:capital_hilton_invoice_pdf",
+        "exists_status": "ARTIFACT_REF_EXISTS",
+        "hash_or_fingerprint_ref": "artifact_hash_ref:capital_hilton_invoice_pdf_v0",
+        "next_safe_move": "Keep attachment as a ref; future send adapter needs artifact and hash proof.",
+        "privacy_class": "client_invoice_artifact_private_ref",
+        "safe_display_label": "Winship-branded Capital Hilton invoice PDF",
+        "source_file_ref": "source_file_ref:capital_hilton_invoice_pdf_metadata"
+      },
+      "package": {
+        "attachment_refs": [
+          "attachment_ref:capital_hilton_invoice_pdf"
+        ],
+        "body_ref_or_body_summary": "Candidate invoice follow-up draft for local records and payment follow-up; official payment rail remains Coupa/PO if context supports it.",
+        "client_ref": "client_ref:capital_hilton",
+        "delivery_status": "NOT_SENT",
+        "missing_inputs": [
+          "send attempted but blocked"
+        ],
+        "next_safe_move": "Review package and resolve missing gate items; do not send.",
+        "package_id": "email_delivery_package_send_attempt_blocked_v0",
+        "recipient_refs": [
+          "recipient_ref:annette_capital_hilton_confirmed"
+        ],
+        "recipient_status": "RECIPIENT_CONFIRMED",
+        "required_approvals": [
+          "Action Covenant for SEND_EMAIL",
+          "Guardian approval request packet",
+          "future exact operator approval receipt"
+        ],
+        "required_proofs": [
+          "confirmed recipient/contact ref",
+          "reviewed email draft",
+          "invoice artifact ref",
+          "invoice artifact hash/fingerprint",
+          "Guardian approval packet",
+          "exact operator approval receipt",
+          "future send receipt",
+          "future attachment/send proof"
+        ],
+        "send_gate_status": "SEND_BLOCKED",
+        "source_approval_request_ref": "guardian_approval_capital_hilton_email_v0",
+        "source_draft_ref": "cassandra_draft_ref:capital_hilton_invoice_followup_candidate",
+        "source_workflow_ref": "capital_hilton_invoice_workflow",
+        "subject": "Capital Hilton Invoice Follow-Up",
+        "tenant_ref": "tenant_ref:winship"
+      },
+      "proof_plan": {
+        "available_proof_refs": [
+          "confirmed recipient/contact ref",
+          "reviewed email draft",
+          "invoice artifact ref",
+          "invoice artifact hash/fingerprint",
+          "Guardian approval packet"
+        ],
+        "completion_allowed": false,
+        "completion_label": "INVOICE SENT",
+        "final_readback_target": "future final readback only after send/attachment receipts exist",
+        "missing_proofs": [
+          "exact operator approval receipt",
+          "future send receipt",
+          "future attachment/send proof"
+        ],
+        "next_safe_move": "Collect missing proofs and approval receipts; INVOICE SENT remains a future target.",
+        "package_ref": "email_delivery_package_send_attempt_blocked_v0",
+        "proof_plan_id": "email_delivery_proof_plan_5cb8667f56e95348",
+        "required_proofs": [
+          "confirmed recipient/contact ref",
+          "reviewed email draft",
+          "invoice artifact ref",
+          "invoice artifact hash/fingerprint",
+          "Guardian approval packet",
+          "exact operator approval receipt",
+          "future send receipt",
+          "future attachment/send proof"
+        ]
+      },
+      "readback": {
+        "approval_status": "SEND_BLOCKED",
+        "attachment_summary": "Winship-branded Capital Hilton invoice PDF; hash ref: artifact_hash_ref:capital_hilton_invoice_pdf_v0",
+        "blocked_actions": [
+          "email send",
+          "Mail send",
+          "Gmail send",
+          "Gmail draft creation",
+          "attachment send",
+          "Coupa access",
+          "browser automation",
+          "approval execution",
+          "workflow run",
+          "agent dispatch",
+          "external action"
+        ],
+        "draft_summary": "Candidate invoice follow-up draft for local records and payment follow-up; official payment rail remains Coupa/PO if context supports it.",
+        "how_to_fix": "Review the package and complete Guardian/operator approval in a future gated lane.",
+        "missing_items": [
+          "send attempted but blocked",
+          "future exact operator approval receipt",
+          "future send receipt",
+          "exact operator approval receipt",
+          "future attachment/send proof"
+        ],
+        "next_safe_move": "Review the package and complete Guardian/operator approval in a future gated lane.",
+        "operator_headline": "Capital Hilton delivery package assembled",
+        "operator_message": "OpenClaw has assembled a delivery package for the Capital Hilton invoice email. Nothing has been sent. The package still needs Guardian/operator approval before any future send adapter can act.",
+        "package_ref": "email_delivery_package_send_attempt_blocked_v0",
+        "package_summary": "Capital Hilton Invoice Follow-Up; delivery status NOT_SENT; send gate SEND_BLOCKED",
+        "proof_status": "BLOCKED_MISSING_PROOF",
+        "readback_id": "email_delivery_readback_c0b255297b0c053e",
+        "recipient_summary": "Annette at Capital Hilton (RECIPIENT_CONFIRMED)",
+        "status": "DELIVERY_PACKAGE_READY_FOR_REVIEW"
+      },
+      "recipient": {
+        "confirmation_status": "RECIPIENT_CONFIRMED",
+        "contact_source_ref": "google_readonly_contact_ref:annette_candidate_metadata",
+        "next_safe_move": "Confirm recipient/contact route before any future send gate can proceed.",
+        "privacy_class": "client_contact_private_ref",
+        "protected_ref_required": true,
+        "recipient_ref": "recipient_ref:annette_capital_hilton_confirmed",
+        "safe_display_label": "Annette at Capital Hilton",
+        "tokenized_email_ref": "email_token_ref:capital_hilton_annette_confirmed"
+      },
+      "send_gate": {
+        "blocked_actions": [
+          "email send",
+          "Mail send",
+          "Gmail send",
+          "Gmail draft creation",
+          "attachment send",
+          "Coupa access",
+          "browser automation",
+          "approval execution",
+          "workflow run",
+          "agent dispatch",
+          "external action"
+        ],
+        "exact_approval_phrase": "APPROVE SEND_EMAIL capital_hilton_invoice_covenant_v0",
+        "external_authority": false,
+        "gate_id": "email_send_gate_5cb8667f56e95348",
+        "missing_items": [
+          "send attempted but blocked",
+          "future exact operator approval receipt",
+          "future send receipt"
+        ],
+        "next_safe_move": "Create/complete Guardian approval and future operator receipt before a gated send adapter could act.",
+        "package_ref": "email_delivery_package_send_attempt_blocked_v0",
+        "required_covenant_ref": "capital_hilton_invoice_covenant_v0",
+        "required_guardian_approval_ref": "guardian_approval_capital_hilton_email_v0",
+        "send_allowed": false,
+        "send_executed": false
+      }
+    },
+    "capital_hilton_complete_except_approval": {
+      "attachment": {
+        "approved_for_attachment": true,
+        "artifact_ref": "artifact_ref:winship_branded_capital_hilton_invoice_pdf",
+        "artifact_type": "invoice_pdf",
+        "attachment_ref": "attachment_ref:capital_hilton_invoice_pdf",
+        "exists_status": "ARTIFACT_REF_EXISTS",
+        "hash_or_fingerprint_ref": "artifact_hash_ref:capital_hilton_invoice_pdf_v0",
+        "next_safe_move": "Keep attachment as a ref; future send adapter needs artifact and hash proof.",
+        "privacy_class": "client_invoice_artifact_private_ref",
+        "safe_display_label": "Winship-branded Capital Hilton invoice PDF",
+        "source_file_ref": "source_file_ref:capital_hilton_invoice_pdf_metadata"
+      },
+      "package": {
+        "attachment_refs": [
+          "attachment_ref:capital_hilton_invoice_pdf"
+        ],
+        "body_ref_or_body_summary": "Candidate invoice follow-up draft for local records and payment follow-up; official payment rail remains Coupa/PO if context supports it.",
+        "client_ref": "client_ref:capital_hilton",
+        "delivery_status": "NOT_SENT",
+        "missing_inputs": [
+          "future exact operator approval receipt",
+          "future send receipt",
+          "future attachment/send proof"
+        ],
+        "next_safe_move": "Review package and resolve missing gate items; do not send.",
+        "package_id": "email_delivery_package_capital_hilton_ready_for_review_v0",
+        "recipient_refs": [
+          "recipient_ref:annette_capital_hilton_candidate"
+        ],
+        "recipient_status": "RECIPIENT_CANDIDATE",
+        "required_approvals": [
+          "Action Covenant for SEND_EMAIL",
+          "Guardian approval request packet",
+          "future exact operator approval receipt"
+        ],
+        "required_proofs": [
+          "confirmed recipient/contact ref",
+          "reviewed email draft",
+          "invoice artifact ref",
+          "invoice artifact hash/fingerprint",
+          "Guardian approval packet",
+          "exact operator approval receipt",
+          "future send receipt",
+          "future attachment/send proof"
+        ],
+        "send_gate_status": "WAITING_FOR_OPERATOR_APPROVAL",
+        "source_approval_request_ref": "guardian_approval_capital_hilton_email_v0",
+        "source_draft_ref": "cassandra_draft_ref:capital_hilton_invoice_followup_candidate",
+        "source_workflow_ref": "capital_hilton_invoice_workflow",
+        "subject": "Capital Hilton Invoice Follow-Up",
+        "tenant_ref": "tenant_ref:winship"
+      },
+      "proof_plan": {
+        "available_proof_refs": [
+          "confirmed recipient/contact ref",
+          "reviewed email draft",
+          "invoice artifact ref",
+          "invoice artifact hash/fingerprint",
+          "Guardian approval packet"
+        ],
+        "completion_allowed": false,
+        "completion_label": "INVOICE SENT",
+        "final_readback_target": "future final readback only after send/attachment receipts exist",
+        "missing_proofs": [
+          "exact operator approval receipt",
+          "future send receipt",
+          "future attachment/send proof"
+        ],
+        "next_safe_move": "Collect missing proofs and approval receipts; INVOICE SENT remains a future target.",
+        "package_ref": "email_delivery_package_capital_hilton_ready_for_review_v0",
+        "proof_plan_id": "email_delivery_proof_plan_ccecd2f2201ea929",
+        "required_proofs": [
+          "confirmed recipient/contact ref",
+          "reviewed email draft",
+          "invoice artifact ref",
+          "invoice artifact hash/fingerprint",
+          "Guardian approval packet",
+          "exact operator approval receipt",
+          "future send receipt",
+          "future attachment/send proof"
+        ]
+      },
+      "readback": {
+        "approval_status": "WAITING_FOR_OPERATOR_APPROVAL",
+        "attachment_summary": "Winship-branded Capital Hilton invoice PDF; hash ref: artifact_hash_ref:capital_hilton_invoice_pdf_v0",
+        "blocked_actions": [
+          "email send",
+          "Mail send",
+          "Gmail send",
+          "Gmail draft creation",
+          "attachment send",
+          "Coupa access",
+          "browser automation",
+          "approval execution",
+          "workflow run",
+          "agent dispatch",
+          "external action"
+        ],
+        "draft_summary": "Candidate invoice follow-up draft for local records and payment follow-up; official payment rail remains Coupa/PO if context supports it.",
+        "how_to_fix": "Review the package and complete Guardian/operator approval in a future gated lane.",
+        "missing_items": [
+          "future exact operator approval receipt",
+          "future send receipt",
+          "future attachment/send proof",
+          "exact operator approval receipt"
+        ],
+        "next_safe_move": "Review the package and complete Guardian/operator approval in a future gated lane.",
+        "operator_headline": "Capital Hilton delivery package assembled",
+        "operator_message": "OpenClaw has assembled a delivery package for the Capital Hilton invoice email. Nothing has been sent. The package still needs Guardian/operator approval before any future send adapter can act.",
+        "package_ref": "email_delivery_package_capital_hilton_ready_for_review_v0",
+        "package_summary": "Capital Hilton Invoice Follow-Up; delivery status NOT_SENT; send gate WAITING_FOR_OPERATOR_APPROVAL",
+        "proof_status": "BLOCKED_MISSING_PROOF",
+        "readback_id": "email_delivery_readback_8fc0dc7f73bc6a8a",
+        "recipient_summary": "Annette at Capital Hilton (RECIPIENT_CANDIDATE)",
+        "status": "DELIVERY_PACKAGE_READY_FOR_REVIEW"
+      },
+      "recipient": {
+        "confirmation_status": "RECIPIENT_CANDIDATE",
+        "contact_source_ref": "google_readonly_contact_ref:annette_candidate_metadata",
+        "next_safe_move": "Confirm recipient/contact route before any future send gate can proceed.",
+        "privacy_class": "client_contact_private_ref",
+        "protected_ref_required": true,
+        "recipient_ref": "recipient_ref:annette_capital_hilton_candidate",
+        "safe_display_label": "Annette at Capital Hilton",
+        "tokenized_email_ref": "email_token_ref:capital_hilton_annette_candidate"
+      },
+      "send_gate": {
+        "blocked_actions": [
+          "email send",
+          "Mail send",
+          "Gmail send",
+          "Gmail draft creation",
+          "attachment send",
+          "Coupa access",
+          "browser automation",
+          "approval execution",
+          "workflow run",
+          "agent dispatch",
+          "external action"
+        ],
+        "exact_approval_phrase": "APPROVE SEND_EMAIL capital_hilton_invoice_covenant_v0",
+        "external_authority": false,
+        "gate_id": "email_send_gate_ccecd2f2201ea929",
+        "missing_items": [
+          "future exact operator approval receipt",
+          "future send receipt",
+          "future attachment/send proof"
+        ],
+        "next_safe_move": "Create/complete Guardian approval and future operator receipt before a gated send adapter could act.",
+        "package_ref": "email_delivery_package_capital_hilton_ready_for_review_v0",
+        "required_covenant_ref": "capital_hilton_invoice_covenant_v0",
+        "required_guardian_approval_ref": "guardian_approval_capital_hilton_email_v0",
+        "send_allowed": false,
+        "send_executed": false
+      }
+    },
+    "missing_approval": {
+      "attachment": {
+        "approved_for_attachment": true,
+        "artifact_ref": "artifact_ref:winship_branded_capital_hilton_invoice_pdf",
+        "artifact_type": "invoice_pdf",
+        "attachment_ref": "attachment_ref:capital_hilton_invoice_pdf",
+        "exists_status": "ARTIFACT_REF_EXISTS",
+        "hash_or_fingerprint_ref": "artifact_hash_ref:capital_hilton_invoice_pdf_v0",
+        "next_safe_move": "Keep attachment as a ref; future send adapter needs artifact and hash proof.",
+        "privacy_class": "client_invoice_artifact_private_ref",
+        "safe_display_label": "Winship-branded Capital Hilton invoice PDF",
+        "source_file_ref": "source_file_ref:capital_hilton_invoice_pdf_metadata"
+      },
+      "package": {
+        "attachment_refs": [
+          "attachment_ref:capital_hilton_invoice_pdf"
+        ],
+        "body_ref_or_body_summary": "Candidate invoice follow-up draft for local records and payment follow-up; official payment rail remains Coupa/PO if context supports it.",
+        "client_ref": "client_ref:capital_hilton",
+        "delivery_status": "NOT_SENT",
+        "missing_inputs": [
+          "Guardian approval packet",
+          "Action Covenant for SEND_EMAIL"
+        ],
+        "next_safe_move": "Review package and resolve missing gate items; do not send.",
+        "package_id": "email_delivery_package_missing_approval_v0",
+        "recipient_refs": [
+          "recipient_ref:annette_capital_hilton_confirmed"
+        ],
+        "recipient_status": "RECIPIENT_CONFIRMED",
+        "required_approvals": [
+          "Action Covenant for SEND_EMAIL",
+          "Guardian approval request packet",
+          "future exact operator approval receipt"
+        ],
+        "required_proofs": [
+          "confirmed recipient/contact ref",
+          "reviewed email draft",
+          "invoice artifact ref",
+          "invoice artifact hash/fingerprint",
+          "Guardian approval packet",
+          "exact operator approval receipt",
+          "future send receipt",
+          "future attachment/send proof"
+        ],
+        "send_gate_status": "READY_FOR_GUARDIAN_REVIEW",
+        "source_approval_request_ref": "",
+        "source_draft_ref": "cassandra_draft_ref:capital_hilton_invoice_followup_candidate",
+        "source_workflow_ref": "capital_hilton_invoice_workflow",
+        "subject": "Capital Hilton Invoice Follow-Up",
+        "tenant_ref": "tenant_ref:winship"
+      },
+      "proof_plan": {
+        "available_proof_refs": [
+          "confirmed recipient/contact ref",
+          "reviewed email draft",
+          "invoice artifact ref",
+          "invoice artifact hash/fingerprint"
+        ],
+        "completion_allowed": false,
+        "completion_label": "INVOICE SENT",
+        "final_readback_target": "future final readback only after send/attachment receipts exist",
+        "missing_proofs": [
+          "Guardian approval packet",
+          "exact operator approval receipt",
+          "future send receipt",
+          "future attachment/send proof"
+        ],
+        "next_safe_move": "Collect missing proofs and approval receipts; INVOICE SENT remains a future target.",
+        "package_ref": "email_delivery_package_missing_approval_v0",
+        "proof_plan_id": "email_delivery_proof_plan_60f42b27ad06e4bb",
+        "required_proofs": [
+          "confirmed recipient/contact ref",
+          "reviewed email draft",
+          "invoice artifact ref",
+          "invoice artifact hash/fingerprint",
+          "Guardian approval packet",
+          "exact operator approval receipt",
+          "future send receipt",
+          "future attachment/send proof"
+        ]
+      },
+      "readback": {
+        "approval_status": "READY_FOR_GUARDIAN_REVIEW",
+        "attachment_summary": "Winship-branded Capital Hilton invoice PDF; hash ref: artifact_hash_ref:capital_hilton_invoice_pdf_v0",
+        "blocked_actions": [
+          "email send",
+          "Mail send",
+          "Gmail send",
+          "Gmail draft creation",
+          "attachment send",
+          "Coupa access",
+          "browser automation",
+          "approval execution",
+          "workflow run",
+          "agent dispatch",
+          "external action"
+        ],
+        "draft_summary": "Candidate invoice follow-up draft for local records and payment follow-up; official payment rail remains Coupa/PO if context supports it.",
+        "how_to_fix": "Create an Action Covenant and Guardian approval request packet.",
+        "missing_items": [
+          "Guardian approval packet",
+          "Action Covenant for SEND_EMAIL",
+          "Guardian approval request packet",
+          "future exact operator approval receipt",
+          "future send receipt",
+          "exact operator approval receipt",
+          "future attachment/send proof"
+        ],
+        "next_safe_move": "Create an Action Covenant and Guardian approval request packet.",
+        "operator_headline": "Email package needs Guardian approval packet",
+        "operator_message": "The draft and attachment refs are present, but the approval packet is missing.",
+        "package_ref": "email_delivery_package_missing_approval_v0",
+        "package_summary": "Capital Hilton Invoice Follow-Up; delivery status NOT_SENT; send gate READY_FOR_GUARDIAN_REVIEW",
+        "proof_status": "BLOCKED_MISSING_PROOF",
+        "readback_id": "email_delivery_readback_e28ef65d4a1853f0",
+        "recipient_summary": "Annette at Capital Hilton (RECIPIENT_CONFIRMED)",
+        "status": "NOT_READY_MISSING_APPROVAL"
+      },
+      "recipient": {
+        "confirmation_status": "RECIPIENT_CONFIRMED",
+        "contact_source_ref": "google_readonly_contact_ref:annette_candidate_metadata",
+        "next_safe_move": "Confirm recipient/contact route before any future send gate can proceed.",
+        "privacy_class": "client_contact_private_ref",
+        "protected_ref_required": true,
+        "recipient_ref": "recipient_ref:annette_capital_hilton_confirmed",
+        "safe_display_label": "Annette at Capital Hilton",
+        "tokenized_email_ref": "email_token_ref:capital_hilton_annette_confirmed"
+      },
+      "send_gate": {
+        "blocked_actions": [
+          "email send",
+          "Mail send",
+          "Gmail send",
+          "Gmail draft creation",
+          "attachment send",
+          "Coupa access",
+          "browser automation",
+          "approval execution",
+          "workflow run",
+          "agent dispatch",
+          "external action"
+        ],
+        "exact_approval_phrase": "APPROVE SEND_EMAIL capital_hilton_invoice_covenant_v0",
+        "external_authority": false,
+        "gate_id": "email_send_gate_60f42b27ad06e4bb",
+        "missing_items": [
+          "Guardian approval packet",
+          "Action Covenant for SEND_EMAIL",
+          "Guardian approval request packet",
+          "future exact operator approval receipt",
+          "future send receipt"
+        ],
+        "next_safe_move": "Create/complete Guardian approval and future operator receipt before a gated send adapter could act.",
+        "package_ref": "email_delivery_package_missing_approval_v0",
+        "required_covenant_ref": "capital_hilton_invoice_covenant_v0",
+        "required_guardian_approval_ref": "missing",
+        "send_allowed": false,
+        "send_executed": false
+      }
+    },
+    "missing_attachment": {
+      "attachment": null,
+      "package": {
+        "attachment_refs": [],
+        "body_ref_or_body_summary": "Candidate invoice follow-up draft for local records and payment follow-up; official payment rail remains Coupa/PO if context supports it.",
+        "client_ref": "client_ref:capital_hilton",
+        "delivery_status": "BLOCKED_MISSING_PROOF",
+        "missing_inputs": [
+          "invoice artifact ref",
+          "invoice artifact hash/fingerprint"
+        ],
+        "next_safe_move": "Review package and resolve missing gate items; do not send.",
+        "package_id": "email_delivery_package_missing_attachment_v0",
+        "recipient_refs": [
+          "recipient_ref:annette_capital_hilton_confirmed"
+        ],
+        "recipient_status": "RECIPIENT_CONFIRMED",
+        "required_approvals": [
+          "Action Covenant for SEND_EMAIL",
+          "Guardian approval request packet",
+          "future exact operator approval receipt"
+        ],
+        "required_proofs": [
+          "confirmed recipient/contact ref",
+          "reviewed email draft",
+          "invoice artifact ref",
+          "invoice artifact hash/fingerprint",
+          "Guardian approval packet",
+          "exact operator approval receipt",
+          "future send receipt",
+          "future attachment/send proof"
+        ],
+        "send_gate_status": "NOT_READY_MISSING_INPUTS",
+        "source_approval_request_ref": "guardian_approval_capital_hilton_email_v0",
+        "source_draft_ref": "cassandra_draft_ref:capital_hilton_invoice_followup_candidate",
+        "source_workflow_ref": "capital_hilton_invoice_workflow",
+        "subject": "Capital Hilton Invoice Follow-Up",
+        "tenant_ref": "tenant_ref:winship"
+      },
+      "proof_plan": {
+        "available_proof_refs": [
+          "confirmed recipient/contact ref",
+          "reviewed email draft",
+          "Guardian approval packet"
+        ],
+        "completion_allowed": false,
+        "completion_label": "INVOICE SENT",
+        "final_readback_target": "future final readback only after send/attachment receipts exist",
+        "missing_proofs": [
+          "invoice artifact ref",
+          "invoice artifact hash/fingerprint",
+          "exact operator approval receipt",
+          "future send receipt",
+          "future attachment/send proof"
+        ],
+        "next_safe_move": "Collect missing proofs and approval receipts; INVOICE SENT remains a future target.",
+        "package_ref": "email_delivery_package_missing_attachment_v0",
+        "proof_plan_id": "email_delivery_proof_plan_bb1885480f0047dc",
+        "required_proofs": [
+          "confirmed recipient/contact ref",
+          "reviewed email draft",
+          "invoice artifact ref",
+          "invoice artifact hash/fingerprint",
+          "Guardian approval packet",
+          "exact operator approval receipt",
+          "future send receipt",
+          "future attachment/send proof"
+        ]
+      },
+      "readback": {
+        "approval_status": "NOT_READY_MISSING_INPUTS",
+        "attachment_summary": "No attachment ref",
+        "blocked_actions": [
+          "email send",
+          "Mail send",
+          "Gmail send",
+          "Gmail draft creation",
+          "attachment send",
+          "Coupa access",
+          "browser automation",
+          "approval execution",
+          "workflow run",
+          "agent dispatch",
+          "external action"
+        ],
+        "draft_summary": "Candidate invoice follow-up draft for local records and payment follow-up; official payment rail remains Coupa/PO if context supports it.",
+        "how_to_fix": "Generate or attach the Winship-branded Excel/PDF invoice artifact and hash/fingerprint it.",
+        "missing_items": [
+          "invoice artifact ref",
+          "invoice artifact hash/fingerprint",
+          "future exact operator approval receipt",
+          "future send receipt",
+          "exact operator approval receipt",
+          "future attachment/send proof"
+        ],
+        "next_safe_move": "Generate or attach the Winship-branded Excel/PDF invoice artifact and hash/fingerprint it.",
+        "operator_headline": "Email package needs an attachment ref",
+        "operator_message": "The delivery package is missing the invoice artifact/attachment ref.",
+        "package_ref": "email_delivery_package_missing_attachment_v0",
+        "package_summary": "Capital Hilton Invoice Follow-Up; delivery status BLOCKED_MISSING_PROOF; send gate NOT_READY_MISSING_INPUTS",
+        "proof_status": "BLOCKED_MISSING_PROOF",
+        "readback_id": "email_delivery_readback_d68677dd482d51d4",
+        "recipient_summary": "Annette at Capital Hilton (RECIPIENT_CONFIRMED)",
+        "status": "NOT_READY_MISSING_ATTACHMENT"
+      },
+      "recipient": {
+        "confirmation_status": "RECIPIENT_CONFIRMED",
+        "contact_source_ref": "google_readonly_contact_ref:annette_candidate_metadata",
+        "next_safe_move": "Confirm recipient/contact route before any future send gate can proceed.",
+        "privacy_class": "client_contact_private_ref",
+        "protected_ref_required": true,
+        "recipient_ref": "recipient_ref:annette_capital_hilton_confirmed",
+        "safe_display_label": "Annette at Capital Hilton",
+        "tokenized_email_ref": "email_token_ref:capital_hilton_annette_confirmed"
+      },
+      "send_gate": {
+        "blocked_actions": [
+          "email send",
+          "Mail send",
+          "Gmail send",
+          "Gmail draft creation",
+          "attachment send",
+          "Coupa access",
+          "browser automation",
+          "approval execution",
+          "workflow run",
+          "agent dispatch",
+          "external action"
+        ],
+        "exact_approval_phrase": "APPROVE SEND_EMAIL capital_hilton_invoice_covenant_v0",
+        "external_authority": false,
+        "gate_id": "email_send_gate_bb1885480f0047dc",
+        "missing_items": [
+          "invoice artifact ref",
+          "invoice artifact hash/fingerprint",
+          "future exact operator approval receipt",
+          "future send receipt"
+        ],
+        "next_safe_move": "Create/complete Guardian approval and future operator receipt before a gated send adapter could act.",
+        "package_ref": "email_delivery_package_missing_attachment_v0",
+        "required_covenant_ref": "capital_hilton_invoice_covenant_v0",
+        "required_guardian_approval_ref": "guardian_approval_capital_hilton_email_v0",
+        "send_allowed": false,
+        "send_executed": false
+      }
+    },
+    "missing_attachment_hash": {
+      "attachment": {
+        "approved_for_attachment": true,
+        "artifact_ref": "artifact_ref:winship_branded_capital_hilton_invoice_pdf",
+        "artifact_type": "invoice_pdf",
+        "attachment_ref": "attachment_ref:capital_hilton_invoice_pdf",
+        "exists_status": "ARTIFACT_REF_EXISTS",
+        "hash_or_fingerprint_ref": "",
+        "next_safe_move": "Keep attachment as a ref; future send adapter needs artifact and hash proof.",
+        "privacy_class": "client_invoice_artifact_private_ref",
+        "safe_display_label": "Winship-branded Capital Hilton invoice PDF",
+        "source_file_ref": "source_file_ref:capital_hilton_invoice_pdf_metadata"
+      },
+      "package": {
+        "attachment_refs": [
+          "attachment_ref:capital_hilton_invoice_pdf"
+        ],
+        "body_ref_or_body_summary": "Candidate invoice follow-up draft for local records and payment follow-up; official payment rail remains Coupa/PO if context supports it.",
+        "client_ref": "client_ref:capital_hilton",
+        "delivery_status": "BLOCKED_MISSING_PROOF",
+        "missing_inputs": [
+          "invoice artifact hash/fingerprint"
+        ],
+        "next_safe_move": "Review package and resolve missing gate items; do not send.",
+        "package_id": "email_delivery_package_missing_attachment_hash_v0",
+        "recipient_refs": [
+          "recipient_ref:annette_capital_hilton_confirmed"
+        ],
+        "recipient_status": "RECIPIENT_CONFIRMED",
+        "required_approvals": [
+          "Action Covenant for SEND_EMAIL",
+          "Guardian approval request packet",
+          "future exact operator approval receipt"
+        ],
+        "required_proofs": [
+          "confirmed recipient/contact ref",
+          "reviewed email draft",
+          "invoice artifact ref",
+          "invoice artifact hash/fingerprint",
+          "Guardian approval packet",
+          "exact operator approval receipt",
+          "future send receipt",
+          "future attachment/send proof"
+        ],
+        "send_gate_status": "NOT_READY_MISSING_INPUTS",
+        "source_approval_request_ref": "guardian_approval_capital_hilton_email_v0",
+        "source_draft_ref": "cassandra_draft_ref:capital_hilton_invoice_followup_candidate",
+        "source_workflow_ref": "capital_hilton_invoice_workflow",
+        "subject": "Capital Hilton Invoice Follow-Up",
+        "tenant_ref": "tenant_ref:winship"
+      },
+      "proof_plan": {
+        "available_proof_refs": [
+          "confirmed recipient/contact ref",
+          "reviewed email draft",
+          "invoice artifact ref",
+          "Guardian approval packet"
+        ],
+        "completion_allowed": false,
+        "completion_label": "INVOICE SENT",
+        "final_readback_target": "future final readback only after send/attachment receipts exist",
+        "missing_proofs": [
+          "invoice artifact hash/fingerprint",
+          "exact operator approval receipt",
+          "future send receipt",
+          "future attachment/send proof"
+        ],
+        "next_safe_move": "Collect missing proofs and approval receipts; INVOICE SENT remains a future target.",
+        "package_ref": "email_delivery_package_missing_attachment_hash_v0",
+        "proof_plan_id": "email_delivery_proof_plan_8acb57d32f2fcf04",
+        "required_proofs": [
+          "confirmed recipient/contact ref",
+          "reviewed email draft",
+          "invoice artifact ref",
+          "invoice artifact hash/fingerprint",
+          "Guardian approval packet",
+          "exact operator approval receipt",
+          "future send receipt",
+          "future attachment/send proof"
+        ]
+      },
+      "readback": {
+        "approval_status": "NOT_READY_MISSING_INPUTS",
+        "attachment_summary": "Winship-branded Capital Hilton invoice PDF; hash ref: missing",
+        "blocked_actions": [
+          "email send",
+          "Mail send",
+          "Gmail send",
+          "Gmail draft creation",
+          "attachment send",
+          "Coupa access",
+          "browser automation",
+          "approval execution",
+          "workflow run",
+          "agent dispatch",
+          "external action"
+        ],
+        "draft_summary": "Candidate invoice follow-up draft for local records and payment follow-up; official payment rail remains Coupa/PO if context supports it.",
+        "how_to_fix": "Hash/fingerprint the invoice artifact before packaging it for review.",
+        "missing_items": [
+          "invoice artifact hash/fingerprint",
+          "future exact operator approval receipt",
+          "future send receipt",
+          "exact operator approval receipt",
+          "future attachment/send proof"
+        ],
+        "next_safe_move": "Hash/fingerprint the invoice artifact before packaging it for review.",
+        "operator_headline": "Email package needs an attachment hash",
+        "operator_message": "The invoice artifact ref exists, but its hash/fingerprint proof is missing.",
+        "package_ref": "email_delivery_package_missing_attachment_hash_v0",
+        "package_summary": "Capital Hilton Invoice Follow-Up; delivery status BLOCKED_MISSING_PROOF; send gate NOT_READY_MISSING_INPUTS",
+        "proof_status": "BLOCKED_MISSING_PROOF",
+        "readback_id": "email_delivery_readback_d268690d35a78c1d",
+        "recipient_summary": "Annette at Capital Hilton (RECIPIENT_CONFIRMED)",
+        "status": "NOT_READY_MISSING_ATTACHMENT"
+      },
+      "recipient": {
+        "confirmation_status": "RECIPIENT_CONFIRMED",
+        "contact_source_ref": "google_readonly_contact_ref:annette_candidate_metadata",
+        "next_safe_move": "Confirm recipient/contact route before any future send gate can proceed.",
+        "privacy_class": "client_contact_private_ref",
+        "protected_ref_required": true,
+        "recipient_ref": "recipient_ref:annette_capital_hilton_confirmed",
+        "safe_display_label": "Annette at Capital Hilton",
+        "tokenized_email_ref": "email_token_ref:capital_hilton_annette_confirmed"
+      },
+      "send_gate": {
+        "blocked_actions": [
+          "email send",
+          "Mail send",
+          "Gmail send",
+          "Gmail draft creation",
+          "attachment send",
+          "Coupa access",
+          "browser automation",
+          "approval execution",
+          "workflow run",
+          "agent dispatch",
+          "external action"
+        ],
+        "exact_approval_phrase": "APPROVE SEND_EMAIL capital_hilton_invoice_covenant_v0",
+        "external_authority": false,
+        "gate_id": "email_send_gate_8acb57d32f2fcf04",
+        "missing_items": [
+          "invoice artifact hash/fingerprint",
+          "future exact operator approval receipt",
+          "future send receipt"
+        ],
+        "next_safe_move": "Create/complete Guardian approval and future operator receipt before a gated send adapter could act.",
+        "package_ref": "email_delivery_package_missing_attachment_hash_v0",
+        "required_covenant_ref": "capital_hilton_invoice_covenant_v0",
+        "required_guardian_approval_ref": "guardian_approval_capital_hilton_email_v0",
+        "send_allowed": false,
+        "send_executed": false
+      }
+    },
+    "missing_draft": {
+      "attachment": {
+        "approved_for_attachment": true,
+        "artifact_ref": "artifact_ref:winship_branded_capital_hilton_invoice_pdf",
+        "artifact_type": "invoice_pdf",
+        "attachment_ref": "attachment_ref:capital_hilton_invoice_pdf",
+        "exists_status": "ARTIFACT_REF_EXISTS",
+        "hash_or_fingerprint_ref": "artifact_hash_ref:capital_hilton_invoice_pdf_v0",
+        "next_safe_move": "Keep attachment as a ref; future send adapter needs artifact and hash proof.",
+        "privacy_class": "client_invoice_artifact_private_ref",
+        "safe_display_label": "Winship-branded Capital Hilton invoice PDF",
+        "source_file_ref": "source_file_ref:capital_hilton_invoice_pdf_metadata"
+      },
+      "package": {
+        "attachment_refs": [
+          "attachment_ref:capital_hilton_invoice_pdf"
+        ],
+        "body_ref_or_body_summary": "Candidate invoice follow-up draft for local records and payment follow-up; official payment rail remains Coupa/PO if context supports it.",
+        "client_ref": "client_ref:capital_hilton",
+        "delivery_status": "BLOCKED_MISSING_PROOF",
+        "missing_inputs": [
+          "reviewed email draft"
+        ],
+        "next_safe_move": "Review package and resolve missing gate items; do not send.",
+        "package_id": "email_delivery_package_missing_draft_v0",
+        "recipient_refs": [
+          "recipient_ref:annette_capital_hilton_confirmed"
+        ],
+        "recipient_status": "RECIPIENT_CONFIRMED",
+        "required_approvals": [
+          "Action Covenant for SEND_EMAIL",
+          "Guardian approval request packet",
+          "future exact operator approval receipt"
+        ],
+        "required_proofs": [
+          "confirmed recipient/contact ref",
+          "reviewed email draft",
+          "invoice artifact ref",
+          "invoice artifact hash/fingerprint",
+          "Guardian approval packet",
+          "exact operator approval receipt",
+          "future send receipt",
+          "future attachment/send proof"
+        ],
+        "send_gate_status": "NOT_READY_MISSING_INPUTS",
+        "source_approval_request_ref": "guardian_approval_capital_hilton_email_v0",
+        "source_draft_ref": "",
+        "source_workflow_ref": "capital_hilton_invoice_workflow",
+        "subject": "Capital Hilton Invoice Follow-Up",
+        "tenant_ref": "tenant_ref:winship"
+      },
+      "proof_plan": {
+        "available_proof_refs": [
+          "confirmed recipient/contact ref",
+          "invoice artifact ref",
+          "invoice artifact hash/fingerprint",
+          "Guardian approval packet"
+        ],
+        "completion_allowed": false,
+        "completion_label": "INVOICE SENT",
+        "final_readback_target": "future final readback only after send/attachment receipts exist",
+        "missing_proofs": [
+          "reviewed email draft",
+          "exact operator approval receipt",
+          "future send receipt",
+          "future attachment/send proof"
+        ],
+        "next_safe_move": "Collect missing proofs and approval receipts; INVOICE SENT remains a future target.",
+        "package_ref": "email_delivery_package_missing_draft_v0",
+        "proof_plan_id": "email_delivery_proof_plan_8223be599a91e8b9",
+        "required_proofs": [
+          "confirmed recipient/contact ref",
+          "reviewed email draft",
+          "invoice artifact ref",
+          "invoice artifact hash/fingerprint",
+          "Guardian approval packet",
+          "exact operator approval receipt",
+          "future send receipt",
+          "future attachment/send proof"
+        ]
+      },
+      "readback": {
+        "approval_status": "NOT_READY_MISSING_INPUTS",
+        "attachment_summary": "Winship-branded Capital Hilton invoice PDF; hash ref: artifact_hash_ref:capital_hilton_invoice_pdf_v0",
+        "blocked_actions": [
+          "email send",
+          "Mail send",
+          "Gmail send",
+          "Gmail draft creation",
+          "attachment send",
+          "Coupa access",
+          "browser automation",
+          "approval execution",
+          "workflow run",
+          "agent dispatch",
+          "external action"
+        ],
+        "draft_summary": "No draft ref",
+        "how_to_fix": "Run or reference Cassandra draft-only worker output for this email.",
+        "missing_items": [
+          "reviewed email draft",
+          "future exact operator approval receipt",
+          "future send receipt",
+          "exact operator approval receipt",
+          "future attachment/send proof"
+        ],
+        "next_safe_move": "Run or reference Cassandra draft-only worker output for this email.",
+        "operator_headline": "Email package needs a draft",
+        "operator_message": "The delivery package is missing a reviewed draft ref.",
+        "package_ref": "email_delivery_package_missing_draft_v0",
+        "package_summary": "Capital Hilton Invoice Follow-Up; delivery status BLOCKED_MISSING_PROOF; send gate NOT_READY_MISSING_INPUTS",
+        "proof_status": "BLOCKED_MISSING_PROOF",
+        "readback_id": "email_delivery_readback_c01fc7732ea2f595",
+        "recipient_summary": "Annette at Capital Hilton (RECIPIENT_CONFIRMED)",
+        "status": "NOT_READY_MISSING_DRAFT"
+      },
+      "recipient": {
+        "confirmation_status": "RECIPIENT_CONFIRMED",
+        "contact_source_ref": "google_readonly_contact_ref:annette_candidate_metadata",
+        "next_safe_move": "Confirm recipient/contact route before any future send gate can proceed.",
+        "privacy_class": "client_contact_private_ref",
+        "protected_ref_required": true,
+        "recipient_ref": "recipient_ref:annette_capital_hilton_confirmed",
+        "safe_display_label": "Annette at Capital Hilton",
+        "tokenized_email_ref": "email_token_ref:capital_hilton_annette_confirmed"
+      },
+      "send_gate": {
+        "blocked_actions": [
+          "email send",
+          "Mail send",
+          "Gmail send",
+          "Gmail draft creation",
+          "attachment send",
+          "Coupa access",
+          "browser automation",
+          "approval execution",
+          "workflow run",
+          "agent dispatch",
+          "external action"
+        ],
+        "exact_approval_phrase": "APPROVE SEND_EMAIL capital_hilton_invoice_covenant_v0",
+        "external_authority": false,
+        "gate_id": "email_send_gate_8223be599a91e8b9",
+        "missing_items": [
+          "reviewed email draft",
+          "future exact operator approval receipt",
+          "future send receipt"
+        ],
+        "next_safe_move": "Create/complete Guardian approval and future operator receipt before a gated send adapter could act.",
+        "package_ref": "email_delivery_package_missing_draft_v0",
+        "required_covenant_ref": "capital_hilton_invoice_covenant_v0",
+        "required_guardian_approval_ref": "guardian_approval_capital_hilton_email_v0",
+        "send_allowed": false,
+        "send_executed": false
+      }
+    },
+    "missing_recipient": {
+      "attachment": {
+        "approved_for_attachment": true,
+        "artifact_ref": "artifact_ref:winship_branded_capital_hilton_invoice_pdf",
+        "artifact_type": "invoice_pdf",
+        "attachment_ref": "attachment_ref:capital_hilton_invoice_pdf",
+        "exists_status": "ARTIFACT_REF_EXISTS",
+        "hash_or_fingerprint_ref": "artifact_hash_ref:capital_hilton_invoice_pdf_v0",
+        "next_safe_move": "Keep attachment as a ref; future send adapter needs artifact and hash proof.",
+        "privacy_class": "client_invoice_artifact_private_ref",
+        "safe_display_label": "Winship-branded Capital Hilton invoice PDF",
+        "source_file_ref": "source_file_ref:capital_hilton_invoice_pdf_metadata"
+      },
+      "package": {
+        "attachment_refs": [
+          "attachment_ref:capital_hilton_invoice_pdf"
+        ],
+        "body_ref_or_body_summary": "Candidate invoice follow-up draft for local records and payment follow-up; official payment rail remains Coupa/PO if context supports it.",
+        "client_ref": "client_ref:capital_hilton",
+        "delivery_status": "BLOCKED_MISSING_PROOF",
+        "missing_inputs": [
+          "confirmed recipient/contact ref"
+        ],
+        "next_safe_move": "Review package and resolve missing gate items; do not send.",
+        "package_id": "email_delivery_package_missing_recipient_v0",
+        "recipient_refs": [],
+        "recipient_status": "RECIPIENT_MISSING",
+        "required_approvals": [
+          "Action Covenant for SEND_EMAIL",
+          "Guardian approval request packet",
+          "future exact operator approval receipt"
+        ],
+        "required_proofs": [
+          "confirmed recipient/contact ref",
+          "reviewed email draft",
+          "invoice artifact ref",
+          "invoice artifact hash/fingerprint",
+          "Guardian approval packet",
+          "exact operator approval receipt",
+          "future send receipt",
+          "future attachment/send proof"
+        ],
+        "send_gate_status": "NOT_READY_MISSING_INPUTS",
+        "source_approval_request_ref": "guardian_approval_capital_hilton_email_v0",
+        "source_draft_ref": "cassandra_draft_ref:capital_hilton_invoice_followup_candidate",
+        "source_workflow_ref": "capital_hilton_invoice_workflow",
+        "subject": "Capital Hilton Invoice Follow-Up",
+        "tenant_ref": "tenant_ref:winship"
+      },
+      "proof_plan": {
+        "available_proof_refs": [
+          "reviewed email draft",
+          "invoice artifact ref",
+          "invoice artifact hash/fingerprint",
+          "Guardian approval packet"
+        ],
+        "completion_allowed": false,
+        "completion_label": "INVOICE SENT",
+        "final_readback_target": "future final readback only after send/attachment receipts exist",
+        "missing_proofs": [
+          "confirmed recipient/contact ref",
+          "exact operator approval receipt",
+          "future send receipt",
+          "future attachment/send proof"
+        ],
+        "next_safe_move": "Collect missing proofs and approval receipts; INVOICE SENT remains a future target.",
+        "package_ref": "email_delivery_package_missing_recipient_v0",
+        "proof_plan_id": "email_delivery_proof_plan_c80b045dba98df0d",
+        "required_proofs": [
+          "confirmed recipient/contact ref",
+          "reviewed email draft",
+          "invoice artifact ref",
+          "invoice artifact hash/fingerprint",
+          "Guardian approval packet",
+          "exact operator approval receipt",
+          "future send receipt",
+          "future attachment/send proof"
+        ]
+      },
+      "readback": {
+        "approval_status": "NOT_READY_MISSING_INPUTS",
+        "attachment_summary": "Winship-branded Capital Hilton invoice PDF; hash ref: artifact_hash_ref:capital_hilton_invoice_pdf_v0",
+        "blocked_actions": [
+          "email send",
+          "Mail send",
+          "Gmail send",
+          "Gmail draft creation",
+          "attachment send",
+          "Coupa access",
+          "browser automation",
+          "approval execution",
+          "workflow run",
+          "agent dispatch",
+          "external action"
+        ],
+        "draft_summary": "Candidate invoice follow-up draft for local records and payment follow-up; official payment rail remains Coupa/PO if context supports it.",
+        "how_to_fix": "Confirm Annette/contact route or use the Google read-only contact confirmation rail.",
+        "missing_items": [
+          "confirmed recipient/contact ref",
+          "future exact operator approval receipt",
+          "future send receipt",
+          "exact operator approval receipt",
+          "future attachment/send proof"
+        ],
+        "next_safe_move": "Confirm Annette/contact route or use the Google read-only contact confirmation rail.",
+        "operator_headline": "Email package needs a recipient",
+        "operator_message": "I cannot assemble the delivery package until the recipient/contact route is confirmed.",
+        "package_ref": "email_delivery_package_missing_recipient_v0",
+        "package_summary": "Capital Hilton Invoice Follow-Up; delivery status BLOCKED_MISSING_PROOF; send gate NOT_READY_MISSING_INPUTS",
+        "proof_status": "BLOCKED_MISSING_PROOF",
+        "readback_id": "email_delivery_readback_476a02a9e43e68a7",
+        "recipient_summary": "No recipient ref",
+        "status": "NOT_READY_MISSING_RECIPIENT"
+      },
+      "recipient": null,
+      "send_gate": {
+        "blocked_actions": [
+          "email send",
+          "Mail send",
+          "Gmail send",
+          "Gmail draft creation",
+          "attachment send",
+          "Coupa access",
+          "browser automation",
+          "approval execution",
+          "workflow run",
+          "agent dispatch",
+          "external action"
+        ],
+        "exact_approval_phrase": "APPROVE SEND_EMAIL capital_hilton_invoice_covenant_v0",
+        "external_authority": false,
+        "gate_id": "email_send_gate_c80b045dba98df0d",
+        "missing_items": [
+          "confirmed recipient/contact ref",
+          "future exact operator approval receipt",
+          "future send receipt"
+        ],
+        "next_safe_move": "Create/complete Guardian approval and future operator receipt before a gated send adapter could act.",
+        "package_ref": "email_delivery_package_missing_recipient_v0",
+        "required_covenant_ref": "capital_hilton_invoice_covenant_v0",
+        "required_guardian_approval_ref": "guardian_approval_capital_hilton_email_v0",
+        "send_allowed": false,
+        "send_executed": false
+      }
+    }
+  },
+  "generated_at": "2026-05-25T00:00:00+00:00",
+  "machine_proof": {
+    "agent_dispatch_performed": false,
+    "all_live_authority_false": true,
+    "approval_execution_performed": false,
+    "attachment_send_performed": false,
+    "browser_access_performed": false,
+    "coupa_access_performed": false,
+    "credential_handling_performed": false,
+    "email_delivery_performed": false,
+    "email_send_performed": false,
+    "external_action_performed": false,
+    "git_push_performed": false,
+    "gmail_draft_created": false,
+    "gmail_send_performed": false,
+    "mac_sync_import_performed": false,
+    "mail_send_performed": false,
+    "raw_attachment_body_included": false,
+    "raw_body_ingestion_performed": false,
+    "swift_change_performed": false,
+    "workflow_run_performed": false
+  },
+  "next_safe_move": "Use this package as the review surface before any future Guardian/operator-approved send adapter.",
+  "operator_summary": "OpenClaw can now assemble a safe email delivery package from draft, recipient, attachment, approval, send-gate, and proof refs. Nothing is sent, no draft is created, and future send remains gated.",
+  "read_model_id": "email_delivery_package_compiler",
+  "readback_statuses": [
+    "DELIVERY_PACKAGE_READY_FOR_REVIEW",
+    "NOT_READY_MISSING_RECIPIENT",
+    "NOT_READY_MISSING_DRAFT",
+    "NOT_READY_MISSING_ATTACHMENT",
+    "NOT_READY_MISSING_APPROVAL",
+    "BLOCKED_PRIVACY_BOUNDARY",
+    "BLOCKED_SEND_GATE",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "recipient_statuses": [
+    "RECIPIENT_CONFIRMED",
+    "RECIPIENT_CANDIDATE",
+    "RECIPIENT_MISSING",
+    "RECIPIENT_BLOCKED_PRIVACY",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "schema_version": "email_delivery_package_compiler_v0",
+  "send_gate_statuses": [
+    "NOT_READY_MISSING_INPUTS",
+    "READY_FOR_GUARDIAN_REVIEW",
+    "WAITING_FOR_OPERATOR_APPROVAL",
+    "APPROVED_NOT_SENT_FUTURE",
+    "SEND_BLOCKED",
+    "UNKNOWN_FAIL_CLOSED"
+  ]
+}
