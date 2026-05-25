@@ -1,0 +1,1553 @@
+{
+  "authority_boundary": {
+    "credential_handling_allowed": false,
+    "git_push_pull_fetch_allowed": false,
+    "live_agent_dispatch_allowed": false,
+    "live_approval_execution_allowed": false,
+    "live_browser_allowed": false,
+    "live_coupa_access_allowed": false,
+    "live_coupa_submit_allowed": false,
+    "live_email_send_allowed": false,
+    "live_external_action_allowed": false,
+    "live_file_mutation_allowed": false,
+    "live_gmail_send_allowed": false,
+    "live_invoice_submit_allowed": false,
+    "live_mail_send_allowed": false,
+    "live_payment_action_allowed": false,
+    "live_portal_login_allowed": false,
+    "live_secret_reveal_allowed": false,
+    "live_workflow_run_allowed": false,
+    "mac_sync_import_allowed": false,
+    "mission_control_swift_change_allowed": false,
+    "network_allowed": false,
+    "raw_body_ingestion_allowed": false
+  },
+  "blocker_types": [
+    "PO_REFERENCE_MISSING",
+    "PO_REFERENCE_UNCONFIRMED",
+    "INVOICE_VALUES_MISSING",
+    "VALUE_MISMATCH",
+    "ARTIFACT_REF_MISSING",
+    "ARTIFACT_HASH_MISSING",
+    "SECRET_REF_MISSING",
+    "APPROVAL_MISSING",
+    "BROWSER_GATE_MISSING",
+    "SUBMIT_GATE_MISSING",
+    "RAW_PO_EXPOSED",
+    "RAW_CREDENTIAL_INCLUDED",
+    "COUPA_ACCESS_ATTEMPTED",
+    "COUPA_SUBMIT_ATTEMPTED",
+    "BROWSER_ATTEMPTED",
+    "EXTERNAL_ACTION_ATTEMPTED",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "capital_hilton_required_package": {
+    "known": [
+      "client: Capital Hilton",
+      "workflow: capital_hilton_invoice_workflow",
+      "official payment rail: Coupa supplier portal / PO",
+      "invoice basis: 4 dates at $400 = $1,600",
+      "companion invoice: Winship-branded Excel/PDF",
+      "email to Annette is local records/payment follow-up, not official Coupa submission"
+    ],
+    "operator_readback": "OpenClaw has assembled the Coupa payment-rail package shape for Capital Hilton. Nothing has been opened or submitted. The package still needs the Coupa PO/reference, required proof, and Guardian/operator approval before any future Coupa/browser adapter can act."
+  },
+  "compiler": {
+    "approval_policy": [
+      "Action Covenant and Guardian approval packet refs are required before any future Coupa adapter can act.",
+      "Operator approval receipt is modeled as future proof, not created here.",
+      "Approval execution remains disabled."
+    ],
+    "artifact_policy": [
+      "Invoice artifacts are refs with hash/fingerprint proof.",
+      "Raw artifact bodies are not copied into the Coupa package read-model.",
+      "Missing artifact ref or hash blocks package readiness."
+    ],
+    "authority_boundary": {
+      "credential_handling_allowed": false,
+      "git_push_pull_fetch_allowed": false,
+      "live_agent_dispatch_allowed": false,
+      "live_approval_execution_allowed": false,
+      "live_browser_allowed": false,
+      "live_coupa_access_allowed": false,
+      "live_coupa_submit_allowed": false,
+      "live_email_send_allowed": false,
+      "live_external_action_allowed": false,
+      "live_file_mutation_allowed": false,
+      "live_gmail_send_allowed": false,
+      "live_invoice_submit_allowed": false,
+      "live_mail_send_allowed": false,
+      "live_payment_action_allowed": false,
+      "live_portal_login_allowed": false,
+      "live_secret_reveal_allowed": false,
+      "live_workflow_run_allowed": false,
+      "mac_sync_import_allowed": false,
+      "mission_control_swift_change_allowed": false,
+      "network_allowed": false,
+      "raw_body_ingestion_allowed": false
+    },
+    "browser_adapter_policy": [
+      "This lane does not open Coupa, start a browser, or automate a portal.",
+      "A future browser/Coupa adapter must require covenant, Guardian, exact approval, secret ref, and receipts."
+    ],
+    "compiler_id": "coupa_supplier_portal_package_compiler_v0",
+    "credential_policy": [
+      "Future portal login requires a protected secret ref only.",
+      "Raw credentials are forbidden in chat, package inputs, read-models, and operator markdown.",
+      "Secret reveal and credential handling remain false."
+    ],
+    "doctrine": [
+      "Compiler creates a Coupa package, not a Coupa action.",
+      "Package binds PO/reference posture, invoice values, invoice artifact refs, protected credential refs, approval refs, gates, and proof requirements.",
+      "Package must state missing items and blocked actions clearly.",
+      "Readbacks must never claim portal access, login, submission, or payment completion.",
+      "Browser, Coupa, credential, submit, and external authority remain false."
+    ],
+    "invoice_value_policy": [
+      "Invoice values come from receipts, readbacks, or source refs, not chat vibes.",
+      "Capital Hilton basis is four performance dates at $400/show for a $1,600 subtotal.",
+      "Value mismatch blocks package readiness."
+    ],
+    "next_safe_move": "Use this compiler to assemble Coupa payment-rail refs before Guardian/operator review; do not access Coupa.",
+    "po_reference_policy": [
+      "PO/reference should be represented as a safe/tokenized ref.",
+      "Raw PO/reference is not exposed in normal read-models unless future fixture policy says it is public-safe.",
+      "Missing or candidate PO/reference blocks submit readiness."
+    ],
+    "proof_policy": [
+      "Completion requires confirmed PO/reference, confirmed values, artifact ref/hash, protected secret ref if portal login is required, Guardian packet, exact operator approval receipt, future portal submission receipt, and future Coupa confirmation/proof.",
+      "COUPA INVOICE SUBMITTED is a future target only."
+    ],
+    "submit_gate_policy": [
+      "Submit gate records missing items and exact approval phrase.",
+      "coupa_access_allowed false, coupa_submit_allowed false, browser_allowed false, action_executed false, external_authority false.",
+      "Even complete packages remain package/review artifacts until a future gated adapter exists."
+    ]
+  },
+  "contract_status": "DETERMINISTIC_NON_SUBMITTING_COUPA_SUPPLIER_PORTAL_PACKAGE_COMPILER",
+  "coupa_package_blockers": [
+    {
+      "blocker_id": "coupa_blocker_po_missing",
+      "blocker_type": "PO_REFERENCE_MISSING",
+      "condition": "No Coupa PO/reference ref is present.",
+      "elioperator_warning": "Coupa PO/reference is missing.",
+      "fail_closed": true,
+      "next_safe_move": "Provide or confirm the Coupa PO/reference.",
+      "severity": "critical"
+    },
+    {
+      "blocker_id": "coupa_blocker_po_unconfirmed",
+      "blocker_type": "PO_REFERENCE_UNCONFIRMED",
+      "condition": "PO/reference is only a candidate.",
+      "elioperator_warning": "Coupa PO/reference must be confirmed before future submit.",
+      "fail_closed": true,
+      "next_safe_move": "Confirm PO/reference via protected proof.",
+      "severity": "high"
+    },
+    {
+      "blocker_id": "coupa_blocker_values_missing",
+      "blocker_type": "INVOICE_VALUES_MISSING",
+      "condition": "Invoice date/rate/subtotal refs are missing.",
+      "elioperator_warning": "Invoice values are missing.",
+      "fail_closed": true,
+      "next_safe_move": "Attach delivery facts/value refs.",
+      "severity": "critical"
+    },
+    {
+      "blocker_id": "coupa_blocker_value_mismatch",
+      "blocker_type": "VALUE_MISMATCH",
+      "condition": "Invoice values differ across proofs.",
+      "elioperator_warning": "Invoice value mismatch blocks Coupa package readiness.",
+      "fail_closed": true,
+      "next_safe_move": "Reconcile value refs before review.",
+      "severity": "critical"
+    },
+    {
+      "blocker_id": "coupa_blocker_artifact_missing",
+      "blocker_type": "ARTIFACT_REF_MISSING",
+      "condition": "Invoice artifact refs are missing.",
+      "elioperator_warning": "Invoice artifact ref is missing.",
+      "fail_closed": true,
+      "next_safe_move": "Generate or attach invoice artifact refs.",
+      "severity": "high"
+    },
+    {
+      "blocker_id": "coupa_blocker_artifact_hash",
+      "blocker_type": "ARTIFACT_HASH_MISSING",
+      "condition": "Invoice artifact lacks hash/fingerprint proof.",
+      "elioperator_warning": "Artifact hash/fingerprint is missing.",
+      "fail_closed": true,
+      "next_safe_move": "Hash/fingerprint the artifact.",
+      "severity": "high"
+    },
+    {
+      "blocker_id": "coupa_blocker_secret_missing",
+      "blocker_type": "SECRET_REF_MISSING",
+      "condition": "Future portal login requires a protected secret ref.",
+      "elioperator_warning": "Protected credential ref is missing.",
+      "fail_closed": true,
+      "next_safe_move": "Use the future Enter Secret protected flow; do not type credentials in chat.",
+      "severity": "critical"
+    },
+    {
+      "blocker_id": "coupa_blocker_approval_missing",
+      "blocker_type": "APPROVAL_MISSING",
+      "condition": "Action Covenant or Guardian approval request is missing.",
+      "elioperator_warning": "Guardian/operator approval is missing.",
+      "fail_closed": true,
+      "next_safe_move": "Create SUBMIT_COUPA covenant and Guardian packet.",
+      "severity": "critical"
+    },
+    {
+      "blocker_id": "coupa_blocker_browser_gate",
+      "blocker_type": "BROWSER_GATE_MISSING",
+      "condition": "Browser gate model is absent.",
+      "elioperator_warning": "Browser gate is missing.",
+      "fail_closed": true,
+      "next_safe_move": "Regenerate package with CoupaPortalGate.",
+      "severity": "critical"
+    },
+    {
+      "blocker_id": "coupa_blocker_submit_gate",
+      "blocker_type": "SUBMIT_GATE_MISSING",
+      "condition": "Submit gate model is absent.",
+      "elioperator_warning": "Submit gate is missing.",
+      "fail_closed": true,
+      "next_safe_move": "Regenerate package with CoupaPortalGate.",
+      "severity": "critical"
+    },
+    {
+      "blocker_id": "coupa_blocker_raw_po",
+      "blocker_type": "RAW_PO_EXPOSED",
+      "condition": "Raw private PO/reference appears in normal read-model output.",
+      "elioperator_warning": "Raw PO/reference exposure is blocked.",
+      "fail_closed": true,
+      "next_safe_move": "Use tokenized PO refs and safe labels.",
+      "severity": "critical"
+    },
+    {
+      "blocker_id": "coupa_blocker_raw_credential",
+      "blocker_type": "RAW_CREDENTIAL_INCLUDED",
+      "condition": "Credential material appears in package/read-model.",
+      "elioperator_warning": "Credential exposure is blocked.",
+      "fail_closed": true,
+      "next_safe_move": "Use protected secret refs only.",
+      "severity": "critical"
+    },
+    {
+      "blocker_id": "coupa_blocker_access",
+      "blocker_type": "COUPA_ACCESS_ATTEMPTED",
+      "condition": "Compiler attempts Coupa access.",
+      "elioperator_warning": "Coupa access is blocked.",
+      "fail_closed": true,
+      "next_safe_move": "Return package/readback only.",
+      "severity": "critical"
+    },
+    {
+      "blocker_id": "coupa_blocker_submit",
+      "blocker_type": "COUPA_SUBMIT_ATTEMPTED",
+      "condition": "Compiler attempts Coupa submit.",
+      "elioperator_warning": "Coupa submit is blocked.",
+      "fail_closed": true,
+      "next_safe_move": "Return package/readback only.",
+      "severity": "critical"
+    },
+    {
+      "blocker_id": "coupa_blocker_browser",
+      "blocker_type": "BROWSER_ATTEMPTED",
+      "condition": "Compiler attempts browser open or automation.",
+      "elioperator_warning": "Browser access is blocked.",
+      "fail_closed": true,
+      "next_safe_move": "Stay in deterministic package generation.",
+      "severity": "critical"
+    },
+    {
+      "blocker_id": "coupa_blocker_external",
+      "blocker_type": "EXTERNAL_ACTION_ATTEMPTED",
+      "condition": "Compiler attempts external account, portal, payment, or runtime action.",
+      "elioperator_warning": "External action is blocked.",
+      "fail_closed": true,
+      "next_safe_move": "Stay local and read-model only.",
+      "severity": "critical"
+    },
+    {
+      "blocker_id": "coupa_blocker_unknown",
+      "blocker_type": "UNKNOWN_FAIL_CLOSED",
+      "condition": "Unknown Coupa package state.",
+      "elioperator_warning": "Unknown Coupa package state fails closed.",
+      "fail_closed": true,
+      "next_safe_move": "Ask for scoped PO/value/artifact/secret/approval refs.",
+      "severity": "high"
+    }
+  ],
+  "examples": {
+    "attempted_browser": {
+      "invoice_values": {
+        "confirmation_status": "VALUES_CONFIRMED",
+        "currency": "USD",
+        "dates_ref": "dates_ref:capital_hilton_2026_05_performance_dates",
+        "next_safe_move": "Use value refs as payment-rail package inputs; block on mismatch.",
+        "proof_refs": [
+          "delivery_facts_ref:capital_hilton_four_performance_dates",
+          "rate_ref:capital_hilton_400_per_show",
+          "subtotal_ref:capital_hilton_1600_usd"
+        ],
+        "rate_ref": "rate_ref:capital_hilton_400_per_show",
+        "source_delivery_facts_ref": "capital_hilton_delivery_facts_capture_writer:four_performance_dates_rate_subtotal",
+        "subtotal_ref": "subtotal_ref:capital_hilton_1600_usd",
+        "tax_or_fee_policy": "no additional tax/fee modeled in v0; mismatch or extra fee requires review",
+        "value_set_ref": "coupa_invoice_values_ref:capital_hilton_2026_05_1600_usd"
+      },
+      "package": {
+        "browser_gate_status": "BROWSER_BLOCKED",
+        "client_ref": "client_ref:capital_hilton",
+        "coupa_po_ref": "coupa_po_ref:capital_hilton_confirmed",
+        "credential_ref_status": "PROTECTED_SECRET_REF_PRESENT_FUTURE_GATED",
+        "invoice_artifact_refs": [
+          "invoice_artifact_ref:capital_hilton_pdf_2026-05-25",
+          "invoice_artifact_ref:capital_hilton_xlsx_2026-05-25"
+        ],
+        "invoice_attachment_refs": [
+          "email_attachment_ref:capital_hilton_pdf_2026-05-25",
+          "email_attachment_ref:capital_hilton_xlsx_2026-05-25"
+        ],
+        "invoice_value_refs": [
+          "dates_ref:capital_hilton_2026_05_performance_dates",
+          "rate_ref:capital_hilton_400_per_show",
+          "subtotal_ref:capital_hilton_1600_usd"
+        ],
+        "missing_inputs": [
+          "browser attempted but blocked"
+        ],
+        "next_safe_move": "Review package and resolve missing Coupa gate items; do not open Coupa or submit.",
+        "package_id": "coupa_package_capital_hilton_browser_attempt_blocked_v0",
+        "po_status": "PO_CONFIRMED",
+        "portal_action_status": "PACKAGE_ONLY",
+        "required_approvals": [
+          "Action Covenant for SUBMIT_COUPA",
+          "Guardian approval request packet",
+          "future exact operator approval receipt"
+        ],
+        "required_proofs": [
+          "confirmed Coupa PO/reference",
+          "confirmed invoice dates/rate/subtotal",
+          "invoice artifact ref",
+          "invoice artifact hash/fingerprint",
+          "protected credential/secret ref if future portal login required",
+          "Guardian approval packet",
+          "exact operator approval receipt",
+          "future portal submission receipt",
+          "future Coupa confirmation/proof"
+        ],
+        "source_workflow_ref": "capital_hilton_invoice_workflow",
+        "submit_gate_status": "SUBMIT_BLOCKED",
+        "supplier_portal_status": "PORTAL_ACCESS_FUTURE_GATED",
+        "tenant_ref": "tenant_ref:winship"
+      },
+      "po_reference": {
+        "confirmation_status": "PO_CONFIRMED",
+        "next_safe_move": "Confirm the Coupa PO/reference before any future submit package can be considered ready.",
+        "po_ref": "coupa_po_ref:capital_hilton_confirmed",
+        "privacy_class": "client_payment_reference_private_ref",
+        "protected_ref_required": true,
+        "safe_display_label": "Capital Hilton Coupa PO/reference confirmed",
+        "source_ref": "protected_evidence_ref:capital_hilton_coupa_po_confirmation",
+        "tokenized_po_ref": "po_token_ref:capital_hilton_confirmed"
+      },
+      "portal_gate": {
+        "action_executed": false,
+        "blocked_actions": [
+          "Coupa access",
+          "Coupa submit",
+          "browser open or automation",
+          "portal login",
+          "secret reveal",
+          "payment action",
+          "approval execution",
+          "workflow run",
+          "agent dispatch",
+          "external action",
+          "credential handling"
+        ],
+        "browser_allowed": false,
+        "coupa_access_allowed": false,
+        "coupa_submit_allowed": false,
+        "exact_approval_phrase": "APPROVE SUBMIT_COUPA capital_hilton_coupa_submit_covenant_v0",
+        "external_authority": false,
+        "gate_id": "coupa_portal_gate_c21b4554b3b6b6bc",
+        "missing_items": [
+          "browser attempted but blocked",
+          "exact operator approval receipt",
+          "future portal submission receipt"
+        ],
+        "next_safe_move": "Create/complete PO, secret-ref, Guardian, and future operator approval receipts before any future Coupa adapter could act.",
+        "package_ref": "coupa_package_capital_hilton_browser_attempt_blocked_v0",
+        "required_covenant_ref": "capital_hilton_coupa_submit_covenant_v0",
+        "required_guardian_approval_ref": "guardian_approval_capital_hilton_coupa_submit_v0",
+        "required_secret_ref": "secret_ref:coupa_use_once_capital_hilton"
+      },
+      "proof_plan": {
+        "available_proof_refs": [
+          "confirmed Coupa PO/reference",
+          "confirmed invoice dates/rate/subtotal",
+          "invoice artifact ref",
+          "invoice artifact hash/fingerprint",
+          "protected credential/secret ref if future portal login required",
+          "Guardian approval packet"
+        ],
+        "completion_allowed": false,
+        "completion_label": "COUPA INVOICE SUBMITTED",
+        "final_readback_target": "future final readback only after portal submission and Coupa confirmation proof exist",
+        "missing_proofs": [
+          "exact operator approval receipt",
+          "future portal submission receipt",
+          "future Coupa confirmation/proof"
+        ],
+        "next_safe_move": "Collect missing proofs and approval receipts; COUPA INVOICE SUBMITTED remains a future target.",
+        "package_ref": "coupa_package_capital_hilton_browser_attempt_blocked_v0",
+        "proof_plan_id": "coupa_proof_plan_c21b4554b3b6b6bc",
+        "required_proofs": [
+          "confirmed Coupa PO/reference",
+          "confirmed invoice dates/rate/subtotal",
+          "invoice artifact ref",
+          "invoice artifact hash/fingerprint",
+          "protected credential/secret ref if future portal login required",
+          "Guardian approval packet",
+          "exact operator approval receipt",
+          "future portal submission receipt",
+          "future Coupa confirmation/proof"
+        ]
+      },
+      "readback": {
+        "approval_status": "SUBMIT_BLOCKED",
+        "artifact_summary": "invoice_artifact_ref:capital_hilton_pdf_2026-05-25, invoice_artifact_ref:capital_hilton_xlsx_2026-05-25",
+        "blocked_actions": [
+          "Coupa access",
+          "Coupa submit",
+          "browser open or automation",
+          "portal login",
+          "secret reveal",
+          "payment action",
+          "approval execution",
+          "workflow run",
+          "agent dispatch",
+          "external action",
+          "credential handling"
+        ],
+        "how_to_fix": "Keep browser_allowed false and use a future approved Coupa/browser adapter.",
+        "invoice_value_summary": "VALUES_CONFIRMED; dates/rate/subtotal refs present",
+        "missing_items": [
+          "browser attempted but blocked",
+          "exact operator approval receipt",
+          "future portal submission receipt",
+          "future Coupa confirmation/proof"
+        ],
+        "next_safe_move": "Keep browser_allowed false and use a future approved Coupa/browser adapter.",
+        "operator_headline": "Coupa browser gate is locked",
+        "operator_message": "A browser/Coupa action was attempted or improperly allowed in a package-only lane.",
+        "package_ref": "coupa_package_capital_hilton_browser_attempt_blocked_v0",
+        "package_summary": "capital_hilton_invoice_workflow; portal action PACKAGE_ONLY; submit gate SUBMIT_BLOCKED",
+        "po_summary": "Capital Hilton Coupa PO/reference confirmed (PO_CONFIRMED)",
+        "proof_status": "BLOCKED_MISSING_PROOF",
+        "readback_id": "coupa_package_readback_14e671f6d094d164",
+        "status": "BLOCKED_BROWSER_GATE"
+      }
+    },
+    "attempted_coupa_submit": {
+      "invoice_values": {
+        "confirmation_status": "VALUES_CONFIRMED",
+        "currency": "USD",
+        "dates_ref": "dates_ref:capital_hilton_2026_05_performance_dates",
+        "next_safe_move": "Use value refs as payment-rail package inputs; block on mismatch.",
+        "proof_refs": [
+          "delivery_facts_ref:capital_hilton_four_performance_dates",
+          "rate_ref:capital_hilton_400_per_show",
+          "subtotal_ref:capital_hilton_1600_usd"
+        ],
+        "rate_ref": "rate_ref:capital_hilton_400_per_show",
+        "source_delivery_facts_ref": "capital_hilton_delivery_facts_capture_writer:four_performance_dates_rate_subtotal",
+        "subtotal_ref": "subtotal_ref:capital_hilton_1600_usd",
+        "tax_or_fee_policy": "no additional tax/fee modeled in v0; mismatch or extra fee requires review",
+        "value_set_ref": "coupa_invoice_values_ref:capital_hilton_2026_05_1600_usd"
+      },
+      "package": {
+        "browser_gate_status": "BROWSER_GATE_LOCKED",
+        "client_ref": "client_ref:capital_hilton",
+        "coupa_po_ref": "coupa_po_ref:capital_hilton_confirmed",
+        "credential_ref_status": "PROTECTED_SECRET_REF_PRESENT_FUTURE_GATED",
+        "invoice_artifact_refs": [
+          "invoice_artifact_ref:capital_hilton_pdf_2026-05-25",
+          "invoice_artifact_ref:capital_hilton_xlsx_2026-05-25"
+        ],
+        "invoice_attachment_refs": [
+          "email_attachment_ref:capital_hilton_pdf_2026-05-25",
+          "email_attachment_ref:capital_hilton_xlsx_2026-05-25"
+        ],
+        "invoice_value_refs": [
+          "dates_ref:capital_hilton_2026_05_performance_dates",
+          "rate_ref:capital_hilton_400_per_show",
+          "subtotal_ref:capital_hilton_1600_usd"
+        ],
+        "missing_inputs": [
+          "Coupa submit attempted but blocked"
+        ],
+        "next_safe_move": "Review package and resolve missing Coupa gate items; do not open Coupa or submit.",
+        "package_id": "coupa_package_capital_hilton_submit_attempt_blocked_v0",
+        "po_status": "PO_CONFIRMED",
+        "portal_action_status": "PACKAGE_ONLY",
+        "required_approvals": [
+          "Action Covenant for SUBMIT_COUPA",
+          "Guardian approval request packet",
+          "future exact operator approval receipt"
+        ],
+        "required_proofs": [
+          "confirmed Coupa PO/reference",
+          "confirmed invoice dates/rate/subtotal",
+          "invoice artifact ref",
+          "invoice artifact hash/fingerprint",
+          "protected credential/secret ref if future portal login required",
+          "Guardian approval packet",
+          "exact operator approval receipt",
+          "future portal submission receipt",
+          "future Coupa confirmation/proof"
+        ],
+        "source_workflow_ref": "capital_hilton_invoice_workflow",
+        "submit_gate_status": "SUBMIT_BLOCKED",
+        "supplier_portal_status": "PORTAL_ACCESS_FUTURE_GATED",
+        "tenant_ref": "tenant_ref:winship"
+      },
+      "po_reference": {
+        "confirmation_status": "PO_CONFIRMED",
+        "next_safe_move": "Confirm the Coupa PO/reference before any future submit package can be considered ready.",
+        "po_ref": "coupa_po_ref:capital_hilton_confirmed",
+        "privacy_class": "client_payment_reference_private_ref",
+        "protected_ref_required": true,
+        "safe_display_label": "Capital Hilton Coupa PO/reference confirmed",
+        "source_ref": "protected_evidence_ref:capital_hilton_coupa_po_confirmation",
+        "tokenized_po_ref": "po_token_ref:capital_hilton_confirmed"
+      },
+      "portal_gate": {
+        "action_executed": false,
+        "blocked_actions": [
+          "Coupa access",
+          "Coupa submit",
+          "browser open or automation",
+          "portal login",
+          "secret reveal",
+          "payment action",
+          "approval execution",
+          "workflow run",
+          "agent dispatch",
+          "external action",
+          "credential handling"
+        ],
+        "browser_allowed": false,
+        "coupa_access_allowed": false,
+        "coupa_submit_allowed": false,
+        "exact_approval_phrase": "APPROVE SUBMIT_COUPA capital_hilton_coupa_submit_covenant_v0",
+        "external_authority": false,
+        "gate_id": "coupa_portal_gate_0818c51cbf92649c",
+        "missing_items": [
+          "Coupa submit attempted but blocked",
+          "exact operator approval receipt",
+          "future portal submission receipt"
+        ],
+        "next_safe_move": "Create/complete PO, secret-ref, Guardian, and future operator approval receipts before any future Coupa adapter could act.",
+        "package_ref": "coupa_package_capital_hilton_submit_attempt_blocked_v0",
+        "required_covenant_ref": "capital_hilton_coupa_submit_covenant_v0",
+        "required_guardian_approval_ref": "guardian_approval_capital_hilton_coupa_submit_v0",
+        "required_secret_ref": "secret_ref:coupa_use_once_capital_hilton"
+      },
+      "proof_plan": {
+        "available_proof_refs": [
+          "confirmed Coupa PO/reference",
+          "confirmed invoice dates/rate/subtotal",
+          "invoice artifact ref",
+          "invoice artifact hash/fingerprint",
+          "protected credential/secret ref if future portal login required",
+          "Guardian approval packet"
+        ],
+        "completion_allowed": false,
+        "completion_label": "COUPA INVOICE SUBMITTED",
+        "final_readback_target": "future final readback only after portal submission and Coupa confirmation proof exist",
+        "missing_proofs": [
+          "exact operator approval receipt",
+          "future portal submission receipt",
+          "future Coupa confirmation/proof"
+        ],
+        "next_safe_move": "Collect missing proofs and approval receipts; COUPA INVOICE SUBMITTED remains a future target.",
+        "package_ref": "coupa_package_capital_hilton_submit_attempt_blocked_v0",
+        "proof_plan_id": "coupa_proof_plan_0818c51cbf92649c",
+        "required_proofs": [
+          "confirmed Coupa PO/reference",
+          "confirmed invoice dates/rate/subtotal",
+          "invoice artifact ref",
+          "invoice artifact hash/fingerprint",
+          "protected credential/secret ref if future portal login required",
+          "Guardian approval packet",
+          "exact operator approval receipt",
+          "future portal submission receipt",
+          "future Coupa confirmation/proof"
+        ]
+      },
+      "readback": {
+        "approval_status": "SUBMIT_BLOCKED",
+        "artifact_summary": "invoice_artifact_ref:capital_hilton_pdf_2026-05-25, invoice_artifact_ref:capital_hilton_xlsx_2026-05-25",
+        "blocked_actions": [
+          "Coupa access",
+          "Coupa submit",
+          "browser open or automation",
+          "portal login",
+          "secret reveal",
+          "payment action",
+          "approval execution",
+          "workflow run",
+          "agent dispatch",
+          "external action",
+          "credential handling"
+        ],
+        "how_to_fix": "Keep coupa_submit_allowed false and return package/readback only.",
+        "invoice_value_summary": "VALUES_CONFIRMED; dates/rate/subtotal refs present",
+        "missing_items": [
+          "Coupa submit attempted but blocked",
+          "exact operator approval receipt",
+          "future portal submission receipt",
+          "future Coupa confirmation/proof"
+        ],
+        "next_safe_move": "Keep coupa_submit_allowed false and return package/readback only.",
+        "operator_headline": "Coupa submit gate is locked",
+        "operator_message": "A Coupa submit action was attempted or improperly allowed in a package-only lane.",
+        "package_ref": "coupa_package_capital_hilton_submit_attempt_blocked_v0",
+        "package_summary": "capital_hilton_invoice_workflow; portal action PACKAGE_ONLY; submit gate SUBMIT_BLOCKED",
+        "po_summary": "Capital Hilton Coupa PO/reference confirmed (PO_CONFIRMED)",
+        "proof_status": "BLOCKED_MISSING_PROOF",
+        "readback_id": "coupa_package_readback_ce01edfc0eaafc45",
+        "status": "BLOCKED_SUBMIT_GATE"
+      }
+    },
+    "capital_hilton_complete_except_approval": {
+      "invoice_values": {
+        "confirmation_status": "VALUES_CONFIRMED",
+        "currency": "USD",
+        "dates_ref": "dates_ref:capital_hilton_2026_05_performance_dates",
+        "next_safe_move": "Use value refs as payment-rail package inputs; block on mismatch.",
+        "proof_refs": [
+          "delivery_facts_ref:capital_hilton_four_performance_dates",
+          "rate_ref:capital_hilton_400_per_show",
+          "subtotal_ref:capital_hilton_1600_usd"
+        ],
+        "rate_ref": "rate_ref:capital_hilton_400_per_show",
+        "source_delivery_facts_ref": "capital_hilton_delivery_facts_capture_writer:four_performance_dates_rate_subtotal",
+        "subtotal_ref": "subtotal_ref:capital_hilton_1600_usd",
+        "tax_or_fee_policy": "no additional tax/fee modeled in v0; mismatch or extra fee requires review",
+        "value_set_ref": "coupa_invoice_values_ref:capital_hilton_2026_05_1600_usd"
+      },
+      "package": {
+        "browser_gate_status": "BROWSER_GATE_LOCKED",
+        "client_ref": "client_ref:capital_hilton",
+        "coupa_po_ref": "coupa_po_ref:capital_hilton_confirmed",
+        "credential_ref_status": "PROTECTED_SECRET_REF_PRESENT_FUTURE_GATED",
+        "invoice_artifact_refs": [
+          "invoice_artifact_ref:capital_hilton_pdf_2026-05-25",
+          "invoice_artifact_ref:capital_hilton_xlsx_2026-05-25"
+        ],
+        "invoice_attachment_refs": [
+          "email_attachment_ref:capital_hilton_pdf_2026-05-25",
+          "email_attachment_ref:capital_hilton_xlsx_2026-05-25"
+        ],
+        "invoice_value_refs": [
+          "dates_ref:capital_hilton_2026_05_performance_dates",
+          "rate_ref:capital_hilton_400_per_show",
+          "subtotal_ref:capital_hilton_1600_usd"
+        ],
+        "missing_inputs": [
+          "Guardian approval packet",
+          "exact operator approval receipt",
+          "future portal submission receipt",
+          "future Coupa confirmation/proof"
+        ],
+        "next_safe_move": "Review package and resolve missing Coupa gate items; do not open Coupa or submit.",
+        "package_id": "coupa_package_capital_hilton_complete_except_approval_v0",
+        "po_status": "PO_CONFIRMED",
+        "portal_action_status": "PACKAGE_ONLY",
+        "required_approvals": [
+          "Action Covenant for SUBMIT_COUPA",
+          "Guardian approval request packet",
+          "future exact operator approval receipt"
+        ],
+        "required_proofs": [
+          "confirmed Coupa PO/reference",
+          "confirmed invoice dates/rate/subtotal",
+          "invoice artifact ref",
+          "invoice artifact hash/fingerprint",
+          "protected credential/secret ref if future portal login required",
+          "Guardian approval packet",
+          "exact operator approval receipt",
+          "future portal submission receipt",
+          "future Coupa confirmation/proof"
+        ],
+        "source_workflow_ref": "capital_hilton_invoice_workflow",
+        "submit_gate_status": "READY_FOR_GUARDIAN_REVIEW",
+        "supplier_portal_status": "PORTAL_ACCESS_FUTURE_GATED",
+        "tenant_ref": "tenant_ref:winship"
+      },
+      "po_reference": {
+        "confirmation_status": "PO_CONFIRMED",
+        "next_safe_move": "Confirm the Coupa PO/reference before any future submit package can be considered ready.",
+        "po_ref": "coupa_po_ref:capital_hilton_confirmed",
+        "privacy_class": "client_payment_reference_private_ref",
+        "protected_ref_required": true,
+        "safe_display_label": "Capital Hilton Coupa PO/reference confirmed",
+        "source_ref": "protected_evidence_ref:capital_hilton_coupa_po_confirmation",
+        "tokenized_po_ref": "po_token_ref:capital_hilton_confirmed"
+      },
+      "portal_gate": {
+        "action_executed": false,
+        "blocked_actions": [
+          "Coupa access",
+          "Coupa submit",
+          "browser open or automation",
+          "portal login",
+          "secret reveal",
+          "payment action",
+          "approval execution",
+          "workflow run",
+          "agent dispatch",
+          "external action",
+          "credential handling"
+        ],
+        "browser_allowed": false,
+        "coupa_access_allowed": false,
+        "coupa_submit_allowed": false,
+        "exact_approval_phrase": "APPROVE SUBMIT_COUPA capital_hilton_coupa_submit_covenant_v0",
+        "external_authority": false,
+        "gate_id": "coupa_portal_gate_8a95eed08387af0d",
+        "missing_items": [
+          "Guardian approval packet",
+          "exact operator approval receipt",
+          "future portal submission receipt",
+          "future Coupa confirmation/proof"
+        ],
+        "next_safe_move": "Create/complete PO, secret-ref, Guardian, and future operator approval receipts before any future Coupa adapter could act.",
+        "package_ref": "coupa_package_capital_hilton_complete_except_approval_v0",
+        "required_covenant_ref": "capital_hilton_coupa_submit_covenant_v0",
+        "required_guardian_approval_ref": "missing",
+        "required_secret_ref": "secret_ref:coupa_use_once_capital_hilton"
+      },
+      "proof_plan": {
+        "available_proof_refs": [
+          "confirmed Coupa PO/reference",
+          "confirmed invoice dates/rate/subtotal",
+          "invoice artifact ref",
+          "invoice artifact hash/fingerprint",
+          "protected credential/secret ref if future portal login required"
+        ],
+        "completion_allowed": false,
+        "completion_label": "COUPA INVOICE SUBMITTED",
+        "final_readback_target": "future final readback only after portal submission and Coupa confirmation proof exist",
+        "missing_proofs": [
+          "Guardian approval packet",
+          "exact operator approval receipt",
+          "future portal submission receipt",
+          "future Coupa confirmation/proof"
+        ],
+        "next_safe_move": "Collect missing proofs and approval receipts; COUPA INVOICE SUBMITTED remains a future target.",
+        "package_ref": "coupa_package_capital_hilton_complete_except_approval_v0",
+        "proof_plan_id": "coupa_proof_plan_8a95eed08387af0d",
+        "required_proofs": [
+          "confirmed Coupa PO/reference",
+          "confirmed invoice dates/rate/subtotal",
+          "invoice artifact ref",
+          "invoice artifact hash/fingerprint",
+          "protected credential/secret ref if future portal login required",
+          "Guardian approval packet",
+          "exact operator approval receipt",
+          "future portal submission receipt",
+          "future Coupa confirmation/proof"
+        ]
+      },
+      "readback": {
+        "approval_status": "READY_FOR_GUARDIAN_REVIEW",
+        "artifact_summary": "invoice_artifact_ref:capital_hilton_pdf_2026-05-25, invoice_artifact_ref:capital_hilton_xlsx_2026-05-25",
+        "blocked_actions": [
+          "Coupa access",
+          "Coupa submit",
+          "browser open or automation",
+          "portal login",
+          "secret reveal",
+          "payment action",
+          "approval execution",
+          "workflow run",
+          "agent dispatch",
+          "external action",
+          "credential handling"
+        ],
+        "how_to_fix": "Create an Action Covenant and Guardian approval request for SUBMIT_COUPA.",
+        "invoice_value_summary": "VALUES_CONFIRMED; dates/rate/subtotal refs present",
+        "missing_items": [
+          "Guardian approval packet",
+          "exact operator approval receipt",
+          "future portal submission receipt",
+          "future Coupa confirmation/proof"
+        ],
+        "next_safe_move": "Create an Action Covenant and Guardian approval request for SUBMIT_COUPA.",
+        "operator_headline": "Coupa package needs Guardian approval",
+        "operator_message": "The Coupa package has PO/value/artifact posture, but the Guardian approval packet is missing.",
+        "package_ref": "coupa_package_capital_hilton_complete_except_approval_v0",
+        "package_summary": "capital_hilton_invoice_workflow; portal action PACKAGE_ONLY; submit gate READY_FOR_GUARDIAN_REVIEW",
+        "po_summary": "Capital Hilton Coupa PO/reference confirmed (PO_CONFIRMED)",
+        "proof_status": "BLOCKED_MISSING_PROOF",
+        "readback_id": "coupa_package_readback_b36aac7bb4538ba4",
+        "status": "NOT_READY_MISSING_APPROVAL"
+      }
+    },
+    "capital_hilton_missing_po": {
+      "invoice_values": {
+        "confirmation_status": "VALUES_CONFIRMED",
+        "currency": "USD",
+        "dates_ref": "dates_ref:capital_hilton_2026_05_performance_dates",
+        "next_safe_move": "Use value refs as payment-rail package inputs; block on mismatch.",
+        "proof_refs": [
+          "delivery_facts_ref:capital_hilton_four_performance_dates",
+          "rate_ref:capital_hilton_400_per_show",
+          "subtotal_ref:capital_hilton_1600_usd"
+        ],
+        "rate_ref": "rate_ref:capital_hilton_400_per_show",
+        "source_delivery_facts_ref": "capital_hilton_delivery_facts_capture_writer:four_performance_dates_rate_subtotal",
+        "subtotal_ref": "subtotal_ref:capital_hilton_1600_usd",
+        "tax_or_fee_policy": "no additional tax/fee modeled in v0; mismatch or extra fee requires review",
+        "value_set_ref": "coupa_invoice_values_ref:capital_hilton_2026_05_1600_usd"
+      },
+      "package": {
+        "browser_gate_status": "BROWSER_GATE_LOCKED",
+        "client_ref": "client_ref:capital_hilton",
+        "coupa_po_ref": "",
+        "credential_ref_status": "PROTECTED_SECRET_REF_PRESENT_FUTURE_GATED",
+        "invoice_artifact_refs": [
+          "invoice_artifact_ref:capital_hilton_pdf_2026-05-25",
+          "invoice_artifact_ref:capital_hilton_xlsx_2026-05-25"
+        ],
+        "invoice_attachment_refs": [
+          "email_attachment_ref:capital_hilton_pdf_2026-05-25",
+          "email_attachment_ref:capital_hilton_xlsx_2026-05-25"
+        ],
+        "invoice_value_refs": [
+          "dates_ref:capital_hilton_2026_05_performance_dates",
+          "rate_ref:capital_hilton_400_per_show",
+          "subtotal_ref:capital_hilton_1600_usd"
+        ],
+        "missing_inputs": [
+          "confirmed Coupa PO/reference"
+        ],
+        "next_safe_move": "Review package and resolve missing Coupa gate items; do not open Coupa or submit.",
+        "package_id": "coupa_package_capital_hilton_missing_po_v0",
+        "po_status": "PO_MISSING",
+        "portal_action_status": "BLOCKED_MISSING_PROOF",
+        "required_approvals": [
+          "Action Covenant for SUBMIT_COUPA",
+          "Guardian approval request packet",
+          "future exact operator approval receipt"
+        ],
+        "required_proofs": [
+          "confirmed Coupa PO/reference",
+          "confirmed invoice dates/rate/subtotal",
+          "invoice artifact ref",
+          "invoice artifact hash/fingerprint",
+          "protected credential/secret ref if future portal login required",
+          "Guardian approval packet",
+          "exact operator approval receipt",
+          "future portal submission receipt",
+          "future Coupa confirmation/proof"
+        ],
+        "source_workflow_ref": "capital_hilton_invoice_workflow",
+        "submit_gate_status": "NOT_READY_MISSING_INPUTS",
+        "supplier_portal_status": "PORTAL_BLOCKED_NO_PO",
+        "tenant_ref": "tenant_ref:winship"
+      },
+      "po_reference": null,
+      "portal_gate": {
+        "action_executed": false,
+        "blocked_actions": [
+          "Coupa access",
+          "Coupa submit",
+          "browser open or automation",
+          "portal login",
+          "secret reveal",
+          "payment action",
+          "approval execution",
+          "workflow run",
+          "agent dispatch",
+          "external action",
+          "credential handling"
+        ],
+        "browser_allowed": false,
+        "coupa_access_allowed": false,
+        "coupa_submit_allowed": false,
+        "exact_approval_phrase": "APPROVE SUBMIT_COUPA capital_hilton_coupa_submit_covenant_v0",
+        "external_authority": false,
+        "gate_id": "coupa_portal_gate_4759b5235f71a364",
+        "missing_items": [
+          "confirmed Coupa PO/reference",
+          "exact operator approval receipt",
+          "future portal submission receipt"
+        ],
+        "next_safe_move": "Create/complete PO, secret-ref, Guardian, and future operator approval receipts before any future Coupa adapter could act.",
+        "package_ref": "coupa_package_capital_hilton_missing_po_v0",
+        "required_covenant_ref": "capital_hilton_coupa_submit_covenant_v0",
+        "required_guardian_approval_ref": "guardian_approval_capital_hilton_coupa_submit_v0",
+        "required_secret_ref": "secret_ref:coupa_use_once_capital_hilton"
+      },
+      "proof_plan": {
+        "available_proof_refs": [
+          "confirmed invoice dates/rate/subtotal",
+          "invoice artifact ref",
+          "invoice artifact hash/fingerprint"
+        ],
+        "completion_allowed": false,
+        "completion_label": "COUPA INVOICE SUBMITTED",
+        "final_readback_target": "future final readback only after portal submission and Coupa confirmation proof exist",
+        "missing_proofs": [
+          "confirmed Coupa PO/reference",
+          "protected credential/secret ref if future portal login required",
+          "Guardian approval packet",
+          "exact operator approval receipt",
+          "future portal submission receipt",
+          "future Coupa confirmation/proof"
+        ],
+        "next_safe_move": "Collect missing proofs and approval receipts; COUPA INVOICE SUBMITTED remains a future target.",
+        "package_ref": "coupa_package_capital_hilton_missing_po_v0",
+        "proof_plan_id": "coupa_proof_plan_4759b5235f71a364",
+        "required_proofs": [
+          "confirmed Coupa PO/reference",
+          "confirmed invoice dates/rate/subtotal",
+          "invoice artifact ref",
+          "invoice artifact hash/fingerprint",
+          "protected credential/secret ref if future portal login required",
+          "Guardian approval packet",
+          "exact operator approval receipt",
+          "future portal submission receipt",
+          "future Coupa confirmation/proof"
+        ]
+      },
+      "readback": {
+        "approval_status": "NOT_READY_MISSING_INPUTS",
+        "artifact_summary": "invoice_artifact_ref:capital_hilton_pdf_2026-05-25, invoice_artifact_ref:capital_hilton_xlsx_2026-05-25",
+        "blocked_actions": [
+          "Coupa access",
+          "Coupa submit",
+          "browser open or automation",
+          "portal login",
+          "secret reveal",
+          "payment action",
+          "approval execution",
+          "workflow run",
+          "agent dispatch",
+          "external action",
+          "credential handling"
+        ],
+        "how_to_fix": "Provide, attach, or confirm the Coupa PO/reference, or tell OpenClaw to keep discovery open.",
+        "invoice_value_summary": "VALUES_CONFIRMED; dates/rate/subtotal refs present",
+        "missing_items": [
+          "confirmed Coupa PO/reference",
+          "exact operator approval receipt",
+          "future portal submission receipt",
+          "protected credential/secret ref if future portal login required",
+          "Guardian approval packet",
+          "future Coupa confirmation/proof"
+        ],
+        "next_safe_move": "Provide, attach, or confirm the Coupa PO/reference, or tell OpenClaw to keep discovery open.",
+        "operator_headline": "Coupa package needs a PO/reference",
+        "operator_message": "OpenClaw has assembled the Coupa payment-rail package shape for Capital Hilton. Nothing has been opened or submitted. The package still needs the Coupa PO/reference, required proof, and Guardian/operator approval before any future Coupa/browser adapter can act.",
+        "package_ref": "coupa_package_capital_hilton_missing_po_v0",
+        "package_summary": "capital_hilton_invoice_workflow; portal action BLOCKED_MISSING_PROOF; submit gate NOT_READY_MISSING_INPUTS",
+        "po_summary": "No Coupa PO/reference ref",
+        "proof_status": "BLOCKED_MISSING_PROOF",
+        "readback_id": "coupa_package_readback_05c87bd9f8a03f20",
+        "status": "NOT_READY_MISSING_PO"
+      }
+    },
+    "capital_hilton_ready_for_review_future_gated": {
+      "invoice_values": {
+        "confirmation_status": "VALUES_CONFIRMED",
+        "currency": "USD",
+        "dates_ref": "dates_ref:capital_hilton_2026_05_performance_dates",
+        "next_safe_move": "Use value refs as payment-rail package inputs; block on mismatch.",
+        "proof_refs": [
+          "delivery_facts_ref:capital_hilton_four_performance_dates",
+          "rate_ref:capital_hilton_400_per_show",
+          "subtotal_ref:capital_hilton_1600_usd"
+        ],
+        "rate_ref": "rate_ref:capital_hilton_400_per_show",
+        "source_delivery_facts_ref": "capital_hilton_delivery_facts_capture_writer:four_performance_dates_rate_subtotal",
+        "subtotal_ref": "subtotal_ref:capital_hilton_1600_usd",
+        "tax_or_fee_policy": "no additional tax/fee modeled in v0; mismatch or extra fee requires review",
+        "value_set_ref": "coupa_invoice_values_ref:capital_hilton_2026_05_1600_usd"
+      },
+      "package": {
+        "browser_gate_status": "BROWSER_GATE_LOCKED",
+        "client_ref": "client_ref:capital_hilton",
+        "coupa_po_ref": "coupa_po_ref:capital_hilton_confirmed",
+        "credential_ref_status": "PROTECTED_SECRET_REF_PRESENT_FUTURE_GATED",
+        "invoice_artifact_refs": [
+          "invoice_artifact_ref:capital_hilton_pdf_2026-05-25",
+          "invoice_artifact_ref:capital_hilton_xlsx_2026-05-25"
+        ],
+        "invoice_attachment_refs": [
+          "email_attachment_ref:capital_hilton_pdf_2026-05-25",
+          "email_attachment_ref:capital_hilton_xlsx_2026-05-25"
+        ],
+        "invoice_value_refs": [
+          "dates_ref:capital_hilton_2026_05_performance_dates",
+          "rate_ref:capital_hilton_400_per_show",
+          "subtotal_ref:capital_hilton_1600_usd"
+        ],
+        "missing_inputs": [
+          "exact operator approval receipt",
+          "future portal submission receipt",
+          "future Coupa confirmation/proof"
+        ],
+        "next_safe_move": "Review package and resolve missing Coupa gate items; do not open Coupa or submit.",
+        "package_id": "coupa_package_capital_hilton_ready_for_review_v0",
+        "po_status": "PO_CONFIRMED",
+        "portal_action_status": "FUTURE_SUBMIT_TARGET",
+        "required_approvals": [
+          "Action Covenant for SUBMIT_COUPA",
+          "Guardian approval request packet",
+          "future exact operator approval receipt"
+        ],
+        "required_proofs": [
+          "confirmed Coupa PO/reference",
+          "confirmed invoice dates/rate/subtotal",
+          "invoice artifact ref",
+          "invoice artifact hash/fingerprint",
+          "protected credential/secret ref if future portal login required",
+          "Guardian approval packet",
+          "exact operator approval receipt",
+          "future portal submission receipt",
+          "future Coupa confirmation/proof"
+        ],
+        "source_workflow_ref": "capital_hilton_invoice_workflow",
+        "submit_gate_status": "WAITING_FOR_OPERATOR_APPROVAL",
+        "supplier_portal_status": "PORTAL_ACCESS_FUTURE_GATED",
+        "tenant_ref": "tenant_ref:winship"
+      },
+      "po_reference": {
+        "confirmation_status": "PO_CONFIRMED",
+        "next_safe_move": "Confirm the Coupa PO/reference before any future submit package can be considered ready.",
+        "po_ref": "coupa_po_ref:capital_hilton_confirmed",
+        "privacy_class": "client_payment_reference_private_ref",
+        "protected_ref_required": true,
+        "safe_display_label": "Capital Hilton Coupa PO/reference confirmed",
+        "source_ref": "protected_evidence_ref:capital_hilton_coupa_po_confirmation",
+        "tokenized_po_ref": "po_token_ref:capital_hilton_confirmed"
+      },
+      "portal_gate": {
+        "action_executed": false,
+        "blocked_actions": [
+          "Coupa access",
+          "Coupa submit",
+          "browser open or automation",
+          "portal login",
+          "secret reveal",
+          "payment action",
+          "approval execution",
+          "workflow run",
+          "agent dispatch",
+          "external action",
+          "credential handling"
+        ],
+        "browser_allowed": false,
+        "coupa_access_allowed": false,
+        "coupa_submit_allowed": false,
+        "exact_approval_phrase": "APPROVE SUBMIT_COUPA capital_hilton_coupa_submit_covenant_v0",
+        "external_authority": false,
+        "gate_id": "coupa_portal_gate_77223d4ded5ade95",
+        "missing_items": [
+          "exact operator approval receipt",
+          "future portal submission receipt",
+          "future Coupa confirmation/proof"
+        ],
+        "next_safe_move": "Create/complete PO, secret-ref, Guardian, and future operator approval receipts before any future Coupa adapter could act.",
+        "package_ref": "coupa_package_capital_hilton_ready_for_review_v0",
+        "required_covenant_ref": "capital_hilton_coupa_submit_covenant_v0",
+        "required_guardian_approval_ref": "guardian_approval_capital_hilton_coupa_submit_v0",
+        "required_secret_ref": "secret_ref:coupa_use_once_capital_hilton"
+      },
+      "proof_plan": {
+        "available_proof_refs": [
+          "confirmed Coupa PO/reference",
+          "confirmed invoice dates/rate/subtotal",
+          "invoice artifact ref",
+          "invoice artifact hash/fingerprint",
+          "protected credential/secret ref if future portal login required",
+          "Guardian approval packet"
+        ],
+        "completion_allowed": false,
+        "completion_label": "COUPA INVOICE SUBMITTED",
+        "final_readback_target": "future final readback only after portal submission and Coupa confirmation proof exist",
+        "missing_proofs": [
+          "exact operator approval receipt",
+          "future portal submission receipt",
+          "future Coupa confirmation/proof"
+        ],
+        "next_safe_move": "Collect missing proofs and approval receipts; COUPA INVOICE SUBMITTED remains a future target.",
+        "package_ref": "coupa_package_capital_hilton_ready_for_review_v0",
+        "proof_plan_id": "coupa_proof_plan_77223d4ded5ade95",
+        "required_proofs": [
+          "confirmed Coupa PO/reference",
+          "confirmed invoice dates/rate/subtotal",
+          "invoice artifact ref",
+          "invoice artifact hash/fingerprint",
+          "protected credential/secret ref if future portal login required",
+          "Guardian approval packet",
+          "exact operator approval receipt",
+          "future portal submission receipt",
+          "future Coupa confirmation/proof"
+        ]
+      },
+      "readback": {
+        "approval_status": "WAITING_FOR_OPERATOR_APPROVAL",
+        "artifact_summary": "invoice_artifact_ref:capital_hilton_pdf_2026-05-25, invoice_artifact_ref:capital_hilton_xlsx_2026-05-25",
+        "blocked_actions": [
+          "Coupa access",
+          "Coupa submit",
+          "browser open or automation",
+          "portal login",
+          "secret reveal",
+          "payment action",
+          "approval execution",
+          "workflow run",
+          "agent dispatch",
+          "external action",
+          "credential handling"
+        ],
+        "how_to_fix": "Review the package; do not access Coupa until a future gated adapter and approval receipts exist.",
+        "invoice_value_summary": "VALUES_CONFIRMED; dates/rate/subtotal refs present",
+        "missing_items": [
+          "exact operator approval receipt",
+          "future portal submission receipt",
+          "future Coupa confirmation/proof"
+        ],
+        "next_safe_move": "Review the package; do not access Coupa until a future gated adapter and approval receipts exist.",
+        "operator_headline": "Coupa package ready for review",
+        "operator_message": "OpenClaw has assembled the Coupa payment-rail package shape for Capital Hilton. Nothing has been opened or submitted. Future Coupa/browser action still requires exact approval and a governed adapter.",
+        "package_ref": "coupa_package_capital_hilton_ready_for_review_v0",
+        "package_summary": "capital_hilton_invoice_workflow; portal action FUTURE_SUBMIT_TARGET; submit gate WAITING_FOR_OPERATOR_APPROVAL",
+        "po_summary": "Capital Hilton Coupa PO/reference confirmed (PO_CONFIRMED)",
+        "proof_status": "BLOCKED_MISSING_PROOF",
+        "readback_id": "coupa_package_readback_b9cbd1623bcf7215",
+        "status": "COUPA_PACKAGE_READY_FOR_REVIEW"
+      }
+    },
+    "missing_secret_ref": {
+      "invoice_values": {
+        "confirmation_status": "VALUES_CONFIRMED",
+        "currency": "USD",
+        "dates_ref": "dates_ref:capital_hilton_2026_05_performance_dates",
+        "next_safe_move": "Use value refs as payment-rail package inputs; block on mismatch.",
+        "proof_refs": [
+          "delivery_facts_ref:capital_hilton_four_performance_dates",
+          "rate_ref:capital_hilton_400_per_show",
+          "subtotal_ref:capital_hilton_1600_usd"
+        ],
+        "rate_ref": "rate_ref:capital_hilton_400_per_show",
+        "source_delivery_facts_ref": "capital_hilton_delivery_facts_capture_writer:four_performance_dates_rate_subtotal",
+        "subtotal_ref": "subtotal_ref:capital_hilton_1600_usd",
+        "tax_or_fee_policy": "no additional tax/fee modeled in v0; mismatch or extra fee requires review",
+        "value_set_ref": "coupa_invoice_values_ref:capital_hilton_2026_05_1600_usd"
+      },
+      "package": {
+        "browser_gate_status": "BROWSER_GATE_LOCKED",
+        "client_ref": "client_ref:capital_hilton",
+        "coupa_po_ref": "coupa_po_ref:capital_hilton_confirmed",
+        "credential_ref_status": "PROTECTED_SECRET_REF_MISSING",
+        "invoice_artifact_refs": [
+          "invoice_artifact_ref:capital_hilton_pdf_2026-05-25",
+          "invoice_artifact_ref:capital_hilton_xlsx_2026-05-25"
+        ],
+        "invoice_attachment_refs": [
+          "email_attachment_ref:capital_hilton_pdf_2026-05-25",
+          "email_attachment_ref:capital_hilton_xlsx_2026-05-25"
+        ],
+        "invoice_value_refs": [
+          "dates_ref:capital_hilton_2026_05_performance_dates",
+          "rate_ref:capital_hilton_400_per_show",
+          "subtotal_ref:capital_hilton_1600_usd"
+        ],
+        "missing_inputs": [
+          "protected credential/secret ref if future portal login required"
+        ],
+        "next_safe_move": "Review package and resolve missing Coupa gate items; do not open Coupa or submit.",
+        "package_id": "coupa_package_capital_hilton_missing_secret_v0",
+        "po_status": "PO_CONFIRMED",
+        "portal_action_status": "BLOCKED_MISSING_PROOF",
+        "required_approvals": [
+          "Action Covenant for SUBMIT_COUPA",
+          "Guardian approval request packet",
+          "future exact operator approval receipt"
+        ],
+        "required_proofs": [
+          "confirmed Coupa PO/reference",
+          "confirmed invoice dates/rate/subtotal",
+          "invoice artifact ref",
+          "invoice artifact hash/fingerprint",
+          "protected credential/secret ref if future portal login required",
+          "Guardian approval packet",
+          "exact operator approval receipt",
+          "future portal submission receipt",
+          "future Coupa confirmation/proof"
+        ],
+        "source_workflow_ref": "capital_hilton_invoice_workflow",
+        "submit_gate_status": "NOT_READY_MISSING_INPUTS",
+        "supplier_portal_status": "PORTAL_BLOCKED_NO_CREDENTIAL_REF",
+        "tenant_ref": "tenant_ref:winship"
+      },
+      "po_reference": {
+        "confirmation_status": "PO_CONFIRMED",
+        "next_safe_move": "Confirm the Coupa PO/reference before any future submit package can be considered ready.",
+        "po_ref": "coupa_po_ref:capital_hilton_confirmed",
+        "privacy_class": "client_payment_reference_private_ref",
+        "protected_ref_required": true,
+        "safe_display_label": "Capital Hilton Coupa PO/reference confirmed",
+        "source_ref": "protected_evidence_ref:capital_hilton_coupa_po_confirmation",
+        "tokenized_po_ref": "po_token_ref:capital_hilton_confirmed"
+      },
+      "portal_gate": {
+        "action_executed": false,
+        "blocked_actions": [
+          "Coupa access",
+          "Coupa submit",
+          "browser open or automation",
+          "portal login",
+          "secret reveal",
+          "payment action",
+          "approval execution",
+          "workflow run",
+          "agent dispatch",
+          "external action",
+          "credential handling"
+        ],
+        "browser_allowed": false,
+        "coupa_access_allowed": false,
+        "coupa_submit_allowed": false,
+        "exact_approval_phrase": "APPROVE SUBMIT_COUPA capital_hilton_coupa_submit_covenant_v0",
+        "external_authority": false,
+        "gate_id": "coupa_portal_gate_465a646aae4d67a8",
+        "missing_items": [
+          "protected credential/secret ref if future portal login required",
+          "exact operator approval receipt",
+          "future portal submission receipt"
+        ],
+        "next_safe_move": "Create/complete PO, secret-ref, Guardian, and future operator approval receipts before any future Coupa adapter could act.",
+        "package_ref": "coupa_package_capital_hilton_missing_secret_v0",
+        "required_covenant_ref": "capital_hilton_coupa_submit_covenant_v0",
+        "required_guardian_approval_ref": "guardian_approval_capital_hilton_coupa_submit_v0",
+        "required_secret_ref": "missing"
+      },
+      "proof_plan": {
+        "available_proof_refs": [
+          "confirmed Coupa PO/reference",
+          "confirmed invoice dates/rate/subtotal",
+          "invoice artifact ref",
+          "invoice artifact hash/fingerprint",
+          "Guardian approval packet"
+        ],
+        "completion_allowed": false,
+        "completion_label": "COUPA INVOICE SUBMITTED",
+        "final_readback_target": "future final readback only after portal submission and Coupa confirmation proof exist",
+        "missing_proofs": [
+          "protected credential/secret ref if future portal login required",
+          "exact operator approval receipt",
+          "future portal submission receipt",
+          "future Coupa confirmation/proof"
+        ],
+        "next_safe_move": "Collect missing proofs and approval receipts; COUPA INVOICE SUBMITTED remains a future target.",
+        "package_ref": "coupa_package_capital_hilton_missing_secret_v0",
+        "proof_plan_id": "coupa_proof_plan_465a646aae4d67a8",
+        "required_proofs": [
+          "confirmed Coupa PO/reference",
+          "confirmed invoice dates/rate/subtotal",
+          "invoice artifact ref",
+          "invoice artifact hash/fingerprint",
+          "protected credential/secret ref if future portal login required",
+          "Guardian approval packet",
+          "exact operator approval receipt",
+          "future portal submission receipt",
+          "future Coupa confirmation/proof"
+        ]
+      },
+      "readback": {
+        "approval_status": "NOT_READY_MISSING_INPUTS",
+        "artifact_summary": "invoice_artifact_ref:capital_hilton_pdf_2026-05-25, invoice_artifact_ref:capital_hilton_xlsx_2026-05-25",
+        "blocked_actions": [
+          "Coupa access",
+          "Coupa submit",
+          "browser open or automation",
+          "portal login",
+          "secret reveal",
+          "payment action",
+          "approval execution",
+          "workflow run",
+          "agent dispatch",
+          "external action",
+          "credential handling"
+        ],
+        "how_to_fix": "Use the future Enter Secret protected flow to create a secret_ref; keep the raw credential hidden.",
+        "invoice_value_summary": "VALUES_CONFIRMED; dates/rate/subtotal refs present",
+        "missing_items": [
+          "protected credential/secret ref if future portal login required",
+          "exact operator approval receipt",
+          "future portal submission receipt",
+          "future Coupa confirmation/proof"
+        ],
+        "next_safe_move": "Use the future Enter Secret protected flow to create a secret_ref; keep the raw credential hidden.",
+        "operator_headline": "Coupa package needs protected credential ref",
+        "operator_message": "Future portal access would require a protected secret ref. Do not put credentials in chat.",
+        "package_ref": "coupa_package_capital_hilton_missing_secret_v0",
+        "package_summary": "capital_hilton_invoice_workflow; portal action BLOCKED_MISSING_PROOF; submit gate NOT_READY_MISSING_INPUTS",
+        "po_summary": "Capital Hilton Coupa PO/reference confirmed (PO_CONFIRMED)",
+        "proof_status": "BLOCKED_MISSING_PROOF",
+        "readback_id": "coupa_package_readback_63025039639e728a",
+        "status": "NOT_READY_MISSING_SECRET_REF"
+      }
+    },
+    "po_candidate_not_submit_ready": {
+      "invoice_values": {
+        "confirmation_status": "VALUES_CONFIRMED",
+        "currency": "USD",
+        "dates_ref": "dates_ref:capital_hilton_2026_05_performance_dates",
+        "next_safe_move": "Use value refs as payment-rail package inputs; block on mismatch.",
+        "proof_refs": [
+          "delivery_facts_ref:capital_hilton_four_performance_dates",
+          "rate_ref:capital_hilton_400_per_show",
+          "subtotal_ref:capital_hilton_1600_usd"
+        ],
+        "rate_ref": "rate_ref:capital_hilton_400_per_show",
+        "source_delivery_facts_ref": "capital_hilton_delivery_facts_capture_writer:four_performance_dates_rate_subtotal",
+        "subtotal_ref": "subtotal_ref:capital_hilton_1600_usd",
+        "tax_or_fee_policy": "no additional tax/fee modeled in v0; mismatch or extra fee requires review",
+        "value_set_ref": "coupa_invoice_values_ref:capital_hilton_2026_05_1600_usd"
+      },
+      "package": {
+        "browser_gate_status": "BROWSER_GATE_LOCKED",
+        "client_ref": "client_ref:capital_hilton",
+        "coupa_po_ref": "coupa_po_ref:capital_hilton_candidate",
+        "credential_ref_status": "PROTECTED_SECRET_REF_PRESENT_FUTURE_GATED",
+        "invoice_artifact_refs": [
+          "invoice_artifact_ref:capital_hilton_pdf_2026-05-25",
+          "invoice_artifact_ref:capital_hilton_xlsx_2026-05-25"
+        ],
+        "invoice_attachment_refs": [
+          "email_attachment_ref:capital_hilton_pdf_2026-05-25",
+          "email_attachment_ref:capital_hilton_xlsx_2026-05-25"
+        ],
+        "invoice_value_refs": [
+          "dates_ref:capital_hilton_2026_05_performance_dates",
+          "rate_ref:capital_hilton_400_per_show",
+          "subtotal_ref:capital_hilton_1600_usd"
+        ],
+        "missing_inputs": [
+          "confirmed Coupa PO/reference"
+        ],
+        "next_safe_move": "Review package and resolve missing Coupa gate items; do not open Coupa or submit.",
+        "package_id": "coupa_package_capital_hilton_po_candidate_v0",
+        "po_status": "PO_CANDIDATE",
+        "portal_action_status": "BLOCKED_MISSING_PROOF",
+        "required_approvals": [
+          "Action Covenant for SUBMIT_COUPA",
+          "Guardian approval request packet",
+          "future exact operator approval receipt"
+        ],
+        "required_proofs": [
+          "confirmed Coupa PO/reference",
+          "confirmed invoice dates/rate/subtotal",
+          "invoice artifact ref",
+          "invoice artifact hash/fingerprint",
+          "protected credential/secret ref if future portal login required",
+          "Guardian approval packet",
+          "exact operator approval receipt",
+          "future portal submission receipt",
+          "future Coupa confirmation/proof"
+        ],
+        "source_workflow_ref": "capital_hilton_invoice_workflow",
+        "submit_gate_status": "NOT_READY_MISSING_INPUTS",
+        "supplier_portal_status": "PORTAL_ACCESS_FUTURE_GATED",
+        "tenant_ref": "tenant_ref:winship"
+      },
+      "po_reference": {
+        "confirmation_status": "PO_CANDIDATE",
+        "next_safe_move": "Confirm the Coupa PO/reference before any future submit package can be considered ready.",
+        "po_ref": "coupa_po_ref:capital_hilton_candidate",
+        "privacy_class": "client_payment_reference_private_ref",
+        "protected_ref_required": true,
+        "safe_display_label": "Capital Hilton Coupa PO/reference candidate",
+        "source_ref": "source_ref:operator_or_protected_evidence_pending",
+        "tokenized_po_ref": "po_token_ref:capital_hilton_candidate"
+      },
+      "portal_gate": {
+        "action_executed": false,
+        "blocked_actions": [
+          "Coupa access",
+          "Coupa submit",
+          "browser open or automation",
+          "portal login",
+          "secret reveal",
+          "payment action",
+          "approval execution",
+          "workflow run",
+          "agent dispatch",
+          "external action",
+          "credential handling"
+        ],
+        "browser_allowed": false,
+        "coupa_access_allowed": false,
+        "coupa_submit_allowed": false,
+        "exact_approval_phrase": "APPROVE SUBMIT_COUPA capital_hilton_coupa_submit_covenant_v0",
+        "external_authority": false,
+        "gate_id": "coupa_portal_gate_8e82b5dcf9b5593e",
+        "missing_items": [
+          "confirmed Coupa PO/reference",
+          "exact operator approval receipt",
+          "future portal submission receipt"
+        ],
+        "next_safe_move": "Create/complete PO, secret-ref, Guardian, and future operator approval receipts before any future Coupa adapter could act.",
+        "package_ref": "coupa_package_capital_hilton_po_candidate_v0",
+        "required_covenant_ref": "capital_hilton_coupa_submit_covenant_v0",
+        "required_guardian_approval_ref": "guardian_approval_capital_hilton_coupa_submit_v0",
+        "required_secret_ref": "secret_ref:coupa_use_once_capital_hilton"
+      },
+      "proof_plan": {
+        "available_proof_refs": [
+          "confirmed invoice dates/rate/subtotal",
+          "invoice artifact ref",
+          "invoice artifact hash/fingerprint"
+        ],
+        "completion_allowed": false,
+        "completion_label": "COUPA INVOICE SUBMITTED",
+        "final_readback_target": "future final readback only after portal submission and Coupa confirmation proof exist",
+        "missing_proofs": [
+          "confirmed Coupa PO/reference",
+          "protected credential/secret ref if future portal login required",
+          "Guardian approval packet",
+          "exact operator approval receipt",
+          "future portal submission receipt",
+          "future Coupa confirmation/proof"
+        ],
+        "next_safe_move": "Collect missing proofs and approval receipts; COUPA INVOICE SUBMITTED remains a future target.",
+        "package_ref": "coupa_package_capital_hilton_po_candidate_v0",
+        "proof_plan_id": "coupa_proof_plan_8e82b5dcf9b5593e",
+        "required_proofs": [
+          "confirmed Coupa PO/reference",
+          "confirmed invoice dates/rate/subtotal",
+          "invoice artifact ref",
+          "invoice artifact hash/fingerprint",
+          "protected credential/secret ref if future portal login required",
+          "Guardian approval packet",
+          "exact operator approval receipt",
+          "future portal submission receipt",
+          "future Coupa confirmation/proof"
+        ]
+      },
+      "readback": {
+        "approval_status": "NOT_READY_MISSING_INPUTS",
+        "artifact_summary": "invoice_artifact_ref:capital_hilton_pdf_2026-05-25, invoice_artifact_ref:capital_hilton_xlsx_2026-05-25",
+        "blocked_actions": [
+          "Coupa access",
+          "Coupa submit",
+          "browser open or automation",
+          "portal login",
+          "secret reveal",
+          "payment action",
+          "approval execution",
+          "workflow run",
+          "agent dispatch",
+          "external action",
+          "credential handling"
+        ],
+        "how_to_fix": "Review the package; do not access Coupa until a future gated adapter and approval receipts exist.",
+        "invoice_value_summary": "VALUES_CONFIRMED; dates/rate/subtotal refs present",
+        "missing_items": [
+          "confirmed Coupa PO/reference",
+          "exact operator approval receipt",
+          "future portal submission receipt",
+          "protected credential/secret ref if future portal login required",
+          "Guardian approval packet",
+          "future Coupa confirmation/proof"
+        ],
+        "next_safe_move": "Review the package; do not access Coupa until a future gated adapter and approval receipts exist.",
+        "operator_headline": "Coupa package ready for review",
+        "operator_message": "OpenClaw has assembled the Coupa payment-rail package shape for Capital Hilton. Nothing has been opened or submitted. Future Coupa/browser action still requires exact approval and a governed adapter.",
+        "package_ref": "coupa_package_capital_hilton_po_candidate_v0",
+        "package_summary": "capital_hilton_invoice_workflow; portal action BLOCKED_MISSING_PROOF; submit gate NOT_READY_MISSING_INPUTS",
+        "po_summary": "Capital Hilton Coupa PO/reference candidate (PO_CANDIDATE)",
+        "proof_status": "BLOCKED_MISSING_PROOF",
+        "readback_id": "coupa_package_readback_d3284f7ffadfeb8c",
+        "status": "COUPA_PACKAGE_READY_FOR_REVIEW"
+      }
+    }
+  },
+  "generated_at": "2026-05-25T00:00:00+00:00",
+  "machine_proof": {
+    "agent_dispatch_performed": false,
+    "all_live_authority_false": true,
+    "approval_execution_performed": false,
+    "browser_access_performed": false,
+    "coupa_access_performed": false,
+    "coupa_submit_performed": false,
+    "credential_handling_performed": false,
+    "external_action_performed": false,
+    "git_push_performed": false,
+    "mac_sync_import_performed": false,
+    "payment_action_performed": false,
+    "portal_login_performed": false,
+    "raw_body_ingestion_performed": false,
+    "secret_reveal_performed": false,
+    "swift_change_performed": false,
+    "workflow_run_performed": false
+  },
+  "next_safe_move": "Resolve missing PO/secret/approval proof refs, then keep Coupa/browser action locked until a future approved adapter exists.",
+  "operator_summary": "OpenClaw can now assemble a Coupa supplier portal payment-rail package from PO/reference, invoice value, artifact, protected secret, Guardian approval, portal gate, and proof refs. Nothing is opened, logged into, submitted, or paid.",
+  "po_statuses": [
+    "PO_CONFIRMED",
+    "PO_CANDIDATE",
+    "PO_MISSING",
+    "PO_BLOCKED_PRIVACY",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "portal_action_statuses": [
+    "NOT_STARTED",
+    "PACKAGE_ONLY",
+    "FUTURE_SUBMIT_TARGET",
+    "BLOCKED_MISSING_PROOF",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "read_model_id": "coupa_supplier_portal_package_compiler",
+  "readback_statuses": [
+    "COUPA_PACKAGE_READY_FOR_REVIEW",
+    "NOT_READY_MISSING_PO",
+    "NOT_READY_MISSING_VALUES",
+    "NOT_READY_MISSING_ARTIFACT",
+    "NOT_READY_MISSING_APPROVAL",
+    "NOT_READY_MISSING_SECRET_REF",
+    "BLOCKED_PRIVACY_BOUNDARY",
+    "BLOCKED_BROWSER_GATE",
+    "BLOCKED_SUBMIT_GATE",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "schema_version": "coupa_supplier_portal_package_compiler_v0",
+  "submit_gate_statuses": [
+    "NOT_READY_MISSING_INPUTS",
+    "READY_FOR_GUARDIAN_REVIEW",
+    "WAITING_FOR_OPERATOR_APPROVAL",
+    "APPROVED_NOT_SUBMITTED_FUTURE",
+    "SUBMIT_BLOCKED",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "supplier_portal_statuses": [
+    "PORTAL_NOT_ACCESSED",
+    "PORTAL_ACCESS_FUTURE_GATED",
+    "PORTAL_BLOCKED_NO_CREDENTIAL_REF",
+    "PORTAL_BLOCKED_NO_PO",
+    "UNKNOWN_FAIL_CLOSED"
+  ]
+}
