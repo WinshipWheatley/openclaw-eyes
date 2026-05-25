@@ -1,0 +1,811 @@
+{
+  "authority_boundary": {
+    "credential_handling_allowed": false,
+    "git_push_pull_fetch_allowed": false,
+    "live_bot_token_access_allowed": false,
+    "live_external_action_allowed": false,
+    "live_pending_action_dispatch_allowed": false,
+    "live_queue_mutation_allowed": false,
+    "live_telegram_listener_allowed": false,
+    "live_telegram_outbound_allowed": false,
+    "mac_sync_import_allowed": false,
+    "mission_control_swift_change_allowed": false,
+    "network_allowed": false,
+    "raw_body_ingestion_allowed": false,
+    "repo_b_runtime_execution_allowed": false,
+    "repo_b_service_start_allowed": false,
+    "telegram_public_chat_activation_allowed": false,
+    "telegram_voice_download_allowed": false,
+    "telegram_voice_output_allowed": false
+  },
+  "blocker_types": [
+    "LIVE_TELEGRAM_LISTENER_START_ATTEMPTED",
+    "TELEGRAM_OUTBOUND_ATTEMPTED",
+    "BOT_TOKEN_INCLUDED",
+    "RAW_PRIVATE_MESSAGE_EXPOSED",
+    "PENDING_ACTION_DISPATCH_ATTEMPTED",
+    "QUEUE_MUTATION_ATTEMPTED",
+    "EXTERNAL_ACTION_ATTEMPTED",
+    "CREDENTIAL_OR_ENV_MUTATION_ATTEMPTED",
+    "UNSCOPED_PUBLIC_CHAT_SURFACE",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "bridge_plan": {
+    "blocked_capabilities": [
+      "telegram_capability_outbound_reply_blocked",
+      "telegram_capability_pending_action_dispatch_blocked"
+    ],
+    "excluded_scope": [
+      "start live Telegram bot, listener, watcher, or daemon",
+      "send, post, reply, or edit Telegram messages",
+      "read bot tokens or credential values",
+      "dispatch pending actions",
+      "mutate queues or approval state",
+      "start Repo B runtime services",
+      "trigger agents, workflows, or external systems",
+      "include raw private Telegram message bodies in normal read-models"
+    ],
+    "fixture_mode": true,
+    "mapping_target": "bounded OpenClaw request processor CHAT_REQUEST",
+    "next_safe_move": "Use fixture-safe Telegram envelope mapping as a future alternate intake path; Mac chat remains primary.",
+    "output_path": "generated read-model only in v0",
+    "posture": "INTAKE_ONLY_BRIDGE_WITH_REPO_A_REBUILT_REQUEST_ENVELOPE_ADAPTER",
+    "repo_b_invocation": "none in v0",
+    "safe_capabilities": [
+      "telegram_capability_operator_message_intake",
+      "telegram_capability_command_normalization",
+      "telegram_capability_session_mapping",
+      "telegram_capability_followup_intent_parse",
+      "telegram_capability_request_envelope_creation",
+      "telegram_capability_intake_directory_write"
+    ]
+  },
+  "capability_types": [
+    "OPERATOR_MESSAGE_INTAKE",
+    "COMMAND_NORMALIZATION",
+    "SESSION_MAPPING",
+    "FOLLOWUP_INTENT_PARSE",
+    "REQUEST_ENVELOPE_CREATION",
+    "INTAKE_DIRECTORY_WRITE",
+    "OUTBOUND_REPLY",
+    "PENDING_ACTION_DISPATCH",
+    "UNKNOWN"
+  ],
+  "contract_status": "DETERMINISTIC_INTAKE_ONLY_TELEGRAM_BRIDGE",
+  "examples": {
+    "followup": {
+      "envelope": {
+        "authority_boundary": {
+          "credential_handling_allowed": false,
+          "git_push_pull_fetch_allowed": false,
+          "live_bot_token_access_allowed": false,
+          "live_external_action_allowed": false,
+          "live_pending_action_dispatch_allowed": false,
+          "live_queue_mutation_allowed": false,
+          "live_telegram_listener_allowed": false,
+          "live_telegram_outbound_allowed": false,
+          "mac_sync_import_allowed": false,
+          "mission_control_swift_change_allowed": false,
+          "network_allowed": false,
+          "raw_body_ingestion_allowed": false,
+          "repo_b_runtime_execution_allowed": false,
+          "repo_b_service_start_allowed": false,
+          "telegram_public_chat_activation_allowed": false,
+          "telegram_voice_download_allowed": false,
+          "telegram_voice_output_allowed": false
+        },
+        "chat_ref": "telegram_chat_ref:operator_fixture",
+        "command_hint": "followup_confirmation_candidate",
+        "envelope_id": "telegram_envelope_followup_looks_right_fixture",
+        "lane_ref": "operator_chat",
+        "next_safe_move": "Map to CHAT_REQUEST with active-thread context unresolved; do not approve or execute anything.",
+        "normalized_message": "looks right",
+        "operator_ref": "operator_ref:winship_fixture",
+        "privacy_class": "operator_local_private_fixture",
+        "source_channel": "telegram_intake_fixture",
+        "source_message_ref": "telegram_fixture_message:looks_right_followup",
+        "source_surface": "telegram_fixture",
+        "workflow_ref": "active_thread_context_future",
+        "world_ref": "active_thread_future"
+      },
+      "input": "looks right",
+      "mapping": {
+        "excluded_fields": [
+          "bot token value",
+          "raw Telegram update object",
+          "raw private message body",
+          "sender handle or phone value",
+          "outbound reply target",
+          "approval or pending-action command",
+          "queue mutation command"
+        ],
+        "intake_envelope_ref": "telegram_envelope_followup_looks_right_fixture",
+        "mapping_id": "telegram_mapping_4ee2a52561c31516",
+        "next_safe_move": "Submit this shape to the bounded OpenClaw request processor only when a safe local intake adapter is approved.",
+        "output_path_policy": "read-model only in v0; future approved adapter may write to approved OpenClaw inbox",
+        "required_fields": [
+          "request_id",
+          "origin_surface",
+          "source_channel",
+          "workflow_ref",
+          "world_ref",
+          "lane_ref",
+          "operator_message_summary",
+          "authority_boundary",
+          "created_at"
+        ],
+        "target_request_shape": {
+          "authority_boundary": {
+            "credential_handling_allowed": false,
+            "git_push_pull_fetch_allowed": false,
+            "live_bot_token_access_allowed": false,
+            "live_external_action_allowed": false,
+            "live_pending_action_dispatch_allowed": false,
+            "live_queue_mutation_allowed": false,
+            "live_telegram_listener_allowed": false,
+            "live_telegram_outbound_allowed": false,
+            "mac_sync_import_allowed": false,
+            "mission_control_swift_change_allowed": false,
+            "network_allowed": false,
+            "raw_body_ingestion_allowed": false,
+            "repo_b_runtime_execution_allowed": false,
+            "repo_b_service_start_allowed": false,
+            "telegram_public_chat_activation_allowed": false,
+            "telegram_voice_download_allowed": false,
+            "telegram_voice_output_allowed": false
+          },
+          "chat_ref": "telegram_chat_ref:operator_fixture",
+          "command_hint": "followup_confirmation_candidate",
+          "created_at": "2026-05-25T00:00:00+00:00",
+          "lane_ref": "operator_chat",
+          "operator_message_summary": "looks right",
+          "operator_ref": "operator_ref:winship_fixture",
+          "origin_surface": "telegram_intake_bridge_fixture",
+          "request_id": "telegram_to_openclaw_request_7a39c091e5b2899c",
+          "source_channel": "telegram",
+          "source_message_ref": "telegram_fixture_message:looks_right_followup",
+          "workflow_ref": "active_thread_context_future",
+          "world_ref": "active_thread_future"
+        },
+        "target_request_type": "CHAT_REQUEST",
+        "tokenization_required": true
+      },
+      "readback": {
+        "blocked_items": [
+          "Telegram outbound reply",
+          "live listener startup",
+          "bot-token access",
+          "pending action dispatch",
+          "queue mutation",
+          "external action"
+        ],
+        "envelope_ref": "telegram_envelope_followup_looks_right_fixture",
+        "how_to_fix": "If this should apply to a specific workflow, include the active thread or workflow ref.",
+        "mapped_request_ref": "telegram_to_openclaw_request_7a39c091e5b2899c",
+        "next_safe_move": "Submit this shape to the bounded OpenClaw request processor only when a safe local intake adapter is approved.",
+        "operator_message": "I can treat this as a follow-up candidate, but this bridge will not approve, send, dispatch, or mutate anything. The next rail must resolve the active thread first.",
+        "readback_id": "telegram_readback_3fec1a1d6f539a57",
+        "safe_summary": "Fixture follow-up was normalized as an active-thread chat request candidate.",
+        "status": "FIXTURE_MAPPING_READY"
+      }
+    },
+    "listener_blocker": {
+      "attempt": "Start Repo B chief_listener or cassandra_listener.",
+      "readback": {
+        "blocked_items": [
+          "live listener startup",
+          "bot-token access",
+          "public chat activation"
+        ],
+        "envelope_ref": "blocked:no_envelope",
+        "how_to_fix": "Use fixture mapping now; add a future approved local intake adapter before any live listener.",
+        "mapped_request_ref": "none",
+        "next_safe_move": "Keep Mac chat as the primary operator surface.",
+        "operator_message": "I blocked live Telegram listener startup. v0 only builds a deterministic intake model.",
+        "readback_id": "telegram_readback_blocked_live_listener",
+        "safe_summary": "Live Telegram bot/listener startup was requested and blocked.",
+        "status": "BLOCKED_LIVE_LISTENER"
+      }
+    },
+    "operator_message": {
+      "envelope": {
+        "authority_boundary": {
+          "credential_handling_allowed": false,
+          "git_push_pull_fetch_allowed": false,
+          "live_bot_token_access_allowed": false,
+          "live_external_action_allowed": false,
+          "live_pending_action_dispatch_allowed": false,
+          "live_queue_mutation_allowed": false,
+          "live_telegram_listener_allowed": false,
+          "live_telegram_outbound_allowed": false,
+          "mac_sync_import_allowed": false,
+          "mission_control_swift_change_allowed": false,
+          "network_allowed": false,
+          "raw_body_ingestion_allowed": false,
+          "repo_b_runtime_execution_allowed": false,
+          "repo_b_service_start_allowed": false,
+          "telegram_public_chat_activation_allowed": false,
+          "telegram_voice_download_allowed": false,
+          "telegram_voice_output_allowed": false
+        },
+        "chat_ref": "telegram_chat_ref:operator_fixture",
+        "command_hint": "workflow_make_it_happen",
+        "envelope_id": "telegram_envelope_capital_hilton_make_it_happen_fixture",
+        "lane_ref": "operator_chat",
+        "next_safe_move": "Map to CHAT_REQUEST for the bounded OpenClaw request processor; do not reply through Telegram.",
+        "normalized_message": "Make the Capital Hilton invoice workflow happen.",
+        "operator_ref": "operator_ref:winship_fixture",
+        "privacy_class": "operator_local_private_fixture",
+        "source_channel": "telegram_intake_fixture",
+        "source_message_ref": "telegram_fixture_message:capital_hilton_make_it_happen",
+        "source_surface": "telegram_fixture",
+        "workflow_ref": "capital_hilton_invoice_workflow",
+        "world_ref": "finance"
+      },
+      "input": "Make the Capital Hilton invoice workflow happen.",
+      "mapping": {
+        "excluded_fields": [
+          "bot token value",
+          "raw Telegram update object",
+          "raw private message body",
+          "sender handle or phone value",
+          "outbound reply target",
+          "approval or pending-action command",
+          "queue mutation command"
+        ],
+        "intake_envelope_ref": "telegram_envelope_capital_hilton_make_it_happen_fixture",
+        "mapping_id": "telegram_mapping_3d827430810dcafc",
+        "next_safe_move": "Submit this shape to the bounded OpenClaw request processor only when a safe local intake adapter is approved.",
+        "output_path_policy": "read-model only in v0; future approved adapter may write to approved OpenClaw inbox",
+        "required_fields": [
+          "request_id",
+          "origin_surface",
+          "source_channel",
+          "workflow_ref",
+          "world_ref",
+          "lane_ref",
+          "operator_message_summary",
+          "authority_boundary",
+          "created_at"
+        ],
+        "target_request_shape": {
+          "authority_boundary": {
+            "credential_handling_allowed": false,
+            "git_push_pull_fetch_allowed": false,
+            "live_bot_token_access_allowed": false,
+            "live_external_action_allowed": false,
+            "live_pending_action_dispatch_allowed": false,
+            "live_queue_mutation_allowed": false,
+            "live_telegram_listener_allowed": false,
+            "live_telegram_outbound_allowed": false,
+            "mac_sync_import_allowed": false,
+            "mission_control_swift_change_allowed": false,
+            "network_allowed": false,
+            "raw_body_ingestion_allowed": false,
+            "repo_b_runtime_execution_allowed": false,
+            "repo_b_service_start_allowed": false,
+            "telegram_public_chat_activation_allowed": false,
+            "telegram_voice_download_allowed": false,
+            "telegram_voice_output_allowed": false
+          },
+          "chat_ref": "telegram_chat_ref:operator_fixture",
+          "command_hint": "workflow_make_it_happen",
+          "created_at": "2026-05-25T00:00:00+00:00",
+          "lane_ref": "operator_chat",
+          "operator_message_summary": "Make the Capital Hilton invoice workflow happen.",
+          "operator_ref": "operator_ref:winship_fixture",
+          "origin_surface": "telegram_intake_bridge_fixture",
+          "request_id": "telegram_to_openclaw_request_4dacb27a9211751b",
+          "source_channel": "telegram",
+          "source_message_ref": "telegram_fixture_message:capital_hilton_make_it_happen",
+          "workflow_ref": "capital_hilton_invoice_workflow",
+          "world_ref": "finance"
+        },
+        "target_request_type": "CHAT_REQUEST",
+        "tokenization_required": true
+      },
+      "readback": {
+        "blocked_items": [
+          "Telegram outbound reply",
+          "live listener startup",
+          "bot-token access",
+          "pending action dispatch",
+          "queue mutation",
+          "external action"
+        ],
+        "envelope_ref": "telegram_envelope_capital_hilton_make_it_happen_fixture",
+        "how_to_fix": "To process it for real later, connect an approved local intake adapter to the bounded request processor.",
+        "mapped_request_ref": "telegram_to_openclaw_request_4dacb27a9211751b",
+        "next_safe_move": "Submit this shape to the bounded OpenClaw request processor only when a safe local intake adapter is approved.",
+        "operator_message": "OpenClaw can turn this Telegram-style message into a local chat request envelope. Nothing was posted back to Telegram and no workflow ran.",
+        "readback_id": "telegram_readback_7b6ad9dac2ccd88b",
+        "safe_summary": "Fixture Telegram operator message was mapped to a CHAT_REQUEST shape.",
+        "status": "FIXTURE_MAPPING_READY"
+      }
+    },
+    "outbound_blocker": {
+      "attempt": "Reply to the operator through Telegram.",
+      "readback": {
+        "blocked_items": [
+          "Telegram outbound reply",
+          "network call",
+          "bot-token access"
+        ],
+        "envelope_ref": "blocked:no_envelope",
+        "how_to_fix": "Use OpenClaw's Mac-readable response file path for operator readback.",
+        "mapped_request_ref": "none",
+        "next_safe_move": "Do not call Repo B sender helpers from Repo A.",
+        "operator_message": "I blocked the Telegram reply path. This bridge is intake-only.",
+        "readback_id": "telegram_readback_blocked_outbound_reply",
+        "safe_summary": "Outbound Telegram reply/post/send was requested and blocked.",
+        "status": "BLOCKED_OUTBOUND_TELEGRAM"
+      }
+    },
+    "token_blocker": {
+      "attempt": "Include a bot credential value in a request/read-model.",
+      "readback": {
+        "blocked_items": [
+          "bot credential value",
+          "credential handling",
+          "read-model exposure"
+        ],
+        "envelope_ref": "blocked:no_envelope",
+        "how_to_fix": "Use Protected Secret Intake in a future approved runtime and expose only token refs.",
+        "mapped_request_ref": "none",
+        "next_safe_move": "Keep this bridge credential-free.",
+        "operator_message": "I blocked bot credential handling. Credentials cannot enter chat, read-models, tests, or operator cards.",
+        "readback_id": "telegram_readback_blocked_bot_token",
+        "safe_summary": "A bot credential value was detected or requested and blocked.",
+        "status": "BLOCKED_TOKEN_REQUIRED"
+      }
+    }
+  },
+  "generated_at": "2026-05-25T00:00:00+00:00",
+  "machine_proof": {
+    "all_live_authority_false": true,
+    "bot_token_access_performed": false,
+    "credential_handling_performed": false,
+    "external_action_performed": false,
+    "git_push_performed": false,
+    "mac_sync_import_performed": false,
+    "pending_action_dispatch_performed": false,
+    "queue_mutation_performed": false,
+    "raw_private_message_exposure": false,
+    "repo_b_code_imported": false,
+    "repo_b_runtime_executed": false,
+    "swift_change_performed": false,
+    "telegram_listener_started": false,
+    "telegram_outbound_performed": false
+  },
+  "next_safe_move": "Keep Telegram as an alternate future intake surface; route real work through Mac chat and the bounded request processor now.",
+  "operator_summary": "Repo B's Telegram code contains useful intake and follow-up shapes, but its actual listeners and senders are unsafe for Repo A v0 because they start live bots, depend on bot credentials, post outbound replies, and can touch pending state. This bridge keeps only fixture-safe request-envelope mapping.",
+  "postures": [
+    "INTAKE_ONLY_BRIDGE",
+    "REBUILD_SMALL_SUBSET_IN_REPO_A",
+    "REFERENCE_ONLY",
+    "UNSAFE_DO_NOT_CONNECT",
+    "ALREADY_SUPERSEDED",
+    "UNKNOWN_NEEDS_DEEPER_REVIEW"
+  ],
+  "read_model_id": "repo_b_telegram_intake_bridge",
+  "readback_statuses": [
+    "INTAKE_MAPPING_READY",
+    "FIXTURE_MAPPING_READY",
+    "BLOCKED_OUTBOUND_TELEGRAM",
+    "BLOCKED_TOKEN_REQUIRED",
+    "BLOCKED_LIVE_LISTENER",
+    "BLOCKED_PRIVACY_BOUNDARY",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "repo_b_root": "/home/openclaw_external/openclaw-runtime",
+  "schema_version": "repo_b_telegram_intake_bridge_v0",
+  "target_request_types": [
+    "CHAT_REQUEST",
+    "FILE_METADATA_REQUEST_FUTURE",
+    "SECRET_INTAKE_REQUEST_FUTURE",
+    "WORKER_DISPATCH_REQUEST_FUTURE",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "telegram_intake_blockers": [
+    {
+      "blocker_id": "telegram_blocker_live_listener",
+      "blocker_type": "LIVE_TELEGRAM_LISTENER_START_ATTEMPTED",
+      "condition": "A wrapper attempts to instantiate a Telegram bot, call polling, or run a Repo B listener.",
+      "elioperator_warning": "Telegram live listener startup is blocked. This lane only models fixture intake envelopes.",
+      "fail_closed": true,
+      "next_safe_move": "Use a sanitized fixture or a future approved local intake adapter.",
+      "severity": "critical"
+    },
+    {
+      "blocker_id": "telegram_blocker_outbound",
+      "blocker_type": "TELEGRAM_OUTBOUND_ATTEMPTED",
+      "condition": "A wrapper attempts to reply, post, edit, or send through Telegram.",
+      "elioperator_warning": "Outbound Telegram is blocked. OpenClaw should return local Mac-readable response files instead.",
+      "fail_closed": true,
+      "next_safe_move": "Publish the operator response through the OpenClaw response read-model path.",
+      "severity": "critical"
+    },
+    {
+      "blocker_id": "telegram_blocker_bot_token",
+      "blocker_type": "BOT_TOKEN_INCLUDED",
+      "condition": "A request, read-model, log, fixture, or operator card includes a bot credential value.",
+      "elioperator_warning": "Bot credentials cannot appear in chat, read-models, fixtures, logs, or operator cards.",
+      "fail_closed": true,
+      "next_safe_move": "Replace any credential value with a protected secret ref in a future approved runtime.",
+      "severity": "critical"
+    },
+    {
+      "blocker_id": "telegram_blocker_raw_private_message",
+      "blocker_type": "RAW_PRIVATE_MESSAGE_EXPOSED",
+      "condition": "A private raw Telegram update or message body is copied into a normal generated read-model.",
+      "elioperator_warning": "Raw private Telegram messages are blocked from normal read-models.",
+      "fail_closed": true,
+      "next_safe_move": "Use a fixture-safe summary or tokenized/protected message ref.",
+      "severity": "high"
+    },
+    {
+      "blocker_id": "telegram_blocker_pending_dispatch",
+      "blocker_type": "PENDING_ACTION_DISPATCH_ATTEMPTED",
+      "condition": "A follow-up phrase attempts to approve, deny, resume, or dispatch a pending action.",
+      "elioperator_warning": "Pending-action dispatch is blocked from Telegram intake.",
+      "fail_closed": true,
+      "next_safe_move": "Convert the follow-up to a chat request and let governed Repo A rails decide the next step.",
+      "severity": "critical"
+    },
+    {
+      "blocker_id": "telegram_blocker_queue_mutation",
+      "blocker_type": "QUEUE_MUTATION_ATTEMPTED",
+      "condition": "A Telegram message attempts to mutate queues or workflow state.",
+      "elioperator_warning": "Queue mutation is blocked in the Telegram intake bridge.",
+      "fail_closed": true,
+      "next_safe_move": "Produce a request envelope only; no queue writes.",
+      "severity": "critical"
+    },
+    {
+      "blocker_id": "telegram_blocker_external_action",
+      "blocker_type": "EXTERNAL_ACTION_ATTEMPTED",
+      "condition": "A Telegram intake path attempts to call external systems, agents, workflows, senders, or browsers.",
+      "elioperator_warning": "External action is blocked.",
+      "fail_closed": true,
+      "next_safe_move": "Return a blocked readback with a human fix path.",
+      "severity": "critical"
+    },
+    {
+      "blocker_id": "telegram_blocker_credential_env_mutation",
+      "blocker_type": "CREDENTIAL_OR_ENV_MUTATION_ATTEMPTED",
+      "condition": "A wrapper attempts to read credential values, mutate environment, or load secret files.",
+      "elioperator_warning": "Credential and environment mutation are blocked.",
+      "fail_closed": true,
+      "next_safe_move": "Use protected secret intake in a future approved runtime.",
+      "severity": "critical"
+    },
+    {
+      "blocker_id": "telegram_blocker_unscoped_public_chat",
+      "blocker_type": "UNSCOPED_PUBLIC_CHAT_SURFACE",
+      "condition": "A public or unscoped Telegram chat is treated as an operator command surface.",
+      "elioperator_warning": "Unscoped public chat surfaces are blocked.",
+      "fail_closed": true,
+      "next_safe_move": "Require an operator_ref, chat_ref, scope, and privacy boundary before mapping.",
+      "severity": "high"
+    },
+    {
+      "blocker_id": "telegram_blocker_unknown",
+      "blocker_type": "UNKNOWN_FAIL_CLOSED",
+      "condition": "A Telegram intake request does not match a supported fixture or safe mapping.",
+      "elioperator_warning": "Unknown Telegram intake behavior fails closed.",
+      "fail_closed": true,
+      "next_safe_move": "Ask for a scoped request envelope fixture or use the Mac chat surface.",
+      "severity": "high"
+    }
+  ],
+  "telegram_intake_bridge_decisions": [
+    {
+      "apparent_value": "Operator authorization check, command routing entrypoint, callback handling shape, and message-to-intent normalization concepts.",
+      "blocked_items": [
+        "live Telegram listener startup",
+        "outbound Telegram replies",
+        "bot-token access",
+        "queue notification on startup",
+        "pending choice callback execution",
+        "direct Chief/Cassandra workflow handoff"
+      ],
+      "decision_id": "repo_b_telegram_decision_chief_listener",
+      "dependencies": [
+        "python-telegram-bot runtime",
+        "Chief router",
+        "approval bridge",
+        "queue check on startup",
+        "Telegram bot token environment names",
+        "authorized user environment names"
+      ],
+      "next_safe_move": "Rebuild the useful intake shape in Repo A and feed it to the bounded OpenClaw request processor.",
+      "privacy_boundary": "Use only fixture/sanitized message summaries in v0; do not expose raw Telegram update objects or private message bodies.",
+      "rebuild_scope": [
+        "small request-envelope adapter compatible with OpenClaw request processor",
+        "session/chat ref mapping without Telegram runtime",
+        "blocked-readback translation for unsupported live behavior"
+      ],
+      "recommended_posture": "REBUILD_SMALL_SUBSET_IN_REPO_A",
+      "source_module": "chief_listener.py",
+      "source_path": "/home/openclaw_external/openclaw-runtime/chief_listener.py",
+      "wrapper_scope": [
+        "fixture-only sanitized operator message envelope",
+        "command hint extraction",
+        "Repo A request-envelope mapping"
+      ]
+    },
+    {
+      "apparent_value": "Assistant-intake routing shape, designated contact checks, text/voice branch separation, and conversational handoff concepts.",
+      "blocked_items": [
+        "live Cassandra bot startup",
+        "outbound replies",
+        "voice file download",
+        "voice transcription",
+        "voice note output",
+        "direct Cassandra execution"
+      ],
+      "decision_id": "repo_b_telegram_decision_cassandra_listener",
+      "dependencies": [
+        "python-telegram-bot runtime",
+        "Cassandra brain",
+        "voice download/transcription helpers",
+        "voice-note sender",
+        "Telegram bot token environment names"
+      ],
+      "next_safe_move": "Keep Cassandra Telegram listener as reference-only until a governed intake adapter exists.",
+      "privacy_boundary": "Do not carry raw contact names, chat ids, or Telegram updates into normal read-models; use protected refs later.",
+      "rebuild_scope": [
+        "text-only request envelope adapter if Telegram becomes an approved alternate surface"
+      ],
+      "recommended_posture": "REFERENCE_ONLY",
+      "source_module": "cassandra_listener.py",
+      "source_path": "/home/openclaw_external/openclaw-runtime/cassandra_listener.py",
+      "wrapper_scope": [
+        "source-level design reference only",
+        "future scoped assistant-intake mapping"
+      ]
+    },
+    {
+      "apparent_value": "Simple outbound Telegram send helper, useful only as a risk marker.",
+      "blocked_items": [
+        "outbound Telegram message send",
+        "bot-token access",
+        "network call"
+      ],
+      "decision_id": "repo_b_telegram_decision_chief_sender",
+      "dependencies": [
+        "requests",
+        "Telegram send API",
+        "bot token environment names",
+        "chat id environment names"
+      ],
+      "next_safe_move": "Quarantine this as outbound-only behavior.",
+      "privacy_boundary": "Never expose token values or call outbound sender from Repo A bridge.",
+      "rebuild_scope": [],
+      "recommended_posture": "UNSAFE_DO_NOT_CONNECT",
+      "source_module": "chief_sender.py",
+      "source_path": "/home/openclaw_external/openclaw-runtime/chief_sender.py",
+      "wrapper_scope": []
+    },
+    {
+      "apparent_value": "Approval-button callback parsing and typed approval fallback concepts.",
+      "blocked_items": [
+        "live approval listener startup",
+        "approval decision recording",
+        "pending approval mutation",
+        "outbound status messages"
+      ],
+      "decision_id": "repo_b_telegram_decision_chief_guardian_listener",
+      "dependencies": [
+        "Guardian bot token environment names",
+        "authorized user environment names",
+        "Telegram callback queries",
+        "approval pending state"
+      ],
+      "next_safe_move": "Route approval work to Guardian contracts, not to this bridge.",
+      "privacy_boundary": "Approval codes and pending state stay out of this intake-only read-model.",
+      "rebuild_scope": [
+        "future governed approval-intake adapter, separate from this Telegram intake bridge"
+      ],
+      "recommended_posture": "REFERENCE_ONLY",
+      "source_module": "chief_guardian_listener.py",
+      "source_path": "/home/openclaw_external/openclaw-runtime/chief_guardian_listener.py",
+      "wrapper_scope": [
+        "approval callback shape as future Guardian reference"
+      ]
+    },
+    {
+      "apparent_value": "Follow-up response parsing and multi-choice pending-action vocabulary.",
+      "blocked_items": [
+        "pending choice dispatch",
+        "pending JSON state mutation",
+        "outbound notification"
+      ],
+      "decision_id": "repo_b_telegram_decision_chief_approval_bridge",
+      "dependencies": [
+        "pending choice JSON state",
+        "Chief notify outbound sender",
+        "Telegram inline keyboard payload shape"
+      ],
+      "next_safe_move": "Model follow-up messages as chat requests with active-thread context unresolved.",
+      "privacy_boundary": "Follow-up fixtures may indicate intent but cannot approve, deny, or dispatch anything.",
+      "rebuild_scope": [
+        "future active-thread follow-up parser that produces request envelopes only"
+      ],
+      "recommended_posture": "REFERENCE_ONLY",
+      "source_module": "chief_approval_bridge.py",
+      "source_path": "/home/openclaw_external/openclaw-runtime/chief_approval_bridge.py",
+      "wrapper_scope": [
+        "follow-up intent wording reference"
+      ]
+    },
+    {
+      "apparent_value": "Background outbound notifier, useful only to identify forbidden behavior.",
+      "blocked_items": [
+        "outbound Telegram send",
+        "network call",
+        "bot-token access"
+      ],
+      "decision_id": "repo_b_telegram_decision_chief_notify",
+      "dependencies": [
+        "Telegram send API",
+        "bot token environment names",
+        "authorized user environment names"
+      ],
+      "next_safe_move": "Keep quarantined; Mac chat response files are the approved local response path.",
+      "privacy_boundary": "No outbound notifier is allowed in this intake-only lane.",
+      "rebuild_scope": [],
+      "recommended_posture": "UNSAFE_DO_NOT_CONNECT",
+      "source_module": "chief_notify.py",
+      "source_path": "/home/openclaw_external/openclaw-runtime/chief_notify.py",
+      "wrapper_scope": []
+    }
+  ],
+  "telegram_intake_capabilities": [
+    {
+      "capability_id": "telegram_capability_operator_message_intake",
+      "capability_type": "OPERATOR_MESSAGE_INTAKE",
+      "credential_required": false,
+      "description": "Convert a fixture Telegram-style operator message into a sanitized intake envelope.",
+      "external_authority": false,
+      "inputs_required": [
+        "fixture-safe operator message",
+        "sanitized source channel label",
+        "operator_ref placeholder"
+      ],
+      "next_safe_move": "Map the envelope to a Repo A chat request shape.",
+      "outbound_required": false,
+      "outputs_produced": [
+        "TelegramIntakeEnvelope"
+      ],
+      "source_module_ref": "chief_listener.py",
+      "wrapper_allowed": true
+    },
+    {
+      "capability_id": "telegram_capability_command_normalization",
+      "capability_type": "COMMAND_NORMALIZATION",
+      "credential_required": false,
+      "description": "Normalize plain operator text into a command hint without executing the command.",
+      "external_authority": false,
+      "inputs_required": [
+        "fixture-safe normalized text"
+      ],
+      "next_safe_move": "Keep the hint advisory; Repo A request processor remains the next rail.",
+      "outbound_required": false,
+      "outputs_produced": [
+        "command_hint",
+        "workflow_ref candidate"
+      ],
+      "source_module_ref": "chief_router.py / chief_listener.py",
+      "wrapper_allowed": true
+    },
+    {
+      "capability_id": "telegram_capability_session_mapping",
+      "capability_type": "SESSION_MAPPING",
+      "credential_required": false,
+      "description": "Model operator/chat/session refs without exposing Telegram chat ids or handles.",
+      "external_authority": false,
+      "inputs_required": [
+        "operator_ref placeholder",
+        "chat_ref placeholder"
+      ],
+      "next_safe_move": "Use protected refs for real sender identity in a future approved runtime.",
+      "outbound_required": false,
+      "outputs_produced": [
+        "safe chat_ref",
+        "source_message_ref"
+      ],
+      "source_module_ref": "chief_listener.py / cassandra_listener.py",
+      "wrapper_allowed": true
+    },
+    {
+      "capability_id": "telegram_capability_followup_intent_parse",
+      "capability_type": "FOLLOWUP_INTENT_PARSE",
+      "credential_required": false,
+      "description": "Identify short follow-up phrases as active-thread intent candidates without approval or action execution.",
+      "external_authority": false,
+      "inputs_required": [
+        "fixture-safe follow-up phrase",
+        "future active_thread_ref"
+      ],
+      "next_safe_move": "Ask the request processor to resolve active thread context later.",
+      "outbound_required": false,
+      "outputs_produced": [
+        "follow_up_intent_candidate"
+      ],
+      "source_module_ref": "chief_approval_bridge.py",
+      "wrapper_allowed": true
+    },
+    {
+      "capability_id": "telegram_capability_request_envelope_creation",
+      "capability_type": "REQUEST_ENVELOPE_CREATION",
+      "credential_required": false,
+      "description": "Create a Mac/request-processor-compatible CHAT_REQUEST shape from a sanitized Telegram envelope.",
+      "external_authority": false,
+      "inputs_required": [
+        "TelegramIntakeEnvelope"
+      ],
+      "next_safe_move": "Do not write live inbox requests in v0; publish deterministic read-model only.",
+      "outbound_required": false,
+      "outputs_produced": [
+        "TelegramToOpenClawRequestMapping"
+      ],
+      "source_module_ref": "repo_b_telegram_intake_bridge.py",
+      "wrapper_allowed": true
+    },
+    {
+      "capability_id": "telegram_capability_intake_directory_write",
+      "capability_type": "INTAKE_DIRECTORY_WRITE",
+      "credential_required": false,
+      "description": "Future bounded local write of request-envelope files into the approved OpenClaw inbox.",
+      "external_authority": false,
+      "inputs_required": [
+        "validated request envelope",
+        "idempotency key",
+        "authority boundary false"
+      ],
+      "next_safe_move": "Keep as modeled future behavior; this export writes only read-model artifacts.",
+      "outbound_required": false,
+      "outputs_produced": [
+        "mission_control_chat_request file future"
+      ],
+      "source_module_ref": "future Repo A adapter",
+      "wrapper_allowed": true
+    },
+    {
+      "capability_id": "telegram_capability_outbound_reply_blocked",
+      "capability_type": "OUTBOUND_REPLY",
+      "credential_required": true,
+      "description": "Outbound Telegram reply/post/send is explicitly outside this intake-only bridge.",
+      "external_authority": true,
+      "inputs_required": [
+        "bot credential value",
+        "chat id",
+        "message text"
+      ],
+      "next_safe_move": "Use Mac-readable local response files instead of Telegram outbound.",
+      "outbound_required": true,
+      "outputs_produced": [
+        "Telegram message external side effect"
+      ],
+      "source_module_ref": "chief_sender.py / chief_notify.py",
+      "wrapper_allowed": false
+    },
+    {
+      "capability_id": "telegram_capability_pending_action_dispatch_blocked",
+      "capability_type": "PENDING_ACTION_DISPATCH",
+      "credential_required": false,
+      "description": "Pending action resolution, approval recording, and queue mutation are blocked in this bridge.",
+      "external_authority": true,
+      "inputs_required": [
+        "pending action state",
+        "operator decision text"
+      ],
+      "next_safe_move": "Route future approvals to Guardian, not Telegram intake bridge.",
+      "outbound_required": false,
+      "outputs_produced": "state mutation or approval decision",
+      "source_module_ref": "chief_approval_bridge.py / chief_guardian_listener.py",
+      "wrapper_allowed": false
+    }
+  ]
+}
