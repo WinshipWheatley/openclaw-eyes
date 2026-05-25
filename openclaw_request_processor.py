@@ -94,6 +94,20 @@ DISPLAY_MODES = (
     "DEBUG_ONLY",
 )
 
+PROVIDER_FAMILIES = (
+    "MAC_SYSTEM_TTS",
+    "LOCAL_TTS_MODEL_FUTURE",
+    "CLOUD_TTS_GATED_FUTURE",
+    "UNKNOWN_FAIL_CLOSED",
+)
+
+INTERRUPTION_POLICIES = (
+    "BARGE_IN_ALLOWED_FUTURE",
+    "PAUSE_ON_OPERATOR_SPEECH_FUTURE",
+    "NO_INTERRUPT_NEEDED",
+    "UNKNOWN_FAIL_CLOSED",
+)
+
 VOICE_PROFILE_REFS = {
     "CHIEF": "voice:chief:operational",
     "CASSANDRA": "voice:cassandra:communications",
@@ -181,12 +195,50 @@ MACHINE_SLUDGE_TERMS = (
     "source_request_id",
     "operator_message",
     "raw_internal_status",
+    "spoken_response_packet",
     "capital_hilton_invoice_operator_readback",
     "workflow_execution_package_compiler",
     "gated_email_send_adapter",
     "coupa_supplier_portal_package_compiler",
     "openclaw_request_processor",
 )
+
+SPOKEN_FORBIDDEN_CLAIMS = (
+    "sent",
+    "submitted",
+    "complete",
+    "approved",
+    "authorized",
+    "dispatched",
+)
+
+SPOKEN_SENSITIVE_TERMS = (
+    "credential",
+    "credentials",
+    "secret",
+    "secrets",
+    "password",
+    "coupa",
+    "invoice",
+    "payment",
+    "client",
+    "legal",
+    "tax",
+    "ledger",
+    "protected evidence",
+    "raw email",
+    "contact",
+)
+
+VOICE_DIRECTIONS = {
+    "CHIEF": "operational_crisp",
+    "CASSANDRA": "polished_calm",
+    "GUARDIAN": "proof_first",
+    "NILES": "creative_flow",
+    "CODEX": "technical_precise",
+    "OPENCLAW_SYSTEM": "neutral_clear",
+    "UNKNOWN": "neutral_clear",
+}
 
 RESPONDER_TARGET_TYPES = (
     "DETERMINISTIC_ROUTER",
@@ -212,6 +264,10 @@ AUTHORITY_BOUNDARY = {
     "live_package_execution_allowed": False,
     "live_context_package_dispatch_allowed": False,
     "live_visual_artifact_spawn_allowed": False,
+    "live_speech_synthesis_allowed": False,
+    "live_microphone_capture_allowed": False,
+    "live_cloud_audio_allowed": False,
+    "live_voice_model_call_allowed": False,
     "live_file_body_ingestion_allowed": False,
     "live_raw_transcript_ingestion_allowed": False,
     "live_email_draft_allowed": False,
@@ -884,6 +940,123 @@ def _voice_authorship_fields(response: OpenClawResponseForMac, layered_fields: M
         "vibe_applied": True,
         "voice_selection_reason": reason,
         "high_risk_override_applied": high_risk_override,
+    }
+
+
+def _sanitize_spoken_text(text: str) -> str:
+    cleaned = _sanitize_cockpit_text(text)
+    cleaned = cleaned.replace("PO/reference", "PO reference")
+    cleaned = cleaned.replace("send/submit", "send or submit")
+    cleaned = cleaned.replace("read-model", "read model")
+    cleaned = cleaned.replace("`", "")
+    cleaned = cleaned.replace("*", "")
+    cleaned = cleaned.replace("#", "")
+    cleaned = " ".join(cleaned.split())
+    return cleaned.strip()
+
+
+def _spoken_sensitive_context(response: OpenClawResponseForMac, layered_fields: Mapping[str, Any]) -> bool:
+    text = _voice_context_text(response, layered_fields)
+    return _contains_any(text, SPOKEN_SENSITIVE_TERMS)
+
+
+def _spoken_privacy_class(response: OpenClawResponseForMac, layered_fields: Mapping[str, Any]) -> str:
+    text = _voice_context_text(response, layered_fields)
+    if "coupa" in text or "payment" in text or "invoice" in text:
+        return "CLIENT_PAYMENT_CONTEXT"
+    if response.request_type == "FILE_METADATA":
+        return "SOURCE_REFERENCE_METADATA"
+    if "secret" in text or "credential" in text or "password" in text:
+        return "PROTECTED_BOUNDARY_CONTEXT"
+    return "OPERATOR_STATUS_CONTEXT"
+
+
+def _spoken_pronunciation_hints(*texts: object) -> dict[str, str]:
+    joined = " ".join(str(text) for text in texts).lower()
+    hints: dict[str, str] = {}
+    if "coupa" in joined:
+        hints["Coupa"] = "coo pah"
+    if "x32" in joined:
+        hints["X32"] = "ex thirty two"
+    if "wsl" in joined:
+        hints["WSL"] = "double u ess ell"
+    if "struna" in joined:
+        hints["Struna"] = "stroo nah"
+    return hints
+
+
+def _provider_policy(*, sensitive_context: bool) -> dict[str, Any]:
+    reason = "Use native Mac playback. PC emits text only; no cloud synthesis or transcription is allowed in this lane."
+    if sensitive_context:
+        reason = "Sensitive or client/payment context. Use native Mac playback only; cloud synthesis and transcription are blocked."
+    return {
+        "preferred_provider_family": "MAC_SYSTEM_TTS",
+        "fallback_provider_family": "LOCAL_TTS_MODEL_FUTURE",
+        "cloud_synthesis_allowed": False,
+        "cloud_transcription_allowed": False,
+        "sensitive_context": sensitive_context,
+        "blocked_provider_families": ("CLOUD_TTS_GATED_FUTURE", "UNKNOWN_FAIL_CLOSED"),
+        "reason": reason,
+    }
+
+
+def _generic_spoken_script(layered_fields: Mapping[str, Any]) -> str:
+    headline = _sanitize_spoken_text(str(layered_fields.get("headline") or "OpenClaw response ready."))
+    blocker = _sanitize_spoken_text(str(layered_fields.get("primary_blocker") or ""))
+    next_action = _sanitize_spoken_text(str(layered_fields.get("next_action") or "Next: Review the response."))
+    if blocker and blocker.lower() != "none":
+        script = f"{headline}. Blocked by {blocker}. {next_action}"
+    else:
+        one_line = _sanitize_spoken_text(str(layered_fields.get("one_line_answer") or ""))
+        script = f"{headline}. {one_line} {next_action}".strip()
+    return _word_limited(script, 40)
+
+
+def _spoken_script_and_summary(response: OpenClawResponseForMac, layered_fields: Mapping[str, Any]) -> tuple[str, str]:
+    if _is_capital_hilton_status_response(response):
+        return (
+            "Capital Hilton invoice is blocked. The invoice basis exists, but the Coupa PO reference and approval receipts are still missing. Nothing can send or submit yet.",
+            "Invoice blocked. Confirm the Coupa PO reference.",
+        )
+    if response.request_type == "FILE_METADATA":
+        return (
+            "File reference captured. The body was not read. Choose whether to use it as source context.",
+            "File reference captured. Body not read.",
+        )
+    script = _generic_spoken_script(layered_fields)
+    summary = _word_limited(_sanitize_spoken_text(str(layered_fields.get("headline") or script)), 12)
+    return script, summary
+
+
+def _spoken_response_packet(
+    response: OpenClawResponseForMac,
+    layered_fields: Mapping[str, Any],
+    voice_fields: Mapping[str, Any],
+) -> dict[str, Any]:
+    spoken_script, spoken_summary = _spoken_script_and_summary(response, layered_fields)
+    spoken_script = _sanitize_spoken_text(spoken_script)
+    spoken_summary = _sanitize_spoken_text(spoken_summary)
+    sensitive_context = _spoken_sensitive_context(response, layered_fields)
+    provider = _provider_policy(sensitive_context=sensitive_context)
+    response_author = str(voice_fields.get("response_author") or "OPENCLAW_SYSTEM")
+    return {
+        "spoken_packet_id": f"spoken_response_{_short_hash(response.source_request_id, layered_fields.get('response_id'), spoken_script)}",
+        "source_response_ref": f"generated/read_models/{RESPONSE_JSON_EXPORT_NAME}",
+        "source_request_id": response.source_request_id,
+        "response_author": response_author,
+        "voice_profile_ref": voice_fields["voice_profile_ref"],
+        "vibe_profile_ref": voice_fields["vibe_profile_ref"],
+        "spoken_script": spoken_script,
+        "spoken_summary": spoken_summary,
+        "voice_direction": VOICE_DIRECTIONS.get(response_author, VOICE_DIRECTIONS["UNKNOWN"]),
+        "pronunciation_hints": _spoken_pronunciation_hints(spoken_script, spoken_summary, response.operator_message, layered_fields.get("detail_summary") or ""),
+        "interruption_policy": "NO_INTERRUPT_NEEDED",
+        "provider_policy": provider,
+        "forbidden_spoken_claims": SPOKEN_FORBIDDEN_CLAIMS,
+        "cloud_synthesis_allowed": provider["cloud_synthesis_allowed"],
+        "local_playback_preferred": True,
+        "privacy_class": _spoken_privacy_class(response, layered_fields),
+        "next_safe_move": _sanitize_spoken_text(response.next_safe_move),
     }
 
 
@@ -1757,6 +1930,7 @@ def build_payloads(
     status = _processor_status_from_response(response, blockers=blockers)
     layered_fields = _layered_response_fields(response, created_at=generated_at)
     voice_fields = _voice_authorship_fields(response, layered_fields)
+    spoken_packet = _spoken_response_packet(response, layered_fields, voice_fields)
     response_payload: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
         "read_model_id": RESPONSE_READ_MODEL_ID,
@@ -1766,6 +1940,7 @@ def build_payloads(
         **layered_fields,
         **voice_fields,
         **asdict(response),
+        "spoken_response_packet": spoken_packet,
         "terminal": _terminal_for_status(response.internal_status),
         "authority_boundary": AUTHORITY_BOUNDARY,
     }
@@ -1792,6 +1967,13 @@ def build_payloads(
             "voice_model_call_performed": False,
             "high_risk_override_applied": voice_fields["high_risk_override_applied"],
             "cockpit_prose_limits_applied": True,
+            "spoken_response_packet_present": True,
+            "spoken_script_truth_bound": True,
+            "speech_synthesis_performed": False,
+            "microphone_capture_performed": False,
+            "cloud_audio_performed": False,
+            "spoken_cloud_synthesis_allowed": spoken_packet["cloud_synthesis_allowed"],
+            "spoken_local_playback_preferred": spoken_packet["local_playback_preferred"],
         }
     )
     response_payload["machine_proof"] = json.loads(stable_json(status_payload["machine_proof"]))

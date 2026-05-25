@@ -104,6 +104,31 @@ def _assert_cockpit_copy_safe(response: dict) -> None:
         _assert_eliwinship_safe(response[field])
 
 
+def _assert_spoken_packet_safe(packet: dict) -> None:
+    script = packet["spoken_script"]
+    assert script
+    assert len(script.split()) <= 40
+    assert not re.search(r"(^|\s)(/[A-Za-z0-9_.-]+)+", script)
+    assert not re.search(r"sha256:[0-9a-f]{16,}|\b[0-9a-f]{32,}\b", script.lower())
+    assert not re.search(r"(^|\s)[#*`>-]", script)
+    forbidden_terms = (
+        "source_request_id",
+        "operator_message",
+        "raw_internal_status",
+        "capital_hilton_invoice_operator_readback",
+        "gated_email_send_adapter",
+        "coupa_supplier_portal_package_compiler",
+    )
+    lowered = script.lower()
+    for term in forbidden_terms:
+        assert term not in lowered
+    assert packet["cloud_synthesis_allowed"] is False
+    assert packet["local_playback_preferred"] is True
+    assert packet["provider_policy"]["preferred_provider_family"] == "MAC_SYSTEM_TTS"
+    assert packet["provider_policy"]["cloud_synthesis_allowed"] is False
+    assert packet["provider_policy"]["cloud_transcription_allowed"] is False
+
+
 def _minimal_response(message: str, *, request_type: str = "CHAT", workflow_ref: str = "workflow_fixture") -> processor.OpenClawResponseForMac:
     return processor.OpenClawResponseForMac(
         source_request_id="voice_selection_fixture",
@@ -185,6 +210,8 @@ def test_file_argument_processes_specific_chat_request(tmp_path, capsys):
     assert response["vibe_profile_ref"] == "vibe:system:neutral"
     assert response["voice_applied"] is True
     assert response["vibe_applied"] is True
+    assert "spoken_response_packet" in response
+    _assert_spoken_packet_safe(response["spoken_response_packet"])
     assert response["audience_mode"] == "ELIWINSHIP"
     assert response["display_mode"] == "COMPACT_CHAT"
     assert response["headline"]
@@ -221,6 +248,13 @@ def test_file_argument_processes_specific_file_request(tmp_path, capsys):
         "OpenClaw captured the file reference. The body was not read. You can use it later as source context."
     )
     assert response["next_action"] == "Next: Choose how to use this source."
+    spoken = response["spoken_response_packet"]
+    _assert_spoken_packet_safe(spoken)
+    assert spoken["response_author"] == "OPENCLAW_SYSTEM"
+    assert spoken["voice_profile_ref"] == "voice:system:neutral"
+    assert spoken["spoken_script"] == "File reference captured. The body was not read. Choose whether to use it as source context."
+    assert spoken["provider_policy"]["preferred_provider_family"] == "MAC_SYSTEM_TTS"
+    assert spoken["privacy_class"] in {"SOURCE_REFERENCE_METADATA", "CLIENT_PAYMENT_CONTEXT"}
     _assert_cockpit_copy_safe(response)
     assert "Capital Hilton invoice.xlsx" in response["operator_message"]
     assert "RESPONSE_READY" not in response["operator_message"]
@@ -273,6 +307,24 @@ def test_capital_hilton_status_query_routes_to_unified_operator_readback(tmp_pat
         "Guardian and operator approval receipts",
         "Email send receipt and attachment proof",
     ]
+    spoken = response["spoken_response_packet"]
+    _assert_spoken_packet_safe(spoken)
+    assert spoken["response_author"] == "CHIEF"
+    assert spoken["voice_profile_ref"] == "voice:chief:operational"
+    assert spoken["vibe_profile_ref"] == "vibe:chief:command_center"
+    assert spoken["spoken_script"] == (
+        "Capital Hilton invoice is blocked. The invoice basis exists, but the Coupa PO reference and approval receipts are still missing. Nothing can send or submit yet."
+    )
+    assert spoken["spoken_summary"] == "Invoice blocked. Confirm the Coupa PO reference."
+    assert spoken["voice_direction"] == "operational_crisp"
+    assert spoken["pronunciation_hints"]["Coupa"] == "coo pah"
+    assert spoken["provider_policy"]["sensitive_context"] is True
+    assert spoken["provider_policy"]["preferred_provider_family"] == "MAC_SYSTEM_TTS"
+    assert spoken["cloud_synthesis_allowed"] is False
+    assert spoken["privacy_class"] == "CLIENT_PAYMENT_CONTEXT"
+    assert "sent" not in spoken["spoken_script"].lower()
+    assert "submitted" not in spoken["spoken_script"].lower()
+    assert "complete" not in spoken["spoken_script"].lower()
     _assert_cockpit_copy_safe(response)
     assert "four Capital Hilton performance dates at $1,600 total" in response["detail_summary"]
     assert response["proof_refs"]

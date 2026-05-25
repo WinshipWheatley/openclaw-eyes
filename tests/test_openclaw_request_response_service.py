@@ -153,6 +153,9 @@ def test_service_processes_chat_request_and_writes_per_request_response(tmp_path
     assert response["vibe_profile_ref"] == "vibe:system:neutral"
     assert response["voice_applied"] is True
     assert response["vibe_applied"] is True
+    assert response["spoken_response_packet"]["response_author"] == "OPENCLAW_SYSTEM"
+    assert response["spoken_response_packet"]["provider_policy"]["preferred_provider_family"] == "MAC_SYSTEM_TTS"
+    assert response["spoken_response_packet"]["cloud_synthesis_allowed"] is False
     assert response["headline"]
     assert response["operator_message"]
     assert response["how_to_fix"]
@@ -213,6 +216,14 @@ def test_service_routes_capital_hilton_status_query_to_mac_response(tmp_path, ca
         "Confirmed Coupa PO/reference",
         "Guardian and operator approval receipts",
     ]
+    spoken = response["spoken_response_packet"]
+    assert spoken["response_author"] == "CHIEF"
+    assert spoken["spoken_script"] == (
+        "Capital Hilton invoice is blocked. The invoice basis exists, but the Coupa PO reference and approval receipts are still missing. Nothing can send or submit yet."
+    )
+    assert spoken["provider_policy"]["preferred_provider_family"] == "MAC_SYSTEM_TTS"
+    assert spoken["cloud_synthesis_allowed"] is False
+    assert spoken["pronunciation_hints"]["Coupa"] == "coo pah"
     assert response["proof_refs"] == ["generated/read_models/capital_hilton_invoice_operator_readback.json"]
     assert response["operator_headline"] == "Capital Hilton invoice workflow is not ready yet"
     assert "Nothing has been sent, submitted, opened, approved, or marked complete" in response["operator_message"]
@@ -260,6 +271,11 @@ def test_service_processes_file_metadata_request_and_writes_response(tmp_path, c
         "OpenClaw captured the file reference. The body was not read. You can use it later as source context."
     )
     assert response["next_action"] == "Next: Choose how to use this source."
+    spoken = response["spoken_response_packet"]
+    assert spoken["response_author"] == "OPENCLAW_SYSTEM"
+    assert spoken["spoken_script"] == "File reference captured. The body was not read. Choose whether to use it as source context."
+    assert spoken["provider_policy"]["preferred_provider_family"] == "MAC_SYSTEM_TTS"
+    assert spoken["provider_policy"]["cloud_transcription_allowed"] is False
     assert response["operator_message"]
     assert response["how_to_fix"]
     assert response["terminal"] is True
