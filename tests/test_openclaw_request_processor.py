@@ -94,6 +94,41 @@ def _assert_eliwinship_safe(text: str) -> None:
         assert token not in lowered
 
 
+def _assert_cockpit_copy_safe(response: dict) -> None:
+    assert len(response["headline"].split()) <= 6
+    assert len(response["eliwinship"].split()) <= 40
+    assert len(response["next_action"].split()) <= 12
+    assert response["next_action"].startswith("Next: ")
+    assert len(response["missing_items_short"]) <= 3
+    for field in ("headline", "eliwinship", "next_action"):
+        _assert_eliwinship_safe(response[field])
+
+
+def _minimal_response(message: str, *, request_type: str = "CHAT", workflow_ref: str = "workflow_fixture") -> processor.OpenClawResponseForMac:
+    return processor.OpenClawResponseForMac(
+        source_request_id="voice_selection_fixture",
+        source_request_filename="mission_control_chat_request_voice_selection_fixture.json",
+        workflow_ref=workflow_ref,
+        request_type=request_type,
+        internal_status="RESPONSE_READY",
+        operator_headline=message.split(".", 1)[0],
+        operator_message=message,
+        what_happened=("Fixture response only.",),
+        why_it_happened=message,
+        how_to_fix="Use deterministic voice metadata only.",
+        visible_cards=(),
+        cards_available=True,
+        card_mirror_refs=(),
+        file_readback_refs=(),
+        worker_route_refs=(),
+        context_package_refs=(),
+        blocked_reason=None,
+        detail_disclosure={},
+        readback_files=(),
+        next_safe_move="Review the voice metadata.",
+    )
+
+
 def test_newest_chat_request_is_selected(tmp_path):
     inbox = tmp_path / "inbox"
     inbox.mkdir()
@@ -145,6 +180,11 @@ def test_file_argument_processes_specific_chat_request(tmp_path, capsys):
     assert response["operator_headline"] == "I found the PC readback"
     assert "Here's what OpenClaw understood" in response["operator_message"]
     assert response["response_kind"] == "CHAT_READBACK"
+    assert response["response_author"] == "OPENCLAW_SYSTEM"
+    assert response["voice_profile_ref"] == "voice:system:neutral"
+    assert response["vibe_profile_ref"] == "vibe:system:neutral"
+    assert response["voice_applied"] is True
+    assert response["vibe_applied"] is True
     assert response["audience_mode"] == "ELIWINSHIP"
     assert response["display_mode"] == "COMPACT_CHAT"
     assert response["headline"]
@@ -172,8 +212,16 @@ def test_file_argument_processes_specific_file_request(tmp_path, capsys):
     assert response["internal_status"] == "RESPONSE_READY"
     assert response["operator_headline"] == "File reference captured"
     assert response["response_kind"] == "FILE_METADATA_READBACK"
+    assert response["response_author"] == "OPENCLAW_SYSTEM"
+    assert response["voice_profile_ref"] == "voice:system:neutral"
+    assert response["vibe_profile_ref"] == "vibe:system:neutral"
+    assert response["voice_selection_reason"] == "file intake / source reference status"
     assert response["headline"] == "File reference captured"
-    assert response["eliwinship"]
+    assert response["eliwinship"] == (
+        "OpenClaw captured the file reference. The body was not read. You can use it later as source context."
+    )
+    assert response["next_action"] == "Next: Choose how to use this source."
+    _assert_cockpit_copy_safe(response)
     assert "Capital Hilton invoice.xlsx" in response["operator_message"]
     assert "RESPONSE_READY" not in response["operator_message"]
     assert response["file_readback_refs"]
@@ -195,7 +243,14 @@ def test_capital_hilton_status_query_routes_to_unified_operator_readback(tmp_pat
     assert response["request_type"] == "CHAT"
     assert response["internal_status"] == "RESPONSE_READY"
     assert response["operator_headline"] == "Capital Hilton invoice workflow is not ready yet"
-    assert response["headline"] == "Capital Hilton invoice is not ready yet"
+    assert response["response_author"] == "CHIEF"
+    assert response["voice_profile_ref"] == "voice:chief:operational"
+    assert response["vibe_profile_ref"] == "vibe:chief:command_center"
+    assert response["voice_applied"] is True
+    assert response["vibe_applied"] is True
+    assert response["voice_selection_reason"] == "finance workflow status / readiness / blocker summary"
+    assert response["high_risk_override_applied"] is False
+    assert response["headline"] == "Capital Hilton invoice is blocked"
     assert response["response_kind"] == "CAPITAL_HILTON_INVOICE_STATUS"
     assert response["audience_mode"] == "ELIWINSHIP"
     assert response["display_mode"] == "COMPACT_CHAT"
@@ -204,20 +259,21 @@ def test_capital_hilton_status_query_routes_to_unified_operator_readback(tmp_pat
         "OpenClaw has the delivery basis, but the workflow is locked because required approvals and proofs are missing."
     )
     assert response["eliwinship"] == (
-        "You have the invoice basis and draft rails. "
-        "You still need the Coupa PO/reference and approval receipts before anything can send or submit."
+        "The invoice basis and draft rails exist. "
+        "The workflow is blocked until the Coupa PO/reference and approval receipts are confirmed. "
+        "Nothing can send or submit yet."
     )
     _assert_eliwinship_safe(response["eliwinship"])
     assert response["primary_status"] == "Locked until proof and approval receipts exist"
     assert response["primary_blocker"] == "Missing confirmed Coupa PO/reference"
-    assert response["next_action"] == "Confirm the Coupa PO/reference and record it as a source reference."
+    assert response["next_action"] == "Next: Confirm the Coupa PO/reference."
     assert isinstance(response["missing_items_short"], list)
     assert response["missing_items_short"] == [
         "Confirmed Coupa PO/reference",
         "Guardian and operator approval receipts",
         "Email send receipt and attachment proof",
-        "Future Coupa submit receipt if Coupa is required",
     ]
+    _assert_cockpit_copy_safe(response)
     assert "four Capital Hilton performance dates at $1,600 total" in response["detail_summary"]
     assert response["proof_refs"]
     assert all(ref.startswith("generated/read_models/") for ref in response["proof_refs"])
@@ -244,12 +300,41 @@ def test_capital_hilton_mark_invoice_sent_question_returns_false_without_proof(t
     response = json.loads(capsys.readouterr().out)
 
     assert response["operator_headline"] == "Capital Hilton invoice workflow is not ready yet"
-    assert response["headline"] == "Capital Hilton invoice is not ready yet"
+    assert response["headline"] == "Capital Hilton invoice is blocked"
+    assert response["response_author"] == "CHIEF"
     assert response["detail_disclosure"]["can_mark_invoice_sent"] is False
     assert response["primary_blocker"] == "Missing confirmed Coupa PO/reference"
     assert "approval receipts" in response["how_to_fix"]
     assert "INVOICE SENT" not in response["operator_headline"]
     assert response["machine_proof"]["external_action_performed"] is False
+
+
+def test_voice_selection_fixtures_cover_cassandra_guardian_and_niles_override():
+    cassandra = _minimal_response("The draft is ready for review, but I do not have send authority.")
+    cassandra_layered = processor._layered_response_fields(cassandra, created_at=FIXED_NOW)
+    cassandra_voice = processor._voice_authorship_fields(cassandra, cassandra_layered)
+
+    guardian = _minimal_response("Blocked. This action needs a specific approval packet and proof refs before it can proceed.")
+    guardian_layered = processor._layered_response_fields(guardian, created_at=FIXED_NOW)
+    guardian_voice = processor._voice_authorship_fields(guardian, guardian_layered)
+
+    niles_risky = _minimal_response("Niles, help with the X32 show file and use the secret to submit the payment action.")
+    niles_layered = processor._layered_response_fields(niles_risky, created_at=FIXED_NOW)
+    niles_voice = processor._voice_authorship_fields(niles_risky, niles_layered)
+
+    codex = _minimal_response("Build lane passed locally. Tests passed. No push occurred.")
+    codex_layered = processor._layered_response_fields(codex, created_at=FIXED_NOW)
+    codex_voice = processor._voice_authorship_fields(codex, codex_layered)
+
+    assert cassandra_voice["response_author"] == "CASSANDRA"
+    assert cassandra_voice["voice_profile_ref"] == "voice:cassandra:communications"
+    assert cassandra_voice["high_risk_override_applied"] is False
+    assert guardian_voice["response_author"] == "GUARDIAN"
+    assert guardian_voice["voice_profile_ref"] == "voice:guardian:proof_gate"
+    assert niles_voice["response_author"] == "GUARDIAN"
+    assert niles_voice["vibe_profile_ref"] == "vibe:guardian:strict_proof"
+    assert niles_voice["high_risk_override_applied"] is True
+    assert codex_voice["response_author"] == "CODEX"
 
 
 def test_file_argument_accepts_mac_metadata_hash_contract(tmp_path, capsys):

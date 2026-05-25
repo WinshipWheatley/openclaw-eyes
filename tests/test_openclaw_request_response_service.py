@@ -148,6 +148,11 @@ def test_service_processes_chat_request_and_writes_per_request_response(tmp_path
     assert response["response_id"]
     assert response["audience_mode"] == "ELIWINSHIP"
     assert response["display_mode"] == "COMPACT_CHAT"
+    assert response["response_author"] == "OPENCLAW_SYSTEM"
+    assert response["voice_profile_ref"] == "voice:system:neutral"
+    assert response["vibe_profile_ref"] == "vibe:system:neutral"
+    assert response["voice_applied"] is True
+    assert response["vibe_applied"] is True
     assert response["headline"]
     assert response["operator_message"]
     assert response["how_to_fix"]
@@ -188,16 +193,22 @@ def test_service_routes_capital_hilton_status_query_to_mac_response(tmp_path, ca
     assert response["source_request_id"] == request["request_id"]
     assert latest["source_request_id"] == request["request_id"]
     assert response["response_kind"] == "CAPITAL_HILTON_INVOICE_STATUS"
-    assert response["headline"] == "Capital Hilton invoice is not ready yet"
+    assert response["response_author"] == "CHIEF"
+    assert response["voice_profile_ref"] == "voice:chief:operational"
+    assert response["vibe_profile_ref"] == "vibe:chief:command_center"
+    assert response["voice_selection_reason"] == "finance workflow status / readiness / blocker summary"
+    assert response["high_risk_override_applied"] is False
+    assert response["headline"] == "Capital Hilton invoice is blocked"
     assert response["one_line_answer"] == (
         "OpenClaw has the delivery basis, but the workflow is locked because required approvals and proofs are missing."
     )
     assert response["eliwinship"] == (
-        "You have the invoice basis and draft rails. "
-        "You still need the Coupa PO/reference and approval receipts before anything can send or submit."
+        "The invoice basis and draft rails exist. "
+        "The workflow is blocked until the Coupa PO/reference and approval receipts are confirmed. "
+        "Nothing can send or submit yet."
     )
     assert response["primary_blocker"] == "Missing confirmed Coupa PO/reference"
-    assert response["next_action"] == "Confirm the Coupa PO/reference and record it as a source reference."
+    assert response["next_action"] == "Next: Confirm the Coupa PO/reference."
     assert response["missing_items_short"][:2] == [
         "Confirmed Coupa PO/reference",
         "Guardian and operator approval receipts",
@@ -241,7 +252,14 @@ def test_service_processes_file_metadata_request_and_writes_response(tmp_path, c
     assert response["request_type"] == "FILE_METADATA"
     assert response["operator_headline"] == "File reference captured"
     assert response["response_kind"] == "FILE_METADATA_READBACK"
+    assert response["response_author"] == "OPENCLAW_SYSTEM"
+    assert response["voice_profile_ref"] == "voice:system:neutral"
+    assert response["vibe_profile_ref"] == "vibe:system:neutral"
     assert response["headline"] == "File reference captured"
+    assert response["eliwinship"] == (
+        "OpenClaw captured the file reference. The body was not read. You can use it later as source context."
+    )
+    assert response["next_action"] == "Next: Choose how to use this source."
     assert response["operator_message"]
     assert response["how_to_fix"]
     assert response["terminal"] is True

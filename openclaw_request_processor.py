@@ -94,6 +94,100 @@ DISPLAY_MODES = (
     "DEBUG_ONLY",
 )
 
+VOICE_PROFILE_REFS = {
+    "CHIEF": "voice:chief:operational",
+    "CASSANDRA": "voice:cassandra:communications",
+    "GUARDIAN": "voice:guardian:proof_gate",
+    "NILES": "voice:niles:creative_flow",
+    "CODEX": "voice:codex:implementation",
+    "OPENCLAW_SYSTEM": "voice:system:neutral",
+    "UNKNOWN": "voice:system:neutral",
+}
+
+VIBE_PROFILE_REFS = {
+    "CHIEF": "vibe:chief:command_center",
+    "CASSANDRA": "vibe:cassandra:executive_calm",
+    "GUARDIAN": "vibe:guardian:strict_proof",
+    "NILES": "vibe:niles:creative_flow",
+    "CODEX": "vibe:codex:validation_first",
+    "OPENCLAW_SYSTEM": "vibe:system:neutral",
+    "UNKNOWN": "vibe:system:neutral",
+}
+
+HIGH_RISK_VOICE_TERMS = (
+    "credential",
+    "credentials",
+    "secret",
+    "secrets",
+    "password",
+    "coupa portal",
+    "coupa",
+    "submit",
+    "send",
+    "approval",
+    "approve",
+    "finance write",
+    "external action",
+    "client",
+    "legal",
+    "payment",
+    "invoice sent",
+)
+
+GUARDIAN_CONTEXT_TERMS = (
+    "approval",
+    "approve",
+    "proof",
+    "secret",
+    "credential",
+    "password",
+    "gate",
+    "blocked gate",
+    "protected",
+)
+
+CASSANDRA_CONTEXT_TERMS = (
+    "email draft",
+    "draft review",
+    "draft is ready",
+    "communications",
+    "recipient",
+    "annette",
+    "review the draft",
+)
+
+NILES_CONTEXT_TERMS = (
+    "niles",
+    "music",
+    "x32",
+    "album",
+    "setlist",
+    "studio",
+    "production",
+    "struna",
+    "logic",
+    "ableton",
+)
+
+CODEX_CONTEXT_TERMS = (
+    "codex",
+    "build lane",
+    "tests passed",
+    "implementation",
+    "commit",
+)
+
+MACHINE_SLUDGE_TERMS = (
+    "source_request_id",
+    "operator_message",
+    "raw_internal_status",
+    "capital_hilton_invoice_operator_readback",
+    "workflow_execution_package_compiler",
+    "gated_email_send_adapter",
+    "coupa_supplier_portal_package_compiler",
+    "openclaw_request_processor",
+)
+
 RESPONDER_TARGET_TYPES = (
     "DETERMINISTIC_ROUTER",
     "FILE_METADATA_INTAKE",
@@ -643,6 +737,64 @@ def _first_sentence(text: str) -> str:
     return stripped
 
 
+def _contains_any(text: str, terms: tuple[str, ...]) -> bool:
+    lowered = text.lower()
+    return any(term in lowered for term in terms)
+
+
+def _word_limited(text: str, max_words: int) -> str:
+    words = text.split()
+    if len(words) <= max_words:
+        return text
+    return " ".join(words[:max_words]).rstrip(".,;:") + "."
+
+
+def _sanitize_cockpit_text(text: str) -> str:
+    cleaned = " ".join(str(text).split())
+    parts: list[str] = []
+    for word in cleaned.split():
+        lowered = word.lower().strip(".,;:()[]{}")
+        if lowered.startswith("generated/read_models/") or lowered.startswith("/"):
+            parts.append("detail")
+            continue
+        if lowered.startswith("sha256:") or (len(lowered) >= 32 and all(char in "0123456789abcdef" for char in lowered)):
+            parts.append("proof")
+            continue
+        if lowered in MACHINE_SLUDGE_TERMS:
+            parts.append("detail")
+            continue
+        parts.append(word)
+    return " ".join(parts).strip()
+
+
+def _render_next_action(text: str) -> str:
+    cleaned = _sanitize_cockpit_text(text).strip()
+    if not cleaned:
+        cleaned = "Review the safe readback."
+    if cleaned.lower().startswith("next:"):
+        result = cleaned
+    else:
+        result = f"Next: {cleaned[0].upper() + cleaned[1:] if cleaned else cleaned}"
+    result = _word_limited(result, 12)
+    if not result.endswith((".", "!", "?")):
+        result += "."
+    return result
+
+
+def _apply_cockpit_prose_limits(fields: dict[str, Any]) -> dict[str, Any]:
+    limited = dict(fields)
+    limited["headline"] = _word_limited(_sanitize_cockpit_text(str(limited.get("headline") or "")), 6)
+    limited["eliwinship"] = _word_limited(_sanitize_cockpit_text(str(limited.get("eliwinship") or "")), 40)
+    limited["next_action"] = _render_next_action(str(limited.get("next_action") or "Review the response."))
+    missing = limited.get("missing_items_short") or ()
+    if isinstance(missing, str):
+        missing_items = (missing,)
+    else:
+        missing_items = tuple(str(item) for item in missing)
+    limited["missing_items_short"] = tuple(_sanitize_cockpit_text(item) for item in missing_items[:3])
+    return limited
+
+
 def _safe_generated_ref(ref: object) -> str:
     text = str(ref)
     name = Path(text).name
@@ -669,6 +821,70 @@ def _debug_refs(response: OpenClawResponseForMac) -> tuple[str, ...]:
     refs.extend(_safe_generated_ref(ref) for ref in response.file_readback_refs)
     refs.extend(_safe_generated_ref(ref) for ref in response.context_package_refs)
     return tuple(dict.fromkeys(ref for ref in refs if ref))
+
+
+def _voice_context_text(response: OpenClawResponseForMac, layered_fields: Mapping[str, Any]) -> str:
+    chunks: list[str] = [
+        response.request_type,
+        response.workflow_ref,
+        response.operator_headline,
+        response.operator_message,
+        response.why_it_happened,
+        response.how_to_fix,
+        response.next_safe_move,
+        str(response.blocked_reason or ""),
+        str(layered_fields.get("headline") or ""),
+        str(layered_fields.get("eliwinship") or ""),
+        str(layered_fields.get("primary_blocker") or ""),
+        str(layered_fields.get("detail_summary") or ""),
+    ]
+    detail = response.detail_disclosure
+    if isinstance(detail, Mapping):
+        chunks.extend(str(value) for value in detail.values() if isinstance(value, (str, bool)))
+        classification = detail.get("request_classification")
+        if isinstance(classification, Mapping):
+            chunks.extend(str(value) for value in classification.values())
+    return " ".join(chunks).lower()
+
+
+def _initial_response_author(response: OpenClawResponseForMac, layered_fields: Mapping[str, Any]) -> tuple[str, str]:
+    text = _voice_context_text(response, layered_fields)
+    if response.request_type == "FILE_METADATA":
+        return "OPENCLAW_SYSTEM", "file intake / source reference status"
+    if _is_capital_hilton_status_response(response):
+        return "CHIEF", "finance workflow status / readiness / blocker summary"
+    if _contains_any(text, CASSANDRA_CONTEXT_TERMS):
+        return "CASSANDRA", "communications draft/review context"
+    if _contains_any(text, NILES_CONTEXT_TERMS):
+        return "NILES", "music or creative world context"
+    if _contains_any(text, GUARDIAN_CONTEXT_TERMS):
+        return "GUARDIAN", "proof, approval, protected boundary, or blocked gate"
+    if _contains_any(text, CODEX_CONTEXT_TERMS):
+        return "CODEX", "build/test/code lane"
+    return "OPENCLAW_SYSTEM", "neutral fallback"
+
+
+def _apply_high_risk_voice_override(author: str, reason: str, response: OpenClawResponseForMac, layered_fields: Mapping[str, Any]) -> tuple[str, str, bool]:
+    text = _voice_context_text(response, layered_fields)
+    if author != "NILES" or not _contains_any(text, HIGH_RISK_VOICE_TERMS):
+        return author, reason, False
+    if _contains_any(text, GUARDIAN_CONTEXT_TERMS):
+        return "GUARDIAN", f"{reason}; high-risk creative request overridden to Guardian", True
+    return "CHIEF", f"{reason}; high-risk creative request overridden to Chief", True
+
+
+def _voice_authorship_fields(response: OpenClawResponseForMac, layered_fields: Mapping[str, Any]) -> dict[str, Any]:
+    author, reason = _initial_response_author(response, layered_fields)
+    author, reason, high_risk_override = _apply_high_risk_voice_override(author, reason, response, layered_fields)
+    return {
+        "response_author": author,
+        "voice_profile_ref": VOICE_PROFILE_REFS[author],
+        "vibe_profile_ref": VIBE_PROFILE_REFS[author],
+        "voice_applied": True,
+        "vibe_applied": True,
+        "voice_selection_reason": reason,
+        "high_risk_override_applied": high_risk_override,
+    }
 
 
 def _primary_status_label(internal_status: str) -> str:
@@ -699,27 +915,47 @@ def _layered_response_fields(response: OpenClawResponseForMac, *, created_at: st
             "response_kind": "CAPITAL_HILTON_INVOICE_STATUS",
             "audience_mode": "ELIWINSHIP",
             "display_mode": "COMPACT_CHAT",
-            "headline": "Capital Hilton invoice is not ready yet",
+            "headline": "Capital Hilton invoice is blocked",
             "one_line_answer": (
                 "OpenClaw has the delivery basis, but the workflow is locked because required approvals and proofs are missing."
             ),
             "eliwinship": (
-                "You have the invoice basis and draft rails. "
-                "You still need the Coupa PO/reference and approval receipts before anything can send or submit."
+                "The invoice basis and draft rails exist. "
+                "The workflow is blocked until the Coupa PO/reference and approval receipts are confirmed. "
+                "Nothing can send or submit yet."
             ),
             "primary_status": "Locked until proof and approval receipts exist",
             "primary_blocker": "Missing confirmed Coupa PO/reference",
-            "next_action": "Confirm the Coupa PO/reference and record it as a source reference.",
+            "next_action": "Next: Confirm the Coupa PO/reference.",
             "missing_items_short": (
                 "Confirmed Coupa PO/reference",
                 "Guardian and operator approval receipts",
                 "Email send receipt and attachment proof",
-                "Future Coupa submit receipt if Coupa is required",
             ),
             "detail_summary": (
                 "Delivery basis is modeled for four Capital Hilton performance dates at $1,600 total. "
                 "The invoice and draft rails are available for review, but send/submit/completion remain locked until proof and approval receipts exist."
             ),
+            "proof_refs": _safe_proof_refs(response),
+            "debug_refs": _debug_refs(response),
+            "raw_internal_status": response.internal_status,
+            "mac_render_hint": "COMPACT_WITH_DISCLOSURE",
+        }
+
+    if response.request_type == "FILE_METADATA":
+        return {
+            "response_id": f"openclaw_response_{_short_hash(response.source_request_id, response.request_type, created_at)}",
+            "response_kind": "FILE_METADATA_READBACK",
+            "audience_mode": "ELIWINSHIP",
+            "display_mode": "COMPACT_CHAT",
+            "headline": "File reference captured",
+            "one_line_answer": "OpenClaw captured the file reference without reading the file body.",
+            "eliwinship": "OpenClaw captured the file reference. The body was not read. You can use it later as source context.",
+            "primary_status": _primary_status_label(response.internal_status),
+            "primary_blocker": str(response.blocked_reason or "None"),
+            "next_action": "Next: Choose how to use this source.",
+            "missing_items_short": (),
+            "detail_summary": response.why_it_happened,
             "proof_refs": _safe_proof_refs(response),
             "debug_refs": _debug_refs(response),
             "raw_internal_status": response.internal_status,
@@ -736,7 +972,7 @@ def _layered_response_fields(response: OpenClawResponseForMac, *, created_at: st
         response_kind = "CHAT_READBACK"
     else:
         response_kind = "REQUEST_READBACK"
-    return {
+    return _apply_cockpit_prose_limits({
         "response_id": f"openclaw_response_{_short_hash(response.source_request_id, response.request_type, created_at)}",
         "response_kind": response_kind,
         "audience_mode": "ELIWINSHIP",
@@ -753,7 +989,7 @@ def _layered_response_fields(response: OpenClawResponseForMac, *, created_at: st
         "debug_refs": _debug_refs(response),
         "raw_internal_status": response.internal_status,
         "mac_render_hint": "COMPACT_WITH_DISCLOSURE",
-    }
+    })
 
 
 def _capital_hilton_status_text(raw_request: Mapping[str, Any]) -> str:
@@ -1520,6 +1756,7 @@ def build_payloads(
     generated_at = generated_at or utc_now()
     status = _processor_status_from_response(response, blockers=blockers)
     layered_fields = _layered_response_fields(response, created_at=generated_at)
+    voice_fields = _voice_authorship_fields(response, layered_fields)
     response_payload: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
         "read_model_id": RESPONSE_READ_MODEL_ID,
@@ -1527,6 +1764,7 @@ def build_payloads(
         "generated_at": generated_at,
         "created_at": generated_at,
         **layered_fields,
+        **voice_fields,
         **asdict(response),
         "terminal": _terminal_for_status(response.internal_status),
         "authority_boundary": AUTHORITY_BOUNDARY,
@@ -1546,6 +1784,16 @@ def build_payloads(
         "authority_boundary": AUTHORITY_BOUNDARY,
     }
     status_payload["machine_proof"] = _machine_proof(response, status)
+    status_payload["machine_proof"].update(
+        {
+            "deterministic_voice_selection_present": True,
+            "voice_applied": voice_fields["voice_applied"],
+            "vibe_applied": voice_fields["vibe_applied"],
+            "voice_model_call_performed": False,
+            "high_risk_override_applied": voice_fields["high_risk_override_applied"],
+            "cockpit_prose_limits_applied": True,
+        }
+    )
     response_payload["machine_proof"] = json.loads(stable_json(status_payload["machine_proof"]))
     status_payload["machine_proof"]["content_hash"] = _content_hash(status_payload)
     response_payload["machine_proof"]["content_hash"] = _content_hash(response_payload)
@@ -1648,6 +1896,11 @@ def build_summary(
         "display_mode": response_payload["display_mode"],
         "headline": response_payload["headline"],
         "one_line_answer": response_payload["one_line_answer"],
+        "response_author": response_payload["response_author"],
+        "voice_profile_ref": response_payload["voice_profile_ref"],
+        "vibe_profile_ref": response_payload["vibe_profile_ref"],
+        "voice_selection_reason": response_payload["voice_selection_reason"],
+        "high_risk_override_applied": response_payload["high_risk_override_applied"],
         "terminal_quality_passed": status_payload["machine_proof"]["terminal_quality_passed"],
         "all_live_authority_flags_false": status_payload["machine_proof"]["all_live_authority_flags_false"],
         "future_lm_targets_not_called": status_payload["machine_proof"]["future_lm_targets_not_called"],

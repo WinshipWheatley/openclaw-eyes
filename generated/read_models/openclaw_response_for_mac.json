@@ -35,7 +35,7 @@
   "cards_available": true,
   "context_package_refs": [],
   "contract_status": "BOUNDED_OPENCLAW_REQUEST_LIFECYCLE_PROCESSOR",
-  "created_at": "2026-05-25T22:42:54+00:00",
+  "created_at": "2026-05-25T18:30:00+00:00",
   "debug_refs": [
     "generated/read_models/capital_hilton_invoice_operator_readback.json",
     "generated/read_models/capital_hilton_invoice_operator_readback_OPERATOR.md"
@@ -64,22 +64,23 @@
     "model_or_worker_response_adapter_called": false,
     "operator_readback_ref": "generated/read_models/capital_hilton_invoice_operator_readback_OPERATOR.md",
     "request_classification": {
-      "classification_id": "request_classification_6b34ff85aa0f4ca04b27",
+      "classification_id": "request_classification_322385260b19b7817a21",
       "classification_reason": "Filename matches Mission Control chat request pattern, and message asks for Capital Hilton invoice status.",
       "future_supported": false,
       "next_safe_move": "Export the unified Capital Hilton invoice operator readback and return it to Mac chat.",
       "request_family": "CHAT",
       "selected_rail": "capital_hilton_invoice_operator_readback",
-      "source_request_filename": "mission_control_chat_request_capital_hilton_status_layered_20260525_224500.json"
+      "source_request_filename": "mission_control_chat_request_voice_apply_capital_status_fresh.json"
     },
     "selected_readback_ref": "generated/read_models/capital_hilton_invoice_operator_readback.json"
   },
   "detail_summary": "Delivery basis is modeled for four Capital Hilton performance dates at $1,600 total. The invoice and draft rails are available for review, but send/submit/completion remain locked until proof and approval receipts exist.",
   "display_mode": "COMPACT_CHAT",
-  "eliwinship": "You have the invoice basis and draft rails. You still need the Coupa PO/reference and approval receipts before anything can send or submit.",
+  "eliwinship": "The invoice basis and draft rails exist. The workflow is blocked until the Coupa PO/reference and approval receipts are confirmed. Nothing can send or submit yet.",
   "file_readback_refs": [],
-  "generated_at": "2026-05-25T22:42:54+00:00",
-  "headline": "Capital Hilton invoice is not ready yet",
+  "generated_at": "2026-05-25T18:30:00+00:00",
+  "headline": "Capital Hilton invoice is blocked",
+  "high_risk_override_applied": false,
   "how_to_fix": "Confirm the Coupa PO/reference, verify protected refs, then create Guardian and exact operator approval receipts. After future gated send/submit lanes produce receipts, rerun completion proof aggregation.",
   "internal_status": "RESPONSE_READY",
   "mac_render_hint": "COMPACT_WITH_DISCLOSURE",
@@ -92,12 +93,14 @@
     "blocked_has_how_to_fix": true,
     "broad_scan_performed": false,
     "browser_access_performed": false,
-    "content_hash": "sha256:828ff24fc5dddcf271a916ebe9d070dc865855c7ca9c8dc1e9d8e30e86907d01",
+    "cockpit_prose_limits_applied": true,
+    "content_hash": "sha256:db41c9ae02066529e012c757bf1775a6a209097a0f22cc4edebd2ca57943c7ab",
     "coupa_access_or_submit_performed": false,
     "credential_handling_performed": false,
     "credentials_or_secrets_included": false,
     "daemon_started": false,
     "deterministic_responder_targets_modeled": true,
+    "deterministic_voice_selection_present": true,
     "duplicate_has_existing_readback": true,
     "email_draft_or_send_performed": false,
     "external_action_performed": false,
@@ -106,6 +109,7 @@
     "future_lm_targets_not_called": true,
     "future_request_families_modeled": true,
     "git_push_pull_fetch_run": false,
+    "high_risk_override_applied": false,
     "human_operator_message_present": true,
     "infinite_loop_possible": false,
     "invoice_generation_performed": false,
@@ -129,16 +133,18 @@
     "terminal_quality_passed": true,
     "timed_out_has_how_to_fix": true,
     "tool_execution_performed": false,
+    "vibe_applied": true,
+    "voice_applied": true,
+    "voice_model_call_performed": false,
     "watcher_started": false,
     "workflow_execution_performed": false
   },
   "missing_items_short": [
     "Confirmed Coupa PO/reference",
     "Guardian and operator approval receipts",
-    "Email send receipt and attachment proof",
-    "Future Coupa submit receipt if Coupa is required"
+    "Email send receipt and attachment proof"
   ],
-  "next_action": "Confirm the Coupa PO/reference and record it as a source reference.",
+  "next_action": "Next: Confirm the Coupa PO/reference.",
   "next_safe_move": "Confirm the Coupa PO/reference, then create Guardian and exact operator approval receipts before any future gated send or submit adapter can act.",
   "one_line_answer": "OpenClaw has the delivery basis, but the workflow is locked because required approvals and proofs are missing.",
   "operator_headline": "Capital Hilton invoice workflow is not ready yet",
@@ -155,12 +161,15 @@
     "generated/read_models/capital_hilton_invoice_operator_readback_OPERATOR.md"
   ],
   "request_type": "CHAT",
-  "response_id": "openclaw_response_39311d3e4cf2aa2cb93e",
+  "response_author": "CHIEF",
+  "response_id": "openclaw_response_ad530981c4d1c7a28bbd",
   "response_kind": "CAPITAL_HILTON_INVOICE_STATUS",
   "schema_version": "openclaw_request_processor_v0",
-  "source_request_filename": "mission_control_chat_request_capital_hilton_status_layered_20260525_224500.json",
-  "source_request_id": "capital_hilton_invoice_status_layered_service_20260525_224500",
+  "source_request_filename": "mission_control_chat_request_voice_apply_capital_status_fresh.json",
+  "source_request_id": "voice_apply_capital_hilton_status_fresh",
   "terminal": true,
+  "vibe_applied": true,
+  "vibe_profile_ref": "vibe:chief:command_center",
   "visible_cards": [
     {
       "bullets": [
@@ -174,6 +183,9 @@
       "title": "Capital Hilton invoice workflow is not ready yet"
     }
   ],
+  "voice_applied": true,
+  "voice_profile_ref": "voice:chief:operational",
+  "voice_selection_reason": "finance workflow status / readiness / blocker summary",
   "what_happened": [
     "PC recognized a Capital Hilton invoice status question.",
     "PC exported the unified Capital Hilton invoice operator readback.",
