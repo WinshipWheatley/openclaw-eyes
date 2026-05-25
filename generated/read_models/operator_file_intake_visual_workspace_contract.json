@@ -1,0 +1,1672 @@
+{
+  "artifact_roles": [
+    "PRIMARY_SPREADSHEET",
+    "RELATED_RICH_TEXT_DOC",
+    "SOURCE_PDF",
+    "INVOICE_ARTIFACT",
+    "SCREENSHOT_PROOF",
+    "AUDIO_PROJECT_METADATA",
+    "VIDEO_PROJECT_METADATA",
+    "CONTRACT_SOURCE",
+    "EMAIL_THREAD_REFERENCE",
+    "CALENDAR_EVENT_REFERENCE",
+    "DATABASE_EXPORT",
+    "FOLDER_OR_PROJECT_CAPSULE",
+    "TASK_STATE_CARD",
+    "TIMELINE_OR_HISTORY",
+    "AGENT_PROGRESS",
+    "WARNING_OR_LOCK",
+    "UNKNOWN"
+  ],
+  "authority_boundary": {
+    "credential_handling_allowed": false,
+    "git_push_pull_fetch_allowed": false,
+    "live_agent_dispatch_allowed": false,
+    "live_app_automation_allowed": false,
+    "live_email_send_allowed": false,
+    "live_export_allowed": false,
+    "live_external_action_allowed": false,
+    "live_external_app_control_allowed": false,
+    "live_file_ingestion_allowed": false,
+    "live_file_mutation_allowed": false,
+    "live_model_call_allowed": false,
+    "live_project_edit_allowed": false,
+    "live_publish_allowed": false,
+    "live_raw_body_extraction_allowed": false,
+    "live_screen_recording_allowed": false,
+    "live_screenshot_capture_allowed": false,
+    "mac_sync_import_allowed": false,
+    "mission_control_swift_change_allowed": false,
+    "network_allowed": false,
+    "raw_body_ingestion_allowed": false
+  },
+  "automation_modes": [
+    "SHOW_OR_PREVIEW",
+    "INSPECT_OR_READ",
+    "EXTRACT_METADATA",
+    "DRAFT",
+    "PREPARE_PACKAGE",
+    "OPEN_APP",
+    "MUTATE_FILE_GATED",
+    "SEND_OR_SUBMIT_GATED",
+    "APPROVE_GATED",
+    "PUBLISH_OR_EXPORT_GATED"
+  ],
+  "blocker_types": [
+    "RAW_FILE_BODY_TO_LLM",
+    "PRIVATE_FILE_PATH_VISIBLE",
+    "UNSCOPED_FILE_INGESTION",
+    "BROAD_FILESYSTEM_SCAN",
+    "UNSAFE_APP_AUTOMATION",
+    "MUTATION_WITHOUT_APPROVAL",
+    "MISSING_BACKUP_OR_RECEIPT",
+    "PROTECTED_FILE_WITHOUT_GUARDIAN",
+    "STALE_SOURCE_REF",
+    "WRONG_APP_OR_WORKER_TARGET",
+    "UNKNOWN_FILE_TYPE",
+    "UNBOUNDED_FOLDER_INGEST",
+    "VISUAL_WORKSPACE_PRETENDS_TO_BE_PROOF",
+    "SEND_EXPORT_PUBLISH_WITHOUT_APPROVAL",
+    "HIDDEN_APP_AUTOMATION",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "contract_status": "DETERMINISTIC_NON_EXECUTING_FILE_INTAKE_VISUAL_WORKSPACE_CONTRACT",
+  "elioperator_report": {
+    "how_agents_see_file_refs": "Agents see source refs, safe labels, summaries, allowed extracts, and proof posture. Raw private bodies stay out of LLM context by default.",
+    "how_app_automation_is_gated": "App targets and command summaries can be modeled, but live automation and mutation remain false until a future approved adapter has explicit scope, confirmation, backup or receipt posture, and readback.",
+    "how_file_intake_works": "Files become source refs with safe labels, privacy class, sensitivity class, extraction status, and fingerprint policy. Normal read-models do not include full private paths or raw bodies.",
+    "how_visual_workspace_requests_work": "A chat request can ask for a workspace mode. The workspace binds source refs, related notes, proof refs, task status, warnings, and next actions into a compact visual plan.",
+    "how_worker_routing_applies": "Mac visual/app work routes to MAC_CODEX, backend source/proof packaging routes to PC_CODEX, protected proof routes to GUARDIAN, design audit routes to GEMINI_AGY, and communications drafting routes to CASSANDRA when gated.",
+    "next_safe_move": "Use this contract to build future intake packets and visual workspace mirrors without live ingestion or automation.",
+    "plain_summary": "This lets OpenClaw turn operator materials into governed source refs and visual workspace requests.",
+    "report_id": "operator_file_intake_visual_workspace_elioperator_report_v0",
+    "what_this_does_not_do_yet": "It does not ingest raw bodies, automate apps, mutate files, capture screens, send email, export, publish, call models, dispatch agents, or access external systems.",
+    "what_this_enables": "Operators can attach or reference source material, ask to see work visually, and let the router choose the right visual, backend, proof, or app-boundary worker package."
+  },
+  "examples": {
+    "album_spreadsheet_song_doc": {
+      "artifact_bindings": {
+        "binding_album_primary_spreadsheet": {
+          "artifact_role": "PRIMARY_SPREADSHEET",
+          "binding_id": "binding_album_primary_spreadsheet",
+          "display_label": "Album spreadsheet",
+          "display_priority": 1,
+          "edit_allowed": false,
+          "mutation_allowed": false,
+          "next_safe_move": "Show as a safe workspace binding without mutation.",
+          "open_mode": "READ_ONLY_PREVIEW",
+          "proof_required": false,
+          "source_ref": "source_ref_album_spreadsheet",
+          "workspace_request_ref": "workspace_request_album_spreadsheet_song_doc"
+        },
+        "binding_album_related_song_doc": {
+          "artifact_role": "RELATED_RICH_TEXT_DOC",
+          "binding_id": "binding_album_related_song_doc",
+          "display_label": "Related song notes",
+          "display_priority": 2,
+          "edit_allowed": false,
+          "mutation_allowed": false,
+          "next_safe_move": "Show as a safe workspace binding without mutation.",
+          "open_mode": "READ_ONLY_PREVIEW",
+          "proof_required": false,
+          "source_ref": "source_ref_song_rich_text_doc",
+          "workspace_request_ref": "workspace_request_album_spreadsheet_song_doc"
+        }
+      },
+      "expected_route": "MAC_CODEX / MAC for visual workspace UI",
+      "operator_says": "I'm working on my album spreadsheet. Show me the spreadsheet and the rich text doc that goes with this song.",
+      "raw_body_to_llm": false,
+      "source_refs": {
+        "source_ref_album_spreadsheet": {
+          "allowed_use": [
+            "show metadata",
+            "bind into visual workspace",
+            "reference in package plan"
+          ],
+          "extraction_status": "NOT_EXTRACTED",
+          "file_type": "spreadsheet",
+          "hash_or_fingerprint_policy": "fingerprint_required_before_truth_or_mutation_claim",
+          "local_path_policy": "hidden_in_normal_read_model",
+          "next_safe_move": "Keep this as a governed source ref; request safe extraction only if needed.",
+          "original_filename": "album_spreadsheet.example",
+          "privacy_class": "PRIVATE_METADATA_ONLY",
+          "prohibited_use": [
+            "raw body to LLM",
+            "hidden app automation",
+            "external send or submit",
+            "file mutation without approval",
+            "broad filesystem scan"
+          ],
+          "protected_ref_required": false,
+          "safe_display_label": "Album spreadsheet",
+          "sensitivity_class": "CREATIVE_SOURCE_METADATA",
+          "source_card_ref": "source_card:source_ref_album_spreadsheet",
+          "source_ref_id": "source_ref_album_spreadsheet",
+          "source_surface": "operator_chat_attachment_or_reference",
+          "stale_or_current_status": "UNKNOWN_UNTIL_FINGERPRINTED"
+        },
+        "source_ref_song_rich_text_doc": {
+          "allowed_use": [
+            "show metadata",
+            "bind into visual workspace",
+            "reference in package plan"
+          ],
+          "extraction_status": "NOT_EXTRACTED",
+          "file_type": "rich_text_doc",
+          "hash_or_fingerprint_policy": "fingerprint_required_before_truth_or_mutation_claim",
+          "local_path_policy": "hidden_in_normal_read_model",
+          "next_safe_move": "Keep this as a governed source ref; request safe extraction only if needed.",
+          "original_filename": "song_notes.example",
+          "privacy_class": "PRIVATE_METADATA_ONLY",
+          "prohibited_use": [
+            "raw body to LLM",
+            "hidden app automation",
+            "external send or submit",
+            "file mutation without approval",
+            "broad filesystem scan"
+          ],
+          "protected_ref_required": false,
+          "safe_display_label": "Related song notes",
+          "sensitivity_class": "CREATIVE_SOURCE_METADATA",
+          "source_card_ref": "source_card:source_ref_song_rich_text_doc",
+          "source_ref_id": "source_ref_song_rich_text_doc",
+          "source_surface": "operator_chat_attachment_or_reference",
+          "stale_or_current_status": "UNKNOWN_UNTIL_FINGERPRINTED"
+        }
+      },
+      "visual_workspace_bundle": {
+        "agent_progress": [],
+        "bundle_id": "workspace_bundle_album_spreadsheet_song_doc",
+        "next_actions": [],
+        "next_safe_move": "Render the workspace from source refs and readbacks; do not treat display as proof.",
+        "primary_artifact": "source_ref_album_spreadsheet",
+        "privacy_boundary": [
+          "Use safe display labels instead of full private paths.",
+          "Store source refs and fingerprints, not raw file bodies, in normal generated read-models.",
+          "Route protected or sensitive sources through protected evidence posture.",
+          "Fail closed on broad folder ingestion or unknown file type."
+        ],
+        "proof_or_source_docs": [],
+        "related_notes": [
+          "source_ref_song_rich_text_doc"
+        ],
+        "source_refs": [
+          "source_ref_album_spreadsheet",
+          "source_ref_song_rich_text_doc"
+        ],
+        "task_status": [
+          "visual workspace requested",
+          "read-only preview only"
+        ],
+        "timeline_or_history": [],
+        "warnings_or_locks": [
+          "No raw body is sent to an LLM by default.",
+          "Edit requires a future gated package."
+        ],
+        "workspace_request_ref": "workspace_request_album_spreadsheet_song_doc"
+      },
+      "visual_workspace_request": {
+        "authority_boundary": {
+          "credential_handling_allowed": false,
+          "git_push_pull_fetch_allowed": false,
+          "live_agent_dispatch_allowed": false,
+          "live_app_automation_allowed": false,
+          "live_email_send_allowed": false,
+          "live_export_allowed": false,
+          "live_external_action_allowed": false,
+          "live_external_app_control_allowed": false,
+          "live_file_ingestion_allowed": false,
+          "live_file_mutation_allowed": false,
+          "live_model_call_allowed": false,
+          "live_project_edit_allowed": false,
+          "live_publish_allowed": false,
+          "live_raw_body_extraction_allowed": false,
+          "live_screen_recording_allowed": false,
+          "live_screenshot_capture_allowed": false,
+          "mac_sync_import_allowed": false,
+          "mission_control_swift_change_allowed": false,
+          "network_allowed": false,
+          "raw_body_ingestion_allowed": false
+        },
+        "display_requirements": [
+          "side-by-side read-only preview",
+          "source labels",
+          "no raw body to LLM by default"
+        ],
+        "interaction_requirements": [
+          "read-only preview",
+          "collapsed proof/details",
+          "operator can ask follow-up in chat"
+        ],
+        "next_safe_move": "Route this visual workspace request as a non-executing package plan.",
+        "operator_goal": "Show the album spreadsheet and the rich text document that goes with this song.",
+        "related_artifacts": [
+          "source_ref_song_rich_text_doc"
+        ],
+        "requested_artifacts": [
+          "source_ref_album_spreadsheet"
+        ],
+        "source_chat_ref": "chat_ref_album_visual_request",
+        "target_machine": "MAC",
+        "target_surface": "mac_visual_workspace",
+        "target_worker_type": "MAC_CODEX",
+        "visual_mode": "SHOW_SPREADSHEET_AND_DOC",
+        "workspace_bundle_ref": "workspace_bundle_album_spreadsheet_song_doc",
+        "workspace_request_id": "workspace_request_album_spreadsheet_song_doc"
+      }
+    },
+    "app_automation_request": {
+      "app_automation_request": {
+        "allowed_commands": [
+          "prepare visual app boundary package",
+          "inspect metadata through future approved adapter"
+        ],
+        "authority_boundary": {
+          "credential_handling_allowed": false,
+          "git_push_pull_fetch_allowed": false,
+          "live_agent_dispatch_allowed": false,
+          "live_app_automation_allowed": false,
+          "live_email_send_allowed": false,
+          "live_export_allowed": false,
+          "live_external_action_allowed": false,
+          "live_external_app_control_allowed": false,
+          "live_file_ingestion_allowed": false,
+          "live_file_mutation_allowed": false,
+          "live_model_call_allowed": false,
+          "live_project_edit_allowed": false,
+          "live_publish_allowed": false,
+          "live_raw_body_extraction_allowed": false,
+          "live_screen_recording_allowed": false,
+          "live_screenshot_capture_allowed": false,
+          "mac_sync_import_allowed": false,
+          "mission_control_swift_change_allowed": false,
+          "network_allowed": false,
+          "raw_body_ingestion_allowed": false
+        },
+        "automation_mode": "SHOW_OR_PREVIEW",
+        "automation_request_id": "automation_request_logic_show_session_state",
+        "command_sequence_summary": "Future Mac-side visual/app request only; no project mutation.",
+        "dry_run_required": true,
+        "forbidden_commands": [
+          "mutate project",
+          "export audio",
+          "record",
+          "delete files",
+          "run hidden automation"
+        ],
+        "mutation_allowed": false,
+        "next_safe_move": "Create an app boundary package only; do not automate the app.",
+        "operator_goal": "Open Logic and show me the session state.",
+        "required_backup_or_receipt": true,
+        "required_operator_confirmation": true,
+        "target_app": "Logic Pro",
+        "target_machine": "MAC"
+      },
+      "expected_route": "MAC_CODEX / MAC",
+      "mutation_allowed": false,
+      "operator_says": "Open Logic and show me the session state."
+    },
+    "bug_debug_workspace": {
+      "external_action_allowed": false,
+      "route_policy": "PC_CODEX for Repo A/backend source refs, MAC_CODEX for app-side UI or screenshot validation.",
+      "source_ref": {
+        "allowed_use": [
+          "show metadata",
+          "bind into visual workspace",
+          "reference in package plan"
+        ],
+        "extraction_status": "NOT_EXTRACTED",
+        "file_type": "database_or_export_file",
+        "hash_or_fingerprint_policy": "fingerprint_required_before_truth_or_mutation_claim",
+        "local_path_policy": "hidden_in_normal_read_model",
+        "next_safe_move": "Keep this as a governed source ref; request safe extraction only if needed.",
+        "original_filename": "debug_log_excerpt_metadata.example",
+        "privacy_class": "PRIVATE_METADATA_ONLY",
+        "prohibited_use": [
+          "raw body to LLM",
+          "hidden app automation",
+          "external send or submit",
+          "file mutation without approval",
+          "broad filesystem scan"
+        ],
+        "protected_ref_required": false,
+        "safe_display_label": "Debug log metadata",
+        "sensitivity_class": "SYSTEM_DEBUG_METADATA",
+        "source_card_ref": "source_card:source_ref_debug_log_metadata",
+        "source_ref_id": "source_ref_debug_log_metadata",
+        "source_surface": "operator_chat_attachment_or_reference",
+        "stale_or_current_status": "UNKNOWN_UNTIL_FINGERPRINTED"
+      },
+      "visual_workspace_request": {
+        "authority_boundary": {
+          "credential_handling_allowed": false,
+          "git_push_pull_fetch_allowed": false,
+          "live_agent_dispatch_allowed": false,
+          "live_app_automation_allowed": false,
+          "live_email_send_allowed": false,
+          "live_export_allowed": false,
+          "live_external_action_allowed": false,
+          "live_external_app_control_allowed": false,
+          "live_file_ingestion_allowed": false,
+          "live_file_mutation_allowed": false,
+          "live_model_call_allowed": false,
+          "live_project_edit_allowed": false,
+          "live_publish_allowed": false,
+          "live_raw_body_extraction_allowed": false,
+          "live_screen_recording_allowed": false,
+          "live_screenshot_capture_allowed": false,
+          "mac_sync_import_allowed": false,
+          "mission_control_swift_change_allowed": false,
+          "network_allowed": false,
+          "raw_body_ingestion_allowed": false
+        },
+        "display_requirements": [
+          "Work Terrain or Build Cue tie-in",
+          "source refs",
+          "no external action"
+        ],
+        "interaction_requirements": [
+          "read-only preview",
+          "collapsed proof/details",
+          "operator can ask follow-up in chat"
+        ],
+        "next_safe_move": "Route this visual workspace request as a non-executing package plan.",
+        "operator_goal": "Show the bug/debug workspace and source refs.",
+        "related_artifacts": [],
+        "requested_artifacts": [
+          "source_ref_debug_log_metadata"
+        ],
+        "source_chat_ref": "chat_ref_bug_debug_workspace",
+        "target_machine": "PC_WSL",
+        "target_surface": "developer_diagnostics",
+        "target_worker_type": "PC_CODEX",
+        "visual_mode": "SHOW_WORKFLOW_STATE",
+        "workspace_bundle_ref": "workspace_bundle_bug_debug",
+        "workspace_request_id": "workspace_request_bug_debug"
+      }
+    },
+    "capital_hilton_invoice_workspace": {
+      "artifact_bindings": {
+        "binding_capital_hilton_invoice_preview": {
+          "artifact_role": "INVOICE_ARTIFACT",
+          "binding_id": "binding_capital_hilton_invoice_preview",
+          "display_label": "Invoice packet preview",
+          "display_priority": 1,
+          "edit_allowed": false,
+          "mutation_allowed": false,
+          "next_safe_move": "Show as a safe workspace binding without mutation.",
+          "open_mode": "READ_ONLY_PREVIEW",
+          "proof_required": true,
+          "source_ref": "source_ref_capital_hilton_invoice_preview",
+          "workspace_request_ref": "workspace_request_capital_hilton_invoice_packet"
+        },
+        "binding_capital_hilton_router_readback": {
+          "artifact_role": "TASK_STATE_CARD",
+          "binding_id": "binding_capital_hilton_router_readback",
+          "display_label": "Workflow readback",
+          "display_priority": 2,
+          "edit_allowed": false,
+          "mutation_allowed": false,
+          "next_safe_move": "Show as a safe workspace binding without mutation.",
+          "open_mode": "READ_ONLY_PREVIEW",
+          "proof_required": false,
+          "source_ref": "source_ref_capital_hilton_router_readback",
+          "workspace_request_ref": "workspace_request_capital_hilton_invoice_packet"
+        }
+      },
+      "operator_says": "Show me what's going on with the Capital Hilton invoice packet.",
+      "pc_backend_role": "PC_CODEX can prepare source/proof package if needed.",
+      "send_or_submit_performed": false,
+      "source_refs": {
+        "source_ref_capital_hilton_invoice_preview": {
+          "allowed_use": [
+            "show metadata",
+            "bind into visual workspace",
+            "reference in package plan"
+          ],
+          "extraction_status": "NOT_EXTRACTED",
+          "file_type": "invoice_artifact",
+          "hash_or_fingerprint_policy": "fingerprint_required_before_truth_or_mutation_claim",
+          "local_path_policy": "hidden_in_normal_read_model",
+          "next_safe_move": "Keep this as a governed source ref; request safe extraction only if needed.",
+          "original_filename": "capital_hilton_invoice_preview.example",
+          "privacy_class": "PRIVATE_METADATA_ONLY",
+          "prohibited_use": [
+            "raw body to LLM",
+            "hidden app automation",
+            "external send or submit",
+            "file mutation without approval",
+            "broad filesystem scan"
+          ],
+          "protected_ref_required": false,
+          "safe_display_label": "Capital Hilton invoice packet preview",
+          "sensitivity_class": "BUSINESS_SOURCE_METADATA",
+          "source_card_ref": "source_card:source_ref_capital_hilton_invoice_preview",
+          "source_ref_id": "source_ref_capital_hilton_invoice_preview",
+          "source_surface": "operator_chat_attachment_or_reference",
+          "stale_or_current_status": "UNKNOWN_UNTIL_FINGERPRINTED"
+        },
+        "source_ref_capital_hilton_router_readback": {
+          "allowed_use": [
+            "show metadata",
+            "bind into visual workspace",
+            "reference in package plan"
+          ],
+          "extraction_status": "NOT_EXTRACTED",
+          "file_type": "database_or_export_file",
+          "hash_or_fingerprint_policy": "fingerprint_required_before_truth_or_mutation_claim",
+          "local_path_policy": "hidden_in_normal_read_model",
+          "next_safe_move": "Keep this as a governed source ref; request safe extraction only if needed.",
+          "original_filename": "capital_hilton_router_readback.example",
+          "privacy_class": "PRIVATE_METADATA_ONLY",
+          "prohibited_use": [
+            "raw body to LLM",
+            "hidden app automation",
+            "external send or submit",
+            "file mutation without approval",
+            "broad filesystem scan"
+          ],
+          "protected_ref_required": false,
+          "safe_display_label": "Capital Hilton workflow readback",
+          "sensitivity_class": "BUSINESS_READBACK_METADATA",
+          "source_card_ref": "source_card:source_ref_capital_hilton_router_readback",
+          "source_ref_id": "source_ref_capital_hilton_router_readback",
+          "source_surface": "operator_chat_attachment_or_reference",
+          "stale_or_current_status": "UNKNOWN_UNTIL_FINGERPRINTED"
+        }
+      },
+      "visual_workspace_bundle": {
+        "agent_progress": [],
+        "bundle_id": "workspace_bundle_capital_hilton_invoice_packet",
+        "next_actions": [
+          "confirm source refs",
+          "route display work to Mac",
+          "route proof packaging to PC if needed"
+        ],
+        "next_safe_move": "Render the workspace from source refs and readbacks; do not treat display as proof.",
+        "primary_artifact": "source_ref_capital_hilton_invoice_preview",
+        "privacy_boundary": [
+          "Use safe display labels instead of full private paths.",
+          "Store source refs and fingerprints, not raw file bodies, in normal generated read-models.",
+          "Route protected or sensitive sources through protected evidence posture.",
+          "Fail closed on broad folder ingestion or unknown file type."
+        ],
+        "proof_or_source_docs": [
+          "source_ref_capital_hilton_router_readback"
+        ],
+        "related_notes": [],
+        "source_refs": [
+          "source_ref_capital_hilton_invoice_preview",
+          "source_ref_capital_hilton_router_readback"
+        ],
+        "task_status": [
+          "invoice packet visible as metadata",
+          "send and submit remain locked"
+        ],
+        "timeline_or_history": [],
+        "warnings_or_locks": [
+          "No email send.",
+          "No Coupa access.",
+          "No invoice generation."
+        ],
+        "workspace_request_ref": "workspace_request_capital_hilton_invoice_packet"
+      },
+      "visual_workspace_request": {
+        "authority_boundary": {
+          "credential_handling_allowed": false,
+          "git_push_pull_fetch_allowed": false,
+          "live_agent_dispatch_allowed": false,
+          "live_app_automation_allowed": false,
+          "live_email_send_allowed": false,
+          "live_export_allowed": false,
+          "live_external_action_allowed": false,
+          "live_external_app_control_allowed": false,
+          "live_file_ingestion_allowed": false,
+          "live_file_mutation_allowed": false,
+          "live_model_call_allowed": false,
+          "live_project_edit_allowed": false,
+          "live_publish_allowed": false,
+          "live_raw_body_extraction_allowed": false,
+          "live_screen_recording_allowed": false,
+          "live_screenshot_capture_allowed": false,
+          "mac_sync_import_allowed": false,
+          "mission_control_swift_change_allowed": false,
+          "network_allowed": false,
+          "raw_body_ingestion_allowed": false
+        },
+        "display_requirements": [
+          "show invoice packet status",
+          "show missing proof",
+          "show locked send/submit actions"
+        ],
+        "interaction_requirements": [
+          "read-only preview",
+          "collapsed proof/details",
+          "operator can ask follow-up in chat"
+        ],
+        "next_safe_move": "Route this visual workspace request as a non-executing package plan.",
+        "operator_goal": "Show what is going on with the Capital Hilton invoice packet.",
+        "related_artifacts": [
+          "source_ref_capital_hilton_router_readback"
+        ],
+        "requested_artifacts": [
+          "source_ref_capital_hilton_invoice_preview"
+        ],
+        "source_chat_ref": "chat_ref_capital_hilton_invoice_workspace",
+        "target_machine": "MAC",
+        "target_surface": "mac_visual_workspace",
+        "target_worker_type": "MAC_CODEX",
+        "visual_mode": "SHOW_INVOICE_PACKET",
+        "workspace_bundle_ref": "workspace_bundle_capital_hilton_invoice_packet",
+        "workspace_request_id": "workspace_request_capital_hilton_invoice_packet"
+      }
+    },
+    "client_delivery_workspace": {
+      "broad_folder_ingest_allowed": false,
+      "source_ref": {
+        "allowed_use": [
+          "show capsule metadata",
+          "bind selected source refs",
+          "route proof package"
+        ],
+        "extraction_status": "NOT_EXTRACTED",
+        "file_type": "folder_or_project_capsule",
+        "hash_or_fingerprint_policy": "fingerprint_required_before_truth_or_mutation_claim",
+        "local_path_policy": "hidden_in_normal_read_model",
+        "next_safe_move": "Keep this as a governed source ref; request safe extraction only if needed.",
+        "original_filename": "client_delivery_capsule.example",
+        "privacy_class": "PRIVATE_METADATA_ONLY",
+        "prohibited_use": [
+          "raw body to LLM",
+          "hidden app automation",
+          "external send or submit",
+          "file mutation without approval",
+          "broad filesystem scan"
+        ],
+        "protected_ref_required": false,
+        "safe_display_label": "Client delivery capsule",
+        "sensitivity_class": "CLIENT_DELIVERY_METADATA",
+        "source_card_ref": "source_card:source_ref_client_delivery_capsule",
+        "source_ref_id": "source_ref_client_delivery_capsule",
+        "source_surface": "operator_chat_attachment_or_reference",
+        "stale_or_current_status": "UNKNOWN_UNTIL_FINGERPRINTED"
+      },
+      "visual_workspace_request": {
+        "authority_boundary": {
+          "credential_handling_allowed": false,
+          "git_push_pull_fetch_allowed": false,
+          "live_agent_dispatch_allowed": false,
+          "live_app_automation_allowed": false,
+          "live_email_send_allowed": false,
+          "live_export_allowed": false,
+          "live_external_action_allowed": false,
+          "live_external_app_control_allowed": false,
+          "live_file_ingestion_allowed": false,
+          "live_file_mutation_allowed": false,
+          "live_model_call_allowed": false,
+          "live_project_edit_allowed": false,
+          "live_publish_allowed": false,
+          "live_raw_body_extraction_allowed": false,
+          "live_screen_recording_allowed": false,
+          "live_screenshot_capture_allowed": false,
+          "mac_sync_import_allowed": false,
+          "mission_control_swift_change_allowed": false,
+          "network_allowed": false,
+          "raw_body_ingestion_allowed": false
+        },
+        "display_requirements": [
+          "task board",
+          "proof/source refs",
+          "no broad folder ingest"
+        ],
+        "interaction_requirements": [
+          "read-only preview",
+          "collapsed proof/details",
+          "operator can ask follow-up in chat"
+        ],
+        "next_safe_move": "Route this visual workspace request as a non-executing package plan.",
+        "operator_goal": "Show the client delivery workspace.",
+        "related_artifacts": [],
+        "requested_artifacts": [
+          "source_ref_client_delivery_capsule"
+        ],
+        "source_chat_ref": "chat_ref_client_delivery_workspace",
+        "target_machine": "MAC",
+        "target_surface": "mac_visual_workspace",
+        "target_worker_type": "MAC_CODEX",
+        "visual_mode": "SHOW_TASK_BOARD",
+        "workspace_bundle_ref": "workspace_bundle_client_delivery",
+        "workspace_request_id": "workspace_request_client_delivery"
+      }
+    },
+    "invoice_artifact_source": {
+      "artifact_binding": {
+        "artifact_role": "INVOICE_ARTIFACT",
+        "binding_id": "binding_invoice_artifact_source",
+        "display_label": "Invoice artifact",
+        "display_priority": 1,
+        "edit_allowed": false,
+        "mutation_allowed": false,
+        "next_safe_move": "Fingerprint the artifact before any attachment or completion claim.",
+        "open_mode": "READ_ONLY_PREVIEW",
+        "proof_required": true,
+        "source_ref": "source_ref_attached_invoice_artifact",
+        "workspace_request_ref": "workspace_request_invoice_artifact_source"
+      },
+      "hash_or_fingerprint_required": true,
+      "send_or_submit_performed": false,
+      "source_ref": {
+        "allowed_use": [
+          "show metadata",
+          "bind into visual workspace",
+          "reference in package plan"
+        ],
+        "extraction_status": "NOT_EXTRACTED",
+        "file_type": "invoice_artifact",
+        "hash_or_fingerprint_policy": "fingerprint_required_before_truth_or_mutation_claim",
+        "local_path_policy": "hidden_in_normal_read_model",
+        "next_safe_move": "Keep this as a governed source ref; request safe extraction only if needed.",
+        "original_filename": "invoice_artifact.example",
+        "privacy_class": "PRIVATE_METADATA_ONLY",
+        "prohibited_use": [
+          "raw body to LLM",
+          "hidden app automation",
+          "external send or submit",
+          "file mutation without approval",
+          "broad filesystem scan"
+        ],
+        "protected_ref_required": false,
+        "safe_display_label": "Attached invoice artifact",
+        "sensitivity_class": "BUSINESS_ARTIFACT_METADATA",
+        "source_card_ref": "source_card:source_ref_attached_invoice_artifact",
+        "source_ref_id": "source_ref_attached_invoice_artifact",
+        "source_surface": "operator_chat_attachment_or_reference",
+        "stale_or_current_status": "UNKNOWN_UNTIL_FINGERPRINTED"
+      }
+    },
+    "legal_contract_review_workspace": {
+      "legal_advice_authority": false,
+      "protected_posture": "Protected reference required before any extract.",
+      "raw_contract_body_to_llm": false,
+      "source_ref": {
+        "allowed_use": [
+          "show metadata",
+          "bind into visual workspace",
+          "reference in package plan"
+        ],
+        "extraction_status": "NOT_EXTRACTED",
+        "file_type": "contract_or_legal_doc",
+        "hash_or_fingerprint_policy": "fingerprint_required_before_truth_or_mutation_claim",
+        "local_path_policy": "hidden_in_normal_read_model",
+        "next_safe_move": "Keep this as a governed source ref; request safe extraction only if needed.",
+        "original_filename": "contract_review_source.example",
+        "privacy_class": "PROTECTED_METADATA_ONLY",
+        "prohibited_use": [
+          "raw body to LLM",
+          "hidden app automation",
+          "external send or submit",
+          "file mutation without approval",
+          "broad filesystem scan"
+        ],
+        "protected_ref_required": true,
+        "safe_display_label": "Contract source document",
+        "sensitivity_class": "LEGAL_OR_CONTRACT_SOURCE",
+        "source_card_ref": "source_card:source_ref_contract_review_source",
+        "source_ref_id": "source_ref_contract_review_source",
+        "source_surface": "operator_chat_attachment_or_reference",
+        "stale_or_current_status": "UNKNOWN_UNTIL_FINGERPRINTED"
+      },
+      "visual_workspace_request": {
+        "authority_boundary": {
+          "credential_handling_allowed": false,
+          "git_push_pull_fetch_allowed": false,
+          "live_agent_dispatch_allowed": false,
+          "live_app_automation_allowed": false,
+          "live_email_send_allowed": false,
+          "live_export_allowed": false,
+          "live_external_action_allowed": false,
+          "live_external_app_control_allowed": false,
+          "live_file_ingestion_allowed": false,
+          "live_file_mutation_allowed": false,
+          "live_model_call_allowed": false,
+          "live_project_edit_allowed": false,
+          "live_publish_allowed": false,
+          "live_raw_body_extraction_allowed": false,
+          "live_screen_recording_allowed": false,
+          "live_screenshot_capture_allowed": false,
+          "mac_sync_import_allowed": false,
+          "mission_control_swift_change_allowed": false,
+          "network_allowed": false,
+          "raw_body_ingestion_allowed": false
+        },
+        "display_requirements": [
+          "protected reference preview",
+          "legal advice authority false",
+          "extract only through governed future rail"
+        ],
+        "interaction_requirements": [
+          "read-only preview",
+          "collapsed proof/details",
+          "operator can ask follow-up in chat"
+        ],
+        "next_safe_move": "Route this visual workspace request as a non-executing package plan.",
+        "operator_goal": "Show the contract review workspace.",
+        "related_artifacts": [],
+        "requested_artifacts": [
+          "source_ref_contract_review_source"
+        ],
+        "source_chat_ref": "chat_ref_contract_review_workspace",
+        "target_machine": "LOCAL_ONLY",
+        "target_surface": "mac_visual_workspace",
+        "target_worker_type": "GUARDIAN",
+        "visual_mode": "SHOW_SOURCE_COMPARISON",
+        "workspace_bundle_ref": "workspace_bundle_contract_review",
+        "workspace_request_id": "workspace_request_contract_review"
+      }
+    },
+    "live_show_planning_workspace": {
+      "external_calendar_mutation_allowed": false,
+      "source_ref": {
+        "allowed_use": [
+          "show metadata",
+          "bind into visual workspace",
+          "reference in package plan"
+        ],
+        "extraction_status": "NOT_EXTRACTED",
+        "file_type": "calendar_or_event_reference",
+        "hash_or_fingerprint_policy": "fingerprint_required_before_truth_or_mutation_claim",
+        "local_path_policy": "hidden_in_normal_read_model",
+        "next_safe_move": "Keep this as a governed source ref; request safe extraction only if needed.",
+        "original_filename": "live_show_event_plan.example",
+        "privacy_class": "PRIVATE_METADATA_ONLY",
+        "prohibited_use": [
+          "raw body to LLM",
+          "hidden app automation",
+          "external send or submit",
+          "file mutation without approval",
+          "broad filesystem scan"
+        ],
+        "protected_ref_required": false,
+        "safe_display_label": "Live show planning source",
+        "sensitivity_class": "EVENT_PLANNING_METADATA",
+        "source_card_ref": "source_card:source_ref_live_show_event_plan",
+        "source_ref_id": "source_ref_live_show_event_plan",
+        "source_surface": "operator_chat_attachment_or_reference",
+        "stale_or_current_status": "UNKNOWN_UNTIL_FINGERPRINTED"
+      },
+      "visual_workspace_request": {
+        "authority_boundary": {
+          "credential_handling_allowed": false,
+          "git_push_pull_fetch_allowed": false,
+          "live_agent_dispatch_allowed": false,
+          "live_app_automation_allowed": false,
+          "live_email_send_allowed": false,
+          "live_export_allowed": false,
+          "live_external_action_allowed": false,
+          "live_external_app_control_allowed": false,
+          "live_file_ingestion_allowed": false,
+          "live_file_mutation_allowed": false,
+          "live_model_call_allowed": false,
+          "live_project_edit_allowed": false,
+          "live_publish_allowed": false,
+          "live_raw_body_extraction_allowed": false,
+          "live_screen_recording_allowed": false,
+          "live_screenshot_capture_allowed": false,
+          "mac_sync_import_allowed": false,
+          "mission_control_swift_change_allowed": false,
+          "network_allowed": false,
+          "raw_body_ingestion_allowed": false
+        },
+        "display_requirements": [
+          "timeline view",
+          "checklist view",
+          "no calendar mutation"
+        ],
+        "interaction_requirements": [
+          "read-only preview",
+          "collapsed proof/details",
+          "operator can ask follow-up in chat"
+        ],
+        "next_safe_move": "Route this visual workspace request as a non-executing package plan.",
+        "operator_goal": "Show the live show planning checklist and timeline.",
+        "related_artifacts": [],
+        "requested_artifacts": [
+          "source_ref_live_show_event_plan"
+        ],
+        "source_chat_ref": "chat_ref_live_show_workspace",
+        "target_machine": "MAC",
+        "target_surface": "mac_visual_workspace",
+        "target_worker_type": "MAC_CODEX",
+        "visual_mode": "SHOW_TIMELINE",
+        "workspace_bundle_ref": "workspace_bundle_live_show_planning",
+        "workspace_request_id": "workspace_request_live_show_planning"
+      }
+    },
+    "protected_proof_workspace": {
+      "guardian_may_be_required": true,
+      "raw_body_hidden": true,
+      "source_ref": {
+        "allowed_use": [
+          "show metadata",
+          "bind into visual workspace",
+          "reference in package plan"
+        ],
+        "extraction_status": "NOT_EXTRACTED",
+        "file_type": "screenshot",
+        "hash_or_fingerprint_policy": "fingerprint_required_before_truth_or_mutation_claim",
+        "local_path_policy": "hidden_in_normal_read_model",
+        "next_safe_move": "Keep this as a governed source ref; request safe extraction only if needed.",
+        "original_filename": "screenshot_proof.example",
+        "privacy_class": "PROTECTED_METADATA_ONLY",
+        "prohibited_use": [
+          "raw body to LLM",
+          "hidden app automation",
+          "external send or submit",
+          "file mutation without approval",
+          "broad filesystem scan"
+        ],
+        "protected_ref_required": true,
+        "safe_display_label": "Screenshot proof",
+        "sensitivity_class": "PROOF_SOURCE_METADATA",
+        "source_card_ref": "source_card:source_ref_screenshot_proof",
+        "source_ref_id": "source_ref_screenshot_proof",
+        "source_surface": "operator_chat_attachment_or_reference",
+        "stale_or_current_status": "UNKNOWN_UNTIL_FINGERPRINTED"
+      },
+      "visual_workspace_request": {
+        "authority_boundary": {
+          "credential_handling_allowed": false,
+          "git_push_pull_fetch_allowed": false,
+          "live_agent_dispatch_allowed": false,
+          "live_app_automation_allowed": false,
+          "live_email_send_allowed": false,
+          "live_export_allowed": false,
+          "live_external_action_allowed": false,
+          "live_external_app_control_allowed": false,
+          "live_file_ingestion_allowed": false,
+          "live_file_mutation_allowed": false,
+          "live_model_call_allowed": false,
+          "live_project_edit_allowed": false,
+          "live_publish_allowed": false,
+          "live_raw_body_extraction_allowed": false,
+          "live_screen_recording_allowed": false,
+          "live_screenshot_capture_allowed": false,
+          "mac_sync_import_allowed": false,
+          "mission_control_swift_change_allowed": false,
+          "network_allowed": false,
+          "raw_body_ingestion_allowed": false
+        },
+        "display_requirements": [
+          "protected evidence refs",
+          "raw bodies hidden",
+          "Guardian may be required"
+        ],
+        "interaction_requirements": [
+          "read-only preview",
+          "collapsed proof/details",
+          "operator can ask follow-up in chat"
+        ],
+        "next_safe_move": "Route this visual workspace request as a non-executing package plan.",
+        "operator_goal": "Show the protected proof workspace.",
+        "related_artifacts": [],
+        "requested_artifacts": [
+          "source_ref_screenshot_proof"
+        ],
+        "source_chat_ref": "chat_ref_protected_proof_workspace",
+        "target_machine": "LOCAL_ONLY",
+        "target_surface": "mac_visual_workspace",
+        "target_worker_type": "GUARDIAN",
+        "visual_mode": "SHOW_PROOF_PACKAGE",
+        "workspace_bundle_ref": "workspace_bundle_protected_proof",
+        "workspace_request_id": "workspace_request_protected_proof"
+      }
+    },
+    "screenshot_proof": {
+      "proof_role": "SCREENSHOT_PROOF",
+      "protected_evidence_reference_if_sensitive": true,
+      "raw_body_in_normal_read_model": false,
+      "source_ref": {
+        "allowed_use": [
+          "show metadata",
+          "bind into visual workspace",
+          "reference in package plan"
+        ],
+        "extraction_status": "NOT_EXTRACTED",
+        "file_type": "screenshot",
+        "hash_or_fingerprint_policy": "fingerprint_required_before_truth_or_mutation_claim",
+        "local_path_policy": "hidden_in_normal_read_model",
+        "next_safe_move": "Keep this as a governed source ref; request safe extraction only if needed.",
+        "original_filename": "screenshot_proof.example",
+        "privacy_class": "PROTECTED_METADATA_ONLY",
+        "prohibited_use": [
+          "raw body to LLM",
+          "hidden app automation",
+          "external send or submit",
+          "file mutation without approval",
+          "broad filesystem scan"
+        ],
+        "protected_ref_required": true,
+        "safe_display_label": "Screenshot proof",
+        "sensitivity_class": "PROOF_SOURCE_METADATA",
+        "source_card_ref": "source_card:source_ref_screenshot_proof",
+        "source_ref_id": "source_ref_screenshot_proof",
+        "source_surface": "operator_chat_attachment_or_reference",
+        "stale_or_current_status": "UNKNOWN_UNTIL_FINGERPRINTED"
+      }
+    },
+    "unsafe_automation_blocker": {
+      "app_automation_request": {
+        "allowed_commands": [
+          "show blocked send posture",
+          "prepare future approval requirements"
+        ],
+        "authority_boundary": {
+          "credential_handling_allowed": false,
+          "git_push_pull_fetch_allowed": false,
+          "live_agent_dispatch_allowed": false,
+          "live_app_automation_allowed": false,
+          "live_email_send_allowed": false,
+          "live_export_allowed": false,
+          "live_external_action_allowed": false,
+          "live_external_app_control_allowed": false,
+          "live_file_ingestion_allowed": false,
+          "live_file_mutation_allowed": false,
+          "live_model_call_allowed": false,
+          "live_project_edit_allowed": false,
+          "live_publish_allowed": false,
+          "live_raw_body_extraction_allowed": false,
+          "live_screen_recording_allowed": false,
+          "live_screenshot_capture_allowed": false,
+          "mac_sync_import_allowed": false,
+          "mission_control_swift_change_allowed": false,
+          "network_allowed": false,
+          "raw_body_ingestion_allowed": false
+        },
+        "automation_mode": "SEND_OR_SUBMIT_GATED",
+        "automation_request_id": "automation_request_mail_send_invoice_blocked",
+        "command_sequence_summary": "Send authority is requested but blocked until governed email/approval adapter exists.",
+        "dry_run_required": true,
+        "forbidden_commands": [
+          "send email",
+          "attach invoice",
+          "open external account",
+          "bypass Guardian approval"
+        ],
+        "mutation_allowed": false,
+        "next_safe_move": "Block send/export/publish and require governed email plus approval adapter later.",
+        "operator_goal": "Open Mail and send this invoice automatically.",
+        "required_backup_or_receipt": true,
+        "required_operator_confirmation": true,
+        "target_app": "Mail",
+        "target_machine": "MAC"
+      },
+      "blocker_type": "SEND_EXPORT_PUBLISH_WITHOUT_APPROVAL",
+      "email_send_blocked": true,
+      "operator_says": "Open Mail and send this invoice automatically.",
+      "requires_governed_email_approval_adapter": true
+    },
+    "video_edit_review_workspace": {
+      "expected_route": "MAC_CODEX / MAC for Final Cut or DaVinci display concepts.",
+      "project_mutation_or_export_allowed": false,
+      "source_ref": {
+        "allowed_use": [
+          "show metadata",
+          "bind into visual workspace",
+          "reference in package plan"
+        ],
+        "extraction_status": "NOT_EXTRACTED",
+        "file_type": "video_project_metadata",
+        "hash_or_fingerprint_policy": "fingerprint_required_before_truth_or_mutation_claim",
+        "local_path_policy": "hidden_in_normal_read_model",
+        "next_safe_move": "Keep this as a governed source ref; request safe extraction only if needed.",
+        "original_filename": "video_project_metadata.example",
+        "privacy_class": "PRIVATE_METADATA_ONLY",
+        "prohibited_use": [
+          "raw body to LLM",
+          "hidden app automation",
+          "external send or submit",
+          "file mutation without approval",
+          "broad filesystem scan"
+        ],
+        "protected_ref_required": false,
+        "safe_display_label": "Video project metadata",
+        "sensitivity_class": "CREATIVE_PROJECT_METADATA",
+        "source_card_ref": "source_card:source_ref_video_project_metadata",
+        "source_ref_id": "source_ref_video_project_metadata",
+        "source_surface": "operator_chat_attachment_or_reference",
+        "stale_or_current_status": "UNKNOWN_UNTIL_FINGERPRINTED"
+      },
+      "visual_workspace_request": {
+        "authority_boundary": {
+          "credential_handling_allowed": false,
+          "git_push_pull_fetch_allowed": false,
+          "live_agent_dispatch_allowed": false,
+          "live_app_automation_allowed": false,
+          "live_email_send_allowed": false,
+          "live_export_allowed": false,
+          "live_external_action_allowed": false,
+          "live_external_app_control_allowed": false,
+          "live_file_ingestion_allowed": false,
+          "live_file_mutation_allowed": false,
+          "live_model_call_allowed": false,
+          "live_project_edit_allowed": false,
+          "live_publish_allowed": false,
+          "live_raw_body_extraction_allowed": false,
+          "live_screen_recording_allowed": false,
+          "live_screenshot_capture_allowed": false,
+          "mac_sync_import_allowed": false,
+          "mission_control_swift_change_allowed": false,
+          "network_allowed": false,
+          "raw_body_ingestion_allowed": false
+        },
+        "display_requirements": [
+          "timeline metadata view",
+          "review notes",
+          "no project mutation/export"
+        ],
+        "interaction_requirements": [
+          "read-only preview",
+          "collapsed proof/details",
+          "operator can ask follow-up in chat"
+        ],
+        "next_safe_move": "Route this visual workspace request as a non-executing package plan.",
+        "operator_goal": "Prepare a video edit/review workspace.",
+        "related_artifacts": [],
+        "requested_artifacts": [
+          "source_ref_video_project_metadata"
+        ],
+        "source_chat_ref": "chat_ref_video_review_workspace",
+        "target_machine": "MAC",
+        "target_surface": "mac_visual_workspace",
+        "target_worker_type": "MAC_CODEX",
+        "visual_mode": "SHOW_TIMELINE",
+        "workspace_bundle_ref": "workspace_bundle_video_edit_review",
+        "workspace_request_id": "workspace_request_video_edit_review"
+      }
+    },
+    "visual_mode_transition": {
+      "expected_transition": "CHAT_ONLY -> VISUAL_WORKSPACE",
+      "operator_says": "Show me what's going on.",
+      "visual_mode_transition": {
+        "from_mode": "CHAT_ONLY",
+        "next_safe_move": "Ask what source or workflow should be shown if the target is ambiguous.",
+        "operator_intent": "Move from chat/background explanation into a visual workspace.",
+        "required_context": [
+          "source refs",
+          "current readback",
+          "worker route",
+          "authority boundary"
+        ],
+        "to_mode": "VISUAL_WORKSPACE",
+        "transition_id": "visual_transition_show_me_whats_going_on",
+        "trigger_phrase": "Show me what's going on.",
+        "visual_output": "A compact workspace card or workspace bundle showing current state, sources, missing items, and locks.",
+        "worker_route": "MAC_CODEX for display, PC_CODEX for source/proof package if needed."
+      }
+    }
+  },
+  "file_visual_workspace_blockers_by_id": {
+    "file_visual_workspace_blocker_broad_filesystem_scan": {
+      "blocker_id": "file_visual_workspace_blocker_broad_filesystem_scan",
+      "blocker_type": "BROAD_FILESYSTEM_SCAN",
+      "condition": "The request would scan broad folders or drives.",
+      "elioperator_warning": "Narrow the scope to named materials or a bounded project capsule.",
+      "fail_closed": true,
+      "next_safe_move": "Return a human-readable blocker and avoid ingestion, automation, mutation, or dispatch.",
+      "severity": "HIGH"
+    },
+    "file_visual_workspace_blocker_hidden_app_automation": {
+      "blocker_id": "file_visual_workspace_blocker_hidden_app_automation",
+      "blocker_type": "HIDDEN_APP_AUTOMATION",
+      "condition": "An app would be controlled silently or through hidden automation.",
+      "elioperator_warning": "Make the app-control scope explicit and gated before any future adapter.",
+      "fail_closed": true,
+      "next_safe_move": "Return a human-readable blocker and avoid ingestion, automation, mutation, or dispatch.",
+      "severity": "HIGH"
+    },
+    "file_visual_workspace_blocker_missing_backup_or_receipt": {
+      "blocker_id": "file_visual_workspace_blocker_missing_backup_or_receipt",
+      "blocker_type": "MISSING_BACKUP_OR_RECEIPT",
+      "condition": "A mutating or app-control action lacks backup or receipt posture.",
+      "elioperator_warning": "Add backup/receipt requirements before any future mutation package.",
+      "fail_closed": true,
+      "next_safe_move": "Return a human-readable blocker and avoid ingestion, automation, mutation, or dispatch.",
+      "severity": "HIGH"
+    },
+    "file_visual_workspace_blocker_mutation_without_approval": {
+      "blocker_id": "file_visual_workspace_blocker_mutation_without_approval",
+      "blocker_type": "MUTATION_WITHOUT_APPROVAL",
+      "condition": "A file or project mutation is requested without explicit approval.",
+      "elioperator_warning": "Require operator approval, backup or receipt posture, and a future gated adapter.",
+      "fail_closed": true,
+      "next_safe_move": "Return a human-readable blocker and avoid ingestion, automation, mutation, or dispatch.",
+      "severity": "HIGH"
+    },
+    "file_visual_workspace_blocker_private_file_path_visible": {
+      "blocker_id": "file_visual_workspace_blocker_private_file_path_visible",
+      "blocker_type": "PRIVATE_FILE_PATH_VISIBLE",
+      "condition": "A full private local path would be shown in normal cards or read-models.",
+      "elioperator_warning": "Hide the full path and show a safe display label.",
+      "fail_closed": true,
+      "next_safe_move": "Return a human-readable blocker and avoid ingestion, automation, mutation, or dispatch.",
+      "severity": "HIGH"
+    },
+    "file_visual_workspace_blocker_protected_file_without_guardian": {
+      "blocker_id": "file_visual_workspace_blocker_protected_file_without_guardian",
+      "blocker_type": "PROTECTED_FILE_WITHOUT_GUARDIAN",
+      "condition": "Protected material would be used without protected evidence posture.",
+      "elioperator_warning": "Route through protected refs and Guardian review when needed.",
+      "fail_closed": true,
+      "next_safe_move": "Return a human-readable blocker and avoid ingestion, automation, mutation, or dispatch.",
+      "severity": "HIGH"
+    },
+    "file_visual_workspace_blocker_raw_file_body_to_llm": {
+      "blocker_id": "file_visual_workspace_blocker_raw_file_body_to_llm",
+      "blocker_type": "RAW_FILE_BODY_TO_LLM",
+      "condition": "A raw source body would be placed into model context.",
+      "elioperator_warning": "Use a source ref, safe summary, or future governed extract instead.",
+      "fail_closed": true,
+      "next_safe_move": "Return a human-readable blocker and avoid ingestion, automation, mutation, or dispatch.",
+      "severity": "HIGH"
+    },
+    "file_visual_workspace_blocker_send_export_publish_without_approval": {
+      "blocker_id": "file_visual_workspace_blocker_send_export_publish_without_approval",
+      "blocker_type": "SEND_EXPORT_PUBLISH_WITHOUT_APPROVAL",
+      "condition": "Send, export, publish, or submit is requested without approval gates.",
+      "elioperator_warning": "Block the action and require a governed adapter plus approval receipt.",
+      "fail_closed": true,
+      "next_safe_move": "Return a human-readable blocker and avoid ingestion, automation, mutation, or dispatch.",
+      "severity": "HIGH"
+    },
+    "file_visual_workspace_blocker_stale_source_ref": {
+      "blocker_id": "file_visual_workspace_blocker_stale_source_ref",
+      "blocker_type": "STALE_SOURCE_REF",
+      "condition": "A source ref may not match current file state.",
+      "elioperator_warning": "Refresh or fingerprint the source ref before using it as truth.",
+      "fail_closed": true,
+      "next_safe_move": "Return a human-readable blocker and avoid ingestion, automation, mutation, or dispatch.",
+      "severity": "HIGH"
+    },
+    "file_visual_workspace_blocker_unbounded_folder_ingest": {
+      "blocker_id": "file_visual_workspace_blocker_unbounded_folder_ingest",
+      "blocker_type": "UNBOUNDED_FOLDER_INGEST",
+      "condition": "A folder/project capsule is treated as permission to ingest everything.",
+      "elioperator_warning": "Bind only named source refs or metadata until a scoped ingest rail exists.",
+      "fail_closed": true,
+      "next_safe_move": "Return a human-readable blocker and avoid ingestion, automation, mutation, or dispatch.",
+      "severity": "HIGH"
+    },
+    "file_visual_workspace_blocker_unknown_fail_closed": {
+      "blocker_id": "file_visual_workspace_blocker_unknown_fail_closed",
+      "blocker_type": "UNKNOWN_FAIL_CLOSED",
+      "condition": "The intake/workspace request cannot be classified.",
+      "elioperator_warning": "Fail closed and ask a clarifying question.",
+      "fail_closed": true,
+      "next_safe_move": "Return a human-readable blocker and avoid ingestion, automation, mutation, or dispatch.",
+      "severity": "CRITICAL"
+    },
+    "file_visual_workspace_blocker_unknown_file_type": {
+      "blocker_id": "file_visual_workspace_blocker_unknown_file_type",
+      "blocker_type": "UNKNOWN_FILE_TYPE",
+      "condition": "The file type cannot be classified safely.",
+      "elioperator_warning": "Fail closed and ask the operator to describe the file.",
+      "fail_closed": true,
+      "next_safe_move": "Return a human-readable blocker and avoid ingestion, automation, mutation, or dispatch.",
+      "severity": "HIGH"
+    },
+    "file_visual_workspace_blocker_unsafe_app_automation": {
+      "blocker_id": "file_visual_workspace_blocker_unsafe_app_automation",
+      "blocker_type": "UNSAFE_APP_AUTOMATION",
+      "condition": "An app automation command lacks an approved adapter and authority boundary.",
+      "elioperator_warning": "Keep it as a preview or package plan until the adapter exists.",
+      "fail_closed": true,
+      "next_safe_move": "Return a human-readable blocker and avoid ingestion, automation, mutation, or dispatch.",
+      "severity": "HIGH"
+    },
+    "file_visual_workspace_blocker_unscoped_file_ingestion": {
+      "blocker_id": "file_visual_workspace_blocker_unscoped_file_ingestion",
+      "blocker_type": "UNSCOPED_FILE_INGESTION",
+      "condition": "A file is ingested without declared scope.",
+      "elioperator_warning": "Ask what the file is for and create a scoped source ref first.",
+      "fail_closed": true,
+      "next_safe_move": "Return a human-readable blocker and avoid ingestion, automation, mutation, or dispatch.",
+      "severity": "HIGH"
+    },
+    "file_visual_workspace_blocker_visual_workspace_pretends_to_be_proof": {
+      "blocker_id": "file_visual_workspace_blocker_visual_workspace_pretends_to_be_proof",
+      "blocker_type": "VISUAL_WORKSPACE_PRETENDS_TO_BE_PROOF",
+      "condition": "A visual workspace is treated as proof by itself.",
+      "elioperator_warning": "Use receipts, source refs, fingerprints, and readbacks for truth.",
+      "fail_closed": true,
+      "next_safe_move": "Return a human-readable blocker and avoid ingestion, automation, mutation, or dispatch.",
+      "severity": "HIGH"
+    },
+    "file_visual_workspace_blocker_wrong_app_or_worker_target": {
+      "blocker_id": "file_visual_workspace_blocker_wrong_app_or_worker_target",
+      "blocker_type": "WRONG_APP_OR_WORKER_TARGET",
+      "condition": "A visual/app task is routed to the wrong worker or machine.",
+      "elioperator_warning": "Route Mac visual/app display to MAC_CODEX and backend source/proof work to PC_CODEX.",
+      "fail_closed": true,
+      "next_safe_move": "Return a human-readable blocker and avoid ingestion, automation, mutation, or dispatch.",
+      "severity": "HIGH"
+    }
+  },
+  "generated_at": "2026-05-25T00:00:00+00:00",
+  "intake_modes": [
+    "REFERENCE_ONLY",
+    "METADATA_ONLY",
+    "SAFE_EXTRACT_REQUESTED",
+    "PROTECTED_EVIDENCE_REFERENCE",
+    "VISUAL_WORKSPACE_SOURCE",
+    "TRANSIENT_SESSION_ONLY",
+    "ENCRYPTED_OR_PROTECTED",
+    "PUBLIC_OR_SHAREABLE",
+    "FUTURE_FULL_INGEST_GATED"
+  ],
+  "machine_proof": {
+    "agent_dispatch_performed": false,
+    "album_spreadsheet_song_doc_example_exists": true,
+    "all_live_authority_flags_false": true,
+    "app_automation_example_exists": true,
+    "app_automation_performed": false,
+    "app_automation_request_exists": true,
+    "app_automation_request_model_present": true,
+    "artifact_binding_exists": true,
+    "artifact_roles_exist": true,
+    "automation_modes_exist": true,
+    "blockers_exist": true,
+    "bug_debug_example_exists": true,
+    "client_delivery_example_exists": true,
+    "content_hash": "b9fabc0e92b08e30976fc8c58e0087d22348251f1c77096084074dbd881ea2e4",
+    "credential_handling_performed": false,
+    "credentials_or_secrets_included": false,
+    "email_send_performed": false,
+    "export_or_publish_performed": false,
+    "external_action_performed": false,
+    "external_app_control_performed": false,
+    "file_ingestion_performed": false,
+    "file_mutation_performed": false,
+    "file_types_exist": true,
+    "file_visual_workspace_blocker_model_present": true,
+    "git_push_pull_fetch_run": false,
+    "intake_modes_exist": true,
+    "invoice_artifact_example_exists": true,
+    "invoice_workspace_example_exists": true,
+    "legal_contract_example_exists": true,
+    "live_show_planning_example_exists": true,
+    "mac_sync_import_run": false,
+    "mission_control_swift_changed": false,
+    "model_call_performed": false,
+    "network_used": false,
+    "open_modes_exist": true,
+    "operator_file_intake_contract_model_present": true,
+    "operator_file_intake_visual_workspace_elioperator_report_model_present": true,
+    "operator_file_source_ref_model_present": true,
+    "project_edit_performed": false,
+    "protected_proof_example_exists": true,
+    "raw_body_extraction_performed": false,
+    "raw_body_ingestion_performed": false,
+    "raw_file_body_to_llm": false,
+    "raw_pii_in_generated_outputs": false,
+    "raw_private_bodies_included": false,
+    "screen_recording_performed": false,
+    "screenshot_capture_performed": false,
+    "screenshot_proof_example_exists": true,
+    "source_ref_model_exists": true,
+    "source_refs_hide_private_paths": true,
+    "target_apps_exist": true,
+    "target_surfaces_exist": true,
+    "unsafe_send_blocker_exists": true,
+    "video_edit_review_example_exists": true,
+    "visual_mode_transition_exists": true,
+    "visual_mode_transition_model_present": true,
+    "visual_modes_exist": true,
+    "visual_transition_modes_exist": true,
+    "visual_workspace_artifact_binding_model_present": true,
+    "visual_workspace_bundle_model_present": true,
+    "visual_workspace_request_exists": true,
+    "visual_workspace_request_model_present": true,
+    "workspace_bundle_exists": true
+  },
+  "model_schemas": {
+    "app_automation_request": {
+      "required_fields": [
+        "automation_request_id",
+        "operator_goal",
+        "target_app",
+        "target_machine",
+        "automation_mode",
+        "command_sequence_summary",
+        "allowed_commands",
+        "forbidden_commands",
+        "required_operator_confirmation",
+        "required_backup_or_receipt",
+        "dry_run_required",
+        "mutation_allowed",
+        "authority_boundary",
+        "next_safe_move"
+      ]
+    },
+    "file_visual_workspace_blocker": {
+      "required_fields": [
+        "blocker_id",
+        "blocker_type",
+        "condition",
+        "severity",
+        "elioperator_warning",
+        "fail_closed",
+        "next_safe_move"
+      ]
+    },
+    "operator_file_intake_contract": {
+      "required_fields": [
+        "contract_id",
+        "doctrine",
+        "supported_file_types",
+        "intake_modes",
+        "source_reference_policy",
+        "raw_body_policy",
+        "extraction_policy",
+        "pii_policy",
+        "protected_evidence_policy",
+        "visual_workspace_policy",
+        "automation_boundary_policy",
+        "worker_routing_policy",
+        "authority_boundary",
+        "next_safe_move"
+      ]
+    },
+    "operator_file_intake_visual_workspace_elioperator_report": {
+      "required_fields": [
+        "report_id",
+        "plain_summary",
+        "what_this_enables",
+        "what_this_does_not_do_yet",
+        "how_file_intake_works",
+        "how_visual_workspace_requests_work",
+        "how_app_automation_is_gated",
+        "how_agents_see_file_refs",
+        "how_worker_routing_applies",
+        "next_safe_move"
+      ]
+    },
+    "operator_file_source_ref": {
+      "required_fields": [
+        "source_ref_id",
+        "original_filename",
+        "file_type",
+        "source_surface",
+        "local_path_policy",
+        "safe_display_label",
+        "privacy_class",
+        "sensitivity_class",
+        "allowed_use",
+        "prohibited_use",
+        "extraction_status",
+        "protected_ref_required",
+        "hash_or_fingerprint_policy",
+        "source_card_ref",
+        "stale_or_current_status",
+        "next_safe_move"
+      ]
+    },
+    "visual_mode_transition": {
+      "required_fields": [
+        "transition_id",
+        "from_mode",
+        "to_mode",
+        "trigger_phrase",
+        "operator_intent",
+        "required_context",
+        "visual_output",
+        "worker_route",
+        "next_safe_move"
+      ]
+    },
+    "visual_workspace_artifact_binding": {
+      "required_fields": [
+        "binding_id",
+        "workspace_request_ref",
+        "artifact_role",
+        "source_ref",
+        "display_label",
+        "display_priority",
+        "open_mode",
+        "edit_allowed",
+        "mutation_allowed",
+        "proof_required",
+        "next_safe_move"
+      ]
+    },
+    "visual_workspace_bundle": {
+      "required_fields": [
+        "bundle_id",
+        "workspace_request_ref",
+        "primary_artifact",
+        "related_notes",
+        "proof_or_source_docs",
+        "timeline_or_history",
+        "task_status",
+        "next_actions",
+        "agent_progress",
+        "warnings_or_locks",
+        "source_refs",
+        "privacy_boundary",
+        "next_safe_move"
+      ]
+    },
+    "visual_workspace_request": {
+      "required_fields": [
+        "workspace_request_id",
+        "source_chat_ref",
+        "operator_goal",
+        "visual_mode",
+        "requested_artifacts",
+        "related_artifacts",
+        "workspace_bundle_ref",
+        "target_surface",
+        "target_worker_type",
+        "target_machine",
+        "display_requirements",
+        "interaction_requirements",
+        "authority_boundary",
+        "next_safe_move"
+      ]
+    }
+  },
+  "open_modes": [
+    "READ_ONLY_PREVIEW",
+    "OPEN_IN_MAC_APP_GATED",
+    "SHOW_METADATA_ONLY",
+    "PROTECTED_REFERENCE_ONLY",
+    "FUTURE_EDIT_GATED",
+    "FUTURE_EXPORT_GATED",
+    "FUTURE_PUBLISH_GATED"
+  ],
+  "operator_file_intake_contract": {
+    "authority_boundary": {
+      "credential_handling_allowed": false,
+      "git_push_pull_fetch_allowed": false,
+      "live_agent_dispatch_allowed": false,
+      "live_app_automation_allowed": false,
+      "live_email_send_allowed": false,
+      "live_export_allowed": false,
+      "live_external_action_allowed": false,
+      "live_external_app_control_allowed": false,
+      "live_file_ingestion_allowed": false,
+      "live_file_mutation_allowed": false,
+      "live_model_call_allowed": false,
+      "live_project_edit_allowed": false,
+      "live_publish_allowed": false,
+      "live_raw_body_extraction_allowed": false,
+      "live_screen_recording_allowed": false,
+      "live_screenshot_capture_allowed": false,
+      "mac_sync_import_allowed": false,
+      "mission_control_swift_change_allowed": false,
+      "network_allowed": false,
+      "raw_body_ingestion_allowed": false
+    },
+    "automation_boundary_policy": [
+      "Live app automation is false in this contract.",
+      "App open, inspect, mutate, export, publish, send, submit, and approve commands require future gated adapters.",
+      "Mutation requires explicit operator approval plus backup or receipt posture.",
+      "No arbitrary AppleScript or JXA automation is allowed by default."
+    ],
+    "contract_id": "operator_file_intake_visual_workspace_contract_v0",
+    "doctrine": [
+      "Chat is the operator command surface.",
+      "Files are source materials and become governed source refs.",
+      "Raw private bodies do not go to LLMs by default.",
+      "Agents see source refs, summaries, and allowed extracts.",
+      "Visual workspace requests are explicit operator intent.",
+      "Visual workspace is representation, not proof by itself.",
+      "Mutation and automation require scoped packages, approval, backup or receipt posture, and readbacks.",
+      "Truth remains receipts, source refs, hashes or fingerprints, approved extracts, and readbacks."
+    ],
+    "extraction_policy": [
+      "Safe extracts must be separately requested and scoped.",
+      "Protected or sensitive extracts require protected evidence and Guardian posture.",
+      "Extraction output must be summarized or tokenized before model context unless explicitly approved."
+    ],
+    "intake_modes": [
+      "REFERENCE_ONLY",
+      "METADATA_ONLY",
+      "SAFE_EXTRACT_REQUESTED",
+      "PROTECTED_EVIDENCE_REFERENCE",
+      "VISUAL_WORKSPACE_SOURCE",
+      "TRANSIENT_SESSION_ONLY",
+      "ENCRYPTED_OR_PROTECTED",
+      "PUBLIC_OR_SHAREABLE",
+      "FUTURE_FULL_INGEST_GATED"
+    ],
+    "next_safe_move": "Create source refs and workspace request plans; do not ingest, automate, mutate, or dispatch.",
+    "pii_policy": [
+      "Do not expose raw email bodies, private full paths, account identifiers, payment references, or protected bodies.",
+      "Use tokenized refs and safe labels in operator cards.",
+      "Run PII and private-body scans over generated outputs."
+    ],
+    "protected_evidence_policy": [
+      "Sensitive screenshots, contracts, emails, and proof materials can become protected refs.",
+      "Protected refs may be displayed as safe labels while raw bodies remain hidden.",
+      "Guardian review may be required before protected source material is used for decisions."
+    ],
+    "raw_body_policy": [
+      "Raw bodies are not ingested by default.",
+      "Normal read-models contain metadata, source refs, safe labels, and hash/fingerprint policy only.",
+      "Raw private body extraction requires a future governed extraction rail.",
+      "Unknown or broad source material fails closed."
+    ],
+    "source_reference_policy": [
+      "Use safe display labels instead of full private paths.",
+      "Store source refs and fingerprints, not raw file bodies, in normal generated read-models.",
+      "Route protected or sensitive sources through protected evidence posture.",
+      "Fail closed on broad folder ingestion or unknown file type."
+    ],
+    "supported_file_types": [
+      "spreadsheet",
+      "pdf",
+      "doc",
+      "rich_text_doc",
+      "image",
+      "screenshot",
+      "audio_session_or_project_metadata",
+      "video_project_metadata",
+      "invoice_artifact",
+      "contract_or_legal_doc",
+      "email_thread_reference",
+      "calendar_or_event_reference",
+      "database_or_export_file",
+      "folder_or_project_capsule",
+      "web_or_downloaded_source",
+      "unknown_file_fail_closed"
+    ],
+    "visual_workspace_policy": [
+      "A visual workspace is requested explicitly by the operator.",
+      "A workspace can bundle multiple related source refs, notes, task state, proof refs, warnings, and next actions.",
+      "Mac-side visual display routes to MAC_CODEX; backend proof/source packaging routes to PC_CODEX.",
+      "Visual display does not prove completion or source truth by itself."
+    ],
+    "worker_routing_policy": [
+      "Mac visual workspace and Apple-app display work routes to MAC_CODEX / MAC.",
+      "Backend source-ref, proof, package, and read-model work routes to PC_CODEX / PC_WSL.",
+      "Design, scouting, and taste audit routes to GEMINI_AGY.",
+      "Protected/sensitive proof posture routes to GUARDIAN.",
+      "Communications drafting routes to CASSANDRA when gated."
+    ]
+  },
+  "operator_markdown_mode": "ELIOPERATOR",
+  "read_model_id": "operator_file_intake_visual_workspace_contract",
+  "schema_version": "operator_file_intake_visual_workspace_contract_v0",
+  "supported_file_types": [
+    "spreadsheet",
+    "pdf",
+    "doc",
+    "rich_text_doc",
+    "image",
+    "screenshot",
+    "audio_session_or_project_metadata",
+    "video_project_metadata",
+    "invoice_artifact",
+    "contract_or_legal_doc",
+    "email_thread_reference",
+    "calendar_or_event_reference",
+    "database_or_export_file",
+    "folder_or_project_capsule",
+    "web_or_downloaded_source",
+    "unknown_file_fail_closed"
+  ],
+  "target_apps": [
+    "Mission Control",
+    "Logic Pro",
+    "Ableton",
+    "Final Cut Pro",
+    "DaVinci Resolve",
+    "Mail",
+    "Calendar",
+    "Contacts",
+    "Messages",
+    "Telegram Desktop",
+    "Finder",
+    "Browser",
+    "unknown_app_fail_closed"
+  ],
+  "target_surfaces": [
+    "mac_chat",
+    "mac_visual_workspace",
+    "future_split_view",
+    "future_external_app_view",
+    "developer_diagnostics",
+    "future_mobile",
+    "future_voice"
+  ],
+  "visual_modes": [
+    "SHOW_RELEVANT_FILES",
+    "SHOW_SPREADSHEET_AND_DOC",
+    "SHOW_WORKFLOW_STATE",
+    "SHOW_SONG_SESSION_CONTEXT",
+    "SHOW_INVOICE_PACKET",
+    "SHOW_PROOF_PACKAGE",
+    "SHOW_TIMELINE",
+    "SHOW_AGENT_PROGRESS",
+    "SHOW_SOURCE_COMPARISON",
+    "SHOW_TASK_BOARD",
+    "SHOW_ARTIFACT_PREVIEW",
+    "SHOW_PROJECT_MAP",
+    "SHOW_RELATIONSHIP_GRAPH",
+    "SHOW_CHECKLIST_OR_WORKFLOW_CHAIN",
+    "SHOW_MEDIA_SESSION_OVERVIEW",
+    "SHOW_BEFORE_AFTER_REVIEW",
+    "CHAT_ATTACHED_VISUAL_CARD",
+    "EXTERNAL_APP_HANDOFF_PREVIEW",
+    "UNKNOWN_NEEDS_FRAMING"
+  ],
+  "visual_transition_modes": [
+    "CHAT_ONLY",
+    "BACKGROUND_WORKING",
+    "VISUAL_WORKSPACE",
+    "APP_CONTROL_PREVIEW",
+    "PROOF_VIEW",
+    "COMPLETION_VIEW",
+    "UNKNOWN_FAIL_CLOSED"
+  ]
+}
