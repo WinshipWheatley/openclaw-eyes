@@ -1,0 +1,454 @@
+{
+  "authority_boundary": {
+    "agent_dispatch_allowed": false,
+    "approval_request_allowed": false,
+    "attachment_allowed": false,
+    "browser_automation_allowed": false,
+    "cloud_model_api_allowed": false,
+    "codex_cli_execution_allowed": false,
+    "coupa_access_allowed": false,
+    "coupa_submit_allowed": false,
+    "credential_handling_allowed": false,
+    "email_draft_allowed": false,
+    "email_send_allowed": false,
+    "external_action_allowed": false,
+    "git_push_pull_fetch_allowed": false,
+    "invoice_generation_allowed": false,
+    "mac_sync_import_allowed": false,
+    "mission_control_swift_change_allowed": false,
+    "network_allowed": false,
+    "payment_tracking_write_allowed": false,
+    "procedure_memory_write_allowed": false,
+    "raw_body_ingestion_allowed": false,
+    "tool_execution_allowed": false,
+    "workflow_execution_allowed": false
+  },
+  "blocker_types": [
+    "CODEX_PATH_MISSING",
+    "CODEX_CLI_EXECUTION_ATTEMPTED",
+    "CLOUD_API_ATTEMPTED",
+    "NETWORK_ATTEMPTED",
+    "TOOL_EXECUTION_ATTEMPTED",
+    "WORKFLOW_EXECUTION_ATTEMPTED",
+    "EXTERNAL_ACTION_ATTEMPTED",
+    "CREDENTIAL_INCLUDED",
+    "RAW_PRIVATE_BODY_INCLUDED",
+    "FAKE_TRUTH_CLAIM",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "codex_chat_context_package": {
+    "allowed_response_scope": [
+      "explain workflow understanding",
+      "ask follow-up question",
+      "name missing proof",
+      "state locked actions",
+      "suggest next safe move"
+    ],
+    "excluded_context_summary": [
+      "credentials",
+      "tokens",
+      "cookies",
+      "raw email bodies",
+      "raw PDFs or Excel bodies",
+      "protected evidence bodies",
+      "secrets",
+      "private raw bodies",
+      "external account data"
+    ],
+    "forbidden_claims": [
+      "invoice generated",
+      "email drafted",
+      "email sent",
+      "Coupa accessed",
+      "Coupa submitted",
+      "approval requested",
+      "approval granted",
+      "workflow executed",
+      "procedure stored",
+      "payment state updated",
+      "INVOICE SENT"
+    ],
+    "included_context_refs": [
+      "router_readback_0b0e06d2547c555b794f",
+      "chat_readback_card_mirror",
+      "openclaw_chat_responder_readback"
+    ],
+    "included_summary": "OpenClaw routed the Capital Hilton invoice message to draft human cards. Codex should explain the draft understanding, missing pieces, locked actions, and next safe move in operator language.",
+    "known_facts": [
+      "4 dates at $400 each working basis",
+      "Excel/PDF companion invoice desired",
+      "Annette contact candidate",
+      "Coupa/PO payment rail candidate",
+      "invoice should be saved for records"
+    ],
+    "locked_actions": [
+      "email draft",
+      "email send",
+      "Coupa access",
+      "Coupa submit",
+      "browser automation",
+      "approval request",
+      "invoice generation",
+      "attachment",
+      "payment state update"
+    ],
+    "missing_items": [
+      "exact Coupa PO/reference or a decision to keep discovery open",
+      "confirmation that Annette is the correct contact",
+      "final invoice artifact/hash",
+      "Guardian approval",
+      "send/submit receipts"
+    ],
+    "next_safe_move": "Produce the bounded Codex reply without claiming execution.",
+    "package_id": "codex_chat_response_context_capital_hilton_invoice_workflow_1779667089053_da4719d0757a",
+    "package_type": "CODEX_CHAT_RESPONSE_CONTEXT_PACKAGE",
+    "request_ref": "openclaw_codex_chat_request_capital_hilton_invoice_workflow_1779667089053_da4719d0757a",
+    "sensitivity_class": "client_private_sanitized_metadata_only",
+    "truth_boundary": "Codex may explain the readback, but receipts/readbacks remain truth."
+  },
+  "codex_handoff_packet": {
+    "cli_execution_required_now": false,
+    "expected_return_shape": [
+      "assistant_message",
+      "suggested_next_question",
+      "locked_actions",
+      "truth_boundary"
+    ],
+    "handoff_id": "codex_handoff_packet_capital_hilton_invoice_workflow_1779667089053_da4719d0757a",
+    "handoff_status": "CODEX_HANDOFF_READY",
+    "invocation_pattern_ref": "RUNBOOK.md#Codex Invocation Pattern",
+    "next_safe_move": "Use this packet only if a future turn needs to re-ask Codex; this readback already contains the bounded reply.",
+    "prompt_text": "You are Codex responding inside OpenClaw chat.\nUse only the safe context below. Do not execute tools or external actions.\n\nKnown facts:\n- 4 dates at $400 each working basis\n- Excel/PDF companion invoice desired\n- Annette contact candidate\n- Coupa/PO payment rail candidate\n- invoice should be saved for records\n\nMissing items:\n- exact Coupa PO/reference or a decision to keep discovery open\n- confirmation that Annette is the correct contact\n- final invoice artifact/hash\n- Guardian approval\n- send/submit receipts\n\nLocked actions:\n- email draft\n- email send\n- Coupa access\n- Coupa submit\n- browser automation\n- approval request\n- invoice generation\n- attachment\n- payment state update\n\nTruth boundary: Codex may explain the readback, but receipts/readbacks remain truth.\n\nRespond in one concise operator-facing paragraph and one follow-up question.",
+    "prompt_title": "Capital Hilton invoice workflow chat response",
+    "request_ref": "openclaw_codex_chat_request_capital_hilton_invoice_workflow_1779667089053_da4719d0757a",
+    "target_ref": "codex_responder_target_capital_hilton_invoice_workflow_1779667089053_da4719d0757a",
+    "tool_execution_allowed": false
+  },
+  "codex_responder_target": {
+    "approved_handoff_path": "RUNBOOK.md Codex invocation pattern and runner_registry codex runner",
+    "codex_cli_present": true,
+    "model_target_label": "codex_current_session",
+    "next_safe_move": "Return Codex's bounded assistant reply to the Mac chat readback.",
+    "preferred_target": "codex_5_5",
+    "request_ref": "openclaw_codex_chat_request_capital_hilton_invoice_workflow_1779667089053_da4719d0757a",
+    "responder_role": "codex_workflow_explainer",
+    "response_source": "active PC Codex worker serialized this response readback",
+    "selected": true,
+    "selected_target": "pc_codex_current_worker",
+    "target_id": "codex_responder_target_capital_hilton_invoice_workflow_1779667089053_da4719d0757a"
+  },
+  "contract_status": "CODEX_CHAT_RESPONDER_READBACK_READY",
+  "fixture": "capital_hilton",
+  "generated_at": "2026-05-25T01:52:46+00:00",
+  "machine_proof": {
+    "all_authority_flags_false": true,
+    "capital_hilton_reply_present": true,
+    "cloud_model_api_used": false,
+    "codex_blocker_model_present": true,
+    "codex_cli_not_executed": true,
+    "codex_handoff_packet_model_present": true,
+    "codex_path_present": true,
+    "codex_readback_model_present": true,
+    "codex_target_model_present": true,
+    "content_hash": "0356ee0136b184f1c26ac87048c08b713f9e110fecde5b1dbfde6deacaf54355",
+    "context_package_built": true,
+    "context_package_model_present": true,
+    "credentials_or_secrets_included": false,
+    "email_or_coupa_or_browser_accessed": false,
+    "external_actions_locked": true,
+    "follow_up_present": true,
+    "git_push_pull_fetch_run": false,
+    "handoff_packet_ready": true,
+    "mac_sync_import_run": false,
+    "mission_control_swift_changed": false,
+    "network_used": false,
+    "no_false_execution_claims": true,
+    "private_context_excluded": true,
+    "raw_pii_included": false,
+    "raw_private_bodies_included": false,
+    "request_model_present": true,
+    "response_status_ready": true,
+    "selected_target_is_codex": true,
+    "tool_execution_not_allowed": true,
+    "truth_boundary_present": true,
+    "workflow_executed": false
+  },
+  "model_schemas": {
+    "codex_chat_context_package": {
+      "required_fields": [
+        "package_id",
+        "request_ref",
+        "package_type",
+        "included_context_refs",
+        "included_summary",
+        "excluded_context_summary",
+        "known_facts",
+        "missing_items",
+        "locked_actions",
+        "truth_boundary",
+        "allowed_response_scope",
+        "forbidden_claims",
+        "sensitivity_class",
+        "next_safe_move"
+      ]
+    },
+    "codex_handoff_packet": {
+      "required_fields": [
+        "handoff_id",
+        "request_ref",
+        "target_ref",
+        "handoff_status",
+        "prompt_title",
+        "prompt_text",
+        "invocation_pattern_ref",
+        "cli_execution_required_now",
+        "tool_execution_allowed",
+        "expected_return_shape",
+        "next_safe_move"
+      ]
+    },
+    "codex_responder_target": {
+      "required_fields": [
+        "target_id",
+        "request_ref",
+        "preferred_target",
+        "selected_target",
+        "model_target_label",
+        "responder_role",
+        "codex_cli_present",
+        "approved_handoff_path",
+        "response_source",
+        "selected",
+        "next_safe_move"
+      ]
+    },
+    "openclaw_codex_chat_responder_blocker": {
+      "required_fields": [
+        "blocker_id",
+        "blocker_type",
+        "condition",
+        "severity",
+        "elioperator_warning",
+        "fail_closed",
+        "next_safe_move"
+      ]
+    },
+    "openclaw_codex_chat_responder_request": {
+      "required_fields": [
+        "request_id",
+        "source_chat_request_ref",
+        "source_router_readback_ref",
+        "workflow_ref",
+        "workflow_type",
+        "world_ref",
+        "lane_ref",
+        "client_ref",
+        "tenant_ref",
+        "operator_message_summary",
+        "privacy_class",
+        "next_safe_move"
+      ]
+    },
+    "openclaw_codex_chat_response_readback": {
+      "required_fields": [
+        "readback_id",
+        "request_ref",
+        "context_package_ref",
+        "codex_target_ref",
+        "handoff_packet_ref",
+        "response_status",
+        "selected_responder",
+        "model_target_label",
+        "assistant_message",
+        "suggested_next_question",
+        "cards_for_mac",
+        "locked_actions",
+        "truth_boundary",
+        "missing_rails",
+        "next_safe_move"
+      ]
+    }
+  },
+  "openclaw_codex_chat_responder_blockers_by_id": {
+    "openclaw_codex_chat_responder_blocker_cloud_api_attempted": {
+      "blocker_id": "openclaw_codex_chat_responder_blocker_cloud_api_attempted",
+      "blocker_type": "CLOUD_API_ATTEMPTED",
+      "condition": "A direct cloud model API call was attempted.",
+      "elioperator_warning": "ELIOPERATOR: A direct cloud model API call was attempted.",
+      "fail_closed": true,
+      "next_safe_move": "Return a blocked readback or use the bounded handoff packet.",
+      "severity": "BLOCKS_CODEX_RESPONSE"
+    },
+    "openclaw_codex_chat_responder_blocker_codex_cli_execution_attempted": {
+      "blocker_id": "openclaw_codex_chat_responder_blocker_codex_cli_execution_attempted",
+      "blocker_type": "CODEX_CLI_EXECUTION_ATTEMPTED",
+      "condition": "Codex CLI execution was attempted in this packaging lane.",
+      "elioperator_warning": "ELIOPERATOR: Codex CLI execution was attempted in this packaging lane.",
+      "fail_closed": true,
+      "next_safe_move": "Return a blocked readback or use the bounded handoff packet.",
+      "severity": "BLOCKS_CODEX_RESPONSE"
+    },
+    "openclaw_codex_chat_responder_blocker_codex_path_missing": {
+      "blocker_id": "openclaw_codex_chat_responder_blocker_codex_path_missing",
+      "blocker_type": "CODEX_PATH_MISSING",
+      "condition": "Codex responder path is not available.",
+      "elioperator_warning": "ELIOPERATOR: Codex responder path is not available.",
+      "fail_closed": true,
+      "next_safe_move": "Return a blocked readback or use the bounded handoff packet.",
+      "severity": "BLOCKS_CODEX_RESPONSE"
+    },
+    "openclaw_codex_chat_responder_blocker_credential_included": {
+      "blocker_id": "openclaw_codex_chat_responder_blocker_credential_included",
+      "blocker_type": "CREDENTIAL_INCLUDED",
+      "condition": "Credential material was included.",
+      "elioperator_warning": "ELIOPERATOR: Credential material was included.",
+      "fail_closed": true,
+      "next_safe_move": "Return a blocked readback or use the bounded handoff packet.",
+      "severity": "BLOCKS_CODEX_RESPONSE"
+    },
+    "openclaw_codex_chat_responder_blocker_external_action_attempted": {
+      "blocker_id": "openclaw_codex_chat_responder_blocker_external_action_attempted",
+      "blocker_type": "EXTERNAL_ACTION_ATTEMPTED",
+      "condition": "External action was attempted.",
+      "elioperator_warning": "ELIOPERATOR: External action was attempted.",
+      "fail_closed": true,
+      "next_safe_move": "Return a blocked readback or use the bounded handoff packet.",
+      "severity": "BLOCKS_CODEX_RESPONSE"
+    },
+    "openclaw_codex_chat_responder_blocker_fake_truth_claim": {
+      "blocker_id": "openclaw_codex_chat_responder_blocker_fake_truth_claim",
+      "blocker_type": "FAKE_TRUTH_CLAIM",
+      "condition": "Codex reply claimed state that receipts do not prove.",
+      "elioperator_warning": "ELIOPERATOR: Codex reply claimed state that receipts do not prove.",
+      "fail_closed": true,
+      "next_safe_move": "Return a blocked readback or use the bounded handoff packet.",
+      "severity": "BLOCKS_CODEX_RESPONSE"
+    },
+    "openclaw_codex_chat_responder_blocker_network_attempted": {
+      "blocker_id": "openclaw_codex_chat_responder_blocker_network_attempted",
+      "blocker_type": "NETWORK_ATTEMPTED",
+      "condition": "Network access was attempted.",
+      "elioperator_warning": "ELIOPERATOR: Network access was attempted.",
+      "fail_closed": true,
+      "next_safe_move": "Return a blocked readback or use the bounded handoff packet.",
+      "severity": "BLOCKS_CODEX_RESPONSE"
+    },
+    "openclaw_codex_chat_responder_blocker_raw_private_body_included": {
+      "blocker_id": "openclaw_codex_chat_responder_blocker_raw_private_body_included",
+      "blocker_type": "RAW_PRIVATE_BODY_INCLUDED",
+      "condition": "Raw private body content was included.",
+      "elioperator_warning": "ELIOPERATOR: Raw private body content was included.",
+      "fail_closed": true,
+      "next_safe_move": "Return a blocked readback or use the bounded handoff packet.",
+      "severity": "BLOCKS_CODEX_RESPONSE"
+    },
+    "openclaw_codex_chat_responder_blocker_tool_execution_attempted": {
+      "blocker_id": "openclaw_codex_chat_responder_blocker_tool_execution_attempted",
+      "blocker_type": "TOOL_EXECUTION_ATTEMPTED",
+      "condition": "Tool execution was attempted.",
+      "elioperator_warning": "ELIOPERATOR: Tool execution was attempted.",
+      "fail_closed": true,
+      "next_safe_move": "Return a blocked readback or use the bounded handoff packet.",
+      "severity": "BLOCKS_CODEX_RESPONSE"
+    },
+    "openclaw_codex_chat_responder_blocker_unknown_fail_closed": {
+      "blocker_id": "openclaw_codex_chat_responder_blocker_unknown_fail_closed",
+      "blocker_type": "UNKNOWN_FAIL_CLOSED",
+      "condition": "Unknown Codex responder state fails closed.",
+      "elioperator_warning": "ELIOPERATOR: Unknown Codex responder state fails closed.",
+      "fail_closed": true,
+      "next_safe_move": "Return a blocked readback or use the bounded handoff packet.",
+      "severity": "BLOCKS_CODEX_RESPONSE"
+    },
+    "openclaw_codex_chat_responder_blocker_workflow_execution_attempted": {
+      "blocker_id": "openclaw_codex_chat_responder_blocker_workflow_execution_attempted",
+      "blocker_type": "WORKFLOW_EXECUTION_ATTEMPTED",
+      "condition": "Workflow execution was attempted.",
+      "elioperator_warning": "ELIOPERATOR: Workflow execution was attempted.",
+      "fail_closed": true,
+      "next_safe_move": "Return a blocked readback or use the bounded handoff packet.",
+      "severity": "BLOCKS_CODEX_RESPONSE"
+    }
+  },
+  "openclaw_codex_chat_responder_request": {
+    "client_ref": "capital_hilton",
+    "lane_ref": "capital_hilton",
+    "next_safe_move": "Route the safe context package to Codex and return a bounded assistant reply.",
+    "operator_message_summary": "Capital Hilton invoice workflow request; record invoice; contact follow-up; Coupa PO supplier invoice",
+    "privacy_class": "client_private_or_operator_provided_sanitized_summary",
+    "request_id": "openclaw_codex_chat_request_capital_hilton_invoice_workflow_1779667089053_da4719d0757a",
+    "source_chat_request_ref": "capital_hilton_invoice_workflow_1779667089053_da4719d0757a",
+    "source_router_readback_ref": "router_readback_0b0e06d2547c555b794f",
+    "tenant_ref": "operator_winship_local",
+    "workflow_ref": "capital_hilton_invoice_workflow",
+    "workflow_type": "invoice_delivery_workflow",
+    "world_ref": "finance"
+  },
+  "openclaw_codex_chat_response_readback": {
+    "assistant_message": "I understand the workflow: use the captured four-date/$400 basis, create the Winship-branded Excel/PDF invoice, send it to Annette for records/payment follow-up, and keep Coupa/PO as the official payment rail. This is still draft understanding, not execution. To make it runnable, OpenClaw still needs the exact Coupa PO/reference or a decision to keep discovery open, plus confirmation that Annette is the correct contact. Nothing has been sent or submitted.",
+    "cards_for_mac": [
+      {
+        "card_type": "CODEX_REPLY",
+        "status": "CODEX_RESPONSE_READY",
+        "summary": "Codex explained the draft workflow and kept external actions locked.",
+        "title": "Codex replied",
+        "truth_status": "DRAFT_EXPLANATION_NOT_TRUTH"
+      },
+      {
+        "card_type": "NEXT_QUESTION",
+        "status": "CODEX_RESPONSE_READY",
+        "summary": "Do you have the exact Coupa PO/reference, or should OpenClaw keep discovery open?",
+        "title": "Next question",
+        "truth_status": "OPERATOR_INPUT_NEEDED"
+      },
+      {
+        "card_type": "LOCKED_ACTIONS",
+        "status": "CODEX_RESPONSE_READY",
+        "summary": "No email, Coupa, browser, approval, invoice generation, attachment, or payment update happened.",
+        "title": "Still locked",
+        "truth_status": "LOCKED_EXTERNAL_ACTION"
+      }
+    ],
+    "codex_target_ref": "codex_responder_target_capital_hilton_invoice_workflow_1779667089053_da4719d0757a",
+    "context_package_ref": "codex_chat_response_context_capital_hilton_invoice_workflow_1779667089053_da4719d0757a",
+    "handoff_packet_ref": "codex_handoff_packet_capital_hilton_invoice_workflow_1779667089053_da4719d0757a",
+    "locked_actions": [
+      "email draft",
+      "email send",
+      "Coupa access",
+      "Coupa submit",
+      "browser automation",
+      "approval request",
+      "invoice generation",
+      "attachment",
+      "payment state update"
+    ],
+    "missing_rails": [],
+    "model_target_label": "codex_current_session",
+    "next_safe_move": "Show the Codex reply in Mac chat and wait for the operator's confirmation or correction.",
+    "readback_id": "openclaw_codex_chat_response_readback_capital_hilton_invoice_workflow_1779667089053_da4719d0757a",
+    "request_ref": "openclaw_codex_chat_request_capital_hilton_invoice_workflow_1779667089053_da4719d0757a",
+    "response_status": "CODEX_RESPONSE_READY",
+    "selected_responder": "Codex",
+    "suggested_next_question": "Do you have the exact Coupa PO/reference, or should OpenClaw keep discovery open?",
+    "truth_boundary": "Codex may explain the readback, but receipts/readbacks remain truth."
+  },
+  "operator_markdown_mode": "ELIOPERATOR",
+  "read_model_id": "openclaw_codex_chat_response_readback",
+  "response_statuses": [
+    "CODEX_RESPONSE_READY",
+    "CODEX_HANDOFF_READY",
+    "CODEX_PATH_MISSING",
+    "CODEX_CALL_FAILED",
+    "BLOCKED_PRIVACY_BOUNDARY",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "schema_version": "openclaw_codex_chat_responder_v0",
+  "source_refs": {
+    "card_mirror": "generated/read_models/chat_readback_card_mirror.json",
+    "prior_responder_readback": "generated/read_models/openclaw_chat_responder_readback.json",
+    "router_readback": "generated/read_models/conversational_workflow_router_readback.json",
+    "runbook_codex_pattern": "RUNBOOK.md#Codex Invocation Pattern",
+    "runner_registry_codex": "runner_registry.py:codex"
+  }
+}
