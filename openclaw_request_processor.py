@@ -21,6 +21,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 import chat_readback_card_mirror
+import capital_hilton_invoice_operator_readback
 import conversational_workflow_router_intake
 import operator_file_metadata_intake
 import scoped_context_package_compiler_contract
@@ -607,6 +608,146 @@ def _should_export_package_compiler(raw_request: Mapping[str, Any]) -> bool:
     return ("make" in text and "happen" in text) or "package" in text or "workflow preparation" in text
 
 
+def _capital_hilton_status_text(raw_request: Mapping[str, Any]) -> str:
+    fields = (
+        "operator_message",
+        "sanitized_message_summary",
+        "operator_goal",
+        "workflow_ref",
+        "workflow_type",
+        "world_ref",
+        "lane_ref",
+        "client_ref",
+        "tenant_ref",
+    )
+    return " ".join(str(raw_request.get(field) or "") for field in fields).lower()
+
+
+def _is_capital_hilton_invoice_status_request(raw_request: Mapping[str, Any]) -> bool:
+    text = _capital_hilton_status_text(raw_request)
+    capital_context = (
+        "capital hilton" in text
+        or "capital_hilton" in text
+        or "capital-hilton" in text
+        or str(raw_request.get("client_ref") or "").lower() == "capital_hilton"
+    )
+    invoice_context = "invoice" in text
+    status_intent = any(
+        phrase in text
+        for phrase in (
+            "invoice status",
+            "where are we",
+            "ready",
+            "mark invoice sent",
+            "invoice sent",
+            "what is missing",
+            "what's missing",
+            "whats missing",
+            "missing for capital hilton",
+            "blocking",
+            "blocked",
+            "blockers",
+            "show me the invoice status",
+            "can we mark",
+            "can i mark",
+        )
+    )
+    return capital_context and invoice_context and status_intent
+
+
+def _capital_hilton_status_classification(classification: RequestClassification) -> RequestClassification:
+    return RequestClassification(
+        classification_id=f"request_classification_{_short_hash(classification.source_request_filename, 'capital_hilton_status')}",
+        source_request_filename=classification.source_request_filename,
+        request_family=classification.request_family,
+        selected_rail="capital_hilton_invoice_operator_readback",
+        classification_reason=(
+            "Filename matches Mission Control chat request pattern, and message asks for Capital Hilton invoice status."
+        ),
+        future_supported=False,
+        next_safe_move="Export the unified Capital Hilton invoice operator readback and return it to Mac chat.",
+    )
+
+
+def _process_capital_hilton_status_request(
+    request_path: Path,
+    raw_request: Mapping[str, Any],
+    *,
+    export_root: Path,
+    generated_at: str | None,
+    classification: RequestClassification,
+) -> OpenClawResponseForMac:
+    status_classification = _capital_hilton_status_classification(classification)
+    payload = capital_hilton_invoice_operator_readback.build_and_export(
+        generated_at=generated_at or capital_hilton_invoice_operator_readback.DEFAULT_GENERATED_AT,
+        export_root=export_root,
+        readmodel_root=export_root,
+        format_name="json",
+    )
+    chat = payload["chat_response"]
+    unified_status = payload["unified_status"]
+    json_ref = (export_root / capital_hilton_invoice_operator_readback.JSON_EXPORT_NAME).as_posix()
+    operator_ref = (export_root / capital_hilton_invoice_operator_readback.OPERATOR_EXPORT_NAME).as_posix()
+    readback_files = (json_ref, operator_ref)
+    ready = tuple(str(item) for item in chat.get("what_is_ready", ()))
+    missing = tuple(str(item) for item in chat.get("what_is_missing", ()))
+    blocked = tuple(str(item) for item in chat.get("what_is_blocked", ()))
+    request_id = str(raw_request.get("request_id") or f"capital_hilton_status_{_short_hash(request_path.name)}")
+    workflow_ref = str(raw_request.get("workflow_ref") or capital_hilton_invoice_operator_readback.WORKFLOW_REF)
+    can_mark_invoice_sent = bool(unified_status.get("can_mark_invoice_sent"))
+    return OpenClawResponseForMac(
+        source_request_id=request_id,
+        source_request_filename=request_path.name,
+        workflow_ref=workflow_ref,
+        request_type="CHAT",
+        internal_status="RESPONSE_READY",
+        operator_headline=str(chat["operator_headline"]),
+        operator_message=str(chat["operator_message"]),
+        what_happened=(
+            "PC recognized a Capital Hilton invoice status question.",
+            "PC exported the unified Capital Hilton invoice operator readback.",
+            "PC shaped that readback into a Mac-readable response.",
+            "No workflow, email, Coupa, browser, approval, payment, completion, or external action occurred.",
+        ),
+        why_it_happened="The chat text and request context matched Capital Hilton invoice status/readiness/blocker intent.",
+        how_to_fix=str(chat["how_to_fix"]),
+        visible_cards=(
+            {
+                "title": str(chat["operator_headline"]),
+                "bullets": (
+                    str(chat["concise_summary"]),
+                    "Ready: " + ("; ".join(ready[:3]) if ready else "no execution-ready items"),
+                    "Missing: " + ("; ".join(missing[:4]) if missing else "no missing proof in this fixture"),
+                    "Blocked: " + ("; ".join(blocked[:4]) if blocked else "no blocked action in this fixture"),
+                    f"Can mark invoice sent: {can_mark_invoice_sent}",
+                ),
+                "status_tone": "blocked" if not can_mark_invoice_sent else "ready",
+            },
+        ),
+        cards_available=True,
+        card_mirror_refs=(),
+        file_readback_refs=(),
+        worker_route_refs=(),
+        context_package_refs=(),
+        blocked_reason=None,
+        detail_disclosure={
+            "selected_readback_ref": json_ref,
+            "operator_readback_ref": operator_ref,
+            "request_classification": asdict(status_classification),
+            "can_mark_invoice_sent": can_mark_invoice_sent,
+            "can_send_email": bool(unified_status.get("can_send_email")),
+            "can_submit_coupa": bool(unified_status.get("can_submit_coupa")),
+            "can_run_workflow": bool(unified_status.get("can_run_workflow")),
+            "completion_label_status": unified_status.get("completion_label_status"),
+            "detail_refs": tuple(chat.get("detail_refs", ())),
+            "external_actions_locked": True,
+            "model_or_worker_response_adapter_called": False,
+        },
+        readback_files=readback_files,
+        next_safe_move=str(chat["next_safe_move"]),
+    )
+
+
 def _process_chat_request(
     request_path: Path,
     raw_request: Mapping[str, Any],
@@ -615,6 +756,15 @@ def _process_chat_request(
     generated_at: str | None,
     classification: RequestClassification,
 ) -> OpenClawResponseForMac:
+    if _is_capital_hilton_invoice_status_request(raw_request):
+        return _process_capital_hilton_status_request(
+            request_path,
+            raw_request,
+            export_root=export_root,
+            generated_at=generated_at,
+            classification=classification,
+        )
+
     router_payload = conversational_workflow_router_intake.build_payload_from_request_file(
         request_path,
         generated_at=generated_at,

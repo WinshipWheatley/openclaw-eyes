@@ -24,6 +24,22 @@ def _write_chat_request(path: Path) -> dict:
     return request
 
 
+def _write_capital_hilton_status_request(path: Path) -> dict:
+    request = chat_intake.make_capital_hilton_fixture_request(created_at=FIXED_NOW)
+    request.update(
+        {
+            "request_id": "mission_control_chat_request_capital_hilton_status_service_fixture",
+            "workflow_ref": "capital_hilton_invoice_workflow",
+            "operator_message": "where are we with the Capital Hilton invoice?",
+            "sanitized_message_summary": "where are we with the Capital Hilton invoice?",
+            "idempotency_key": "mc_chat_capital_hilton_invoice_status_service_fixture",
+        }
+    )
+    request["payload_hash"] = chat_intake.compute_request_payload_hash(request)
+    path.write_text(chat_intake.stable_json(request), encoding="utf-8")
+    return request
+
+
 def _write_file_request(path: Path, *, fixture: str = "spreadsheet") -> dict:
     request = file_intake.make_fixture_request(fixture, created_at=FIXED_NOW)
     path.write_text(file_intake.stable_json(request), encoding="utf-8")
@@ -116,6 +132,46 @@ def test_service_processes_chat_request_and_writes_per_request_response(tmp_path
     assert response["how_to_fix"]
     assert "RESPONSE_READY" not in response["operator_message"]
     assert request_path.exists()
+
+
+def test_service_routes_capital_hilton_status_query_to_mac_response(tmp_path, capsys):
+    inbox = tmp_path / "inbox"
+    response_dir = tmp_path / "responses"
+    export_root = tmp_path / "read_models"
+    inbox.mkdir()
+    request_path = inbox / "mission_control_chat_request_capital_hilton_status.json"
+    request = _write_capital_hilton_status_request(request_path)
+
+    assert service_main(
+        [
+            "--once",
+            "--inbox",
+            str(inbox),
+            "--response-dir",
+            str(response_dir),
+            "--export-root",
+            str(export_root),
+            "--generated-at",
+            FIXED_NOW,
+            "--format",
+            "json",
+        ]
+    ) == 0
+    payload = json.loads(capsys.readouterr().out)
+    response_path = _safe_response_path(response_dir, request["request_id"])
+    latest_path = response_dir / service.LATEST_RESPONSE_EXPORT_NAME
+    response = json.loads(response_path.read_text(encoding="utf-8"))
+    latest = json.loads(latest_path.read_text(encoding="utf-8"))
+
+    assert payload["service_status"]["service_status"] == "REQUEST_PROCESSED"
+    assert response["source_request_id"] == request["request_id"]
+    assert latest["source_request_id"] == request["request_id"]
+    assert response["operator_headline"] == "Capital Hilton invoice workflow is not ready yet"
+    assert "Nothing has been sent, submitted, opened, approved, or marked complete" in response["operator_message"]
+    assert response["how_to_fix"]
+    assert response["detail_disclosure"]["can_mark_invoice_sent"] is False
+    assert response["terminal"] is True
+    assert any(path.endswith("capital_hilton_invoice_operator_readback.json") for path in response["readback_files"])
 
 
 def test_service_processes_file_metadata_request_and_writes_response(tmp_path, capsys):

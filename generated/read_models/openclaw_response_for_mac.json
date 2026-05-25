@@ -35,24 +35,42 @@
   "context_package_refs": [],
   "contract_status": "BOUNDED_OPENCLAW_REQUEST_LIFECYCLE_PROCESSOR",
   "detail_disclosure": {
-    "file_readback_ref": "generated/read_models/operator_file_metadata_readback.json",
-    "persistent_registry_write": false,
+    "can_mark_invoice_sent": false,
+    "can_run_workflow": false,
+    "can_send_email": false,
+    "can_submit_coupa": false,
+    "completion_label_status": "BLOCKED_MISSING_RECEIPTS",
+    "detail_refs": [
+      "generated/read_models/workflow_execution_package_compiler.json",
+      "generated/read_models/invoice_artifact_readback.json",
+      "generated/read_models/gated_email_draft_adapter.json",
+      "generated/read_models/gated_email_send_adapter.json",
+      "generated/read_models/coupa_supplier_portal_package_compiler.json",
+      "generated/read_models/gated_coupa_submit_adapter.json",
+      "generated/read_models/invoice_delivery_run_package_assembler.json",
+      "generated/read_models/invoice_delivery_dry_run_harness.json",
+      "generated/read_models/invoice_delivery_completion_proof_aggregator.json",
+      "generated/read_models/guardian_approval_request_wrapper.json",
+      "generated/read_models/protected_secret_intake_contract.json",
+      "generated/read_models/operator_file_metadata_readback.json"
+    ],
+    "external_actions_locked": true,
+    "model_or_worker_response_adapter_called": false,
+    "operator_readback_ref": "generated/read_models/capital_hilton_invoice_operator_readback_OPERATOR.md",
     "request_classification": {
-      "classification_id": "request_classification_b70e9bf3905dcd0f8f45",
-      "classification_reason": "Filename matches Mission Control file metadata intake pattern.",
+      "classification_id": "request_classification_62da93dc9704877b6c19",
+      "classification_reason": "Filename matches Mission Control chat request pattern, and message asks for Capital Hilton invoice status.",
       "future_supported": false,
-      "next_safe_move": "Run the selected deterministic rail once and write a Mac-readable response.",
-      "request_family": "FILE_METADATA",
-      "selected_rail": "operator_file_metadata_intake",
-      "source_request_filename": "mission_control_file_intake_request_service_v1_watch_20260525_221500.json"
+      "next_safe_move": "Export the unified Capital Hilton invoice operator readback and return it to Mac chat.",
+      "request_family": "CHAT",
+      "selected_rail": "capital_hilton_invoice_operator_readback",
+      "source_request_filename": "mission_control_chat_request_capital_hilton_status_service_20260525_223000.json"
     },
-    "source_ref_id": "source_ref:b5f98fa224cc3621e2c0"
+    "selected_readback_ref": "generated/read_models/capital_hilton_invoice_operator_readback.json"
   },
-  "file_readback_refs": [
-    "generated/read_models/operator_file_metadata_readback.json"
-  ],
-  "generated_at": "2026-05-25T22:11:09+00:00",
-  "how_to_fix": "No fix is needed. Use the source ref in a visual workspace later, or request governed extraction when that rail exists.",
+  "file_readback_refs": [],
+  "generated_at": "2026-05-25T22:16:01+00:00",
+  "how_to_fix": "Confirm the Coupa PO/reference, verify protected refs, then create Guardian and exact operator approval receipts. After future gated send/submit lanes produce receipts, rerun completion proof aggregation.",
   "internal_status": "RESPONSE_READY",
   "machine_proof": {
     "agent_dispatch_performed": false,
@@ -63,7 +81,7 @@
     "blocked_has_how_to_fix": true,
     "broad_scan_performed": false,
     "browser_access_performed": false,
-    "content_hash": "sha256:3e762022ff458a062a1c7c42a917aeafcbef0af0e86ab9c522471cf668f9bb04",
+    "content_hash": "sha256:1be8a24f55ad2e3c4eb9b497c868aef3e56795666843cb4fb060d43d9e3437fa",
     "coupa_access_or_submit_performed": false,
     "credential_handling_performed": false,
     "credentials_or_secrets_included": false,
@@ -103,37 +121,38 @@
     "watcher_started": false,
     "workflow_execution_performed": false
   },
-  "next_safe_move": "Show the file reference card and ask whether to use it in a visual workspace.",
-  "operator_headline": "File reference captured",
-  "operator_message": "OpenClaw captured a file reference for 'Capital Hilton invoice.xlsx'. The file body was not read.",
+  "next_safe_move": "Confirm the Coupa PO/reference, then create Guardian and exact operator approval receipts before any future gated send or submit adapter can act.",
+  "operator_headline": "Capital Hilton invoice workflow is not ready yet",
+  "operator_message": "Capital Hilton invoice is not ready to run yet. OpenClaw has the delivery basis, but still needs confirmed Coupa PO/reference, protected Coupa credential ref for any future portal login, Guardian and exact operator approval receipts for send and submit, future email send receipt and attachment proof. Nothing has been sent, submitted, opened, approved, or marked complete.",
   "read_model_id": "openclaw_response_for_mac",
   "readback_files": [
-    "generated/read_models/operator_file_metadata_readback.json",
-    "generated/read_models/operator_file_metadata_readback_OPERATOR.md"
+    "generated/read_models/capital_hilton_invoice_operator_readback.json",
+    "generated/read_models/capital_hilton_invoice_operator_readback_OPERATOR.md"
   ],
-  "request_type": "FILE_METADATA",
+  "request_type": "CHAT",
   "schema_version": "openclaw_request_processor_v0",
-  "source_request_filename": "mission_control_file_intake_request_service_v1_watch_20260525_221500.json",
-  "source_request_id": "capital_hilton_service_v1_file_metadata_watch_20260525_221500",
+  "source_request_filename": "mission_control_chat_request_capital_hilton_status_service_20260525_223000.json",
+  "source_request_id": "capital_hilton_invoice_status_service_20260525_223000",
   "visible_cards": [
     {
       "bullets": [
-        "Referenced source: Capital Hilton invoice.xlsx.",
-        "Detected type: invoice_artifact.",
-        "The file body was not read, parsed, OCRed, or sent to a model.",
-        "This can be used later as a source for a visual workspace or governed extraction.",
-        "Full private paths are hidden from the normal read-model."
+        "Draft/artifact review can continue, but send, Coupa submit, workflow run, and INVOICE SENT remain locked.",
+        "Ready: delivery basis is modeled for four Capital Hilton performance dates at $400/show; bounded invoice artifact and hash refs are available when the artifact builder readback is current; local email draft artifact is available for review when the draft adapter readback is current",
+        "Missing: confirmed Coupa PO/reference; protected Coupa credential ref for any future portal login; Guardian and exact operator approval receipts for send and submit; future email send receipt and attachment proof",
+        "Blocked: email send; Mail/Gmail send; Coupa access and submit; browser automation",
+        "Can mark invoice sent: False"
       ],
-      "status_tone": "ready",
-      "title": "File reference captured"
+      "status_tone": "blocked",
+      "title": "Capital Hilton invoice workflow is not ready yet"
     }
   ],
   "what_happened": [
-    "PC validated the file metadata request.",
-    "PC created a metadata-only source ref readback.",
-    "No file body was read or parsed."
+    "PC recognized a Capital Hilton invoice status question.",
+    "PC exported the unified Capital Hilton invoice operator readback.",
+    "PC shaped that readback into a Mac-readable response.",
+    "No workflow, email, Coupa, browser, approval, payment, completion, or external action occurred."
   ],
-  "why_it_happened": "The request passed metadata-only validation.",
+  "why_it_happened": "The chat text and request context matched Capital Hilton invoice status/readiness/blocker intent.",
   "worker_route_refs": [],
   "workflow_ref": "capital_hilton_invoice_workflow"
 }

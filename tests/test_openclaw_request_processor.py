@@ -22,6 +22,22 @@ def _write_chat_request(path: Path, *, created_at: str = FIXED_NOW) -> dict:
     return request
 
 
+def _write_capital_hilton_status_request(path: Path, *, message: str, created_at: str = FIXED_NOW) -> dict:
+    request = chat_intake.make_capital_hilton_fixture_request(created_at=created_at)
+    request.update(
+        {
+            "request_id": "mission_control_chat_request_capital_hilton_status_fixture",
+            "workflow_ref": "capital_hilton_invoice_workflow",
+            "operator_message": message,
+            "sanitized_message_summary": message,
+            "idempotency_key": "mc_chat_capital_hilton_invoice_status_fixture",
+        }
+    )
+    request["payload_hash"] = chat_intake.compute_request_payload_hash(request)
+    path.write_text(chat_intake.stable_json(request), encoding="utf-8")
+    return request
+
+
 def _write_file_request(path: Path, *, fixture: str = "spreadsheet", created_at: str = FIXED_NOW) -> dict:
     request = file_intake.make_fixture_request(fixture, created_at=created_at)
     path.write_text(file_intake.stable_json(request), encoding="utf-8")
@@ -130,6 +146,49 @@ def test_file_argument_processes_specific_file_request(tmp_path, capsys):
     assert "Capital Hilton invoice.xlsx" in response["operator_message"]
     assert "RESPONSE_READY" not in response["operator_message"]
     assert response["file_readback_refs"]
+
+
+def test_capital_hilton_status_query_routes_to_unified_operator_readback(tmp_path, capsys):
+    request_path = tmp_path / "mission_control_chat_request_capital_hilton_status.json"
+    request = _write_capital_hilton_status_request(
+        request_path,
+        message="what's the Capital Hilton invoice status?",
+    )
+    export_root = tmp_path / "read_models"
+
+    assert process_main(["--file", str(request_path), "--export-root", str(export_root), "--generated-at", FIXED_NOW, "--format", "json"]) == 0
+    response = json.loads(capsys.readouterr().out)
+    status = _read_status(export_root)
+
+    assert response["source_request_id"] == request["request_id"]
+    assert response["request_type"] == "CHAT"
+    assert response["internal_status"] == "RESPONSE_READY"
+    assert response["operator_headline"] == "Capital Hilton invoice workflow is not ready yet"
+    assert "Capital Hilton invoice is not ready" in response["operator_message"]
+    assert "Nothing has been sent, submitted, opened, approved, or marked complete" in response["operator_message"]
+    assert "RESPONSE_READY" not in response["operator_message"]
+    assert response["detail_disclosure"]["selected_readback_ref"].endswith("capital_hilton_invoice_operator_readback.json")
+    assert response["detail_disclosure"]["can_mark_invoice_sent"] is False
+    assert any(path.endswith("capital_hilton_invoice_operator_readback.json") for path in response["readback_files"])
+    assert status["processor_status"]["selected_rail"] == "capital_hilton_invoice_operator_readback"
+
+
+def test_capital_hilton_mark_invoice_sent_question_returns_false_without_proof(tmp_path, capsys):
+    request_path = tmp_path / "mission_control_chat_request_capital_hilton_sent_status.json"
+    _write_capital_hilton_status_request(
+        request_path,
+        message="can we mark invoice sent?",
+    )
+    export_root = tmp_path / "read_models"
+
+    assert process_main(["--file", str(request_path), "--export-root", str(export_root), "--generated-at", FIXED_NOW, "--format", "json"]) == 0
+    response = json.loads(capsys.readouterr().out)
+
+    assert response["operator_headline"] == "Capital Hilton invoice workflow is not ready yet"
+    assert response["detail_disclosure"]["can_mark_invoice_sent"] is False
+    assert "approval receipts" in response["how_to_fix"]
+    assert "INVOICE SENT" not in response["operator_headline"]
+    assert response["machine_proof"]["external_action_performed"] is False
 
 
 def test_file_argument_accepts_mac_metadata_hash_contract(tmp_path, capsys):
