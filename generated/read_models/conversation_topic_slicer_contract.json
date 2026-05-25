@@ -1,0 +1,1208 @@
+{
+  "allowed_contract_scope": [
+    "deterministic contract/read-model generation",
+    "examples",
+    "tests",
+    "ELIOPERATOR report"
+  ],
+  "authority_boundary": {
+    "credential_handling_allowed": false,
+    "git_push_pull_fetch_allowed": false,
+    "live_agent_retrieval_allowed": false,
+    "live_cross_scope_query_allowed": false,
+    "live_delete_allowed": false,
+    "live_external_action_allowed": false,
+    "live_folder_move_allowed": false,
+    "live_graph_link_write_allowed": false,
+    "live_raw_transcript_copy_allowed": false,
+    "live_raw_transcript_ingestion_allowed": false,
+    "live_reorganization_allowed": false,
+    "live_thread_split_allowed": false,
+    "live_topic_slicing_allowed": false,
+    "mac_sync_import_allowed": false,
+    "mission_control_swift_change_allowed": false,
+    "network_allowed": false,
+    "raw_body_ingestion_allowed": false
+  },
+  "blocker_types": [
+    "RAW_TRANSCRIPT_COPIED",
+    "RAW_TRANSCRIPT_EXPOSED",
+    "SOURCE_PROVENANCE_MISSING",
+    "CROSS_CLIENT_LEAK",
+    "CROSS_TENANT_LEAK",
+    "SILENT_DESTRUCTIVE_REORGANIZATION",
+    "AUTO_MOVE_TOO_DISRUPTIVE",
+    "MESSAGE_POINTER_MISSING",
+    "UNKNOWN_FOLDER",
+    "AMBIGUOUS_TOPIC",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "contract_status": "DETERMINISTIC_NON_DESTRUCTIVE_CONVERSATION_TOPIC_SLICER_CONTRACT",
+  "conversation_topic_slicer_contract": {
+    "authority_boundary": {
+      "credential_handling_allowed": false,
+      "git_push_pull_fetch_allowed": false,
+      "live_agent_retrieval_allowed": false,
+      "live_cross_scope_query_allowed": false,
+      "live_delete_allowed": false,
+      "live_external_action_allowed": false,
+      "live_folder_move_allowed": false,
+      "live_graph_link_write_allowed": false,
+      "live_raw_transcript_copy_allowed": false,
+      "live_raw_transcript_ingestion_allowed": false,
+      "live_reorganization_allowed": false,
+      "live_thread_split_allowed": false,
+      "live_topic_slicing_allowed": false,
+      "mac_sync_import_allowed": false,
+      "mission_control_swift_change_allowed": false,
+      "network_allowed": false,
+      "raw_body_ingestion_allowed": false
+    },
+    "contract_id": "conversation_topic_slicer_contract_v0",
+    "doctrine": [
+      "Original chat thread remains intact.",
+      "Topic slices are pointer/index records, not copied raw transcript bodies.",
+      "Topic slices can link one chat to multiple worlds and folders.",
+      "Reorganization proposals are suggestions, not silent truth.",
+      "Operator review is required for disruptive move or split actions.",
+      "Agents receive scoped topic/context packages later, not whole raw threads."
+    ],
+    "folder_projection_policy": [
+      "Folder links are projections and aliases, not memory truth.",
+      "A topic may appear in multiple projected folders through links.",
+      "Folder mutation is not allowed in v0."
+    ],
+    "graph_link_policy": [
+      "Graph links point to semantic nodes and folder projections from the memory graph read-model.",
+      "Low-risk links can be candidates for future auto-application only when no privacy or cross-client risk exists.",
+      "Cross-client or cross-tenant linking fails closed unless explicitly allowed."
+    ],
+    "message_pointer_policy": [
+      "Use stable pointer-like message refs such as msg_0001.",
+      "Store start/end refs and range policy, not raw message bodies.",
+      "Missing message pointers fail closed."
+    ],
+    "next_safe_move": "Export non-destructive topic slice examples and wait for a future approved slicer/runtime before writing links.",
+    "privacy_boundary": [
+      "No raw transcript in normal read-models.",
+      "No private raw body copied into topic slices.",
+      "Protected/legal/private details remain summary or reference only.",
+      "Cross-client leakage fails closed."
+    ],
+    "provenance_policy": [
+      "Every slice must preserve source thread and message range provenance.",
+      "Every graph link carries a provenance ref.",
+      "Every proposal records whether provenance is preserved."
+    ],
+    "reorganization_proposal_policy": [
+      "Non-disruptive link suggestions can be parked or shown to the operator.",
+      "Move and split proposals require operator review.",
+      "Destructive delete is never allowed in v0.",
+      "Ignored suggestions may fade into chat history without blocking work."
+    ],
+    "source_thread_policy": [
+      "Thread refs keep the original world/folder context and current primary projection.",
+      "Thread summaries are safe display summaries.",
+      "Raw transcript text is not allowed in normal read-models.",
+      "Message ranges may be referenced by pointer only."
+    ],
+    "topic_slice_policy": [
+      "Slices describe a bounded topic with message pointer range, candidate graph targets, and safe summary.",
+      "Slices do not claim final truth.",
+      "Slices do not move, delete, truncate, or rewrite the source thread.",
+      "Cross-world links can be proposed when provenance and scope are preserved."
+    ]
+  },
+  "conversation_topic_slicer_elioperator_report": {
+    "how_graph_links_work": "Slice links target semantic graph nodes and projected folders while preserving scope and privacy boundaries.",
+    "how_provenance_is_preserved": "Every slice keeps source thread plus start/end message refs; every graph link carries a provenance ref.",
+    "how_reorganization_suggestions_work": "Links can be suggested; moves and splits require operator review; delete is not allowed.",
+    "how_topic_slices_work": "A slice stores inferred topic, safe summary, source thread ref, message pointer range, and candidate graph/folder targets.",
+    "next_safe_move": "Use this contract as the shape for future topic slicer output; do not write links until an approved rail exists.",
+    "plain_summary": "OpenClaw can model topic slices from a drifting chat without moving or copying the original conversation.",
+    "report_id": "conversation_topic_slicer_elioperator_report_v0",
+    "what_this_does_not_do_yet": "It does not run live slicing, ingest transcripts, write graph links, move folders, split threads, retrieve agents, or execute external actions.",
+    "what_this_enables": "One chat can point into several worlds/folders through safe topic slices and graph links."
+  },
+  "disruption_levels": [
+    "SILENT_LOW_RISK_LINK_CANDIDATE",
+    "NON_DISRUPTIVE_SUGGESTION",
+    "REVIEW_REQUIRED_MOVE",
+    "REVIEW_REQUIRED_SPLIT",
+    "BLOCKED_DESTRUCTIVE"
+  ],
+  "examples": {
+    "misfiled_chat": {
+      "expected_behavior": [
+        "Capital Hilton-specific slice remains linked to finance/capital_hilton/invoices",
+        "general architecture slice proposes link to build/openclaw/invoice_workflows",
+        "no silent destructive move",
+        "provenance preserved"
+      ],
+      "initial_folder": "finance/capital_hilton",
+      "proposal_ref": "proposal_misfiled_invoice_architecture_link",
+      "thread_ref": "thread_ref_finance_misfiled_invoice_architecture",
+      "topic_slice_refs": [
+        "topic_slice_capital_hilton_invoice_specific",
+        "topic_slice_invoice_automation_architecture"
+      ]
+    },
+    "one_chat_three_topics": {
+      "expected_behavior": [
+        "original thread remains in music/live_music",
+        "topic slices reference message ranges",
+        "links proposed to target folders",
+        "no destructive move",
+        "provenance preserved",
+        "disruptive moves require operator review"
+      ],
+      "expected_target_folders": [
+        "music/live_music/setlists",
+        "music/live_music/x32/routing",
+        "music/studio/album/songwriting",
+        "communications/bookings"
+      ],
+      "initial_folder": "music/live_music",
+      "proposal_ref": "proposal_multitopic_live_music_links",
+      "thread_ref": "thread_ref_music_live_multitopic_setlist",
+      "topic_slice_refs": [
+        "topic_slice_setlist_ideas",
+        "topic_slice_x32_routing_issue",
+        "topic_slice_new_song_arrangement",
+        "topic_slice_booking_followup"
+      ],
+      "topics": [
+        "setlist ideas",
+        "X32 routing issue",
+        "new song arrangement",
+        "booking and client follow-up"
+      ]
+    },
+    "raw_transcript_copy_blocker": {
+      "attempt": "copy full source transcript into generated topic slice read-model",
+      "blocker_type": "RAW_TRANSCRIPT_COPIED",
+      "expected_behavior": "blocked; use message pointer refs and safe summary only"
+    },
+    "struna_drift": {
+      "initial_context": "creative/music discussion",
+      "operator_review_required": true,
+      "privacy_note": "raw legal/private details are not exposed",
+      "proposal_ref": "proposal_struna_cross_world_review",
+      "thread_ref": "thread_ref_struna_creative_build_licensing",
+      "topic_slices": [
+        "creative/music slice",
+        "build/Mac app slice",
+        "legal/licensing summary slice"
+      ]
+    },
+    "x32_fader_replacement": {
+      "expected_target": "music/live_music/x32/maintenance",
+      "future_recommendation": "RESUME_EXISTING_THREAD candidate only; no live retrieval in this contract.",
+      "operator_resume_phrase": "Pick up the X32 fader replacement thread.",
+      "proposal_ref": "proposal_x32_fader_resume_candidate",
+      "thread_ref": "thread_ref_x32_fader_replacement",
+      "topic_slice_ref": "topic_slice_x32_fader_replacement"
+    }
+  },
+  "generated_at": "2026-05-25T00:00:00+00:00",
+  "graph_link_relationship_types": [
+    "RELATED_TO",
+    "BELONGS_TO_SCOPE",
+    "SUPPORTS_PROCEDURE",
+    "SUPPORTS_ARTIFACT",
+    "SUPPORTS_PROOF",
+    "SUGGESTED_FOLDER_LINK",
+    "UNKNOWN"
+  ],
+  "machine_proof": {
+    "agent_retrieval_run": false,
+    "all_links_have_provenance": true,
+    "all_live_authority_flags_false": true,
+    "all_proposals_disallow_deletion": true,
+    "all_proposals_preserve_provenance": true,
+    "all_receipts_do_not_move_or_copy_raw_body": true,
+    "all_receipts_preserve_provenance": true,
+    "all_slices_have_message_pointers": true,
+    "blockers_present": true,
+    "content_hash": "f5e87e5aba908edb1a387db928957a03662dd19a85970ba0d8a172491151063f",
+    "conversation_topic_slicer_contract_model_present": true,
+    "conversation_topic_slicer_elioperator_report_model_present": true,
+    "credentials_or_secrets_included": false,
+    "cross_client_leak_blocked": true,
+    "cross_scope_query_run": false,
+    "disruption_levels_present": true,
+    "external_action_performed": false,
+    "git_push_pull_fetch_run": false,
+    "graph_link_write_performed": false,
+    "live_topic_slicing_performed": false,
+    "mac_sync_import_run": false,
+    "message_pointer_policy_exists": true,
+    "misfiled_chat_example_exists": true,
+    "mission_control_swift_changed": false,
+    "one_chat_three_topics_example_exists": true,
+    "raw_private_bodies_included": false,
+    "raw_transcript_copied": false,
+    "raw_transcript_copy_blocker_exists": true,
+    "raw_transcript_disallowed_in_threads": true,
+    "raw_transcript_ingested": false,
+    "receipt_actions_present": true,
+    "relationship_types_present": true,
+    "reorganization_move_split_delete_performed": false,
+    "silent_destructive_reorganization_blocked": true,
+    "source_chat_thread_ref_model_present": true,
+    "struna_drift_example_exists": true,
+    "suggested_actions_present": true,
+    "topic_slice_blocker_model_present": true,
+    "topic_slice_graph_link_model_present": true,
+    "topic_slice_model_present": true,
+    "topic_slice_receipt_model_present": true,
+    "topic_slice_reorganization_proposal_model_present": true,
+    "x32_fader_replacement_example_exists": true
+  },
+  "model_schemas": {
+    "conversation_topic_slicer_contract": {
+      "required_fields": [
+        "contract_id",
+        "doctrine",
+        "source_thread_policy",
+        "topic_slice_policy",
+        "message_pointer_policy",
+        "graph_link_policy",
+        "folder_projection_policy",
+        "reorganization_proposal_policy",
+        "provenance_policy",
+        "privacy_boundary",
+        "authority_boundary",
+        "next_safe_move"
+      ]
+    },
+    "conversation_topic_slicer_elioperator_report": {
+      "required_fields": [
+        "report_id",
+        "plain_summary",
+        "what_this_enables",
+        "what_this_does_not_do_yet",
+        "how_topic_slices_work",
+        "how_provenance_is_preserved",
+        "how_reorganization_suggestions_work",
+        "how_graph_links_work",
+        "next_safe_move"
+      ]
+    },
+    "source_chat_thread_ref": {
+      "required_fields": [
+        "thread_ref",
+        "initial_world_ref",
+        "initial_folder_ref",
+        "current_primary_world_ref",
+        "current_primary_folder_ref",
+        "thread_title",
+        "safe_summary",
+        "message_count_policy",
+        "raw_transcript_available_policy",
+        "raw_transcript_allowed_in_read_model",
+        "topic_slice_refs",
+        "source_refs",
+        "artifact_refs",
+        "receipt_refs",
+        "privacy_class",
+        "sensitivity_class",
+        "next_safe_move"
+      ]
+    },
+    "topic_slice": {
+      "required_fields": [
+        "topic_slice_ref",
+        "source_thread_ref",
+        "inferred_topic",
+        "slice_summary",
+        "message_range_policy",
+        "message_start_ref",
+        "message_end_ref",
+        "world_ref",
+        "folder_ref",
+        "candidate_graph_node_refs",
+        "candidate_relationship_refs",
+        "relevant_source_refs",
+        "relevant_artifact_refs",
+        "relevant_procedure_refs",
+        "confidence",
+        "operator_review_required",
+        "suggested_action",
+        "next_safe_move"
+      ]
+    },
+    "topic_slice_blocker": {
+      "required_fields": [
+        "blocker_id",
+        "blocker_type",
+        "condition",
+        "severity",
+        "elioperator_warning",
+        "fail_closed",
+        "next_safe_move"
+      ]
+    },
+    "topic_slice_graph_link": {
+      "required_fields": [
+        "link_ref",
+        "topic_slice_ref",
+        "source_thread_ref",
+        "target_node_ref",
+        "target_world_ref",
+        "target_folder_ref",
+        "relationship_type",
+        "confidence",
+        "operator_review_required",
+        "provenance_ref",
+        "privacy_class",
+        "next_safe_move"
+      ]
+    },
+    "topic_slice_receipt": {
+      "required_fields": [
+        "receipt_id",
+        "proposal_ref",
+        "action",
+        "affected_thread_ref",
+        "affected_topic_slice_refs",
+        "source_folder_refs",
+        "target_folder_refs",
+        "provenance_preserved",
+        "raw_body_moved",
+        "raw_body_copied",
+        "operator_approved",
+        "created_at_policy",
+        "next_safe_move"
+      ]
+    },
+    "topic_slice_reorganization_proposal": {
+      "required_fields": [
+        "proposal_id",
+        "source_thread_ref",
+        "topic_slice_refs",
+        "proposed_links",
+        "proposed_moves",
+        "proposed_new_folders",
+        "proposed_thread_splits",
+        "reason",
+        "confidence",
+        "disruption_level",
+        "operator_review_required",
+        "provenance_preserved",
+        "deletion_allowed",
+        "approval_status",
+        "next_safe_move"
+      ]
+    }
+  },
+  "operator_markdown_mode": "ELIOPERATOR",
+  "read_model_id": "conversation_topic_slicer_contract",
+  "receipt_actions": [
+    "SLICE_LINK_PROPOSED",
+    "LINK_CREATED",
+    "SUMMARY_COPIED",
+    "SLICE_MOVED",
+    "THREAD_SPLIT",
+    "NEW_FOLDER_SUGGESTED",
+    "PROPOSAL_REJECTED",
+    "PROPOSAL_PARKED"
+  ],
+  "relationship_refs": {
+    "conversational_workflow_router_contract": "chat-derived workflow intent boundary",
+    "conversational_workflow_router_intake": "Mac chat request/readback source posture",
+    "cross_lane_reusable_block_registry_contract": "scope and protected value posture",
+    "cross_surface_artifact_handoff_registry_contract": "readback/artifact handoff refs",
+    "openclaw_sensitive_policy": "private/sensitive path and raw-body boundary",
+    "openclaw_work_terrain_relationship_index": "metadata-only relationship indexing pattern",
+    "operator_file_intake_visual_workspace_contract": "visual workspace source refs and display posture",
+    "operator_file_metadata_intake": "source refs and metadata-only file intake",
+    "work_terrain_build_cue_reconciliation_queue": "build cue planning boundary",
+    "worker_routing_intelligence": "worker routing for future topic/package handling",
+    "workflow_execution_package_compiler": "workflow/package target examples",
+    "world_project_memory_graph_projection": "semantic graph nodes and folder projection targets"
+  },
+  "schema_version": "conversation_topic_slicer_contract_v0",
+  "source_chat_threads_by_ref": {
+    "thread_ref_finance_misfiled_invoice_architecture": {
+      "artifact_refs": [],
+      "current_primary_folder_ref": "finance/capital_hilton/invoices",
+      "current_primary_world_ref": "finance",
+      "initial_folder_ref": "finance/capital_hilton",
+      "initial_world_ref": "finance",
+      "message_count_policy": "count may be stored as metadata; raw messages remain outside normal read-model",
+      "next_safe_move": "Keep original thread intact and show topic links as non-destructive pointers.",
+      "privacy_class": "finance_boundary",
+      "raw_transcript_allowed_in_read_model": false,
+      "raw_transcript_available_policy": "future gated source only; not copied here",
+      "receipt_refs": [
+        "receipt_router_readback_capital_hilton"
+      ],
+      "safe_summary": "Chat begins with Capital Hilton invoice context, then turns into general invoice automation architecture.",
+      "sensitivity_class": "metadata_only",
+      "source_refs": [
+        "source_ref_capital_hilton_invoice_preview"
+      ],
+      "thread_ref": "thread_ref_finance_misfiled_invoice_architecture",
+      "thread_title": "Capital Hilton invoice thread with architecture drift",
+      "topic_slice_refs": [
+        "topic_slice_capital_hilton_invoice_specific",
+        "topic_slice_invoice_automation_architecture"
+      ]
+    },
+    "thread_ref_music_live_multitopic_setlist": {
+      "artifact_refs": [],
+      "current_primary_folder_ref": "music/live_music",
+      "current_primary_world_ref": "music",
+      "initial_folder_ref": "music/live_music",
+      "initial_world_ref": "music",
+      "message_count_policy": "count may be stored as metadata; raw messages remain outside normal read-model",
+      "next_safe_move": "Keep original thread intact and show topic links as non-destructive pointers.",
+      "privacy_class": "internal",
+      "raw_transcript_allowed_in_read_model": false,
+      "raw_transcript_available_policy": "future gated source only; not copied here",
+      "receipt_refs": [
+        "receipt_multifolder_topic_candidates"
+      ],
+      "safe_summary": "Chat starts with setlist ideas, then branches into X32 routing, a song arrangement, and booking follow-up.",
+      "sensitivity_class": "metadata_only",
+      "source_refs": [
+        "source_ref_setlist_chat_summary"
+      ],
+      "thread_ref": "thread_ref_music_live_multitopic_setlist",
+      "thread_title": "Live music thread with setlists, X32, songwriting, and bookings",
+      "topic_slice_refs": [
+        "topic_slice_setlist_ideas",
+        "topic_slice_x32_routing_issue",
+        "topic_slice_new_song_arrangement",
+        "topic_slice_booking_followup"
+      ]
+    },
+    "thread_ref_struna_creative_build_licensing": {
+      "artifact_refs": [],
+      "current_primary_folder_ref": "music/studio",
+      "current_primary_world_ref": "music",
+      "initial_folder_ref": "music/studio",
+      "initial_world_ref": "music",
+      "message_count_policy": "count may be stored as metadata; raw messages remain outside normal read-model",
+      "next_safe_move": "Keep original thread intact and show topic links as non-destructive pointers.",
+      "privacy_class": "private_summary_only",
+      "raw_transcript_allowed_in_read_model": false,
+      "raw_transcript_available_policy": "future gated source only; not copied here",
+      "receipt_refs": [
+        "receipt_struna_ownership_context_summary",
+        "receipt_struna_licensing_use_note"
+      ],
+      "safe_summary": "Creative/music discussion also touches Mac app build posture and licensing summaries.",
+      "sensitivity_class": "private_summary_only",
+      "source_refs": [
+        "source_ref_struna_app_files"
+      ],
+      "thread_ref": "thread_ref_struna_creative_build_licensing",
+      "thread_title": "Struna creative chat with build and licensing drift",
+      "topic_slice_refs": [
+        "topic_slice_struna_creative",
+        "topic_slice_struna_mac_build",
+        "topic_slice_struna_licensing_summary"
+      ]
+    },
+    "thread_ref_x32_fader_replacement": {
+      "artifact_refs": [],
+      "current_primary_folder_ref": "music/live_music/x32",
+      "current_primary_world_ref": "music",
+      "initial_folder_ref": "music/live_music/x32",
+      "initial_world_ref": "music",
+      "message_count_policy": "count may be stored as metadata; raw messages remain outside normal read-model",
+      "next_safe_move": "Keep original thread intact and show topic links as non-destructive pointers.",
+      "privacy_class": "internal",
+      "raw_transcript_allowed_in_read_model": false,
+      "raw_transcript_available_policy": "future gated source only; not copied here",
+      "receipt_refs": [],
+      "safe_summary": "Operator asks to resume an X32 fader replacement thread; this contract models candidate links only.",
+      "sensitivity_class": "metadata_only",
+      "source_refs": [
+        "source_ref_x32_maintenance_summary"
+      ],
+      "thread_ref": "thread_ref_x32_fader_replacement",
+      "thread_title": "X32 fader replacement follow-up",
+      "topic_slice_refs": [
+        "topic_slice_x32_fader_replacement"
+      ]
+    }
+  },
+  "suggested_actions": [
+    "KEEP_IN_PLACE",
+    "LINK_TO_FOLDER",
+    "COPY_SUMMARY_TO_FOLDER",
+    "MOVE_SLICE_TO_FOLDER",
+    "SPLIT_INTO_NEW_THREAD",
+    "CREATE_NEW_FOLDER",
+    "NEEDS_OPERATOR_REVIEW",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "topic_slice_blockers_by_id": {
+    "topic_slice_blocker_ambiguous_topic": {
+      "blocker_id": "topic_slice_blocker_ambiguous_topic",
+      "blocker_type": "AMBIGUOUS_TOPIC",
+      "condition": "The topic cannot be safely framed.",
+      "elioperator_warning": "Ask a clarifying question before linking.",
+      "fail_closed": true,
+      "next_safe_move": "Keep the original thread intact and return an operator-readable blocker.",
+      "severity": "HIGH"
+    },
+    "topic_slice_blocker_auto_move_too_disruptive": {
+      "blocker_id": "topic_slice_blocker_auto_move_too_disruptive",
+      "blocker_type": "AUTO_MOVE_TOO_DISRUPTIVE",
+      "condition": "A move or split is attempted without operator review.",
+      "elioperator_warning": "Move and split actions require operator approval.",
+      "fail_closed": true,
+      "next_safe_move": "Keep the original thread intact and return an operator-readable blocker.",
+      "severity": "HIGH"
+    },
+    "topic_slice_blocker_cross_client_leak": {
+      "blocker_id": "topic_slice_blocker_cross_client_leak",
+      "blocker_type": "CROSS_CLIENT_LEAK",
+      "condition": "A slice links client-private facts into another client scope.",
+      "elioperator_warning": "Block cross-client link unless explicit reviewed permission exists.",
+      "fail_closed": true,
+      "next_safe_move": "Keep the original thread intact and return an operator-readable blocker.",
+      "severity": "CRITICAL"
+    },
+    "topic_slice_blocker_cross_tenant_leak": {
+      "blocker_id": "topic_slice_blocker_cross_tenant_leak",
+      "blocker_type": "CROSS_TENANT_LEAK",
+      "condition": "A slice crosses tenant boundary.",
+      "elioperator_warning": "Block cross-tenant link.",
+      "fail_closed": true,
+      "next_safe_move": "Keep the original thread intact and return an operator-readable blocker.",
+      "severity": "CRITICAL"
+    },
+    "topic_slice_blocker_message_pointer_missing": {
+      "blocker_id": "topic_slice_blocker_message_pointer_missing",
+      "blocker_type": "MESSAGE_POINTER_MISSING",
+      "condition": "A topic slice lacks start/end message refs.",
+      "elioperator_warning": "Do not create the slice until pointer range is available.",
+      "fail_closed": true,
+      "next_safe_move": "Keep the original thread intact and return an operator-readable blocker.",
+      "severity": "HIGH"
+    },
+    "topic_slice_blocker_raw_transcript_copied": {
+      "blocker_id": "topic_slice_blocker_raw_transcript_copied",
+      "blocker_type": "RAW_TRANSCRIPT_COPIED",
+      "condition": "A full raw transcript is copied into a topic slice or generated read-model.",
+      "elioperator_warning": "Block the copy and store pointer ranges plus safe summaries only.",
+      "fail_closed": true,
+      "next_safe_move": "Keep the original thread intact and return an operator-readable blocker.",
+      "severity": "HIGH"
+    },
+    "topic_slice_blocker_raw_transcript_exposed": {
+      "blocker_id": "topic_slice_blocker_raw_transcript_exposed",
+      "blocker_type": "RAW_TRANSCRIPT_EXPOSED",
+      "condition": "Raw transcript text is exposed to normal operator cards or model context.",
+      "elioperator_warning": "Use safe summaries and source refs; keep raw bodies gated.",
+      "fail_closed": true,
+      "next_safe_move": "Keep the original thread intact and return an operator-readable blocker.",
+      "severity": "HIGH"
+    },
+    "topic_slice_blocker_silent_destructive_reorganization": {
+      "blocker_id": "topic_slice_blocker_silent_destructive_reorganization",
+      "blocker_type": "SILENT_DESTRUCTIVE_REORGANIZATION",
+      "condition": "A proposal deletes, truncates, rewrites, or silently moves chat material.",
+      "elioperator_warning": "Do not reorganize destructively; show a reviewable proposal.",
+      "fail_closed": true,
+      "next_safe_move": "Keep the original thread intact and return an operator-readable blocker.",
+      "severity": "HIGH"
+    },
+    "topic_slice_blocker_source_provenance_missing": {
+      "blocker_id": "topic_slice_blocker_source_provenance_missing",
+      "blocker_type": "SOURCE_PROVENANCE_MISSING",
+      "condition": "A slice lacks source thread or message range provenance.",
+      "elioperator_warning": "Fail closed until pointer refs exist.",
+      "fail_closed": true,
+      "next_safe_move": "Keep the original thread intact and return an operator-readable blocker.",
+      "severity": "HIGH"
+    },
+    "topic_slice_blocker_unknown_fail_closed": {
+      "blocker_id": "topic_slice_blocker_unknown_fail_closed",
+      "blocker_type": "UNKNOWN_FAIL_CLOSED",
+      "condition": "The slicer cannot classify the slice/proposal safely.",
+      "elioperator_warning": "Fail closed and preserve the original thread.",
+      "fail_closed": true,
+      "next_safe_move": "Keep the original thread intact and return an operator-readable blocker.",
+      "severity": "CRITICAL"
+    },
+    "topic_slice_blocker_unknown_folder": {
+      "blocker_id": "topic_slice_blocker_unknown_folder",
+      "blocker_type": "UNKNOWN_FOLDER",
+      "condition": "A target folder cannot be resolved in the projection.",
+      "elioperator_warning": "Ask for a folder choice or create a reviewable folder suggestion.",
+      "fail_closed": true,
+      "next_safe_move": "Keep the original thread intact and return an operator-readable blocker.",
+      "severity": "HIGH"
+    }
+  },
+  "topic_slice_graph_links_by_ref": {
+    "topic_link_booking_to_comms": {
+      "confidence": "LOW",
+      "link_ref": "topic_link_booking_to_comms",
+      "next_safe_move": "Keep this as a proposed semantic/folder link until a future approved graph writer exists.",
+      "operator_review_required": true,
+      "privacy_class": "internal",
+      "provenance_ref": "prov_topic_link_booking_to_comms",
+      "relationship_type": "SUGGESTED_FOLDER_LINK",
+      "source_thread_ref": "thread_ref_music_live_multitopic_setlist",
+      "target_folder_ref": "communications/bookings",
+      "target_node_ref": "topic_booking_followup",
+      "target_world_ref": "communications",
+      "topic_slice_ref": "topic_slice_booking_followup"
+    },
+    "topic_link_capital_hilton_invoice": {
+      "confidence": "HIGH",
+      "link_ref": "topic_link_capital_hilton_invoice",
+      "next_safe_move": "Keep this as a proposed semantic/folder link until a future approved graph writer exists.",
+      "operator_review_required": false,
+      "privacy_class": "finance_boundary",
+      "provenance_ref": "prov_topic_link_capital_hilton_invoice",
+      "relationship_type": "BELONGS_TO_SCOPE",
+      "source_thread_ref": "thread_ref_finance_misfiled_invoice_architecture",
+      "target_folder_ref": "finance/capital_hilton/invoices",
+      "target_node_ref": "node_finance_capital_hilton_invoices",
+      "target_world_ref": "finance",
+      "topic_slice_ref": "topic_slice_capital_hilton_invoice_specific"
+    },
+    "topic_link_invoice_architecture_build": {
+      "confidence": "MEDIUM",
+      "link_ref": "topic_link_invoice_architecture_build",
+      "next_safe_move": "Keep this as a proposed semantic/folder link until a future approved graph writer exists.",
+      "operator_review_required": true,
+      "privacy_class": "internal",
+      "provenance_ref": "prov_topic_link_invoice_architecture_build",
+      "relationship_type": "RELATED_TO",
+      "source_thread_ref": "thread_ref_finance_misfiled_invoice_architecture",
+      "target_folder_ref": "build/openclaw/invoice_workflows",
+      "target_node_ref": "node_build_mission_control_chat_surface",
+      "target_world_ref": "build",
+      "topic_slice_ref": "topic_slice_invoice_automation_architecture"
+    },
+    "topic_link_setlist_to_live_music": {
+      "confidence": "HIGH",
+      "link_ref": "topic_link_setlist_to_live_music",
+      "next_safe_move": "Keep this as a proposed semantic/folder link until a future approved graph writer exists.",
+      "operator_review_required": false,
+      "privacy_class": "internal",
+      "provenance_ref": "prov_topic_link_setlist_to_live_music",
+      "relationship_type": "BELONGS_TO_SCOPE",
+      "source_thread_ref": "thread_ref_music_live_multitopic_setlist",
+      "target_folder_ref": "music/live_music/setlists",
+      "target_node_ref": "node_multifolder_chat_setlists",
+      "target_world_ref": "music",
+      "topic_slice_ref": "topic_slice_setlist_ideas"
+    },
+    "topic_link_song_to_album": {
+      "confidence": "MEDIUM",
+      "link_ref": "topic_link_song_to_album",
+      "next_safe_move": "Keep this as a proposed semantic/folder link until a future approved graph writer exists.",
+      "operator_review_required": true,
+      "privacy_class": "internal",
+      "provenance_ref": "prov_topic_link_song_to_album",
+      "relationship_type": "SUGGESTED_FOLDER_LINK",
+      "source_thread_ref": "thread_ref_music_live_multitopic_setlist",
+      "target_folder_ref": "music/studio/album/songwriting",
+      "target_node_ref": "node_music_song",
+      "target_world_ref": "music",
+      "topic_slice_ref": "topic_slice_new_song_arrangement"
+    },
+    "topic_link_struna_build": {
+      "confidence": "HIGH",
+      "link_ref": "topic_link_struna_build",
+      "next_safe_move": "Keep this as a proposed semantic/folder link until a future approved graph writer exists.",
+      "operator_review_required": true,
+      "privacy_class": "private_summary_only",
+      "provenance_ref": "prov_topic_link_struna_build",
+      "relationship_type": "RELATED_TO",
+      "source_thread_ref": "thread_ref_struna_creative_build_licensing",
+      "target_folder_ref": "build/struna/mac_version",
+      "target_node_ref": "node_struna_mac_version",
+      "target_world_ref": "build",
+      "topic_slice_ref": "topic_slice_struna_mac_build"
+    },
+    "topic_link_struna_creative_music": {
+      "confidence": "MEDIUM",
+      "link_ref": "topic_link_struna_creative_music",
+      "next_safe_move": "Keep this as a proposed semantic/folder link until a future approved graph writer exists.",
+      "operator_review_required": true,
+      "privacy_class": "private_summary_only",
+      "provenance_ref": "prov_topic_link_struna_creative_music",
+      "relationship_type": "RELATED_TO",
+      "source_thread_ref": "thread_ref_struna_creative_build_licensing",
+      "target_folder_ref": "music/studio/struna",
+      "target_node_ref": "node_world_music",
+      "target_world_ref": "music",
+      "topic_slice_ref": "topic_slice_struna_creative"
+    },
+    "topic_link_struna_licensing": {
+      "confidence": "MEDIUM",
+      "link_ref": "topic_link_struna_licensing",
+      "next_safe_move": "Keep this as a proposed semantic/folder link until a future approved graph writer exists.",
+      "operator_review_required": true,
+      "privacy_class": "private_summary_only",
+      "provenance_ref": "prov_topic_link_struna_licensing",
+      "relationship_type": "SUGGESTED_FOLDER_LINK",
+      "source_thread_ref": "thread_ref_struna_creative_build_licensing",
+      "target_folder_ref": "build/struna/licensing",
+      "target_node_ref": "node_struna_mac_version",
+      "target_world_ref": "build",
+      "topic_slice_ref": "topic_slice_struna_licensing_summary"
+    },
+    "topic_link_x32_fader_maintenance": {
+      "confidence": "MEDIUM",
+      "link_ref": "topic_link_x32_fader_maintenance",
+      "next_safe_move": "Keep this as a proposed semantic/folder link until a future approved graph writer exists.",
+      "operator_review_required": true,
+      "privacy_class": "internal",
+      "provenance_ref": "prov_topic_link_x32_fader_maintenance",
+      "relationship_type": "SUGGESTED_FOLDER_LINK",
+      "source_thread_ref": "thread_ref_x32_fader_replacement",
+      "target_folder_ref": "music/live_music/x32/maintenance",
+      "target_node_ref": "node_music_live_x32",
+      "target_world_ref": "music",
+      "topic_slice_ref": "topic_slice_x32_fader_replacement"
+    },
+    "topic_link_x32_to_routing": {
+      "confidence": "HIGH",
+      "link_ref": "topic_link_x32_to_routing",
+      "next_safe_move": "Keep this as a proposed semantic/folder link until a future approved graph writer exists.",
+      "operator_review_required": false,
+      "privacy_class": "internal",
+      "provenance_ref": "prov_topic_link_x32_to_routing",
+      "relationship_type": "RELATED_TO",
+      "source_thread_ref": "thread_ref_music_live_multitopic_setlist",
+      "target_folder_ref": "music/live_music/x32/routing",
+      "target_node_ref": "node_music_x32_routing",
+      "target_world_ref": "music",
+      "topic_slice_ref": "topic_slice_x32_routing_issue"
+    }
+  },
+  "topic_slice_receipts_by_id": {
+    "receipt_misfiled_invoice_proposal_parked": {
+      "action": "PROPOSAL_PARKED",
+      "affected_thread_ref": "thread_ref_finance_misfiled_invoice_architecture",
+      "affected_topic_slice_refs": [
+        "topic_slice_invoice_automation_architecture"
+      ],
+      "created_at_policy": "deterministic_contract_example_no_clock_truth",
+      "next_safe_move": "Keep original finance thread intact and expose build link as a suggestion.",
+      "operator_approved": false,
+      "proposal_ref": "proposal_misfiled_invoice_architecture_link",
+      "provenance_preserved": true,
+      "raw_body_copied": false,
+      "raw_body_moved": false,
+      "receipt_id": "receipt_misfiled_invoice_proposal_parked",
+      "source_folder_refs": [
+        "finance/capital_hilton/invoices"
+      ],
+      "target_folder_refs": [
+        "build/openclaw/invoice_workflows"
+      ]
+    },
+    "receipt_multitopic_link_proposed": {
+      "action": "SLICE_LINK_PROPOSED",
+      "affected_thread_ref": "thread_ref_music_live_multitopic_setlist",
+      "affected_topic_slice_refs": [
+        "topic_slice_x32_routing_issue",
+        "topic_slice_new_song_arrangement",
+        "topic_slice_booking_followup"
+      ],
+      "created_at_policy": "deterministic_contract_example_no_clock_truth",
+      "next_safe_move": "Show proposal and wait for a future approved link writer.",
+      "operator_approved": false,
+      "proposal_ref": "proposal_multitopic_live_music_links",
+      "provenance_preserved": true,
+      "raw_body_copied": false,
+      "raw_body_moved": false,
+      "receipt_id": "receipt_multitopic_link_proposed",
+      "source_folder_refs": [
+        "music/live_music"
+      ],
+      "target_folder_refs": [
+        "music/live_music/x32/routing",
+        "music/studio/album/songwriting",
+        "communications/bookings"
+      ]
+    },
+    "receipt_struna_cross_world_review_required": {
+      "action": "NEW_FOLDER_SUGGESTED",
+      "affected_thread_ref": "thread_ref_struna_creative_build_licensing",
+      "affected_topic_slice_refs": [
+        "topic_slice_struna_mac_build",
+        "topic_slice_struna_licensing_summary"
+      ],
+      "created_at_policy": "deterministic_contract_example_no_clock_truth",
+      "next_safe_move": "Require operator review before any future cross-world promotion.",
+      "operator_approved": false,
+      "proposal_ref": "proposal_struna_cross_world_review",
+      "provenance_preserved": true,
+      "raw_body_copied": false,
+      "raw_body_moved": false,
+      "receipt_id": "receipt_struna_cross_world_review_required",
+      "source_folder_refs": [
+        "music/studio"
+      ],
+      "target_folder_refs": [
+        "build/struna/mac_version",
+        "build/struna/licensing"
+      ]
+    }
+  },
+  "topic_slice_reorganization_proposals_by_id": {
+    "proposal_misfiled_invoice_architecture_link": {
+      "approval_status": "NOT_REQUESTED",
+      "confidence": "MEDIUM",
+      "deletion_allowed": false,
+      "disruption_level": "NON_DISRUPTIVE_SUGGESTION",
+      "next_safe_move": "Show as a suggestion; do not mutate folders, split threads, or delete anything from this contract.",
+      "operator_review_required": true,
+      "proposal_id": "proposal_misfiled_invoice_architecture_link",
+      "proposed_links": [
+        "topic_link_capital_hilton_invoice",
+        "topic_link_invoice_architecture_build"
+      ],
+      "proposed_moves": [],
+      "proposed_new_folders": [],
+      "proposed_thread_splits": [],
+      "provenance_preserved": true,
+      "reason": "Capital Hilton slice stays in Finance while general architecture links to Build.",
+      "source_thread_ref": "thread_ref_finance_misfiled_invoice_architecture",
+      "topic_slice_refs": [
+        "topic_slice_capital_hilton_invoice_specific",
+        "topic_slice_invoice_automation_architecture"
+      ]
+    },
+    "proposal_multitopic_live_music_links": {
+      "approval_status": "NOT_REQUESTED",
+      "confidence": "MEDIUM",
+      "deletion_allowed": false,
+      "disruption_level": "NON_DISRUPTIVE_SUGGESTION",
+      "next_safe_move": "Show as a suggestion; do not mutate folders, split threads, or delete anything from this contract.",
+      "operator_review_required": true,
+      "proposal_id": "proposal_multitopic_live_music_links",
+      "proposed_links": [
+        "topic_link_x32_to_routing",
+        "topic_link_song_to_album",
+        "topic_link_booking_to_comms"
+      ],
+      "proposed_moves": [],
+      "proposed_new_folders": [
+        "communications/bookings"
+      ],
+      "proposed_thread_splits": [],
+      "provenance_preserved": true,
+      "reason": "One live music thread drifted into X32, songwriting, and booking topics; preserve original thread and add graph links.",
+      "source_thread_ref": "thread_ref_music_live_multitopic_setlist",
+      "topic_slice_refs": [
+        "topic_slice_x32_routing_issue",
+        "topic_slice_new_song_arrangement",
+        "topic_slice_booking_followup"
+      ]
+    },
+    "proposal_struna_cross_world_review": {
+      "approval_status": "NOT_REQUESTED",
+      "confidence": "MEDIUM",
+      "deletion_allowed": false,
+      "disruption_level": "REVIEW_REQUIRED_MOVE",
+      "next_safe_move": "Show as a suggestion; do not mutate folders, split threads, or delete anything from this contract.",
+      "operator_review_required": true,
+      "proposal_id": "proposal_struna_cross_world_review",
+      "proposed_links": [
+        "topic_link_struna_creative_music",
+        "topic_link_struna_build",
+        "topic_link_struna_licensing"
+      ],
+      "proposed_moves": [],
+      "proposed_new_folders": [
+        "music/studio/struna",
+        "build/struna/licensing"
+      ],
+      "proposed_thread_splits": [],
+      "provenance_preserved": true,
+      "reason": "Struna creative, build, and licensing summaries cross worlds and require review.",
+      "source_thread_ref": "thread_ref_struna_creative_build_licensing",
+      "topic_slice_refs": [
+        "topic_slice_struna_creative",
+        "topic_slice_struna_mac_build",
+        "topic_slice_struna_licensing_summary"
+      ]
+    },
+    "proposal_x32_fader_resume_candidate": {
+      "approval_status": "NOT_REQUESTED",
+      "confidence": "MEDIUM",
+      "deletion_allowed": false,
+      "disruption_level": "NON_DISRUPTIVE_SUGGESTION",
+      "next_safe_move": "Show as a suggestion; do not mutate folders, split threads, or delete anything from this contract.",
+      "operator_review_required": true,
+      "proposal_id": "proposal_x32_fader_resume_candidate",
+      "proposed_links": [
+        "topic_link_x32_fader_maintenance"
+      ],
+      "proposed_moves": [],
+      "proposed_new_folders": [
+        "music/live_music/x32/maintenance"
+      ],
+      "proposed_thread_splits": [],
+      "provenance_preserved": true,
+      "reason": "Future resume flow can look up this maintenance slice, but no retrieval runs here.",
+      "source_thread_ref": "thread_ref_x32_fader_replacement",
+      "topic_slice_refs": [
+        "topic_slice_x32_fader_replacement"
+      ]
+    }
+  },
+  "topic_slices_by_ref": {
+    "topic_slice_booking_followup": {
+      "candidate_graph_node_refs": [
+        "topic_booking_followup"
+      ],
+      "candidate_relationship_refs": [
+        "rel_multifolder_chat_links_booking_followup"
+      ],
+      "confidence": "LOW",
+      "folder_ref": "communications/bookings",
+      "inferred_topic": "booking and client follow-up",
+      "message_end_ref": "msg_0038",
+      "message_range_policy": "pointer_range_only_no_raw_body",
+      "message_start_ref": "msg_0030",
+      "next_safe_move": "Use this as a proposed graph/folder link; do not copy transcript body or move the source thread.",
+      "operator_review_required": true,
+      "relevant_artifact_refs": [],
+      "relevant_procedure_refs": [],
+      "relevant_source_refs": [],
+      "slice_summary": "Booking follow-up is a cross-world candidate for communications or operations.",
+      "source_thread_ref": "thread_ref_music_live_multitopic_setlist",
+      "suggested_action": "NEEDS_OPERATOR_REVIEW",
+      "topic_slice_ref": "topic_slice_booking_followup",
+      "world_ref": "communications"
+    },
+    "topic_slice_capital_hilton_invoice_specific": {
+      "candidate_graph_node_refs": [
+        "node_finance_capital_hilton_invoices"
+      ],
+      "candidate_relationship_refs": [],
+      "confidence": "HIGH",
+      "folder_ref": "finance/capital_hilton/invoices",
+      "inferred_topic": "Capital Hilton invoice details",
+      "message_end_ref": "msg_0011",
+      "message_range_policy": "pointer_range_only_no_raw_body",
+      "message_start_ref": "msg_0001",
+      "next_safe_move": "Use this as a proposed graph/folder link; do not copy transcript body or move the source thread.",
+      "operator_review_required": false,
+      "relevant_artifact_refs": [],
+      "relevant_procedure_refs": [
+        "procedure_ref_capital_hilton_invoice_workflow"
+      ],
+      "relevant_source_refs": [
+        "source_ref_capital_hilton_invoice_preview"
+      ],
+      "slice_summary": "Capital Hilton-specific invoice facts remain scoped to the Finance Capital Hilton invoice folder.",
+      "source_thread_ref": "thread_ref_finance_misfiled_invoice_architecture",
+      "suggested_action": "KEEP_IN_PLACE",
+      "topic_slice_ref": "topic_slice_capital_hilton_invoice_specific",
+      "world_ref": "finance"
+    },
+    "topic_slice_invoice_automation_architecture": {
+      "candidate_graph_node_refs": [
+        "node_build_mission_control_chat_surface"
+      ],
+      "candidate_relationship_refs": [],
+      "confidence": "MEDIUM",
+      "folder_ref": "build/openclaw/invoice_workflows",
+      "inferred_topic": "general invoice automation architecture",
+      "message_end_ref": "msg_0027",
+      "message_range_policy": "pointer_range_only_no_raw_body",
+      "message_start_ref": "msg_0012",
+      "next_safe_move": "Use this as a proposed graph/folder link; do not copy transcript body or move the source thread.",
+      "operator_review_required": true,
+      "relevant_artifact_refs": [],
+      "relevant_procedure_refs": [
+        "workflow_execution_package_compiler",
+        "conversational_workflow_router_contract"
+      ],
+      "relevant_source_refs": [],
+      "slice_summary": "Architecture notes should link to OpenClaw build work rather than be trapped under one client.",
+      "source_thread_ref": "thread_ref_finance_misfiled_invoice_architecture",
+      "suggested_action": "LINK_TO_FOLDER",
+      "topic_slice_ref": "topic_slice_invoice_automation_architecture",
+      "world_ref": "build"
+    },
+    "topic_slice_new_song_arrangement": {
+      "candidate_graph_node_refs": [
+        "node_music_song"
+      ],
+      "candidate_relationship_refs": [
+        "rel_multifolder_chat_links_song"
+      ],
+      "confidence": "MEDIUM",
+      "folder_ref": "music/studio/album/songwriting",
+      "inferred_topic": "new song arrangement",
+      "message_end_ref": "msg_0029",
+      "message_range_policy": "pointer_range_only_no_raw_body",
+      "message_start_ref": "msg_0019",
+      "next_safe_move": "Use this as a proposed graph/folder link; do not copy transcript body or move the source thread.",
+      "operator_review_required": true,
+      "relevant_artifact_refs": [],
+      "relevant_procedure_refs": [],
+      "relevant_source_refs": [
+        "source_ref_song_rich_text_doc"
+      ],
+      "slice_summary": "Song arrangement material should link into studio songwriting or the album song area.",
+      "source_thread_ref": "thread_ref_music_live_multitopic_setlist",
+      "suggested_action": "LINK_TO_FOLDER",
+      "topic_slice_ref": "topic_slice_new_song_arrangement",
+      "world_ref": "music"
+    },
+    "topic_slice_setlist_ideas": {
+      "candidate_graph_node_refs": [
+        "node_multifolder_chat_setlists"
+      ],
+      "candidate_relationship_refs": [],
+      "confidence": "HIGH",
+      "folder_ref": "music/live_music/setlists",
+      "inferred_topic": "setlist ideas",
+      "message_end_ref": "msg_0008",
+      "message_range_policy": "pointer_range_only_no_raw_body",
+      "message_start_ref": "msg_0001",
+      "next_safe_move": "Use this as a proposed graph/folder link; do not copy transcript body or move the source thread.",
+      "operator_review_required": false,
+      "relevant_artifact_refs": [],
+      "relevant_procedure_refs": [],
+      "relevant_source_refs": [],
+      "slice_summary": "Setlist ideas belong with the original live music context.",
+      "source_thread_ref": "thread_ref_music_live_multitopic_setlist",
+      "suggested_action": "KEEP_IN_PLACE",
+      "topic_slice_ref": "topic_slice_setlist_ideas",
+      "world_ref": "music"
+    },
+    "topic_slice_struna_creative": {
+      "candidate_graph_node_refs": [
+        "node_world_music"
+      ],
+      "candidate_relationship_refs": [],
+      "confidence": "MEDIUM",
+      "folder_ref": "music/studio/struna",
+      "inferred_topic": "Struna creative/music direction",
+      "message_end_ref": "msg_0010",
+      "message_range_policy": "pointer_range_only_no_raw_body",
+      "message_start_ref": "msg_0001",
+      "next_safe_move": "Use this as a proposed graph/folder link; do not copy transcript body or move the source thread.",
+      "operator_review_required": false,
+      "relevant_artifact_refs": [],
+      "relevant_procedure_refs": [],
+      "relevant_source_refs": [],
+      "slice_summary": "Creative Struna discussion can remain in music as a safe summary slice.",
+      "source_thread_ref": "thread_ref_struna_creative_build_licensing",
+      "suggested_action": "LINK_TO_FOLDER",
+      "topic_slice_ref": "topic_slice_struna_creative",
+      "world_ref": "music"
+    },
+    "topic_slice_struna_licensing_summary": {
+      "candidate_graph_node_refs": [
+        "node_struna_mac_version"
+      ],
+      "candidate_relationship_refs": [],
+      "confidence": "MEDIUM",
+      "folder_ref": "build/struna/licensing",
+      "inferred_topic": "Struna licensing summary",
+      "message_end_ref": "msg_0032",
+      "message_range_policy": "pointer_range_only_no_raw_body",
+      "message_start_ref": "msg_0022",
+      "next_safe_move": "Use this as a proposed graph/folder link; do not copy transcript body or move the source thread.",
+      "operator_review_required": true,
+      "relevant_artifact_refs": [],
+      "relevant_procedure_refs": [],
+      "relevant_source_refs": [
+        "source_ref_struna_app_files"
+      ],
+      "slice_summary": "Licensing material is summary-only and requires review before cross-world linking.",
+      "source_thread_ref": "thread_ref_struna_creative_build_licensing",
+      "suggested_action": "NEEDS_OPERATOR_REVIEW",
+      "topic_slice_ref": "topic_slice_struna_licensing_summary",
+      "world_ref": "build"
+    },
+    "topic_slice_struna_mac_build": {
+      "candidate_graph_node_refs": [
+        "node_struna_mac_version"
+      ],
+      "candidate_relationship_refs": [
+        "rel_build_links_struna"
+      ],
+      "confidence": "HIGH",
+      "folder_ref": "build/struna/mac_version",
+      "inferred_topic": "Struna Mac app build",
+      "message_end_ref": "msg_0021",
+      "message_range_policy": "pointer_range_only_no_raw_body",
+      "message_start_ref": "msg_0011",
+      "next_safe_move": "Use this as a proposed graph/folder link; do not copy transcript body or move the source thread.",
+      "operator_review_required": true,
+      "relevant_artifact_refs": [],
+      "relevant_procedure_refs": [],
+      "relevant_source_refs": [
+        "source_ref_struna_app_files"
+      ],
+      "slice_summary": "Mac app build material should link to the Struna Mac Version build projection.",
+      "source_thread_ref": "thread_ref_struna_creative_build_licensing",
+      "suggested_action": "LINK_TO_FOLDER",
+      "topic_slice_ref": "topic_slice_struna_mac_build",
+      "world_ref": "build"
+    },
+    "topic_slice_x32_fader_replacement": {
+      "candidate_graph_node_refs": [
+        "node_music_live_x32",
+        "node_music_x32_routing"
+      ],
+      "candidate_relationship_refs": [],
+      "confidence": "MEDIUM",
+      "folder_ref": "music/live_music/x32/maintenance",
+      "inferred_topic": "X32 fader replacement",
+      "message_end_ref": "msg_0006",
+      "message_range_policy": "pointer_range_only_no_raw_body",
+      "message_start_ref": "msg_0001",
+      "next_safe_move": "Use this as a proposed graph/folder link; do not copy transcript body or move the source thread.",
+      "operator_review_required": true,
+      "relevant_artifact_refs": [],
+      "relevant_procedure_refs": [],
+      "relevant_source_refs": [
+        "source_ref_x32_maintenance_summary"
+      ],
+      "slice_summary": "Candidate maintenance topic for future resume/retrieval flow; this contract only models the pointer/link.",
+      "source_thread_ref": "thread_ref_x32_fader_replacement",
+      "suggested_action": "LINK_TO_FOLDER",
+      "topic_slice_ref": "topic_slice_x32_fader_replacement",
+      "world_ref": "music"
+    },
+    "topic_slice_x32_routing_issue": {
+      "candidate_graph_node_refs": [
+        "node_music_x32_routing"
+      ],
+      "candidate_relationship_refs": [
+        "rel_multifolder_chat_links_x32"
+      ],
+      "confidence": "HIGH",
+      "folder_ref": "music/live_music/x32/routing",
+      "inferred_topic": "X32 routing issue",
+      "message_end_ref": "msg_0018",
+      "message_range_policy": "pointer_range_only_no_raw_body",
+      "message_start_ref": "msg_0009",
+      "next_safe_move": "Use this as a proposed graph/folder link; do not copy transcript body or move the source thread.",
+      "operator_review_required": false,
+      "relevant_artifact_refs": [],
+      "relevant_procedure_refs": [],
+      "relevant_source_refs": [
+        "source_ref_behringer_x32_notes"
+      ],
+      "slice_summary": "Routing troubleshooting should link to the X32 routing projection without moving the original chat.",
+      "source_thread_ref": "thread_ref_music_live_multitopic_setlist",
+      "suggested_action": "LINK_TO_FOLDER",
+      "topic_slice_ref": "topic_slice_x32_routing_issue",
+      "world_ref": "music"
+    }
+  }
+}
