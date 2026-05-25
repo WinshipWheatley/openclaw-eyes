@@ -1,0 +1,832 @@
+{
+  "agent_readback_responsibility": {
+    "active_agent_role": "chat_router_agent",
+    "next_safe_move": "Explain the current readback state without advancing the workflow.",
+    "operator_message": "I found the backend readback and can show the cards for review.",
+    "readback_ref": "conversational_workflow_router_readback",
+    "request_ref": "capital_hilton_invoice_workflow_1779667089053_da4719d0757a",
+    "responsibility_id": "responsibility_capital_hilton_ready",
+    "responsibility_status": "READY_FOR_REVIEW",
+    "what_agent_must_not_do": [
+      "invent success without readback",
+      "start a workflow run",
+      "dispatch an agent",
+      "send email or access Coupa",
+      "hide stale or missing readback state"
+    ],
+    "what_agent_should_do": [
+      "correlate request to readback",
+      "check freshness and source match",
+      "summarize the result in human language",
+      "show the next safe move"
+    ]
+  },
+  "agent_roles": [
+    "chat_router_agent",
+    "workflow_readback_agent",
+    "drafting_agent",
+    "approval_agent",
+    "protected_evidence_agent",
+    "final_readback_agent"
+  ],
+  "allowed_contract_scope": [
+    "deterministic read-model generation",
+    "tests",
+    "metadata-only examples",
+    "future agent responsibility model",
+    "ELIOPERATOR report"
+  ],
+  "authority_boundary": {
+    "credential_handling_allowed": false,
+    "git_push_pull_fetch_allowed": false,
+    "live_agent_dispatch_allowed": false,
+    "live_approval_allowed": false,
+    "live_browser_access_allowed": false,
+    "live_coupa_access_allowed": false,
+    "live_email_send_allowed": false,
+    "live_external_action_allowed": false,
+    "live_invoice_generation_allowed": false,
+    "live_model_call_allowed": false,
+    "live_network_allowed": false,
+    "live_readback_polling_allowed": false,
+    "live_watcher_allowed": false,
+    "live_workflow_run_allowed": false,
+    "mac_sync_import_allowed": false,
+    "mission_control_swift_change_allowed": false,
+    "raw_body_ingestion_allowed": false
+  },
+  "contract_status": "DETERMINISTIC_NON_EXECUTING_WORKFLOW_READBACK_CONCIERGE_CONTRACT",
+  "correlation_statuses": [
+    "MATCHED_READY",
+    "WAITING_FOR_BACKEND",
+    "NO_REQUEST_FOUND",
+    "NO_READBACK_FOUND",
+    "STALE_READBACK",
+    "HASH_OR_IDEMPOTENCY_MISMATCH",
+    "MULTIPLE_CANDIDATES_NEED_REVIEW",
+    "BLOCKED_UNSUPPORTED_TYPE",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "examples": {
+    "agent_invented_truth_blocker": {
+      "blocker_ref": "readback_navigator_blocker_agent_invented_truth",
+      "operator_card": {
+        "bullets": [
+          "The agent must not invent state.",
+          "The result needs a matched readback or proof receipt.",
+          "Until then, the workflow remains unconfirmed."
+        ],
+        "card_id": "card_agent_invented_truth_blocked",
+        "card_type": "UNKNOWN_FAIL_CLOSED",
+        "detail_disclosure_available": true,
+        "next_safe_move": "Find the matching readback or explain that it is missing.",
+        "operator_choices": [
+          "Review result",
+          "Ask what is missing",
+          "Cancel"
+        ],
+        "source_readback_ref": null,
+        "status_tone": "blocked",
+        "summary": "There is no matching readback or proof for that success claim.",
+        "title": "I cannot claim that yet",
+        "truth_status": "FAIL_CLOSED_NO_READBACK_PROOF"
+      }
+    },
+    "blocked_external_action": {
+      "operator_card": {
+        "bullets": [
+          "No email was sent.",
+          "No Coupa or browser access occurred.",
+          "No approval was requested.",
+          "No invoice was generated or submitted."
+        ],
+        "card_id": "card_external_action_blocked",
+        "card_type": "BLOCKED",
+        "detail_disclosure_available": true,
+        "next_safe_move": "Review the understanding before any future gated package is prepared.",
+        "operator_choices": [
+          "Review result",
+          "Ask what is missing",
+          "Cancel"
+        ],
+        "source_readback_ref": "conversational_workflow_router_readback",
+        "status_tone": "blocked",
+        "summary": "This is ready for review, not execution. Send/Coupa/approval remain locked.",
+        "title": "Ready for review, not execution",
+        "truth_status": "LOCKED_EXTERNAL_ACTION"
+      }
+    },
+    "capital_hilton_ready": {
+      "correlation": {
+        "confidence": "request id, idempotency, payload hash, workflow, and lane match",
+        "correlation_id": "correlation_capital_hilton_ready",
+        "correlation_status": "MATCHED_READY",
+        "expected_readback_location": "generated/read_models/conversational_workflow_router_readback.json",
+        "expected_readback_type": "conversational_workflow_router_readback",
+        "idempotency_key": "mission_control_chat:capital_hilton_invoice_workflow:da4719d0757a1178c0e4",
+        "lane_ref": "capital_hilton",
+        "matched_readback_ref": "conversational_workflow_router_readback",
+        "next_safe_move": "Show the human cards and ask whether the understanding looks right.",
+        "payload_hash": "da4719d0757a1178c0e44f87559558ce27c5f745248bc8c0296cf47873ca297b",
+        "request_id": "capital_hilton_invoice_workflow_1779667089053_da4719d0757a",
+        "source_request_ref": "capital_hilton_invoice_workflow_1779667089053_da4719d0757a",
+        "source_request_type": "mission_control_chat_request",
+        "workflow_ref": "capital_hilton_invoice_workflow"
+      },
+      "freshness": {
+        "freshness_id": "freshness_capital_hilton_ready",
+        "freshness_status": "CURRENT",
+        "generated_at": "readback-generated-at",
+        "next_safe_move": "Use only current matched readbacks for operator-facing truth.",
+        "operator_message": "I found the readback. Here is what OpenClaw understood.",
+        "readback_ref": "conversational_workflow_router_readback",
+        "source_idempotency_key": "mission_control_chat:capital_hilton_invoice_workflow:da4719d0757a1178c0e4",
+        "source_request_created_at": "request-created-at",
+        "source_request_id": "capital_hilton_invoice_workflow_1779667089053_da4719d0757a",
+        "stale_reason": null
+      },
+      "operator_card": {
+        "bullets": [
+          "Capital Hilton invoice workflow was routed for review.",
+          "Excel/PDF companion invoice, Coupa/PO payment rail, and contact follow-up are understood as draft workflow context.",
+          "This is ready for review, not execution.",
+          "Send, Coupa, approval, browser, and invoice-generation actions remain locked."
+        ],
+        "card_id": "card_capital_hilton_ready",
+        "card_type": "READY_FOR_REVIEW",
+        "detail_disclosure_available": true,
+        "next_safe_move": "Ask the operator whether the understanding looks right.",
+        "operator_choices": [
+          "Review result",
+          "Ask what is missing",
+          "Cancel"
+        ],
+        "source_readback_ref": "conversational_workflow_router_readback",
+        "status_tone": "ready",
+        "summary": "I found the readback. Here is what OpenClaw understood.",
+        "title": "OpenClaw understood",
+        "truth_status": "READBACK_MATCHED_DRAFT_UNDERSTANDING"
+      },
+      "responsibility": {
+        "active_agent_role": "chat_router_agent",
+        "next_safe_move": "Explain the current readback state without advancing the workflow.",
+        "operator_message": "I found the backend readback and can show the cards for review.",
+        "readback_ref": "conversational_workflow_router_readback",
+        "request_ref": "capital_hilton_invoice_workflow_1779667089053_da4719d0757a",
+        "responsibility_id": "responsibility_capital_hilton_ready",
+        "responsibility_status": "READY_FOR_REVIEW",
+        "what_agent_must_not_do": [
+          "invent success without readback",
+          "start a workflow run",
+          "dispatch an agent",
+          "send email or access Coupa",
+          "hide stale or missing readback state"
+        ],
+        "what_agent_should_do": [
+          "correlate request to readback",
+          "check freshness and source match",
+          "summarize the result in human language",
+          "show the next safe move"
+        ]
+      }
+    },
+    "capital_hilton_waiting": {
+      "correlation": {
+        "confidence": "source request present, readback not yet matched",
+        "correlation_id": "correlation_capital_hilton_waiting",
+        "correlation_status": "WAITING_FOR_BACKEND",
+        "expected_readback_location": "generated/read_models/conversational_workflow_router_readback.json",
+        "expected_readback_type": "conversational_workflow_router_readback",
+        "idempotency_key": "mission_control_chat:capital_hilton_invoice_workflow:da4719d0757a1178c0e4",
+        "lane_ref": "capital_hilton",
+        "matched_readback_ref": null,
+        "next_safe_move": "Tell the operator the request is waiting for PC backend.",
+        "payload_hash": "da4719d0757a1178c0e44f87559558ce27c5f745248bc8c0296cf47873ca297b",
+        "request_id": "capital_hilton_invoice_workflow_1779667089053_da4719d0757a",
+        "source_request_ref": "capital_hilton_invoice_workflow_1779667089053_da4719d0757a",
+        "source_request_type": "mission_control_chat_request",
+        "workflow_ref": "capital_hilton_invoice_workflow"
+      },
+      "freshness": {
+        "freshness_id": "freshness_capital_hilton_waiting",
+        "freshness_status": "UNKNOWN_TIMESTAMP",
+        "generated_at": null,
+        "next_safe_move": "Use only current matched readbacks for operator-facing truth.",
+        "operator_message": "Waiting for PC backend. I sent your request. No understanding has returned yet.",
+        "readback_ref": null,
+        "source_idempotency_key": "mission_control_chat:capital_hilton_invoice_workflow:da4719d0757a1178c0e4",
+        "source_request_created_at": "request-created-at",
+        "source_request_id": "capital_hilton_invoice_workflow_1779667089053_da4719d0757a",
+        "stale_reason": "no matched readback exists yet"
+      },
+      "operator_card": {
+        "bullets": [
+          "The request is tracked.",
+          "No backend readback has been matched yet.",
+          "I will not claim what OpenClaw understood until the readback exists."
+        ],
+        "card_id": "card_capital_hilton_waiting",
+        "card_type": "WAITING",
+        "detail_disclosure_available": true,
+        "next_safe_move": "Wait for the backend readback or retry the intake if needed.",
+        "operator_choices": [
+          "Review result",
+          "Ask what is missing",
+          "Cancel"
+        ],
+        "source_readback_ref": null,
+        "status_tone": "waiting",
+        "summary": "I sent your request. No understanding has returned yet.",
+        "title": "Waiting for PC backend",
+        "truth_status": "NO_TRUTH_WITHOUT_READBACK"
+      },
+      "responsibility": {
+        "active_agent_role": "workflow_readback_agent",
+        "next_safe_move": "Explain the current readback state without advancing the workflow.",
+        "operator_message": "I sent that to PC and I am waiting for the backend readback.",
+        "readback_ref": null,
+        "request_ref": "capital_hilton_invoice_workflow_1779667089053_da4719d0757a",
+        "responsibility_id": "responsibility_capital_hilton_waiting",
+        "responsibility_status": "WAITING_FOR_BACKEND",
+        "what_agent_must_not_do": [
+          "invent success without readback",
+          "start a workflow run",
+          "dispatch an agent",
+          "send email or access Coupa",
+          "hide stale or missing readback state"
+        ],
+        "what_agent_should_do": [
+          "correlate request to readback",
+          "check freshness and source match",
+          "summarize the result in human language",
+          "show the next safe move"
+        ]
+      }
+    },
+    "duplicate_noop": {
+      "correlation": {
+        "confidence": "duplicate readback matched source request",
+        "correlation_id": "correlation_duplicate_noop",
+        "correlation_status": "MATCHED_READY",
+        "expected_readback_location": "generated/read_models/conversational_workflow_router_readback.json",
+        "expected_readback_type": "conversational_workflow_router_readback",
+        "idempotency_key": "mission_control_chat:capital_hilton_invoice_workflow:da4719d0757a1178c0e4",
+        "lane_ref": "capital_hilton",
+        "matched_readback_ref": "duplicate_noop_readback",
+        "next_safe_move": "Explain that backend already had this exact information.",
+        "payload_hash": "da4719d0757a1178c0e44f87559558ce27c5f745248bc8c0296cf47873ca297b",
+        "request_id": "capital_hilton_invoice_workflow_1779667089053_da4719d0757a",
+        "source_request_ref": "capital_hilton_invoice_workflow_1779667089053_da4719d0757a",
+        "source_request_type": "mission_control_chat_request",
+        "workflow_ref": "capital_hilton_invoice_workflow"
+      },
+      "operator_card": {
+        "bullets": [
+          "The request matched an existing receipt or readback.",
+          "No duplicate state was written.",
+          "This is a safe no-op, not a new external action."
+        ],
+        "card_id": "card_duplicate_noop",
+        "card_type": "DUPLICATE_NOOP",
+        "detail_disclosure_available": true,
+        "next_safe_move": "Show the existing readback or ask for the next missing fact.",
+        "operator_choices": [
+          "Review result",
+          "Ask what is missing",
+          "Cancel"
+        ],
+        "source_readback_ref": "duplicate_noop_readback",
+        "status_tone": "neutral",
+        "summary": "Backend already had this information; no duplicate was written.",
+        "title": "Already captured",
+        "truth_status": "READBACK_MATCHED_DUPLICATE_NOOP"
+      }
+    },
+    "stale_readback": {
+      "correlation": {
+        "confidence": "readback source does not match latest request",
+        "correlation_id": "correlation_capital_hilton_stale",
+        "correlation_status": "STALE_READBACK",
+        "expected_readback_location": "generated/read_models/conversational_workflow_router_readback.json",
+        "expected_readback_type": "conversational_workflow_router_readback",
+        "idempotency_key": "newer-request-idempotency",
+        "lane_ref": "capital_hilton",
+        "matched_readback_ref": "conversational_workflow_router_readback",
+        "next_safe_move": "Do not use the stale readback as current.",
+        "payload_hash": "newer-request-payload-hash",
+        "request_id": "capital_hilton_invoice_workflow_newer_request",
+        "source_request_ref": "capital_hilton_invoice_workflow_newer_request",
+        "source_request_type": "mission_control_chat_request",
+        "workflow_ref": "capital_hilton_invoice_workflow"
+      },
+      "freshness": {
+        "freshness_id": "freshness_capital_hilton_stale",
+        "freshness_status": "STALE",
+        "generated_at": "readback-generated-at",
+        "next_safe_move": "Use only current matched readbacks for operator-facing truth.",
+        "operator_message": "This readback looks stale. I will not use it as current.",
+        "readback_ref": "conversational_workflow_router_readback",
+        "source_idempotency_key": "newer-request-idempotency",
+        "source_request_created_at": "request-created-at",
+        "source_request_id": "capital_hilton_invoice_workflow_newer_request",
+        "stale_reason": "latest request id or idempotency does not match the readback source"
+      },
+      "operator_card": {
+        "bullets": [
+          "The readback exists, but it is not proof of the current request.",
+          "I will not use it as current.",
+          "The safe move is to wait for or regenerate the matching readback."
+        ],
+        "card_id": "card_capital_hilton_stale",
+        "card_type": "STALE",
+        "detail_disclosure_available": true,
+        "next_safe_move": "Wait for the matching backend readback.",
+        "operator_choices": [
+          "Review result",
+          "Ask what is missing",
+          "Cancel"
+        ],
+        "source_readback_ref": "conversational_workflow_router_readback",
+        "status_tone": "warning",
+        "summary": "This readback looks stale. I will not use it as current.",
+        "title": "Readback looks stale",
+        "truth_status": "STALE_NOT_CURRENT_TRUTH"
+      }
+    }
+  },
+  "freshness_statuses": [
+    "CURRENT",
+    "STALE",
+    "UNKNOWN_TIMESTAMP",
+    "SOURCE_MISMATCH",
+    "FUTURE_TIMESTAMP_INVALID",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "generated_at": "2026-05-25T00:32:43+00:00",
+  "machine_proof": {
+    "agent_invented_truth_blocker_present": true,
+    "agent_readback_responsibility_model_present": true,
+    "agent_roles_present": true,
+    "all_live_authority_flags_false": true,
+    "capital_hilton_ready_example_present": true,
+    "capital_hilton_waiting_example_present": true,
+    "content_hash": "sha256:513150c9ca02c8356a74f8dcb00b36b2c0747c2ac625d1282087b12a91f0b7c8",
+    "correlation_statuses_present": true,
+    "credentials_or_secrets_included": false,
+    "duplicate_noop_example_present": true,
+    "external_action_blocked_example_present": true,
+    "external_action_performed": false,
+    "freshness_statuses_present": true,
+    "git_push_pull_fetch_run": false,
+    "mac_sync_import_run": false,
+    "machine_contract_visible_to_operator": false,
+    "mission_control_swift_changed": false,
+    "network_used": false,
+    "no_agent_dispatch": true,
+    "no_external_action": true,
+    "no_live_polling": true,
+    "no_model_call": true,
+    "no_watcher": true,
+    "no_workflow_run": true,
+    "operator_cards_present": true,
+    "operator_readback_card_model_present": true,
+    "raw_private_bodies_included": false,
+    "readback_correlation_model_present": true,
+    "readback_freshness_check_model_present": true,
+    "readback_navigator_blocker_model_present": true,
+    "stale_readback_example_present": true,
+    "workflow_readback_concierge_contract_model_present": true,
+    "workflow_readback_concierge_elioperator_report_model_present": true
+  },
+  "model_schemas": {
+    "agent_readback_responsibility": {
+      "agent_roles": [
+        "chat_router_agent",
+        "workflow_readback_agent",
+        "drafting_agent",
+        "approval_agent",
+        "protected_evidence_agent",
+        "final_readback_agent"
+      ],
+      "required_fields": [
+        "responsibility_id",
+        "active_agent_role",
+        "request_ref",
+        "readback_ref",
+        "responsibility_status",
+        "what_agent_should_do",
+        "what_agent_must_not_do",
+        "operator_message",
+        "next_safe_move"
+      ]
+    },
+    "operator_readback_card": {
+      "card_types": [
+        "WAITING",
+        "READY_FOR_REVIEW",
+        "MISSING",
+        "STALE",
+        "BLOCKED",
+        "DUPLICATE_NOOP",
+        "COMPLETION",
+        "UNKNOWN_FAIL_CLOSED"
+      ],
+      "required_fields": [
+        "card_id",
+        "card_type",
+        "title",
+        "summary",
+        "bullets",
+        "status_tone",
+        "operator_choices",
+        "detail_disclosure_available",
+        "source_readback_ref",
+        "truth_status",
+        "next_safe_move"
+      ]
+    },
+    "readback_correlation": {
+      "correlation_statuses": [
+        "MATCHED_READY",
+        "WAITING_FOR_BACKEND",
+        "NO_REQUEST_FOUND",
+        "NO_READBACK_FOUND",
+        "STALE_READBACK",
+        "HASH_OR_IDEMPOTENCY_MISMATCH",
+        "MULTIPLE_CANDIDATES_NEED_REVIEW",
+        "BLOCKED_UNSUPPORTED_TYPE",
+        "UNKNOWN_FAIL_CLOSED"
+      ],
+      "required_fields": [
+        "correlation_id",
+        "source_request_ref",
+        "source_request_type",
+        "workflow_ref",
+        "lane_ref",
+        "request_id",
+        "idempotency_key",
+        "payload_hash",
+        "expected_readback_type",
+        "expected_readback_location",
+        "matched_readback_ref",
+        "correlation_status",
+        "confidence",
+        "next_safe_move"
+      ]
+    },
+    "readback_freshness_check": {
+      "freshness_statuses": [
+        "CURRENT",
+        "STALE",
+        "UNKNOWN_TIMESTAMP",
+        "SOURCE_MISMATCH",
+        "FUTURE_TIMESTAMP_INVALID",
+        "UNKNOWN_FAIL_CLOSED"
+      ],
+      "required_fields": [
+        "freshness_id",
+        "readback_ref",
+        "generated_at",
+        "source_request_created_at",
+        "source_request_id",
+        "source_idempotency_key",
+        "freshness_status",
+        "stale_reason",
+        "operator_message",
+        "next_safe_move"
+      ]
+    },
+    "readback_navigator_blocker": {
+      "blocker_types": [
+        "READBACK_MISSING",
+        "READBACK_STALE",
+        "REQUEST_MISSING",
+        "SOURCE_MISMATCH",
+        "MULTIPLE_READBACKS",
+        "AGENT_INVENTED_TRUTH",
+        "EXTERNAL_ACTION_ATTEMPTED",
+        "RAW_PII_IN_NORMAL_READMODEL",
+        "MACHINE_CONTRACT_VISIBLE_TO_OPERATOR",
+        "UNKNOWN_FAIL_CLOSED"
+      ],
+      "required_fields": [
+        "blocker_id",
+        "blocker_type",
+        "condition",
+        "severity",
+        "elioperator_warning",
+        "fail_closed",
+        "next_safe_move"
+      ]
+    },
+    "workflow_readback_concierge_contract": {
+      "required_fields": [
+        "contract_id",
+        "doctrine",
+        "supported_request_types",
+        "supported_readback_types",
+        "correlation_policy",
+        "freshness_policy",
+        "missing_readback_policy",
+        "stale_readback_policy",
+        "blocked_readback_policy",
+        "ready_readback_policy",
+        "agent_responsibility_policy",
+        "operator_display_policy",
+        "authority_boundary",
+        "next_safe_move"
+      ]
+    },
+    "workflow_readback_concierge_elioperator_report": {
+      "required_fields": [
+        "report_id",
+        "plain_summary",
+        "what_this_enables",
+        "what_this_does_not_do_yet",
+        "how_agent_handles_readback",
+        "how_operator_sees_status",
+        "how_truth_is_confirmed",
+        "how_missing_or_stale_readbacks_are_handled",
+        "next_safe_move"
+      ]
+    }
+  },
+  "operator_card_types": [
+    "WAITING",
+    "READY_FOR_REVIEW",
+    "MISSING",
+    "STALE",
+    "BLOCKED",
+    "DUPLICATE_NOOP",
+    "COMPLETION",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "operator_markdown_mode": "ELIOPERATOR",
+  "operator_readback_card": {
+    "bullets": [
+      "Capital Hilton invoice workflow was routed for review.",
+      "Excel/PDF companion invoice, Coupa/PO payment rail, and contact follow-up are understood as draft workflow context.",
+      "This is ready for review, not execution.",
+      "Send, Coupa, approval, browser, and invoice-generation actions remain locked."
+    ],
+    "card_id": "card_capital_hilton_ready",
+    "card_type": "READY_FOR_REVIEW",
+    "detail_disclosure_available": true,
+    "next_safe_move": "Ask the operator whether the understanding looks right.",
+    "operator_choices": [
+      "Review result",
+      "Ask what is missing",
+      "Cancel"
+    ],
+    "source_readback_ref": "conversational_workflow_router_readback",
+    "status_tone": "ready",
+    "summary": "I found the readback. Here is what OpenClaw understood.",
+    "title": "OpenClaw understood",
+    "truth_status": "READBACK_MATCHED_DRAFT_UNDERSTANDING"
+  },
+  "read_model_id": "workflow_readback_concierge_contract",
+  "readback_correlation": {
+    "confidence": "request id, idempotency, payload hash, workflow, and lane match",
+    "correlation_id": "correlation_capital_hilton_ready",
+    "correlation_status": "MATCHED_READY",
+    "expected_readback_location": "generated/read_models/conversational_workflow_router_readback.json",
+    "expected_readback_type": "conversational_workflow_router_readback",
+    "idempotency_key": "mission_control_chat:capital_hilton_invoice_workflow:da4719d0757a1178c0e4",
+    "lane_ref": "capital_hilton",
+    "matched_readback_ref": "conversational_workflow_router_readback",
+    "next_safe_move": "Show the human cards and ask whether the understanding looks right.",
+    "payload_hash": "da4719d0757a1178c0e44f87559558ce27c5f745248bc8c0296cf47873ca297b",
+    "request_id": "capital_hilton_invoice_workflow_1779667089053_da4719d0757a",
+    "source_request_ref": "capital_hilton_invoice_workflow_1779667089053_da4719d0757a",
+    "source_request_type": "mission_control_chat_request",
+    "workflow_ref": "capital_hilton_invoice_workflow"
+  },
+  "readback_freshness_check": {
+    "freshness_id": "freshness_capital_hilton_ready",
+    "freshness_status": "CURRENT",
+    "generated_at": "readback-generated-at",
+    "next_safe_move": "Use only current matched readbacks for operator-facing truth.",
+    "operator_message": "I found the readback. Here is what OpenClaw understood.",
+    "readback_ref": "conversational_workflow_router_readback",
+    "source_idempotency_key": "mission_control_chat:capital_hilton_invoice_workflow:da4719d0757a1178c0e4",
+    "source_request_created_at": "request-created-at",
+    "source_request_id": "capital_hilton_invoice_workflow_1779667089053_da4719d0757a",
+    "stale_reason": null
+  },
+  "readback_navigator_blockers_by_id": {
+    "readback_navigator_blocker_agent_invented_truth": {
+      "blocker_id": "readback_navigator_blocker_agent_invented_truth",
+      "blocker_type": "AGENT_INVENTED_TRUTH",
+      "condition": "An agent tried to show success without readback or proof.",
+      "elioperator_warning": "ELIOPERATOR: An agent tried to show success without readback or proof.",
+      "fail_closed": true,
+      "next_safe_move": "Explain the blocked state and wait for a matching proof-backed readback.",
+      "severity": "BLOCKS_TRUTH_CLAIM"
+    },
+    "readback_navigator_blocker_external_action_attempted": {
+      "blocker_id": "readback_navigator_blocker_external_action_attempted",
+      "blocker_type": "EXTERNAL_ACTION_ATTEMPTED",
+      "condition": "Concierge cannot send, submit, approve, browse, or dispatch.",
+      "elioperator_warning": "ELIOPERATOR: Concierge cannot send, submit, approve, browse, or dispatch.",
+      "fail_closed": true,
+      "next_safe_move": "Explain the blocked state and wait for a matching proof-backed readback.",
+      "severity": "BLOCKS_SAFE_NAVIGATION"
+    },
+    "readback_navigator_blocker_machine_contract_visible_to_operator": {
+      "blocker_id": "readback_navigator_blocker_machine_contract_visible_to_operator",
+      "blocker_type": "MACHINE_CONTRACT_VISIBLE_TO_OPERATOR",
+      "condition": "Operator cards must stay plain-language.",
+      "elioperator_warning": "ELIOPERATOR: Operator cards must stay plain-language.",
+      "fail_closed": true,
+      "next_safe_move": "Explain the blocked state and wait for a matching proof-backed readback.",
+      "severity": "BLOCKS_SAFE_NAVIGATION"
+    },
+    "readback_navigator_blocker_multiple_readbacks": {
+      "blocker_id": "readback_navigator_blocker_multiple_readbacks",
+      "blocker_type": "MULTIPLE_READBACKS",
+      "condition": "Multiple candidate readbacks exist and require review.",
+      "elioperator_warning": "ELIOPERATOR: Multiple candidate readbacks exist and require review.",
+      "fail_closed": true,
+      "next_safe_move": "Explain the blocked state and wait for a matching proof-backed readback.",
+      "severity": "BLOCKS_TRUTH_CLAIM"
+    },
+    "readback_navigator_blocker_raw_pii_in_normal_readmodel": {
+      "blocker_id": "readback_navigator_blocker_raw_pii_in_normal_readmodel",
+      "blocker_type": "RAW_PII_IN_NORMAL_READMODEL",
+      "condition": "Raw sensitive values must not enter normal read-models.",
+      "elioperator_warning": "ELIOPERATOR: Raw sensitive values must not enter normal read-models.",
+      "fail_closed": true,
+      "next_safe_move": "Explain the blocked state and wait for a matching proof-backed readback.",
+      "severity": "BLOCKS_SAFE_NAVIGATION"
+    },
+    "readback_navigator_blocker_readback_missing": {
+      "blocker_id": "readback_navigator_blocker_readback_missing",
+      "blocker_type": "READBACK_MISSING",
+      "condition": "No matching backend readback is available yet.",
+      "elioperator_warning": "ELIOPERATOR: No matching backend readback is available yet.",
+      "fail_closed": true,
+      "next_safe_move": "Explain the blocked state and wait for a matching proof-backed readback.",
+      "severity": "BLOCKS_TRUTH_CLAIM"
+    },
+    "readback_navigator_blocker_readback_stale": {
+      "blocker_id": "readback_navigator_blocker_readback_stale",
+      "blocker_type": "READBACK_STALE",
+      "condition": "The matched readback is stale or source-mismatched.",
+      "elioperator_warning": "ELIOPERATOR: The matched readback is stale or source-mismatched.",
+      "fail_closed": true,
+      "next_safe_move": "Explain the blocked state and wait for a matching proof-backed readback.",
+      "severity": "BLOCKS_TRUTH_CLAIM"
+    },
+    "readback_navigator_blocker_request_missing": {
+      "blocker_id": "readback_navigator_blocker_request_missing",
+      "blocker_type": "REQUEST_MISSING",
+      "condition": "No source request exists to correlate.",
+      "elioperator_warning": "ELIOPERATOR: No source request exists to correlate.",
+      "fail_closed": true,
+      "next_safe_move": "Explain the blocked state and wait for a matching proof-backed readback.",
+      "severity": "BLOCKS_SAFE_NAVIGATION"
+    },
+    "readback_navigator_blocker_source_mismatch": {
+      "blocker_id": "readback_navigator_blocker_source_mismatch",
+      "blocker_type": "SOURCE_MISMATCH",
+      "condition": "The readback does not match the request id, idempotency key, or payload hash.",
+      "elioperator_warning": "ELIOPERATOR: The readback does not match the request id, idempotency key, or payload hash.",
+      "fail_closed": true,
+      "next_safe_move": "Explain the blocked state and wait for a matching proof-backed readback.",
+      "severity": "BLOCKS_SAFE_NAVIGATION"
+    },
+    "readback_navigator_blocker_unknown_fail_closed": {
+      "blocker_id": "readback_navigator_blocker_unknown_fail_closed",
+      "blocker_type": "UNKNOWN_FAIL_CLOSED",
+      "condition": "Unknown readback navigation state fails closed.",
+      "elioperator_warning": "ELIOPERATOR: Unknown readback navigation state fails closed.",
+      "fail_closed": true,
+      "next_safe_move": "Explain the blocked state and wait for a matching proof-backed readback.",
+      "severity": "BLOCKS_SAFE_NAVIGATION"
+    }
+  },
+  "relationship_inventory": {
+    "agent_conversation_handoff_step_packet_contract": "future role handoff compatibility",
+    "bridge_routing_operator_attention_contract": "operator attention routing compatibility",
+    "conversational_workflow_router_contract": "defines chat-to-package router shape",
+    "conversational_workflow_router_intake": "generates current chat request readback cards",
+    "cross_surface_artifact_handoff_registry_contract": "defines typed handoff lifecycle language",
+    "cross_surface_handoff_registry_metadata_alignment": "adds post-office-compatible metadata shape",
+    "openclaw_sensitive_policy": "privacy and protected-value posture dependency"
+  },
+  "schema_version": "workflow_readback_concierge_contract_v0",
+  "supported_readback_types": [
+    "conversational_workflow_router_readback",
+    "capture_request_readback",
+    "delivery_facts_readback",
+    "operator_closeout_readback"
+  ],
+  "supported_request_types": [
+    "mission_control_chat_request",
+    "mission_control_capture_request",
+    "post_office_handoff_request"
+  ],
+  "workflow_readback_concierge_contract": {
+    "agent_responsibility_policy": {
+      "agent_may_locate_read_readback_and_summarize": true,
+      "agent_may_not_invent_state": true,
+      "agent_may_not_silently_advance_workflow": true,
+      "agent_may_not_trigger_external_actions": true
+    },
+    "authority_boundary": {
+      "credential_handling_allowed": false,
+      "git_push_pull_fetch_allowed": false,
+      "live_agent_dispatch_allowed": false,
+      "live_approval_allowed": false,
+      "live_browser_access_allowed": false,
+      "live_coupa_access_allowed": false,
+      "live_email_send_allowed": false,
+      "live_external_action_allowed": false,
+      "live_invoice_generation_allowed": false,
+      "live_model_call_allowed": false,
+      "live_network_allowed": false,
+      "live_readback_polling_allowed": false,
+      "live_watcher_allowed": false,
+      "live_workflow_run_allowed": false,
+      "mac_sync_import_allowed": false,
+      "mission_control_swift_change_allowed": false,
+      "raw_body_ingestion_allowed": false
+    },
+    "blocked_readback_policy": {
+      "external_action_allowed": false,
+      "operator_message": "The readback is blocked or locked. Nothing external happened.",
+      "status": "BLOCKED"
+    },
+    "contract_id": "workflow_readback_concierge_contract_v0",
+    "correlation_policy": {
+      "hash_or_idempotency_mismatch_status": "HASH_OR_IDEMPOTENCY_MISMATCH",
+      "match_on": [
+        "request_id",
+        "idempotency_key",
+        "payload_hash",
+        "workflow_ref",
+        "lane_ref"
+      ],
+      "multiple_matches_fail_closed": true,
+      "prefer_latest_matching_request": false
+    },
+    "doctrine": {
+      "agent_owns_readback_navigation": true,
+      "missing_stale_or_blocked_readbacks_are_explained_plainly": true,
+      "never_fake_success": true,
+      "no_live_polling_or_watcher": true,
+      "no_truth_without_readback": true,
+      "operator_does_not_search_files": true
+    },
+    "freshness_policy": {
+      "current_status": "CURRENT",
+      "future_timestamps_invalid": true,
+      "readback_must_reference_source_request": true,
+      "unknown_timestamp_requires_operator_message": true
+    },
+    "missing_readback_policy": {
+      "operator_message": "Waiting for PC backend. I sent your request. No understanding has returned yet.",
+      "status": "WAITING_FOR_BACKEND",
+      "truth_claim_allowed": false
+    },
+    "next_safe_move": "Use this contract to build deterministic request/readback cards before adding live polling or runtime behavior.",
+    "operator_display_policy": {
+      "detail_disclosure_allowed": true,
+      "machine_contract_hidden_by_default": true,
+      "plain_language_cards": true,
+      "show_next_safe_move": true
+    },
+    "ready_readback_policy": {
+      "operator_message": "I found the readback. Here is what OpenClaw understood.",
+      "requires_operator_review": true,
+      "status": "MATCHED_READY"
+    },
+    "stale_readback_policy": {
+      "operator_message": "This readback looks stale. I will not use it as current.",
+      "status": "STALE_READBACK",
+      "truth_claim_allowed": false
+    },
+    "supported_readback_types": [
+      "conversational_workflow_router_readback",
+      "capture_request_readback",
+      "delivery_facts_readback",
+      "operator_closeout_readback"
+    ],
+    "supported_request_types": [
+      "mission_control_chat_request",
+      "mission_control_capture_request",
+      "post_office_handoff_request"
+    ]
+  },
+  "workflow_readback_concierge_elioperator_report": {
+    "how_agent_handles_readback": "The agent correlates request id, idempotency key, payload hash, workflow, and lane before summarizing.",
+    "how_missing_or_stale_readbacks_are_handled": "Missing and stale readbacks are explained plainly and fail closed.",
+    "how_operator_sees_status": "The operator sees plain cards such as Waiting, Ready for review, Stale, Blocked, or Duplicate no-op.",
+    "how_truth_is_confirmed": "Truth comes from a matched, fresh readback or proof receipt. No readback means no success claim.",
+    "next_safe_move": "Use the ready card to ask the operator whether the Capital Hilton understanding looks right.",
+    "plain_summary": "The concierge keeps track of the request/readback loop so the operator does not have to hunt for backend files.",
+    "report_id": "workflow_readback_concierge_elioperator_report_v0",
+    "what_this_does_not_do_yet": "It does not poll, watch folders, dispatch agents, run workflows, call models, or perform external actions.",
+    "what_this_enables": "An active surface can say whether a request is waiting, ready, stale, blocked, duplicate, or missing."
+  }
+}
