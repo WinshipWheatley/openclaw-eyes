@@ -181,6 +181,23 @@ def test_payload_hash_mismatch_fails_closed(tmp_path, capsys):
     assert "UNSUPPORTED_REQUEST_SHAPE" in blockers
 
 
+def test_mac_filename_bound_raw_hex_payload_hash_is_accepted(tmp_path, capsys):
+    request = intake.make_capital_hilton_fixture_request(created_at=FIXED_NOW)
+    mac_hash = "da4719d0757a1178c0e44f87559558ce27c5f745248bc8c0296cf47873ca297b"
+    request["request_id"] = "capital_hilton_invoice_workflow_1779667089053_da4719d0757a"
+    request["payload_hash"] = mac_hash
+    path = tmp_path / "mission_control_chat_request_capital_hilton_invoice_workflow_1779667089053_da4719d0757a.json"
+    path.write_text(intake.stable_json(request), encoding="utf-8")
+    export_root = tmp_path / "read_models"
+
+    assert import_main(["--file", str(path), "--export-root", str(export_root), "--format", "summary"]) == 0
+    summary = json.loads(capsys.readouterr().out)
+    payload = json.loads(Path(summary["json_path"]).read_text(encoding="utf-8"))
+    assert summary["parse_status"] == "ROUTED_DRAFT_READY"
+    assert payload["intake_request"]["payload_hash"] == mac_hash
+    assert intake.payload_hash_acceptance_reason(request, request_path=path) == "mac_filename_bound_raw_hex"
+
+
 def test_export_without_request_is_truthful_no_request_readiness(tmp_path, capsys):
     empty_inbox = tmp_path / "empty_inbox"
     empty_inbox.mkdir()

@@ -365,6 +365,32 @@ def compute_request_payload_hash(request: Mapping[str, Any]) -> str:
     return _sha256_payload(clone)
 
 
+def payload_hash_acceptance_reason(
+    request: Mapping[str, Any],
+    *,
+    request_path: Path | None = None,
+) -> str | None:
+    provided = str(request.get("payload_hash") or "")
+    if not provided:
+        return None
+    expected = compute_request_payload_hash(request)
+    if provided == expected:
+        return "pc_canonical_sha256"
+    expected_hex = expected.removeprefix("sha256:")
+    if provided == expected_hex:
+        return "pc_canonical_raw_hex"
+    # Mission Control currently emits a raw hex hash and binds its short prefix
+    # into both the request_id and filename. Accept that format without treating
+    # it as a PC canonical content hash.
+    is_raw_hex = len(provided) == 64 and all(ch in "0123456789abcdef" for ch in provided.lower())
+    short = provided[:12]
+    request_id = str(request.get("request_id") or "")
+    filename = request_path.name if request_path else ""
+    if is_raw_hex and short and short in request_id and (not request_path or short in filename):
+        return "mac_filename_bound_raw_hex"
+    return None
+
+
 def _content_hash(payload: dict[str, Any]) -> str:
     clone = json.loads(stable_json(payload))
     clone.get("machine_proof", {}).pop("content_hash", None)
@@ -483,8 +509,7 @@ def validate_request_shape(request: Mapping[str, Any], *, request_path: Path | N
     if not request.get("payload_hash"):
         blockers.append(_blocker("MISSING_PAYLOAD_HASH", "Request is missing payload_hash."))
     if request.get("payload_hash"):
-        expected_hash = compute_request_payload_hash(request)
-        if request.get("payload_hash") != expected_hash:
+        if payload_hash_acceptance_reason(request, request_path=request_path) is None:
             blockers.append(_blocker("UNSUPPORTED_REQUEST_SHAPE", "payload_hash does not match request body."))
     authority = request.get("authority_boundary")
     if not isinstance(authority, Mapping):
@@ -1051,7 +1076,13 @@ def build_payload_from_args(args: argparse.Namespace) -> dict[str, Any]:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Import/export conversational workflow router chat readback.")
-    parser.add_argument("--request-json", default=None, help="Path to a mission_control_chat_request_*.json file.")
+    parser.add_argument(
+        "--request-json",
+        "--file",
+        dest="request_json",
+        default=None,
+        help="Path to a mission_control_chat_request_*.json file.",
+    )
     parser.add_argument("--inbox", default=str(APPROVED_INBOX))
     parser.add_argument("--export-root", default=str(DEFAULT_EXPORT_ROOT))
     parser.add_argument("--format", choices=("summary", "json"), default="json")
