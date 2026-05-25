@@ -25,13 +25,14 @@ from pathlib import Path
 from typing import Any, Mapping
 
 import openclaw_request_processor as processor
+import mac_worker_handoff_package
 import worker_routing_intelligence
 
 
 DEFAULT_EXPORT_ROOT = Path("generated/read_models")
 APPROVED_INBOX = processor.APPROVED_INBOX
 DEFAULT_RESPONSE_DIR = Path("/mnt/e/openclaw/mission_control_responses/to_mac")
-DEFAULT_MAC_HANDOFF_DIR = Path("/mnt/e/openclaw/mission_control_worker_handoffs/to_mac")
+DEFAULT_MAC_HANDOFF_DIR = Path("/mnt/e/openclaw/mission_control_handoffs/to_mac")
 DEFAULT_IDLE_POLL_INTERVAL = 1.0
 DEFAULT_ACTIVE_POLL_INTERVAL = 0.05
 DEFAULT_ACTIVE_WINDOW_SECONDS = 180.0
@@ -542,6 +543,7 @@ STRONG_MAC_ROUTE_TERMS = (
     "swiftui",
     "appkit",
     "xcode",
+    "xcodebuild",
     "mission control ui",
     "macos app",
     "mac app",
@@ -552,6 +554,17 @@ STRONG_MAC_ROUTE_TERMS = (
     "app layout",
     "file picker",
     "screen capture",
+    "screenshot",
+    "open mail",
+    "mail app",
+    "apple mail",
+    "telegram desktop",
+    "logic",
+    "ableton",
+    "final cut",
+    "finder",
+    "read aloud",
+    "visual workspace",
 )
 
 
@@ -900,31 +913,234 @@ def _write_mac_handoff_package(
     request_path: Path,
     identity: RequestIdentity,
     route: RouteDecision,
+    raw_request: Mapping[str, Any],
     mac_handoff_dir: Path,
     created_at: str,
-) -> Path | None:
-    if not mac_handoff_dir.exists() or not mac_handoff_dir.is_dir() or mac_handoff_dir.is_symlink():
-        return None
-    safe_request_id = _safe_filename_part(identity.source_request_id)
-    handoff_path = mac_handoff_dir / f"openclaw_mac_worker_handoff_{safe_request_id}.json"
-    payload = {
-        "schema_version": SCHEMA_VERSION,
-        "handoff_id": f"mac_worker_handoff_{safe_request_id}",
-        "source_request_id": identity.source_request_id,
-        "source_request_filename": request_path.name,
-        "request_type": identity.request_type,
-        "selected_worker_target": route.selected_worker_target,
-        "selected_machine": route.selected_machine,
-        "route_reason": route.route_reason,
-        "operator_headline": "Mac worker handoff package ready",
-        "operator_message": "This is a bounded handoff package for a future Mac worker watcher. It is not execution authority.",
-        "next_safe_move": "Mac worker should return a separate readback before any final claim.",
-        "created_at": created_at,
-        "terminal": False,
-        "authority_boundary": AUTHORITY_BOUNDARY,
-    }
-    _atomic_write_text(handoff_path, stable_json(payload))
-    return handoff_path
+) -> tuple[Path | None, dict[str, Any]]:
+    payload = mac_worker_handoff_package.build_handoff_payload_from_request(
+        raw_request,
+        source_request_filename=request_path.name,
+        created_at=created_at,
+    )
+    if mac_handoff_dir.is_symlink():
+        payload = dict(payload)
+        blockers = list(payload.get("blockers") or ())
+        blockers.append(
+            {
+                "blocker_id": f"mac_worker_handoff_blocker_{_safe_filename_part(identity.source_request_id)}_path",
+                "blocker_type": "MAC_HANDOFF_PATH_UNAVAILABLE",
+                "condition": "Mac handoff output path is a symlink and cannot be used safely.",
+                "severity": "critical",
+                "elioperator_warning": "ELIOPERATOR: Mac handoff output path is a symlink and cannot be used safely.",
+                "fail_closed": True,
+                "next_safe_move": "Use the approved non-symlink Mac handoff directory.",
+            }
+        )
+        payload["blockers"] = tuple(blockers)
+        payload["handoff_package"] = None
+        return None, payload
+    handoff_package = payload.get("handoff_package")
+    if not isinstance(handoff_package, Mapping):
+        return None, payload
+    handoff_package["source_request_id"] = identity.source_request_id
+    handoff_package["source_request_filename"] = request_path.name
+    handoff_package["requested_worker"] = handoff_package.get("requested_worker") or route.selected_worker_target
+    handoff_package["target_machine"] = route.selected_machine
+    handoff_package["response_path_policy"] = mac_worker_handoff_package.response_path_policy(identity.source_request_id)
+    payload["handoff_package"] = handoff_package
+    handoff_path = mac_worker_handoff_package.write_handoff_package(payload, mac_handoff_dir)
+    return handoff_path, payload
+
+
+def _mac_handoff_ready_processor_payload(
+    *,
+    request_path: Path,
+    identity: RequestIdentity,
+    route: RouteDecision,
+    created_at: str,
+    handoff_path: Path,
+    handoff_payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    mac_visible_path = (
+        f"{mac_worker_handoff_package.MAC_VISIBLE_HANDOFF_DIR}/"
+        f"{handoff_path.name}"
+    )
+    response = processor.OpenClawResponseForMac(
+        source_request_id=identity.source_request_id,
+        source_request_filename=request_path.name,
+        workflow_ref=identity.workflow_ref,
+        request_type=identity.request_type,
+        internal_status="RESPONSE_READY",
+        operator_headline="Routed to Mac",
+        operator_message=(
+            "OpenClaw understood this needs Mac-side work. The handoff package is ready for the Mac worker; "
+            "nothing has been executed yet."
+        ),
+        what_happened=(
+            "PC detected the request and selected a Mac-owned route.",
+            "PC wrote a bounded metadata-only handoff package to the approved Mac-readable directory.",
+            "PC published this terminal route readback for Mac chat.",
+            "No Mac execution, app automation, Xcode execution, screenshot capture, file mutation, external action, send, submit, credential handling, or raw-body ingestion occurred.",
+        ),
+        why_it_happened=route.route_reason,
+        how_to_fix="Run the Mac worker handoff lane, or handle it manually in Mac Codex for now.",
+        visible_cards=(
+            {
+                "title": "Routed to Mac",
+                "bullets": (
+                    f"Selected worker: {route.selected_worker_target}",
+                    f"Selected machine: {route.selected_machine}",
+                    "Handoff package ready; no execution occurred.",
+                ),
+                "status_tone": "routed",
+            },
+        ),
+        cards_available=True,
+        card_mirror_refs=(),
+        file_readback_refs=(),
+        worker_route_refs=(
+            {
+                "selected_worker_target": route.selected_worker_target,
+                "selected_machine": route.selected_machine,
+                "routing_status": route.routing_status,
+                "route_reason": route.route_reason,
+                "mac_handoff_path": handoff_path.as_posix(),
+                "mac_visible_handoff_path": mac_visible_path,
+            },
+        ),
+        context_package_refs=(),
+        blocked_reason=None,
+        detail_disclosure={
+            "routing_status": route.routing_status,
+            "selected_worker_target": route.selected_worker_target,
+            "selected_machine": route.selected_machine,
+            "processing_status": "MAC_HANDOFF_PACKAGE_READY",
+            "mac_handoff_path": handoff_path.as_posix(),
+            "mac_visible_handoff_path": mac_visible_path,
+            "handoff_package_ref": handoff_payload.get("handoff_package", {}).get("handoff_id")
+            if isinstance(handoff_payload.get("handoff_package"), Mapping)
+            else None,
+            "worker_dispatched": False,
+            "mac_execution_performed": False,
+            "app_automation_performed": False,
+            "xcode_execution_performed": False,
+            "screenshot_capture_performed": False,
+            "file_mutation_performed": False,
+            "external_actions_locked": True,
+        },
+        readback_files=(handoff_path.as_posix(),),
+        next_safe_move="Next: Run the Mac worker handoff lane.",
+    )
+    response_payload, _status_payload = processor.build_payloads(response, generated_at=created_at)
+    response_payload.update(
+        {
+            "headline": "Routed to Mac",
+            "one_line_answer": "OpenClaw prepared a Mac handoff package without executing it.",
+            "eliwinship": (
+                "OpenClaw understood this needs Mac-side work. "
+                "The handoff package is ready for the Mac worker; nothing has been executed yet."
+            ),
+            "primary_status": "Routed for Mac-side handling",
+            "primary_blocker": "Mac worker handoff lane has not executed",
+            "next_action": "Next: Run the Mac worker handoff lane.",
+            "missing_items_short": (
+                "Mac worker readback",
+                "Mac-side validation receipts",
+                "Terminal proof after Mac handling",
+            ),
+            "detail_summary": (
+                "PC created a metadata-only handoff package in the approved Mac-visible handoff directory. "
+                "The package is not execution authority."
+            ),
+            "proof_refs": (),
+            "debug_refs": (handoff_path.as_posix(),),
+            "mac_render_hint": "COMPACT_WITH_DISCLOSURE",
+        }
+    )
+    return response_payload
+
+
+def _mac_handoff_blocked_processor_payload(
+    *,
+    request_path: Path,
+    identity: RequestIdentity,
+    route: RouteDecision,
+    created_at: str,
+    handoff_payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    blockers = tuple(
+        blocker
+        for blocker in handoff_payload.get("blockers", ())
+        if isinstance(blocker, Mapping)
+    )
+    blocker_types = tuple(str(blocker.get("blocker_type") or "UNKNOWN_FAIL_CLOSED") for blocker in blockers)
+    blocker_summary = ", ".join(blocker_types) or "UNKNOWN_FAIL_CLOSED"
+    how_to_fix = (
+        str(blockers[0].get("next_safe_move"))
+        if blockers and blockers[0].get("next_safe_move")
+        else "Reframe the request as a scoped Mac readback or validation handoff with no external action authority."
+    )
+    response = processor.OpenClawResponseForMac(
+        source_request_id=identity.source_request_id,
+        source_request_filename=request_path.name,
+        workflow_ref=identity.workflow_ref,
+        request_type=identity.request_type,
+        internal_status="BLOCKED_WITH_REASON",
+        operator_headline="Mac handoff blocked",
+        operator_message=(
+            "OpenClaw understood this is Mac-owned work, but the handoff package failed closed because the request "
+            "included unsafe authority or unsupported Mac worker scope."
+        ),
+        what_happened=(
+            "PC detected the request and selected a Mac-owned route.",
+            "PC checked the request against the Mac handoff package safety rules.",
+            "PC did not write an executable handoff, dispatch a worker, call a model, run Mac automation, or execute a workflow.",
+        ),
+        why_it_happened=f"Mac handoff blockers: {blocker_summary}.",
+        how_to_fix=how_to_fix,
+        visible_cards=(
+            {
+                "title": "Mac handoff blocked",
+                "bullets": (
+                    f"Blockers: {blocker_summary}",
+                    "No handoff package with execution authority was created.",
+                    "No Mac execution occurred.",
+                ),
+                "status_tone": "blocked",
+            },
+        ),
+        cards_available=True,
+        card_mirror_refs=(),
+        file_readback_refs=(),
+        worker_route_refs=(
+            {
+                "selected_worker_target": route.selected_worker_target,
+                "selected_machine": route.selected_machine,
+                "routing_status": route.routing_status,
+                "route_reason": route.route_reason,
+                "blockers": blocker_types,
+            },
+        ),
+        context_package_refs=(),
+        blocked_reason=blocker_summary,
+        detail_disclosure={
+            "routing_status": route.routing_status,
+            "selected_worker_target": route.selected_worker_target,
+            "selected_machine": route.selected_machine,
+            "handoff_blockers": blocker_types,
+            "worker_dispatched": False,
+            "mac_execution_performed": False,
+            "app_automation_performed": False,
+            "xcode_execution_performed": False,
+            "screenshot_capture_performed": False,
+            "file_mutation_performed": False,
+            "external_actions_locked": True,
+        },
+        readback_files=(),
+        next_safe_move=how_to_fix,
+    )
+    response_payload, _status_payload = processor.build_payloads(response, generated_at=created_at)
+    return response_payload
 
 
 def _route_blocked_processor_payload(
@@ -1119,29 +1335,16 @@ def process_one_pending_request(
             future_worker_blocked=False,
         )
     handoff_path: Path | None = None
-    if route.mac_handoff_required and mac_handoff_dir.exists() and mac_handoff_dir.is_dir() and not mac_handoff_dir.is_symlink():
-        handoff_path = _write_mac_handoff_package(
+    handoff_payload: dict[str, Any] | None = None
+    if route.mac_handoff_required:
+        handoff_path, handoff_payload = _write_mac_handoff_package(
             request_path=request_path,
             identity=identity,
             route=route,
+            raw_request=raw_request_for_route,
             mac_handoff_dir=mac_handoff_dir,
             created_at=created_at,
         )
-        if handoff_path is not None:
-            route = RouteDecision(
-                routing_status="WAITING_FOR_MAC_READBACK",
-                selected_worker_target=route.selected_worker_target,
-                selected_machine=route.selected_machine,
-                processing_status="WAITING_FOR_MAC_READBACK",
-                operator_headline="Waiting for Mac readback",
-                operator_message="OpenClaw routed this to Mac and wrote a bounded handoff package. Nothing has been executed.",
-                next_safe_move="Wait for the Mac worker readback.",
-                route_reason=route.route_reason,
-                pc_handled=False,
-                mac_handoff_required=True,
-                future_worker_blocked=False,
-                terminal_block_status=None,
-            )
     heartbeat_payload = _heartbeat_payload(
         identity,
         request_path,
@@ -1151,61 +1354,27 @@ def process_one_pending_request(
     )
     heartbeat = publish_processing_heartbeat_for_mac(heartbeat_payload, response_dir=response_dir)
 
-    if route.mac_handoff_required and handoff_path is not None:
-        record = {
-            "source_request_id": identity.source_request_id,
-            "source_request_filename": request_path.name,
-            "request_key": identity.request_key,
-            "identity_keys": _identity_keys(request_path, identity),
-            "idempotency_key": identity.idempotency_key,
-            "payload_hash": identity.payload_hash,
-            "workflow_ref": identity.workflow_ref,
-            "request_type": identity.request_type,
-            "response_file": None,
-            "internal_status": "WAITING_FOR_MAC_READBACK",
-            "operator_headline": heartbeat.operator_headline,
-            "routing_status": route.routing_status,
-            "selected_worker_target": route.selected_worker_target,
-            "selected_machine": route.selected_machine,
-            "processing_heartbeat_path": heartbeat.heartbeat_file,
-            "mac_handoff_path": handoff_path.as_posix(),
-            "created_at": created_at,
-        }
-        return ServiceRunResult(
-            service_status="REQUEST_ROUTED_WAITING_FOR_MAC_READBACK",
-            run_mode="once",
-            inbox=inbox.as_posix(),
-            response_path=response_dir.as_posix(),
-            processed_count=1,
-            skipped_duplicate_count=len(skipped),
-            processed_requests=(record,),
-            skipped_duplicates=skipped,
-            latest_response=None,
-            errors_or_blockers=(),
-            next_safe_move=route.next_safe_move,
-            mode="stopped",
-            current_poll_interval=0.0,
-            idle_poll_interval=DEFAULT_IDLE_POLL_INTERVAL,
-            active_poll_interval=DEFAULT_ACTIVE_POLL_INTERVAL,
-            active_window_seconds=DEFAULT_ACTIVE_WINDOW_SECONDS,
-            active_window_remaining_seconds=0.0,
-            last_watch_mode_before_stop="active",
-            last_poll_interval=0.0,
-            last_processed_request_id=identity.source_request_id,
-            last_response_path=None,
-            bounded_stop_reason="waiting_for_mac_readback",
-            last_processing_started_request_id=identity.source_request_id,
-            last_routing_status=route.routing_status,
-            selected_worker_target=route.selected_worker_target,
-            selected_machine=route.selected_machine,
-            processing_heartbeat_path=heartbeat.heartbeat_file,
-            terminal_response_path=None,
-            active_request_count=1,
-            **_cache_result_fields(cache),
-        )
-
     try:
-        if route.pc_handled:
+        if route.mac_handoff_required and handoff_path is not None and handoff_payload is not None:
+            response_payload = _mac_handoff_ready_processor_payload(
+                request_path=request_path,
+                identity=identity,
+                route=route,
+                created_at=created_at,
+                handoff_path=handoff_path,
+                handoff_payload=handoff_payload,
+            )
+            errors = ()
+        elif route.mac_handoff_required and handoff_payload is not None:
+            response_payload = _mac_handoff_blocked_processor_payload(
+                request_path=request_path,
+                identity=identity,
+                route=route,
+                created_at=created_at,
+                handoff_payload=handoff_payload,
+            )
+            errors = ()
+        elif route.pc_handled:
             response_payload, _processor_status, _paths, quality_errors = processor.run_and_write(
                 inbox=inbox,
                 request_file=request_path,
