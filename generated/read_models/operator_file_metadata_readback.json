@@ -20,21 +20,21 @@
     "raw_body_ingestion_allowed": false
   },
   "contract_status": "DETERMINISTIC_METADATA_ONLY_FILE_INTAKE_ADAPTER",
-  "generated_at": "2026-05-25T21:48:45+00:00",
+  "generated_at": "2026-05-25T22:11:09+00:00",
   "intake_receipt": {
     "created_at_policy": "deterministic generated read-model timestamp; no SQLite registry write",
     "credential_handling": false,
     "duplicate_result": "NOT_PERSISTED_NO_DUPLICATE_CHECK",
     "external_authority": false,
-    "idempotency_key": "mission_control_file_metadata:capital_hilton_invoice_workflow:1779734559852:99bd5e3900cfa89068e5",
+    "idempotency_key": "service_v1_file_metadata_watch_20260525_221500",
     "intake_status": "METADATA_CAPTURED",
     "next_safe_move": "Add a future metadata-only source registry before claiming duplicate persistence.",
-    "payload_hash": "99bd5e3900cfa89068e5c26aeeb6ea7b7b1164d1a62949c77f2ee3399de149d2",
+    "payload_hash": "sha256:54096d277c730b6519b3826145dc51de4c01b2db0d21493ccb38a2571cf17e06",
     "persistent_registry_write": false,
     "raw_body_ingestion": false,
-    "receipt_id": "operator_file_intake_receipt_076e6e9dba4d1c329c3a",
-    "source_ref_id": "source_ref:c6599933fc28ea7ee121",
-    "source_request_ref": "capital_hilton_file_metadata_1779734559852_99bd5e3900cf"
+    "receipt_id": "operator_file_intake_receipt_77bdc1b0ca61b6e68842",
+    "source_ref_id": "source_ref:b5f98fa224cc3621e2c0",
+    "source_request_ref": "capital_hilton_service_v1_file_metadata_watch_20260525_221500"
   },
   "intake_request": {
     "authority_boundary": {
@@ -56,22 +56,22 @@
       "raw_body_ingestion_allowed": false
     },
     "client_ref": "capital_hilton",
-    "created_at": "2026-05-25T18:42:39Z",
-    "file_display_name": "openclaw_metadata_only_test.txt",
-    "file_extension": ".txt",
-    "file_kind_hint": "doc_text",
-    "file_size_bytes": 76,
-    "idempotency_key": "mission_control_file_metadata:capital_hilton_invoice_workflow:1779734559852:99bd5e3900cfa89068e5",
-    "lane_ref": "capital_hilton",
+    "created_at": "2026-05-25T22:15:00+00:00",
+    "file_display_name": "Capital Hilton invoice.xlsx",
+    "file_extension": ".xlsx",
+    "file_kind_hint": "invoice spreadsheet",
+    "file_size_bytes": 24576,
+    "idempotency_key": "service_v1_file_metadata_watch_20260525_221500",
+    "lane_ref": "Capital Hilton",
     "local_path_ref_policy": "provided_path_ref_hidden_from_normal_read_model",
-    "operator_goal": "intake_file_metadata",
-    "origin_surface": "mission_control_mac",
-    "payload_hash": "99bd5e3900cfa89068e5c26aeeb6ea7b7b1164d1a62949c77f2ee3399de149d2",
-    "privacy_class": "client_private_or_operator_provided",
-    "request_id": "capital_hilton_file_metadata_1779734559852_99bd5e3900cf",
+    "operator_goal": "Use this file as a safe source reference.",
+    "origin_surface": "Mission Control chat",
+    "payload_hash": "sha256:54096d277c730b6519b3826145dc51de4c01b2db0d21493ccb38a2571cf17e06",
+    "privacy_class": "business_source_metadata",
+    "request_id": "capital_hilton_service_v1_file_metadata_watch_20260525_221500",
     "requested_intake_mode": "METADATA_ONLY",
-    "source_channel": "mission_control_chat_plus_menu",
-    "tenant_ref": "operator_winship_local",
+    "source_channel": "mission_control_chat_attachment",
+    "tenant_ref": "openclaw_repo_a_local",
     "workflow_ref": "capital_hilton_invoice_workflow",
     "world_ref": "finance"
   },
@@ -80,7 +80,7 @@
     "all_live_authority_flags_false": true,
     "app_automation_performed": false,
     "blockers_present": true,
-    "content_hash": "sha256:d690cfa2f6b3eee2e7ea46dec1290caafb19dbdeffccd4a04becb6bf39ad6702",
+    "content_hash": "sha256:2830183bebc82932c79253f86ab03ee0584bc2343068a3edd65a7073740c062d",
     "credential_handling_performed": false,
     "credentials_or_secrets_included": false,
     "duplicate_noop_available": false,
@@ -113,7 +113,7 @@
     "screenshot_protected_posture_if_present": true,
     "source_ref_created_if_valid": true,
     "source_ref_record_model_present": true,
-    "spreadsheet_fixture_creates_source_ref": false,
+    "spreadsheet_fixture_creates_source_ref": true,
     "spreadsheet_parse_performed": false,
     "supported_modes_present": true,
     "unknown_file_type_blocked": false
@@ -121,12 +121,11 @@
   "metadata_readback": {
     "headline": "File reference captured",
     "human_bullets": [
-      "Referenced source: openclaw_metadata_only_test.txt.",
-      "Detected type: rich_text_doc.",
+      "Referenced source: Capital Hilton invoice.xlsx.",
+      "Detected type: invoice_artifact.",
       "The file body was not read, parsed, OCRed, or sent to a model.",
       "This can be used later as a source for a visual workspace or governed extraction.",
-      "Full private paths are hidden from the normal read-model.",
-      "Protected evidence posture is required before raw/protected use."
+      "Full private paths are hidden from the normal read-model."
     ],
     "missing_registry_rails": [
       "persistent source registry",
@@ -139,7 +138,7 @@
       "Request governed extraction later",
       "Cancel"
     ],
-    "readback_id": "operator_file_metadata_readback_4c742c345e0e5f6a10ec",
+    "readback_id": "operator_file_metadata_readback_6dfb3928c2c32ab5bed4",
     "readback_status": "SOURCE_REF_CREATED",
     "source_ref": {
       "allowed_use": [
@@ -150,13 +149,13 @@
       ],
       "client_ref": "capital_hilton",
       "extraction_status": "NOT_EXTRACTED_BODY_NOT_READ",
-      "file_extension": ".txt",
-      "file_size_bytes": 76,
-      "file_type": "rich_text_doc",
+      "file_extension": ".xlsx",
+      "file_size_bytes": 24576,
+      "file_type": "invoice_artifact",
       "hash_or_fingerprint_policy": "metadata_fingerprint_only_body_not_read",
-      "lane_ref": "capital_hilton",
+      "lane_ref": "Capital Hilton",
       "next_safe_move": "Use this source ref in a visual workspace or future gated extraction request.",
-      "privacy_class": "client_private_or_operator_provided",
+      "privacy_class": "business_source_metadata",
       "prohibited_use": [
         "raw body to LLM",
         "file content parsing",
@@ -166,18 +165,18 @@
         "external action",
         "app automation"
       ],
-      "protected_ref_required": true,
+      "protected_ref_required": false,
       "requested_intake_mode": "METADATA_ONLY",
-      "safe_display_label": "openclaw_metadata_only_test.txt",
-      "sensitivity_class": "PROTECTED_SOURCE_METADATA",
-      "source_ref_id": "source_ref:c6599933fc28ea7ee121",
-      "source_surface": "mission_control_mac",
-      "tenant_ref": "operator_winship_local",
+      "safe_display_label": "Capital Hilton invoice.xlsx",
+      "sensitivity_class": "SENSITIVE_SOURCE_METADATA",
+      "source_ref_id": "source_ref:b5f98fa224cc3621e2c0",
+      "source_surface": "Mission Control chat",
+      "tenant_ref": "openclaw_repo_a_local",
       "workflow_ref": "capital_hilton_invoice_workflow",
       "world_ref": "finance"
     },
-    "source_request_ref": "capital_hilton_file_metadata_1779734559852_99bd5e3900cf",
-    "summary": "OpenClaw captured a file reference for 'openclaw_metadata_only_test.txt'. The file body was not read."
+    "source_request_ref": "capital_hilton_service_v1_file_metadata_watch_20260525_221500",
+    "summary": "OpenClaw captured a file reference for 'Capital Hilton invoice.xlsx'. The file body was not read."
   },
   "model_schemas": {
     "operator_file_intake_blocker": {
@@ -325,12 +324,12 @@
   "payload_hash_policy": {
     "accepted": true,
     "mac_hash_policy": "mac_bare_sha256_metadata_digest_bound_to_request_id_and_idempotency_key",
-    "mac_metadata_contract_match": true,
-    "pc_expected_bare_payload_hash": "37464ffac5594300ecf4312cae7fe3ecdc81b23e34b4b6869631cca376a6a79b",
-    "pc_expected_payload_hash": "sha256:37464ffac5594300ecf4312cae7fe3ecdc81b23e34b4b6869631cca376a6a79b",
+    "mac_metadata_contract_match": false,
+    "pc_expected_bare_payload_hash": "54096d277c730b6519b3826145dc51de4c01b2db0d21493ccb38a2571cf17e06",
+    "pc_expected_payload_hash": "sha256:54096d277c730b6519b3826145dc51de4c01b2db0d21493ccb38a2571cf17e06",
     "pc_hash_policy": "pc_stable_json_sha256_request_minus_payload_hash_with_sha256_prefix",
-    "pc_match": false,
-    "supplied_payload_hash": "99bd5e3900cfa89068e5c26aeeb6ea7b7b1164d1a62949c77f2ee3399de149d2"
+    "pc_match": true,
+    "supplied_payload_hash": "sha256:54096d277c730b6519b3826145dc51de4c01b2db0d21493ccb38a2571cf17e06"
   },
   "read_model_id": "operator_file_metadata_readback",
   "relationship_refs": {
@@ -350,13 +349,13 @@
     ],
     "client_ref": "capital_hilton",
     "extraction_status": "NOT_EXTRACTED_BODY_NOT_READ",
-    "file_extension": ".txt",
-    "file_size_bytes": 76,
-    "file_type": "rich_text_doc",
+    "file_extension": ".xlsx",
+    "file_size_bytes": 24576,
+    "file_type": "invoice_artifact",
     "hash_or_fingerprint_policy": "metadata_fingerprint_only_body_not_read",
-    "lane_ref": "capital_hilton",
+    "lane_ref": "Capital Hilton",
     "next_safe_move": "Use this source ref in a visual workspace or future gated extraction request.",
-    "privacy_class": "client_private_or_operator_provided",
+    "privacy_class": "business_source_metadata",
     "prohibited_use": [
       "raw body to LLM",
       "file content parsing",
@@ -366,13 +365,13 @@
       "external action",
       "app automation"
     ],
-    "protected_ref_required": true,
+    "protected_ref_required": false,
     "requested_intake_mode": "METADATA_ONLY",
-    "safe_display_label": "openclaw_metadata_only_test.txt",
-    "sensitivity_class": "PROTECTED_SOURCE_METADATA",
-    "source_ref_id": "source_ref:c6599933fc28ea7ee121",
-    "source_surface": "mission_control_mac",
-    "tenant_ref": "operator_winship_local",
+    "safe_display_label": "Capital Hilton invoice.xlsx",
+    "sensitivity_class": "SENSITIVE_SOURCE_METADATA",
+    "source_ref_id": "source_ref:b5f98fa224cc3621e2c0",
+    "source_surface": "Mission Control chat",
+    "tenant_ref": "openclaw_repo_a_local",
     "workflow_ref": "capital_hilton_invoice_workflow",
     "world_ref": "finance"
   },

@@ -1,6 +1,8 @@
 import json
 import os
 import sys
+import threading
+import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -24,6 +26,15 @@ def _write_chat_request(path: Path) -> dict:
 
 def _write_file_request(path: Path, *, fixture: str = "spreadsheet") -> dict:
     request = file_intake.make_fixture_request(fixture, created_at=FIXED_NOW)
+    path.write_text(file_intake.stable_json(request), encoding="utf-8")
+    return request
+
+
+def _write_unique_file_request(path: Path, suffix: str) -> dict:
+    request = file_intake.make_fixture_request("spreadsheet", created_at=FIXED_NOW)
+    request["request_id"] = f"mission_control_file_intake_request_spreadsheet_fixture_{suffix}"
+    request["idempotency_key"] = f"file_metadata_spreadsheet_fixture_{suffix}"
+    request["payload_hash"] = file_intake.compute_request_payload_hash(request)
     path.write_text(file_intake.stable_json(request), encoding="utf-8")
     return request
 
@@ -169,11 +180,50 @@ def test_duplicate_request_is_skipped_without_endless_processing(tmp_path, capsy
     payload = json.loads(capsys.readouterr().out)
     response_path = _safe_response_path(response_dir, request["request_id"])
 
-    assert payload["service_status"]["service_status"] == "IDLE_NO_REQUEST_AVAILABLE"
+    assert payload["service_status"]["service_status"] == "REQUEST_SKIPPED_DUPLICATE"
     assert payload["service_status"]["processed_count"] == 0
     assert payload["service_status"]["skipped_duplicate_count"] >= 1
     assert response_path.exists()
     assert request_path.exists()
+
+
+def test_duplicate_idempotency_key_is_skipped_before_reprocessing(tmp_path, capsys):
+    inbox = tmp_path / "inbox"
+    response_dir = tmp_path / "responses"
+    export_root = tmp_path / "read_models"
+    inbox.mkdir()
+    first_path = inbox / "mission_control_file_intake_request_spreadsheet_one.json"
+    second_path = inbox / "mission_control_file_intake_request_spreadsheet_two.json"
+    request = _write_file_request(first_path)
+
+    args = [
+        "--once",
+        "--inbox",
+        str(inbox),
+        "--response-dir",
+        str(response_dir),
+        "--export-root",
+        str(export_root),
+        "--generated-at",
+        FIXED_NOW,
+        "--format",
+        "json",
+    ]
+    assert service_main(args) == 0
+    capsys.readouterr()
+
+    duplicate = dict(request)
+    duplicate["request_id"] = request["request_id"] + "_second"
+    second_path.write_text(file_intake.stable_json(duplicate), encoding="utf-8")
+
+    assert service_main(args) == 0
+    payload = json.loads(capsys.readouterr().out)
+
+    assert payload["service_status"]["service_status"] == "REQUEST_SKIPPED_DUPLICATE"
+    assert payload["service_status"]["processed_count"] == 0
+    skipped = payload["service_status"]["skipped_duplicates"]
+    assert any("idempotency:" + request["idempotency_key"] in item["matched_duplicate_keys"] for item in skipped)
+    assert second_path.exists()
 
 
 def test_failed_processing_writes_failure_response_with_fix_path(tmp_path, capsys):
@@ -271,6 +321,87 @@ def test_watch_seconds_with_pending_request_does_not_reprocess_same_file_forever
     assert len(payload["service_status"]["all_processed_request_records"]) == 1
     assert payload["machine_proof"]["unbounded_loop_default"] is False
     assert request_path.exists()
+
+
+def test_watch_mode_notices_request_created_after_start(tmp_path, capsys):
+    inbox = tmp_path / "inbox"
+    response_dir = tmp_path / "responses"
+    export_root = tmp_path / "read_models"
+    inbox.mkdir()
+    request_path = inbox / "mission_control_file_intake_request_fresh.json"
+
+    def delayed_write() -> None:
+        time.sleep(0.1)
+        _write_unique_file_request(request_path, "fresh")
+
+    writer = threading.Thread(target=delayed_write)
+    writer.start()
+    try:
+        assert service_main(
+            [
+                "--watch-seconds",
+                "2",
+                "--poll-interval",
+                "0.05",
+                "--max-requests",
+                "1",
+                "--inbox",
+                str(inbox),
+                "--response-dir",
+                str(response_dir),
+                "--export-root",
+                str(export_root),
+                "--generated-at",
+                FIXED_NOW,
+                "--format",
+                "json",
+            ]
+        ) == 0
+    finally:
+        writer.join(timeout=2)
+    payload = json.loads(capsys.readouterr().out)
+
+    assert payload["service_status"]["service_status"] == "REQUEST_PROCESSED"
+    assert payload["service_status"]["processed_count"] == 1
+    assert request_path.exists()
+    latest = payload["service_status"]["latest_response"]
+    response = json.loads(Path(latest["response_file"]).read_text(encoding="utf-8"))
+    assert response["source_request_id"] == "mission_control_file_intake_request_spreadsheet_fixture_fresh"
+    assert response["terminal"] is True
+
+
+def test_watch_mode_honors_max_requests(tmp_path, capsys):
+    inbox = tmp_path / "inbox"
+    response_dir = tmp_path / "responses"
+    export_root = tmp_path / "read_models"
+    inbox.mkdir()
+    _write_unique_file_request(inbox / "mission_control_file_intake_request_one.json", "one")
+    _write_unique_file_request(inbox / "mission_control_file_intake_request_two.json", "two")
+
+    assert service_main(
+        [
+            "--watch-seconds",
+            "1",
+            "--poll-interval",
+            "0.05",
+            "--max-requests",
+            "1",
+            "--inbox",
+            str(inbox),
+            "--response-dir",
+            str(response_dir),
+            "--export-root",
+            str(export_root),
+            "--generated-at",
+            FIXED_NOW,
+            "--format",
+            "json",
+        ]
+    ) == 0
+    payload = json.loads(capsys.readouterr().out)
+
+    assert payload["service_status"]["processed_count"] == 1
+    assert payload["service_status"]["run_mode"] == "watch_seconds=1,max_requests=1"
 
 
 def test_no_request_deletion_no_raw_body_ingestion_no_external_authority(tmp_path, capsys):

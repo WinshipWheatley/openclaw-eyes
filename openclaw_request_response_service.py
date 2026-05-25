@@ -1,4 +1,4 @@
-"""Local OpenClaw request/response service v0.
+"""Local OpenClaw request/response service v1.
 
 This module wraps the bounded request processor with a local, bounded polling
 service. It only inspects the approved Mission Control inbox, processes
@@ -30,7 +30,7 @@ DEFAULT_EXPORT_ROOT = Path("generated/read_models")
 APPROVED_INBOX = processor.APPROVED_INBOX
 DEFAULT_RESPONSE_DIR = Path("/mnt/e/openclaw/mission_control_responses/to_mac")
 
-SCHEMA_VERSION = "openclaw_request_response_service_v0"
+SCHEMA_VERSION = "openclaw_request_response_service_v1"
 STATUS_READ_MODEL_ID = "openclaw_request_response_service_status"
 STATUS_JSON_EXPORT_NAME = f"{STATUS_READ_MODEL_ID}.json"
 STATUS_OPERATOR_EXPORT_NAME = f"{STATUS_READ_MODEL_ID}_STATUS_OPERATOR.md"
@@ -166,6 +166,36 @@ def _processed_keys(existing_status: Mapping[str, Any] | None) -> set[str]:
     return {str(record.get("request_key")) for record in _processed_records(existing_status) if record.get("request_key")}
 
 
+def _identity_keys(path: Path, identity: RequestIdentity) -> tuple[str, ...]:
+    keys = [identity.request_key, f"filename:{path.name}"]
+    if identity.source_request_id:
+        keys.append(f"request_id:{identity.source_request_id}")
+    if identity.idempotency_key:
+        keys.append(f"idempotency:{identity.idempotency_key}")
+    if identity.payload_hash:
+        keys.append(f"payload_hash:{identity.payload_hash}")
+    return tuple(dict.fromkeys(str(key) for key in keys if key))
+
+
+def _processed_identity_keys(existing_status: Mapping[str, Any] | None) -> set[str]:
+    keys: set[str] = set()
+    for record in _processed_records(existing_status):
+        for key in record.get("identity_keys") or ():
+            if key:
+                keys.add(str(key))
+        if record.get("request_key"):
+            keys.add(str(record["request_key"]))
+        if record.get("source_request_id"):
+            keys.add(f"request_id:{record['source_request_id']}")
+        if record.get("source_request_filename"):
+            keys.add(f"filename:{record['source_request_filename']}")
+        if record.get("idempotency_key"):
+            keys.add(f"idempotency:{record['idempotency_key']}")
+        if record.get("payload_hash"):
+            keys.add(f"payload_hash:{record['payload_hash']}")
+    return keys
+
+
 def classify_request_path(path: Path) -> str:
     return processor.classify_request_filename(path.name).request_family
 
@@ -238,18 +268,22 @@ def select_next_pending_request(
     extra_processed_keys: set[str] | None = None,
 ) -> tuple[Path | None, tuple[dict[str, Any], ...]]:
     existing_status = read_service_status(export_root)
-    processed = _processed_keys(existing_status)
+    processed = _processed_identity_keys(existing_status)
     if extra_processed_keys:
         processed.update(extra_processed_keys)
     skipped: list[dict[str, Any]] = []
     for candidate in list_candidate_requests(inbox):
         identity = read_request_identity(candidate)
-        if identity.request_key in processed:
+        identity_keys = _identity_keys(candidate, identity)
+        matching_keys = tuple(key for key in identity_keys if key in processed)
+        if matching_keys:
             skipped.append(
                 {
                     "source_request_id": identity.source_request_id,
                     "source_request_filename": candidate.name,
                     "request_key": identity.request_key,
+                    "identity_keys": identity_keys,
+                    "matched_duplicate_keys": matching_keys,
                     "reason": "already processed by local request/response service",
                 }
             )
@@ -399,6 +433,7 @@ def _record_from_response(
         "source_request_id": identity.source_request_id,
         "source_request_filename": request_path.name,
         "request_key": identity.request_key,
+        "identity_keys": _identity_keys(request_path, identity),
         "idempotency_key": identity.idempotency_key,
         "payload_hash": identity.payload_hash,
         "workflow_ref": identity.workflow_ref,
@@ -425,8 +460,14 @@ def process_one_pending_request(
         extra_processed_keys=extra_processed_keys,
     )
     if request_path is None:
+        service_status = "REQUEST_SKIPPED_DUPLICATE" if skipped else "IDLE_NO_REQUEST_AVAILABLE"
+        next_safe_move = (
+            "No new request was processed because all supported request files were already handled."
+            if skipped
+            else "Leave the service idle until Mac emits a supported request."
+        )
         return ServiceRunResult(
-            service_status="IDLE_NO_REQUEST_AVAILABLE",
+            service_status=service_status,
             run_mode="once",
             inbox=inbox.as_posix(),
             response_path=response_dir.as_posix(),
@@ -436,7 +477,7 @@ def process_one_pending_request(
             skipped_duplicates=skipped,
             latest_response=None,
             errors_or_blockers=(),
-            next_safe_move="Leave the service idle until Mac emits a supported request.",
+            next_safe_move=next_safe_move,
         )
 
     identity = read_request_identity(request_path)
@@ -482,9 +523,11 @@ def run_watch(
     generated_at: str | None = None,
     watch_seconds: int = 5,
     poll_interval: float = 0.5,
+    max_requests: int = 1,
 ) -> ServiceRunResult:
     created_at = generated_at or utc_now()
     deadline = time.monotonic() + max(0, watch_seconds)
+    request_limit = max(1, max_requests)
     processed: list[dict[str, Any]] = []
     skipped: list[dict[str, Any]] = []
     errors: list[str] = []
@@ -492,6 +535,8 @@ def run_watch(
     in_memory_processed_keys: set[str] = set()
     while True:
         if time.monotonic() >= deadline:
+            break
+        if len(processed) >= request_limit:
             break
         result = process_one_pending_request(
             inbox=inbox,
@@ -504,6 +549,8 @@ def run_watch(
         if result.processed_count:
             processed.extend(result.processed_requests)
             for record in result.processed_requests:
+                for key in record.get("identity_keys") or ():
+                    in_memory_processed_keys.add(str(key))
                 if record.get("request_key"):
                     in_memory_processed_keys.add(str(record["request_key"]))
             latest_response = result.latest_response
@@ -513,6 +560,7 @@ def run_watch(
         if time.monotonic() >= deadline:
             break
         time.sleep(min(max(poll_interval, 0.05), max(0.0, deadline - time.monotonic())))
+    deduped_skipped = _dedupe_records(skipped)
     if processed:
         status = "REQUEST_PROCESSED" if not errors else "FAILED_WITH_REASON"
         next_safe_move = (
@@ -521,12 +569,15 @@ def run_watch(
             else "Show the latest response in Mac chat."
         )
     else:
-        status = "WATCH_TIMED_OUT_IDLE"
-        next_safe_move = "No supported request arrived before timeout; keep the service available for the next Mac request."
-    deduped_skipped = _dedupe_records(skipped)
+        status = "REQUEST_SKIPPED_DUPLICATE" if deduped_skipped else "WATCH_TIMED_OUT_IDLE"
+        next_safe_move = (
+            "All supported request files seen during the watch window were already handled."
+            if deduped_skipped
+            else "No supported request arrived before timeout; keep the service available for the next Mac request."
+        )
     return ServiceRunResult(
         service_status=status,
-        run_mode=f"watch_seconds={watch_seconds}",
+        run_mode=f"watch_seconds={watch_seconds},max_requests={request_limit}",
         inbox=inbox.as_posix(),
         response_path=response_dir.as_posix(),
         processed_count=len(processed),
@@ -572,6 +623,7 @@ def _machine_proof(result: ServiceRunResult) -> dict[str, Any]:
         "how_to_fix_present": result.processed_count == 0 or bool(result.latest_response and result.latest_response.get("how_to_fix")),
         "terminal_response_written": result.processed_count == 0 or bool(result.latest_response and result.latest_response.get("terminal") is True),
         "duplicate_tracking_present": True,
+        "duplicate_keys_include_request_id_idempotency_filename_payload_hash": True,
         "no_request_deletion": True,
         "no_request_mutation": True,
         "no_broad_scan": True,
@@ -620,6 +672,18 @@ def build_service_status_payload(
             "all_processed_request_records": all_records,
         },
         "supported_request_patterns": processor.SUPPORTED_REQUEST_PATTERNS,
+        "run_modes": {
+            "once": "Process one pending supported request and exit.",
+            "watch_seconds": "Poll the configured inbox for a bounded number of seconds, then exit.",
+            "max_requests": "Caps how many new requests a watch run may process before exiting.",
+            "persistent_service": "Not installed or enabled in this lane.",
+        },
+        "manual_run_help": {
+            "once": "python3 scripts/run_openclaw_request_response_service.py --once --format json",
+            "bounded_watch": "python3 scripts/run_openclaw_request_response_service.py --watch-seconds 10 --poll-interval 1 --max-requests 1 --format json",
+            "approved_inbox": APPROVED_INBOX.as_posix(),
+            "response_dir": DEFAULT_RESPONSE_DIR.as_posix(),
+        },
         "response_output_policy": {
             "response_dir": result.response_path,
             "per_request_filename": "openclaw_response_for_mac_<source_request_id>.json",
@@ -701,6 +765,7 @@ def run_service(
     once: bool = True,
     watch_seconds: int | None = None,
     poll_interval: float = 0.5,
+    max_requests: int = 1,
     inbox: Path = APPROVED_INBOX,
     response_dir: Path = DEFAULT_RESPONSE_DIR,
     export_root: Path = DEFAULT_EXPORT_ROOT,
@@ -714,6 +779,7 @@ def run_service(
             generated_at=generated_at,
             watch_seconds=watch_seconds,
             poll_interval=poll_interval,
+            max_requests=max_requests,
         )
     else:
         result = process_one_pending_request(
@@ -732,6 +798,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--once", action="store_true", help="Process one pending request and exit. This is the default.")
     parser.add_argument("--watch-seconds", type=int, default=None, help="Bounded polling window, then exit.")
     parser.add_argument("--poll-interval", type=float, default=0.5)
+    parser.add_argument("--max-requests", type=int, default=1, help="Maximum new requests to process in a watch run.")
     parser.add_argument("--inbox", default=str(APPROVED_INBOX))
     parser.add_argument("--response-dir", default=str(DEFAULT_RESPONSE_DIR))
     parser.add_argument("--export-root", default=str(DEFAULT_EXPORT_ROOT))
@@ -742,6 +809,7 @@ def main(argv: list[str] | None = None) -> int:
         once=args.once,
         watch_seconds=args.watch_seconds,
         poll_interval=args.poll_interval,
+        max_requests=args.max_requests,
         inbox=Path(args.inbox),
         response_dir=Path(args.response_dir),
         export_root=Path(args.export_root),

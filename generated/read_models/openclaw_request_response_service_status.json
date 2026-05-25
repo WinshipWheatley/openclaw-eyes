@@ -27,7 +27,7 @@
     "unbounded_loop_by_default_allowed": false
   },
   "contract_status": "BOUNDED_LOCAL_OPENCLAW_REQUEST_RESPONSE_SERVICE",
-  "generated_at": "2026-05-25T21:46:42+00:00",
+  "generated_at": "2026-05-25T22:11:12+00:00",
   "machine_proof": {
     "agent_dispatch_performed": false,
     "all_authority_boundary_flags_false": true,
@@ -36,9 +36,10 @@
     "attachment_performed": false,
     "bounded_run_mode": true,
     "browser_access_performed": false,
-    "content_hash": "sha256:29b1d7743e0edf66c7ef8d3ac130dc819353c2181a439eb12c05f3400983b03b",
+    "content_hash": "sha256:20a3bf23541ef712336b0ac6dd98735e8ff337591741193c27528ed6e75b6a43",
     "coupa_access_or_submit_performed": false,
     "credential_handling_performed": false,
+    "duplicate_keys_include_request_id_idempotency_filename_payload_hash": true,
     "duplicate_tracking_present": true,
     "email_draft_or_send_performed": false,
     "external_action_performed": false,
@@ -62,6 +63,12 @@
     "unbounded_loop_default": false,
     "workflow_execution_performed": false
   },
+  "manual_run_help": {
+    "approved_inbox": "/mnt/e/openclaw/mission_control_capture_requests/inbox",
+    "bounded_watch": "python3 scripts/run_openclaw_request_response_service.py --watch-seconds 10 --poll-interval 1 --max-requests 1 --format json",
+    "once": "python3 scripts/run_openclaw_request_response_service.py --once --format json",
+    "response_dir": "/mnt/e/openclaw/mission_control_responses/to_mac"
+  },
   "read_model_id": "openclaw_request_response_service_status",
   "response_output_policy": {
     "latest_filename": "openclaw_response_for_mac_latest.json",
@@ -69,7 +76,13 @@
     "per_request_filename": "openclaw_response_for_mac_<source_request_id>.json",
     "response_dir": "/mnt/e/openclaw/mission_control_responses/to_mac"
   },
-  "schema_version": "openclaw_request_response_service_v0",
+  "run_modes": {
+    "max_requests": "Caps how many new requests a watch run may process before exiting.",
+    "once": "Process one pending supported request and exit.",
+    "persistent_service": "Not installed or enabled in this lane.",
+    "watch_seconds": "Poll the configured inbox for a bounded number of seconds, then exit."
+  },
+  "schema_version": "openclaw_request_response_service_v1",
   "service_status": {
     "all_processed_request_records": [
       {
@@ -240,6 +253,63 @@
         "source_request_filename": "mission_control_file_intake_request_1779734559852_99bd5e3900cf.json",
         "source_request_id": "capital_hilton_file_metadata_1779734559852_99bd5e3900cf",
         "workflow_ref": "capital_hilton_invoice_workflow"
+      },
+      {
+        "created_at": "2026-05-25T22:10:12+00:00",
+        "idempotency_key": "service_v1_file_metadata_once_20260525_220500",
+        "identity_keys": [
+          "request_id:capital_hilton_service_v1_file_metadata_once_20260525_220500",
+          "filename:mission_control_file_intake_request_service_v1_once_20260525_220500.json",
+          "idempotency:service_v1_file_metadata_once_20260525_220500",
+          "payload_hash:sha256:ab6792e2a61f97cbd23dfab64ed234d1cd9764db890e7b71facd1bf995cecf7e"
+        ],
+        "internal_status": "RESPONSE_READY",
+        "operator_headline": "File reference captured",
+        "payload_hash": "sha256:ab6792e2a61f97cbd23dfab64ed234d1cd9764db890e7b71facd1bf995cecf7e",
+        "request_key": "request_id:capital_hilton_service_v1_file_metadata_once_20260525_220500",
+        "request_type": "FILE_METADATA",
+        "response_file": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_service_v1_file_metadata_once_20260525_220500.json",
+        "source_request_filename": "mission_control_file_intake_request_service_v1_once_20260525_220500.json",
+        "source_request_id": "capital_hilton_service_v1_file_metadata_once_20260525_220500",
+        "workflow_ref": "capital_hilton_invoice_workflow"
+      },
+      {
+        "created_at": "2026-05-25T22:10:19+00:00",
+        "idempotency_key": "service_v1_file_metadata_watch_20260525_220600",
+        "identity_keys": [
+          "request_id:capital_hilton_service_v1_file_metadata_watch_20260525_220600",
+          "filename:mission_control_file_intake_request_service_v1_watch_20260525_220600.json",
+          "idempotency:service_v1_file_metadata_watch_20260525_220600",
+          "payload_hash:sha256:51b75044b0c82cab2c2b23f09604e751c476e6c925cacb17293c4434788ae979"
+        ],
+        "internal_status": "RESPONSE_READY",
+        "operator_headline": "File reference captured",
+        "payload_hash": "sha256:51b75044b0c82cab2c2b23f09604e751c476e6c925cacb17293c4434788ae979",
+        "request_key": "request_id:capital_hilton_service_v1_file_metadata_watch_20260525_220600",
+        "request_type": "FILE_METADATA",
+        "response_file": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_service_v1_file_metadata_watch_20260525_220600.json",
+        "source_request_filename": "mission_control_file_intake_request_service_v1_watch_20260525_220600.json",
+        "source_request_id": "capital_hilton_service_v1_file_metadata_watch_20260525_220600",
+        "workflow_ref": "capital_hilton_invoice_workflow"
+      },
+      {
+        "created_at": "2026-05-25T22:11:09+00:00",
+        "idempotency_key": "service_v1_file_metadata_watch_20260525_221500",
+        "identity_keys": [
+          "request_id:capital_hilton_service_v1_file_metadata_watch_20260525_221500",
+          "filename:mission_control_file_intake_request_service_v1_watch_20260525_221500.json",
+          "idempotency:service_v1_file_metadata_watch_20260525_221500",
+          "payload_hash:sha256:54096d277c730b6519b3826145dc51de4c01b2db0d21493ccb38a2571cf17e06"
+        ],
+        "internal_status": "RESPONSE_READY",
+        "operator_headline": "File reference captured",
+        "payload_hash": "sha256:54096d277c730b6519b3826145dc51de4c01b2db0d21493ccb38a2571cf17e06",
+        "request_key": "request_id:capital_hilton_service_v1_file_metadata_watch_20260525_221500",
+        "request_type": "FILE_METADATA",
+        "response_file": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_service_v1_file_metadata_watch_20260525_221500.json",
+        "source_request_filename": "mission_control_file_intake_request_service_v1_watch_20260525_221500.json",
+        "source_request_id": "capital_hilton_service_v1_file_metadata_watch_20260525_221500",
+        "workflow_ref": "capital_hilton_invoice_workflow"
       }
     ],
     "errors_or_blockers": [],
@@ -251,106 +321,310 @@
       "manifest_file": "/mnt/e/openclaw/mission_control_responses/to_mac/response_manifest.json",
       "next_safe_move": "Show the file reference card and ask whether to use it in a visual workspace.",
       "operator_headline": "File reference captured",
-      "operator_message": "OpenClaw captured a file reference for 'openclaw_metadata_only_test.txt'. The file body was not read.",
+      "operator_message": "OpenClaw captured a file reference for 'Capital Hilton invoice.xlsx'. The file body was not read.",
       "request_type": "FILE_METADATA",
-      "response_file": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_file_metadata_1779734559852_99bd5e3900cf.json",
-      "source_request_filename": "mission_control_file_intake_request_1779734559852_99bd5e3900cf.json",
-      "source_request_id": "capital_hilton_file_metadata_1779734559852_99bd5e3900cf",
+      "response_file": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_service_v1_file_metadata_watch_20260525_221500.json",
+      "source_request_filename": "mission_control_file_intake_request_service_v1_watch_20260525_221500.json",
+      "source_request_id": "capital_hilton_service_v1_file_metadata_watch_20260525_221500",
       "terminal": true
     },
     "next_safe_move": "Show the file reference card and ask whether to use it in a visual workspace.",
     "processed_count": 1,
     "processed_requests": [
       {
-        "created_at": "2026-05-25T21:46:42+00:00",
-        "idempotency_key": "mission_control_file_metadata:capital_hilton_invoice_workflow:1779734559852:99bd5e3900cfa89068e5",
+        "created_at": "2026-05-25T22:11:09+00:00",
+        "idempotency_key": "service_v1_file_metadata_watch_20260525_221500",
+        "identity_keys": [
+          "request_id:capital_hilton_service_v1_file_metadata_watch_20260525_221500",
+          "filename:mission_control_file_intake_request_service_v1_watch_20260525_221500.json",
+          "idempotency:service_v1_file_metadata_watch_20260525_221500",
+          "payload_hash:sha256:54096d277c730b6519b3826145dc51de4c01b2db0d21493ccb38a2571cf17e06"
+        ],
         "internal_status": "RESPONSE_READY",
         "operator_headline": "File reference captured",
-        "payload_hash": "99bd5e3900cfa89068e5c26aeeb6ea7b7b1164d1a62949c77f2ee3399de149d2",
-        "request_key": "request_id:capital_hilton_file_metadata_1779734559852_99bd5e3900cf",
+        "payload_hash": "sha256:54096d277c730b6519b3826145dc51de4c01b2db0d21493ccb38a2571cf17e06",
+        "request_key": "request_id:capital_hilton_service_v1_file_metadata_watch_20260525_221500",
         "request_type": "FILE_METADATA",
-        "response_file": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_file_metadata_1779734559852_99bd5e3900cf.json",
-        "source_request_filename": "mission_control_file_intake_request_1779734559852_99bd5e3900cf.json",
-        "source_request_id": "capital_hilton_file_metadata_1779734559852_99bd5e3900cf",
+        "response_file": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_service_v1_file_metadata_watch_20260525_221500.json",
+        "source_request_filename": "mission_control_file_intake_request_service_v1_watch_20260525_221500.json",
+        "source_request_id": "capital_hilton_service_v1_file_metadata_watch_20260525_221500",
         "workflow_ref": "capital_hilton_invoice_workflow"
       }
     ],
     "response_path": "/mnt/e/openclaw/mission_control_responses/to_mac",
-    "run_mode": "once",
+    "run_mode": "watch_seconds=10,max_requests=1",
     "service_status": "REQUEST_PROCESSED",
-    "skipped_duplicate_count": 12,
+    "skipped_duplicate_count": 15,
     "skipped_duplicates": [
       {
+        "identity_keys": [
+          "request_id:capital_hilton_invoice_workflow_1779667089053_da4719d0757a",
+          "filename:mission_control_chat_request_capital_hilton_invoice_workflow_1779667089053_da4719d0757a.json",
+          "idempotency:mission_control_chat:capital_hilton_invoice_workflow:da4719d0757a1178c0e4",
+          "payload_hash:da4719d0757a1178c0e44f87559558ce27c5f745248bc8c0296cf47873ca297b"
+        ],
+        "matched_duplicate_keys": [
+          "request_id:capital_hilton_invoice_workflow_1779667089053_da4719d0757a",
+          "filename:mission_control_chat_request_capital_hilton_invoice_workflow_1779667089053_da4719d0757a.json",
+          "idempotency:mission_control_chat:capital_hilton_invoice_workflow:da4719d0757a1178c0e4",
+          "payload_hash:da4719d0757a1178c0e44f87559558ce27c5f745248bc8c0296cf47873ca297b"
+        ],
         "reason": "already processed by local request/response service",
         "request_key": "request_id:capital_hilton_invoice_workflow_1779667089053_da4719d0757a",
         "source_request_filename": "mission_control_chat_request_capital_hilton_invoice_workflow_1779667089053_da4719d0757a.json",
         "source_request_id": "capital_hilton_invoice_workflow_1779667089053_da4719d0757a"
       },
       {
+        "identity_keys": [
+          "request_id:capital_hilton_invoice_workflow_1779668465295_da4719d0757a",
+          "filename:mission_control_chat_request_capital_hilton_invoice_workflow_1779668465295_da4719d0757a.json",
+          "idempotency:mission_control_chat:capital_hilton_invoice_workflow:da4719d0757a1178c0e4",
+          "payload_hash:da4719d0757a1178c0e44f87559558ce27c5f745248bc8c0296cf47873ca297b"
+        ],
+        "matched_duplicate_keys": [
+          "request_id:capital_hilton_invoice_workflow_1779668465295_da4719d0757a",
+          "filename:mission_control_chat_request_capital_hilton_invoice_workflow_1779668465295_da4719d0757a.json",
+          "idempotency:mission_control_chat:capital_hilton_invoice_workflow:da4719d0757a1178c0e4",
+          "payload_hash:da4719d0757a1178c0e44f87559558ce27c5f745248bc8c0296cf47873ca297b"
+        ],
         "reason": "already processed by local request/response service",
         "request_key": "request_id:capital_hilton_invoice_workflow_1779668465295_da4719d0757a",
         "source_request_filename": "mission_control_chat_request_capital_hilton_invoice_workflow_1779668465295_da4719d0757a.json",
         "source_request_id": "capital_hilton_invoice_workflow_1779668465295_da4719d0757a"
       },
       {
+        "identity_keys": [
+          "request_id:capital_hilton_invoice_workflow_1779668712393_9dc0fb29014b",
+          "filename:mission_control_chat_request_capital_hilton_invoice_workflow_1779668712393_9dc0fb29014b.json",
+          "idempotency:mission_control_chat:capital_hilton_invoice_workflow:9dc0fb29014b678ed21a",
+          "payload_hash:9dc0fb29014b678ed21ae352f3275e815b7c88661c9b7b153a5791d165e97758"
+        ],
+        "matched_duplicate_keys": [
+          "request_id:capital_hilton_invoice_workflow_1779668712393_9dc0fb29014b",
+          "filename:mission_control_chat_request_capital_hilton_invoice_workflow_1779668712393_9dc0fb29014b.json",
+          "idempotency:mission_control_chat:capital_hilton_invoice_workflow:9dc0fb29014b678ed21a",
+          "payload_hash:9dc0fb29014b678ed21ae352f3275e815b7c88661c9b7b153a5791d165e97758"
+        ],
         "reason": "already processed by local request/response service",
         "request_key": "request_id:capital_hilton_invoice_workflow_1779668712393_9dc0fb29014b",
         "source_request_filename": "mission_control_chat_request_capital_hilton_invoice_workflow_1779668712393_9dc0fb29014b.json",
         "source_request_id": "capital_hilton_invoice_workflow_1779668712393_9dc0fb29014b"
       },
       {
+        "identity_keys": [
+          "request_id:capital_hilton_invoice_workflow_1779670570304_e52bf0fed641",
+          "filename:mission_control_chat_request_capital_hilton_invoice_workflow_1779670570304_e52bf0fed641.json",
+          "idempotency:mission_control_chat:capital_hilton_invoice_workflow:e52bf0fed64195068e1d",
+          "payload_hash:e52bf0fed64195068e1d8af5eb6968741fcc13191ed6e61f337c905681ef505f"
+        ],
+        "matched_duplicate_keys": [
+          "request_id:capital_hilton_invoice_workflow_1779670570304_e52bf0fed641",
+          "filename:mission_control_chat_request_capital_hilton_invoice_workflow_1779670570304_e52bf0fed641.json",
+          "idempotency:mission_control_chat:capital_hilton_invoice_workflow:e52bf0fed64195068e1d",
+          "payload_hash:e52bf0fed64195068e1d8af5eb6968741fcc13191ed6e61f337c905681ef505f"
+        ],
         "reason": "already processed by local request/response service",
         "request_key": "request_id:capital_hilton_invoice_workflow_1779670570304_e52bf0fed641",
         "source_request_filename": "mission_control_chat_request_capital_hilton_invoice_workflow_1779670570304_e52bf0fed641.json",
         "source_request_id": "capital_hilton_invoice_workflow_1779670570304_e52bf0fed641"
       },
       {
+        "identity_keys": [
+          "request_id:capital_hilton_file_metadata_1779714653195_08f42aee6376",
+          "filename:mission_control_file_intake_request_1779714653195_acf0c0d960f1.json",
+          "idempotency:mission_control_file_metadata:capital_hilton_invoice_workflow:08f42aee6376bf5d595f",
+          "payload_hash:acf0c0d960f1e5aa1e20a8fd4e284ac96176029659f599bf97193b502c901069"
+        ],
+        "matched_duplicate_keys": [
+          "request_id:capital_hilton_file_metadata_1779714653195_08f42aee6376",
+          "filename:mission_control_file_intake_request_1779714653195_acf0c0d960f1.json",
+          "idempotency:mission_control_file_metadata:capital_hilton_invoice_workflow:08f42aee6376bf5d595f",
+          "payload_hash:acf0c0d960f1e5aa1e20a8fd4e284ac96176029659f599bf97193b502c901069"
+        ],
         "reason": "already processed by local request/response service",
         "request_key": "request_id:capital_hilton_file_metadata_1779714653195_08f42aee6376",
         "source_request_filename": "mission_control_file_intake_request_1779714653195_acf0c0d960f1.json",
         "source_request_id": "capital_hilton_file_metadata_1779714653195_08f42aee6376"
       },
       {
+        "identity_keys": [
+          "request_id:capital_hilton_invoice_workflow_1779722726209_683e0eba4f1e",
+          "filename:mission_control_chat_request_capital_hilton_invoice_workflow_1779722726209_683e0eba4f1e.json",
+          "idempotency:mission_control_chat:capital_hilton_invoice_workflow:683e0eba4f1ec26b2f72",
+          "payload_hash:683e0eba4f1ec26b2f724294fd97e6bd9add3da86e4019f09351600f32ad0af6"
+        ],
+        "matched_duplicate_keys": [
+          "request_id:capital_hilton_invoice_workflow_1779722726209_683e0eba4f1e",
+          "filename:mission_control_chat_request_capital_hilton_invoice_workflow_1779722726209_683e0eba4f1e.json",
+          "idempotency:mission_control_chat:capital_hilton_invoice_workflow:683e0eba4f1ec26b2f72",
+          "payload_hash:683e0eba4f1ec26b2f724294fd97e6bd9add3da86e4019f09351600f32ad0af6"
+        ],
         "reason": "already processed by local request/response service",
         "request_key": "request_id:capital_hilton_invoice_workflow_1779722726209_683e0eba4f1e",
         "source_request_filename": "mission_control_chat_request_capital_hilton_invoice_workflow_1779722726209_683e0eba4f1e.json",
         "source_request_id": "capital_hilton_invoice_workflow_1779722726209_683e0eba4f1e"
       },
       {
+        "identity_keys": [
+          "request_id:capital_hilton_invoice_workflow_1779722781376_9a4806555a5a",
+          "filename:mission_control_chat_request_capital_hilton_invoice_workflow_1779722781376_9a4806555a5a.json",
+          "idempotency:mission_control_chat:capital_hilton_invoice_workflow:9a4806555a5a522a1450",
+          "payload_hash:9a4806555a5a522a1450e324f8bff768d1350038b68f1a006e5d17efe8f6ee46"
+        ],
+        "matched_duplicate_keys": [
+          "request_id:capital_hilton_invoice_workflow_1779722781376_9a4806555a5a",
+          "filename:mission_control_chat_request_capital_hilton_invoice_workflow_1779722781376_9a4806555a5a.json",
+          "idempotency:mission_control_chat:capital_hilton_invoice_workflow:9a4806555a5a522a1450",
+          "payload_hash:9a4806555a5a522a1450e324f8bff768d1350038b68f1a006e5d17efe8f6ee46"
+        ],
         "reason": "already processed by local request/response service",
         "request_key": "request_id:capital_hilton_invoice_workflow_1779722781376_9a4806555a5a",
         "source_request_filename": "mission_control_chat_request_capital_hilton_invoice_workflow_1779722781376_9a4806555a5a.json",
         "source_request_id": "capital_hilton_invoice_workflow_1779722781376_9a4806555a5a"
       },
       {
+        "identity_keys": [
+          "request_id:capital_hilton_invoice_workflow_1779725400870_63d8fd666115",
+          "filename:mission_control_chat_request_capital_hilton_invoice_workflow_1779725400870_63d8fd666115.json",
+          "idempotency:mission_control_chat:capital_hilton_invoice_workflow:63d8fd6661154dffd8e2",
+          "payload_hash:63d8fd6661154dffd8e2e41bc1848b07a7c87096b24b12ff4317a90305380006"
+        ],
+        "matched_duplicate_keys": [
+          "request_id:capital_hilton_invoice_workflow_1779725400870_63d8fd666115",
+          "filename:mission_control_chat_request_capital_hilton_invoice_workflow_1779725400870_63d8fd666115.json",
+          "idempotency:mission_control_chat:capital_hilton_invoice_workflow:63d8fd6661154dffd8e2",
+          "payload_hash:63d8fd6661154dffd8e2e41bc1848b07a7c87096b24b12ff4317a90305380006"
+        ],
         "reason": "already processed by local request/response service",
         "request_key": "request_id:capital_hilton_invoice_workflow_1779725400870_63d8fd666115",
         "source_request_filename": "mission_control_chat_request_capital_hilton_invoice_workflow_1779725400870_63d8fd666115.json",
         "source_request_id": "capital_hilton_invoice_workflow_1779725400870_63d8fd666115"
       },
       {
+        "identity_keys": [
+          "request_id:capital_hilton_file_metadata_1779725517406_08f42aee6376",
+          "filename:mission_control_file_intake_request_1779725517406_ac5c49721a8d.json",
+          "idempotency:mission_control_file_metadata:capital_hilton_invoice_workflow:08f42aee6376bf5d595f",
+          "payload_hash:ac5c49721a8d767172b2272e05a8b071a55f32adf18b72e0143c76daa1739eff"
+        ],
+        "matched_duplicate_keys": [
+          "request_id:capital_hilton_file_metadata_1779725517406_08f42aee6376",
+          "filename:mission_control_file_intake_request_1779725517406_ac5c49721a8d.json",
+          "idempotency:mission_control_file_metadata:capital_hilton_invoice_workflow:08f42aee6376bf5d595f",
+          "payload_hash:ac5c49721a8d767172b2272e05a8b071a55f32adf18b72e0143c76daa1739eff"
+        ],
         "reason": "already processed by local request/response service",
         "request_key": "request_id:capital_hilton_file_metadata_1779725517406_08f42aee6376",
         "source_request_filename": "mission_control_file_intake_request_1779725517406_ac5c49721a8d.json",
         "source_request_id": "capital_hilton_file_metadata_1779725517406_08f42aee6376"
       },
       {
+        "identity_keys": [
+          "request_id:capital_hilton_invoice_workflow_1779733789798_15911ce4cc89",
+          "filename:mission_control_chat_request_capital_hilton_invoice_workflow_1779733789798_15911ce4cc89.json",
+          "idempotency:mission_control_chat:capital_hilton_invoice_workflow:15911ce4cc896f2f99fa",
+          "payload_hash:15911ce4cc896f2f99faec2c62631370c1c2c0325ea058cd02cf00620a614b62"
+        ],
+        "matched_duplicate_keys": [
+          "request_id:capital_hilton_invoice_workflow_1779733789798_15911ce4cc89",
+          "filename:mission_control_chat_request_capital_hilton_invoice_workflow_1779733789798_15911ce4cc89.json",
+          "idempotency:mission_control_chat:capital_hilton_invoice_workflow:15911ce4cc896f2f99fa",
+          "payload_hash:15911ce4cc896f2f99faec2c62631370c1c2c0325ea058cd02cf00620a614b62"
+        ],
         "reason": "already processed by local request/response service",
         "request_key": "request_id:capital_hilton_invoice_workflow_1779733789798_15911ce4cc89",
         "source_request_filename": "mission_control_chat_request_capital_hilton_invoice_workflow_1779733789798_15911ce4cc89.json",
         "source_request_id": "capital_hilton_invoice_workflow_1779733789798_15911ce4cc89"
       },
       {
+        "identity_keys": [
+          "request_id:capital_hilton_file_metadata_1779733941879_08f42aee6376",
+          "filename:mission_control_file_intake_request_1779733941879_08f42aee6376.json",
+          "idempotency:mission_control_file_metadata:capital_hilton_invoice_workflow:1779733941879:08f42aee6376bf5d595f",
+          "payload_hash:08f42aee6376bf5d595f80e24f7381d1ae5bdd0fbe96f9c3c1f6e440d51729c0"
+        ],
+        "matched_duplicate_keys": [
+          "request_id:capital_hilton_file_metadata_1779733941879_08f42aee6376",
+          "filename:mission_control_file_intake_request_1779733941879_08f42aee6376.json",
+          "idempotency:mission_control_file_metadata:capital_hilton_invoice_workflow:1779733941879:08f42aee6376bf5d595f",
+          "payload_hash:08f42aee6376bf5d595f80e24f7381d1ae5bdd0fbe96f9c3c1f6e440d51729c0"
+        ],
         "reason": "already processed by local request/response service",
         "request_key": "request_id:capital_hilton_file_metadata_1779733941879_08f42aee6376",
         "source_request_filename": "mission_control_file_intake_request_1779733941879_08f42aee6376.json",
         "source_request_id": "capital_hilton_file_metadata_1779733941879_08f42aee6376"
       },
       {
+        "identity_keys": [
+          "request_id:capital_hilton_invoice_workflow_1779734162334_b4175dc883e7",
+          "filename:mission_control_chat_request_capital_hilton_invoice_workflow_1779734162334_b4175dc883e7.json",
+          "idempotency:mission_control_chat:capital_hilton_invoice_workflow:b4175dc883e78c15fb37",
+          "payload_hash:b4175dc883e78c15fb3735569f870c5fd5be342f7cf5ee65561619af1adf5efa"
+        ],
+        "matched_duplicate_keys": [
+          "request_id:capital_hilton_invoice_workflow_1779734162334_b4175dc883e7",
+          "filename:mission_control_chat_request_capital_hilton_invoice_workflow_1779734162334_b4175dc883e7.json",
+          "idempotency:mission_control_chat:capital_hilton_invoice_workflow:b4175dc883e78c15fb37",
+          "payload_hash:b4175dc883e78c15fb3735569f870c5fd5be342f7cf5ee65561619af1adf5efa"
+        ],
         "reason": "already processed by local request/response service",
         "request_key": "request_id:capital_hilton_invoice_workflow_1779734162334_b4175dc883e7",
         "source_request_filename": "mission_control_chat_request_capital_hilton_invoice_workflow_1779734162334_b4175dc883e7.json",
         "source_request_id": "capital_hilton_invoice_workflow_1779734162334_b4175dc883e7"
+      },
+      {
+        "identity_keys": [
+          "request_id:capital_hilton_file_metadata_1779734559852_99bd5e3900cf",
+          "filename:mission_control_file_intake_request_1779734559852_99bd5e3900cf.json",
+          "idempotency:mission_control_file_metadata:capital_hilton_invoice_workflow:1779734559852:99bd5e3900cfa89068e5",
+          "payload_hash:99bd5e3900cfa89068e5c26aeeb6ea7b7b1164d1a62949c77f2ee3399de149d2"
+        ],
+        "matched_duplicate_keys": [
+          "request_id:capital_hilton_file_metadata_1779734559852_99bd5e3900cf",
+          "filename:mission_control_file_intake_request_1779734559852_99bd5e3900cf.json",
+          "idempotency:mission_control_file_metadata:capital_hilton_invoice_workflow:1779734559852:99bd5e3900cfa89068e5",
+          "payload_hash:99bd5e3900cfa89068e5c26aeeb6ea7b7b1164d1a62949c77f2ee3399de149d2"
+        ],
+        "reason": "already processed by local request/response service",
+        "request_key": "request_id:capital_hilton_file_metadata_1779734559852_99bd5e3900cf",
+        "source_request_filename": "mission_control_file_intake_request_1779734559852_99bd5e3900cf.json",
+        "source_request_id": "capital_hilton_file_metadata_1779734559852_99bd5e3900cf"
+      },
+      {
+        "identity_keys": [
+          "request_id:capital_hilton_service_v1_file_metadata_once_20260525_220500",
+          "filename:mission_control_file_intake_request_service_v1_once_20260525_220500.json",
+          "idempotency:service_v1_file_metadata_once_20260525_220500",
+          "payload_hash:sha256:ab6792e2a61f97cbd23dfab64ed234d1cd9764db890e7b71facd1bf995cecf7e"
+        ],
+        "matched_duplicate_keys": [
+          "request_id:capital_hilton_service_v1_file_metadata_once_20260525_220500",
+          "filename:mission_control_file_intake_request_service_v1_once_20260525_220500.json",
+          "idempotency:service_v1_file_metadata_once_20260525_220500",
+          "payload_hash:sha256:ab6792e2a61f97cbd23dfab64ed234d1cd9764db890e7b71facd1bf995cecf7e"
+        ],
+        "reason": "already processed by local request/response service",
+        "request_key": "request_id:capital_hilton_service_v1_file_metadata_once_20260525_220500",
+        "source_request_filename": "mission_control_file_intake_request_service_v1_once_20260525_220500.json",
+        "source_request_id": "capital_hilton_service_v1_file_metadata_once_20260525_220500"
+      },
+      {
+        "identity_keys": [
+          "request_id:capital_hilton_service_v1_file_metadata_watch_20260525_220600",
+          "filename:mission_control_file_intake_request_service_v1_watch_20260525_220600.json",
+          "idempotency:service_v1_file_metadata_watch_20260525_220600",
+          "payload_hash:sha256:51b75044b0c82cab2c2b23f09604e751c476e6c925cacb17293c4434788ae979"
+        ],
+        "matched_duplicate_keys": [
+          "request_id:capital_hilton_service_v1_file_metadata_watch_20260525_220600",
+          "filename:mission_control_file_intake_request_service_v1_watch_20260525_220600.json",
+          "idempotency:service_v1_file_metadata_watch_20260525_220600",
+          "payload_hash:sha256:51b75044b0c82cab2c2b23f09604e751c476e6c925cacb17293c4434788ae979"
+        ],
+        "reason": "already processed by local request/response service",
+        "request_key": "request_id:capital_hilton_service_v1_file_metadata_watch_20260525_220600",
+        "source_request_filename": "mission_control_file_intake_request_service_v1_watch_20260525_220600.json",
+        "source_request_id": "capital_hilton_service_v1_file_metadata_watch_20260525_220600"
       }
     ]
   },

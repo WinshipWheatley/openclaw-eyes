@@ -6,9 +6,9 @@ Inbox: /mnt/e/openclaw/mission_control_capture_requests/inbox
 Response path: /mnt/e/openclaw/mission_control_responses/to_mac
 
 Latest response:
-- File: /mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_file_metadata_1779734559852_99bd5e3900cf.json
+- File: /mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_service_v1_file_metadata_watch_20260525_221500.json
 - Headline: File reference captured
-- Message: OpenClaw captured a file reference for 'openclaw_metadata_only_test.txt'. The file body was not read.
+- Message: OpenClaw captured a file reference for 'Capital Hilton invoice.xlsx'. The file body was not read.
 - How to fix: No fix is needed. Use the source ref in a visual workspace later, or request governed extraction when that rail exists.
 
 Boundary:

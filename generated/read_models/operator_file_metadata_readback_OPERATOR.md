@@ -7,14 +7,13 @@ ELIOPERATOR: This readback captures file metadata as a safe source reference. It
 
 ## File reference captured
 
-OpenClaw captured a file reference for 'openclaw_metadata_only_test.txt'. The file body was not read.
+OpenClaw captured a file reference for 'Capital Hilton invoice.xlsx'. The file body was not read.
 
-- Referenced source: openclaw_metadata_only_test.txt.
-- Detected type: rich_text_doc.
+- Referenced source: Capital Hilton invoice.xlsx.
+- Detected type: invoice_artifact.
 - The file body was not read, parsed, OCRed, or sent to a model.
 - This can be used later as a source for a visual workspace or governed extraction.
 - Full private paths are hidden from the normal read-model.
-- Protected evidence posture is required before raw/protected use.
 
 ## What did not happen
 

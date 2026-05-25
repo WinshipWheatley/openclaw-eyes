@@ -2,7 +2,7 @@
 
 Status: RESPONSE_READY
 
-OpenClaw captured a file reference for 'openclaw_metadata_only_test.txt'. The file body was not read.
+OpenClaw captured a file reference for 'Capital Hilton invoice.xlsx'. The file body was not read.
 
 What happened:
 - PC validated the file metadata request.
