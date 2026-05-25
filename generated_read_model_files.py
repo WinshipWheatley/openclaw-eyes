@@ -7,9 +7,10 @@ expectations aligned without manually maintaining expected filename lists.
 
 from __future__ import annotations
 
-import hashlib
 from pathlib import Path
 from typing import Any
+
+from openclaw_substrate_utils import sha256_file
 
 
 ROOT = Path(__file__).resolve().parent
@@ -98,14 +99,6 @@ def resolve_repo_path(path: str | Path, *, repo_root: str | Path = ROOT) -> Path
     if candidate.is_absolute():
         return candidate
     return Path(repo_root) / candidate
-
-
-def sha256_file(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
 
 
 def is_no_go_generated_read_model_relative_path(relative_path: str) -> bool:

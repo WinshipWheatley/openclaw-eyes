@@ -13,9 +13,10 @@ import hashlib
 import json
 import sys
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+
+from openclaw_substrate_utils import stable_json, utc_now
 
 
 ROOT = Path(__file__).resolve().parent
@@ -568,14 +569,6 @@ class HandoffPostOfficeConcept:
     no_big_bang_rewrite_policy: str
     capital_hilton_adapter_path: str
     next_safe_move: str
-
-
-def utc_now() -> str:
-    return datetime.now(timezone.utc).isoformat(timespec="seconds")
-
-
-def stable_json(payload: Any) -> str:
-    return json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=True) + "\n"
 
 
 def _sha256(payload: Any) -> str:
