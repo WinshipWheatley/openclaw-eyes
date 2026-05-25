@@ -2,18 +2,14 @@
 
 ELIOPERATOR: This readback captures file metadata as a safe source reference. It does not read the file body or execute anything.
 
-- Route mode: `REQUEST_ACCEPTED_METADATA_ONLY`.
-- Readback status: `SOURCE_REF_CREATED`.
+- Route mode: `REQUEST_BLOCKED`.
+- Readback status: `BLOCKED_INVALID_REQUEST`.
 
-## File reference captured
+## File reference blocked
 
-OpenClaw captured a file reference for 'Capital Hilton invoice.xlsx'. The file body was not read.
+OpenClaw did not capture this file reference because the request was not safe metadata-only.
 
-- Referenced source: Capital Hilton invoice.xlsx.
-- Detected type: invoice_artifact.
-- The file body was not read, parsed, OCRed, or sent to a model.
-- This can be used later as a source for a visual workspace or governed extraction.
-- Full private paths are hidden from the normal read-model.
+- ELIOPERATOR: payload_hash does not match request metadata.
 
 ## What did not happen
 
@@ -26,4 +22,4 @@ OpenClaw captured a file reference for 'Capital Hilton invoice.xlsx'. The file b
 - Persistent source registry is not connected yet.
 - Idempotency is validated, but duplicate persistence is not claimed.
 
-Next safe move: Show the file reference card and ask whether to use it in a visual workspace.
+Next safe move: Send a metadata-only file reference with idempotency and payload hash.

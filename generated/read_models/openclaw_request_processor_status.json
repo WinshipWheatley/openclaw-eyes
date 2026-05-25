@@ -1,0 +1,343 @@
+{
+  "authority_boundary": {
+    "credential_handling_allowed": false,
+    "git_push_pull_fetch_allowed": false,
+    "live_agent_dispatch_allowed": false,
+    "live_approval_request_allowed": false,
+    "live_attachment_allowed": false,
+    "live_auto_dispatch_allowed": false,
+    "live_browser_allowed": false,
+    "live_context_package_dispatch_allowed": false,
+    "live_coupa_access_allowed": false,
+    "live_coupa_submit_allowed": false,
+    "live_daemon_allowed": false,
+    "live_email_draft_allowed": false,
+    "live_email_send_allowed": false,
+    "live_external_action_allowed": false,
+    "live_file_body_ingestion_allowed": false,
+    "live_invoice_generation_allowed": false,
+    "live_model_call_allowed": false,
+    "live_package_execution_allowed": false,
+    "live_payment_tracking_write_allowed": false,
+    "live_raw_transcript_ingestion_allowed": false,
+    "live_tool_execution_allowed": false,
+    "live_visual_artifact_spawn_allowed": false,
+    "live_watcher_allowed": false,
+    "live_workflow_execution_allowed": false,
+    "mac_sync_import_allowed": false,
+    "mission_control_swift_change_allowed": false,
+    "network_allowed": false,
+    "raw_body_ingestion_allowed": false
+  },
+  "contract_status": "BOUNDED_OPENCLAW_REQUEST_LIFECYCLE_PROCESSOR",
+  "generated_at": "2026-05-25T18:17:16+00:00",
+  "internal_statuses": [
+    "REQUEST_FOUND",
+    "REQUEST_PROCESSING",
+    "RESPONSE_READY",
+    "BLOCKED_WITH_REASON",
+    "FAILED_WITH_REASON",
+    "TIMED_OUT_WITH_REASON",
+    "DUPLICATE_NOOP_WITH_READBACK",
+    "NO_REQUEST_AVAILABLE",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "latest_response_ref": "openclaw_response_for_mac.json",
+  "machine_proof": {
+    "agent_dispatch_performed": false,
+    "all_live_authority_flags_false": true,
+    "approval_request_performed": false,
+    "approved_inbox_only_scanned": true,
+    "attachment_performed": false,
+    "blocked_has_how_to_fix": true,
+    "broad_scan_performed": false,
+    "browser_access_performed": false,
+    "content_hash": "sha256:9a6b635cc0ad11748a3d9110c2016770fa7a648f5ef2f27fb3d5db5318248814",
+    "coupa_access_or_submit_performed": false,
+    "credential_handling_performed": false,
+    "credentials_or_secrets_included": false,
+    "daemon_started": false,
+    "deterministic_responder_targets_modeled": true,
+    "duplicate_has_existing_readback": true,
+    "email_draft_or_send_performed": false,
+    "external_action_performed": false,
+    "failed_has_how_to_fix": true,
+    "future_lm_targets_modeled": true,
+    "future_lm_targets_not_called": true,
+    "future_request_families_modeled": true,
+    "git_push_pull_fetch_run": false,
+    "human_operator_message_present": true,
+    "infinite_loop_possible": false,
+    "invoice_generation_performed": false,
+    "mac_sync_import_run": false,
+    "mission_control_swift_changed": false,
+    "model_call_performed": false,
+    "network_used": false,
+    "operator_text_hides_internal_status": true,
+    "payment_tracking_write_performed": false,
+    "processor_bounded_once": true,
+    "raw_body_ingestion_performed": false,
+    "raw_pii_in_generated_outputs": false,
+    "raw_private_bodies_included": false,
+    "request_classifier_present": true,
+    "request_deleted_or_mutated": false,
+    "response_ready_has_real_readback": true,
+    "source_request_id_propagated": true,
+    "supported_chat_pattern_present": true,
+    "supported_file_pattern_present": true,
+    "terminal_quality_errors": [],
+    "terminal_quality_passed": true,
+    "timed_out_has_how_to_fix": true,
+    "tool_execution_performed": false,
+    "watcher_started": false,
+    "workflow_execution_performed": false
+  },
+  "processor_status": {
+    "approved_inbox_policy": "default inbox is /mnt/e/openclaw/mission_control_capture_requests/inbox; scans immediate supported request files only",
+    "authority_boundary": {
+      "credential_handling_allowed": false,
+      "git_push_pull_fetch_allowed": false,
+      "live_agent_dispatch_allowed": false,
+      "live_approval_request_allowed": false,
+      "live_attachment_allowed": false,
+      "live_auto_dispatch_allowed": false,
+      "live_browser_allowed": false,
+      "live_context_package_dispatch_allowed": false,
+      "live_coupa_access_allowed": false,
+      "live_coupa_submit_allowed": false,
+      "live_daemon_allowed": false,
+      "live_email_draft_allowed": false,
+      "live_email_send_allowed": false,
+      "live_external_action_allowed": false,
+      "live_file_body_ingestion_allowed": false,
+      "live_invoice_generation_allowed": false,
+      "live_model_call_allowed": false,
+      "live_package_execution_allowed": false,
+      "live_payment_tracking_write_allowed": false,
+      "live_raw_transcript_ingestion_allowed": false,
+      "live_tool_execution_allowed": false,
+      "live_visual_artifact_spawn_allowed": false,
+      "live_watcher_allowed": false,
+      "live_workflow_execution_allowed": false,
+      "mac_sync_import_allowed": false,
+      "mission_control_swift_change_allowed": false,
+      "network_allowed": false,
+      "raw_body_ingestion_allowed": false
+    },
+    "bounded_mode": "process one request and exit",
+    "errors_or_blockers": [],
+    "future_request_patterns": [
+      "mission_control_context_request_*.json",
+      "mission_control_secret_intake_request_*.json",
+      "mission_control_visual_workspace_request_*.json",
+      "mission_control_worker_dispatch_request_*.json"
+    ],
+    "generated_readbacks": [
+      "generated/read_models/operator_file_metadata_readback.json",
+      "generated/read_models/operator_file_metadata_readback_OPERATOR.md"
+    ],
+    "how_to_fix": "Use the existing readback, or resend a new request with a new request id and idempotency key if the content changed.",
+    "latest_processed_request": {
+      "request_type": "FILE_METADATA",
+      "source_request_filename": "mission_control_file_intake_request_1779725517406_ac5c49721a8d.json",
+      "source_request_id": "capital_hilton_file_metadata_1779725517406_08f42aee6376",
+      "workflow_ref": "capital_hilton_invoice_workflow"
+    },
+    "next_safe_move": "Show the existing readback in Mac chat.",
+    "operator_headline": "OpenClaw already processed this request",
+    "operator_message": "OpenClaw already processed this request. No duplicate was written. Here is the existing readback.",
+    "processor_id": "openclaw_request_processor_v0",
+    "request_classification": {
+      "classification_id": "request_classification_a7a81b3e4dfa6dac5c1a",
+      "classification_reason": "Filename matches Mission Control file metadata intake pattern.",
+      "future_supported": false,
+      "next_safe_move": "Run the selected deterministic rail once and write a Mac-readable response.",
+      "request_family": "FILE_METADATA",
+      "selected_rail": "operator_file_metadata_intake",
+      "source_request_filename": "mission_control_file_intake_request_1779725517406_ac5c49721a8d.json"
+    },
+    "request_families": [
+      "CHAT",
+      "FILE_METADATA",
+      "CONTEXT_ATTACHMENT_FUTURE",
+      "SECRET_INTAKE_FUTURE",
+      "VISUAL_WORKSPACE_FUTURE",
+      "WORKER_DISPATCH_FUTURE",
+      "UNKNOWN_FAIL_CLOSED"
+    ],
+    "responder_targets": [
+      {
+        "adapter_available": true,
+        "blocked_reason": null,
+        "live_call_allowed": false,
+        "next_safe_move": "Keep this target modeled for a future approved adapter.",
+        "selected": false,
+        "supported_request_families": [
+          "CHAT"
+        ],
+        "target_id": "responder_target_deterministic_router",
+        "target_label": "Conversational workflow router intake",
+        "target_type": "DETERMINISTIC_ROUTER"
+      },
+      {
+        "adapter_available": true,
+        "blocked_reason": null,
+        "live_call_allowed": false,
+        "next_safe_move": "Run this deterministic local rail.",
+        "selected": true,
+        "supported_request_families": [
+          "FILE_METADATA"
+        ],
+        "target_id": "responder_target_file_metadata_intake",
+        "target_label": "Metadata-only file source-ref intake",
+        "target_type": "FILE_METADATA_INTAKE"
+      },
+      {
+        "adapter_available": true,
+        "blocked_reason": null,
+        "live_call_allowed": false,
+        "next_safe_move": "Keep this target modeled for a future approved adapter.",
+        "selected": false,
+        "supported_request_families": [
+          "CHAT",
+          "WORKER_DISPATCH_FUTURE"
+        ],
+        "target_id": "responder_target_worker_routing_intelligence",
+        "target_label": "Deterministic worker routing intelligence",
+        "target_type": "WORKER_ROUTING_INTELLIGENCE"
+      },
+      {
+        "adapter_available": true,
+        "blocked_reason": null,
+        "live_call_allowed": false,
+        "next_safe_move": "Keep this target modeled for a future approved adapter.",
+        "selected": false,
+        "supported_request_families": [
+          "CHAT",
+          "CONTEXT_ATTACHMENT_FUTURE"
+        ],
+        "target_id": "responder_target_scoped_context_package_compiler",
+        "target_label": "Scoped context package compiler contract/read-model",
+        "target_type": "SCOPED_CONTEXT_PACKAGE_COMPILER"
+      },
+      {
+        "adapter_available": false,
+        "blocked_reason": "No approved live Codex responder adapter is connected in this processor.",
+        "live_call_allowed": false,
+        "next_safe_move": "No approved live Codex responder adapter is connected in this processor.",
+        "selected": false,
+        "supported_request_families": [
+          "CHAT",
+          "CONTEXT_ATTACHMENT_FUTURE",
+          "WORKER_DISPATCH_FUTURE"
+        ],
+        "target_id": "responder_target_codex_responder_future",
+        "target_label": "Codex responder future adapter",
+        "target_type": "CODEX_RESPONDER_FUTURE"
+      },
+      {
+        "adapter_available": false,
+        "blocked_reason": "No approved Gemini/Agy responder adapter is connected in this processor.",
+        "live_call_allowed": false,
+        "next_safe_move": "No approved Gemini/Agy responder adapter is connected in this processor.",
+        "selected": false,
+        "supported_request_families": [
+          "CHAT",
+          "WORKER_DISPATCH_FUTURE"
+        ],
+        "target_id": "responder_target_gemini_responder_future",
+        "target_label": "Gemini/Agy responder future adapter",
+        "target_type": "GEMINI_RESPONDER_FUTURE"
+      },
+      {
+        "adapter_available": false,
+        "blocked_reason": "No approved local Ollama responder adapter is connected in this processor.",
+        "live_call_allowed": false,
+        "next_safe_move": "No approved local Ollama responder adapter is connected in this processor.",
+        "selected": false,
+        "supported_request_families": [
+          "CHAT"
+        ],
+        "target_id": "responder_target_local_ollama_responder_future",
+        "target_label": "Local Ollama responder future adapter",
+        "target_type": "LOCAL_OLLAMA_RESPONDER_FUTURE"
+      },
+      {
+        "adapter_available": false,
+        "blocked_reason": "No approved Cassandra responder adapter is connected in this processor.",
+        "live_call_allowed": false,
+        "next_safe_move": "No approved Cassandra responder adapter is connected in this processor.",
+        "selected": false,
+        "supported_request_families": [
+          "CHAT"
+        ],
+        "target_id": "responder_target_cassandra_future",
+        "target_label": "Cassandra communications responder future adapter",
+        "target_type": "CASSANDRA_FUTURE"
+      },
+      {
+        "adapter_available": false,
+        "blocked_reason": "No approved Guardian runtime adapter is connected in this processor.",
+        "live_call_allowed": false,
+        "next_safe_move": "No approved Guardian runtime adapter is connected in this processor.",
+        "selected": false,
+        "supported_request_families": [
+          "SECRET_INTAKE_FUTURE",
+          "WORKER_DISPATCH_FUTURE",
+          "CHAT"
+        ],
+        "target_id": "responder_target_guardian_future",
+        "target_label": "Guardian approval boundary future adapter",
+        "target_type": "GUARDIAN_FUTURE"
+      },
+      {
+        "adapter_available": false,
+        "blocked_reason": "No approved visual render runtime adapter is connected in this processor.",
+        "live_call_allowed": false,
+        "next_safe_move": "No approved visual render runtime adapter is connected in this processor.",
+        "selected": false,
+        "supported_request_families": [
+          "VISUAL_WORKSPACE_FUTURE",
+          "CHAT"
+        ],
+        "target_id": "responder_target_visual_render_agent_future",
+        "target_label": "Visual render agent future adapter",
+        "target_type": "VISUAL_RENDER_AGENT_FUTURE"
+      }
+    ],
+    "selected_rail": "operator_file_metadata_intake",
+    "supported_request_patterns": [
+      "mission_control_chat_request_*.json",
+      "mission_control_file_intake_request_*.json"
+    ],
+    "terminal_result": "DUPLICATE_NOOP_WITH_READBACK",
+    "what_happened": [
+      "Found an existing processor readback for the same request id.",
+      "No duplicate source or workflow write was made."
+    ],
+    "why_it_happened": "The generated processor status already matches this request id."
+  },
+  "read_model_id": "openclaw_request_processor_status",
+  "request_families": [
+    "CHAT",
+    "FILE_METADATA",
+    "CONTEXT_ATTACHMENT_FUTURE",
+    "SECRET_INTAKE_FUTURE",
+    "VISUAL_WORKSPACE_FUTURE",
+    "WORKER_DISPATCH_FUTURE",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "responder_target_types": [
+    "DETERMINISTIC_ROUTER",
+    "FILE_METADATA_INTAKE",
+    "WORKER_ROUTING_INTELLIGENCE",
+    "SCOPED_CONTEXT_PACKAGE_COMPILER",
+    "CODEX_RESPONDER_FUTURE",
+    "GEMINI_RESPONDER_FUTURE",
+    "LOCAL_OLLAMA_RESPONDER_FUTURE",
+    "CASSANDRA_FUTURE",
+    "GUARDIAN_FUTURE",
+    "VISUAL_RENDER_AGENT_FUTURE"
+  ],
+  "schema_version": "openclaw_request_processor_v0"
+}
