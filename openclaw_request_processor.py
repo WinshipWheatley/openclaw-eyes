@@ -74,6 +74,8 @@ INTERNAL_STATUSES = (
     "REQUEST_PROCESSING",
     "RESPONSE_READY",
     "BLOCKED_WITH_REASON",
+    "BLOCKED_MAC_HANDOFF_UNAVAILABLE",
+    "BLOCKED_WORKER_UNAVAILABLE",
     "FAILED_WITH_REASON",
     "TIMED_OUT_WITH_REASON",
     "DUPLICATE_NOOP_WITH_READBACK",
@@ -432,6 +434,8 @@ def _terminal_for_status(status: str) -> bool:
     return status in {
         "RESPONSE_READY",
         "BLOCKED_WITH_REASON",
+        "BLOCKED_MAC_HANDOFF_UNAVAILABLE",
+        "BLOCKED_WORKER_UNAVAILABLE",
         "FAILED_WITH_REASON",
         "TIMED_OUT_WITH_REASON",
         "DUPLICATE_NOOP_WITH_READBACK",
@@ -1065,7 +1069,13 @@ def _spoken_response_packet(
 def _primary_status_label(internal_status: str) -> str:
     if internal_status == "RESPONSE_READY":
         return "Ready for review"
-    if internal_status in {"BLOCKED_WITH_REASON", "FAILED_WITH_REASON", "TIMED_OUT_WITH_REASON"}:
+    if internal_status in {
+        "BLOCKED_WITH_REASON",
+        "BLOCKED_MAC_HANDOFF_UNAVAILABLE",
+        "BLOCKED_WORKER_UNAVAILABLE",
+        "FAILED_WITH_REASON",
+        "TIMED_OUT_WITH_REASON",
+    }:
         return "Blocked"
     if internal_status == "DUPLICATE_NOOP_WITH_READBACK":
         return "Already handled"
@@ -1819,7 +1829,13 @@ def process_with_timeout(
 
 def _terminal_quality_errors(response: OpenClawResponseForMac) -> tuple[str, ...]:
     errors: list[str] = []
-    if response.internal_status in {"BLOCKED_WITH_REASON", "FAILED_WITH_REASON", "TIMED_OUT_WITH_REASON"}:
+    if response.internal_status in {
+        "BLOCKED_WITH_REASON",
+        "BLOCKED_MAC_HANDOFF_UNAVAILABLE",
+        "BLOCKED_WORKER_UNAVAILABLE",
+        "FAILED_WITH_REASON",
+        "TIMED_OUT_WITH_REASON",
+    }:
         if not response.how_to_fix.strip():
             errors.append(f"{response.internal_status} lacks how_to_fix.")
     if response.internal_status == "RESPONSE_READY":
@@ -1911,7 +1927,12 @@ def _machine_proof(
         "source_request_id_propagated": bool(response.source_request_id),
         "human_operator_message_present": bool(response.operator_headline and response.operator_message),
         "response_ready_has_real_readback": response.internal_status != "RESPONSE_READY" or bool(response.readback_files or response.visible_cards),
-        "blocked_has_how_to_fix": response.internal_status != "BLOCKED_WITH_REASON" or bool(response.how_to_fix.strip()),
+        "blocked_has_how_to_fix": response.internal_status not in {
+            "BLOCKED_WITH_REASON",
+            "BLOCKED_MAC_HANDOFF_UNAVAILABLE",
+            "BLOCKED_WORKER_UNAVAILABLE",
+        }
+        or bool(response.how_to_fix.strip()),
         "failed_has_how_to_fix": response.internal_status != "FAILED_WITH_REASON" or bool(response.how_to_fix.strip()),
         "timed_out_has_how_to_fix": response.internal_status != "TIMED_OUT_WITH_REASON" or bool(response.how_to_fix.strip()),
         "duplicate_has_existing_readback": response.internal_status != "DUPLICATE_NOOP_WITH_READBACK" or bool(response.readback_files),

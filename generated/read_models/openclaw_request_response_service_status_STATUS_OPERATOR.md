@@ -15,6 +15,13 @@ Read-model cache invalidations: 0
 Cached file count: 0
 Last cached refs: none
 Processed request count: 0
+Last processing request: none
+Last routing status: none
+Selected worker: none
+Selected machine: none
+Processing heartbeat: none
+Terminal response: none
+Active request count: 0
 Last request: none
 Last response: none
 Stop reason: watch_seconds_elapsed

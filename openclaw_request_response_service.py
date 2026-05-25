@@ -25,11 +25,13 @@ from pathlib import Path
 from typing import Any, Mapping
 
 import openclaw_request_processor as processor
+import worker_routing_intelligence
 
 
 DEFAULT_EXPORT_ROOT = Path("generated/read_models")
 APPROVED_INBOX = processor.APPROVED_INBOX
 DEFAULT_RESPONSE_DIR = Path("/mnt/e/openclaw/mission_control_responses/to_mac")
+DEFAULT_MAC_HANDOFF_DIR = Path("/mnt/e/openclaw/mission_control_worker_handoffs/to_mac")
 DEFAULT_IDLE_POLL_INTERVAL = 1.0
 DEFAULT_ACTIVE_POLL_INTERVAL = 0.05
 DEFAULT_ACTIVE_WINDOW_SECONDS = 180.0
@@ -40,11 +42,13 @@ STATUS_JSON_EXPORT_NAME = f"{STATUS_READ_MODEL_ID}.json"
 STATUS_OPERATOR_EXPORT_NAME = f"{STATUS_READ_MODEL_ID}_STATUS_OPERATOR.md"
 MANIFEST_EXPORT_NAME = "response_manifest.json"
 LATEST_RESPONSE_EXPORT_NAME = "openclaw_response_for_mac_latest.json"
+LATEST_PROCESSING_EXPORT_NAME = "openclaw_processing_for_mac_latest.json"
 CONTRACT_STATUS = "BOUNDED_LOCAL_OPENCLAW_REQUEST_RESPONSE_SERVICE"
 
 SERVICE_STATUSES = (
     "IDLE_NO_REQUEST_AVAILABLE",
     "REQUEST_PROCESSED",
+    "REQUEST_ROUTED_WAITING_FOR_MAC_READBACK",
     "REQUEST_SKIPPED_DUPLICATE",
     "WATCH_TIMED_OUT_IDLE",
     "FAILED_WITH_REASON",
@@ -52,6 +56,27 @@ SERVICE_STATUSES = (
 )
 
 WATCH_MODES = ("idle", "active", "stopped")
+
+ROUTING_STATUSES = (
+    "PROCESSING_ON_PC",
+    "ROUTED_TO_MAC",
+    "WAITING_FOR_MAC_READBACK",
+    "ROUTED_TO_FUTURE_WORKER",
+    "BLOCKED_WORKER_UNAVAILABLE",
+    "BLOCKED_MAC_HANDOFF_UNAVAILABLE",
+    "UNKNOWN_FAIL_CLOSED",
+)
+
+WORKER_TARGETS = (
+    "PC_CODEX",
+    "MAC_CODEX",
+    "GEMINI_AGY",
+    "CASSANDRA",
+    "GUARDIAN",
+    "NILES",
+    "OPENCLAW_SYSTEM",
+    "UNKNOWN",
+)
 
 AUTHORITY_BOUNDARY = {
     "broad_filesystem_watch_allowed": False,
@@ -114,6 +139,39 @@ class PublishedResponse:
 
 
 @dataclass(frozen=True)
+class PublishedHeartbeat:
+    heartbeat_file: str
+    latest_heartbeat_file: str
+    source_request_id: str
+    source_request_filename: str | None
+    request_type: str
+    routing_status: str
+    selected_worker_target: str
+    selected_machine: str
+    processing_status: str
+    operator_headline: str
+    operator_message: str
+    next_safe_move: str
+    terminal: bool
+
+
+@dataclass(frozen=True)
+class RouteDecision:
+    routing_status: str
+    selected_worker_target: str
+    selected_machine: str
+    processing_status: str
+    operator_headline: str
+    operator_message: str
+    next_safe_move: str
+    route_reason: str
+    pc_handled: bool
+    mac_handoff_required: bool
+    future_worker_blocked: bool
+    terminal_block_status: str | None = None
+
+
+@dataclass(frozen=True)
 class ServiceRunResult:
     service_status: str
     run_mode: str
@@ -137,6 +195,13 @@ class ServiceRunResult:
     last_processed_request_id: str | None = None
     last_response_path: str | None = None
     bounded_stop_reason: str = "completed"
+    last_processing_started_request_id: str | None = None
+    last_routing_status: str | None = None
+    selected_worker_target: str | None = None
+    selected_machine: str | None = None
+    processing_heartbeat_path: str | None = None
+    terminal_response_path: str | None = None
+    active_request_count: int = 0
     cache_enabled: bool = True
     cache_hits: int = 0
     cache_misses: int = 0
@@ -426,6 +491,8 @@ def _published_response_payload(response_payload: Mapping[str, Any], *, created_
     terminal = response_payload.get("internal_status") in {
         "RESPONSE_READY",
         "BLOCKED_WITH_REASON",
+        "BLOCKED_MAC_HANDOFF_UNAVAILABLE",
+        "BLOCKED_WORKER_UNAVAILABLE",
         "FAILED_WITH_REASON",
         "TIMED_OUT_WITH_REASON",
         "DUPLICATE_NOOP_WITH_READBACK",
@@ -437,6 +504,283 @@ def _published_response_payload(response_payload: Mapping[str, Any], *, created_
     payload["terminal"] = bool(terminal)
     payload["service_note"] = "Published by bounded local OpenClaw request/response service."
     return payload
+
+
+def _request_text(raw_request: Mapping[str, Any]) -> str:
+    fields = (
+        "operator_message",
+        "sanitized_message_summary",
+        "operator_goal",
+        "workflow_ref",
+        "workflow_type",
+        "world_ref",
+        "lane_ref",
+        "client_ref",
+        "tenant_ref",
+    )
+    return " ".join(str(raw_request.get(field) or "") for field in fields).strip()
+
+
+def _contains_any(text: str, terms: tuple[str, ...]) -> bool:
+    lowered = text.lower()
+    return any(term in lowered for term in terms)
+
+
+NILES_ROUTE_TERMS = (
+    "niles",
+    "x32",
+    "album",
+    "setlist",
+    "struna",
+    "music",
+    "studio",
+    "production",
+    "show file",
+)
+
+STRONG_MAC_ROUTE_TERMS = (
+    "swiftui",
+    "appkit",
+    "xcode",
+    "mission control ui",
+    "macos app",
+    "mac app",
+    "mac-side",
+    "mac side",
+    "mac codex",
+    "apple mail",
+    "app layout",
+    "file picker",
+    "screen capture",
+)
+
+
+def _is_capital_hilton_status_text(text: str, raw_request: Mapping[str, Any]) -> bool:
+    lowered = text.lower()
+    capital_context = (
+        "capital hilton" in lowered
+        or "capital_hilton" in lowered
+        or "capital-hilton" in lowered
+        or str(raw_request.get("client_ref") or "").lower() == "capital_hilton"
+    )
+    invoice_context = "invoice" in lowered
+    status_intent = any(
+        phrase in lowered
+        for phrase in (
+            "invoice status",
+            "where are we",
+            "ready",
+            "mark invoice sent",
+            "invoice sent",
+            "what is missing",
+            "what's missing",
+            "whats missing",
+            "blocking",
+            "blocked",
+            "blockers",
+            "show me the invoice status",
+            "can we mark",
+            "can i mark",
+        )
+    )
+    return capital_context and invoice_context and status_intent
+
+
+def _route_for_request(request_path: Path, identity: RequestIdentity, raw_request: Mapping[str, Any]) -> RouteDecision:
+    request_type = identity.request_type
+    text = _request_text(raw_request)
+    lowered = text.lower()
+    if request_type == "FILE_METADATA":
+        return RouteDecision(
+            routing_status="PROCESSING_ON_PC",
+            selected_worker_target="OPENCLAW_SYSTEM",
+            selected_machine="PC_WSL",
+            processing_status="CHECKING_METADATA_RAIL",
+            operator_headline="OpenClaw is processing this file reference",
+            operator_message="OpenClaw picked this up and is checking the metadata-only local rail.",
+            next_safe_move="Wait for the file reference readback.",
+            route_reason="File metadata requests are handled by the deterministic PC metadata rail.",
+            pc_handled=True,
+            mac_handoff_required=False,
+            future_worker_blocked=False,
+        )
+    if request_type != "CHAT":
+        return RouteDecision(
+            routing_status="UNKNOWN_FAIL_CLOSED",
+            selected_worker_target="UNKNOWN",
+            selected_machine="UNKNOWN",
+            processing_status="UNSUPPORTED_REQUEST_FAMILY",
+            operator_headline="OpenClaw cannot route this request yet",
+            operator_message="OpenClaw picked this up, but the request family is not supported by the local service.",
+            next_safe_move="Use a supported chat or file metadata request.",
+            route_reason="Unsupported request family.",
+            pc_handled=False,
+            mac_handoff_required=False,
+            future_worker_blocked=True,
+            terminal_block_status="BLOCKED_WORKER_UNAVAILABLE",
+        )
+    if _is_capital_hilton_status_text(text, raw_request):
+        return RouteDecision(
+            routing_status="PROCESSING_ON_PC",
+            selected_worker_target="PC_CODEX",
+            selected_machine="PC_WSL",
+            processing_status="CHECKING_LOCAL_RAILS",
+            operator_headline="OpenClaw is checking local rails",
+            operator_message="OpenClaw picked this up and is checking the local Capital Hilton status rails.",
+            next_safe_move="Wait for the unified invoice status readback.",
+            route_reason="Capital Hilton invoice status is handled by deterministic PC readback rails.",
+            pc_handled=True,
+            mac_handoff_required=False,
+            future_worker_blocked=False,
+        )
+    if _contains_any(lowered, NILES_ROUTE_TERMS):
+        return RouteDecision(
+            routing_status="ROUTED_TO_FUTURE_WORKER",
+            selected_worker_target="NILES",
+            selected_machine="LOCAL_ONLY",
+            processing_status="WORKER_ADAPTER_UNAVAILABLE",
+            operator_headline="Niles is not wired yet",
+            operator_message="OpenClaw routed this to Niles, but the live Niles worker adapter is not connected yet.",
+            next_safe_move="Build the Niles draft/readback adapter before this can run.",
+            route_reason="Music or creative-world context selects Niles.",
+            pc_handled=False,
+            mac_handoff_required=False,
+            future_worker_blocked=True,
+            terminal_block_status="BLOCKED_WORKER_UNAVAILABLE",
+        )
+    route = worker_routing_intelligence.route_request(text, source_chat_ref=identity.source_request_id or request_path.name)
+    selected = route.selected_worker_type
+    machine = route.selected_machine
+    if selected == "MAC_CODEX" and _contains_any(lowered, STRONG_MAC_ROUTE_TERMS):
+        return RouteDecision(
+            routing_status="ROUTED_TO_MAC",
+            selected_worker_target="MAC_CODEX",
+            selected_machine="MAC",
+            processing_status="MAC_HANDOFF_NEEDED",
+            operator_headline="Routed to Mac",
+            operator_message="OpenClaw picked this up. This request needs Mac-side handling.",
+            next_safe_move="Wait for the Mac worker readback, or build the Mac handoff lane if unavailable.",
+            route_reason=route.route_reason,
+            pc_handled=False,
+            mac_handoff_required=True,
+            future_worker_blocked=False,
+            terminal_block_status="BLOCKED_MAC_HANDOFF_UNAVAILABLE",
+        )
+    future_map = {
+        "GEMINI_AGY": "GEMINI_AGY",
+        "CASSANDRA": "CASSANDRA",
+        "GUARDIAN": "GUARDIAN",
+        "UNKNOWN_NEEDS_ROUTING": "UNKNOWN",
+        "LOCAL_OLLAMA": "UNKNOWN",
+    }
+    if selected in future_map:
+        target = future_map[selected]
+        return RouteDecision(
+            routing_status="ROUTED_TO_FUTURE_WORKER" if target != "UNKNOWN" else "UNKNOWN_FAIL_CLOSED",
+            selected_worker_target=target,
+            selected_machine=machine if target != "UNKNOWN" else "UNKNOWN",
+            processing_status="WORKER_ADAPTER_UNAVAILABLE",
+            operator_headline=f"{target.replace('_', ' ').title()} is not wired yet" if target != "UNKNOWN" else "Worker route is unclear",
+            operator_message=(
+                f"OpenClaw routed this to {target.replace('_', '/').title()}, but that live worker adapter is not connected yet."
+                if target != "UNKNOWN"
+                else "OpenClaw could not select a supported worker target safely."
+            ),
+            next_safe_move=route.next_safe_move,
+            route_reason=route.route_reason,
+            pc_handled=False,
+            mac_handoff_required=False,
+            future_worker_blocked=True,
+            terminal_block_status="BLOCKED_WORKER_UNAVAILABLE",
+        )
+    return RouteDecision(
+        routing_status="PROCESSING_ON_PC",
+        selected_worker_target="PC_CODEX",
+        selected_machine="PC_WSL",
+        processing_status="CHECKING_LOCAL_RAILS",
+        operator_headline="OpenClaw is checking local rails",
+        operator_message="OpenClaw picked this up and is checking the local rails.",
+        next_safe_move="Wait for the PC readback.",
+        route_reason=route.route_reason if selected == "PC_CODEX" else "Default supported chat handling stays on the deterministic PC rail.",
+        pc_handled=True,
+        mac_handoff_required=False,
+        future_worker_blocked=False,
+    )
+
+
+def _heartbeat_payload(
+    identity: RequestIdentity,
+    request_path: Path,
+    route: RouteDecision,
+    *,
+    created_at: str,
+    handoff_path: str | None = None,
+) -> dict[str, Any]:
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "processing_heartbeat_id": f"processing_heartbeat_{_safe_filename_part(identity.source_request_id)}",
+        "source_request_id": identity.source_request_id,
+        "source_request_filename": request_path.name,
+        "request_type": identity.request_type,
+        "routing_status": route.routing_status,
+        "selected_worker_target": route.selected_worker_target,
+        "selected_machine": route.selected_machine,
+        "processing_status": route.processing_status,
+        "operator_headline": route.operator_headline,
+        "operator_message": route.operator_message,
+        "route_reason": route.route_reason,
+        "mac_handoff_path": handoff_path,
+        "next_safe_move": route.next_safe_move,
+        "created_at": created_at,
+        "terminal": False,
+        "authority_boundary": AUTHORITY_BOUNDARY,
+        "machine_proof": {
+            "heartbeat_is_success_claim": False,
+            "workflow_execution_performed": False,
+            "model_call_performed": False,
+            "tool_execution_performed": False,
+            "agent_dispatch_performed": False,
+            "mac_automation_performed": False,
+            "email_send_performed": False,
+            "coupa_access_or_submit_performed": False,
+            "browser_access_performed": False,
+            "external_action_performed": False,
+            "credential_handling_performed": False,
+            "raw_body_ingestion_performed": False,
+            "all_authority_boundary_flags_false": all(value is False for value in AUTHORITY_BOUNDARY.values()),
+        },
+    }
+
+
+def publish_processing_heartbeat_for_mac(
+    heartbeat_payload: Mapping[str, Any],
+    *,
+    response_dir: Path = DEFAULT_RESPONSE_DIR,
+) -> PublishedHeartbeat:
+    response_dir.mkdir(parents=True, exist_ok=True)
+    request_id = str(heartbeat_payload.get("source_request_id") or "unknown_request")
+    safe_request_id = _safe_filename_part(request_id)
+    heartbeat_file = response_dir / f"openclaw_processing_for_mac_{safe_request_id}.json"
+    latest_file = response_dir / LATEST_PROCESSING_EXPORT_NAME
+    payload = dict(heartbeat_payload)
+    payload["terminal"] = False
+    _atomic_write_text(heartbeat_file, stable_json(payload))
+    _atomic_write_text(latest_file, stable_json(payload))
+    return PublishedHeartbeat(
+        heartbeat_file=heartbeat_file.as_posix(),
+        latest_heartbeat_file=latest_file.as_posix(),
+        source_request_id=request_id,
+        source_request_filename=str(payload.get("source_request_filename") or ""),
+        request_type=str(payload.get("request_type") or "UNKNOWN_FAIL_CLOSED"),
+        routing_status=str(payload.get("routing_status") or "UNKNOWN_FAIL_CLOSED"),
+        selected_worker_target=str(payload.get("selected_worker_target") or "UNKNOWN"),
+        selected_machine=str(payload.get("selected_machine") or "UNKNOWN"),
+        processing_status=str(payload.get("processing_status") or "UNKNOWN_FAIL_CLOSED"),
+        operator_headline=str(payload.get("operator_headline") or ""),
+        operator_message=str(payload.get("operator_message") or ""),
+        next_safe_move=str(payload.get("next_safe_move") or ""),
+        terminal=False,
+    )
 
 
 def _read_manifest(response_dir: Path) -> dict[str, Any]:
@@ -551,6 +895,120 @@ def _failure_processor_payload(
     return response_payload
 
 
+def _write_mac_handoff_package(
+    *,
+    request_path: Path,
+    identity: RequestIdentity,
+    route: RouteDecision,
+    mac_handoff_dir: Path,
+    created_at: str,
+) -> Path | None:
+    if not mac_handoff_dir.exists() or not mac_handoff_dir.is_dir() or mac_handoff_dir.is_symlink():
+        return None
+    safe_request_id = _safe_filename_part(identity.source_request_id)
+    handoff_path = mac_handoff_dir / f"openclaw_mac_worker_handoff_{safe_request_id}.json"
+    payload = {
+        "schema_version": SCHEMA_VERSION,
+        "handoff_id": f"mac_worker_handoff_{safe_request_id}",
+        "source_request_id": identity.source_request_id,
+        "source_request_filename": request_path.name,
+        "request_type": identity.request_type,
+        "selected_worker_target": route.selected_worker_target,
+        "selected_machine": route.selected_machine,
+        "route_reason": route.route_reason,
+        "operator_headline": "Mac worker handoff package ready",
+        "operator_message": "This is a bounded handoff package for a future Mac worker watcher. It is not execution authority.",
+        "next_safe_move": "Mac worker should return a separate readback before any final claim.",
+        "created_at": created_at,
+        "terminal": False,
+        "authority_boundary": AUTHORITY_BOUNDARY,
+    }
+    _atomic_write_text(handoff_path, stable_json(payload))
+    return handoff_path
+
+
+def _route_blocked_processor_payload(
+    *,
+    request_path: Path,
+    identity: RequestIdentity,
+    route: RouteDecision,
+    created_at: str,
+    handoff_path: str | None = None,
+) -> dict[str, Any]:
+    if route.terminal_block_status == "BLOCKED_MAC_HANDOFF_UNAVAILABLE":
+        headline = "Mac handoff is not wired yet"
+        message = "OpenClaw understood that this needs Mac-side processing, but the Mac worker handoff rail is not available yet."
+        how_to_fix = "Build the Mac worker request watcher/handoff lane, or handle this manually in Mac Codex for now."
+    else:
+        target_label = route.selected_worker_target.replace("_", "/").title()
+        headline = f"{target_label} worker is not available" if route.selected_worker_target != "UNKNOWN" else "Worker route is unavailable"
+        message = (
+            f"OpenClaw routed this to {target_label}, but the live worker adapter is not connected yet."
+            if route.selected_worker_target != "UNKNOWN"
+            else "OpenClaw could not choose a safe live worker target for this request yet."
+        )
+        how_to_fix = (
+            f"Build the bounded {target_label} wrapper/adapter before this can run."
+            if route.selected_worker_target != "UNKNOWN"
+            else "Clarify the target worker or build the missing deterministic route before retrying."
+        )
+    response = processor.OpenClawResponseForMac(
+        source_request_id=identity.source_request_id,
+        source_request_filename=request_path.name,
+        workflow_ref=identity.workflow_ref,
+        request_type=identity.request_type,
+        internal_status=route.terminal_block_status or "BLOCKED_WORKER_UNAVAILABLE",
+        operator_headline=headline,
+        operator_message=message,
+        what_happened=(
+            "PC detected the request and selected a route.",
+            "PC did not dispatch a worker, call a model, run Mac automation, or execute a workflow.",
+            "PC published a route-aware blocked response so the operator does not see dead air.",
+        ),
+        why_it_happened=route.route_reason,
+        how_to_fix=how_to_fix,
+        visible_cards=(
+            {
+                "title": headline,
+                "bullets": (
+                    f"Selected worker: {route.selected_worker_target}",
+                    f"Selected machine: {route.selected_machine}",
+                    "No live worker adapter or Mac handoff rail is available in this lane.",
+                ),
+                "status_tone": "blocked",
+            },
+        ),
+        cards_available=True,
+        card_mirror_refs=(),
+        file_readback_refs=(),
+        worker_route_refs=(
+            {
+                "selected_worker_target": route.selected_worker_target,
+                "selected_machine": route.selected_machine,
+                "routing_status": route.routing_status,
+                "route_reason": route.route_reason,
+                "mac_handoff_path": handoff_path,
+            },
+        ),
+        context_package_refs=(),
+        blocked_reason=route.terminal_block_status or "BLOCKED_WORKER_UNAVAILABLE",
+        detail_disclosure={
+            "routing_status": route.routing_status,
+            "selected_worker_target": route.selected_worker_target,
+            "selected_machine": route.selected_machine,
+            "processing_status": route.processing_status,
+            "mac_handoff_path": handoff_path,
+            "worker_dispatched": False,
+            "model_or_tool_called": False,
+            "external_actions_locked": True,
+        },
+        readback_files=(),
+        next_safe_move=how_to_fix,
+    )
+    response_payload, _status_payload = processor.build_payloads(response, generated_at=created_at)
+    return response_payload
+
+
 def _record_from_response(
     request_path: Path,
     identity: RequestIdentity,
@@ -558,6 +1016,8 @@ def _record_from_response(
     published: PublishedResponse,
     *,
     created_at: str,
+    heartbeat: PublishedHeartbeat | None = None,
+    route: RouteDecision | None = None,
 ) -> dict[str, Any]:
     return {
         "source_request_id": identity.source_request_id,
@@ -571,6 +1031,10 @@ def _record_from_response(
         "response_file": published.response_file,
         "internal_status": response_payload.get("internal_status"),
         "operator_headline": response_payload.get("operator_headline"),
+        "routing_status": route.routing_status if route else None,
+        "selected_worker_target": route.selected_worker_target if route else None,
+        "selected_machine": route.selected_machine if route else None,
+        "processing_heartbeat_path": heartbeat.heartbeat_file if heartbeat else None,
         "created_at": created_at,
     }
 
@@ -583,6 +1047,7 @@ def process_one_pending_request(
     generated_at: str | None = None,
     extra_processed_keys: set[str] | None = None,
     read_model_cache: ReadModelMemoryCache | None = None,
+    mac_handoff_dir: Path = DEFAULT_MAC_HANDOFF_DIR,
 ) -> ServiceRunResult:
     created_at = generated_at or utc_now()
     cache = read_model_cache or _new_read_model_cache(export_root)
@@ -621,20 +1086,144 @@ def process_one_pending_request(
             last_processed_request_id=None,
             last_response_path=None,
             bounded_stop_reason="duplicate_only" if skipped else "no_pending_request",
+            last_processing_started_request_id=None,
+            last_routing_status=None,
+            selected_worker_target=None,
+            selected_machine=None,
+            processing_heartbeat_path=None,
+            terminal_response_path=None,
+            active_request_count=0,
             **_cache_result_fields(cache),
         )
 
     identity = read_request_identity(request_path)
     try:
-        response_payload, _processor_status, _paths, quality_errors = processor.run_and_write(
-            inbox=inbox,
-            request_file=request_path,
-            request_id=None,
-            export_root=export_root,
-            generated_at=created_at,
-            read_model_reader=cache.read_json,
+        raw_request_for_route = json.loads(request_path.read_text(encoding="utf-8"))
+        if not isinstance(raw_request_for_route, Mapping):
+            raw_request_for_route = {}
+    except (json.JSONDecodeError, OSError):
+        raw_request_for_route = {}
+    route = _route_for_request(request_path, identity, raw_request_for_route)
+    if identity.parse_status != "PARSED":
+        route = RouteDecision(
+            routing_status="UNKNOWN_FAIL_CLOSED",
+            selected_worker_target="UNKNOWN",
+            selected_machine="UNKNOWN",
+            processing_status=identity.parse_status,
+            operator_headline="OpenClaw is checking the request shape",
+            operator_message="OpenClaw picked this up, but the request JSON needs validation before routing can continue.",
+            next_safe_move="Fix the request JSON and retry.",
+            route_reason=f"Request identity parse status: {identity.parse_status}.",
+            pc_handled=True,
+            mac_handoff_required=False,
+            future_worker_blocked=False,
         )
-        errors = tuple(str(item) for item in quality_errors)
+    handoff_path: Path | None = None
+    if route.mac_handoff_required and mac_handoff_dir.exists() and mac_handoff_dir.is_dir() and not mac_handoff_dir.is_symlink():
+        handoff_path = _write_mac_handoff_package(
+            request_path=request_path,
+            identity=identity,
+            route=route,
+            mac_handoff_dir=mac_handoff_dir,
+            created_at=created_at,
+        )
+        if handoff_path is not None:
+            route = RouteDecision(
+                routing_status="WAITING_FOR_MAC_READBACK",
+                selected_worker_target=route.selected_worker_target,
+                selected_machine=route.selected_machine,
+                processing_status="WAITING_FOR_MAC_READBACK",
+                operator_headline="Waiting for Mac readback",
+                operator_message="OpenClaw routed this to Mac and wrote a bounded handoff package. Nothing has been executed.",
+                next_safe_move="Wait for the Mac worker readback.",
+                route_reason=route.route_reason,
+                pc_handled=False,
+                mac_handoff_required=True,
+                future_worker_blocked=False,
+                terminal_block_status=None,
+            )
+    heartbeat_payload = _heartbeat_payload(
+        identity,
+        request_path,
+        route,
+        created_at=created_at,
+        handoff_path=handoff_path.as_posix() if handoff_path else None,
+    )
+    heartbeat = publish_processing_heartbeat_for_mac(heartbeat_payload, response_dir=response_dir)
+
+    if route.mac_handoff_required and handoff_path is not None:
+        record = {
+            "source_request_id": identity.source_request_id,
+            "source_request_filename": request_path.name,
+            "request_key": identity.request_key,
+            "identity_keys": _identity_keys(request_path, identity),
+            "idempotency_key": identity.idempotency_key,
+            "payload_hash": identity.payload_hash,
+            "workflow_ref": identity.workflow_ref,
+            "request_type": identity.request_type,
+            "response_file": None,
+            "internal_status": "WAITING_FOR_MAC_READBACK",
+            "operator_headline": heartbeat.operator_headline,
+            "routing_status": route.routing_status,
+            "selected_worker_target": route.selected_worker_target,
+            "selected_machine": route.selected_machine,
+            "processing_heartbeat_path": heartbeat.heartbeat_file,
+            "mac_handoff_path": handoff_path.as_posix(),
+            "created_at": created_at,
+        }
+        return ServiceRunResult(
+            service_status="REQUEST_ROUTED_WAITING_FOR_MAC_READBACK",
+            run_mode="once",
+            inbox=inbox.as_posix(),
+            response_path=response_dir.as_posix(),
+            processed_count=1,
+            skipped_duplicate_count=len(skipped),
+            processed_requests=(record,),
+            skipped_duplicates=skipped,
+            latest_response=None,
+            errors_or_blockers=(),
+            next_safe_move=route.next_safe_move,
+            mode="stopped",
+            current_poll_interval=0.0,
+            idle_poll_interval=DEFAULT_IDLE_POLL_INTERVAL,
+            active_poll_interval=DEFAULT_ACTIVE_POLL_INTERVAL,
+            active_window_seconds=DEFAULT_ACTIVE_WINDOW_SECONDS,
+            active_window_remaining_seconds=0.0,
+            last_watch_mode_before_stop="active",
+            last_poll_interval=0.0,
+            last_processed_request_id=identity.source_request_id,
+            last_response_path=None,
+            bounded_stop_reason="waiting_for_mac_readback",
+            last_processing_started_request_id=identity.source_request_id,
+            last_routing_status=route.routing_status,
+            selected_worker_target=route.selected_worker_target,
+            selected_machine=route.selected_machine,
+            processing_heartbeat_path=heartbeat.heartbeat_file,
+            terminal_response_path=None,
+            active_request_count=1,
+            **_cache_result_fields(cache),
+        )
+
+    try:
+        if route.pc_handled:
+            response_payload, _processor_status, _paths, quality_errors = processor.run_and_write(
+                inbox=inbox,
+                request_file=request_path,
+                request_id=None,
+                export_root=export_root,
+                generated_at=created_at,
+                read_model_reader=cache.read_json,
+            )
+            errors = tuple(str(item) for item in quality_errors)
+        else:
+            response_payload = _route_blocked_processor_payload(
+                request_path=request_path,
+                identity=identity,
+                route=route,
+                created_at=created_at,
+                handoff_path=handoff_path.as_posix() if handoff_path else None,
+            )
+            errors = ()
     except Exception as exc:  # pragma: no cover - defensive service boundary
         response_payload = _failure_processor_payload(
             request_path=request_path,
@@ -643,7 +1232,15 @@ def process_one_pending_request(
         )
         errors = (str(response_payload["why_it_happened"]),)
     published = publish_response_for_mac(response_payload, response_dir=response_dir, created_at=created_at)
-    record = _record_from_response(request_path, identity, response_payload, published, created_at=created_at)
+    record = _record_from_response(
+        request_path,
+        identity,
+        response_payload,
+        published,
+        created_at=created_at,
+        heartbeat=heartbeat,
+        route=route,
+    )
     service_status = "REQUEST_PROCESSED" if not errors else "FAILED_WITH_REASON"
     return ServiceRunResult(
         service_status=service_status,
@@ -668,6 +1265,13 @@ def process_one_pending_request(
         last_processed_request_id=identity.source_request_id,
         last_response_path=published.response_file,
         bounded_stop_reason="processed_with_errors" if errors else "processed_one_request",
+        last_processing_started_request_id=identity.source_request_id,
+        last_routing_status=route.routing_status,
+        selected_worker_target=route.selected_worker_target,
+        selected_machine=route.selected_machine,
+        processing_heartbeat_path=heartbeat.heartbeat_file,
+        terminal_response_path=published.response_file,
+        active_request_count=0,
         **_cache_result_fields(cache),
     )
 
@@ -683,6 +1287,7 @@ def run_watch(
     active_poll_interval: float = DEFAULT_ACTIVE_POLL_INTERVAL,
     active_window_seconds: float = DEFAULT_ACTIVE_WINDOW_SECONDS,
     max_requests: int = 1,
+    mac_handoff_dir: Path = DEFAULT_MAC_HANDOFF_DIR,
 ) -> ServiceRunResult:
     created_at = generated_at or utc_now()
     watch_duration = max(0.0, float(watch_seconds))
@@ -716,6 +1321,7 @@ def run_watch(
             generated_at=created_at,
             extra_processed_keys=in_memory_processed_keys,
             read_model_cache=read_model_cache,
+            mac_handoff_dir=mac_handoff_dir,
         )
         skipped.extend(result.skipped_duplicates)
         if result.processed_count:
@@ -795,6 +1401,13 @@ def run_watch(
         last_processed_request_id=last_processed_request_id,
         last_response_path=last_response_path,
         bounded_stop_reason=stop_reason,
+        last_processing_started_request_id=str(processed[-1].get("source_request_id")) if processed else None,
+        last_routing_status=str(processed[-1].get("routing_status")) if processed and processed[-1].get("routing_status") else None,
+        selected_worker_target=str(processed[-1].get("selected_worker_target")) if processed and processed[-1].get("selected_worker_target") else None,
+        selected_machine=str(processed[-1].get("selected_machine")) if processed and processed[-1].get("selected_machine") else None,
+        processing_heartbeat_path=str(processed[-1].get("processing_heartbeat_path")) if processed and processed[-1].get("processing_heartbeat_path") else None,
+        terminal_response_path=last_response_path,
+        active_request_count=sum(1 for record in processed if record.get("internal_status") == "WAITING_FOR_MAC_READBACK"),
         **_cache_result_fields(read_model_cache),
     )
 
@@ -831,6 +1444,9 @@ def _machine_proof(result: ServiceRunResult) -> dict[str, Any]:
         "operator_message_present": result.processed_count == 0 or bool(result.latest_response and result.latest_response.get("operator_message")),
         "how_to_fix_present": result.processed_count == 0 or bool(result.latest_response and result.latest_response.get("how_to_fix")),
         "terminal_response_written": result.processed_count == 0 or bool(result.latest_response and result.latest_response.get("terminal") is True),
+        "route_aware_processing_heartbeat_written": result.processed_count == 0 or bool(result.processing_heartbeat_path),
+        "processing_heartbeat_terminal_false": result.processed_count == 0 or bool(result.processing_heartbeat_path),
+        "fake_success_claimed": False,
         "duplicate_tracking_present": True,
         "duplicate_keys_include_request_id_idempotency_filename_payload_hash": True,
         "active_session_watch_present": True,
@@ -860,6 +1476,7 @@ def _machine_proof(result: ServiceRunResult) -> dict[str, Any]:
         "model_call_performed": False,
         "tool_execution_performed": False,
         "agent_dispatch_performed": False,
+        "mac_automation_performed": False,
         "email_draft_or_send_performed": False,
         "coupa_access_or_submit_performed": False,
         "browser_access_performed": False,
@@ -898,6 +1515,8 @@ def build_service_status_payload(
         "generated_at": generated_at,
         "service_status_values": SERVICE_STATUSES,
         "watch_modes": WATCH_MODES,
+        "routing_status_values": ROUTING_STATUSES,
+        "worker_targets": WORKER_TARGETS,
         "service_status": {
             **asdict(result),
             "processed_request_count": result.processed_count,
@@ -933,11 +1552,14 @@ def build_service_status_payload(
             ),
             "approved_inbox": APPROVED_INBOX.as_posix(),
             "response_dir": DEFAULT_RESPONSE_DIR.as_posix(),
+            "mac_handoff_dir": DEFAULT_MAC_HANDOFF_DIR.as_posix(),
         },
         "response_output_policy": {
             "response_dir": result.response_path,
             "per_request_filename": "openclaw_response_for_mac_<source_request_id>.json",
             "latest_filename": LATEST_RESPONSE_EXPORT_NAME,
+            "processing_heartbeat_filename": "openclaw_processing_for_mac_<source_request_id>.json",
+            "latest_processing_heartbeat_filename": LATEST_PROCESSING_EXPORT_NAME,
             "manifest_filename": MANIFEST_EXPORT_NAME,
             "atomic_write_policy": "write temporary JSON then rename into place",
         },
@@ -970,6 +1592,13 @@ def format_status_markdown(payload: Mapping[str, Any]) -> str:
             f"Cached file count: {status.get('cached_file_count', 0)}",
             f"Last cached refs: {', '.join(status.get('last_cached_paths') or ()) or 'none'}",
             f"Processed request count: {status.get('processed_request_count', status.get('processed_count', 0))}",
+            f"Last processing request: {status.get('last_processing_started_request_id') or 'none'}",
+            f"Last routing status: {status.get('last_routing_status') or 'none'}",
+            f"Selected worker: {status.get('selected_worker_target') or 'none'}",
+            f"Selected machine: {status.get('selected_machine') or 'none'}",
+            f"Processing heartbeat: {status.get('processing_heartbeat_path') or 'none'}",
+            f"Terminal response: {status.get('terminal_response_path') or 'none'}",
+            f"Active request count: {status.get('active_request_count', 0)}",
             f"Last request: {status.get('last_processed_request_id') or 'none'}",
             f"Last response: {status.get('last_response_path') or 'none'}",
             f"Stop reason: {status.get('bounded_stop_reason', 'unknown')}",
@@ -1028,6 +1657,13 @@ def build_summary(payload: Mapping[str, Any], paths: tuple[Path, Path]) -> dict[
         "last_cached_paths": status.get("last_cached_paths"),
         "last_processed_request_id": status.get("last_processed_request_id"),
         "last_response_path": status.get("last_response_path"),
+        "last_processing_started_request_id": status.get("last_processing_started_request_id"),
+        "last_routing_status": status.get("last_routing_status"),
+        "selected_worker_target": status.get("selected_worker_target"),
+        "selected_machine": status.get("selected_machine"),
+        "processing_heartbeat_path": status.get("processing_heartbeat_path"),
+        "terminal_response_path": status.get("terminal_response_path"),
+        "active_request_count": status.get("active_request_count"),
         "bounded_stop_reason": status.get("bounded_stop_reason"),
         "latest_response_file": latest.get("response_file"),
         "operator_headline": latest.get("operator_headline"),
@@ -1050,6 +1686,7 @@ def run_service(
     max_requests: int = 1,
     inbox: Path = APPROVED_INBOX,
     response_dir: Path = DEFAULT_RESPONSE_DIR,
+    mac_handoff_dir: Path = DEFAULT_MAC_HANDOFF_DIR,
     export_root: Path = DEFAULT_EXPORT_ROOT,
     generated_at: str | None = None,
 ) -> tuple[dict[str, Any], tuple[Path, Path]]:
@@ -1064,6 +1701,7 @@ def run_service(
             active_poll_interval=active_poll_interval,
             active_window_seconds=active_window_seconds,
             max_requests=max_requests,
+            mac_handoff_dir=mac_handoff_dir,
         )
     else:
         result = process_one_pending_request(
@@ -1071,6 +1709,7 @@ def run_service(
             response_dir=response_dir,
             export_root=export_root,
             generated_at=generated_at,
+            mac_handoff_dir=mac_handoff_dir,
         )
     payload = build_service_status_payload(result, export_root=export_root, generated_at=generated_at)
     paths = write_service_status(payload, export_root)
@@ -1097,6 +1736,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--max-requests", type=int, default=1, help="Maximum new requests to process in a watch run.")
     parser.add_argument("--inbox", default=str(APPROVED_INBOX))
     parser.add_argument("--response-dir", default=str(DEFAULT_RESPONSE_DIR))
+    parser.add_argument("--mac-handoff-dir", default=str(DEFAULT_MAC_HANDOFF_DIR))
     parser.add_argument("--export-root", default=str(DEFAULT_EXPORT_ROOT))
     parser.add_argument("--format", choices=("summary", "json"), default="summary")
     parser.add_argument("--generated-at", default=None)
@@ -1110,6 +1750,7 @@ def main(argv: list[str] | None = None) -> int:
         max_requests=args.max_requests,
         inbox=Path(args.inbox),
         response_dir=Path(args.response_dir),
+        mac_handoff_dir=Path(args.mac_handoff_dir),
         export_root=Path(args.export_root),
         generated_at=args.generated_at,
     )

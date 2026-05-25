@@ -25,6 +25,22 @@ def _write_chat_request(path: Path) -> dict:
     return request
 
 
+def _write_custom_chat_request(path: Path, *, message: str, suffix: str) -> dict:
+    request = chat_intake.make_capital_hilton_fixture_request(created_at=FIXED_NOW)
+    request.update(
+        {
+            "request_id": f"mission_control_chat_request_route_{suffix}",
+            "workflow_ref": "openclaw_route_fixture",
+            "operator_message": message,
+            "sanitized_message_summary": message,
+            "idempotency_key": f"mc_chat_route_{suffix}",
+        }
+    )
+    request["payload_hash"] = chat_intake.compute_request_payload_hash(request)
+    path.write_text(chat_intake.stable_json(request), encoding="utf-8")
+    return request
+
+
 def _write_capital_hilton_status_request(path: Path, suffix: str = "service_fixture") -> dict:
     request = chat_intake.make_capital_hilton_fixture_request(created_at=FIXED_NOW)
     request.update(
@@ -62,6 +78,20 @@ def _read_status(export_root: Path) -> dict:
 
 def _safe_response_path(response_dir: Path, request_id: str) -> Path:
     return response_dir / f"openclaw_response_for_mac_{service._safe_filename_part(request_id)}.json"
+
+
+def _safe_heartbeat_path(response_dir: Path, request_id: str) -> Path:
+    return response_dir / f"openclaw_processing_for_mac_{service._safe_filename_part(request_id)}.json"
+
+
+def _assert_heartbeat_no_success_claims(heartbeat: dict) -> None:
+    text = " ".join(
+        str(heartbeat.get(field) or "")
+        for field in ("operator_headline", "operator_message", "next_safe_move", "processing_status")
+    ).lower()
+    for forbidden in ("sent", "submitted", "complete", "approved", "authorized", "finished", "invoice sent"):
+        assert forbidden not in text
+    assert heartbeat["terminal"] is False
 
 
 def _seed_source_readmodels(export_root: Path) -> None:
@@ -225,12 +255,25 @@ def test_service_processes_chat_request_and_writes_per_request_response(tmp_path
     response_path = _safe_response_path(response_dir, request["request_id"])
     response = json.loads(response_path.read_text(encoding="utf-8"))
     latest = json.loads((response_dir / service.LATEST_RESPONSE_EXPORT_NAME).read_text(encoding="utf-8"))
+    heartbeat = json.loads(_safe_heartbeat_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
+    latest_heartbeat = json.loads((response_dir / service.LATEST_PROCESSING_EXPORT_NAME).read_text(encoding="utf-8"))
     manifest = json.loads((response_dir / service.MANIFEST_EXPORT_NAME).read_text(encoding="utf-8"))
 
     assert payload["service_status"]["service_status"] == "REQUEST_PROCESSED"
+    assert payload["service_status"]["last_routing_status"] == "PROCESSING_ON_PC"
+    assert payload["service_status"]["selected_worker_target"] == "PC_CODEX"
+    assert payload["service_status"]["processing_heartbeat_path"].endswith(
+        f"openclaw_processing_for_mac_{service._safe_filename_part(request['request_id'])}.json"
+    )
     assert response_path.exists()
     assert (response_dir / service.LATEST_RESPONSE_EXPORT_NAME).exists()
+    assert (response_dir / service.LATEST_PROCESSING_EXPORT_NAME).exists()
     assert (response_dir / service.MANIFEST_EXPORT_NAME).exists()
+    assert heartbeat["source_request_id"] == request["request_id"]
+    assert heartbeat["routing_status"] == "PROCESSING_ON_PC"
+    assert heartbeat["selected_worker_target"] == "PC_CODEX"
+    assert latest_heartbeat["source_request_id"] == request["request_id"]
+    _assert_heartbeat_no_success_claims(heartbeat)
     assert response["source_request_id"] == request["request_id"]
     assert latest["source_request_id"] == request["request_id"]
     assert manifest["latest_response_file"].endswith(service.LATEST_RESPONSE_EXPORT_NAME)
@@ -281,8 +324,15 @@ def test_service_routes_capital_hilton_status_query_to_mac_response(tmp_path, ca
     latest_path = response_dir / service.LATEST_RESPONSE_EXPORT_NAME
     response = json.loads(response_path.read_text(encoding="utf-8"))
     latest = json.loads(latest_path.read_text(encoding="utf-8"))
+    heartbeat = json.loads(_safe_heartbeat_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
 
     assert payload["service_status"]["service_status"] == "REQUEST_PROCESSED"
+    assert payload["service_status"]["last_routing_status"] == "PROCESSING_ON_PC"
+    assert payload["service_status"]["selected_worker_target"] == "PC_CODEX"
+    assert payload["service_status"]["terminal_response_path"] == response_path.as_posix()
+    assert heartbeat["routing_status"] == "PROCESSING_ON_PC"
+    assert heartbeat["selected_machine"] == "PC_WSL"
+    _assert_heartbeat_no_success_claims(heartbeat)
     assert payload["service_status"]["cache_enabled"] is True
     assert payload["service_status"]["cache_misses"] >= 1
     assert response["source_request_id"] == request["request_id"]
@@ -374,6 +424,142 @@ def test_service_reuses_read_model_cache_during_one_watch_run(tmp_path, capsys):
     assert payload["machine_proof"]["read_model_cache_does_not_skip_request_validation"] is True
 
 
+def test_mac_routed_request_without_handoff_writes_heartbeat_and_blocked_response(tmp_path, capsys):
+    inbox = tmp_path / "inbox"
+    response_dir = tmp_path / "responses"
+    export_root = tmp_path / "read_models"
+    inbox.mkdir()
+    request_path = inbox / "mission_control_chat_request_mac_ui.json"
+    request = _write_custom_chat_request(
+        request_path,
+        message="Please update the SwiftUI Mac app layout for Mission Control chat cards.",
+        suffix="mac_ui",
+    )
+
+    assert service_main(
+        [
+            "--once",
+            "--inbox",
+            str(inbox),
+            "--response-dir",
+            str(response_dir),
+            "--export-root",
+            str(export_root),
+            "--generated-at",
+            FIXED_NOW,
+            "--format",
+            "json",
+        ]
+    ) == 0
+    payload = json.loads(capsys.readouterr().out)
+    heartbeat = json.loads(_safe_heartbeat_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
+    response = json.loads(_safe_response_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
+
+    assert heartbeat["routing_status"] == "ROUTED_TO_MAC"
+    assert heartbeat["selected_worker_target"] == "MAC_CODEX"
+    assert heartbeat["selected_machine"] == "MAC"
+    _assert_heartbeat_no_success_claims(heartbeat)
+    assert response["internal_status"] == "BLOCKED_MAC_HANDOFF_UNAVAILABLE"
+    assert response["terminal"] is True
+    assert response["source_request_id"] == request["request_id"]
+    assert response["how_to_fix"] == (
+        "Build the Mac worker request watcher/handoff lane, or handle this manually in Mac Codex for now."
+    )
+    assert "sent" not in response["operator_message"].lower()
+    assert payload["service_status"]["last_routing_status"] == "ROUTED_TO_MAC"
+    assert payload["service_status"]["selected_worker_target"] == "MAC_CODEX"
+
+
+def test_mac_routed_request_with_handoff_waits_for_mac_readback(tmp_path, capsys):
+    inbox = tmp_path / "inbox"
+    response_dir = tmp_path / "responses"
+    export_root = tmp_path / "read_models"
+    mac_handoff_dir = tmp_path / "mac_handoffs"
+    inbox.mkdir()
+    mac_handoff_dir.mkdir()
+    request_path = inbox / "mission_control_chat_request_mac_handoff.json"
+    request = _write_custom_chat_request(
+        request_path,
+        message="Please adjust the SwiftUI Mac app layout for the chat renderer.",
+        suffix="mac_handoff",
+    )
+
+    assert service_main(
+        [
+            "--once",
+            "--inbox",
+            str(inbox),
+            "--response-dir",
+            str(response_dir),
+            "--mac-handoff-dir",
+            str(mac_handoff_dir),
+            "--export-root",
+            str(export_root),
+            "--generated-at",
+            FIXED_NOW,
+            "--format",
+            "json",
+        ]
+    ) == 0
+    payload = json.loads(capsys.readouterr().out)
+    heartbeat = json.loads(_safe_heartbeat_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
+    handoff_files = tuple(mac_handoff_dir.glob("openclaw_mac_worker_handoff_*.json"))
+
+    assert payload["service_status"]["service_status"] == "REQUEST_ROUTED_WAITING_FOR_MAC_READBACK"
+    assert payload["service_status"]["active_request_count"] == 1
+    assert heartbeat["routing_status"] == "WAITING_FOR_MAC_READBACK"
+    assert heartbeat["selected_worker_target"] == "MAC_CODEX"
+    assert heartbeat["mac_handoff_path"]
+    _assert_heartbeat_no_success_claims(heartbeat)
+    assert len(handoff_files) == 1
+    handoff = json.loads(handoff_files[0].read_text(encoding="utf-8"))
+    assert handoff["source_request_id"] == request["request_id"]
+    assert handoff["terminal"] is False
+    assert not _safe_response_path(response_dir, request["request_id"]).exists()
+
+
+def test_future_worker_route_without_adapter_blocks_with_how_to_fix(tmp_path, capsys):
+    inbox = tmp_path / "inbox"
+    response_dir = tmp_path / "responses"
+    export_root = tmp_path / "read_models"
+    inbox.mkdir()
+    request_path = inbox / "mission_control_chat_request_cassandra.json"
+    request = _write_custom_chat_request(
+        request_path,
+        message="Cassandra, draft the email review language for this operator follow-up.",
+        suffix="cassandra",
+    )
+
+    assert service_main(
+        [
+            "--once",
+            "--inbox",
+            str(inbox),
+            "--response-dir",
+            str(response_dir),
+            "--export-root",
+            str(export_root),
+            "--generated-at",
+            FIXED_NOW,
+            "--format",
+            "json",
+        ]
+    ) == 0
+    payload = json.loads(capsys.readouterr().out)
+    heartbeat = json.loads(_safe_heartbeat_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
+    response = json.loads(_safe_response_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
+
+    assert heartbeat["routing_status"] == "ROUTED_TO_FUTURE_WORKER"
+    assert heartbeat["selected_worker_target"] == "CASSANDRA"
+    _assert_heartbeat_no_success_claims(heartbeat)
+    assert response["internal_status"] == "BLOCKED_WORKER_UNAVAILABLE"
+    assert response["terminal"] is True
+    assert response["source_request_id"] == request["request_id"]
+    assert response["how_to_fix"]
+    assert payload["service_status"]["last_routing_status"] == "ROUTED_TO_FUTURE_WORKER"
+    assert payload["service_status"]["selected_worker_target"] == "CASSANDRA"
+
+
 def test_service_processes_file_metadata_request_and_writes_response(tmp_path, capsys):
     inbox = tmp_path / "inbox"
     response_dir = tmp_path / "responses"
@@ -446,13 +632,17 @@ def test_duplicate_request_is_skipped_without_endless_processing(tmp_path, capsy
     ]
     assert service_main(args) == 0
     capsys.readouterr()
+    heartbeat_path = _safe_heartbeat_path(response_dir, request["request_id"])
+    first_heartbeat = json.loads(heartbeat_path.read_text(encoding="utf-8"))
     assert service_main(args) == 0
     payload = json.loads(capsys.readouterr().out)
     response_path = _safe_response_path(response_dir, request["request_id"])
+    second_heartbeat = json.loads(heartbeat_path.read_text(encoding="utf-8"))
 
     assert payload["service_status"]["service_status"] == "REQUEST_SKIPPED_DUPLICATE"
     assert payload["service_status"]["processed_count"] == 0
     assert payload["service_status"]["skipped_duplicate_count"] >= 1
+    assert first_heartbeat == second_heartbeat
     assert response_path.exists()
     assert request_path.exists()
 

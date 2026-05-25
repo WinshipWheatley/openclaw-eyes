@@ -31,7 +31,7 @@
     "unbounded_loop_by_default_allowed": false
   },
   "contract_status": "BOUNDED_LOCAL_OPENCLAW_REQUEST_RESPONSE_SERVICE",
-  "generated_at": "2026-05-25T23:20:41+00:00",
+  "generated_at": "2026-05-25T23:29:54+00:00",
   "machine_proof": {
     "active_poll_interval_configured": 0.05,
     "active_session_watch_present": true,
@@ -46,17 +46,19 @@
     "bounded_run_mode": true,
     "browser_access_performed": false,
     "cloud_audio_performed": false,
-    "content_hash": "sha256:82ecfb169f0e53da2dd2c0f6b31f084adf3dd12cec337afe07e739d9add0e1e6",
+    "content_hash": "sha256:12e1b6153f3bd3178636395c7ff3941f106c6b97f7f84f8ff6b0eff1a20494f2",
     "coupa_access_or_submit_performed": false,
     "credential_handling_performed": false,
     "duplicate_keys_include_request_id_idempotency_filename_payload_hash": true,
     "duplicate_tracking_present": true,
     "email_draft_or_send_performed": false,
     "external_action_performed": false,
+    "fake_success_claimed": false,
     "git_push_pull_fetch_run": false,
     "how_to_fix_present": true,
     "idle_poll_interval_configured": 1.0,
     "invoice_generation_performed": false,
+    "mac_automation_performed": false,
     "mac_sync_import_run": false,
     "max_requests_configured": true,
     "microphone_capture_performed": false,
@@ -69,6 +71,7 @@
     "operator_message_present": true,
     "payment_tracking_write_performed": false,
     "per_request_response_written": true,
+    "processing_heartbeat_terminal_false": true,
     "raw_body_ingestion_performed": false,
     "read_model_cache_does_not_skip_authority_checks": true,
     "read_model_cache_does_not_skip_payload_hash_checks": true,
@@ -81,6 +84,7 @@
     "read_model_cache_no_persistent_files": true,
     "read_model_cache_process_local": true,
     "response_path_present": true,
+    "route_aware_processing_heartbeat_written": true,
     "speech_synthesis_performed": false,
     "terminal_response_written": true,
     "tool_execution_performed": false,
@@ -91,6 +95,7 @@
   "manual_run_help": {
     "approved_inbox": "/mnt/e/openclaw/mission_control_capture_requests/inbox",
     "bounded_watch": "python3 scripts/run_openclaw_request_response_service.py --watch-seconds 10 --poll-interval 1 --active-poll-interval 0.05 --active-window-seconds 180 --max-requests 1 --format json",
+    "mac_handoff_dir": "/mnt/e/openclaw/mission_control_worker_handoffs/to_mac",
     "once": "python3 scripts/run_openclaw_request_response_service.py --once --format json",
     "response_dir": "/mnt/e/openclaw/mission_control_responses/to_mac"
   },
@@ -113,10 +118,21 @@
   "response_output_policy": {
     "atomic_write_policy": "write temporary JSON then rename into place",
     "latest_filename": "openclaw_response_for_mac_latest.json",
+    "latest_processing_heartbeat_filename": "openclaw_processing_for_mac_latest.json",
     "manifest_filename": "response_manifest.json",
     "per_request_filename": "openclaw_response_for_mac_<source_request_id>.json",
+    "processing_heartbeat_filename": "openclaw_processing_for_mac_<source_request_id>.json",
     "response_dir": "/mnt/e/openclaw/mission_control_responses/to_mac"
   },
+  "routing_status_values": [
+    "PROCESSING_ON_PC",
+    "ROUTED_TO_MAC",
+    "WAITING_FOR_MAC_READBACK",
+    "ROUTED_TO_FUTURE_WORKER",
+    "BLOCKED_WORKER_UNAVAILABLE",
+    "BLOCKED_MAC_HANDOFF_UNAVAILABLE",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
   "run_modes": {
     "active_poll_interval": "Fast poll interval used briefly after a new supported request is processed.",
     "active_window_seconds": "Bounded responsive window before backing off to idle polling.",
@@ -129,6 +145,7 @@
   "schema_version": "openclaw_request_response_service_v1",
   "service_status": {
     "active_poll_interval": 0.05,
+    "active_request_count": 0,
     "active_window_remaining_seconds": 0.0,
     "active_window_seconds": 180.0,
     "all_processed_request_records": [
@@ -427,9 +444,11 @@
     "idle_poll_interval": 1.0,
     "inbox": "/mnt/e/openclaw/mission_control_capture_requests/inbox",
     "last_cached_paths": [],
-    "last_poll_interval": 0.32042731100227684,
+    "last_poll_interval": 0.29774693096987903,
     "last_processed_request_id": null,
+    "last_processing_started_request_id": null,
     "last_response_path": null,
+    "last_routing_status": null,
     "last_watch_mode_before_stop": "idle",
     "latest_response": null,
     "mode": "stopped",
@@ -437,8 +456,11 @@
     "processed_count": 0,
     "processed_request_count": 0,
     "processed_requests": [],
+    "processing_heartbeat_path": null,
     "response_path": "/mnt/e/openclaw/mission_control_responses/to_mac",
     "run_mode": "watch_seconds=5,max_requests=1,idle_poll_interval=1.0,active_poll_interval=0.05,active_window_seconds=180.0",
+    "selected_machine": null,
+    "selected_worker_target": null,
     "service_status": "REQUEST_SKIPPED_DUPLICATE",
     "skipped_duplicate_count": 19,
     "skipped_duplicates": [
@@ -784,11 +806,13 @@
         "source_request_filename": "mission_control_chat_request_capital_hilton_status_layered_20260525_224500.json",
         "source_request_id": "capital_hilton_invoice_status_layered_service_20260525_224500"
       }
-    ]
+    ],
+    "terminal_response_path": null
   },
   "service_status_values": [
     "IDLE_NO_REQUEST_AVAILABLE",
     "REQUEST_PROCESSED",
+    "REQUEST_ROUTED_WAITING_FOR_MAC_READBACK",
     "REQUEST_SKIPPED_DUPLICATE",
     "WATCH_TIMED_OUT_IDLE",
     "FAILED_WITH_REASON",
@@ -802,5 +826,15 @@
     "idle",
     "active",
     "stopped"
+  ],
+  "worker_targets": [
+    "PC_CODEX",
+    "MAC_CODEX",
+    "GEMINI_AGY",
+    "CASSANDRA",
+    "GUARDIAN",
+    "NILES",
+    "OPENCLAW_SYSTEM",
+    "UNKNOWN"
   ]
 }
