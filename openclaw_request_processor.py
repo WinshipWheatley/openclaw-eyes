@@ -21,6 +21,7 @@ from pathlib import Path
 from typing import Any, Callable, Mapping
 
 import chat_readback_card_mirror
+import chat_workflow_visual_event_package_compiler
 import capital_hilton_invoice_operator_readback
 import conversational_workflow_router_intake
 import operator_file_metadata_intake
@@ -1066,6 +1067,168 @@ def _spoken_response_packet(
     }
 
 
+VISUAL_SUCCESS_EVENT_TYPES = {
+    "SUCCESS_CONFIRMED",
+    "COMPLETION_CONFIRMED",
+}
+
+VISUAL_FORBIDDEN_TEXT_PATTERNS = (
+    "actual secret",
+    "raw private body",
+    "raw credential",
+    "credential value",
+    "token value",
+    "password value",
+    "raw email address",
+    "provider id value",
+    "/users/",
+    "/home/",
+    "/mnt/",
+    "c:\\",
+    "sha256:",
+)
+
+
+def _completion_receipts_present(response: OpenClawResponseForMac) -> bool:
+    detail = response.detail_disclosure if isinstance(response.detail_disclosure, Mapping) else {}
+    return bool(
+        detail.get("completion_allowed") is True
+        and (
+            detail.get("all_required_receipts_present") is True
+            or detail.get("completion_receipts_present") is True
+            or detail.get("completion_label_status") == "COMPLETION_CONFIRMED"
+        )
+    )
+
+
+def _visual_examples() -> Mapping[str, Any]:
+    return chat_workflow_visual_event_package_compiler.build_examples()
+
+
+def _sanitized_visual_package(
+    package: Mapping[str, Any],
+    *,
+    response: OpenClawResponseForMac,
+    layered_fields: Mapping[str, Any],
+    voice_fields: Mapping[str, Any],
+    allowed_visual_facts: tuple[str, ...] | None = None,
+    forbidden_visual_claims: tuple[str, ...] | None = None,
+    proof_refs: tuple[str, ...] | None = None,
+) -> dict[str, Any]:
+    clean = dict(package)
+    clean["source_response_ref"] = f"generated/read_models/{RESPONSE_JSON_EXPORT_NAME}"
+    clean["workflow_ref"] = response.workflow_ref
+    clean["response_author"] = str(voice_fields.get("response_author") or clean.get("response_author") or "OPENCLAW_SYSTEM")
+    clean["agent_vibe"] = str(voice_fields.get("vibe_profile_ref") or clean.get("agent_vibe") or "vibe:system:neutral")
+    clean["proof_refs"] = tuple(proof_refs if proof_refs is not None else layered_fields.get("proof_refs") or clean.get("proof_refs") or ())
+    if allowed_visual_facts is not None:
+        clean["allowed_visual_facts"] = allowed_visual_facts
+    if forbidden_visual_claims is not None:
+        clean["forbidden_visual_claims"] = tuple(dict.fromkeys(forbidden_visual_claims))
+
+    provider = dict(clean.get("provider_policy") or {})
+    provider["cloud_generation_allowed"] = False
+    provider["local_asset_preferred"] = True
+    provider.setdefault("preferred_provider_family", "STATIC_VISUAL_CARD")
+    provider.setdefault("allowed_provider_families", ("MAC_ANIMATION_NATIVE", "STATIC_VISUAL_CARD"))
+    provider.setdefault(
+        "blocked_provider_families",
+        ("VIDEO_MODEL_CLOUD_GATED", "IMAGE_MODEL_CLOUD_GATED", "UNKNOWN_FAIL_CLOSED"),
+    )
+    clean["provider_policy"] = provider
+    return {
+        "visual_package_id": str(clean.get("visual_package_id") or ""),
+        "source_event_ref": str(clean.get("source_event_ref") or ""),
+        "source_response_ref": str(clean.get("source_response_ref") or ""),
+        "workflow_ref": str(clean.get("workflow_ref") or ""),
+        "client_ref": str(clean.get("client_ref") or "client_ref:unknown_or_local"),
+        "tenant_ref": str(clean.get("tenant_ref") or "tenant_ref:winship"),
+        "response_author": str(clean.get("response_author") or "OPENCLAW_SYSTEM"),
+        "agent_vibe": str(clean.get("agent_vibe") or "vibe:system:neutral"),
+        "truth_state": str(clean.get("truth_state") or "UNKNOWN_FAIL_CLOSED"),
+        "visual_event_type": str(clean.get("visual_event_type") or "UNKNOWN_FAIL_CLOSED"),
+        "allowed_visual_facts": tuple(str(item) for item in clean.get("allowed_visual_facts") or ()),
+        "forbidden_visual_claims": tuple(str(item) for item in clean.get("forbidden_visual_claims") or ()),
+        "metaphor_style": str(clean.get("metaphor_style") or "lane_under_maintenance"),
+        "style_direction": str(clean.get("style_direction") or "truth-backed static status only"),
+        "duration_seconds": int(clean.get("duration_seconds") or 3),
+        "aspect_ratio": str(clean.get("aspect_ratio") or "16:9"),
+        "target_surface": str(clean.get("target_surface") or "MAC_CHAT_COMPACT"),
+        "privacy_class": str(clean.get("privacy_class") or "OPERATOR_LOCAL"),
+        "provider_policy": provider,
+        "proof_refs": tuple(str(item) for item in clean.get("proof_refs") or ()),
+        "next_safe_move": str(clean.get("next_safe_move") or "Render a local truth-backed visual status only."),
+    }
+
+
+def _visual_package_is_safe(response: OpenClawResponseForMac, package: Mapping[str, Any]) -> bool:
+    event_type = str(package.get("visual_event_type") or "")
+    if event_type in VISUAL_SUCCESS_EVENT_TYPES and not _completion_receipts_present(response):
+        return False
+    if event_type in VISUAL_SUCCESS_EVENT_TYPES and not tuple(package.get("proof_refs") or ()):
+        return False
+    provider = package.get("provider_policy")
+    if not isinstance(provider, Mapping) or provider.get("cloud_generation_allowed") is not False:
+        return False
+    visible = stable_json(package).lower()
+    if any(pattern in visible for pattern in VISUAL_FORBIDDEN_TEXT_PATTERNS):
+        return False
+    if "@" in visible:
+        return False
+    if event_type == "UNKNOWN_FAIL_CLOSED":
+        return False
+    return True
+
+
+def _visual_event_package(
+    response: OpenClawResponseForMac,
+    layered_fields: Mapping[str, Any],
+    voice_fields: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    examples = _visual_examples()
+    proof_refs = tuple(str(ref) for ref in layered_fields.get("proof_refs") or ())
+
+    if _is_capital_hilton_status_response(response):
+        package = _sanitized_visual_package(
+            examples["capital_hilton_missing_po"]["visual_package"],
+            response=response,
+            layered_fields=layered_fields,
+            voice_fields=voice_fields,
+            allowed_visual_facts=("invoice basis exists", "Coupa PO/reference missing"),
+            proof_refs=proof_refs,
+        )
+        return package if _visual_package_is_safe(response, package) else None
+
+    if response.request_type == "FILE_METADATA":
+        package = _sanitized_visual_package(
+            examples["file_reference_captured"]["visual_package"],
+            response=response,
+            layered_fields=layered_fields,
+            voice_fields=voice_fields,
+            forbidden_visual_claims=(
+                "file analyzed",
+                "file body read",
+                "file parsed",
+                "OCR complete",
+                "contents extracted",
+            ),
+            proof_refs=proof_refs,
+        )
+        return package if _visual_package_is_safe(response, package) else None
+
+    if _completion_receipts_present(response):
+        package = _sanitized_visual_package(
+            examples["completion_confirmed_fixture"]["visual_package"],
+            response=response,
+            layered_fields=layered_fields,
+            voice_fields=voice_fields,
+            proof_refs=proof_refs,
+        )
+        return package if _visual_package_is_safe(response, package) else None
+
+    return None
+
+
 def _primary_status_label(internal_status: str) -> str:
     if internal_status == "RESPONSE_READY":
         return "Ready for review"
@@ -1982,6 +2145,7 @@ def build_payloads(
     layered_fields = _layered_response_fields(response, created_at=generated_at)
     voice_fields = _voice_authorship_fields(response, layered_fields)
     spoken_packet = _spoken_response_packet(response, layered_fields, voice_fields)
+    visual_package = _visual_event_package(response, layered_fields, voice_fields)
     response_payload: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
         "read_model_id": RESPONSE_READ_MODEL_ID,
@@ -1992,6 +2156,7 @@ def build_payloads(
         **voice_fields,
         **asdict(response),
         "spoken_response_packet": spoken_packet,
+        "visual_event_package": visual_package,
         "terminal": _terminal_for_status(response.internal_status),
         "authority_boundary": AUTHORITY_BOUNDARY,
     }
@@ -2025,6 +2190,18 @@ def build_payloads(
             "cloud_audio_performed": False,
             "spoken_cloud_synthesis_allowed": spoken_packet["cloud_synthesis_allowed"],
             "spoken_local_playback_preferred": spoken_packet["local_playback_preferred"],
+            "visual_event_package_present": visual_package is not None,
+            "visual_package_truth_bound": True,
+            "visual_false_success_claim_blocked": (
+                visual_package is None or visual_package.get("visual_event_type") not in VISUAL_SUCCESS_EVENT_TYPES
+            )
+            or _completion_receipts_present(response),
+            "video_generation_performed": False,
+            "image_generation_performed": False,
+            "cloud_model_call_performed": False,
+            "local_model_call_performed": False,
+            "visual_playback_performed": False,
+            "visual_provider_call_performed": False,
         }
     )
     response_payload["machine_proof"] = json.loads(stable_json(status_payload["machine_proof"]))

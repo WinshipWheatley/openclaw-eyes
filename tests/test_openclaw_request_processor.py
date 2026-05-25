@@ -129,6 +129,20 @@ def _assert_spoken_packet_safe(packet: dict) -> None:
     assert packet["provider_policy"]["cloud_transcription_allowed"] is False
 
 
+def _assert_visual_package_safe(package: dict) -> None:
+    text = json.dumps(package, sort_keys=True).lower()
+    assert package
+    assert package["provider_policy"]["cloud_generation_allowed"] is False
+    assert package["provider_policy"]["local_asset_preferred"] is True
+    assert not re.search(r"\b[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}\b", text)
+    assert not re.search(r"sha256:[0-9a-f]{16,}|\b[0-9a-f]{32,}\b", text)
+    assert not re.search(r"(^|\s)(/[A-Za-z0-9_.-]+)+", text)
+    assert "actual secret" not in text
+    assert "raw private body" not in text
+    assert "credential value" not in text
+    assert package["visual_event_type"] not in {"SUCCESS_CONFIRMED", "COMPLETION_CONFIRMED"}
+
+
 def _minimal_response(message: str, *, request_type: str = "CHAT", workflow_ref: str = "workflow_fixture") -> processor.OpenClawResponseForMac:
     return processor.OpenClawResponseForMac(
         source_request_id="voice_selection_fixture",
@@ -255,6 +269,16 @@ def test_file_argument_processes_specific_file_request(tmp_path, capsys):
     assert spoken["spoken_script"] == "File reference captured. The body was not read. Choose whether to use it as source context."
     assert spoken["provider_policy"]["preferred_provider_family"] == "MAC_SYSTEM_TTS"
     assert spoken["privacy_class"] in {"SOURCE_REFERENCE_METADATA", "CLIENT_PAYMENT_CONTEXT"}
+    visual = response["visual_event_package"]
+    _assert_visual_package_safe(visual)
+    assert visual["visual_event_type"] == "FILE_REFERENCE_CAPTURED"
+    assert visual["truth_state"] == "FILE_REFERENCE_CAPTURED"
+    assert visual["metaphor_style"] == "source_object_into_folder"
+    assert "file reference captured" in visual["allowed_visual_facts"]
+    assert "file body not read" in visual["allowed_visual_facts"]
+    assert "file analyzed" in visual["forbidden_visual_claims"]
+    assert "file body read" in visual["forbidden_visual_claims"]
+    assert visual["provider_policy"]["preferred_provider_family"] == "STATIC_VISUAL_CARD"
     _assert_cockpit_copy_safe(response)
     assert "Capital Hilton invoice.xlsx" in response["operator_message"]
     assert "RESPONSE_READY" not in response["operator_message"]
@@ -325,6 +349,20 @@ def test_capital_hilton_status_query_routes_to_unified_operator_readback(tmp_pat
     assert "sent" not in spoken["spoken_script"].lower()
     assert "submitted" not in spoken["spoken_script"].lower()
     assert "complete" not in spoken["spoken_script"].lower()
+    visual = response["visual_event_package"]
+    _assert_visual_package_safe(visual)
+    assert visual["visual_event_type"] == "BLOCKED_MISSING_INPUT"
+    assert visual["truth_state"] == "BLOCKED_MISSING_INPUT"
+    assert visual["metaphor_style"] == "bowling_single_pin_left"
+    assert "invoice basis exists" in visual["allowed_visual_facts"]
+    assert "Coupa PO/reference missing" in visual["allowed_visual_facts"]
+    assert "invoice sent" in visual["forbidden_visual_claims"]
+    assert "Coupa invoice submitted" in visual["forbidden_visual_claims"]
+    assert "payment updated" in visual["forbidden_visual_claims"]
+    assert "approval complete" in visual["forbidden_visual_claims"]
+    assert visual["provider_policy"]["preferred_provider_family"] == "MAC_ANIMATION_NATIVE"
+    assert visual["provider_policy"]["cloud_generation_allowed"] is False
+    assert visual["provider_policy"]["local_asset_preferred"] is True
     _assert_cockpit_copy_safe(response)
     assert "four Capital Hilton performance dates at $1,600 total" in response["detail_summary"]
     assert response["proof_refs"]
@@ -356,6 +394,9 @@ def test_capital_hilton_mark_invoice_sent_question_returns_false_without_proof(t
     assert response["response_author"] == "CHIEF"
     assert response["detail_disclosure"]["can_mark_invoice_sent"] is False
     assert response["primary_blocker"] == "Missing confirmed Coupa PO/reference"
+    assert response["visual_event_package"]["visual_event_type"] == "BLOCKED_MISSING_INPUT"
+    assert response["visual_event_package"]["metaphor_style"] != "perfect_game_sweep"
+    assert response["machine_proof"]["visual_false_success_claim_blocked"] is True
     assert "approval receipts" in response["how_to_fix"]
     assert "INVOICE SENT" not in response["operator_headline"]
     assert response["machine_proof"]["external_action_performed"] is False

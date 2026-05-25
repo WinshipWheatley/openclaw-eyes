@@ -412,6 +412,7 @@
         "duration_seconds": 3,
         "forbidden_visual_claims": [
           "file analyzed",
+          "file body read",
           "file parsed",
           "OCR complete",
           "contents extracted"
@@ -546,7 +547,7 @@
     "cloud_model_call_performed": false,
     "compiler_model_present": true,
     "completion_confirmed_fixture_present": true,
-    "content_hash": "sha256:de7d6c533d358ff3b01056dd311ff556e75ebf810c3631ee842fa3e0044a3435",
+    "content_hash": "sha256:d3ceba7486874e46188103cb7deafa3501a1d9cd899e0b57ff296d3f54709cc1",
     "credential_handling_performed": false,
     "event_taxonomy_complete": true,
     "external_action_performed": false,

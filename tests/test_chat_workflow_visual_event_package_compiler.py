@@ -79,6 +79,7 @@ def test_file_reference_captured_visual_does_not_claim_analysis():
     assert "file reference captured" in package["allowed_visual_facts"]
     assert "file body not read" in package["allowed_visual_facts"]
     assert "file analyzed" in package["forbidden_visual_claims"]
+    assert "file body read" in package["forbidden_visual_claims"]
     assert "contents extracted" in package["forbidden_visual_claims"]
     assert package["provider_policy"]["preferred_provider_family"] == "STATIC_VISUAL_CARD"
     assert package["provider_policy"]["cloud_generation_allowed"] is False

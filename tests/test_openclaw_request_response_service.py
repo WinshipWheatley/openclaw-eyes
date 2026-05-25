@@ -367,6 +367,18 @@ def test_service_routes_capital_hilton_status_query_to_mac_response(tmp_path, ca
     assert spoken["provider_policy"]["preferred_provider_family"] == "MAC_SYSTEM_TTS"
     assert spoken["cloud_synthesis_allowed"] is False
     assert spoken["pronunciation_hints"]["Coupa"] == "coo pah"
+    visual = response["visual_event_package"]
+    assert visual["visual_event_type"] == "BLOCKED_MISSING_INPUT"
+    assert visual["truth_state"] == "BLOCKED_MISSING_INPUT"
+    assert visual["metaphor_style"] == "bowling_single_pin_left"
+    assert "invoice basis exists" in visual["allowed_visual_facts"]
+    assert "Coupa PO/reference missing" in visual["allowed_visual_facts"]
+    assert "invoice sent" in visual["forbidden_visual_claims"]
+    assert "Coupa invoice submitted" in visual["forbidden_visual_claims"]
+    assert "payment updated" in visual["forbidden_visual_claims"]
+    assert "approval complete" in visual["forbidden_visual_claims"]
+    assert visual["provider_policy"]["cloud_generation_allowed"] is False
+    assert visual["provider_policy"]["local_asset_preferred"] is True
     assert response["proof_refs"] == ["generated/read_models/capital_hilton_invoice_operator_readback.json"]
     assert response["operator_headline"] == "Capital Hilton invoice workflow is not ready yet"
     assert "Nothing has been sent, submitted, opened, approved, or marked complete" in response["operator_message"]
@@ -666,6 +678,13 @@ def test_service_processes_file_metadata_request_and_writes_response(tmp_path, c
     assert spoken["spoken_script"] == "File reference captured. The body was not read. Choose whether to use it as source context."
     assert spoken["provider_policy"]["preferred_provider_family"] == "MAC_SYSTEM_TTS"
     assert spoken["provider_policy"]["cloud_transcription_allowed"] is False
+    visual = response["visual_event_package"]
+    assert visual["visual_event_type"] == "FILE_REFERENCE_CAPTURED"
+    assert visual["truth_state"] == "FILE_REFERENCE_CAPTURED"
+    assert visual["metaphor_style"] == "source_object_into_folder"
+    assert "file analyzed" in visual["forbidden_visual_claims"]
+    assert "file body read" in visual["forbidden_visual_claims"]
+    assert visual["provider_policy"]["cloud_generation_allowed"] is False
     assert response["operator_message"]
     assert response["how_to_fix"]
     assert response["terminal"] is True

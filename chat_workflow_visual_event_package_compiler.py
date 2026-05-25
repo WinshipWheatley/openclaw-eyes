@@ -583,7 +583,7 @@ def build_examples() -> dict[str, Any]:
         truth_state="FILE_REFERENCE_CAPTURED",
         visual_event_type="FILE_REFERENCE_CAPTURED",
         allowed_visual_facts=("file reference captured", "file body not read"),
-        forbidden_visual_claims=("file analyzed", "file parsed", "OCR complete", "contents extracted"),
+        forbidden_visual_claims=("file analyzed", "file body read", "file parsed", "OCR complete", "contents extracted"),
         metaphor_style="source_object_into_folder",
         style_direction="a generic source tile slides into a local folder; no document contents visible",
         privacy_class="OPERATOR_LOCAL",
