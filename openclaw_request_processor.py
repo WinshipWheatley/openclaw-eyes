@@ -18,7 +18,7 @@ import time
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Callable, Mapping
 
 import chat_readback_card_mirror
 import capital_hilton_invoice_operator_readback
@@ -100,6 +100,8 @@ PROVIDER_FAMILIES = (
     "CLOUD_TTS_GATED_FUTURE",
     "UNKNOWN_FAIL_CLOSED",
 )
+
+ReadModelReader = Callable[[Path], dict[str, Any] | None]
 
 INTERRUPTION_POLICIES = (
     "BARGE_IN_ALLOWED_FUTURE",
@@ -1233,6 +1235,7 @@ def _process_capital_hilton_status_request(
     export_root: Path,
     generated_at: str | None,
     classification: RequestClassification,
+    read_model_reader: ReadModelReader | None = None,
 ) -> OpenClawResponseForMac:
     status_classification = _capital_hilton_status_classification(classification)
     payload = capital_hilton_invoice_operator_readback.build_and_export(
@@ -1240,6 +1243,7 @@ def _process_capital_hilton_status_request(
         export_root=export_root,
         readmodel_root=export_root,
         format_name="json",
+        read_json=read_model_reader,
     )
     chat = payload["chat_response"]
     unified_status = payload["unified_status"]
@@ -1312,6 +1316,7 @@ def _process_chat_request(
     export_root: Path,
     generated_at: str | None,
     classification: RequestClassification,
+    read_model_reader: ReadModelReader | None = None,
 ) -> OpenClawResponseForMac:
     if _is_capital_hilton_invoice_status_request(raw_request):
         return _process_capital_hilton_status_request(
@@ -1320,6 +1325,7 @@ def _process_chat_request(
             export_root=export_root,
             generated_at=generated_at,
             classification=classification,
+            read_model_reader=read_model_reader,
         )
 
     router_payload = conversational_workflow_router_intake.build_payload_from_request_file(
@@ -1659,6 +1665,7 @@ def process_request_path(
     export_root: Path = DEFAULT_EXPORT_ROOT,
     generated_at: str | None = None,
     duplicate_check: bool = True,
+    read_model_reader: ReadModelReader | None = None,
 ) -> OpenClawResponseForMac:
     classification = classify_request_filename(request_path.name)
     if classification.request_family == "UNKNOWN_FAIL_CLOSED":
@@ -1726,6 +1733,7 @@ def process_request_path(
             export_root=export_root,
             generated_at=generated_at,
             classification=classification,
+            read_model_reader=read_model_reader,
         )
     if classification.request_family == "FILE_METADATA":
         return _process_file_request(
@@ -1745,9 +1753,15 @@ def process_once(
     request_id: str | None = None,
     export_root: Path = DEFAULT_EXPORT_ROOT,
     generated_at: str | None = None,
+    read_model_reader: ReadModelReader | None = None,
 ) -> OpenClawResponseForMac:
     if request_file is not None:
-        return process_request_path(request_file, export_root=export_root, generated_at=generated_at)
+        return process_request_path(
+            request_file,
+            export_root=export_root,
+            generated_at=generated_at,
+            read_model_reader=read_model_reader,
+        )
     candidates = list_supported_requests(inbox)
     if request_id:
         for candidate in reversed(candidates):
@@ -1756,7 +1770,12 @@ def process_once(
             except (json.JSONDecodeError, OSError, ValueError):
                 continue
             if str(raw.get("request_id") or "") == request_id:
-                return process_request_path(candidate, export_root=export_root, generated_at=generated_at)
+                return process_request_path(
+                    candidate,
+                    export_root=export_root,
+                    generated_at=generated_at,
+                    read_model_reader=read_model_reader,
+                )
         classification = classify_request_filename(None)
         return _failed_response(
             request_path=None,
@@ -1767,7 +1786,12 @@ def process_once(
     latest = candidates[-1] if candidates else None
     if latest is None:
         return _no_request_response(inbox)
-    return process_request_path(latest, export_root=export_root, generated_at=generated_at)
+    return process_request_path(
+        latest,
+        export_root=export_root,
+        generated_at=generated_at,
+        read_model_reader=read_model_reader,
+    )
 
 
 def process_with_timeout(
@@ -1776,12 +1800,18 @@ def process_with_timeout(
     export_root: Path,
     generated_at: str | None,
     watch_seconds: int,
+    read_model_reader: ReadModelReader | None = None,
 ) -> OpenClawResponseForMac:
     deadline = time.monotonic() + max(0, watch_seconds)
     while True:
         latest = select_newest_request(inbox)
         if latest is not None:
-            return process_request_path(latest, export_root=export_root, generated_at=generated_at)
+            return process_request_path(
+                latest,
+                export_root=export_root,
+                generated_at=generated_at,
+                read_model_reader=read_model_reader,
+            )
         if time.monotonic() >= deadline:
             return _no_request_response(inbox, timed_out_seconds=watch_seconds)
         time.sleep(min(0.25, max(0.0, deadline - time.monotonic())))
@@ -2099,6 +2129,7 @@ def run_and_write(
     export_root: Path,
     generated_at: str | None,
     watch_seconds: int | None = None,
+    read_model_reader: ReadModelReader | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any], tuple[Path, Path, Path], tuple[str, ...]]:
     if watch_seconds is not None:
         response = process_with_timeout(
@@ -2106,6 +2137,7 @@ def run_and_write(
             export_root=export_root,
             generated_at=generated_at,
             watch_seconds=watch_seconds,
+            read_model_reader=read_model_reader,
         )
     else:
         response = process_once(
@@ -2114,6 +2146,7 @@ def run_and_write(
             request_id=request_id,
             export_root=export_root,
             generated_at=generated_at,
+            read_model_reader=read_model_reader,
         )
     quality_errors = _terminal_quality_errors(response)
     response_payload, status_payload = build_payloads(

@@ -18,7 +18,7 @@ import json
 import sys
 from dataclasses import asdict, dataclass, fields
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 
 DEFAULT_EXPORT_ROOT = Path("generated/read_models")
@@ -252,9 +252,17 @@ def _tuple(value: Any) -> tuple[str, ...]:
     return (str(value),)
 
 
-def load_source_readmodels(readmodel_root: Path = DEFAULT_EXPORT_ROOT) -> dict[str, dict[str, Any] | None]:
+ReadJson = Callable[[Path], dict[str, Any] | None]
+
+
+def load_source_readmodels(
+    readmodel_root: Path = DEFAULT_EXPORT_ROOT,
+    *,
+    read_json: ReadJson | None = None,
+) -> dict[str, dict[str, Any] | None]:
+    reader = read_json or _read_json
     return {
-        rail_name: _read_json(readmodel_root / filename)
+        rail_name: reader(readmodel_root / filename)
         for rail_name, filename in SOURCE_READMODEL_FILES.items()
     }
 
@@ -695,8 +703,9 @@ def build_payload(
     generated_at: str = DEFAULT_GENERATED_AT,
     *,
     readmodel_root: Path = DEFAULT_EXPORT_ROOT,
+    read_json: ReadJson | None = None,
 ) -> dict[str, Any]:
-    source_readmodels = load_source_readmodels(readmodel_root)
+    source_readmodels = load_source_readmodels(readmodel_root, read_json=read_json)
     aggregator = build_aggregator(readmodel_root)
     rails = build_rail_summaries(source_readmodels, readmodel_root)
     unified_status = build_unified_status(rails)
@@ -839,8 +848,9 @@ def build_and_export(
     export_root: Path = DEFAULT_EXPORT_ROOT,
     readmodel_root: Path = DEFAULT_EXPORT_ROOT,
     format_name: str = "summary",
+    read_json: ReadJson | None = None,
 ) -> dict[str, Any]:
-    payload = build_payload(generated_at=generated_at, readmodel_root=readmodel_root)
+    payload = build_payload(generated_at=generated_at, readmodel_root=readmodel_root, read_json=read_json)
     write_exports(payload, export_root)
     return payload if format_name == "json" else _summary(payload, export_root)
 

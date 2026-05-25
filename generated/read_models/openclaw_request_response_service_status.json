@@ -7,15 +7,19 @@
     "live_approval_request_allowed": false,
     "live_attachment_allowed": false,
     "live_browser_allowed": false,
+    "live_cloud_audio_allowed": false,
     "live_coupa_access_allowed": false,
     "live_coupa_submit_allowed": false,
     "live_email_draft_allowed": false,
     "live_email_send_allowed": false,
     "live_external_action_allowed": false,
     "live_invoice_generation_allowed": false,
+    "live_microphone_capture_allowed": false,
     "live_model_call_allowed": false,
     "live_payment_tracking_write_allowed": false,
+    "live_speech_synthesis_allowed": false,
     "live_tool_execution_allowed": false,
+    "live_voice_model_call_allowed": false,
     "live_workflow_execution_allowed": false,
     "mac_sync_import_allowed": false,
     "mission_control_swift_change_allowed": false,
@@ -27,7 +31,7 @@
     "unbounded_loop_by_default_allowed": false
   },
   "contract_status": "BOUNDED_LOCAL_OPENCLAW_REQUEST_RESPONSE_SERVICE",
-  "generated_at": "2026-05-25T22:42:54+00:00",
+  "generated_at": "2026-05-25T23:20:41+00:00",
   "machine_proof": {
     "active_poll_interval_configured": 0.05,
     "active_session_watch_present": true,
@@ -41,7 +45,8 @@
     "attachment_performed": false,
     "bounded_run_mode": true,
     "browser_access_performed": false,
-    "content_hash": "sha256:63b1f5f950d9ca4ee277570239c6492cf74d9fd34dbac15a76fd04d004305461",
+    "cloud_audio_performed": false,
+    "content_hash": "sha256:82ecfb169f0e53da2dd2c0f6b31f084adf3dd12cec337afe07e739d9add0e1e6",
     "coupa_access_or_submit_performed": false,
     "credential_handling_performed": false,
     "duplicate_keys_include_request_id_idempotency_filename_payload_hash": true,
@@ -54,6 +59,7 @@
     "invoice_generation_performed": false,
     "mac_sync_import_run": false,
     "max_requests_configured": true,
+    "microphone_capture_performed": false,
     "mission_control_swift_changed": false,
     "model_call_performed": false,
     "no_broad_scan": true,
@@ -64,10 +70,22 @@
     "payment_tracking_write_performed": false,
     "per_request_response_written": true,
     "raw_body_ingestion_performed": false,
+    "read_model_cache_does_not_skip_authority_checks": true,
+    "read_model_cache_does_not_skip_payload_hash_checks": true,
+    "read_model_cache_does_not_skip_request_validation": true,
+    "read_model_cache_enabled": true,
+    "read_model_cache_generated_json_only": true,
+    "read_model_cache_hits": 0,
+    "read_model_cache_invalidations": 0,
+    "read_model_cache_misses": 0,
+    "read_model_cache_no_persistent_files": true,
+    "read_model_cache_process_local": true,
     "response_path_present": true,
+    "speech_synthesis_performed": false,
     "terminal_response_written": true,
     "tool_execution_performed": false,
     "unbounded_loop_default": false,
+    "voice_model_call_performed": false,
     "workflow_execution_performed": false
   },
   "manual_run_help": {
@@ -75,6 +93,21 @@
     "bounded_watch": "python3 scripts/run_openclaw_request_response_service.py --watch-seconds 10 --poll-interval 1 --active-poll-interval 0.05 --active-window-seconds 180 --max-requests 1 --format json",
     "once": "python3 scripts/run_openclaw_request_response_service.py --once --format json",
     "response_dir": "/mnt/e/openclaw/mission_control_responses/to_mac"
+  },
+  "read_model_cache_policy": {
+    "approved_targets": "generated read-model JSON files under the configured export root",
+    "authority_checks_skipped": false,
+    "cache_key": [
+      "file_path",
+      "stat.st_mtime_ns",
+      "stat.st_size"
+    ],
+    "enabled": true,
+    "payload_hash_checks_skipped": false,
+    "persistent_cache_files_created": false,
+    "raw_body_ingestion_allowed": false,
+    "request_validation_skipped": false,
+    "scope": "process-local only"
   },
   "read_model_id": "openclaw_request_response_service_status",
   "response_output_policy": {
@@ -96,7 +129,7 @@
   "schema_version": "openclaw_request_response_service_v1",
   "service_status": {
     "active_poll_interval": 0.05,
-    "active_window_remaining_seconds": 179.9999886000296,
+    "active_window_remaining_seconds": 0.0,
     "active_window_seconds": 180.0,
     "all_processed_request_records": [
       {
@@ -383,58 +416,31 @@
         "workflow_ref": "capital_hilton_invoice_workflow"
       }
     ],
-    "bounded_stop_reason": "max_requests_reached",
+    "bounded_stop_reason": "watch_seconds_elapsed",
+    "cache_enabled": true,
+    "cache_hits": 0,
+    "cache_invalidations": 0,
+    "cache_misses": 0,
+    "cached_file_count": 0,
     "current_poll_interval": 0.0,
     "errors_or_blockers": [],
     "idle_poll_interval": 1.0,
     "inbox": "/mnt/e/openclaw/mission_control_capture_requests/inbox",
-    "last_poll_interval": 0.0,
-    "last_processed_request_id": "capital_hilton_invoice_status_layered_service_20260525_224500",
-    "last_response_path": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_invoice_status_layered_service_20260525_224500.json",
-    "last_watch_mode_before_stop": "active",
-    "latest_response": {
-      "how_to_fix": "Confirm the Coupa PO/reference, verify protected refs, then create Guardian and exact operator approval receipts. After future gated send/submit lanes produce receipts, rerun completion proof aggregation.",
-      "internal_status": "RESPONSE_READY",
-      "latest_response_file": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_latest.json",
-      "manifest_file": "/mnt/e/openclaw/mission_control_responses/to_mac/response_manifest.json",
-      "next_safe_move": "Confirm the Coupa PO/reference, then create Guardian and exact operator approval receipts before any future gated send or submit adapter can act.",
-      "operator_headline": "Capital Hilton invoice workflow is not ready yet",
-      "operator_message": "Capital Hilton invoice is not ready to run yet. OpenClaw has the delivery basis, but still needs confirmed Coupa PO/reference, protected Coupa credential ref for any future portal login, Guardian and exact operator approval receipts for send and submit, future email send receipt and attachment proof. Nothing has been sent, submitted, opened, approved, or marked complete.",
-      "request_type": "CHAT",
-      "response_file": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_invoice_status_layered_service_20260525_224500.json",
-      "source_request_filename": "mission_control_chat_request_capital_hilton_status_layered_20260525_224500.json",
-      "source_request_id": "capital_hilton_invoice_status_layered_service_20260525_224500",
-      "terminal": true
-    },
+    "last_cached_paths": [],
+    "last_poll_interval": 0.32042731100227684,
+    "last_processed_request_id": null,
+    "last_response_path": null,
+    "last_watch_mode_before_stop": "idle",
+    "latest_response": null,
     "mode": "stopped",
-    "next_safe_move": "Confirm the Coupa PO/reference, then create Guardian and exact operator approval receipts before any future gated send or submit adapter can act.",
-    "processed_count": 1,
-    "processed_request_count": 1,
-    "processed_requests": [
-      {
-        "created_at": "2026-05-25T22:42:54+00:00",
-        "idempotency_key": "capital_hilton_invoice_status_layered_service_20260525_224500",
-        "identity_keys": [
-          "request_id:capital_hilton_invoice_status_layered_service_20260525_224500",
-          "filename:mission_control_chat_request_capital_hilton_status_layered_20260525_224500.json",
-          "idempotency:capital_hilton_invoice_status_layered_service_20260525_224500",
-          "payload_hash:sha256:1dc29711f2be82c7ad71b7ca62e4c4e524d6df6cab2aca6cc7dfa71cf10fac85"
-        ],
-        "internal_status": "RESPONSE_READY",
-        "operator_headline": "Capital Hilton invoice workflow is not ready yet",
-        "payload_hash": "sha256:1dc29711f2be82c7ad71b7ca62e4c4e524d6df6cab2aca6cc7dfa71cf10fac85",
-        "request_key": "request_id:capital_hilton_invoice_status_layered_service_20260525_224500",
-        "request_type": "CHAT",
-        "response_file": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_invoice_status_layered_service_20260525_224500.json",
-        "source_request_filename": "mission_control_chat_request_capital_hilton_status_layered_20260525_224500.json",
-        "source_request_id": "capital_hilton_invoice_status_layered_service_20260525_224500",
-        "workflow_ref": "capital_hilton_invoice_workflow"
-      }
-    ],
+    "next_safe_move": "All supported request files seen during the watch window were already handled.",
+    "processed_count": 0,
+    "processed_request_count": 0,
+    "processed_requests": [],
     "response_path": "/mnt/e/openclaw/mission_control_responses/to_mac",
     "run_mode": "watch_seconds=5,max_requests=1,idle_poll_interval=1.0,active_poll_interval=0.05,active_window_seconds=180.0",
-    "service_status": "REQUEST_PROCESSED",
-    "skipped_duplicate_count": 18,
+    "service_status": "REQUEST_SKIPPED_DUPLICATE",
+    "skipped_duplicate_count": 19,
     "skipped_duplicates": [
       {
         "identity_keys": [
@@ -759,6 +765,24 @@
         "request_key": "request_id:capital_hilton_invoice_workflow_1779747656229_5bf670150d8b",
         "source_request_filename": "mission_control_chat_request_capital_hilton_invoice_workflow_1779747656229_5bf670150d8b.json",
         "source_request_id": "capital_hilton_invoice_workflow_1779747656229_5bf670150d8b"
+      },
+      {
+        "identity_keys": [
+          "request_id:capital_hilton_invoice_status_layered_service_20260525_224500",
+          "filename:mission_control_chat_request_capital_hilton_status_layered_20260525_224500.json",
+          "idempotency:capital_hilton_invoice_status_layered_service_20260525_224500",
+          "payload_hash:sha256:1dc29711f2be82c7ad71b7ca62e4c4e524d6df6cab2aca6cc7dfa71cf10fac85"
+        ],
+        "matched_duplicate_keys": [
+          "request_id:capital_hilton_invoice_status_layered_service_20260525_224500",
+          "filename:mission_control_chat_request_capital_hilton_status_layered_20260525_224500.json",
+          "idempotency:capital_hilton_invoice_status_layered_service_20260525_224500",
+          "payload_hash:sha256:1dc29711f2be82c7ad71b7ca62e4c4e524d6df6cab2aca6cc7dfa71cf10fac85"
+        ],
+        "reason": "already processed by local request/response service",
+        "request_key": "request_id:capital_hilton_invoice_status_layered_service_20260525_224500",
+        "source_request_filename": "mission_control_chat_request_capital_hilton_status_layered_20260525_224500.json",
+        "source_request_id": "capital_hilton_invoice_status_layered_service_20260525_224500"
       }
     ]
   },

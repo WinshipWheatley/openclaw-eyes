@@ -10,6 +10,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import conversational_workflow_router_intake as chat_intake
+import capital_hilton_invoice_operator_readback as capital_readback
 import openclaw_request_response_service as service
 import operator_file_metadata_intake as file_intake
 from scripts.run_openclaw_request_response_service import main as service_main
@@ -24,15 +25,15 @@ def _write_chat_request(path: Path) -> dict:
     return request
 
 
-def _write_capital_hilton_status_request(path: Path) -> dict:
+def _write_capital_hilton_status_request(path: Path, suffix: str = "service_fixture") -> dict:
     request = chat_intake.make_capital_hilton_fixture_request(created_at=FIXED_NOW)
     request.update(
         {
-            "request_id": "mission_control_chat_request_capital_hilton_status_service_fixture",
+            "request_id": f"mission_control_chat_request_capital_hilton_status_{suffix}",
             "workflow_ref": "capital_hilton_invoice_workflow",
             "operator_message": "where are we with the Capital Hilton invoice?",
             "sanitized_message_summary": "where are we with the Capital Hilton invoice?",
-            "idempotency_key": "mc_chat_capital_hilton_invoice_status_service_fixture",
+            "idempotency_key": f"mc_chat_capital_hilton_invoice_status_{suffix}",
         }
     )
     request["payload_hash"] = chat_intake.compute_request_payload_hash(request)
@@ -63,6 +64,17 @@ def _safe_response_path(response_dir: Path, request_id: str) -> Path:
     return response_dir / f"openclaw_response_for_mac_{service._safe_filename_part(request_id)}.json"
 
 
+def _seed_source_readmodels(export_root: Path) -> None:
+    export_root.mkdir(parents=True, exist_ok=True)
+    for rail_name, filename in capital_readback.SOURCE_READMODEL_FILES.items():
+        payload = {
+            "contract_status": f"FIXTURE_{rail_name}",
+            "next_safe_move": "Use this fixture read-model for cache testing only.",
+            "examples": {},
+        }
+        (export_root / filename).write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
 class _FakeClock:
     def __init__(self) -> None:
         self.now = 0.0
@@ -74,6 +86,84 @@ class _FakeClock:
     def sleep(self, seconds: float) -> None:
         self.sleeps.append(seconds)
         self.now += seconds
+
+
+def test_read_model_cache_miss_hit_and_invalidation(tmp_path):
+    readmodel_root = tmp_path / "read_models"
+    readmodel_root.mkdir()
+    path = readmodel_root / "sample_readmodel.json"
+    path.write_text('{"value": 1}\n', encoding="utf-8")
+    cache = service.ReadModelMemoryCache((readmodel_root,))
+
+    assert cache.read_json(path) == {"value": 1}
+    assert cache.metrics()["cache_misses"] == 1
+    assert cache.metrics()["cache_hits"] == 0
+
+    assert cache.read_json(path) == {"value": 1}
+    assert cache.metrics()["cache_hits"] == 1
+
+    path.write_text('{"value": 22, "changed": true}\n', encoding="utf-8")
+    stat = path.stat()
+    os.utime(path, ns=(stat.st_atime_ns + 1_000_000_000, stat.st_mtime_ns + 1_000_000_000))
+
+    assert cache.read_json(path) == {"value": 22, "changed": True}
+    metrics = cache.metrics()
+    assert metrics["cache_invalidations"] == 1
+    assert metrics["cache_misses"] == 2
+    assert metrics["cached_file_count"] == 1
+    assert metrics["last_cached_paths"] == ("sample_readmodel.json",)
+
+
+def test_read_model_cache_invalid_json_does_not_hide_updated_content(tmp_path):
+    readmodel_root = tmp_path / "read_models"
+    readmodel_root.mkdir()
+    path = readmodel_root / "sample_readmodel.json"
+    path.write_text('{"value": "valid"}\n', encoding="utf-8")
+    cache = service.ReadModelMemoryCache((readmodel_root,))
+
+    assert cache.read_json(path) == {"value": "valid"}
+    path.write_text("{not json\n", encoding="utf-8")
+    stat = path.stat()
+    os.utime(path, ns=(stat.st_atime_ns + 1_000_000_000, stat.st_mtime_ns + 1_000_000_000))
+
+    assert cache.read_json(path) is None
+    metrics = cache.metrics()
+    assert metrics["cache_invalidations"] == 1
+    assert metrics["cached_file_count"] == 0
+
+
+def test_read_model_cache_is_process_local(tmp_path):
+    readmodel_root = tmp_path / "read_models"
+    readmodel_root.mkdir()
+    path = readmodel_root / "sample_readmodel.json"
+    path.write_text('{"value": "fresh"}\n', encoding="utf-8")
+
+    first_cache = service.ReadModelMemoryCache((readmodel_root,))
+    second_cache = service.ReadModelMemoryCache((readmodel_root,))
+    assert first_cache.read_json(path) == {"value": "fresh"}
+    assert first_cache.read_json(path) == {"value": "fresh"}
+    assert first_cache.metrics()["cache_hits"] == 1
+
+    assert second_cache.read_json(path) == {"value": "fresh"}
+    assert second_cache.metrics()["cache_hits"] == 0
+    assert second_cache.metrics()["cache_misses"] == 1
+
+
+def test_read_model_cache_rejects_unapproved_paths(tmp_path):
+    readmodel_root = tmp_path / "read_models"
+    outside = tmp_path / "outside"
+    readmodel_root.mkdir()
+    outside.mkdir()
+    outside_path = outside / "sample_readmodel.json"
+    outside_path.write_text('{"value": "outside"}\n', encoding="utf-8")
+    cache = service.ReadModelMemoryCache((readmodel_root,))
+
+    try:
+        cache.read_json(outside_path)
+    except ValueError as exc:
+        assert "unapproved path" in str(exc)
+    else:
+        raise AssertionError("cache accepted an unapproved path")
 
 
 def test_service_scans_only_selected_inbox(tmp_path, capsys):
@@ -193,6 +283,8 @@ def test_service_routes_capital_hilton_status_query_to_mac_response(tmp_path, ca
     latest = json.loads(latest_path.read_text(encoding="utf-8"))
 
     assert payload["service_status"]["service_status"] == "REQUEST_PROCESSED"
+    assert payload["service_status"]["cache_enabled"] is True
+    assert payload["service_status"]["cache_misses"] >= 1
     assert response["source_request_id"] == request["request_id"]
     assert latest["source_request_id"] == request["request_id"]
     assert response["response_kind"] == "CAPITAL_HILTON_INVOICE_STATUS"
@@ -231,6 +323,55 @@ def test_service_routes_capital_hilton_status_query_to_mac_response(tmp_path, ca
     assert response["detail_disclosure"]["can_mark_invoice_sent"] is False
     assert response["terminal"] is True
     assert any(path.endswith("capital_hilton_invoice_operator_readback.json") for path in response["readback_files"])
+
+
+def test_service_reuses_read_model_cache_during_one_watch_run(tmp_path, capsys):
+    inbox = tmp_path / "inbox"
+    response_dir = tmp_path / "responses"
+    export_root = tmp_path / "read_models"
+    inbox.mkdir()
+    _seed_source_readmodels(export_root)
+    _write_capital_hilton_status_request(
+        inbox / "mission_control_chat_request_capital_hilton_status_one.json",
+        "cache_one",
+    )
+    _write_capital_hilton_status_request(
+        inbox / "mission_control_chat_request_capital_hilton_status_two.json",
+        "cache_two",
+    )
+
+    assert service_main(
+        [
+            "--watch-seconds",
+            "1",
+            "--poll-interval",
+            "0.05",
+            "--max-requests",
+            "2",
+            "--inbox",
+            str(inbox),
+            "--response-dir",
+            str(response_dir),
+            "--export-root",
+            str(export_root),
+            "--generated-at",
+            FIXED_NOW,
+            "--format",
+            "json",
+        ]
+    ) == 0
+    payload = json.loads(capsys.readouterr().out)
+    status = payload["service_status"]
+
+    assert status["processed_count"] == 2
+    assert status["cache_enabled"] is True
+    assert status["cache_misses"] >= len(capital_readback.SOURCE_READMODEL_FILES)
+    assert status["cache_hits"] >= len(capital_readback.SOURCE_READMODEL_FILES)
+    assert status["cache_invalidations"] == 0
+    assert status["cached_file_count"] >= len(capital_readback.SOURCE_READMODEL_FILES)
+    assert all("/" not in item for item in status["last_cached_paths"])
+    assert payload["machine_proof"]["read_model_cache_process_local"] is True
+    assert payload["machine_proof"]["read_model_cache_does_not_skip_request_validation"] is True
 
 
 def test_service_processes_file_metadata_request_and_writes_response(tmp_path, capsys):

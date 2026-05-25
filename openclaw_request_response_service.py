@@ -137,6 +137,12 @@ class ServiceRunResult:
     last_processed_request_id: str | None = None
     last_response_path: str | None = None
     bounded_stop_reason: str = "completed"
+    cache_enabled: bool = True
+    cache_hits: int = 0
+    cache_misses: int = 0
+    cache_invalidations: int = 0
+    cached_file_count: int = 0
+    last_cached_paths: tuple[str, ...] = ()
 
 
 def utc_now() -> str:
@@ -145,6 +151,102 @@ def utc_now() -> str:
 
 def stable_json(payload: Any) -> str:
     return json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
+
+
+class ReadModelMemoryCache:
+    """Process-local cache for generated read-model JSON files only."""
+
+    def __init__(self, approved_roots: tuple[Path, ...], *, enabled: bool = True) -> None:
+        self.enabled = enabled
+        self._approved_roots = tuple(root.resolve(strict=False) for root in approved_roots)
+        self._entries: dict[str, tuple[int, int, Any]] = {}
+        self.cache_hits = 0
+        self.cache_misses = 0
+        self.cache_invalidations = 0
+        self._last_cached_paths: list[str] = []
+
+    def _is_approved_path(self, path: Path) -> bool:
+        if path.suffix != ".json":
+            return False
+        resolved = path.resolve(strict=False)
+        for root in self._approved_roots:
+            try:
+                resolved.relative_to(root)
+            except ValueError:
+                continue
+            return True
+        return False
+
+    def _record_cached_path(self, path: Path) -> None:
+        safe_name = path.name
+        if safe_name in self._last_cached_paths:
+            self._last_cached_paths.remove(safe_name)
+        self._last_cached_paths.append(safe_name)
+        del self._last_cached_paths[:-8]
+
+    def read_json(self, path: Path) -> Any:
+        if not self.enabled:
+            try:
+                return json.loads(path.read_text(encoding="utf-8"))
+            except (FileNotFoundError, json.JSONDecodeError):
+                return None
+        if path.is_symlink() or not self._is_approved_path(path):
+            raise ValueError(f"Read-model cache rejected unapproved path: {path.name}")
+
+        resolved = path.resolve(strict=False)
+        cache_key = resolved.as_posix()
+        try:
+            stat = path.stat()
+        except FileNotFoundError:
+            self.cache_misses += 1
+            self._entries.pop(cache_key, None)
+            return None
+
+        cached = self._entries.get(cache_key)
+        if cached is not None:
+            cached_mtime_ns, cached_size, cached_value = cached
+            if cached_mtime_ns == stat.st_mtime_ns and cached_size == stat.st_size:
+                self.cache_hits += 1
+                self._record_cached_path(path)
+                return cached_value
+            self.cache_invalidations += 1
+
+        self.cache_misses += 1
+        try:
+            value = json.loads(path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            self._entries.pop(cache_key, None)
+            return None
+        self._entries[cache_key] = (stat.st_mtime_ns, stat.st_size, value)
+        self._record_cached_path(path)
+        return value
+
+    def metrics(self) -> dict[str, Any]:
+        return {
+            "cache_enabled": self.enabled,
+            "cache_hits": self.cache_hits,
+            "cache_misses": self.cache_misses,
+            "cache_invalidations": self.cache_invalidations,
+            "cached_file_count": len(self._entries),
+            "last_cached_paths": tuple(self._last_cached_paths),
+        }
+
+
+def _new_read_model_cache(export_root: Path) -> ReadModelMemoryCache:
+    return ReadModelMemoryCache((export_root,), enabled=True)
+
+
+def _cache_result_fields(cache: ReadModelMemoryCache | None) -> dict[str, Any]:
+    if cache is None:
+        return {
+            "cache_enabled": False,
+            "cache_hits": 0,
+            "cache_misses": 0,
+            "cache_invalidations": 0,
+            "cached_file_count": 0,
+            "last_cached_paths": (),
+        }
+    return cache.metrics()
 
 
 def _atomic_write_text(path: Path, text: str) -> None:
@@ -480,8 +582,10 @@ def process_one_pending_request(
     export_root: Path = DEFAULT_EXPORT_ROOT,
     generated_at: str | None = None,
     extra_processed_keys: set[str] | None = None,
+    read_model_cache: ReadModelMemoryCache | None = None,
 ) -> ServiceRunResult:
     created_at = generated_at or utc_now()
+    cache = read_model_cache or _new_read_model_cache(export_root)
     request_path, skipped = select_next_pending_request(
         inbox=inbox,
         export_root=export_root,
@@ -517,6 +621,7 @@ def process_one_pending_request(
             last_processed_request_id=None,
             last_response_path=None,
             bounded_stop_reason="duplicate_only" if skipped else "no_pending_request",
+            **_cache_result_fields(cache),
         )
 
     identity = read_request_identity(request_path)
@@ -527,6 +632,7 @@ def process_one_pending_request(
             request_id=None,
             export_root=export_root,
             generated_at=created_at,
+            read_model_reader=cache.read_json,
         )
         errors = tuple(str(item) for item in quality_errors)
     except Exception as exc:  # pragma: no cover - defensive service boundary
@@ -562,6 +668,7 @@ def process_one_pending_request(
         last_processed_request_id=identity.source_request_id,
         last_response_path=published.response_file,
         bounded_stop_reason="processed_with_errors" if errors else "processed_one_request",
+        **_cache_result_fields(cache),
     )
 
 
@@ -585,6 +692,7 @@ def run_watch(
     active_interval = max(0.01, float(active_poll_interval))
     active_window = max(0.0, float(active_window_seconds))
     active_until = 0.0
+    read_model_cache = _new_read_model_cache(export_root)
     processed: list[dict[str, Any]] = []
     skipped: list[dict[str, Any]] = []
     errors: list[str] = []
@@ -607,6 +715,7 @@ def run_watch(
             export_root=export_root,
             generated_at=created_at,
             extra_processed_keys=in_memory_processed_keys,
+            read_model_cache=read_model_cache,
         )
         skipped.extend(result.skipped_duplicates)
         if result.processed_count:
@@ -686,6 +795,7 @@ def run_watch(
         last_processed_request_id=last_processed_request_id,
         last_response_path=last_response_path,
         bounded_stop_reason=stop_reason,
+        **_cache_result_fields(read_model_cache),
     )
 
 
@@ -730,6 +840,16 @@ def _machine_proof(result: ServiceRunResult) -> dict[str, Any]:
         "active_window_remaining_recorded": result.active_window_remaining_seconds >= 0,
         "max_requests_configured": result.run_mode == "once" or "max_requests=" in result.run_mode,
         "atomic_response_writes": True,
+        "read_model_cache_enabled": result.cache_enabled,
+        "read_model_cache_process_local": True,
+        "read_model_cache_no_persistent_files": True,
+        "read_model_cache_generated_json_only": True,
+        "read_model_cache_does_not_skip_request_validation": True,
+        "read_model_cache_does_not_skip_payload_hash_checks": True,
+        "read_model_cache_does_not_skip_authority_checks": True,
+        "read_model_cache_hits": result.cache_hits,
+        "read_model_cache_misses": result.cache_misses,
+        "read_model_cache_invalidations": result.cache_invalidations,
         "no_request_deletion": True,
         "no_request_mutation": True,
         "no_broad_scan": True,
@@ -793,6 +913,17 @@ def build_service_status_payload(
             "max_requests": "Caps how many new requests a watch run may process before exiting.",
             "persistent_service": "Not installed or enabled in this lane.",
         },
+        "read_model_cache_policy": {
+            "enabled": result.cache_enabled,
+            "scope": "process-local only",
+            "cache_key": ("file_path", "stat.st_mtime_ns", "stat.st_size"),
+            "approved_targets": "generated read-model JSON files under the configured export root",
+            "persistent_cache_files_created": False,
+            "request_validation_skipped": False,
+            "payload_hash_checks_skipped": False,
+            "authority_checks_skipped": False,
+            "raw_body_ingestion_allowed": False,
+        },
         "manual_run_help": {
             "once": "python3 scripts/run_openclaw_request_response_service.py --once --format json",
             "bounded_watch": (
@@ -832,6 +963,12 @@ def format_status_markdown(payload: Mapping[str, Any]) -> str:
             f"Idle poll interval: {status.get('idle_poll_interval', 'unknown')}",
             f"Active poll interval: {status.get('active_poll_interval', 'unknown')}",
             f"Active window remaining: {status.get('active_window_remaining_seconds', 'unknown')}",
+            f"Read-model cache enabled: {status.get('cache_enabled', False)}",
+            f"Read-model cache hits: {status.get('cache_hits', 0)}",
+            f"Read-model cache misses: {status.get('cache_misses', 0)}",
+            f"Read-model cache invalidations: {status.get('cache_invalidations', 0)}",
+            f"Cached file count: {status.get('cached_file_count', 0)}",
+            f"Last cached refs: {', '.join(status.get('last_cached_paths') or ()) or 'none'}",
             f"Processed request count: {status.get('processed_request_count', status.get('processed_count', 0))}",
             f"Last request: {status.get('last_processed_request_id') or 'none'}",
             f"Last response: {status.get('last_response_path') or 'none'}",
@@ -883,6 +1020,12 @@ def build_summary(payload: Mapping[str, Any], paths: tuple[Path, Path]) -> dict[
         "active_poll_interval": status.get("active_poll_interval"),
         "active_window_seconds": status.get("active_window_seconds"),
         "active_window_remaining_seconds": status.get("active_window_remaining_seconds"),
+        "cache_enabled": status.get("cache_enabled"),
+        "cache_hits": status.get("cache_hits"),
+        "cache_misses": status.get("cache_misses"),
+        "cache_invalidations": status.get("cache_invalidations"),
+        "cached_file_count": status.get("cached_file_count"),
+        "last_cached_paths": status.get("last_cached_paths"),
         "last_processed_request_id": status.get("last_processed_request_id"),
         "last_response_path": status.get("last_response_path"),
         "bounded_stop_reason": status.get("bounded_stop_reason"),
