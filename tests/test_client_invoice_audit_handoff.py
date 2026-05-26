@@ -123,6 +123,77 @@ def _local_surface_result(*, complete: bool = True, client_ref: str = "capital_h
     return payload
 
 
+def _real_mac_surface_result() -> dict:
+    payload = _local_surface_result()
+    payload.pop("kind", None)
+    payload["request_type"] = "LOCAL_SURFACE_RESULT"
+    payload["request_id"] = "capital_hilton_invoice_workflow_field_mapping_1779832434030_86f6d0c0da39"
+    payload.pop("result")
+    payload["field_mapping"] = {
+        "sheet_tab_name": "Invoice",
+        "invoice_number": "B2",
+        "performance_dates": "A12:A15",
+        "rate": "B4",
+        "subtotal_or_total": "B5",
+        "po_reference": "B6",
+        "notes_status": "C9",
+        "formula_handling": "Ask me before trusting formula values",
+    }
+    payload["schema_mapping"] = {
+        "client_ref": "capital_hilton",
+        "workflow_ref": "capital_hilton_invoice_workflow",
+        "world_ref": "finance",
+        "sheet_name": "Invoice",
+        "operator_provided": True,
+        "inferred_schema": False,
+        "workbook_layout_inspected": False,
+        "formula_promotion_policy": {
+            "selected_policy": "operator_confirmation_required",
+            "operator_confirmation_required": True,
+            "formula_evaluation_allowed": False,
+        },
+        "whitelisted_targets": [
+            {
+                "field_name": "invoice_number",
+                "operator_provided_location": "B2",
+                "expected_value_type": "text",
+                "required": True,
+            },
+            {
+                "field_name": "performance_dates",
+                "operator_provided_location": "A12:A15",
+                "expected_value_type": "text",
+                "required": True,
+            },
+            {
+                "field_name": "rate",
+                "operator_provided_location": "B4",
+                "expected_value_type": "currency",
+                "required": True,
+            },
+            {
+                "field_name": "subtotal_or_total",
+                "operator_provided_location": "B5",
+                "expected_value_type": "currency",
+                "required": True,
+            },
+            {
+                "field_name": "po_reference",
+                "operator_provided_location": "B6",
+                "expected_value_type": "text",
+                "required": True,
+            },
+            {
+                "field_name": "notes_status",
+                "operator_provided_location": "C9",
+                "expected_value_type": "text",
+                "required": False,
+            },
+        ],
+    }
+    return payload
+
+
 def test_required_models_exist_with_required_fields():
     assert tuple(field.name for field in fields(handoff.ClientInvoiceWorkbookPathApprovalRequest)) == (
         "request_id",
@@ -242,6 +313,29 @@ def test_local_surface_schema_mapping_result_is_operator_guidance_not_sheet_data
     assert payload["live_audit_ready"] is False
     assert payload["machine_proof"]["operator_provided_schema_guidance"] is True
     assert payload["machine_proof"]["verified_sheet_data"] is False
+    assert payload["machine_proof"]["workbook_body_read_performed"] is False
+    assert payload["machine_proof"]["spreadsheet_cell_read_performed"] is False
+
+
+def test_real_mac_local_surface_schema_mapping_shape_is_accepted(tmp_path):
+    _seed_registry(tmp_path)
+
+    payload = handoff.process_local_surface_schema_mapping_result(
+        _real_mac_surface_result(),
+        export_root=tmp_path,
+        generated_at=FIXED_NOW,
+    )
+
+    assert payload["local_surface_result_receipt"]["receipt_status"] == "LOCAL_SURFACE_RESULT_SCHEMA_GUIDANCE_CAPTURED"
+    assert payload["schema_mapping_request"]["validation_status"] == "SHEET_AUDIT_SCHEMA_CAPTURED"
+    assert payload["schema_mapping"]["sheet_name"] == "Invoice"
+    assert payload["schema_mapping"]["semantic_fields_missing"] == ()
+    performance_dates = next(
+        column for column in payload["schema_mapping"]["whitelisted_columns"] if column["field_name"] == "performance_dates"
+    )
+    assert performance_dates["data_cells"] == ("A12", "A13", "A14", "A15")
+    assert payload["live_audit_ready"] is False
+    assert payload["audit_handoff_readback"]["missing_items"] == ("approved PC-readable workbook path",)
     assert payload["machine_proof"]["workbook_body_read_performed"] is False
     assert payload["machine_proof"]["spreadsheet_cell_read_performed"] is False
 

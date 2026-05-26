@@ -288,6 +288,7 @@ def _write_local_surface_mapping_result(
     world_ref: str = "finance",
     unsafe_flag: str | None = None,
     confirmed: bool = True,
+    real_mac_shape: bool = False,
 ) -> dict:
     field_mappings = {
         "invoice_number": "B2",
@@ -300,7 +301,7 @@ def _write_local_surface_mapping_result(
     if not complete:
         field_mappings.pop("po_reference")
     request = {
-        "kind": "LOCAL_SURFACE_RESULT",
+        "request_type": "LOCAL_SURFACE_RESULT",
         "request_id": "mission_control_local_surface_result_capital_hilton_mapping_fixture",
         "idempotency_key": "local_surface_result_capital_hilton_mapping_fixture",
         "payload_hash": "fixture_local_surface_result_hash",
@@ -325,6 +326,46 @@ def _write_local_surface_mapping_result(
             "formula_policy": "operator_confirmation_required",
         },
     }
+    if real_mac_shape:
+        request["request_id"] = "capital_hilton_invoice_workflow_field_mapping_1779832434030_86f6d0c0da39"
+        request["idempotency_key"] = "field_mapping:capital_hilton_invoice_workflow:1779832434030:86f6d0c0da39"
+        request.pop("result")
+        request["field_mapping"] = {
+            "sheet_tab_name": "Invoice",
+            "invoice_number": "B2",
+            "performance_dates": "A12:A15",
+            "rate": "B4",
+            "subtotal_or_total": "B5",
+            "po_reference": "B6",
+            "notes_status": "C9",
+            "formula_handling": "Ask me before trusting formula values",
+        }
+        request["schema_mapping"] = {
+            "client_ref": client_ref,
+            "workflow_ref": workflow_ref,
+            "world_ref": world_ref,
+            "sheet_name": "Invoice",
+            "operator_provided": True,
+            "inferred_schema": False,
+            "workbook_layout_inspected": False,
+            "formula_promotion_policy": {
+                "selected_policy": "operator_confirmation_required",
+                "operator_confirmation_required": True,
+                "formula_evaluation_allowed": False,
+            },
+            "whitelisted_targets": [
+                {
+                    "field_name": field_name,
+                    "operator_provided_location": location,
+                    "expected_value_type": "currency" if field_name in {"rate", "subtotal_or_total"} else "text",
+                    "formula_promotion_policy": "operator_confirmation_required",
+                    "operator_provided": True,
+                    "required": field_name != "notes_status",
+                }
+                for field_name, location in request["field_mapping"].items()
+                if field_name not in {"sheet_tab_name", "formula_handling"}
+            ],
+        }
     if unsafe_flag is not None:
         request[unsafe_flag] = True
     path.write_text(json.dumps(request, indent=2, sort_keys=True) + "\n", encoding="utf-8")
@@ -853,6 +894,56 @@ def test_local_surface_field_mapping_result_is_consumed_and_publishes_scoped_res
     assert handoff_payload["audit_handoff_readback"]["missing_items"] == ["approved PC-readable workbook path"]
 
 
+def test_chat_named_local_surface_mapping_result_routes_through_generic_router(tmp_path, capsys, monkeypatch):
+    inbox = tmp_path / "approved_inbox"
+    inbox.mkdir()
+    request_path = inbox / "mission_control_chat_request_capital_hilton_invoice_workflow_field_mapping_1779832434030_86f6d0c0da39.json"
+    request = _write_local_surface_mapping_result(request_path, real_mac_shape=True)
+    export_root = tmp_path / "read_models"
+    response_dir = tmp_path / "responses"
+    _seed_workbook_registry(export_root)
+    monkeypatch.setattr(processor, "APPROVED_INBOX", inbox)
+    monkeypatch.setattr(processor, "DEFAULT_RESPONSE_DIR", response_dir)
+
+    assert process_main(
+        [
+            "--file",
+            str(request_path),
+            "--export-root",
+            str(export_root),
+            "--generated-at",
+            FIXED_NOW,
+            "--format",
+            "json",
+        ]
+    ) == 0
+    response = json.loads(capsys.readouterr().out)
+    scoped = json.loads(_scoped_processor_response_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
+    handoff_payload = json.loads((export_root / audit_handoff.JSON_EXPORT_NAME).read_text(encoding="utf-8"))
+
+    assert response["request_type"] == "LOCAL_SURFACE_RESULT"
+    assert response["response_kind"] == "LOCAL_SURFACE_SCHEMA_MAPPING_RESULT"
+    assert response["detail_disclosure"]["request_router_decision"]["selected_handler_id"] == (
+        "client_invoice_sheet_schema_mapping.capital_hilton"
+    )
+    assert response["machine_proof"]["request_router_used"] is True
+    assert response["machine_proof"]["request_router_matched"] is True
+    assert response["machine_proof"]["local_surface_result_consumed"] is True
+    assert response["machine_proof"]["operator_provided_schema_guidance"] is True
+    assert response["machine_proof"]["verified_sheet_data"] is False
+    assert response["machine_proof"]["client_invoice_audit_handoff_live_ready"] is False
+    assert response["machine_proof"]["client_invoice_sheet_audit_used"] is False
+    assert response["machine_proof"]["spreadsheet_cell_read_performed"] is False
+    assert response["machine_proof"]["response_taste_passed"] is True
+    assert scoped["source_request_id"] == request["request_id"]
+    assert handoff_payload["schema_mapping"]["sheet_name"] == "Invoice"
+    performance_dates = next(
+        column for column in handoff_payload["schema_mapping"]["whitelisted_columns"] if column["field_name"] == "performance_dates"
+    )
+    assert performance_dates["data_cells"] == ["A12", "A13", "A14", "A15"]
+    assert handoff_payload["audit_handoff_readback"]["missing_items"] == ["approved PC-readable workbook path"]
+
+
 def test_local_surface_field_mapping_result_rejects_missing_capital_hilton_binding(tmp_path, capsys):
     request_path = tmp_path / "mission_control_local_surface_result_capital_hilton_mapping.json"
     _write_local_surface_mapping_result(request_path, workflow_ref="unknown")
@@ -888,6 +979,23 @@ def test_local_surface_field_mapping_result_rejects_unsafe_flags(tmp_path, capsy
     assert "spreadsheet_cell_read=false" in handoff_payload["local_surface_result_receipt"]["validation_errors"]
     assert handoff_payload["schema_mapping"] is None
     assert response["machine_proof"]["spreadsheet_cell_read_performed"] is False
+    assert response["machine_proof"]["external_action_performed"] is False
+
+
+def test_unknown_local_surface_intended_use_is_parked_by_router(tmp_path, capsys):
+    request_path = tmp_path / "mission_control_chat_request_unknown_surface_result.json"
+    request = _write_local_surface_mapping_result(request_path)
+    request["intended_use"] = "future_unknown_surface_contract"
+    request_path.write_text(json.dumps(request, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+    assert process_main(["--file", str(request_path), "--export-root", str(tmp_path / "read_models"), "--generated-at", FIXED_NOW, "--format", "json"]) == 0
+    response = json.loads(capsys.readouterr().out)
+
+    assert response["request_type"] == "LOCAL_SURFACE_RESULT"
+    assert response["headline"] == "OpenClaw needs a registered handler"
+    assert response["detail_disclosure"]["request_router_decision"]["route_status"] == "ROUTE_REJECTED_UNREGISTERED_INTENT"
+    assert response["machine_proof"]["request_router_used"] is True
+    assert response["machine_proof"]["request_router_matched"] is False
     assert response["machine_proof"]["external_action_performed"] is False
 
 

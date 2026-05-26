@@ -302,6 +302,32 @@ def _safe_cell_ref(value: object) -> str:
     return text
 
 
+def _split_cell_ref(cell_ref: str) -> tuple[str, int] | None:
+    match = re.fullmatch(r"([A-Z]{1,3})([1-9][0-9]{0,6})", cell_ref)
+    if not match:
+        return None
+    return match.group(1), int(match.group(2))
+
+
+def _safe_cell_range(value: object) -> tuple[str, ...]:
+    text = str(value or "").strip().upper()
+    if ":" not in text:
+        cell = _safe_cell_ref(text)
+        return (cell,) if cell else ()
+    start_raw, end_raw = (part.strip() for part in text.split(":", 1))
+    start = _safe_cell_ref(start_raw)
+    end = _safe_cell_ref(end_raw)
+    parsed_start = _split_cell_ref(start)
+    parsed_end = _split_cell_ref(end)
+    if not parsed_start or not parsed_end:
+        return ()
+    start_col, start_row = parsed_start
+    end_col, end_row = parsed_end
+    if start_col != end_col or end_row < start_row or (end_row - start_row) > 200:
+        return ()
+    return tuple(f"{start_col}{row}" for row in range(start_row, end_row + 1))
+
+
 def _is_unknown(value: object) -> bool:
     return str(value or "").strip() in {"", "unknown", "UNKNOWN", "none", "None"}
 
@@ -393,12 +419,17 @@ def load_existing_payload(export_root: Path = DEFAULT_EXPORT_ROOT) -> dict[str, 
     return payload if isinstance(payload, dict) else None
 
 
+def _fixture_source_id(value: object) -> bool:
+    return "fixture" in str(value or "").lower()
+
+
 def _existing_path_ref(
     existing_payload: Mapping[str, Any] | None,
     *,
     client_ref: str,
     workflow_ref: str,
     world_ref: str,
+    source_request_id: str = "",
 ) -> dict[str, Any] | None:
     if not isinstance(existing_payload, Mapping):
         return None
@@ -411,6 +442,8 @@ def _existing_path_ref(
         and path_ref.get("world_ref") == world_ref
         and path_ref.get("path_approval_status") == "APPROVED_PC_PATH_CAPTURED"
     ):
+        if _fixture_source_id(path_ref.get("source_request_id")) and not _fixture_source_id(source_request_id):
+            return None
         return dict(path_ref)
     return None
 
@@ -629,6 +662,7 @@ def _cell_ref_from_value(value: Any) -> str:
             "location",
             "operator_entered_cell_ref",
             "operator_provided_cell_ref",
+            "operator_provided_location",
             "value",
         ):
             cell = _safe_cell_ref(value.get(key))
@@ -681,6 +715,13 @@ def _surface_field_entries(raw_request: Mapping[str, Any]) -> tuple[tuple[str, A
                         field_name = str(item.get("field_name") or item.get("semantic_field_name") or item.get("field") or "")
                         if field_name:
                             entries.append((field_name, item))
+        targets = container.get("whitelisted_targets")
+        if isinstance(targets, (list, tuple)):
+            for item in targets:
+                if isinstance(item, Mapping):
+                    field_name = str(item.get("field_name") or item.get("semantic_field_name") or item.get("field") or "")
+                    if field_name:
+                        entries.append((field_name, item))
         for field_name in (*REQUIRED_SEMANTIC_FIELDS, *OPTIONAL_SEMANTIC_FIELDS):
             for key in (
                 field_name,
@@ -727,7 +768,35 @@ def _schema_mapping_from_local_surface_result(raw_request: Mapping[str, Any]) ->
         if column is not None:
             columns.append(column)
             continue
-        cell_ref = _cell_ref_from_value(value)
+        if isinstance(value, Mapping):
+            location = (
+                value.get("operator_provided_location")
+                or value.get("cell_ref")
+                or value.get("cell")
+                or value.get("location")
+                or value.get("value")
+            )
+        else:
+            location = value
+        cell_range = _safe_cell_range(location)
+        if len(cell_range) > 1:
+            columns.append(
+                {
+                    "field_name": field_name,
+                    "header_name": "",
+                    "header_cell": "",
+                    "data_cells": cell_range,
+                    "required": field_name in REQUIRED_SEMANTIC_FIELDS,
+                    "expected_value_type": str(
+                        value.get("expected_value_type") or value.get("value_type") or _default_expected_value_type(field_name)
+                        if isinstance(value, Mapping)
+                        else _default_expected_value_type(field_name)
+                    ),
+                    "formula_promotion_policy": formula_policy.selected_policy,
+                }
+            )
+            continue
+        cell_ref = cell_range[0] if cell_range else _cell_ref_from_value(value)
         if not cell_ref:
             continue
         cells.append(
@@ -1067,7 +1136,13 @@ def process_handoff_request(
         registry_payload=registry_payload,
     )
     schema_request, new_schema_mapping = normalize_schema_mapping_request(raw_request)
-    existing_path = _existing_path_ref(existing_payload, client_ref=client_ref, workflow_ref=workflow_ref, world_ref=world_ref)
+    existing_path = _existing_path_ref(
+        existing_payload,
+        client_ref=client_ref,
+        workflow_ref=workflow_ref,
+        world_ref=world_ref,
+        source_request_id=source_request_id,
+    )
     existing_schema = _existing_schema(existing_payload, client_ref=client_ref, workflow_ref=workflow_ref, world_ref=world_ref)
     active_path_ref = asdict(new_path_ref) if new_path_ref else existing_path
     active_schema_mapping = asdict(new_schema_mapping) if new_schema_mapping else existing_schema

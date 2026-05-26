@@ -31,6 +31,7 @@ import conversational_workflow_router_intake
 import deterministic_intent_interpreter
 import local_surface_request_contract
 import operator_file_metadata_intake
+import openclaw_request_router
 import scoped_context_package_compiler_contract
 import worker_routing_intelligence
 import workflow_execution_package_compiler
@@ -1373,6 +1374,8 @@ def _initial_response_author(response: OpenClawResponseForMac, layered_fields: M
     text = _voice_context_text(response, layered_fields)
     if response.request_type == "FILE_METADATA":
         return "OPENCLAW_SYSTEM", "file intake / source reference status"
+    if response.request_type == "LOCAL_SURFACE_RESULT":
+        return "OPENCLAW_SYSTEM", "local surface result intake status"
     if _is_capital_hilton_status_response(response):
         return "CHIEF", "finance workflow status / readiness / blocker summary"
     if _contains_any(text, CASSANDRA_CONTEXT_TERMS):
@@ -2140,17 +2143,44 @@ def _local_surface_result_classification(
     classification: RequestClassification,
     *,
     request_path: Path,
+    route_decision: Mapping[str, Any] | None = None,
 ) -> RequestClassification:
+    selected_rail = str((route_decision or {}).get("selected_handler_id") or "local_surface_result_intake")
+    reason = str(
+        (route_decision or {}).get("rejected_reason")
+        or "Request is a LOCAL_SURFACE_RESULT for client_invoice_sheet_schema_mapping, selecting the guided mapping intake rail."
+    )
     return RequestClassification(
         classification_id=f"request_classification_{_short_hash(request_path.name, 'local_surface_schema_mapping_result')}",
         source_request_filename=classification.source_request_filename,
-        request_family=classification.request_family,
-        selected_rail="local_surface_result_intake + client_invoice_audit_handoff",
-        classification_reason=(
-            "Request is a LOCAL_SURFACE_RESULT for client_invoice_sheet_schema_mapping, selecting the guided mapping intake rail."
-        ),
+        request_family="LOCAL_SURFACE_RESULT",
+        selected_rail=selected_rail,
+        classification_reason=reason,
         future_supported=False,
         next_safe_move="Record operator-provided mapping guidance only; do not read workbook cells or run the audit.",
+    )
+
+
+def _classification_from_router_decision(
+    classification: RequestClassification,
+    *,
+    request_path: Path,
+    decision: Mapping[str, Any],
+) -> RequestClassification:
+    request_kind = str(decision.get("request_kind") or classification.request_family)
+    if request_kind not in REQUEST_FAMILIES:
+        request_kind = classification.request_family
+    selected_rail = str(decision.get("selected_handler_id") or classification.selected_rail)
+    return RequestClassification(
+        classification_id=f"request_classification_{_short_hash(request_path.name, request_kind, selected_rail)}",
+        source_request_filename=classification.source_request_filename,
+        request_family=request_kind,
+        selected_rail=selected_rail,
+        classification_reason=(
+            "Payload-level request router selected this request family/handler from request kind, intended_use, and scope."
+        ),
+        future_supported=False,
+        next_safe_move=str(decision.get("next_safe_move") or classification.next_safe_move),
     )
 
 
@@ -2270,8 +2300,13 @@ def _process_local_surface_result_request(
     export_root: Path,
     generated_at: str | None,
     classification: RequestClassification,
+    route_decision: Mapping[str, Any] | None = None,
 ) -> OpenClawResponseForMac:
-    local_classification = _local_surface_result_classification(classification, request_path=request_path)
+    local_classification = _local_surface_result_classification(
+        classification,
+        request_path=request_path,
+        route_decision=route_decision,
+    )
     if not client_invoice_audit_handoff.is_local_surface_schema_mapping_result(raw_request):
         return OpenClawResponseForMac(
             source_request_id=str(raw_request.get("request_id") or "unknown_local_surface_result"),
@@ -2332,6 +2367,11 @@ def _process_local_surface_result_request(
         )
     else:
         message = str(readback["operator_message"])
+    operator_message = (
+        "Field mapping captured as schema guidance. Workbook cells were not read."
+        if not validation_errors
+        else "Field mapping result blocked before any workbook or cell read."
+    )
     next_action = str(readback["next_action"])
     detail = {
         "client_invoice_audit_handoff": {
@@ -2374,6 +2414,7 @@ def _process_local_surface_result_request(
             "mac_render_hint": "COMPACT_WITH_DISCLOSURE",
         },
         "request_classification": asdict(local_classification),
+        "request_router_decision": dict(route_decision or {}),
         "external_actions_locked": True,
         "model_or_worker_response_adapter_called": False,
     }
@@ -2384,7 +2425,7 @@ def _process_local_surface_result_request(
         request_type=classification.request_family,
         internal_status="RESPONSE_READY" if live_ready else "BLOCKED_WITH_REASON",
         operator_headline=headline,
-        operator_message=message,
+        operator_message=operator_message,
         what_happened=(
             "PC consumed the local surface field mapping result.",
             "PC recorded the mapping as operator-provided schema guidance only.",
@@ -2417,6 +2458,61 @@ def _process_local_surface_result_request(
         detail_disclosure=detail,
         readback_files=(handoff_json.as_posix(), handoff_operator.as_posix()),
         next_safe_move=next_action,
+    )
+
+
+def _process_parked_router_request(
+    request_path: Path,
+    raw_request: Mapping[str, Any],
+    *,
+    classification: RequestClassification,
+    route_decision: Mapping[str, Any],
+) -> OpenClawResponseForMac:
+    routed_classification = _classification_from_router_decision(
+        classification,
+        request_path=request_path,
+        decision=route_decision,
+    )
+    reason = str(route_decision.get("rejected_reason") or "No registered request handler matched this request.")
+    return OpenClawResponseForMac(
+        source_request_id=str(raw_request.get("request_id") or route_decision.get("source_request_id") or "unknown_request"),
+        source_request_filename=request_path.name,
+        workflow_ref=str(raw_request.get("workflow_ref") or route_decision.get("workflow_ref") or "unknown"),
+        request_type=routed_classification.request_family,
+        internal_status="BLOCKED_WITH_REASON",
+        operator_headline="OpenClaw needs a registered handler",
+        operator_message="OpenClaw received the request, but no bounded backend handler is registered for that request contract yet.",
+        what_happened=(
+            "PC loaded the request through the governed intake path.",
+            "The generic request router parked it before any handler could run.",
+            "No external action, model call, worker dispatch, or workflow execution occurred.",
+        ),
+        why_it_happened=reason,
+        how_to_fix="Register a bounded handler for this request kind, intended use, and scope before retrying.",
+        visible_cards=(
+            {
+                "title": "Handler needed",
+                "bullets": (
+                    f"Kind: {route_decision.get('request_kind')}",
+                    f"Intended use: {route_decision.get('intended_use')}",
+                    "No handler executed.",
+                ),
+                "status_tone": "blocked",
+            },
+        ),
+        cards_available=True,
+        card_mirror_refs=(),
+        file_readback_refs=(),
+        worker_route_refs=(),
+        context_package_refs=(),
+        blocked_reason=reason,
+        detail_disclosure={
+            "request_router_decision": dict(route_decision),
+            "request_classification": asdict(routed_classification),
+            "external_actions_locked": True,
+        },
+        readback_files=(),
+        next_safe_move="Next: register a bounded handler or resend a supported request contract.",
     )
 
 
@@ -3319,13 +3415,24 @@ def process_request_path(
             reason=f"Could not read request file: {exc}.",
             how_to_fix="Check that the request file exists and is readable, then rerun.",
         )
-    ok, blockers, fixes = preflight_request(raw_request, classification.request_family)
+    _route_envelope, route_decision_dataclass = openclaw_request_router.route_request(
+        raw_request,
+        source_request_filename=request_path.name,
+        filename_request_family=classification.request_family,
+    )
+    route_decision = asdict(route_decision_dataclass)
+    effective_classification = (
+        _classification_from_router_decision(classification, request_path=request_path, decision=route_decision)
+        if str(route_decision.get("request_kind") or "") in REQUEST_FAMILIES
+        else classification
+    )
+    ok, blockers, fixes = preflight_request(raw_request, effective_classification.request_family)
     if not ok:
         return OpenClawResponseForMac(
             source_request_id=str(raw_request.get("request_id") or "unknown_request"),
             source_request_filename=request_path.name,
             workflow_ref=str(raw_request.get("workflow_ref") or "unknown"),
-            request_type=classification.request_family,
+            request_type=effective_classification.request_family,
             internal_status="BLOCKED_WITH_REASON",
             operator_headline="OpenClaw needs a safer request",
             operator_message="I found the request, but it is blocked before processing because the shape is not safe.",
@@ -3339,7 +3446,12 @@ def process_request_path(
             worker_route_refs=(),
             context_package_refs=(),
             blocked_reason=" ".join(blockers),
-            detail_disclosure={"preflight_blockers": blockers, "fixes": fixes, "request_classification": asdict(classification)},
+            detail_disclosure={
+                "preflight_blockers": blockers,
+                "fixes": fixes,
+                "request_classification": asdict(effective_classification),
+                "request_router_decision": route_decision,
+            },
             readback_files=(),
             next_safe_move="Fix the request and rerun the bounded processor.",
         )
@@ -3351,13 +3463,21 @@ def process_request_path(
             generated_at=generated_at,
             classification=classification,
         )
-    if classification.request_family == "LOCAL_SURFACE_RESULT":
+    if effective_classification.request_family == "LOCAL_SURFACE_RESULT":
+        if route_decision.get("route_status") != "ROUTE_MATCHED":
+            return _process_parked_router_request(
+                request_path,
+                raw_request,
+                classification=effective_classification,
+                route_decision=route_decision,
+            )
         return _process_local_surface_result_request(
             request_path,
             raw_request,
             export_root=export_root,
             generated_at=generated_at,
-            classification=classification,
+            classification=effective_classification,
+            route_decision=route_decision,
         )
     if duplicate_check:
         duplicate = _existing_duplicate_response(raw_request, export_root, classification)
@@ -3533,6 +3653,7 @@ def _machine_proof(
     workbook_detail = detail.get("client_invoice_workbook_registry") if isinstance(detail.get("client_invoice_workbook_registry"), Mapping) else {}
     audit_handoff_detail = detail.get("client_invoice_audit_handoff") if isinstance(detail.get("client_invoice_audit_handoff"), Mapping) else {}
     sheet_audit_detail = detail.get("client_invoice_sheet_audit") if isinstance(detail.get("client_invoice_sheet_audit"), Mapping) else {}
+    router_decision = detail.get("request_router_decision") if isinstance(detail.get("request_router_decision"), Mapping) else {}
     targets = status.responder_targets
     future_lm_targets = [
         target
@@ -3550,6 +3671,9 @@ def _machine_proof(
     return {
         "processor_bounded_once": status.bounded_mode == "process one request and exit",
         "request_classifier_present": status.request_classification["request_family"] in REQUEST_FAMILIES,
+        "request_router_used": bool(router_decision),
+        "request_router_matched": router_decision.get("route_status") == "ROUTE_MATCHED",
+        "request_router_selected_handler_id": str(router_decision.get("selected_handler_id") or ""),
         "supported_chat_pattern_present": CHAT_PATTERN in SUPPORTED_REQUEST_PATTERNS,
         "supported_file_pattern_present": FILE_METADATA_PATTERN in SUPPORTED_REQUEST_PATTERNS,
         "supported_local_surface_result_pattern_present": all(pattern in SUPPORTED_REQUEST_PATTERNS for pattern in LOCAL_SURFACE_RESULT_PATTERNS),
