@@ -25,6 +25,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 import openclaw_request_processor as processor
+import client_invoice_audit_handoff
 import client_invoice_sheet_audit
 import deterministic_intent_interpreter
 import mac_worker_handoff_package
@@ -633,6 +634,20 @@ def _route_for_request(request_path: Path, identity: RequestIdentity, raw_reques
             mac_handoff_required=False,
             future_worker_blocked=True,
             terminal_block_status="BLOCKED_WORKER_UNAVAILABLE",
+        )
+    if client_invoice_audit_handoff.is_audit_handoff_request(raw_request):
+        return RouteDecision(
+            routing_status="PROCESSING_ON_PC",
+            selected_worker_target="PC_CODEX",
+            selected_machine="PC_WSL",
+            processing_status="CHECKING_AUDIT_HANDOFF_RAIL",
+            operator_headline="OpenClaw is checking audit handoff",
+            operator_message="OpenClaw picked this up and is checking the workbook path and sheet mapping handoff contract.",
+            next_safe_move="Wait for the audit handoff readback.",
+            route_reason="Explicit client invoice audit handoff intended use is handled by the deterministic PC handoff rail.",
+            pc_handled=True,
+            mac_handoff_required=False,
+            future_worker_blocked=False,
         )
     if client_invoice_sheet_audit.is_sheet_audit_request(raw_request):
         return RouteDecision(

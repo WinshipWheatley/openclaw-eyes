@@ -10,6 +10,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import client_invoice_sheet_audit as sheet_audit
+import client_invoice_audit_handoff as audit_handoff
 import client_invoice_workbook_registry as workbook_registry
 import conversational_workflow_router_intake as chat_intake
 import openclaw_request_processor as processor
@@ -221,6 +222,32 @@ def _write_sheet_audit_request(path: Path, *, workbook_path: Path | None = None,
         request["approved_pc_workbook_path_ref"] = "approved_pc_path_ref:fixture_capital_hilton_invoice_workbook"
     if schema is not None:
         request["sheet_audit_schema"] = schema
+    request["payload_hash"] = chat_intake.compute_request_payload_hash(request)
+    path.write_text(chat_intake.stable_json(request), encoding="utf-8")
+    return request
+
+
+def _write_audit_handoff_request(path: Path, *, workbook_path: str = "", schema: dict | None = None, intended_use: str = audit_handoff.INTENDED_USE) -> dict:
+    request = chat_intake.make_capital_hilton_fixture_request(created_at=FIXED_NOW)
+    request.update(
+        {
+            "request_id": "mission_control_chat_request_capital_hilton_audit_handoff_fixture",
+            "workflow_ref": "capital_hilton_invoice_workflow",
+            "world_ref": "finance",
+            "client_ref": "capital_hilton",
+            "operator_message": "Here is the workbook path and sheet mapping.",
+            "sanitized_message_summary": "Prepare Capital Hilton audit handoff.",
+            "operator_goal": "Prepare Capital Hilton audit handoff.",
+            "intended_use": intended_use,
+            "operator_approval_marker": "operator_selected_pc_path",
+            "idempotency_key": "mc_chat_capital_hilton_audit_handoff_fixture",
+        }
+    )
+    if workbook_path:
+        request["approved_pc_readable_path"] = workbook_path
+        request["approved_path_ref"] = "approved_pc_path_ref:fixture_capital_hilton_invoice_workbook"
+    if schema is not None:
+        request["sheet_schema_mapping"] = schema
     request["payload_hash"] = chat_intake.compute_request_payload_hash(request)
     path.write_text(chat_intake.stable_json(request), encoding="utf-8")
     return request
@@ -616,6 +643,65 @@ def test_sheet_audit_happy_path_reads_whitelisted_fixture_cells_only(tmp_path, c
     rendered = json.dumps(audit_payload, sort_keys=True)
     assert "NON_WHITELISTED_SENTINEL" not in rendered
     assert response["machine_proof"]["whitelisted_sheet_cells_read_performed"] is True
+    assert response["machine_proof"]["external_action_performed"] is False
+
+
+def test_audit_handoff_path_only_returns_schema_required_response(tmp_path, capsys):
+    request_path = tmp_path / "mission_control_chat_request_capital_hilton_audit_handoff.json"
+    export_root = tmp_path / "read_models"
+    _seed_workbook_registry(export_root)
+    request = _write_audit_handoff_request(
+        request_path,
+        workbook_path="/mnt/e/openclaw/capital_hilton_invoice.xlsx",
+        schema=None,
+        intended_use=audit_handoff.PATH_APPROVAL_INTENDED_USE,
+    )
+
+    assert process_main(["--file", str(request_path), "--export-root", str(export_root), "--generated-at", FIXED_NOW, "--format", "json"]) == 0
+    response = json.loads(capsys.readouterr().out)
+    handoff_payload = json.loads((export_root / audit_handoff.JSON_EXPORT_NAME).read_text(encoding="utf-8"))
+
+    assert response["source_request_id"] == request["request_id"]
+    assert response["response_kind"] == "CLIENT_INVOICE_AUDIT_HANDOFF"
+    assert response["headline"] == "Capital Hilton workbook path approved"
+    assert response["eliwinship"] == (
+        "OpenClaw now has an approved PC-readable workbook path, but still needs the invoice sheet mapping before it can audit cells."
+    )
+    assert response["next_action"] == "Next: provide the invoice tab name and cell mapping."
+    assert response["terminal"] is True
+    assert handoff_payload["live_audit_ready"] is False
+    assert handoff_payload["approved_workbook_path_ref"]["path_approval_status"] == "APPROVED_PC_PATH_CAPTURED"
+    assert response["machine_proof"]["audit_handoff_schema_inference_performed"] is False
+    assert response["machine_proof"]["spreadsheet_cell_read_performed"] is False
+
+
+def test_audit_handoff_path_and_schema_returns_ready_response_without_audit_run(tmp_path, capsys):
+    request_path = tmp_path / "mission_control_chat_request_capital_hilton_audit_handoff.json"
+    export_root = tmp_path / "read_models"
+    _seed_workbook_registry(export_root)
+    request = _write_audit_handoff_request(
+        request_path,
+        workbook_path="/mnt/e/openclaw/capital_hilton_invoice.xlsx",
+        schema=_sheet_audit_schema(),
+    )
+
+    assert process_main(["--file", str(request_path), "--export-root", str(export_root), "--generated-at", FIXED_NOW, "--format", "json"]) == 0
+    response = json.loads(capsys.readouterr().out)
+    handoff_payload = json.loads((export_root / audit_handoff.JSON_EXPORT_NAME).read_text(encoding="utf-8"))
+
+    assert response["source_request_id"] == request["request_id"]
+    assert response["response_kind"] == "CLIENT_INVOICE_AUDIT_HANDOFF"
+    assert response["headline"] == "Capital Hilton sheet audit is ready"
+    assert response["eliwinship"] == (
+        "OpenClaw has the workbook reference, approved PC-readable path, and explicit sheet mapping. "
+        "It can now run the whitelisted audit."
+    )
+    assert response["next_action"] == "Next: run the Capital Hilton sheet audit."
+    assert response["terminal"] is True
+    assert handoff_payload["live_audit_ready"] is True
+    assert handoff_payload["sheet_audit_request_template"]["intended_use"] == "client_invoice_sheet_audit"
+    assert response["machine_proof"]["client_invoice_audit_handoff_live_ready"] is True
+    assert response["machine_proof"]["whitelisted_sheet_cells_read_performed"] is False
     assert response["machine_proof"]["external_action_performed"] is False
 
 

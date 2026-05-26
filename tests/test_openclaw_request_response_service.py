@@ -11,6 +11,7 @@ if str(ROOT) not in sys.path:
 
 import conversational_workflow_router_intake as chat_intake
 import capital_hilton_invoice_operator_readback as capital_readback
+import client_invoice_audit_handoff as audit_handoff
 import client_invoice_sheet_audit as sheet_audit
 import client_invoice_workbook_registry as workbook_registry
 import mac_worker_handoff_package as mac_handoff
@@ -184,6 +185,32 @@ def _write_sheet_audit_request(path: Path, *, workbook_path: Path | None = None,
         request["approved_pc_workbook_path_ref"] = "approved_pc_path_ref:fixture_capital_hilton_invoice_workbook"
     if schema is not None:
         request["sheet_audit_schema"] = schema
+    request["payload_hash"] = chat_intake.compute_request_payload_hash(request)
+    path.write_text(chat_intake.stable_json(request), encoding="utf-8")
+    return request
+
+
+def _write_audit_handoff_request(path: Path, *, workbook_path: str = "", schema: dict | None = None) -> dict:
+    request = chat_intake.make_capital_hilton_fixture_request(created_at=FIXED_NOW)
+    request.update(
+        {
+            "request_id": "mission_control_chat_request_capital_hilton_audit_handoff_service",
+            "workflow_ref": "capital_hilton_invoice_workflow",
+            "world_ref": "finance",
+            "client_ref": "capital_hilton",
+            "operator_message": "Here is the workbook path and sheet mapping.",
+            "sanitized_message_summary": "Prepare Capital Hilton audit handoff.",
+            "operator_goal": "Prepare Capital Hilton audit handoff.",
+            "intended_use": audit_handoff.INTENDED_USE,
+            "operator_approval_marker": "operator_selected_pc_path",
+            "idempotency_key": "mc_chat_capital_hilton_audit_handoff_service",
+        }
+    )
+    if workbook_path:
+        request["approved_pc_readable_path"] = workbook_path
+        request["approved_path_ref"] = "approved_pc_path_ref:fixture_capital_hilton_invoice_workbook"
+    if schema is not None:
+        request["sheet_schema_mapping"] = schema
     request["payload_hash"] = chat_intake.compute_request_payload_hash(request)
     path.write_text(chat_intake.stable_json(request), encoding="utf-8")
     return request
@@ -967,6 +994,52 @@ def test_service_processes_sheet_audit_request_with_path_gate_heartbeat(tmp_path
     assert response["terminal"] is True
     assert audit_payload["audit_result"]["status"] == "APPROVED_PC_PATH_REQUIRED"
     assert response["machine_proof"]["whitelisted_sheet_cells_read_performed"] is False
+    assert response["machine_proof"]["external_action_performed"] is False
+
+
+def test_service_processes_audit_handoff_request_with_route_heartbeat(tmp_path, capsys):
+    inbox = tmp_path / "inbox"
+    response_dir = tmp_path / "responses"
+    export_root = tmp_path / "read_models"
+    inbox.mkdir()
+    _seed_workbook_registry(export_root)
+    request_path = inbox / "mission_control_chat_request_capital_hilton_audit_handoff.json"
+    request = _write_audit_handoff_request(
+        request_path,
+        workbook_path="/mnt/e/openclaw/capital_hilton_invoice.xlsx",
+        schema=_sheet_audit_schema(),
+    )
+
+    assert service_main(
+        [
+            "--once",
+            "--inbox",
+            str(inbox),
+            "--response-dir",
+            str(response_dir),
+            "--export-root",
+            str(export_root),
+            "--generated-at",
+            FIXED_NOW,
+            "--format",
+            "json",
+        ]
+    ) == 0
+    payload = json.loads(capsys.readouterr().out)
+    response = json.loads(_safe_response_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
+    heartbeat = json.loads(_safe_heartbeat_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
+    handoff_payload = json.loads((export_root / audit_handoff.JSON_EXPORT_NAME).read_text(encoding="utf-8"))
+
+    assert payload["service_status"]["service_status"] == "REQUEST_PROCESSED"
+    assert payload["service_status"]["last_routing_status"] == "PROCESSING_ON_PC"
+    assert heartbeat["processing_status"] == "CHECKING_AUDIT_HANDOFF_RAIL"
+    _assert_heartbeat_no_success_claims(heartbeat)
+    assert response["response_kind"] == "CLIENT_INVOICE_AUDIT_HANDOFF"
+    assert response["headline"] == "Capital Hilton sheet audit is ready"
+    assert response["next_action"] == "Next: run the Capital Hilton sheet audit."
+    assert response["terminal"] is True
+    assert handoff_payload["live_audit_ready"] is True
+    assert response["machine_proof"]["spreadsheet_cell_read_performed"] is False
     assert response["machine_proof"]["external_action_performed"] is False
 
 

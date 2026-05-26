@@ -1,0 +1,1100 @@
+"""Client invoice audit handoff contract v0.
+
+This rail records operator-provided workbook path approval and explicit invoice
+sheet schema mapping. It prepares the whitelisted sheet audit lane without
+opening workbooks, reading cells, inferring schema, translating Mac paths, or
+performing external actions.
+"""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import re
+import sys
+from dataclasses import asdict, dataclass, fields
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Mapping
+
+import client_invoice_workbook_registry
+
+
+DEFAULT_EXPORT_ROOT = Path("generated/read_models")
+DEFAULT_GENERATED_AT = "2026-05-26T00:00:00+00:00"
+
+SCHEMA_VERSION = "client_invoice_audit_handoff_v0"
+READ_MODEL_ID = "client_invoice_audit_handoff"
+JSON_EXPORT_NAME = f"{READ_MODEL_ID}.json"
+OPERATOR_EXPORT_NAME = f"{READ_MODEL_ID}_OPERATOR.md"
+CONTRACT_STATUS = "DETERMINISTIC_CLIENT_INVOICE_AUDIT_HANDOFF_CONTRACT_NO_WORKBOOK_READ"
+
+INTENDED_USE = "client_invoice_audit_handoff"
+PATH_APPROVAL_INTENDED_USE = "client_invoice_workbook_path_approval"
+SCHEMA_MAPPING_INTENDED_USE = "client_invoice_sheet_schema_mapping"
+ACCEPTED_INTENDED_USES = (INTENDED_USE, PATH_APPROVAL_INTENDED_USE, SCHEMA_MAPPING_INTENDED_USE)
+
+PATH_STATUSES = (
+    "APPROVED_PC_PATH_CAPTURED",
+    "APPROVED_PC_PATH_REQUIRED",
+    "APPROVED_PC_PATH_REJECTED_MAC_VISIBLE",
+    "WORKBOOK_REGISTRY_REQUIRED",
+    "HANDOFF_CONTEXT_MISSING",
+    "NO_PATH_REQUESTED",
+    "UNKNOWN_FAIL_CLOSED",
+)
+
+SCHEMA_STATUSES = (
+    "SHEET_AUDIT_SCHEMA_CAPTURED",
+    "SHEET_AUDIT_SCHEMA_MISSING",
+    "SHEET_AUDIT_SCHEMA_INCOMPLETE",
+    "HANDOFF_CONTEXT_MISSING",
+    "NO_SCHEMA_REQUESTED",
+    "UNKNOWN_FAIL_CLOSED",
+)
+
+READBACK_STATUSES = (
+    "HANDOFF_READY_FOR_SHEET_AUDIT",
+    "APPROVED_PC_PATH_CAPTURED_SCHEMA_REQUIRED",
+    "SCHEMA_MAPPING_CAPTURED_PATH_REQUIRED",
+    "APPROVED_PC_PATH_REQUIRED",
+    "SHEET_AUDIT_SCHEMA_MISSING",
+    "SHEET_AUDIT_SCHEMA_INCOMPLETE",
+    "WORKBOOK_REGISTRY_REQUIRED",
+    "HANDOFF_CONTEXT_MISSING",
+    "UNKNOWN_FAIL_CLOSED",
+)
+
+FORMULA_POLICY_STATES = (
+    "operator_confirmation_required",
+    "deterministic_recalculation_required",
+    "cached_readback_allowed_only_if_explicit",
+    "formula_values_not_promoted",
+)
+
+REQUIRED_SEMANTIC_FIELDS = (
+    "invoice_number",
+    "performance_dates",
+    "rate",
+    "subtotal_or_total",
+    "po_reference",
+)
+
+AUTHORITY_BOUNDARY = {
+    "live_workbook_parse_allowed": False,
+    "live_spreadsheet_cell_read_allowed": False,
+    "live_schema_inference_allowed": False,
+    "live_mac_path_translation_allowed": False,
+    "live_formula_evaluation_allowed": False,
+    "live_pdf_generation_allowed": False,
+    "live_email_send_allowed": False,
+    "live_gmail_send_allowed": False,
+    "live_coupa_access_allowed": False,
+    "live_coupa_submit_allowed": False,
+    "live_browser_allowed": False,
+    "live_external_action_allowed": False,
+    "live_workflow_run_allowed": False,
+    "live_agent_dispatch_allowed": False,
+    "credential_handling_allowed": False,
+    "raw_body_ingestion_allowed": False,
+    "network_allowed": False,
+    "mission_control_swift_change_allowed": False,
+    "mac_sync_import_allowed": False,
+    "git_push_pull_fetch_allowed": False,
+}
+
+
+@dataclass(frozen=True)
+class FormulaPromotionPolicy:
+    policy_id: str
+    selected_policy: str
+    allowed_policy_states: tuple[str, ...]
+    operator_confirmation_required: bool
+    deterministic_recalculation_required: bool
+    cached_readback_allowed_only_if_explicit: bool
+    formula_values_not_promoted: bool
+    formula_evaluation_allowed: bool
+    next_safe_move: str
+
+
+@dataclass(frozen=True)
+class ApprovedWorkbookPathRef:
+    path_ref_id: str
+    client_ref: str
+    workflow_ref: str
+    world_ref: str
+    workbook_ref: str
+    approved_pc_readable_path: str
+    approved_path_ref: str
+    path_kind: str
+    path_approval_status: str
+    operator_approval_marker: str
+    source_request_id: str
+    mac_visible_path_rejected: bool
+    path_translation_guessed: bool
+    workbook_body_read: bool
+    next_safe_move: str
+
+
+@dataclass(frozen=True)
+class ClientInvoiceSheetSchemaMapping:
+    schema_mapping_id: str
+    client_ref: str
+    workflow_ref: str
+    world_ref: str
+    sheet_name: str
+    whitelisted_cells: tuple[dict[str, Any], ...]
+    whitelisted_columns: tuple[dict[str, Any], ...]
+    semantic_fields_present: tuple[str, ...]
+    semantic_fields_missing: tuple[str, ...]
+    required_fields: tuple[str, ...]
+    optional_fields: tuple[str, ...]
+    expected_value_types: dict[str, str]
+    formula_promotion_policy: dict[str, Any]
+    schema_mapping_status: str
+    source_request_id: str
+    inferred_schema: bool
+    workbook_layout_inspected: bool
+    next_safe_move: str
+
+
+@dataclass(frozen=True)
+class ClientInvoiceWorkbookPathApprovalRequest:
+    request_id: str
+    source_request_id: str
+    intended_use: str
+    client_ref: str
+    workflow_ref: str
+    world_ref: str
+    workbook_ref: str
+    workbook_identity: str
+    approved_pc_readable_path: str
+    approved_path_ref: str
+    operator_approval_marker: str
+    authority_boundary: dict[str, bool]
+    validation_status: str
+    missing_context: tuple[str, ...]
+    next_safe_move: str
+
+
+@dataclass(frozen=True)
+class ClientInvoiceSheetSchemaMappingRequest:
+    request_id: str
+    source_request_id: str
+    intended_use: str
+    client_ref: str
+    workflow_ref: str
+    world_ref: str
+    sheet_name: str
+    schema_ref: str
+    formula_promotion_policy: str
+    authority_boundary: dict[str, bool]
+    validation_status: str
+    missing_context: tuple[str, ...]
+    next_safe_move: str
+
+
+@dataclass(frozen=True)
+class ClientInvoiceAuditHandoffReadback:
+    readback_id: str
+    status: str
+    operator_headline: str
+    operator_message: str
+    path_approval_status: str
+    schema_mapping_status: str
+    formula_policy_status: str
+    live_audit_ready: bool
+    missing_items: tuple[str, ...]
+    next_action: str
+    hidden_refs: dict[str, Any]
+    authority_boundary: dict[str, bool]
+    next_safe_move: str
+
+
+def utc_now() -> str:
+    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
+def stable_json(payload: Any) -> str:
+    return json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
+
+
+def _short_hash(*parts: object) -> str:
+    return hashlib.sha256("\0".join(str(part) for part in parts).encode("utf-8")).hexdigest()[:16]
+
+
+def _content_hash(payload: dict[str, Any]) -> str:
+    clone = json.loads(stable_json(payload))
+    clone.get("machine_proof", {}).pop("content_hash", None)
+    return "sha256:" + hashlib.sha256(stable_json(clone).encode("utf-8")).hexdigest()
+
+
+def is_audit_handoff_request(raw_request: Mapping[str, Any]) -> bool:
+    return str(raw_request.get("intended_use") or "").strip() in ACCEPTED_INTENDED_USES
+
+
+def _safe_text(value: object, fallback: str = "unknown") -> str:
+    text = str(value or "").strip()
+    return text or fallback
+
+
+def _safe_field_name(value: object) -> str:
+    text = str(value or "").strip().lower()
+    cleaned = "".join(char if char.isalnum() else "_" for char in text).strip("_")
+    aliases = {
+        "coupa_po_reference": "po_reference",
+        "po": "po_reference",
+        "po_ref": "po_reference",
+        "po_reference": "po_reference",
+        "total": "subtotal_or_total",
+        "subtotal": "subtotal_or_total",
+        "subtotal_total": "subtotal_or_total",
+        "subtotal_or_total": "subtotal_or_total",
+        "notes": "notes_status",
+        "status": "notes_status",
+        "notes_status": "notes_status",
+    }
+    return aliases.get(cleaned, cleaned or "unknown_field")
+
+
+def _safe_cell_ref(value: object) -> str:
+    text = str(value or "").strip().upper()
+    if not re.fullmatch(r"[A-Z]{1,3}[1-9][0-9]{0,6}", text):
+        return ""
+    return text
+
+
+def _is_unknown(value: object) -> bool:
+    return str(value or "").strip() in {"", "unknown", "UNKNOWN", "none", "None"}
+
+
+def _mac_visible_path(value: object) -> bool:
+    text = str(value or "").strip()
+    lowered = text.lower()
+    return (
+        text.startswith("/Volumes/")
+        or text.startswith("/Users/")
+        or text.startswith("~/")
+        or lowered.startswith("mac_path_ref:")
+        or lowered.startswith("mac_visible_path_ref:")
+        or "/volumes/" in lowered
+        or "/users/" in lowered
+    )
+
+
+def _approval_marker(raw_request: Mapping[str, Any]) -> str:
+    marker = str(raw_request.get("operator_approval_marker") or raw_request.get("path_approval_source_marker") or "").strip()
+    if marker:
+        return marker[:160]
+    if raw_request.get("approved_pc_workbook_path_authorized") is True:
+        return "approved_pc_workbook_path_authorized:true"
+    if raw_request.get("approved_by_operator") is True:
+        return "approved_by_operator:true"
+    return ""
+
+
+def _context_values(raw_request: Mapping[str, Any]) -> tuple[str, str, str]:
+    return (
+        str(raw_request.get("client_ref") or "unknown").strip(),
+        str(raw_request.get("workflow_ref") or "unknown").strip(),
+        str(raw_request.get("world_ref") or "unknown").strip(),
+    )
+
+
+def _context_missing(client_ref: str, workflow_ref: str, world_ref: str) -> tuple[str, ...]:
+    missing = []
+    if _is_unknown(client_ref):
+        missing.append("client_ref")
+    if _is_unknown(workflow_ref):
+        missing.append("workflow_ref")
+    if _is_unknown(world_ref):
+        missing.append("world_ref")
+    if client_ref == "capital_hilton" and workflow_ref != "capital_hilton_invoice_workflow":
+        missing.append("capital_hilton_invoice_workflow")
+    if client_ref == "capital_hilton" and world_ref != "finance":
+        missing.append("finance_world_ref")
+    return tuple(missing)
+
+
+def load_workbook_registry(export_root: Path = DEFAULT_EXPORT_ROOT) -> dict[str, Any] | None:
+    return client_invoice_workbook_registry.load_existing_payload(export_root)
+
+
+def _registry_records(payload: Mapping[str, Any] | None) -> tuple[dict[str, Any], ...]:
+    if not isinstance(payload, Mapping):
+        return ()
+    registry = payload.get("registry") if isinstance(payload.get("registry"), Mapping) else {}
+    records = registry.get("client_records") if isinstance(registry.get("client_records"), list) else []
+    return tuple(dict(record) for record in records if isinstance(record, Mapping))
+
+
+def _matching_workbook_record(
+    registry_payload: Mapping[str, Any] | None,
+    *,
+    client_ref: str,
+    workflow_ref: str,
+    workbook_ref: str = "",
+) -> dict[str, Any] | None:
+    for record in _registry_records(registry_payload):
+        if record.get("client_ref") != client_ref or record.get("workflow_ref") != workflow_ref:
+            continue
+        if workbook_ref and record.get("workbook_ref") != workbook_ref:
+            continue
+        return record
+    return None
+
+
+def load_existing_payload(export_root: Path = DEFAULT_EXPORT_ROOT) -> dict[str, Any] | None:
+    path = Path(export_root) / JSON_EXPORT_NAME
+    if not path.exists():
+        return None
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return None
+    return payload if isinstance(payload, dict) else None
+
+
+def _existing_path_ref(
+    existing_payload: Mapping[str, Any] | None,
+    *,
+    client_ref: str,
+    workflow_ref: str,
+    world_ref: str,
+) -> dict[str, Any] | None:
+    if not isinstance(existing_payload, Mapping):
+        return None
+    path_ref = existing_payload.get("approved_workbook_path_ref")
+    if not isinstance(path_ref, Mapping):
+        return None
+    if (
+        path_ref.get("client_ref") == client_ref
+        and path_ref.get("workflow_ref") == workflow_ref
+        and path_ref.get("world_ref") == world_ref
+        and path_ref.get("path_approval_status") == "APPROVED_PC_PATH_CAPTURED"
+    ):
+        return dict(path_ref)
+    return None
+
+
+def _existing_schema(
+    existing_payload: Mapping[str, Any] | None,
+    *,
+    client_ref: str,
+    workflow_ref: str,
+    world_ref: str,
+) -> dict[str, Any] | None:
+    if not isinstance(existing_payload, Mapping):
+        return None
+    mapping = existing_payload.get("schema_mapping")
+    if not isinstance(mapping, Mapping):
+        return None
+    if (
+        mapping.get("client_ref") == client_ref
+        and mapping.get("workflow_ref") == workflow_ref
+        and mapping.get("world_ref") == world_ref
+        and mapping.get("schema_mapping_status") == "SHEET_AUDIT_SCHEMA_CAPTURED"
+    ):
+        return dict(mapping)
+    return None
+
+
+def _formula_policy(raw_policy: object) -> FormulaPromotionPolicy:
+    if isinstance(raw_policy, Mapping):
+        selected = str(raw_policy.get("selected_policy") or raw_policy.get("policy") or "").strip()
+    else:
+        selected = str(raw_policy or "").strip()
+    if selected not in FORMULA_POLICY_STATES:
+        selected = "operator_confirmation_required"
+    return FormulaPromotionPolicy(
+        policy_id=f"formula_promotion_policy:{_short_hash(selected)}",
+        selected_policy=selected,
+        allowed_policy_states=FORMULA_POLICY_STATES,
+        operator_confirmation_required=selected == "operator_confirmation_required",
+        deterministic_recalculation_required=selected == "deterministic_recalculation_required",
+        cached_readback_allowed_only_if_explicit=selected == "cached_readback_allowed_only_if_explicit",
+        formula_values_not_promoted=selected in {"operator_confirmation_required", "formula_values_not_promoted"},
+        formula_evaluation_allowed=False,
+        next_safe_move="Treat formula cells as derived workbook values until a promotion policy clears them.",
+    )
+
+
+def _raw_path_value(raw_request: Mapping[str, Any]) -> tuple[str, str]:
+    path = str(
+        raw_request.get("approved_pc_readable_path")
+        or raw_request.get("approved_pc_workbook_path")
+        or raw_request.get("approved_local_workbook_path")
+        or ""
+    ).strip()
+    ref = str(
+        raw_request.get("approved_path_ref")
+        or raw_request.get("approved_pc_workbook_path_ref")
+        or raw_request.get("approved_pc_readable_path_ref")
+        or ""
+    ).strip()
+    return path, ref
+
+
+def _path_kind(path: str, path_ref: str) -> str:
+    if path:
+        return "PC_LOCAL_PATH"
+    if path_ref:
+        return "APPROVED_PC_PATH_REF"
+    return "NO_PATH"
+
+
+def normalize_path_approval_request(
+    raw_request: Mapping[str, Any],
+    *,
+    registry_payload: Mapping[str, Any] | None,
+) -> tuple[ClientInvoiceWorkbookPathApprovalRequest, ApprovedWorkbookPathRef | None, dict[str, Any] | None]:
+    source_request_id = str(raw_request.get("request_id") or "unknown_audit_handoff_request")
+    client_ref, workflow_ref, world_ref = _context_values(raw_request)
+    workbook_ref = str(raw_request.get("workbook_ref") or raw_request.get("workbook_registry_ref") or "").strip()
+    workbook_identity = str(raw_request.get("workbook_identity") or workbook_ref or "").strip()
+    record = _matching_workbook_record(
+        registry_payload,
+        client_ref=client_ref,
+        workflow_ref=workflow_ref,
+        workbook_ref=workbook_ref,
+    )
+    if record and not workbook_ref:
+        workbook_ref = str(record.get("workbook_ref") or "")
+        workbook_identity = workbook_identity or workbook_ref
+    approved_path, approved_ref = _raw_path_value(raw_request)
+    marker = _approval_marker(raw_request)
+    missing = list(_context_missing(client_ref, workflow_ref, world_ref))
+    status = "NO_PATH_REQUESTED"
+    next_move = "Next: provide approved PC-readable workbook access."
+    path_ref: ApprovedWorkbookPathRef | None = None
+
+    intended_use = str(raw_request.get("intended_use") or "")
+    path_requested = intended_use in {INTENDED_USE, PATH_APPROVAL_INTENDED_USE} and bool(approved_path or approved_ref or marker)
+    if intended_use == SCHEMA_MAPPING_INTENDED_USE and not approved_path and not approved_ref:
+        status = "NO_PATH_REQUESTED"
+    elif missing:
+        status = "HANDOFF_CONTEXT_MISSING"
+        next_move = "Next: confirm the client, workflow, and world."
+    elif record is None and not workbook_identity:
+        status = "WORKBOOK_REGISTRY_REQUIRED"
+        missing.append("workbook registry ref or workbook identity")
+        next_move = "Next: register or identify the workbook first."
+    elif _mac_visible_path(approved_path) or _mac_visible_path(approved_ref):
+        status = "APPROVED_PC_PATH_REJECTED_MAC_VISIBLE"
+        missing.append("approved PC-readable workbook path")
+        next_move = "Next: provide approved PC-readable workbook access."
+    elif not approved_path and not approved_ref:
+        status = "APPROVED_PC_PATH_REQUIRED" if path_requested else "NO_PATH_REQUESTED"
+        if status == "APPROVED_PC_PATH_REQUIRED":
+            missing.append("approved PC-readable workbook path")
+    elif not marker:
+        status = "APPROVED_PC_PATH_REQUIRED"
+        missing.append("operator approval marker")
+    else:
+        status = "APPROVED_PC_PATH_CAPTURED"
+        next_move = "Next: provide the invoice tab name and cell mapping."
+        path_ref = ApprovedWorkbookPathRef(
+            path_ref_id=f"approved_workbook_path_ref:{_short_hash(client_ref, workflow_ref, approved_path, approved_ref)}",
+            client_ref=client_ref,
+            workflow_ref=workflow_ref,
+            world_ref=world_ref,
+            workbook_ref=workbook_ref or workbook_identity,
+            approved_pc_readable_path=approved_path,
+            approved_path_ref=approved_ref or f"approved_pc_path_ref:{_short_hash(approved_path)}",
+            path_kind=_path_kind(approved_path, approved_ref),
+            path_approval_status=status,
+            operator_approval_marker=marker,
+            source_request_id=source_request_id,
+            mac_visible_path_rejected=False,
+            path_translation_guessed=False,
+            workbook_body_read=False,
+            next_safe_move=next_move,
+        )
+
+    request = ClientInvoiceWorkbookPathApprovalRequest(
+        request_id=f"path_approval_request:{_short_hash(source_request_id, client_ref, workflow_ref)}",
+        source_request_id=source_request_id,
+        intended_use=intended_use,
+        client_ref=client_ref,
+        workflow_ref=workflow_ref,
+        world_ref=world_ref,
+        workbook_ref=workbook_ref,
+        workbook_identity=workbook_identity,
+        approved_pc_readable_path=approved_path if status == "APPROVED_PC_PATH_CAPTURED" else "",
+        approved_path_ref=approved_ref if status == "APPROVED_PC_PATH_CAPTURED" else "",
+        operator_approval_marker=marker,
+        authority_boundary=dict(AUTHORITY_BOUNDARY),
+        validation_status=status,
+        missing_context=tuple(dict.fromkeys(missing)),
+        next_safe_move=next_move,
+    )
+    return request, path_ref, record
+
+
+def _schema_source(raw_request: Mapping[str, Any]) -> Mapping[str, Any] | None:
+    schema = raw_request.get("sheet_schema_mapping")
+    if not isinstance(schema, Mapping):
+        schema = raw_request.get("sheet_audit_schema")
+    if not isinstance(schema, Mapping):
+        schema = raw_request.get("audit_schema")
+    if isinstance(schema, Mapping):
+        return schema
+    keys = {"sheet_name", "sheet_tab_name", "whitelisted_cells", "whitelisted_columns", "allowed_cells", "allowed_columns"}
+    if any(key in raw_request for key in keys):
+        return raw_request
+    return None
+
+
+def _normalize_cell(raw: Mapping[str, Any], formula_policy: FormulaPromotionPolicy) -> dict[str, Any] | None:
+    cell_ref = _safe_cell_ref(raw.get("cell_ref"))
+    field_name = _safe_field_name(raw.get("field_name") or raw.get("semantic_field_name"))
+    if not cell_ref or field_name == "unknown_field":
+        return None
+    return {
+        "field_name": field_name,
+        "cell_ref": cell_ref,
+        "required": bool(raw.get("required")),
+        "expected_value_type": str(raw.get("expected_value_type") or raw.get("value_type") or "text"),
+        "formula_promotion_policy": formula_policy.selected_policy,
+    }
+
+
+def _normalize_column(raw: Mapping[str, Any], formula_policy: FormulaPromotionPolicy) -> dict[str, Any] | None:
+    field_name = _safe_field_name(raw.get("field_name") or raw.get("semantic_field_name"))
+    header_cell = _safe_cell_ref(raw.get("header_cell"))
+    data_cells = tuple(cell for cell in (_safe_cell_ref(value) for value in raw.get("data_cells") or ()) if cell)
+    header_name = str(raw.get("header_name") or "").strip()
+    if field_name == "unknown_field" or (not header_cell and not data_cells and not header_name):
+        return None
+    return {
+        "field_name": field_name,
+        "header_name": header_name,
+        "header_cell": header_cell,
+        "data_cells": data_cells,
+        "required": bool(raw.get("required")),
+        "expected_value_type": str(raw.get("expected_value_type") or raw.get("value_type") or "text"),
+        "formula_promotion_policy": formula_policy.selected_policy,
+    }
+
+
+def normalize_schema_mapping_request(
+    raw_request: Mapping[str, Any],
+) -> tuple[ClientInvoiceSheetSchemaMappingRequest, ClientInvoiceSheetSchemaMapping | None]:
+    source_request_id = str(raw_request.get("request_id") or "unknown_audit_handoff_request")
+    intended_use = str(raw_request.get("intended_use") or "")
+    client_ref, workflow_ref, world_ref = _context_values(raw_request)
+    missing = list(_context_missing(client_ref, workflow_ref, world_ref))
+    schema_source = _schema_source(raw_request)
+    policy_source = (
+        schema_source.get("formula_promotion_policy")
+        if isinstance(schema_source, Mapping)
+        else raw_request.get("formula_promotion_policy")
+    )
+    formula_policy = _formula_policy(policy_source)
+    status = "NO_SCHEMA_REQUESTED"
+    next_move = "Next: provide the invoice tab name and cell mapping."
+    mapping: ClientInvoiceSheetSchemaMapping | None = None
+
+    sheet_name = ""
+    cells: tuple[dict[str, Any], ...] = ()
+    columns: tuple[dict[str, Any], ...] = ()
+    semantic_present: tuple[str, ...] = ()
+    semantic_missing: tuple[str, ...] = REQUIRED_SEMANTIC_FIELDS
+    required_fields: tuple[str, ...] = ()
+    optional_fields: tuple[str, ...] = ()
+    expected_types: dict[str, str] = {}
+
+    if intended_use == PATH_APPROVAL_INTENDED_USE and schema_source is None:
+        status = "NO_SCHEMA_REQUESTED"
+    elif missing:
+        status = "HANDOFF_CONTEXT_MISSING"
+        next_move = "Next: confirm the client, workflow, and world."
+    elif schema_source is None:
+        status = "SHEET_AUDIT_SCHEMA_MISSING"
+        missing.append("invoice sheet/schema mapping")
+        next_move = "Next: provide the invoice tab name and cell mapping."
+    else:
+        sheet = schema_source.get("sheet_target") if isinstance(schema_source.get("sheet_target"), Mapping) else {}
+        sheet_name = str(schema_source.get("sheet_name") or schema_source.get("sheet_tab_name") or sheet.get("sheet_name") or "").strip()
+        raw_cells = sheet.get("allowed_cells") or schema_source.get("whitelisted_cells") or schema_source.get("allowed_cells") or ()
+        raw_columns = sheet.get("allowed_columns") or schema_source.get("whitelisted_columns") or schema_source.get("allowed_columns") or ()
+        cells = tuple(
+            cell
+            for cell in (_normalize_cell(item, formula_policy) for item in raw_cells if isinstance(item, Mapping))
+            if cell is not None
+        )
+        columns = tuple(
+            column
+            for column in (_normalize_column(item, formula_policy) for item in raw_columns if isinstance(item, Mapping))
+            if column is not None
+        )
+        semantic_present = tuple(dict.fromkeys(item["field_name"] for item in (*cells, *columns)))
+        semantic_missing = tuple(field for field in REQUIRED_SEMANTIC_FIELDS if field not in semantic_present)
+        required_fields = tuple(
+            dict.fromkeys(
+                tuple(_safe_field_name(value) for value in schema_source.get("required_fields") or ())
+                + tuple(item["field_name"] for item in (*cells, *columns) if item.get("required") is True)
+            )
+        )
+        optional_fields = tuple(
+            dict.fromkeys(
+                tuple(_safe_field_name(value) for value in schema_source.get("optional_fields") or ())
+                + tuple(item["field_name"] for item in (*cells, *columns) if item.get("required") is not True)
+            )
+        )
+        expected_types = {item["field_name"]: str(item.get("expected_value_type") or "text") for item in (*cells, *columns)}
+        if not sheet_name or not (cells or columns):
+            status = "SHEET_AUDIT_SCHEMA_MISSING"
+            missing.append("sheet name and whitelisted cells/columns")
+        elif semantic_missing:
+            status = "SHEET_AUDIT_SCHEMA_INCOMPLETE"
+            missing.extend(semantic_missing)
+        else:
+            status = "SHEET_AUDIT_SCHEMA_CAPTURED"
+            next_move = "Next: provide approved PC-readable workbook access."
+            mapping = ClientInvoiceSheetSchemaMapping(
+                schema_mapping_id=f"sheet_schema_mapping:{_short_hash(client_ref, workflow_ref, sheet_name, semantic_present)}",
+                client_ref=client_ref,
+                workflow_ref=workflow_ref,
+                world_ref=world_ref,
+                sheet_name=sheet_name,
+                whitelisted_cells=cells,
+                whitelisted_columns=columns,
+                semantic_fields_present=semantic_present,
+                semantic_fields_missing=(),
+                required_fields=required_fields,
+                optional_fields=optional_fields,
+                expected_value_types=expected_types,
+                formula_promotion_policy=asdict(formula_policy),
+                schema_mapping_status=status,
+                source_request_id=source_request_id,
+                inferred_schema=False,
+                workbook_layout_inspected=False,
+                next_safe_move=next_move,
+            )
+    request = ClientInvoiceSheetSchemaMappingRequest(
+        request_id=f"schema_mapping_request:{_short_hash(source_request_id, client_ref, workflow_ref)}",
+        source_request_id=source_request_id,
+        intended_use=intended_use,
+        client_ref=client_ref,
+        workflow_ref=workflow_ref,
+        world_ref=world_ref,
+        sheet_name=sheet_name,
+        schema_ref=mapping.schema_mapping_id if mapping else "",
+        formula_promotion_policy=formula_policy.selected_policy,
+        authority_boundary=dict(AUTHORITY_BOUNDARY),
+        validation_status=status,
+        missing_context=tuple(dict.fromkeys(missing)),
+        next_safe_move=next_move,
+    )
+    return request, mapping
+
+
+def _mapping_to_sheet_audit_schema(mapping: Mapping[str, Any]) -> dict[str, Any]:
+    def formula_policy(_selected: str) -> str:
+        if _selected == "cached_readback_allowed_only_if_explicit":
+            return "ALLOW_CACHED_READBACK_IF_EXPLICITLY_ALLOWED"
+        return "FORMULA_BLOCK_UNLESS_OPERATOR_CONFIRMS"
+
+    selected = str((mapping.get("formula_promotion_policy") or {}).get("selected_policy") or "operator_confirmation_required")
+    return {
+        "schema_id": str(mapping.get("schema_mapping_id") or ""),
+        "schema_version": "v0",
+        "client_ref": mapping.get("client_ref"),
+        "workflow_ref": mapping.get("workflow_ref"),
+        "world_ref": mapping.get("world_ref"),
+        "sheet_target": {
+            "sheet_name": mapping.get("sheet_name"),
+            "allowed_cells": tuple(
+                {
+                    "field_name": cell["field_name"],
+                    "cell_ref": cell["cell_ref"],
+                    "expected_value_type": cell["expected_value_type"],
+                    "required": cell["required"],
+                    "formula_policy": formula_policy(selected),
+                }
+                for cell in mapping.get("whitelisted_cells") or ()
+            ),
+            "allowed_columns": tuple(
+                {
+                    "field_name": column["field_name"],
+                    "header_name": column.get("header_name", ""),
+                    "header_cell": column.get("header_cell", ""),
+                    "data_cells": tuple(column.get("data_cells") or ()),
+                    "expected_value_type": column["expected_value_type"],
+                    "required": column["required"],
+                    "formula_policy": formula_policy(selected),
+                }
+                for column in mapping.get("whitelisted_columns") or ()
+            ),
+        },
+        "required_fields": tuple(mapping.get("required_fields") or ()),
+        "optional_fields": tuple(mapping.get("optional_fields") or ()),
+        "formula_cached_readback_policy": formula_policy(selected),
+        "known_facts": {},
+    }
+
+
+def _sheet_audit_request_template(
+    *,
+    client_ref: str,
+    workflow_ref: str,
+    world_ref: str,
+    path_ref: Mapping[str, Any] | None,
+    schema_mapping: Mapping[str, Any] | None,
+) -> dict[str, Any] | None:
+    if not path_ref or not schema_mapping:
+        return None
+    return {
+        "intended_use": "client_invoice_sheet_audit",
+        "client_ref": client_ref,
+        "workflow_ref": workflow_ref,
+        "world_ref": world_ref,
+        "approved_pc_workbook_path_authorized": True,
+        "approved_pc_workbook_path": path_ref.get("approved_pc_readable_path", ""),
+        "approved_pc_workbook_path_ref": path_ref.get("approved_path_ref", ""),
+        "sheet_audit_schema": _mapping_to_sheet_audit_schema(schema_mapping),
+        "authority_boundary": dict(AUTHORITY_BOUNDARY),
+    }
+
+
+def _readback_for(
+    *,
+    client_ref: str,
+    workflow_ref: str,
+    world_ref: str,
+    path_status: str,
+    schema_status: str,
+    formula_policy: FormulaPromotionPolicy,
+    live_ready: bool,
+    missing_items: tuple[str, ...],
+    path_ref: Mapping[str, Any] | None,
+    schema_mapping: Mapping[str, Any] | None,
+    workbook_record: Mapping[str, Any] | None,
+    source_request_id: str,
+) -> ClientInvoiceAuditHandoffReadback:
+    capital = client_ref == "capital_hilton"
+    client_name = "Capital Hilton" if capital else client_ref.replace("_", " ").title()
+    if live_ready:
+        status = "HANDOFF_READY_FOR_SHEET_AUDIT"
+        headline = f"{client_name} sheet audit is ready"
+        message = (
+            "OpenClaw has the workbook reference, approved PC-readable path, and explicit sheet mapping. "
+            "It can now run the whitelisted audit."
+        )
+        next_action = f"Next: run the {client_name} sheet audit."
+    elif schema_status == "SHEET_AUDIT_SCHEMA_INCOMPLETE":
+        status = "SHEET_AUDIT_SCHEMA_INCOMPLETE"
+        headline = "Sheet mapping needs fields"
+        message = "OpenClaw received a sheet mapping, but it is missing required invoice audit fields."
+        next_action = "Next: provide the missing invoice field mappings."
+    elif path_status == "APPROVED_PC_PATH_CAPTURED" and schema_status not in {"SHEET_AUDIT_SCHEMA_CAPTURED"}:
+        status = "APPROVED_PC_PATH_CAPTURED_SCHEMA_REQUIRED"
+        headline = f"{client_name} workbook path approved"
+        message = (
+            "OpenClaw now has an approved PC-readable workbook path, but still needs the invoice sheet mapping before it can audit cells."
+        )
+        next_action = "Next: provide the invoice tab name and cell mapping."
+    elif schema_status == "SHEET_AUDIT_SCHEMA_CAPTURED" and path_status != "APPROVED_PC_PATH_CAPTURED":
+        status = "SCHEMA_MAPPING_CAPTURED_PATH_REQUIRED"
+        headline = f"{client_name} invoice sheet mapping captured"
+        message = "OpenClaw knows which fields to audit, but still needs an approved PC-readable workbook path."
+        next_action = "Next: provide approved PC-readable workbook access."
+    elif path_status in {"APPROVED_PC_PATH_REJECTED_MAC_VISIBLE", "APPROVED_PC_PATH_REQUIRED"}:
+        status = "APPROVED_PC_PATH_REQUIRED"
+        headline = "PC-readable workbook path needed"
+        message = "OpenClaw needs an explicitly approved PC-readable workbook path. It did not guess or translate a Mac path."
+        next_action = "Next: provide approved PC-readable workbook access."
+    elif schema_status == "SHEET_AUDIT_SCHEMA_MISSING":
+        status = "SHEET_AUDIT_SCHEMA_MISSING"
+        headline = "Invoice sheet mapping needed"
+        message = "OpenClaw needs the invoice tab name and whitelisted cell or column mapping before it can audit cells."
+        next_action = "Next: provide the invoice tab name and cell mapping."
+    elif path_status == "WORKBOOK_REGISTRY_REQUIRED":
+        status = "WORKBOOK_REGISTRY_REQUIRED"
+        headline = "Register the workbook first"
+        message = "OpenClaw needs a registered workbook record before this audit handoff can be used."
+        next_action = "Next: register or capture the workbook first."
+    else:
+        status = "HANDOFF_CONTEXT_MISSING"
+        headline = "Audit context needed"
+        message = "OpenClaw needs explicit client, workflow, and world context before preparing sheet audit handoff."
+        next_action = "Next: confirm the client, workflow, and world."
+    return ClientInvoiceAuditHandoffReadback(
+        readback_id=f"audit_handoff_readback:{_short_hash(source_request_id, status)}",
+        status=status,
+        operator_headline=headline,
+        operator_message=message,
+        path_approval_status=path_status,
+        schema_mapping_status=schema_status,
+        formula_policy_status=formula_policy.selected_policy,
+        live_audit_ready=live_ready,
+        missing_items=missing_items,
+        next_action=next_action,
+        hidden_refs={
+            "source_request_id": source_request_id,
+            "workbook_ref": str(workbook_record.get("workbook_ref") or "") if workbook_record else "",
+            "approved_path_ref_id": str(path_ref.get("path_ref_id") or "") if path_ref else "",
+            "schema_mapping_id": str(schema_mapping.get("schema_mapping_id") or "") if schema_mapping else "",
+        },
+        authority_boundary=dict(AUTHORITY_BOUNDARY),
+        next_safe_move=next_action,
+    )
+
+
+def process_handoff_request(
+    raw_request: Mapping[str, Any],
+    *,
+    export_root: Path = DEFAULT_EXPORT_ROOT,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    generated_at = generated_at or utc_now()
+    source_request_id = str(raw_request.get("request_id") or "unknown_audit_handoff_request")
+    client_ref, workflow_ref, world_ref = _context_values(raw_request)
+    registry_payload = load_workbook_registry(export_root)
+    existing_payload = load_existing_payload(export_root)
+    path_request, new_path_ref, workbook_record = normalize_path_approval_request(
+        raw_request,
+        registry_payload=registry_payload,
+    )
+    schema_request, new_schema_mapping = normalize_schema_mapping_request(raw_request)
+    existing_path = _existing_path_ref(existing_payload, client_ref=client_ref, workflow_ref=workflow_ref, world_ref=world_ref)
+    existing_schema = _existing_schema(existing_payload, client_ref=client_ref, workflow_ref=workflow_ref, world_ref=world_ref)
+    active_path_ref = asdict(new_path_ref) if new_path_ref else existing_path
+    active_schema_mapping = asdict(new_schema_mapping) if new_schema_mapping else existing_schema
+    formula_policy = _formula_policy(
+        (active_schema_mapping or {}).get("formula_promotion_policy")
+        or raw_request.get("formula_promotion_policy")
+    )
+
+    path_status = str((active_path_ref or {}).get("path_approval_status") or path_request.validation_status)
+    schema_status = str((active_schema_mapping or {}).get("schema_mapping_status") or schema_request.validation_status)
+    if schema_request.validation_status == "SHEET_AUDIT_SCHEMA_INCOMPLETE":
+        schema_status = "SHEET_AUDIT_SCHEMA_INCOMPLETE"
+    if path_request.validation_status in {"APPROVED_PC_PATH_REJECTED_MAC_VISIBLE", "APPROVED_PC_PATH_REQUIRED"}:
+        path_status = path_request.validation_status
+    live_ready = bool(
+        workbook_record
+        and active_path_ref
+        and active_schema_mapping
+        and path_status == "APPROVED_PC_PATH_CAPTURED"
+        and schema_status == "SHEET_AUDIT_SCHEMA_CAPTURED"
+        and not _context_missing(client_ref, workflow_ref, world_ref)
+    )
+    missing: list[str] = []
+    if not workbook_record:
+        missing.append("registered workbook")
+    if path_status != "APPROVED_PC_PATH_CAPTURED":
+        missing.append("approved PC-readable workbook path")
+    if schema_status != "SHEET_AUDIT_SCHEMA_CAPTURED":
+        missing.extend(schema_request.missing_context or ("explicit sheet/schema mapping",))
+    missing.extend(_context_missing(client_ref, workflow_ref, world_ref))
+    readback = _readback_for(
+        client_ref=client_ref,
+        workflow_ref=workflow_ref,
+        world_ref=world_ref,
+        path_status=path_status,
+        schema_status=schema_status,
+        formula_policy=formula_policy,
+        live_ready=live_ready,
+        missing_items=tuple(dict.fromkeys(missing)),
+        path_ref=active_path_ref,
+        schema_mapping=active_schema_mapping,
+        workbook_record=workbook_record,
+        source_request_id=source_request_id,
+    )
+    template = _sheet_audit_request_template(
+        client_ref=client_ref,
+        workflow_ref=workflow_ref,
+        world_ref=world_ref,
+        path_ref=active_path_ref if live_ready else None,
+        schema_mapping=active_schema_mapping if live_ready else None,
+    )
+    return _build_payload(
+        generated_at=generated_at,
+        path_request=path_request,
+        schema_request=schema_request,
+        approved_path_ref=active_path_ref,
+        schema_mapping=active_schema_mapping,
+        formula_policy=formula_policy,
+        readback=readback,
+        workbook_record=workbook_record,
+        live_audit_ready=live_ready,
+        sheet_audit_request_template=template,
+    )
+
+
+def _build_payload(
+    *,
+    generated_at: str,
+    path_request: ClientInvoiceWorkbookPathApprovalRequest,
+    schema_request: ClientInvoiceSheetSchemaMappingRequest,
+    approved_path_ref: Mapping[str, Any] | None,
+    schema_mapping: Mapping[str, Any] | None,
+    formula_policy: FormulaPromotionPolicy,
+    readback: ClientInvoiceAuditHandoffReadback,
+    workbook_record: Mapping[str, Any] | None,
+    live_audit_ready: bool,
+    sheet_audit_request_template: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    payload: dict[str, Any] = {
+        "schema_version": SCHEMA_VERSION,
+        "read_model_id": READ_MODEL_ID,
+        "contract_status": CONTRACT_STATUS,
+        "generated_at": generated_at,
+        "accepted_intended_uses": ACCEPTED_INTENDED_USES,
+        "path_statuses": PATH_STATUSES,
+        "schema_statuses": SCHEMA_STATUSES,
+        "readback_statuses": READBACK_STATUSES,
+        "model_schemas": {
+            "ClientInvoiceWorkbookPathApprovalRequest": tuple(field.name for field in fields(ClientInvoiceWorkbookPathApprovalRequest)),
+            "ClientInvoiceSheetSchemaMappingRequest": tuple(field.name for field in fields(ClientInvoiceSheetSchemaMappingRequest)),
+            "ApprovedWorkbookPathRef": tuple(field.name for field in fields(ApprovedWorkbookPathRef)),
+            "ClientInvoiceSheetSchemaMapping": tuple(field.name for field in fields(ClientInvoiceSheetSchemaMapping)),
+            "FormulaPromotionPolicy": tuple(field.name for field in fields(FormulaPromotionPolicy)),
+            "ClientInvoiceAuditHandoffReadback": tuple(field.name for field in fields(ClientInvoiceAuditHandoffReadback)),
+        },
+        "path_approval_request": asdict(path_request),
+        "schema_mapping_request": asdict(schema_request),
+        "approved_workbook_path_ref": dict(approved_path_ref) if approved_path_ref else None,
+        "schema_mapping": dict(schema_mapping) if schema_mapping else None,
+        "formula_promotion_policy": asdict(formula_policy),
+        "audit_handoff_readback": asdict(readback),
+        "workbook_registry_record_ref": str(workbook_record.get("workbook_ref") or "") if workbook_record else "",
+        "workbook_registry_record_present": bool(workbook_record),
+        "live_audit_ready": live_audit_ready,
+        "sheet_audit_request_template": dict(sheet_audit_request_template) if sheet_audit_request_template else None,
+        "authority_boundary": dict(AUTHORITY_BOUNDARY),
+        "machine_proof": {
+            "workbook_registry_readmodel_read": True,
+            "approved_pc_path_or_ref_contract_present": bool(approved_path_ref),
+            "explicit_schema_mapping_contract_present": bool(schema_mapping),
+            "formula_promotion_policy_present": True,
+            "formula_policy_default_conservative": formula_policy.selected_policy == "operator_confirmation_required",
+            "live_audit_ready": live_audit_ready,
+            "workbook_body_read_performed": False,
+            "spreadsheet_cell_read_performed": False,
+            "schema_inference_performed": False,
+            "mac_path_translation_guessed": False,
+            "formula_evaluation_performed": False,
+            "pdf_generation_performed": False,
+            "email_send_performed": False,
+            "gmail_send_performed": False,
+            "coupa_access_or_submit_performed": False,
+            "browser_access_performed": False,
+            "workflow_execution_performed": False,
+            "agent_dispatch_performed": False,
+            "model_call_performed": False,
+            "credential_handling_performed": False,
+            "raw_body_ingestion_performed": False,
+            "external_action_performed": False,
+            "network_used": False,
+            "mission_control_swift_changed": False,
+            "mac_sync_import_run": False,
+            "git_push_pull_fetch_run": False,
+            "all_live_authority_false": all(value is False for value in AUTHORITY_BOUNDARY.values()),
+            "content_hash": "",
+        },
+    }
+    payload["machine_proof"]["content_hash"] = _content_hash(payload)
+    return payload
+
+
+def make_capital_hilton_path_only_fixture_request(*, created_at: str = DEFAULT_GENERATED_AT) -> dict[str, Any]:
+    return {
+        "request_id": "mission_control_chat_request_capital_hilton_path_handoff_fixture",
+        "workflow_ref": "capital_hilton_invoice_workflow",
+        "world_ref": "finance",
+        "client_ref": "capital_hilton",
+        "operator_goal": "Approve the PC-readable invoice workbook path.",
+        "operator_message": "Use this PC-readable workbook path for the Capital Hilton invoice.",
+        "sanitized_message_summary": "Approve Capital Hilton workbook path.",
+        "intended_use": PATH_APPROVAL_INTENDED_USE,
+        "approved_pc_readable_path": "/mnt/e/openclaw/fixtures/capital_hilton_invoice_workbook.xlsx",
+        "approved_path_ref": "approved_pc_path_ref:capital_hilton_invoice_workbook",
+        "operator_approval_marker": "operator_selected_pc_path",
+        "authority_boundary": dict(AUTHORITY_BOUNDARY),
+        "created_at": created_at,
+    }
+
+
+def build_payload(*, export_root: Path = DEFAULT_EXPORT_ROOT, generated_at: str = DEFAULT_GENERATED_AT) -> dict[str, Any]:
+    return process_handoff_request(
+        make_capital_hilton_path_only_fixture_request(created_at=generated_at),
+        export_root=export_root,
+        generated_at=generated_at,
+    )
+
+
+def format_operator_markdown(payload: Mapping[str, Any]) -> str:
+    readback = payload.get("audit_handoff_readback") if isinstance(payload.get("audit_handoff_readback"), Mapping) else {}
+    lines = [
+        "# Client Invoice Audit Handoff",
+        "",
+        "ELIOPERATOR: Path/schema handoff contract only. No workbook body, spreadsheet cells, schema inference, formula evaluation, Mac path translation, browser, Coupa, PDF, email, network, credentials, or external systems were touched.",
+        "",
+        f"- Status: `{readback.get('status', 'UNKNOWN')}`",
+        f"- Path status: `{readback.get('path_approval_status', 'UNKNOWN')}`",
+        f"- Schema status: `{readback.get('schema_mapping_status', 'UNKNOWN')}`",
+        f"- Formula policy: `{readback.get('formula_policy_status', 'UNKNOWN')}`",
+        f"- Live audit ready: `{payload.get('live_audit_ready', False)}`",
+        "",
+        f"## {readback.get('operator_headline', 'Audit handoff')}",
+        "",
+        str(readback.get("operator_message") or "No audit handoff request was processed."),
+        "",
+        "## Next",
+        "",
+        str(readback.get("next_action") or "Wait for an approved path/schema handoff."),
+        "",
+    ]
+    return "\n".join(lines)
+
+
+def write_exports(payload: dict[str, Any], export_root: Path = DEFAULT_EXPORT_ROOT) -> tuple[Path, Path]:
+    export_root.mkdir(parents=True, exist_ok=True)
+    json_path = export_root / JSON_EXPORT_NAME
+    operator_path = export_root / OPERATOR_EXPORT_NAME
+    json_path.write_text(stable_json(payload), encoding="utf-8")
+    operator_path.write_text(format_operator_markdown(payload), encoding="utf-8")
+    return json_path, operator_path
+
+
+def build_summary(payload: Mapping[str, Any], paths: tuple[Path, Path]) -> dict[str, Any]:
+    readback = payload.get("audit_handoff_readback") if isinstance(payload.get("audit_handoff_readback"), Mapping) else {}
+    proof = payload.get("machine_proof") if isinstance(payload.get("machine_proof"), Mapping) else {}
+    return {
+        "read_model_id": payload.get("read_model_id"),
+        "contract_status": payload.get("contract_status"),
+        "json_path": paths[0].as_posix(),
+        "operator_path": paths[1].as_posix(),
+        "status": readback.get("status"),
+        "operator_headline": readback.get("operator_headline"),
+        "next_action": readback.get("next_action"),
+        "path_approval_status": readback.get("path_approval_status"),
+        "schema_mapping_status": readback.get("schema_mapping_status"),
+        "formula_policy_status": readback.get("formula_policy_status"),
+        "live_audit_ready": payload.get("live_audit_ready"),
+        "all_live_authority_false": proof.get("all_live_authority_false"),
+        "content_hash": proof.get("content_hash"),
+    }
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="Export the client invoice audit path/schema handoff read-model.")
+    parser.add_argument("--format", choices=("json", "summary"), default="json")
+    parser.add_argument("--export-root", default=str(DEFAULT_EXPORT_ROOT))
+    parser.add_argument("--generated-at", default=DEFAULT_GENERATED_AT)
+    args = parser.parse_args(argv)
+
+    export_root = Path(args.export_root)
+    payload = build_payload(export_root=export_root, generated_at=args.generated_at)
+    paths = write_exports(payload, export_root)
+    output: Mapping[str, Any] = payload if args.format == "json" else build_summary(payload, paths)
+    sys.stdout.write(stable_json(output))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -24,6 +24,7 @@ from typing import Any, Callable, Mapping
 import chat_readback_card_mirror
 import chat_workflow_visual_event_package_compiler
 import capital_hilton_invoice_operator_readback
+import client_invoice_audit_handoff
 import client_invoice_sheet_audit
 import client_invoice_workbook_registry
 import conversational_workflow_router_intake
@@ -1920,6 +1921,133 @@ def _sheet_audit_classification(
     )
 
 
+def _audit_handoff_classification(
+    classification: RequestClassification,
+    *,
+    request_path: Path,
+) -> RequestClassification:
+    return RequestClassification(
+        classification_id=f"request_classification_{_short_hash(request_path.name, 'client_invoice_audit_handoff')}",
+        source_request_filename=classification.source_request_filename,
+        request_family=classification.request_family,
+        selected_rail="client_invoice_audit_handoff",
+        classification_reason=(
+            "Request explicitly set a client invoice audit handoff intended_use, selecting the path/schema handoff rail."
+        ),
+        future_supported=False,
+        next_safe_move="Record approved path/schema handoff contracts only; do not read workbook cells or run the audit.",
+    )
+
+
+def _process_client_invoice_audit_handoff_request(
+    request_path: Path,
+    raw_request: Mapping[str, Any],
+    *,
+    export_root: Path,
+    generated_at: str | None,
+    classification: RequestClassification,
+) -> OpenClawResponseForMac | None:
+    if not client_invoice_audit_handoff.is_audit_handoff_request(raw_request):
+        return None
+
+    handoff_payload = client_invoice_audit_handoff.process_handoff_request(
+        raw_request,
+        export_root=export_root,
+        generated_at=generated_at,
+    )
+    handoff_json, handoff_operator = client_invoice_audit_handoff.write_exports(handoff_payload, export_root)
+    readback = handoff_payload["audit_handoff_readback"]
+    live_ready = bool(handoff_payload["live_audit_ready"])
+    handoff_classification = _audit_handoff_classification(classification, request_path=request_path)
+    headline = str(readback["operator_headline"])
+    message = str(readback["operator_message"])
+    next_action = str(readback["next_action"])
+    missing_items = tuple(str(item) for item in readback.get("missing_items") or ())
+    primary_blocker = "None" if live_ready else (missing_items[0] if missing_items else str(readback["status"]))
+    detail = {
+        "client_invoice_audit_handoff": {
+            "handoff_readback_ref": handoff_json.as_posix(),
+            "operator_readback_ref": handoff_operator.as_posix(),
+            "path_approval_request": handoff_payload["path_approval_request"],
+            "schema_mapping_request": handoff_payload["schema_mapping_request"],
+            "approved_workbook_path_ref": handoff_payload.get("approved_workbook_path_ref") or {},
+            "schema_mapping": handoff_payload.get("schema_mapping") or {},
+            "formula_promotion_policy": handoff_payload["formula_promotion_policy"],
+            "audit_handoff_readback": readback,
+            "live_audit_ready": live_ready,
+            "workbook_body_read_performed": False,
+            "spreadsheet_cell_read_performed": False,
+            "schema_inference_performed": False,
+            "mac_path_translation_guessed": False,
+            "formula_evaluation_performed": False,
+            "external_action_performed": False,
+        },
+        "layered_response_fields": {
+            "response_kind": "CLIENT_INVOICE_AUDIT_HANDOFF",
+            "audience_mode": "ELIWINSHIP",
+            "display_mode": "COMPACT_CHAT",
+            "headline": headline,
+            "one_line_answer": message,
+            "eliwinship": message,
+            "primary_status": str(readback["status"]).replace("_", " ").title(),
+            "primary_blocker": primary_blocker,
+            "next_action": next_action,
+            "missing_items_short": missing_items,
+            "detail_summary": (
+                f"Path: {readback.get('path_approval_status')}. "
+                f"Schema: {readback.get('schema_mapping_status')}. "
+                f"Ready: {live_ready}."
+            ),
+            "proof_refs": (f"generated/read_models/{client_invoice_audit_handoff.JSON_EXPORT_NAME}",),
+            "mac_render_hint": "COMPACT_WITH_DISCLOSURE",
+        },
+        "request_classification": asdict(handoff_classification),
+        "external_actions_locked": True,
+        "model_or_worker_response_adapter_called": False,
+    }
+    return OpenClawResponseForMac(
+        source_request_id=str(raw_request.get("request_id") or readback["hidden_refs"]["source_request_id"]),
+        source_request_filename=request_path.name,
+        workflow_ref=str(raw_request.get("workflow_ref") or "unknown"),
+        request_type=classification.request_family,
+        internal_status="RESPONSE_READY" if live_ready else "BLOCKED_WITH_REASON",
+        operator_headline=headline,
+        operator_message=message,
+        what_happened=(
+            "PC selected the client invoice audit handoff rail.",
+            "PC recorded only approved path/schema contract data.",
+            "PC did not open a workbook, read spreadsheet cells, infer schema, translate a Mac path, evaluate formulas, or run the audit.",
+        ),
+        why_it_happened=(
+            "The handoff now has a workbook record, approved PC-readable path/ref, and explicit sheet mapping."
+            if live_ready
+            else "The handoff is still missing at least one required gate before the sheet audit can run."
+        ),
+        how_to_fix="No fix is needed. Run the whitelisted sheet audit when ready." if live_ready else next_action,
+        visible_cards=(
+            {
+                "title": headline,
+                "bullets": (
+                    f"Path: {readback.get('path_approval_status')}",
+                    f"Schema: {readback.get('schema_mapping_status')}",
+                    f"Formula policy: {readback.get('formula_policy_status')}",
+                    next_action,
+                ),
+                "status_tone": "ready" if live_ready else "blocked",
+            },
+        ),
+        cards_available=True,
+        card_mirror_refs=(),
+        file_readback_refs=(handoff_json.as_posix(),),
+        worker_route_refs=(),
+        context_package_refs=(),
+        blocked_reason=None if live_ready else primary_blocker,
+        detail_disclosure=detail,
+        readback_files=(handoff_json.as_posix(), handoff_operator.as_posix()),
+        next_safe_move=next_action,
+    )
+
+
 def _process_client_invoice_sheet_audit_request(
     request_path: Path,
     raw_request: Mapping[str, Any],
@@ -2160,6 +2288,16 @@ def _process_chat_request(
     classification: RequestClassification,
     read_model_reader: ReadModelReader | None = None,
 ) -> OpenClawResponseForMac:
+    audit_handoff = _process_client_invoice_audit_handoff_request(
+        request_path,
+        raw_request,
+        export_root=export_root,
+        generated_at=generated_at,
+        classification=classification,
+    )
+    if audit_handoff is not None:
+        return audit_handoff
+
     sheet_audit = _process_client_invoice_sheet_audit_request(
         request_path,
         raw_request,
@@ -2864,6 +3002,7 @@ def _machine_proof(
     detail = response.detail_disclosure if isinstance(response.detail_disclosure, Mapping) else {}
     interpreter_detail = detail.get("deterministic_intent_interpreter") if isinstance(detail.get("deterministic_intent_interpreter"), Mapping) else {}
     workbook_detail = detail.get("client_invoice_workbook_registry") if isinstance(detail.get("client_invoice_workbook_registry"), Mapping) else {}
+    audit_handoff_detail = detail.get("client_invoice_audit_handoff") if isinstance(detail.get("client_invoice_audit_handoff"), Mapping) else {}
     sheet_audit_detail = detail.get("client_invoice_sheet_audit") if isinstance(detail.get("client_invoice_sheet_audit"), Mapping) else {}
     targets = status.responder_targets
     future_lm_targets = [
@@ -2914,6 +3053,8 @@ def _machine_proof(
         "capability_query_used": bool(interpreter_detail.get("capability_query_used")),
         "validator_used": bool(interpreter_detail.get("validator_used")),
         "client_invoice_workbook_registry_used": bool(workbook_detail),
+        "client_invoice_audit_handoff_used": bool(audit_handoff_detail),
+        "client_invoice_audit_handoff_live_ready": bool(audit_handoff_detail.get("live_audit_ready")),
         "client_invoice_sheet_audit_used": bool(sheet_audit_detail),
         "live_lm_interpreter_called": False,
         "workflow_execution_performed": False,
@@ -2924,6 +3065,9 @@ def _machine_proof(
         "workbook_body_read_performed": False,
         "spreadsheet_parse_performed": False,
         "spreadsheet_cell_read_performed": False,
+        "audit_handoff_schema_inference_performed": False,
+        "audit_handoff_mac_path_translation_guessed": False,
+        "audit_handoff_formula_evaluation_performed": False,
         "whitelisted_sheet_cells_read_performed": bool(sheet_audit_detail.get("whitelisted_cells_read")),
         "sheet_audit_schema_explicit": bool(sheet_audit_detail.get("schema_explicit")),
         "sheet_audit_pc_path_readable": bool(sheet_audit_detail.get("path_pc_readable")),
