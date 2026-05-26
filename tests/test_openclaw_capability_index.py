@@ -277,3 +277,114 @@ def test_exported_json_parses(tmp_path):
     assert json.loads(json_path.read_text())["read_model_id"] == "openclaw_capability_index"
     assert operator_path.read_text().startswith("# OpenClaw Capability Index")
     assert payload["readback"]["status"] == "CAPABILITY_INDEX_READY"
+
+
+def test_query_api_loads_generated_index_from_path(tmp_path):
+    json_path, _operator_path, payload = index.write_exports(tmp_path)
+    query = index.CapabilityIndexQuery.load_index_from_generated_readmodel(json_path)
+
+    assert query.payload["read_model_id"] == "openclaw_capability_index"
+    assert len(query.payload["generic_capabilities"]) == len(payload["generic_capabilities"])
+
+
+def test_query_find_by_intent_type_returns_generic_missing_input_capabilities():
+    query = index.CapabilityIndexQuery(_payload())
+    records = query.find_by_intent_type("CAPTURE_MISSING_INPUT")
+    ids = {record["capability_id"] for record in records}
+
+    assert {"file_metadata_intake", "source_ref_management"}.issubset(ids)
+    assert "capital_hilton_invoice_operator_readback" not in ids
+    assert not any("capital_hilton" in json.dumps(record).lower() for record in records)
+
+
+def test_query_find_by_task_type_supports_make_video_without_provider_claim():
+    query = index.CapabilityIndexQuery(_payload())
+    records = query.find_by_task_type("make video")
+    ids = {record["capability_id"] for record in records}
+    gaps = {gap["missing_capability"] for gap in query.payload["capability_gaps"]}
+
+    assert "visual_event_compilation" in ids
+    assert not any("provider" in capability_id or "generation_provider" in capability_id for capability_id in ids)
+    assert "live visual/video provider generation" in gaps
+
+
+def test_query_get_workflow_bindings_respects_valid_tenant_scope():
+    query = index.CapabilityIndexQuery(_payload())
+    bindings = query.get_workflow_bindings(
+        "tenant_scope:fixture_business_ops",
+        "capital_hilton_invoice_workflow",
+    )
+
+    assert bindings
+    assert all(binding["tenant_scope"] == "tenant_scope:fixture_business_ops" for binding in bindings)
+    assert all(binding["scope_type"] == "WORKFLOW_SCOPED" for binding in bindings)
+    assert {binding["capability_ref"] for binding in bindings}.issuperset(
+        {"status_readback", "portal_transaction_package", "outbound_message_draft"}
+    )
+
+
+def test_query_get_workflow_bindings_invalid_tenant_leaks_no_fixture_records():
+    query = index.CapabilityIndexQuery(_payload())
+
+    assert query.get_workflow_bindings("tenant_scope:not_valid", "capital_hilton_invoice_workflow") == []
+
+
+def test_query_find_missing_requirements_uses_required_inputs():
+    query = index.CapabilityIndexQuery(_payload())
+    missing = query.find_missing_requirements("file_metadata_intake", provided_inputs={})
+
+    assert missing
+    assert missing[0]["capability_ref"] == "file_metadata_intake"
+    assert missing[0]["required"] is True
+
+
+def test_query_authority_profile_blocks_send_submit_authority():
+    query = index.CapabilityIndexQuery(_payload())
+    result = query.validate_authority_profile(
+        "outbound_message_send_gate",
+        {"live_outbound_message_send_allowed": True, "live_external_action_allowed": True},
+    )
+
+    assert result["allowed"] is False
+    assert "false live authority" in result["reason"]
+    assert "exact approval" in result["reason"]
+    assert not any(result["authority_granted"].values())
+
+
+def test_query_rejects_fixture_proposed_and_future_gated_records_as_usable():
+    payload = _payload()
+    query = index.CapabilityIndexQuery(payload)
+    future_capability = next(
+        capability for capability in payload["generic_capabilities"] if capability["capability_id"] == "record_keeping_write"
+    )
+    records = [
+        payload["fixtures"][0],
+        payload["proposal_candidates"][0],
+        future_capability,
+    ]
+
+    usable, rejected = query.reject_unusable_capabilities(records)
+
+    assert usable == []
+    rejected_ids = {record["record_id"] for record in rejected}
+    assert {
+        payload["fixtures"][0]["fixture_id"],
+        payload["proposal_candidates"][0]["proposal_id"],
+        "record_keeping_write",
+    } == rejected_ids
+    assert any("PROPOSED_CANDIDATE_USED_AS_LIVE_CAPABILITY" in record["rejection_reasons"] for record in rejected)
+
+
+def test_query_methods_do_not_mutate_index_payload():
+    payload = _payload()
+    before = json.dumps(payload, sort_keys=True)
+    query = index.CapabilityIndexQuery(payload)
+
+    query.find_by_intent_type("CAPTURE_MISSING_INPUT")
+    query.find_by_task_type("make video")
+    query.get_workflow_bindings("tenant_scope:fixture_business_ops", "capital_hilton_invoice_workflow")
+    query.find_missing_requirements("file_metadata_intake", {})
+    query.validate_authority_profile("outbound_message_send_gate", {"live_outbound_message_send_allowed": True})
+    query.reject_unusable_capabilities(payload["proposal_candidates"])
+
+    assert json.dumps(payload, sort_keys=True) == before

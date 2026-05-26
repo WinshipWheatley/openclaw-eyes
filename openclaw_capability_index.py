@@ -18,7 +18,7 @@ import json
 import sys
 from dataclasses import asdict, dataclass, fields
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
 
 DEFAULT_EXPORT_ROOT = Path("generated/read_models")
@@ -2000,6 +2000,261 @@ def filter_index_for_tenant(payload: dict[str, Any], tenant_scope: str) -> dict[
         "workflow_bindings": bindings,
         "fixtures": fixtures,
     }
+
+
+def _clone_json(value: Any) -> Any:
+    return json.loads(json.dumps(value, sort_keys=True))
+
+
+def _normalized_text(value: object) -> str:
+    return str(value or "").strip().lower().replace("-", "_").replace(" ", "_")
+
+
+def _record_identifier(record: Mapping[str, Any]) -> str:
+    for key in ("capability_id", "proposal_id", "fixture_id", "binding_id", "gap_id"):
+        value = record.get(key)
+        if value:
+            return str(value)
+    return "unknown"
+
+
+def _workflow_aliases(workflow_ref: str) -> set[str]:
+    normalized = _normalized_text(workflow_ref)
+    aliases = {str(workflow_ref), normalized}
+    if normalized in {
+        "capital_hilton_invoice_workflow",
+        "workflow:fixture:capital_hilton_invoice",
+        "workflow_fixture_capital_hilton_invoice",
+    }:
+        aliases.update(
+            {
+                "capital_hilton_invoice_workflow",
+                "workflow:fixture:capital_hilton_invoice",
+            }
+        )
+    if normalized in {"x32_source_refs", "workflow:fixture:x32_source_refs", "workflow_fixture_x32_source_refs"}:
+        aliases.update({"workflow:fixture:x32_source_refs", "x32_source_refs"})
+    if normalized in {
+        "struna_project_capsule",
+        "workflow:fixture:struna_project_capsule",
+        "workflow_fixture_struna_project_capsule",
+    }:
+        aliases.update({"workflow:fixture:struna_project_capsule", "struna_project_capsule"})
+    return aliases
+
+
+class CapabilityIndexQuery:
+    """Read-only deterministic query helper for the portable capability index."""
+
+    def __init__(self, payload: Mapping[str, Any]) -> None:
+        self.payload: dict[str, Any] = _clone_json(dict(payload))
+
+    @classmethod
+    def load_index_from_generated_readmodel(cls, path: str | Path | None = None) -> "CapabilityIndexQuery":
+        read_model_path = Path(path) if path is not None else DEFAULT_EXPORT_ROOT / JSON_EXPORT_NAME
+        if read_model_path.exists():
+            return cls(json.loads(read_model_path.read_text(encoding="utf-8")))
+        return cls(build_payload())
+
+    def find_by_intent_type(self, intent_type: str, tenant_scope: str | None = None) -> list[dict[str, Any]]:
+        """Return safe generic capabilities supporting an intent type."""
+
+        normalized_intent = str(intent_type or "").strip().upper()
+        records = []
+        for capability in self._visible_generic_capabilities(tenant_scope):
+            intents = {str(value).upper() for value in capability.get("intent_types_supported", [])}
+            if normalized_intent in intents:
+                records.append(_clone_json(capability))
+        return records
+
+    def find_by_task_type(self, task_type: str, tenant_scope: str | None = None) -> list[dict[str, Any]]:
+        """Return safe generic capabilities matching a task type or known task phrase."""
+
+        normalized_task = _normalized_text(task_type)
+        intent_hints = {
+            "capture_missing_input": ("CAPTURE_MISSING_INPUT",),
+            "capture_missing_required_input": ("CAPTURE_MISSING_INPUT",),
+            "missing_input": ("CAPTURE_MISSING_INPUT",),
+            "source_ref": ("ATTACH_SOURCE_REF", "CAPTURE_MISSING_INPUT"),
+            "make_video": ("SHOW_VISUAL_WORKSPACE",),
+            "video_generation": ("SHOW_VISUAL_WORKSPACE",),
+            "visual_feedback": ("SHOW_VISUAL_WORKSPACE",),
+            "send_or_submit_request": ("REQUEST_APPROVAL",),
+            "send_submit": ("REQUEST_APPROVAL",),
+        }
+        matched: dict[str, dict[str, Any]] = {}
+        for intent in intent_hints.get(normalized_task, ()):
+            for record in self.find_by_intent_type(intent, tenant_scope=tenant_scope):
+                matched[record["capability_id"]] = record
+
+        for capability in self._visible_generic_capabilities(tenant_scope):
+            haystack = " ".join(
+                (
+                    _normalized_text(capability.get("taxonomy_type")),
+                    " ".join(_normalized_text(item) for item in capability.get("applicable_task_types", [])),
+                    " ".join(_normalized_text(item) for item in capability.get("search_keywords", [])),
+                    _normalized_text(capability.get("capability_name")),
+                    _normalized_text(capability.get("description")),
+                )
+            )
+            if normalized_task and normalized_task in haystack:
+                matched[str(capability["capability_id"])] = _clone_json(capability)
+
+        return list(matched.values())
+
+    def get_workflow_bindings(self, tenant_scope: str, workflow_ref: str) -> list[dict[str, Any]]:
+        """Return workflow-scoped bindings only when tenant scope and workflow match."""
+
+        if tenant_scope not in SAFE_TENANT_SCOPES:
+            return []
+        aliases = _workflow_aliases(workflow_ref)
+        records: list[dict[str, Any]] = []
+        for binding in self.payload.get("workflow_bindings", []):
+            if binding.get("tenant_scope") != tenant_scope:
+                continue
+            if binding.get("workflow_ref") not in aliases:
+                continue
+            record = _clone_json(binding)
+            record["scope_type"] = "WORKFLOW_SCOPED"
+            record["usable_as_generic_capability"] = False
+            records.append(record)
+        return records
+
+    def find_missing_requirements(
+        self,
+        capability_id: str,
+        provided_inputs: dict[str, Any] | None = None,
+    ) -> list[dict[str, Any]]:
+        """Return required capability inputs that are absent from provided inputs."""
+
+        capability = self._capability_by_id(capability_id)
+        if capability is None:
+            return []
+        provided = {_normalized_text(key) for key in (provided_inputs or {})}
+        provided_values = {_normalized_text(value) for value in (provided_inputs or {}).values()}
+        requirements_by_id = {
+            requirement.get("requirement_id"): requirement
+            for requirement in self.payload.get("input_requirements", [])
+        }
+        missing: list[dict[str, Any]] = []
+        for requirement_id in capability.get("input_requirements", []):
+            requirement = requirements_by_id.get(requirement_id)
+            if not requirement or not requirement.get("required", False):
+                continue
+            accepted_keys = {
+                _normalized_text(requirement.get("requirement_id")),
+                _normalized_text(requirement.get("input_name")),
+                _normalized_text(requirement.get("input_type")),
+            }
+            if accepted_keys & provided or accepted_keys & provided_values:
+                continue
+            missing.append(_clone_json(requirement))
+        return missing
+
+    def validate_authority_profile(self, capability_id: str, requested_authority: dict[str, Any]) -> dict[str, Any]:
+        """Validate requested authority against the capability profile, failing closed."""
+
+        profile = self._authority_profile_for(capability_id)
+        requested = {str(key): bool(value) for key, value in (requested_authority or {}).items()}
+        authority_granted = {key: False for key in requested}
+        reasons: list[str] = []
+        if profile is None:
+            reasons.append("unknown authority profile fails closed")
+        else:
+            for key, requested_value in requested.items():
+                if not requested_value:
+                    continue
+                if key not in profile:
+                    reasons.append(f"unknown authority key {key} fails closed")
+                    continue
+                if profile.get(key) is not True:
+                    reason = f"requested {key} but profile has false live authority"
+                    if "send" in key or "submit" in key or "external_action" in key:
+                        reason += "; exact approval and proof receipt required"
+                    reasons.append(reason)
+
+        capability = self._capability_by_id(capability_id)
+        if capability and capability.get("capability_status") in {"FUTURE_GATED", "BLOCKED_UNSAFE", "UNKNOWN_FAIL_CLOSED"}:
+            reasons.append(f"capability status {capability.get('capability_status')} is not live-action usable")
+        if capability_id.startswith("proposal:"):
+            reasons.append("proposed candidates cannot grant authority")
+
+        allowed = not reasons
+        return {
+            "capability_id": capability_id,
+            "authority_profile_id": str(profile.get("authority_profile_id")) if profile else "",
+            "allowed": allowed,
+            "reason": "; ".join(reasons) if reasons else "No live authority requested; safe read/query only.",
+            "requested_authority": _clone_json(requested),
+            "authority_granted": authority_granted,
+            "live_authority_allowed": bool(profile and profile.get("live_authority_allowed") is True),
+            "missing_exact_approval": any(
+                bool(value) and ("send" in key or "submit" in key or "external_action" in key)
+                for key, value in requested.items()
+            ),
+        }
+
+    def reject_unusable_capabilities(
+        self,
+        records: list[Mapping[str, Any]],
+    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+        """Split records into query-usable records and rejected/unusable records."""
+
+        usable: list[dict[str, Any]] = []
+        rejected: list[dict[str, Any]] = []
+        for record in records:
+            clone = _clone_json(dict(record))
+            reasons = self._rejection_reasons(clone)
+            if reasons:
+                rejected.append(
+                    {
+                        "record_id": _record_identifier(clone),
+                        "record": clone,
+                        "rejection_reasons": reasons,
+                    }
+                )
+            else:
+                usable.append(clone)
+        return usable, rejected
+
+    def _visible_generic_capabilities(self, tenant_scope: str | None) -> list[dict[str, Any]]:
+        if tenant_scope is not None and tenant_scope not in SAFE_TENANT_SCOPES:
+            scoped = filter_index_for_tenant(self.payload, tenant_scope)
+            return _clone_json(scoped["generic_capabilities"])
+        return [
+            _clone_json(capability)
+            for capability in self.payload.get("generic_capabilities", [])
+            if capability.get("portability_scope") in {"USER_AGNOSTIC", "TENANT_SCOPED"}
+        ]
+
+    def _capability_by_id(self, capability_id: str) -> dict[str, Any] | None:
+        for capability in self.payload.get("generic_capabilities", []):
+            if capability.get("capability_id") == capability_id:
+                return _clone_json(capability)
+        return None
+
+    def _authority_profile_for(self, capability_id: str) -> dict[str, Any] | None:
+        for profile in self.payload.get("authority_profiles", []):
+            if profile.get("capability_ref") == capability_id:
+                return _clone_json(profile)
+        return None
+
+    def _rejection_reasons(self, record: Mapping[str, Any]) -> list[str]:
+        reasons: list[str] = []
+        if record.get("proposal_id") or record.get("candidate_status"):
+            reasons.append("PROPOSED_CANDIDATE_USED_AS_LIVE_CAPABILITY")
+        if record.get("fixture_id"):
+            reasons.append("FIXTURE_ONLY_RECORD_NOT_USABLE_AS_GENERIC_CAPABILITY")
+        if record.get("binding_id") and record.get("scope_type") != "WORKFLOW_SCOPED":
+            reasons.append("WORKFLOW_BINDING_REQUIRES_MATCHING_SCOPE")
+
+        lifecycle_status = str(record.get("lifecycle_status") or "")
+        capability_status = str(record.get("capability_status") or "")
+        if lifecycle_status in {"PROPOSED_CANDIDATE", "BUILT_UNVALIDATED", "FUTURE_GATED", "BLOCKED_UNSAFE", "RETIRED"}:
+            reasons.append(f"LIFECYCLE_{lifecycle_status}_UNUSABLE")
+        if capability_status in {"FIXTURE_ONLY", "FUTURE_GATED", "BLOCKED_UNSAFE", "UNKNOWN_FAIL_CLOSED"}:
+            reasons.append(f"STATUS_{capability_status}_UNUSABLE")
+        return reasons
 
 
 def build_readback(

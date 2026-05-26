@@ -1,0 +1,211 @@
+{
+  "active_session_state": {
+    "active_folder_ref": "folder_ref:capital_hilton",
+    "active_thread_ref": "thread_ref:capital_hilton_invoice_status_catchup_20260526_004538_85076826",
+    "active_workflow_ref": "capital_hilton_invoice_workflow",
+    "active_world_ref": "world:fixture:business_ops",
+    "ambiguity_status": false,
+    "authority_boundary": {
+      "credential_handling_allowed": false,
+      "git_push_pull_fetch_allowed": false,
+      "live_agent_dispatch_allowed": false,
+      "live_approval_execution_allowed": false,
+      "live_browser_allowed": false,
+      "live_candidate_promotion_allowed": false,
+      "live_coupa_access_allowed": false,
+      "live_email_send_allowed": false,
+      "live_external_action_allowed": false,
+      "live_lm_interpreter_allowed": false,
+      "live_model_call_allowed": false,
+      "live_portal_submit_allowed": false,
+      "live_send_submit_allowed": false,
+      "live_speech_synthesis_allowed": false,
+      "live_visual_generation_allowed": false,
+      "live_worker_dispatch_allowed": false,
+      "live_workflow_run_allowed": false,
+      "mac_sync_import_allowed": false,
+      "mission_control_swift_change_allowed": false,
+      "network_allowed": false,
+      "raw_body_ingestion_allowed": false
+    },
+    "client_scope": "client_scope:fixture_capital_hilton",
+    "current_blockers": [],
+    "latest_headline": "Capital Hilton invoice is blocked",
+    "latest_intent_type": "CAPTURE_MISSING_INPUT",
+    "latest_next_action": "Next: Confirm the Coupa PO/reference.",
+    "latest_primary_blocker": "Missing confirmed Coupa PO/reference",
+    "latest_response_author": "CHIEF",
+    "latest_response_ref": "generated/read_models/openclaw_response_for_mac.json",
+    "latest_source_request_id": "capital_hilton_invoice_status_catchup_20260526_004538_85076826",
+    "latest_terminal": true,
+    "missing_items": [
+      "Confirmed Coupa PO/reference",
+      "Guardian and operator approval receipts",
+      "Email send receipt and attachment proof"
+    ],
+    "next_safe_move": "Next: Confirm the Coupa PO/reference.",
+    "safe_readmodel_refs": [
+      "generated/read_models/openclaw_response_for_mac.json",
+      "generated/read_models/openclaw_request_processor_status.json",
+      "generated/read_models/openclaw_request_response_service_status.json"
+    ],
+    "session_state_id": "session_state:8208b2dc3f4c1c51",
+    "source": "safe_generated_response_readmodels",
+    "stale_status": "FRESH",
+    "tenant_scope": "tenant_scope:fixture_business_ops"
+  },
+  "authority_scout": {
+    "behavior_changed": false,
+    "duplicated_authority_boundary_sources": [
+      "openclaw_request_processor.AUTHORITY_BOUNDARY",
+      "openclaw_request_response_service.AUTHORITY_BOUNDARY",
+      "openclaw_capability_index.AUTHORITY_BOUNDARY",
+      "machine_intent_candidate_validator.AUTHORITY_BOUNDARY",
+      "scoped_context_package_compiler_contract.AUTHORITY_BOUNDARY",
+      "agent_roster_model_backend_policy.AUTHORITY_BOUNDARY",
+      "session_state_resolver.AUTHORITY_BOUNDARY"
+    ],
+    "duplicated_authority_risk": true,
+    "recommendation": "Add a canonical AuthorityBoundary helper in a later lane; do not centralize behavior here."
+  },
+  "blocker_types": [
+    "NO_LATEST_RESPONSE",
+    "HEARTBEAT_ONLY_NO_TERMINAL",
+    "AMBIGUOUS_WORKFLOW_CONTEXT",
+    "STALE_RESPONSE",
+    "MISSING_TENANT_SCOPE",
+    "RAW_BODY_ACCESS_ATTEMPTED",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "contract_status": "DETERMINISTIC_SESSION_STATE_RESOLVER_NO_EXECUTION",
+  "generated_at": "2026-05-26T00:00:00+00:00",
+  "machine_proof": {
+    "agent_dispatch_performed": false,
+    "all_live_authority_false": true,
+    "approval_execution_performed": false,
+    "approval_inferred_from_next_action": false,
+    "candidate_promotion_performed": false,
+    "content_hash": "sha256:4819cc654b798c6bc2ead8cd7d3d5bb7a869933ef5ecec32da36c2087a7cb0a4",
+    "credential_handling_performed": false,
+    "external_action_performed": false,
+    "git_push_pull_fetch_run": false,
+    "heartbeat_treated_as_non_terminal": true,
+    "lm_interpreter_called": false,
+    "mac_sync_import_performed": false,
+    "mission_control_swift_changed": false,
+    "model_call_performed": false,
+    "raw_body_access_attempted": false,
+    "raw_body_ingestion_performed": false,
+    "safe_readmodel_only": true,
+    "send_submit_performed": false,
+    "terminal_response_preferred_over_heartbeat": true,
+    "worker_dispatch_performed": false,
+    "workflow_run_performed": false
+  },
+  "model_schemas": {
+    "ActiveSessionState": [
+      "session_state_id",
+      "source",
+      "tenant_scope",
+      "client_scope",
+      "active_world_ref",
+      "active_folder_ref",
+      "active_thread_ref",
+      "active_workflow_ref",
+      "latest_source_request_id",
+      "latest_response_ref",
+      "latest_terminal",
+      "latest_headline",
+      "latest_next_action",
+      "latest_primary_blocker",
+      "latest_response_author",
+      "latest_intent_type",
+      "current_blockers",
+      "missing_items",
+      "safe_readmodel_refs",
+      "ambiguity_status",
+      "stale_status",
+      "authority_boundary",
+      "next_safe_move"
+    ],
+    "SessionStateBlocker": [
+      "blocker_id",
+      "blocker_type",
+      "condition",
+      "severity",
+      "elioperator_warning",
+      "fail_closed",
+      "next_safe_move"
+    ],
+    "SessionStateResolver": [
+      "resolver_id",
+      "source_policy",
+      "freshness_policy",
+      "terminal_response_policy",
+      "heartbeat_policy",
+      "tenant_scope_policy",
+      "ambiguity_policy",
+      "authority_boundary",
+      "next_safe_move"
+    ]
+  },
+  "read_model_id": "session_state_resolver",
+  "resolver": {
+    "ambiguity_policy": [
+      "No active workflow means ambiguity_status true.",
+      "Multiple equal-freshness terminal workflow contexts means ambiguity_status true.",
+      "Ambiguity asks for clarification rather than guessing."
+    ],
+    "authority_boundary": {
+      "credential_handling_allowed": false,
+      "git_push_pull_fetch_allowed": false,
+      "live_agent_dispatch_allowed": false,
+      "live_approval_execution_allowed": false,
+      "live_browser_allowed": false,
+      "live_candidate_promotion_allowed": false,
+      "live_coupa_access_allowed": false,
+      "live_email_send_allowed": false,
+      "live_external_action_allowed": false,
+      "live_lm_interpreter_allowed": false,
+      "live_model_call_allowed": false,
+      "live_portal_submit_allowed": false,
+      "live_send_submit_allowed": false,
+      "live_speech_synthesis_allowed": false,
+      "live_visual_generation_allowed": false,
+      "live_worker_dispatch_allowed": false,
+      "live_workflow_run_allowed": false,
+      "mac_sync_import_allowed": false,
+      "mission_control_swift_change_allowed": false,
+      "network_allowed": false,
+      "raw_body_ingestion_allowed": false
+    },
+    "freshness_policy": [
+      "Use created_at or generated_at when present.",
+      "Mark stale responses fail-closed when they exceed the freshness window.",
+      "Missing timestamps are UNKNOWN rather than proof of freshness."
+    ],
+    "heartbeat_policy": [
+      "Heartbeat files may indicate waiting or routing.",
+      "A non-terminal heartbeat is never final truth.",
+      "Heartbeat-only state waits for terminal response or bounded retry."
+    ],
+    "next_safe_move": "Resolve session state from safe read-models before deterministic intent interpretation.",
+    "resolver_id": "session_state_resolver:v0",
+    "source_policy": [
+      "Read only generated/read-model JSON response and status files.",
+      "Do not read raw request bodies, source file bodies, credentials, or protected files.",
+      "Do not follow response-service paths outside the supplied safe read-model roots."
+    ],
+    "tenant_scope_policy": [
+      "Use explicit tenant/client scope when present.",
+      "Capital Hilton fixture refs map only to fixture_business_ops scope.",
+      "Unknown tenant scope fails closed before workflow binding use."
+    ],
+    "terminal_response_policy": [
+      "Terminal responses are stronger than heartbeat files.",
+      "Prefer the latest terminal response when one exists.",
+      "Never infer approval or completion from next_action wording."
+    ]
+  },
+  "schema_version": "session_state_resolver_v0"
+}
