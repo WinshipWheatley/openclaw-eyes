@@ -219,7 +219,10 @@ def test_legacy_ontology_findings_cover_present_codex_and_gemini_patterns():
 
     assert findings["legacy:request_processor:codex_responder_future"]["migration_status"] == "FOUND_LEGACY_COMPATIBILITY_NAME"
     assert findings["legacy:request_processor:gemini_responder_future"]["migration_status"] == "FOUND_LEGACY_COMPATIBILITY_NAME"
-    assert findings["legacy:scoped_context:target_agent_roles"]["migration_status"] == "FOUND_LEGACY_COMPATIBILITY_NAME"
+    assert findings["legacy:scoped_context:target_agent_roles"]["migration_status"] in {
+        "FOUND_LEGACY_COMPATIBILITY_NAME",
+        "NOT_PRESENT",
+    }
     assert findings["legacy:agent_phrases:codex_gemini"]["migration_status"] in {
         "FOUND_LEGACY_COMPATIBILITY_NAME",
         "SOURCE_FILE_NOT_PRESENT",

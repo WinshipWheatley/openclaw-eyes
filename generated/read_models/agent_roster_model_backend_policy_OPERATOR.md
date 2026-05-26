@@ -24,7 +24,7 @@
 ## Legacy Findings
 - openclaw_request_processor.py / CODEX_RESPONDER_FUTURE: FOUND_LEGACY_COMPATIBILITY_NAME
 - openclaw_request_processor.py / GEMINI_RESPONDER_FUTURE: FOUND_LEGACY_COMPATIBILITY_NAME
-- scoped_context_package_compiler_contract.py / TARGET_AGENT_ROLES: FOUND_LEGACY_COMPATIBILITY_NAME
+- scoped_context_package_compiler_contract.py / TARGET_AGENT_ROLES: NOT_PRESENT
 - worker_routing_intelligence.py / GEMINI_PATTERNS: FOUND_LEGACY_COMPATIBILITY_NAME
 - intent_router.py / AGENT_PHRASES: FOUND_LEGACY_COMPATIBILITY_NAME
 - agent_voice_response_layer.py / "CODEX": MIGRATED_TO_MODEL_BACKEND

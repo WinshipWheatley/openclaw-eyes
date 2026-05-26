@@ -590,8 +590,8 @@ def build_legacy_findings(repo_root: Path = Path(".")) -> tuple[LegacyOntologyFi
             "legacy:scoped_context:target_agent_roles",
             "scoped_context_package_compiler_contract.py",
             "TARGET_AGENT_ROLES",
-            "Field name target_agent_role currently carries worker backends such as MAC_CODEX, PC_CODEX, and GEMINI_AGY.",
-            "target_worker_type plus agent_role when an actual crew agent exists",
+            "Legacy field name target_agent_role carried worker backends such as MAC_CODEX, PC_CODEX, and GEMINI_AGY before the scoped package migration.",
+            "resolved_agent_role plus selected_model_backend and selected_worker_type",
         ),
         (
             "legacy:worker_router:gemini_patterns",

@@ -1,4 +1,26 @@
 {
+  "adapter_classes": [
+    "FILE_METADATA_INTAKE_ADAPTER",
+    "PROTECTED_SECRET_INTAKE_ADAPTER",
+    "OUTBOUND_MESSAGE_DRAFT_ADAPTER",
+    "OUTBOUND_MESSAGE_SEND_GATE",
+    "PORTAL_TRANSACTION_PACKAGE_ADAPTER",
+    "PORTAL_TRANSACTION_SUBMIT_GATE",
+    "VISUAL_EVENT_PACKAGE_ADAPTER",
+    "SPOKEN_RESPONSE_PACKET_ADAPTER",
+    "MAC_LOCAL_TTS_RENDERER",
+    "CAPABILITY_INDEX_LOOKUP",
+    "MACHINE_INTENT_VALIDATOR",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "agent_roles": [
+    "CASSANDRA",
+    "CHIEF",
+    "GUARDIAN",
+    "HERMES",
+    "NILES",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
   "allowed_contract_scope": [
     "deterministic contract/read-model generation",
     "examples",
@@ -24,6 +46,15 @@
     "raw_body_ingestion_allowed": false
   },
   "blocker_types": [
+    "AGENT_BACKEND_CONFLATED",
+    "CODEX_USED_AS_AGENT",
+    "GEMINI_USED_AS_AGENT",
+    "OLLAMA_USED_AS_AGENT",
+    "MODEL_BACKEND_GRANTED_AUTHORITY",
+    "WORKER_BACKEND_GRANTED_AUTHORITY",
+    "TOOL_GRANTED_WITHOUT_CAPABILITY",
+    "CLOUD_MODEL_SELECTED_FOR_PRIVATE_CONTEXT",
+    "UNKNOWN_BACKEND_FAIL_CLOSED",
     "RAW_TRANSCRIPT_INCLUDED",
     "RAW_FILE_BODY_INCLUDED",
     "RAW_SECRET_INCLUDED",
@@ -271,11 +302,20 @@
     }
   },
   "context_package_blockers_by_id": {
+    "context_package_blocker_agent_backend_conflated": {
+      "blocker_id": "context_package_blocker_agent_backend_conflated",
+      "blocker_type": "AGENT_BACKEND_CONFLATED",
+      "condition": "A package uses one field for agent role and backend/worker identity.",
+      "elioperator_warning": "Split resolved_agent_role, selected_model_backend, and selected_worker_type.",
+      "fail_closed": true,
+      "next_safe_move": "Return a blocked package readback and do not dispatch.",
+      "severity": "HIGH"
+    },
     "context_package_blocker_agent_not_permitted": {
       "blocker_id": "context_package_blocker_agent_not_permitted",
       "blocker_type": "AGENT_NOT_PERMITTED",
-      "condition": "The target role is not permitted for the context.",
-      "elioperator_warning": "Route to UNKNOWN_NEEDS_ROUTING or a permitted role.",
+      "condition": "The resolved agent role is not permitted for the context.",
+      "elioperator_warning": "Route to UNKNOWN_FAIL_CLOSED or a permitted crew agent.",
       "fail_closed": true,
       "next_safe_move": "Return a blocked package readback and do not dispatch.",
       "severity": "HIGH"
@@ -294,6 +334,24 @@
       "blocker_type": "AMBIGUOUS_SCOPE_NOT_FLAGGED",
       "condition": "Ambiguity exists but the package presents a single scope as certain.",
       "elioperator_warning": "Flag ambiguity and ask for clarification.",
+      "fail_closed": true,
+      "next_safe_move": "Return a blocked package readback and do not dispatch.",
+      "severity": "HIGH"
+    },
+    "context_package_blocker_cloud_model_selected_for_private_context": {
+      "blocker_id": "context_package_blocker_cloud_model_selected_for_private_context",
+      "blocker_type": "CLOUD_MODEL_SELECTED_FOR_PRIVATE_CONTEXT",
+      "condition": "A cloud model is selected for private context without privacy/credit gates.",
+      "elioperator_warning": "Use local/unknown fail-closed or sanitize through a governed package.",
+      "fail_closed": true,
+      "next_safe_move": "Return a blocked package readback and do not dispatch.",
+      "severity": "HIGH"
+    },
+    "context_package_blocker_codex_used_as_agent": {
+      "blocker_id": "context_package_blocker_codex_used_as_agent",
+      "blocker_type": "CODEX_USED_AS_AGENT",
+      "condition": "Codex appears as a resolved agent role.",
+      "elioperator_warning": "Use CHIEF or HERMES as agent and PC_CODEX_WORKER or MAC_CODEX_WORKER as worker.",
       "fail_closed": true,
       "next_safe_move": "Return a blocked package readback and do not dispatch.",
       "severity": "HIGH"
@@ -343,11 +401,38 @@
       "next_safe_move": "Return a blocked package readback and do not dispatch.",
       "severity": "CRITICAL"
     },
+    "context_package_blocker_gemini_used_as_agent": {
+      "blocker_id": "context_package_blocker_gemini_used_as_agent",
+      "blocker_type": "GEMINI_USED_AS_AGENT",
+      "condition": "Gemini/Agy appears as a resolved agent role.",
+      "elioperator_warning": "Use HERMES as agent and GEMINI_AGY_ADVISORY_WORKER or GEMINI_AGY as backend.",
+      "fail_closed": true,
+      "next_safe_move": "Return a blocked package readback and do not dispatch.",
+      "severity": "HIGH"
+    },
     "context_package_blocker_missing_coordinates": {
       "blocker_id": "context_package_blocker_missing_coordinates",
       "blocker_type": "MISSING_COORDINATES",
       "condition": "A package lacks graph/projection coordinates.",
       "elioperator_warning": "Ask for world/folder/thread scope before packaging.",
+      "fail_closed": true,
+      "next_safe_move": "Return a blocked package readback and do not dispatch.",
+      "severity": "HIGH"
+    },
+    "context_package_blocker_model_backend_granted_authority": {
+      "blocker_id": "context_package_blocker_model_backend_granted_authority",
+      "blocker_type": "MODEL_BACKEND_GRANTED_AUTHORITY",
+      "condition": "A selected model backend grants action authority.",
+      "elioperator_warning": "Strip authority; model output stays candidate until deterministic validation.",
+      "fail_closed": true,
+      "next_safe_move": "Return a blocked package readback and do not dispatch.",
+      "severity": "HIGH"
+    },
+    "context_package_blocker_ollama_used_as_agent": {
+      "blocker_id": "context_package_blocker_ollama_used_as_agent",
+      "blocker_type": "OLLAMA_USED_AS_AGENT",
+      "condition": "Ollama appears as a resolved agent role.",
+      "elioperator_warning": "Use the correct agent role and LOCAL_OLLAMA as model backend.",
       "fail_closed": true,
       "next_safe_move": "Return a blocked package readback and do not dispatch.",
       "severity": "HIGH"
@@ -388,6 +473,24 @@
       "next_safe_move": "Return a blocked package readback and do not dispatch.",
       "severity": "HIGH"
     },
+    "context_package_blocker_tool_granted_without_capability": {
+      "blocker_id": "context_package_blocker_tool_granted_without_capability",
+      "blocker_type": "TOOL_GRANTED_WITHOUT_CAPABILITY",
+      "condition": "An adapter/tool is granted without a capability-backed allowance.",
+      "elioperator_warning": "Remove adapter or prove the capability binding first.",
+      "fail_closed": true,
+      "next_safe_move": "Return a blocked package readback and do not dispatch.",
+      "severity": "HIGH"
+    },
+    "context_package_blocker_unknown_backend_fail_closed": {
+      "blocker_id": "context_package_blocker_unknown_backend_fail_closed",
+      "blocker_type": "UNKNOWN_BACKEND_FAIL_CLOSED",
+      "condition": "A model or worker backend cannot be classified.",
+      "elioperator_warning": "Fail closed and ask for package scope clarification.",
+      "fail_closed": true,
+      "next_safe_move": "Return a blocked package readback and do not dispatch.",
+      "severity": "HIGH"
+    },
     "context_package_blocker_unknown_fail_closed": {
       "blocker_id": "context_package_blocker_unknown_fail_closed",
       "blocker_type": "UNKNOWN_FAIL_CLOSED",
@@ -411,6 +514,15 @@
       "blocker_type": "VISUAL_ARTIFACT_WITHOUT_TRUTH_REFS",
       "condition": "A visual artifact is requested without source truth refs.",
       "elioperator_warning": "Block visual need until truth/readback refs exist.",
+      "fail_closed": true,
+      "next_safe_move": "Return a blocked package readback and do not dispatch.",
+      "severity": "HIGH"
+    },
+    "context_package_blocker_worker_backend_granted_authority": {
+      "blocker_id": "context_package_blocker_worker_backend_granted_authority",
+      "blocker_type": "WORKER_BACKEND_GRANTED_AUTHORITY",
+      "condition": "A selected worker backend grants action authority.",
+      "elioperator_warning": "Strip authority; packages must carry explicit authority boundary.",
       "fail_closed": true,
       "next_safe_move": "Return a blocked package readback and do not dispatch.",
       "severity": "HIGH"
@@ -529,7 +641,7 @@
       "needed": true,
       "next_safe_move": "Do not spawn renderer; keep visual context ready for future gated lane.",
       "reason": "Operator should see a truth-backed workflow picture with known, missing, and locked items.",
-      "renderer_route_hint": "VISUAL_RENDER_AGENT future gated package",
+      "renderer_route_hint": "MAC_CODEX_WORKER future visual workspace package",
       "source_context_refs": [
         "context_package_visual_invoice_workflow",
         "topic_slice_capital_hilton_invoice_specific"
@@ -549,7 +661,7 @@
       "needed": true,
       "next_safe_move": "Request visual proof only after future Mac worker produces a safe screenshot/readback.",
       "reason": "Mac UI work benefits from screenshot/readback proof after implementation.",
-      "renderer_route_hint": "MAC_CODEX screenshot validation later",
+      "renderer_route_hint": "MAC_CODEX_WORKER screenshot validation later",
       "source_context_refs": [
         "context_package_mac_codex_chat_surface"
       ],
@@ -589,7 +701,9 @@
         "AMBIGUOUS_SCOPE",
         "AMBIGUOUS_SCOPE_NOT_FLAGGED"
       ],
-      "expected_target": "UNKNOWN_NEEDS_ROUTING",
+      "expected_agent_role": "UNKNOWN_FAIL_CLOSED",
+      "expected_model_backend": "UNKNOWN_FAIL_CLOSED",
+      "expected_worker": "UNKNOWN_FAIL_CLOSED",
       "next_safe_move": "Ask whether to resume existing thread or start new one.",
       "operator_message": "Keep going with that thing.",
       "package_ref": "context_package_ambiguous_keep_going"
@@ -600,8 +714,10 @@
         "send authority",
         "raw private evidence bodies"
       ],
+      "expected_agent_role": "CASSANDRA",
+      "expected_model_backend": "OPENAI_GPT",
       "expected_scope": "finance/capital_hilton/invoices",
-      "expected_target": "CASSANDRA",
+      "expected_worker": "PC_CODEX_WORKER",
       "includes": [
         "delivery workflow summary",
         "invoice artifact refs",
@@ -611,7 +727,9 @@
       "package_ref": "context_package_cassandra_capital_hilton_invoice"
     },
     "gemini_agy_audit": {
-      "expected_target": "GEMINI_AGY",
+      "expected_agent_role": "HERMES",
+      "expected_model_backend": "GEMINI_AGY",
+      "expected_worker": "GEMINI_AGY_ADVISORY_WORKER",
       "forbidden": [
         "write authority",
         "commits",
@@ -625,7 +743,9 @@
       "excludes": [
         "irrelevant chat history"
       ],
-      "expected_target": "GUARDIAN",
+      "expected_agent_role": "GUARDIAN",
+      "expected_model_backend": "LOCAL_OLLAMA",
+      "expected_worker": "MANUAL_OPERATOR",
       "includes": [
         "requested action",
         "risk",
@@ -641,8 +761,10 @@
         "Gmail/Coupa",
         "raw secrets"
       ],
+      "expected_agent_role": "CHIEF",
+      "expected_model_backend": "OPENAI_CODEX",
       "expected_scope": "build/mission_control/chat_surface",
-      "expected_target": "MAC_CODEX",
+      "expected_worker": "MAC_CODEX_WORKER",
       "includes": [
         "SwiftUI task highlights",
         "screenshot refs",
@@ -656,8 +778,10 @@
       "excludes": [
         "finance/client/private unrelated data"
       ],
+      "expected_agent_role": "NILES",
+      "expected_model_backend": "LOCAL_OLLAMA",
       "expected_scope": "music/live_music/x32/routing",
-      "expected_target": "NILES",
+      "expected_worker": "LOCAL_OLLAMA_INTERPRETER",
       "operator_message": "Niles, pull up the X32 routing context.",
       "package_ref": "context_package_niles_x32_routing"
     },
@@ -666,8 +790,10 @@
         "Mac Swift edits",
         "external actions"
       ],
+      "expected_agent_role": "CHIEF",
+      "expected_model_backend": "OPENAI_CODEX",
       "expected_scope": "build/openclaw/backend/chat_router",
-      "expected_target": "PC_CODEX",
+      "expected_worker": "PC_CODEX_WORKER",
       "includes": [
         "router intake refs",
         "readback refs",
@@ -683,7 +809,9 @@
         "raw file bodies",
         "secrets"
       ],
-      "expected_target": "VISUAL_RENDER_AGENT",
+      "expected_agent_role": "CHIEF",
+      "expected_model_backend": "FUTURE_PROVIDER",
+      "expected_worker": "MAC_CODEX_WORKER",
       "includes": [
         "truth-backed facts",
         "missing/locked items",
@@ -705,7 +833,9 @@
   ],
   "generated_at": "2026-05-25T00:00:00+00:00",
   "machine_proof": {
+    "adapter_classes_present": true,
     "agent_dispatch_performed": false,
+    "agent_roles_present": true,
     "all_live_authority_flags_false": true,
     "all_packages_list_exclusions": true,
     "ambiguous_package_blocked_example_exists": true,
@@ -713,7 +843,8 @@
     "ambiguous_scope_not_flagged_blocked": true,
     "blockers_present": true,
     "cassandra_capital_hilton_example_exists": true,
-    "content_hash": "a7c98758364a758a49245fb08623c3790cdd8b625f721b819b876723e7bc9af1",
+    "codex_is_not_agent_role": true,
+    "content_hash": "4d0bcf05f1fb28ebc7cf45c83cdf4e8246a62c104f730f39f6c3411e3039208d",
     "context_exclusion_model_present": true,
     "context_highlight_model_present": true,
     "context_package_blocker_model_present": true,
@@ -727,6 +858,7 @@
     "exclusions_have_reasons": true,
     "external_action_performed": false,
     "gemini_agy_example_exists": true,
+    "gemini_agy_is_not_agent_role": true,
     "gemini_agy_read_only": true,
     "git_push_pull_fetch_run": false,
     "guardian_example_exists": true,
@@ -735,12 +867,15 @@
     "mac_sync_import_run": false,
     "memory_retrieval_performed": false,
     "mission_control_swift_changed": false,
+    "model_backends_present": true,
     "model_call_performed": false,
     "niles_x32_example_exists": true,
+    "ollama_is_not_agent_role": true,
     "overfilled_unrelated_thread_blocked": true,
     "package_missing_exclusions_blocked": true,
     "packages_from_graph_projection_coordinates_not_folder_guess": true,
     "packages_have_coordinates": true,
+    "packages_separate_agent_model_worker": true,
     "pc_codex_example_exists": true,
     "pc_codex_validation_expectations_present": true,
     "raw_file_body_excluded": true,
@@ -755,15 +890,29 @@
     "scoped_context_package_model_present": true,
     "secret_revealed": false,
     "source_ref_types_present": true,
-    "target_agent_roles_present": true,
+    "system_identities_present": true,
     "topic_slices_narrowed_when_present": true,
     "visual_artifact_detail_priority_outranks_style": true,
     "visual_artifact_needs_have_truth_refs": true,
     "visual_artifact_spawned": false,
     "visual_artifact_without_truth_refs_blocked": true,
     "visual_render_example_exists": true,
+    "worker_backends_present": true,
     "workflow_run_performed": false
   },
+  "model_backends": [
+    "OPENAI_CODEX",
+    "OPENAI_GPT",
+    "GEMINI_AGY",
+    "GEMINI_FLASH",
+    "GEMINI_PRO",
+    "GEMINI_FAMILY",
+    "CLAUDE",
+    "LOCAL_OLLAMA",
+    "LOCAL_SMALL_MODEL",
+    "FUTURE_PROVIDER",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
   "model_schemas": {
     "context_exclusion": {
       "required_fields": [
@@ -835,9 +984,13 @@
     "role_context_policy": {
       "required_fields": [
         "policy_id",
-        "target_agent_role",
+        "agent_role",
+        "default_model_backends",
+        "allowed_worker_backends",
         "allowed_context_types",
         "forbidden_context_types",
+        "allowed_adapters",
+        "forbidden_adapters",
         "allowed_actions",
         "forbidden_actions",
         "proof_requirements",
@@ -850,9 +1003,13 @@
       "required_fields": [
         "context_package_id",
         "source_chat_ref",
-        "target_agent_role",
-        "target_worker_type",
+        "requested_agent_role",
+        "resolved_agent_role",
+        "system_identity_ref",
+        "selected_model_backend",
+        "selected_worker_type",
         "target_machine",
+        "target_surface",
         "world_ref",
         "folder_ref",
         "folder_path",
@@ -868,6 +1025,8 @@
         "known_facts",
         "missing_items",
         "blocked_items",
+        "allowed_adapters",
+        "forbidden_adapters",
         "allowed_actions",
         "forbidden_actions",
         "validation_expectations",
@@ -875,6 +1034,7 @@
         "sensitivity_class",
         "token_budget_hint",
         "truth_boundary",
+        "authority_boundary",
         "visual_artifact_needed",
         "visual_render_context_ref",
         "next_safe_move"
@@ -914,6 +1074,7 @@
   "operator_markdown_mode": "ELIOPERATOR",
   "read_model_id": "scoped_context_package_compiler_contract",
   "relationship_refs": {
+    "agent_roster_model_backend_policy": "crew agent/model backend/worker backend ontology",
     "conversation_topic_slicer_contract": "topic slice refs and message pointer ranges",
     "cross_lane_reusable_block_registry_contract": "reusable fact/tokenized protected values",
     "cross_surface_artifact_handoff_registry_contract": "readback/artifact handoff refs",
@@ -921,15 +1082,20 @@
     "operator_file_intake_visual_workspace_contract": "visual workspace and source-ref posture",
     "operator_file_metadata_intake": "safe source refs and metadata-only file posture",
     "protected_secret_intake_contract": "secret_ref token-only posture",
-    "worker_routing_intelligence": "target worker/role routing",
+    "worker_routing_intelligence": "worker routing compatibility source",
     "workflow_execution_package_compiler": "known/missing/blocked workflow context",
     "world_project_memory_graph_projection": "graph/projection coordinates and folder paths"
   },
   "role_context_policies_by_id": {
     "role_policy_cassandra": {
+      "agent_role": "CASSANDRA",
       "allowed_actions": [
         "draft language for review",
         "surface missing inputs"
+      ],
+      "allowed_adapters": [
+        "OUTBOUND_MESSAGE_DRAFT_ADAPTER",
+        "CAPABILITY_INDEX_LOOKUP"
       ],
       "allowed_context_types": [
         "communication context",
@@ -938,13 +1104,31 @@
         "approval boundary",
         "artifact refs"
       ],
-      "approval_requirements": "Guardian approval before external send/submit",
+      "allowed_worker_backends": [
+        "REPO_B_WRAPPED_WORKER",
+        "PC_CODEX_WORKER",
+        "MANUAL_OPERATOR"
+      ],
+      "approval_requirements": [
+        "Guardian approval before external send/submit"
+      ],
+      "default_model_backends": [
+        "OPENAI_GPT",
+        "GEMINI_PRO",
+        "GEMINI_FLASH",
+        "CLAUDE",
+        "LOCAL_OLLAMA"
+      ],
       "default_token_budget_hint": "drafting package",
       "forbidden_actions": [
         "send",
         "create live email draft",
         "attach file",
         "approval bypass"
+      ],
+      "forbidden_adapters": [
+        "OUTBOUND_MESSAGE_SEND_GATE",
+        "PORTAL_TRANSACTION_SUBMIT_GATE"
       ],
       "forbidden_context_types": [
         "send authority",
@@ -958,50 +1142,78 @@
         "draft review packet",
         "artifact/ref proof",
         "approval posture"
-      ],
-      "target_agent_role": "CASSANDRA"
+      ]
     },
-    "role_policy_gemini_agy": {
+    "role_policy_chief": {
+      "agent_role": "CHIEF",
       "allowed_actions": [
-        "read-only audit",
-        "prompt shaping",
-        "strategy critique"
+        "route/status package context",
+        "read-model validation planning",
+        "ask clarification"
+      ],
+      "allowed_adapters": [
+        "CAPABILITY_INDEX_LOOKUP",
+        "MACHINE_INTENT_VALIDATOR",
+        "VISUAL_EVENT_PACKAGE_ADAPTER",
+        "SPOKEN_RESPONSE_PACKET_ADAPTER"
       ],
       "allowed_context_types": [
-        "read-only summaries",
-        "contract refs",
-        "audit questions",
-        "design/taste targets"
+        "status",
+        "routing",
+        "next safe move",
+        "workflow readiness",
+        "build/package handoff"
+      ],
+      "allowed_worker_backends": [
+        "PC_CODEX_WORKER",
+        "MAC_CODEX_WORKER",
+        "GEMINI_AGY_ADVISORY_WORKER",
+        "MANUAL_OPERATOR"
       ],
       "approval_requirements": [
-        "operator approval before any implementation prompt is sent to another worker"
+        "operator approval for destructive or external actions"
       ],
-      "default_token_budget_hint": "read-only audit package",
+      "default_model_backends": [
+        "OPENAI_GPT",
+        "GEMINI_PRO",
+        "LOCAL_OLLAMA",
+        "OPENAI_CODEX"
+      ],
+      "default_token_budget_hint": "concise operations package",
       "forbidden_actions": [
-        "file edits",
-        "commits",
-        "tool execution",
-        "external action"
+        "external account access",
+        "credential handling",
+        "live send/submit",
+        "self-authorize execution"
+      ],
+      "forbidden_adapters": [
+        "OUTBOUND_MESSAGE_SEND_GATE",
+        "PORTAL_TRANSACTION_SUBMIT_GATE",
+        "MAC_LOCAL_TTS_RENDERER"
       ],
       "forbidden_context_types": [
-        "secrets",
-        "raw bodies",
-        "write authority",
-        "commit authority",
-        "execution authority"
+        "raw secrets",
+        "raw private bodies",
+        "unscoped external account contents"
       ],
-      "next_safe_move": "Keep Gemini/Agy package read-only with explicit no edit/commit boundary.",
-      "policy_id": "role_policy_gemini_agy",
+      "next_safe_move": "Use Chief for routing/status while keeping worker/backend authority separate.",
+      "policy_id": "role_policy_chief",
       "proof_requirements": [
-        "written audit findings only"
-      ],
-      "target_agent_role": "GEMINI_AGY"
+        "readback refs",
+        "receipt refs where claims depend on proof"
+      ]
     },
     "role_policy_guardian": {
+      "agent_role": "GUARDIAN",
       "allowed_actions": [
         "approval boundary review",
         "risk assessment",
         "fail-closed blocker review"
+      ],
+      "allowed_adapters": [
+        "PROTECTED_SECRET_INTAKE_ADAPTER",
+        "MACHINE_INTENT_VALIDATOR",
+        "CAPABILITY_INDEX_LOOKUP"
       ],
       "allowed_context_types": [
         "requested action",
@@ -1011,12 +1223,28 @@
         "missing approvals",
         "authority boundary"
       ],
-      "approval_requirements": "explicit approval rail required before external action",
+      "allowed_worker_backends": [
+        "MANUAL_OPERATOR",
+        "PC_CODEX_WORKER"
+      ],
+      "approval_requirements": [
+        "explicit approval rail required before external action"
+      ],
+      "default_model_backends": [
+        "LOCAL_OLLAMA",
+        "OPENAI_GPT",
+        "GEMINI_PRO"
+      ],
       "default_token_budget_hint": "approval review package",
       "forbidden_actions": [
         "secret reveal",
         "external action execution",
-        "approval bypass"
+        "approval bypass",
+        "self-approval"
+      ],
+      "forbidden_adapters": [
+        "OUTBOUND_MESSAGE_SEND_GATE",
+        "PORTAL_TRANSACTION_SUBMIT_GATE"
       ],
       "forbidden_context_types": [
         "raw secret reveal",
@@ -1029,51 +1257,77 @@
         "proof refs",
         "risk refs",
         "operator intent summary"
-      ],
-      "target_agent_role": "GUARDIAN"
+      ]
     },
-    "role_policy_mac_codex": {
+    "role_policy_hermes": {
+      "agent_role": "HERMES",
       "allowed_actions": [
-        "Swift/Mac app implementation context only",
-        "Xcode build/run validation",
-        "screenshot validation"
+        "read-only audit",
+        "strategy critique",
+        "architecture risk readback"
+      ],
+      "allowed_adapters": [
+        "CAPABILITY_INDEX_LOOKUP",
+        "MACHINE_INTENT_VALIDATOR",
+        "VISUAL_EVENT_PACKAGE_ADAPTER"
       ],
       "allowed_context_types": [
-        "Mac UI/app context",
-        "Mac package refs",
-        "screenshot refs",
-        "visual workspace requests",
-        "Mac validation expectations"
+        "audit",
+        "systems architecture",
+        "strategy",
+        "pattern detection",
+        "visual/status surface critique"
+      ],
+      "allowed_worker_backends": [
+        "GEMINI_AGY_ADVISORY_WORKER",
+        "PC_CODEX_WORKER",
+        "MANUAL_OPERATOR"
       ],
       "approval_requirements": [
-        "operator approval for any future external app automation"
+        "operator/developer review before implementation work is routed"
       ],
-      "default_token_budget_hint": "focused Mac UI package",
+      "default_model_backends": [
+        "GEMINI_AGY",
+        "GEMINI_PRO",
+        "OPENAI_GPT",
+        "CLAUDE",
+        "LOCAL_OLLAMA"
+      ],
+      "default_token_budget_hint": "read-only audit package",
       "forbidden_actions": [
-        "Repo A backend mutation",
-        "external account access",
-        "credential handling",
-        "live send/submit"
+        "file edits",
+        "commits",
+        "tool execution",
+        "external action",
+        "replacing Guardian"
+      ],
+      "forbidden_adapters": [
+        "OUTBOUND_MESSAGE_SEND_GATE",
+        "PORTAL_TRANSACTION_SUBMIT_GATE"
       ],
       "forbidden_context_types": [
-        "Repo A canonical mutation authority",
-        "raw secrets",
-        "Gmail/Coupa/browser actions",
-        "raw private bodies"
+        "secrets",
+        "raw bodies",
+        "write authority",
+        "commit authority",
+        "execution authority"
       ],
-      "next_safe_move": "Package Mac context only and keep backend authority excluded.",
-      "policy_id": "role_policy_mac_codex",
+      "next_safe_move": "Keep Hermes advisory; route implementation through deterministic build gates.",
+      "policy_id": "role_policy_hermes",
       "proof_requirements": [
-        "Mac build/run result",
-        "screenshot/readback when UI changes"
-      ],
-      "target_agent_role": "MAC_CODEX"
+        "written audit findings only"
+      ]
     },
     "role_policy_niles": {
+      "agent_role": "NILES",
       "allowed_actions": [
         "music context review",
         "production-oriented suggestions",
         "resume scoped thread later"
+      ],
+      "allowed_adapters": [
+        "FILE_METADATA_INTAKE_ADAPTER",
+        "CAPABILITY_INDEX_LOOKUP"
       ],
       "allowed_context_types": [
         "music/creative context",
@@ -1081,12 +1335,30 @@
         "show-file source refs",
         "production notes summaries"
       ],
-      "approval_requirements": "operator approval for DAW/media-app mutation in future lanes",
+      "allowed_worker_backends": [
+        "LOCAL_OLLAMA_INTERPRETER",
+        "MANUAL_OPERATOR"
+      ],
+      "approval_requirements": [
+        "operator approval for DAW/media-app mutation in future lanes"
+      ],
+      "default_model_backends": [
+        "OPENAI_GPT",
+        "GEMINI_PRO",
+        "GEMINI_FLASH",
+        "CLAUDE",
+        "LOCAL_OLLAMA"
+      ],
       "default_token_budget_hint": "music production package",
       "forbidden_actions": [
         "finance/client action",
         "credential handling",
-        "external send/submit"
+        "external send/submit",
+        "DAW/file mutation without future gate"
+      ],
+      "forbidden_adapters": [
+        "OUTBOUND_MESSAGE_SEND_GATE",
+        "PORTAL_TRANSACTION_SUBMIT_GATE"
       ],
       "forbidden_context_types": [
         "finance/client ledgers unless explicitly allowed",
@@ -1097,81 +1369,7 @@
       "policy_id": "role_policy_niles",
       "proof_requirements": [
         "source/thread refs for any claim"
-      ],
-      "target_agent_role": "NILES"
-    },
-    "role_policy_pc_codex": {
-      "allowed_actions": [
-        "Repo A backend implementation context",
-        "pytest",
-        "export/read-model validation",
-        "authority scans"
-      ],
-      "allowed_context_types": [
-        "backend read-model refs",
-        "Python modules",
-        "export scripts",
-        "pytest requirements",
-        "generated read-model refs"
-      ],
-      "approval_requirements": [
-        "operator approval for destructive or external actions"
-      ],
-      "default_token_budget_hint": "focused backend package",
-      "forbidden_actions": [
-        "Mac app UI changes",
-        "external actions",
-        "credential handling"
-      ],
-      "forbidden_context_types": [
-        "Mac Swift editing unless routed",
-        "external account/action context",
-        "raw private bodies",
-        "raw secrets"
-      ],
-      "next_safe_move": "Package backend context with validation expectations.",
-      "policy_id": "role_policy_pc_codex",
-      "proof_requirements": [
-        "focused pytest",
-        "export command",
-        "JSON parse",
-        "secret/PII scan",
-        "authority scan"
-      ],
-      "target_agent_role": "PC_CODEX"
-    },
-    "role_policy_visual_render_agent": {
-      "allowed_actions": [
-        "prepare future visual card/spec context",
-        "prioritize factual detail"
-      ],
-      "allowed_context_types": [
-        "truth payload",
-        "source refs",
-        "layout/device hints",
-        "missing/locked facts",
-        "proof refs"
-      ],
-      "approval_requirements": "operator approval for any future live render/generation rail",
-      "default_token_budget_hint": "visual truth package",
-      "forbidden_actions": [
-        "live render spawn",
-        "model/image generation",
-        "external action"
-      ],
-      "forbidden_context_types": [
-        "raw private bodies",
-        "secrets",
-        "unverified completion claims",
-        "style-only prompts"
-      ],
-      "next_safe_move": "Detail/factual priority outranks style priority.",
-      "policy_id": "role_policy_visual_render_agent",
-      "proof_requirements": [
-        "source truth refs",
-        "readback refs"
-      ],
-      "target_agent_role": "VISUAL_RENDER_AGENT"
+      ]
     }
   },
   "schema_version": "scoped_context_package_compiler_contract_v0",
@@ -1197,6 +1395,8 @@
     "contract_id": "scoped_context_package_compiler_contract_v0",
     "doctrine": [
       "Agents receive scoped context packages, not vague memory.",
+      "Agent role, model backend, worker backend, and allowed adapters are separate fields.",
+      "Codex, Gemini/Agy, and Ollama are backends or workers, not OpenClaw crew agents.",
       "Packages are generated from graph/projection coordinates, not guessed folder names alone.",
       "Packages include relevant topic slice summaries and refs only.",
       "Ambiguous scope is flagged instead of overfilling context.",
@@ -1221,10 +1421,12 @@
       "Stale context must be flagged."
     ],
     "role_specific_packaging_policy": [
-      "Mac Codex receives Mac app/UI validation expectations.",
-      "PC Codex receives pytest/export/read-model validation expectations.",
-      "Gemini/Agy receives read-only audit scope with no edit or commit authority.",
-      "Cassandra, Guardian, Niles, and visual/render agents receive role-specific context only."
+      "Crew agents are Cassandra, Chief, Guardian, Hermes, and Niles.",
+      "OpenClaw System is a neutral system identity, not a persona agent.",
+      "Mac Codex and PC Codex are worker backend surfaces with validation expectations.",
+      "Gemini/Agy and Ollama are model or advisory backends, not crew agents.",
+      "Cassandra, Guardian, Hermes, Chief, and Niles receive role-specific context only.",
+      "Allowed adapters must be explicit and capability-backed."
     ],
     "source_graph_policy": [
       "Use world_project_memory_graph_projection coordinates as the primary source of scope.",
@@ -1248,16 +1450,16 @@
     ]
   },
   "scoped_context_package_elioperator_report": {
-    "how_agents_get_context": "Future agents receive role-specific packages; Mac Codex, PC Codex, Gemini/Agy, Cassandra, Guardian, Niles, and visual agents get different scopes.",
+    "how_agents_get_context": "Crew agents receive role-specific packages; Codex, Gemini/Agy, and Ollama appear only as model or worker backends.",
     "how_context_packages_work": "The compiler starts from graph/projection coordinates, narrows to relevant topic slices, and adds source/artifact/procedure/receipt/readback refs.",
     "how_files_and_secrets_are_protected": "Source files are safe refs/metadata only, and secrets are token refs only.",
     "how_raw_threads_are_avoided": "Prior threads are compact highlights with source/thread refs, not full transcripts.",
     "how_truth_is_preserved": "Known facts cite source refs, receipts, or readbacks, while summaries remain non-truth context.",
     "next_safe_move": "Use the read-model as a package shape; add future dispatch only behind approved rails.",
-    "plain_summary": "OpenClaw can package scoped context for a target agent without dumping whole threads or raw files.",
+    "plain_summary": "OpenClaw can package scoped context for a crew agent, selected backend, and selected worker without dumping whole threads or raw files.",
     "report_id": "scoped_context_package_elioperator_report_v0",
     "what_this_does_not_do_yet": "It does not dispatch agents, call models, run retrieval, ingest transcripts/files, reveal secrets, or execute workflows.",
-    "what_this_enables": "Each worker gets current coordinates, relevant slice summaries, refs, known/missing/blocked items, authority boundaries, and exclusions."
+    "what_this_enables": "Each package carries current coordinates, relevant slice summaries, refs, known/missing/blocked items, backend choices, worker surface, adapter lists, authority boundaries, and exclusions."
   },
   "scoped_context_packages_by_id": {
     "context_package_ambiguous_keep_going": {
@@ -1265,7 +1467,26 @@
         "ask clarification",
         "offer likely resume options from safe refs later"
       ],
+      "allowed_adapters": [],
       "artifact_refs": [],
+      "authority_boundary": {
+        "credential_handling_allowed": false,
+        "git_push_pull_fetch_allowed": false,
+        "live_agent_dispatch_allowed": false,
+        "live_context_package_dispatch_allowed": false,
+        "live_external_action_allowed": false,
+        "live_memory_retrieval_allowed": false,
+        "live_model_call_allowed": false,
+        "live_raw_file_body_ingestion_allowed": false,
+        "live_raw_transcript_ingestion_allowed": false,
+        "live_secret_reveal_allowed": false,
+        "live_visual_artifact_spawn_allowed": false,
+        "live_workflow_run_allowed": false,
+        "mac_sync_import_allowed": false,
+        "mission_control_swift_change_allowed": false,
+        "network_allowed": false,
+        "raw_body_ingestion_allowed": false
+      },
       "blocked_items": [
         "agent dispatch",
         "broad context stuffing",
@@ -1286,6 +1507,20 @@
         "dispatch worker",
         "guess scope"
       ],
+      "forbidden_adapters": [
+        "FILE_METADATA_INTAKE_ADAPTER",
+        "PROTECTED_SECRET_INTAKE_ADAPTER",
+        "OUTBOUND_MESSAGE_DRAFT_ADAPTER",
+        "OUTBOUND_MESSAGE_SEND_GATE",
+        "PORTAL_TRANSACTION_PACKAGE_ADAPTER",
+        "PORTAL_TRANSACTION_SUBMIT_GATE",
+        "VISUAL_EVENT_PACKAGE_ADAPTER",
+        "SPOKEN_RESPONSE_PACKET_ADAPTER",
+        "MAC_LOCAL_TTS_RENDERER",
+        "CAPABILITY_INDEX_LOOKUP",
+        "MACHINE_INTENT_VALIDATOR",
+        "UNKNOWN_FAIL_CLOSED"
+      ],
       "included_context": [
         "operator phrase only"
       ],
@@ -1302,12 +1537,16 @@
       "procedure_refs": [],
       "readback_refs": [],
       "receipt_refs": [],
+      "requested_agent_role": "UNKNOWN_FAIL_CLOSED",
+      "resolved_agent_role": "UNKNOWN_FAIL_CLOSED",
+      "selected_model_backend": "UNKNOWN_FAIL_CLOSED",
+      "selected_worker_type": "UNKNOWN_FAIL_CLOSED",
       "sensitivity_class": "metadata_only",
       "source_chat_ref": "chat_ref_keep_going_with_that_thing",
       "source_refs": [],
-      "target_agent_role": "UNKNOWN_NEEDS_ROUTING",
+      "system_identity_ref": "UNKNOWN_FAIL_CLOSED",
       "target_machine": "UNKNOWN",
-      "target_worker_type": "UNKNOWN_NEEDS_ROUTING",
+      "target_surface": "unknown",
       "thread_ref": "thread_ref_unknown_keep_going",
       "token_budget_hint": "blocked until scoped",
       "topic_slice_refs": [],
@@ -1325,9 +1564,31 @@
         "draft language for review",
         "surface missing inputs"
       ],
+      "allowed_adapters": [
+        "OUTBOUND_MESSAGE_DRAFT_ADAPTER",
+        "CAPABILITY_INDEX_LOOKUP"
+      ],
       "artifact_refs": [
         "artifact_ref_capital_hilton_invoice_pdf_future"
       ],
+      "authority_boundary": {
+        "credential_handling_allowed": false,
+        "git_push_pull_fetch_allowed": false,
+        "live_agent_dispatch_allowed": false,
+        "live_context_package_dispatch_allowed": false,
+        "live_external_action_allowed": false,
+        "live_memory_retrieval_allowed": false,
+        "live_model_call_allowed": false,
+        "live_raw_file_body_ingestion_allowed": false,
+        "live_raw_transcript_ingestion_allowed": false,
+        "live_secret_reveal_allowed": false,
+        "live_visual_artifact_spawn_allowed": false,
+        "live_workflow_run_allowed": false,
+        "mac_sync_import_allowed": false,
+        "mission_control_swift_change_allowed": false,
+        "network_allowed": false,
+        "raw_body_ingestion_allowed": false
+      },
       "blocked_items": [
         "send authority",
         "live email draft",
@@ -1348,6 +1609,10 @@
         "create live email draft",
         "attach file",
         "approval bypass"
+      ],
+      "forbidden_adapters": [
+        "OUTBOUND_MESSAGE_SEND_GATE",
+        "PORTAL_TRANSACTION_SUBMIT_GATE"
       ],
       "included_context": [
         "delivery workflow summary",
@@ -1378,14 +1643,18 @@
       "receipt_refs": [
         "receipt_capital_hilton_delivery_facts"
       ],
+      "requested_agent_role": "CASSANDRA",
+      "resolved_agent_role": "CASSANDRA",
+      "selected_model_backend": "OPENAI_GPT",
+      "selected_worker_type": "PC_CODEX_WORKER",
       "sensitivity_class": "finance_boundary",
       "source_chat_ref": "chat_ref_capital_hilton_invoice_draft",
       "source_refs": [
         "source_ref_capital_hilton_invoice_preview"
       ],
-      "target_agent_role": "CASSANDRA",
-      "target_machine": "LOCAL_ONLY",
-      "target_worker_type": "CASSANDRA",
+      "system_identity_ref": "UNKNOWN_FAIL_CLOSED",
+      "target_machine": "PC_WSL",
+      "target_surface": "outbound_message_draft",
       "thread_ref": "thread_ref_finance_misfiled_invoice_architecture",
       "token_budget_hint": "drafting package",
       "topic_slice_refs": [
@@ -1407,7 +1676,28 @@
         "strategy critique",
         "prompt shaping"
       ],
+      "allowed_adapters": [
+        "CAPABILITY_INDEX_LOOKUP"
+      ],
       "artifact_refs": [],
+      "authority_boundary": {
+        "credential_handling_allowed": false,
+        "git_push_pull_fetch_allowed": false,
+        "live_agent_dispatch_allowed": false,
+        "live_context_package_dispatch_allowed": false,
+        "live_external_action_allowed": false,
+        "live_memory_retrieval_allowed": false,
+        "live_model_call_allowed": false,
+        "live_raw_file_body_ingestion_allowed": false,
+        "live_raw_transcript_ingestion_allowed": false,
+        "live_secret_reveal_allowed": false,
+        "live_visual_artifact_spawn_allowed": false,
+        "live_workflow_run_allowed": false,
+        "mac_sync_import_allowed": false,
+        "mission_control_swift_change_allowed": false,
+        "network_allowed": false,
+        "raw_body_ingestion_allowed": false
+      },
       "blocked_items": [
         "file edits",
         "commits",
@@ -1429,6 +1719,10 @@
         "tool execution",
         "external action"
       ],
+      "forbidden_adapters": [
+        "OUTBOUND_MESSAGE_SEND_GATE",
+        "PORTAL_TRANSACTION_SUBMIT_GATE"
+      ],
       "included_context": [
         "contract summaries to inspect",
         "audit questions",
@@ -1447,6 +1741,10 @@
         "workflow_readback_concierge_contract"
       ],
       "receipt_refs": [],
+      "requested_agent_role": "HERMES",
+      "resolved_agent_role": "HERMES",
+      "selected_model_backend": "GEMINI_AGY",
+      "selected_worker_type": "GEMINI_AGY_ADVISORY_WORKER",
       "sensitivity_class": "metadata_only",
       "source_chat_ref": "chat_ref_audit_card_contract_reuse",
       "source_refs": [
@@ -1454,9 +1752,9 @@
         "chat_readback_card_mirror",
         "conversation_topic_slicer_contract"
       ],
-      "target_agent_role": "GEMINI_AGY",
+      "system_identity_ref": "UNKNOWN_FAIL_CLOSED",
       "target_machine": "EXTERNAL_MODEL",
-      "target_worker_type": "GEMINI_AGY",
+      "target_surface": "architecture_audit",
       "thread_ref": "thread_ref_chat_first_pivot_audit",
       "token_budget_hint": "read-only audit package",
       "topic_slice_refs": [
@@ -1477,9 +1775,31 @@
         "risk assessment",
         "fail-closed blocker review"
       ],
+      "allowed_adapters": [
+        "PROTECTED_SECRET_INTAKE_ADAPTER",
+        "MACHINE_INTENT_VALIDATOR"
+      ],
       "artifact_refs": [
         "artifact_ref_capital_hilton_invoice_pdf_future"
       ],
+      "authority_boundary": {
+        "credential_handling_allowed": false,
+        "git_push_pull_fetch_allowed": false,
+        "live_agent_dispatch_allowed": false,
+        "live_context_package_dispatch_allowed": false,
+        "live_external_action_allowed": false,
+        "live_memory_retrieval_allowed": false,
+        "live_model_call_allowed": false,
+        "live_raw_file_body_ingestion_allowed": false,
+        "live_raw_transcript_ingestion_allowed": false,
+        "live_secret_reveal_allowed": false,
+        "live_visual_artifact_spawn_allowed": false,
+        "live_workflow_run_allowed": false,
+        "mac_sync_import_allowed": false,
+        "mission_control_swift_change_allowed": false,
+        "network_allowed": false,
+        "raw_body_ingestion_allowed": false
+      },
       "blocked_items": [
         "email send",
         "Coupa submit",
@@ -1497,6 +1817,10 @@
         "secret reveal",
         "external action execution",
         "approval bypass"
+      ],
+      "forbidden_adapters": [
+        "OUTBOUND_MESSAGE_SEND_GATE",
+        "PORTAL_TRANSACTION_SUBMIT_GATE"
       ],
       "included_context": [
         "requested action",
@@ -1526,15 +1850,19 @@
         "receipt_capital_hilton_delivery_facts",
         "receipt_guardian_approval_missing"
       ],
+      "requested_agent_role": "GUARDIAN",
+      "resolved_agent_role": "GUARDIAN",
+      "selected_model_backend": "LOCAL_OLLAMA",
+      "selected_worker_type": "MANUAL_OPERATOR",
       "sensitivity_class": "protected_reference_only",
       "source_chat_ref": "chat_ref_guardian_capital_hilton_approval",
       "source_refs": [
         "source_ref_capital_hilton_invoice_preview",
         "protected_ref_capital_hilton_evidence_future"
       ],
-      "target_agent_role": "GUARDIAN",
+      "system_identity_ref": "UNKNOWN_FAIL_CLOSED",
       "target_machine": "LOCAL_ONLY",
-      "target_worker_type": "GUARDIAN",
+      "target_surface": "approval_boundary",
       "thread_ref": "thread_ref_finance_misfiled_invoice_architecture",
       "token_budget_hint": "approval review package",
       "topic_slice_refs": [
@@ -1556,9 +1884,28 @@
         "Xcode build/run validation",
         "screenshot validation"
       ],
+      "allowed_adapters": [],
       "artifact_refs": [
         "artifact_ref_readback_cards"
       ],
+      "authority_boundary": {
+        "credential_handling_allowed": false,
+        "git_push_pull_fetch_allowed": false,
+        "live_agent_dispatch_allowed": false,
+        "live_context_package_dispatch_allowed": false,
+        "live_external_action_allowed": false,
+        "live_memory_retrieval_allowed": false,
+        "live_model_call_allowed": false,
+        "live_raw_file_body_ingestion_allowed": false,
+        "live_raw_transcript_ingestion_allowed": false,
+        "live_secret_reveal_allowed": false,
+        "live_visual_artifact_spawn_allowed": false,
+        "live_workflow_run_allowed": false,
+        "mac_sync_import_allowed": false,
+        "mission_control_swift_change_allowed": false,
+        "network_allowed": false,
+        "raw_body_ingestion_allowed": false
+      },
       "blocked_items": [
         "Repo A backend mutation",
         "external account action"
@@ -1577,6 +1924,11 @@
         "Repo A backend mutation",
         "credential handling",
         "external send/submit"
+      ],
+      "forbidden_adapters": [
+        "OUTBOUND_MESSAGE_SEND_GATE",
+        "PORTAL_TRANSACTION_SUBMIT_GATE",
+        "MAC_LOCAL_TTS_RENDERER"
       ],
       "included_context": [
         "SwiftUI task highlights",
@@ -1602,15 +1954,19 @@
       "receipt_refs": [
         "receipt_swiftui_task_history"
       ],
+      "requested_agent_role": "CHIEF",
+      "resolved_agent_role": "CHIEF",
+      "selected_model_backend": "OPENAI_CODEX",
+      "selected_worker_type": "MAC_CODEX_WORKER",
       "sensitivity_class": "metadata_only",
       "source_chat_ref": "chat_ref_continue_chat_surface_work",
       "source_refs": [
         "source_ref_mac_codex_prompts",
         "source_ref_screenshots_metadata"
       ],
-      "target_agent_role": "MAC_CODEX",
+      "system_identity_ref": "UNKNOWN_FAIL_CLOSED",
       "target_machine": "MAC",
-      "target_worker_type": "MAC_CODEX",
+      "target_surface": "mission_control_mac_app",
       "thread_ref": "thread_ref_build_chat_surface",
       "token_budget_hint": "focused",
       "topic_slice_refs": [
@@ -1631,7 +1987,29 @@
         "music context review",
         "production-oriented suggestions"
       ],
+      "allowed_adapters": [
+        "FILE_METADATA_INTAKE_ADAPTER",
+        "CAPABILITY_INDEX_LOOKUP"
+      ],
       "artifact_refs": [],
+      "authority_boundary": {
+        "credential_handling_allowed": false,
+        "git_push_pull_fetch_allowed": false,
+        "live_agent_dispatch_allowed": false,
+        "live_context_package_dispatch_allowed": false,
+        "live_external_action_allowed": false,
+        "live_memory_retrieval_allowed": false,
+        "live_model_call_allowed": false,
+        "live_raw_file_body_ingestion_allowed": false,
+        "live_raw_transcript_ingestion_allowed": false,
+        "live_secret_reveal_allowed": false,
+        "live_visual_artifact_spawn_allowed": false,
+        "live_workflow_run_allowed": false,
+        "mac_sync_import_allowed": false,
+        "mission_control_swift_change_allowed": false,
+        "network_allowed": false,
+        "raw_body_ingestion_allowed": false
+      },
       "blocked_items": [
         "DAW/media-app mutation",
         "finance/client data"
@@ -1649,6 +2027,10 @@
         "finance/client ledger access",
         "external action",
         "credential handling"
+      ],
+      "forbidden_adapters": [
+        "OUTBOUND_MESSAGE_SEND_GATE",
+        "PORTAL_TRANSACTION_SUBMIT_GATE"
       ],
       "included_context": [
         "X32 topic slice summaries",
@@ -1673,15 +2055,19 @@
       "receipt_refs": [
         "receipt_x32_show_setup_readback"
       ],
+      "requested_agent_role": "NILES",
+      "resolved_agent_role": "NILES",
+      "selected_model_backend": "LOCAL_OLLAMA",
+      "selected_worker_type": "LOCAL_OLLAMA_INTERPRETER",
       "sensitivity_class": "metadata_only",
       "source_chat_ref": "chat_ref_niles_pull_x32_routing",
       "source_refs": [
         "source_ref_x32_maintenance_summary",
         "source_ref_behringer_x32_notes"
       ],
-      "target_agent_role": "NILES",
+      "system_identity_ref": "UNKNOWN_FAIL_CLOSED",
       "target_machine": "LOCAL_ONLY",
-      "target_worker_type": "LOCAL_OLLAMA",
+      "target_surface": "music_project_context",
       "thread_ref": "thread_ref_x32_fader_replacement",
       "token_budget_hint": "music production package",
       "topic_slice_refs": [
@@ -1701,7 +2087,29 @@
         "export command validation",
         "focused pytest"
       ],
+      "allowed_adapters": [
+        "CAPABILITY_INDEX_LOOKUP",
+        "MACHINE_INTENT_VALIDATOR"
+      ],
       "artifact_refs": [],
+      "authority_boundary": {
+        "credential_handling_allowed": false,
+        "git_push_pull_fetch_allowed": false,
+        "live_agent_dispatch_allowed": false,
+        "live_context_package_dispatch_allowed": false,
+        "live_external_action_allowed": false,
+        "live_memory_retrieval_allowed": false,
+        "live_model_call_allowed": false,
+        "live_raw_file_body_ingestion_allowed": false,
+        "live_raw_transcript_ingestion_allowed": false,
+        "live_secret_reveal_allowed": false,
+        "live_visual_artifact_spawn_allowed": false,
+        "live_workflow_run_allowed": false,
+        "mac_sync_import_allowed": false,
+        "mission_control_swift_change_allowed": false,
+        "network_allowed": false,
+        "raw_body_ingestion_allowed": false
+      },
       "blocked_items": [
         "Mac Swift edits",
         "external actions",
@@ -1721,6 +2129,11 @@
         "Mac Swift changes",
         "email/Coupa/browser actions",
         "credential handling"
+      ],
+      "forbidden_adapters": [
+        "OUTBOUND_MESSAGE_SEND_GATE",
+        "PORTAL_TRANSACTION_SUBMIT_GATE",
+        "MAC_LOCAL_TTS_RENDERER"
       ],
       "included_context": [
         "router intake refs",
@@ -1748,15 +2161,19 @@
       "receipt_refs": [
         "receipt_router_readback_capital_hilton"
       ],
+      "requested_agent_role": "CHIEF",
+      "resolved_agent_role": "CHIEF",
+      "selected_model_backend": "OPENAI_CODEX",
+      "selected_worker_type": "PC_CODEX_WORKER",
       "sensitivity_class": "metadata_only",
       "source_chat_ref": "chat_ref_build_bounded_chat_request_processor",
       "source_refs": [
         "conversational_workflow_router_intake",
         "openclaw_chat_request_processor"
       ],
-      "target_agent_role": "PC_CODEX",
+      "system_identity_ref": "UNKNOWN_FAIL_CLOSED",
       "target_machine": "PC_WSL",
-      "target_worker_type": "PC_CODEX",
+      "target_surface": "repo_a_backend",
       "thread_ref": "thread_ref_pc_chat_processor",
       "token_budget_hint": "focused",
       "topic_slice_refs": [
@@ -1780,9 +2197,31 @@
         "prepare future visual card/spec context",
         "prioritize factual detail"
       ],
+      "allowed_adapters": [
+        "VISUAL_EVENT_PACKAGE_ADAPTER",
+        "CAPABILITY_INDEX_LOOKUP"
+      ],
       "artifact_refs": [
         "artifact_ref_capital_hilton_invoice_pdf_future"
       ],
+      "authority_boundary": {
+        "credential_handling_allowed": false,
+        "git_push_pull_fetch_allowed": false,
+        "live_agent_dispatch_allowed": false,
+        "live_context_package_dispatch_allowed": false,
+        "live_external_action_allowed": false,
+        "live_memory_retrieval_allowed": false,
+        "live_model_call_allowed": false,
+        "live_raw_file_body_ingestion_allowed": false,
+        "live_raw_transcript_ingestion_allowed": false,
+        "live_secret_reveal_allowed": false,
+        "live_visual_artifact_spawn_allowed": false,
+        "live_workflow_run_allowed": false,
+        "mac_sync_import_allowed": false,
+        "mission_control_swift_change_allowed": false,
+        "network_allowed": false,
+        "raw_body_ingestion_allowed": false
+      },
       "blocked_items": [
         "live render spawn",
         "model/image generation",
@@ -1801,6 +2240,11 @@
         "live render spawn",
         "style-only prompt",
         "completion claim without proof"
+      ],
+      "forbidden_adapters": [
+        "OUTBOUND_MESSAGE_SEND_GATE",
+        "PORTAL_TRANSACTION_SUBMIT_GATE",
+        "MAC_LOCAL_TTS_RENDERER"
       ],
       "included_context": [
         "truth-backed facts",
@@ -1827,14 +2271,18 @@
       "receipt_refs": [
         "receipt_capital_hilton_delivery_facts"
       ],
+      "requested_agent_role": "CHIEF",
+      "resolved_agent_role": "CHIEF",
+      "selected_model_backend": "FUTURE_PROVIDER",
+      "selected_worker_type": "MAC_CODEX_WORKER",
       "sensitivity_class": "metadata_only",
       "source_chat_ref": "chat_ref_visual_invoice_workflow_picture",
       "source_refs": [
         "source_ref_capital_hilton_invoice_preview"
       ],
-      "target_agent_role": "VISUAL_RENDER_AGENT",
-      "target_machine": "LOCAL_ONLY",
-      "target_worker_type": "VISUAL_RENDER_AGENT",
+      "system_identity_ref": "UNKNOWN_FAIL_CLOSED",
+      "target_machine": "MAC",
+      "target_surface": "mac_visual_workspace",
       "thread_ref": "thread_ref_finance_misfiled_invoice_architecture",
       "token_budget_hint": "visual truth package",
       "topic_slice_refs": [
@@ -1862,15 +2310,17 @@
     "PROTECTED_SECRET_REF",
     "UNKNOWN"
   ],
-  "target_agent_roles": [
-    "MAC_CODEX",
-    "PC_CODEX",
-    "GEMINI_AGY",
-    "CASSANDRA",
-    "GUARDIAN",
-    "NILES",
-    "LOCAL_OLLAMA",
-    "VISUAL_RENDER_AGENT",
-    "UNKNOWN_NEEDS_ROUTING"
+  "system_identities": [
+    "OPENCLAW_SYSTEM",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
+  "worker_backends": [
+    "PC_CODEX_WORKER",
+    "MAC_CODEX_WORKER",
+    "GEMINI_AGY_ADVISORY_WORKER",
+    "LOCAL_OLLAMA_INTERPRETER",
+    "REPO_B_WRAPPED_WORKER",
+    "MANUAL_OPERATOR",
+    "UNKNOWN_FAIL_CLOSED"
   ]
 }

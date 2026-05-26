@@ -56,14 +56,28 @@ def test_contract_declares_scoped_context_not_raw_thread_sludge():
     assert "Raw transcripts, raw file bodies, and raw secret values stay below deck." in contract["doctrine"]
 
 
-def test_roles_source_ref_types_and_exclusion_reasons_exist():
+def test_agent_model_worker_adapter_enums_and_exclusion_reasons_exist():
     payload = _build()
 
-    assert payload["machine_proof"]["target_agent_roles_present"] is True
+    assert payload["machine_proof"]["agent_roles_present"] is True
+    assert payload["machine_proof"]["system_identities_present"] is True
+    assert payload["machine_proof"]["model_backends_present"] is True
+    assert payload["machine_proof"]["worker_backends_present"] is True
+    assert payload["machine_proof"]["adapter_classes_present"] is True
+    assert payload["machine_proof"]["codex_is_not_agent_role"] is True
+    assert payload["machine_proof"]["gemini_agy_is_not_agent_role"] is True
+    assert payload["machine_proof"]["ollama_is_not_agent_role"] is True
+    assert payload["machine_proof"]["packages_separate_agent_model_worker"] is True
     assert payload["machine_proof"]["source_ref_types_present"] is True
     assert payload["machine_proof"]["exclusion_reasons_present"] is True
-    for role in ["MAC_CODEX", "PC_CODEX", "GEMINI_AGY", "CASSANDRA", "GUARDIAN", "NILES", "VISUAL_RENDER_AGENT", "UNKNOWN_NEEDS_ROUTING"]:
-        assert role in payload["target_agent_roles"]
+    for role in ["CASSANDRA", "CHIEF", "NILES", "GUARDIAN", "HERMES", "UNKNOWN_FAIL_CLOSED"]:
+        assert role in payload["agent_roles"]
+    for backend in ["OPENAI_CODEX", "GEMINI_AGY", "LOCAL_OLLAMA", "UNKNOWN_FAIL_CLOSED"]:
+        assert backend in payload["model_backends"]
+    for worker in ["MAC_CODEX_WORKER", "PC_CODEX_WORKER", "GEMINI_AGY_ADVISORY_WORKER", "LOCAL_OLLAMA_INTERPRETER", "UNKNOWN_FAIL_CLOSED"]:
+        assert worker in payload["worker_backends"]
+    for invalid_agent in ["CODEX", "MAC_CODEX", "PC_CODEX", "GEMINI_AGY", "LOCAL_OLLAMA", "VISUAL_RENDER_AGENT"]:
+        assert invalid_agent not in payload["agent_roles"]
     for reason in ["RAW_TRANSCRIPT_EXCLUDED", "RAW_FILE_BODY_EXCLUDED", "SECRET_VALUE_EXCLUDED"]:
         assert reason in payload["exclusion_reasons"]
 
@@ -84,12 +98,21 @@ def test_each_package_lists_inclusions_exclusions_unknowns_and_actions():
 
     assert payload["machine_proof"]["all_packages_list_exclusions"] is True
     for package in payload["scoped_context_packages_by_id"].values():
+        assert "target_agent_role" not in package
+        assert "target_worker_type" not in package
+        assert package["resolved_agent_role"] in compiler.AGENT_ROLES
+        assert package["selected_model_backend"] in compiler.MODEL_BACKENDS
+        assert package["selected_worker_type"] in compiler.WORKER_BACKENDS
         assert package["included_context"]
         assert package["excluded_context"]
         assert package["missing_items"]
+        assert "allowed_adapters" in package
+        assert "forbidden_adapters" in package
         assert package["allowed_actions"]
         assert package["forbidden_actions"]
         assert package["truth_boundary"] == "Truth comes from cited receipts/readbacks and source refs, not from summary text."
+        for key, value in package["authority_boundary"].items():
+            assert value is False, key
 
 
 def test_context_exclusions_have_reasons_and_cover_raw_transcripts_files_and_secrets():
@@ -111,8 +134,11 @@ def test_mac_codex_example_and_validation_expectations_exist():
     package = payload["scoped_context_packages_by_id"][example["package_ref"]]
 
     assert payload["machine_proof"]["mac_codex_example_exists"] is True
-    assert package["target_agent_role"] == "MAC_CODEX"
+    assert package["resolved_agent_role"] == "CHIEF"
+    assert package["selected_worker_type"] == "MAC_CODEX_WORKER"
+    assert package["selected_model_backend"] == "OPENAI_CODEX"
     assert package["target_machine"] == "MAC"
+    assert package["target_surface"] == "mission_control_mac_app"
     assert "Xcode build/run validation" in package["validation_expectations"]
     assert "screenshot validation" in package["validation_expectations"]
     assert payload["machine_proof"]["mac_codex_validation_expectations_present"] is True
@@ -124,8 +150,11 @@ def test_pc_codex_example_and_backend_validation_expectations_exist():
     package = payload["scoped_context_packages_by_id"][example["package_ref"]]
 
     assert payload["machine_proof"]["pc_codex_example_exists"] is True
-    assert package["target_agent_role"] == "PC_CODEX"
+    assert package["resolved_agent_role"] == "CHIEF"
+    assert package["selected_worker_type"] == "PC_CODEX_WORKER"
+    assert package["selected_model_backend"] == "OPENAI_CODEX"
     assert package["target_machine"] == "PC_WSL"
+    assert package["target_surface"] == "repo_a_backend"
     assert "pytest" in package["validation_expectations"]
     assert "export summary" in package["validation_expectations"]
     assert "JSON parse" in package["validation_expectations"]
@@ -139,7 +168,9 @@ def test_gemini_agy_example_is_read_only():
 
     assert payload["machine_proof"]["gemini_agy_example_exists"] is True
     assert example["read_only"] is True
-    assert package["target_agent_role"] == "GEMINI_AGY"
+    assert package["resolved_agent_role"] == "HERMES"
+    assert package["selected_worker_type"] == "GEMINI_AGY_ADVISORY_WORKER"
+    assert package["selected_model_backend"] == "GEMINI_AGY"
     assert "read-only audit" in package["allowed_actions"]
     assert "file edits" in package["forbidden_actions"]
     assert "commits" in package["forbidden_actions"]
@@ -151,21 +182,30 @@ def test_niles_x32_cassandra_guardian_and_visual_examples_exist():
     packages = payload["scoped_context_packages_by_id"]
 
     assert payload["machine_proof"]["niles_x32_example_exists"] is True
-    assert packages["context_package_niles_x32_routing"]["target_agent_role"] == "NILES"
+    assert packages["context_package_niles_x32_routing"]["resolved_agent_role"] == "NILES"
+    assert packages["context_package_niles_x32_routing"]["selected_worker_type"] == "LOCAL_OLLAMA_INTERPRETER"
+    assert packages["context_package_niles_x32_routing"]["selected_model_backend"] == "LOCAL_OLLAMA"
     assert packages["context_package_niles_x32_routing"]["folder_path"] == "music/live_music/x32/routing"
     assert "finance/client/private unrelated data" in packages["context_package_niles_x32_routing"]["excluded_context"]
+    assert "DAW/media-app mutation" in packages["context_package_niles_x32_routing"]["blocked_items"]
 
     assert payload["machine_proof"]["cassandra_capital_hilton_example_exists"] is True
-    assert packages["context_package_cassandra_capital_hilton_invoice"]["target_agent_role"] == "CASSANDRA"
+    assert packages["context_package_cassandra_capital_hilton_invoice"]["resolved_agent_role"] == "CASSANDRA"
+    assert packages["context_package_cassandra_capital_hilton_invoice"]["selected_worker_type"] == "PC_CODEX_WORKER"
+    assert "OUTBOUND_MESSAGE_DRAFT_ADAPTER" in packages["context_package_cassandra_capital_hilton_invoice"]["allowed_adapters"]
     assert "send authority" in packages["context_package_cassandra_capital_hilton_invoice"]["excluded_context"]
 
     assert payload["machine_proof"]["guardian_example_exists"] is True
-    assert packages["context_package_guardian_approval_boundary"]["target_agent_role"] == "GUARDIAN"
+    assert packages["context_package_guardian_approval_boundary"]["resolved_agent_role"] == "GUARDIAN"
+    assert packages["context_package_guardian_approval_boundary"]["selected_worker_type"] == "MANUAL_OPERATOR"
     assert "proof refs" in packages["context_package_guardian_approval_boundary"]["included_context"]
 
     assert payload["machine_proof"]["visual_render_example_exists"] is True
-    assert packages["context_package_visual_invoice_workflow"]["target_agent_role"] == "VISUAL_RENDER_AGENT"
+    assert packages["context_package_visual_invoice_workflow"]["resolved_agent_role"] == "CHIEF"
+    assert packages["context_package_visual_invoice_workflow"]["selected_worker_type"] == "MAC_CODEX_WORKER"
+    assert "VISUAL_EVENT_PACKAGE_ADAPTER" in packages["context_package_visual_invoice_workflow"]["allowed_adapters"]
     assert packages["context_package_visual_invoice_workflow"]["visual_artifact_needed"] is True
+    assert "live render spawn" in packages["context_package_visual_invoice_workflow"]["blocked_items"]
 
 
 def test_ambiguous_package_blocks_or_asks_clarification():
@@ -177,7 +217,9 @@ def test_ambiguous_package_blocks_or_asks_clarification():
     assert payload["machine_proof"]["ambiguous_package_blocked_example_exists"] is True
     assert payload["machine_proof"]["ambiguous_scope_blocks_or_asks_clarification"] is True
     assert coordinate["ambiguity_status"] == "AMBIGUOUS_NEEDS_CLARIFICATION"
-    assert package["target_agent_role"] == "UNKNOWN_NEEDS_ROUTING"
+    assert package["resolved_agent_role"] == "UNKNOWN_FAIL_CLOSED"
+    assert package["selected_model_backend"] == "UNKNOWN_FAIL_CLOSED"
+    assert package["selected_worker_type"] == "UNKNOWN_FAIL_CLOSED"
     assert "which thread to resume" in package["missing_items"]
     assert "stuff all recent threads into context" in package["forbidden_actions"]
 
@@ -199,12 +241,16 @@ def test_role_context_policies_are_role_specific():
     payload = _build()
     policies = payload["role_context_policies_by_id"]
 
-    assert policies["role_policy_mac_codex"]["target_agent_role"] == "MAC_CODEX"
-    assert "Xcode build/run validation" in policies["role_policy_mac_codex"]["allowed_actions"]
-    assert policies["role_policy_pc_codex"]["target_agent_role"] == "PC_CODEX"
-    assert "pytest" in policies["role_policy_pc_codex"]["allowed_actions"]
-    assert policies["role_policy_visual_render_agent"]["target_agent_role"] == "VISUAL_RENDER_AGENT"
-    assert "style-only prompts" in policies["role_policy_visual_render_agent"]["forbidden_context_types"]
+    assert policies["role_policy_chief"]["agent_role"] == "CHIEF"
+    assert "PC_CODEX_WORKER" in policies["role_policy_chief"]["allowed_worker_backends"]
+    assert "MAC_CODEX_WORKER" in policies["role_policy_chief"]["allowed_worker_backends"]
+    assert "OPENAI_CODEX" in policies["role_policy_chief"]["default_model_backends"]
+    assert policies["role_policy_hermes"]["agent_role"] == "HERMES"
+    assert "GEMINI_AGY_ADVISORY_WORKER" in policies["role_policy_hermes"]["allowed_worker_backends"]
+    assert "GEMINI_AGY" in policies["role_policy_hermes"]["default_model_backends"]
+    assert policies["role_policy_cassandra"]["agent_role"] == "CASSANDRA"
+    assert "OUTBOUND_MESSAGE_DRAFT_ADAPTER" in policies["role_policy_cassandra"]["allowed_adapters"]
+    assert "OUTBOUND_MESSAGE_SEND_GATE" in policies["role_policy_cassandra"]["forbidden_adapters"]
 
 
 def test_blockers_exist_for_cross_client_broad_context_visual_truth_and_missing_exclusions():

@@ -28,16 +28,57 @@ JSON_EXPORT_NAME = f"{READ_MODEL_ID}.json"
 OPERATOR_EXPORT_NAME = f"{READ_MODEL_ID}_OPERATOR.md"
 CONTRACT_STATUS = "DETERMINISTIC_NON_DISPATCHING_SCOPED_CONTEXT_PACKAGE_COMPILER_CONTRACT"
 
-TARGET_AGENT_ROLES = (
-    "MAC_CODEX",
-    "PC_CODEX",
-    "GEMINI_AGY",
+AGENT_ROLES = (
     "CASSANDRA",
+    "CHIEF",
     "GUARDIAN",
+    "HERMES",
     "NILES",
+    "UNKNOWN_FAIL_CLOSED",
+)
+
+SYSTEM_IDENTITIES = (
+    "OPENCLAW_SYSTEM",
+    "UNKNOWN_FAIL_CLOSED",
+)
+
+MODEL_BACKENDS = (
+    "OPENAI_CODEX",
+    "OPENAI_GPT",
+    "GEMINI_AGY",
+    "GEMINI_FLASH",
+    "GEMINI_PRO",
+    "GEMINI_FAMILY",
+    "CLAUDE",
     "LOCAL_OLLAMA",
-    "VISUAL_RENDER_AGENT",
-    "UNKNOWN_NEEDS_ROUTING",
+    "LOCAL_SMALL_MODEL",
+    "FUTURE_PROVIDER",
+    "UNKNOWN_FAIL_CLOSED",
+)
+
+WORKER_BACKENDS = (
+    "PC_CODEX_WORKER",
+    "MAC_CODEX_WORKER",
+    "GEMINI_AGY_ADVISORY_WORKER",
+    "LOCAL_OLLAMA_INTERPRETER",
+    "REPO_B_WRAPPED_WORKER",
+    "MANUAL_OPERATOR",
+    "UNKNOWN_FAIL_CLOSED",
+)
+
+ADAPTER_CLASSES = (
+    "FILE_METADATA_INTAKE_ADAPTER",
+    "PROTECTED_SECRET_INTAKE_ADAPTER",
+    "OUTBOUND_MESSAGE_DRAFT_ADAPTER",
+    "OUTBOUND_MESSAGE_SEND_GATE",
+    "PORTAL_TRANSACTION_PACKAGE_ADAPTER",
+    "PORTAL_TRANSACTION_SUBMIT_GATE",
+    "VISUAL_EVENT_PACKAGE_ADAPTER",
+    "SPOKEN_RESPONSE_PACKET_ADAPTER",
+    "MAC_LOCAL_TTS_RENDERER",
+    "CAPABILITY_INDEX_LOOKUP",
+    "MACHINE_INTENT_VALIDATOR",
+    "UNKNOWN_FAIL_CLOSED",
 )
 
 SOURCE_REF_TYPES = (
@@ -65,6 +106,15 @@ EXCLUSION_REASONS = (
 )
 
 BLOCKER_TYPES = (
+    "AGENT_BACKEND_CONFLATED",
+    "CODEX_USED_AS_AGENT",
+    "GEMINI_USED_AS_AGENT",
+    "OLLAMA_USED_AS_AGENT",
+    "MODEL_BACKEND_GRANTED_AUTHORITY",
+    "WORKER_BACKEND_GRANTED_AUTHORITY",
+    "TOOL_GRANTED_WITHOUT_CAPABILITY",
+    "CLOUD_MODEL_SELECTED_FOR_PRIVATE_CONTEXT",
+    "UNKNOWN_BACKEND_FAIL_CLOSED",
     "RAW_TRANSCRIPT_INCLUDED",
     "RAW_FILE_BODY_INCLUDED",
     "RAW_SECRET_INCLUDED",
@@ -133,9 +183,13 @@ class ScopedContextPackageCompilerContract:
 class ScopedContextPackage:
     context_package_id: str
     source_chat_ref: str
-    target_agent_role: str
-    target_worker_type: str
+    requested_agent_role: str
+    resolved_agent_role: str
+    system_identity_ref: str
+    selected_model_backend: str
+    selected_worker_type: str
     target_machine: str
+    target_surface: str
     world_ref: str
     folder_ref: str
     folder_path: str
@@ -151,6 +205,8 @@ class ScopedContextPackage:
     known_facts: tuple[str, ...]
     missing_items: tuple[str, ...]
     blocked_items: tuple[str, ...]
+    allowed_adapters: tuple[str, ...]
+    forbidden_adapters: tuple[str, ...]
     allowed_actions: tuple[str, ...]
     forbidden_actions: tuple[str, ...]
     validation_expectations: tuple[str, ...]
@@ -158,6 +214,7 @@ class ScopedContextPackage:
     sensitivity_class: str
     token_budget_hint: str
     truth_boundary: str
+    authority_boundary: dict[str, bool]
     visual_artifact_needed: bool
     visual_render_context_ref: str
     next_safe_move: str
@@ -206,9 +263,13 @@ class ContextExclusion:
 @dataclass(frozen=True)
 class RoleContextPolicy:
     policy_id: str
-    target_agent_role: str
+    agent_role: str
+    default_model_backends: tuple[str, ...]
+    allowed_worker_backends: tuple[str, ...]
     allowed_context_types: tuple[str, ...]
     forbidden_context_types: tuple[str, ...]
+    allowed_adapters: tuple[str, ...]
+    forbidden_adapters: tuple[str, ...]
     allowed_actions: tuple[str, ...]
     forbidden_actions: tuple[str, ...]
     proof_requirements: tuple[str, ...]
@@ -298,6 +359,8 @@ def build_contract() -> ScopedContextPackageCompilerContract:
         contract_id="scoped_context_package_compiler_contract_v0",
         doctrine=(
             "Agents receive scoped context packages, not vague memory.",
+            "Agent role, model backend, worker backend, and allowed adapters are separate fields.",
+            "Codex, Gemini/Agy, and Ollama are backends or workers, not OpenClaw crew agents.",
             "Packages are generated from graph/projection coordinates, not guessed folder names alone.",
             "Packages include relevant topic slice summaries and refs only.",
             "Ambiguous scope is flagged instead of overfilling context.",
@@ -325,10 +388,12 @@ def build_contract() -> ScopedContextPackageCompilerContract:
             "Stale context must be flagged.",
         ),
         role_specific_packaging_policy=(
-            "Mac Codex receives Mac app/UI validation expectations.",
-            "PC Codex receives pytest/export/read-model validation expectations.",
-            "Gemini/Agy receives read-only audit scope with no edit or commit authority.",
-            "Cassandra, Guardian, Niles, and visual/render agents receive role-specific context only.",
+            "Crew agents are Cassandra, Chief, Guardian, Hermes, and Niles.",
+            "OpenClaw System is a neutral system identity, not a persona agent.",
+            "Mac Codex and PC Codex are worker backend surfaces with validation expectations.",
+            "Gemini/Agy and Ollama are model or advisory backends, not crew agents.",
+            "Cassandra, Guardian, Hermes, Chief, and Niles receive role-specific context only.",
+            "Allowed adapters must be explicit and capability-backed.",
         ),
         exclusion_policy=(
             "Every package lists what is included and excluded.",
@@ -471,88 +536,84 @@ def build_exclusions() -> tuple[ContextExclusion, ...]:
 def build_role_policies() -> tuple[RoleContextPolicy, ...]:
     return (
         RoleContextPolicy(
-            "role_policy_mac_codex",
-            "MAC_CODEX",
-            ("Mac UI/app context", "Mac package refs", "screenshot refs", "visual workspace requests", "Mac validation expectations"),
-            ("Repo A canonical mutation authority", "raw secrets", "Gmail/Coupa/browser actions", "raw private bodies"),
-            ("Swift/Mac app implementation context only", "Xcode build/run validation", "screenshot validation"),
-            ("Repo A backend mutation", "external account access", "credential handling", "live send/submit"),
-            ("Mac build/run result", "screenshot/readback when UI changes"),
-            ("operator approval for any future external app automation",),
-            "focused Mac UI package",
-            "Package Mac context only and keep backend authority excluded.",
+            policy_id="role_policy_chief",
+            agent_role="CHIEF",
+            default_model_backends=("OPENAI_GPT", "GEMINI_PRO", "LOCAL_OLLAMA", "OPENAI_CODEX"),
+            allowed_worker_backends=("PC_CODEX_WORKER", "MAC_CODEX_WORKER", "GEMINI_AGY_ADVISORY_WORKER", "MANUAL_OPERATOR"),
+            allowed_context_types=("status", "routing", "next safe move", "workflow readiness", "build/package handoff"),
+            forbidden_context_types=("raw secrets", "raw private bodies", "unscoped external account contents"),
+            allowed_adapters=("CAPABILITY_INDEX_LOOKUP", "MACHINE_INTENT_VALIDATOR", "VISUAL_EVENT_PACKAGE_ADAPTER", "SPOKEN_RESPONSE_PACKET_ADAPTER"),
+            forbidden_adapters=("OUTBOUND_MESSAGE_SEND_GATE", "PORTAL_TRANSACTION_SUBMIT_GATE", "MAC_LOCAL_TTS_RENDERER"),
+            allowed_actions=("route/status package context", "read-model validation planning", "ask clarification"),
+            forbidden_actions=("external account access", "credential handling", "live send/submit", "self-authorize execution"),
+            proof_requirements=("readback refs", "receipt refs where claims depend on proof"),
+            approval_requirements=("operator approval for destructive or external actions",),
+            default_token_budget_hint="concise operations package",
+            next_safe_move="Use Chief for routing/status while keeping worker/backend authority separate.",
         ),
         RoleContextPolicy(
-            "role_policy_pc_codex",
-            "PC_CODEX",
-            ("backend read-model refs", "Python modules", "export scripts", "pytest requirements", "generated read-model refs"),
-            ("Mac Swift editing unless routed", "external account/action context", "raw private bodies", "raw secrets"),
-            ("Repo A backend implementation context", "pytest", "export/read-model validation", "authority scans"),
-            ("Mac app UI changes", "external actions", "credential handling"),
-            ("focused pytest", "export command", "JSON parse", "secret/PII scan", "authority scan"),
-            ("operator approval for destructive or external actions",),
-            "focused backend package",
-            "Package backend context with validation expectations.",
+            policy_id="role_policy_cassandra",
+            agent_role="CASSANDRA",
+            default_model_backends=("OPENAI_GPT", "GEMINI_PRO", "GEMINI_FLASH", "CLAUDE", "LOCAL_OLLAMA"),
+            allowed_worker_backends=("REPO_B_WRAPPED_WORKER", "PC_CODEX_WORKER", "MANUAL_OPERATOR"),
+            allowed_context_types=("communication context", "draft scope", "recipient candidate", "approval boundary", "artifact refs"),
+            forbidden_context_types=("send authority", "raw credentials", "raw private evidence bodies", "unrelated ledger history"),
+            allowed_adapters=("OUTBOUND_MESSAGE_DRAFT_ADAPTER", "CAPABILITY_INDEX_LOOKUP"),
+            forbidden_adapters=("OUTBOUND_MESSAGE_SEND_GATE", "PORTAL_TRANSACTION_SUBMIT_GATE"),
+            allowed_actions=("draft language for review", "surface missing inputs"),
+            forbidden_actions=("send", "create live email draft", "attach file", "approval bypass"),
+            proof_requirements=("draft review packet", "artifact/ref proof", "approval posture"),
+            approval_requirements=("Guardian approval before external send/submit",),
+            default_token_budget_hint="drafting package",
+            next_safe_move="Package communications context only and keep send authority excluded.",
         ),
         RoleContextPolicy(
-            "role_policy_gemini_agy",
-            "GEMINI_AGY",
-            ("read-only summaries", "contract refs", "audit questions", "design/taste targets"),
-            ("secrets", "raw bodies", "write authority", "commit authority", "execution authority"),
-            ("read-only audit", "prompt shaping", "strategy critique"),
-            ("file edits", "commits", "tool execution", "external action"),
-            ("written audit findings only",),
-            ("operator approval before any implementation prompt is sent to another worker",),
-            "read-only audit package",
-            "Keep Gemini/Agy package read-only with explicit no edit/commit boundary.",
+            policy_id="role_policy_guardian",
+            agent_role="GUARDIAN",
+            default_model_backends=("LOCAL_OLLAMA", "OPENAI_GPT", "GEMINI_PRO"),
+            allowed_worker_backends=("MANUAL_OPERATOR", "PC_CODEX_WORKER"),
+            allowed_context_types=("requested action", "risk", "proof refs", "protected refs", "missing approvals", "authority boundary"),
+            forbidden_context_types=("raw secret reveal", "irrelevant chat history", "unscoped private bodies"),
+            allowed_adapters=("PROTECTED_SECRET_INTAKE_ADAPTER", "MACHINE_INTENT_VALIDATOR", "CAPABILITY_INDEX_LOOKUP"),
+            forbidden_adapters=("OUTBOUND_MESSAGE_SEND_GATE", "PORTAL_TRANSACTION_SUBMIT_GATE"),
+            allowed_actions=("approval boundary review", "risk assessment", "fail-closed blocker review"),
+            forbidden_actions=("secret reveal", "external action execution", "approval bypass", "self-approval"),
+            proof_requirements=("proof refs", "risk refs", "operator intent summary"),
+            approval_requirements=("explicit approval rail required before external action",),
+            default_token_budget_hint="approval review package",
+            next_safe_move="Reference protected refs but do not reveal protected values.",
         ),
         RoleContextPolicy(
-            "role_policy_cassandra",
-            "CASSANDRA",
-            ("communication context", "draft scope", "recipient candidate", "approval boundary", "artifact refs"),
-            ("send authority", "raw credentials", "raw private evidence bodies", "unrelated ledger history"),
-            ("draft language for review", "surface missing inputs"),
-            ("send", "create live email draft", "attach file", "approval bypass"),
-            ("draft review packet", "artifact/ref proof", "approval posture"),
-            ("Guardian approval before external send/submit"),
-            "drafting package",
-            "Package communications context only and keep send authority excluded.",
+            policy_id="role_policy_niles",
+            agent_role="NILES",
+            default_model_backends=("OPENAI_GPT", "GEMINI_PRO", "GEMINI_FLASH", "CLAUDE", "LOCAL_OLLAMA"),
+            allowed_worker_backends=("LOCAL_OLLAMA_INTERPRETER", "MANUAL_OPERATOR"),
+            allowed_context_types=("music/creative context", "X32 topic slices", "show-file source refs", "production notes summaries"),
+            forbidden_context_types=("finance/client ledgers unless explicitly allowed", "raw secrets", "unrelated private data"),
+            allowed_adapters=("FILE_METADATA_INTAKE_ADAPTER", "CAPABILITY_INDEX_LOOKUP"),
+            forbidden_adapters=("OUTBOUND_MESSAGE_SEND_GATE", "PORTAL_TRANSACTION_SUBMIT_GATE"),
+            allowed_actions=("music context review", "production-oriented suggestions", "resume scoped thread later"),
+            forbidden_actions=("finance/client action", "credential handling", "external send/submit", "DAW/file mutation without future gate"),
+            proof_requirements=("source/thread refs for any claim",),
+            approval_requirements=("operator approval for DAW/media-app mutation in future lanes",),
+            default_token_budget_hint="music production package",
+            next_safe_move="Keep Niles inside music/creative scope unless operator expands it.",
         ),
         RoleContextPolicy(
-            "role_policy_guardian",
-            "GUARDIAN",
-            ("requested action", "risk", "proof refs", "protected refs", "missing approvals", "authority boundary"),
-            ("raw secret reveal", "irrelevant chat history", "unscoped private bodies"),
-            ("approval boundary review", "risk assessment", "fail-closed blocker review"),
-            ("secret reveal", "external action execution", "approval bypass"),
-            ("proof refs", "risk refs", "operator intent summary"),
-            ("explicit approval rail required before external action"),
-            "approval review package",
-            "Reference protected refs but do not reveal protected values.",
-        ),
-        RoleContextPolicy(
-            "role_policy_niles",
-            "NILES",
-            ("music/creative context", "X32 topic slices", "show-file source refs", "production notes summaries"),
-            ("finance/client ledgers unless explicitly allowed", "raw secrets", "unrelated private data"),
-            ("music context review", "production-oriented suggestions", "resume scoped thread later"),
-            ("finance/client action", "credential handling", "external send/submit"),
-            ("source/thread refs for any claim",),
-            ("operator approval for DAW/media-app mutation in future lanes"),
-            "music production package",
-            "Keep Niles inside music/creative scope unless operator expands it.",
-        ),
-        RoleContextPolicy(
-            "role_policy_visual_render_agent",
-            "VISUAL_RENDER_AGENT",
-            ("truth payload", "source refs", "layout/device hints", "missing/locked facts", "proof refs"),
-            ("raw private bodies", "secrets", "unverified completion claims", "style-only prompts"),
-            ("prepare future visual card/spec context", "prioritize factual detail"),
-            ("live render spawn", "model/image generation", "external action"),
-            ("source truth refs", "readback refs"),
-            ("operator approval for any future live render/generation rail"),
-            "visual truth package",
-            "Detail/factual priority outranks style priority.",
+            policy_id="role_policy_hermes",
+            agent_role="HERMES",
+            default_model_backends=("GEMINI_AGY", "GEMINI_PRO", "OPENAI_GPT", "CLAUDE", "LOCAL_OLLAMA"),
+            allowed_worker_backends=("GEMINI_AGY_ADVISORY_WORKER", "PC_CODEX_WORKER", "MANUAL_OPERATOR"),
+            allowed_context_types=("audit", "systems architecture", "strategy", "pattern detection", "visual/status surface critique"),
+            forbidden_context_types=("secrets", "raw bodies", "write authority", "commit authority", "execution authority"),
+            allowed_adapters=("CAPABILITY_INDEX_LOOKUP", "MACHINE_INTENT_VALIDATOR", "VISUAL_EVENT_PACKAGE_ADAPTER"),
+            forbidden_adapters=("OUTBOUND_MESSAGE_SEND_GATE", "PORTAL_TRANSACTION_SUBMIT_GATE"),
+            allowed_actions=("read-only audit", "strategy critique", "architecture risk readback"),
+            forbidden_actions=("file edits", "commits", "tool execution", "external action", "replacing Guardian"),
+            proof_requirements=("written audit findings only",),
+            approval_requirements=("operator/developer review before implementation work is routed",),
+            default_token_budget_hint="read-only audit package",
+            next_safe_move="Keep Hermes advisory; route implementation through deterministic build gates.",
         ),
     )
 
@@ -560,9 +621,13 @@ def build_role_policies() -> tuple[RoleContextPolicy, ...]:
 def _package(
     context_package_id: str,
     source_chat_ref: str,
-    target_agent_role: str,
-    target_worker_type: str,
+    requested_agent_role: str,
+    resolved_agent_role: str,
+    system_identity_ref: str,
+    selected_model_backend: str,
+    selected_worker_type: str,
     target_machine: str,
+    target_surface: str,
     world_ref: str,
     folder_ref: str,
     folder_path: str,
@@ -579,6 +644,8 @@ def _package(
     known_facts: tuple[str, ...] = (),
     missing_items: tuple[str, ...] = (),
     blocked_items: tuple[str, ...] = (),
+    allowed_adapters: tuple[str, ...] = (),
+    forbidden_adapters: tuple[str, ...] = (),
     allowed_actions: tuple[str, ...] = (),
     forbidden_actions: tuple[str, ...] = (),
     validation_expectations: tuple[str, ...] = (),
@@ -592,9 +659,13 @@ def _package(
     return ScopedContextPackage(
         context_package_id=context_package_id,
         source_chat_ref=source_chat_ref,
-        target_agent_role=target_agent_role,
-        target_worker_type=target_worker_type,
+        requested_agent_role=requested_agent_role,
+        resolved_agent_role=resolved_agent_role,
+        system_identity_ref=system_identity_ref,
+        selected_model_backend=selected_model_backend,
+        selected_worker_type=selected_worker_type,
         target_machine=target_machine,
+        target_surface=target_surface,
         world_ref=world_ref,
         folder_ref=folder_ref,
         folder_path=folder_path,
@@ -610,6 +681,8 @@ def _package(
         known_facts=known_facts,
         missing_items=missing_items,
         blocked_items=blocked_items,
+        allowed_adapters=allowed_adapters,
+        forbidden_adapters=forbidden_adapters,
         allowed_actions=allowed_actions,
         forbidden_actions=forbidden_actions,
         validation_expectations=validation_expectations,
@@ -617,6 +690,7 @@ def _package(
         sensitivity_class=sensitivity_class,
         token_budget_hint=token_budget_hint,
         truth_boundary="Truth comes from cited receipts/readbacks and source refs, not from summary text.",
+        authority_boundary=AUTHORITY_BOUNDARY,
         visual_artifact_needed=visual_artifact_needed,
         visual_render_context_ref=visual_render_context_ref,
         next_safe_move=next_safe_move,
@@ -628,9 +702,13 @@ def build_packages() -> tuple[ScopedContextPackage, ...]:
         _package(
             "context_package_mac_codex_chat_surface",
             "chat_ref_continue_chat_surface_work",
-            "MAC_CODEX",
-            "MAC_CODEX",
+            "CHIEF",
+            "CHIEF",
+            "UNKNOWN_FAIL_CLOSED",
+            "OPENAI_CODEX",
+            "MAC_CODEX_WORKER",
             "MAC",
+            "mission_control_mac_app",
             "build",
             "mission_control_chat_surface",
             "build/mission_control/chat_surface",
@@ -645,6 +723,8 @@ def build_packages() -> tuple[ScopedContextPackage, ...]:
             known_facts=("Mission Control chat surface is Mac-side work.", "Cards and composer behavior belong to Mac Codex."),
             missing_items=("current Mac build result", "current screenshot proof after UI changes"),
             blocked_items=("Repo A backend mutation", "external account action"),
+            allowed_adapters=(),
+            forbidden_adapters=("OUTBOUND_MESSAGE_SEND_GATE", "PORTAL_TRANSACTION_SUBMIT_GATE", "MAC_LOCAL_TTS_RENDERER"),
             allowed_actions=("Mac UI implementation context", "Xcode build/run validation", "screenshot validation"),
             forbidden_actions=("Repo A backend mutation", "credential handling", "external send/submit"),
             validation_expectations=("Xcode build/run validation", "screenshot validation", "Mac-local UI inspection if approved"),
@@ -655,9 +735,13 @@ def build_packages() -> tuple[ScopedContextPackage, ...]:
         _package(
             "context_package_pc_codex_chat_request_processor",
             "chat_ref_build_bounded_chat_request_processor",
-            "PC_CODEX",
-            "PC_CODEX",
+            "CHIEF",
+            "CHIEF",
+            "UNKNOWN_FAIL_CLOSED",
+            "OPENAI_CODEX",
+            "PC_CODEX_WORKER",
             "PC_WSL",
+            "repo_a_backend",
             "build",
             "openclaw_backend_chat_router",
             "build/openclaw/backend/chat_router",
@@ -672,6 +756,8 @@ def build_packages() -> tuple[ScopedContextPackage, ...]:
             known_facts=("PC Codex owns Repo A backend/read-model work.", "Processor output must be operator-readable."),
             missing_items=("latest fixture or request file when running live later",),
             blocked_items=("Mac Swift edits", "external actions", "model/tool execution unless future approved"),
+            allowed_adapters=("CAPABILITY_INDEX_LOOKUP", "MACHINE_INTENT_VALIDATOR"),
+            forbidden_adapters=("OUTBOUND_MESSAGE_SEND_GATE", "PORTAL_TRANSACTION_SUBMIT_GATE", "MAC_LOCAL_TTS_RENDERER"),
             allowed_actions=("Python/read-model implementation context", "export command validation", "focused pytest"),
             forbidden_actions=("Mac Swift changes", "email/Coupa/browser actions", "credential handling"),
             validation_expectations=("pytest", "export summary", "JSON parse", "secret/PII scan", "authority scan", "git diff checks"),
@@ -680,9 +766,13 @@ def build_packages() -> tuple[ScopedContextPackage, ...]:
         _package(
             "context_package_gemini_agy_card_contract_audit",
             "chat_ref_audit_card_contract_reuse",
+            "HERMES",
+            "HERMES",
+            "UNKNOWN_FAIL_CLOSED",
             "GEMINI_AGY",
-            "GEMINI_AGY",
+            "GEMINI_AGY_ADVISORY_WORKER",
             "EXTERNAL_MODEL",
+            "architecture_audit",
             "build",
             "mission_control_chat_surface",
             "build/mission_control/chat_surface",
@@ -695,6 +785,8 @@ def build_packages() -> tuple[ScopedContextPackage, ...]:
             known_facts=("Gemini/Agy is read-only scout/audit/prompt shaping.",),
             missing_items=("operator decision on whether to implement audit findings",),
             blocked_items=("file edits", "commits", "live execution"),
+            allowed_adapters=("CAPABILITY_INDEX_LOOKUP",),
+            forbidden_adapters=("OUTBOUND_MESSAGE_SEND_GATE", "PORTAL_TRANSACTION_SUBMIT_GATE"),
             allowed_actions=("read-only audit", "strategy critique", "prompt shaping"),
             forbidden_actions=("file edits", "commits", "tool execution", "external action"),
             validation_expectations=("written audit only", "no edit/commit boundary repeated"),
@@ -705,8 +797,12 @@ def build_packages() -> tuple[ScopedContextPackage, ...]:
             "context_package_niles_x32_routing",
             "chat_ref_niles_pull_x32_routing",
             "NILES",
+            "NILES",
+            "UNKNOWN_FAIL_CLOSED",
             "LOCAL_OLLAMA",
+            "LOCAL_OLLAMA_INTERPRETER",
             "LOCAL_ONLY",
+            "music_project_context",
             "music",
             "x32_routing",
             "music/live_music/x32/routing",
@@ -720,6 +816,8 @@ def build_packages() -> tuple[ScopedContextPackage, ...]:
             known_facts=("X32 routing context belongs to music/live_music/x32/routing.", "Prior thread is included as compact highlight only."),
             missing_items=("current hardware/session proof", "operator-specific objective for the next X32 action"),
             blocked_items=("DAW/media-app mutation", "finance/client data"),
+            allowed_adapters=("FILE_METADATA_INTAKE_ADAPTER", "CAPABILITY_INDEX_LOOKUP"),
+            forbidden_adapters=("OUTBOUND_MESSAGE_SEND_GATE", "PORTAL_TRANSACTION_SUBMIT_GATE"),
             allowed_actions=("music context review", "production-oriented suggestions"),
             forbidden_actions=("finance/client ledger access", "external action", "credential handling"),
             validation_expectations=("source/thread refs for any claim",),
@@ -731,7 +829,11 @@ def build_packages() -> tuple[ScopedContextPackage, ...]:
             "chat_ref_capital_hilton_invoice_draft",
             "CASSANDRA",
             "CASSANDRA",
-            "LOCAL_ONLY",
+            "UNKNOWN_FAIL_CLOSED",
+            "OPENAI_GPT",
+            "PC_CODEX_WORKER",
+            "PC_WSL",
+            "outbound_message_draft",
             "finance",
             "capital_hilton_invoices",
             "finance/capital_hilton/invoices",
@@ -747,6 +849,8 @@ def build_packages() -> tuple[ScopedContextPackage, ...]:
             known_facts=("Companion invoice and Coupa/PO payment rail are draft workflow context.", "Annette is a recipient candidate, not confirmed truth."),
             missing_items=("confirmed recipient", "final artifact hash", "Guardian approval", "send/submit receipts"),
             blocked_items=("send authority", "live email draft", "attachment", "Coupa access/submit"),
+            allowed_adapters=("OUTBOUND_MESSAGE_DRAFT_ADAPTER", "CAPABILITY_INDEX_LOOKUP"),
+            forbidden_adapters=("OUTBOUND_MESSAGE_SEND_GATE", "PORTAL_TRANSACTION_SUBMIT_GATE"),
             allowed_actions=("draft language for review", "surface missing inputs"),
             forbidden_actions=("send", "create live email draft", "attach file", "approval bypass"),
             validation_expectations=("draft review packet", "approval boundary preserved", "no external action scan"),
@@ -762,7 +866,11 @@ def build_packages() -> tuple[ScopedContextPackage, ...]:
             "chat_ref_guardian_capital_hilton_approval",
             "GUARDIAN",
             "GUARDIAN",
+            "UNKNOWN_FAIL_CLOSED",
+            "LOCAL_OLLAMA",
+            "MANUAL_OPERATOR",
             "LOCAL_ONLY",
+            "approval_boundary",
             "finance",
             "capital_hilton_invoices",
             "finance/capital_hilton/invoices",
@@ -777,6 +885,8 @@ def build_packages() -> tuple[ScopedContextPackage, ...]:
             known_facts=("External send/submit requires approval.", "Proof refs are not completion receipts."),
             missing_items=("Guardian approval receipt", "operator approval receipt", "artifact hash", "send/submit receipts"),
             blocked_items=("email send", "Coupa submit", "secret reveal"),
+            allowed_adapters=("PROTECTED_SECRET_INTAKE_ADAPTER", "MACHINE_INTENT_VALIDATOR"),
+            forbidden_adapters=("OUTBOUND_MESSAGE_SEND_GATE", "PORTAL_TRANSACTION_SUBMIT_GATE"),
             allowed_actions=("approval boundary review", "risk assessment", "fail-closed blocker review"),
             forbidden_actions=("secret reveal", "external action execution", "approval bypass"),
             validation_expectations=("proof refs present", "authority boundary false", "approval missing status visible"),
@@ -788,9 +898,13 @@ def build_packages() -> tuple[ScopedContextPackage, ...]:
         _package(
             "context_package_visual_invoice_workflow",
             "chat_ref_visual_invoice_workflow_picture",
-            "VISUAL_RENDER_AGENT",
-            "VISUAL_RENDER_AGENT",
-            "LOCAL_ONLY",
+            "CHIEF",
+            "CHIEF",
+            "UNKNOWN_FAIL_CLOSED",
+            "FUTURE_PROVIDER",
+            "MAC_CODEX_WORKER",
+            "MAC",
+            "mac_visual_workspace",
             "finance",
             "capital_hilton_invoices",
             "finance/capital_hilton/invoices",
@@ -805,6 +919,8 @@ def build_packages() -> tuple[ScopedContextPackage, ...]:
             known_facts=("Visual should show workflow status, not claim invoice sent.",),
             missing_items=("proof receipts", "final artifact hash", "approval receipt"),
             blocked_items=("live render spawn", "model/image generation", "external action"),
+            allowed_adapters=("VISUAL_EVENT_PACKAGE_ADAPTER", "CAPABILITY_INDEX_LOOKUP"),
+            forbidden_adapters=("OUTBOUND_MESSAGE_SEND_GATE", "PORTAL_TRANSACTION_SUBMIT_GATE", "MAC_LOCAL_TTS_RENDERER"),
             allowed_actions=("prepare future visual card/spec context", "prioritize factual detail"),
             forbidden_actions=("live render spawn", "style-only prompt", "completion claim without proof"),
             validation_expectations=("source truth refs present", "detail priority outranks style priority"),
@@ -818,9 +934,13 @@ def build_packages() -> tuple[ScopedContextPackage, ...]:
         _package(
             "context_package_ambiguous_keep_going",
             "chat_ref_keep_going_with_that_thing",
-            "UNKNOWN_NEEDS_ROUTING",
-            "UNKNOWN_NEEDS_ROUTING",
+            "UNKNOWN_FAIL_CLOSED",
+            "UNKNOWN_FAIL_CLOSED",
+            "UNKNOWN_FAIL_CLOSED",
+            "UNKNOWN_FAIL_CLOSED",
+            "UNKNOWN_FAIL_CLOSED",
             "UNKNOWN",
+            "unknown",
             "unknown",
             "unknown",
             "unknown",
@@ -831,6 +951,8 @@ def build_packages() -> tuple[ScopedContextPackage, ...]:
             known_facts=("Operator request is ambiguous.",),
             missing_items=("which thread to resume", "which world/folder to use", "whether to start new work"),
             blocked_items=("agent dispatch", "broad context stuffing", "cross-scope query"),
+            allowed_adapters=(),
+            forbidden_adapters=ADAPTER_CLASSES,
             allowed_actions=("ask clarification", "offer likely resume options from safe refs later"),
             forbidden_actions=("stuff all recent threads into context", "dispatch worker", "guess scope"),
             validation_expectations=("ambiguity visible", "how-to-clarify next question"),
@@ -851,7 +973,7 @@ def build_visual_artifact_needs() -> tuple[ContextPackageVisualArtifactNeed, ...
             source_truth_refs=("receipt_swiftui_task_history", "source_ref_screenshots_metadata"),
             source_context_refs=("context_package_mac_codex_chat_surface",),
             target_surface="mac_chat",
-            renderer_route_hint="MAC_CODEX screenshot validation later",
+            renderer_route_hint="MAC_CODEX_WORKER screenshot validation later",
             detail_priority="HIGH",
             style_priority="MEDIUM",
             next_safe_move="Request visual proof only after future Mac worker produces a safe screenshot/readback.",
@@ -865,7 +987,7 @@ def build_visual_artifact_needs() -> tuple[ContextPackageVisualArtifactNeed, ...
             source_truth_refs=("workflow_execution_package_compiler", "receipt_capital_hilton_delivery_facts"),
             source_context_refs=("context_package_visual_invoice_workflow", "topic_slice_capital_hilton_invoice_specific"),
             target_surface="mac_chat",
-            renderer_route_hint="VISUAL_RENDER_AGENT future gated package",
+            renderer_route_hint="MAC_CODEX_WORKER future visual workspace package",
             detail_priority="HIGH",
             style_priority="LOW",
             next_safe_move="Do not spawn renderer; keep visual context ready for future gated lane.",
@@ -889,6 +1011,15 @@ def build_visual_artifact_needs() -> tuple[ContextPackageVisualArtifactNeed, ...
 
 def build_blockers() -> tuple[ContextPackageBlocker, ...]:
     details = {
+        "AGENT_BACKEND_CONFLATED": ("A package uses one field for agent role and backend/worker identity.", "Split resolved_agent_role, selected_model_backend, and selected_worker_type."),
+        "CODEX_USED_AS_AGENT": ("Codex appears as a resolved agent role.", "Use CHIEF or HERMES as agent and PC_CODEX_WORKER or MAC_CODEX_WORKER as worker."),
+        "GEMINI_USED_AS_AGENT": ("Gemini/Agy appears as a resolved agent role.", "Use HERMES as agent and GEMINI_AGY_ADVISORY_WORKER or GEMINI_AGY as backend."),
+        "OLLAMA_USED_AS_AGENT": ("Ollama appears as a resolved agent role.", "Use the correct agent role and LOCAL_OLLAMA as model backend."),
+        "MODEL_BACKEND_GRANTED_AUTHORITY": ("A selected model backend grants action authority.", "Strip authority; model output stays candidate until deterministic validation."),
+        "WORKER_BACKEND_GRANTED_AUTHORITY": ("A selected worker backend grants action authority.", "Strip authority; packages must carry explicit authority boundary."),
+        "TOOL_GRANTED_WITHOUT_CAPABILITY": ("An adapter/tool is granted without a capability-backed allowance.", "Remove adapter or prove the capability binding first."),
+        "CLOUD_MODEL_SELECTED_FOR_PRIVATE_CONTEXT": ("A cloud model is selected for private context without privacy/credit gates.", "Use local/unknown fail-closed or sanitize through a governed package."),
+        "UNKNOWN_BACKEND_FAIL_CLOSED": ("A model or worker backend cannot be classified.", "Fail closed and ask for package scope clarification."),
         "RAW_TRANSCRIPT_INCLUDED": ("A package includes raw chat transcript text.", "Remove the transcript body and use topic summaries plus message refs."),
         "RAW_FILE_BODY_INCLUDED": ("A package includes raw file body content.", "Use source refs and safe metadata only."),
         "RAW_SECRET_INCLUDED": ("A package includes a raw secret value.", "Use protected token refs only."),
@@ -897,7 +1028,7 @@ def build_blockers() -> tuple[ContextPackageBlocker, ...]:
         "CONTEXT_TOO_BROAD": ("A package contains unrelated project history or whole-thread sludge.", "Narrow to relevant graph coordinates and topic slices."),
         "MISSING_COORDINATES": ("A package lacks graph/projection coordinates.", "Ask for world/folder/thread scope before packaging."),
         "AMBIGUOUS_SCOPE": ("The request has multiple possible scopes.", "Ask a clarifying question instead of stuffing everything into context."),
-        "AGENT_NOT_PERMITTED": ("The target role is not permitted for the context.", "Route to UNKNOWN_NEEDS_ROUTING or a permitted role."),
+        "AGENT_NOT_PERMITTED": ("The resolved agent role is not permitted for the context.", "Route to UNKNOWN_FAIL_CLOSED or a permitted crew agent."),
         "UNSAFE_ACTION_INCLUDED": ("The package grants forbidden action authority.", "Strip the action and preserve authority boundary."),
         "STALE_CONTEXT": ("A context ref is stale or not tied to current readback.", "Mark stale and ask for regeneration."),
         "VISUAL_ARTIFACT_WITHOUT_TRUTH_REFS": ("A visual artifact is requested without source truth refs.", "Block visual need until truth/readback refs exist."),
@@ -925,11 +1056,11 @@ def build_blockers() -> tuple[ContextPackageBlocker, ...]:
 def build_report() -> ScopedContextPackageElioperatorReport:
     return ScopedContextPackageElioperatorReport(
         report_id="scoped_context_package_elioperator_report_v0",
-        plain_summary="OpenClaw can package scoped context for a target agent without dumping whole threads or raw files.",
-        what_this_enables="Each worker gets current coordinates, relevant slice summaries, refs, known/missing/blocked items, authority boundaries, and exclusions.",
+        plain_summary="OpenClaw can package scoped context for a crew agent, selected backend, and selected worker without dumping whole threads or raw files.",
+        what_this_enables="Each package carries current coordinates, relevant slice summaries, refs, known/missing/blocked items, backend choices, worker surface, adapter lists, authority boundaries, and exclusions.",
         what_this_does_not_do_yet="It does not dispatch agents, call models, run retrieval, ingest transcripts/files, reveal secrets, or execute workflows.",
         how_context_packages_work="The compiler starts from graph/projection coordinates, narrows to relevant topic slices, and adds source/artifact/procedure/receipt/readback refs.",
-        how_agents_get_context="Future agents receive role-specific packages; Mac Codex, PC Codex, Gemini/Agy, Cassandra, Guardian, Niles, and visual agents get different scopes.",
+        how_agents_get_context="Crew agents receive role-specific packages; Codex, Gemini/Agy, and Ollama appear only as model or worker backends.",
         how_raw_threads_are_avoided="Prior threads are compact highlights with source/thread refs, not full transcripts.",
         how_files_and_secrets_are_protected="Source files are safe refs/metadata only, and secrets are token refs only.",
         how_truth_is_preserved="Known facts cite source refs, receipts, or readbacks, while summaries remain non-truth context.",
@@ -942,7 +1073,9 @@ def build_examples() -> dict[str, Any]:
         "mac_codex_chat_surface": {
             "operator_message": "Continue the chat surface work.",
             "package_ref": "context_package_mac_codex_chat_surface",
-            "expected_target": "MAC_CODEX",
+            "expected_agent_role": "CHIEF",
+            "expected_worker": "MAC_CODEX_WORKER",
+            "expected_model_backend": "OPENAI_CODEX",
             "expected_scope": "build/mission_control/chat_surface",
             "includes": ("SwiftUI task highlights", "screenshot refs", "Mac validation requirements", "recent app commits/readbacks"),
             "excludes": ("Repo A write authority", "Gmail/Coupa", "raw secrets"),
@@ -950,7 +1083,9 @@ def build_examples() -> dict[str, Any]:
         "pc_codex_chat_request_processor": {
             "operator_message": "Build the bounded chat request processor.",
             "package_ref": "context_package_pc_codex_chat_request_processor",
-            "expected_target": "PC_CODEX",
+            "expected_agent_role": "CHIEF",
+            "expected_worker": "PC_CODEX_WORKER",
+            "expected_model_backend": "OPENAI_CODEX",
             "expected_scope": "build/openclaw/backend/chat_router",
             "includes": ("router intake refs", "readback refs", "processor requirements", "tests"),
             "excludes": ("Mac Swift edits", "external actions"),
@@ -958,33 +1093,43 @@ def build_examples() -> dict[str, Any]:
         "gemini_agy_audit": {
             "operator_message": "Audit whether the chat-first pivot should reuse existing card contracts.",
             "package_ref": "context_package_gemini_agy_card_contract_audit",
-            "expected_target": "GEMINI_AGY",
+            "expected_agent_role": "HERMES",
+            "expected_worker": "GEMINI_AGY_ADVISORY_WORKER",
+            "expected_model_backend": "GEMINI_AGY",
             "read_only": True,
             "forbidden": ("write authority", "commits", "secrets"),
         },
         "niles_x32": {
             "operator_message": "Niles, pull up the X32 routing context.",
             "package_ref": "context_package_niles_x32_routing",
-            "expected_target": "NILES",
+            "expected_agent_role": "NILES",
+            "expected_worker": "LOCAL_OLLAMA_INTERPRETER",
+            "expected_model_backend": "LOCAL_OLLAMA",
             "expected_scope": "music/live_music/x32/routing",
             "excludes": ("finance/client/private unrelated data",),
         },
         "cassandra_capital_hilton": {
             "package_ref": "context_package_cassandra_capital_hilton_invoice",
-            "expected_target": "CASSANDRA",
+            "expected_agent_role": "CASSANDRA",
+            "expected_worker": "PC_CODEX_WORKER",
+            "expected_model_backend": "OPENAI_GPT",
             "expected_scope": "finance/capital_hilton/invoices",
             "includes": ("delivery workflow summary", "invoice artifact refs", "recipient candidate", "approval boundary"),
             "excludes": ("raw credentials", "send authority", "raw private evidence bodies"),
         },
         "guardian_approval": {
             "package_ref": "context_package_guardian_approval_boundary",
-            "expected_target": "GUARDIAN",
+            "expected_agent_role": "GUARDIAN",
+            "expected_worker": "MANUAL_OPERATOR",
+            "expected_model_backend": "LOCAL_OLLAMA",
             "includes": ("requested action", "risk", "proof refs", "protected refs", "missing approvals"),
             "excludes": ("irrelevant chat history",),
         },
         "visual_render_invoice_workflow": {
             "package_ref": "context_package_visual_invoice_workflow",
-            "expected_target": "VISUAL_RENDER_AGENT",
+            "expected_agent_role": "CHIEF",
+            "expected_worker": "MAC_CODEX_WORKER",
+            "expected_model_backend": "FUTURE_PROVIDER",
             "visual_need_ref": "visual_need_capital_hilton_invoice_workflow",
             "includes": ("truth-backed facts", "missing/locked items", "device/layout hints"),
             "excludes": ("raw transcript", "raw file bodies", "secrets"),
@@ -992,7 +1137,9 @@ def build_examples() -> dict[str, Any]:
         "ambiguous_keep_going_blocked": {
             "operator_message": "Keep going with that thing.",
             "package_ref": "context_package_ambiguous_keep_going",
-            "expected_target": "UNKNOWN_NEEDS_ROUTING",
+            "expected_agent_role": "UNKNOWN_FAIL_CLOSED",
+            "expected_worker": "UNKNOWN_FAIL_CLOSED",
+            "expected_model_backend": "UNKNOWN_FAIL_CLOSED",
             "active_blockers": ("MISSING_COORDINATES", "AMBIGUOUS_SCOPE", "AMBIGUOUS_SCOPE_NOT_FLAGGED"),
             "next_safe_move": "Ask whether to resume existing thread or start new one.",
         },
@@ -1024,16 +1171,40 @@ def _machine_proof(payload: dict[str, Any]) -> dict[str, Any]:
         "context_package_visual_artifact_need_model_present": True,
         "context_package_blocker_model_present": True,
         "scoped_context_package_elioperator_report_model_present": True,
-        "target_agent_roles_present": set(TARGET_AGENT_ROLES).issubset(payload["target_agent_roles"]),
+        "agent_roles_present": set(AGENT_ROLES).issubset(payload["agent_roles"]),
+        "system_identities_present": set(SYSTEM_IDENTITIES).issubset(payload["system_identities"]),
+        "model_backends_present": set(MODEL_BACKENDS).issubset(payload["model_backends"]),
+        "worker_backends_present": set(WORKER_BACKENDS).issubset(payload["worker_backends"]),
+        "adapter_classes_present": set(ADAPTER_CLASSES).issubset(payload["adapter_classes"]),
+        "codex_is_not_agent_role": "CODEX" not in payload["agent_roles"] and all(
+            package["resolved_agent_role"] not in {"MAC_CODEX", "PC_CODEX", "CODEX"}
+            for package in package_values
+        ),
+        "gemini_agy_is_not_agent_role": "GEMINI_AGY" not in payload["agent_roles"] and all(
+            package["resolved_agent_role"] != "GEMINI_AGY"
+            for package in package_values
+        ),
+        "ollama_is_not_agent_role": "LOCAL_OLLAMA" not in payload["agent_roles"] and all(
+            package["resolved_agent_role"] != "LOCAL_OLLAMA"
+            for package in package_values
+        ),
+        "packages_separate_agent_model_worker": all(
+            package["resolved_agent_role"] in AGENT_ROLES
+            and package["selected_model_backend"] in MODEL_BACKENDS
+            and package["selected_worker_type"] in WORKER_BACKENDS
+            for package in package_values
+        ),
         "source_ref_types_present": set(SOURCE_REF_TYPES).issubset(payload["source_ref_types"]),
         "exclusion_reasons_present": set(EXCLUSION_REASONS).issubset(payload["exclusion_reasons"]),
         "packages_have_coordinates": all(package["world_ref"] and package["folder_ref"] and package["thread_ref"] for package in package_values),
         "packages_from_graph_projection_coordinates_not_folder_guess": all(coord["coordinate_confidence"] for coord in coordinates),
         "topic_slices_narrowed_when_present": all(
-            package["topic_slice_refs"] or package["target_agent_role"] == "UNKNOWN_NEEDS_ROUTING"
+            package["topic_slice_refs"] or package["resolved_agent_role"] == "UNKNOWN_FAIL_CLOSED"
             for package in package_values
         ),
-        "ambiguous_scope_blocks_or_asks_clarification": packages["context_package_ambiguous_keep_going"]["target_agent_role"] == "UNKNOWN_NEEDS_ROUTING"
+        "ambiguous_scope_blocks_or_asks_clarification": packages["context_package_ambiguous_keep_going"]["resolved_agent_role"] == "UNKNOWN_FAIL_CLOSED"
+        and packages["context_package_ambiguous_keep_going"]["selected_model_backend"] == "UNKNOWN_FAIL_CLOSED"
+        and packages["context_package_ambiguous_keep_going"]["selected_worker_type"] == "UNKNOWN_FAIL_CLOSED"
         and "which thread to resume" in packages["context_package_ambiguous_keep_going"]["missing_items"],
         "all_packages_list_exclusions": all(package["excluded_context"] for package in package_values),
         "exclusions_have_reasons": all(exclusion["reason"] in EXCLUSION_REASONS for exclusion in exclusions),
@@ -1102,7 +1273,11 @@ def build_scoped_context_package_compiler_contract(*, generated_at: str | None =
         "contract_status": CONTRACT_STATUS,
         "generated_at": generated_at,
         "operator_markdown_mode": "ELIOPERATOR",
-        "target_agent_roles": TARGET_AGENT_ROLES,
+        "agent_roles": AGENT_ROLES,
+        "system_identities": SYSTEM_IDENTITIES,
+        "model_backends": MODEL_BACKENDS,
+        "worker_backends": WORKER_BACKENDS,
+        "adapter_classes": ADAPTER_CLASSES,
         "source_ref_types": SOURCE_REF_TYPES,
         "exclusion_reasons": EXCLUSION_REASONS,
         "blocker_types": BLOCKER_TYPES,
@@ -1120,7 +1295,8 @@ def build_scoped_context_package_compiler_contract(*, generated_at: str | None =
         "relationship_refs": {
             "world_project_memory_graph_projection": "graph/projection coordinates and folder paths",
             "conversation_topic_slicer_contract": "topic slice refs and message pointer ranges",
-            "worker_routing_intelligence": "target worker/role routing",
+            "agent_roster_model_backend_policy": "crew agent/model backend/worker backend ontology",
+            "worker_routing_intelligence": "worker routing compatibility source",
             "operator_file_metadata_intake": "safe source refs and metadata-only file posture",
             "operator_file_intake_visual_workspace_contract": "visual workspace and source-ref posture",
             "workflow_execution_package_compiler": "known/missing/blocked workflow context",
@@ -1146,7 +1322,7 @@ def format_operator_markdown(payload: dict[str, Any]) -> str:
     report = payload["scoped_context_package_elioperator_report"]
     packages = payload["scoped_context_packages_by_id"]
     package_lines = "\n".join(
-        f"- {package['context_package_id']}: {package['target_agent_role']} at {package['folder_path']}"
+        f"- {package['context_package_id']}: agent={package['resolved_agent_role']} model={package['selected_model_backend']} worker={package['selected_worker_type']} at {package['folder_path']}"
         for package in packages.values()
     )
     exclusion_lines = "\n".join(

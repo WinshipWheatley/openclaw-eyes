@@ -569,10 +569,10 @@
     {
       "finding_id": "legacy:scoped_context:target_agent_roles",
       "legacy_pattern": "TARGET_AGENT_ROLES",
-      "migration_status": "FOUND_LEGACY_COMPATIBILITY_NAME",
+      "migration_status": "NOT_PRESENT",
       "next_safe_move": "Treat as compatibility naming only; future schemas should use separated agent/model/worker fields.",
-      "recommended_replacement": "target_worker_type plus agent_role when an actual crew agent exists",
-      "risk": "Field name target_agent_role currently carries worker backends such as MAC_CODEX, PC_CODEX, and GEMINI_AGY.",
+      "recommended_replacement": "resolved_agent_role plus selected_model_backend and selected_worker_type",
+      "risk": "Legacy field name target_agent_role carried worker backends such as MAC_CODEX, PC_CODEX, and GEMINI_AGY before the scoped package migration.",
       "source_file": "scoped_context_package_compiler_contract.py"
     },
     {
@@ -608,7 +608,7 @@
     "all_live_authority_false": true,
     "codex_as_agent_bad_example_invalid": true,
     "codex_is_not_agent": true,
-    "content_hash": "sha256:863134c37053caa69ca1a3b9527a9555bd1245dc67fbffe11992fbe5732bd9b3",
+    "content_hash": "sha256:4518be3cfd8c1e31435694a25628ea38d1f1acc81078e363b6de1c68f1736e43",
     "credential_handling_performed": false,
     "external_action_performed": false,
     "five_required_agents_present": true,
@@ -1263,7 +1263,7 @@
     "legacy_migration_notes": [
       "openclaw_request_processor.py:CODEX_RESPONDER_FUTURE:FOUND_LEGACY_COMPATIBILITY_NAME",
       "openclaw_request_processor.py:GEMINI_RESPONDER_FUTURE:FOUND_LEGACY_COMPATIBILITY_NAME",
-      "scoped_context_package_compiler_contract.py:TARGET_AGENT_ROLES:FOUND_LEGACY_COMPATIBILITY_NAME",
+      "scoped_context_package_compiler_contract.py:TARGET_AGENT_ROLES:NOT_PRESENT",
       "worker_routing_intelligence.py:GEMINI_PATTERNS:FOUND_LEGACY_COMPATIBILITY_NAME",
       "intent_router.py:AGENT_PHRASES:FOUND_LEGACY_COMPATIBILITY_NAME",
       "agent_voice_response_layer.py:\"CODEX\":MIGRATED_TO_MODEL_BACKEND"

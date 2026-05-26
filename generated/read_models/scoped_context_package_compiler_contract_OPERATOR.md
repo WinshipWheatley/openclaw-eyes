@@ -4,7 +4,7 @@ ELIOPERATOR: Agents get scoped packages, not raw thread sludge.
 
 ## What This Enables
 
-Each worker gets current coordinates, relevant slice summaries, refs, known/missing/blocked items, authority boundaries, and exclusions.
+Each package carries current coordinates, relevant slice summaries, refs, known/missing/blocked items, backend choices, worker surface, adapter lists, authority boundaries, and exclusions.
 
 ## What This Does Not Do Yet
 
@@ -12,14 +12,14 @@ It does not dispatch agents, call models, run retrieval, ingest transcripts/file
 
 ## Packages
 
-- context_package_mac_codex_chat_surface: MAC_CODEX at build/mission_control/chat_surface
-- context_package_pc_codex_chat_request_processor: PC_CODEX at build/openclaw/backend/chat_router
-- context_package_gemini_agy_card_contract_audit: GEMINI_AGY at build/mission_control/chat_surface
-- context_package_niles_x32_routing: NILES at music/live_music/x32/routing
-- context_package_cassandra_capital_hilton_invoice: CASSANDRA at finance/capital_hilton/invoices
-- context_package_guardian_approval_boundary: GUARDIAN at finance/capital_hilton/invoices
-- context_package_visual_invoice_workflow: VISUAL_RENDER_AGENT at finance/capital_hilton/invoices
-- context_package_ambiguous_keep_going: UNKNOWN_NEEDS_ROUTING at unknown
+- context_package_mac_codex_chat_surface: agent=CHIEF model=OPENAI_CODEX worker=MAC_CODEX_WORKER at build/mission_control/chat_surface
+- context_package_pc_codex_chat_request_processor: agent=CHIEF model=OPENAI_CODEX worker=PC_CODEX_WORKER at build/openclaw/backend/chat_router
+- context_package_gemini_agy_card_contract_audit: agent=HERMES model=GEMINI_AGY worker=GEMINI_AGY_ADVISORY_WORKER at build/mission_control/chat_surface
+- context_package_niles_x32_routing: agent=NILES model=LOCAL_OLLAMA worker=LOCAL_OLLAMA_INTERPRETER at music/live_music/x32/routing
+- context_package_cassandra_capital_hilton_invoice: agent=CASSANDRA model=OPENAI_GPT worker=PC_CODEX_WORKER at finance/capital_hilton/invoices
+- context_package_guardian_approval_boundary: agent=GUARDIAN model=LOCAL_OLLAMA worker=MANUAL_OPERATOR at finance/capital_hilton/invoices
+- context_package_visual_invoice_workflow: agent=CHIEF model=FUTURE_PROVIDER worker=MAC_CODEX_WORKER at finance/capital_hilton/invoices
+- context_package_ambiguous_keep_going: agent=UNKNOWN_FAIL_CLOSED model=UNKNOWN_FAIL_CLOSED worker=UNKNOWN_FAIL_CLOSED at unknown
 
 ## Exclusions
 
