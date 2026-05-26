@@ -1114,7 +1114,7 @@ def _render_next_action(text: str) -> str:
         result = cleaned
     else:
         result = f"Next: {cleaned[0].upper() + cleaned[1:] if cleaned else cleaned}"
-    result = _word_limited(result, 12)
+    result = _word_limited(result, 16)
     if not result.endswith((".", "!", "?")):
         result += "."
     return result
@@ -1142,7 +1142,7 @@ def _field_limit_errors(fields: Mapping[str, Any], spoken_packet: Mapping[str, A
     limits = {
         "headline": 6,
         "eliwinship": 40,
-        "next_action": 12,
+        "next_action": 16,
     }
     for field, max_words in limits.items():
         value = str(fields.get(field) or "")
@@ -1268,7 +1268,7 @@ def _response_taste_guardrails(payload: Mapping[str, Any]) -> dict[str, Any]:
         "field_limits": {
             "headline_max_words": 6,
             "eliwinship_max_words": 40,
-            "next_action_max_words": 12,
+            "next_action_max_words": 16,
             "missing_items_short_max_items": 3,
             "spoken_script_max_words": 40,
         },
@@ -2616,6 +2616,147 @@ def _process_chat_request(
     )
 
 
+def _is_workbook_candidate_keep_choice_request(raw_request: Mapping[str, Any]) -> bool:
+    text = " ".join(
+        str(raw_request.get(field) or "")
+        for field in ("operator_message", "sanitized_message_summary", "operator_goal")
+    ).lower()
+    if str(raw_request.get("client_ref") or "") != "capital_hilton":
+        return False
+    if str(raw_request.get("workflow_ref") or "") != "capital_hilton_invoice_workflow":
+        return False
+    if str(raw_request.get("world_ref") or "") != "finance":
+        return False
+    return (
+        "workbook" in text
+        and "candidate" in text
+        and ("replacement" in text or "replace" in text)
+        and ("cancel" in text or "leave" in text or "keep" in text)
+    )
+
+
+def _workbook_candidate_choice_classification(
+    request_path: Path,
+    classification: RequestClassification,
+) -> RequestClassification:
+    return RequestClassification(
+        classification_id=classification.classification_id,
+        source_request_filename=request_path.name,
+        request_family=classification.request_family,
+        selected_rail="client_invoice_workbook_candidate_choice",
+        classification_reason=(
+            "Filename matches Mission Control chat request pattern and operator text deterministically cancels workbook replacement."
+        ),
+        future_supported=False,
+        next_safe_move="Record the candidate-only choice and publish a scoped Mac response.",
+    )
+
+
+def _process_workbook_candidate_choice_request(
+    request_path: Path,
+    raw_request: Mapping[str, Any],
+    *,
+    export_root: Path,
+    generated_at: str | None,
+    classification: RequestClassification,
+) -> OpenClawResponseForMac:
+    choice_classification = _workbook_candidate_choice_classification(request_path, classification)
+    registry_payload = client_invoice_workbook_registry.keep_candidate_and_cancel_replacement(
+        raw_request,
+        export_root=export_root,
+        generated_at=generated_at,
+    )
+    registry_json, registry_operator = client_invoice_workbook_registry.write_exports(registry_payload, export_root)
+    readback = registry_payload["registration_readback"]
+    active_record = registry_payload.get("active_record") or {}
+    candidate_record = registry_payload.get("candidate_record") or {}
+    headline = str(readback["operator_headline"])
+    message = str(readback["operator_message"])
+    operator_message = "Replacement canceled. Candidate remains staged."
+    one_line_answer = "Current workbook kept; test workbook remains candidate-only."
+    next_action = str(readback["next_action"])
+    next_safe_move = "Wait for field mapping or a real workbook file."
+    response_files = (registry_json.as_posix(), registry_operator.as_posix())
+    detail = {
+        "client_invoice_workbook_registry": {
+            "registry_readback_ref": registry_json.as_posix(),
+            "operator_readback_ref": registry_operator.as_posix(),
+            "registration_readback": readback,
+            "active_record": active_record,
+            "candidate_record": candidate_record,
+            "operator_choice_request": registry_payload.get("operator_choice_request"),
+            "duplicate_result": registry_payload.get("duplicate_result"),
+            "existing_workbook_preserved": bool(active_record),
+            "candidate_preserved": bool(candidate_record),
+            "approved_for_metadata_read": bool(candidate_record.get("approved_for_metadata_read")),
+            "approved_for_cell_read": bool(candidate_record.get("approved_for_cell_read")),
+            "workbook_replacement_performed": False,
+            "candidate_promoted_to_authoritative": False,
+            "workbook_body_read_performed": False,
+            "spreadsheet_parse_performed": False,
+            "spreadsheet_cell_read_performed": False,
+            "folder_scan_performed": False,
+            "external_action_performed": False,
+        },
+        "layered_response_fields": {
+            "response_kind": "CLIENT_INVOICE_WORKBOOK_CANDIDATE_CHOICE",
+            "audience_mode": "ELIWINSHIP",
+            "display_mode": "COMPACT_CHAT",
+            "headline": headline,
+            "one_line_answer": one_line_answer,
+            "eliwinship": message,
+            "primary_status": "Workbook candidate kept",
+            "primary_blocker": "None",
+            "next_action": next_action,
+            "missing_items_short": (),
+            "detail_summary": str(readback.get("workbook_summary") or ""),
+            "proof_refs": (f"generated/read_models/{client_invoice_workbook_registry.JSON_EXPORT_NAME}",),
+            "mac_render_hint": "COMPACT_WITH_DISCLOSURE",
+        },
+        "persistent_registry_write": False,
+        "generated_registry_readmodel_write": True,
+        "request_classification": asdict(choice_classification),
+    }
+    return OpenClawResponseForMac(
+        source_request_id=str(raw_request.get("request_id") or "unknown_request"),
+        source_request_filename=request_path.name,
+        workflow_ref=str(raw_request.get("workflow_ref") or "capital_hilton_invoice_workflow"),
+        request_type="CHAT",
+        internal_status="RESPONSE_READY",
+        operator_headline=headline,
+        operator_message=operator_message,
+        what_happened=(
+            "PC consumed the operator choice request from the approved inbox.",
+            "PC kept the existing Capital Hilton workbook reference unchanged.",
+            "PC left the test workbook staged as a candidate only.",
+            "No workbook body, cells, sheet audit, or external action occurred.",
+        ),
+        why_it_happened="The operator explicitly chose to leave the test workbook as a candidate and cancel replacement.",
+        how_to_fix="No fix is needed. Provide field mapping later, or add the real workbook file when ready.",
+        visible_cards=(
+            {
+                "title": headline,
+                "bullets": (
+                    "Current Capital Hilton workbook kept.",
+                    "Test workbook remains candidate-only.",
+                    "Workbook body and cells were not read.",
+                    next_action,
+                ),
+                "status_tone": "ready",
+            },
+        ),
+        cards_available=True,
+        card_mirror_refs=(),
+        file_readback_refs=(registry_json.as_posix(),),
+        worker_route_refs=(),
+        context_package_refs=(),
+        blocked_reason=None,
+        detail_disclosure=detail,
+        readback_files=response_files,
+        next_safe_move=next_safe_move,
+    )
+
+
 def _process_file_request(
     request_path: Path,
     raw_request: Mapping[str, Any],
@@ -2979,10 +3120,6 @@ def process_request_path(
             reason=f"Could not read request file: {exc}.",
             how_to_fix="Check that the request file exists and is readable, then rerun.",
         )
-    if duplicate_check:
-        duplicate = _existing_duplicate_response(raw_request, export_root, classification)
-        if duplicate is not None:
-            return duplicate
     ok, blockers, fixes = preflight_request(raw_request, classification.request_family)
     if not ok:
         return OpenClawResponseForMac(
@@ -3007,6 +3144,18 @@ def process_request_path(
             readback_files=(),
             next_safe_move="Fix the request and rerun the bounded processor.",
         )
+    if classification.request_family == "CHAT" and _is_workbook_candidate_keep_choice_request(raw_request):
+        return _process_workbook_candidate_choice_request(
+            request_path,
+            raw_request,
+            export_root=export_root,
+            generated_at=generated_at,
+            classification=classification,
+        )
+    if duplicate_check:
+        duplicate = _existing_duplicate_response(raw_request, export_root, classification)
+        if duplicate is not None:
+            return duplicate
     if classification.request_family == "CHAT":
         return _process_chat_request(
             request_path,

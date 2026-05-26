@@ -205,6 +205,28 @@ def _seed_workbook_registry(export_root: Path) -> None:
     workbook_registry.write_exports(payload, export_root)
 
 
+def _seed_workbook_registry_with_candidate(export_root: Path) -> dict:
+    _seed_workbook_registry(export_root)
+    replacement = workbook_registry.make_capital_hilton_fixture_request(created_at=FIXED_NOW)
+    replacement.update(
+        {
+            "request_id": "mission_control_file_intake_request_capital_hilton_replacement_workbook",
+            "file_display_name": "Capital Hilton replacement workbook.xlsx",
+            "mac_visible_path_ref": "fixture_path_ref:capital_hilton_replacement_workbook",
+            "idempotency_key": "client_invoice_workbook_registration_replacement_fixture",
+            "payload_hash": "fixture_hash_capital_hilton_replacement_workbook",
+        }
+    )
+    payload = workbook_registry.register_workbook_request(
+        replacement,
+        export_root=export_root,
+        generated_at=FIXED_NOW,
+        source_file_metadata_ref="generated/read_models/operator_file_metadata_readback.json",
+    )
+    workbook_registry.write_exports(payload, export_root)
+    return payload
+
+
 def _write_sheet_audit_request(path: Path, *, workbook_path: Path | None = None, schema: dict | None = None) -> dict:
     request = chat_intake.make_capital_hilton_fixture_request(created_at=FIXED_NOW)
     request.update(
@@ -1325,6 +1347,94 @@ def test_workbook_replacement_confirmation_publishes_scoped_response(tmp_path, c
     assert scoped["machine_proof"]["client_invoice_sheet_audit_used"] is False
     assert scoped["machine_proof"]["workbook_body_read_performed"] is False
     assert scoped["machine_proof"]["spreadsheet_cell_read_performed"] is False
+
+
+def test_workbook_candidate_cancel_choice_keeps_existing_and_publishes_scoped_response(tmp_path, capsys, monkeypatch):
+    inbox = tmp_path / "approved_inbox"
+    inbox.mkdir()
+    request_path = inbox / "mission_control_chat_request_capital_hilton_candidate_cancel.json"
+    request = _write_intent_request(
+        request_path,
+        message="Leave the test workbook as a candidate and cancel workbook replacement for now. Do not read or edit workbook cells.",
+        suffix="capital_hilton_candidate_cancel",
+    )
+    request["client_ref"] = "capital_hilton"
+    request["world_ref"] = "finance"
+    request["payload_hash"] = chat_intake.compute_request_payload_hash(request)
+    request_path.write_text(chat_intake.stable_json(request), encoding="utf-8")
+    export_root = tmp_path / "read_models"
+    response_dir = tmp_path / "responses"
+    monkeypatch.setattr(processor, "APPROVED_INBOX", inbox)
+    monkeypatch.setattr(processor, "DEFAULT_RESPONSE_DIR", response_dir)
+    candidate_payload = _seed_workbook_registry_with_candidate(export_root)
+    existing_ref = candidate_payload["registry"]["client_records"][0]["workbook_ref"]
+    candidate_ref = candidate_payload["candidate_record"]["workbook_ref"]
+
+    assert process_main(
+        [
+            "--file",
+            str(request_path),
+            "--export-root",
+            str(export_root),
+            "--generated-at",
+            FIXED_NOW,
+            "--format",
+            "json",
+        ]
+    ) == 0
+    response = json.loads(capsys.readouterr().out)
+    scoped = json.loads(_scoped_processor_response_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
+    latest = json.loads((response_dir / processor.LATEST_RESPONSE_EXPORT_NAME).read_text(encoding="utf-8"))
+    registry_payload = json.loads((export_root / "client_invoice_workbook_registry.json").read_text(encoding="utf-8"))
+
+    assert response["source_request_id"] == request["request_id"]
+    assert response["headline"] == "Workbook candidate kept"
+    assert response["eliwinship"] == (
+        "OpenClaw kept the current Capital Hilton workbook. The test workbook remains staged as a candidate only. "
+        "No workbook body or cells were read."
+    )
+    assert response["next_action"] == (
+        "Next: provide the invoice field mapping when you are ready, or add the real workbook file."
+    )
+    assert response["terminal"] is True
+    assert scoped["source_request_id"] == request["request_id"]
+    assert scoped["headline"] == "Workbook candidate kept"
+    assert latest["source_request_id"] == request["request_id"]
+    assert registry_payload["registration_readback"]["status"] == "WORKBOOK_CANDIDATE_KEPT"
+    assert registry_payload["registry"]["client_records"][0]["workbook_ref"] == existing_ref
+    assert registry_payload["candidate_record"]["workbook_ref"] == candidate_ref
+    assert registry_payload["candidate_record"]["workbook_status"] == "WORKBOOK_CANDIDATE"
+    assert registry_payload["candidate_record"]["approved_for_cell_read"] is False
+    assert scoped["machine_proof"]["client_invoice_audit_handoff_live_ready"] is False
+    assert scoped["machine_proof"]["client_invoice_sheet_audit_used"] is False
+    assert scoped["machine_proof"]["workbook_body_read_performed"] is False
+    assert scoped["machine_proof"]["spreadsheet_cell_read_performed"] is False
+    assert scoped["machine_proof"]["external_action_performed"] is False
+    assert scoped["machine_proof"]["candidate_promotion_performed"] is False
+    assert scoped["machine_proof"]["response_taste_passed"] is True
+
+    assert process_main(
+        [
+            "--file",
+            str(request_path),
+            "--export-root",
+            str(export_root),
+            "--generated-at",
+            FIXED_NOW,
+            "--format",
+            "json",
+        ]
+    ) == 0
+    rerun_response = json.loads(capsys.readouterr().out)
+    rerun_scoped = json.loads(_scoped_processor_response_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
+    rerun_latest = json.loads((response_dir / processor.LATEST_RESPONSE_EXPORT_NAME).read_text(encoding="utf-8"))
+
+    assert rerun_response["headline"] == "Workbook candidate kept"
+    assert rerun_response["internal_status"] == "RESPONSE_READY"
+    assert rerun_scoped["headline"] == "Workbook candidate kept"
+    assert rerun_scoped["machine_proof"]["response_taste_passed"] is True
+    assert rerun_latest["source_request_id"] == request["request_id"]
+    assert rerun_latest["headline"] == "Workbook candidate kept"
 
 
 def test_processor_does_not_publish_without_valid_source_request_id(tmp_path):

@@ -165,6 +165,43 @@ def test_different_workbook_for_same_client_is_candidate_not_overwrite(tmp_path)
     assert second["candidate_record"]["approved_for_cell_read"] is False
 
 
+def test_operator_choice_keeps_candidate_and_cancels_replacement(tmp_path):
+    first = registry.register_workbook_request(_request(), export_root=tmp_path, generated_at=FIXED_NOW)
+    registry.write_exports(first, tmp_path)
+    replacement = _request(
+        request_id="mission_control_file_intake_request_capital_hilton_replacement_workbook",
+        file_display_name="Capital Hilton replacement workbook.xlsx",
+        mac_visible_path_ref="fixture_path_ref:capital_hilton_replacement_workbook",
+    )
+    candidate_payload = registry.register_workbook_request(replacement, export_root=tmp_path, generated_at=FIXED_NOW)
+    registry.write_exports(candidate_payload, tmp_path)
+
+    choice = registry.keep_candidate_and_cancel_replacement(
+        {
+            "request_id": "capital_hilton_invoice_workflow_candidate_cancel",
+            "client_ref": "capital_hilton",
+            "workflow_ref": "capital_hilton_invoice_workflow",
+            "world_ref": "finance",
+            "operator_message": "Leave the test workbook as a candidate and cancel workbook replacement for now.",
+        },
+        export_root=tmp_path,
+        generated_at=FIXED_NOW,
+    )
+
+    assert choice["registration_readback"]["status"] == "WORKBOOK_CANDIDATE_KEPT"
+    assert choice["registration_readback"]["operator_headline"] == "Workbook candidate kept"
+    assert choice["registration_readback"]["next_action"] == (
+        "Next: provide the invoice field mapping when you are ready, or add the real workbook file."
+    )
+    assert choice["registry"]["client_records"][0]["workbook_ref"] == first["active_record"]["workbook_ref"]
+    assert choice["candidate_record"]["workbook_status"] == "WORKBOOK_CANDIDATE"
+    assert choice["candidate_record"]["approved_for_cell_read"] is False
+    assert choice["machine_proof"]["current_workbook_preserved"] is True
+    assert choice["machine_proof"]["candidate_preserved"] is True
+    assert choice["machine_proof"]["workbook_replacement_performed"] is False
+    assert choice["machine_proof"]["spreadsheet_cell_read_performed"] is False
+
+
 def test_export_writes_parseable_readmodel_and_operator_markdown(tmp_path, capsys):
     assert export_main(["--export-root", str(tmp_path), "--generated-at", FIXED_NOW, "--format", "summary"]) == 0
     summary = json.loads(capsys.readouterr().out)
