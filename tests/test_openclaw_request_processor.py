@@ -2,12 +2,15 @@ import json
 import os
 import re
 import sys
+import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+import client_invoice_sheet_audit as sheet_audit
+import client_invoice_workbook_registry as workbook_registry
 import conversational_workflow_router_intake as chat_intake
 import openclaw_request_processor as processor
 import operator_file_metadata_intake as file_intake
@@ -130,6 +133,96 @@ def _write_workbook_registration_request(
     )
     request["payload_hash"] = file_intake.compute_request_payload_hash(request)
     path.write_text(file_intake.stable_json(request), encoding="utf-8")
+    return request
+
+
+def _write_sheet_audit_fixture_xlsx(path: Path) -> None:
+    with zipfile.ZipFile(path, "w") as zf:
+        zf.writestr(
+            "xl/workbook.xml",
+            """<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"
+ xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+<sheets><sheet name="Invoice" sheetId="1" r:id="rId1"/></sheets></workbook>""",
+        )
+        zf.writestr(
+            "xl/_rels/workbook.xml.rels",
+            """<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>
+</Relationships>""",
+        )
+        zf.writestr(
+            "xl/worksheets/sheet1.xml",
+            """<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>
+<row r="1"><c r="A1" t="inlineStr"><is><t>Capital Hilton</t></is></c></row>
+<row r="2"><c r="B2" t="inlineStr"><is><t>INV-2026-001</t></is></c></row>
+<row r="3"><c r="B3" t="inlineStr"><is><t>2026-05-12</t></is></c></row>
+<row r="4"><c r="B4"><v>1600</v></c></row>
+<row r="5"><c r="B5"><v>1600</v></c></row>
+<row r="6"><c r="B6" t="inlineStr"><is><t>PO-CH-12345</t></is></c></row>
+<row r="99"><c r="Z99" t="inlineStr"><is><t>NON_WHITELISTED_SENTINEL</t></is></c></row>
+</sheetData></worksheet>""",
+        )
+
+
+def _sheet_audit_schema() -> dict:
+    return {
+        "schema_id": "capital_hilton_invoice_sheet_schema:v0",
+        "schema_version": "v0",
+        "client_ref": "capital_hilton",
+        "workflow_ref": "capital_hilton_invoice_workflow",
+        "world_ref": "finance",
+        "sheet_target": {
+            "sheet_name": "Invoice",
+            "allowed_cells": [
+                {"field_name": "client_name", "cell_ref": "A1", "expected_value_type": "text", "required": True},
+                {"field_name": "invoice_number", "cell_ref": "B2", "expected_value_type": "text", "required": True},
+                {"field_name": "performance_dates", "cell_ref": "B3", "expected_value_type": "text", "required": True},
+                {"field_name": "rate", "cell_ref": "B4", "expected_value_type": "currency", "required": True},
+                {"field_name": "total", "cell_ref": "B5", "expected_value_type": "currency", "required": True},
+                {"field_name": "coupa_po_reference", "cell_ref": "B6", "expected_value_type": "text", "required": True},
+            ],
+            "allowed_columns": [],
+        },
+        "required_fields": ("client_name", "invoice_number", "performance_dates", "rate", "total", "coupa_po_reference"),
+        "optional_fields": (),
+        "formula_cached_readback_policy": "FORMULA_BLOCK_UNLESS_OPERATOR_CONFIRMS",
+        "known_facts": {"client_name": "Capital Hilton"},
+    }
+
+
+def _seed_workbook_registry(export_root: Path) -> None:
+    payload = workbook_registry.register_workbook_request(
+        workbook_registry.make_capital_hilton_fixture_request(created_at=FIXED_NOW),
+        export_root=export_root,
+        generated_at=FIXED_NOW,
+        source_file_metadata_ref="generated/read_models/operator_file_metadata_readback.json",
+    )
+    workbook_registry.write_exports(payload, export_root)
+
+
+def _write_sheet_audit_request(path: Path, *, workbook_path: Path | None = None, schema: dict | None = None) -> dict:
+    request = chat_intake.make_capital_hilton_fixture_request(created_at=FIXED_NOW)
+    request.update(
+        {
+            "request_id": "mission_control_chat_request_capital_hilton_sheet_audit_fixture",
+            "workflow_ref": "capital_hilton_invoice_workflow",
+            "world_ref": "finance",
+            "client_ref": "capital_hilton",
+            "operator_message": "Audit the Capital Hilton invoice sheet.",
+            "sanitized_message_summary": "Audit the Capital Hilton invoice sheet.",
+            "operator_goal": "Audit the Capital Hilton invoice sheet.",
+            "intended_use": sheet_audit.INTENDED_USE,
+            "approved_pc_workbook_path_authorized": workbook_path is not None,
+            "idempotency_key": "mc_chat_capital_hilton_sheet_audit_fixture",
+        }
+    )
+    if workbook_path is not None:
+        request["approved_pc_workbook_path"] = workbook_path.as_posix()
+        request["approved_pc_workbook_path_ref"] = "approved_pc_path_ref:fixture_capital_hilton_invoice_workbook"
+    if schema is not None:
+        request["sheet_audit_schema"] = schema
+    request["payload_hash"] = chat_intake.compute_request_payload_hash(request)
+    path.write_text(chat_intake.stable_json(request), encoding="utf-8")
     return request
 
 
@@ -469,6 +562,61 @@ def test_workbook_registration_non_spreadsheet_is_blocked(tmp_path, capsys):
     assert response["detail_disclosure"]["client_invoice_workbook_registry"]["registration_readback"]["status"] == "WORKBOOK_NOT_SPREADSHEET"
     assert registry_payload["registry"]["client_records"] == []
     assert response["machine_proof"]["workbook_body_read_performed"] is False
+
+
+def test_sheet_audit_blocks_without_approved_pc_path(tmp_path, capsys):
+    request_path = tmp_path / "mission_control_chat_request_capital_hilton_sheet_audit.json"
+    export_root = tmp_path / "read_models"
+    _seed_workbook_registry(export_root)
+    request = _write_sheet_audit_request(request_path, schema=_sheet_audit_schema())
+
+    assert process_main(["--file", str(request_path), "--export-root", str(export_root), "--generated-at", FIXED_NOW, "--format", "json"]) == 0
+    response = json.loads(capsys.readouterr().out)
+    audit_payload = json.loads((export_root / sheet_audit.JSON_EXPORT_NAME).read_text(encoding="utf-8"))
+
+    assert response["source_request_id"] == request["request_id"]
+    assert response["response_kind"] == "CLIENT_INVOICE_SHEET_AUDIT"
+    assert response["internal_status"] == "BLOCKED_WITH_REASON"
+    assert response["headline"] == "PC-readable workbook needed"
+    assert response["next_action"] == "Next: Provide an approved PC-readable workbook path or handoff."
+    assert response["terminal"] is True
+    assert audit_payload["audit_result"]["status"] == "APPROVED_PC_PATH_REQUIRED"
+    assert audit_payload["machine_proof"]["workbook_opened"] is False
+    assert response["machine_proof"]["whitelisted_sheet_cells_read_performed"] is False
+    assert response["machine_proof"]["sheet_audit_inferred_schema_performed"] is False
+
+
+def test_sheet_audit_happy_path_reads_whitelisted_fixture_cells_only(tmp_path, capsys):
+    request_path = tmp_path / "mission_control_chat_request_capital_hilton_sheet_audit.json"
+    export_root = tmp_path / "read_models"
+    workbook_path = tmp_path / "capital_hilton_invoice_fixture.xlsx"
+    _seed_workbook_registry(export_root)
+    _write_sheet_audit_fixture_xlsx(workbook_path)
+    request = _write_sheet_audit_request(request_path, workbook_path=workbook_path, schema=_sheet_audit_schema())
+
+    assert process_main(["--file", str(request_path), "--export-root", str(export_root), "--generated-at", FIXED_NOW, "--format", "json"]) == 0
+    response = json.loads(capsys.readouterr().out)
+    audit_payload = json.loads((export_root / sheet_audit.JSON_EXPORT_NAME).read_text(encoding="utf-8"))
+
+    assert response["source_request_id"] == request["request_id"]
+    assert response["response_kind"] == "CLIENT_INVOICE_SHEET_AUDIT"
+    assert response["headline"] == "Capital Hilton invoice sheet audited"
+    assert response["eliwinship"] == (
+        "OpenClaw checked only the approved invoice sheet fields. "
+        "It did not ingest the workbook body or parse the full spreadsheet."
+    )
+    assert response["next_action"] == "Next: prepare the local invoice artifact."
+    assert response["terminal"] is True
+    assert audit_payload["audit_result"]["status"] == "SHEET_AUDIT_COMPLETE"
+    assert audit_payload["audit_result"]["po_reference_status"] == "PO_REFERENCE_PRESENT_VERIFIED_FROM_WHITELISTED_FIELD"
+    assert audit_payload["machine_proof"]["workbook_opened"] is True
+    assert audit_payload["machine_proof"]["whitelisted_cells_read"] is True
+    assert audit_payload["machine_proof"]["full_sheet_dump"] is False
+    assert audit_payload["machine_proof"]["formula_evaluated"] is False
+    rendered = json.dumps(audit_payload, sort_keys=True)
+    assert "NON_WHITELISTED_SENTINEL" not in rendered
+    assert response["machine_proof"]["whitelisted_sheet_cells_read_performed"] is True
+    assert response["machine_proof"]["external_action_performed"] is False
 
 
 def test_capital_hilton_status_query_routes_to_unified_operator_readback(tmp_path, capsys):

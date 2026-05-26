@@ -24,6 +24,7 @@ from typing import Any, Callable, Mapping
 import chat_readback_card_mirror
 import chat_workflow_visual_event_package_compiler
 import capital_hilton_invoice_operator_readback
+import client_invoice_sheet_audit
 import client_invoice_workbook_registry
 import conversational_workflow_router_intake
 import deterministic_intent_interpreter
@@ -1901,6 +1902,135 @@ def _deterministic_intent_classification(
     )
 
 
+def _sheet_audit_classification(
+    classification: RequestClassification,
+    *,
+    request_path: Path,
+) -> RequestClassification:
+    return RequestClassification(
+        classification_id=f"request_classification_{_short_hash(request_path.name, 'client_invoice_sheet_audit')}",
+        source_request_filename=classification.source_request_filename,
+        request_family=classification.request_family,
+        selected_rail="client_invoice_sheet_audit",
+        classification_reason=(
+            "Request explicitly set intended_use to client_invoice_sheet_audit, selecting the whitelisted invoice sheet audit rail."
+        ),
+        future_supported=False,
+        next_safe_move="Return a terminal whitelisted sheet audit readback; do not run workflows or external actions.",
+    )
+
+
+def _process_client_invoice_sheet_audit_request(
+    request_path: Path,
+    raw_request: Mapping[str, Any],
+    *,
+    export_root: Path,
+    generated_at: str | None,
+    classification: RequestClassification,
+) -> OpenClawResponseForMac | None:
+    if not client_invoice_sheet_audit.is_sheet_audit_request(raw_request):
+        return None
+
+    audit_payload = client_invoice_sheet_audit.run_audit(
+        raw_request,
+        export_root=export_root,
+        generated_at=generated_at,
+    )
+    audit_json, audit_operator = client_invoice_sheet_audit.write_exports(audit_payload, export_root)
+    audit_request = audit_payload["audit_request"]
+    audit_result = audit_payload["audit_result"]
+    audit_readback = audit_payload["audit_readback"]
+    status = str(audit_readback["status"])
+    terminal_ready = status == "SHEET_AUDIT_COMPLETE"
+    sheet_classification = _sheet_audit_classification(classification, request_path=request_path)
+    headline = str(audit_readback["operator_headline"])
+    message = str(audit_readback["operator_message"])
+    next_action = str(audit_readback["next_action"])
+    missing_items = tuple(str(item) for item in audit_readback.get("missing_items") or ())
+    primary_blocker = "None" if terminal_ready else (missing_items[0] if missing_items else status)
+    detail = {
+        "client_invoice_sheet_audit": {
+            "audit_readback_ref": audit_json.as_posix(),
+            "operator_readback_ref": audit_operator.as_posix(),
+            "audit_request": audit_request,
+            "audit_result": audit_result,
+            "audit_readback": audit_readback,
+            "schema_explicit": bool(audit_result.get("schema_explicit")),
+            "path_pc_readable": bool(audit_result.get("path_pc_readable")),
+            "workbook_path_known_and_approved": bool(audit_result.get("workbook_path_known_and_approved")),
+            "whitelisted_cells_read": bool(audit_payload["machine_proof"]["whitelisted_cells_read"]),
+            "body_ingested": False,
+            "arbitrary_parse": False,
+            "inferred_schema": False,
+            "full_sheet_dump": False,
+            "formula_evaluated": False,
+            "macro_processed": False,
+            "external_links_followed": False,
+            "external_action_performed": False,
+        },
+        "layered_response_fields": {
+            "response_kind": "CLIENT_INVOICE_SHEET_AUDIT",
+            "audience_mode": "ELIWINSHIP",
+            "display_mode": "COMPACT_CHAT",
+            "headline": headline,
+            "one_line_answer": message,
+            "eliwinship": message,
+            "primary_status": status.replace("_", " ").title(),
+            "primary_blocker": primary_blocker,
+            "next_action": next_action,
+            "missing_items_short": missing_items,
+            "detail_summary": f"Fields read: {len(audit_result.get('fields_read') or ())}. PO/reference: {audit_result.get('po_reference_status')}.",
+            "proof_refs": (f"generated/read_models/{client_invoice_sheet_audit.JSON_EXPORT_NAME}",),
+            "mac_render_hint": "COMPACT_WITH_DISCLOSURE",
+        },
+        "request_classification": asdict(sheet_classification),
+        "external_actions_locked": True,
+        "model_or_worker_response_adapter_called": False,
+    }
+    return OpenClawResponseForMac(
+        source_request_id=str(raw_request.get("request_id") or audit_request["source_request_id"]),
+        source_request_filename=request_path.name,
+        workflow_ref=str(raw_request.get("workflow_ref") or audit_request["workflow_ref"]),
+        request_type=classification.request_family,
+        internal_status="RESPONSE_READY" if terminal_ready else "BLOCKED_WITH_REASON",
+        operator_headline=headline,
+        operator_message=message,
+        what_happened=(
+            "PC selected the whitelisted client invoice sheet audit rail.",
+            "PC required a registered workbook, an approved PC-readable path, and an explicit schema before any cell read.",
+            "PC read only whitelisted cells when all gates were present.",
+            "No arbitrary workbook parsing, formula evaluation, PDF generation, email, Coupa, browser, workflow, agent, or external action occurred.",
+        ),
+        why_it_happened=(
+            "The sheet audit gates were present and the whitelisted fields were checked."
+            if terminal_ready
+            else "The sheet audit gate failed closed before any unsafe workbook action."
+        ),
+        how_to_fix="No fix is needed. Continue with the next governed invoice lane." if terminal_ready else next_action,
+        visible_cards=(
+            {
+                "title": headline,
+                "bullets": (
+                    str(audit_readback.get("client_summary") or ""),
+                    str(audit_readback.get("workbook_summary") or ""),
+                    f"PO/reference status: {audit_result.get('po_reference_status')}",
+                    next_action,
+                ),
+                "status_tone": "ready" if terminal_ready else "blocked",
+            },
+        ),
+        cards_available=True,
+        card_mirror_refs=(),
+        file_readback_refs=(audit_json.as_posix(),),
+        worker_route_refs=(),
+        context_package_refs=(),
+        blocked_reason=None if terminal_ready else primary_blocker,
+        detail_disclosure=detail,
+        readback_files=(audit_json.as_posix(), audit_operator.as_posix()),
+        next_safe_move=next_action,
+    )
+
+
 def _process_deterministic_intent_request(
     request_path: Path,
     raw_request: Mapping[str, Any],
@@ -2030,6 +2160,16 @@ def _process_chat_request(
     classification: RequestClassification,
     read_model_reader: ReadModelReader | None = None,
 ) -> OpenClawResponseForMac:
+    sheet_audit = _process_client_invoice_sheet_audit_request(
+        request_path,
+        raw_request,
+        export_root=export_root,
+        generated_at=generated_at,
+        classification=classification,
+    )
+    if sheet_audit is not None:
+        return sheet_audit
+
     interpreted = _process_deterministic_intent_request(
         request_path,
         raw_request,
@@ -2724,6 +2864,7 @@ def _machine_proof(
     detail = response.detail_disclosure if isinstance(response.detail_disclosure, Mapping) else {}
     interpreter_detail = detail.get("deterministic_intent_interpreter") if isinstance(detail.get("deterministic_intent_interpreter"), Mapping) else {}
     workbook_detail = detail.get("client_invoice_workbook_registry") if isinstance(detail.get("client_invoice_workbook_registry"), Mapping) else {}
+    sheet_audit_detail = detail.get("client_invoice_sheet_audit") if isinstance(detail.get("client_invoice_sheet_audit"), Mapping) else {}
     targets = status.responder_targets
     future_lm_targets = [
         target
@@ -2773,6 +2914,7 @@ def _machine_proof(
         "capability_query_used": bool(interpreter_detail.get("capability_query_used")),
         "validator_used": bool(interpreter_detail.get("validator_used")),
         "client_invoice_workbook_registry_used": bool(workbook_detail),
+        "client_invoice_sheet_audit_used": bool(sheet_audit_detail),
         "live_lm_interpreter_called": False,
         "workflow_execution_performed": False,
         "model_call_performed": False,
@@ -2782,6 +2924,12 @@ def _machine_proof(
         "workbook_body_read_performed": False,
         "spreadsheet_parse_performed": False,
         "spreadsheet_cell_read_performed": False,
+        "whitelisted_sheet_cells_read_performed": bool(sheet_audit_detail.get("whitelisted_cells_read")),
+        "sheet_audit_schema_explicit": bool(sheet_audit_detail.get("schema_explicit")),
+        "sheet_audit_pc_path_readable": bool(sheet_audit_detail.get("path_pc_readable")),
+        "sheet_audit_inferred_schema_performed": False,
+        "sheet_audit_full_sheet_dump_performed": False,
+        "sheet_audit_formula_evaluation_performed": False,
         "pdf_generation_performed": False,
         "email_draft_or_send_performed": False,
         "email_send_performed": False,

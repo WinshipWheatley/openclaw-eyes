@@ -11,6 +11,8 @@ if str(ROOT) not in sys.path:
 
 import conversational_workflow_router_intake as chat_intake
 import capital_hilton_invoice_operator_readback as capital_readback
+import client_invoice_sheet_audit as sheet_audit
+import client_invoice_workbook_registry as workbook_registry
 import mac_worker_handoff_package as mac_handoff
 import openclaw_request_processor as processor
 import openclaw_request_response_service as service
@@ -133,6 +135,68 @@ def _write_workbook_registration_request(path: Path, suffix: str = "service_work
     request["payload_hash"] = file_intake.compute_request_payload_hash(request)
     path.write_text(file_intake.stable_json(request), encoding="utf-8")
     return request
+
+
+def _sheet_audit_schema() -> dict:
+    return {
+        "schema_id": "capital_hilton_invoice_sheet_schema:v0",
+        "schema_version": "v0",
+        "client_ref": "capital_hilton",
+        "workflow_ref": "capital_hilton_invoice_workflow",
+        "world_ref": "finance",
+        "sheet_target": {
+            "sheet_name": "Invoice",
+            "allowed_cells": [
+                {"field_name": "client_name", "cell_ref": "A1", "expected_value_type": "text", "required": True},
+                {"field_name": "invoice_number", "cell_ref": "B2", "expected_value_type": "text", "required": True},
+                {"field_name": "performance_dates", "cell_ref": "B3", "expected_value_type": "text", "required": True},
+                {"field_name": "rate", "cell_ref": "B4", "expected_value_type": "currency", "required": True},
+                {"field_name": "total", "cell_ref": "B5", "expected_value_type": "currency", "required": True},
+                {"field_name": "coupa_po_reference", "cell_ref": "B6", "expected_value_type": "text", "required": True},
+            ],
+            "allowed_columns": [],
+        },
+        "required_fields": ("client_name", "invoice_number", "performance_dates", "rate", "total", "coupa_po_reference"),
+        "optional_fields": (),
+        "formula_cached_readback_policy": "FORMULA_BLOCK_UNLESS_OPERATOR_CONFIRMS",
+        "known_facts": {"client_name": "Capital Hilton"},
+    }
+
+
+def _write_sheet_audit_request(path: Path, *, workbook_path: Path | None = None, schema: dict | None = None) -> dict:
+    request = chat_intake.make_capital_hilton_fixture_request(created_at=FIXED_NOW)
+    request.update(
+        {
+            "request_id": "mission_control_chat_request_capital_hilton_sheet_audit_service",
+            "workflow_ref": "capital_hilton_invoice_workflow",
+            "world_ref": "finance",
+            "client_ref": "capital_hilton",
+            "operator_message": "Audit the Capital Hilton invoice sheet.",
+            "sanitized_message_summary": "Audit the Capital Hilton invoice sheet.",
+            "operator_goal": "Audit the Capital Hilton invoice sheet.",
+            "intended_use": sheet_audit.INTENDED_USE,
+            "approved_pc_workbook_path_authorized": workbook_path is not None,
+            "idempotency_key": "mc_chat_capital_hilton_sheet_audit_service",
+        }
+    )
+    if workbook_path is not None:
+        request["approved_pc_workbook_path"] = workbook_path.as_posix()
+        request["approved_pc_workbook_path_ref"] = "approved_pc_path_ref:fixture_capital_hilton_invoice_workbook"
+    if schema is not None:
+        request["sheet_audit_schema"] = schema
+    request["payload_hash"] = chat_intake.compute_request_payload_hash(request)
+    path.write_text(chat_intake.stable_json(request), encoding="utf-8")
+    return request
+
+
+def _seed_workbook_registry(export_root: Path) -> None:
+    payload = workbook_registry.register_workbook_request(
+        workbook_registry.make_capital_hilton_fixture_request(created_at=FIXED_NOW),
+        export_root=export_root,
+        generated_at=FIXED_NOW,
+        source_file_metadata_ref="generated/read_models/operator_file_metadata_readback.json",
+    )
+    workbook_registry.write_exports(payload, export_root)
 
 
 def _write_unique_file_request(path: Path, suffix: str) -> dict:
@@ -861,6 +925,48 @@ def test_service_processes_invoice_workbook_registration_request(tmp_path, capsy
     assert response["detail_disclosure"]["client_invoice_workbook_registry"]["registration_readback"]["status"] == "WORKBOOK_REFERENCE_CAPTURED"
     assert response["machine_proof"]["workbook_body_read_performed"] is False
     assert response["machine_proof"]["spreadsheet_cell_read_performed"] is False
+    assert response["machine_proof"]["external_action_performed"] is False
+
+
+def test_service_processes_sheet_audit_request_with_path_gate_heartbeat(tmp_path, capsys):
+    inbox = tmp_path / "inbox"
+    response_dir = tmp_path / "responses"
+    export_root = tmp_path / "read_models"
+    inbox.mkdir()
+    _seed_workbook_registry(export_root)
+    request_path = inbox / "mission_control_chat_request_capital_hilton_sheet_audit.json"
+    request = _write_sheet_audit_request(request_path, schema=_sheet_audit_schema())
+
+    assert service_main(
+        [
+            "--once",
+            "--inbox",
+            str(inbox),
+            "--response-dir",
+            str(response_dir),
+            "--export-root",
+            str(export_root),
+            "--generated-at",
+            FIXED_NOW,
+            "--format",
+            "json",
+        ]
+    ) == 0
+    payload = json.loads(capsys.readouterr().out)
+    response = json.loads(_safe_response_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
+    heartbeat = json.loads(_safe_heartbeat_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
+    audit_payload = json.loads((export_root / sheet_audit.JSON_EXPORT_NAME).read_text(encoding="utf-8"))
+
+    assert payload["service_status"]["service_status"] == "REQUEST_PROCESSED"
+    assert payload["service_status"]["last_routing_status"] == "PROCESSING_ON_PC"
+    assert heartbeat["processing_status"] == "CHECKING_SHEET_AUDIT_RAIL"
+    _assert_heartbeat_no_success_claims(heartbeat)
+    assert response["response_kind"] == "CLIENT_INVOICE_SHEET_AUDIT"
+    assert response["headline"] == "PC-readable workbook needed"
+    assert response["next_action"] == "Next: Provide an approved PC-readable workbook path or handoff."
+    assert response["terminal"] is True
+    assert audit_payload["audit_result"]["status"] == "APPROVED_PC_PATH_REQUIRED"
+    assert response["machine_proof"]["whitelisted_sheet_cells_read_performed"] is False
     assert response["machine_proof"]["external_action_performed"] is False
 
 
