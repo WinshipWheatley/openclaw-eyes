@@ -100,6 +100,39 @@ def _write_file_request(path: Path, *, fixture: str = "spreadsheet", created_at:
     return request
 
 
+def _write_workbook_registration_request(
+    path: Path,
+    *,
+    suffix: str = "capital_hilton_workbook",
+    client_ref: str = "capital_hilton",
+    workflow_ref: str = "capital_hilton_invoice_workflow",
+    world_ref: str = "finance",
+    file_display_name: str = "Capital Hilton invoice workbook.xlsx",
+    file_extension: str = ".xlsx",
+    file_kind_hint: str = "invoice workbook spreadsheet",
+    created_at: str = FIXED_NOW,
+) -> dict:
+    request = file_intake.make_fixture_request("spreadsheet", created_at=created_at)
+    request.update(
+        {
+            "request_id": f"mission_control_file_intake_request_{suffix}",
+            "workflow_ref": workflow_ref,
+            "world_ref": world_ref,
+            "client_ref": client_ref,
+            "operator_goal": "Register this workbook as the invoice workbook.",
+            "intended_use": "client_invoice_workbook_registration",
+            "file_display_name": file_display_name,
+            "file_extension": file_extension,
+            "file_kind_hint": file_kind_hint,
+            "mac_visible_path_ref": f"fixture_path_ref:{suffix}",
+            "idempotency_key": f"client_invoice_workbook_registration_{suffix}",
+        }
+    )
+    request["payload_hash"] = file_intake.compute_request_payload_hash(request)
+    path.write_text(file_intake.stable_json(request), encoding="utf-8")
+    return request
+
+
 def _write_future_request(path: Path) -> dict:
     request = {
         "request_id": "future_context_request_001",
@@ -352,6 +385,90 @@ def test_file_argument_processes_specific_file_request(tmp_path, capsys):
     assert "Capital Hilton invoice.xlsx" in response["operator_message"]
     assert "RESPONSE_READY" not in response["operator_message"]
     assert response["file_readback_refs"]
+    assert "client_invoice_workbook_registry" not in response["detail_disclosure"]
+    assert not (export_root / "client_invoice_workbook_registry.json").exists()
+
+
+def test_workbook_registration_captures_capital_hilton_metadata_only(tmp_path, capsys):
+    request_path = tmp_path / "mission_control_file_intake_request_capital_hilton_workbook.json"
+    request = _write_workbook_registration_request(request_path)
+    export_root = tmp_path / "read_models"
+
+    assert process_main(["--file", str(request_path), "--export-root", str(export_root), "--generated-at", FIXED_NOW, "--format", "json"]) == 0
+    response = json.loads(capsys.readouterr().out)
+    registry_payload = json.loads((export_root / "client_invoice_workbook_registry.json").read_text(encoding="utf-8"))
+    detail = response["detail_disclosure"]["client_invoice_workbook_registry"]
+
+    assert response["source_request_id"] == request["request_id"]
+    assert response["response_kind"] == "CLIENT_INVOICE_WORKBOOK_REGISTRATION"
+    assert response["headline"] == "Capital Hilton workbook captured"
+    assert response["eliwinship"] == (
+        "OpenClaw captured the workbook reference for the Capital Hilton invoice workflow. "
+        "The workbook body was not read. Next, audit the invoice sheet when you are ready."
+    )
+    assert response["next_action"] == "Next: Audit the Capital Hilton invoice sheet."
+    assert response["terminal"] is True
+    assert detail["registration_readback"]["status"] == "WORKBOOK_REFERENCE_CAPTURED"
+    assert detail["active_record"]["client_ref"] == "capital_hilton"
+    assert detail["active_record"]["workflow_ref"] == "capital_hilton_invoice_workflow"
+    assert detail["active_record"]["approved_for_metadata_read"] is True
+    assert detail["active_record"]["approved_for_cell_read"] is False
+    assert registry_payload["registry"]["client_records"][0]["workbook_display_name"] == "Capital Hilton invoice workbook.xlsx"
+    assert registry_payload["machine_proof"]["workbook_body_read_performed"] is False
+    assert response["machine_proof"]["workbook_body_read_performed"] is False
+    assert response["machine_proof"]["spreadsheet_cell_read_performed"] is False
+    assert response["machine_proof"]["spreadsheet_parse_performed"] is False
+    assert response["machine_proof"]["external_action_performed"] is False
+
+
+def test_workbook_registration_missing_context_asks_clarification(tmp_path, capsys):
+    request_path = tmp_path / "mission_control_file_intake_request_workbook_missing_context.json"
+    _write_workbook_registration_request(
+        request_path,
+        suffix="workbook_missing_context",
+        client_ref="unknown",
+        workflow_ref="unknown",
+    )
+    export_root = tmp_path / "read_models"
+
+    assert process_main(["--file", str(request_path), "--export-root", str(export_root), "--generated-at", FIXED_NOW, "--format", "json"]) == 0
+    response = json.loads(capsys.readouterr().out)
+    registry_payload = json.loads((export_root / "client_invoice_workbook_registry.json").read_text(encoding="utf-8"))
+    detail = response["detail_disclosure"]["client_invoice_workbook_registry"]
+
+    assert response["internal_status"] == "BLOCKED_WITH_REASON"
+    assert response["headline"] == "Which client is this for?"
+    assert response["eliwinship"] == (
+        "OpenClaw received a workbook reference, but I need the client or workflow before registering it. "
+        "The workbook body was not read."
+    )
+    assert response["next_action"] == "Next: Choose the client for this workbook."
+    assert detail["registration_readback"]["status"] == "WORKBOOK_CONTEXT_MISSING"
+    assert detail["active_record"] == {}
+    assert registry_payload["registry"]["client_records"] == []
+    assert response["machine_proof"]["spreadsheet_cell_read_performed"] is False
+
+
+def test_workbook_registration_non_spreadsheet_is_blocked(tmp_path, capsys):
+    request_path = tmp_path / "mission_control_file_intake_request_workbook_pdf.json"
+    _write_workbook_registration_request(
+        request_path,
+        suffix="workbook_pdf",
+        file_display_name="Capital Hilton invoice.pdf",
+        file_extension=".pdf",
+        file_kind_hint="invoice pdf",
+    )
+    export_root = tmp_path / "read_models"
+
+    assert process_main(["--file", str(request_path), "--export-root", str(export_root), "--generated-at", FIXED_NOW, "--format", "json"]) == 0
+    response = json.loads(capsys.readouterr().out)
+    registry_payload = json.loads((export_root / "client_invoice_workbook_registry.json").read_text(encoding="utf-8"))
+
+    assert response["internal_status"] == "BLOCKED_WITH_REASON"
+    assert response["headline"] == "Workbook not captured"
+    assert response["detail_disclosure"]["client_invoice_workbook_registry"]["registration_readback"]["status"] == "WORKBOOK_NOT_SPREADSHEET"
+    assert registry_payload["registry"]["client_records"] == []
+    assert response["machine_proof"]["workbook_body_read_performed"] is False
 
 
 def test_capital_hilton_status_query_routes_to_unified_operator_readback(tmp_path, capsys):

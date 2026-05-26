@@ -113,6 +113,28 @@ def _write_file_request(path: Path, *, fixture: str = "spreadsheet") -> dict:
     return request
 
 
+def _write_workbook_registration_request(path: Path, suffix: str = "service_workbook") -> dict:
+    request = file_intake.make_fixture_request("spreadsheet", created_at=FIXED_NOW)
+    request.update(
+        {
+            "request_id": f"mission_control_file_intake_request_{suffix}",
+            "workflow_ref": "capital_hilton_invoice_workflow",
+            "world_ref": "finance",
+            "client_ref": "capital_hilton",
+            "operator_goal": "Register this workbook as the invoice workbook.",
+            "intended_use": "client_invoice_workbook_registration",
+            "file_display_name": "Capital Hilton invoice workbook.xlsx",
+            "file_extension": ".xlsx",
+            "file_kind_hint": "invoice workbook spreadsheet",
+            "mac_visible_path_ref": f"fixture_path_ref:{suffix}",
+            "idempotency_key": f"client_invoice_workbook_registration_{suffix}",
+        }
+    )
+    request["payload_hash"] = file_intake.compute_request_payload_hash(request)
+    path.write_text(file_intake.stable_json(request), encoding="utf-8")
+    return request
+
+
 def _write_unique_file_request(path: Path, suffix: str) -> dict:
     request = file_intake.make_fixture_request("spreadsheet", created_at=FIXED_NOW)
     request["request_id"] = f"mission_control_file_intake_request_spreadsheet_fixture_{suffix}"
@@ -798,6 +820,48 @@ def test_service_processes_file_metadata_request_and_writes_response(tmp_path, c
     assert response["how_to_fix"]
     assert response["terminal"] is True
     assert request_path.exists()
+
+
+def test_service_processes_invoice_workbook_registration_request(tmp_path, capsys):
+    inbox = tmp_path / "inbox"
+    response_dir = tmp_path / "responses"
+    export_root = tmp_path / "read_models"
+    inbox.mkdir()
+    request_path = inbox / "mission_control_file_intake_request_workbook.json"
+    request = _write_workbook_registration_request(request_path)
+
+    assert service_main(
+        [
+            "--once",
+            "--inbox",
+            str(inbox),
+            "--response-dir",
+            str(response_dir),
+            "--export-root",
+            str(export_root),
+            "--generated-at",
+            FIXED_NOW,
+            "--format",
+            "json",
+        ]
+    ) == 0
+    payload = json.loads(capsys.readouterr().out)
+    response = json.loads(_safe_response_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
+    heartbeat = json.loads(_safe_heartbeat_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
+
+    assert payload["service_status"]["service_status"] == "REQUEST_PROCESSED"
+    assert payload["service_status"]["last_routing_status"] == "PROCESSING_ON_PC"
+    assert heartbeat["routing_status"] == "PROCESSING_ON_PC"
+    assert heartbeat["processing_status"] == "CHECKING_METADATA_RAIL"
+    _assert_heartbeat_no_success_claims(heartbeat)
+    assert response["response_kind"] == "CLIENT_INVOICE_WORKBOOK_REGISTRATION"
+    assert response["headline"] == "Capital Hilton workbook captured"
+    assert response["next_action"] == "Next: Audit the Capital Hilton invoice sheet."
+    assert response["terminal"] is True
+    assert response["detail_disclosure"]["client_invoice_workbook_registry"]["registration_readback"]["status"] == "WORKBOOK_REFERENCE_CAPTURED"
+    assert response["machine_proof"]["workbook_body_read_performed"] is False
+    assert response["machine_proof"]["spreadsheet_cell_read_performed"] is False
+    assert response["machine_proof"]["external_action_performed"] is False
 
 
 def test_duplicate_request_is_skipped_without_endless_processing(tmp_path, capsys):

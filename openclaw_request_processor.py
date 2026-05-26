@@ -24,6 +24,7 @@ from typing import Any, Callable, Mapping
 import chat_readback_card_mirror
 import chat_workflow_visual_event_package_compiler
 import capital_hilton_invoice_operator_readback
+import client_invoice_workbook_registry
 import conversational_workflow_router_intake
 import deterministic_intent_interpreter
 import operator_file_metadata_intake
@@ -2182,6 +2183,114 @@ def _process_file_request(
     workflow_ref = str(raw_request.get("workflow_ref") or file_payload["intake_request"]["workflow_ref"])
     source_ref = file_payload.get("source_ref_record")
     readback_files = (file_json.as_posix(), file_operator.as_posix())
+    if client_invoice_workbook_registry.is_workbook_registration_request(raw_request):
+        registry_payload = client_invoice_workbook_registry.register_workbook_request(
+            raw_request,
+            export_root=export_root,
+            generated_at=generated_at,
+            source_file_metadata_ref=file_json.as_posix(),
+        )
+        registry_json, registry_operator = client_invoice_workbook_registry.write_exports(registry_payload, export_root)
+        workbook_readback = registry_payload["registration_readback"]
+        active_record = registry_payload.get("active_record") or {}
+        candidate_record = registry_payload.get("candidate_record") or {}
+        status = str(workbook_readback["status"])
+        terminal_ready = status == "WORKBOOK_REFERENCE_CAPTURED"
+        response_files = (
+            file_json.as_posix(),
+            file_operator.as_posix(),
+            registry_json.as_posix(),
+            registry_operator.as_posix(),
+        )
+        headline = str(workbook_readback["operator_headline"])
+        message = str(workbook_readback["operator_message"])
+        next_action = str(workbook_readback["next_action"])
+        missing_items = tuple(str(item) for item in workbook_readback.get("missing_items") or ())
+        primary_blocker = "None" if terminal_ready else (missing_items[0] if missing_items else status)
+        detail = {
+            "file_readback_ref": file_json.as_posix(),
+            "source_ref_id": source_ref["source_ref_id"] if isinstance(source_ref, Mapping) else None,
+            "client_invoice_workbook_registry": {
+                "registry_readback_ref": registry_json.as_posix(),
+                "operator_readback_ref": registry_operator.as_posix(),
+                "registration_request": registry_payload["registration_request"],
+                "registration_readback": workbook_readback,
+                "active_record": active_record,
+                "candidate_record": candidate_record,
+                "duplicate_result": registry_payload["duplicate_result"],
+                "approved_for_metadata_read": bool((active_record or candidate_record).get("approved_for_metadata_read")),
+                "approved_for_cell_read": bool((active_record or candidate_record).get("approved_for_cell_read")),
+                "workbook_body_read_performed": False,
+                "spreadsheet_parse_performed": False,
+                "spreadsheet_cell_read_performed": False,
+                "folder_scan_performed": False,
+                "external_action_performed": False,
+            },
+            "layered_response_fields": {
+                "response_kind": "CLIENT_INVOICE_WORKBOOK_REGISTRATION",
+                "audience_mode": "ELIWINSHIP",
+                "display_mode": "COMPACT_CHAT",
+                "headline": headline,
+                "one_line_answer": message,
+                "eliwinship": message,
+                "primary_status": status.replace("_", " ").title(),
+                "primary_blocker": primary_blocker,
+                "next_action": next_action,
+                "missing_items_short": missing_items,
+                "detail_summary": str(workbook_readback.get("workbook_summary") or ""),
+                "proof_refs": (f"generated/read_models/{client_invoice_workbook_registry.JSON_EXPORT_NAME}",),
+                "mac_render_hint": "COMPACT_WITH_DISCLOSURE",
+            },
+            "persistent_registry_write": False,
+            "generated_registry_readmodel_write": True,
+            "request_classification": asdict(classification),
+        }
+        return OpenClawResponseForMac(
+            source_request_id=request_id,
+            source_request_filename=request_path.name,
+            workflow_ref=workflow_ref,
+            request_type="FILE_METADATA",
+            internal_status="RESPONSE_READY" if terminal_ready else "BLOCKED_WITH_REASON",
+            operator_headline=headline,
+            operator_message=message,
+            what_happened=(
+                "PC validated the file metadata request.",
+                "PC recognized a client invoice workbook registration intended use.",
+                "PC wrote a generated workbook registry read-model without reading workbook cells.",
+                "No spreadsheet parsing, PDF generation, email, Coupa, browser, workflow, agent, or external action occurred.",
+            ),
+            why_it_happened=(
+                "The Mac request explicitly set intended_use to client_invoice_workbook_registration."
+                if terminal_ready
+                else "The workbook registration request needs safer context before binding or could not be registered."
+            ),
+            how_to_fix=(
+                "No fix is needed. Audit the invoice sheet later when you explicitly request that governed lane."
+                if terminal_ready
+                else next_action
+            ),
+            visible_cards=(
+                {
+                    "title": headline,
+                    "bullets": (
+                        str(workbook_readback.get("client_summary") or ""),
+                        str(workbook_readback.get("workbook_summary") or ""),
+                        "Workbook body and cells were not read.",
+                        next_action,
+                    ),
+                    "status_tone": "ready" if terminal_ready else "blocked",
+                },
+            ),
+            cards_available=True,
+            card_mirror_refs=(),
+            file_readback_refs=(file_json.as_posix(), registry_json.as_posix()),
+            worker_route_refs=(),
+            context_package_refs=(),
+            blocked_reason=None if terminal_ready else primary_blocker,
+            detail_disclosure=detail,
+            readback_files=response_files,
+            next_safe_move=next_action,
+        )
     if readback["readback_status"] == "SOURCE_REF_CREATED":
         label = source_ref["safe_display_label"] if isinstance(source_ref, Mapping) else "the file"
         return OpenClawResponseForMac(
@@ -2614,6 +2723,7 @@ def _machine_proof(
     quality_errors = _terminal_quality_errors(response)
     detail = response.detail_disclosure if isinstance(response.detail_disclosure, Mapping) else {}
     interpreter_detail = detail.get("deterministic_intent_interpreter") if isinstance(detail.get("deterministic_intent_interpreter"), Mapping) else {}
+    workbook_detail = detail.get("client_invoice_workbook_registry") if isinstance(detail.get("client_invoice_workbook_registry"), Mapping) else {}
     targets = status.responder_targets
     future_lm_targets = [
         target
@@ -2662,14 +2772,20 @@ def _machine_proof(
         "session_resolver_used": bool(interpreter_detail.get("session_resolver_used")),
         "capability_query_used": bool(interpreter_detail.get("capability_query_used")),
         "validator_used": bool(interpreter_detail.get("validator_used")),
+        "client_invoice_workbook_registry_used": bool(workbook_detail),
         "live_lm_interpreter_called": False,
         "workflow_execution_performed": False,
         "model_call_performed": False,
         "tool_execution_performed": False,
         "agent_dispatch_performed": False,
         "worker_dispatch_performed": False,
+        "workbook_body_read_performed": False,
+        "spreadsheet_parse_performed": False,
+        "spreadsheet_cell_read_performed": False,
+        "pdf_generation_performed": False,
         "email_draft_or_send_performed": False,
         "email_send_performed": False,
+        "gmail_send_performed": False,
         "coupa_access_or_submit_performed": False,
         "browser_access_performed": False,
         "invoice_generation_performed": False,
