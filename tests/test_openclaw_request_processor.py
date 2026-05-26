@@ -104,6 +104,10 @@ def _write_file_request(path: Path, *, fixture: str = "spreadsheet", created_at:
     return request
 
 
+def _scoped_processor_response_path(response_dir: Path, request_id: str) -> Path:
+    return response_dir / f"openclaw_response_for_mac_{processor._safe_filename_part(request_id)}.json"
+
+
 def _write_workbook_registration_request(
     path: Path,
     *,
@@ -1218,6 +1222,141 @@ def test_request_id_argument_processes_matching_request(tmp_path, capsys):
     assert response["source_request_id"] == request["request_id"]
     assert response["source_request_filename"] == request_path.name
     assert response["operator_headline"] == "File reference captured"
+
+
+def test_processor_publishes_scoped_and_latest_response_for_approved_inbox(tmp_path, capsys, monkeypatch):
+    inbox = tmp_path / "approved_inbox"
+    inbox.mkdir()
+    request_path = inbox / "mission_control_file_intake_request_spreadsheet.json"
+    request = _write_file_request(request_path)
+    export_root = tmp_path / "read_models"
+    response_dir = tmp_path / "responses"
+    monkeypatch.setattr(processor, "APPROVED_INBOX", inbox)
+    monkeypatch.setattr(processor, "DEFAULT_RESPONSE_DIR", response_dir)
+    stale_latest = {
+        "source_request_id": "stale_invoice_status_response",
+        "headline": "Stale status",
+        "terminal": True,
+    }
+    response_dir.mkdir()
+    (response_dir / processor.LATEST_RESPONSE_EXPORT_NAME).write_text(json.dumps(stale_latest), encoding="utf-8")
+
+    assert process_main(
+        [
+            "--file",
+            str(request_path),
+            "--export-root",
+            str(export_root),
+            "--generated-at",
+            FIXED_NOW,
+            "--format",
+            "json",
+        ]
+    ) == 0
+    response = json.loads(capsys.readouterr().out)
+    scoped_path = _scoped_processor_response_path(response_dir, request["request_id"])
+    latest_path = response_dir / processor.LATEST_RESPONSE_EXPORT_NAME
+    manifest_path = response_dir / processor.RESPONSE_MANIFEST_EXPORT_NAME
+    scoped = json.loads(scoped_path.read_text(encoding="utf-8"))
+    latest = json.loads(latest_path.read_text(encoding="utf-8"))
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    status = _read_status(export_root)
+
+    assert scoped_path.exists()
+    assert response["source_request_id"] == request["request_id"]
+    assert latest["source_request_id"] == request["request_id"]
+    assert scoped["source_request_id"] == request["request_id"]
+    assert scoped["headline"] == response["headline"]
+    assert scoped["eliwinship"] == response["eliwinship"]
+    assert scoped["next_action"] == response["next_action"]
+    assert scoped["terminal"] is True
+    assert scoped["local_surface_request"]["raw_body_allowed"] is False
+    assert scoped["machine_proof"]["external_action_performed"] is False
+    assert manifest["latest_response_file"] == latest_path.as_posix()
+    assert manifest["responses"][-1]["source_request_id"] == request["request_id"]
+    assert status["processor_status"]["mac_response_publication"]["response_file"] == scoped_path.as_posix()
+    assert status["machine_proof"]["mac_response_scoped_publication_performed"] is True
+    assert status["machine_proof"]["mac_latest_response_updated"] is True
+
+
+def test_workbook_replacement_confirmation_publishes_scoped_response(tmp_path, capsys, monkeypatch):
+    inbox = tmp_path / "approved_inbox"
+    inbox.mkdir()
+    request_path = inbox / "mission_control_file_intake_request_replacement_workbook.json"
+    request = _write_workbook_registration_request(
+        request_path,
+        suffix="capital_hilton_replacement_workbook",
+        file_display_name="Capital Hilton replacement workbook.xlsx",
+    )
+    export_root = tmp_path / "read_models"
+    response_dir = tmp_path / "responses"
+    monkeypatch.setattr(processor, "APPROVED_INBOX", inbox)
+    monkeypatch.setattr(processor, "DEFAULT_RESPONSE_DIR", response_dir)
+    _seed_workbook_registry(export_root)
+
+    assert process_main(
+        [
+            "--file",
+            str(request_path),
+            "--export-root",
+            str(export_root),
+            "--generated-at",
+            FIXED_NOW,
+            "--format",
+            "json",
+        ]
+    ) == 0
+    response = json.loads(capsys.readouterr().out)
+    scoped = json.loads(_scoped_processor_response_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
+    latest = json.loads((response_dir / processor.LATEST_RESPONSE_EXPORT_NAME).read_text(encoding="utf-8"))
+    registry_payload = json.loads((export_root / "client_invoice_workbook_registry.json").read_text(encoding="utf-8"))
+
+    assert response["headline"] == "Confirm workbook replacement"
+    assert response["internal_status"] == "BLOCKED_WITH_REASON"
+    assert scoped["source_request_id"] == request["request_id"]
+    assert scoped["headline"] == "Confirm workbook replacement"
+    assert scoped["next_action"] == "Next: Confirm whether to replace the current workbook."
+    assert scoped["terminal"] is True
+    assert latest["source_request_id"] == request["request_id"]
+    assert registry_payload["registration_readback"]["status"] == "WORKBOOK_REGISTRATION_BLOCKED"
+    assert registry_payload["candidate_record"]["workbook_status"] == "WORKBOOK_CANDIDATE"
+    assert registry_payload["candidate_record"]["approved_for_cell_read"] is False
+    assert scoped["machine_proof"]["client_invoice_audit_handoff_live_ready"] is False
+    assert scoped["machine_proof"]["client_invoice_sheet_audit_used"] is False
+    assert scoped["machine_proof"]["workbook_body_read_performed"] is False
+    assert scoped["machine_proof"]["spreadsheet_cell_read_performed"] is False
+
+
+def test_processor_does_not_publish_without_valid_source_request_id(tmp_path):
+    result = processor.publish_response_for_mac_outbox(
+        {
+            "source_request_id": "",
+            "headline": "No source id",
+            "terminal": True,
+        },
+        response_dir=tmp_path / "responses",
+        published_at=FIXED_NOW,
+    )
+
+    assert result["published"] is False
+    assert result["blocked_reason"] == "MISSING_VALID_SOURCE_REQUEST_ID"
+    assert not (tmp_path / "responses").exists()
+
+
+def test_processor_refuses_unapproved_response_destination(tmp_path):
+    result = processor.publish_response_for_mac_outbox(
+        {
+            "source_request_id": "valid_request_id",
+            "headline": "Valid response",
+            "terminal": True,
+        },
+        response_dir=tmp_path / "not_the_approved_outbox",
+        published_at=FIXED_NOW,
+    )
+
+    assert result["published"] is False
+    assert result["blocked_reason"] == "UNAPPROVED_RESPONSE_DIR"
+    assert not (tmp_path / "not_the_approved_outbox").exists()
 
 
 def test_duplicate_noop_includes_existing_readback(tmp_path, capsys):

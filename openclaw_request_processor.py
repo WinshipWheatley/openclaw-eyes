@@ -38,6 +38,7 @@ import workflow_execution_package_compiler
 
 DEFAULT_EXPORT_ROOT = Path("generated/read_models")
 APPROVED_INBOX = Path("/mnt/e/openclaw/mission_control_capture_requests/inbox")
+DEFAULT_RESPONSE_DIR = Path("/mnt/e/openclaw/mission_control_responses/to_mac")
 
 SCHEMA_VERSION = "openclaw_request_processor_v0"
 STATUS_READ_MODEL_ID = "openclaw_request_processor_status"
@@ -45,6 +46,8 @@ RESPONSE_READ_MODEL_ID = "openclaw_response_for_mac"
 STATUS_JSON_EXPORT_NAME = f"{STATUS_READ_MODEL_ID}.json"
 STATUS_OPERATOR_EXPORT_NAME = "openclaw_request_processor_OPERATOR.md"
 RESPONSE_JSON_EXPORT_NAME = f"{RESPONSE_READ_MODEL_ID}.json"
+LATEST_RESPONSE_EXPORT_NAME = "openclaw_response_for_mac_latest.json"
+RESPONSE_MANIFEST_EXPORT_NAME = "response_manifest.json"
 CONTRACT_STATUS = "BOUNDED_OPENCLAW_REQUEST_LIFECYCLE_PROCESSOR"
 
 CHAT_PATTERN = conversational_workflow_router_intake.REQUEST_FILENAME_PATTERN
@@ -522,6 +525,13 @@ def stable_json(payload: Any) -> str:
     return json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
 
 
+def _atomic_write_text(path: Path, text: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temp_path = path.with_name(f".{path.name}.{time.monotonic_ns()}.tmp")
+    temp_path.write_text(text, encoding="utf-8")
+    temp_path.replace(path)
+
+
 def _content_hash(payload: dict[str, Any]) -> str:
     clone = json.loads(stable_json(payload))
     clone.get("machine_proof", {}).pop("content_hash", None)
@@ -544,6 +554,168 @@ def _terminal_for_status(status: str) -> bool:
 
 def _short_hash(*parts: Any) -> str:
     return hashlib.sha256(stable_json(parts).encode("utf-8")).hexdigest()[:20]
+
+
+def _safe_filename_part(value: object) -> str:
+    text = str(value or "")
+    cleaned = re.sub(r"[^A-Za-z0-9_.-]+", "_", text).strip("._")
+    if cleaned:
+        return cleaned[:160]
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()[:32]
+
+
+def _path_is_relative_to(path: Path | None, root: Path) -> bool:
+    if path is None:
+        return False
+    try:
+        path.resolve().relative_to(root.resolve())
+        return True
+    except (OSError, ValueError):
+        return False
+
+
+def _same_path(left: Path, right: Path) -> bool:
+    try:
+        return left.resolve() == right.resolve()
+    except OSError:
+        return False
+
+
+def default_response_publication_dir(*, inbox: Path, request_file: Path | None) -> Path | None:
+    """Publish by default only for the approved Mac/PC shared inbox."""
+
+    if _path_is_relative_to(request_file, APPROVED_INBOX):
+        return DEFAULT_RESPONSE_DIR
+    if _same_path(inbox, APPROVED_INBOX):
+        return DEFAULT_RESPONSE_DIR
+    return None
+
+
+def _valid_publication_source_request_id(value: object) -> bool:
+    request_id = str(value or "").strip()
+    if not request_id:
+        return False
+    blocked_exact = {
+        "unknown_request",
+        "unknown_unparseable_request",
+        "no_request_available",
+        "timed_out_no_request_available",
+    }
+    if request_id in blocked_exact:
+        return False
+    if request_id.startswith(("missing_request_id_", "unknown_")):
+        return False
+    return True
+
+
+def _read_response_manifest(response_dir: Path) -> dict[str, Any]:
+    manifest_path = response_dir / RESPONSE_MANIFEST_EXPORT_NAME
+    if not manifest_path.exists():
+        return {
+            "schema_version": SCHEMA_VERSION,
+            "manifest_id": "openclaw_response_manifest",
+            "responses": [],
+        }
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return {
+            "schema_version": SCHEMA_VERSION,
+            "manifest_id": "openclaw_response_manifest",
+            "previous_manifest_parse_status": "invalid_json_replaced",
+            "responses": [],
+        }
+    if isinstance(manifest, dict):
+        return manifest
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "manifest_id": "openclaw_response_manifest",
+        "responses": [],
+    }
+
+
+def publish_response_for_mac_outbox(
+    response_payload: Mapping[str, Any],
+    *,
+    response_dir: Path | None,
+    published_at: str | None = None,
+) -> dict[str, Any]:
+    if response_dir is None:
+        return {
+            "published": False,
+            "blocked_reason": "RESPONSE_PUBLICATION_NOT_CONFIGURED",
+            "response_file": None,
+            "latest_response_file": None,
+            "manifest_file": None,
+        }
+    source_request_id = str(response_payload.get("source_request_id") or "").strip()
+    if not _valid_publication_source_request_id(source_request_id):
+        return {
+            "published": False,
+            "blocked_reason": "MISSING_VALID_SOURCE_REQUEST_ID",
+            "response_file": None,
+            "latest_response_file": None,
+            "manifest_file": None,
+        }
+    if not _same_path(response_dir, DEFAULT_RESPONSE_DIR):
+        return {
+            "published": False,
+            "blocked_reason": "UNAPPROVED_RESPONSE_DIR",
+            "response_file": None,
+            "latest_response_file": None,
+            "manifest_file": None,
+        }
+
+    published_at = published_at or utc_now()
+    response_dir.mkdir(parents=True, exist_ok=True)
+    response_file = response_dir / f"openclaw_response_for_mac_{_safe_filename_part(source_request_id)}.json"
+    latest_file = response_dir / LATEST_RESPONSE_EXPORT_NAME
+    manifest_file = response_dir / RESPONSE_MANIFEST_EXPORT_NAME
+    published_payload = dict(response_payload)
+    published_payload["published_at"] = published_at
+    published_payload["terminal"] = bool(response_payload.get("terminal"))
+    published_payload["service_note"] = "Published by bounded OpenClaw processor for Mac scoped response lookup."
+
+    _atomic_write_text(response_file, stable_json(published_payload))
+    _atomic_write_text(latest_file, stable_json(published_payload))
+
+    manifest = _read_response_manifest(response_dir)
+    responses = manifest.get("responses")
+    if not isinstance(responses, list):
+        responses = []
+    record = {
+        "source_request_id": source_request_id,
+        "source_request_filename": response_payload.get("source_request_filename"),
+        "request_type": response_payload.get("request_type"),
+        "internal_status": response_payload.get("internal_status"),
+        "operator_headline": response_payload.get("operator_headline"),
+        "headline": response_payload.get("headline"),
+        "response_file": response_file.as_posix(),
+        "published_at": published_at,
+        "terminal": published_payload["terminal"],
+    }
+    responses = [item for item in responses if item.get("source_request_id") != source_request_id]
+    responses.append(record)
+    manifest.update(
+        {
+            "schema_version": SCHEMA_VERSION,
+            "manifest_id": "openclaw_response_manifest",
+            "updated_at": published_at,
+            "latest_response_file": latest_file.as_posix(),
+            "responses": responses[-200:],
+        }
+    )
+    _atomic_write_text(manifest_file, stable_json(manifest))
+    return {
+        "published": True,
+        "blocked_reason": None,
+        "response_file": response_file.as_posix(),
+        "latest_response_file": latest_file.as_posix(),
+        "manifest_file": manifest_file.as_posix(),
+        "source_request_id": source_request_id,
+        "source_request_filename": response_payload.get("source_request_filename"),
+        "terminal": published_payload["terminal"],
+    }
 
 
 def _has_nonempty_value(value: Any) -> bool:
@@ -3276,6 +3448,7 @@ def build_summary(
     paths: tuple[Path, Path, Path],
 ) -> dict[str, Any]:
     response_json, status_json, status_operator = paths
+    publication = status_payload["processor_status"].get("mac_response_publication", {})
     return {
         "schema_version": SCHEMA_VERSION,
         "contract_status": CONTRACT_STATUS,
@@ -3309,6 +3482,9 @@ def build_summary(
         "all_live_authority_flags_false": status_payload["machine_proof"]["all_live_authority_flags_false"],
         "future_lm_targets_not_called": status_payload["machine_proof"]["future_lm_targets_not_called"],
         "external_action_performed": status_payload["machine_proof"]["external_action_performed"],
+        "mac_response_published": publication.get("published", False),
+        "mac_scoped_response_file": publication.get("response_file"),
+        "mac_latest_response_file": publication.get("latest_response_file"),
         "content_hash": response_payload["machine_proof"]["content_hash"],
     }
 
@@ -3322,6 +3498,7 @@ def run_and_write(
     generated_at: str | None,
     watch_seconds: int | None = None,
     read_model_reader: ReadModelReader | None = None,
+    response_dir: Path | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any], tuple[Path, Path, Path], tuple[str, ...]]:
     if watch_seconds is not None:
         response = process_with_timeout(
@@ -3346,6 +3523,15 @@ def run_and_write(
         generated_at=generated_at,
         blockers=quality_errors,
     )
+    publication = publish_response_for_mac_outbox(
+        response_payload,
+        response_dir=response_dir,
+        published_at=generated_at,
+    )
+    status_payload["processor_status"]["mac_response_publication"] = publication
+    status_payload["machine_proof"]["mac_response_scoped_publication_performed"] = bool(publication.get("published"))
+    status_payload["machine_proof"]["mac_latest_response_updated"] = bool(publication.get("published"))
+    status_payload["machine_proof"]["content_hash"] = _content_hash(status_payload)
     paths = write_exports(response_payload, status_payload, export_root)
     return response_payload, status_payload, paths, quality_errors
 
@@ -3358,19 +3544,25 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--watch-seconds", type=int, default=None, help="Bounded wait for a request, then write timeout readback.")
     parser.add_argument("--inbox", default=str(APPROVED_INBOX))
     parser.add_argument("--export-root", default=str(DEFAULT_EXPORT_ROOT))
+    parser.add_argument("--no-response-publish", action="store_true", help="Do not write scoped Mac response files.")
     parser.add_argument("--format", choices=("summary", "json"), default="summary")
     parser.add_argument("--generated-at", default=None)
     args = parser.parse_args(argv)
 
     export_root = Path(args.export_root)
     request_file = Path(args.request_file) if args.request_file else None
+    inbox = Path(args.inbox)
+    response_dir = None
+    if not args.no_response_publish:
+        response_dir = default_response_publication_dir(inbox=inbox, request_file=request_file)
     response_payload, status_payload, paths, quality_errors = run_and_write(
-        inbox=Path(args.inbox),
+        inbox=inbox,
         request_file=request_file,
         request_id=args.request_id,
         export_root=export_root,
         generated_at=args.generated_at,
         watch_seconds=args.watch_seconds,
+        response_dir=response_dir,
     )
     output = response_payload if args.format == "json" else build_summary(response_payload, status_payload, paths)
     print(stable_json(output), end="")
