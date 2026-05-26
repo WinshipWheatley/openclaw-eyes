@@ -51,6 +51,9 @@ SCHEMA_STATUSES = (
     "SHEET_AUDIT_SCHEMA_INCOMPLETE",
     "HANDOFF_CONTEXT_MISSING",
     "NO_SCHEMA_REQUESTED",
+    "LOCAL_SURFACE_RESULT_UNCONFIRMED",
+    "LOCAL_SURFACE_RESULT_UNSAFE_FLAGS",
+    "LOCAL_SURFACE_RESULT_BLOCKED",
     "UNKNOWN_FAIL_CLOSED",
 )
 
@@ -63,6 +66,9 @@ READBACK_STATUSES = (
     "SHEET_AUDIT_SCHEMA_INCOMPLETE",
     "WORKBOOK_REGISTRY_REQUIRED",
     "HANDOFF_CONTEXT_MISSING",
+    "LOCAL_SURFACE_RESULT_UNCONFIRMED",
+    "LOCAL_SURFACE_RESULT_UNSAFE_FLAGS",
+    "LOCAL_SURFACE_RESULT_BLOCKED",
     "UNKNOWN_FAIL_CLOSED",
 )
 
@@ -79,6 +85,22 @@ REQUIRED_SEMANTIC_FIELDS = (
     "rate",
     "subtotal_or_total",
     "po_reference",
+)
+
+LOCAL_SURFACE_RESULT_KIND = "LOCAL_SURFACE_RESULT"
+
+LOCAL_SURFACE_RESULT_FALSE_FLAGS = (
+    "body_read",
+    "workbook_body_read",
+    "spreadsheet_cell_read",
+    "ocr_performed",
+    "external_llm_shared",
+    "external_action",
+    "path_translation_guessed",
+)
+
+OPTIONAL_SEMANTIC_FIELDS = (
+    "notes_status",
 )
 
 AUTHORITY_BOUNDARY = {
@@ -232,6 +254,21 @@ def _content_hash(payload: dict[str, Any]) -> str:
 
 def is_audit_handoff_request(raw_request: Mapping[str, Any]) -> bool:
     return str(raw_request.get("intended_use") or "").strip() in ACCEPTED_INTENDED_USES
+
+
+def _local_surface_result_kind(raw_request: Mapping[str, Any]) -> str:
+    for key in ("kind", "type", "request_type", "result_type"):
+        value = str(raw_request.get(key) or "").strip().upper()
+        if value:
+            return value
+    return ""
+
+
+def is_local_surface_schema_mapping_result(raw_request: Mapping[str, Any]) -> bool:
+    return (
+        _local_surface_result_kind(raw_request) == LOCAL_SURFACE_RESULT_KIND
+        and str(raw_request.get("intended_use") or "").strip() == SCHEMA_MAPPING_INTENDED_USE
+    )
 
 
 def _safe_text(value: object, fallback: str = "unknown") -> str:
@@ -544,6 +581,177 @@ def _schema_source(raw_request: Mapping[str, Any]) -> Mapping[str, Any] | None:
     if any(key in raw_request for key in keys):
         return raw_request
     return None
+
+
+def _surface_result_containers(raw_request: Mapping[str, Any]) -> tuple[Mapping[str, Any], ...]:
+    containers: list[Mapping[str, Any]] = [raw_request]
+    for key in (
+        "local_surface_result",
+        "surface_result",
+        "result",
+        "result_payload",
+        "payload",
+        "mapping_result",
+        "field_mapping_result",
+        "schema_mapping_result",
+    ):
+        value = raw_request.get(key)
+        if isinstance(value, Mapping):
+            containers.append(value)
+    for container in tuple(containers):
+        for key in ("mapping", "field_mapping", "field_mappings", "schema_mapping", "sheet_schema_mapping"):
+            value = container.get(key)
+            if isinstance(value, Mapping):
+                containers.append(value)
+    deduped: list[Mapping[str, Any]] = []
+    for container in containers:
+        if not any(container is existing for existing in deduped):
+            deduped.append(container)
+    return tuple(deduped)
+
+
+def _first_surface_value(raw_request: Mapping[str, Any], keys: tuple[str, ...]) -> Any:
+    for container in _surface_result_containers(raw_request):
+        for key in keys:
+            if key in container and container.get(key) not in (None, ""):
+                return container.get(key)
+    return None
+
+
+def _cell_ref_from_value(value: Any) -> str:
+    if isinstance(value, Mapping):
+        for key in (
+            "cell_ref",
+            "cell",
+            "cell_reference",
+            "selected_cell",
+            "address",
+            "location",
+            "operator_entered_cell_ref",
+            "operator_provided_cell_ref",
+            "value",
+        ):
+            cell = _safe_cell_ref(value.get(key))
+            if cell:
+                return cell
+        return ""
+    return _safe_cell_ref(value)
+
+
+def _default_expected_value_type(field_name: str) -> str:
+    if field_name in {"rate", "subtotal_or_total"}:
+        return "currency"
+    if field_name == "performance_dates":
+        return "date_or_text"
+    return "text"
+
+
+def _column_from_value(field_name: str, value: Any, formula_policy: FormulaPromotionPolicy) -> dict[str, Any] | None:
+    if not isinstance(value, Mapping):
+        return None
+    if not any(key in value for key in ("header_name", "header_cell", "data_cells", "column_ref", "column")):
+        return None
+    raw = dict(value)
+    raw.setdefault("field_name", field_name)
+    if "column_ref" in raw and "header_name" not in raw:
+        raw["header_name"] = raw["column_ref"]
+    if "column" in raw and "header_name" not in raw:
+        raw["header_name"] = raw["column"]
+    return _normalize_column(raw, formula_policy)
+
+
+def _surface_field_entries(raw_request: Mapping[str, Any]) -> tuple[tuple[str, Any], ...]:
+    entries: list[tuple[str, Any]] = []
+    field_mapping_keys = (
+        "field_mappings",
+        "mapped_fields",
+        "mapping_fields",
+        "fields",
+        "field_mapping",
+        "schema_mapping",
+    )
+    for container in _surface_result_containers(raw_request):
+        for key in field_mapping_keys:
+            value = container.get(key)
+            if isinstance(value, Mapping):
+                entries.extend((str(field_name), field_value) for field_name, field_value in value.items())
+            elif isinstance(value, (list, tuple)):
+                for item in value:
+                    if isinstance(item, Mapping):
+                        field_name = str(item.get("field_name") or item.get("semantic_field_name") or item.get("field") or "")
+                        if field_name:
+                            entries.append((field_name, item))
+        for field_name in (*REQUIRED_SEMANTIC_FIELDS, *OPTIONAL_SEMANTIC_FIELDS):
+            for key in (
+                field_name,
+                f"{field_name}_cell",
+                f"{field_name}_cell_ref",
+                f"{field_name}_location",
+                f"{field_name}_mapping",
+            ):
+                if key in container and container.get(key) not in (None, ""):
+                    entries.append((field_name, container.get(key)))
+                    break
+    normalized: list[tuple[str, Any]] = []
+    seen: set[str] = set()
+    for raw_field, value in entries:
+        field_name = _safe_field_name(raw_field)
+        if field_name == "unknown_field" or field_name in seen:
+            continue
+        seen.add(field_name)
+        normalized.append((field_name, value))
+    return tuple(normalized)
+
+
+def _schema_mapping_from_local_surface_result(raw_request: Mapping[str, Any]) -> dict[str, Any] | None:
+    existing = _schema_source(raw_request)
+    if isinstance(existing, Mapping) and (
+        existing.get("whitelisted_cells")
+        or existing.get("allowed_cells")
+        or (isinstance(existing.get("sheet_target"), Mapping) and existing.get("sheet_target", {}).get("allowed_cells"))
+    ):
+        return dict(existing)
+
+    formula_policy = _formula_policy(_first_surface_value(raw_request, ("formula_promotion_policy", "formula_policy")))
+    sheet_name = str(
+        _first_surface_value(
+            raw_request,
+            ("sheet_name", "sheet_tab_name", "invoice_sheet_name", "tab_name", "worksheet_name"),
+        )
+        or ""
+    ).strip()
+    cells: list[dict[str, Any]] = []
+    columns: list[dict[str, Any]] = []
+    for field_name, value in _surface_field_entries(raw_request):
+        column = _column_from_value(field_name, value, formula_policy)
+        if column is not None:
+            columns.append(column)
+            continue
+        cell_ref = _cell_ref_from_value(value)
+        if not cell_ref:
+            continue
+        cells.append(
+            {
+                "field_name": field_name,
+                "cell_ref": cell_ref,
+                "expected_value_type": str(
+                    value.get("expected_value_type") or value.get("value_type") or _default_expected_value_type(field_name)
+                    if isinstance(value, Mapping)
+                    else _default_expected_value_type(field_name)
+                ),
+                "required": field_name in REQUIRED_SEMANTIC_FIELDS,
+            }
+        )
+    if not sheet_name and not cells and not columns:
+        return None
+    return {
+        "sheet_name": sheet_name,
+        "whitelisted_cells": tuple(cells),
+        "whitelisted_columns": tuple(columns),
+        "required_fields": REQUIRED_SEMANTIC_FIELDS,
+        "optional_fields": OPTIONAL_SEMANTIC_FIELDS,
+        "formula_promotion_policy": formula_policy.selected_policy,
+    }
 
 
 def _normalize_cell(raw: Mapping[str, Any], formula_policy: FormulaPromotionPolicy) -> dict[str, Any] | None:
@@ -923,6 +1131,234 @@ def process_handoff_request(
         live_audit_ready=live_ready,
         sheet_audit_request_template=template,
     )
+
+
+def _capital_hilton_binding_errors(client_ref: str, workflow_ref: str, world_ref: str) -> tuple[str, ...]:
+    errors: list[str] = []
+    if client_ref != "capital_hilton":
+        errors.append("client_ref=capital_hilton")
+    if workflow_ref != "capital_hilton_invoice_workflow":
+        errors.append("workflow_ref=capital_hilton_invoice_workflow")
+    if world_ref != "finance":
+        errors.append("world_ref=finance")
+    return tuple(errors)
+
+
+def _local_surface_result_validation_errors(raw_request: Mapping[str, Any]) -> tuple[str, ...]:
+    errors: list[str] = []
+    if not is_local_surface_schema_mapping_result(raw_request):
+        errors.append("LOCAL_SURFACE_RESULT/client_invoice_sheet_schema_mapping")
+    client_ref, workflow_ref, world_ref = _context_values(raw_request)
+    errors.extend(_capital_hilton_binding_errors(client_ref, workflow_ref, world_ref))
+    if _first_surface_value(raw_request, ("operator_provided",)) is not True:
+        errors.append("operator_provided=true")
+    if _first_surface_value(raw_request, ("operator_confirmed_mapping", "operator_confirmed")) is not True:
+        errors.append("operator_confirmed_mapping=true")
+    for flag in LOCAL_SURFACE_RESULT_FALSE_FLAGS:
+        if _first_surface_value(raw_request, (flag,)) is not False:
+            errors.append(f"{flag}=false")
+    authority = raw_request.get("authority_boundary")
+    if isinstance(authority, Mapping) and any(value is True for value in authority.values()):
+        errors.append("authority_boundary_all_false")
+    return tuple(dict.fromkeys(errors))
+
+
+def _local_surface_status_for_errors(errors: tuple[str, ...]) -> str:
+    if any(error.startswith("operator_") for error in errors):
+        return "LOCAL_SURFACE_RESULT_UNCONFIRMED"
+    if any(error.endswith("=false") or error == "authority_boundary_all_false" for error in errors):
+        return "LOCAL_SURFACE_RESULT_UNSAFE_FLAGS"
+    return "LOCAL_SURFACE_RESULT_BLOCKED"
+
+
+def _local_surface_receipt(
+    raw_request: Mapping[str, Any],
+    *,
+    status: str,
+    validation_errors: tuple[str, ...],
+    missing_mapping_fields: tuple[str, ...],
+    live_audit_ready: bool,
+) -> dict[str, Any]:
+    return {
+        "receipt_id": f"local_surface_schema_mapping_receipt:{_short_hash(raw_request.get('request_id'), status)}",
+        "source_request_id": str(raw_request.get("request_id") or "unknown_local_surface_result"),
+        "result_kind": _local_surface_result_kind(raw_request),
+        "intended_use": str(raw_request.get("intended_use") or ""),
+        "receipt_status": status,
+        "operator_provided": _first_surface_value(raw_request, ("operator_provided",)) is True,
+        "operator_confirmed_mapping": _first_surface_value(raw_request, ("operator_confirmed_mapping", "operator_confirmed")) is True,
+        "mapping_classification": "operator_provided_schema_guidance",
+        "verified_sheet_data": False,
+        "spreadsheet_truth_claimed": False,
+        "validation_errors": validation_errors,
+        "missing_mapping_fields": missing_mapping_fields,
+        "live_audit_ready": live_audit_ready,
+        "safety_flags": {
+            flag: _first_surface_value(raw_request, (flag,))
+            for flag in LOCAL_SURFACE_RESULT_FALSE_FLAGS
+        },
+        "workbook_body_read_performed": False,
+        "spreadsheet_cell_read_performed": False,
+        "schema_inference_performed": False,
+        "external_action_performed": False,
+        "next_safe_move": (
+            "Use this only as operator-provided mapping guidance; validate gates before any sheet audit."
+            if not validation_errors
+            else "Resend the local surface result with confirmed mapping and all safety flags false."
+        ),
+    }
+
+
+def _blocked_local_surface_result_payload(
+    raw_request: Mapping[str, Any],
+    *,
+    export_root: Path,
+    generated_at: str,
+    validation_errors: tuple[str, ...],
+) -> dict[str, Any]:
+    source_request_id = str(raw_request.get("request_id") or "unknown_local_surface_result")
+    client_ref, workflow_ref, world_ref = _context_values(raw_request)
+    registry_payload = load_workbook_registry(export_root)
+    path_request, _new_path_ref, workbook_record = normalize_path_approval_request(
+        {**dict(raw_request), "sheet_schema_mapping": None},
+        registry_payload=registry_payload,
+    )
+    formula_policy = _formula_policy(_first_surface_value(raw_request, ("formula_promotion_policy", "formula_policy")))
+    status = _local_surface_status_for_errors(validation_errors)
+    headline = "Field mapping result blocked"
+    message = "OpenClaw received a field mapping result, but it failed the local surface safety or confirmation checks."
+    if status == "LOCAL_SURFACE_RESULT_UNCONFIRMED":
+        headline = "Confirm the field mapping"
+        message = "OpenClaw received field mapping guidance, but the operator confirmation receipt was missing."
+    elif status == "LOCAL_SURFACE_RESULT_UNSAFE_FLAGS":
+        headline = "Field mapping result blocked"
+        message = "OpenClaw blocked the field mapping result because a read, share, path-translation, or external-action flag was not false."
+    schema_request = ClientInvoiceSheetSchemaMappingRequest(
+        request_id=f"schema_mapping_request:{_short_hash(source_request_id, client_ref, workflow_ref)}",
+        source_request_id=source_request_id,
+        intended_use=str(raw_request.get("intended_use") or ""),
+        client_ref=client_ref,
+        workflow_ref=workflow_ref,
+        world_ref=world_ref,
+        sheet_name="",
+        schema_ref="",
+        formula_promotion_policy=formula_policy.selected_policy,
+        authority_boundary=dict(AUTHORITY_BOUNDARY),
+        validation_status=status,
+        missing_context=validation_errors,
+        next_safe_move="Next: resend the confirmed field mapping result with all safety flags false.",
+    )
+    readback = ClientInvoiceAuditHandoffReadback(
+        readback_id=f"audit_handoff_readback:{_short_hash(source_request_id, status)}",
+        status=status,
+        operator_headline=headline,
+        operator_message=message,
+        path_approval_status=path_request.validation_status,
+        schema_mapping_status=status,
+        formula_policy_status=formula_policy.selected_policy,
+        live_audit_ready=False,
+        missing_items=validation_errors,
+        next_action="Next: resend the confirmed field mapping result with all safety flags false.",
+        hidden_refs={
+            "source_request_id": source_request_id,
+            "workbook_ref": str(workbook_record.get("workbook_ref") or "") if workbook_record else "",
+            "approved_path_ref_id": "",
+            "schema_mapping_id": "",
+        },
+        authority_boundary=dict(AUTHORITY_BOUNDARY),
+        next_safe_move="Next: resend the confirmed field mapping result with all safety flags false.",
+    )
+    payload = _build_payload(
+        generated_at=generated_at,
+        path_request=path_request,
+        schema_request=schema_request,
+        approved_path_ref=None,
+        schema_mapping=None,
+        formula_policy=formula_policy,
+        readback=readback,
+        workbook_record=workbook_record,
+        live_audit_ready=False,
+        sheet_audit_request_template=None,
+    )
+    receipt = _local_surface_receipt(
+        raw_request,
+        status=status,
+        validation_errors=validation_errors,
+        missing_mapping_fields=(),
+        live_audit_ready=False,
+    )
+    payload["local_surface_result_receipt"] = receipt
+    payload["machine_proof"].update(
+        {
+            "local_surface_result_consumed": True,
+            "operator_provided_schema_guidance": False,
+            "verified_sheet_data": False,
+            "spreadsheet_truth_claimed": False,
+            "operator_confirmed_mapping": receipt["operator_confirmed_mapping"],
+        }
+    )
+    payload["machine_proof"]["content_hash"] = _content_hash(payload)
+    return payload
+
+
+def process_local_surface_schema_mapping_result(
+    raw_request: Mapping[str, Any],
+    *,
+    export_root: Path = DEFAULT_EXPORT_ROOT,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    generated_at = generated_at or utc_now()
+    validation_errors = _local_surface_result_validation_errors(raw_request)
+    if validation_errors:
+        return _blocked_local_surface_result_payload(
+            raw_request,
+            export_root=export_root,
+            generated_at=generated_at,
+            validation_errors=validation_errors,
+        )
+
+    schema_mapping = _schema_mapping_from_local_surface_result(raw_request)
+    normalized_request = dict(raw_request)
+    if schema_mapping is not None:
+        normalized_request["sheet_schema_mapping"] = schema_mapping
+    payload = process_handoff_request(normalized_request, export_root=export_root, generated_at=generated_at)
+    schema_request = payload.get("schema_mapping_request") if isinstance(payload.get("schema_mapping_request"), Mapping) else {}
+    missing_mapping_fields = tuple(
+        str(item)
+        for item in schema_request.get("missing_context", ())
+        if str(item) in REQUIRED_SEMANTIC_FIELDS or str(item) in {"sheet name and whitelisted cells/columns", "invoice sheet/schema mapping"}
+    )
+    receipt_status = (
+        "LOCAL_SURFACE_RESULT_SCHEMA_GUIDANCE_CAPTURED"
+        if schema_request.get("validation_status") == "SHEET_AUDIT_SCHEMA_CAPTURED"
+        else "LOCAL_SURFACE_RESULT_SCHEMA_GUIDANCE_INCOMPLETE"
+    )
+    receipt = _local_surface_receipt(
+        raw_request,
+        status=receipt_status,
+        validation_errors=(),
+        missing_mapping_fields=missing_mapping_fields,
+        live_audit_ready=bool(payload.get("live_audit_ready")),
+    )
+    payload["local_surface_result_receipt"] = receipt
+    payload["machine_proof"].update(
+        {
+            "local_surface_result_consumed": True,
+            "operator_provided_schema_guidance": True,
+            "verified_sheet_data": False,
+            "spreadsheet_truth_claimed": False,
+            "operator_confirmed_mapping": True,
+            "body_read_flag_false": _first_surface_value(raw_request, ("body_read",)) is False,
+            "workbook_body_read_flag_false": _first_surface_value(raw_request, ("workbook_body_read",)) is False,
+            "spreadsheet_cell_read_flag_false": _first_surface_value(raw_request, ("spreadsheet_cell_read",)) is False,
+            "ocr_performed_flag_false": _first_surface_value(raw_request, ("ocr_performed",)) is False,
+            "external_llm_shared_flag_false": _first_surface_value(raw_request, ("external_llm_shared",)) is False,
+            "external_action_flag_false": _first_surface_value(raw_request, ("external_action",)) is False,
+            "path_translation_guessed_flag_false": _first_surface_value(raw_request, ("path_translation_guessed",)) is False,
+        }
+    )
+    payload["machine_proof"]["content_hash"] = _content_hash(payload)
+    return payload
 
 
 def _build_payload(

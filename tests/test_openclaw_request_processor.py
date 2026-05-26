@@ -279,6 +279,58 @@ def _write_audit_handoff_request(path: Path, *, workbook_path: str = "", schema:
     return request
 
 
+def _write_local_surface_mapping_result(
+    path: Path,
+    *,
+    complete: bool = True,
+    client_ref: str = "capital_hilton",
+    workflow_ref: str = "capital_hilton_invoice_workflow",
+    world_ref: str = "finance",
+    unsafe_flag: str | None = None,
+    confirmed: bool = True,
+) -> dict:
+    field_mappings = {
+        "invoice_number": "B2",
+        "performance_dates": "B3",
+        "rate": "B4",
+        "subtotal_or_total": "B5",
+        "po_reference": "B6",
+        "notes_status": "B7",
+    }
+    if not complete:
+        field_mappings.pop("po_reference")
+    request = {
+        "kind": "LOCAL_SURFACE_RESULT",
+        "request_id": "mission_control_local_surface_result_capital_hilton_mapping_fixture",
+        "idempotency_key": "local_surface_result_capital_hilton_mapping_fixture",
+        "payload_hash": "fixture_local_surface_result_hash",
+        "created_at": FIXED_NOW,
+        "intended_use": audit_handoff.SCHEMA_MAPPING_INTENDED_USE,
+        "client_ref": client_ref,
+        "workflow_ref": workflow_ref,
+        "world_ref": world_ref,
+        "operator_confirmed_mapping": confirmed,
+        "operator_provided": True,
+        "body_read": False,
+        "workbook_body_read": False,
+        "spreadsheet_cell_read": False,
+        "ocr_performed": False,
+        "external_llm_shared": False,
+        "external_action": False,
+        "path_translation_guessed": False,
+        "authority_boundary": dict(processor.AUTHORITY_BOUNDARY),
+        "result": {
+            "sheet_tab_name": "Invoice",
+            "field_mappings": field_mappings,
+            "formula_policy": "operator_confirmation_required",
+        },
+    }
+    if unsafe_flag is not None:
+        request[unsafe_flag] = True
+    path.write_text(json.dumps(request, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return request
+
+
 def _write_future_request(path: Path) -> dict:
     request = {
         "request_id": "future_context_request_001",
@@ -751,6 +803,111 @@ def test_audit_handoff_path_and_schema_returns_ready_response_without_audit_run(
     assert response["machine_proof"]["client_invoice_audit_handoff_live_ready"] is True
     assert response["machine_proof"]["whitelisted_sheet_cells_read_performed"] is False
     assert response["machine_proof"]["external_action_performed"] is False
+
+
+def test_local_surface_field_mapping_result_is_consumed_and_publishes_scoped_response(tmp_path, capsys, monkeypatch):
+    inbox = tmp_path / "approved_inbox"
+    inbox.mkdir()
+    request_path = inbox / "mission_control_local_surface_result_capital_hilton_mapping.json"
+    request = _write_local_surface_mapping_result(request_path)
+    export_root = tmp_path / "read_models"
+    response_dir = tmp_path / "responses"
+    _seed_workbook_registry(export_root)
+    monkeypatch.setattr(processor, "APPROVED_INBOX", inbox)
+    monkeypatch.setattr(processor, "DEFAULT_RESPONSE_DIR", response_dir)
+
+    assert process_main(
+        [
+            "--file",
+            str(request_path),
+            "--export-root",
+            str(export_root),
+            "--generated-at",
+            FIXED_NOW,
+            "--format",
+            "json",
+        ]
+    ) == 0
+    response = json.loads(capsys.readouterr().out)
+    scoped = json.loads(_scoped_processor_response_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
+    handoff_payload = json.loads((export_root / audit_handoff.JSON_EXPORT_NAME).read_text(encoding="utf-8"))
+
+    assert response["source_request_id"] == request["request_id"]
+    assert response["request_type"] == "LOCAL_SURFACE_RESULT"
+    assert response["response_kind"] == "LOCAL_SURFACE_SCHEMA_MAPPING_RESULT"
+    assert response["headline"] == "Capital Hilton invoice sheet mapping captured"
+    assert "operator-confirmed invoice field mapping as schema guidance" in response["eliwinship"]
+    assert response["terminal"] is True
+    assert scoped["source_request_id"] == request["request_id"]
+    assert scoped["machine_proof"]["local_surface_result_consumed"] is True
+    assert scoped["machine_proof"]["operator_provided_schema_guidance"] is True
+    assert scoped["machine_proof"]["verified_sheet_data"] is False
+    assert scoped["machine_proof"]["workbook_body_read_performed"] is False
+    assert scoped["machine_proof"]["spreadsheet_cell_read_performed"] is False
+    assert scoped["machine_proof"]["external_action_performed"] is False
+    assert scoped["machine_proof"]["model_call_performed"] is False
+    assert scoped["machine_proof"]["client_invoice_sheet_audit_used"] is False
+    assert handoff_payload["local_surface_result_receipt"]["receipt_status"] == "LOCAL_SURFACE_RESULT_SCHEMA_GUIDANCE_CAPTURED"
+    assert handoff_payload["schema_mapping"]["sheet_name"] == "Invoice"
+    assert handoff_payload["live_audit_ready"] is False
+    assert handoff_payload["audit_handoff_readback"]["missing_items"] == ["approved PC-readable workbook path"]
+
+
+def test_local_surface_field_mapping_result_rejects_missing_capital_hilton_binding(tmp_path, capsys):
+    request_path = tmp_path / "mission_control_local_surface_result_capital_hilton_mapping.json"
+    _write_local_surface_mapping_result(request_path, workflow_ref="unknown")
+    export_root = tmp_path / "read_models"
+    _seed_workbook_registry(export_root)
+
+    assert process_main(["--file", str(request_path), "--export-root", str(export_root), "--generated-at", FIXED_NOW, "--format", "json"]) == 0
+    response = json.loads(capsys.readouterr().out)
+    handoff_payload = json.loads((export_root / audit_handoff.JSON_EXPORT_NAME).read_text(encoding="utf-8"))
+
+    assert response["internal_status"] == "BLOCKED_WITH_REASON"
+    assert response["headline"] == "Field mapping result blocked"
+    assert handoff_payload["local_surface_result_receipt"]["receipt_status"] == "LOCAL_SURFACE_RESULT_BLOCKED"
+    assert "workflow_ref=capital_hilton_invoice_workflow" in handoff_payload["local_surface_result_receipt"]["validation_errors"]
+    assert handoff_payload["schema_mapping"] is None
+    assert response["machine_proof"]["workbook_body_read_performed"] is False
+    assert response["machine_proof"]["spreadsheet_cell_read_performed"] is False
+
+
+def test_local_surface_field_mapping_result_rejects_unsafe_flags(tmp_path, capsys):
+    request_path = tmp_path / "mission_control_local_surface_result_capital_hilton_mapping.json"
+    _write_local_surface_mapping_result(request_path, unsafe_flag="spreadsheet_cell_read")
+    export_root = tmp_path / "read_models"
+    _seed_workbook_registry(export_root)
+
+    assert process_main(["--file", str(request_path), "--export-root", str(export_root), "--generated-at", FIXED_NOW, "--format", "json"]) == 0
+    response = json.loads(capsys.readouterr().out)
+    handoff_payload = json.loads((export_root / audit_handoff.JSON_EXPORT_NAME).read_text(encoding="utf-8"))
+
+    assert response["internal_status"] == "BLOCKED_WITH_REASON"
+    assert response["headline"] == "Field mapping result blocked"
+    assert handoff_payload["local_surface_result_receipt"]["receipt_status"] == "LOCAL_SURFACE_RESULT_UNSAFE_FLAGS"
+    assert "spreadsheet_cell_read=false" in handoff_payload["local_surface_result_receipt"]["validation_errors"]
+    assert handoff_payload["schema_mapping"] is None
+    assert response["machine_proof"]["spreadsheet_cell_read_performed"] is False
+    assert response["machine_proof"]["external_action_performed"] is False
+
+
+def test_local_surface_field_mapping_result_reports_only_missing_mapping_fields(tmp_path, capsys):
+    request_path = tmp_path / "mission_control_local_surface_result_capital_hilton_mapping.json"
+    _write_local_surface_mapping_result(request_path, complete=False)
+    export_root = tmp_path / "read_models"
+    _seed_workbook_registry(export_root)
+
+    assert process_main(["--file", str(request_path), "--export-root", str(export_root), "--generated-at", FIXED_NOW, "--format", "json"]) == 0
+    response = json.loads(capsys.readouterr().out)
+    handoff_payload = json.loads((export_root / audit_handoff.JSON_EXPORT_NAME).read_text(encoding="utf-8"))
+
+    assert response["headline"] == "Sheet mapping needs fields"
+    assert response["missing_items_short"] == ["po_reference"]
+    assert "po_reference" in response["eliwinship"]
+    assert "approved PC-readable workbook path" not in response["missing_items_short"]
+    assert handoff_payload["local_surface_result_receipt"]["missing_mapping_fields"] == ["po_reference"]
+    assert response["machine_proof"]["workbook_body_read_performed"] is False
+    assert response["machine_proof"]["spreadsheet_cell_read_performed"] is False
 
 
 def test_capital_hilton_status_query_routes_to_unified_operator_readback(tmp_path, capsys):

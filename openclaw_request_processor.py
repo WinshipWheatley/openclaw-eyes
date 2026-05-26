@@ -52,6 +52,13 @@ CONTRACT_STATUS = "BOUNDED_OPENCLAW_REQUEST_LIFECYCLE_PROCESSOR"
 
 CHAT_PATTERN = conversational_workflow_router_intake.REQUEST_FILENAME_PATTERN
 FILE_METADATA_PATTERN = operator_file_metadata_intake.REQUEST_FILENAME_PATTERN
+LOCAL_SURFACE_RESULT_PATTERNS = (
+    "mission_control_local_surface_result_*.json",
+    "mission_control_surface_result_*.json",
+    "mission_control_local_surface_request_result_*.json",
+    "mission_control_field_mapping_result_*.json",
+    "mission_control_capture_request_*local_surface_result*.json",
+)
 CONTEXT_ATTACHMENT_PATTERN = "mission_control_context_request_*.json"
 SECRET_INTAKE_PATTERN = "mission_control_secret_intake_request_*.json"
 VISUAL_WORKSPACE_PATTERN = "mission_control_visual_workspace_request_*.json"
@@ -60,6 +67,7 @@ WORKER_DISPATCH_PATTERN = "mission_control_worker_dispatch_request_*.json"
 SUPPORTED_REQUEST_PATTERNS = (
     CHAT_PATTERN,
     FILE_METADATA_PATTERN,
+    *LOCAL_SURFACE_RESULT_PATTERNS,
 )
 
 FUTURE_REQUEST_PATTERNS = (
@@ -72,6 +80,7 @@ FUTURE_REQUEST_PATTERNS = (
 REQUEST_FAMILIES = (
     "CHAT",
     "FILE_METADATA",
+    "LOCAL_SURFACE_RESULT",
     "CONTEXT_ATTACHMENT_FUTURE",
     "SECRET_INTAKE_FUTURE",
     "VISUAL_WORKSPACE_FUTURE",
@@ -348,6 +357,7 @@ AGENT_TASTE_FORBIDDEN = {
 RESPONDER_TARGET_TYPES = (
     "DETERMINISTIC_ROUTER",
     "FILE_METADATA_INTAKE",
+    "LOCAL_SURFACE_RESULT_INTAKE",
     "WORKER_ROUTING_INTELLIGENCE",
     "SCOPED_CONTEXT_PACKAGE_COMPILER",
     "CODEX_RESPONDER_FUTURE",
@@ -746,6 +756,11 @@ def classify_request_filename(filename: str | None) -> RequestClassification:
         rail = "operator_file_metadata_intake"
         reason = "Filename matches Mission Control file metadata intake pattern."
         future_supported = False
+    elif filename and any(fnmatch.fnmatch(filename, pattern) for pattern in LOCAL_SURFACE_RESULT_PATTERNS):
+        family = "LOCAL_SURFACE_RESULT"
+        rail = "local_surface_result_intake"
+        reason = "Filename matches Mission Control local surface result pattern."
+        future_supported = False
     elif filename and fnmatch.fnmatch(filename, CONTEXT_ATTACHMENT_PATTERN):
         family = "CONTEXT_ATTACHMENT_FUTURE"
         rail = "scoped_context_package_compiler_future"
@@ -780,7 +795,7 @@ def classify_request_filename(filename: str | None) -> RequestClassification:
         future_supported=future_supported,
         next_safe_move=(
             "Run the selected deterministic rail once and write a Mac-readable response."
-            if family in {"CHAT", "FILE_METADATA"}
+            if family in {"CHAT", "FILE_METADATA", "LOCAL_SURFACE_RESULT"}
             else "Return a human blocked response until the requested rail is connected."
         ),
     )
@@ -792,7 +807,7 @@ def list_supported_requests(inbox: Path = APPROVED_INBOX) -> tuple[Path, ...]:
     matches = [
         path
         for path in inbox.iterdir()
-        if path.is_file() and classify_request_filename(path.name).request_family in {"CHAT", "FILE_METADATA"}
+        if path.is_file() and classify_request_filename(path.name).request_family in {"CHAT", "FILE_METADATA", "LOCAL_SURFACE_RESULT"}
     ]
     return tuple(sorted(matches, key=lambda path: (path.stat().st_mtime_ns, path.name)))
 
@@ -848,6 +863,13 @@ def build_responder_targets(selected_family: str) -> tuple[RequestProcessorRespo
             ("FILE_METADATA",),
             True,
             selected_family == "FILE_METADATA",
+        ),
+        target(
+            "LOCAL_SURFACE_RESULT_INTAKE",
+            "Device-local surface result intake",
+            ("LOCAL_SURFACE_RESULT",),
+            True,
+            selected_family == "LOCAL_SURFACE_RESULT",
         ),
         target(
             "WORKER_ROUTING_INTELLIGENCE",
@@ -919,6 +941,8 @@ def _required_fields_for_family(request_family: str) -> tuple[str, ...]:
         return CHAT_REQUIRED_FIELDS
     if request_family == "FILE_METADATA":
         return FILE_REQUIRED_FIELDS
+    if request_family == "LOCAL_SURFACE_RESULT":
+        return ("request_id", "idempotency_key", "payload_hash", "authority_boundary", "created_at", "intended_use")
     return ("request_id", "idempotency_key", "payload_hash", "authority_boundary", "created_at")
 
 
@@ -2112,6 +2136,24 @@ def _audit_handoff_classification(
     )
 
 
+def _local_surface_result_classification(
+    classification: RequestClassification,
+    *,
+    request_path: Path,
+) -> RequestClassification:
+    return RequestClassification(
+        classification_id=f"request_classification_{_short_hash(request_path.name, 'local_surface_schema_mapping_result')}",
+        source_request_filename=classification.source_request_filename,
+        request_family=classification.request_family,
+        selected_rail="local_surface_result_intake + client_invoice_audit_handoff",
+        classification_reason=(
+            "Request is a LOCAL_SURFACE_RESULT for client_invoice_sheet_schema_mapping, selecting the guided mapping intake rail."
+        ),
+        future_supported=False,
+        next_safe_move="Record operator-provided mapping guidance only; do not read workbook cells or run the audit.",
+    )
+
+
 def _process_client_invoice_audit_handoff_request(
     request_path: Path,
     raw_request: Mapping[str, Any],
@@ -2204,6 +2246,163 @@ def _process_client_invoice_audit_handoff_request(
                     f"Path: {readback.get('path_approval_status')}",
                     f"Schema: {readback.get('schema_mapping_status')}",
                     f"Formula policy: {readback.get('formula_policy_status')}",
+                    next_action,
+                ),
+                "status_tone": "ready" if live_ready else "blocked",
+            },
+        ),
+        cards_available=True,
+        card_mirror_refs=(),
+        file_readback_refs=(handoff_json.as_posix(),),
+        worker_route_refs=(),
+        context_package_refs=(),
+        blocked_reason=None if live_ready else primary_blocker,
+        detail_disclosure=detail,
+        readback_files=(handoff_json.as_posix(), handoff_operator.as_posix()),
+        next_safe_move=next_action,
+    )
+
+
+def _process_local_surface_result_request(
+    request_path: Path,
+    raw_request: Mapping[str, Any],
+    *,
+    export_root: Path,
+    generated_at: str | None,
+    classification: RequestClassification,
+) -> OpenClawResponseForMac:
+    local_classification = _local_surface_result_classification(classification, request_path=request_path)
+    if not client_invoice_audit_handoff.is_local_surface_schema_mapping_result(raw_request):
+        return OpenClawResponseForMac(
+            source_request_id=str(raw_request.get("request_id") or "unknown_local_surface_result"),
+            source_request_filename=request_path.name,
+            workflow_ref=str(raw_request.get("workflow_ref") or "unknown"),
+            request_type=classification.request_family,
+            internal_status="BLOCKED_WITH_REASON",
+            operator_headline="Local result not supported",
+            operator_message="OpenClaw received a local surface result, but this processor only accepts invoice sheet mapping results in this lane.",
+            what_happened=("PC validated the local surface result envelope.", "No local result was applied."),
+            why_it_happened="The intended_use or result kind did not match client_invoice_sheet_schema_mapping.",
+            how_to_fix="Resend a LOCAL_SURFACE_RESULT with intended_use=client_invoice_sheet_schema_mapping.",
+            visible_cards=(),
+            cards_available=False,
+            card_mirror_refs=(),
+            file_readback_refs=(),
+            worker_route_refs=(),
+            context_package_refs=(),
+            blocked_reason="Unsupported local surface result.",
+            detail_disclosure={"request_classification": asdict(local_classification)},
+            readback_files=(),
+            next_safe_move="Next: resend a supported local field mapping result.",
+        )
+
+    handoff_payload = client_invoice_audit_handoff.process_local_surface_schema_mapping_result(
+        raw_request,
+        export_root=export_root,
+        generated_at=generated_at,
+    )
+    handoff_json, handoff_operator = client_invoice_audit_handoff.write_exports(handoff_payload, export_root)
+    readback = handoff_payload["audit_handoff_readback"]
+    receipt = handoff_payload.get("local_surface_result_receipt") if isinstance(handoff_payload.get("local_surface_result_receipt"), Mapping) else {}
+    schema_request = handoff_payload["schema_mapping_request"]
+    live_ready = bool(handoff_payload["live_audit_ready"])
+    schema_captured = schema_request.get("validation_status") == "SHEET_AUDIT_SCHEMA_CAPTURED"
+    validation_errors = tuple(str(item) for item in receipt.get("validation_errors") or ())
+    missing_mapping_fields = tuple(str(item) for item in receipt.get("missing_mapping_fields") or ())
+    missing_items = missing_mapping_fields or tuple(str(item) for item in readback.get("missing_items") or ())
+    primary_blocker = "None" if live_ready else (missing_items[0] if missing_items else str(readback["status"]))
+    headline = str(readback["operator_headline"])
+    if validation_errors:
+        message = str(readback["operator_message"])
+    elif schema_captured and live_ready:
+        message = (
+            "OpenClaw captured the operator-confirmed invoice field mapping as schema guidance. "
+            "It did not read the workbook body or cells. The whitelisted audit is now ready."
+        )
+    elif schema_captured:
+        message = (
+            "OpenClaw captured the operator-confirmed invoice field mapping as schema guidance. "
+            "It did not read the workbook body or cells. It still needs approved PC-readable workbook access before audit."
+        )
+    elif missing_mapping_fields:
+        message = (
+            "OpenClaw received the operator-confirmed field mapping, but it is missing required mapping fields: "
+            + ", ".join(missing_mapping_fields)
+            + "."
+        )
+    else:
+        message = str(readback["operator_message"])
+    next_action = str(readback["next_action"])
+    detail = {
+        "client_invoice_audit_handoff": {
+            "handoff_readback_ref": handoff_json.as_posix(),
+            "operator_readback_ref": handoff_operator.as_posix(),
+            "path_approval_request": handoff_payload["path_approval_request"],
+            "schema_mapping_request": schema_request,
+            "approved_workbook_path_ref": handoff_payload.get("approved_workbook_path_ref") or {},
+            "schema_mapping": handoff_payload.get("schema_mapping") or {},
+            "formula_promotion_policy": handoff_payload["formula_promotion_policy"],
+            "audit_handoff_readback": readback,
+            "local_surface_result_receipt": receipt,
+            "live_audit_ready": live_ready,
+            "operator_provided_schema_guidance": bool(receipt.get("mapping_classification") == "operator_provided_schema_guidance"),
+            "verified_sheet_data": False,
+            "workbook_body_read_performed": False,
+            "spreadsheet_cell_read_performed": False,
+            "schema_inference_performed": False,
+            "mac_path_translation_guessed": False,
+            "formula_evaluation_performed": False,
+            "external_action_performed": False,
+        },
+        "layered_response_fields": {
+            "response_kind": "LOCAL_SURFACE_SCHEMA_MAPPING_RESULT",
+            "audience_mode": "ELIWINSHIP",
+            "display_mode": "COMPACT_CHAT",
+            "headline": headline,
+            "one_line_answer": message,
+            "eliwinship": message,
+            "primary_status": str(readback["status"]).replace("_", " ").title(),
+            "primary_blocker": primary_blocker,
+            "next_action": next_action,
+            "missing_items_short": missing_items,
+            "detail_summary": (
+                f"Schema: {readback.get('schema_mapping_status')}. "
+                f"Ready: {live_ready}. "
+                "Mapping is operator-provided guidance, not verified sheet data."
+            ),
+            "proof_refs": (f"generated/read_models/{client_invoice_audit_handoff.JSON_EXPORT_NAME}",),
+            "mac_render_hint": "COMPACT_WITH_DISCLOSURE",
+        },
+        "request_classification": asdict(local_classification),
+        "external_actions_locked": True,
+        "model_or_worker_response_adapter_called": False,
+    }
+    return OpenClawResponseForMac(
+        source_request_id=str(raw_request.get("request_id") or readback["hidden_refs"]["source_request_id"]),
+        source_request_filename=request_path.name,
+        workflow_ref=str(raw_request.get("workflow_ref") or "unknown"),
+        request_type=classification.request_family,
+        internal_status="RESPONSE_READY" if live_ready else "BLOCKED_WITH_REASON",
+        operator_headline=headline,
+        operator_message=message,
+        what_happened=(
+            "PC consumed the local surface field mapping result.",
+            "PC recorded the mapping as operator-provided schema guidance only.",
+            "PC did not open a workbook, read spreadsheet cells, run OCR, call a model, or run the audit.",
+        ),
+        why_it_happened=(
+            "The local surface result was operator-provided, operator-confirmed, and all read/action safety flags were false."
+            if not validation_errors
+            else "The local surface result failed a required safety, confirmation, or binding check."
+        ),
+        how_to_fix="No fix is needed. Run the whitelisted sheet audit when ready." if live_ready else next_action,
+        visible_cards=(
+            {
+                "title": headline,
+                "bullets": (
+                    "Mapping stored as operator-provided schema guidance.",
+                    "Workbook body and cells were not read.",
+                    f"Ready for audit: {live_ready}.",
                     next_action,
                 ),
                 "status_tone": "ready" if live_ready else "blocked",
@@ -3152,6 +3351,14 @@ def process_request_path(
             generated_at=generated_at,
             classification=classification,
         )
+    if classification.request_family == "LOCAL_SURFACE_RESULT":
+        return _process_local_surface_result_request(
+            request_path,
+            raw_request,
+            export_root=export_root,
+            generated_at=generated_at,
+            classification=classification,
+        )
     if duplicate_check:
         duplicate = _existing_duplicate_response(raw_request, export_root, classification)
         if duplicate is not None:
@@ -3345,6 +3552,7 @@ def _machine_proof(
         "request_classifier_present": status.request_classification["request_family"] in REQUEST_FAMILIES,
         "supported_chat_pattern_present": CHAT_PATTERN in SUPPORTED_REQUEST_PATTERNS,
         "supported_file_pattern_present": FILE_METADATA_PATTERN in SUPPORTED_REQUEST_PATTERNS,
+        "supported_local_surface_result_pattern_present": all(pattern in SUPPORTED_REQUEST_PATTERNS for pattern in LOCAL_SURFACE_RESULT_PATTERNS),
         "future_request_families_modeled": all(pattern in FUTURE_REQUEST_PATTERNS for pattern in FUTURE_REQUEST_PATTERNS),
         "deterministic_responder_targets_modeled": any(target["target_type"] == "DETERMINISTIC_ROUTER" for target in targets),
         "future_lm_targets_modeled": len(future_lm_targets) >= 6,
@@ -3377,6 +3585,9 @@ def _machine_proof(
         "client_invoice_workbook_registry_used": bool(workbook_detail),
         "client_invoice_audit_handoff_used": bool(audit_handoff_detail),
         "client_invoice_audit_handoff_live_ready": bool(audit_handoff_detail.get("live_audit_ready")),
+        "local_surface_result_consumed": bool((audit_handoff_detail.get("local_surface_result_receipt") or {}).get("receipt_id")),
+        "operator_provided_schema_guidance": bool(audit_handoff_detail.get("operator_provided_schema_guidance")),
+        "verified_sheet_data": False,
         "client_invoice_sheet_audit_used": bool(sheet_audit_detail),
         "live_lm_interpreter_called": False,
         "workflow_execution_performed": False,

@@ -81,6 +81,48 @@ def _request(*, intended_use: str = handoff.INTENDED_USE, path: str = "", path_r
     return payload
 
 
+def _local_surface_result(*, complete: bool = True, client_ref: str = "capital_hilton", workflow_ref: str = "capital_hilton_invoice_workflow", world_ref: str = "finance", unsafe_flag: str | None = None, confirmed: bool = True) -> dict:
+    fields = {
+        "invoice_number": "B2",
+        "performance_dates": "B3",
+        "rate": "B4",
+        "subtotal_or_total": "B5",
+        "po_reference": "B6",
+        "notes_status": "B7",
+    }
+    if not complete:
+        fields.pop("po_reference")
+    payload = {
+        "kind": "LOCAL_SURFACE_RESULT",
+        "request_id": "mission_control_local_surface_result_capital_hilton_mapping_fixture",
+        "idempotency_key": "local_surface_result_capital_hilton_mapping_fixture",
+        "payload_hash": "fixture_local_surface_result_hash",
+        "created_at": FIXED_NOW,
+        "intended_use": handoff.SCHEMA_MAPPING_INTENDED_USE,
+        "client_ref": client_ref,
+        "workflow_ref": workflow_ref,
+        "world_ref": world_ref,
+        "operator_confirmed_mapping": confirmed,
+        "operator_provided": True,
+        "body_read": False,
+        "workbook_body_read": False,
+        "spreadsheet_cell_read": False,
+        "ocr_performed": False,
+        "external_llm_shared": False,
+        "external_action": False,
+        "path_translation_guessed": False,
+        "authority_boundary": dict(handoff.AUTHORITY_BOUNDARY),
+        "result": {
+            "sheet_tab_name": "Invoice",
+            "field_mappings": fields,
+            "formula_policy": "operator_confirmation_required",
+        },
+    }
+    if unsafe_flag is not None:
+        payload[unsafe_flag] = True
+    return payload
+
+
 def test_required_models_exist_with_required_fields():
     assert tuple(field.name for field in fields(handoff.ClientInvoiceWorkbookPathApprovalRequest)) == (
         "request_id",
@@ -178,6 +220,112 @@ def test_schema_mapping_is_accepted_but_path_still_required(tmp_path):
     assert payload["audit_handoff_readback"]["status"] == "SCHEMA_MAPPING_CAPTURED_PATH_REQUIRED"
     assert payload["audit_handoff_readback"]["operator_headline"] == "Capital Hilton invoice sheet mapping captured"
     assert payload["live_audit_ready"] is False
+
+
+def test_local_surface_schema_mapping_result_is_operator_guidance_not_sheet_data(tmp_path):
+    _seed_registry(tmp_path)
+
+    payload = handoff.process_local_surface_schema_mapping_result(
+        _local_surface_result(),
+        export_root=tmp_path,
+        generated_at=FIXED_NOW,
+    )
+
+    assert payload["local_surface_result_receipt"]["receipt_status"] == "LOCAL_SURFACE_RESULT_SCHEMA_GUIDANCE_CAPTURED"
+    assert payload["local_surface_result_receipt"]["operator_confirmed_mapping"] is True
+    assert payload["local_surface_result_receipt"]["mapping_classification"] == "operator_provided_schema_guidance"
+    assert payload["local_surface_result_receipt"]["verified_sheet_data"] is False
+    assert payload["schema_mapping_request"]["validation_status"] == "SHEET_AUDIT_SCHEMA_CAPTURED"
+    assert payload["schema_mapping"]["sheet_name"] == "Invoice"
+    assert payload["schema_mapping"]["whitelisted_cells"][0]["cell_ref"] == "B2"
+    assert payload["audit_handoff_readback"]["status"] == "SCHEMA_MAPPING_CAPTURED_PATH_REQUIRED"
+    assert payload["live_audit_ready"] is False
+    assert payload["machine_proof"]["operator_provided_schema_guidance"] is True
+    assert payload["machine_proof"]["verified_sheet_data"] is False
+    assert payload["machine_proof"]["workbook_body_read_performed"] is False
+    assert payload["machine_proof"]["spreadsheet_cell_read_performed"] is False
+
+
+def test_local_surface_schema_mapping_result_requires_capital_hilton_binding(tmp_path):
+    _seed_registry(tmp_path)
+
+    payload = handoff.process_local_surface_schema_mapping_result(
+        _local_surface_result(workflow_ref="unknown"),
+        export_root=tmp_path,
+        generated_at=FIXED_NOW,
+    )
+
+    assert payload["local_surface_result_receipt"]["receipt_status"] == "LOCAL_SURFACE_RESULT_BLOCKED"
+    assert "workflow_ref=capital_hilton_invoice_workflow" in payload["local_surface_result_receipt"]["validation_errors"]
+    assert payload["schema_mapping"] is None
+    assert payload["live_audit_ready"] is False
+
+
+def test_local_surface_schema_mapping_result_blocks_unsafe_flags(tmp_path):
+    _seed_registry(tmp_path)
+
+    payload = handoff.process_local_surface_schema_mapping_result(
+        _local_surface_result(unsafe_flag="spreadsheet_cell_read"),
+        export_root=tmp_path,
+        generated_at=FIXED_NOW,
+    )
+
+    assert payload["local_surface_result_receipt"]["receipt_status"] == "LOCAL_SURFACE_RESULT_UNSAFE_FLAGS"
+    assert "spreadsheet_cell_read=false" in payload["local_surface_result_receipt"]["validation_errors"]
+    assert payload["schema_mapping"] is None
+    assert payload["machine_proof"]["operator_provided_schema_guidance"] is False
+    assert payload["machine_proof"]["spreadsheet_cell_read_performed"] is False
+
+
+def test_local_surface_schema_mapping_result_blocks_unconfirmed_mapping(tmp_path):
+    _seed_registry(tmp_path)
+
+    payload = handoff.process_local_surface_schema_mapping_result(
+        _local_surface_result(confirmed=False),
+        export_root=tmp_path,
+        generated_at=FIXED_NOW,
+    )
+
+    assert payload["local_surface_result_receipt"]["receipt_status"] == "LOCAL_SURFACE_RESULT_UNCONFIRMED"
+    assert "operator_confirmed_mapping=true" in payload["local_surface_result_receipt"]["validation_errors"]
+    assert payload["schema_mapping"] is None
+
+
+def test_local_surface_schema_mapping_result_reports_missing_mapping_fields(tmp_path):
+    _seed_registry(tmp_path)
+
+    payload = handoff.process_local_surface_schema_mapping_result(
+        _local_surface_result(complete=False),
+        export_root=tmp_path,
+        generated_at=FIXED_NOW,
+    )
+
+    assert payload["local_surface_result_receipt"]["receipt_status"] == "LOCAL_SURFACE_RESULT_SCHEMA_GUIDANCE_INCOMPLETE"
+    assert payload["schema_mapping_request"]["validation_status"] == "SHEET_AUDIT_SCHEMA_INCOMPLETE"
+    assert payload["local_surface_result_receipt"]["missing_mapping_fields"] == ("po_reference",)
+    assert payload["live_audit_ready"] is False
+
+
+def test_local_surface_schema_mapping_result_can_make_handoff_ready_when_path_exists(tmp_path):
+    _seed_registry(tmp_path)
+    path_payload = handoff.process_handoff_request(
+        _request(intended_use=handoff.PATH_APPROVAL_INTENDED_USE, path="/mnt/e/openclaw/capital_hilton_invoice.xlsx"),
+        export_root=tmp_path,
+        generated_at=FIXED_NOW,
+    )
+    handoff.write_exports(path_payload, tmp_path)
+
+    payload = handoff.process_local_surface_schema_mapping_result(
+        _local_surface_result(),
+        export_root=tmp_path,
+        generated_at=FIXED_NOW,
+    )
+
+    assert payload["local_surface_result_receipt"]["receipt_status"] == "LOCAL_SURFACE_RESULT_SCHEMA_GUIDANCE_CAPTURED"
+    assert payload["live_audit_ready"] is True
+    assert payload["audit_handoff_readback"]["status"] == "HANDOFF_READY_FOR_SHEET_AUDIT"
+    assert payload["sheet_audit_request_template"]["intended_use"] == "client_invoice_sheet_audit"
+    assert payload["machine_proof"]["spreadsheet_cell_read_performed"] is False
 
 
 def test_incomplete_schema_is_blocked(tmp_path):
