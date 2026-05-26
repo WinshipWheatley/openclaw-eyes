@@ -348,9 +348,16 @@ def _mac_visible_path(value: object) -> bool:
 
 
 def _approval_marker(raw_request: Mapping[str, Any]) -> str:
-    marker = str(raw_request.get("operator_approval_marker") or raw_request.get("path_approval_source_marker") or "").strip()
+    marker = str(
+        raw_request.get("operator_approval_marker")
+        or raw_request.get("path_approval_source_marker")
+        or raw_request.get("approval_source")
+        or ""
+    ).strip()
     if marker:
         return marker[:160]
+    if raw_request.get("operator_approved") is True:
+        return "operator_approved:true"
     if raw_request.get("approved_pc_workbook_path_authorized") is True:
         return "approved_pc_workbook_path_authorized:true"
     if raw_request.get("approved_by_operator") is True:
@@ -516,14 +523,18 @@ def _matching_artifact_from_payload(
     world_ref: str,
     source_request_id: str,
 ) -> dict[str, Any] | None:
-    artifact = local_artifact_reference.find_approved_readable_artifact(
-        payload,
-        world_ref=world_ref,
-        workflow_ref=workflow_ref,
-        client_ref=client_ref,
-        artifact_kind="invoice_workbook",
-        intended_use="client_invoice_sheet_audit",
-    )
+    artifact = None
+    for artifact_kind in ("invoice_workbook", "spreadsheet_workbook"):
+        artifact = local_artifact_reference.find_approved_readable_artifact(
+            payload,
+            world_ref=world_ref,
+            workflow_ref=workflow_ref,
+            client_ref=client_ref,
+            artifact_kind=artifact_kind,
+            intended_use="client_invoice_sheet_audit",
+        )
+        if artifact is not None:
+            break
     if artifact and _fixture_source_id(artifact.get("source_request_id")) and not _fixture_source_id(source_request_id):
         return None
     return artifact

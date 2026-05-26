@@ -25,6 +25,8 @@ READ_MODEL_ID = "local_artifact_reference"
 JSON_EXPORT_NAME = f"{READ_MODEL_ID}.json"
 OPERATOR_EXPORT_NAME = f"{READ_MODEL_ID}_OPERATOR.md"
 CONTRACT_STATUS = "DETERMINISTIC_APPROVED_READABLE_ARTIFACT_REFERENCE_NO_CONTENT_READ"
+APPROVAL_INTENDED_USE = "approve_readable_artifact_reference"
+SUPPORTED_APPROVAL_KINDS = ("LOCAL_SURFACE_RESULT", "ARTIFACT_REFERENCE_APPROVAL")
 
 READINESS_STATUSES = (
     "ARTIFACT_READY_FOR_READ",
@@ -235,6 +237,21 @@ def _first_text(raw_request: Mapping[str, Any], keys: tuple[str, ...]) -> str:
     return ""
 
 
+def _request_kind(raw_request: Mapping[str, Any]) -> str:
+    for key in ("kind", "type", "request_type", "result_type"):
+        value = str(raw_request.get(key) or "").strip().upper()
+        if value:
+            return value
+    return ""
+
+
+def is_artifact_approval_request(raw_request: Mapping[str, Any]) -> bool:
+    return (
+        _request_kind(raw_request) in SUPPORTED_APPROVAL_KINDS
+        and str(raw_request.get("intended_use") or "").strip() == APPROVAL_INTENDED_USE
+    )
+
+
 def is_mac_visible_path(value: object) -> bool:
     text = str(value or "").strip()
     lowered = text.lower()
@@ -353,7 +370,13 @@ def reference_from_request(
     generated_at = generated_at or utc_now()
     scope = scope_binding_from_request(raw_request)
     artifact_kind = _safe_text(raw_request.get("artifact_kind") or raw_request.get("file_type"), artifact_kind_default)
-    intended_use = _safe_text(raw_request.get("artifact_intended_use") or raw_request.get("intended_use"), intended_use_default)
+    intended_use = _safe_text(
+        raw_request.get("artifact_intended_use")
+        or raw_request.get("target_intended_use")
+        or raw_request.get("artifact_use")
+        or raw_request.get("intended_use"),
+        intended_use_default,
+    )
     pc_path = _first_text(
         raw_request,
         (
@@ -374,7 +397,12 @@ def reference_from_request(
         ),
     )
     mac_path = _first_text(raw_request, ("mac_path", "local_path_ref", "source_mac_path"))
-    path_mapping_verified = raw_request.get("path_mapping_verified") is True or is_pc_readable_path_style(pc_path or approved_path_ref)
+    if raw_request.get("path_mapping_verified") is False:
+        path_mapping_verified = False
+    elif raw_request.get("path_mapping_verified") is True:
+        path_mapping_verified = True
+    else:
+        path_mapping_verified = is_pc_readable_path_style(pc_path or approved_path_ref)
     operator_approved = _operator_approved(raw_request)
     approved_for_read = raw_request.get("approved_for_read") is True or bool(operator_approved and (pc_path or approved_path_ref))
     approved_for_write = raw_request.get("approved_for_write") is True or raw_request.get("write_allowed") is True
@@ -619,6 +647,8 @@ def _build_payload(
         "schema_version": SCHEMA_VERSION,
         "read_model_id": READ_MODEL_ID,
         "contract_status": CONTRACT_STATUS,
+        "approval_intended_use": APPROVAL_INTENDED_USE,
+        "supported_approval_kinds": SUPPORTED_APPROVAL_KINDS,
         "generated_at": generated_at,
         "readiness_statuses": READINESS_STATUSES,
         "model_schemas": {
@@ -747,10 +777,12 @@ def build_payload(*, generated_at: str = DEFAULT_GENERATED_AT) -> dict[str, Any]
     return evaluate_artifact_reference(
         {
             "request_id": "local_artifact_reference_capital_hilton_fixture",
+            "request_type": "ARTIFACT_REFERENCE_APPROVAL",
             "artifact_ref": "workbook_ref:client_invoice:capital_hilton:fixture",
             "artifact_kind": "invoice_workbook",
             "artifact_label": "Capital Hilton invoice workbook fixture",
-            "intended_use": "client_invoice_sheet_audit",
+            "intended_use": APPROVAL_INTENDED_USE,
+            "artifact_intended_use": "client_invoice_sheet_audit",
             "world_ref": "finance",
             "workflow_ref": "capital_hilton_invoice_workflow",
             "client_ref": "capital_hilton",

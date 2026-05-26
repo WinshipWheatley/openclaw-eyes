@@ -50,6 +50,36 @@ def test_unknown_intended_use_is_parked_without_handler_execution():
     assert decision.next_safe_move
 
 
+def test_router_dispatches_artifact_reference_approval_by_intended_use():
+    payload = _request(
+        request_type="ARTIFACT_REFERENCE_APPROVAL",
+        intended_use="approve_readable_artifact_reference",
+        artifact_intended_use="client_invoice_sheet_audit",
+        artifact_kind="invoice_workbook",
+    )
+
+    envelope, decision = router.route_request(payload)
+
+    assert envelope.request_kind == "ARTIFACT_REFERENCE_APPROVAL"
+    assert decision.route_status == "ROUTE_MATCHED"
+    assert decision.selected_handler_id == "approve_readable_artifact_reference.generic"
+    assert decision.matched_by == ("request_kind", "intended_use")
+
+
+def test_router_dispatches_local_surface_artifact_reference_approval():
+    payload = _request(
+        request_type="LOCAL_SURFACE_RESULT",
+        intended_use="approve_readable_artifact_reference",
+        artifact_intended_use="client_invoice_sheet_audit",
+        artifact_kind="invoice_workbook",
+    )
+
+    _envelope, decision = router.route_request(payload)
+
+    assert decision.route_status == "ROUTE_MATCHED"
+    assert decision.selected_handler_id == "approve_readable_artifact_reference.generic"
+
+
 def test_unsafe_authority_blocks_before_handler_match():
     payload = _request(authority_boundary={"external_action_allowed": True})
 
@@ -95,3 +125,4 @@ def test_contract_payload_has_no_live_authority():
     assert payload["machine_proof"]["future_handlers_can_register_without_transport_change"] is True
     assert all(value is False for value in payload["authority_boundary"].values())
     assert asdict(router.capital_hilton_field_mapping_handler()) in payload["registered_handlers"]
+    assert any(handler["handler_id"] == "approve_readable_artifact_reference.generic" for handler in payload["registered_handlers"])

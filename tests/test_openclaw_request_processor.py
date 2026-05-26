@@ -13,6 +13,7 @@ import client_invoice_sheet_audit as sheet_audit
 import client_invoice_audit_handoff as audit_handoff
 import client_invoice_workbook_registry as workbook_registry
 import conversational_workflow_router_intake as chat_intake
+import local_artifact_reference
 import openclaw_request_processor as processor
 import operator_file_metadata_intake as file_intake
 from scripts.process_openclaw_requests import main as process_main
@@ -368,6 +369,52 @@ def _write_local_surface_mapping_result(
         }
     if unsafe_flag is not None:
         request[unsafe_flag] = True
+    path.write_text(json.dumps(request, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return request
+
+
+def _write_artifact_approval_request(
+    path: Path,
+    *,
+    request_id: str = "mission_control_artifact_reference_approval_capital_hilton_fixture",
+    request_type: str = "ARTIFACT_REFERENCE_APPROVAL",
+    client_ref: str = "capital_hilton",
+    workflow_ref: str = "capital_hilton_invoice_workflow",
+    world_ref: str = "finance",
+    artifact_kind: str = "invoice_workbook",
+    artifact_intended_use: str = "client_invoice_sheet_audit",
+    approved_for_write: bool = False,
+    body_read: bool = False,
+    content_extracted: bool = False,
+    external_shared: bool = False,
+    path_mapping_verified: bool = True,
+    intended_use: str = local_artifact_reference.APPROVAL_INTENDED_USE,
+) -> dict:
+    request = {
+        "request_type": request_type,
+        "request_id": request_id,
+        "idempotency_key": f"idempotency:{request_id}",
+        "payload_hash": f"payload_hash:{request_id}",
+        "created_at": FIXED_NOW,
+        "intended_use": intended_use,
+        "artifact_intended_use": artifact_intended_use,
+        "artifact_ref": "workbook_ref:client_invoice:capital_hilton:capital_hilton_invoice_workflow:fixture",
+        "artifact_kind": artifact_kind,
+        "artifact_label": "Capital Hilton invoice workbook fixture",
+        "approved_pc_readable_path": "/mnt/e/openclaw/fixtures/capital_hilton_invoice_workbook.xlsx",
+        "approved_path_ref": "approved_pc_path_ref:capital_hilton_invoice_workbook_fixture",
+        "path_mapping_verified": path_mapping_verified,
+        "operator_approved": True,
+        "approved_for_read": True,
+        "approved_for_write": approved_for_write,
+        "body_read": body_read,
+        "content_extracted": content_extracted,
+        "external_shared": external_shared,
+        "world_ref": world_ref,
+        "workflow_ref": workflow_ref,
+        "client_ref": client_ref,
+        "authority_boundary": dict(processor.AUTHORITY_BOUNDARY),
+    }
     path.write_text(json.dumps(request, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return request
 
@@ -942,6 +989,155 @@ def test_chat_named_local_surface_mapping_result_routes_through_generic_router(t
     )
     assert performance_dates["data_cells"] == ["A12", "A13", "A14", "A15"]
     assert handoff_payload["audit_handoff_readback"]["missing_items"] == ["approved PC-readable workbook path"]
+
+
+def test_artifact_reference_approval_routes_and_publishes_scoped_response_without_mapping(tmp_path, capsys, monkeypatch):
+    inbox = tmp_path / "approved_inbox"
+    inbox.mkdir()
+    request_path = inbox / "mission_control_artifact_reference_approval_capital_hilton.json"
+    request = _write_artifact_approval_request(request_path)
+    export_root = tmp_path / "read_models"
+    response_dir = tmp_path / "responses"
+    _seed_workbook_registry(export_root)
+    monkeypatch.setattr(processor, "APPROVED_INBOX", inbox)
+    monkeypatch.setattr(processor, "DEFAULT_RESPONSE_DIR", response_dir)
+
+    assert process_main(
+        [
+            "--file",
+            str(request_path),
+            "--export-root",
+            str(export_root),
+            "--generated-at",
+            FIXED_NOW,
+            "--format",
+            "json",
+        ]
+    ) == 0
+    response = json.loads(capsys.readouterr().out)
+    scoped = json.loads(_scoped_processor_response_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
+    artifact_payload = json.loads((export_root / local_artifact_reference.JSON_EXPORT_NAME).read_text(encoding="utf-8"))
+    handoff_payload = json.loads((export_root / audit_handoff.JSON_EXPORT_NAME).read_text(encoding="utf-8"))
+
+    assert response["request_type"] == "ARTIFACT_REFERENCE_APPROVAL"
+    assert response["response_kind"] == "APPROVED_READABLE_ARTIFACT_REFERENCE"
+    assert response["detail_disclosure"]["request_router_decision"]["selected_handler_id"] == (
+        "approve_readable_artifact_reference.generic"
+    )
+    assert scoped["source_request_id"] == request["request_id"]
+    assert scoped["machine_proof"]["approved_readable_artifact_reference_used"] is True
+    assert scoped["machine_proof"]["approved_readable_artifact_ready"] is True
+    assert scoped["machine_proof"]["client_invoice_audit_handoff_live_ready"] is False
+    assert scoped["machine_proof"]["client_invoice_sheet_audit_used"] is False
+    assert scoped["machine_proof"]["workbook_body_read_performed"] is False
+    assert scoped["machine_proof"]["spreadsheet_cell_read_performed"] is False
+    assert artifact_payload["artifact_readiness_state"]["readiness_status"] == "ARTIFACT_READY_FOR_READ"
+    assert artifact_payload["approved_readable_artifact"]["approved_for_read"] is True
+    assert artifact_payload["approved_readable_artifact"]["approved_for_write"] is False
+    assert handoff_payload["live_audit_ready"] is False
+    assert handoff_payload["audit_handoff_readback"]["missing_items"] == ["invoice sheet/schema mapping"]
+
+
+def test_artifact_reference_approval_makes_fixture_ready_with_existing_mapping(tmp_path, capsys, monkeypatch):
+    inbox = tmp_path / "approved_inbox"
+    inbox.mkdir()
+    request_path = inbox / "mission_control_artifact_reference_approval_capital_hilton_ready.json"
+    request = _write_artifact_approval_request(
+        request_path,
+        request_id="mission_control_artifact_reference_approval_capital_hilton_ready",
+    )
+    export_root = tmp_path / "read_models"
+    response_dir = tmp_path / "responses"
+    _seed_workbook_registry(export_root)
+    mapping = audit_handoff.process_local_surface_schema_mapping_result(
+        _write_local_surface_mapping_result(tmp_path / "mapping.json"),
+        export_root=export_root,
+        generated_at=FIXED_NOW,
+    )
+    audit_handoff.write_exports(mapping, export_root)
+    monkeypatch.setattr(processor, "APPROVED_INBOX", inbox)
+    monkeypatch.setattr(processor, "DEFAULT_RESPONSE_DIR", response_dir)
+
+    assert process_main(
+        [
+            "--file",
+            str(request_path),
+            "--export-root",
+            str(export_root),
+            "--generated-at",
+            FIXED_NOW,
+            "--format",
+            "json",
+        ]
+    ) == 0
+    response = json.loads(capsys.readouterr().out)
+    scoped = json.loads(_scoped_processor_response_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
+    handoff_payload = json.loads((export_root / audit_handoff.JSON_EXPORT_NAME).read_text(encoding="utf-8"))
+
+    assert response["headline"] == "Capital Hilton sheet audit is ready"
+    assert response["response_kind"] == "APPROVED_READABLE_ARTIFACT_REFERENCE"
+    assert response["machine_proof"]["approved_readable_artifact_ready"] is True
+    assert response["machine_proof"]["client_invoice_audit_handoff_live_ready"] is True
+    assert response["machine_proof"]["client_invoice_sheet_audit_used"] is False
+    assert response["machine_proof"]["spreadsheet_cell_read_performed"] is False
+    assert scoped["source_request_id"] == request["request_id"]
+    assert handoff_payload["live_audit_ready"] is True
+    assert handoff_payload["sheet_audit_request_template"]["intended_use"] == "client_invoice_sheet_audit"
+
+
+def test_artifact_reference_approval_blocks_unsafe_flags(tmp_path, capsys, monkeypatch):
+    inbox = tmp_path / "approved_inbox"
+    inbox.mkdir()
+    request_path = inbox / "mission_control_artifact_reference_approval_unsafe.json"
+    request = _write_artifact_approval_request(
+        request_path,
+        request_id="mission_control_artifact_reference_approval_unsafe",
+        approved_for_write=True,
+    )
+    export_root = tmp_path / "read_models"
+    response_dir = tmp_path / "responses"
+    _seed_workbook_registry(export_root)
+    monkeypatch.setattr(processor, "APPROVED_INBOX", inbox)
+    monkeypatch.setattr(processor, "DEFAULT_RESPONSE_DIR", response_dir)
+
+    assert process_main(
+        [
+            "--file",
+            str(request_path),
+            "--export-root",
+            str(export_root),
+            "--generated-at",
+            FIXED_NOW,
+            "--format",
+            "json",
+        ]
+    ) == 0
+    response = json.loads(capsys.readouterr().out)
+    scoped = json.loads(_scoped_processor_response_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
+    artifact_payload = json.loads((export_root / local_artifact_reference.JSON_EXPORT_NAME).read_text(encoding="utf-8"))
+
+    assert response["internal_status"] == "BLOCKED_WITH_REASON"
+    assert response["headline"] == "Artifact approval blocked"
+    assert artifact_payload["artifact_readiness_state"]["readiness_status"] == "ARTIFACT_WRITE_AUTHORITY_BLOCKED"
+    assert artifact_payload["approved_readable_artifact"] is None
+    assert scoped["machine_proof"]["approved_readable_artifact_ready"] is False
+    assert scoped["machine_proof"]["workbook_body_read_performed"] is False
+    assert scoped["machine_proof"]["external_action_performed"] is False
+
+
+def test_unknown_artifact_approval_request_is_parked_safely(tmp_path, capsys):
+    request_path = tmp_path / "mission_control_artifact_reference_approval_unknown.json"
+    _write_artifact_approval_request(request_path, intended_use="future_artifact_contract")
+
+    assert process_main(["--file", str(request_path), "--export-root", str(tmp_path / "read_models"), "--generated-at", FIXED_NOW, "--format", "json"]) == 0
+    response = json.loads(capsys.readouterr().out)
+
+    assert response["request_type"] == "ARTIFACT_REFERENCE_APPROVAL"
+    assert response["headline"] == "OpenClaw needs a registered handler"
+    assert response["detail_disclosure"]["request_router_decision"]["route_status"] == "ROUTE_REJECTED_UNREGISTERED_INTENT"
+    assert response["machine_proof"]["request_router_used"] is True
+    assert response["machine_proof"]["request_router_matched"] is False
+    assert response["machine_proof"]["external_action_performed"] is False
 
 
 def test_local_surface_field_mapping_result_rejects_missing_capital_hilton_binding(tmp_path, capsys):

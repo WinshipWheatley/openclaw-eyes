@@ -1,4 +1,5 @@
 {
+  "approval_intended_use": "approve_readable_artifact_reference",
   "approved_artifacts": [
     {
       "approval_id": "approved_readable_artifact:1e337773cf6bca6f",
@@ -357,7 +358,7 @@
     "browser_access_performed": false,
     "capital_hilton_fixture_only": false,
     "content_extracted": false,
-    "content_hash": "sha256:c54495bc2cc7b54273fe900000cbc72f4fd66dd5c66744a247847124d5960944",
+    "content_hash": "sha256:bc26a4a9717b8e2a9be9b213d145aaa8f17273a5872ff84430c101de289b0f1c",
     "coupa_access_or_submit_performed": false,
     "credential_handling_performed": false,
     "email_send_performed": false,
@@ -508,5 +509,9 @@
     "ARTIFACT_PATH_TRANSLATION_GUESSED_BLOCKED",
     "UNKNOWN_FAIL_CLOSED"
   ],
-  "schema_version": "local_artifact_reference_v0"
+  "schema_version": "local_artifact_reference_v0",
+  "supported_approval_kinds": [
+    "LOCAL_SURFACE_RESULT",
+    "ARTIFACT_REFERENCE_APPROVAL"
+  ]
 }

@@ -149,8 +149,26 @@ def capital_hilton_field_mapping_handler() -> RequestHandlerRegistration:
     )
 
 
+def readable_artifact_approval_handlers() -> tuple[RequestHandlerRegistration, ...]:
+    common = {
+        "handler_id": "approve_readable_artifact_reference.generic",
+        "handler_label": "Approved readable artifact reference",
+        "intended_use": "approve_readable_artifact_reference",
+        "world_refs": (),
+        "workflow_refs": (),
+        "client_refs": (),
+        "project_refs": (),
+        "adapter_available": True,
+        "next_safe_move": "Record the approved readable artifact reference and recompute downstream readiness.",
+    }
+    return (
+        RequestHandlerRegistration(request_kind="LOCAL_SURFACE_RESULT", **common),
+        RequestHandlerRegistration(request_kind="ARTIFACT_REFERENCE_APPROVAL", **common),
+    )
+
+
 def default_handler_registrations() -> tuple[RequestHandlerRegistration, ...]:
-    return (capital_hilton_field_mapping_handler(),)
+    return (capital_hilton_field_mapping_handler(), *readable_artifact_approval_handlers())
 
 
 def _matches_value(expected: str, actual: str) -> bool:

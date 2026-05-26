@@ -1,0 +1,78 @@
+{
+  "authority_boundary": {
+    "agent_dispatch_allowed": false,
+    "browser_allowed": false,
+    "credential_handling_allowed": false,
+    "external_action_allowed": false,
+    "file_body_read_allowed": false,
+    "handler_execution_allowed": false,
+    "model_call_allowed": false,
+    "network_allowed": false,
+    "ocr_allowed": false,
+    "response_publication_allowed": false,
+    "spreadsheet_cell_read_allowed": false,
+    "workbook_body_read_allowed": false,
+    "worker_dispatch_allowed": false,
+    "workflow_execution_allowed": false
+  },
+  "contract_status": "DETERMINISTIC_REQUEST_ROUTER_NO_EXECUTION",
+  "machine_proof": {
+    "all_live_authority_false": true,
+    "future_handlers_can_register_without_transport_change": true,
+    "handler_registration_boundary_present": true,
+    "router_has_no_handler_execution": true,
+    "router_has_no_response_publication": true
+  },
+  "read_model_id": "openclaw_request_router",
+  "registered_handlers": [
+    {
+      "adapter_available": true,
+      "client_refs": [
+        "capital_hilton"
+      ],
+      "handler_id": "client_invoice_sheet_schema_mapping.capital_hilton",
+      "handler_label": "Capital Hilton invoice sheet schema mapping",
+      "intended_use": "client_invoice_sheet_schema_mapping",
+      "next_safe_move": "Consume the operator-provided mapping receipt and update audit handoff readiness.",
+      "project_refs": [],
+      "request_kind": "LOCAL_SURFACE_RESULT",
+      "workflow_refs": [
+        "capital_hilton_invoice_workflow"
+      ],
+      "world_refs": [
+        "finance"
+      ]
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [],
+      "handler_id": "approve_readable_artifact_reference.generic",
+      "handler_label": "Approved readable artifact reference",
+      "intended_use": "approve_readable_artifact_reference",
+      "next_safe_move": "Record the approved readable artifact reference and recompute downstream readiness.",
+      "project_refs": [],
+      "request_kind": "LOCAL_SURFACE_RESULT",
+      "workflow_refs": [],
+      "world_refs": []
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [],
+      "handler_id": "approve_readable_artifact_reference.generic",
+      "handler_label": "Approved readable artifact reference",
+      "intended_use": "approve_readable_artifact_reference",
+      "next_safe_move": "Record the approved readable artifact reference and recompute downstream readiness.",
+      "project_refs": [],
+      "request_kind": "ARTIFACT_REFERENCE_APPROVAL",
+      "workflow_refs": [],
+      "world_refs": []
+    }
+  ],
+  "route_statuses": [
+    "ROUTE_MATCHED",
+    "ROUTE_REJECTED_UNREGISTERED_INTENT",
+    "ROUTE_BLOCKED_AUTHORITY",
+    "ROUTE_UNSUPPORTED_KIND"
+  ],
+  "schema_version": "openclaw_request_router_v0"
+}

@@ -19,10 +19,12 @@ FIXED_NOW = "2026-05-26T02:00:00+00:00"
 def _request(**overrides):
     payload = {
         "request_id": "artifact_reference_fixture",
+        "request_type": "ARTIFACT_REFERENCE_APPROVAL",
         "artifact_ref": "artifact_ref:fixture:capital_hilton_workbook",
         "artifact_kind": "invoice_workbook",
         "artifact_label": "Capital Hilton invoice workbook fixture",
-        "intended_use": "client_invoice_sheet_audit",
+        "intended_use": artifacts.APPROVAL_INTENDED_USE,
+        "artifact_intended_use": "client_invoice_sheet_audit",
         "world_ref": "finance",
         "workflow_ref": "capital_hilton_invoice_workflow",
         "client_ref": "capital_hilton",
@@ -47,6 +49,11 @@ def test_required_models_exist():
     assert "validation_errors" in tuple(field.name for field in fields(artifacts.ArtifactApprovalReceipt))
     assert "binding_status" in tuple(field.name for field in fields(artifacts.ArtifactScopeBinding))
     assert "live_read_ready" in tuple(field.name for field in fields(artifacts.ArtifactReadinessState))
+
+
+def test_artifact_approval_request_shape_is_recognized():
+    assert artifacts.is_artifact_approval_request(_request()) is True
+    assert artifacts.is_artifact_approval_request(_request(intended_use="client_invoice_sheet_audit")) is False
 
 
 def test_generic_approved_artifact_reference_can_be_created():
@@ -91,6 +98,17 @@ def test_pc_readable_path_is_distinct_from_mac_path_metadata():
     assert payload["machine_proof"]["path_translation_guessed"] is False
 
 
+def test_unverified_path_mapping_blocks_approval():
+    payload = artifacts.evaluate_artifact_reference(
+        _request(path_mapping_verified=False),
+        generated_at=FIXED_NOW,
+    )
+
+    assert payload["artifact_readiness_state"]["readiness_status"] == "ARTIFACT_PC_PATH_REQUIRED"
+    assert payload["artifact_readiness_state"]["live_read_ready"] is False
+    assert payload["approved_readable_artifact"] is None
+
+
 def test_read_approval_is_distinct_from_write_approval():
     payload = artifacts.evaluate_artifact_reference(
         _request(approved_for_write=True),
@@ -111,6 +129,26 @@ def test_body_or_content_read_blocks_readiness():
     assert payload["artifact_readiness_state"]["readiness_status"] == "ARTIFACT_BODY_OR_CONTENT_ALREADY_READ_BLOCKED"
     assert payload["approved_readable_artifact"] is None
     assert payload["machine_proof"]["body_read_performed"] is False
+
+
+def test_content_extraction_blocks_readiness():
+    payload = artifacts.evaluate_artifact_reference(
+        _request(content_extracted=True),
+        generated_at=FIXED_NOW,
+    )
+
+    assert payload["artifact_readiness_state"]["readiness_status"] == "ARTIFACT_BODY_OR_CONTENT_ALREADY_READ_BLOCKED"
+    assert payload["approved_readable_artifact"] is None
+
+
+def test_external_share_blocks_readiness():
+    payload = artifacts.evaluate_artifact_reference(
+        _request(external_shared=True),
+        generated_at=FIXED_NOW,
+    )
+
+    assert payload["artifact_readiness_state"]["readiness_status"] == "ARTIFACT_EXTERNAL_SHARE_BLOCKED"
+    assert payload["approved_readable_artifact"] is None
 
 
 def test_unknown_or_mismatched_scope_does_not_unlock_readiness():
