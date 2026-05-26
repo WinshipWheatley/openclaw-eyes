@@ -10,6 +10,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import client_invoice_audit_handoff as handoff
+import local_artifact_reference
 import client_invoice_workbook_registry as registry
 from scripts.export_client_invoice_audit_handoff import main as export_main
 
@@ -271,6 +272,9 @@ def test_approved_pc_readable_path_is_accepted_but_schema_still_required(tmp_pat
 
     assert payload["path_approval_request"]["validation_status"] == "APPROVED_PC_PATH_CAPTURED"
     assert payload["approved_workbook_path_ref"]["path_approval_status"] == "APPROVED_PC_PATH_CAPTURED"
+    assert payload["approved_readable_artifact"]["artifact_kind"] == "invoice_workbook"
+    assert payload["artifact_readiness_state"]["readiness_status"] == "ARTIFACT_READY_FOR_READ"
+    assert payload["machine_proof"]["generic_approved_artifact_reference_used"] is True
     assert payload["audit_handoff_readback"]["status"] == "APPROVED_PC_PATH_CAPTURED_SCHEMA_REQUIRED"
     assert payload["audit_handoff_readback"]["operator_headline"] == "Capital Hilton workbook path approved"
     assert payload["live_audit_ready"] is False
@@ -417,6 +421,7 @@ def test_local_surface_schema_mapping_result_can_make_handoff_ready_when_path_ex
 
     assert payload["local_surface_result_receipt"]["receipt_status"] == "LOCAL_SURFACE_RESULT_SCHEMA_GUIDANCE_CAPTURED"
     assert payload["live_audit_ready"] is True
+    assert payload["approved_readable_artifact"]["approved_for_read"] is True
     assert payload["audit_handoff_readback"]["status"] == "HANDOFF_READY_FOR_SHEET_AUDIT"
     assert payload["sheet_audit_request_template"]["intended_use"] == "client_invoice_sheet_audit"
     assert payload["machine_proof"]["spreadsheet_cell_read_performed"] is False
@@ -463,6 +468,9 @@ def test_both_path_and_schema_present_makes_live_audit_ready(tmp_path):
     )
 
     assert payload["live_audit_ready"] is True
+    assert payload["approved_readable_artifact"]["artifact_ref"].startswith("workbook_ref:")
+    assert payload["machine_proof"]["approved_readable_artifact_ready"] is True
+    assert payload["machine_proof"]["legacy_workbook_path_not_sufficient_for_readiness"] is True
     assert payload["audit_handoff_readback"]["status"] == "HANDOFF_READY_FOR_SHEET_AUDIT"
     assert payload["audit_handoff_readback"]["operator_headline"] == "Capital Hilton sheet audit is ready"
     template = payload["sheet_audit_request_template"]
@@ -487,8 +495,91 @@ def test_path_then_schema_merges_existing_handoff_contract(tmp_path):
     )
 
     assert second["approved_workbook_path_ref"]["path_approval_status"] == "APPROVED_PC_PATH_CAPTURED"
+    assert second["approved_readable_artifact"]["approved_for_read"] is True
     assert second["schema_mapping"]["schema_mapping_status"] == "SHEET_AUDIT_SCHEMA_CAPTURED"
     assert second["live_audit_ready"] is True
+
+
+def test_legacy_workbook_path_without_generic_artifact_does_not_unlock_readiness(tmp_path):
+    _seed_registry(tmp_path)
+    legacy_payload = {
+        "approved_workbook_path_ref": {
+            "path_ref_id": "legacy_path_ref",
+            "client_ref": "capital_hilton",
+            "workflow_ref": "capital_hilton_invoice_workflow",
+            "world_ref": "finance",
+            "workbook_ref": "workbook_ref:legacy",
+            "approved_pc_readable_path": "/mnt/e/openclaw/legacy.xlsx",
+            "approved_path_ref": "approved_pc_path_ref:legacy",
+            "path_approval_status": "APPROVED_PC_PATH_CAPTURED",
+            "source_request_id": "legacy_non_generic_path_fixture",
+        }
+    }
+    (tmp_path / handoff.JSON_EXPORT_NAME).write_text(json.dumps(legacy_payload), encoding="utf-8")
+
+    payload = handoff.process_handoff_request(
+        _request(intended_use=handoff.SCHEMA_MAPPING_INTENDED_USE, schema=_schema()),
+        export_root=tmp_path,
+        generated_at=FIXED_NOW,
+    )
+
+    assert payload["approved_workbook_path_ref"] is None
+    assert payload["approved_readable_artifact"] is None
+    assert payload["live_audit_ready"] is False
+    assert payload["audit_handoff_readback"]["missing_items"] == ("approved PC-readable workbook path",)
+    assert payload["machine_proof"]["legacy_workbook_path_not_sufficient_for_readiness"] is True
+
+
+def test_mismatched_generic_artifact_scope_does_not_unlock_handoff_readiness(tmp_path):
+    _seed_registry(tmp_path)
+    artifact_payload = local_artifact_reference.evaluate_artifact_reference(
+        {
+            "request_id": "st_annes_artifact_fixture",
+            "artifact_ref": "artifact_ref:st_annes:workbook",
+            "artifact_kind": "invoice_workbook",
+            "intended_use": "client_invoice_sheet_audit",
+            "world_ref": "finance",
+            "workflow_ref": "st_annes_invoice_workflow",
+            "client_ref": "st_annes",
+            "approved_pc_readable_path": "/mnt/e/openclaw/st_annes.xlsx",
+            "path_mapping_verified": True,
+            "operator_approved": True,
+            "approved_for_read": True,
+            "approved_for_write": False,
+            "body_read": False,
+            "content_extracted": False,
+            "external_shared": False,
+        },
+        generated_at=FIXED_NOW,
+    )
+    local_artifact_reference.write_exports(artifact_payload, tmp_path)
+
+    payload = handoff.process_handoff_request(
+        _request(intended_use=handoff.SCHEMA_MAPPING_INTENDED_USE, schema=_schema()),
+        export_root=tmp_path,
+        generated_at=FIXED_NOW,
+    )
+
+    assert payload["approved_readable_artifact"] is None
+    assert payload["live_audit_ready"] is False
+    assert payload["audit_handoff_readback"]["missing_items"] == ("approved PC-readable workbook path",)
+
+
+def test_unsafe_artifact_flags_block_handoff_readiness(tmp_path):
+    _seed_registry(tmp_path)
+
+    payload = handoff.process_handoff_request(
+        _request(schema=_schema(), path="/mnt/e/openclaw/capital_hilton_invoice.xlsx") | {"approved_for_write": True},
+        export_root=tmp_path,
+        generated_at=FIXED_NOW,
+    )
+
+    assert payload["artifact_readiness_state"]["readiness_status"] == "ARTIFACT_WRITE_AUTHORITY_BLOCKED"
+    assert payload["approved_readable_artifact"] is None
+    assert payload["approved_workbook_path_ref"] is None
+    assert payload["live_audit_ready"] is False
+    assert payload["machine_proof"]["artifact_approved_for_write"] is False
+    assert payload["machine_proof"]["spreadsheet_cell_read_performed"] is False
 
 
 def test_capital_hilton_requires_explicit_client_workflow_world_refs(tmp_path):

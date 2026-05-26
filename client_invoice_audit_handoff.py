@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 import client_invoice_workbook_registry
+import local_artifact_reference
 
 
 DEFAULT_EXPORT_ROOT = Path("generated/read_models")
@@ -468,6 +469,96 @@ def _existing_schema(
     ):
         return dict(mapping)
     return None
+
+
+def _path_request_has_artifact_signal(raw_request: Mapping[str, Any]) -> bool:
+    intended_use = str(raw_request.get("intended_use") or "")
+    if intended_use in {INTENDED_USE, PATH_APPROVAL_INTENDED_USE}:
+        return True
+    return bool(
+        raw_request.get("approved_pc_readable_path")
+        or raw_request.get("approved_pc_workbook_path")
+        or raw_request.get("approved_path_ref")
+        or raw_request.get("approved_pc_workbook_path_ref")
+        or raw_request.get("artifact_ref")
+    )
+
+
+def _artifact_request_from_handoff(
+    raw_request: Mapping[str, Any],
+    *,
+    workbook_record: Mapping[str, Any] | None,
+    path_request: ClientInvoiceWorkbookPathApprovalRequest,
+) -> dict[str, Any]:
+    artifact_request = dict(raw_request)
+    workbook_ref = (
+        str(path_request.workbook_ref or "")
+        or str(path_request.workbook_identity or "")
+        or str((workbook_record or {}).get("workbook_ref") or "")
+    )
+    if workbook_ref:
+        artifact_request.setdefault("artifact_ref", workbook_ref)
+    artifact_request.setdefault("artifact_kind", "invoice_workbook")
+    artifact_request.setdefault("artifact_label", str((workbook_record or {}).get("workbook_display_name") or "client invoice workbook"))
+    artifact_request["artifact_intended_use"] = "client_invoice_sheet_audit"
+    artifact_request.setdefault("approved_for_write", False)
+    artifact_request.setdefault("body_read", False)
+    artifact_request.setdefault("content_extracted", False)
+    artifact_request.setdefault("external_shared", False)
+    return artifact_request
+
+
+def _matching_artifact_from_payload(
+    payload: Mapping[str, Any] | None,
+    *,
+    client_ref: str,
+    workflow_ref: str,
+    world_ref: str,
+    source_request_id: str,
+) -> dict[str, Any] | None:
+    artifact = local_artifact_reference.find_approved_readable_artifact(
+        payload,
+        world_ref=world_ref,
+        workflow_ref=workflow_ref,
+        client_ref=client_ref,
+        artifact_kind="invoice_workbook",
+        intended_use="client_invoice_sheet_audit",
+    )
+    if artifact and _fixture_source_id(artifact.get("source_request_id")) and not _fixture_source_id(source_request_id):
+        return None
+    return artifact
+
+
+def _artifact_payload_from_existing_handoff(existing_payload: Mapping[str, Any] | None) -> dict[str, Any] | None:
+    if not isinstance(existing_payload, Mapping):
+        return None
+    payload = existing_payload.get("local_artifact_reference_payload")
+    return dict(payload) if isinstance(payload, Mapping) else None
+
+
+def _path_ref_from_artifact(artifact: Mapping[str, Any] | None) -> dict[str, Any] | None:
+    if not isinstance(artifact, Mapping):
+        return None
+    scope = artifact.get("scope_binding") if isinstance(artifact.get("scope_binding"), Mapping) else {}
+    pc_path = str(artifact.get("pc_path") or "")
+    path_ref = str(artifact.get("approved_path_ref") or "")
+    return {
+        "path_ref_id": f"approved_workbook_path_ref:{_short_hash(artifact.get('artifact_ref'), pc_path, path_ref)}",
+        "client_ref": str(scope.get("client_ref") or ""),
+        "workflow_ref": str(scope.get("workflow_ref") or ""),
+        "world_ref": str(scope.get("world_ref") or ""),
+        "workbook_ref": str(artifact.get("artifact_ref") or ""),
+        "approved_pc_readable_path": pc_path,
+        "approved_path_ref": path_ref,
+        "path_kind": "PC_LOCAL_PATH" if pc_path else "APPROVED_PC_PATH_REF",
+        "path_approval_status": "APPROVED_PC_PATH_CAPTURED",
+        "operator_approval_marker": str(artifact.get("approval_source") or "approved_readable_artifact"),
+        "source_request_id": str(artifact.get("source_request_id") or ""),
+        "mac_visible_path_rejected": False,
+        "path_translation_guessed": False,
+        "workbook_body_read": False,
+        "next_safe_move": "Next: provide the invoice tab name and cell mapping.",
+    }
 
 
 def _formula_policy(raw_policy: object) -> FormulaPromotionPolicy:
@@ -1131,20 +1222,51 @@ def process_handoff_request(
     client_ref, workflow_ref, world_ref = _context_values(raw_request)
     registry_payload = load_workbook_registry(export_root)
     existing_payload = load_existing_payload(export_root)
-    path_request, new_path_ref, workbook_record = normalize_path_approval_request(
+    path_request, _new_path_ref, workbook_record = normalize_path_approval_request(
         raw_request,
         registry_payload=registry_payload,
     )
     schema_request, new_schema_mapping = normalize_schema_mapping_request(raw_request)
-    existing_path = _existing_path_ref(
-        existing_payload,
-        client_ref=client_ref,
-        workflow_ref=workflow_ref,
-        world_ref=world_ref,
-        source_request_id=source_request_id,
-    )
     existing_schema = _existing_schema(existing_payload, client_ref=client_ref, workflow_ref=workflow_ref, world_ref=world_ref)
-    active_path_ref = asdict(new_path_ref) if new_path_ref else existing_path
+
+    artifact_payload: dict[str, Any] | None = None
+    active_artifact: dict[str, Any] | None = None
+    if _path_request_has_artifact_signal(raw_request):
+        artifact_payload = local_artifact_reference.evaluate_artifact_reference(
+            _artifact_request_from_handoff(raw_request, workbook_record=workbook_record, path_request=path_request),
+            expected_scope={
+                "world_ref": world_ref,
+                "workflow_ref": workflow_ref,
+                "client_ref": client_ref,
+            },
+            artifact_kind_default="invoice_workbook",
+            intended_use_default="client_invoice_sheet_audit",
+            generated_at=generated_at,
+        )
+        active_artifact = _matching_artifact_from_payload(
+            artifact_payload,
+            client_ref=client_ref,
+            workflow_ref=workflow_ref,
+            world_ref=world_ref,
+            source_request_id=source_request_id,
+        )
+    if active_artifact is None:
+        for candidate_payload in (
+            _artifact_payload_from_existing_handoff(existing_payload),
+            local_artifact_reference.load_existing_payload(export_root),
+        ):
+            active_artifact = _matching_artifact_from_payload(
+                candidate_payload,
+                client_ref=client_ref,
+                workflow_ref=workflow_ref,
+                world_ref=world_ref,
+                source_request_id=source_request_id,
+            )
+            if active_artifact is not None:
+                artifact_payload = candidate_payload
+                break
+
+    active_path_ref = _path_ref_from_artifact(active_artifact)
     active_schema_mapping = asdict(new_schema_mapping) if new_schema_mapping else existing_schema
     formula_policy = _formula_policy(
         (active_schema_mapping or {}).get("formula_promotion_policy")
@@ -1157,8 +1279,11 @@ def process_handoff_request(
         schema_status = "SHEET_AUDIT_SCHEMA_INCOMPLETE"
     if path_request.validation_status in {"APPROVED_PC_PATH_REJECTED_MAC_VISIBLE", "APPROVED_PC_PATH_REQUIRED"}:
         path_status = path_request.validation_status
+    if path_request.validation_status == "APPROVED_PC_PATH_CAPTURED" and active_artifact is None:
+        path_status = "APPROVED_PC_PATH_REQUIRED"
     live_ready = bool(
         workbook_record
+        and active_artifact
         and active_path_ref
         and active_schema_mapping
         and path_status == "APPROVED_PC_PATH_CAPTURED"
@@ -1205,6 +1330,8 @@ def process_handoff_request(
         workbook_record=workbook_record,
         live_audit_ready=live_ready,
         sheet_audit_request_template=template,
+        local_artifact_payload=artifact_payload,
+        approved_readable_artifact=active_artifact,
     )
 
 
@@ -1448,7 +1575,19 @@ def _build_payload(
     workbook_record: Mapping[str, Any] | None,
     live_audit_ready: bool,
     sheet_audit_request_template: Mapping[str, Any] | None,
+    local_artifact_payload: Mapping[str, Any] | None = None,
+    approved_readable_artifact: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
+    artifact_readiness = (
+        local_artifact_payload.get("artifact_readiness_state")
+        if isinstance(local_artifact_payload, Mapping) and isinstance(local_artifact_payload.get("artifact_readiness_state"), Mapping)
+        else {}
+    )
+    artifact_receipt = (
+        local_artifact_payload.get("artifact_approval_receipt")
+        if isinstance(local_artifact_payload, Mapping) and isinstance(local_artifact_payload.get("artifact_approval_receipt"), Mapping)
+        else {}
+    )
     payload: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
         "read_model_id": READ_MODEL_ID,
@@ -1476,14 +1615,26 @@ def _build_payload(
         "workbook_registry_record_present": bool(workbook_record),
         "live_audit_ready": live_audit_ready,
         "sheet_audit_request_template": dict(sheet_audit_request_template) if sheet_audit_request_template else None,
+        "local_artifact_reference_payload": dict(local_artifact_payload) if isinstance(local_artifact_payload, Mapping) else None,
+        "approved_readable_artifact": dict(approved_readable_artifact) if isinstance(approved_readable_artifact, Mapping) else None,
+        "artifact_approval_receipt": dict(artifact_receipt) if artifact_receipt else None,
+        "artifact_readiness_state": dict(artifact_readiness) if artifact_readiness else None,
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
         "machine_proof": {
             "workbook_registry_readmodel_read": True,
+            "generic_approved_artifact_reference_used": isinstance(local_artifact_payload, Mapping),
+            "approved_readable_artifact_ready": bool(approved_readable_artifact),
             "approved_pc_path_or_ref_contract_present": bool(approved_path_ref),
+            "legacy_workbook_path_not_sufficient_for_readiness": True,
             "explicit_schema_mapping_contract_present": bool(schema_mapping),
             "formula_promotion_policy_present": True,
             "formula_policy_default_conservative": formula_policy.selected_policy == "operator_confirmation_required",
             "live_audit_ready": live_audit_ready,
+            "artifact_approved_for_read": bool((approved_readable_artifact or {}).get("approved_for_read")),
+            "artifact_approved_for_write": bool((approved_readable_artifact or {}).get("approved_for_write")),
+            "artifact_body_read": bool((approved_readable_artifact or {}).get("body_read")),
+            "artifact_content_extracted": bool((approved_readable_artifact or {}).get("content_extracted")),
+            "artifact_external_shared": bool((approved_readable_artifact or {}).get("external_shared")),
             "workbook_body_read_performed": False,
             "spreadsheet_cell_read_performed": False,
             "schema_inference_performed": False,
@@ -1569,6 +1720,9 @@ def write_exports(payload: dict[str, Any], export_root: Path = DEFAULT_EXPORT_RO
     operator_path = export_root / OPERATOR_EXPORT_NAME
     json_path.write_text(stable_json(payload), encoding="utf-8")
     operator_path.write_text(format_operator_markdown(payload), encoding="utf-8")
+    artifact_payload = payload.get("local_artifact_reference_payload")
+    if isinstance(artifact_payload, dict) and artifact_payload.get("approved_readable_artifact"):
+        local_artifact_reference.write_exports(artifact_payload, export_root)
     return json_path, operator_path
 
 
