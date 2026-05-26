@@ -25,6 +25,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 import openclaw_request_processor as processor
+import deterministic_intent_interpreter
 import mac_worker_handoff_package
 import worker_routing_intelligence
 
@@ -642,6 +643,20 @@ def _route_for_request(request_path: Path, identity: RequestIdentity, raw_reques
             operator_message="OpenClaw picked this up and is checking the local Capital Hilton status rails.",
             next_safe_move="Wait for the unified invoice status readback.",
             route_reason="Capital Hilton invoice status is handled by deterministic PC readback rails.",
+            pc_handled=True,
+            mac_handoff_required=False,
+            future_worker_blocked=False,
+        )
+    if deterministic_intent_interpreter.should_interpret(raw_request):
+        return RouteDecision(
+            routing_status="PROCESSING_ON_PC",
+            selected_worker_target="PC_CODEX",
+            selected_machine="PC_WSL",
+            processing_status="VALIDATING_DETERMINISTIC_INTENT",
+            operator_headline="OpenClaw is validating intent",
+            operator_message="OpenClaw picked this up and is checking deterministic intent, session state, and capability gates.",
+            next_safe_move="Wait for the bounded intent validation readback.",
+            route_reason="Matched a deterministic intent interpreter phrase handled by the PC request processor.",
             pc_handled=True,
             mac_handoff_required=False,
             future_worker_blocked=False,

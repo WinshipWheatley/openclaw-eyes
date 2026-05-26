@@ -672,6 +672,7 @@ def _capability_lookup_context(
     for capability_id in _intent_capability_hints(candidate):
         if capability_id in capabilities and capability_id not in matched:
             matched.append(capability_id)
+    hinted_capability_ids = set(matched)
 
     for capability in capabilities.values():
         capability_id = str(capability["capability_id"])
@@ -705,6 +706,11 @@ def _capability_lookup_context(
         lifecycle_status = str(capability.get("lifecycle_status", "UNKNOWN_FAIL_CLOSED"))
         profile = _profile_for(capability_id, capability_index_payload)
         authority_checked = authority_checked or bool(profile)
+        broad_status_match_only = (
+            candidate.inferred_intent_type == "ANSWER_STATUS"
+            and capability_id not in hinted_capability_ids
+            and status in {"FUTURE_GATED", "BLOCKED_UNSAFE", "UNKNOWN_FAIL_CLOSED"}
+        )
         if lifecycle_status == "PROPOSED_CANDIDATE":
             rejected.append(capability_id)
             blockers.append(
@@ -712,10 +718,12 @@ def _capability_lookup_context(
             )
         elif status == "FUTURE_GATED":
             rejected.append(capability_id)
-            blockers.append(_blocker("CAPABILITY_FUTURE_GATED", f"{capability_id} is future gated."))
+            if not broad_status_match_only:
+                blockers.append(_blocker("CAPABILITY_FUTURE_GATED", f"{capability_id} is future gated."))
         elif status in {"BLOCKED_UNSAFE", "UNKNOWN_FAIL_CLOSED"}:
             rejected.append(capability_id)
-            blockers.append(_blocker("CAPABILITY_BLOCKED_UNSAFE", f"{capability_id} is blocked or unknown."))
+            if not broad_status_match_only:
+                blockers.append(_blocker("CAPABILITY_BLOCKED_UNSAFE", f"{capability_id} is blocked or unknown."))
         elif status == "FIXTURE_ONLY":
             rejected.append(capability_id)
             blockers.append(_blocker("FIXTURE_SCOPE_MISMATCH", f"{capability_id} is fixture-only and cannot satisfy live capability lookup."))

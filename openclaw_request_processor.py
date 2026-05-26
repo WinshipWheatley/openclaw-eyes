@@ -25,6 +25,7 @@ import chat_readback_card_mirror
 import chat_workflow_visual_event_package_compiler
 import capital_hilton_invoice_operator_readback
 import conversational_workflow_router_intake
+import deterministic_intent_interpreter
 import operator_file_metadata_intake
 import scoped_context_package_compiler_contract
 import worker_routing_intelligence
@@ -1164,6 +1165,11 @@ def _voice_context_text(response: OpenClawResponseForMac, layered_fields: Mappin
 
 
 def _initial_response_author(response: OpenClawResponseForMac, layered_fields: Mapping[str, Any]) -> tuple[str, str]:
+    detail = response.detail_disclosure if isinstance(response.detail_disclosure, Mapping) else {}
+    interpreter = detail.get("deterministic_intent_interpreter") if isinstance(detail.get("deterministic_intent_interpreter"), Mapping) else {}
+    forced_author = str(interpreter.get("response_author") or "") if interpreter else ""
+    if forced_author in VOICE_PROFILE_REFS:
+        return forced_author, "deterministic intent interpreter response plan"
     text = _voice_context_text(response, layered_fields)
     if response.request_type == "FILE_METADATA":
         return "OPENCLAW_SYSTEM", "file intake / source reference status"
@@ -1214,6 +1220,19 @@ def _model_backend_selection_fields(
     response: OpenClawResponseForMac,
     layered_fields: Mapping[str, Any],
 ) -> dict[str, Any]:
+    detail = response.detail_disclosure if isinstance(response.detail_disclosure, Mapping) else {}
+    interpreter = detail.get("deterministic_intent_interpreter") if isinstance(detail.get("deterministic_intent_interpreter"), Mapping) else {}
+    if interpreter:
+        return {
+            "selected_model_backend": "NONE_DETERMINISTIC",
+            "selected_worker_type": str(interpreter.get("selected_worker_type") or "PC_CODEX"),
+            "allowed_tools_plugins": (),
+            "model_selection_reason": (
+                "Deterministic intent interpreter handled this response; "
+                "agent voice is authorship only and no model/backend call is selected."
+            ),
+            "credit_budget_policy": "No model credits used by this deterministic interpreter path.",
+        }
     text = _voice_context_text(response, layered_fields)
     if author == "CHIEF" and _contains_any(text, CODE_BUILD_CONTEXT_TERMS):
         return {
@@ -1534,6 +1553,54 @@ def _visual_event_package(
         )
         return package if _visual_package_is_safe(response, package) else None
 
+    detail = response.detail_disclosure if isinstance(response.detail_disclosure, Mapping) else {}
+    interpreter = detail.get("deterministic_intent_interpreter") if isinstance(detail.get("deterministic_intent_interpreter"), Mapping) else {}
+    if interpreter.get("visual_event_package_requested") is True:
+        package = _sanitized_visual_package(
+            {
+                "visual_package_id": f"visual_package_{_short_hash(response.source_request_id, 'deterministic_intent')}",
+                "source_event_ref": "deterministic_intent_interpreter",
+                "truth_state": "SAFE_VISUAL_PACKAGE_ONLY",
+                "visual_event_type": "SAFE_VISUAL_PACKAGE",
+                "allowed_visual_facts": (
+                    "safe visual event package available",
+                    "live video provider blocked",
+                    "no provider call occurred",
+                ),
+                "forbidden_visual_claims": (
+                    "video generated",
+                    "image generated",
+                    "provider called",
+                    "workflow completed",
+                    "invoice sent",
+                    "Coupa invoice submitted",
+                ),
+                "metaphor_style": "status_card_only",
+                "style_direction": "truth-backed local status card only",
+                "duration_seconds": 3,
+                "aspect_ratio": "16:9",
+                "target_surface": "MAC_CHAT_COMPACT",
+                "privacy_class": "OPERATOR_LOCAL",
+                "provider_policy": {
+                    "preferred_provider_family": "STATIC_VISUAL_CARD",
+                    "allowed_provider_families": ("STATIC_VISUAL_CARD",),
+                    "blocked_provider_families": (
+                        "VIDEO_MODEL_CLOUD_GATED",
+                        "IMAGE_MODEL_CLOUD_GATED",
+                        "UNKNOWN_FAIL_CLOSED",
+                    ),
+                    "cloud_generation_allowed": False,
+                    "local_asset_preferred": True,
+                },
+                "next_safe_move": "Render a local truth-backed status card only.",
+            },
+            response=response,
+            layered_fields=layered_fields,
+            voice_fields=voice_fields,
+            proof_refs=proof_refs,
+        )
+        return package if _visual_package_is_safe(response, package) else None
+
     if _completion_receipts_present(response):
         package = _sanitized_visual_package(
             examples["completion_confirmed_fixture"]["visual_package"],
@@ -1575,6 +1642,20 @@ def _is_capital_hilton_status_response(response: OpenClawResponseForMac) -> bool
 
 
 def _layered_response_fields(response: OpenClawResponseForMac, *, created_at: str) -> dict[str, Any]:
+    detail = response.detail_disclosure if isinstance(response.detail_disclosure, Mapping) else {}
+    explicit_layered = detail.get("layered_response_fields") if isinstance(detail.get("layered_response_fields"), Mapping) else None
+    if explicit_layered is not None:
+        fields = dict(explicit_layered)
+        fields.setdefault("response_id", f"openclaw_response_{_short_hash(response.source_request_id, response.request_type, created_at)}")
+        fields.setdefault("response_kind", "DETERMINISTIC_INTENT_RESPONSE")
+        fields.setdefault("audience_mode", "ELIWINSHIP")
+        fields.setdefault("display_mode", "COMPACT_CHAT")
+        fields.setdefault("proof_refs", _safe_proof_refs(response))
+        fields.setdefault("debug_refs", _debug_refs(response))
+        fields.setdefault("raw_internal_status", response.internal_status)
+        fields.setdefault("mac_render_hint", "COMPACT_WITH_DISCLOSURE")
+        return _apply_cockpit_prose_limits(fields)
+
     if _is_capital_hilton_status_response(response):
         return {
             "response_id": f"openclaw_response_{_short_hash(response.source_request_id, response.request_type, created_at)}",
@@ -1800,6 +1881,145 @@ def _process_capital_hilton_status_request(
     )
 
 
+def _deterministic_intent_classification(
+    classification: RequestClassification,
+    *,
+    match_id: str,
+    request_path: Path,
+) -> RequestClassification:
+    return RequestClassification(
+        classification_id=f"request_classification_{_short_hash(request_path.name, match_id, 'deterministic_intent')}",
+        source_request_filename=classification.source_request_filename,
+        request_family=classification.request_family,
+        selected_rail="deterministic_intent_interpreter",
+        classification_reason=(
+            "Filename matches Mission Control chat request pattern, and operator text matched a bounded deterministic intent phrase."
+        ),
+        future_supported=False,
+        next_safe_move="Return a validated non-executing intent response; do not dispatch workers or run workflows.",
+    )
+
+
+def _process_deterministic_intent_request(
+    request_path: Path,
+    raw_request: Mapping[str, Any],
+    *,
+    export_root: Path,
+    generated_at: str | None,
+    classification: RequestClassification,
+) -> OpenClawResponseForMac | None:
+    interpretation = deterministic_intent_interpreter.interpret_request(
+        raw_request,
+        request_filename=request_path.name,
+        export_root=export_root,
+        generated_at=generated_at,
+    )
+    if not interpretation.matched or interpretation.response_plan is None or interpretation.candidate is None:
+        return None
+
+    interpreter_payload = deterministic_intent_interpreter.build_payload_from_interpretation(
+        interpretation,
+        generated_at=generated_at,
+    )
+    interpreter_json, interpreter_operator = deterministic_intent_interpreter.write_exports(interpreter_payload, export_root)
+    intent_classification = _deterministic_intent_classification(
+        classification,
+        match_id=interpretation.match_id,
+        request_path=request_path,
+    )
+    plan = interpretation.response_plan
+    candidate = interpretation.candidate
+    validation = interpretation.validation_result or {}
+    session_state = interpretation.session_state
+    readback_files = (interpreter_json.as_posix(), interpreter_operator.as_posix())
+    blocked_reason = plan.primary_blocker if plan.internal_status != "RESPONSE_READY" else None
+    detail = {
+        "deterministic_intent_interpreter": {
+            "interpreter_readback_ref": interpreter_json.as_posix(),
+            "operator_readback_ref": interpreter_operator.as_posix(),
+            "matched": True,
+            "match_id": interpretation.match_id,
+            "candidate": asdict(candidate),
+            "validation_result": validation,
+            "missing_requirements": interpretation.missing_requirements,
+            "build_cues": interpretation.build_cues,
+            "context_gaps": interpretation.context_gaps,
+            "blockers": interpretation.blockers,
+            "session_state": session_state,
+            "capability_query_trace": interpretation.capability_query_trace,
+            "session_resolver_used": True,
+            "capability_query_used": True,
+            "validator_used": True,
+            "response_author": plan.response_author,
+            "selected_worker_type": "PC_CODEX",
+            "visual_event_package_requested": plan.visual_event_package_requested,
+            "authority_scout": interpretation.authority_scout,
+            "external_actions_locked": True,
+            "model_or_worker_response_adapter_called": False,
+            "live_lm_interpreter_called": False,
+            "model_call_performed": False,
+            "agent_dispatch_performed": False,
+            "worker_dispatch_performed": False,
+            "workflow_run_performed": False,
+            "external_action_performed": False,
+            "send_submit_performed": False,
+            "approval_execution_performed": False,
+            "candidate_promotion_performed": False,
+            "registry_mutation_performed": False,
+            "credential_handling_performed": False,
+            "raw_body_ingestion_performed": False,
+        },
+        "layered_response_fields": {
+            "response_kind": "DETERMINISTIC_INTENT_RESPONSE",
+            "audience_mode": "ELIWINSHIP",
+            "display_mode": "COMPACT_CHAT",
+            "headline": plan.headline,
+            "one_line_answer": plan.one_line_answer,
+            "eliwinship": plan.eliwinship,
+            "primary_status": plan.primary_status,
+            "primary_blocker": plan.primary_blocker,
+            "next_action": plan.next_action,
+            "missing_items_short": plan.missing_items_short,
+            "detail_summary": plan.detail_summary,
+            "proof_refs": (f"generated/read_models/{deterministic_intent_interpreter.JSON_EXPORT_NAME}",),
+            "mac_render_hint": "COMPACT_WITH_DISCLOSURE",
+        },
+        "request_classification": asdict(intent_classification),
+        "external_actions_locked": True,
+        "model_or_worker_response_adapter_called": False,
+    }
+    return OpenClawResponseForMac(
+        source_request_id=interpretation.source_request_id,
+        source_request_filename=request_path.name,
+        workflow_ref=candidate.target_workflow_ref,
+        request_type="CHAT",
+        internal_status=plan.internal_status,
+        operator_headline=plan.operator_headline,
+        operator_message=plan.operator_message,
+        what_happened=plan.what_happened,
+        why_it_happened=plan.why_it_happened,
+        how_to_fix=plan.how_to_fix,
+        visible_cards=plan.visible_cards,
+        cards_available=bool(plan.visible_cards),
+        card_mirror_refs=(),
+        file_readback_refs=(),
+        worker_route_refs=(
+            {
+                "selected_agent_role": candidate.target_agent_role,
+                "selected_worker_type": candidate.target_worker_type,
+                "live_agent_dispatch_allowed": False,
+                "live_worker_dispatch_allowed": False,
+                "read_model_ref": interpreter_json.as_posix(),
+            },
+        ),
+        context_package_refs=(),
+        blocked_reason=blocked_reason,
+        detail_disclosure=detail,
+        readback_files=readback_files,
+        next_safe_move=plan.next_safe_move,
+    )
+
+
 def _process_chat_request(
     request_path: Path,
     raw_request: Mapping[str, Any],
@@ -1809,6 +2029,16 @@ def _process_chat_request(
     classification: RequestClassification,
     read_model_reader: ReadModelReader | None = None,
 ) -> OpenClawResponseForMac:
+    interpreted = _process_deterministic_intent_request(
+        request_path,
+        raw_request,
+        export_root=export_root,
+        generated_at=generated_at,
+        classification=classification,
+    )
+    if interpreted is not None:
+        return interpreted
+
     if _is_capital_hilton_invoice_status_request(raw_request):
         return _process_capital_hilton_status_request(
             request_path,
@@ -2382,6 +2612,8 @@ def _machine_proof(
     status: OpenClawRequestProcessorStatus,
 ) -> dict[str, Any]:
     quality_errors = _terminal_quality_errors(response)
+    detail = response.detail_disclosure if isinstance(response.detail_disclosure, Mapping) else {}
+    interpreter_detail = detail.get("deterministic_intent_interpreter") if isinstance(detail.get("deterministic_intent_interpreter"), Mapping) else {}
     targets = status.responder_targets
     future_lm_targets = [
         target
@@ -2426,16 +2658,27 @@ def _machine_proof(
         "infinite_loop_possible": False,
         "daemon_started": False,
         "watcher_started": False,
+        "deterministic_intent_interpreter_used": bool(interpreter_detail),
+        "session_resolver_used": bool(interpreter_detail.get("session_resolver_used")),
+        "capability_query_used": bool(interpreter_detail.get("capability_query_used")),
+        "validator_used": bool(interpreter_detail.get("validator_used")),
+        "live_lm_interpreter_called": False,
         "workflow_execution_performed": False,
         "model_call_performed": False,
         "tool_execution_performed": False,
         "agent_dispatch_performed": False,
+        "worker_dispatch_performed": False,
         "email_draft_or_send_performed": False,
+        "email_send_performed": False,
         "coupa_access_or_submit_performed": False,
         "browser_access_performed": False,
         "invoice_generation_performed": False,
         "attachment_performed": False,
         "approval_request_performed": False,
+        "send_submit_performed": False,
+        "approval_execution_performed": False,
+        "candidate_promotion_performed": False,
+        "registry_mutation_performed": False,
         "payment_tracking_write_performed": False,
         "external_action_performed": False,
         "credential_handling_performed": False,

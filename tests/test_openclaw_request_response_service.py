@@ -12,6 +12,7 @@ if str(ROOT) not in sys.path:
 import conversational_workflow_router_intake as chat_intake
 import capital_hilton_invoice_operator_readback as capital_readback
 import mac_worker_handoff_package as mac_handoff
+import openclaw_request_processor as processor
 import openclaw_request_response_service as service
 import operator_file_metadata_intake as file_intake
 from scripts.run_openclaw_request_response_service import main as service_main
@@ -56,6 +57,54 @@ def _write_capital_hilton_status_request(path: Path, suffix: str = "service_fixt
     request["payload_hash"] = chat_intake.compute_request_payload_hash(request)
     path.write_text(chat_intake.stable_json(request), encoding="utf-8")
     return request
+
+
+def _write_intent_chat_request(path: Path, *, message: str, suffix: str = "intent") -> dict:
+    request = chat_intake.make_capital_hilton_fixture_request(created_at=FIXED_NOW)
+    request.update(
+        {
+            "request_id": f"mission_control_chat_request_deterministic_intent_{suffix}",
+            "workflow_ref": "capital_hilton_invoice_workflow",
+            "operator_message": message,
+            "sanitized_message_summary": message,
+            "idempotency_key": f"mc_chat_deterministic_intent_{suffix}",
+        }
+    )
+    request["payload_hash"] = chat_intake.compute_request_payload_hash(request)
+    path.write_text(chat_intake.stable_json(request), encoding="utf-8")
+    return request
+
+
+def _seed_capital_hilton_session_response(export_root: Path) -> None:
+    export_root.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "schema_version": "openclaw_request_processor_v0",
+        "read_model_id": "openclaw_response_for_mac",
+        "generated_at": FIXED_NOW,
+        "created_at": FIXED_NOW,
+        "source_request_id": "capital_hilton_invoice_status_catchup",
+        "workflow_ref": "capital_hilton_invoice_workflow",
+        "request_type": "CHAT",
+        "internal_status": "RESPONSE_READY",
+        "terminal": True,
+        "headline": "Capital Hilton invoice is blocked",
+        "operator_headline": "Capital Hilton invoice workflow is not ready yet",
+        "primary_blocker": "Missing confirmed Coupa PO/reference",
+        "next_action": "Next: Confirm the Coupa PO/reference.",
+        "response_author": "CHIEF",
+        "missing_items_short": ["Confirmed Coupa PO/reference"],
+        "readback_files": ["generated/read_models/capital_hilton_invoice_operator_readback.json"],
+        "detail_disclosure": {
+            "request_classification": {
+                "selected_rail": "capital_hilton_invoice_operator_readback",
+            },
+        },
+        "authority_boundary": dict(service.AUTHORITY_BOUNDARY),
+    }
+    (export_root / processor.RESPONSE_JSON_EXPORT_NAME).write_text(
+        json.dumps(payload, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
 
 
 def _write_file_request(path: Path, *, fixture: str = "spreadsheet") -> dict:
@@ -390,6 +439,60 @@ def test_service_routes_capital_hilton_status_query_to_mac_response(tmp_path, ca
     assert response["detail_disclosure"]["can_mark_invoice_sent"] is False
     assert response["terminal"] is True
     assert any(path.endswith("capital_hilton_invoice_operator_readback.json") for path in response["readback_files"])
+
+
+def test_service_processes_next_through_deterministic_intent_chain(tmp_path, capsys):
+    inbox = tmp_path / "inbox"
+    response_dir = tmp_path / "responses"
+    export_root = tmp_path / "read_models"
+    inbox.mkdir()
+    _seed_capital_hilton_session_response(export_root)
+    request_path = inbox / "mission_control_chat_request_next.json"
+    request = _write_intent_chat_request(request_path, message="next", suffix="next")
+
+    assert service_main(
+        [
+            "--once",
+            "--inbox",
+            str(inbox),
+            "--response-dir",
+            str(response_dir),
+            "--export-root",
+            str(export_root),
+            "--generated-at",
+            FIXED_NOW,
+            "--format",
+            "json",
+        ]
+    ) == 0
+    payload = json.loads(capsys.readouterr().out)
+    response_path = _safe_response_path(response_dir, request["request_id"])
+    response = json.loads(response_path.read_text(encoding="utf-8"))
+    heartbeat = json.loads(_safe_heartbeat_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
+    detail = response["detail_disclosure"]["deterministic_intent_interpreter"]
+
+    assert payload["service_status"]["service_status"] == "REQUEST_PROCESSED"
+    assert payload["service_status"]["last_routing_status"] == "PROCESSING_ON_PC"
+    assert payload["service_status"]["selected_worker_target"] == "PC_CODEX"
+    assert heartbeat["processing_status"] == "VALIDATING_DETERMINISTIC_INTENT"
+    _assert_heartbeat_no_success_claims(heartbeat)
+    assert response["response_kind"] == "DETERMINISTIC_INTENT_RESPONSE"
+    assert response["headline"] == "Coupa reference needed"
+    assert response["eliwinship"] == (
+        "To move the Capital Hilton invoice forward, I need the Coupa PO/reference or a source file that proves it. "
+        "Nothing will be submitted or sent from this step."
+    )
+    assert response["next_action"] == "Next: Type or attach the Coupa PO/reference."
+    assert response["terminal"] is True
+    assert detail["session_resolver_used"] is True
+    assert detail["capability_query_used"] is True
+    assert detail["validator_used"] is True
+    assert detail["validation_result"]["verdict"] == "VALIDATED_INTENT"
+    assert response["machine_proof"]["model_call_performed"] is False
+    assert response["machine_proof"]["agent_dispatch_performed"] is False
+    assert response["machine_proof"]["worker_dispatch_performed"] is False
+    assert response["machine_proof"]["external_action_performed"] is False
+    assert response["machine_proof"]["send_submit_performed"] is False
 
 
 def test_service_reuses_read_model_cache_during_one_watch_run(tmp_path, capsys):
