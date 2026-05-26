@@ -18,9 +18,12 @@ from dataclasses import asdict, dataclass, fields
 from pathlib import Path
 from typing import Any, Mapping
 
+import openclaw_capability_index
+
 
 DEFAULT_EXPORT_ROOT = Path("generated/read_models")
 DEFAULT_GENERATED_AT = "2026-05-25T00:00:00+00:00"
+DEFAULT_CAPABILITY_INDEX_PATH = DEFAULT_EXPORT_ROOT / "openclaw_capability_index.json"
 
 SCHEMA_VERSION = "machine_intent_candidate_validator_v0"
 READ_MODEL_ID = "machine_intent_candidate_validator"
@@ -71,10 +74,17 @@ BLOCKER_TYPES = (
     "LM_CANDIDATE_REQUESTS_EXECUTION",
     "LM_CANDIDATE_GRANTS_AUTHORITY",
     "LM_CANDIDATE_HALLUCINATES_RAIL",
+    "PROPOSED_CANDIDATE_USED_AS_LIVE_CAPABILITY",
     "CROSS_CLIENT_SCOPE_LEAK",
     "AMBIGUOUS_CONTEXT",
     "LOW_CONFIDENCE",
     "MISSING_WORKFLOW_CONTEXT",
+    "MISSING_CAPABILITY",
+    "CAPABILITY_FUTURE_GATED",
+    "CAPABILITY_BLOCKED_UNSAFE",
+    "CAPABILITY_AUTHORITY_FALSE",
+    "INVALID_TENANT_SCOPE",
+    "FIXTURE_SCOPE_MISMATCH",
     "EXTERNAL_ACTION_REQUESTED",
     "EXACT_APPROVAL_REQUIRED",
     "RAW_PRIVATE_BODY_REFERENCED",
@@ -88,6 +98,24 @@ CONFIDENCE_VALUES = ("HIGH", "MEDIUM", "LOW", "UNKNOWN_FAIL_CLOSED")
 AMBIGUITY_STATUSES = ("UNAMBIGUOUS", "AMBIGUOUS", "MISSING_CONTEXT", "UNKNOWN_FAIL_CLOSED")
 
 KNOWN_CAPABILITY_REFS = (
+    "request_processing",
+    "request_response_service",
+    "file_metadata_intake",
+    "status_readback",
+    "workflow_package_compilation",
+    "dry_run",
+    "completion_proof_aggregation",
+    "outbound_message_draft",
+    "outbound_message_send_gate",
+    "portal_transaction_package",
+    "portal_transaction_submit_gate",
+    "visual_event_compilation",
+    "worker_routing",
+    "scoped_context_package",
+    "machine_intent_validation",
+    "human_dignity_doctrine_gate",
+    "source_ref_management",
+    "approval_gate",
     "capital_hilton_invoice_operator_readback",
     "gated_email_draft_adapter",
     "invoice_delivery_dry_run_harness",
@@ -130,6 +158,10 @@ EXECUTION_TERMS = (
     "log in",
     "ignore gates",
 )
+
+LIVE_VIDEO_TERMS = ("make a video", "generate video", "video generation", "render video")
+LIVE_SEND_SUBMIT_TERMS = ("send it", "send email", "send the email", "submit it", "submit invoice", "submit to portal")
+LIVE_FILE_MUTATION_TERMS = ("mutate file", "edit file", "change the file", "rewrite the file")
 
 SECRET_TERMS = ("password", "credential", "credentials", "secret", "token", "oauth", "cookie")
 RAW_BODY_TERMS = ("raw body", "raw email body", "file body", "base64", "ocr text", "transcript body")
@@ -237,6 +269,13 @@ class IntentValidationResult:
     clarification_question: str
     created_candidates: tuple[str, ...]
     authority_granted: dict[str, bool]
+    capability_index_used: bool
+    matched_capabilities: tuple[str, ...]
+    missing_capabilities: tuple[str, ...]
+    rejected_capabilities: tuple[str, ...]
+    authority_profile_checked: bool
+    tenant_scope_checked: bool
+    fixture_scope_checked: bool
     next_safe_move: str
 
 
@@ -249,6 +288,22 @@ class IntentValidationBlocker:
     elioperator_warning: str
     fail_closed: bool
     next_safe_move: str
+
+
+@dataclass(frozen=True)
+class CapabilityLookupContext:
+    capability_index_used: bool
+    matched_capabilities: tuple[str, ...]
+    matched_workflow_bindings: tuple[str, ...]
+    missing_capabilities: tuple[str, ...]
+    rejected_capabilities: tuple[str, ...]
+    authority_profile_checked: bool
+    tenant_scope_checked: bool
+    fixture_scope_checked: bool
+    tenant_scope: str
+    invalid_tenant_scope: bool
+    required_missing_inputs: tuple[str, ...]
+    blockers: tuple[IntentValidationBlocker, ...]
 
 
 def stable_json(payload: Any) -> str:
@@ -275,6 +330,7 @@ def _model_schemas() -> dict[str, tuple[str, ...]]:
         "DeterministicIntentValidator": tuple(field.name for field in fields(DeterministicIntentValidator)),
         "IntentValidationResult": tuple(field.name for field in fields(IntentValidationResult)),
         "IntentValidationBlocker": tuple(field.name for field in fields(IntentValidationBlocker)),
+        "CapabilityLookupContext": tuple(field.name for field in fields(CapabilityLookupContext)),
     }
 
 
@@ -463,11 +519,274 @@ def _contains_any(value: str, terms: tuple[str, ...]) -> bool:
     return any(term in value for term in terms)
 
 
+def load_capability_index(read_model_path: Path = DEFAULT_CAPABILITY_INDEX_PATH) -> dict[str, Any]:
+    """Load the portable capability index from its read-model or deterministic builder."""
+
+    if read_model_path.exists():
+        return json.loads(read_model_path.read_text(encoding="utf-8"))
+    return openclaw_capability_index.build_payload()
+
+
+def _candidate_search_text(candidate: MachineIntentCandidate) -> str:
+    return " ".join(
+        (
+            candidate.original_operator_text,
+            candidate.inferred_intent_type,
+            candidate.target_agent_role,
+            candidate.target_worker_type,
+            candidate.target_workflow_ref,
+            candidate.target_world_ref,
+            candidate.requested_action,
+            candidate.referenced_next_action,
+            " ".join(candidate.evidence_refs_used),
+            " ".join(candidate.context_refs_used),
+            " ".join(candidate.source_refs_used),
+            " ".join(candidate.forbidden_assumptions),
+        )
+    ).lower()
+
+
+def _candidate_refs_text(candidate: MachineIntentCandidate) -> str:
+    return " ".join(
+        (
+            candidate.target_world_ref,
+            candidate.target_folder_ref,
+            candidate.target_thread_ref,
+            candidate.target_workflow_ref,
+            " ".join(candidate.evidence_refs_used),
+            " ".join(candidate.context_refs_used),
+            " ".join(candidate.source_refs_used),
+        )
+    ).lower()
+
+
+def _candidate_tenant_scope(candidate: MachineIntentCandidate) -> str:
+    refs = _candidate_refs_text(candidate)
+    for token in re.findall(r"tenant_scope:[A-Za-z0-9_:-]+", refs):
+        return token
+    if "capital_hilton" in refs or "capital hilton" in refs or "invoice" in refs:
+        return "tenant_scope:fixture_business_ops"
+    if "x32" in refs or "struna" in refs or "music" in refs:
+        return "tenant_scope:fixture_creative_project"
+    return ""
+
+
+def _intent_capability_hints(candidate: MachineIntentCandidate) -> tuple[str, ...]:
+    hints: list[str] = []
+    mapping = {
+        "CONTINUE_CURRENT_WORKFLOW": ("machine_intent_validation", "status_readback"),
+        "ANSWER_STATUS": ("status_readback", "completion_proof_aggregation", "dry_run"),
+        "CAPTURE_MISSING_INPUT": ("machine_intent_validation", "file_metadata_intake", "source_ref_management", "status_readback"),
+        "ATTACH_SOURCE_REF": ("file_metadata_intake", "source_ref_management"),
+        "PREPARE_DRAFT": ("outbound_message_draft", "worker_routing"),
+        "ROUTE_TO_AGENT": ("worker_routing", "scoped_context_package", "machine_intent_validation"),
+        "SHOW_VISUAL_WORKSPACE": ("visual_event_compilation", "client_cockpit_handoff"),
+        "READ_ALOUD": ("spoken_script_generation", "client_cockpit_handoff"),
+        "REQUEST_APPROVAL": ("approval_gate", "outbound_message_send_gate", "portal_transaction_submit_gate"),
+        "RUN_DRY_RUN": ("dry_run", "workflow_package_compilation"),
+        "CREATE_BUILD_CUE": ("machine_intent_validation", "worker_routing"),
+        "CREATE_CONTEXT_GAP": ("scoped_context_package", "machine_intent_validation"),
+        "ASK_CLARIFICATION": ("machine_intent_validation", "status_readback"),
+    }
+    hints.extend(mapping.get(candidate.inferred_intent_type, ()))
+    if candidate.target_agent_role == "CASSANDRA":
+        hints.extend(("outbound_message_draft", "worker_routing"))
+    if candidate.target_agent_role == "NILES":
+        hints.extend(("worker_routing", "scoped_context_package", "source_ref_management"))
+    if candidate.missing_requirements:
+        hints.extend(("file_metadata_intake", "source_ref_management"))
+    if _contains_any(_action_text(candidate), LIVE_SEND_SUBMIT_TERMS):
+        hints.extend(("outbound_message_send_gate", "portal_transaction_submit_gate", "approval_gate"))
+    if _contains_any(_action_text(candidate), LIVE_VIDEO_TERMS):
+        hints.extend(("visual_event_compilation", "client_cockpit_handoff"))
+    return tuple(dict.fromkeys(hints))
+
+
+def _capability_supports_candidate(capability: Mapping[str, Any], candidate: MachineIntentCandidate) -> bool:
+    if candidate.inferred_intent_type in set(capability.get("intent_types_supported", ())):
+        return True
+    text = _candidate_search_text(candidate)
+    return any(str(keyword).lower() in text for keyword in capability.get("search_keywords", ()))
+
+
+def _profile_for(capability_id: str, index_payload: Mapping[str, Any]) -> Mapping[str, Any] | None:
+    for profile in index_payload.get("authority_profiles", ()):
+        if profile.get("capability_ref") == capability_id:
+            return profile
+    return None
+
+
+def _proposed_candidate_ref(candidate: MachineIntentCandidate, index_payload: Mapping[str, Any]) -> str | None:
+    text = _candidate_search_text(candidate)
+    for proposal in index_payload.get("proposal_candidates", ()):
+        probes = (
+            str(proposal.get("proposal_id", "")),
+            str(proposal.get("proposed_capability_name", "")),
+            str(proposal.get("suggested_module_name", "")),
+        )
+        if any(probe and probe.lower() in text for probe in probes):
+            return str(proposal.get("proposal_id"))
+    return None
+
+
+def _capability_lookup_context(
+    candidate: MachineIntentCandidate,
+    *,
+    capability_index_payload: Mapping[str, Any],
+) -> CapabilityLookupContext:
+    capabilities = {
+        str(capability["capability_id"]): capability
+        for capability in capability_index_payload.get("generic_capabilities", ())
+    }
+    matched: list[str] = []
+    rejected: list[str] = []
+    missing_capabilities: list[str] = []
+    required_missing_inputs: list[str] = []
+    blockers: list[IntentValidationBlocker] = []
+
+    tenant_scope = _candidate_tenant_scope(candidate)
+    valid_tenants = set(capability_index_payload.get("tenant_safety", {}).get("valid_tenant_scopes", ()))
+    tenant_checked = bool(tenant_scope)
+    invalid_tenant = bool(tenant_scope and tenant_scope not in valid_tenants)
+    if invalid_tenant:
+        blockers.append(
+            _blocker(
+                "INVALID_TENANT_SCOPE",
+                f"Capability binding lookup rejected invalid tenant scope: {tenant_scope}.",
+                severity="critical",
+            )
+        )
+
+    for capability_id in _intent_capability_hints(candidate):
+        if capability_id in capabilities and capability_id not in matched:
+            matched.append(capability_id)
+
+    for capability in capabilities.values():
+        capability_id = str(capability["capability_id"])
+        if capability_id not in matched and _capability_supports_candidate(capability, candidate):
+            matched.append(capability_id)
+
+    proposed_ref = _proposed_candidate_ref(candidate, capability_index_payload)
+    if proposed_ref:
+        rejected.append(proposed_ref)
+        blockers.append(
+            _blocker(
+                "PROPOSED_CANDIDATE_USED_AS_LIVE_CAPABILITY",
+                f"Candidate attempted to use quarantined proposal {proposed_ref} as a live capability.",
+                severity="critical",
+            )
+        )
+
+    if not matched:
+        missing_capabilities.append(f"capability_for:{candidate.inferred_intent_type}")
+        blockers.append(
+            _blocker(
+                "MISSING_CAPABILITY",
+                f"No usable generic capability matched intent type {candidate.inferred_intent_type}.",
+            )
+        )
+
+    authority_checked = False
+    for capability_id in tuple(matched):
+        capability = capabilities[capability_id]
+        status = str(capability.get("capability_status", "UNKNOWN_FAIL_CLOSED"))
+        lifecycle_status = str(capability.get("lifecycle_status", "UNKNOWN_FAIL_CLOSED"))
+        profile = _profile_for(capability_id, capability_index_payload)
+        authority_checked = authority_checked or bool(profile)
+        if lifecycle_status == "PROPOSED_CANDIDATE":
+            rejected.append(capability_id)
+            blockers.append(
+                _blocker("PROPOSED_CANDIDATE_USED_AS_LIVE_CAPABILITY", f"{capability_id} is a proposal candidate, not a usable capability.")
+            )
+        elif status == "FUTURE_GATED":
+            rejected.append(capability_id)
+            blockers.append(_blocker("CAPABILITY_FUTURE_GATED", f"{capability_id} is future gated."))
+        elif status in {"BLOCKED_UNSAFE", "UNKNOWN_FAIL_CLOSED"}:
+            rejected.append(capability_id)
+            blockers.append(_blocker("CAPABILITY_BLOCKED_UNSAFE", f"{capability_id} is blocked or unknown."))
+        elif status == "FIXTURE_ONLY":
+            rejected.append(capability_id)
+            blockers.append(_blocker("FIXTURE_SCOPE_MISMATCH", f"{capability_id} is fixture-only and cannot satisfy live capability lookup."))
+
+        if profile:
+            requested_live = _authority_requested(candidate) or _contains_any(_action_text(candidate), LIVE_SEND_SUBMIT_TERMS + LIVE_FILE_MUTATION_TERMS)
+            live_authority = any(
+                bool(profile.get(key))
+                for key in (
+                    "live_authority_allowed",
+                    "live_execution_allowed",
+                    "live_external_action_allowed",
+                    "live_model_call_allowed",
+                    "live_agent_dispatch_allowed",
+                    "live_outbound_message_send_allowed",
+                    "live_portal_access_allowed",
+                    "live_portal_submit_allowed",
+                    "live_browser_allowed",
+                    "live_secret_reveal_allowed",
+                    "raw_body_ingestion_allowed",
+                    "credential_handling_allowed",
+                )
+            )
+            if requested_live and not live_authority:
+                rejected.append(f"{capability_id}:live_authority")
+                blockers.append(
+                    _blocker(
+                        "CAPABILITY_AUTHORITY_FALSE",
+                        f"{capability_id} does not grant the requested live authority.",
+                    )
+                )
+
+    if _contains_any(_action_text(candidate), LIVE_VIDEO_TERMS):
+        missing_capabilities.append("live_visual_video_generation_provider")
+        rejected.append("live_visual_video_generation_provider")
+    if candidate.target_agent_role == "NILES" and not candidate.source_refs_used:
+        required_missing_inputs.append("source ref")
+    for requirement in candidate.missing_requirements:
+        if requirement not in required_missing_inputs:
+            required_missing_inputs.append(requirement)
+
+    binding_matches: list[str] = []
+    if tenant_scope and not invalid_tenant:
+        tenant_view = openclaw_capability_index.filter_index_for_tenant(dict(capability_index_payload), tenant_scope)
+        refs_text = _candidate_refs_text(candidate)
+        for binding in tenant_view.get("workflow_bindings", ()):
+            workflow_ref = str(binding.get("workflow_ref", "")).lower()
+            active_ref = str(binding.get("active_implementation_ref", "")).lower()
+            if (
+                workflow_ref and any(part for part in workflow_ref.split(":") if part and part in refs_text)
+            ) or active_ref in refs_text or str(binding.get("capability_ref", "")) in matched:
+                binding_matches.append(str(binding["binding_id"]))
+
+    fixture_checked = bool(binding_matches or candidate.target_workflow_ref not in {"", "unknown"})
+    if candidate.target_workflow_ref not in {"", "unknown"} and tenant_scope and invalid_tenant:
+        blockers.append(
+            _blocker(
+                "FIXTURE_SCOPE_MISMATCH",
+                "Workflow-scoped binding cannot be used because tenant scope is invalid.",
+            )
+        )
+
+    return CapabilityLookupContext(
+        capability_index_used=True,
+        matched_capabilities=tuple(dict.fromkeys(matched + binding_matches)),
+        matched_workflow_bindings=tuple(dict.fromkeys(binding_matches)),
+        missing_capabilities=tuple(dict.fromkeys(missing_capabilities)),
+        rejected_capabilities=tuple(dict.fromkeys(rejected)),
+        authority_profile_checked=authority_checked,
+        tenant_scope_checked=tenant_checked,
+        fixture_scope_checked=fixture_checked,
+        tenant_scope=tenant_scope or "tenant_scope:generic_or_unresolved",
+        invalid_tenant_scope=invalid_tenant,
+        required_missing_inputs=tuple(dict.fromkeys(required_missing_inputs)),
+        blockers=tuple(blockers),
+    )
+
+
 def _hallucinated_capability(candidate: MachineIntentCandidate, known_capability_refs: tuple[str, ...]) -> str | None:
     refs = tuple(candidate.evidence_refs_used + candidate.context_refs_used + candidate.source_refs_used)
     for ref in refs + candidate.forbidden_assumptions:
         lowered = str(ref).lower()
-        if "coupa_auto_submit_adapter" in lowered or "auto_submit" in lowered:
+        if "coupa_auto_submit_adapter" in lowered or "live_coupa_auto_submit" in lowered or "auto_submit" in lowered:
             return str(ref)
         if lowered.endswith("_adapter") and lowered not in known_capability_refs:
             return str(ref)
@@ -478,6 +797,7 @@ def validate_machine_intent_candidate(
     candidate: MachineIntentCandidate,
     *,
     known_capability_refs: tuple[str, ...] = KNOWN_CAPABILITY_REFS,
+    capability_index_payload: Mapping[str, Any] | None = None,
 ) -> tuple[
     IntentValidationResult,
     tuple[MissingRequirementCandidate, ...],
@@ -490,6 +810,9 @@ def validate_machine_intent_candidate(
     build_cues: list[BuildCueCandidate] = []
     context_gaps: list[ContextGapCandidate] = []
     text = _text(candidate)
+    capability_index = dict(capability_index_payload or load_capability_index())
+    lookup_context = _capability_lookup_context(candidate, capability_index_payload=capability_index)
+    blockers.extend(lookup_context.blockers)
 
     if _authority_granted(candidate):
         blockers.append(_blocker("LM_CANDIDATE_GRANTS_AUTHORITY", "Candidate attempted to grant authority to itself.", severity="critical"))
@@ -513,6 +836,8 @@ def validate_machine_intent_candidate(
     if _contains_any(_action_text(candidate), EXECUTION_TERMS):
         blockers.append(_blocker("EXTERNAL_ACTION_REQUESTED", "Natural language requested or implied an external action."))
         blockers.append(_blocker("EXACT_APPROVAL_REQUIRED", "Generic phrasing is not exact approval for send, submit, approval, or completion."))
+    if _contains_any(_action_text(candidate), LIVE_SEND_SUBMIT_TERMS):
+        blockers.append(_blocker("EXACT_APPROVAL_REQUIRED", "Ambient send/submit language is not exact approval."))
 
     hallucinated = _hallucinated_capability(candidate, known_capability_refs)
     if hallucinated:
@@ -528,6 +853,31 @@ def validate_machine_intent_candidate(
                 risk_level="high",
             )
         )
+    for missing_capability in lookup_context.missing_capabilities:
+        if missing_capability.startswith("live_visual_video"):
+            build_cues.append(
+                _build_cue(
+                    candidate.intent_id,
+                    missing_capability,
+                    workflow_ref=candidate.target_workflow_ref,
+                    suggested_rail="future_gated_visual_renderer_or_provider_contract",
+                    suggested_worker="MAC_CODEX",
+                    why_needed="The capability index has visual event packages, but no live video generation provider authority.",
+                    risk_level="medium",
+                )
+            )
+        elif missing_capability.startswith("capability_for:"):
+            build_cues.append(
+                _build_cue(
+                    candidate.intent_id,
+                    missing_capability,
+                    workflow_ref=candidate.target_workflow_ref,
+                    suggested_rail="portable_capability_gap_record",
+                    suggested_worker="PC_CODEX",
+                    why_needed="No usable capability index record matched the candidate intent.",
+                    risk_level="medium",
+                )
+            )
 
     for requirement in candidate.missing_requirements:
         requirement_upper = requirement.upper()
@@ -593,15 +943,39 @@ def validate_machine_intent_candidate(
         )
 
     if blockers:
-        if any(blocker.blocker_type in {"LM_CANDIDATE_HALLUCINATES_RAIL"} for blocker in blockers):
+        if any(blocker.blocker_type in {"LM_CANDIDATE_HALLUCINATES_RAIL", "MISSING_CAPABILITY"} for blocker in blockers):
             verdict = "BLOCKED_BY_MISSING_CAPABILITY"
             next_move = "Create a build cue for the missing capability; do not execute the hallucinated rail."
+        elif any(blocker.blocker_type in {"PROPOSED_CANDIDATE_USED_AS_LIVE_CAPABILITY"} for blocker in blockers):
+            verdict = "BLOCKED_BY_MISSING_CAPABILITY"
+            next_move = "Keep the proposed capability quarantined; create a build cue only after review."
+        elif any(blocker.blocker_type in {"INVALID_TENANT_SCOPE", "FIXTURE_SCOPE_MISMATCH"} for blocker in blockers):
+            verdict = "BLOCKED_BY_MISSING_CONTEXT"
+            next_move = "Resolve tenant/client/workflow scope before using workflow-bound capabilities."
+        elif any(
+            blocker.blocker_type
+            in {
+                "EXTERNAL_ACTION_REQUESTED",
+                "EXACT_APPROVAL_REQUIRED",
+                "LM_CANDIDATE_REQUESTS_EXECUTION",
+                "LM_CANDIDATE_GRANTS_AUTHORITY",
+                "CAPABILITY_AUTHORITY_FALSE",
+                "SECRET_OR_CREDENTIAL_REFERENCED",
+                "RAW_PRIVATE_BODY_REFERENCED",
+            }
+            for blocker in blockers
+        ):
+            verdict = "BLOCKED_BY_AUTHORITY"
+            next_move = "Require exact approvals/proof receipts or reframe as non-executing intake."
         elif any(blocker.blocker_type in {"AMBIGUOUS_CONTEXT", "LOW_CONFIDENCE", "MISSING_WORKFLOW_CONTEXT"} for blocker in blockers) and not any(
-            blocker.blocker_type in {"EXTERNAL_ACTION_REQUESTED", "EXACT_APPROVAL_REQUIRED", "LM_CANDIDATE_REQUESTS_EXECUTION", "LM_CANDIDATE_GRANTS_AUTHORITY", "SECRET_OR_CREDENTIAL_REFERENCED", "RAW_PRIVATE_BODY_REFERENCED"}
+            blocker.blocker_type in {"EXTERNAL_ACTION_REQUESTED", "EXACT_APPROVAL_REQUIRED", "LM_CANDIDATE_REQUESTS_EXECUTION", "LM_CANDIDATE_GRANTS_AUTHORITY", "SECRET_OR_CREDENTIAL_REFERENCED", "RAW_PRIVATE_BODY_REFERENCED", "CAPABILITY_AUTHORITY_FALSE"}
             for blocker in blockers
         ):
             verdict = "CLARIFICATION_REQUIRED"
             next_move = candidate.required_clarification or "Ask which workflow/thread to continue."
+        elif any(blocker.blocker_type in {"CAPABILITY_FUTURE_GATED", "CAPABILITY_BLOCKED_UNSAFE"} for blocker in blockers):
+            verdict = "BLOCKED_BY_MISSING_CAPABILITY"
+            next_move = "Use only non-executing readback/package capabilities; future-gated or blocked capabilities cannot run."
         else:
             verdict = "BLOCKED_BY_AUTHORITY"
             next_move = "Require exact approvals/proof receipts or reframe as non-executing intake."
@@ -618,6 +992,12 @@ def validate_machine_intent_candidate(
         verdict = "VALIDATED_INTENT"
         next_move = candidate.referenced_next_action or candidate.next_safe_move
 
+    validated_intent_type = candidate.inferred_intent_type
+    if verdict == "VALIDATED_INTENT" and any(item.requirement_type == "MISSING_PO_REFERENCE" for item in missing):
+        validated_intent_type = "CAPTURE_MISSING_INPUT"
+    if verdict == "UNKNOWN_FAIL_CLOSED":
+        validated_intent_type = "UNKNOWN_FAIL_CLOSED"
+
     clarification = ""
     if verdict == "CLARIFICATION_REQUIRED":
         clarification = candidate.required_clarification or "Which workflow or thread should OpenClaw continue?"
@@ -632,13 +1012,20 @@ def validate_machine_intent_candidate(
         verdict=verdict,
         confidence=candidate.confidence,
         ambiguity_status=candidate.ambiguity_status,
-        validated_intent_type=candidate.inferred_intent_type if verdict != "UNKNOWN_FAIL_CLOSED" else "UNKNOWN_FAIL_CLOSED",
+        validated_intent_type=validated_intent_type,
         resolved_workflow_ref=candidate.target_workflow_ref,
         resolved_next_action=candidate.referenced_next_action,
         blocked_reasons=tuple(blocker.condition for blocker in blockers),
         clarification_question=clarification,
         created_candidates=created_candidates,
         authority_granted=_all_false_authority(),
+        capability_index_used=lookup_context.capability_index_used,
+        matched_capabilities=lookup_context.matched_capabilities,
+        missing_capabilities=lookup_context.missing_capabilities,
+        rejected_capabilities=lookup_context.rejected_capabilities,
+        authority_profile_checked=lookup_context.authority_profile_checked,
+        tenant_scope_checked=lookup_context.tenant_scope_checked,
+        fixture_scope_checked=lookup_context.fixture_scope_checked,
         next_safe_move=next_move,
     )
     return result, tuple(missing), tuple(build_cues), tuple(context_gaps), tuple(blockers)
@@ -656,6 +1043,7 @@ def build_validator() -> DeterministicIntentValidator:
         validation_policy=(
             "Preserve source_request_id, evidence refs, context refs, and source refs.",
             "Reject candidates that cite unavailable rails, cross scope, raw bodies, secrets, or execution authority.",
+            "Consult the portable capability index for capability status, required inputs, tenant scope, and authority profiles.",
             "Emit missing requirement, build cue, or context gap candidates instead of executing.",
         ),
         confidence_policy=(
@@ -668,6 +1056,7 @@ def build_validator() -> DeterministicIntentValidator:
         ),
         authority_policy=(
             "Candidate cannot grant authority to itself.",
+            "Capability index authority profiles are checked before any validation result is returned.",
             "Exact approval gates remain required for send, submit, approval execution, completion, and workflow run.",
             "External actions remain blocked unless future existing gates and receipts explicitly allow them.",
         ),
@@ -693,10 +1082,17 @@ def build_standard_blockers() -> tuple[IntentValidationBlocker, ...]:
         "LM_CANDIDATE_REQUESTS_EXECUTION": "Candidate requests execution authority instead of proposing intent only.",
         "LM_CANDIDATE_GRANTS_AUTHORITY": "Candidate attempts to grant its own authority.",
         "LM_CANDIDATE_HALLUCINATES_RAIL": "Candidate cites a rail or adapter not present in approved capability refs.",
+        "PROPOSED_CANDIDATE_USED_AS_LIVE_CAPABILITY": "Candidate attempts to use a quarantined proposal as live capability.",
         "CROSS_CLIENT_SCOPE_LEAK": "Candidate crosses client or tenant scope.",
         "AMBIGUOUS_CONTEXT": "Candidate lacks one clear active workflow/thread context.",
         "LOW_CONFIDENCE": "Candidate confidence is too low for promotion.",
         "MISSING_WORKFLOW_CONTEXT": "Candidate needs a workflow but none is resolved.",
+        "MISSING_CAPABILITY": "Capability index has no usable matching capability.",
+        "CAPABILITY_FUTURE_GATED": "Matched capability is future gated.",
+        "CAPABILITY_BLOCKED_UNSAFE": "Matched capability is blocked or unknown.",
+        "CAPABILITY_AUTHORITY_FALSE": "Capability authority profile does not allow the requested live action.",
+        "INVALID_TENANT_SCOPE": "Tenant scope is invalid for workflow-bound capability lookup.",
+        "FIXTURE_SCOPE_MISMATCH": "Fixture/workflow scope cannot satisfy the requested capability.",
         "EXTERNAL_ACTION_REQUESTED": "Candidate requests external action from natural language.",
         "EXACT_APPROVAL_REQUIRED": "Generic language is not exact approval.",
         "RAW_PRIVATE_BODY_REFERENCED": "Candidate references raw private body content.",
@@ -712,7 +1108,7 @@ def build_example_candidates() -> dict[str, MachineIntentCandidate]:
             intent_id="intent_candidate:capital_hilton_next",
             source_request_id="fixture:capital_hilton_next",
             original_operator_text="next",
-            inferred_intent_type="CAPTURE_MISSING_INPUT",
+            inferred_intent_type="CONTINUE_CURRENT_WORKFLOW",
             requested_action="continue current Capital Hilton invoice workflow by collecting missing input",
             target_workflow_ref="capital_hilton_invoice_workflow",
             referenced_next_action="Confirm the Coupa PO/reference.",
@@ -755,7 +1151,7 @@ def build_example_candidates() -> dict[str, MachineIntentCandidate]:
             intent_id="intent_candidate:cassandra_draft",
             source_request_id="fixture:cassandra_draft",
             original_operator_text="ask Cassandra to prep the email",
-            inferred_intent_type="ROUTE_TO_AGENT",
+            inferred_intent_type="PREPARE_DRAFT",
             requested_action="prepare reviewable email draft language",
             target_workflow_ref="capital_hilton_invoice_workflow",
             target_agent_role="CASSANDRA",
@@ -768,7 +1164,7 @@ def build_example_candidates() -> dict[str, MachineIntentCandidate]:
         "niles_x32": _candidate(
             intent_id="intent_candidate:niles_x32",
             source_request_id="fixture:niles_x32",
-            original_operator_text="Niles, let's work on the X32 thing",
+            original_operator_text="Niles, do the X32 thing",
             inferred_intent_type="ROUTE_TO_AGENT",
             requested_action="route creative X32 planning to Niles",
             target_workflow_ref="x32_music_context_future",
@@ -796,13 +1192,46 @@ def build_example_candidates() -> dict[str, MachineIntentCandidate]:
         "hallucinated_rail": _candidate(
             intent_id="intent_candidate:hallucinated_rail",
             source_request_id="fixture:hallucinated_rail",
-            original_operator_text="LM says coupa_auto_submit_adapter exists.",
+            original_operator_text="LM says live_coupa_auto_submit exists.",
             inferred_intent_type="CREATE_BUILD_CUE",
-            requested_action="use coupa_auto_submit_adapter",
+            requested_action="use live_coupa_auto_submit",
             target_workflow_ref="capital_hilton_invoice_workflow",
             confidence="HIGH",
-            evidence_refs_used=("coupa_auto_submit_adapter",),
-            forbidden_assumptions=("coupa_auto_submit_adapter exists",),
+            evidence_refs_used=("live_coupa_auto_submit",),
+            forbidden_assumptions=("live_coupa_auto_submit exists",),
+        ),
+        "send_it": _candidate(
+            intent_id="intent_candidate:send_it",
+            source_request_id="fixture:send_it",
+            original_operator_text="send it",
+            inferred_intent_type="REQUEST_APPROVAL",
+            requested_action="send the outbound message",
+            target_workflow_ref="capital_hilton_invoice_workflow",
+            confidence="HIGH",
+            missing_requirements=("MISSING_APPROVAL",),
+            forbidden_assumptions=("send it is exact approval",),
+        ),
+        "make_video": _candidate(
+            intent_id="intent_candidate:make_video",
+            source_request_id="fixture:make_video",
+            original_operator_text="make a video for this",
+            inferred_intent_type="SHOW_VISUAL_WORKSPACE",
+            requested_action="compile safe visual event package; do not call a video provider",
+            target_workflow_ref="capital_hilton_invoice_workflow",
+            confidence="MEDIUM",
+            evidence_refs_used=("generated/read_models/chat_workflow_visual_event_package_compiler.json",),
+            forbidden_assumptions=("video package is proof", "cloud provider can be called"),
+        ),
+        "proposed_capability_misuse": _candidate(
+            intent_id="intent_candidate:proposed_capability_misuse",
+            source_request_id="fixture:proposed_capability_misuse",
+            original_operator_text="use proposal:client_cockpit_visual_event_renderer now",
+            inferred_intent_type="SHOW_VISUAL_WORKSPACE",
+            requested_action="use CLIENT_COCKPIT_VISUAL_EVENT_RENDERER as live capability",
+            target_workflow_ref="capital_hilton_invoice_workflow",
+            confidence="HIGH",
+            evidence_refs_used=("proposal:client_cockpit_visual_event_renderer",),
+            forbidden_assumptions=("proposal candidate is live capability",),
         ),
     }
 
@@ -838,6 +1267,7 @@ def build_payload(generated_at: str = DEFAULT_GENERATED_AT) -> dict[str, Any]:
         "agent_roles": AGENT_ROLES,
         "worker_types": WORKER_TYPES,
         "known_capability_refs": KNOWN_CAPABILITY_REFS,
+        "capability_index_ref": "generated/read_models/openclaw_capability_index.json",
         "model_schemas": _model_schemas(),
         "validator": asdict(validator),
         "standard_blockers": tuple(asdict(blocker) for blocker in blockers),
@@ -868,6 +1298,17 @@ def build_payload(generated_at: str = DEFAULT_GENERATED_AT) -> dict[str, Any]:
             blocker["blocker_type"] == "LM_CANDIDATE_HALLUCINATES_RAIL"
             for blocker in examples["hallucinated_rail"]["blockers"]
         ),
+        "capability_index_used": all(example["validation_result"]["capability_index_used"] for example in examples.values()),
+        "send_it_no_send_authority": not any(examples["send_it"]["validation_result"]["authority_granted"].values())
+        and examples["send_it"]["validation_result"]["verdict"] == "BLOCKED_BY_AUTHORITY",
+        "make_video_no_provider_call": "live_visual_video_generation_provider"
+        in examples["make_video"]["validation_result"]["missing_capabilities"],
+        "proposed_candidate_misuse_blocked": any(
+            blocker["blocker_type"] == "PROPOSED_CANDIDATE_USED_AS_LIVE_CAPABILITY"
+            for blocker in examples["proposed_capability_misuse"]["blockers"]
+        ),
+        "tenant_scope_checked": all(example["validation_result"]["tenant_scope_checked"] for example in examples.values() if example["candidate"]["target_workflow_ref"] != "unknown"),
+        "fixture_scope_checked": all(example["validation_result"]["fixture_scope_checked"] for example in examples.values() if example["candidate"]["target_workflow_ref"] != "unknown"),
         "all_live_authority_false": all(value is False for value in AUTHORITY_BOUNDARY.values()),
         "lm_interpreter_called": False,
         "model_call_performed": False,
@@ -898,6 +1339,7 @@ def format_operator_markdown(payload: Mapping[str, Any]) -> str:
             "# Machine Intent Candidate Validator",
             "",
             "Future LM output may propose intent candidates, but deterministic validation decides what becomes real.",
+            "The validator now consults the portable capability index for capability status, inputs, scope, and authority.",
             "",
             "## Validator",
             "- Candidate is not truth.",
@@ -913,6 +1355,14 @@ def format_operator_markdown(payload: Mapping[str, Any]) -> str:
             f"- Niles X32: {examples['niles_x32']['validation_result']['verdict']} with source-ref context gap.",
             f"- Prompt injection: {examples['prompt_injection']['validation_result']['verdict']}.",
             f"- Hallucinated rail: {examples['hallucinated_rail']['validation_result']['verdict']}.",
+            f"- Send it: {examples['send_it']['validation_result']['verdict']} with send authority false.",
+            f"- Make video: {examples['make_video']['validation_result']['verdict']} with provider generation missing.",
+            f"- Proposed capability misuse: {examples['proposed_capability_misuse']['validation_result']['verdict']}.",
+            "",
+            "## Capability Index Checks",
+            "- capability_index_used: true",
+            "- matched_capabilities, missing_capabilities, and rejected_capabilities are recorded per example.",
+            "- authority_profile_checked, tenant_scope_checked, and fixture_scope_checked are recorded per example.",
             "",
             "## Authority",
             "- No live LM interpreter.",
@@ -951,6 +1401,10 @@ def build_summary(payload: Mapping[str, Any], json_path: Path, operator_path: Pa
         "go_ahead_verdict": payload["examples"]["capital_hilton_go_ahead"]["validation_result"]["verdict"],
         "ambiguous_next_verdict": payload["examples"]["ambiguous_next"]["validation_result"]["verdict"],
         "hallucinated_rail_verdict": payload["examples"]["hallucinated_rail"]["validation_result"]["verdict"],
+        "send_it_verdict": payload["examples"]["send_it"]["validation_result"]["verdict"],
+        "make_video_verdict": payload["examples"]["make_video"]["validation_result"]["verdict"],
+        "proposed_capability_misuse_verdict": payload["examples"]["proposed_capability_misuse"]["validation_result"]["verdict"],
+        "capability_index_used": payload["machine_proof"]["capability_index_used"],
         "all_live_authority_false": payload["machine_proof"]["all_live_authority_false"],
         "content_hash": payload["machine_proof"]["content_hash"],
     }

@@ -109,6 +109,13 @@ def test_required_models_exist_with_required_fields():
             "clarification_question",
             "created_candidates",
             "authority_granted",
+            "capability_index_used",
+            "matched_capabilities",
+            "missing_capabilities",
+            "rejected_capabilities",
+            "authority_profile_checked",
+            "tenant_scope_checked",
+            "fixture_scope_checked",
             "next_safe_move",
         ),
         "IntentValidationBlocker": (
@@ -120,6 +127,20 @@ def test_required_models_exist_with_required_fields():
             "fail_closed",
             "next_safe_move",
         ),
+        "CapabilityLookupContext": (
+            "capability_index_used",
+            "matched_capabilities",
+            "matched_workflow_bindings",
+            "missing_capabilities",
+            "rejected_capabilities",
+            "authority_profile_checked",
+            "tenant_scope_checked",
+            "fixture_scope_checked",
+            "tenant_scope",
+            "invalid_tenant_scope",
+            "required_missing_inputs",
+            "blockers",
+        ),
     }
     classes = {
         "MachineIntentCandidate": intent.MachineIntentCandidate,
@@ -129,6 +150,7 @@ def test_required_models_exist_with_required_fields():
         "DeterministicIntentValidator": intent.DeterministicIntentValidator,
         "IntentValidationResult": intent.IntentValidationResult,
         "IntentValidationBlocker": intent.IntentValidationBlocker,
+        "CapabilityLookupContext": intent.CapabilityLookupContext,
     }
     for name, required_fields in expected.items():
         assert tuple(field.name for field in fields(classes[name])) == required_fields
@@ -145,6 +167,7 @@ def test_payload_contains_models_blockers_and_authority_boundary():
     assert payload["machine_proof"]["intent_validation_result_model_present"] is True
     assert payload["machine_proof"]["blockers_present"] is True
     assert {blocker["blocker_type"] for blocker in payload["standard_blockers"]} == set(intent.BLOCKER_TYPES)
+    assert payload["machine_proof"]["capability_index_used"] is True
     for value in payload["authority_boundary"].values():
         assert value is False
     assert payload["machine_proof"]["all_live_authority_false"] is True
@@ -155,7 +178,11 @@ def test_capital_hilton_next_validates_as_missing_po_intake():
 
     assert example["candidate"]["inferred_intent_type"] in {"CONTINUE_CURRENT_WORKFLOW", "CAPTURE_MISSING_INPUT"}
     assert example["validation_result"]["verdict"] == "VALIDATED_INTENT"
+    assert example["validation_result"]["validated_intent_type"] == "CAPTURE_MISSING_INPUT"
     assert example["validation_result"]["resolved_workflow_ref"] == "capital_hilton_invoice_workflow"
+    assert example["validation_result"]["capability_index_used"] is True
+    assert "status_readback" in example["validation_result"]["matched_capabilities"]
+    assert any(ref.startswith("binding:fixture:capital_hilton") for ref in example["validation_result"]["matched_capabilities"])
     assert any(item["requirement_type"] == "MISSING_PO_REFERENCE" for item in example["missing_requirements"])
     assert "Coupa PO/reference" in example["validation_result"]["next_safe_move"]
     assert not any(example["validation_result"]["authority_granted"].values())
@@ -185,11 +212,10 @@ def test_cassandra_draft_route_has_no_send_authority():
 
     assert example["candidate"]["target_agent_role"] == "CASSANDRA"
     assert example["candidate"]["inferred_intent_type"] in {"PREPARE_DRAFT", "ROUTE_TO_AGENT"}
-    assert example["validation_result"]["verdict"] == "BUILD_CUE_CREATED"
-    assert example["build_cues"]
+    assert example["validation_result"]["verdict"] == "VALIDATED_INTENT"
+    assert "outbound_message_draft" in example["validation_result"]["matched_capabilities"]
     assert not any(example["candidate"]["authority_granted"].values())
     assert not any(example["validation_result"]["authority_granted"].values())
-    assert all(cue["execution_authority"] is False for cue in example["build_cues"])
 
 
 def test_niles_x32_route_has_no_daw_or_file_mutation_authority():
@@ -220,8 +246,62 @@ def test_hallucinated_rail_blocks_and_creates_build_cue():
     assert example["validation_result"]["verdict"] == "BLOCKED_BY_MISSING_CAPABILITY"
     assert any(blocker["blocker_type"] == "LM_CANDIDATE_HALLUCINATES_RAIL" for blocker in example["blockers"])
     assert example["build_cues"]
-    assert example["build_cues"][0]["missing_capability"] == "coupa_auto_submit_adapter"
+    assert example["build_cues"][0]["missing_capability"] == "live_coupa_auto_submit"
     assert example["build_cues"][0]["execution_authority"] is False
+
+
+def test_send_it_uses_send_gate_but_does_not_grant_send_authority():
+    example = intent.build_examples()["send_it"]
+    blocker_types = {blocker["blocker_type"] for blocker in example["blockers"]}
+
+    assert example["validation_result"]["verdict"] == "BLOCKED_BY_AUTHORITY"
+    assert "outbound_message_send_gate" in example["validation_result"]["matched_capabilities"]
+    assert "portal_transaction_submit_gate" in example["validation_result"]["matched_capabilities"]
+    assert "CAPABILITY_AUTHORITY_FALSE" in blocker_types
+    assert "EXACT_APPROVAL_REQUIRED" in blocker_types
+    assert not any(example["validation_result"]["authority_granted"].values())
+
+
+def test_make_video_validates_visual_package_but_no_provider_call():
+    example = intent.build_examples()["make_video"]
+
+    assert example["validation_result"]["verdict"] == "VALIDATED_INTENT"
+    assert "visual_event_compilation" in example["validation_result"]["matched_capabilities"]
+    assert "live_visual_video_generation_provider" in example["validation_result"]["missing_capabilities"]
+    assert "live_visual_video_generation_provider" in example["validation_result"]["rejected_capabilities"]
+    assert example["build_cues"]
+    assert all(cue["execution_authority"] is False for cue in example["build_cues"])
+    assert not any(example["validation_result"]["authority_granted"].values())
+
+
+def test_proposed_capability_cannot_be_used_live():
+    example = intent.build_examples()["proposed_capability_misuse"]
+    blocker_types = {blocker["blocker_type"] for blocker in example["blockers"]}
+
+    assert example["validation_result"]["verdict"] == "BLOCKED_BY_MISSING_CAPABILITY"
+    assert "PROPOSED_CANDIDATE_USED_AS_LIVE_CAPABILITY" in blocker_types
+    assert "proposal:client_cockpit_visual_event_renderer" in example["validation_result"]["rejected_capabilities"]
+    assert not any(example["validation_result"]["authority_granted"].values())
+
+
+def test_invalid_tenant_scope_blocks_workflow_binding_use():
+    candidate = intent._candidate(
+        intent_id="intent_candidate:invalid_tenant_scope",
+        source_request_id="fixture:invalid_tenant_scope",
+        original_operator_text="next",
+        inferred_intent_type="CONTINUE_CURRENT_WORKFLOW",
+        requested_action="continue current workflow",
+        target_workflow_ref="capital_hilton_invoice_workflow",
+        target_world_ref="tenant_scope:not_valid",
+        confidence="HIGH",
+        missing_requirements=("MISSING_PO_REFERENCE",),
+    )
+    result, _missing, _build_cues, _context_gaps, blockers = intent.validate_machine_intent_candidate(candidate)
+
+    assert result.verdict == "BLOCKED_BY_MISSING_CONTEXT"
+    assert result.tenant_scope_checked is True
+    assert result.fixture_scope_checked is True
+    assert any(blocker.blocker_type == "INVALID_TENANT_SCOPE" for blocker in blockers)
 
 
 def test_export_writes_json_and_operator_markdown(tmp_path, capsys):
