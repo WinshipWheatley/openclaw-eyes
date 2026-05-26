@@ -130,7 +130,8 @@ def test_agent_applications_exist_for_required_roles():
     assert "recipients as message targets" in applications["Cassandra"]["example_bad"]
     assert "humane next step" in applications["Guardian"]["example_bad"]
     assert "output metrics" in applications["Niles"]["example_good"]
-    assert "hidden automation" in applications["Codex"]["example_bad"]
+    assert "claims it executed the fix" in applications["Hermes"]["example_bad"]
+    assert "Codex" not in applications
     assert payload["machine_proof"]["all_required_agent_applications_present"] is True
 
 

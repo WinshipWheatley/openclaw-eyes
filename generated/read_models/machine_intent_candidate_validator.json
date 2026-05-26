@@ -4,7 +4,7 @@
     "CASSANDRA",
     "GUARDIAN",
     "NILES",
-    "CODEX",
+    "HERMES",
     "OPENCLAW_SYSTEM",
     "UNKNOWN"
   ],
@@ -1789,7 +1789,7 @@
     "capability_index_used": true,
     "capital_hilton_next_validates_missing_po": true,
     "cassandra_has_no_send_authority": true,
-    "content_hash": "sha256:c9eace7f646221a4da6fdadadbba76efca4a75c848575d052f6b655b6a9ffb52",
+    "content_hash": "sha256:b03d913af2b8d9ed8c88b67cd820c9f51595db1d4818c1047312c8c48fa49f8b",
     "context_gap_candidate_model_present": true,
     "credential_handling_performed": false,
     "credentials_or_secrets_included": false,
@@ -2204,6 +2204,10 @@
   "worker_types": [
     "PC_CODEX",
     "MAC_CODEX",
+    "GEMINI_AGY",
+    "GPT",
+    "CLAUDE",
+    "LOCAL_OLLAMA",
     "CASSANDRA",
     "GUARDIAN",
     "NILES",

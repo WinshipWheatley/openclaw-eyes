@@ -38,16 +38,20 @@ MODEL_CLASSES = (
     "blocked_no_model",
 )
 
-ACTOR_IDS = (
-    "operator_winship",
+NAMED_AGENT_IDS = (
     "chief",
     "guardian",
     "cassandra",
     "hermes",
     "niles",
+)
+
+MODEL_BACKEND_ACTOR_IDS = (
     "codex",
     "gemini_antigravity",
 )
+
+ACTOR_IDS = ("operator_winship",) + NAMED_AGENT_IDS + MODEL_BACKEND_ACTOR_IDS
 
 PACKAGE_TYPES = (
     "code_implementation",
@@ -921,7 +925,9 @@ def build_model_selection_policy_contract(
         ),
         "core_doctrine": {
             "model_is_actor_host_or_actor_class": "The model class is a future execution substrate, not the agent identity.",
-            "agent_is_character": "Chief, Guardian, Cassandra, Hermes, Niles, Codex, and Gemini/Antigravity remain governed actor/agent roles.",
+            "agent_is_character": "Chief, Guardian, Cassandra, Hermes, and Niles are agent roles/personas. Codex and Gemini/Antigravity are model or worker backends, not OpenClaw agents.",
+            "named_agent_ids": list(NAMED_AGENT_IDS),
+            "model_backend_actor_ids": list(MODEL_BACKEND_ACTOR_IDS),
             "package_decides_context_authority_and_gates": True,
             "model_may_not_decide_own_authority": True,
             "model_choice_is_recommendation_not_command": True,

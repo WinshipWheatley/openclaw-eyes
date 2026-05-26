@@ -268,10 +268,21 @@
   },
   "contract_status": "deterministic_model_selection_policy_metadata_only",
   "core_doctrine": {
-    "agent_is_character": "Chief, Guardian, Cassandra, Hermes, Niles, Codex, and Gemini/Antigravity remain governed actor/agent roles.",
+    "agent_is_character": "Chief, Guardian, Cassandra, Hermes, and Niles are agent roles/personas. Codex and Gemini/Antigravity are model or worker backends, not OpenClaw agents.",
+    "model_backend_actor_ids": [
+      "codex",
+      "gemini_antigravity"
+    ],
     "model_choice_is_recommendation_not_command": true,
     "model_is_actor_host_or_actor_class": "The model class is a future execution substrate, not the agent identity.",
     "model_may_not_decide_own_authority": true,
+    "named_agent_ids": [
+      "chief",
+      "guardian",
+      "cassandra",
+      "hermes",
+      "niles"
+    ],
     "package_decides_context_authority_and_gates": true
   },
   "credential_authority": false,
@@ -383,7 +394,7 @@
       "post-result receipt"
     ]
   },
-  "generated_at": "2026-05-21T21:45:27+00:00",
+  "generated_at": "2026-05-26T02:09:06+00:00",
   "gmail_calendar_coupa_telegram_enabled": false,
   "hidden_memory_capture_enabled": false,
   "local_model_authority": false,
@@ -398,7 +409,7 @@
       "codex",
       "gemini_antigravity"
     ],
-    "content_hash": "sha256:8f81ae1bd0302d7375c1aec480f035b1412fe7dc311fdab3e1490ded93441d60",
+    "content_hash": "sha256:db53de83dd88619f2630e993fad03a68646ec778af4effce45147a18a24d2ba8",
     "credentials_or_secrets_included": false,
     "model_calls_added": false,
     "model_class_ids": [

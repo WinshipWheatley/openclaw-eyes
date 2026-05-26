@@ -4,7 +4,7 @@
     "CASSANDRA",
     "GUARDIAN",
     "NILES",
-    "CODEX",
+    "HERMES",
     "OPENCLAW_SYSTEM",
     "UNKNOWN"
   ],
@@ -137,6 +137,12 @@
     }
   ],
   "contract_status": "DETERMINISTIC_AGENT_VOICE_RESPONSE_LAYER_NO_EXECUTION",
+  "credit_cost_classes": [
+    "LOW",
+    "MEDIUM",
+    "HIGH",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
   "display_modes": [
     "COMPACT_CHAT",
     "DETAIL_DISCLOSURE",
@@ -156,7 +162,7 @@
       "forbidden_bad_response": "Looks ready to send.",
       "good_response_preserves_truth": true
     },
-    "codex_build_status": {
+    "chief_codex_backend_build_status": {
       "bad_response_invalid_reason": "It invents deployment.",
       "bad_response_valid": false,
       "forbidden_bad_response": "Deployed.",
@@ -166,6 +172,12 @@
       "bad_response_invalid_reason": "It softens the gate and invents sufficiency.",
       "bad_response_valid": false,
       "forbidden_bad_response": "Approved enough.",
+      "good_response_preserves_truth": true
+    },
+    "hermes_architecture_audit": {
+      "bad_response_invalid_reason": "It pretends to approve and execute.",
+      "bad_response_valid": false,
+      "forbidden_bad_response": "I approved the architecture and executed the fix.",
       "good_response_preserves_truth": true
     },
     "niles_low_risk_creative_flow": {
@@ -244,15 +256,26 @@
       "why_good": "It uses low-pressure creative momentum while keeping the action as planning."
     },
     {
-      "agent_role": "CODEX",
-      "example_id": "codex_build_status",
+      "agent_role": "CHIEF",
+      "example_id": "chief_codex_backend_build_status",
       "forbidden_bad_response": "Deployed.",
       "next_safe_move": "Use validation output as the source truth.",
-      "source_truth_summary": "Tests passed locally; no push occurred.",
-      "vibe_profile_ref": "agent_vibe_profile:codex",
-      "voiced_response": "Build lane passed locally. No external action or push occurred. Next: verify the readback or queue the next bounded lane.",
+      "source_truth_summary": "Codex backend reports tests passed locally; no push occurred.",
+      "vibe_profile_ref": "agent_vibe_profile:chief",
+      "voiced_response": "Build lane passed locally through a Codex backend. No external action or push occurred. Next: verify the readback or queue the next bounded lane.",
       "why_bad": "It invents deployment.",
-      "why_good": "It states validation and boundary facts precisely."
+      "why_good": "It keeps Chief as the agent while naming Codex only as a backend and preserving validation facts."
+    },
+    {
+      "agent_role": "HERMES",
+      "example_id": "hermes_architecture_audit",
+      "forbidden_bad_response": "I approved the architecture and executed the fix.",
+      "next_safe_move": "Route any build work through deterministic gates.",
+      "source_truth_summary": "Architecture advice is advisory; deterministic gates still decide authority.",
+      "vibe_profile_ref": "agent_vibe_profile:hermes",
+      "voiced_response": "The pattern risk is authority confusion: agent role, model backend, and worker type are being mixed. Next: split those fields before routing can rely on them.",
+      "why_bad": "It pretends to approve and execute.",
+      "why_good": "It gives a precise second opinion while staying advisory."
     },
     {
       "agent_role": "OPENCLAW_SYSTEM",
@@ -282,13 +305,19 @@
     "selected_voice_profile_ref": "agent_voice_profile:guardian",
     "truth_risk": "HIGH"
   },
+  "latency_classes": [
+    "LOW",
+    "MEDIUM",
+    "HIGH",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
   "layer": {
     "agent_vibe_profiles": [
       "agent_vibe_profile:niles",
       "agent_vibe_profile:cassandra",
       "agent_vibe_profile:chief",
       "agent_vibe_profile:guardian",
-      "agent_vibe_profile:codex",
+      "agent_vibe_profile:hermes",
       "agent_vibe_profile:openclaw_system"
     ],
     "agent_voice_profiles": [
@@ -296,7 +325,7 @@
       "agent_voice_profile:cassandra",
       "agent_voice_profile:guardian",
       "agent_voice_profile:niles",
-      "agent_voice_profile:codex",
+      "agent_voice_profile:hermes",
       "agent_voice_profile:openclaw_system",
       "agent_voice_profile:unknown"
     ],
@@ -364,7 +393,8 @@
       "Email draft and review contexts select Cassandra.",
       "Approval, proof, secret, and gate contexts select Guardian.",
       "Music, creative, X32, album, setlist, and Struna creative contexts select Niles.",
-      "Implementation, build, test, and validation contexts select Codex.",
+      "Architecture audit, systems critique, and strategic second-opinion contexts select Hermes.",
+      "Implementation, build, test, and validation contexts may select Codex as model/worker backend, but Chief or OpenClaw System remains the agent.",
       "Ambiguous contexts fail closed to OpenClaw System or ask for framing."
     ]
   },
@@ -374,15 +404,26 @@
     "HIGH",
     "ADAPTIVE"
   ],
+  "local_or_cloud_values": [
+    "LOCAL",
+    "CLOUD",
+    "HYBRID",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
   "machine_proof": {
     "agent_dispatch_performed": false,
     "all_live_authority_false": true,
+    "codex_is_model_backend_not_agent": true,
     "completion_without_receipts_blocked": true,
     "credential_handling_performed": false,
     "external_action_performed": false,
     "git_push_performed": false,
+    "hermes_agent_profile_present": true,
     "high_risk_suppresses_playful_vibe": true,
     "mac_sync_import_performed": false,
+    "model_selection_grants_authority": false,
+    "model_selection_policy_present": true,
+    "openclaw_system_is_neutral_response_author_not_named_agent": true,
     "raw_body_ingestion_performed": false,
     "secret_reveal_performed": false,
     "send_authority_claim_blocked": true,
@@ -394,6 +435,16 @@
     "voice_model_call_performed": false,
     "workflow_run_performed": false
   },
+  "model_backends": [
+    "NONE_DETERMINISTIC",
+    "CODEX",
+    "GEMINI_AGY",
+    "GPT",
+    "CLAUDE",
+    "LOCAL_OLLAMA",
+    "FUTURE_MODEL",
+    "UNKNOWN_FAIL_CLOSED"
+  ],
   "model_schemas": {
     "AgentVibeProfile": [
       "vibe_profile_ref",
@@ -460,6 +511,26 @@
       "ambiguity_status",
       "next_safe_move"
     ],
+    "ModelSelectionPolicy": [
+      "model_selection_id",
+      "agent_role",
+      "task_type",
+      "candidate_model_backends",
+      "preferred_model_backend",
+      "fallback_model_backend",
+      "local_or_cloud",
+      "privacy_class",
+      "credit_cost_class",
+      "latency_class",
+      "context_window_need",
+      "tool_support_need",
+      "json_schema_reliability",
+      "creative_quality_need",
+      "code_quality_need",
+      "selected_reason",
+      "blocked_models",
+      "next_safe_move"
+    ],
     "VoiceBoundResponsePacket": [
       "packet_id",
       "source_response_ref",
@@ -490,6 +561,152 @@
       "next_safe_move"
     ]
   },
+  "model_selection_policies": [
+    {
+      "agent_role": "CHIEF",
+      "blocked_models": [
+        "models without package-granted tools",
+        "cloud models for sensitive/private payloads without privacy gate"
+      ],
+      "candidate_model_backends": [
+        "CODEX",
+        "GPT",
+        "GEMINI_AGY",
+        "LOCAL_OLLAMA"
+      ],
+      "code_quality_need": "HIGH",
+      "context_window_need": "MEDIUM",
+      "creative_quality_need": "LOW",
+      "credit_cost_class": "MEDIUM",
+      "fallback_model_backend": "GPT",
+      "json_schema_reliability": "HIGH",
+      "latency_class": "MEDIUM",
+      "local_or_cloud": "HYBRID",
+      "model_selection_id": "model_selection:chief:planning_code_backend",
+      "next_safe_move": "Select backend separately from agent role; validate output before any action.",
+      "preferred_model_backend": "CODEX",
+      "privacy_class": "repo_metadata_or_local_readmodel",
+      "selected_reason": "Chief can use Codex for code/build lanes, but Chief remains the agent and authority remains deterministic.",
+      "task_type": "planning/build-status/readback",
+      "tool_support_need": "code/read-model/test tools only when package grants them"
+    },
+    {
+      "agent_role": "HERMES",
+      "blocked_models": [
+        "cloud model for private bodies",
+        "any backend with ungranted tools"
+      ],
+      "candidate_model_backends": [
+        "GEMINI_AGY",
+        "GPT",
+        "CLAUDE",
+        "LOCAL_OLLAMA"
+      ],
+      "code_quality_need": "MEDIUM",
+      "context_window_need": "HIGH",
+      "creative_quality_need": "MEDIUM",
+      "credit_cost_class": "MEDIUM",
+      "fallback_model_backend": "GPT",
+      "json_schema_reliability": "MEDIUM",
+      "latency_class": "MEDIUM",
+      "local_or_cloud": "HYBRID",
+      "model_selection_id": "model_selection:hermes:audit",
+      "next_safe_move": "Return advisory critique as candidate guidance; Guardian/deterministic gates decide authority.",
+      "preferred_model_backend": "GEMINI_AGY",
+      "privacy_class": "sanitized architecture/readmodel refs only",
+      "selected_reason": "Hermes may use Gemini/Agy-style audit reasoning, but Hermes remains advisory and cannot approve or execute.",
+      "task_type": "architecture audit / strategic critique",
+      "tool_support_need": "read-only context refs; no execution tools"
+    },
+    {
+      "agent_role": "CASSANDRA",
+      "blocked_models": [
+        "models with send tools",
+        "cloud model for raw private contact/body data"
+      ],
+      "candidate_model_backends": [
+        "GPT",
+        "CLAUDE",
+        "LOCAL_OLLAMA"
+      ],
+      "code_quality_need": "LOW",
+      "context_window_need": "MEDIUM",
+      "creative_quality_need": "HIGH",
+      "credit_cost_class": "MEDIUM",
+      "fallback_model_backend": "LOCAL_OLLAMA",
+      "json_schema_reliability": "HIGH",
+      "latency_class": "LOW",
+      "local_or_cloud": "HYBRID",
+      "model_selection_id": "model_selection:cassandra:draft",
+      "next_safe_move": "Draft for review and keep outward movement locked.",
+      "preferred_model_backend": "GPT",
+      "privacy_class": "recipient/context refs only",
+      "selected_reason": "Cassandra may use a strong writing backend for drafts; send authority remains false.",
+      "task_type": "communications draft/review",
+      "tool_support_need": "draft/readback tools only; no send tools"
+    },
+    {
+      "agent_role": "NILES",
+      "blocked_models": [
+        "backend/tool package that can mutate project files",
+        "cloud model for raw session files"
+      ],
+      "candidate_model_backends": [
+        "GPT",
+        "CLAUDE",
+        "LOCAL_OLLAMA"
+      ],
+      "code_quality_need": "LOW",
+      "context_window_need": "MEDIUM",
+      "creative_quality_need": "HIGH",
+      "credit_cost_class": "LOW",
+      "fallback_model_backend": "LOCAL_OLLAMA",
+      "json_schema_reliability": "MEDIUM",
+      "latency_class": "LOW",
+      "local_or_cloud": "HYBRID",
+      "model_selection_id": "model_selection:niles:creative",
+      "next_safe_move": "Use source refs and planning only.",
+      "preferred_model_backend": "GPT",
+      "privacy_class": "creative metadata/source refs",
+      "selected_reason": "Niles may use a creative backend for ideation while file/DAW mutation remains false.",
+      "task_type": "creative ideation/source-ref planning",
+      "tool_support_need": "no DAW, file mutation, or app automation tools"
+    },
+    {
+      "agent_role": "GUARDIAN",
+      "blocked_models": [
+        "cloud model for secrets/raw private bodies without explicit privacy gate",
+        "models with approval execution tools"
+      ],
+      "candidate_model_backends": [
+        "LOCAL_OLLAMA",
+        "GPT",
+        "CLAUDE"
+      ],
+      "code_quality_need": "LOW",
+      "context_window_need": "MEDIUM",
+      "creative_quality_need": "LOW",
+      "credit_cost_class": "LOW",
+      "fallback_model_backend": "GPT",
+      "json_schema_reliability": "HIGH",
+      "latency_class": "MEDIUM",
+      "local_or_cloud": "LOCAL",
+      "model_selection_id": "model_selection:guardian:explanation",
+      "next_safe_move": "Explain the gate; do not approve, send, submit, or reveal secrets.",
+      "preferred_model_backend": "LOCAL_OLLAMA",
+      "privacy_class": "sensitive/protected refs",
+      "selected_reason": "Guardian may use an LM for explanation, but deterministic gates remain authority.",
+      "task_type": "proof/risk/approval explanation",
+      "tool_support_need": "read-only proof refs; no approval execution tools"
+    }
+  ],
+  "named_agent_roles": [
+    "CHIEF",
+    "CASSANDRA",
+    "GUARDIAN",
+    "NILES",
+    "HERMES"
+  ],
   "next_safe_move": "Attach voice/vibe metadata to existing layered responses only after truth and proof fields are already shaped.",
   "operator_summary": "Agent voice and vibe may shape wording only after truth payloads exist. Blockers, proof gaps, completion state, and authority boundaries remain source-truth controlled.",
   "read_model_id": "agent_voice_response_layer",
@@ -597,13 +814,26 @@
     },
     {
       "ambiguity_status": "UNAMBIGUOUS",
-      "inferred_agent_role": "CODEX",
-      "next_safe_move": "Use Codex voice and cite validation.",
-      "policy_id": "voice_selection_codex_build",
+      "inferred_agent_role": "HERMES",
+      "next_safe_move": "Use Hermes voice for advisory critique only.",
+      "policy_id": "voice_selection_hermes_audit",
       "requested_agent_role": "UNKNOWN",
-      "selected_vibe_profile_ref": "agent_vibe_profile:codex",
-      "selected_voice_profile_ref": "agent_voice_profile:codex",
-      "selection_reason": "Implementation/build/test state selects Codex.",
+      "selected_vibe_profile_ref": "agent_vibe_profile:hermes",
+      "selected_voice_profile_ref": "agent_voice_profile:hermes",
+      "selection_reason": "Architecture audit, systems critique, and strategic second-opinion context selects Hermes.",
+      "source_folder_ref": "folder_ref:architecture",
+      "source_world_ref": "world_ref:openclaw",
+      "workflow_ref": "architecture_review"
+    },
+    {
+      "ambiguity_status": "UNAMBIGUOUS",
+      "inferred_agent_role": "CHIEF",
+      "next_safe_move": "Use Chief voice and attach Codex as selected model backend when relevant.",
+      "policy_id": "voice_selection_build_status",
+      "requested_agent_role": "UNKNOWN",
+      "selected_vibe_profile_ref": "agent_vibe_profile:chief",
+      "selected_voice_profile_ref": "agent_voice_profile:chief",
+      "selection_reason": "Implementation/build/test state may use Codex backend, but Chief remains the status agent.",
       "source_folder_ref": "folder_ref:repo_a",
       "source_world_ref": "world_ref:openclaw",
       "workflow_ref": "implementation_lane"
@@ -621,6 +851,10 @@
       "source_world_ref": "world_ref:unknown",
       "workflow_ref": "unknown"
     }
+  ],
+  "system_response_roles": [
+    "OPENCLAW_SYSTEM",
+    "UNKNOWN"
   ],
   "vibe_profiles": [
     {
@@ -728,29 +962,29 @@
       "warmth_level": "LOW"
     },
     {
-      "agent_role": "CODEX",
+      "agent_role": "HERMES",
       "context_where_this_vibe_applies": [
-        "implementation",
-        "build",
-        "test",
-        "validation",
-        "commit",
-        "local service status"
+        "architecture audit",
+        "systems critique",
+        "strategic review",
+        "risk pattern analysis",
+        "second opinion"
       ],
       "creative_energy_level": "LOW",
       "directness_level": "HIGH",
-      "encouragement_style": "implementation clarity, validation first",
+      "encouragement_style": "precise skeptical second-opinion",
       "forbidden_vibe_moves": [
-        "theater",
-        "vague claims",
-        "deployment claims without proof"
+        "pretending to execute",
+        "approving its own advice",
+        "replacing Guardian",
+        "vague contrarianism"
       ],
       "humor_level": "LOW",
-      "next_safe_move": "Report what changed, what passed, and what remains blocked.",
+      "next_safe_move": "Give the critique and route any build or approval work through deterministic gates.",
       "pressure_level": "LOW",
-      "risk_override_policy": "Failed or missing validation must be stated directly.",
+      "risk_override_policy": "Hermes can advise, but Guardian remains proof/approval authority.",
       "seriousness_level": "HIGH",
-      "vibe_profile_ref": "agent_vibe_profile:codex",
+      "vibe_profile_ref": "agent_vibe_profile:hermes",
       "warmth_level": "LOW"
     },
     {
@@ -895,33 +1129,32 @@
       "voice_purpose": "Music, creative planning, project flow, album, setlist, X32, and Struna creative/build context."
     },
     {
-      "agent_role": "CODEX",
+      "agent_role": "HERMES",
       "allowed_moves": [
-        "state changed files",
-        "state tests",
-        "state validation gaps",
-        "name next bounded build step"
+        "critique architecture",
+        "surface hidden assumptions",
+        "name risk patterns",
+        "recommend review path"
       ],
       "default_audience_mode": "TECHNICAL",
       "default_display_mode": "DETAIL_DISCLOSURE",
-      "display_name": "Codex",
+      "display_name": "Hermes",
       "forbidden_moves": [
-        "deploy claims without proof",
-        "vague claims",
-        "theater",
-        "hide failed validation",
-        "imply push"
+        "pretend to execute",
+        "approve its own advice",
+        "replace Guardian",
+        "claim build authority"
       ],
-      "next_safe_move": "Use Codex voice for local implementation and validation status.",
+      "next_safe_move": "Use Hermes voice for advisory audit and architecture critique; route implementation through deterministic build gates.",
       "tone_traits": [
         "precise",
-        "technical when useful",
-        "validation-first",
-        "plain engineering",
-        "no product theater"
+        "skeptical",
+        "pattern-aware",
+        "second-opinion",
+        "advisory only"
       ],
-      "voice_profile_ref": "agent_voice_profile:codex",
-      "voice_purpose": "Implementation, build, test, validation, commit, and technical readback."
+      "voice_profile_ref": "agent_voice_profile:hermes",
+      "voice_purpose": "Systems auditor, architecture critic, strategic advisor, and useful second-opinion readbacks."
     },
     {
       "agent_role": "OPENCLAW_SYSTEM",

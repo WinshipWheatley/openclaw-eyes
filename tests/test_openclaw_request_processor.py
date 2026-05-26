@@ -434,15 +434,27 @@ def test_voice_selection_fixtures_cover_cassandra_guardian_and_niles_override():
     codex_layered = processor._layered_response_fields(codex, created_at=FIXED_NOW)
     codex_voice = processor._voice_authorship_fields(codex, codex_layered)
 
+    hermes = _minimal_response("Hermes audit ready.")
+    hermes_layered = processor._layered_response_fields(hermes, created_at=FIXED_NOW)
+    hermes_voice = processor._voice_authorship_fields(hermes, hermes_layered)
+
     assert cassandra_voice["response_author"] == "CASSANDRA"
+    assert cassandra_voice["selected_model_backend"] == "GPT"
     assert cassandra_voice["voice_profile_ref"] == "voice:cassandra:communications"
     assert cassandra_voice["high_risk_override_applied"] is False
     assert guardian_voice["response_author"] == "GUARDIAN"
+    assert guardian_voice["selected_model_backend"] == "LOCAL_OLLAMA"
     assert guardian_voice["voice_profile_ref"] == "voice:guardian:proof_gate"
     assert niles_voice["response_author"] == "GUARDIAN"
     assert niles_voice["vibe_profile_ref"] == "vibe:guardian:strict_proof"
     assert niles_voice["high_risk_override_applied"] is True
-    assert codex_voice["response_author"] == "CODEX"
+    assert codex_voice["response_author"] == "CHIEF"
+    assert codex_voice["selected_model_backend"] == "CODEX"
+    assert codex_voice["selected_worker_type"] == "PC_CODEX"
+    assert "Chief remains the agent" in codex_voice["model_selection_reason"]
+    assert hermes_voice["response_author"] == "HERMES"
+    assert hermes_voice["voice_profile_ref"] == "voice:hermes:audit"
+    assert hermes_voice["selected_model_backend"] == "GEMINI_AGY"
 
 
 def test_response_taste_bad_phrase_fixtures_are_marked_invalid():
@@ -468,7 +480,7 @@ def test_response_taste_bad_phrase_fixtures_are_marked_invalid():
     assert any(error.startswith("INTERNAL_STATUS:") for error in taste["taste_errors"])
 
 
-def test_agent_specific_taste_rules_cover_cassandra_guardian_codex_and_chief():
+def test_agent_specific_taste_rules_cover_cassandra_guardian_hermes_and_chief():
     cassandra = _minimal_response("Cassandra draft review is ready. Send authority remains locked.")
     cassandra_payload, _ = processor.build_payloads(cassandra, generated_at=FIXED_NOW)
     assert cassandra_payload["response_author"] == "CASSANDRA"
@@ -490,12 +502,25 @@ def test_agent_specific_taste_rules_cover_cassandra_guardian_codex_and_chief():
 
     codex = _minimal_response("Build lane passed locally. Tests passed. No push occurred.")
     codex_payload, _ = processor.build_payloads(codex, generated_at=FIXED_NOW)
-    assert codex_payload["response_author"] == "CODEX"
+    assert codex_payload["response_author"] == "CHIEF"
+    assert codex_payload["agent_role"] == "CHIEF"
+    assert codex_payload["selected_model_backend"] == "CODEX"
+    assert codex_payload["selected_worker_type"] == "PC_CODEX"
     _assert_taste_guardrails_pass(codex_payload)
     codex_bad = dict(codex_payload)
     codex_bad["eliwinship"] = "Deployed."
     codex_taste = processor._response_taste_guardrails(codex_bad)
-    assert any(error.startswith("CODEX_FORBIDDEN:") for error in codex_taste["taste_errors"])
+    assert "deployed" in codex_taste["bad_phrase_blockers"]
+
+    hermes = _minimal_response("Hermes audit ready.")
+    hermes_payload, _ = processor.build_payloads(hermes, generated_at=FIXED_NOW)
+    assert hermes_payload["response_author"] == "HERMES"
+    assert hermes_payload["selected_model_backend"] == "GEMINI_AGY"
+    _assert_taste_guardrails_pass(hermes_payload)
+    hermes_bad = dict(hermes_payload)
+    hermes_bad["eliwinship"] = "I approved the architecture and replace Guardian."
+    hermes_taste = processor._response_taste_guardrails(hermes_bad)
+    assert any(error.startswith("HERMES_FORBIDDEN:") for error in hermes_taste["taste_errors"])
 
     chief = _minimal_response("Capital Hilton is blocked by missing approval receipts.", workflow_ref="capital_hilton_invoice_workflow")
     chief_payload, _ = processor.build_payloads(chief, generated_at=FIXED_NOW)

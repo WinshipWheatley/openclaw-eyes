@@ -48,6 +48,7 @@ def test_required_models_and_response_packet_exist():
     assert "AgentVoiceProfile" in schemas
     assert "AgentVibeProfile" in schemas
     assert "VoiceBoundResponsePacket" in schemas
+    assert "ModelSelectionPolicy" in schemas
     assert "VoiceTransformConstraint" in schemas
     assert "AgentVoiceSelectionPolicy" in schemas
     assert "AgentVoiceExample" in schemas
@@ -65,7 +66,9 @@ def test_all_required_voice_profiles_exist():
     assert "polished executive assistant" in profiles["CASSANDRA"]["tone_traits"]
     assert "proof-first" in profiles["GUARDIAN"]["tone_traits"]
     assert "creative producer" in profiles["NILES"]["tone_traits"]
-    assert "validation-first" in profiles["CODEX"]["tone_traits"]
+    assert "CODEX" not in profiles
+    assert "skeptical" in profiles["HERMES"]["tone_traits"]
+    assert "replace Guardian" in profiles["HERMES"]["forbidden_moves"]
     assert "neutral" in profiles["OPENCLAW_SYSTEM"]["tone_traits"]
     assert "randomly choose persona" in profiles["UNKNOWN"]["forbidden_moves"]
 
@@ -74,7 +77,8 @@ def test_all_required_vibe_profiles_exist():
     payload = _payload()
     vibes = _by_role(payload["vibe_profiles"])
 
-    assert {"NILES", "CASSANDRA", "CHIEF", "GUARDIAN", "CODEX", "OPENCLAW_SYSTEM"}.issubset(set(vibes))
+    assert {"NILES", "CASSANDRA", "CHIEF", "GUARDIAN", "HERMES", "OPENCLAW_SYSTEM"}.issubset(set(vibes))
+    assert "CODEX" not in vibes
     assert vibes["NILES"]["humor_level"] == "HIGH"
     assert vibes["NILES"]["pressure_level"] == "LOW"
     assert vibes["NILES"]["creative_energy_level"] == "HIGH"
@@ -83,7 +87,8 @@ def test_all_required_vibe_profiles_exist():
     assert vibes["CASSANDRA"]["directness_level"] == "HIGH"
     assert vibes["GUARDIAN"]["seriousness_level"] == "HIGH"
     assert "playful tone during safety/proof/approval/secret contexts" in vibes["GUARDIAN"]["forbidden_vibe_moves"]
-    assert vibes["CODEX"]["directness_level"] == "HIGH"
+    assert vibes["HERMES"]["directness_level"] == "HIGH"
+    assert "approving its own advice" in vibes["HERMES"]["forbidden_vibe_moves"]
     assert vibes["OPENCLAW_SYSTEM"]["encouragement_style"] == "neutral, minimal, status-oriented"
 
 
@@ -95,9 +100,31 @@ def test_selection_policy_routes_expected_contexts():
     assert policies["voice_selection_email_draft"]["inferred_agent_role"] == "CASSANDRA"
     assert policies["voice_selection_guardian_gate"]["inferred_agent_role"] == "GUARDIAN"
     assert policies["voice_selection_niles_creative"]["inferred_agent_role"] == "NILES"
-    assert policies["voice_selection_codex_build"]["inferred_agent_role"] == "CODEX"
+    assert policies["voice_selection_hermes_audit"]["inferred_agent_role"] == "HERMES"
+    assert policies["voice_selection_build_status"]["inferred_agent_role"] == "CHIEF"
+    assert "Codex backend" in policies["voice_selection_build_status"]["selection_reason"]
     assert policies["voice_selection_ambiguous"]["ambiguity_status"] == "AMBIGUOUS_FAIL_CLOSED"
     assert policies["voice_selection_ambiguous"]["inferred_agent_role"] == "OPENCLAW_SYSTEM"
+
+
+def test_model_selection_policy_separates_agent_from_backend():
+    payload = _payload()
+    policies = _by_id(payload["model_selection_policies"], "model_selection_id")
+
+    assert "CODEX" not in payload["agent_roles"]
+    assert set(payload["named_agent_roles"]) == {"CHIEF", "CASSANDRA", "GUARDIAN", "NILES", "HERMES"}
+    assert "OPENCLAW_SYSTEM" in payload["system_response_roles"]
+    assert "CODEX" in payload["model_backends"]
+    assert "NONE_DETERMINISTIC" in payload["model_backends"]
+    assert policies["model_selection:chief:planning_code_backend"]["agent_role"] == "CHIEF"
+    assert policies["model_selection:chief:planning_code_backend"]["preferred_model_backend"] == "CODEX"
+    assert "Chief remains the agent" in policies["model_selection:chief:planning_code_backend"]["selected_reason"]
+    assert policies["model_selection:hermes:audit"]["agent_role"] == "HERMES"
+    assert policies["model_selection:hermes:audit"]["preferred_model_backend"] == "GEMINI_AGY"
+    assert "cannot approve or execute" in policies["model_selection:hermes:audit"]["selected_reason"]
+    assert payload["machine_proof"]["codex_is_model_backend_not_agent"] is True
+    assert payload["machine_proof"]["openclaw_system_is_neutral_response_author_not_named_agent"] is True
+    assert payload["machine_proof"]["model_selection_grants_authority"] is False
 
 
 def test_constraints_enforce_truth_and_authority():
@@ -128,7 +155,8 @@ def test_required_examples_and_bad_examples_marked_invalid():
         "guardian_approval_gate",
         "niles_x32_source_refs_missing",
         "niles_low_risk_creative_flow",
-        "codex_build_status",
+        "chief_codex_backend_build_status",
+        "hermes_architecture_audit",
         "openclaw_system_file_intake",
     }
     assert expected.issubset(set(examples))
@@ -139,7 +167,10 @@ def test_required_examples_and_bad_examples_marked_invalid():
     assert "fixed the routing" in examples["niles_x32_source_refs_missing"]["forbidden_bad_response"]
     assert "loose and musical" in examples["niles_low_risk_creative_flow"]["voiced_response"]
     assert "updated the show file" in examples["niles_low_risk_creative_flow"]["forbidden_bad_response"]
-    assert examples["codex_build_status"]["forbidden_bad_response"] == "Deployed."
+    assert examples["chief_codex_backend_build_status"]["agent_role"] == "CHIEF"
+    assert examples["chief_codex_backend_build_status"]["forbidden_bad_response"] == "Deployed."
+    assert examples["hermes_architecture_audit"]["agent_role"] == "HERMES"
+    assert "approved" in examples["hermes_architecture_audit"]["forbidden_bad_response"]
     assert examples["openclaw_system_file_intake"]["forbidden_bad_response"] == "I analyzed the file."
     for example_id in expected:
         assert validation[example_id]["bad_response_valid"] is False

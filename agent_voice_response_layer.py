@@ -27,15 +27,35 @@ JSON_EXPORT_NAME = f"{READ_MODEL_ID}.json"
 OPERATOR_EXPORT_NAME = f"{READ_MODEL_ID}_OPERATOR.md"
 CONTRACT_STATUS = "DETERMINISTIC_AGENT_VOICE_RESPONSE_LAYER_NO_EXECUTION"
 
-AGENT_ROLES = (
+NAMED_AGENT_ROLES = (
     "CHIEF",
     "CASSANDRA",
     "GUARDIAN",
     "NILES",
-    "CODEX",
+    "HERMES",
+)
+
+SYSTEM_RESPONSE_ROLES = (
     "OPENCLAW_SYSTEM",
     "UNKNOWN",
 )
+
+AGENT_ROLES = NAMED_AGENT_ROLES + SYSTEM_RESPONSE_ROLES
+
+MODEL_BACKENDS = (
+    "NONE_DETERMINISTIC",
+    "CODEX",
+    "GEMINI_AGY",
+    "GPT",
+    "CLAUDE",
+    "LOCAL_OLLAMA",
+    "FUTURE_MODEL",
+    "UNKNOWN_FAIL_CLOSED",
+)
+
+LOCAL_OR_CLOUD = ("LOCAL", "CLOUD", "HYBRID", "UNKNOWN_FAIL_CLOSED")
+COST_CLASSES = ("LOW", "MEDIUM", "HIGH", "UNKNOWN_FAIL_CLOSED")
+LATENCY_CLASSES = ("LOW", "MEDIUM", "HIGH", "UNKNOWN_FAIL_CLOSED")
 
 AUDIENCE_MODES = ("ELIWINSHIP", "TECHNICAL", "DEBUG")
 DISPLAY_MODES = ("COMPACT_CHAT", "DETAIL_DISCLOSURE", "PROOF_VIEW", "DEBUG_ONLY")
@@ -141,6 +161,28 @@ class VoiceBoundResponsePacket:
     proof_refs: tuple[str, ...]
     forbidden_claims: tuple[str, ...]
     authority_boundary: dict[str, bool]
+    next_safe_move: str
+
+
+@dataclass(frozen=True)
+class ModelSelectionPolicy:
+    model_selection_id: str
+    agent_role: str
+    task_type: str
+    candidate_model_backends: tuple[str, ...]
+    preferred_model_backend: str
+    fallback_model_backend: str
+    local_or_cloud: str
+    privacy_class: str
+    credit_cost_class: str
+    latency_class: str
+    context_window_need: str
+    tool_support_need: str
+    json_schema_reliability: str
+    creative_quality_need: str
+    code_quality_need: str
+    selected_reason: str
+    blocked_models: tuple[str, ...]
     next_safe_move: str
 
 
@@ -255,16 +297,16 @@ def build_voice_profiles() -> tuple[AgentVoiceProfile, ...]:
             next_safe_move="Use Niles voice for low-risk creative planning and source-ref navigation only.",
         ),
         AgentVoiceProfile(
-            voice_profile_ref=_voice_ref("CODEX"),
-            agent_role="CODEX",
-            display_name="Codex",
-            voice_purpose="Implementation, build, test, validation, commit, and technical readback.",
-            tone_traits=("precise", "technical when useful", "validation-first", "plain engineering", "no product theater"),
-            allowed_moves=("state changed files", "state tests", "state validation gaps", "name next bounded build step"),
-            forbidden_moves=("deploy claims without proof", "vague claims", "theater", "hide failed validation", "imply push"),
+            voice_profile_ref=_voice_ref("HERMES"),
+            agent_role="HERMES",
+            display_name="Hermes",
+            voice_purpose="Systems auditor, architecture critic, strategic advisor, and useful second-opinion readbacks.",
+            tone_traits=("precise", "skeptical", "pattern-aware", "second-opinion", "advisory only"),
+            allowed_moves=("critique architecture", "surface hidden assumptions", "name risk patterns", "recommend review path"),
+            forbidden_moves=("pretend to execute", "approve its own advice", "replace Guardian", "claim build authority"),
             default_audience_mode="TECHNICAL",
             default_display_mode="DETAIL_DISCLOSURE",
-            next_safe_move="Use Codex voice for local implementation and validation status.",
+            next_safe_move="Use Hermes voice for advisory audit and architecture critique; route implementation through deterministic build gates.",
         ),
         AgentVoiceProfile(
             voice_profile_ref=_voice_ref("OPENCLAW_SYSTEM"),
@@ -361,19 +403,19 @@ def build_vibe_profiles() -> tuple[AgentVibeProfile, ...]:
             next_safe_move="Preserve the blocker and proof requirements.",
         ),
         AgentVibeProfile(
-            vibe_profile_ref=_vibe_ref("CODEX"),
-            agent_role="CODEX",
+            vibe_profile_ref=_vibe_ref("HERMES"),
+            agent_role="HERMES",
             humor_level="LOW",
             pressure_level="LOW",
             warmth_level="LOW",
             directness_level="HIGH",
             creative_energy_level="LOW",
             seriousness_level="HIGH",
-            encouragement_style="implementation clarity, validation first",
-            forbidden_vibe_moves=("theater", "vague claims", "deployment claims without proof"),
-            context_where_this_vibe_applies=("implementation", "build", "test", "validation", "commit", "local service status"),
-            risk_override_policy="Failed or missing validation must be stated directly.",
-            next_safe_move="Report what changed, what passed, and what remains blocked.",
+            encouragement_style="precise skeptical second-opinion",
+            forbidden_vibe_moves=("pretending to execute", "approving its own advice", "replacing Guardian", "vague contrarianism"),
+            context_where_this_vibe_applies=("architecture audit", "systems critique", "strategic review", "risk pattern analysis", "second opinion"),
+            risk_override_policy="Hermes can advise, but Guardian remains proof/approval authority.",
+            next_safe_move="Give the critique and route any build or approval work through deterministic gates.",
         ),
         AgentVibeProfile(
             vibe_profile_ref=_vibe_ref("OPENCLAW_SYSTEM"),
@@ -416,7 +458,8 @@ def build_layer(voice_profiles: tuple[AgentVoiceProfile, ...], vibe_profiles: tu
             "Email draft and review contexts select Cassandra.",
             "Approval, proof, secret, and gate contexts select Guardian.",
             "Music, creative, X32, album, setlist, and Struna creative contexts select Niles.",
-            "Implementation, build, test, and validation contexts select Codex.",
+            "Architecture audit, systems critique, and strategic second-opinion contexts select Hermes.",
+            "Implementation, build, test, and validation contexts may select Codex as model/worker backend, but Chief or OpenClaw System remains the agent.",
             "Ambiguous contexts fail closed to OpenClaw System or ask for framing.",
         ),
         vibe_selection_policy=(
@@ -485,7 +528,8 @@ def build_selection_policies() -> tuple[AgentVoiceSelectionPolicy, ...]:
         AgentVoiceSelectionPolicy("voice_selection_email_draft", "world_ref:business_ops", "folder_ref:client_comms", "email_delivery_package", "UNKNOWN", "CASSANDRA", _voice_ref("CASSANDRA"), _vibe_ref("CASSANDRA"), "Email draft/review context is recipient-aware communications work.", "UNAMBIGUOUS", "Use Cassandra voice and keep send authority locked."),
         AgentVoiceSelectionPolicy("voice_selection_guardian_gate", "world_ref:business_ops", "folder_ref:approval", "action_covenant", "UNKNOWN", "GUARDIAN", _voice_ref("GUARDIAN"), _vibe_ref("GUARDIAN"), "Approval/proof/secret/gated action context requires Guardian.", "UNAMBIGUOUS", "Use Guardian voice and require proof refs."),
         AgentVoiceSelectionPolicy("voice_selection_niles_creative", "world_ref:creative", "folder_ref:music", "niles_music_worker", "UNKNOWN", "NILES", _voice_ref("NILES"), _vibe_ref("NILES"), "Music, X32, setlist, album, studio, and Struna creative context selects Niles.", "UNAMBIGUOUS", "Use Niles voice for planning/source refs only; block file mutation."),
-        AgentVoiceSelectionPolicy("voice_selection_codex_build", "world_ref:openclaw", "folder_ref:repo_a", "implementation_lane", "UNKNOWN", "CODEX", _voice_ref("CODEX"), _vibe_ref("CODEX"), "Implementation/build/test state selects Codex.", "UNAMBIGUOUS", "Use Codex voice and cite validation."),
+        AgentVoiceSelectionPolicy("voice_selection_hermes_audit", "world_ref:openclaw", "folder_ref:architecture", "architecture_review", "UNKNOWN", "HERMES", _voice_ref("HERMES"), _vibe_ref("HERMES"), "Architecture audit, systems critique, and strategic second-opinion context selects Hermes.", "UNAMBIGUOUS", "Use Hermes voice for advisory critique only."),
+        AgentVoiceSelectionPolicy("voice_selection_build_status", "world_ref:openclaw", "folder_ref:repo_a", "implementation_lane", "UNKNOWN", "CHIEF", _voice_ref("CHIEF"), _vibe_ref("CHIEF"), "Implementation/build/test state may use Codex backend, but Chief remains the status agent.", "UNAMBIGUOUS", "Use Chief voice and attach Codex as selected model backend when relevant."),
         AgentVoiceSelectionPolicy("voice_selection_ambiguous", "world_ref:unknown", "folder_ref:unknown", "unknown", "UNKNOWN", "OPENCLAW_SYSTEM", _voice_ref("OPENCLAW_SYSTEM"), _vibe_ref("OPENCLAW_SYSTEM"), "Ambiguous context must not randomly pick a persona.", "AMBIGUOUS_FAIL_CLOSED", "Ask for framing or return neutral system status."),
     )
 
@@ -515,6 +559,111 @@ def build_response_packets() -> tuple[VoiceBoundResponsePacket, ...]:
     )
 
 
+def build_model_selection_policies() -> tuple[ModelSelectionPolicy, ...]:
+    return (
+        ModelSelectionPolicy(
+            model_selection_id="model_selection:chief:planning_code_backend",
+            agent_role="CHIEF",
+            task_type="planning/build-status/readback",
+            candidate_model_backends=("CODEX", "GPT", "GEMINI_AGY", "LOCAL_OLLAMA"),
+            preferred_model_backend="CODEX",
+            fallback_model_backend="GPT",
+            local_or_cloud="HYBRID",
+            privacy_class="repo_metadata_or_local_readmodel",
+            credit_cost_class="MEDIUM",
+            latency_class="MEDIUM",
+            context_window_need="MEDIUM",
+            tool_support_need="code/read-model/test tools only when package grants them",
+            json_schema_reliability="HIGH",
+            creative_quality_need="LOW",
+            code_quality_need="HIGH",
+            selected_reason="Chief can use Codex for code/build lanes, but Chief remains the agent and authority remains deterministic.",
+            blocked_models=("models without package-granted tools", "cloud models for sensitive/private payloads without privacy gate"),
+            next_safe_move="Select backend separately from agent role; validate output before any action.",
+        ),
+        ModelSelectionPolicy(
+            model_selection_id="model_selection:hermes:audit",
+            agent_role="HERMES",
+            task_type="architecture audit / strategic critique",
+            candidate_model_backends=("GEMINI_AGY", "GPT", "CLAUDE", "LOCAL_OLLAMA"),
+            preferred_model_backend="GEMINI_AGY",
+            fallback_model_backend="GPT",
+            local_or_cloud="HYBRID",
+            privacy_class="sanitized architecture/readmodel refs only",
+            credit_cost_class="MEDIUM",
+            latency_class="MEDIUM",
+            context_window_need="HIGH",
+            tool_support_need="read-only context refs; no execution tools",
+            json_schema_reliability="MEDIUM",
+            creative_quality_need="MEDIUM",
+            code_quality_need="MEDIUM",
+            selected_reason="Hermes may use Gemini/Agy-style audit reasoning, but Hermes remains advisory and cannot approve or execute.",
+            blocked_models=("cloud model for private bodies", "any backend with ungranted tools"),
+            next_safe_move="Return advisory critique as candidate guidance; Guardian/deterministic gates decide authority.",
+        ),
+        ModelSelectionPolicy(
+            model_selection_id="model_selection:cassandra:draft",
+            agent_role="CASSANDRA",
+            task_type="communications draft/review",
+            candidate_model_backends=("GPT", "CLAUDE", "LOCAL_OLLAMA"),
+            preferred_model_backend="GPT",
+            fallback_model_backend="LOCAL_OLLAMA",
+            local_or_cloud="HYBRID",
+            privacy_class="recipient/context refs only",
+            credit_cost_class="MEDIUM",
+            latency_class="LOW",
+            context_window_need="MEDIUM",
+            tool_support_need="draft/readback tools only; no send tools",
+            json_schema_reliability="HIGH",
+            creative_quality_need="HIGH",
+            code_quality_need="LOW",
+            selected_reason="Cassandra may use a strong writing backend for drafts; send authority remains false.",
+            blocked_models=("models with send tools", "cloud model for raw private contact/body data"),
+            next_safe_move="Draft for review and keep outward movement locked.",
+        ),
+        ModelSelectionPolicy(
+            model_selection_id="model_selection:niles:creative",
+            agent_role="NILES",
+            task_type="creative ideation/source-ref planning",
+            candidate_model_backends=("GPT", "CLAUDE", "LOCAL_OLLAMA"),
+            preferred_model_backend="GPT",
+            fallback_model_backend="LOCAL_OLLAMA",
+            local_or_cloud="HYBRID",
+            privacy_class="creative metadata/source refs",
+            credit_cost_class="LOW",
+            latency_class="LOW",
+            context_window_need="MEDIUM",
+            tool_support_need="no DAW, file mutation, or app automation tools",
+            json_schema_reliability="MEDIUM",
+            creative_quality_need="HIGH",
+            code_quality_need="LOW",
+            selected_reason="Niles may use a creative backend for ideation while file/DAW mutation remains false.",
+            blocked_models=("backend/tool package that can mutate project files", "cloud model for raw session files"),
+            next_safe_move="Use source refs and planning only.",
+        ),
+        ModelSelectionPolicy(
+            model_selection_id="model_selection:guardian:explanation",
+            agent_role="GUARDIAN",
+            task_type="proof/risk/approval explanation",
+            candidate_model_backends=("LOCAL_OLLAMA", "GPT", "CLAUDE"),
+            preferred_model_backend="LOCAL_OLLAMA",
+            fallback_model_backend="GPT",
+            local_or_cloud="LOCAL",
+            privacy_class="sensitive/protected refs",
+            credit_cost_class="LOW",
+            latency_class="MEDIUM",
+            context_window_need="MEDIUM",
+            tool_support_need="read-only proof refs; no approval execution tools",
+            json_schema_reliability="HIGH",
+            creative_quality_need="LOW",
+            code_quality_need="LOW",
+            selected_reason="Guardian may use an LM for explanation, but deterministic gates remain authority.",
+            blocked_models=("cloud model for secrets/raw private bodies without explicit privacy gate", "models with approval execution tools"),
+            next_safe_move="Explain the gate; do not approve, send, submit, or reveal secrets.",
+        ),
+    )
+
+
 def build_examples() -> tuple[AgentVoiceExample, ...]:
     return (
         AgentVoiceExample("chief_capital_hilton_invoice_status", "CHIEF", _vibe_ref("CHIEF"), "Invoice basis exists; PO/reference and approvals are missing; send/submit is blocked.", "Capital Hilton is not ready to move. The invoice basis is in place, but the payment rail is blocked by the missing Coupa PO/reference and approval receipts. Next: confirm the PO/reference.", "Looks ready to send.", "It preserves the missing PO/reference, approval blocker, and next step.", "It invents send readiness and hides blockers.", "Keep status operational and proof-bound."),
@@ -522,7 +671,8 @@ def build_examples() -> tuple[AgentVoiceExample, ...]:
         AgentVoiceExample("guardian_approval_gate", "GUARDIAN", _vibe_ref("GUARDIAN"), "Action requires approval and proof refs.", "Blocked. This action needs a specific approval packet and proof refs before it can proceed.", "Approved enough.", "It preserves proof and approval gate requirements.", "It softens the gate and invents sufficiency.", "Create the approval packet and proof refs."),
         AgentVoiceExample("niles_x32_source_refs_missing", "NILES", _vibe_ref("NILES"), "X32 routing source refs are missing; no mixer mutation is allowed.", "I can help shape the X32 rabbit hole without turning it into a stress dungeon. I just need the routing/show-file source ref first. Next: attach the X32 file or point me at the right folder.", "Don’t worry, I fixed the routing.", "It keeps the creative vibe but names the missing source ref and avoids mutation.", "It falsely claims mixer/project mutation.", "Provide source refs only; do not mutate mixer files."),
         AgentVoiceExample("niles_low_risk_creative_flow", "NILES", _vibe_ref("NILES"), "Setlist brainstorming is allowed; no external or file mutation is allowed.", "Easy. We can keep this loose and musical: build the first pass around energy, not perfection. Next: give me the set length and the vibe you want the room to land in.", "I updated the show file and locked the set.", "It uses low-pressure creative momentum while keeping the action as planning.", "It falsely claims file mutation and finalization.", "Collect set length and room target."),
-        AgentVoiceExample("codex_build_status", "CODEX", _vibe_ref("CODEX"), "Tests passed locally; no push occurred.", "Build lane passed locally. No external action or push occurred. Next: verify the readback or queue the next bounded lane.", "Deployed.", "It states validation and boundary facts precisely.", "It invents deployment.", "Use validation output as the source truth."),
+        AgentVoiceExample("chief_codex_backend_build_status", "CHIEF", _vibe_ref("CHIEF"), "Codex backend reports tests passed locally; no push occurred.", "Build lane passed locally through a Codex backend. No external action or push occurred. Next: verify the readback or queue the next bounded lane.", "Deployed.", "It keeps Chief as the agent while naming Codex only as a backend and preserving validation facts.", "It invents deployment.", "Use validation output as the source truth."),
+        AgentVoiceExample("hermes_architecture_audit", "HERMES", _vibe_ref("HERMES"), "Architecture advice is advisory; deterministic gates still decide authority.", "The pattern risk is authority confusion: agent role, model backend, and worker type are being mixed. Next: split those fields before routing can rely on them.", "I approved the architecture and executed the fix.", "It gives a precise second opinion while staying advisory.", "It pretends to approve and execute.", "Route any build work through deterministic gates."),
         AgentVoiceExample("openclaw_system_file_intake", "OPENCLAW_SYSTEM", _vibe_ref("OPENCLAW_SYSTEM"), "File reference captured; body was not read.", "File reference captured. The body was not read. Next: choose whether to use it as source context.", "I analyzed the file.", "It preserves metadata-only intake and the body exclusion.", "It falsely claims file body analysis.", "Use source refs only unless future governed extraction exists."),
     )
 
@@ -560,6 +710,7 @@ def build_payload(generated_at: str = DEFAULT_GENERATED_AT) -> dict[str, Any]:
     constraints = build_constraints()
     selection_policies = build_selection_policies()
     response_packets = build_response_packets()
+    model_selection_policies = build_model_selection_policies()
     examples = build_examples()
     return {
         "schema_version": SCHEMA_VERSION,
@@ -567,6 +718,12 @@ def build_payload(generated_at: str = DEFAULT_GENERATED_AT) -> dict[str, Any]:
         "contract_status": CONTRACT_STATUS,
         "generated_at": generated_at,
         "agent_roles": AGENT_ROLES,
+        "named_agent_roles": NAMED_AGENT_ROLES,
+        "system_response_roles": SYSTEM_RESPONSE_ROLES,
+        "model_backends": MODEL_BACKENDS,
+        "local_or_cloud_values": LOCAL_OR_CLOUD,
+        "credit_cost_classes": COST_CLASSES,
+        "latency_classes": LATENCY_CLASSES,
         "audience_modes": AUDIENCE_MODES,
         "display_modes": DISPLAY_MODES,
         "levels": LEVELS,
@@ -577,6 +734,7 @@ def build_payload(generated_at: str = DEFAULT_GENERATED_AT) -> dict[str, Any]:
             **_model_schema(AgentVoiceProfile),
             **_model_schema(AgentVibeProfile),
             **_model_schema(VoiceBoundResponsePacket),
+            **_model_schema(ModelSelectionPolicy),
             **_model_schema(VoiceTransformConstraint),
             **_model_schema(AgentVoiceSelectionPolicy),
             **_model_schema(AgentVoiceExample),
@@ -586,6 +744,7 @@ def build_payload(generated_at: str = DEFAULT_GENERATED_AT) -> dict[str, Any]:
         "vibe_profiles": tuple(asdict(profile) for profile in vibe_profiles),
         "response_packets": tuple(asdict(packet) for packet in response_packets),
         "selection_policies": tuple(asdict(policy) for policy in selection_policies),
+        "model_selection_policies": tuple(asdict(policy) for policy in model_selection_policies),
         "constraints": tuple(asdict(constraint) for constraint in constraints),
         "examples": tuple(asdict(example) for example in examples),
         "example_validation": build_example_validation(examples),
@@ -608,6 +767,11 @@ def build_payload(generated_at: str = DEFAULT_GENERATED_AT) -> dict[str, Any]:
             "swift_change_performed": False,
             "git_push_performed": False,
             "truth_preservation_policy_present": True,
+            "codex_is_model_backend_not_agent": "CODEX" not in NAMED_AGENT_ROLES and "CODEX" in MODEL_BACKENDS,
+            "hermes_agent_profile_present": any(profile.agent_role == "HERMES" for profile in voice_profiles),
+            "openclaw_system_is_neutral_response_author_not_named_agent": "OPENCLAW_SYSTEM" not in NAMED_AGENT_ROLES,
+            "model_selection_policy_present": True,
+            "model_selection_grants_authority": False,
             "completion_without_receipts_blocked": True,
             "send_authority_claim_blocked": True,
             "vibe_cannot_remove_blockers": True,
@@ -633,6 +797,11 @@ def format_operator_markdown(payload: dict[str, Any]) -> str:
     for profile in payload["vibe_profiles"]:
         lines.append(
             f"- {profile['agent_role']}: humor={profile['humor_level']}, directness={profile['directness_level']}, seriousness={profile['seriousness_level']}"
+        )
+    lines += ["", "## Model Selection Policies"]
+    for policy in payload["model_selection_policies"]:
+        lines.append(
+            f"- {policy['agent_role']} / {policy['task_type']}: preferred={policy['preferred_model_backend']}, fallback={policy['fallback_model_backend']}; {policy['selected_reason']}"
         )
     lines += ["", "## Constraints"]
     for constraint in payload["constraints"]:
@@ -666,8 +835,11 @@ def build_summary(payload: dict[str, Any], export_root: Path = DEFAULT_EXPORT_RO
         "contract_status": payload["contract_status"],
         "voice_profile_count": len(payload["voice_profiles"]),
         "vibe_profile_count": len(payload["vibe_profiles"]),
+        "model_selection_policy_count": len(payload["model_selection_policies"]),
         "constraint_count": len(payload["constraints"]),
         "example_count": len(payload["examples"]),
+        "codex_is_model_backend_not_agent": payload["machine_proof"]["codex_is_model_backend_not_agent"],
+        "hermes_agent_profile_present": payload["machine_proof"]["hermes_agent_profile_present"],
         "high_risk_suppresses_playful_vibe": payload["machine_proof"]["high_risk_suppresses_playful_vibe"],
         "all_live_authority_false": payload["machine_proof"]["all_live_authority_false"],
         "json_export": str(export_root / JSON_EXPORT_NAME),

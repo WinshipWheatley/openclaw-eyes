@@ -119,7 +119,7 @@ VOICE_PROFILE_REFS = {
     "CASSANDRA": "voice:cassandra:communications",
     "GUARDIAN": "voice:guardian:proof_gate",
     "NILES": "voice:niles:creative_flow",
-    "CODEX": "voice:codex:implementation",
+    "HERMES": "voice:hermes:audit",
     "OPENCLAW_SYSTEM": "voice:system:neutral",
     "UNKNOWN": "voice:system:neutral",
 }
@@ -129,7 +129,7 @@ VIBE_PROFILE_REFS = {
     "CASSANDRA": "vibe:cassandra:executive_calm",
     "GUARDIAN": "vibe:guardian:strict_proof",
     "NILES": "vibe:niles:creative_flow",
-    "CODEX": "vibe:codex:validation_first",
+    "HERMES": "vibe:hermes:architecture_critic",
     "OPENCLAW_SYSTEM": "vibe:system:neutral",
     "UNKNOWN": "vibe:system:neutral",
 }
@@ -189,7 +189,20 @@ NILES_CONTEXT_TERMS = (
     "ableton",
 )
 
-CODEX_CONTEXT_TERMS = (
+HERMES_CONTEXT_TERMS = (
+    "hermes",
+    "architecture",
+    "architectural",
+    "audit",
+    "systems auditor",
+    "architecture critic",
+    "strategic advisor",
+    "second opinion",
+    "pattern-aware",
+    "pattern risk",
+)
+
+CODE_BUILD_CONTEXT_TERMS = (
     "codex",
     "build lane",
     "tests passed",
@@ -246,7 +259,7 @@ VOICE_DIRECTIONS = {
     "CASSANDRA": "polished_calm",
     "GUARDIAN": "proof_first",
     "NILES": "creative_flow",
-    "CODEX": "technical_precise",
+    "HERMES": "skeptical_architecture_review",
     "OPENCLAW_SYSTEM": "neutral_clear",
     "UNKNOWN": "neutral_clear",
 }
@@ -309,12 +322,12 @@ AGENT_TASTE_FORBIDDEN = {
         "sent",
         "submitted",
     ),
-    "CODEX": (
-        "deployed",
-        "launched production",
-        "pushed to prod",
-        "100% correct",
-        "flawless",
+    "HERMES": (
+        "i approved",
+        "i executed",
+        "guardian is optional",
+        "replace guardian",
+        "ignore guardian",
     ),
     "OPENCLAW_SYSTEM": (
         "buddy",
@@ -1160,10 +1173,12 @@ def _initial_response_author(response: OpenClawResponseForMac, layered_fields: M
         return "CASSANDRA", "communications draft/review context"
     if _contains_any(text, NILES_CONTEXT_TERMS):
         return "NILES", "music or creative world context"
+    if _contains_any(text, HERMES_CONTEXT_TERMS):
+        return "HERMES", "systems audit / architecture critique context"
     if _contains_any(text, GUARDIAN_CONTEXT_TERMS):
         return "GUARDIAN", "proof, approval, protected boundary, or blocked gate"
-    if _contains_any(text, CODEX_CONTEXT_TERMS):
-        return "CODEX", "build/test/code lane"
+    if _contains_any(text, CODE_BUILD_CONTEXT_TERMS):
+        return "CHIEF", "build/test/code lane using Codex backend"
     return "OPENCLAW_SYSTEM", "neutral fallback"
 
 
@@ -1179,7 +1194,9 @@ def _apply_high_risk_voice_override(author: str, reason: str, response: OpenClaw
 def _voice_authorship_fields(response: OpenClawResponseForMac, layered_fields: Mapping[str, Any]) -> dict[str, Any]:
     author, reason = _initial_response_author(response, layered_fields)
     author, reason, high_risk_override = _apply_high_risk_voice_override(author, reason, response, layered_fields)
+    model_fields = _model_backend_selection_fields(author, reason, response, layered_fields)
     return {
+        "agent_role": author,
         "response_author": author,
         "voice_profile_ref": VOICE_PROFILE_REFS[author],
         "vibe_profile_ref": VIBE_PROFILE_REFS[author],
@@ -1187,6 +1204,63 @@ def _voice_authorship_fields(response: OpenClawResponseForMac, layered_fields: M
         "vibe_applied": True,
         "voice_selection_reason": reason,
         "high_risk_override_applied": high_risk_override,
+        **model_fields,
+    }
+
+
+def _model_backend_selection_fields(
+    author: str,
+    voice_reason: str,
+    response: OpenClawResponseForMac,
+    layered_fields: Mapping[str, Any],
+) -> dict[str, Any]:
+    text = _voice_context_text(response, layered_fields)
+    if author == "CHIEF" and _contains_any(text, CODE_BUILD_CONTEXT_TERMS):
+        return {
+            "selected_model_backend": "CODEX",
+            "selected_worker_type": "PC_CODEX",
+            "allowed_tools_plugins": ("repo_read", "local_tests", "generated_readmodel_write"),
+            "model_selection_reason": "Chief remains the agent; Codex is selected as the code/build backend for local validation work.",
+            "credit_budget_policy": "Use only bounded local repo/test tooling in this processor; no cloud model credits are spent.",
+        }
+    if author == "HERMES":
+        return {
+            "selected_model_backend": "GEMINI_AGY",
+            "selected_worker_type": "GEMINI_AGY",
+            "allowed_tools_plugins": (),
+            "model_selection_reason": "Hermes remains the advisory agent; Gemini/Agy is modeled as a future audit backend only.",
+            "credit_budget_policy": "Cloud audit backends require explicit privacy and credit gates before use.",
+        }
+    if author == "CASSANDRA":
+        return {
+            "selected_model_backend": "GPT",
+            "selected_worker_type": "CASSANDRA",
+            "allowed_tools_plugins": ("draft_readback_only",),
+            "model_selection_reason": "Cassandra may use a writing backend for drafts; send tools remain ungranted.",
+            "credit_budget_policy": "Writing backend use must pass privacy and credit gates; no send authority is included.",
+        }
+    if author == "GUARDIAN":
+        return {
+            "selected_model_backend": "LOCAL_OLLAMA",
+            "selected_worker_type": "GUARDIAN",
+            "allowed_tools_plugins": ("proof_ref_readback_only",),
+            "model_selection_reason": "Guardian may use local explanation support, but deterministic gates remain authority.",
+            "credit_budget_policy": "Prefer local models for protected contexts; cloud requires explicit privacy and credit gates.",
+        }
+    if author == "NILES":
+        return {
+            "selected_model_backend": "GPT",
+            "selected_worker_type": "NILES",
+            "allowed_tools_plugins": ("creative_planning_only",),
+            "model_selection_reason": "Niles may use a creative backend for ideation only; file or DAW mutation tools are ungranted.",
+            "credit_budget_policy": "Creative backend use must stay low-cost and non-mutating unless separately approved.",
+        }
+    return {
+        "selected_model_backend": "NONE_DETERMINISTIC",
+        "selected_worker_type": "OPENCLAW_SYSTEM",
+        "allowed_tools_plugins": (),
+        "model_selection_reason": f"No live model backend selected; deterministic processor handled this response ({voice_reason}).",
+        "credit_budget_policy": "No model credits used by this deterministic response path.",
     }
 
 
@@ -2424,6 +2498,9 @@ def build_payloads(
     status_payload["machine_proof"].update(
         {
             "deterministic_voice_selection_present": True,
+            "agent_model_backend_separation_present": True,
+            "codex_agent_profile_created": False,
+            "model_selection_grants_authority": False,
             "voice_applied": voice_fields["voice_applied"],
             "vibe_applied": voice_fields["vibe_applied"],
             "voice_model_call_performed": False,
@@ -2560,8 +2637,11 @@ def build_summary(
         "headline": response_payload["headline"],
         "one_line_answer": response_payload["one_line_answer"],
         "response_author": response_payload["response_author"],
+        "selected_model_backend": response_payload["selected_model_backend"],
+        "selected_worker_type": response_payload["selected_worker_type"],
         "voice_profile_ref": response_payload["voice_profile_ref"],
         "vibe_profile_ref": response_payload["vibe_profile_ref"],
+        "model_selection_reason": response_payload["model_selection_reason"],
         "voice_selection_reason": response_payload["voice_selection_reason"],
         "high_risk_override_applied": response_payload["high_risk_override_applied"],
         "terminal_quality_passed": status_payload["machine_proof"]["terminal_quality_passed"],

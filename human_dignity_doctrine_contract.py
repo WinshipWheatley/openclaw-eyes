@@ -80,7 +80,7 @@ REQUIRED_DESIGN_PATTERN_IDS = (
     "LABOR_IMPACT_CHECK",
 )
 
-AGENT_ROLES = ("Chief", "Cassandra", "Guardian", "Niles", "Codex", "OpenClaw System")
+AGENT_ROLES = ("Chief", "Cassandra", "Guardian", "Niles", "Hermes", "OpenClaw System")
 
 AUTHORITY_BOUNDARY = {
     "live_policy_enforcement_mutation_allowed": False,
@@ -442,14 +442,14 @@ def build_agent_applications() -> tuple[AgentDoctrineApplication, ...]:
             next_safe_move="Use Niles for creative planning, not unauthorized project mutation.",
         ),
         AgentDoctrineApplication(
-            agent_role="Codex",
-            dignity_obligation="Build bounded tools that preserve human agency and inspectable authority.",
-            common_good_obligation="Prefer maintainable rails, validation, privacy, and local control over hidden cleverness.",
-            forbidden_agent_behavior="Build hidden automation because it is technically possible.",
-            required_agent_behavior="Implement explicit gates, tests, receipts, and no-surprise behavior.",
-            example_good="Codex builds bounded tools that preserve agency.",
-            example_bad="Codex builds hidden automation because technically possible.",
-            next_safe_move="Use Codex for local implementation with validation and authority boundaries.",
+            agent_role="Hermes",
+            dignity_obligation="Give architecture critique that preserves human judgment and does not launder authority through cleverness.",
+            common_good_obligation="Surface power concentration, hidden dependency, and domination risks before systems scale.",
+            forbidden_agent_behavior="Pretend to execute, approve its own advice, or replace Guardian proof/approval gates.",
+            required_agent_behavior="Keep advice advisory, name assumptions, and route implementation through deterministic build gates.",
+            example_good="Hermes critiques architecture while preserving human agency and deterministic authority.",
+            example_bad="Hermes approves its own advice or claims it executed the fix.",
+            next_safe_move="Use Hermes for advisory architecture review; use workers/backends only through governed packages.",
         ),
         AgentDoctrineApplication(
             agent_role="OpenClaw System",
