@@ -167,8 +167,30 @@ def readable_artifact_approval_handlers() -> tuple[RequestHandlerRegistration, .
     )
 
 
+def artifact_intake_handlers() -> tuple[RequestHandlerRegistration, ...]:
+    common = {
+        "handler_id": "register_or_resolve_invoice_workbook_artifact.generic",
+        "handler_label": "Register or resolve invoice workbook artifact",
+        "intended_use": "register_or_resolve_invoice_workbook_artifact",
+        "world_refs": (),
+        "workflow_refs": (),
+        "client_refs": (),
+        "project_refs": (),
+        "adapter_available": True,
+        "next_safe_move": "Consume Mac artifact intake package and resolve PC-readable reference safely.",
+    }
+    return (
+        RequestHandlerRegistration(request_kind="ARTIFACT_INTAKE_REQUEST", **common),
+        RequestHandlerRegistration(request_kind="LOCAL_SURFACE_RESULT", **common),
+    )
+
+
 def default_handler_registrations() -> tuple[RequestHandlerRegistration, ...]:
-    return (capital_hilton_field_mapping_handler(), *readable_artifact_approval_handlers())
+    return (
+        capital_hilton_field_mapping_handler(),
+        *readable_artifact_approval_handlers(),
+        *artifact_intake_handlers(),
+    )
 
 
 def _matches_value(expected: str, actual: str) -> bool:

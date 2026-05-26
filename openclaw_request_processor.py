@@ -66,6 +66,11 @@ ARTIFACT_REFERENCE_APPROVAL_PATTERNS = (
     "mission_control_approved_artifact_reference_*.json",
     "mission_control_capture_request_*artifact_reference*.json",
 )
+ARTIFACT_INTAKE_REQUEST_PATTERNS = (
+    "mission_control_artifact_intake_request_*.json",
+    "mission_control_approved_artifact_intake_*.json",
+    "mission_control_capture_request_*artifact_intake*.json",
+)
 CONTEXT_ATTACHMENT_PATTERN = "mission_control_context_request_*.json"
 SECRET_INTAKE_PATTERN = "mission_control_secret_intake_request_*.json"
 VISUAL_WORKSPACE_PATTERN = "mission_control_visual_workspace_request_*.json"
@@ -76,6 +81,7 @@ SUPPORTED_REQUEST_PATTERNS = (
     FILE_METADATA_PATTERN,
     *LOCAL_SURFACE_RESULT_PATTERNS,
     *ARTIFACT_REFERENCE_APPROVAL_PATTERNS,
+    *ARTIFACT_INTAKE_REQUEST_PATTERNS,
 )
 
 FUTURE_REQUEST_PATTERNS = (
@@ -90,6 +96,7 @@ REQUEST_FAMILIES = (
     "FILE_METADATA",
     "LOCAL_SURFACE_RESULT",
     "ARTIFACT_REFERENCE_APPROVAL",
+    "ARTIFACT_INTAKE_REQUEST",
     "CONTEXT_ATTACHMENT_FUTURE",
     "SECRET_INTAKE_FUTURE",
     "VISUAL_WORKSPACE_FUTURE",
@@ -775,6 +782,11 @@ def classify_request_filename(filename: str | None) -> RequestClassification:
         rail = "approved_readable_artifact_reference"
         reason = "Filename matches Mission Control artifact reference approval pattern."
         future_supported = False
+    elif filename and any(fnmatch.fnmatch(filename, pattern) for pattern in ARTIFACT_INTAKE_REQUEST_PATTERNS):
+        family = "ARTIFACT_INTAKE_REQUEST"
+        rail = "register_or_resolve_invoice_workbook_artifact"
+        reason = "Filename matches Mission Control artifact intake request pattern."
+        future_supported = False
     elif filename and fnmatch.fnmatch(filename, CONTEXT_ATTACHMENT_PATTERN):
         family = "CONTEXT_ATTACHMENT_FUTURE"
         rail = "scoped_context_package_compiler_future"
@@ -809,7 +821,7 @@ def classify_request_filename(filename: str | None) -> RequestClassification:
         future_supported=future_supported,
         next_safe_move=(
             "Run the selected deterministic rail once and write a Mac-readable response."
-            if family in {"CHAT", "FILE_METADATA", "LOCAL_SURFACE_RESULT"}
+            if family in {"CHAT", "FILE_METADATA", "LOCAL_SURFACE_RESULT", "ARTIFACT_REFERENCE_APPROVAL", "ARTIFACT_INTAKE_REQUEST"}
             else "Return a human blocked response until the requested rail is connected."
         ),
     )
@@ -821,7 +833,13 @@ def list_supported_requests(inbox: Path = APPROVED_INBOX) -> tuple[Path, ...]:
     matches = [
         path
         for path in inbox.iterdir()
-        if path.is_file() and classify_request_filename(path.name).request_family in {"CHAT", "FILE_METADATA", "LOCAL_SURFACE_RESULT"}
+        if path.is_file() and classify_request_filename(path.name).request_family in {
+            "CHAT",
+            "FILE_METADATA",
+            "LOCAL_SURFACE_RESULT",
+            "ARTIFACT_REFERENCE_APPROVAL",
+            "ARTIFACT_INTAKE_REQUEST",
+        }
     ]
     return tuple(sorted(matches, key=lambda path: (path.stat().st_mtime_ns, path.name)))
 
@@ -962,7 +980,7 @@ def _required_fields_for_family(request_family: str) -> tuple[str, ...]:
         return CHAT_REQUIRED_FIELDS
     if request_family == "FILE_METADATA":
         return FILE_REQUIRED_FIELDS
-    if request_family in {"LOCAL_SURFACE_RESULT", "ARTIFACT_REFERENCE_APPROVAL"}:
+    if request_family in {"LOCAL_SURFACE_RESULT", "ARTIFACT_REFERENCE_APPROVAL", "ARTIFACT_INTAKE_REQUEST"}:
         return ("request_id", "idempotency_key", "payload_hash", "authority_boundary", "created_at", "intended_use")
     return ("request_id", "idempotency_key", "payload_hash", "authority_boundary", "created_at")
 
@@ -2701,6 +2719,211 @@ def _process_artifact_reference_approval_request(
     )
 
 
+def _is_artifact_intake_route(route_decision: Mapping[str, Any]) -> bool:
+    return str(route_decision.get("selected_handler_id") or "") == "register_or_resolve_invoice_workbook_artifact.generic"
+
+
+def _artifact_intake_classification(
+    classification: RequestClassification,
+    *,
+    request_path: Path,
+    route_decision: Mapping[str, Any] | None = None,
+) -> RequestClassification:
+    return RequestClassification(
+        classification_id=f"request_classification_{_short_hash(request_path.name, 'register_or_resolve_invoice_workbook_artifact')}",
+        source_request_filename=classification.source_request_filename,
+        request_family=str((route_decision or {}).get("request_kind") or classification.request_family),
+        selected_rail=str((route_decision or {}).get("selected_handler_id") or "register_or_resolve_invoice_workbook_artifact.generic"),
+        classification_reason="Generic request router selected the register or resolve invoice workbook artifact rail.",
+        future_supported=False,
+        next_safe_move="Consume Mac artifact intake package and resolve PC-readable reference safely.",
+    )
+
+
+def _process_artifact_intake_request(
+    request_path: Path,
+    raw_request: Mapping[str, Any],
+    *,
+    export_root: Path,
+    generated_at: str | None,
+    classification: RequestClassification,
+    route_decision: Mapping[str, Any] | None = None,
+) -> OpenClawResponseForMac:
+    intake_classification = _artifact_intake_classification(
+        classification,
+        request_path=request_path,
+        route_decision=route_decision,
+    )
+
+    expected_scope = {
+        "world_ref": str(raw_request.get("world_ref") or ""),
+        "workflow_ref": str(raw_request.get("workflow_ref") or ""),
+        "client_ref": str(raw_request.get("client_ref") or ""),
+        "project_ref": str(raw_request.get("project_ref") or ""),
+    }
+
+    artifact_payload = local_artifact_reference.evaluate_artifact_reference(
+        raw_request,
+        expected_scope=expected_scope,
+        artifact_kind_default=str(raw_request.get("artifact_kind") or "invoice_workbook"),
+        intended_use_default=str(raw_request.get("intended_use") or "register_or_resolve_invoice_workbook_artifact"),
+        generated_at=generated_at,
+    )
+    artifact_json, artifact_operator = local_artifact_reference.write_exports(artifact_payload, export_root)
+    readiness = artifact_payload["artifact_readiness_state"]
+    receipt = artifact_payload["artifact_resolution_receipt"]
+    approved_artifact = artifact_payload.get("approved_readable_artifact") or {}
+    artifact_ready = bool(readiness.get("live_read_ready"))
+
+    handoff_payload: Mapping[str, Any] | None = None
+    handoff_json: Path | None = None
+    handoff_operator: Path | None = None
+    handoff_readback: Mapping[str, Any] = {}
+    target_use = str(raw_request.get("artifact_intended_use") or raw_request.get("target_intended_use") or "")
+    if target_use == "client_invoice_sheet_audit" or str(raw_request.get("artifact_kind") or "") in {"invoice_workbook", "spreadsheet_workbook"}:
+        handoff_payload = client_invoice_audit_handoff.process_handoff_request(
+            raw_request,
+            export_root=export_root,
+            generated_at=generated_at,
+        )
+        handoff_json, handoff_operator = client_invoice_audit_handoff.write_exports(dict(handoff_payload), export_root)
+        handoff_readback = handoff_payload["audit_handoff_readback"]
+
+    handoff_live_ready = bool((handoff_payload or {}).get("live_audit_ready"))
+    missing_items = tuple(
+        str(item)
+        for item in (
+            (handoff_readback.get("missing_items") if handoff_readback else None)
+            or readiness.get("missing_items")
+            or readiness.get("blocking_reasons")
+            or ()
+        )
+    )
+
+    res_status = receipt.get("resolution_status")
+    primary_blocker = "None" if (artifact_ready and not missing_items) or handoff_live_ready else (missing_items[0] if missing_items else str(readiness["readiness_status"]))
+
+    if res_status == "APPROVED_PC_PATH_CAPTURED":
+        headline = "Capital Hilton workbook approved" if expected_scope.get("client_ref") == "capital_hilton" else "Workbook approved"
+        if handoff_live_ready:
+            message = "I received the workbook package and found the approved field mapping. The whitelisted sheet audit is ready."
+        else:
+            message = "I received the workbook package and approved the local read reference. The workbook body and cells were not read."
+        next_action = str((handoff_readback or {}).get("next_action") or "Next: run the sheet audit.")
+    elif res_status == "CLARIFICATION_REQUIRED":
+        headline = "Multiple workbooks found"
+        message = "I found multiple possible workbook files; choose one."
+        next_action = "Confirm a candidate file or provide an opaque intake package."
+    elif res_status in {"ARTIFACT_WRITE_AUTHORITY_BLOCKED", "ARTIFACT_BODY_OR_CONTENT_ALREADY_READ_BLOCKED"}:
+        headline = "Artifact approval blocked"
+        message = f"I received the file, but it failed validation because: {'; '.join(receipt.get('validation_errors') or ())}"
+        next_action = "Next: resend the artifact approval with matching scope, verified PC-readable path, and read-only flags."
+    else:
+        headline = "Workbook access blocked"
+        message = "I could not approve the workbook package because the bridge path, request scope, or read-only approval gate failed."
+        next_action = "Provide a valid shared artifact intake package."
+
+    detail = {
+        "local_artifact_reference": {
+            "artifact_readback_ref": artifact_json.as_posix(),
+            "operator_readback_ref": artifact_operator.as_posix(),
+            "local_artifact_reference": artifact_payload["local_artifact_reference"],
+            "approved_readable_artifact": approved_artifact,
+            "artifact_approval_receipt": artifact_payload["artifact_approval_receipt"],
+            "artifact_readiness_state": readiness,
+            "artifact_intake_request": artifact_payload.get("artifact_intake_request"),
+            "artifact_intake_package": artifact_payload.get("artifact_intake_package"),
+            "artifact_resolution_receipt": receipt,
+            "artifact_ready": artifact_ready,
+            "workbook_body_read_performed": False,
+            "spreadsheet_cell_read_performed": False,
+            "content_extracted": False,
+            "external_action_performed": False,
+        },
+        "layered_response_fields": {
+            "response_kind": "APPROVED_READABLE_ARTIFACT_REFERENCE",
+            "audience_mode": "ELIWINSHIP",
+            "display_mode": "COMPACT_CHAT",
+            "headline": headline,
+            "one_line_answer": message,
+            "eliwinship": message,
+            "primary_status": str(readiness["readiness_status"]).replace("_", " ").title(),
+            "primary_blocker": primary_blocker,
+            "next_action": next_action,
+            "missing_items_short": missing_items,
+            "detail_summary": f"Artifact ready: {artifact_ready}. Audit ready: {handoff_live_ready}.",
+            "proof_refs": (artifact_json.as_posix(),)
+            + ((handoff_json.as_posix(),) if handoff_json is not None else ()),
+            "mac_render_hint": "COMPACT_WITH_DISCLOSURE",
+        },
+        "request_classification": asdict(intake_classification),
+        "request_router_decision": dict(route_decision or {}),
+        "external_actions_locked": True,
+        "model_or_worker_response_adapter_called": False,
+    }
+
+    if handoff_payload is not None:
+        detail["client_invoice_audit_handoff"] = {
+            "handoff_readback_ref": handoff_json.as_posix() if handoff_json else "",
+            "operator_readback_ref": handoff_operator.as_posix() if handoff_operator else "",
+            "path_approval_request": handoff_payload["path_approval_request"],
+            "schema_mapping_request": handoff_payload["schema_mapping_request"],
+            "approved_workbook_path_ref": handoff_payload.get("approved_workbook_path_ref") or {},
+            "approved_readable_artifact": handoff_payload.get("approved_readable_artifact") or {},
+            "schema_mapping": handoff_payload.get("schema_mapping") or {},
+            "audit_handoff_readback": handoff_readback,
+            "live_audit_ready": handoff_live_ready,
+            "workbook_body_read_performed": False,
+            "spreadsheet_cell_read_performed": False,
+            "schema_inference_performed": False,
+            "mac_path_translation_guessed": False,
+            "external_action_performed": False,
+        }
+
+    return OpenClawResponseForMac(
+        source_request_id=str(raw_request.get("request_id") or receipt["source_request_id"]),
+        source_request_filename=request_path.name,
+        workflow_ref=str(raw_request.get("workflow_ref") or "unknown"),
+        request_type=intake_classification.request_family,
+        internal_status="RESPONSE_READY" if artifact_ready else "BLOCKED_WITH_REASON",
+        operator_headline=headline,
+        operator_message=message,
+        what_happened=(
+            "PC consumed the artifact intake request through the generic router.",
+            "PC checked the governed bridge path and request-scoped artifact package rules.",
+            "PC used only request metadata and filesystem metadata; it did not read cells, parse spreadsheets, or invoke models.",
+        ),
+        why_it_happened=(
+            "The workbook exists under the governed intake package folder and operator read approval is true."
+            if artifact_ready
+            else "The workbook is missing or fails required safety/bridge validation."
+        ),
+        how_to_fix="No fix is needed. Run the whitelisted sheet audit when ready." if handoff_live_ready else next_action,
+        visible_cards=(
+            {
+                "title": headline,
+                "bullets": (
+                    f"Workbook status: {res_status.replace('_', ' ').title()}",
+                    message,
+                    f"Audit ready: {handoff_live_ready}.",
+                    next_action,
+                ),
+                "status_tone": "ready" if artifact_ready else "blocked",
+            },
+        ),
+        cards_available=True,
+        card_mirror_refs=(),
+        file_readback_refs=(artifact_json.as_posix(),) + ((handoff_json.as_posix(),) if handoff_json is not None else ()),
+        worker_route_refs=(),
+        context_package_refs=(),
+        blocked_reason=None if artifact_ready else primary_blocker,
+        detail_disclosure=detail,
+        readback_files=(artifact_json.as_posix(), artifact_operator.as_posix())
+        + ((handoff_json.as_posix(), handoff_operator.as_posix()) if handoff_json is not None and handoff_operator is not None else ()),
+        next_safe_move=next_action,
+    )
+
+
 def _process_parked_router_request(
     request_path: Path,
     raw_request: Mapping[str, Any],
@@ -3712,7 +3935,23 @@ def process_request_path(
             classification=effective_classification,
             route_decision=route_decision,
         )
+    if _is_artifact_intake_route(route_decision):
+        return _process_artifact_intake_request(
+            request_path,
+            raw_request,
+            export_root=export_root,
+            generated_at=generated_at,
+            classification=effective_classification,
+            route_decision=route_decision,
+        )
     if effective_classification.request_family == "ARTIFACT_REFERENCE_APPROVAL":
+        return _process_parked_router_request(
+            request_path,
+            raw_request,
+            classification=effective_classification,
+            route_decision=route_decision,
+        )
+    if effective_classification.request_family == "ARTIFACT_INTAKE_REQUEST":
         return _process_parked_router_request(
             request_path,
             raw_request,

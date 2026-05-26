@@ -10,10 +10,11 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import sys
 from dataclasses import asdict, dataclass, fields
 from datetime import datetime, timezone
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any, Mapping
 
 
@@ -26,7 +27,11 @@ JSON_EXPORT_NAME = f"{READ_MODEL_ID}.json"
 OPERATOR_EXPORT_NAME = f"{READ_MODEL_ID}_OPERATOR.md"
 CONTRACT_STATUS = "DETERMINISTIC_APPROVED_READABLE_ARTIFACT_REFERENCE_NO_CONTENT_READ"
 APPROVAL_INTENDED_USE = "approve_readable_artifact_reference"
-SUPPORTED_APPROVAL_KINDS = ("LOCAL_SURFACE_RESULT", "ARTIFACT_REFERENCE_APPROVAL")
+ARTIFACT_INTAKE_INTENDED_USE = "register_or_resolve_invoice_workbook_artifact"
+SUPPORTED_APPROVAL_KINDS = ("LOCAL_SURFACE_RESULT", "ARTIFACT_REFERENCE_APPROVAL", "ARTIFACT_INTAKE_REQUEST")
+MAC_SHARED_BRIDGE_ROOT = PurePosixPath("/Volumes/openclaw_e")
+PC_SHARED_BRIDGE_ROOT = Path("/mnt/e/openclaw")
+SUPPORTED_SPREADSHEET_EXTENSIONS = (".xlsx", ".xlsm", ".xls", ".csv")
 
 READINESS_STATUSES = (
     "ARTIFACT_READY_FOR_READ",
@@ -199,6 +204,52 @@ class ArtifactReferenceRouter:
     next_safe_move: str
 
 
+@dataclass(frozen=True)
+class ArtifactIntakePackage:
+    shared_artifact_path: str
+    artifact_package_path: str
+    file_display_name: str
+    file_extension: str
+    package_size_bytes: int
+    package_modified_time: str
+
+
+@dataclass(frozen=True)
+class ArtifactIntakeRequest:
+    request_id: str
+    intended_use: str
+    world_ref: str
+    workflow_ref: str
+    client_ref: str
+    project_ref: str
+    artifact_kind: str
+    artifact_intended_use: str
+    artifact_label: str
+    intake_package: dict[str, Any] | None
+    operator_selected: bool
+    operator_approved_for_read: bool
+    approved_for_write: bool
+    body_read: bool
+    content_extracted: bool
+    ocr_performed: bool
+    external_shared: bool
+    external_action: bool
+
+
+@dataclass(frozen=True)
+class ArtifactResolutionReceipt:
+    receipt_id: str
+    source_request_id: str
+    resolution_status: str
+    pc_path_resolved: str
+    path_mapping_verified: bool
+    operator_approved: bool
+    candidates: tuple[str, ...]
+    validation_errors: tuple[str, ...]
+    missing_items: tuple[str, ...]
+    next_safe_move: str
+
+
 def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
@@ -245,10 +296,77 @@ def _request_kind(raw_request: Mapping[str, Any]) -> str:
     return ""
 
 
+def pc_artifact_root() -> Path:
+    return PC_SHARED_BRIDGE_ROOT / "artifacts"
+
+
+def pc_invoice_workbook_artifact_root() -> Path:
+    return pc_artifact_root() / "invoice_workbooks"
+
+
+def _path_under(child: Path, parent: Path) -> bool:
+    try:
+        child.resolve(strict=False).relative_to(parent.resolve(strict=False))
+    except ValueError:
+        return False
+    return True
+
+
+def _safe_request_path_segment(value: object) -> str:
+    text = str(value or "").strip()
+    if not re.fullmatch(r"[A-Za-z0-9_.-]{1,180}", text):
+        return ""
+    if text in {".", ".."}:
+        return ""
+    return text
+
+
+def _sanitized_filename(value: object) -> str:
+    text = str(value or "").strip()
+    if not text or "\x00" in text:
+        return ""
+    base = text.replace("\\", "/").rsplit("/", 1)[-1].strip()
+    base = re.sub(r"[^A-Za-z0-9._ -]", "_", base).strip(" .")
+    if not base or base in {".", ".."}:
+        return ""
+    return base
+
+
+def _pc_path_from_shared_artifact_path(shared_path: str) -> Path | None:
+    text = str(shared_path or "").strip()
+    if not text or "\x00" in text or "://" in text:
+        return None
+    mac_artifact_root = MAC_SHARED_BRIDGE_ROOT / "artifacts"
+    if text.startswith(mac_artifact_root.as_posix() + "/"):
+        try:
+            relative = PurePosixPath(text).relative_to(mac_artifact_root)
+        except ValueError:
+            return None
+        if any(part in {"", ".", ".."} for part in relative.parts):
+            return None
+        return pc_artifact_root().joinpath(*relative.parts)
+    pc_artifact_root_text = pc_artifact_root().as_posix()
+    if text.startswith(pc_artifact_root_text + "/"):
+        path = Path(text)
+        if any(part in {"", ".", ".."} for part in path.parts):
+            return None
+        return path
+    return None
+
+
+def _expected_invoice_workbook_package_path(source_request_id: str, filename: str) -> Path | None:
+    request_segment = _safe_request_path_segment(source_request_id)
+    safe_filename = _sanitized_filename(filename)
+    if not request_segment or not safe_filename:
+        return None
+    return pc_invoice_workbook_artifact_root() / request_segment / safe_filename
+
+
 def is_artifact_approval_request(raw_request: Mapping[str, Any]) -> bool:
+    intended = str(raw_request.get("intended_use") or "").strip()
     return (
         _request_kind(raw_request) in SUPPORTED_APPROVAL_KINDS
-        and str(raw_request.get("intended_use") or "").strip() == APPROVAL_INTENDED_USE
+        and intended in {APPROVAL_INTENDED_USE, ARTIFACT_INTAKE_INTENDED_USE}
     )
 
 
@@ -503,6 +621,296 @@ def evaluate_artifact_reference(
     generated_at: str | None = None,
 ) -> dict[str, Any]:
     generated_at = generated_at or utc_now()
+    intended_use = str(raw_request.get("intended_use") or "").strip()
+
+    # Check if this is an intake resolution request
+    if intended_use == ARTIFACT_INTAKE_INTENDED_USE:
+        resolved_request = dict(raw_request)
+
+        resolution_status = "APPROVED_PC_PATH_REQUIRED"
+        resolved_path = ""
+        resolved_ref = ""
+        mapping_verified = False
+        translation_guessed = False
+        operator_approved = False
+        validation_errors: list[str] = []
+        missing_items: list[str] = []
+        candidates: list[str] = []
+
+        shared_path = str(raw_request.get("shared_artifact_path") or raw_request.get("artifact_package_path") or "").strip()
+        source_request_id = str(raw_request.get("request_id") or raw_request.get("source_request_id") or "unknown_request").strip()
+        filename_to_find = str(raw_request.get("file_display_name") or raw_request.get("filename") or "").strip()
+        if not filename_to_find and shared_path:
+            filename_to_find = Path(shared_path).name
+
+        approved_for_write = raw_request.get("approved_for_write") is True
+        body_read = raw_request.get("body_read") is True or raw_request.get("workbook_body_read") is True or raw_request.get("file_body_read") is True
+        spreadsheet_cell_read = raw_request.get("spreadsheet_cell_read") is True or raw_request.get("cell_read") is True
+        content_extracted = raw_request.get("content_extracted") is True
+        ocr_performed = raw_request.get("ocr_performed") is True
+        external_shared = raw_request.get("external_shared") is True or raw_request.get("external_llm_shared") is True
+        external_action = raw_request.get("external_action") is True
+        translation_guessed = raw_request.get("path_translation_guessed") is True
+        request_mapping_verified = raw_request.get("path_mapping_verified") is True
+        approved_read_flag = raw_request.get("approved_for_read") is True or raw_request.get("operator_approved_for_read") is True
+        operator_selected = raw_request.get("operator_selected") is True or raw_request.get("operator_approved") is True
+
+        if (approved_for_write or body_read or spreadsheet_cell_read or
+            content_extracted or ocr_performed or external_shared or external_action):
+            validation_errors.append("unsafe authority or data-reading flags are enabled")
+            resolution_status = "ARTIFACT_WRITE_AUTHORITY_BLOCKED" if approved_for_write else "ARTIFACT_BODY_OR_CONTENT_ALREADY_READ_BLOCKED"
+        elif translation_guessed:
+            validation_errors.append("path translation guessed")
+            resolution_status = "ARTIFACT_PATH_TRANSLATION_GUESSED_BLOCKED"
+        elif str(raw_request.get("artifact_intended_use") or "") != "client_invoice_sheet_audit":
+            validation_errors.append("artifact_intended_use must be client_invoice_sheet_audit")
+            resolution_status = "APPROVED_PC_PATH_REQUIRED"
+            missing_items.append("client invoice sheet audit intended use")
+        elif not request_mapping_verified:
+            validation_errors.append("path_mapping_verified must be true for opaque artifact intake")
+            resolution_status = "APPROVED_PC_PATH_REQUIRED"
+            missing_items.append("verified PC-readable workbook path")
+        else:
+            expected_path = _expected_invoice_workbook_package_path(source_request_id, filename_to_find)
+            candidate_path = _pc_path_from_shared_artifact_path(shared_path) if shared_path else expected_path
+            if not expected_path:
+                validation_errors.append("source_request_id and sanitized filename are required for request-scoped artifact package layout")
+                resolution_status = "APPROVED_PC_PATH_REQUIRED"
+                missing_items.append("request-scoped artifact package path")
+            elif candidate_path is None:
+                validation_errors.append("shared artifact path is outside the approved bridge artifact root")
+                resolution_status = "APPROVED_PC_PATH_REQUIRED"
+                missing_items.append("approved PC-readable workbook path")
+            else:
+                candidate_resolved = candidate_path.resolve(strict=False)
+                expected_resolved = expected_path.resolve(strict=False)
+                suffix = expected_path.suffix.lower()
+                if suffix not in SUPPORTED_SPREADSHEET_EXTENSIONS:
+                    validation_errors.append(f"unsupported workbook extension: {suffix}")
+                    resolution_status = "WORKBOOK_NOT_SPREADSHEET"
+                elif not _path_under(candidate_path, pc_artifact_root()):
+                    validation_errors.append("intake path is outside allowlisted artifact root")
+                    resolution_status = "APPROVED_PC_PATH_REQUIRED"
+                    missing_items.append("approved PC-readable workbook path")
+                elif candidate_resolved != expected_resolved:
+                    validation_errors.append(f"intake path must use request-scoped package layout: {expected_path.as_posix()}")
+                    resolution_status = "APPROVED_PC_PATH_REQUIRED"
+                    missing_items.append("request-scoped artifact package path")
+                elif candidate_path.is_symlink():
+                    validation_errors.append("artifact package path must not be a symlink")
+                    resolution_status = "APPROVED_PC_PATH_REQUIRED"
+                    missing_items.append("non-symlink request-scoped artifact package")
+                elif not candidate_path.is_file():
+                    validation_errors.append(f"intake file not found on PC filesystem: {candidate_path.as_posix()}")
+                    resolution_status = "WORKBOOK_NOT_FOUND"
+                    missing_items.append("approved PC-readable workbook path")
+                else:
+                    resolved_path = candidate_resolved.as_posix()
+                    resolved_ref = f"approved_artifact_path_ref:{_short_hash(resolved_path)}"
+                    mapping_verified = True
+                    operator_approved = operator_selected and approved_read_flag
+                    if operator_approved:
+                        resolution_status = "APPROVED_PC_PATH_CAPTURED"
+                    else:
+                        validation_errors.append("missing operator selection or read approval flags")
+                        resolution_status = "ARTIFACT_APPROVAL_REQUIRED"
+                        missing_items.append("operator approval for read")
+
+        resolved_request["approved_pc_readable_path"] = resolved_path
+        resolved_request["approved_path_ref"] = resolved_ref
+        resolved_request["path_mapping_verified"] = mapping_verified
+        resolved_request["path_translation_guessed"] = translation_guessed
+        resolved_request["operator_approved"] = operator_approved
+        resolved_request["approved_for_read"] = operator_approved
+
+        reference, scope = reference_from_request(
+            resolved_request,
+            artifact_kind_default=artifact_kind_default,
+            intended_use_default=intended_use_default,
+            generated_at=generated_at,
+        )
+
+        if resolution_status == "APPROVED_PC_PATH_CAPTURED":
+            scope_mismatches = _scope_mismatch(scope, expected_scope)
+            if scope.binding_status != "ARTIFACT_SCOPE_BOUND":
+                resolution_status = "ARTIFACT_SCOPE_MISSING"
+                missing_items.extend(item for item in scope.required_scope_keys if item != "client_ref_or_project_ref")
+                if not scope.client_ref and not scope.project_ref:
+                    missing_items.append("client_ref or project_ref")
+                validation_errors.append("artifact scope binding required")
+            elif scope_mismatches:
+                resolution_status = "ARTIFACT_SCOPE_MISMATCH"
+                validation_errors.extend(scope_mismatches)
+
+        status = "ARTIFACT_READY_FOR_READ"
+        missing = ()
+        blockers = ()
+
+        if resolution_status == "APPROVED_PC_PATH_CAPTURED":
+            status = "ARTIFACT_READY_FOR_READ"
+        elif resolution_status == "CLARIFICATION_REQUIRED":
+            status = "ARTIFACT_PC_PATH_REQUIRED"
+            missing = tuple(missing_items) if missing_items else ("approved PC-readable workbook path",)
+            blockers = ("multiple candidates found: " + ", ".join(candidates),)
+        elif resolution_status == "WORKBOOK_NOT_FOUND":
+            status = "ARTIFACT_PC_PATH_REQUIRED"
+            missing = tuple(missing_items) if missing_items else ("approved PC-readable workbook path",)
+            blockers = ("workbook not found in safe locations",)
+        elif resolution_status in {"APPROVED_PC_PATH_REQUIRED", "WORKBOOK_NOT_SPREADSHEET"}:
+            status = "ARTIFACT_PC_PATH_REQUIRED"
+            missing = tuple(missing_items) if missing_items else ("approved PC-readable workbook path",)
+            blockers = tuple(validation_errors)
+        elif resolution_status == "ARTIFACT_APPROVAL_REQUIRED":
+            status = "ARTIFACT_APPROVAL_REQUIRED"
+            missing = tuple(missing_items) if missing_items else ("operator approval for read",)
+            blockers = tuple(validation_errors)
+        else:
+            status = resolution_status
+            missing = tuple(missing_items)
+            blockers = tuple(validation_errors)
+
+        live_ready = status == "ARTIFACT_READY_FOR_READ"
+
+        # Instantiate ArtifactIntakePackage, ArtifactIntakeRequest, and ArtifactResolutionReceipt
+        intake_package = None
+        if shared_path and resolved_path and Path(resolved_path).is_file():
+            stat = Path(resolved_path).stat()
+            intake_package = ArtifactIntakePackage(
+                shared_artifact_path=shared_path,
+                artifact_package_path=resolved_path,
+                file_display_name=filename_to_find,
+                file_extension=Path(resolved_path).suffix,
+                package_size_bytes=stat.st_size,
+                package_modified_time=datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc).isoformat(),
+            )
+
+        intake_request = ArtifactIntakeRequest(
+            request_id=reference.source_request_id,
+            intended_use=reference.intended_use,
+            world_ref=reference.world_ref,
+            workflow_ref=reference.workflow_ref,
+            client_ref=reference.client_ref,
+            project_ref=reference.project_ref,
+            artifact_kind=reference.artifact_kind,
+            artifact_intended_use=raw_request.get("artifact_intended_use") or "client_invoice_sheet_audit",
+            artifact_label=reference.artifact_label,
+            intake_package=asdict(intake_package) if intake_package else None,
+            operator_selected=raw_request.get("operator_selected") is True,
+            operator_approved_for_read=raw_request.get("operator_approved_for_read") is True,
+            approved_for_write=approved_for_write,
+            body_read=body_read,
+            content_extracted=content_extracted,
+            ocr_performed=ocr_performed,
+            external_shared=external_shared,
+            external_action=external_action,
+        )
+
+        resolution_receipt = ArtifactResolutionReceipt(
+            receipt_id=f"artifact_resolution_receipt:{_short_hash(reference.artifact_ref, status)}",
+            source_request_id=reference.source_request_id,
+            resolution_status=resolution_status,
+            pc_path_resolved=resolved_path,
+            path_mapping_verified=mapping_verified,
+            operator_approved=operator_approved,
+            candidates=tuple(candidates),
+            validation_errors=tuple(validation_errors),
+            missing_items=tuple(missing_items),
+            next_safe_move=(
+                "Proceed with whitelisted invoice sheet audit."
+                if live_ready
+                else "Confirm a candidate file or provide an opaque intake package."
+            ),
+        )
+
+        approved = (
+            ApprovedReadableArtifact(
+                approval_id=f"approved_readable_artifact:{_short_hash(reference.artifact_ref, reference.source_request_id)}",
+                artifact_ref=reference.artifact_ref,
+                artifact_kind=reference.artifact_kind,
+                artifact_label=reference.artifact_label,
+                intended_use=reference.intended_use,
+                scope_binding=asdict(scope),
+                source_request_id=reference.source_request_id,
+                local_surface_ref=reference.local_surface_ref,
+                mac_path=reference.mac_path,
+                pc_path=reference.pc_path,
+                approved_path_ref=reference.approved_path_ref or f"approved_artifact_path_ref:{_short_hash(reference.pc_path)}",
+                path_mapping_verified=reference.path_mapping_verified,
+                operator_approved=reference.operator_approved,
+                approved_for_read=reference.approved_for_read,
+                approved_for_write=reference.approved_for_write,
+                body_read=reference.body_read,
+                content_extracted=reference.content_extracted,
+                external_shared=reference.external_shared,
+                approval_timestamp=reference.approval_timestamp,
+                approval_source=reference.approval_source,
+                authority_boundary=dict(AUTHORITY_BOUNDARY),
+                next_safe_move="Use as a read gate only; do not write, extract, or dispatch.",
+            )
+            if live_ready
+            else None
+        )
+
+        receipt = ArtifactApprovalReceipt(
+            receipt_id=f"artifact_approval_receipt:{_short_hash(reference.artifact_ref, status)}",
+            source_request_id=reference.source_request_id,
+            artifact_ref=reference.artifact_ref,
+            artifact_kind=reference.artifact_kind,
+            receipt_status=status,
+            operator_approved=reference.operator_approved,
+            approved_for_read=reference.approved_for_read,
+            approved_for_write=reference.approved_for_write,
+            body_read=reference.body_read,
+            content_extracted=reference.content_extracted,
+            external_shared=reference.external_shared,
+            path_mapping_verified=reference.path_mapping_verified,
+            path_translation_guessed=reference.path_translation_guessed,
+            validation_errors=blockers,
+            missing_items=missing,
+            authority_boundary=dict(AUTHORITY_BOUNDARY),
+            next_safe_move="Proceed only when artifact readiness is true.",
+        )
+
+        readiness = ArtifactReadinessState(
+            readiness_id=f"artifact_readiness:{_short_hash(reference.artifact_ref, status)}",
+            readiness_status=status,
+            artifact_ref=reference.artifact_ref,
+            artifact_kind=reference.artifact_kind,
+            intended_use=reference.intended_use,
+            scope_binding_status=scope.binding_status,
+            pc_readable_path_present=bool(reference.pc_path or reference.approved_path_ref),
+            path_mapping_verified=reference.path_mapping_verified,
+            operator_approved=reference.operator_approved,
+            approved_for_read=reference.approved_for_read,
+            approved_for_write=reference.approved_for_write,
+            body_read=reference.body_read,
+            content_extracted=reference.content_extracted,
+            external_shared=reference.external_shared,
+            live_read_ready=live_ready,
+            missing_items=missing,
+            blocking_reasons=blockers,
+            authority_boundary=dict(AUTHORITY_BOUNDARY),
+            next_safe_move=(
+                "Artifact is ready for safe read gate."
+                if live_ready
+                else "Provide an approved PC-readable artifact reference."
+            ),
+        )
+
+        payload = _build_payload(
+            generated_at=generated_at,
+            local_artifact_reference=reference,
+            scope_binding=scope,
+            approved_readable_artifact=approved,
+            approval_receipt=receipt,
+            readiness_state=readiness,
+            intake_request=intake_request,
+            intake_package=intake_package,
+            resolution_receipt=resolution_receipt,
+        )
+        return payload
+
+    generated_at = generated_at or utc_now()
     reference, scope = reference_from_request(
         raw_request,
         artifact_kind_default=artifact_kind_default,
@@ -642,6 +1050,9 @@ def _build_payload(
     approved_readable_artifact: ApprovedReadableArtifact | None,
     approval_receipt: ArtifactApprovalReceipt,
     readiness_state: ArtifactReadinessState,
+    intake_request: ArtifactIntakeRequest | None = None,
+    intake_package: ArtifactIntakePackage | None = None,
+    resolution_receipt: ArtifactResolutionReceipt | None = None,
 ) -> dict[str, Any]:
     payload: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
@@ -658,6 +1069,9 @@ def _build_payload(
             "ArtifactScopeBinding": tuple(field.name for field in fields(ArtifactScopeBinding)),
             "ArtifactReadinessState": tuple(field.name for field in fields(ArtifactReadinessState)),
             "ArtifactReferenceRouter": tuple(field.name for field in fields(ArtifactReferenceRouter)),
+            "ArtifactIntakePackage": tuple(field.name for field in fields(ArtifactIntakePackage)),
+            "ArtifactIntakeRequest": tuple(field.name for field in fields(ArtifactIntakeRequest)),
+            "ArtifactResolutionReceipt": tuple(field.name for field in fields(ArtifactResolutionReceipt)),
         },
         "local_artifact_reference": asdict(local_artifact_reference),
         "approved_readable_artifact": asdict(approved_readable_artifact) if approved_readable_artifact else None,
@@ -666,6 +1080,9 @@ def _build_payload(
         "artifact_scope_binding": asdict(scope_binding),
         "artifact_readiness_state": asdict(readiness_state),
         "artifact_reference_router": asdict(_default_router()),
+        "artifact_intake_request": asdict(intake_request) if intake_request else None,
+        "artifact_intake_package": asdict(intake_package) if intake_package else None,
+        "artifact_resolution_receipt": asdict(resolution_receipt) if resolution_receipt else None,
         "fixture_artifact": "fixture" in local_artifact_reference.source_request_id.lower(),
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
         "machine_proof": {
