@@ -1,0 +1,207 @@
+import json
+from pathlib import Path
+
+import openclaw_capability_index as index
+
+
+def _payload():
+    return index.build_payload()
+
+
+def _capabilities(payload):
+    return {cap["capability_id"]: cap for cap in payload["generic_capabilities"]}
+
+
+def _profiles(payload):
+    return {profile["capability_ref"]: profile for profile in payload["authority_profiles"]}
+
+
+def _queries(payload):
+    return {query["query_id"]: query for query in payload["query_examples"]}
+
+
+def test_required_models_exist():
+    schemas = _payload()["model_schemas"]
+    for model_name in (
+        "CapabilityIndexCompiler",
+        "GenericCapability",
+        "WorkflowCapabilityBinding",
+        "CapabilityFixture",
+        "CapabilityInputRequirement",
+        "CapabilityOutputArtifact",
+        "CapabilityAuthorityProfile",
+        "DoctrineGateRef",
+        "CapabilityGapRecord",
+        "CapabilityIndexQueryExample",
+        "CapabilityIndexReadback",
+        "CapabilityIndexBlocker",
+    ):
+        assert model_name in schemas
+
+
+def test_required_generic_capabilities_are_indexed_when_sources_exist():
+    caps = _capabilities(_payload())
+    required = {
+        "request_processing",
+        "request_response_service",
+        "route_aware_heartbeat",
+        "file_metadata_intake",
+        "protected_secret_intake",
+        "status_readback",
+        "workflow_package_compilation",
+        "dry_run",
+        "completion_proof_aggregation",
+        "outbound_message_draft",
+        "outbound_message_send_gate",
+        "portal_transaction_package",
+        "portal_transaction_submit_gate",
+        "agent_voice_compilation",
+        "spoken_script_generation",
+        "visual_event_compilation",
+        "worker_routing",
+        "scoped_context_package",
+        "machine_intent_validation",
+        "human_dignity_doctrine_gate",
+        "private_hmac_pii_tokenization",
+        "client_cockpit_handoff",
+    }
+    assert required.issubset(caps)
+
+
+def test_generic_capabilities_are_portable_and_not_fixture_specific():
+    payload = _payload()
+    assert payload["machine_proof"]["generic_capabilities_user_agnostic"] is True
+    forbidden_terms = ("winship", "capital hilton", "capital_hilton", "coupa", "x32", "struna")
+    for cap in payload["generic_capabilities"]:
+        assert cap["portability_scope"] in {"USER_AGNOSTIC", "TENANT_SCOPED"}
+        serialized = json.dumps(cap, sort_keys=True).lower()
+        for term in forbidden_terms:
+            assert term not in serialized
+
+
+def test_workflow_specific_examples_are_bindings_or_fixtures_only():
+    payload = _payload()
+    binding_text = json.dumps(payload["workflow_bindings"], sort_keys=True).lower()
+    fixture_text = json.dumps(payload["fixtures"], sort_keys=True).lower()
+    query_text = json.dumps(payload["query_examples"], sort_keys=True).lower()
+    assert "capital_hilton" in binding_text
+    assert "coupa" in binding_text or "coupa" in fixture_text or "coupa" in query_text
+    assert "x32" in binding_text
+    assert "struna" in binding_text
+    assert "capital_hilton" in fixture_text
+
+
+def test_contract_only_and_future_gated_capabilities_do_not_claim_live_execution():
+    payload = _payload()
+    profiles = _profiles(payload)
+    for cap in payload["generic_capabilities"]:
+        profile = profiles[cap["capability_id"]]
+        if cap["capability_status"] in {
+            "CONTRACT_ONLY",
+            "READ_MODEL_ONLY",
+            "FIXTURE_ONLY",
+            "FUTURE_GATED",
+            "BLOCKED_UNSAFE",
+            "UNKNOWN_FAIL_CLOSED",
+        }:
+            assert profile["live_execution_allowed"] is False
+            assert index.capability_is_live_usable(
+                index.GenericCapability(**cap),
+                index.CapabilityAuthorityProfile(**profile),
+            ) is False
+
+
+def test_unknown_authority_fails_closed_blocker_exists():
+    blockers = {blocker["blocker_type"]: blocker for blocker in _payload()["blockers"]}
+    assert blockers["UNKNOWN_AUTHORITY"]["fail_closed"] is True
+    assert blockers["CAPABILITY_CLAIMS_UNPROVEN_AUTHORITY"]["fail_closed"] is True
+
+
+def test_invalid_tenant_query_returns_no_tenant_or_client_bindings():
+    payload = _payload()
+    result = index.filter_index_for_tenant(payload, "tenant_scope:not_valid")
+    assert result["valid_tenant_scope"] is False
+    assert result["generic_capabilities"]
+    assert result["workflow_bindings"] == []
+    assert result["fixtures"] == []
+
+
+def test_valid_tenant_query_returns_only_matching_bindings_and_fixtures():
+    payload = _payload()
+    result = index.filter_index_for_tenant(payload, "tenant_scope:fixture_business_ops")
+    assert result["valid_tenant_scope"] is True
+    assert result["workflow_bindings"]
+    assert all(binding["tenant_scope"] == "tenant_scope:fixture_business_ops" for binding in result["workflow_bindings"])
+    binding_ids = {binding["binding_id"] for binding in result["workflow_bindings"]}
+    assert all(fixture["binding_ref"] in binding_ids for fixture in result["fixtures"])
+
+
+def test_query_examples_exist_and_preserve_authority_boundaries():
+    queries = _queries(_payload())
+    expected = {
+        "query:generic_next": "CONTINUE_CURRENT_WORKFLOW",
+        "query:generic_missing_input": "CAPTURE_MISSING_INPUT",
+        "query:generic_draft": "PREPARE_DRAFT",
+        "query:generic_read_aloud": "READ_ALOUD",
+        "query:generic_blocking_status": "ANSWER_STATUS",
+        "query:generic_creative_project": "ROUTE_TO_AGENT",
+        "query:generic_send_submit": "REQUEST_APPROVAL",
+        "query:generic_visual_video": "SHOW_VISUAL_WORKSPACE",
+        "query:generic_dignity_labor": "ASK_CLARIFICATION",
+    }
+    assert set(expected).issubset(queries)
+    for query_id, intent_type in expected.items():
+        assert queries[query_id]["recommended_intent_type"] == intent_type
+        assert queries[query_id]["validation_required"] is True
+
+    assert "exact approval" in queries["query:generic_send_submit"]["next_safe_move"].lower()
+    assert "do not call a provider" in queries["query:generic_visual_video"]["next_safe_move"].lower()
+    assert "dignity" in queries["query:generic_dignity_labor"]["matched_capabilities"][0]
+
+
+def test_human_dignity_doctrine_is_gate_wrapper():
+    payload = _payload()
+    doctrine_gates = {gate["doctrine_ref"]: gate for gate in payload["doctrine_gates"]}
+    assert "HUMAN_DIGNITY_DOCTRINE" in doctrine_gates
+    assert doctrine_gates["HUMAN_DIGNITY_DOCTRINE"]["decision_check_required"] is True
+    assert doctrine_gates["HUMAN_DIGNITY_DOCTRINE"]["operator_review_required"] is True
+
+
+def test_all_live_authority_false():
+    payload = _payload()
+    assert payload["machine_proof"]["all_live_authority_false"] is True
+    assert all(value is False for value in payload["compiler"]["authority_boundary"].values())
+    for profile in payload["authority_profiles"]:
+        assert profile["live_authority_allowed"] is False
+        assert profile["live_execution_allowed"] is False
+        assert profile["live_external_action_allowed"] is False
+        assert profile["live_model_call_allowed"] is False
+        assert profile["live_agent_dispatch_allowed"] is False
+        assert profile["live_outbound_message_send_allowed"] is False
+        assert profile["live_portal_access_allowed"] is False
+        assert profile["live_portal_submit_allowed"] is False
+        assert profile["credential_handling_allowed"] is False
+        assert profile["raw_body_ingestion_allowed"] is False
+
+
+def test_generated_output_contains_no_credentials_or_private_bodies(tmp_path):
+    json_path, operator_path, _ = index.write_exports(tmp_path)
+    text = json_path.read_text() + "\n" + operator_path.read_text()
+    forbidden_patterns = (
+        "-----BEGIN PRIVATE KEY-----",
+        "Bearer ",
+        "raw private body value",
+        "private raw body content",
+        "oauth_token:",
+        "password:",
+        "api_key:",
+    )
+    for pattern in forbidden_patterns:
+        assert pattern not in text
+
+
+def test_exported_json_parses(tmp_path):
+    json_path, operator_path, payload = index.write_exports(tmp_path)
+    assert json.loads(json_path.read_text())["read_model_id"] == "openclaw_capability_index"
+    assert operator_path.read_text().startswith("# OpenClaw Capability Index")
+    assert payload["readback"]["status"] == "CAPABILITY_INDEX_READY"
