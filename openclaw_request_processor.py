@@ -29,6 +29,7 @@ import client_invoice_sheet_audit
 import client_invoice_workbook_registry
 import conversational_workflow_router_intake
 import deterministic_intent_interpreter
+import local_surface_request_contract
 import operator_file_metadata_intake
 import scoped_context_package_compiler_contract
 import worker_routing_intelligence
@@ -3129,6 +3130,8 @@ def build_payloads(
         "terminal": _terminal_for_status(response.internal_status),
         "authority_boundary": AUTHORITY_BOUNDARY,
     }
+    local_surface_request = local_surface_request_contract.infer_surface_request(response_payload)
+    response_payload["local_surface_request"] = local_surface_request
     taste_guardrails = _response_taste_guardrails(response_payload)
     response_payload["taste_guardrails"] = taste_guardrails
     status_payload: dict[str, Any] = {
@@ -3183,6 +3186,13 @@ def build_payloads(
             "bad_phrase_blockers_passed": taste_guardrails["bad_phrase_blockers_passed"],
             "agent_voice_taste_rules_passed": taste_guardrails["agent_voice_rules_passed"],
             "duplicate_sentence_reduction_passed": taste_guardrails["duplicate_sentence_reduction_passed"],
+            "local_surface_request_present": True,
+            "local_surface_request_type": local_surface_request.get("surface_type"),
+            "local_surface_request_raw_body_allowed": local_surface_request.get("raw_body_allowed"),
+            "local_surface_request_external_model_share_allowed": local_surface_request.get("external_model_share_allowed"),
+            "local_surface_request_local_only": local_surface_request.get("local_only"),
+            "local_surface_request_path_translation_guess_allowed": local_surface_request.get("path_translation_guess_allowed"),
+            "local_surface_request_external_action_allowed": local_surface_request.get("external_action_allowed"),
         }
     )
     response_payload["machine_proof"] = json.loads(stable_json(status_payload["machine_proof"]))

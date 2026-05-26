@@ -607,10 +607,22 @@ def test_sheet_audit_blocks_without_approved_pc_path(tmp_path, capsys):
     assert response["headline"] == "PC-readable workbook needed"
     assert response["next_action"] == "Next: Provide an approved PC-readable workbook path or handoff."
     assert response["terminal"] is True
+    assert response["local_surface_request"]["surface_type"] == "SHOW_TROUBLESHOOTING_CARD"
+    assert response["local_surface_request"]["human_label"] == "Fix file access"
+    assert response["local_surface_request"]["raw_body_allowed"] is False
+    assert response["local_surface_request"]["external_model_share_allowed"] is False
+    assert response["local_surface_request"]["local_only"] is True
+    assert response["local_surface_request"]["path_translation_guess_allowed"] is False
     assert audit_payload["audit_result"]["status"] == "APPROVED_PC_PATH_REQUIRED"
     assert audit_payload["machine_proof"]["workbook_opened"] is False
     assert response["machine_proof"]["whitelisted_sheet_cells_read_performed"] is False
     assert response["machine_proof"]["sheet_audit_inferred_schema_performed"] is False
+    assert response["machine_proof"]["local_surface_request_present"] is True
+    assert response["machine_proof"]["local_surface_request_type"] == "SHOW_TROUBLESHOOTING_CARD"
+    assert response["machine_proof"]["local_surface_request_raw_body_allowed"] is False
+    assert response["machine_proof"]["local_surface_request_external_model_share_allowed"] is False
+    assert response["machine_proof"]["local_surface_request_local_only"] is True
+    assert response["machine_proof"]["local_surface_request_path_translation_guess_allowed"] is False
 
 
 def test_sheet_audit_happy_path_reads_whitelisted_fixture_cells_only(tmp_path, capsys):
@@ -669,10 +681,20 @@ def test_audit_handoff_path_only_returns_schema_required_response(tmp_path, caps
     )
     assert response["next_action"] == "Next: provide the invoice tab name and cell mapping."
     assert response["terminal"] is True
+    assert response["local_surface_request"]["surface_type"] == "SHOW_FIELD_MAPPING_PANEL"
+    assert response["local_surface_request"]["human_label"] == "Tell OpenClaw where the fields are"
+    assert response["local_surface_request"]["raw_body_allowed"] is False
+    assert response["local_surface_request"]["external_model_share_allowed"] is False
+    assert response["local_surface_request"]["local_only"] is True
     assert handoff_payload["live_audit_ready"] is False
     assert handoff_payload["approved_workbook_path_ref"]["path_approval_status"] == "APPROVED_PC_PATH_CAPTURED"
     assert response["machine_proof"]["audit_handoff_schema_inference_performed"] is False
     assert response["machine_proof"]["spreadsheet_cell_read_performed"] is False
+    assert response["machine_proof"]["local_surface_request_present"] is True
+    assert response["machine_proof"]["local_surface_request_type"] == "SHOW_FIELD_MAPPING_PANEL"
+    assert response["machine_proof"]["local_surface_request_raw_body_allowed"] is False
+    assert response["machine_proof"]["local_surface_request_external_model_share_allowed"] is False
+    assert response["machine_proof"]["local_surface_request_local_only"] is True
 
 
 def test_audit_handoff_path_and_schema_returns_ready_response_without_audit_run(tmp_path, capsys):
