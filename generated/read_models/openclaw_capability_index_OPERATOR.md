@@ -13,6 +13,7 @@ OpenClaw indexed generic capabilities separately from workflow bindings and fixt
 - Blocked unsafe: 1
 - Workflow bindings: 5
 - Fixture/example records: 5
+- Proposal candidates: 3
 
 ## Top Generic Capabilities
 - request_processing
@@ -30,6 +31,11 @@ OpenClaw indexed generic capabilities separately from workflow bindings and fixt
 - gap:live_lm_intent_interpreter
 - gap:live_portal_submit_adapter
 - gap:live_video_generation
+
+## Quarantined Proposals
+- proposal:client_cockpit_visual_event_renderer
+- proposal:outbound_message_draft_binding_adapter
+- proposal:source_ref_parser_fixture_binding
 
 ## Boundary
 - No live capability execution.

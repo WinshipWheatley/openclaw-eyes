@@ -57,6 +57,19 @@ TAXONOMY_TYPES = (
     "UNKNOWN_FAIL_CLOSED",
 )
 
+CAPABILITY_LIFECYCLE_STATUSES = (
+    "KNOWN_GENERIC",
+    "WORKFLOW_BOUND",
+    "FIXTURE_ONLY",
+    "PROPOSED_CANDIDATE",
+    "BUILT_UNVALIDATED",
+    "VALIDATED_NON_EXECUTING",
+    "LIVE_IMPLEMENTED",
+    "FUTURE_GATED",
+    "BLOCKED_UNSAFE",
+    "RETIRED",
+)
+
 CAPABILITY_STATUSES = (
     "LIVE_IMPLEMENTED",
     "IMPLEMENTED_NON_EXECUTING",
@@ -130,9 +143,22 @@ BLOCKER_TYPES = (
     "CONTRACT_ONLY_CLAIMS_LIVE_EXECUTION",
     "USER_SPECIFIC_FIXTURE_USED_AS_GENERIC_CAPABILITY",
     "TASK_SPECIFIC_FIXTURE_USED_AS_GENERIC_CAPABILITY",
+    "PROPOSED_CANDIDATE_USED_AS_LIVE_CAPABILITY",
+    "CANDIDATE_SELF_PROMOTION_ATTEMPTED",
     "UNKNOWN_AUTHORITY",
     "CROSS_CLIENT_LEAK_RISK",
     "UNSAFE_PROVIDER_CLAIM",
+    "UNKNOWN_FAIL_CLOSED",
+)
+
+CANDIDATE_STATUSES = (
+    "PROPOSED_UNVERIFIED",
+    "NEEDS_OPERATOR_REVIEW",
+    "NEEDS_DEVELOPER_BUILD",
+    "NEEDS_TESTS",
+    "NEEDS_GUARDIAN_REVIEW",
+    "REJECTED",
+    "PROMOTED_AFTER_VALIDATION",
     "UNKNOWN_FAIL_CLOSED",
 )
 
@@ -151,6 +177,7 @@ AUTHORITY_BOUNDARY = {
     "live_workflow_run_allowed": False,
     "live_external_action_allowed": False,
     "live_secret_reveal_allowed": False,
+    "live_candidate_promotion_allowed": False,
     "credential_handling_allowed": False,
     "raw_body_ingestion_allowed": False,
     "network_allowed": False,
@@ -190,6 +217,9 @@ class CapabilityIndexCompiler:
     capability_record_policy: tuple[str, ...]
     workflow_binding_policy: tuple[str, ...]
     fixture_policy: tuple[str, ...]
+    proposal_candidate_policy: tuple[str, ...]
+    lifecycle_policy: tuple[str, ...]
+    promotion_gate_policy: tuple[str, ...]
     authority_policy: tuple[str, ...]
     intent_interpreter_policy: tuple[str, ...]
     doctrine_gate_policy: tuple[str, ...]
@@ -204,6 +234,7 @@ class GenericCapability:
     capability_name: str
     taxonomy_type: str
     description: str
+    lifecycle_status: str
     portability_scope: str
     capability_status: str
     applicable_task_types: tuple[str, ...]
@@ -321,6 +352,68 @@ class DoctrineGateRef:
 
 
 @dataclass(frozen=True)
+class CapabilityProposalCandidate:
+    proposal_id: str
+    source_request_id: str
+    proposed_capability_name: str
+    proposed_taxonomy_type: str
+    proposed_task_type: str
+    description: str
+    reason_needed: str
+    nearest_existing_capabilities: tuple[str, ...]
+    missing_inputs: tuple[str, ...]
+    expected_outputs: tuple[str, ...]
+    required_receipts: tuple[str, ...]
+    required_tests: tuple[str, ...]
+    required_authority_review: tuple[str, ...]
+    suggested_worker: str
+    suggested_module_name: str
+    suggested_build_lane: str
+    evidence_refs: tuple[str, ...]
+    blocker_severity: str
+    reconciliation_instructions: tuple[str, ...]
+    risk_level: str
+    tenant_scope: str
+    client_scope: str
+    candidate_status: str
+    validation_required: bool
+    authority_boundary: dict[str, bool]
+    next_safe_move: str
+
+
+@dataclass(frozen=True)
+class CapabilityPromotionGate:
+    promotion_gate_id: str
+    proposal_ref: str
+    required_code_refs: tuple[str, ...]
+    required_tests: tuple[str, ...]
+    required_readmodels: tuple[str, ...]
+    required_receipts: tuple[str, ...]
+    required_authority_profile: str
+    required_doctrine_checks: tuple[str, ...]
+    operator_approval_required: bool
+    developer_review_required: bool
+    guardian_review_required: bool
+    promotion_allowed: bool
+    promotion_status: str
+    next_safe_move: str
+
+
+@dataclass(frozen=True)
+class CapabilityLifecycleRecord:
+    lifecycle_id: str
+    capability_ref: str
+    lifecycle_status: str
+    source: str
+    validation_status: str
+    test_status: str
+    authority_status: str
+    doctrine_status: str
+    promoted_at_policy: str
+    next_safe_move: str
+
+
+@dataclass(frozen=True)
 class CapabilityGapRecord:
     gap_id: str
     missing_capability: str
@@ -367,9 +460,11 @@ class CapabilityIndexReadback:
     portable_capability_count: int
     workflow_scoped_count: int
     fixture_only_count: int
+    proposal_candidate_count: int
     top_generic_capabilities: tuple[str, ...]
     workflow_bindings: tuple[str, ...]
     top_gaps: tuple[str, ...]
+    proposed_capabilities: tuple[str, ...]
     next_safe_move: str
 
 
@@ -429,6 +524,9 @@ def _model_schemas() -> dict[str, tuple[str, ...]]:
         "CapabilityOutputArtifact": tuple(field.name for field in fields(CapabilityOutputArtifact)),
         "CapabilityAuthorityProfile": tuple(field.name for field in fields(CapabilityAuthorityProfile)),
         "DoctrineGateRef": tuple(field.name for field in fields(DoctrineGateRef)),
+        "CapabilityProposalCandidate": tuple(field.name for field in fields(CapabilityProposalCandidate)),
+        "CapabilityPromotionGate": tuple(field.name for field in fields(CapabilityPromotionGate)),
+        "CapabilityLifecycleRecord": tuple(field.name for field in fields(CapabilityLifecycleRecord)),
         "CapabilityGapRecord": tuple(field.name for field in fields(CapabilityGapRecord)),
         "CapabilityIndexQueryExample": tuple(field.name for field in fields(CapabilityIndexQueryExample)),
         "CapabilityIndexReadback": tuple(field.name for field in fields(CapabilityIndexReadback)),
@@ -470,6 +568,42 @@ def _authority_profile(capability_ref: str, *, notes: tuple[str, ...] = ()) -> C
         ),
         next_safe_move="Use this profile for validation; do not execute the capability from the index.",
     )
+
+
+def _candidate_authority_boundary() -> dict[str, bool]:
+    return {
+        "live_capability_execution_allowed": False,
+        "live_registry_mutation_allowed": False,
+        "live_model_call_allowed": False,
+        "live_agent_dispatch_allowed": False,
+        "live_workflow_run_allowed": False,
+        "live_external_action_allowed": False,
+        "live_secret_reveal_allowed": False,
+        "live_candidate_promotion_allowed": False,
+        "credential_handling_allowed": False,
+        "raw_body_ingestion_allowed": False,
+        "live_browser_allowed": False,
+        "live_outbound_message_send_allowed": False,
+        "live_portal_access_allowed": False,
+        "live_portal_submit_allowed": False,
+        "live_visual_generation_allowed": False,
+        "live_audio_playback_allowed": False,
+        "file_mutation_allowed": False,
+        "network_allowed": False,
+    }
+
+
+def _lifecycle_from_capability_status(status: str) -> str:
+    return {
+        "LIVE_IMPLEMENTED": "LIVE_IMPLEMENTED",
+        "IMPLEMENTED_NON_EXECUTING": "VALIDATED_NON_EXECUTING",
+        "CONTRACT_ONLY": "KNOWN_GENERIC",
+        "READ_MODEL_ONLY": "VALIDATED_NON_EXECUTING",
+        "FIXTURE_ONLY": "FIXTURE_ONLY",
+        "FUTURE_GATED": "FUTURE_GATED",
+        "BLOCKED_UNSAFE": "BLOCKED_UNSAFE",
+        "UNKNOWN_FAIL_CLOSED": "BLOCKED_UNSAFE",
+    }.get(status, "BLOCKED_UNSAFE")
 
 
 def _input(
@@ -529,6 +663,7 @@ def _capability(
     taxonomy_type: str,
     description: str,
     status: str,
+    lifecycle_status: str | None = None,
     input_refs: tuple[str, ...],
     output_refs: tuple[str, ...],
     owning_worker_role: str,
@@ -552,6 +687,7 @@ def _capability(
         capability_name=capability_name,
         taxonomy_type=taxonomy_type,
         description=description,
+        lifecycle_status=lifecycle_status or _lifecycle_from_capability_status(status),
         portability_scope="USER_AGNOSTIC",
         capability_status=status,
         applicable_task_types=applicable_task_types or (taxonomy_type.lower(),),
@@ -1326,6 +1462,177 @@ def build_doctrine_gates() -> tuple[DoctrineGateRef, ...]:
     )
 
 
+def build_proposal_candidates() -> tuple[CapabilityProposalCandidate, ...]:
+    return (
+        CapabilityProposalCandidate(
+            proposal_id="proposal:client_cockpit_visual_event_renderer",
+            source_request_id="fixture_request:missing_visual_renderer",
+            proposed_capability_name="CLIENT_COCKPIT_VISUAL_EVENT_RENDERER",
+            proposed_taxonomy_type="CLIENT_COCKPIT_HANDOFF",
+            proposed_task_type="render local visual feedback",
+            description="Future Mac-local renderer for sanitized visual event packages.",
+            reason_needed="Visual event packages exist, but local Mac rendering/playback is not an active capability in this index.",
+            nearest_existing_capabilities=("visual_event_compilation", "client_cockpit_handoff"),
+            missing_inputs=("Mac renderer lifecycle contract", "local asset policy", "screenshot/render validation receipts"),
+            expected_outputs=("local visual render receipt", "Mac-render-safe status readback"),
+            required_receipts=("focused Mac renderer tests", "operator visual-readback approval", "authority boundary receipt"),
+            required_tests=("unit tests for package parsing", "renderer fixture test", "privacy prompt exclusion test"),
+            required_authority_review=("developer review", "operator review", "Guardian review if external/media provider is introduced"),
+            suggested_worker="MAC_CODEX",
+            suggested_module_name="mac_visual_event_renderer_future",
+            suggested_build_lane="Mac-local visual renderer lane",
+            evidence_refs=("generated/read_models/chat_workflow_visual_event_package_compiler.json",),
+            blocker_severity="medium",
+            reconciliation_instructions=(
+                "Keep this candidate out of generic_capabilities.",
+                "Implement Mac renderer separately and prove local-only behavior before promotion.",
+            ),
+            risk_level="medium",
+            tenant_scope="tenant_scope:generic",
+            client_scope="client_scope:none",
+            candidate_status="NEEDS_DEVELOPER_BUILD",
+            validation_required=True,
+            authority_boundary=_candidate_authority_boundary(),
+            next_safe_move="Queue a Mac renderer build lane; do not render, generate, or play media from this index.",
+        ),
+        CapabilityProposalCandidate(
+            proposal_id="proposal:outbound_message_draft_binding_adapter",
+            source_request_id="fixture_request:missing_draft_adapter",
+            proposed_capability_name="OUTBOUND_MESSAGE_DRAFT_BINDING_ADAPTER",
+            proposed_taxonomy_type="OUTBOUND_MESSAGE_DRAFT",
+            proposed_task_type="prepare outbound message draft for a new workflow binding",
+            description="Future workflow binding adapter for reviewable outbound drafts when no wrapper exists for the current workflow.",
+            reason_needed="The generic draft capability exists, but a workflow-specific binding may be absent for a new tenant/workflow.",
+            nearest_existing_capabilities=("outbound_message_draft", "worker_routing", "machine_intent_validation"),
+            missing_inputs=("workflow-specific recipient refs", "draft package compiler refs", "attachment/ref policy"),
+            expected_outputs=("reviewable draft artifact", "operator draft readback"),
+            required_receipts=("draft package fixture", "no-send authority receipt", "privacy scan receipt"),
+            required_tests=("missing recipient blocks", "send authority remains false", "no raw contact data output"),
+            required_authority_review=("developer review", "Cassandra/Guardian review for communications boundary"),
+            suggested_worker="PC_CODEX",
+            suggested_module_name="outbound_message_draft_binding_adapter_future",
+            suggested_build_lane="workflow-specific outbound draft binding lane",
+            evidence_refs=("generated/read_models/gated_email_draft_adapter.json",),
+            blocker_severity="high",
+            reconciliation_instructions=(
+                "Candidate may create a build cue only.",
+                "Candidate must never grant send authority or imply a message was sent.",
+            ),
+            risk_level="high",
+            tenant_scope="tenant_scope:generic",
+            client_scope="client_scope:none",
+            candidate_status="NEEDS_TESTS",
+            validation_required=True,
+            authority_boundary=_candidate_authority_boundary(),
+            next_safe_move="Build a workflow binding adapter with tests; keep send authority false.",
+        ),
+        CapabilityProposalCandidate(
+            proposal_id="proposal:source_ref_parser_fixture_binding",
+            source_request_id="fixture_request:missing_source_ref_parser",
+            proposed_capability_name="SOURCE_REF_PARSER_FIXTURE_BINDING",
+            proposed_taxonomy_type="SOURCE_REF_MANAGEMENT",
+            proposed_task_type="parse device/source context from approved refs",
+            description="Future parser binding for device/project source refs; raw body ingestion remains blocked by default.",
+            reason_needed="Creative/project routing can identify a missing source-ref parser, but parser capability is not live.",
+            nearest_existing_capabilities=("source_ref_management", "scoped_context_package", "worker_routing"),
+            missing_inputs=("approved source ref", "parser privacy policy", "local parse fixture"),
+            expected_outputs=("sanitized source summary ref", "context gap resolution readback"),
+            required_receipts=("raw-body approval decision", "local parser fixture test", "no-file-mutation receipt"),
+            required_tests=("raw body blocked by default", "metadata-only fixture passes", "cross-project scope blocked"),
+            required_authority_review=("developer review", "Guardian review if raw body parsing is requested"),
+            suggested_worker="PC_CODEX",
+            suggested_module_name="source_ref_parser_fixture_binding_future",
+            suggested_build_lane="protected source-ref parser binding lane",
+            evidence_refs=("generated/read_models/scoped_context_package_compiler_contract.json",),
+            blocker_severity="high",
+            reconciliation_instructions=(
+                "Do not parse source bodies unless a protected parser lane exists.",
+                "Keep parser candidates scoped to fixtures/bindings until validated.",
+            ),
+            risk_level="high",
+            tenant_scope="tenant_scope:generic",
+            client_scope="client_scope:none",
+            candidate_status="NEEDS_GUARDIAN_REVIEW",
+            validation_required=True,
+            authority_boundary=_candidate_authority_boundary(),
+            next_safe_move="Collect source refs and create a parser build cue; do not ingest raw bodies.",
+        ),
+    )
+
+
+def build_promotion_gates(candidates: tuple[CapabilityProposalCandidate, ...]) -> tuple[CapabilityPromotionGate, ...]:
+    gates: list[CapabilityPromotionGate] = []
+    for candidate in candidates:
+        external_action = candidate.proposed_taxonomy_type in {
+            "OUTBOUND_MESSAGE_SEND_GATE",
+            "PORTAL_TRANSACTION_SUBMIT_GATE",
+            "RECORD_KEEPING_WRITE",
+            "DOCUMENT_OCR_EXTRACTION",
+        }
+        gates.append(
+            CapabilityPromotionGate(
+                promotion_gate_id=_stable_id("promotion_gate", candidate.proposal_id),
+                proposal_ref=candidate.proposal_id,
+                required_code_refs=(candidate.suggested_module_name,),
+                required_tests=candidate.required_tests,
+                required_readmodels=(f"generated/read_models/{candidate.suggested_module_name}.json",),
+                required_receipts=candidate.required_receipts,
+                required_authority_profile=f"authority:{candidate.proposal_id}:required_before_promotion",
+                required_doctrine_checks=(
+                    "TENANT_SCOPE_POLICY",
+                    "SENSITIVE_DATA_POLICY",
+                    "APPROVAL_GATE_POLICY" if external_action else "candidate_non_execution_policy",
+                    "HUMAN_DIGNITY_DOCTRINE" if candidate.risk_level in {"high", "critical"} else "human_dignity_screen",
+                ),
+                operator_approval_required=True,
+                developer_review_required=True,
+                guardian_review_required=candidate.risk_level in {"high", "critical"} or external_action,
+                promotion_allowed=False,
+                promotion_status="BLOCKED_UNTIL_VALIDATED",
+                next_safe_move="Keep the proposal quarantined until code, tests, receipts, authority profile, and reviews exist.",
+            )
+        )
+    return tuple(gates)
+
+
+def build_lifecycle_records(
+    capabilities: tuple[GenericCapability, ...],
+    candidates: tuple[CapabilityProposalCandidate, ...],
+) -> tuple[CapabilityLifecycleRecord, ...]:
+    records: list[CapabilityLifecycleRecord] = []
+    for capability in capabilities:
+        records.append(
+            CapabilityLifecycleRecord(
+                lifecycle_id=_stable_id("lifecycle", capability.capability_id),
+                capability_ref=capability.capability_id,
+                lifecycle_status=capability.lifecycle_status,
+                source="generic capability index definition",
+                validation_status="deterministic read-model validation",
+                test_status="covered by capability index focused tests",
+                authority_status="explicit false authority profile",
+                doctrine_status="doctrine gates listed on capability",
+                promoted_at_policy="not promoted by this lane",
+                next_safe_move="Use as a generic capability definition only; bind through scoped workflow records.",
+            )
+        )
+    for candidate in candidates:
+        records.append(
+            CapabilityLifecycleRecord(
+                lifecycle_id=_stable_id("lifecycle", candidate.proposal_id),
+                capability_ref=candidate.proposal_id,
+                lifecycle_status="PROPOSED_CANDIDATE",
+                source="quarantined capability proposal candidate",
+                validation_status="unverified candidate",
+                test_status="tests required before promotion",
+                authority_status="zero execution authority",
+                doctrine_status="promotion gate required before use",
+                promoted_at_policy="cannot be promoted from candidate or LM output alone",
+                next_safe_move="Review, build, test, and receipt the lane before any promotion attempt.",
+            )
+        )
+    return tuple(records)
+
+
 def build_gaps() -> tuple[CapabilityGapRecord, ...]:
     return (
         CapabilityGapRecord(
@@ -1492,6 +1799,42 @@ def build_query_examples() -> tuple[CapabilityIndexQueryExample, ...]:
             validation_required=True,
             next_safe_move="Ask who is affected, what consent exists, and what appeal/reversal path is available.",
         ),
+        CapabilityIndexQueryExample(
+            query_id="query:missing_visual_renderer",
+            operator_text="show the status with a local animation",
+            interpreted_need="render local visual feedback from a sanitized visual event package",
+            generic_task_type="render local visual feedback",
+            example_context="If a Mac renderer is absent, create a quarantined proposal candidate only.",
+            matched_capabilities=("visual_event_compilation", "client_cockpit_handoff"),
+            missing_capabilities=("CLIENT_COCKPIT_VISUAL_EVENT_RENDERER",),
+            recommended_intent_type="CREATE_BUILD_CUE",
+            validation_required=True,
+            next_safe_move="Create proposal:client_cockpit_visual_event_renderer; do not render, generate, or play visuals.",
+        ),
+        CapabilityIndexQueryExample(
+            query_id="query:missing_cassandra_draft_adapter",
+            operator_text="ask Cassandra to prep the email for this new workflow",
+            interpreted_need="prepare outbound communication draft when a workflow binding is missing",
+            generic_task_type="prepare outbound message draft",
+            example_context="Cassandra is an example author/role; candidate remains a draft binding proposal with no send authority.",
+            matched_capabilities=("outbound_message_draft", "worker_routing", "machine_intent_validation"),
+            missing_capabilities=("OUTBOUND_MESSAGE_DRAFT_BINDING_ADAPTER",),
+            recommended_intent_type="PREPARE_DRAFT",
+            validation_required=True,
+            next_safe_move="Create a draft-binding proposal only; do not send or imply send readiness.",
+        ),
+        CapabilityIndexQueryExample(
+            query_id="query:missing_source_ref_parser",
+            operator_text="parse the X32 source ref",
+            interpreted_need="parse device/source context from approved source refs",
+            generic_task_type="parse source reference context",
+            example_context="X32 is a fixture binding example; raw body ingestion remains blocked by default.",
+            matched_capabilities=("source_ref_management", "scoped_context_package", "worker_routing"),
+            missing_capabilities=("SOURCE_REF_PARSER_FIXTURE_BINDING",),
+            recommended_intent_type="CREATE_CONTEXT_GAP",
+            validation_required=True,
+            next_safe_move="Create a parser proposal/context gap; do not ingest source bodies by default.",
+        ),
     )
 
 
@@ -1508,6 +1851,8 @@ def build_blockers() -> tuple[CapabilityIndexBlocker, ...]:
                 "CONTRACT_ONLY_CLAIMS_LIVE_EXECUTION": "Contract-only records cannot be treated as executable.",
                 "USER_SPECIFIC_FIXTURE_USED_AS_GENERIC_CAPABILITY": "Operator-specific fixtures must remain scoped examples.",
                 "TASK_SPECIFIC_FIXTURE_USED_AS_GENERIC_CAPABILITY": "Workflow examples cannot rewrite generic taxonomy.",
+                "PROPOSED_CANDIDATE_USED_AS_LIVE_CAPABILITY": "Proposal candidates are quarantined and cannot satisfy live capability lookup.",
+                "CANDIDATE_SELF_PROMOTION_ATTEMPTED": "Candidates, agents, or LM output cannot promote capability status.",
                 "UNKNOWN_AUTHORITY": "Unknown authority fails closed.",
                 "CROSS_CLIENT_LEAK_RISK": "Client-specific bindings require tenant/client filtering.",
                 "UNSAFE_PROVIDER_CLAIM": "Provider availability must be proven by a separate gated adapter.",
@@ -1566,6 +1911,22 @@ def build_compiler() -> CapabilityIndexCompiler:
             "Fixtures are examples only.",
             "Fixtures cannot satisfy authority gates or prove live provider availability.",
         ),
+        proposal_candidate_policy=(
+            "Proposal candidates are quarantined suggestions for missing capability.",
+            "Candidates are not generic capabilities, not executable, and not trusted.",
+            "Candidates are ignored by active routing until promotion gates pass.",
+        ),
+        lifecycle_policy=(
+            "LM-created proposals enter PROPOSED_CANDIDATE only.",
+            "Generated code without tests enters BUILT_UNVALIDATED.",
+            "Passing tests without authority remains VALIDATED_NON_EXECUTING.",
+            "LIVE_IMPLEMENTED requires explicit authority profile and receipt-backed validation.",
+        ),
+        promotion_gate_policy=(
+            "Promotion is false by default.",
+            "Promotion requires code refs, tests, read-models, receipts, authority profile, and doctrine checks.",
+            "No candidate can promote itself or become live from LM output alone.",
+        ),
         authority_policy=(
             "All live authority flags default false.",
             "Unknown authority fails closed.",
@@ -1603,6 +1964,8 @@ def _generic_capability_policy_violations(capabilities: tuple[GenericCapability,
 
 
 def capability_is_live_usable(capability: GenericCapability, profile: CapabilityAuthorityProfile) -> bool:
+    if capability.lifecycle_status in {"PROPOSED_CANDIDATE", "BUILT_UNVALIDATED", "FUTURE_GATED", "BLOCKED_UNSAFE", "RETIRED"}:
+        return False
     if capability.capability_status in {"CONTRACT_ONLY", "READ_MODEL_ONLY", "FIXTURE_ONLY", "FUTURE_GATED", "BLOCKED_UNSAFE", "UNKNOWN_FAIL_CLOSED"}:
         return False
     if capability.future_gates:
@@ -1644,6 +2007,7 @@ def build_readback(
     bindings: tuple[WorkflowCapabilityBinding, ...],
     fixtures: tuple[CapabilityFixture, ...],
     gaps: tuple[CapabilityGapRecord, ...],
+    candidates: tuple[CapabilityProposalCandidate, ...],
 ) -> CapabilityIndexReadback:
     live_count = sum(1 for cap in capabilities if cap.capability_status == "LIVE_IMPLEMENTED")
     contract_count = sum(1 for cap in capabilities if cap.capability_status == "CONTRACT_ONLY")
@@ -1666,14 +2030,19 @@ def build_readback(
         portable_capability_count=portable_count,
         workflow_scoped_count=len(bindings),
         fixture_only_count=len(fixtures),
+        proposal_candidate_count=len(candidates),
         top_generic_capabilities=tuple(cap.capability_id for cap in capabilities[:10]),
         workflow_bindings=tuple(binding.binding_id for binding in bindings),
         top_gaps=tuple(gap.gap_id for gap in gaps),
+        proposed_capabilities=tuple(candidate.proposal_id for candidate in candidates),
         next_safe_move="Use tenant-filtered query results when binding capabilities to real workflow context.",
     )
 
 
-def _all_authority_false(profiles: tuple[CapabilityAuthorityProfile, ...]) -> bool:
+def _all_authority_false(
+    profiles: tuple[CapabilityAuthorityProfile, ...],
+    candidates: tuple[CapabilityProposalCandidate, ...] = (),
+) -> bool:
     authority_profiles_false = all(
         not any(
             (
@@ -1693,8 +2062,12 @@ def _all_authority_false(profiles: tuple[CapabilityAuthorityProfile, ...]) -> bo
         )
         for profile in profiles
     )
+    candidate_authority_false = all(
+        all(value is False for value in candidate.authority_boundary.values())
+        for candidate in candidates
+    )
     boundary_false = all(value is False for value in AUTHORITY_BOUNDARY.values())
-    return authority_profiles_false and boundary_false
+    return authority_profiles_false and candidate_authority_false and boundary_false
 
 
 def build_payload(*, generated_at: str = DEFAULT_GENERATED_AT) -> dict[str, Any]:
@@ -1705,11 +2078,14 @@ def build_payload(*, generated_at: str = DEFAULT_GENERATED_AT) -> dict[str, Any]
     bindings = build_workflow_bindings()
     fixtures = build_fixtures()
     doctrine_gates = build_doctrine_gates()
+    proposal_candidates = build_proposal_candidates()
+    promotion_gates = build_promotion_gates(proposal_candidates)
+    lifecycle_records = build_lifecycle_records(capabilities, proposal_candidates)
     gaps = build_gaps()
     query_examples = build_query_examples()
     blockers = build_blockers()
     generic_violations = _generic_capability_policy_violations(capabilities)
-    readback = build_readback(capabilities, bindings, fixtures, gaps)
+    readback = build_readback(capabilities, bindings, fixtures, gaps, proposal_candidates)
 
     payload: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
@@ -1717,7 +2093,9 @@ def build_payload(*, generated_at: str = DEFAULT_GENERATED_AT) -> dict[str, Any]
         "generated_at": generated_at,
         "contract_status": CONTRACT_STATUS,
         "taxonomy_types": TAXONOMY_TYPES,
+        "capability_lifecycle_statuses": CAPABILITY_LIFECYCLE_STATUSES,
         "capability_statuses": CAPABILITY_STATUSES,
+        "candidate_statuses": CANDIDATE_STATUSES,
         "portability_scopes": PORTABILITY_SCOPES,
         "input_types": INPUT_TYPES,
         "accepted_sources": ACCEPTED_SOURCES,
@@ -1731,6 +2109,9 @@ def build_payload(*, generated_at: str = DEFAULT_GENERATED_AT) -> dict[str, Any]
         "output_artifacts": [asdict(output) for output in outputs],
         "authority_profiles": [asdict(profile) for profile in profiles],
         "doctrine_gates": [asdict(gate) for gate in doctrine_gates],
+        "proposal_candidates": [asdict(candidate) for candidate in proposal_candidates],
+        "promotion_gates": [asdict(gate) for gate in promotion_gates],
+        "lifecycle_records": [asdict(record) for record in lifecycle_records],
         "capability_gaps": [asdict(gap) for gap in gaps],
         "query_examples": [asdict(example) for example in query_examples],
         "readback": asdict(readback),
@@ -1749,12 +2130,14 @@ def build_payload(*, generated_at: str = DEFAULT_GENERATED_AT) -> dict[str, Any]
             ),
         },
         "machine_proof": {
-            "all_live_authority_false": _all_authority_false(profiles),
+            "all_live_authority_false": _all_authority_false(profiles, proposal_candidates),
             "generic_capability_policy_violations": generic_violations,
             "generic_capabilities_user_agnostic": not generic_violations,
             "workflow_specific_terms_allowed_only_in_bindings_fixtures_examples": True,
             "external_system_access_performed": False,
             "registry_mutation_performed": False,
+            "candidate_promotion_performed": False,
+            "self_modifying_code_performed": False,
             "model_call_performed": False,
             "agent_dispatch_performed": False,
             "workflow_run_performed": False,
@@ -1787,6 +2170,7 @@ def format_operator_markdown(payload: dict[str, Any]) -> str:
         f"- Blocked unsafe: {readback['blocked_count']}",
         f"- Workflow bindings: {readback['workflow_scoped_count']}",
         f"- Fixture/example records: {readback['fixture_only_count']}",
+        f"- Proposal candidates: {readback['proposal_candidate_count']}",
         "",
         "## Top Generic Capabilities",
     ]
@@ -1798,6 +2182,13 @@ def format_operator_markdown(payload: dict[str, Any]) -> str:
         ]
     )
     lines.extend(f"- {gap}" for gap in readback["top_gaps"])
+    lines.extend(
+        [
+            "",
+            "## Quarantined Proposals",
+        ]
+    )
+    lines.extend(f"- {proposal}" for proposal in readback["proposed_capabilities"])
     lines.extend(
         [
             "",
@@ -1839,6 +2230,7 @@ def build_summary(payload: dict[str, Any], json_path: Path, operator_path: Path)
         "contract_only_count": readback["contract_only_count"],
         "future_gated_count": readback["future_gated_count"],
         "blocked_count": readback["blocked_count"],
+        "proposal_candidate_count": readback["proposal_candidate_count"],
         "query_example_count": len(payload["query_examples"]),
         "all_live_authority_false": payload["machine_proof"]["all_live_authority_false"],
         "generic_policy_violations": payload["machine_proof"]["generic_capability_policy_violations"],

@@ -622,6 +622,24 @@
       "severity": "high"
     },
     {
+      "blocker_id": "capability_blocker:d7d6ef4c37c69a76",
+      "blocker_type": "PROPOSED_CANDIDATE_USED_AS_LIVE_CAPABILITY",
+      "condition": "Proposal candidates are quarantined and cannot satisfy live capability lookup.",
+      "elioperator_warning": "ELIOPERATOR: PROPOSED_CANDIDATE_USED_AS_LIVE_CAPABILITY blocks capability promotion.",
+      "fail_closed": true,
+      "next_safe_move": "Return a blocked/missing capability readback or create a build cue; do not execute.",
+      "severity": "high"
+    },
+    {
+      "blocker_id": "capability_blocker:4a023c4b04487054",
+      "blocker_type": "CANDIDATE_SELF_PROMOTION_ATTEMPTED",
+      "condition": "Candidates, agents, or LM output cannot promote capability status.",
+      "elioperator_warning": "ELIOPERATOR: CANDIDATE_SELF_PROMOTION_ATTEMPTED blocks capability promotion.",
+      "fail_closed": true,
+      "next_safe_move": "Return a blocked/missing capability readback or create a build cue; do not execute.",
+      "severity": "high"
+    },
+    {
       "blocker_id": "capability_blocker:6008fc7232711c28",
       "blocker_type": "UNKNOWN_AUTHORITY",
       "condition": "Unknown authority fails closed.",
@@ -657,6 +675,16 @@
       "next_safe_move": "Return a blocked/missing capability readback or create a build cue; do not execute.",
       "severity": "high"
     }
+  ],
+  "candidate_statuses": [
+    "PROPOSED_UNVERIFIED",
+    "NEEDS_OPERATOR_REVIEW",
+    "NEEDS_DEVELOPER_BUILD",
+    "NEEDS_TESTS",
+    "NEEDS_GUARDIAN_REVIEW",
+    "REJECTED",
+    "PROMOTED_AFTER_VALIDATION",
+    "UNKNOWN_FAIL_CLOSED"
   ],
   "capability_gaps": [
     {
@@ -721,6 +749,18 @@
       "validation_required": true
     }
   ],
+  "capability_lifecycle_statuses": [
+    "KNOWN_GENERIC",
+    "WORKFLOW_BOUND",
+    "FIXTURE_ONLY",
+    "PROPOSED_CANDIDATE",
+    "BUILT_UNVALIDATED",
+    "VALIDATED_NON_EXECUTING",
+    "LIVE_IMPLEMENTED",
+    "FUTURE_GATED",
+    "BLOCKED_UNSAFE",
+    "RETIRED"
+  ],
   "capability_statuses": [
     "LIVE_IMPLEMENTED",
     "IMPLEMENTED_NON_EXECUTING",
@@ -737,6 +777,7 @@
       "git_push_pull_fetch_allowed": false,
       "live_agent_dispatch_allowed": false,
       "live_browser_allowed": false,
+      "live_candidate_promotion_allowed": false,
       "live_capability_execution_allowed": false,
       "live_email_send_allowed": false,
       "live_external_action_allowed": false,
@@ -781,6 +822,12 @@
       "Future LM interpreters may query this map but cannot write canonical truth.",
       "Machine intent candidates still require deterministic validation."
     ],
+    "lifecycle_policy": [
+      "LM-created proposals enter PROPOSED_CANDIDATE only.",
+      "Generated code without tests enters BUILT_UNVALIDATED.",
+      "Passing tests without authority remains VALIDATED_NON_EXECUTING.",
+      "LIVE_IMPLEMENTED requires explicit authority profile and receipt-backed validation."
+    ],
     "next_safe_move": "Use this index to route questions, identify gaps, and validate candidate intent without executing anything.",
     "portability_policy": [
       "Generic definitions must be user-agnostic and task-agnostic.",
@@ -792,6 +839,16 @@
       "No credentials or secret values.",
       "No raw contact data.",
       "No broad folder scans or external system probes."
+    ],
+    "promotion_gate_policy": [
+      "Promotion is false by default.",
+      "Promotion requires code refs, tests, read-models, receipts, authority profile, and doctrine checks.",
+      "No candidate can promote itself or become live from LM output alone."
+    ],
+    "proposal_candidate_policy": [
+      "Proposal candidates are quarantined suggestions for missing capability.",
+      "Candidates are not generic capabilities, not executable, and not trusted.",
+      "Candidates are ignored by active routing until promotion gates pass."
     ],
     "source_scan_policy": [
       "Use safe file/module name inspection and existing deterministic definitions.",
@@ -1037,6 +1094,7 @@
         "ATTACH_SOURCE_REF",
         "ASK_CLARIFICATION"
       ],
+      "lifecycle_status": "LIVE_IMPLEMENTED",
       "next_safe_move": "Use this capability only through its validator or existing readback rail.",
       "output_artifacts": [
         "output:e59e68582d688d23"
@@ -1112,6 +1170,7 @@
         "ANSWER_STATUS",
         "ATTACH_SOURCE_REF"
       ],
+      "lifecycle_status": "LIVE_IMPLEMENTED",
       "next_safe_move": "Use this capability only through its validator or existing readback rail.",
       "output_artifacts": [
         "output:3586905212393623"
@@ -1186,6 +1245,7 @@
         "ANSWER_STATUS",
         "ROUTE_TO_AGENT"
       ],
+      "lifecycle_status": "LIVE_IMPLEMENTED",
       "next_safe_move": "Use this capability only through its validator or existing readback rail.",
       "output_artifacts": [
         "output:5439ba746a5dee94"
@@ -1258,6 +1318,7 @@
         "ATTACH_SOURCE_REF",
         "CAPTURE_MISSING_INPUT"
       ],
+      "lifecycle_status": "LIVE_IMPLEMENTED",
       "next_safe_move": "Use this capability only through its validator or existing readback rail.",
       "output_artifacts": [
         "output:b1ca332e9b612161"
@@ -1331,6 +1392,7 @@
         "CAPTURE_MISSING_INPUT",
         "REQUEST_APPROVAL"
       ],
+      "lifecycle_status": "KNOWN_GENERIC",
       "next_safe_move": "Use this capability only through its validator or existing readback rail.",
       "output_artifacts": [
         "output:ae5705a16e151903"
@@ -1402,6 +1464,7 @@
         "ANSWER_STATUS",
         "CONTINUE_CURRENT_WORKFLOW"
       ],
+      "lifecycle_status": "VALIDATED_NON_EXECUTING",
       "next_safe_move": "Use this capability only through its validator or existing readback rail.",
       "output_artifacts": [
         "output:ee4c6e6d26d00804"
@@ -1470,6 +1533,7 @@
         "RUN_DRY_RUN",
         "ANSWER_STATUS"
       ],
+      "lifecycle_status": "VALIDATED_NON_EXECUTING",
       "next_safe_move": "Use this capability only through its validator or existing readback rail.",
       "output_artifacts": [
         "output:b80f6d3a832055e9"
@@ -1539,6 +1603,7 @@
         "RUN_DRY_RUN",
         "ANSWER_STATUS"
       ],
+      "lifecycle_status": "VALIDATED_NON_EXECUTING",
       "next_safe_move": "Use this capability only through its validator or existing readback rail.",
       "output_artifacts": [
         "output:8daf8925fca26a62"
@@ -1610,6 +1675,7 @@
         "ANSWER_STATUS",
         "REQUEST_APPROVAL"
       ],
+      "lifecycle_status": "VALIDATED_NON_EXECUTING",
       "next_safe_move": "Use this capability only through its validator or existing readback rail.",
       "output_artifacts": [
         "output:84efbb5ebf05f6ad"
@@ -1680,6 +1746,7 @@
         "PREPARE_DRAFT",
         "ANSWER_STATUS"
       ],
+      "lifecycle_status": "VALIDATED_NON_EXECUTING",
       "next_safe_move": "Use this capability only through its validator or existing readback rail.",
       "output_artifacts": [
         "output:2fb506bc1f6b8172"
@@ -1752,6 +1819,7 @@
         "REQUEST_APPROVAL",
         "ANSWER_STATUS"
       ],
+      "lifecycle_status": "VALIDATED_NON_EXECUTING",
       "next_safe_move": "Use this capability only through its validator or existing readback rail.",
       "output_artifacts": [
         "output:bc7569a001fc65a7"
@@ -1823,6 +1891,7 @@
         "ANSWER_STATUS",
         "CAPTURE_MISSING_INPUT"
       ],
+      "lifecycle_status": "VALIDATED_NON_EXECUTING",
       "next_safe_move": "Use this capability only through its validator or existing readback rail.",
       "output_artifacts": [
         "output:1712a6de51eae0f1"
@@ -1891,6 +1960,7 @@
         "REQUEST_APPROVAL",
         "ANSWER_STATUS"
       ],
+      "lifecycle_status": "VALIDATED_NON_EXECUTING",
       "next_safe_move": "Use this capability only through its validator or existing readback rail.",
       "output_artifacts": [
         "output:b5bd5ffca2129c78"
@@ -1958,6 +2028,7 @@
         "ANSWER_STATUS",
         "ROUTE_TO_AGENT"
       ],
+      "lifecycle_status": "VALIDATED_NON_EXECUTING",
       "next_safe_move": "Use this capability only through its validator or existing readback rail.",
       "output_artifacts": [
         "output:78191737aca7d232"
@@ -2030,6 +2101,7 @@
         "READ_ALOUD",
         "ANSWER_STATUS"
       ],
+      "lifecycle_status": "VALIDATED_NON_EXECUTING",
       "next_safe_move": "Use this capability only through its validator or existing readback rail.",
       "output_artifacts": [
         "output:7d0de507e438721d"
@@ -2104,6 +2176,7 @@
         "SHOW_VISUAL_WORKSPACE",
         "ANSWER_STATUS"
       ],
+      "lifecycle_status": "VALIDATED_NON_EXECUTING",
       "next_safe_move": "Use this capability only through its validator or existing readback rail.",
       "output_artifacts": [
         "output:61aa99bb2d96e87e"
@@ -2179,6 +2252,7 @@
         "CREATE_BUILD_CUE",
         "CREATE_CONTEXT_GAP"
       ],
+      "lifecycle_status": "VALIDATED_NON_EXECUTING",
       "next_safe_move": "Use this capability only through its validator or existing readback rail.",
       "output_artifacts": [
         "output:5925d027de002cf5"
@@ -2255,6 +2329,7 @@
         "ROUTE_TO_AGENT",
         "CREATE_CONTEXT_GAP"
       ],
+      "lifecycle_status": "KNOWN_GENERIC",
       "next_safe_move": "Use this capability only through its validator or existing readback rail.",
       "output_artifacts": [
         "output:5411c48ed872fc8a"
@@ -2329,6 +2404,7 @@
         "ROUTE_TO_AGENT",
         "ASK_CLARIFICATION"
       ],
+      "lifecycle_status": "VALIDATED_NON_EXECUTING",
       "next_safe_move": "Use this capability only through its validator or existing readback rail.",
       "output_artifacts": [
         "output:dce2c781a8ee9a83"
@@ -2404,6 +2480,7 @@
         "ASK_CLARIFICATION",
         "REQUEST_APPROVAL"
       ],
+      "lifecycle_status": "VALIDATED_NON_EXECUTING",
       "next_safe_move": "Use this capability only through its validator or existing readback rail.",
       "output_artifacts": [
         "output:c48d1c74495aafbf"
@@ -2481,6 +2558,7 @@
         "ATTACH_SOURCE_REF",
         "CAPTURE_MISSING_INPUT"
       ],
+      "lifecycle_status": "VALIDATED_NON_EXECUTING",
       "next_safe_move": "Use this capability only through its validator or existing readback rail.",
       "output_artifacts": [
         "output:9cdf109fcf88c567"
@@ -2558,6 +2636,7 @@
         "SHOW_VISUAL_WORKSPACE",
         "READ_ALOUD"
       ],
+      "lifecycle_status": "VALIDATED_NON_EXECUTING",
       "next_safe_move": "Use this capability only through its validator or existing readback rail.",
       "output_artifacts": [
         "output:c12c24c001d13ce3"
@@ -2632,6 +2711,7 @@
         "ATTACH_SOURCE_REF",
         "CAPTURE_MISSING_INPUT"
       ],
+      "lifecycle_status": "VALIDATED_NON_EXECUTING",
       "next_safe_move": "Use this capability only through its validator or existing readback rail.",
       "output_artifacts": [
         "output:79f95e37753c9d7b"
@@ -2705,6 +2785,7 @@
         "REQUEST_APPROVAL",
         "ANSWER_STATUS"
       ],
+      "lifecycle_status": "KNOWN_GENERIC",
       "next_safe_move": "Use this capability only through its validator or existing readback rail.",
       "output_artifacts": [
         "output:f7d201b73c5b1b1a"
@@ -2775,6 +2856,7 @@
         "REQUEST_APPROVAL",
         "ANSWER_STATUS"
       ],
+      "lifecycle_status": "FUTURE_GATED",
       "next_safe_move": "Use this capability only through its validator or existing readback rail.",
       "output_artifacts": [
         "output:c945d3ecf80101ae"
@@ -2843,6 +2925,7 @@
         "CREATE_BUILD_CUE",
         "ASK_CLARIFICATION"
       ],
+      "lifecycle_status": "BLOCKED_UNSAFE",
       "next_safe_move": "Use file metadata/source refs until a protected extraction lane exists.",
       "output_artifacts": [
         "output:64755c7c19c0bfc9"
@@ -3231,10 +3314,361 @@
     "TRANSACTION_METADATA",
     "UNKNOWN_FAIL_CLOSED"
   ],
+  "lifecycle_records": [
+    {
+      "authority_status": "explicit false authority profile",
+      "capability_ref": "request_processing",
+      "doctrine_status": "doctrine gates listed on capability",
+      "lifecycle_id": "lifecycle:291a4768d6bde889",
+      "lifecycle_status": "LIVE_IMPLEMENTED",
+      "next_safe_move": "Use as a generic capability definition only; bind through scoped workflow records.",
+      "promoted_at_policy": "not promoted by this lane",
+      "source": "generic capability index definition",
+      "test_status": "covered by capability index focused tests",
+      "validation_status": "deterministic read-model validation"
+    },
+    {
+      "authority_status": "explicit false authority profile",
+      "capability_ref": "request_response_service",
+      "doctrine_status": "doctrine gates listed on capability",
+      "lifecycle_id": "lifecycle:7df9c6bab5d4851c",
+      "lifecycle_status": "LIVE_IMPLEMENTED",
+      "next_safe_move": "Use as a generic capability definition only; bind through scoped workflow records.",
+      "promoted_at_policy": "not promoted by this lane",
+      "source": "generic capability index definition",
+      "test_status": "covered by capability index focused tests",
+      "validation_status": "deterministic read-model validation"
+    },
+    {
+      "authority_status": "explicit false authority profile",
+      "capability_ref": "route_aware_heartbeat",
+      "doctrine_status": "doctrine gates listed on capability",
+      "lifecycle_id": "lifecycle:68fe7c1adc9c9cbd",
+      "lifecycle_status": "LIVE_IMPLEMENTED",
+      "next_safe_move": "Use as a generic capability definition only; bind through scoped workflow records.",
+      "promoted_at_policy": "not promoted by this lane",
+      "source": "generic capability index definition",
+      "test_status": "covered by capability index focused tests",
+      "validation_status": "deterministic read-model validation"
+    },
+    {
+      "authority_status": "explicit false authority profile",
+      "capability_ref": "file_metadata_intake",
+      "doctrine_status": "doctrine gates listed on capability",
+      "lifecycle_id": "lifecycle:d8da97071bf86a26",
+      "lifecycle_status": "LIVE_IMPLEMENTED",
+      "next_safe_move": "Use as a generic capability definition only; bind through scoped workflow records.",
+      "promoted_at_policy": "not promoted by this lane",
+      "source": "generic capability index definition",
+      "test_status": "covered by capability index focused tests",
+      "validation_status": "deterministic read-model validation"
+    },
+    {
+      "authority_status": "explicit false authority profile",
+      "capability_ref": "protected_secret_intake",
+      "doctrine_status": "doctrine gates listed on capability",
+      "lifecycle_id": "lifecycle:bba2f774770a4446",
+      "lifecycle_status": "KNOWN_GENERIC",
+      "next_safe_move": "Use as a generic capability definition only; bind through scoped workflow records.",
+      "promoted_at_policy": "not promoted by this lane",
+      "source": "generic capability index definition",
+      "test_status": "covered by capability index focused tests",
+      "validation_status": "deterministic read-model validation"
+    },
+    {
+      "authority_status": "explicit false authority profile",
+      "capability_ref": "status_readback",
+      "doctrine_status": "doctrine gates listed on capability",
+      "lifecycle_id": "lifecycle:afff39759a4c2e6e",
+      "lifecycle_status": "VALIDATED_NON_EXECUTING",
+      "next_safe_move": "Use as a generic capability definition only; bind through scoped workflow records.",
+      "promoted_at_policy": "not promoted by this lane",
+      "source": "generic capability index definition",
+      "test_status": "covered by capability index focused tests",
+      "validation_status": "deterministic read-model validation"
+    },
+    {
+      "authority_status": "explicit false authority profile",
+      "capability_ref": "workflow_package_compilation",
+      "doctrine_status": "doctrine gates listed on capability",
+      "lifecycle_id": "lifecycle:3376ef6414b0eef1",
+      "lifecycle_status": "VALIDATED_NON_EXECUTING",
+      "next_safe_move": "Use as a generic capability definition only; bind through scoped workflow records.",
+      "promoted_at_policy": "not promoted by this lane",
+      "source": "generic capability index definition",
+      "test_status": "covered by capability index focused tests",
+      "validation_status": "deterministic read-model validation"
+    },
+    {
+      "authority_status": "explicit false authority profile",
+      "capability_ref": "dry_run",
+      "doctrine_status": "doctrine gates listed on capability",
+      "lifecycle_id": "lifecycle:08d41f0253bb0ecd",
+      "lifecycle_status": "VALIDATED_NON_EXECUTING",
+      "next_safe_move": "Use as a generic capability definition only; bind through scoped workflow records.",
+      "promoted_at_policy": "not promoted by this lane",
+      "source": "generic capability index definition",
+      "test_status": "covered by capability index focused tests",
+      "validation_status": "deterministic read-model validation"
+    },
+    {
+      "authority_status": "explicit false authority profile",
+      "capability_ref": "completion_proof_aggregation",
+      "doctrine_status": "doctrine gates listed on capability",
+      "lifecycle_id": "lifecycle:55f4bc2815cb9ffc",
+      "lifecycle_status": "VALIDATED_NON_EXECUTING",
+      "next_safe_move": "Use as a generic capability definition only; bind through scoped workflow records.",
+      "promoted_at_policy": "not promoted by this lane",
+      "source": "generic capability index definition",
+      "test_status": "covered by capability index focused tests",
+      "validation_status": "deterministic read-model validation"
+    },
+    {
+      "authority_status": "explicit false authority profile",
+      "capability_ref": "outbound_message_draft",
+      "doctrine_status": "doctrine gates listed on capability",
+      "lifecycle_id": "lifecycle:e1e5eae9f314e191",
+      "lifecycle_status": "VALIDATED_NON_EXECUTING",
+      "next_safe_move": "Use as a generic capability definition only; bind through scoped workflow records.",
+      "promoted_at_policy": "not promoted by this lane",
+      "source": "generic capability index definition",
+      "test_status": "covered by capability index focused tests",
+      "validation_status": "deterministic read-model validation"
+    },
+    {
+      "authority_status": "explicit false authority profile",
+      "capability_ref": "outbound_message_send_gate",
+      "doctrine_status": "doctrine gates listed on capability",
+      "lifecycle_id": "lifecycle:35ed4e3a43e2e9bd",
+      "lifecycle_status": "VALIDATED_NON_EXECUTING",
+      "next_safe_move": "Use as a generic capability definition only; bind through scoped workflow records.",
+      "promoted_at_policy": "not promoted by this lane",
+      "source": "generic capability index definition",
+      "test_status": "covered by capability index focused tests",
+      "validation_status": "deterministic read-model validation"
+    },
+    {
+      "authority_status": "explicit false authority profile",
+      "capability_ref": "portal_transaction_package",
+      "doctrine_status": "doctrine gates listed on capability",
+      "lifecycle_id": "lifecycle:e416f91b62773e6d",
+      "lifecycle_status": "VALIDATED_NON_EXECUTING",
+      "next_safe_move": "Use as a generic capability definition only; bind through scoped workflow records.",
+      "promoted_at_policy": "not promoted by this lane",
+      "source": "generic capability index definition",
+      "test_status": "covered by capability index focused tests",
+      "validation_status": "deterministic read-model validation"
+    },
+    {
+      "authority_status": "explicit false authority profile",
+      "capability_ref": "portal_transaction_submit_gate",
+      "doctrine_status": "doctrine gates listed on capability",
+      "lifecycle_id": "lifecycle:ce3d8953b80adf2a",
+      "lifecycle_status": "VALIDATED_NON_EXECUTING",
+      "next_safe_move": "Use as a generic capability definition only; bind through scoped workflow records.",
+      "promoted_at_policy": "not promoted by this lane",
+      "source": "generic capability index definition",
+      "test_status": "covered by capability index focused tests",
+      "validation_status": "deterministic read-model validation"
+    },
+    {
+      "authority_status": "explicit false authority profile",
+      "capability_ref": "agent_voice_compilation",
+      "doctrine_status": "doctrine gates listed on capability",
+      "lifecycle_id": "lifecycle:641109bb7b6a08e0",
+      "lifecycle_status": "VALIDATED_NON_EXECUTING",
+      "next_safe_move": "Use as a generic capability definition only; bind through scoped workflow records.",
+      "promoted_at_policy": "not promoted by this lane",
+      "source": "generic capability index definition",
+      "test_status": "covered by capability index focused tests",
+      "validation_status": "deterministic read-model validation"
+    },
+    {
+      "authority_status": "explicit false authority profile",
+      "capability_ref": "spoken_script_generation",
+      "doctrine_status": "doctrine gates listed on capability",
+      "lifecycle_id": "lifecycle:cbd8d6199827ae96",
+      "lifecycle_status": "VALIDATED_NON_EXECUTING",
+      "next_safe_move": "Use as a generic capability definition only; bind through scoped workflow records.",
+      "promoted_at_policy": "not promoted by this lane",
+      "source": "generic capability index definition",
+      "test_status": "covered by capability index focused tests",
+      "validation_status": "deterministic read-model validation"
+    },
+    {
+      "authority_status": "explicit false authority profile",
+      "capability_ref": "visual_event_compilation",
+      "doctrine_status": "doctrine gates listed on capability",
+      "lifecycle_id": "lifecycle:17f07a1036f34571",
+      "lifecycle_status": "VALIDATED_NON_EXECUTING",
+      "next_safe_move": "Use as a generic capability definition only; bind through scoped workflow records.",
+      "promoted_at_policy": "not promoted by this lane",
+      "source": "generic capability index definition",
+      "test_status": "covered by capability index focused tests",
+      "validation_status": "deterministic read-model validation"
+    },
+    {
+      "authority_status": "explicit false authority profile",
+      "capability_ref": "worker_routing",
+      "doctrine_status": "doctrine gates listed on capability",
+      "lifecycle_id": "lifecycle:1dfe98737a10d635",
+      "lifecycle_status": "VALIDATED_NON_EXECUTING",
+      "next_safe_move": "Use as a generic capability definition only; bind through scoped workflow records.",
+      "promoted_at_policy": "not promoted by this lane",
+      "source": "generic capability index definition",
+      "test_status": "covered by capability index focused tests",
+      "validation_status": "deterministic read-model validation"
+    },
+    {
+      "authority_status": "explicit false authority profile",
+      "capability_ref": "scoped_context_package",
+      "doctrine_status": "doctrine gates listed on capability",
+      "lifecycle_id": "lifecycle:12cacd7a07e59cff",
+      "lifecycle_status": "KNOWN_GENERIC",
+      "next_safe_move": "Use as a generic capability definition only; bind through scoped workflow records.",
+      "promoted_at_policy": "not promoted by this lane",
+      "source": "generic capability index definition",
+      "test_status": "covered by capability index focused tests",
+      "validation_status": "deterministic read-model validation"
+    },
+    {
+      "authority_status": "explicit false authority profile",
+      "capability_ref": "machine_intent_validation",
+      "doctrine_status": "doctrine gates listed on capability",
+      "lifecycle_id": "lifecycle:6ef2f0d3b66a8b8d",
+      "lifecycle_status": "VALIDATED_NON_EXECUTING",
+      "next_safe_move": "Use as a generic capability definition only; bind through scoped workflow records.",
+      "promoted_at_policy": "not promoted by this lane",
+      "source": "generic capability index definition",
+      "test_status": "covered by capability index focused tests",
+      "validation_status": "deterministic read-model validation"
+    },
+    {
+      "authority_status": "explicit false authority profile",
+      "capability_ref": "human_dignity_doctrine_gate",
+      "doctrine_status": "doctrine gates listed on capability",
+      "lifecycle_id": "lifecycle:7e733526f141fcaf",
+      "lifecycle_status": "VALIDATED_NON_EXECUTING",
+      "next_safe_move": "Use as a generic capability definition only; bind through scoped workflow records.",
+      "promoted_at_policy": "not promoted by this lane",
+      "source": "generic capability index definition",
+      "test_status": "covered by capability index focused tests",
+      "validation_status": "deterministic read-model validation"
+    },
+    {
+      "authority_status": "explicit false authority profile",
+      "capability_ref": "private_hmac_pii_tokenization",
+      "doctrine_status": "doctrine gates listed on capability",
+      "lifecycle_id": "lifecycle:1b52a7d988215029",
+      "lifecycle_status": "VALIDATED_NON_EXECUTING",
+      "next_safe_move": "Use as a generic capability definition only; bind through scoped workflow records.",
+      "promoted_at_policy": "not promoted by this lane",
+      "source": "generic capability index definition",
+      "test_status": "covered by capability index focused tests",
+      "validation_status": "deterministic read-model validation"
+    },
+    {
+      "authority_status": "explicit false authority profile",
+      "capability_ref": "client_cockpit_handoff",
+      "doctrine_status": "doctrine gates listed on capability",
+      "lifecycle_id": "lifecycle:0559da53341d79b0",
+      "lifecycle_status": "VALIDATED_NON_EXECUTING",
+      "next_safe_move": "Use as a generic capability definition only; bind through scoped workflow records.",
+      "promoted_at_policy": "not promoted by this lane",
+      "source": "generic capability index definition",
+      "test_status": "covered by capability index focused tests",
+      "validation_status": "deterministic read-model validation"
+    },
+    {
+      "authority_status": "explicit false authority profile",
+      "capability_ref": "source_ref_management",
+      "doctrine_status": "doctrine gates listed on capability",
+      "lifecycle_id": "lifecycle:5ee5395e7fbd3629",
+      "lifecycle_status": "VALIDATED_NON_EXECUTING",
+      "next_safe_move": "Use as a generic capability definition only; bind through scoped workflow records.",
+      "promoted_at_policy": "not promoted by this lane",
+      "source": "generic capability index definition",
+      "test_status": "covered by capability index focused tests",
+      "validation_status": "deterministic read-model validation"
+    },
+    {
+      "authority_status": "explicit false authority profile",
+      "capability_ref": "approval_gate",
+      "doctrine_status": "doctrine gates listed on capability",
+      "lifecycle_id": "lifecycle:b272b5afba948a8a",
+      "lifecycle_status": "KNOWN_GENERIC",
+      "next_safe_move": "Use as a generic capability definition only; bind through scoped workflow records.",
+      "promoted_at_policy": "not promoted by this lane",
+      "source": "generic capability index definition",
+      "test_status": "covered by capability index focused tests",
+      "validation_status": "deterministic read-model validation"
+    },
+    {
+      "authority_status": "explicit false authority profile",
+      "capability_ref": "record_keeping_write",
+      "doctrine_status": "doctrine gates listed on capability",
+      "lifecycle_id": "lifecycle:6eacbcb07f1d8157",
+      "lifecycle_status": "FUTURE_GATED",
+      "next_safe_move": "Use as a generic capability definition only; bind through scoped workflow records.",
+      "promoted_at_policy": "not promoted by this lane",
+      "source": "generic capability index definition",
+      "test_status": "covered by capability index focused tests",
+      "validation_status": "deterministic read-model validation"
+    },
+    {
+      "authority_status": "explicit false authority profile",
+      "capability_ref": "document_ocr_extraction",
+      "doctrine_status": "doctrine gates listed on capability",
+      "lifecycle_id": "lifecycle:89a07735c4cf4ce2",
+      "lifecycle_status": "BLOCKED_UNSAFE",
+      "next_safe_move": "Use as a generic capability definition only; bind through scoped workflow records.",
+      "promoted_at_policy": "not promoted by this lane",
+      "source": "generic capability index definition",
+      "test_status": "covered by capability index focused tests",
+      "validation_status": "deterministic read-model validation"
+    },
+    {
+      "authority_status": "zero execution authority",
+      "capability_ref": "proposal:client_cockpit_visual_event_renderer",
+      "doctrine_status": "promotion gate required before use",
+      "lifecycle_id": "lifecycle:f798e673f17d0c5e",
+      "lifecycle_status": "PROPOSED_CANDIDATE",
+      "next_safe_move": "Review, build, test, and receipt the lane before any promotion attempt.",
+      "promoted_at_policy": "cannot be promoted from candidate or LM output alone",
+      "source": "quarantined capability proposal candidate",
+      "test_status": "tests required before promotion",
+      "validation_status": "unverified candidate"
+    },
+    {
+      "authority_status": "zero execution authority",
+      "capability_ref": "proposal:outbound_message_draft_binding_adapter",
+      "doctrine_status": "promotion gate required before use",
+      "lifecycle_id": "lifecycle:013d26a6fc12c18f",
+      "lifecycle_status": "PROPOSED_CANDIDATE",
+      "next_safe_move": "Review, build, test, and receipt the lane before any promotion attempt.",
+      "promoted_at_policy": "cannot be promoted from candidate or LM output alone",
+      "source": "quarantined capability proposal candidate",
+      "test_status": "tests required before promotion",
+      "validation_status": "unverified candidate"
+    },
+    {
+      "authority_status": "zero execution authority",
+      "capability_ref": "proposal:source_ref_parser_fixture_binding",
+      "doctrine_status": "promotion gate required before use",
+      "lifecycle_id": "lifecycle:e139ffe3b7105a14",
+      "lifecycle_status": "PROPOSED_CANDIDATE",
+      "next_safe_move": "Review, build, test, and receipt the lane before any promotion attempt.",
+      "promoted_at_policy": "cannot be promoted from candidate or LM output alone",
+      "source": "quarantined capability proposal candidate",
+      "test_status": "tests required before promotion",
+      "validation_status": "unverified candidate"
+    }
+  ],
   "machine_proof": {
     "agent_dispatch_performed": false,
     "all_live_authority_false": true,
-    "content_hash": "sha256:3398fa3bff678934965e82e2981dd260531b4ad62205c76d26bffcb1efc8346a",
+    "candidate_promotion_performed": false,
+    "content_hash": "sha256:98b76b8198cef7455e42916e3ff94a2aaf324b8e022e9557afb37744e55cdde3",
     "credential_scan_performed": false,
     "external_system_access_performed": false,
     "generic_capabilities_user_agnostic": true,
@@ -3244,6 +3678,7 @@
     "model_call_performed": false,
     "raw_body_scan_performed": false,
     "registry_mutation_performed": false,
+    "self_modifying_code_performed": false,
     "workflow_run_performed": false,
     "workflow_specific_terms_allowed_only_in_bindings_fixtures_examples": true
   },
@@ -3312,6 +3747,9 @@
       "capability_record_policy",
       "workflow_binding_policy",
       "fixture_policy",
+      "proposal_candidate_policy",
+      "lifecycle_policy",
+      "promotion_gate_policy",
       "authority_policy",
       "intent_interpreter_policy",
       "doctrine_gate_policy",
@@ -3344,9 +3782,11 @@
       "portable_capability_count",
       "workflow_scoped_count",
       "fixture_only_count",
+      "proposal_candidate_count",
       "top_generic_capabilities",
       "workflow_bindings",
       "top_gaps",
+      "proposed_capabilities",
       "next_safe_move"
     ],
     "CapabilityInputRequirement": [
@@ -3362,6 +3802,18 @@
       "missing_behavior",
       "next_safe_move"
     ],
+    "CapabilityLifecycleRecord": [
+      "lifecycle_id",
+      "capability_ref",
+      "lifecycle_status",
+      "source",
+      "validation_status",
+      "test_status",
+      "authority_status",
+      "doctrine_status",
+      "promoted_at_policy",
+      "next_safe_move"
+    ],
     "CapabilityOutputArtifact": [
       "output_id",
       "capability_ref",
@@ -3371,6 +3823,50 @@
       "safe_for_lm_context",
       "safe_for_mac_render",
       "proof_status",
+      "next_safe_move"
+    ],
+    "CapabilityPromotionGate": [
+      "promotion_gate_id",
+      "proposal_ref",
+      "required_code_refs",
+      "required_tests",
+      "required_readmodels",
+      "required_receipts",
+      "required_authority_profile",
+      "required_doctrine_checks",
+      "operator_approval_required",
+      "developer_review_required",
+      "guardian_review_required",
+      "promotion_allowed",
+      "promotion_status",
+      "next_safe_move"
+    ],
+    "CapabilityProposalCandidate": [
+      "proposal_id",
+      "source_request_id",
+      "proposed_capability_name",
+      "proposed_taxonomy_type",
+      "proposed_task_type",
+      "description",
+      "reason_needed",
+      "nearest_existing_capabilities",
+      "missing_inputs",
+      "expected_outputs",
+      "required_receipts",
+      "required_tests",
+      "required_authority_review",
+      "suggested_worker",
+      "suggested_module_name",
+      "suggested_build_lane",
+      "evidence_refs",
+      "blocker_severity",
+      "reconciliation_instructions",
+      "risk_level",
+      "tenant_scope",
+      "client_scope",
+      "candidate_status",
+      "validation_required",
+      "authority_boundary",
       "next_safe_move"
     ],
     "DoctrineGateRef": [
@@ -3387,6 +3883,7 @@
       "capability_name",
       "taxonomy_type",
       "description",
+      "lifecycle_status",
       "portability_scope",
       "capability_status",
       "applicable_task_types",
@@ -3740,6 +4237,331 @@
     "FIXTURE_ONLY",
     "UNKNOWN_FAIL_CLOSED"
   ],
+  "promotion_gates": [
+    {
+      "developer_review_required": true,
+      "guardian_review_required": false,
+      "next_safe_move": "Keep the proposal quarantined until code, tests, receipts, authority profile, and reviews exist.",
+      "operator_approval_required": true,
+      "promotion_allowed": false,
+      "promotion_gate_id": "promotion_gate:f798e673f17d0c5e",
+      "promotion_status": "BLOCKED_UNTIL_VALIDATED",
+      "proposal_ref": "proposal:client_cockpit_visual_event_renderer",
+      "required_authority_profile": "authority:proposal:client_cockpit_visual_event_renderer:required_before_promotion",
+      "required_code_refs": [
+        "mac_visual_event_renderer_future"
+      ],
+      "required_doctrine_checks": [
+        "TENANT_SCOPE_POLICY",
+        "SENSITIVE_DATA_POLICY",
+        "candidate_non_execution_policy",
+        "human_dignity_screen"
+      ],
+      "required_readmodels": [
+        "generated/read_models/mac_visual_event_renderer_future.json"
+      ],
+      "required_receipts": [
+        "focused Mac renderer tests",
+        "operator visual-readback approval",
+        "authority boundary receipt"
+      ],
+      "required_tests": [
+        "unit tests for package parsing",
+        "renderer fixture test",
+        "privacy prompt exclusion test"
+      ]
+    },
+    {
+      "developer_review_required": true,
+      "guardian_review_required": true,
+      "next_safe_move": "Keep the proposal quarantined until code, tests, receipts, authority profile, and reviews exist.",
+      "operator_approval_required": true,
+      "promotion_allowed": false,
+      "promotion_gate_id": "promotion_gate:013d26a6fc12c18f",
+      "promotion_status": "BLOCKED_UNTIL_VALIDATED",
+      "proposal_ref": "proposal:outbound_message_draft_binding_adapter",
+      "required_authority_profile": "authority:proposal:outbound_message_draft_binding_adapter:required_before_promotion",
+      "required_code_refs": [
+        "outbound_message_draft_binding_adapter_future"
+      ],
+      "required_doctrine_checks": [
+        "TENANT_SCOPE_POLICY",
+        "SENSITIVE_DATA_POLICY",
+        "candidate_non_execution_policy",
+        "HUMAN_DIGNITY_DOCTRINE"
+      ],
+      "required_readmodels": [
+        "generated/read_models/outbound_message_draft_binding_adapter_future.json"
+      ],
+      "required_receipts": [
+        "draft package fixture",
+        "no-send authority receipt",
+        "privacy scan receipt"
+      ],
+      "required_tests": [
+        "missing recipient blocks",
+        "send authority remains false",
+        "no raw contact data output"
+      ]
+    },
+    {
+      "developer_review_required": true,
+      "guardian_review_required": true,
+      "next_safe_move": "Keep the proposal quarantined until code, tests, receipts, authority profile, and reviews exist.",
+      "operator_approval_required": true,
+      "promotion_allowed": false,
+      "promotion_gate_id": "promotion_gate:e139ffe3b7105a14",
+      "promotion_status": "BLOCKED_UNTIL_VALIDATED",
+      "proposal_ref": "proposal:source_ref_parser_fixture_binding",
+      "required_authority_profile": "authority:proposal:source_ref_parser_fixture_binding:required_before_promotion",
+      "required_code_refs": [
+        "source_ref_parser_fixture_binding_future"
+      ],
+      "required_doctrine_checks": [
+        "TENANT_SCOPE_POLICY",
+        "SENSITIVE_DATA_POLICY",
+        "candidate_non_execution_policy",
+        "HUMAN_DIGNITY_DOCTRINE"
+      ],
+      "required_readmodels": [
+        "generated/read_models/source_ref_parser_fixture_binding_future.json"
+      ],
+      "required_receipts": [
+        "raw-body approval decision",
+        "local parser fixture test",
+        "no-file-mutation receipt"
+      ],
+      "required_tests": [
+        "raw body blocked by default",
+        "metadata-only fixture passes",
+        "cross-project scope blocked"
+      ]
+    }
+  ],
+  "proposal_candidates": [
+    {
+      "authority_boundary": {
+        "credential_handling_allowed": false,
+        "file_mutation_allowed": false,
+        "live_agent_dispatch_allowed": false,
+        "live_audio_playback_allowed": false,
+        "live_browser_allowed": false,
+        "live_candidate_promotion_allowed": false,
+        "live_capability_execution_allowed": false,
+        "live_external_action_allowed": false,
+        "live_model_call_allowed": false,
+        "live_outbound_message_send_allowed": false,
+        "live_portal_access_allowed": false,
+        "live_portal_submit_allowed": false,
+        "live_registry_mutation_allowed": false,
+        "live_secret_reveal_allowed": false,
+        "live_visual_generation_allowed": false,
+        "live_workflow_run_allowed": false,
+        "network_allowed": false,
+        "raw_body_ingestion_allowed": false
+      },
+      "blocker_severity": "medium",
+      "candidate_status": "NEEDS_DEVELOPER_BUILD",
+      "client_scope": "client_scope:none",
+      "description": "Future Mac-local renderer for sanitized visual event packages.",
+      "evidence_refs": [
+        "generated/read_models/chat_workflow_visual_event_package_compiler.json"
+      ],
+      "expected_outputs": [
+        "local visual render receipt",
+        "Mac-render-safe status readback"
+      ],
+      "missing_inputs": [
+        "Mac renderer lifecycle contract",
+        "local asset policy",
+        "screenshot/render validation receipts"
+      ],
+      "nearest_existing_capabilities": [
+        "visual_event_compilation",
+        "client_cockpit_handoff"
+      ],
+      "next_safe_move": "Queue a Mac renderer build lane; do not render, generate, or play media from this index.",
+      "proposal_id": "proposal:client_cockpit_visual_event_renderer",
+      "proposed_capability_name": "CLIENT_COCKPIT_VISUAL_EVENT_RENDERER",
+      "proposed_task_type": "render local visual feedback",
+      "proposed_taxonomy_type": "CLIENT_COCKPIT_HANDOFF",
+      "reason_needed": "Visual event packages exist, but local Mac rendering/playback is not an active capability in this index.",
+      "reconciliation_instructions": [
+        "Keep this candidate out of generic_capabilities.",
+        "Implement Mac renderer separately and prove local-only behavior before promotion."
+      ],
+      "required_authority_review": [
+        "developer review",
+        "operator review",
+        "Guardian review if external/media provider is introduced"
+      ],
+      "required_receipts": [
+        "focused Mac renderer tests",
+        "operator visual-readback approval",
+        "authority boundary receipt"
+      ],
+      "required_tests": [
+        "unit tests for package parsing",
+        "renderer fixture test",
+        "privacy prompt exclusion test"
+      ],
+      "risk_level": "medium",
+      "source_request_id": "fixture_request:missing_visual_renderer",
+      "suggested_build_lane": "Mac-local visual renderer lane",
+      "suggested_module_name": "mac_visual_event_renderer_future",
+      "suggested_worker": "MAC_CODEX",
+      "tenant_scope": "tenant_scope:generic",
+      "validation_required": true
+    },
+    {
+      "authority_boundary": {
+        "credential_handling_allowed": false,
+        "file_mutation_allowed": false,
+        "live_agent_dispatch_allowed": false,
+        "live_audio_playback_allowed": false,
+        "live_browser_allowed": false,
+        "live_candidate_promotion_allowed": false,
+        "live_capability_execution_allowed": false,
+        "live_external_action_allowed": false,
+        "live_model_call_allowed": false,
+        "live_outbound_message_send_allowed": false,
+        "live_portal_access_allowed": false,
+        "live_portal_submit_allowed": false,
+        "live_registry_mutation_allowed": false,
+        "live_secret_reveal_allowed": false,
+        "live_visual_generation_allowed": false,
+        "live_workflow_run_allowed": false,
+        "network_allowed": false,
+        "raw_body_ingestion_allowed": false
+      },
+      "blocker_severity": "high",
+      "candidate_status": "NEEDS_TESTS",
+      "client_scope": "client_scope:none",
+      "description": "Future workflow binding adapter for reviewable outbound drafts when no wrapper exists for the current workflow.",
+      "evidence_refs": [
+        "generated/read_models/gated_email_draft_adapter.json"
+      ],
+      "expected_outputs": [
+        "reviewable draft artifact",
+        "operator draft readback"
+      ],
+      "missing_inputs": [
+        "workflow-specific recipient refs",
+        "draft package compiler refs",
+        "attachment/ref policy"
+      ],
+      "nearest_existing_capabilities": [
+        "outbound_message_draft",
+        "worker_routing",
+        "machine_intent_validation"
+      ],
+      "next_safe_move": "Build a workflow binding adapter with tests; keep send authority false.",
+      "proposal_id": "proposal:outbound_message_draft_binding_adapter",
+      "proposed_capability_name": "OUTBOUND_MESSAGE_DRAFT_BINDING_ADAPTER",
+      "proposed_task_type": "prepare outbound message draft for a new workflow binding",
+      "proposed_taxonomy_type": "OUTBOUND_MESSAGE_DRAFT",
+      "reason_needed": "The generic draft capability exists, but a workflow-specific binding may be absent for a new tenant/workflow.",
+      "reconciliation_instructions": [
+        "Candidate may create a build cue only.",
+        "Candidate must never grant send authority or imply a message was sent."
+      ],
+      "required_authority_review": [
+        "developer review",
+        "Cassandra/Guardian review for communications boundary"
+      ],
+      "required_receipts": [
+        "draft package fixture",
+        "no-send authority receipt",
+        "privacy scan receipt"
+      ],
+      "required_tests": [
+        "missing recipient blocks",
+        "send authority remains false",
+        "no raw contact data output"
+      ],
+      "risk_level": "high",
+      "source_request_id": "fixture_request:missing_draft_adapter",
+      "suggested_build_lane": "workflow-specific outbound draft binding lane",
+      "suggested_module_name": "outbound_message_draft_binding_adapter_future",
+      "suggested_worker": "PC_CODEX",
+      "tenant_scope": "tenant_scope:generic",
+      "validation_required": true
+    },
+    {
+      "authority_boundary": {
+        "credential_handling_allowed": false,
+        "file_mutation_allowed": false,
+        "live_agent_dispatch_allowed": false,
+        "live_audio_playback_allowed": false,
+        "live_browser_allowed": false,
+        "live_candidate_promotion_allowed": false,
+        "live_capability_execution_allowed": false,
+        "live_external_action_allowed": false,
+        "live_model_call_allowed": false,
+        "live_outbound_message_send_allowed": false,
+        "live_portal_access_allowed": false,
+        "live_portal_submit_allowed": false,
+        "live_registry_mutation_allowed": false,
+        "live_secret_reveal_allowed": false,
+        "live_visual_generation_allowed": false,
+        "live_workflow_run_allowed": false,
+        "network_allowed": false,
+        "raw_body_ingestion_allowed": false
+      },
+      "blocker_severity": "high",
+      "candidate_status": "NEEDS_GUARDIAN_REVIEW",
+      "client_scope": "client_scope:none",
+      "description": "Future parser binding for device/project source refs; raw body ingestion remains blocked by default.",
+      "evidence_refs": [
+        "generated/read_models/scoped_context_package_compiler_contract.json"
+      ],
+      "expected_outputs": [
+        "sanitized source summary ref",
+        "context gap resolution readback"
+      ],
+      "missing_inputs": [
+        "approved source ref",
+        "parser privacy policy",
+        "local parse fixture"
+      ],
+      "nearest_existing_capabilities": [
+        "source_ref_management",
+        "scoped_context_package",
+        "worker_routing"
+      ],
+      "next_safe_move": "Collect source refs and create a parser build cue; do not ingest raw bodies.",
+      "proposal_id": "proposal:source_ref_parser_fixture_binding",
+      "proposed_capability_name": "SOURCE_REF_PARSER_FIXTURE_BINDING",
+      "proposed_task_type": "parse device/source context from approved refs",
+      "proposed_taxonomy_type": "SOURCE_REF_MANAGEMENT",
+      "reason_needed": "Creative/project routing can identify a missing source-ref parser, but parser capability is not live.",
+      "reconciliation_instructions": [
+        "Do not parse source bodies unless a protected parser lane exists.",
+        "Keep parser candidates scoped to fixtures/bindings until validated."
+      ],
+      "required_authority_review": [
+        "developer review",
+        "Guardian review if raw body parsing is requested"
+      ],
+      "required_receipts": [
+        "raw-body approval decision",
+        "local parser fixture test",
+        "no-file-mutation receipt"
+      ],
+      "required_tests": [
+        "raw body blocked by default",
+        "metadata-only fixture passes",
+        "cross-project scope blocked"
+      ],
+      "risk_level": "high",
+      "source_request_id": "fixture_request:missing_source_ref_parser",
+      "suggested_build_lane": "protected source-ref parser binding lane",
+      "suggested_module_name": "source_ref_parser_fixture_binding_future",
+      "suggested_worker": "PC_CODEX",
+      "tenant_scope": "tenant_scope:generic",
+      "validation_required": true
+    }
+  ],
   "query_examples": [
     {
       "example_context": "Capital Hilton appears only as a fixture for a missing workflow-scoped reference.",
@@ -3890,6 +4712,59 @@
       "query_id": "query:generic_dignity_labor",
       "recommended_intent_type": "ASK_CLARIFICATION",
       "validation_required": true
+    },
+    {
+      "example_context": "If a Mac renderer is absent, create a quarantined proposal candidate only.",
+      "generic_task_type": "render local visual feedback",
+      "interpreted_need": "render local visual feedback from a sanitized visual event package",
+      "matched_capabilities": [
+        "visual_event_compilation",
+        "client_cockpit_handoff"
+      ],
+      "missing_capabilities": [
+        "CLIENT_COCKPIT_VISUAL_EVENT_RENDERER"
+      ],
+      "next_safe_move": "Create proposal:client_cockpit_visual_event_renderer; do not render, generate, or play visuals.",
+      "operator_text": "show the status with a local animation",
+      "query_id": "query:missing_visual_renderer",
+      "recommended_intent_type": "CREATE_BUILD_CUE",
+      "validation_required": true
+    },
+    {
+      "example_context": "Cassandra is an example author/role; candidate remains a draft binding proposal with no send authority.",
+      "generic_task_type": "prepare outbound message draft",
+      "interpreted_need": "prepare outbound communication draft when a workflow binding is missing",
+      "matched_capabilities": [
+        "outbound_message_draft",
+        "worker_routing",
+        "machine_intent_validation"
+      ],
+      "missing_capabilities": [
+        "OUTBOUND_MESSAGE_DRAFT_BINDING_ADAPTER"
+      ],
+      "next_safe_move": "Create a draft-binding proposal only; do not send or imply send readiness.",
+      "operator_text": "ask Cassandra to prep the email for this new workflow",
+      "query_id": "query:missing_cassandra_draft_adapter",
+      "recommended_intent_type": "PREPARE_DRAFT",
+      "validation_required": true
+    },
+    {
+      "example_context": "X32 is a fixture binding example; raw body ingestion remains blocked by default.",
+      "generic_task_type": "parse source reference context",
+      "interpreted_need": "parse device/source context from approved source refs",
+      "matched_capabilities": [
+        "source_ref_management",
+        "scoped_context_package",
+        "worker_routing"
+      ],
+      "missing_capabilities": [
+        "SOURCE_REF_PARSER_FIXTURE_BINDING"
+      ],
+      "next_safe_move": "Create a parser proposal/context gap; do not ingest source bodies by default.",
+      "operator_text": "parse the X32 source ref",
+      "query_id": "query:missing_source_ref_parser",
+      "recommended_intent_type": "CREATE_CONTEXT_GAP",
+      "validation_required": true
     }
   ],
   "read_model_id": "openclaw_capability_index",
@@ -3904,6 +4779,12 @@
     "operator_headline": "Portable capability index ready",
     "operator_message": "OpenClaw indexed generic capabilities separately from workflow bindings and fixtures. The index is safe for intent validation and gap discovery, but it grants no live authority.",
     "portable_capability_count": 26,
+    "proposal_candidate_count": 3,
+    "proposed_capabilities": [
+      "proposal:client_cockpit_visual_event_renderer",
+      "proposal:outbound_message_draft_binding_adapter",
+      "proposal:source_ref_parser_fixture_binding"
+    ],
     "readback_id": "readback:openclaw_capability_index:v0",
     "status": "CAPABILITY_INDEX_READY",
     "top_gaps": [
@@ -4004,6 +4885,7 @@
             "ATTACH_SOURCE_REF",
             "ASK_CLARIFICATION"
           ],
+          "lifecycle_status": "LIVE_IMPLEMENTED",
           "next_safe_move": "Use this capability only through its validator or existing readback rail.",
           "output_artifacts": [
             "output:e59e68582d688d23"
@@ -4079,6 +4961,7 @@
             "ANSWER_STATUS",
             "ATTACH_SOURCE_REF"
           ],
+          "lifecycle_status": "LIVE_IMPLEMENTED",
           "next_safe_move": "Use this capability only through its validator or existing readback rail.",
           "output_artifacts": [
             "output:3586905212393623"
@@ -4153,6 +5036,7 @@
             "ANSWER_STATUS",
             "ROUTE_TO_AGENT"
           ],
+          "lifecycle_status": "LIVE_IMPLEMENTED",
           "next_safe_move": "Use this capability only through its validator or existing readback rail.",
           "output_artifacts": [
             "output:5439ba746a5dee94"
@@ -4225,6 +5109,7 @@
             "ATTACH_SOURCE_REF",
             "CAPTURE_MISSING_INPUT"
           ],
+          "lifecycle_status": "LIVE_IMPLEMENTED",
           "next_safe_move": "Use this capability only through its validator or existing readback rail.",
           "output_artifacts": [
             "output:b1ca332e9b612161"
@@ -4298,6 +5183,7 @@
             "CAPTURE_MISSING_INPUT",
             "REQUEST_APPROVAL"
           ],
+          "lifecycle_status": "KNOWN_GENERIC",
           "next_safe_move": "Use this capability only through its validator or existing readback rail.",
           "output_artifacts": [
             "output:ae5705a16e151903"
@@ -4369,6 +5255,7 @@
             "ANSWER_STATUS",
             "CONTINUE_CURRENT_WORKFLOW"
           ],
+          "lifecycle_status": "VALIDATED_NON_EXECUTING",
           "next_safe_move": "Use this capability only through its validator or existing readback rail.",
           "output_artifacts": [
             "output:ee4c6e6d26d00804"
@@ -4437,6 +5324,7 @@
             "RUN_DRY_RUN",
             "ANSWER_STATUS"
           ],
+          "lifecycle_status": "VALIDATED_NON_EXECUTING",
           "next_safe_move": "Use this capability only through its validator or existing readback rail.",
           "output_artifacts": [
             "output:b80f6d3a832055e9"
@@ -4506,6 +5394,7 @@
             "RUN_DRY_RUN",
             "ANSWER_STATUS"
           ],
+          "lifecycle_status": "VALIDATED_NON_EXECUTING",
           "next_safe_move": "Use this capability only through its validator or existing readback rail.",
           "output_artifacts": [
             "output:8daf8925fca26a62"
@@ -4577,6 +5466,7 @@
             "ANSWER_STATUS",
             "REQUEST_APPROVAL"
           ],
+          "lifecycle_status": "VALIDATED_NON_EXECUTING",
           "next_safe_move": "Use this capability only through its validator or existing readback rail.",
           "output_artifacts": [
             "output:84efbb5ebf05f6ad"
@@ -4647,6 +5537,7 @@
             "PREPARE_DRAFT",
             "ANSWER_STATUS"
           ],
+          "lifecycle_status": "VALIDATED_NON_EXECUTING",
           "next_safe_move": "Use this capability only through its validator or existing readback rail.",
           "output_artifacts": [
             "output:2fb506bc1f6b8172"
@@ -4719,6 +5610,7 @@
             "REQUEST_APPROVAL",
             "ANSWER_STATUS"
           ],
+          "lifecycle_status": "VALIDATED_NON_EXECUTING",
           "next_safe_move": "Use this capability only through its validator or existing readback rail.",
           "output_artifacts": [
             "output:bc7569a001fc65a7"
@@ -4790,6 +5682,7 @@
             "ANSWER_STATUS",
             "CAPTURE_MISSING_INPUT"
           ],
+          "lifecycle_status": "VALIDATED_NON_EXECUTING",
           "next_safe_move": "Use this capability only through its validator or existing readback rail.",
           "output_artifacts": [
             "output:1712a6de51eae0f1"
@@ -4858,6 +5751,7 @@
             "REQUEST_APPROVAL",
             "ANSWER_STATUS"
           ],
+          "lifecycle_status": "VALIDATED_NON_EXECUTING",
           "next_safe_move": "Use this capability only through its validator or existing readback rail.",
           "output_artifacts": [
             "output:b5bd5ffca2129c78"
@@ -4925,6 +5819,7 @@
             "ANSWER_STATUS",
             "ROUTE_TO_AGENT"
           ],
+          "lifecycle_status": "VALIDATED_NON_EXECUTING",
           "next_safe_move": "Use this capability only through its validator or existing readback rail.",
           "output_artifacts": [
             "output:78191737aca7d232"
@@ -4997,6 +5892,7 @@
             "READ_ALOUD",
             "ANSWER_STATUS"
           ],
+          "lifecycle_status": "VALIDATED_NON_EXECUTING",
           "next_safe_move": "Use this capability only through its validator or existing readback rail.",
           "output_artifacts": [
             "output:7d0de507e438721d"
@@ -5071,6 +5967,7 @@
             "SHOW_VISUAL_WORKSPACE",
             "ANSWER_STATUS"
           ],
+          "lifecycle_status": "VALIDATED_NON_EXECUTING",
           "next_safe_move": "Use this capability only through its validator or existing readback rail.",
           "output_artifacts": [
             "output:61aa99bb2d96e87e"
@@ -5146,6 +6043,7 @@
             "CREATE_BUILD_CUE",
             "CREATE_CONTEXT_GAP"
           ],
+          "lifecycle_status": "VALIDATED_NON_EXECUTING",
           "next_safe_move": "Use this capability only through its validator or existing readback rail.",
           "output_artifacts": [
             "output:5925d027de002cf5"
@@ -5222,6 +6120,7 @@
             "ROUTE_TO_AGENT",
             "CREATE_CONTEXT_GAP"
           ],
+          "lifecycle_status": "KNOWN_GENERIC",
           "next_safe_move": "Use this capability only through its validator or existing readback rail.",
           "output_artifacts": [
             "output:5411c48ed872fc8a"
@@ -5296,6 +6195,7 @@
             "ROUTE_TO_AGENT",
             "ASK_CLARIFICATION"
           ],
+          "lifecycle_status": "VALIDATED_NON_EXECUTING",
           "next_safe_move": "Use this capability only through its validator or existing readback rail.",
           "output_artifacts": [
             "output:dce2c781a8ee9a83"
@@ -5371,6 +6271,7 @@
             "ASK_CLARIFICATION",
             "REQUEST_APPROVAL"
           ],
+          "lifecycle_status": "VALIDATED_NON_EXECUTING",
           "next_safe_move": "Use this capability only through its validator or existing readback rail.",
           "output_artifacts": [
             "output:c48d1c74495aafbf"
@@ -5448,6 +6349,7 @@
             "ATTACH_SOURCE_REF",
             "CAPTURE_MISSING_INPUT"
           ],
+          "lifecycle_status": "VALIDATED_NON_EXECUTING",
           "next_safe_move": "Use this capability only through its validator or existing readback rail.",
           "output_artifacts": [
             "output:9cdf109fcf88c567"
@@ -5525,6 +6427,7 @@
             "SHOW_VISUAL_WORKSPACE",
             "READ_ALOUD"
           ],
+          "lifecycle_status": "VALIDATED_NON_EXECUTING",
           "next_safe_move": "Use this capability only through its validator or existing readback rail.",
           "output_artifacts": [
             "output:c12c24c001d13ce3"
@@ -5599,6 +6502,7 @@
             "ATTACH_SOURCE_REF",
             "CAPTURE_MISSING_INPUT"
           ],
+          "lifecycle_status": "VALIDATED_NON_EXECUTING",
           "next_safe_move": "Use this capability only through its validator or existing readback rail.",
           "output_artifacts": [
             "output:79f95e37753c9d7b"
@@ -5672,6 +6576,7 @@
             "REQUEST_APPROVAL",
             "ANSWER_STATUS"
           ],
+          "lifecycle_status": "KNOWN_GENERIC",
           "next_safe_move": "Use this capability only through its validator or existing readback rail.",
           "output_artifacts": [
             "output:f7d201b73c5b1b1a"
@@ -5742,6 +6647,7 @@
             "REQUEST_APPROVAL",
             "ANSWER_STATUS"
           ],
+          "lifecycle_status": "FUTURE_GATED",
           "next_safe_move": "Use this capability only through its validator or existing readback rail.",
           "output_artifacts": [
             "output:c945d3ecf80101ae"
@@ -5810,6 +6716,7 @@
             "CREATE_BUILD_CUE",
             "ASK_CLARIFICATION"
           ],
+          "lifecycle_status": "BLOCKED_UNSAFE",
           "next_safe_move": "Use file metadata/source refs until a protected extraction lane exists.",
           "output_artifacts": [
             "output:64755c7c19c0bfc9"
