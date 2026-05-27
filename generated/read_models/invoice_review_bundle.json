@@ -1,0 +1,308 @@
+{
+  "approval_button_contract": {
+    "button_labels": [
+      "APPROVE",
+      "DO_NOT_APPROVE",
+      "EXPLAIN",
+      "EDIT_DRAFT",
+      "HOLD"
+    ],
+    "buttons_are_ui_controls": true,
+    "typed_approval_code_required": false
+  },
+  "authority_boundary": {
+    "approval_execution_allowed": false,
+    "browser_automation_allowed": false,
+    "coupa_access_allowed": false,
+    "coupa_submit_allowed": false,
+    "credential_handling_allowed": false,
+    "email_send_allowed": false,
+    "gmail_access_allowed": false,
+    "ledger_posting_allowed": false,
+    "model_call_allowed": false,
+    "network_allowed": false,
+    "payment_mark_paid_allowed": false,
+    "production_state_mutation_allowed": false,
+    "tool_execution_allowed": false
+  },
+  "capital_hilton_bundle": {
+    "authority_boundary": {
+      "approval_execution_allowed": false,
+      "browser_automation_allowed": false,
+      "coupa_access_allowed": false,
+      "coupa_submit_allowed": false,
+      "credential_handling_allowed": false,
+      "email_send_allowed": false,
+      "gmail_access_allowed": false,
+      "ledger_posting_allowed": false,
+      "model_call_allowed": false,
+      "network_allowed": false,
+      "payment_mark_paid_allowed": false,
+      "production_state_mutation_allowed": false,
+      "tool_execution_allowed": false
+    },
+    "blockers": [
+      "Coupa submission proof is still required.",
+      "Recipient list needs confirmation.",
+      "Send is blocked until approval and send execution receipts exist."
+    ],
+    "bundle_id": "invoice_review_bundle:capital_hilton:v0",
+    "clara_email_draft": {
+      "body": "Hi Annette,\n\nI'm preparing the Capital Hilton invoice package for review. I can send over the Excel invoice for your records once the package and recipients are confirmed.\n\nBest,\nClara",
+      "draft_only": true,
+      "selected_voice": "CLARA",
+      "sent": false,
+      "subject": "Capital Hilton invoice package for review"
+    },
+    "client_display_name": "Capital Hilton",
+    "client_ref": "capital_hilton",
+    "coupa_invoice_proof": {
+      "amount": null,
+      "po_ref": null,
+      "proof_ref": null,
+      "required": true,
+      "status": "MISSING"
+    },
+    "excel_invoice_artifact": {
+      "artifact_ref": "local_artifact_ref:deb5bc9b42567fd4",
+      "display_name": "Capital Hilton Excel invoice for review",
+      "preview_available": true,
+      "preview_ref": "generated/invoice_artifacts/capital_hilton_invoice_artifact_v0/WINSHIP_CAPITAL_HILTON_INVOICE_2026-05-25.xlsx",
+      "proof_status": "LOCAL_ARTIFACT_PRESENT_REVIEW_ONLY"
+    },
+    "generated_at": "2026-05-27T00:00:00+00:00",
+    "guardian_approval_request": {
+      "approval_ref": "guardian_invoice_review_approval:29a79c0aad435df9",
+      "approval_required": true,
+      "buttons": [
+        {
+          "button_ref": "invoice_review_button:approve:f534611a53269273",
+          "grants_send_authority": false,
+          "internal_action_ref": "invoice_review_bundle_action:invoice_review_bundle:capital_hilton:v0:approve",
+          "label": "APPROVE",
+          "operator_label": "Approve",
+          "requires_explicit_click": true
+        },
+        {
+          "button_ref": "invoice_review_button:do_not_approve:e4b8ab28a9c5313f",
+          "grants_send_authority": false,
+          "internal_action_ref": "invoice_review_bundle_action:invoice_review_bundle:capital_hilton:v0:do_not_approve",
+          "label": "DO_NOT_APPROVE",
+          "operator_label": "Do Not Approve",
+          "requires_explicit_click": true
+        },
+        {
+          "button_ref": "invoice_review_button:explain:aae1c76cd4e3a61d",
+          "grants_send_authority": false,
+          "internal_action_ref": "invoice_review_bundle_action:invoice_review_bundle:capital_hilton:v0:explain",
+          "label": "EXPLAIN",
+          "operator_label": "Explain",
+          "requires_explicit_click": true
+        },
+        {
+          "button_ref": "invoice_review_button:edit_draft:435abc4969e4d596",
+          "grants_send_authority": false,
+          "internal_action_ref": "invoice_review_bundle_action:invoice_review_bundle:capital_hilton:v0:edit_draft",
+          "label": "EDIT_DRAFT",
+          "operator_label": "Edit Draft",
+          "requires_explicit_click": true
+        },
+        {
+          "button_ref": "invoice_review_button:hold:e37e62e1b6b829ff",
+          "grants_send_authority": false,
+          "internal_action_ref": "invoice_review_bundle_action:invoice_review_bundle:capital_hilton:v0:hold",
+          "label": "HOLD",
+          "operator_label": "Hold",
+          "requires_explicit_click": true
+        }
+      ],
+      "hidden_internal_refs": [
+        "approval_ref",
+        "button_ref",
+        "internal_action_ref",
+        "required_receipts"
+      ],
+      "operator_question": "Review the Capital Hilton invoice package?",
+      "send_allowed": false
+    },
+    "helm_card": {
+      "button_labels": [
+        "APPROVE",
+        "DO_NOT_APPROVE",
+        "EXPLAIN",
+        "EDIT_DRAFT",
+        "HOLD"
+      ],
+      "operator_summary": "Nothing has been sent.",
+      "primary_warning": "Coupa submission proof is still required.",
+      "safe_next_move": "Review the draft, confirm recipients, and keep send locked until approval.",
+      "title": "Review the Capital Hilton invoice package."
+    },
+    "hidden_backend_proof": {
+      "approval_ref": "guardian_invoice_review_approval:29a79c0aad435df9",
+      "button_refs": [
+        "invoice_review_button:approve:f534611a53269273",
+        "invoice_review_button:do_not_approve:e4b8ab28a9c5313f",
+        "invoice_review_button:explain:aae1c76cd4e3a61d",
+        "invoice_review_button:edit_draft:435abc4969e4d596",
+        "invoice_review_button:hold:e37e62e1b6b829ff"
+      ],
+      "internal_action_refs": [
+        "invoice_review_bundle_action:invoice_review_bundle:capital_hilton:v0:approve",
+        "invoice_review_bundle_action:invoice_review_bundle:capital_hilton:v0:do_not_approve",
+        "invoice_review_bundle_action:invoice_review_bundle:capital_hilton:v0:explain",
+        "invoice_review_bundle_action:invoice_review_bundle:capital_hilton:v0:edit_draft",
+        "invoice_review_bundle_action:invoice_review_bundle:capital_hilton:v0:hold"
+      ],
+      "internal_refs_hidden_from_primary_operator_copy": true
+    },
+    "invoice_period": {
+      "display_label": "Capital Hilton current invoice package",
+      "status": "CANDIDATE_PENDING_CONFIRMATION"
+    },
+    "machine_proof": {
+      "all_action_authority_false": true,
+      "approval_does_not_imply_send": true,
+      "clara_draft_slot_present": true,
+      "content_hash": "sha256:db656b2be55de18f4197c56b7b2cd53ad7327bd7b89c271ebdcd0ffce7770d1a",
+      "coupa_required_for_capital_hilton": true,
+      "draft_does_not_imply_sent": true,
+      "excel_invoice_artifact_slot_present": true,
+      "operator_copy_jargon_free": true,
+      "send_blocked_without_required_receipts": true
+    },
+    "missing_receipts": [
+      "excel_invoice_generated_receipt",
+      "invoice_attachment_proof_receipt",
+      "clara_email_draft_receipt",
+      "purchase_order_confirmed_receipt",
+      "portal_invoice_submission_receipt",
+      "guardian_approval_receipt",
+      "operator_approval_receipt",
+      "email_send_receipt"
+    ],
+    "operator_copy": {
+      "approval_question": "Review the Capital Hilton invoice package?",
+      "body": "Nothing has been sent. Coupa submission proof is still required. Approve only after the invoice, draft, recipients, attachment, and Coupa proof are correct.",
+      "button_labels": [
+        "APPROVE",
+        "DO_NOT_APPROVE",
+        "EXPLAIN",
+        "EDIT_DRAFT",
+        "HOLD"
+      ],
+      "headline": "Review the Capital Hilton invoice package."
+    },
+    "present_receipts": [],
+    "proof_refs": [
+      "local_artifact_ref:deb5bc9b42567fd4"
+    ],
+    "recipe_refs": {
+      "capital_hilton_is_complex_recipe_not_default": true,
+      "selected_rails": [
+        "source_workbook_rail",
+        "invoice_period_sheet_rail",
+        "performance_date_confirmation_rail",
+        "purchase_order_rail",
+        "supplier_portal_rail",
+        "excel_invoice_generation_rail",
+        "clara_email_draft_rail",
+        "guardian_approval_rail",
+        "external_send_rail",
+        "payment_watch_rail",
+        "ledger_handoff_rail",
+        "tax_evidence_rail"
+      ]
+    },
+    "recipients": {
+      "cc_candidates": [
+        {
+          "confirmation_status": "CANDIDATE_UNCONFIRMED",
+          "display_name": "Chyna",
+          "lane": "cc",
+          "role": "finance_secondary"
+        },
+        {
+          "confirmation_status": "CANDIDATE_UNCONFIRMED",
+          "display_name": "Will",
+          "lane": "cc",
+          "role": "relationship_contact"
+        }
+      ],
+      "confirmation_status": "CANDIDATE_UNCONFIRMED",
+      "to_candidates": [
+        {
+          "confirmation_status": "CANDIDATE_UNCONFIRMED",
+          "display_name": "Annette",
+          "lane": "to",
+          "role": "finance_primary"
+        }
+      ]
+    },
+    "required_receipts": [
+      "excel_invoice_generated_receipt",
+      "invoice_attachment_proof_receipt",
+      "clara_email_draft_receipt",
+      "purchase_order_confirmed_receipt",
+      "portal_invoice_submission_receipt",
+      "guardian_approval_receipt",
+      "operator_approval_receipt",
+      "email_send_receipt"
+    ],
+    "status": "READY_FOR_REVIEW_BLOCKED_FOR_SEND",
+    "workflow_ref": "capital_hilton_invoice_workflow"
+  },
+  "contract_status": "MISSION_CONTROL_APPROVAL_CARD_CONTRACT_NO_ACTIONS",
+  "generated_at": "2026-05-27T00:00:00+00:00",
+  "hidden_from_primary_ui": [
+    "approval_ref",
+    "button_ref",
+    "internal_action_ref",
+    "required_receipts",
+    "receipt hashes"
+  ],
+  "machine_proof": {
+    "all_action_authority_false": true,
+    "button_labels_present": true,
+    "capital_hilton_coupa_proof_required": true,
+    "capital_hilton_has_review_bundle": true,
+    "content_hash": "sha256:5b7faa23b9205c242ead8735a66a04f05239bd4260bbcc1c090a51c9e9cd9a86",
+    "coupa_action_enabled": false,
+    "non_coupa_client_does_not_require_coupa": true,
+    "send_action_enabled": false,
+    "typed_approval_codes_not_operator_primary": true
+  },
+  "non_coupa_recipe_example": {
+    "authority_boundary": {
+      "approval_execution_allowed": false,
+      "browser_automation_allowed": false,
+      "coupa_access_allowed": false,
+      "coupa_submit_allowed": false,
+      "credential_handling_allowed": false,
+      "email_send_allowed": false,
+      "gmail_access_allowed": false,
+      "ledger_posting_allowed": false,
+      "model_call_allowed": false,
+      "network_allowed": false,
+      "payment_mark_paid_allowed": false,
+      "production_state_mutation_allowed": false,
+      "tool_execution_allowed": false
+    },
+    "bundle_id": "invoice_review_bundle:st_annes:v0",
+    "client_ref": "st_annes",
+    "coupa_invoice_proof": {
+      "required": false,
+      "status": "NOT_REQUIRED_BY_RECIPE"
+    },
+    "generated_at": "2026-05-27T00:00:00+00:00",
+    "operator_copy": {
+      "body": "This recipe does not require Coupa proof unless the client recipe is changed.",
+      "headline": "Review the St. Anne's invoice package."
+    },
+    "status": "RECIPE_PLACEHOLDER_REVIEW_ONLY",
+    "workflow_ref": "st_annes_invoice_workflow"
+  },
+  "operator_summary": "Mission Control can render a Capital Hilton invoice review card with invoice artifact, Clara draft, Coupa proof status, recipients, and approval buttons. Nothing is sent.",
+  "read_model_id": "invoice_review_bundle",
+  "schema_version": "invoice_review_bundle_v0"
+}
