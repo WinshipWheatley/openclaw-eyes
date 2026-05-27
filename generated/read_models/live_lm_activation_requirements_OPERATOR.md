@@ -5,6 +5,7 @@ LM1 live: NOT_READY
 LM2 live: NOT_READY
 Missing receipts: 7
 Receipt contracts ready: 7
+SQLite-backed receipt contracts: 7
 
 Still blocked:
 - provider_activation_receipts_missing

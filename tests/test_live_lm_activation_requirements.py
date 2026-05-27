@@ -1,4 +1,5 @@
 import json
+import sqlite3
 import sys
 from pathlib import Path
 
@@ -117,6 +118,29 @@ def test_activation_receipt_contracts_ready_without_production_approval():
     assert all(fixture["satisfies_production_activation"] is False for fixture in fixtures.values())
 
 
+def test_activation_receipt_contracts_are_backed_by_local_sqlite_substrate(tmp_path):
+    db_path = tmp_path / "activation_receipts.sqlite"
+    substrate = activation.ensure_activation_receipt_substrate(db_path, generated_at=FIXED_NOW)
+
+    assert substrate["exists"] is True
+    assert substrate["missing_tables"] == ()
+    assert substrate["contract_rows_persisted"] == 7
+    assert substrate["fixture_validation_rows_persisted"] == 7
+    assert substrate["production_receipt_rows_present"] == 0
+    assert substrate["contracts_backed_by_sqlite"] is True
+    assert substrate["fixtures_backed_by_sqlite"] is True
+    assert substrate["satisfies_production_activation"] is False
+
+    with sqlite3.connect(f"file:{db_path}?mode=ro", uri=True) as conn:
+        production_rows = conn.execute("SELECT COUNT(*) FROM activation_production_receipts").fetchone()[0]
+        fixture_prod_rows = conn.execute(
+            "SELECT COUNT(*) FROM activation_receipt_fixture_validations WHERE satisfies_production_activation != 0"
+        ).fetchone()[0]
+
+    assert production_rows == 0
+    assert fixture_prod_rows == 0
+
+
 def test_activation_receipt_validator_blocks_missing_or_unsafe_controls():
     provider_contract = activation.activation_receipt_contract_by_type("provider_policy_receipt")
     valid_fixture = {
@@ -159,6 +183,13 @@ def test_activation_requirements_do_not_enable_models_or_actions():
     assert proof["device_trust_live_activation_receipt_present"] is False
     assert proof["real_lm1_production_policy_receipt_present"] is False
     assert proof["real_lm2_production_policy_receipt_present"] is False
+    assert proof["activation_receipt_substrate_exists"] is True
+    assert proof["activation_receipt_substrate_contract_rows"] == 7
+    assert proof["activation_receipt_substrate_fixture_rows"] == 7
+    assert proof["activation_receipt_substrate_production_rows"] == 0
+    assert proof["activation_receipt_substrate_contracts_backed"] is True
+    assert proof["activation_receipt_substrate_fixtures_backed"] is True
+    assert proof["activation_receipt_substrate_satisfies_production"] is False
     assert proof["live_shadow_comparison_receipt_present"] is True
     assert proof["live_shadow_model_call_recorded"] is True
     assert proof["shadow_provider_policy_receipt_present"] is True

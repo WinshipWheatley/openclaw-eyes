@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import sqlite3
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Mapping
@@ -26,6 +27,13 @@ READ_MODEL_ID = "live_lm_activation_requirements"
 JSON_EXPORT_NAME = f"{READ_MODEL_ID}.json"
 OPERATOR_EXPORT_NAME = f"{READ_MODEL_ID}_OPERATOR.md"
 CONTRACT_STATUS = "LIVE_LM_ACTIVATION_BLOCKED_REQUIREMENTS_MISSING"
+DEFAULT_ACTIVATION_RECEIPT_DB_PATH = Path(".openclaw/activation/activation_receipts.sqlite")
+ACTIVATION_RECEIPT_TABLES = (
+    "activation_receipt_metadata",
+    "activation_receipt_contracts",
+    "activation_receipt_fixture_validations",
+    "activation_production_receipts",
+)
 
 AUTHORITY_BOUNDARY = {
     "live_lm_call_allowed": False,
@@ -90,6 +98,24 @@ class ActivationReceiptValidationResult:
     production_receipt_present: bool
     operator_approved: bool
     governed_review_source: bool
+    authority_boundary: dict[str, bool]
+    next_safe_move: str
+
+
+@dataclass(frozen=True)
+class ActivationReceiptSubstrate:
+    substrate_id: str
+    db_path: str
+    exists: bool
+    required_tables: tuple[str, ...]
+    present_tables: tuple[str, ...]
+    missing_tables: tuple[str, ...]
+    contract_rows_persisted: int
+    fixture_validation_rows_persisted: int
+    production_receipt_rows_present: int
+    contracts_backed_by_sqlite: bool
+    fixtures_backed_by_sqlite: bool
+    satisfies_production_activation: bool
     authority_boundary: dict[str, bool]
     next_safe_move: str
 
@@ -326,6 +352,173 @@ def _content_hash(payload: dict[str, Any]) -> str:
     return "sha256:" + hashlib.sha256(stable_json(clone).encode("utf-8")).hexdigest()
 
 
+def _connect_activation_receipts(path: Path) -> sqlite3.Connection:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    return sqlite3.connect(path)
+
+
+def _create_activation_receipt_schema(conn: sqlite3.Connection) -> None:
+    conn.executescript(
+        """
+CREATE TABLE IF NOT EXISTS activation_receipt_metadata (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS activation_receipt_contracts (
+  receipt_type TEXT PRIMARY KEY,
+  beam_id TEXT NOT NULL,
+  human_label TEXT NOT NULL,
+  receipt_contract_status TEXT NOT NULL,
+  contract_hash TEXT NOT NULL,
+  recorded_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS activation_receipt_fixture_validations (
+  receipt_type TEXT PRIMARY KEY,
+  validation_status TEXT NOT NULL,
+  valid_for_contract INTEGER NOT NULL,
+  valid_as_test_fixture INTEGER NOT NULL,
+  satisfies_production_activation INTEGER NOT NULL CHECK (satisfies_production_activation = 0),
+  validation_hash TEXT NOT NULL,
+  recorded_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS activation_production_receipts (
+  receipt_type TEXT PRIMARY KEY,
+  receipt_status TEXT NOT NULL,
+  operator_approved INTEGER NOT NULL,
+  governed_review_source INTEGER NOT NULL,
+  payload_hash TEXT NOT NULL,
+  recorded_at TEXT NOT NULL
+);
+"""
+    )
+
+
+def ensure_activation_receipt_substrate(
+    path: Path = DEFAULT_ACTIVATION_RECEIPT_DB_PATH,
+    *,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    generated_at = generated_at or DEFAULT_GENERATED_AT
+    contracts = activation_receipt_contracts()
+    fixture_results = activation_receipt_contract_fixture_results()
+    with _connect_activation_receipts(path) as conn:
+        _create_activation_receipt_schema(conn)
+        conn.execute(
+            """
+INSERT OR REPLACE INTO activation_receipt_metadata (key, value, updated_at)
+VALUES (?, ?, ?)
+""",
+            ("schema_version", SCHEMA_VERSION, generated_at),
+        )
+        for contract in contracts:
+            contract_hash = "sha256:" + hashlib.sha256(stable_json(contract).encode("utf-8")).hexdigest()
+            conn.execute(
+                """
+INSERT OR REPLACE INTO activation_receipt_contracts
+  (receipt_type, beam_id, human_label, receipt_contract_status, contract_hash, recorded_at)
+VALUES (?, ?, ?, ?, ?, ?)
+""",
+                (
+                    contract["receipt_type"],
+                    contract["beam_id"],
+                    contract["human_label"],
+                    contract["receipt_contract_status"],
+                    contract_hash,
+                    generated_at,
+                ),
+            )
+        for result in fixture_results:
+            validation_hash = "sha256:" + hashlib.sha256(stable_json(result).encode("utf-8")).hexdigest()
+            conn.execute(
+                """
+INSERT OR REPLACE INTO activation_receipt_fixture_validations
+  (receipt_type, validation_status, valid_for_contract, valid_as_test_fixture,
+   satisfies_production_activation, validation_hash, recorded_at)
+VALUES (?, ?, ?, ?, ?, ?, ?)
+""",
+                (
+                    result["receipt_type"],
+                    result["validation_status"],
+                    int(bool(result["valid_for_contract"])),
+                    int(bool(result["valid_as_test_fixture"])),
+                    0,
+                    validation_hash,
+                    generated_at,
+                ),
+            )
+        conn.commit()
+    return inspect_activation_receipt_substrate(path, create_if_missing=False)
+
+
+def inspect_activation_receipt_substrate(
+    path: Path = DEFAULT_ACTIVATION_RECEIPT_DB_PATH,
+    *,
+    create_if_missing: bool = True,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    if create_if_missing and not path.exists():
+        return ensure_activation_receipt_substrate(path, generated_at=generated_at or DEFAULT_GENERATED_AT)
+    if not path.exists():
+        substrate = ActivationReceiptSubstrate(
+            substrate_id=f"activation_receipt_substrate:{_short_hash(path)}",
+            db_path=path.as_posix(),
+            exists=False,
+            required_tables=ACTIVATION_RECEIPT_TABLES,
+            present_tables=(),
+            missing_tables=ACTIVATION_RECEIPT_TABLES,
+            contract_rows_persisted=0,
+            fixture_validation_rows_persisted=0,
+            production_receipt_rows_present=0,
+            contracts_backed_by_sqlite=False,
+            fixtures_backed_by_sqlite=False,
+            satisfies_production_activation=False,
+            authority_boundary=dict(AUTHORITY_BOUNDARY),
+            next_safe_move="Create the local activation receipt substrate before production activation review.",
+        )
+        return asdict(substrate)
+
+    with sqlite3.connect(f"file:{path}?mode=ro", uri=True) as conn:
+        table_rows = conn.execute("SELECT name FROM sqlite_master WHERE type = 'table'").fetchall()
+        present_tables = tuple(sorted(row[0] for row in table_rows))
+
+        def count_rows(table_name: str) -> int:
+            if table_name not in present_tables:
+                return 0
+            return int(conn.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone()[0])
+
+        contract_count = count_rows("activation_receipt_contracts")
+        fixture_count = count_rows("activation_receipt_fixture_validations")
+        production_count = count_rows("activation_production_receipts")
+
+    missing_tables = tuple(table for table in ACTIVATION_RECEIPT_TABLES if table not in present_tables)
+    expected_count = len(REMAINING_RECEIPT_CONTRACT_SPECS)
+    substrate = ActivationReceiptSubstrate(
+        substrate_id=f"activation_receipt_substrate:{_short_hash(path, present_tables, contract_count, fixture_count)}",
+        db_path=path.as_posix(),
+        exists=True,
+        required_tables=ACTIVATION_RECEIPT_TABLES,
+        present_tables=present_tables,
+        missing_tables=missing_tables,
+        contract_rows_persisted=contract_count,
+        fixture_validation_rows_persisted=fixture_count,
+        production_receipt_rows_present=production_count,
+        contracts_backed_by_sqlite=contract_count == expected_count,
+        fixtures_backed_by_sqlite=fixture_count == expected_count,
+        satisfies_production_activation=False,
+        authority_boundary=dict(AUTHORITY_BOUNDARY),
+        next_safe_move=(
+            "Activation receipt contracts are backed by local SQLite proof; collect governed production receipts before activation."
+            if contract_count == expected_count and fixture_count == expected_count
+            else "Repair the activation receipt substrate before production activation review."
+        ),
+    )
+    return asdict(substrate)
+
+
 def activation_receipt_contracts() -> tuple[dict[str, Any], ...]:
     contracts: list[dict[str, Any]] = []
     for spec in REMAINING_RECEIPT_CONTRACT_SPECS:
@@ -521,6 +714,7 @@ def build_payload(*, generated_at: str | None = None, live_shadow_payload: Mappi
     privacy_policy_receipt_present = bool(token_receipts["privacy_policy_receipt"]["present"])
     receipt_contracts = activation_receipt_contracts()
     receipt_fixture_results = activation_receipt_contract_fixture_results()
+    activation_substrate = ensure_activation_receipt_substrate(generated_at=generated_at)
     receipts = required_receipts(
         live_shadow_receipt_present=live_shadow_valid,
         production_token_vault_receipt_present=token_vault_receipt_present,
@@ -566,6 +760,7 @@ def build_payload(*, generated_at: str | None = None, live_shadow_payload: Mappi
         "provider_activation_status": "RECEIPTS_REQUIRED_NOT_PRESENT",
         "activation_receipt_requirements": receipts,
         "production_activation_beams": beams,
+        "activation_receipt_substrate": activation_substrate,
         "activation_receipt_contracts": receipt_contracts,
         "activation_receipt_fixture_results": receipt_fixture_results,
         "missing_receipts": missing,
@@ -627,6 +822,14 @@ def build_payload(*, generated_at: str | None = None, live_shadow_payload: Mappi
             "activation_receipt_fixtures_satisfy_production": any(
                 result["satisfies_production_activation"] for result in receipt_fixture_results
             ),
+            "activation_receipt_substrate_exists": activation_substrate["exists"],
+            "activation_receipt_substrate_table_count": len(activation_substrate["present_tables"]),
+            "activation_receipt_substrate_contract_rows": activation_substrate["contract_rows_persisted"],
+            "activation_receipt_substrate_fixture_rows": activation_substrate["fixture_validation_rows_persisted"],
+            "activation_receipt_substrate_production_rows": activation_substrate["production_receipt_rows_present"],
+            "activation_receipt_substrate_contracts_backed": activation_substrate["contracts_backed_by_sqlite"],
+            "activation_receipt_substrate_fixtures_backed": activation_substrate["fixtures_backed_by_sqlite"],
+            "activation_receipt_substrate_satisfies_production": activation_substrate["satisfies_production_activation"],
             "live_shadow_comparison_receipt_present": live_shadow_valid,
             "live_shadow_model_call_recorded": bool((live_shadow.get("machine_proof") or {}).get("live_model_call_performed")),
             "shadow_provider_policy_receipt_present": live_shadow_valid,
@@ -662,6 +865,7 @@ def write_exports(payload: Mapping[str, Any], export_root: Path = DEFAULT_EXPORT
         f"LM2 live: {payload['live_lm2_activation_status']}",
         f"Missing receipts: {payload['machine_proof']['missing_receipt_count']}",
         f"Receipt contracts ready: {payload['machine_proof']['activation_receipt_contract_count']}",
+        f"SQLite-backed receipt contracts: {payload['machine_proof']['activation_receipt_substrate_contract_rows']}",
         "",
         "Still blocked:",
         *[f"- {item}" for item in payload["hard_blockers"]],

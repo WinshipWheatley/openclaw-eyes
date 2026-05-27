@@ -405,6 +405,7 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
                 "provider_activation_status": activation_requirements["provider_activation_status"],
                 "missing_receipts": activation_requirements["missing_receipts"],
                 "production_activation_beams": activation_requirements["production_activation_beams"],
+                "activation_receipt_substrate": activation_requirements["activation_receipt_substrate"],
                 "activation_receipt_contracts": activation_requirements["activation_receipt_contracts"],
                 "activation_receipt_fixture_results": activation_requirements["activation_receipt_fixture_results"],
                 "live_shadow_receipt": activation_requirements["live_shadow_receipt"],
@@ -612,6 +613,15 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
             "activation_receipt_fixtures_valid": activation_requirements["machine_proof"]["activation_receipt_fixtures_valid"],
             "activation_receipt_fixtures_satisfy_production": activation_requirements["machine_proof"][
                 "activation_receipt_fixtures_satisfy_production"
+            ],
+            "activation_receipt_substrate_contracts_backed": activation_requirements["machine_proof"][
+                "activation_receipt_substrate_contracts_backed"
+            ],
+            "activation_receipt_substrate_fixtures_backed": activation_requirements["machine_proof"][
+                "activation_receipt_substrate_fixtures_backed"
+            ],
+            "activation_receipt_substrate_satisfies_production": activation_requirements["machine_proof"][
+                "activation_receipt_substrate_satisfies_production"
             ],
             "live_lm_shadow_trial_aggregated": True,
             "live_shadow_trial_status": live_shadow_trial["trial_status"],
