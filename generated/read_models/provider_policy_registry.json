@@ -1013,7 +1013,7 @@
   "generated_at": "2026-05-26T00:00:00+00:00",
   "machine_proof": {
     "all_live_authority_false": true,
-    "content_hash": "sha256:c749c51b91079e0bd923bc81a57fdf3e215cc9687cf289c3770ab6ede3c5eb1a",
+    "content_hash": "sha256:136b4b0c7eba8c4b409aec0b26b916c7bf6f91d5e0fccb4be23971c2aac07ead",
     "live_model_call_performed": false,
     "lm1_policy_selects_fast_candidate": true,
     "lm2_policy_selects_strong_candidate": true,
@@ -1029,6 +1029,9 @@
         "LOW_METADATA",
         "TOKENIZED_METADATA",
         "TOKENIZED_CLIENT_FINANCE_METADATA",
+        "TOKENIZED_PERSONAL_FINANCE_METADATA",
+        "TOKENIZED_LEGAL_DISCOVERY_METADATA",
+        "TOKENIZED_SENSITIVE_METADATA",
         "MACHINE_INTENT_PROPOSAL_SCHEMA"
       ],
       "authority_boundary": {
@@ -1102,6 +1105,9 @@
         "LOW_METADATA",
         "TOKENIZED_METADATA",
         "TOKENIZED_CLIENT_FINANCE_METADATA",
+        "TOKENIZED_PERSONAL_FINANCE_METADATA",
+        "TOKENIZED_LEGAL_DISCOVERY_METADATA",
+        "TOKENIZED_SENSITIVE_METADATA",
         "MINIMIZED_ROLE_PACKAGE"
       ],
       "authority_boundary": {

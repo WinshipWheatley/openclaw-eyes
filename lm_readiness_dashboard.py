@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 import external_lm_eligibility_policy
+import external_lm_safe_package_compiler
 import gate_chain_harness
 import gate1_operational_snapshot
 import gate1_privacy_request_readiness
@@ -318,6 +319,7 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
     trust_ramp = guardian_trust_ramp_simulator.run_trust_ramp(generated_at=generated_at, persist=True)
     shadow = shadow_lm_mode.build_payload(generated_at=generated_at, persist=True)
     external_eligibility = external_lm_eligibility_policy.build_payload(generated_at=generated_at)
+    external_safe_package = external_lm_safe_package_compiler.build_payload(generated_at=generated_at)
     provider_registry = provider_policy_registry.build_payload(generated_at=generated_at)
     model_router = model_router_policy.build_payload(generated_at=generated_at)
     readiness = live_lm_readiness_gate.build_payload(generated_at=generated_at)
@@ -360,6 +362,18 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
             if external_eligibility["machine_proof"]["finance_lm1_external_eligible"]
             and external_eligibility["machine_proof"]["finance_lm2_external_eligible"]
             else "BLOCKED"
+        ),
+        "external_lm_safe_package_compiler": (
+            "READY"
+            if external_safe_package["machine_proof"]["lm1_safe_package_compiled"]
+            and external_safe_package["machine_proof"]["lm2_safe_package_compiled"]
+            else "BLOCKED"
+        ),
+        "lm1_external_safe_package": (
+            "READY" if external_safe_package["machine_proof"]["lm1_safe_package_compiled"] else "BLOCKED"
+        ),
+        "lm2_external_safe_package": (
+            "READY" if external_safe_package["machine_proof"]["lm2_safe_package_compiled"] else "BLOCKED"
         ),
         "external_lm_activation": "NOT_ACTIVE",
         "gate1_operational_snapshot": "EXPORTED_CONNECTED",
@@ -413,6 +427,56 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
             "external_lm_eligibility": {
                 "lm1": representative["lm1_thread_context_package"]["external_lm_eligibility"],
                 "lm2": representative["lm2_external_lm_eligibility"],
+            },
+            "external_lm_safe_package": {
+                "read_model_ref": "generated/read_models/external_lm_safe_package.json",
+                "compiler_status": external_safe_package["contract_status"],
+                "lm1_status": external_safe_package["examples"]["lm1_client_finance"]["package_status"],
+                "lm1_model_class": (
+                    external_safe_package["examples"]["lm1_client_finance"].get("safe_package") or {}
+                ).get("model_class_recommended"),
+                "lm1_ready_for_external_shadow": (
+                    external_safe_package["examples"]["lm1_client_finance"].get("safe_package") or {}
+                ).get("ready_for_external_shadow"),
+                "lm2_status": external_safe_package["examples"]["lm2_client_finance"]["package_status"],
+                "lm2_model_class": (
+                    external_safe_package["examples"]["lm2_client_finance"].get("safe_package") or {}
+                ).get("model_class_recommended"),
+                "lm2_ready_for_external_shadow": (
+                    external_safe_package["examples"]["lm2_client_finance"].get("safe_package") or {}
+                ).get("ready_for_external_shadow"),
+                "low_sensitivity_weather": {
+                    "status": external_safe_package["examples"]["low_sensitivity_weather"]["package_status"],
+                    "tokenization_required": (
+                        external_safe_package["examples"]["low_sensitivity_weather"].get("safe_package") or {}
+                    ).get("tokenization_required"),
+                },
+                "personal_finance": {
+                    "status": external_safe_package["examples"]["personal_finance"]["package_status"],
+                    "model_class": (
+                        external_safe_package["examples"]["personal_finance"].get("safe_package") or {}
+                    ).get("model_class_recommended"),
+                    "raw_values_included": (
+                        external_safe_package["examples"]["personal_finance"].get("safe_package") or {}
+                    ).get("raw_values_included"),
+                },
+                "legal_discovery": {
+                    "status": external_safe_package["examples"]["legal_discovery"]["package_status"],
+                    "model_class": (
+                        external_safe_package["examples"]["legal_discovery"].get("safe_package") or {}
+                    ).get("model_class_recommended"),
+                    "raw_values_included": (
+                        external_safe_package["examples"]["legal_discovery"].get("safe_package") or {}
+                    ).get("raw_values_included"),
+                },
+                "strict_private_block": {
+                    "status": external_safe_package["examples"]["strict_private_block"]["package_status"],
+                    "plain_reason": external_safe_package["examples"]["strict_private_block"]["plain_reason"],
+                },
+                "deterministic_no_lm_needed": external_safe_package["examples"]["deterministic_no_lm_needed"][
+                    "no_lm_needed"
+                ],
+                "raw_value_leak_blocked": external_safe_package["machine_proof"]["raw_value_leak_blocked"],
             },
             "tokenization_policy_result": representative["lm1_thread_context_package"]["tokenization_policy"],
             "privacy_readiness_result": privacy_readiness,
@@ -579,6 +643,10 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
                 "read_model_id": external_lm_eligibility_policy.READ_MODEL_ID,
                 "machine_proof": external_eligibility.get("machine_proof", {}),
             },
+            "external_lm_safe_package_compiler": {
+                "read_model_id": external_lm_safe_package_compiler.READ_MODEL_ID,
+                "machine_proof": external_safe_package.get("machine_proof", {}),
+            },
             "live_lm_readiness_gate": {
                 "read_model_id": live_lm_readiness_gate.READ_MODEL_ID,
                 "machine_proof": readiness.get("machine_proof", {}),
@@ -707,6 +775,14 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
             "provider_policy_lm1_selected": bool(representative["lm1_model_decision"].get("selected_provider_ref")),
             "provider_policy_lm2_selected": bool(representative["lm2_model_decision"].get("selected_provider_ref")),
             "external_lm_eligibility_aggregated": True,
+            "external_lm_safe_package_compiler_aggregated": True,
+            "lm1_external_safe_package_ready": external_safe_package["machine_proof"]["lm1_safe_package_compiled"],
+            "lm2_external_safe_package_ready": external_safe_package["machine_proof"]["lm2_safe_package_compiled"],
+            "external_safe_package_live_production_ready": False,
+            "external_safe_package_raw_value_leak_blocked": external_safe_package["machine_proof"]["raw_value_leak_blocked"],
+            "external_safe_package_deterministic_no_lm_needed": external_safe_package["machine_proof"][
+                "deterministic_no_lm_needed"
+            ],
             "lm1_external_lm_allowed": representative["lm1_thread_context_package"]["external_lm_eligibility"][
                 "external_lm_allowed"
             ],
@@ -755,6 +831,9 @@ def write_exports(payload: Mapping[str, Any], export_root: Path = DEFAULT_EXPORT
         f"Privacy readiness: {summary.get('privacy_readiness_status')}",
         f"Provider policy registry: {summary.get('provider_policy_registry')}",
         f"External LM eligibility: {summary.get('external_lm_eligibility')}",
+        f"External LM safe package compiler: {summary.get('external_lm_safe_package_compiler')}",
+        f"LM1 external safe package: {summary.get('lm1_external_safe_package')}",
+        f"LM2 external safe package: {summary.get('lm2_external_safe_package')}",
         f"External LM activation: {summary.get('external_lm_activation')}",
         f"Gate 1 operational snapshot: {summary.get('gate1_operational_snapshot')}",
         f"Gate 1 privacy request: {summary.get('gate1_privacy_request')}",

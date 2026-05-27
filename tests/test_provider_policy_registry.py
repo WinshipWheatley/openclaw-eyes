@@ -65,6 +65,40 @@ def test_lm2_provider_policy_selects_stronger_structured_candidate():
     assert decision["fallback_policy_id"]
 
 
+def test_external_provider_policy_accepts_tokenized_personal_finance_and_discovery_classes():
+    personal = registry.select_provider_candidate(
+        {
+            "request_id": "test_provider_personal_finance",
+            "chain_lane": "LM2_ROLE_RESPONSE",
+            "desired_model_class": registry.STRONG_EXTERNAL_ROLE_MODEL,
+            "privacy_level": "TOKENIZED_PERSONAL_FINANCE_METADATA",
+            "context_classes": ("TOKENIZED_PERSONAL_FINANCE_METADATA", "MINIMIZED_ROLE_PACKAGE"),
+            "tokenization_applied": True,
+            "raw_values_included": False,
+            "local_only_required": False,
+            "requires_structured_output": True,
+        }
+    )
+    discovery = registry.select_provider_candidate(
+        {
+            "request_id": "test_provider_legal_discovery",
+            "chain_lane": "LM2_ROLE_RESPONSE",
+            "desired_model_class": registry.STRONG_EXTERNAL_ROLE_MODEL,
+            "privacy_level": "TOKENIZED_LEGAL_DISCOVERY_METADATA",
+            "context_classes": ("TOKENIZED_LEGAL_DISCOVERY_METADATA", "MINIMIZED_ROLE_PACKAGE"),
+            "tokenization_applied": True,
+            "raw_values_included": False,
+            "local_only_required": False,
+            "requires_structured_output": True,
+        }
+    )
+
+    assert personal["selected_model_class"] == registry.STRONG_EXTERNAL_ROLE_MODEL
+    assert personal["selected_provider_ref"] == "provider_class:external_privacy_safe_role_reasoner"
+    assert discovery["selected_model_class"] == registry.STRONG_EXTERNAL_ROLE_MODEL
+    assert discovery["selected_provider_ref"] == "provider_class:external_privacy_safe_role_reasoner"
+
+
 def test_local_fallback_provider_selected_when_external_policy_blocked():
     decision = registry.select_provider_candidate(
         {

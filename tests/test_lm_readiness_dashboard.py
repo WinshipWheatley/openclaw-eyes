@@ -32,6 +32,7 @@ def test_readiness_dashboard_aggregates_all_seeded_lanes():
         "model_router_policy",
         "provider_policy_registry",
         "external_lm_eligibility_policy",
+        "external_lm_safe_package_compiler",
         "live_lm_readiness_gate",
         "shadow_lm_mode",
         "token_vault_status",
@@ -51,6 +52,9 @@ def test_readiness_dashboard_aggregates_all_seeded_lanes():
     assert payload["dashboard_summary"]["lm2_shadow_comparison"] == "READY"
     assert payload["dashboard_summary"]["provider_policy_registry"] == "SEEDED"
     assert payload["dashboard_summary"]["external_lm_eligibility"] == "PRIVACY_SAFE_EXTERNAL_READY"
+    assert payload["dashboard_summary"]["external_lm_safe_package_compiler"] == "READY"
+    assert payload["dashboard_summary"]["lm1_external_safe_package"] == "READY"
+    assert payload["dashboard_summary"]["lm2_external_safe_package"] == "READY"
     assert payload["dashboard_summary"]["external_lm_activation"] == "NOT_ACTIVE"
     assert payload["dashboard_summary"]["gate1_operational_snapshot"] == "EXPORTED_CONNECTED"
     assert payload["dashboard_summary"]["gate1_privacy_request"] == "EXPORTED"
@@ -117,6 +121,11 @@ def test_model_router_integration_selects_lm1_and_lm2_model_classes():
     assert payload["machine_proof"]["provider_policy_lm1_selected"] is True
     assert payload["machine_proof"]["provider_policy_lm2_selected"] is True
     assert payload["machine_proof"]["external_lm_eligibility_aggregated"] is True
+    assert payload["machine_proof"]["external_lm_safe_package_compiler_aggregated"] is True
+    assert payload["machine_proof"]["lm1_external_safe_package_ready"] is True
+    assert payload["machine_proof"]["lm2_external_safe_package_ready"] is True
+    assert payload["machine_proof"]["external_safe_package_live_production_ready"] is False
+    assert payload["machine_proof"]["external_safe_package_raw_value_leak_blocked"] is True
     assert payload["machine_proof"]["lm1_external_lm_allowed"] is True
     assert payload["machine_proof"]["lm2_external_lm_allowed"] is True
     assert payload["machine_proof"]["external_lm_live_production_allowed"] is False
@@ -172,6 +181,30 @@ def test_dashboard_includes_universal_intake_batch_fixture_and_privacy_readiness
         payload["dashboard_summary"]["privacy_readiness_status"]
         == "PRODUCTION_TOKEN_VAULT_SUBSTRATE_READY_PRIVACY_RECEIPT_PRESENT_NO_LIVE_LM"
     )
+
+
+def test_dashboard_exposes_external_lm_safe_package_compiler():
+    payload = _payload()
+    package = payload["representative_flow"]["external_lm_safe_package"]
+
+    assert package["compiler_status"] == "EXTERNAL_LM_SAFE_PACKAGE_COMPILER_NO_LIVE_CALLS"
+    assert package["read_model_ref"] == "generated/read_models/external_lm_safe_package.json"
+    assert package["lm1_status"] == "EXTERNAL_LM_SAFE_PACKAGE_COMPILED"
+    assert package["lm1_model_class"] == "FAST_EXTERNAL_INTENT_MODEL"
+    assert package["lm1_ready_for_external_shadow"] is True
+    assert package["lm2_status"] == "EXTERNAL_LM_SAFE_PACKAGE_COMPILED"
+    assert package["lm2_model_class"] == "STRONG_EXTERNAL_ROLE_MODEL"
+    assert package["lm2_ready_for_external_shadow"] is True
+    assert package["low_sensitivity_weather"]["tokenization_required"] is False
+    assert package["personal_finance"]["status"] == "EXTERNAL_LM_SAFE_PACKAGE_COMPILED"
+    assert package["personal_finance"]["model_class"] == "STRONG_EXTERNAL_ROLE_MODEL"
+    assert package["personal_finance"]["raw_values_included"] is False
+    assert package["legal_discovery"]["status"] == "EXTERNAL_LM_SAFE_PACKAGE_COMPILED"
+    assert package["legal_discovery"]["model_class"] == "STRONG_EXTERNAL_ROLE_MODEL"
+    assert package["legal_discovery"]["raw_values_included"] is False
+    assert package["strict_private_block"]["status"] == "EXTERNAL_LM_SAFE_PACKAGE_BLOCKED"
+    assert package["deterministic_no_lm_needed"] is True
+    assert package["raw_value_leak_blocked"] is True
 
 
 def test_dashboard_exposes_bridge_and_gate1_without_expanding_authority():

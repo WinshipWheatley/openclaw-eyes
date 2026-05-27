@@ -11,6 +11,9 @@ Tokenization: LOCAL_PRODUCTION_SUBSTRATE_READY_NO_REAL_DATA
 Privacy readiness: PRODUCTION_TOKEN_VAULT_SUBSTRATE_READY_PRIVACY_RECEIPT_PRESENT_NO_LIVE_LM
 Provider policy registry: SEEDED
 External LM eligibility: PRIVACY_SAFE_EXTERNAL_READY
+External LM safe package compiler: READY
+LM1 external safe package: READY
+LM2 external safe package: READY
 External LM activation: NOT_ACTIVE
 Gate 1 operational snapshot: EXPORTED_CONNECTED
 Gate 1 privacy request: EXPORTED

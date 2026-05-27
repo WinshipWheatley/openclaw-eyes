@@ -51,6 +51,9 @@ EXTERNAL_SAFE_DATA_CLASSES = (
     "LOW_METADATA",
     "TOKENIZED_METADATA",
     "TOKENIZED_CLIENT_FINANCE_METADATA",
+    "TOKENIZED_PERSONAL_FINANCE_METADATA",
+    "TOKENIZED_LEGAL_DISCOVERY_METADATA",
+    "TOKENIZED_SENSITIVE_METADATA",
     "MINIMIZED_ROLE_PACKAGE",
     "MACHINE_INTENT_PROPOSAL_SCHEMA",
 )
@@ -67,8 +70,6 @@ EXTERNAL_BLOCKED_DATA_CLASSES = (
 
 LOCAL_ONLY_DATA_CLASSES = (
     "STRICT_PRIVATE_CLIENT_METADATA",
-    "LEGAL_PRIVILEGED_METADATA",
-    "HEALTH_METADATA",
 )
 
 AUTHORITY_BOUNDARY = {
@@ -202,11 +203,23 @@ def _safe_classes_for_package(
         safe.append("TOKENIZED_METADATA")
     if privacy_level == "CLIENT_FINANCE_FILE_METADATA" and tokenization_applied and not raw_values_included:
         safe.append("TOKENIZED_CLIENT_FINANCE_METADATA")
+    if privacy_level == "PERSONAL_FINANCE_METADATA" and tokenization_applied and not raw_values_included:
+        safe.append("TOKENIZED_PERSONAL_FINANCE_METADATA")
+    if privacy_level in {"LEGAL_DISCOVERY_METADATA", "LEGAL_PRIVILEGED_METADATA"} and tokenization_applied and not raw_values_included:
+        safe.append("TOKENIZED_LEGAL_DISCOVERY_METADATA")
+    if privacy_level in {"SENSITIVE_METADATA", "HEALTH_METADATA"} and tokenization_applied and not raw_values_included:
+        safe.append("TOKENIZED_SENSITIVE_METADATA")
     for data_class in data_classes:
         if data_class in EXTERNAL_SAFE_DATA_CLASSES:
             safe.append(data_class)
         elif data_class == "CLIENT_FINANCE_FILE_METADATA" and tokenization_applied and not raw_values_included:
             safe.append("TOKENIZED_CLIENT_FINANCE_METADATA")
+        elif data_class == "PERSONAL_FINANCE_METADATA" and tokenization_applied and not raw_values_included:
+            safe.append("TOKENIZED_PERSONAL_FINANCE_METADATA")
+        elif data_class in {"LEGAL_DISCOVERY_METADATA", "LEGAL_PRIVILEGED_METADATA"} and tokenization_applied and not raw_values_included:
+            safe.append("TOKENIZED_LEGAL_DISCOVERY_METADATA")
+        elif data_class in {"SENSITIVE_METADATA", "HEALTH_METADATA"} and tokenization_applied and not raw_values_included:
+            safe.append("TOKENIZED_SENSITIVE_METADATA")
     if not safe and privacy_level == "LOW_METADATA":
         safe.append("LOW_METADATA")
     safe.append("MINIMIZED_ROLE_PACKAGE")
@@ -287,28 +300,27 @@ def evaluate_external_lm_eligibility(
         reason_codes.append("TOKENIZATION_APPLIED")
     if tokenization_missing:
         reason_codes.append("TOKENIZATION_REQUIRED_BUT_ABSENT")
-        local_required = True
+        no_safe_model = True
     if raw_values_included:
         reason_codes.append("RAW_VALUES_INCLUDED_BLOCK_EXTERNAL")
-        local_required = True
+        no_safe_model = True
     if not package_minimized:
         reason_codes.append("PACKAGE_NOT_MINIMIZED_BLOCK_EXTERNAL")
-        local_required = True
+        no_safe_model = True
     if not privacy_policy_allows_external:
         reason_codes.append("PRIVACY_POLICY_BLOCKS_EXTERNAL_MODEL")
-        local_required = True
+        no_safe_model = True
     if not model_allowed_for_data_classes:
         reason_codes.append("MODEL_POLICY_BLOCKS_DATA_CLASS")
-        local_required = True
+        no_safe_model = True
     if detokenization_required_inside_model:
         reason_codes.append("DETOKENIZATION_INSIDE_MODEL_BLOCKED")
-        local_required = True
+        no_safe_model = True
     if credentials_or_secrets_present:
         reason_codes.append("CREDENTIALS_OR_SECRETS_PRESENT")
         no_safe_model = True
     if private_mode_active:
-        reason_codes.append("PRIVATE_MODE_REQUIRES_LOCAL_OR_BLOCKED_EXTERNAL")
-        local_required = True
+        reason_codes.append("PRIVATE_MODE_REQUIRES_TOKENIZED_MINIMIZED_PACKAGE")
     if strict_private_mode_active or privacy_level in LOCAL_ONLY_DATA_CLASSES:
         reason_codes.append("STRICT_OR_LOCAL_ONLY_PRIVACY_REQUIRES_LOCAL")
         local_required = True
@@ -322,6 +334,8 @@ def evaluate_external_lm_eligibility(
         reason_codes.append("GUARDIAN_PRIVACY_GATE_REQUIRED")
     if blocked_data_classes:
         reason_codes.append("BLOCKED_DATA_CLASS_PRESENT")
+        if any(data_class != "STRICT_PRIVATE_CLIENT_METADATA" for data_class in blocked_data_classes):
+            no_safe_model = True
 
     safe_data_classes = _safe_classes_for_package(
         data_classes=data_classes,
@@ -349,7 +363,9 @@ def evaluate_external_lm_eligibility(
     if external_allowed:
         reason_codes.append("EXTERNAL_LM_PRIVACY_ELIGIBLE")
         local_required = False
-    elif not no_safe_model:
+    elif no_safe_model:
+        reason_codes.append("EXTERNAL_LM_BLOCKED_REPAIR_PRIVACY_PACKAGE")
+    else:
         reason_codes.append("EXTERNAL_LM_BLOCKED_LOCAL_FALLBACK_OR_LOCAL_ONLY")
 
     if no_safe_model:
@@ -376,7 +392,8 @@ def evaluate_external_lm_eligibility(
     token_estimate = _token_estimate(package)
     cost_notes = (
         "Use stronger external models when the package is protected; reduce cost by minimizing context first.",
-        "Use local fallback for offline, strict/private, policy-blocked, or credit-saving work.",
+        "Use local fallback for offline mode, explicit local-only choice, provider outage, credit-saving, or rare hard packages that cannot preserve meaning externally.",
+        "Do not treat privacy failure as automatic local fallback; repair tokenization/minimization or block the package.",
         "Do not run weak/local downgrade tests until the external baseline has passed.",
     )
     token_notes = (
@@ -414,7 +431,7 @@ def evaluate_external_lm_eligibility(
         next_safe_move=(
             "Package is privacy-eligible for a future external LM route, but production live LM remains off."
             if external_allowed
-            else "Use local fallback/local-only or repair the listed privacy blockers before external LM review."
+            else "Repair the listed privacy blockers, use explicit local/offline mode, or keep the package blocked before external LM review."
         ),
     )
     return asdict(result)
@@ -528,6 +545,36 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
             lane=LM1,
             substrate=substrate,
         ),
+        "personal_finance_tokenized_external_allowed": evaluate_external_lm_eligibility(
+            {
+                "recommended_lane": LM2,
+                "privacy_level": "PERSONAL_FINANCE_METADATA",
+                "data_classes": ("PERSONAL_FINANCE_METADATA", "MINIMIZED_ROLE_PACKAGE"),
+                "tokenization_applied": True,
+                "raw_values_included": False,
+                "package_minimized": True,
+                "context_minimization_applied": True,
+                "privacy_policy_allows_external_model": True,
+                "model_allowed_for_data_classes": True,
+            },
+            lane=LM2,
+            substrate=substrate,
+        ),
+        "legal_discovery_tokenized_external_allowed": evaluate_external_lm_eligibility(
+            {
+                "recommended_lane": LM2,
+                "privacy_level": "LEGAL_DISCOVERY_METADATA",
+                "data_classes": ("LEGAL_DISCOVERY_METADATA", "MINIMIZED_ROLE_PACKAGE"),
+                "tokenization_applied": True,
+                "raw_values_included": False,
+                "package_minimized": True,
+                "context_minimization_applied": True,
+                "privacy_policy_allows_external_model": True,
+                "model_allowed_for_data_classes": True,
+            },
+            lane=LM2,
+            substrate=substrate,
+        ),
         "unminimized_local_fallback": evaluate_external_lm_eligibility(
             {
                 "recommended_lane": LM2,
@@ -552,8 +599,9 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
                 "fallback",
                 "offline",
                 "credit_saving",
-                "strict_private_or_local_only",
-                "policy_blocked_context",
+                "strict_private_or_explicit_local_only",
+                "provider_unavailable",
+                "rare_hard_packages_that_cannot_preserve_task_meaning_externally",
                 "shadow_smoke",
             ),
             "live_production_status": "NOT_ACTIVE",
@@ -578,7 +626,10 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
             "raw_values_block_external": examples["raw_values_block_external"]["external_lm_allowed"] is False,
             "strict_private_local_only": examples["strict_private_local_only"]["recommended_model_class"] == LOCAL_ONLY_MODEL,
             "credentials_no_safe_model": examples["credentials_no_safe_model"]["no_safe_model"] is True,
+            "personal_finance_external_eligible": examples["personal_finance_tokenized_external_allowed"]["external_lm_allowed"],
+            "legal_discovery_external_eligible": examples["legal_discovery_tokenized_external_allowed"]["external_lm_allowed"],
             "unminimized_blocks_external": examples["unminimized_local_fallback"]["external_lm_allowed"] is False,
+            "unminimized_no_safe_model_until_repaired": examples["unminimized_local_fallback"]["no_safe_model"] is True,
             "live_production_activation_allowed": False,
             "all_live_authority_false": all(value is False for value in AUTHORITY_BOUNDARY.values()),
             "content_hash": "",

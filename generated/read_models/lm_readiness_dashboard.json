@@ -3,20 +3,46 @@
     "external_lm_eligibility_policy": {
       "machine_proof": {
         "all_live_authority_false": true,
-        "content_hash": "sha256:c9d23df30584f90c9801ffe8b1f2b8078d511702ac31c49d17e96a9a05ba9d3c",
+        "content_hash": "sha256:1b2635597e8085fd01890461a14db7a99e6a249bee9af60bdadba43e01b1fb50",
         "credentials_no_safe_model": true,
         "finance_lm1_external_eligible": true,
         "finance_lm2_external_eligible": true,
+        "legal_discovery_external_eligible": true,
         "live_production_activation_allowed": false,
         "model_call_performed": false,
         "network_performed": false,
+        "personal_finance_external_eligible": true,
         "production_live_lm_authority_granted": false,
         "provider_key_material_access_performed": false,
         "raw_values_block_external": true,
         "strict_private_local_only": true,
-        "unminimized_blocks_external": true
+        "unminimized_blocks_external": true,
+        "unminimized_no_safe_model_until_repaired": true
       },
       "read_model_id": "external_lm_eligibility_policy"
+    },
+    "external_lm_safe_package_compiler": {
+      "machine_proof": {
+        "all_live_authority_false": true,
+        "compiler_present": true,
+        "content_hash": "sha256:e702ddbee70aa95661355dc68f72198a14ed1b494a0648d0acb4aa16bb514f6b",
+        "deterministic_no_lm_needed": true,
+        "external_action_performed": false,
+        "legal_discovery_external_ready": true,
+        "lm1_safe_package_compiled": true,
+        "lm2_safe_package_compiled": true,
+        "low_sensitivity_tokenization_not_required": true,
+        "model_call_performed": false,
+        "personal_context_tokenized": true,
+        "personal_finance_external_ready": true,
+        "provider_activation_performed": false,
+        "raw_identifier_leak_blocked": true,
+        "raw_value_leak_blocked": true,
+        "send_request_grants_no_authority": true,
+        "strict_private_external_blocked": true,
+        "tool_execution_performed": false
+      },
+      "read_model_id": "external_lm_safe_package"
     },
     "gate1_operational_snapshot": {
       "machine_proof": {
@@ -287,7 +313,7 @@
     "provider_policy_registry": {
       "machine_proof": {
         "all_live_authority_false": true,
-        "content_hash": "sha256:c749c51b91079e0bd923bc81a57fdf3e215cc9687cf289c3770ab6ede3c5eb1a",
+        "content_hash": "sha256:136b4b0c7eba8c4b409aec0b26b916c7bf6f91d5e0fccb4be23971c2aac07ead",
         "live_model_call_performed": false,
         "lm1_policy_selects_fast_candidate": true,
         "lm2_policy_selects_strong_candidate": true,
@@ -435,6 +461,7 @@
     "can_lm2_shadow_test": true,
     "external_lm_activation": "NOT_ACTIVE",
     "external_lm_eligibility": "PRIVACY_SAFE_EXTERNAL_READY",
+    "external_lm_safe_package_compiler": "READY",
     "gate1_operational_snapshot": "EXPORTED_CONNECTED",
     "gate1_privacy_request": "EXPORTED",
     "gate2_ingest": "ACCEPTED_INTENT",
@@ -445,12 +472,14 @@
     "live_lm_shadow_trial": "LIVE_SHADOW_PASSED",
     "live_shadow_receipt": "PRESENT",
     "lm1_external_model_class": "FAST_EXTERNAL_INTENT_MODEL",
+    "lm1_external_safe_package": "READY",
     "lm1_live": "NOT_ACTIVE",
     "lm1_selected_provider": "provider_class:external_privacy_safe_fast_intent",
     "lm1_shadow": "READY",
     "lm1_shadow_comparison": "READY",
     "lm1_thread_context_package": "CONNECTED_TO_GATE1",
     "lm2_external_model_class": "STRONG_EXTERNAL_ROLE_MODEL",
+    "lm2_external_safe_package": "READY",
     "lm2_live": "NOT_ACTIVE",
     "lm2_package_shadow": "READY",
     "lm2_selected_provider": "provider_class:external_privacy_safe_role_reasoner",
@@ -497,12 +526,16 @@
     "activation_receipt_substrate_satisfies_production": false,
     "all_live_authority_false": true,
     "cloud_lm_allowed_when_private": false,
-    "content_hash": "sha256:34c46416013462feb3710ae40656188c385143770e7760207cb171f38b59e60f",
+    "content_hash": "sha256:645e322403f670791f41313d1a6f7436f190a883efa43249878ab8e28a14e4f3",
     "dashboard_aggregates_seeded_lanes": true,
     "end_to_end_non_live_chain_passed": true,
     "external_action_performed": false,
     "external_lm_eligibility_aggregated": true,
     "external_lm_live_production_allowed": false,
+    "external_lm_safe_package_compiler_aggregated": true,
+    "external_safe_package_deterministic_no_lm_needed": true,
+    "external_safe_package_live_production_ready": false,
+    "external_safe_package_raw_value_leak_blocked": true,
     "gate1_operational_snapshot_aggregated": true,
     "gate1_privacy_request_readiness_aggregated": true,
     "gate1_snapshot_connected_to_lm1_package": true,
@@ -517,12 +550,14 @@
     "live_shadow_receipt_valid": true,
     "live_shadow_trial_status": "LIVE_SHADOW_PASSED",
     "lm1_external_lm_allowed": true,
+    "lm1_external_safe_package_ready": true,
     "lm1_model_class_selected": "FAST_EXTERNAL_INTENT_MODEL",
     "lm1_package_built": true,
     "lm1_package_connected_to_gate1": true,
     "lm1_package_raw_values_included": false,
     "lm1_package_tokenization_required": true,
     "lm2_external_lm_allowed": true,
+    "lm2_external_safe_package_ready": true,
     "lm2_model_class_selected": "STRONG_EXTERNAL_ROLE_MODEL",
     "model_call_performed": false,
     "network_performed": false,
@@ -576,7 +611,8 @@
         "context_minimization_applied": true,
         "cost_control_notes": [
           "Use stronger external models when the package is protected; reduce cost by minimizing context first.",
-          "Use local fallback for offline, strict/private, policy-blocked, or credit-saving work.",
+          "Use local fallback for offline mode, explicit local-only choice, provider outage, credit-saving, or rare hard packages that cannot preserve meaning externally.",
+          "Do not treat privacy failure as automatic local fallback; repair tokenization/minimization or block the package.",
           "Do not run weak/local downgrade tests until the external baseline has passed."
         ],
         "detokenization_required_inside_model": false,
@@ -650,7 +686,8 @@
         "context_minimization_applied": true,
         "cost_control_notes": [
           "Use stronger external models when the package is protected; reduce cost by minimizing context first.",
-          "Use local fallback for offline, strict/private, policy-blocked, or credit-saving work.",
+          "Use local fallback for offline mode, explicit local-only choice, provider outage, credit-saving, or rare hard packages that cannot preserve meaning externally.",
+          "Do not treat privacy failure as automatic local fallback; repair tokenization/minimization or block the package.",
           "Do not run weak/local downgrade tests until the external baseline has passed."
         ],
         "detokenization_required_inside_model": false,
@@ -705,6 +742,36 @@
         ],
         "tokenization_applied": true,
         "use_beast_model_only_when_needed": true
+      }
+    },
+    "external_lm_safe_package": {
+      "compiler_status": "EXTERNAL_LM_SAFE_PACKAGE_COMPILER_NO_LIVE_CALLS",
+      "deterministic_no_lm_needed": true,
+      "legal_discovery": {
+        "model_class": "STRONG_EXTERNAL_ROLE_MODEL",
+        "raw_values_included": false,
+        "status": "EXTERNAL_LM_SAFE_PACKAGE_COMPILED"
+      },
+      "lm1_model_class": "FAST_EXTERNAL_INTENT_MODEL",
+      "lm1_ready_for_external_shadow": true,
+      "lm1_status": "EXTERNAL_LM_SAFE_PACKAGE_COMPILED",
+      "lm2_model_class": "STRONG_EXTERNAL_ROLE_MODEL",
+      "lm2_ready_for_external_shadow": true,
+      "lm2_status": "EXTERNAL_LM_SAFE_PACKAGE_COMPILED",
+      "low_sensitivity_weather": {
+        "status": "EXTERNAL_LM_SAFE_PACKAGE_COMPILED",
+        "tokenization_required": false
+      },
+      "personal_finance": {
+        "model_class": "STRONG_EXTERNAL_ROLE_MODEL",
+        "raw_values_included": false,
+        "status": "EXTERNAL_LM_SAFE_PACKAGE_COMPILED"
+      },
+      "raw_value_leak_blocked": true,
+      "read_model_ref": "generated/read_models/external_lm_safe_package.json",
+      "strict_private_block": {
+        "plain_reason": "OpenClaw could not prepare this for an external model because private or credential-like content was present.",
+        "status": "EXTERNAL_LM_SAFE_PACKAGE_BLOCKED"
       }
     },
     "gate1_operational_snapshot": {
@@ -2297,7 +2364,8 @@
         "context_minimization_applied": true,
         "cost_control_notes": [
           "Use stronger external models when the package is protected; reduce cost by minimizing context first.",
-          "Use local fallback for offline, strict/private, policy-blocked, or credit-saving work.",
+          "Use local fallback for offline mode, explicit local-only choice, provider outage, credit-saving, or rare hard packages that cannot preserve meaning externally.",
+          "Do not treat privacy failure as automatic local fallback; repair tokenization/minimization or block the package.",
           "Do not run weak/local downgrade tests until the external baseline has passed."
         ],
         "detokenization_required_inside_model": false,

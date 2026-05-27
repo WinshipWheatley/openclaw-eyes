@@ -25,7 +25,13 @@ def test_surface_aggregates_lm_readiness_dashboard_v2():
     assert surface_payload["proof_shelf"]["lm2_shadow_status"] == "READY"
     assert surface_payload["proof_shelf"]["provider_policy_status"] == "SEEDED"
     assert surface_payload["proof_shelf"]["external_lm_eligibility_status"] == "PRIVACY_SAFE_EXTERNAL_READY"
+    assert surface_payload["proof_shelf"]["external_lm_safe_package_status"] == "READY"
+    assert surface_payload["proof_shelf"]["lm1_external_safe_package_status"] == "READY"
+    assert surface_payload["proof_shelf"]["lm2_external_safe_package_status"] == "READY"
     assert surface_payload["proof_shelf"]["external_lm_activation_status"] == "NOT_ACTIVE"
+    assert payload["machine_proof"]["external_lm_safe_package_available"] is True
+    assert payload["machine_proof"]["lm1_external_safe_package_ready"] is True
+    assert payload["machine_proof"]["lm2_external_safe_package_ready"] is True
 
 
 def test_surface_exposes_private_mode_choices_without_enabling_them():
@@ -75,6 +81,9 @@ def test_proof_shelf_keeps_machine_fields_available():
         "production_live_blocker_status",
         "provider_activation_receipt_status",
         "external_lm_eligibility_status",
+        "external_lm_safe_package_status",
+        "lm1_external_safe_package_status",
+        "lm2_external_safe_package_status",
         "external_lm_activation_status",
         "live_shadow_trial_status",
         "live_shadow_receipt_status",
@@ -89,6 +98,7 @@ def test_proof_shelf_keeps_machine_fields_available():
         assert key in proof
     assert "generated/read_models/lm_readiness_dashboard.json" in proof["read_model_refs"]
     assert "generated/read_models/external_lm_eligibility_policy.json" in proof["read_model_refs"]
+    assert "generated/read_models/external_lm_safe_package.json" in proof["read_model_refs"]
     assert "generated/read_models/gate1_privacy_request_readiness.json" in proof["read_model_refs"]
     assert "generated/read_models/gate1_operational_snapshot.json" in proof["read_model_refs"]
     assert "generated/read_models/intent_ingest_gate.json" in proof["read_model_refs"]

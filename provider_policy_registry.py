@@ -143,6 +143,9 @@ def provider_policy_records() -> tuple[ProviderPolicyRecord, ...]:
                 "LOW_METADATA",
                 "TOKENIZED_METADATA",
                 "TOKENIZED_CLIENT_FINANCE_METADATA",
+                "TOKENIZED_PERSONAL_FINANCE_METADATA",
+                "TOKENIZED_LEGAL_DISCOVERY_METADATA",
+                "TOKENIZED_SENSITIVE_METADATA",
                 "MACHINE_INTENT_PROPOSAL_SCHEMA",
             ),
             forbidden_context_classes=(
@@ -181,6 +184,9 @@ def provider_policy_records() -> tuple[ProviderPolicyRecord, ...]:
                 "LOW_METADATA",
                 "TOKENIZED_METADATA",
                 "TOKENIZED_CLIENT_FINANCE_METADATA",
+                "TOKENIZED_PERSONAL_FINANCE_METADATA",
+                "TOKENIZED_LEGAL_DISCOVERY_METADATA",
+                "TOKENIZED_SENSITIVE_METADATA",
                 "MINIMIZED_ROLE_PACKAGE",
             ),
             forbidden_context_classes=(

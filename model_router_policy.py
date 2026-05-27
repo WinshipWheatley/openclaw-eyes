@@ -214,10 +214,28 @@ def _provider_privacy_level(request: ModelRoutingRequest) -> str:
     sensitivity = request.sensitivity_level.lower()
     if sensitivity == "tokenized_client_finance_metadata":
         return "TOKENIZED_CLIENT_FINANCE_METADATA"
+    if sensitivity == "tokenized_personal_finance_metadata":
+        return "TOKENIZED_PERSONAL_FINANCE_METADATA"
+    if sensitivity == "tokenized_legal_discovery_metadata":
+        return "TOKENIZED_LEGAL_DISCOVERY_METADATA"
+    if sensitivity == "tokenized_sensitive_metadata":
+        return "TOKENIZED_SENSITIVE_METADATA"
     if sensitivity == "client_finance_file_metadata":
         if request.tokenization_applied and not request.raw_values_included and request.package_minimized:
             return "TOKENIZED_CLIENT_FINANCE_METADATA"
         return "CLIENT_FINANCE_FILE_METADATA"
+    if sensitivity == "personal_finance_metadata":
+        if request.tokenization_applied and not request.raw_values_included and request.package_minimized:
+            return "TOKENIZED_PERSONAL_FINANCE_METADATA"
+        return "RAW_PRIVATE_BODY"
+    if sensitivity in {"legal_discovery_metadata", "legal_privileged_metadata"}:
+        if request.tokenization_applied and not request.raw_values_included and request.package_minimized:
+            return "TOKENIZED_LEGAL_DISCOVERY_METADATA"
+        return "RAW_PRIVATE_BODY"
+    if sensitivity in {"sensitive_metadata", "health_metadata"}:
+        if request.tokenization_applied and not request.raw_values_included and request.package_minimized:
+            return "TOKENIZED_SENSITIVE_METADATA"
+        return "RAW_PRIVATE_BODY"
     if sensitivity == "strict_private_client_metadata":
         return "STRICT_PRIVATE_CLIENT_METADATA"
     if sensitivity in {"high", "protected"} and (request.raw_values_included or not request.tokenization_applied):

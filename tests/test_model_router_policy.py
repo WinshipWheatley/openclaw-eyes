@@ -60,6 +60,28 @@ def test_model_router_selects_stronger_class_for_lm2_role_package():
     assert decision["rejected_provider_candidates"]
 
 
+def test_model_router_selects_external_role_model_for_tokenized_personal_finance():
+    decision = policy.select_model_class(
+        {
+            "request_id": "test_personal_finance_router",
+            "chain_lane": "LM2_ROLE_RESPONSE",
+            "task_type": "role_response",
+            "role": "CASSANDRA",
+            "risk_level": "medium",
+            "sensitivity_level": "personal_finance_metadata",
+            "context_size": "medium",
+            "requires_structured_output": True,
+            "tokenization_applied": True,
+            "raw_values_included": False,
+            "external_lm_allowed": True,
+            "package_minimized": True,
+        }
+    )
+
+    assert decision["selected_model_class"] == policy.STRONG_EXTERNAL_ROLE_MODEL
+    assert decision["selected_provider_ref"] == "provider_class:external_privacy_safe_role_reasoner"
+
+
 def test_model_router_selects_local_fallback_when_external_policy_blocked():
     decision = policy.select_model_class(
         {

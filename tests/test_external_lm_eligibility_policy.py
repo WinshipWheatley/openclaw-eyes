@@ -54,7 +54,7 @@ def test_sensitive_finance_raw_values_block_external():
     )
 
     assert result["external_lm_allowed"] is False
-    assert result["local_lm_required"] is True
+    assert result["no_safe_model"] is True
     assert "RAW_VALUES_INCLUDED_BLOCK_EXTERNAL" in result["reason_codes"]
     assert "RAW_PRIVATE_BODY" in result["blocked_data_classes"]
 
@@ -99,7 +99,7 @@ def test_credentials_or_secrets_have_no_safe_model():
     assert result["recommended_model_class"] == policy.NO_SAFE_MODEL
 
 
-def test_unminimized_package_blocks_external_but_allows_local_fallback():
+def test_unminimized_package_blocks_external_until_package_is_repaired():
     result = policy.evaluate_external_lm_eligibility(
         {
             "recommended_lane": "LM2",
@@ -114,8 +114,49 @@ def test_unminimized_package_blocks_external_but_allows_local_fallback():
     )
 
     assert result["external_lm_allowed"] is False
-    assert result["recommended_model_class"] == policy.LOCAL_FALLBACK_MODEL
+    assert result["no_safe_model"] is True
+    assert result["recommended_model_class"] == policy.NO_SAFE_MODEL
     assert "PACKAGE_NOT_MINIMIZED_BLOCK_EXTERNAL" in result["reason_codes"]
+
+
+def test_personal_finance_tokenized_package_is_external_eligible():
+    result = policy.evaluate_external_lm_eligibility(
+        {
+            "recommended_lane": "LM2",
+            "privacy_level": "PERSONAL_FINANCE_METADATA",
+            "data_classes": ("PERSONAL_FINANCE_METADATA", "MINIMIZED_ROLE_PACKAGE"),
+            "tokenization_applied": True,
+            "raw_values_included": False,
+            "package_minimized": True,
+            "context_minimization_applied": True,
+        },
+        lane="LM2",
+        substrate=SUBSTRATE_READY,
+    )
+
+    assert result["external_lm_allowed"] is True
+    assert result["recommended_model_class"] == policy.STRONG_EXTERNAL_ROLE_MODEL
+    assert "TOKENIZED_PERSONAL_FINANCE_METADATA" in result["safe_data_classes"]
+
+
+def test_legal_discovery_tokenized_package_is_external_eligible():
+    result = policy.evaluate_external_lm_eligibility(
+        {
+            "recommended_lane": "LM2",
+            "privacy_level": "LEGAL_DISCOVERY_METADATA",
+            "data_classes": ("LEGAL_DISCOVERY_METADATA", "MINIMIZED_ROLE_PACKAGE"),
+            "tokenization_applied": True,
+            "raw_values_included": False,
+            "package_minimized": True,
+            "context_minimization_applied": True,
+        },
+        lane="LM2",
+        substrate=SUBSTRATE_READY,
+    )
+
+    assert result["external_lm_allowed"] is True
+    assert result["recommended_model_class"] == policy.STRONG_EXTERNAL_ROLE_MODEL
+    assert "TOKENIZED_LEGAL_DISCOVERY_METADATA" in result["safe_data_classes"]
 
 
 def test_exported_readmodel_parses(tmp_path):
@@ -126,5 +167,7 @@ def test_exported_readmodel_parses(tmp_path):
     assert parsed["read_model_id"] == policy.READ_MODEL_ID
     assert parsed["machine_proof"]["finance_lm1_external_eligible"] is True
     assert parsed["machine_proof"]["finance_lm2_external_eligible"] is True
+    assert parsed["machine_proof"]["personal_finance_external_eligible"] is True
+    assert parsed["machine_proof"]["legal_discovery_external_eligible"] is True
     assert parsed["machine_proof"]["live_production_activation_allowed"] is False
     assert "Live production models remain off" in operator_path.read_text(encoding="utf-8")

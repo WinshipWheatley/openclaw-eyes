@@ -58,6 +58,7 @@ AUTHORITY_BOUNDARY = {
 OPERATOR_SUMMARY_LINES = (
     "LM shadow rails are ready.",
     "Privacy-safe stronger model rails are eligible, but not active.",
+    "Safe model packages can be prepared without activating models.",
     "Live models are not active.",
     "Private Mode backend policy is seeded.",
     "Local privacy vault proof is present.",
@@ -122,6 +123,9 @@ class ProofShelf:
     production_live_blocker_status: str
     provider_activation_receipt_status: str
     external_lm_eligibility_status: str
+    external_lm_safe_package_status: str
+    lm1_external_safe_package_status: str
+    lm2_external_safe_package_status: str
     external_lm_activation_status: str
     live_shadow_trial_status: str
     live_shadow_receipt_status: str
@@ -286,6 +290,9 @@ def build_proof_shelf(inputs: Mapping[str, Any]) -> dict[str, Any]:
             production_live_blocker_status=str(summary.get("production_live_blockers", "UNKNOWN")),
             provider_activation_receipt_status=str(summary.get("provider_activation_receipts", "UNKNOWN")),
             external_lm_eligibility_status=str(summary.get("external_lm_eligibility", "UNKNOWN")),
+            external_lm_safe_package_status=str(summary.get("external_lm_safe_package_compiler", "UNKNOWN")),
+            lm1_external_safe_package_status=str(summary.get("lm1_external_safe_package", "UNKNOWN")),
+            lm2_external_safe_package_status=str(summary.get("lm2_external_safe_package", "UNKNOWN")),
             external_lm_activation_status=str(summary.get("external_lm_activation", "UNKNOWN")),
             live_shadow_trial_status=str(summary.get("live_lm_shadow_trial", "UNKNOWN")),
             live_shadow_receipt_status=str(summary.get("live_shadow_receipt", "UNKNOWN")),
@@ -300,6 +307,7 @@ def build_proof_shelf(inputs: Mapping[str, Any]) -> dict[str, Any]:
                 "generated/read_models/lm_readiness_dashboard.json",
                 "generated/read_models/provider_policy_registry.json",
                 "generated/read_models/external_lm_eligibility_policy.json",
+                "generated/read_models/external_lm_safe_package.json",
                 "generated/read_models/model_router_policy.json",
                 "generated/read_models/shadow_lm_mode.json",
                 "generated/read_models/token_vault_status.json",
@@ -385,6 +393,9 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
                 for button in surface["suggested_buttons"]
             ),
             "proof_shelf_available": bool(surface["proof_shelf"]["read_model_refs"]),
+            "external_lm_safe_package_available": surface["proof_shelf"]["external_lm_safe_package_status"] == "READY",
+            "lm1_external_safe_package_ready": surface["proof_shelf"]["lm1_external_safe_package_status"] == "READY",
+            "lm2_external_safe_package_ready": surface["proof_shelf"]["lm2_external_safe_package_status"] == "READY",
             "all_live_authority_false": all(value is False for value in AUTHORITY_BOUNDARY.values()),
             "content_hash": "",
         },
