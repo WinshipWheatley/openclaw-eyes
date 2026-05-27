@@ -21,4 +21,12 @@ Blockers:
 - Recipient list needs confirmation.
 - Send is blocked until approval and send execution receipts exist.
 
+Guided fix paths:
+- Coupa submission proof is still required. -> Start Coupa proof step
+- Which invoice page/period should OpenClaw prepare for Capital Hilton? -> Select invoice page
+- OpenClaw needs the current invoice page/period before it can attach the Excel invoice. -> Select invoice page
+- Generated invoice artifact needs proof linking it to the selected invoice record. -> Regenerate or link invoice
+- Recipient list needs confirmation. -> Review recipients
+- Send is blocked until approval and send execution receipts exist. -> Prepare send approval
+
 Proof is available behind disclosure. No email, Coupa, browser, ledger, or production action is enabled.

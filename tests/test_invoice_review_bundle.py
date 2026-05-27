@@ -133,10 +133,12 @@ def test_right_workbook_wrong_page_correction_is_governed_no_external_action():
     action = actions["Right Workbook, Wrong Page"]
     assert action["enabled"] is True
     assert action["requires_followup"] is True
-    assert action["resulting_request_kind"] == "invoice_page_correction_request"
+    assert action["action_kind"] == "start_invoice_record_selection"
+    assert action["resulting_request_kind"] == "invoice_page_selection_request"
     assert action["no_external_action"] is True
     assert action["mutates_workbook"] is False
     assert action["mutates_production_state"] is False
+    assert action["hidden_request_payload"]["request_kind"] == "start_invoice_record_selection"
     assert payload["machine_proof"]["right_workbook_wrong_page_no_external_action"] is True
 
 
@@ -193,6 +195,7 @@ def test_proof_timeline_is_plain_primary_copy_with_hidden_refs_only():
         "Generated invoice artifact",
         "Coupa portal proof",
         "Clara draft",
+        "Recipients",
         "Guardian approval request",
         "Operator approval",
         "Email send",
@@ -205,6 +208,111 @@ def test_proof_timeline_is_plain_primary_copy_with_hidden_refs_only():
     assert "gate 2" not in primary_text
     assert all("hidden_internal_refs" in item for item in timeline)
     assert payload["machine_proof"]["proof_timeline_present"] is True
+    assert payload["machine_proof"]["actionable_timeline_present"] is True
+
+
+def test_every_incomplete_timeline_step_has_action_or_disabled_reason():
+    payload = _capital()
+
+    for step in payload["review_proof_timeline"]:
+        if step["status"] == "COMPLETE":
+            continue
+        action = step["primary_action"]
+        assert action is not None, step["title"]
+        assert action["action_ref"], step["title"]
+        assert action["enabled"] or action["disabled_reason"], step["title"]
+    assert payload["machine_proof"]["incomplete_timeline_steps_have_actions_or_disabled_reasons"] is True
+
+
+def test_no_visible_button_lacks_action_ref():
+    payload = _capital()
+    visible_buttons = [
+        *payload["correction_actions"],
+        *payload["approval_footer"]["approval_buttons"],
+        *payload["guardian_approval_request"]["buttons"],
+    ]
+
+    assert all(button["action_ref"] for button in visible_buttons)
+    assert payload["machine_proof"]["visible_buttons_have_action_refs"] is True
+
+
+def test_wrong_workbook_maps_to_replace_source_reference_not_deletion():
+    payload = _capital()
+    actions = {action["label"]: action for action in payload["correction_actions"]}
+    wrong_workbook = actions["Wrong Workbook"]
+
+    assert wrong_workbook["action_kind"] == "replace_source_workbook_reference"
+    hidden = wrong_workbook["hidden_request_payload"]
+    assert hidden["physical_deletion_allowed"] is False
+    assert "delete" not in json.dumps(hidden).lower()
+    assert wrong_workbook["no_external_action"] is True
+
+
+def test_start_coupa_proof_step_is_proof_intake_not_browser_automation():
+    payload = _capital()
+    coupa_step = next(step for step in payload["review_proof_timeline"] if step["title"] == "Coupa portal proof")
+    action = coupa_step["primary_action"]
+    hidden = action["hidden_request_payload"]
+
+    assert action["label"] == "Start Coupa proof step"
+    assert action["action_kind"] == "request_coupa_submission_proof"
+    assert hidden["proof_intake_only"] is True
+    assert hidden["browser_automation_allowed"] is False
+    assert hidden["portal_submission_allowed"] is False
+    assert hidden["coupa_submit_allowed"] is False
+
+
+def test_recipient_review_action_does_not_invent_emails():
+    payload = _capital()
+    recipients_step = next(step for step in payload["review_proof_timeline"] if step["title"] == "Recipients")
+    action = recipients_step["primary_action"]
+    hidden = action["hidden_request_payload"]
+
+    assert action["action_kind"] == "review_and_confirm_recipients"
+    assert hidden["candidate_contacts"] == ("Annette", "Chyna", "Will")
+    assert hidden["email_addresses_known"] is False
+    assert hidden["do_not_invent_emails"] is True
+    assert "@" not in json.dumps(hidden)
+
+
+def test_approval_action_is_disabled_until_prerequisites_exist():
+    payload = _capital()
+    footer_approve = next(button for button in payload["approval_footer"]["approval_buttons"] if button["label"] == "APPROVE")
+    guardian_step = next(step for step in payload["review_proof_timeline"] if step["title"] == "Guardian approval request")
+
+    assert footer_approve["enabled"] is False
+    assert footer_approve["disabled_reason"]
+    assert guardian_step["status"] == "BLOCKED"
+    assert guardian_step["primary_action"]["action_kind"] == "show_approval_prerequisites"
+    assert guardian_step["primary_action"]["no_external_action"] is True
+
+
+def test_email_send_action_is_disabled_until_approval_and_attachment_prerequisites_exist():
+    payload = _capital()
+    email_step = next(step for step in payload["review_proof_timeline"] if step["title"] == "Email send")
+    action = email_step["primary_action"]
+
+    assert action["action_kind"] == "prepare_send_approval_request"
+    assert action["enabled"] is False
+    assert "approval" in action["disabled_reason"].lower()
+    assert action["hidden_request_payload"]["email_send_allowed"] is False
+
+
+def test_action_payloads_are_hidden_metadata_not_primary_operator_copy():
+    payload = _capital()
+    primary_text = json.dumps(payload["operator_copy"]).lower()
+    timeline_text = json.dumps(
+        [
+            step["operator_summary"]
+            for step in payload["review_proof_timeline"]
+        ]
+    ).lower()
+
+    assert "hidden_request_payload" not in primary_text
+    assert "action_kind" not in primary_text
+    assert "idempotency_key" not in primary_text
+    assert "hidden_request_payload" not in timeline_text
+    assert "action_kind" not in timeline_text
 
 
 def test_linkage_receipts_can_confirm_generated_artifact_without_enabling_send():
