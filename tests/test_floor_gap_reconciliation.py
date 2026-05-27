@@ -37,6 +37,7 @@ def test_weak_lanes_are_identified_deterministically():
     assert payload["machine_proof"]["weak_lanes_identified"] is True
     assert weakest_scores == sorted(weakest_scores)
     assert "production_live_blockers" in {item["lane_id"] for item in payload["weakest_lanes"]}
+    assert all(item["not_ready_reason"] for item in payload["weakest_lanes"])
 
 
 def test_at_least_three_weak_lanes_get_floor_improvements():

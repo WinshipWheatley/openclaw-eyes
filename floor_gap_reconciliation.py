@@ -283,6 +283,7 @@ def build_floor_matrix(*, generated_at: str = DEFAULT_GENERATED_AT) -> tuple[dic
             has_operator_copy=True,
             ready_for_shadow=True,
             ready_for_live_review=True,
+            not_ready_reason="Package compiler is shadow-ready; live LM2 use still needs activation and production privacy receipts.",
         ),
         _assessment(
             "lm2_package_shadow",
@@ -308,6 +309,7 @@ def build_floor_matrix(*, generated_at: str = DEFAULT_GENERATED_AT) -> tuple[dic
             has_operator_copy=True,
             ready_for_shadow=True,
             ready_for_live_review=True,
+            not_ready_reason="Guardian output gate is ready for shadow/later live validation; no production action authority is enabled.",
         ),
         _assessment(
             "trust_ramp",
