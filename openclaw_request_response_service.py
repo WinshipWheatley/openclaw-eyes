@@ -591,6 +591,23 @@ def _contains_any(text: str, terms: tuple[str, ...]) -> bool:
     return any(term in lowered for term in terms)
 
 
+def _prefer_reality_bounce_before_deterministic(raw_request: Mapping[str, Any]) -> bool:
+    """Keep known freeform operator phrases on the Reality Bounce chain."""
+
+    operator_text = _operator_message_text(raw_request)
+    normalized = reality_bounce_harness.normalize_operator_text_for_matching(operator_text)
+    if normalized in {
+        "do the thing",
+        "do it",
+        "handle it",
+        "make it happen",
+        "send the invoice now",
+        "send invoice now",
+    }:
+        return True
+    return normalized.startswith("send the invoice ") or normalized.startswith("send invoice ")
+
+
 def _reality_bounce_db_path() -> Path:
     configured = os.environ.get("OPENCLAW_REALITY_BOUNCE_DB_PATH")
     return Path(configured) if configured else DEFAULT_REALITY_BOUNCE_DB_PATH
@@ -805,6 +822,20 @@ def _route_for_request(request_path: Path, identity: RequestIdentity, raw_reques
             mac_handoff_required=True,
             future_worker_blocked=False,
             terminal_block_status="BLOCKED_MAC_HANDOFF_UNAVAILABLE",
+        )
+    if _prefer_reality_bounce_before_deterministic(raw_request):
+        return RouteDecision(
+            routing_status="PROCESSING_ON_PC",
+            selected_worker_target="PC_CODEX",
+            selected_machine="PC_WSL",
+            processing_status="REALITY_BOUNCE_CHAIN",
+            operator_headline="OpenClaw is checking this message",
+            operator_message="OpenClaw picked this up and is routing it through the safe local response chain.",
+            next_safe_move="Wait for the safe local response.",
+            route_reason="Known freeform operator wording is handled by Reality Bounce before deterministic live-action interpreters.",
+            pc_handled=False,
+            mac_handoff_required=False,
+            future_worker_blocked=False,
         )
     if deterministic_intent_interpreter.should_interpret(raw_request):
         return RouteDecision(
@@ -1362,6 +1393,9 @@ def _reality_bounce_processor_payload(
         db_path=_reality_bounce_db_path(),
         generated_at=created_at,
         source_request_id=identity.source_request_id,
+        world_ref=str(raw_request.get("world_ref") or "finance"),
+        client_ref=str(raw_request.get("client_ref") or "capital_hilton"),
+        workflow_ref=str(raw_request.get("workflow_ref") or identity.workflow_ref or "capital_hilton_invoice_workflow"),
         persist=True,
     )
     result = bounce["result"]

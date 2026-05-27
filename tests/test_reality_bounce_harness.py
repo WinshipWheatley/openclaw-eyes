@@ -64,6 +64,22 @@ def test_arbitrary_status_text_routes_to_chief_and_writes_receipt(tmp_path):
     assert receipt_payload["production_receipt"] is False
 
 
+def test_curly_apostrophe_status_text_routes_to_chief(tmp_path):
+    db_path = tmp_path / "reality_bounce.sqlite"
+    payload = harness.run_text(
+        "what\u2019s next for Capital Hilton?",
+        db_path=db_path,
+        generated_at=FIXED_NOW,
+    )
+    result = payload["result"]
+
+    assert result["status"] == harness.STATUS_ACCEPTED_WITH_RECEIPT
+    assert result["selected_role_family"] == "CHIEF"
+    assert result["selected_voice"] == "CHIEF"
+    assert result["receipt_written"] is True
+    assert "next safe move for the Capital Hilton invoice" in payload["operator_stdout"]
+
+
 def test_arbitrary_draft_text_routes_to_clara_and_writes_draft_receipt(tmp_path):
     db_path = tmp_path / "reality_bounce.sqlite"
     payload = harness.run_text(
@@ -82,6 +98,8 @@ def test_arbitrary_draft_text_routes_to_clara_and_writes_draft_receipt(tmp_path)
     assert worker_result["requested_tool_calls"] == ()
     assert worker_result["requested_external_actions"] == ()
     assert "sent" not in worker_result["draft_text"].lower()
+    assert "Hi Capital Hilton team" in payload["operator_stdout"]
+    assert "Draft only - nothing was sent" in payload["operator_stdout"]
 
     rows = _receipt_rows(db_path)
     assert len(rows) == 1
@@ -168,7 +186,8 @@ def test_cli_stdout_is_operator_language_and_not_backend_sludge(tmp_path):
     stdout = completed.stdout
 
     assert "Draft prepared" in stdout
-    assert "Clara drafted client-safe wording only" in stdout
+    assert "Hi Capital Hilton team" in stdout
+    assert "Draft only - nothing was sent" in stdout
     forbidden = ("worker route unavailable", "deterministic worker rule", "Gate 2", "Gate 3", "request contract")
     assert not any(term.lower() in stdout.lower() for term in forbidden)
 

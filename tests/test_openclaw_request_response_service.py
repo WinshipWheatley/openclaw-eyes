@@ -997,7 +997,7 @@ def test_service_routes_freeform_status_through_reality_bounce_to_chief_receipt(
     assert response["terminal"] is True
     assert response["source_request_id"] == request["request_id"]
     assert response["headline"] == "Next safe move"
-    assert "Chief checked Capital Hilton" in response["eliwinship"]
+    assert "next safe move for the Capital Hilton invoice" in response["eliwinship"]
     assert response["detail_disclosure"]["selected_rail"] == "reality_bounce_harness"
     assert response["detail_disclosure"]["receipt_written"] is True
     assert response["detail_disclosure"]["selected_role_family"] == "CHIEF"
@@ -1007,6 +1007,48 @@ def test_service_routes_freeform_status_through_reality_bounce_to_chief_receipt(
     assert rows[0]["selected_voice"] == "CHIEF"
     assert rows[0]["external_action"] == 0
     assert rows[0]["authority_used"] == 0
+
+
+def test_service_routes_curly_apostrophe_status_to_reality_bounce(tmp_path, capsys, monkeypatch):
+    inbox = tmp_path / "inbox"
+    response_dir = tmp_path / "responses"
+    export_root = tmp_path / "read_models"
+    receipt_db = tmp_path / "reality_bounce.sqlite"
+    inbox.mkdir()
+    monkeypatch.setenv("OPENCLAW_REALITY_BOUNCE_DB_PATH", receipt_db.as_posix())
+    request_path = inbox / "mission_control_chat_request_reality_status_curly.json"
+    request = _write_custom_chat_request(
+        request_path,
+        message="what\u2019s next for Capital Hilton?",
+        suffix="reality_status_curly",
+    )
+
+    assert service_main(
+        [
+            "--once",
+            "--inbox",
+            str(inbox),
+            "--response-dir",
+            str(response_dir),
+            "--export-root",
+            str(export_root),
+            "--generated-at",
+            FIXED_NOW,
+            "--format",
+            "json",
+        ]
+    ) == 0
+    capsys.readouterr()
+    heartbeat = json.loads(_safe_heartbeat_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
+    response = json.loads(_safe_response_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
+
+    assert heartbeat["processing_status"] == "REALITY_BOUNCE_CHAIN"
+    assert response["response_kind"] == "REALITY_BOUNCE_RESPONSE"
+    assert response["response_author"] == "CHIEF"
+    assert response["headline"] == "Next safe move"
+    assert "next safe move for the Capital Hilton invoice" in response["eliwinship"]
+    assert response["guardian_verdict"] == response["guardian_output_gate"]["validation_result"]["verdict"]
+    assert response["detail_disclosure"]["receipt_written"] is True
 
 
 def test_service_routes_freeform_client_draft_through_clara_receipt(tmp_path, capsys, monkeypatch):
@@ -1050,8 +1092,9 @@ def test_service_routes_freeform_client_draft_through_clara_receipt(tmp_path, ca
     assert response["detail_disclosure"]["selected_role_family"] == "CASSANDRA_CLARA"
     assert response["detail_disclosure"]["selected_voice"] == "CLARA"
     assert response["headline"] == "Draft prepared"
-    assert "Clara drafted client-safe wording only" in response["eliwinship"]
-    assert "Nothing was sent" in response["eliwinship"]
+    assert "Hi Capital Hilton team" in response["eliwinship"]
+    assert "Draft only - nothing was sent" in response["eliwinship"]
+    assert response["guardian_verdict"] == response["guardian_output_gate"]["validation_result"]["verdict"]
     assert response["guardian_output_gate"]["validation_result"]["verdict"] == "ROLE_OUTPUT_VALIDATED"
     assert rows
     assert rows[0]["role_family"] == "CASSANDRA_CLARA"
@@ -1094,12 +1137,54 @@ def test_service_blocks_freeform_send_without_worker_receipt(tmp_path, capsys, m
     rows = _worker_receipt_rows(receipt_db)
 
     assert response["internal_status"] == "BLOCKED_WITH_REASON"
-    assert response["headline"] in {"That needs approval first", "Authority gate blocked"}
-    assert "approval" in response["eliwinship"].lower() or "blocked" in response["eliwinship"].lower()
+    assert response["response_kind"] == "REALITY_BOUNCE_RESPONSE"
+    assert response["headline"] == "That needs approval first"
+    assert "cannot send this without approval" in response["eliwinship"].lower()
     detail = response.get("detail_disclosure") if isinstance(response.get("detail_disclosure"), dict) else {}
     assert detail.get("receipt_written") in {False, None}
     assert response["machine_proof"]["send_submit_performed"] is False
     assert rows == []
+
+
+def test_service_clarifies_do_the_thing_without_worker_receipt(tmp_path, capsys, monkeypatch):
+    inbox = tmp_path / "inbox"
+    response_dir = tmp_path / "responses"
+    export_root = tmp_path / "read_models"
+    receipt_db = tmp_path / "reality_bounce.sqlite"
+    inbox.mkdir()
+    monkeypatch.setenv("OPENCLAW_REALITY_BOUNCE_DB_PATH", receipt_db.as_posix())
+    request_path = inbox / "mission_control_chat_request_do_the_thing.json"
+    request = _write_custom_chat_request(
+        request_path,
+        message="do the thing",
+        suffix="do_the_thing",
+    )
+
+    assert service_main(
+        [
+            "--once",
+            "--inbox",
+            str(inbox),
+            "--response-dir",
+            str(response_dir),
+            "--export-root",
+            str(export_root),
+            "--generated-at",
+            FIXED_NOW,
+            "--format",
+            "json",
+        ]
+    ) == 0
+    capsys.readouterr()
+    heartbeat = json.loads(_safe_heartbeat_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
+    response = json.loads(_safe_response_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
+
+    assert heartbeat["processing_status"] == "REALITY_BOUNCE_CHAIN"
+    assert response["response_kind"] == "REALITY_BOUNCE_RESPONSE"
+    assert response["headline"] == "I need one detail"
+    assert "invoice workbook, the invoice package, or something else" in response["eliwinship"]
+    assert response["detail_disclosure"]["receipt_written"] is False
+    assert _worker_receipt_rows(receipt_db) == []
 
 
 def test_unknown_freeform_fallback_uses_reality_bounce_clarification_not_worker_sludge(tmp_path, capsys, monkeypatch):

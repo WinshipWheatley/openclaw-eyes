@@ -4837,6 +4837,7 @@ def build_payloads(
         "role_execution_package": guardian_gate_payload["role_execution_package"],
         "validation_result": guardian_gate_result,
     }
+    response_payload["guardian_verdict"] = guardian_gate_result["verdict"]
     taste_guardrails = _response_taste_guardrails(response_payload)
     response_payload["taste_guardrails"] = taste_guardrails
     status_payload: dict[str, Any] = {

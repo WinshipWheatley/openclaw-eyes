@@ -16,7 +16,9 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import sqlite3
+import unicodedata
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -53,6 +55,22 @@ STATUS_GUARDIAN_BLOCKED = "GUARDIAN_BLOCKED"
 
 HARNESS_TABLES = ("reality_bounce_runs", "reality_bounce_case_results", "repoa_worker_run_receipts")
 
+SMART_PUNCTUATION_TRANSLATION = str.maketrans(
+    {
+        "\u2018": "'",
+        "\u2019": "'",
+        "\u201a": "'",
+        "\u201b": "'",
+        "\u201c": '"',
+        "\u201d": '"',
+        "\u201e": '"',
+        "\u201f": '"',
+        "\u2013": "-",
+        "\u2014": "-",
+        "\u2212": "-",
+    }
+)
+
 AUTHORITY_BOUNDARY = {
     "live_lm1_call_allowed": False,
     "live_lm2_call_allowed": False,
@@ -80,6 +98,26 @@ AUTHORITY_BOUNDARY = {
     "network_allowed": False,
     "production_state_mutation_allowed": False,
 }
+
+
+def normalize_operator_text_for_matching(operator_text: str) -> str:
+    """Return a matching-only form that tolerates smart punctuation and casing."""
+
+    normalized = unicodedata.normalize("NFKC", str(operator_text or ""))
+    normalized = normalized.translate(SMART_PUNCTUATION_TRANSLATION)
+    lowered = normalized.lower().replace("&", " and ")
+    lowered = re.sub(r"[^a-z0-9_'\-\s]+", " ", lowered)
+    lowered = " ".join(lowered.split())
+    replacements = {
+        "capitol hilton": "capital hilton",
+        "captial hilton": "capital hilton",
+        "open claw": "openclaw",
+        "work book": "workbook",
+        "workbok": "workbook",
+    }
+    for before, after in replacements.items():
+        lowered = lowered.replace(before, after)
+    return lowered
 
 
 @dataclass(frozen=True)
@@ -350,7 +388,7 @@ def default_cases() -> tuple[RealityBounceCase, ...]:
             STATUS_CLARIFICATION,
             confidence="MEDIUM",
             ambiguity_status="MISSING_CONTEXT",
-            clarification="What should OpenClaw work on, and what safe outcome do you want?",
+            clarification="What should OpenClaw work on - the invoice workbook, the invoice package, or something else?",
             remains="Needs one operator clarification.",
         ),
         _case(
@@ -409,7 +447,7 @@ def deterministic_case_from_text(
     """
 
     message = " ".join(str(operator_text or "").split())
-    lowered = message.lower()
+    lowered = normalize_operator_text_for_matching(message)
     simple = lowered.strip(" \t\r\n.!?")
     case_id = f"text_{_short_hash(message or 'empty')}"
     source_request_id = source_request_id or f"reality_bounce_text_{_short_hash(message or 'empty')}"
@@ -432,7 +470,7 @@ def deterministic_case_from_text(
             workflow_ref=workflow_ref,
             confidence="MEDIUM",
             ambiguity_status="MISSING_CONTEXT",
-            clarification="What should OpenClaw work on, and what safe outcome do you want?",
+            clarification="What should OpenClaw work on - the invoice workbook, the invoice package, or something else?",
             remains="Needs one operator clarification.",
             source_request_id=source_request_id,
         )
@@ -607,7 +645,7 @@ def deterministic_case_from_text(
         workflow_ref=workflow_ref,
         confidence="MEDIUM",
         ambiguity_status="MISSING_CONTEXT",
-        clarification="What should OpenClaw work on, and what safe outcome do you want?",
+        clarification="What should OpenClaw work on - the invoice workbook, the invoice package, or something else?",
         remains="Needs one operator clarification.",
         source_request_id=source_request_id,
     )
@@ -776,8 +814,21 @@ def _mac_response_candidate(
 ) -> dict[str, Any]:
     if worker_result:
         headline = str(worker_result.get("headline") or "Response ready")
-        body = str(worker_result.get("eliwinship") or worker_result.get("one_line_answer") or "")
-        next_action = str(worker_result.get("next_action") or "Next: review this local result.")
+        draft_text = str(worker_result.get("draft_text") or "").strip()
+        response_author = str(worker_result.get("response_author") or "")
+        if draft_text:
+            body = f"{draft_text} Draft only - nothing was sent."
+            next_action = "Next: review the draft before any delivery step."
+        elif response_author == "CHIEF" and case.intent_type == "ANSWER_STATUS":
+            body = (
+                "Here's the next safe move for the Capital Hilton invoice: review/confirm the current "
+                "workbook and field mapping, then prepare the invoice package for approval. "
+                "Nothing will be sent until approved."
+            )
+            next_action = "Next: confirm workbook and mapping, then prepare the approval packet."
+        else:
+            body = str(worker_result.get("eliwinship") or worker_result.get("one_line_answer") or "")
+            next_action = str(worker_result.get("next_action") or "Next: review this local result.")
     elif case.case_id == "real_workbook_remove_test" or (case.source_refs and "delete the other" in case.requested_action.lower()):
         headline = "Workbook choice understood"
         body = (
@@ -787,7 +838,7 @@ def _mac_response_candidate(
         next_action = "Next: confirm the registry update when you are ready."
     elif status == STATUS_BLOCKED:
         headline = "That needs approval first"
-        body = "OpenClaw did not do that. This request would need a separate approval or proof before anything can run."
+        body = "I can prepare the send request, but I cannot send this without approval. Nothing was sent."
         next_action = "Next: ask for a draft, review packet, or exact approval step."
     elif status == STATUS_CONTEXT_NEEDED:
         headline = "I need the right client or workflow"
@@ -1074,6 +1125,9 @@ def run_text(
     db_path: Path = DEFAULT_DB_PATH,
     generated_at: str | None = None,
     source_request_id: str | None = None,
+    world_ref: str = "finance",
+    client_ref: str = "capital_hilton",
+    workflow_ref: str = "capital_hilton_invoice_workflow",
     persist: bool = True,
 ) -> dict[str, Any]:
     generated_at = generated_at or utc_now()
@@ -1084,7 +1138,13 @@ def run_text(
     if normalized_mode == "shadow-lm":
         shadow_lm_status = "NOT_ACTIVE_FELL_BACK_TO_LOCAL"
 
-    case = deterministic_case_from_text(operator_text, source_request_id=source_request_id)
+    case = deterministic_case_from_text(
+        operator_text,
+        source_request_id=source_request_id,
+        world_ref=world_ref,
+        client_ref=client_ref,
+        workflow_ref=workflow_ref,
+    )
     run_id = f"reality_bounce_text_run:{_short_hash(generated_at, case.source_request_id, normalized_mode)}"
     init_harness_db(db_path)
     result = run_case(case, run_id=run_id, generated_at=generated_at, receipt_db_path=db_path)
