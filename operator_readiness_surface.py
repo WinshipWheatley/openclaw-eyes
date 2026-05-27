@@ -111,6 +111,9 @@ class PrivateModeCard:
 class ProofShelf:
     gate_chain_status: str
     gate1_privacy_status: str
+    gate1_operational_snapshot_status: str
+    gate2_readback_status: str
+    gate3_package_readback_status: str
     lm1_shadow_status: str
     lm2_shadow_status: str
     tokenization_status: str
@@ -268,6 +271,9 @@ def build_proof_shelf(inputs: Mapping[str, Any]) -> dict[str, Any]:
         ProofShelf(
             gate_chain_status="PASS" if inputs["gate_chain_harness"]["summary"]["failed"] == 0 else "CHECK",
             gate1_privacy_status=str(summary.get("gate1_privacy_request", "UNKNOWN")),
+            gate1_operational_snapshot_status=str(summary.get("gate1_operational_snapshot", "UNKNOWN")),
+            gate2_readback_status=str(summary.get("gate2_readback", "UNKNOWN")),
+            gate3_package_readback_status=str(summary.get("gate3_package_readback", "UNKNOWN")),
             lm1_shadow_status=str(summary.get("lm1_shadow")),
             lm2_shadow_status=str(summary.get("lm2_package_shadow")),
             tokenization_status=str(summary.get("privacy_readiness_status")),
@@ -289,6 +295,9 @@ def build_proof_shelf(inputs: Mapping[str, Any]) -> dict[str, Any]:
                 "generated/read_models/token_vault_status.json",
                 "generated/read_models/universal_intake_contract.json",
                 "generated/read_models/gate1_privacy_request_readiness.json",
+                "generated/read_models/gate1_operational_snapshot.json",
+                "generated/read_models/intent_ingest_gate.json",
+                "generated/read_models/role_package_gate.json",
                 "generated/read_models/request_response_bridge_readiness.json",
                 "generated/read_models/live_lm_activation_requirements.json",
                 "generated/read_models/private_mode_policy_readiness.json",

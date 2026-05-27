@@ -21,7 +21,7 @@ def test_floor_matrix_classifies_each_required_lane():
     matrix = payload["floor_matrix"]
 
     assert payload["machine_proof"]["all_required_lanes_classified"] is True
-    assert len(matrix) == 20
+    assert len(matrix) == 21
     for item in matrix:
         assert "lane_id" in item
         assert "maturity_label" in item
@@ -44,7 +44,12 @@ def test_at_least_three_weak_lanes_get_floor_improvements():
     raised_ids = {item["lane_id"] for item in payload["raised_this_pass"]}
 
     assert payload["machine_proof"]["raised_lane_count"] >= 3
-    assert {"private_mode_readiness", "provider_activation_receipts", "read_model_mirror_visibility"}.issubset(raised_ids)
+    assert {
+        "gate1_operational_snapshot",
+        "private_mode_readiness",
+        "provider_activation_receipts",
+        "read_model_mirror_visibility",
+    }.issubset(raised_ids)
     assert payload["machine_proof"]["floor_was_uneven"] is True
 
 
@@ -84,6 +89,7 @@ def test_lm1_package_consumes_intake_and_privacy_declarations():
     assert package["tools_allowed"] == ()
     assert package["read_model_ref"] == "generated/read_models/lm1_thread_context_package.json"
     assert package["ready_for_shadow"] is True
+    assert package["gate1_operational_snapshot_ref"].startswith("gate1_operational_snapshot:")
 
 
 def test_equalization_exports_low_beam_readiness_refs():
@@ -91,11 +97,18 @@ def test_equalization_exports_low_beam_readiness_refs():
 
     assert payload["gate1_privacy_request_readiness_ref"]["read_model_ref"] == "generated/read_models/gate1_privacy_request_readiness.json"
     assert payload["gate1_privacy_request_readiness_ref"]["lm1_may_receive_raw_values"] is False
+    assert payload["gate1_operational_snapshot_ref"]["read_model_ref"] == "generated/read_models/gate1_operational_snapshot.json"
+    assert payload["gate1_operational_snapshot_ref"]["capital_hilton_snapshot_safe_for_lm1"] is True
+    assert payload["gate1_operational_snapshot_ref"]["privacy_policy_missing_blocks_lm1"] is True
     assert payload["request_response_bridge_readiness_ref"]["read_model_ref"] == "generated/read_models/request_response_bridge_readiness.json"
     assert payload["request_response_bridge_readiness_ref"]["scoped_response_filename_contract"] == "openclaw_response_for_mac_<source_request_id>.json"
     assert payload["machine_proof"]["gate1_privacy_readiness_exported"] is True
+    assert payload["machine_proof"]["gate1_operational_snapshot_exported"] is True
+    assert payload["machine_proof"]["gate1_operational_snapshot_connected"] is True
     assert payload["machine_proof"]["request_response_bridge_dashboard_visible"] is True
     assert payload["machine_proof"]["lm1_thread_context_package_exported"] is True
+    assert payload["machine_proof"]["gate2_operator_readback_visible"] is True
+    assert payload["machine_proof"]["gate3_operator_readback_visible"] is True
     assert payload["machine_proof"]["production_live_blockers_explicit"] is True
     assert payload["machine_proof"]["provider_activation_receipts_required"] is True
     assert payload["machine_proof"]["private_mode_policy_exported"] is True
@@ -108,6 +121,7 @@ def test_floor_matrix_includes_v2_required_lanes():
 
     assert {
         "provider_activation_receipts",
+        "gate1_operational_snapshot",
         "shadow_comparison",
         "tokenized_package_readiness",
         "read_model_mirror_visibility",

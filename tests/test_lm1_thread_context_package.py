@@ -18,6 +18,9 @@ def test_lm1_package_is_standalone_and_chain_compatible():
     package = payload["lm1_thread_context_package"]
 
     assert package["source_request_id"] == "test_lm1_standalone"
+    assert package["gate1_operational_snapshot_ref"].startswith("gate1_operational_snapshot:")
+    assert package["gate1_safe_to_package_for_lm1"] is True
+    assert package["gate1_privacy_flags"]["privacy_class"] == "CLIENT_FINANCE_FILE_METADATA"
     assert package["universal_intake_inference"]["client_ref"] == "capital_hilton"
     assert package["universal_intake_chain_contract"]["candidate_may_enter_gate_2_after_lm1_proposal"] is True
     assert package["privacy_classification"] == "CLIENT_FINANCE_FILE_METADATA"
@@ -35,6 +38,8 @@ def test_lm1_package_model_router_and_authority_are_bounded():
     assert summary["selected_model_class"] == model_router_policy.FAST_STRUCTURED_INTENT_SMALL
     assert summary["ready_for_shadow"] is True
     assert proof["package_has_model_router_result"] is True
+    assert proof["package_consumes_gate1_snapshot"] is True
+    assert proof["gate1_snapshot_safe_to_package"] is True
     assert proof["authority_granted_any"] is False
     assert proof["live_model_call_performed"] is False
     assert proof["workbook_body_read_performed"] is False

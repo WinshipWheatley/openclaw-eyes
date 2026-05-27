@@ -226,6 +226,21 @@ class IntentIngestResult:
     next_safe_move: str
 
 
+@dataclass(frozen=True)
+class IntentIngestReadback:
+    readback_id: str
+    source_request_id: str
+    input_candidate_summary: dict[str, Any]
+    outcome: str
+    plain_language_meaning: str
+    blocked_or_clarification_reason: str
+    accepted_intent_type: str
+    safe_action_type: str
+    safe_next_chain_step: str
+    action_executed: bool
+    why_no_action_executed: str
+
+
 def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
@@ -688,6 +703,87 @@ def ingest_intent_proposal(
     return asdict(result)
 
 
+def build_intent_ingest_readback(
+    ingest_result: Mapping[str, Any],
+    candidate: Mapping[str, Any] | MachineIntentCandidate | None = None,
+) -> dict[str, Any]:
+    if isinstance(candidate, MachineIntentCandidate):
+        candidate_summary = {
+            "intent_id": candidate.intent_id,
+            "operator_text": candidate.original_operator_text,
+            "inferred_intent_type": candidate.inferred_intent_type,
+            "target_workflow_ref": candidate.target_workflow_ref,
+            "confidence": candidate.confidence,
+        }
+    elif isinstance(candidate, Mapping):
+        candidate_summary = {
+            "intent_id": str(candidate.get("intent_id") or ingest_result.get("source_candidate_ref") or ""),
+            "operator_text": str(candidate.get("original_operator_text") or ""),
+            "inferred_intent_type": str(candidate.get("inferred_intent_type") or ""),
+            "target_workflow_ref": str(candidate.get("target_workflow_ref") or ""),
+            "confidence": str(candidate.get("confidence") or ""),
+        }
+    else:
+        candidate_summary = {
+            "intent_id": str(ingest_result.get("source_candidate_ref") or ""),
+            "operator_text": "",
+            "inferred_intent_type": "",
+            "target_workflow_ref": "",
+            "confidence": "",
+        }
+
+    outcome = str(ingest_result.get("outcome") or PARKED_FOR_REVIEW)
+    accepted = ingest_result.get("accepted_intent") if isinstance(ingest_result.get("accepted_intent"), Mapping) else {}
+    clarification = ingest_result.get("clarification_request") if isinstance(ingest_result.get("clarification_request"), Mapping) else {}
+    authority_block = ingest_result.get("authority_block") if isinstance(ingest_result.get("authority_block"), Mapping) else {}
+    blocker_reasons = tuple(str(item) for item in ingest_result.get("blocker_reasons") or ())
+    missing_items = tuple(str(item) for item in ingest_result.get("missing_items") or ())
+
+    meanings = {
+        ACCEPTED_INTENT: "OpenClaw can ingest this as a bounded internal intent. Nothing runs yet.",
+        NEEDS_CLARIFICATION: "OpenClaw needs one clear answer before this can become an internal intent.",
+        NEEDS_CONTEXT: "OpenClaw needs matching scope or context before this can move forward.",
+        BLOCKED_AUTHORITY: "OpenClaw understood the request, but it asks for authority this lane does not have.",
+        UNSUPPORTED_CAPABILITY: "OpenClaw does not have a supported capability for this proposed intent yet.",
+        LOW_CONFIDENCE: "OpenClaw is not confident enough to ingest this without clarification.",
+        PARKED_FOR_REVIEW: "OpenClaw parked this safely for review.",
+    }
+    if outcome == ACCEPTED_INTENT:
+        reason = ""
+        safe_next = "Compile a bounded Gate 3 role package; do not execute the intent."
+    elif outcome == NEEDS_CLARIFICATION:
+        reason = str(clarification.get("question") or "Clarification required.")
+        safe_next = "Ask the operator one clear question."
+    elif outcome == BLOCKED_AUTHORITY:
+        blocked = tuple(str(item) for item in authority_block.get("blocked_authority") or ())
+        reason = ", ".join(blocked or blocker_reasons or ("authority blocked",))
+        safe_next = "Return a blocked response or ask for a future exact approval receipt; do not execute."
+    elif outcome == NEEDS_CONTEXT:
+        reason = ", ".join(missing_items or blocker_reasons or ("context missing",))
+        safe_next = "Collect the missing scope/context through a governed local surface or clarification."
+    elif outcome == UNSUPPORTED_CAPABILITY:
+        reason = ", ".join(tuple(ingest_result.get("missing_capabilities") or ()) or blocker_reasons or ("capability unsupported",))
+        safe_next = "Park or create a build cue; do not execute."
+    else:
+        reason = ", ".join(blocker_reasons or missing_items or (str(ingest_result.get("next_safe_move") or ""),))
+        safe_next = str(ingest_result.get("next_safe_move") or "Return a safe readback; do not execute.")
+
+    readback = IntentIngestReadback(
+        readback_id=f"intent_ingest_readback:{_short_hash(ingest_result.get('ingest_result_id'), outcome)}",
+        source_request_id=str(ingest_result.get("source_request_id") or "unknown_source_request"),
+        input_candidate_summary=candidate_summary,
+        outcome=outcome,
+        plain_language_meaning=meanings.get(outcome, meanings[PARKED_FOR_REVIEW]),
+        blocked_or_clarification_reason=reason,
+        accepted_intent_type=str(accepted.get("intent_type") or ""),
+        safe_action_type=str(accepted.get("safe_action_type") or ""),
+        safe_next_chain_step=safe_next,
+        action_executed=False,
+        why_no_action_executed="Gate 2 only validates intent ingestion. It never runs tools, workflows, sends, posts, or file actions.",
+    )
+    return asdict(readback)
+
+
 def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
     generated_at = generated_at or DEFAULT_GENERATED_AT
     package_payload = lm_intent_proposal_contract.build_payload(
@@ -754,6 +850,114 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
         next_safe_move="Validate before ingesting.",
     )
     blocked_result = ingest_intent_proposal(blocked_candidate, package_payload=package_payload)
+    ambiguous_candidate = MachineIntentCandidate(
+        intent_id="intent_ingest_gate_fixture_ambiguous",
+        source_request_id="intent_ingest_gate_fixture_status",
+        original_operator_text="do the thing",
+        inferred_intent_type="CONTINUE_CURRENT_WORKFLOW",
+        target_world_ref="finance",
+        target_folder_ref="capital_hilton",
+        target_thread_ref="thread_ref:finance_capital_hilton",
+        target_workflow_ref="unknown",
+        target_agent_role="CHIEF",
+        target_worker_type="PC_CODEX",
+        requested_action="Continue the thing.",
+        referenced_next_action="",
+        confidence="MEDIUM",
+        ambiguity_status="AMBIGUOUS",
+        required_clarification="Which workflow or file should OpenClaw use?",
+        evidence_refs_used=(),
+        context_refs_used=("tenant_scope:fixture_business_ops",),
+        source_refs_used=(),
+        missing_requirements=(),
+        forbidden_assumptions=(),
+        authority_requested={"send_submit": False, "external_action": False},
+        authority_granted={"send_submit": False, "external_action": False},
+        validation_required=True,
+        next_safe_move="Ask one clarification before ingesting.",
+    )
+    ambiguous_package = lm_intent_proposal_contract.build_payload(
+        {
+            "request_id": "intent_ingest_gate_fixture_status",
+            "operator_message": "do the thing",
+            "world_ref": "finance",
+            "client_ref": "capital_hilton",
+            "workflow_ref": "unknown",
+        },
+        generated_at=generated_at,
+    )
+    ambiguous_result = ingest_intent_proposal(ambiguous_candidate, package_payload=ambiguous_package)
+    supersede_candidate = MachineIntentCandidate(
+        intent_id="intent_ingest_gate_fixture_supersede_reference",
+        source_request_id="intent_ingest_gate_fixture_status",
+        original_operator_text="Delete the other one from OpenClaw.",
+        inferred_intent_type="ATTACH_SOURCE_REF",
+        target_world_ref="finance",
+        target_folder_ref="capital_hilton",
+        target_thread_ref="thread_ref:finance_capital_hilton",
+        target_workflow_ref="capital_hilton_invoice_workflow",
+        target_agent_role="OPENCLAW_SYSTEM",
+        target_worker_type="PC_CODEX",
+        requested_action="Use the newest workbook and delete the other one from OpenClaw.",
+        referenced_next_action="",
+        confidence="HIGH",
+        ambiguity_status="UNAMBIGUOUS",
+        required_clarification="",
+        evidence_refs_used=(),
+        context_refs_used=("tenant_scope:fixture_business_ops",),
+        source_refs_used=("local_artifact_reference:newest_capital_hilton_workbook",),
+        missing_requirements=(),
+        forbidden_assumptions=(),
+        authority_requested={"send_submit": False, "external_action": False},
+        authority_granted={"send_submit": False, "external_action": False},
+        validation_required=True,
+        next_safe_move="Validate before ingesting.",
+    )
+    supersede_result = ingest_intent_proposal(supersede_candidate, package_payload=package_payload)
+    cross_client_package = lm_intent_proposal_contract.build_payload(
+        {
+            "request_id": "intent_ingest_gate_fixture_status",
+            "operator_message": "Use this for St. Anne's.",
+            "world_ref": "finance",
+            "client_ref": "st_annes",
+            "workflow_ref": "capital_hilton_invoice_workflow",
+        },
+        generated_at=generated_at,
+    )
+    cross_client_candidate = MachineIntentCandidate(
+        intent_id="intent_ingest_gate_fixture_cross_client",
+        source_request_id="intent_ingest_gate_fixture_status",
+        original_operator_text="Use this workbook for the Capital Hilton invoice.",
+        inferred_intent_type="ATTACH_SOURCE_REF",
+        target_world_ref="finance",
+        target_folder_ref="capital_hilton",
+        target_thread_ref="thread_ref:finance_capital_hilton",
+        target_workflow_ref="capital_hilton_invoice_workflow",
+        target_agent_role="OPENCLAW_SYSTEM",
+        target_worker_type="PC_CODEX",
+        requested_action="Attach this workbook to Capital Hilton.",
+        referenced_next_action="",
+        confidence="HIGH",
+        ambiguity_status="UNAMBIGUOUS",
+        required_clarification="",
+        evidence_refs_used=(),
+        context_refs_used=("tenant_scope:fixture_business_ops",),
+        source_refs_used=("local_artifact_reference:capital_hilton_workbook",),
+        missing_requirements=(),
+        forbidden_assumptions=(),
+        authority_requested={"send_submit": False, "external_action": False},
+        authority_granted={"send_submit": False, "external_action": False},
+        validation_required=True,
+        next_safe_move="Validate before ingesting.",
+    )
+    cross_client_result = ingest_intent_proposal(cross_client_candidate, package_payload=cross_client_package)
+    readbacks = {
+        "safe_status_next_step": build_intent_ingest_readback(accepted_result, candidate),
+        "send_invoice_now": build_intent_ingest_readback(blocked_result, blocked_candidate),
+        "ambiguous_do_the_thing": build_intent_ingest_readback(ambiguous_result, ambiguous_candidate),
+        "delete_other_from_openclaw": build_intent_ingest_readback(supersede_result, supersede_candidate),
+        "cross_client_mismatch": build_intent_ingest_readback(cross_client_result, cross_client_candidate),
+    }
     payload: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
         "read_model_id": READ_MODEL_ID,
@@ -764,12 +968,29 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
         "examples": {
             "accepted_status_intent": accepted_result,
             "blocked_send_submit_intent": blocked_result,
+            "ambiguous_intent": ambiguous_result,
+            "reference_supersession_intent": supersede_result,
+            "cross_client_mismatch_intent": cross_client_result,
+        },
+        "operator_readbacks": readbacks,
+        "readback_summary": {
+            key: {
+                "outcome": value["outcome"],
+                "meaning": value["plain_language_meaning"],
+                "safe_next_chain_step": value["safe_next_chain_step"],
+            }
+            for key, value in readbacks.items()
         },
         "machine_proof": {
             "gate_2_present": True,
             "lm1_proposal_schema_supported": True,
             "accepted_example_is_accepted": accepted_result["outcome"] == ACCEPTED_INTENT,
             "blocked_example_is_blocked": blocked_result["outcome"] == BLOCKED_AUTHORITY,
+            "ambiguous_example_needs_clarification": ambiguous_result["outcome"] == NEEDS_CLARIFICATION,
+            "supersession_is_reference_only": supersede_result["accepted_intent"]["safe_action_type"]
+            == "SUPERSEDE_ACTIVE_REFERENCE_NOT_PHYSICAL_DELETE",
+            "cross_client_mismatch_not_accepted": cross_client_result["outcome"] != ACCEPTED_INTENT,
+            "readback_action_executed_any": any(item["action_executed"] for item in readbacks.values()),
             "model_call_performed": False,
             "agent_dispatch_performed": False,
             "worker_dispatch_performed": False,
@@ -794,6 +1015,7 @@ def write_exports(payload: Mapping[str, Any], export_root: Path = DEFAULT_EXPORT
     json_path.write_text(stable_json(payload), encoding="utf-8")
     accepted = payload.get("examples", {}).get("accepted_status_intent", {})
     blocked = payload.get("examples", {}).get("blocked_send_submit_intent", {})
+    readbacks = payload.get("operator_readbacks", {})
     lines = [
         "# Intent Ingest Gate",
         "",
@@ -802,6 +1024,12 @@ def write_exports(payload: Mapping[str, Any], export_root: Path = DEFAULT_EXPORT
         f"Blocked example: {blocked.get('outcome', '')}",
         "",
         "Gate 2 accepts only validated MachineIntentCandidate proposals as internal intents.",
+        "",
+        "Operator-visible readbacks:",
+        *[
+            f"- {name}: {item.get('outcome')} - {item.get('plain_language_meaning')}"
+            for name, item in readbacks.items()
+        ],
         "",
         "Boundary: no LM call, no execution, no send/submit, no authority grant.",
     ]

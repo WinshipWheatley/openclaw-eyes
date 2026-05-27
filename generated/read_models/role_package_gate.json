@@ -434,13 +434,16 @@
     "blocked_gate2_not_compiled": true,
     "cassandra_package_compiled": true,
     "chief_package_compiled": true,
-    "content_hash": "sha256:7e9b130c1acb4da3def282e7b3a5ac7a4a9c1942eef6e195ffac810e45d53eda",
+    "content_hash": "sha256:6625afb499c979612a1bcb52e8a4455263f28bb1a66f9874bca7ad1bed4d3faf",
     "external_action_performed": false,
     "gate_2_required_before_gate_3": true,
     "gate_3_present": true,
     "lm2_call_performed": false,
     "model_call_performed": false,
     "model_may_see_raw_values": false,
+    "package_readback_gate4_ready": true,
+    "package_readback_model_router_present": true,
+    "package_readback_operator_visible": true,
     "raw_values_included": false,
     "ready_for_gate_4": true,
     "send_submit_performed": false,
@@ -448,6 +451,526 @@
     "tool_execution_performed": false,
     "worker_dispatch_performed": false,
     "workflow_execution_performed": false
+  },
+  "package_readbacks": {
+    "blocked_gate2": {
+      "allowed_context_classes": [],
+      "authority_policy": {
+        "authority_boundary": {
+          "credential_handling_allowed": false,
+          "live_agent_dispatch_allowed": false,
+          "live_approval_execution_allowed": false,
+          "live_browser_allowed": false,
+          "live_candidate_promotion_allowed": false,
+          "live_coupa_access_allowed": false,
+          "live_email_send_allowed": false,
+          "live_external_action_allowed": false,
+          "live_file_body_read_allowed": false,
+          "live_file_mutation_allowed": false,
+          "live_ledger_posting_allowed": false,
+          "live_lm2_call_allowed": false,
+          "live_model_call_allowed": false,
+          "live_pdf_generation_allowed": false,
+          "live_send_submit_allowed": false,
+          "live_spreadsheet_cell_read_allowed": false,
+          "live_tool_execution_allowed": false,
+          "live_workbook_body_read_allowed": false,
+          "live_worker_dispatch_allowed": false,
+          "live_workflow_execution_allowed": false,
+          "network_allowed": false,
+          "raw_body_ingestion_allowed": false
+        },
+        "external_action_authority_granted": false,
+        "send_submit_authority_granted": false,
+        "tool_authority_granted": false
+      },
+      "forbidden_context_classes": [],
+      "gate4_readiness_state": "NOT_READY_FOR_GATE_4",
+      "lm2_call_allowed": false,
+      "model_router_result": {
+        "blocked_reasons": [
+          "Gate 2 outcome is not ACCEPTED_INTENT."
+        ],
+        "selected_model_class": "NO_SAFE_MODEL"
+      },
+      "operator_message": "OpenClaw cannot package this because Gate 2 has not accepted it or authority is blocked.",
+      "output_destination": {},
+      "package_role": "",
+      "package_status": "PACKAGE_NOT_COMPILED_GATE2_NOT_ACCEPTED",
+      "privacy_tokenization": {
+        "model_may_see_raw_values": false,
+        "raw_values_included": false,
+        "tokenization_applied": false
+      },
+      "readback_id": "role_package_readback:09a9241577f72613",
+      "task": "",
+      "tool_policy": {
+        "allowed_tools": [],
+        "blocked_reasons": [
+          "Gate 2 outcome is not ACCEPTED_INTENT."
+        ],
+        "forbidden_tools": [
+          "gmail",
+          "coupa",
+          "browser",
+          "network",
+          "excel_writer",
+          "pdf_generator",
+          "ledger_writer",
+          "credential_vault",
+          "raw_body_reader",
+          "workflow_runner",
+          "agent_dispatcher",
+          "worker_dispatcher"
+        ]
+      }
+    },
+    "cassandra_draft": {
+      "allowed_context_classes": [
+        "tenant_scope:fixture_business_ops"
+      ],
+      "authority_policy": {
+        "authority_boundary": {
+          "credential_handling_allowed": false,
+          "live_agent_dispatch_allowed": false,
+          "live_approval_execution_allowed": false,
+          "live_browser_allowed": false,
+          "live_candidate_promotion_allowed": false,
+          "live_coupa_access_allowed": false,
+          "live_email_send_allowed": false,
+          "live_external_action_allowed": false,
+          "live_file_body_read_allowed": false,
+          "live_file_mutation_allowed": false,
+          "live_ledger_posting_allowed": false,
+          "live_lm2_call_allowed": false,
+          "live_model_call_allowed": false,
+          "live_pdf_generation_allowed": false,
+          "live_send_submit_allowed": false,
+          "live_spreadsheet_cell_read_allowed": false,
+          "live_tool_execution_allowed": false,
+          "live_workbook_body_read_allowed": false,
+          "live_worker_dispatch_allowed": false,
+          "live_workflow_execution_allowed": false,
+          "network_allowed": false,
+          "raw_body_ingestion_allowed": false
+        },
+        "authority_policy_id": "package_authority_policy:8d2a54af94a74ad7",
+        "external_action_authority_granted": false,
+        "next_safe_move": "No live authority is available in this package.",
+        "required_receipts_before_tools": [
+          "guardian_approval_receipt",
+          "exact_operator_approval_receipt",
+          "provider_or_adapter_receipt",
+          "post_action_proof_receipt"
+        ],
+        "send_submit_authority_granted": false,
+        "tool_authority_granted": false
+      },
+      "forbidden_context_classes": [
+        "credentials",
+        "tokens",
+        "raw private bodies",
+        "unrelated client data",
+        "unapproved file bodies"
+      ],
+      "gate4_readiness_state": "READY_FOR_GUARDIAN_OUTPUT_GATE",
+      "lm2_call_allowed": false,
+      "model_router_result": {
+        "authority_boundary": {
+          "authority_grant_allowed": false,
+          "external_action_allowed": false,
+          "live_model_call_allowed": false,
+          "model_api_integration_allowed": false,
+          "network_allowed": false,
+          "production_state_mutation_allowed": false,
+          "provider_key_material_access_allowed": false,
+          "send_submit_allowed": false,
+          "tool_execution_allowed": false,
+          "workflow_execution_allowed": false
+        },
+        "blocked_reasons": [],
+        "chain_lane": "LM2_ROLE_RESPONSE",
+        "confidence": "HIGH",
+        "conservative_posture": true,
+        "decision_id": "model_routing_decision:17e3ed6e4a5b556a",
+        "expected_failure_modes": [
+          "malformed structured output",
+          "over-helpful completion claim",
+          "tool request outside package"
+        ],
+        "fallback_provider_policy_id": "provider_policy:local_fixture_conservative_sensitive",
+        "next_safe_move": "Use this model class only as a future candidate route; no model call is allowed in v0.",
+        "rejected_model_classes": [
+          "FAST_STRUCTURED_INTENT_SMALL",
+          "CONSERVATIVE_SENSITIVE_STRUCTURED"
+        ],
+        "rejected_provider_candidates": [
+          {
+            "expected_failure_modes": [
+              "under-specified intent",
+              "malformed JSON candidate"
+            ],
+            "model_class_ref": "FAST_STRUCTURED_INTENT_SMALL",
+            "model_ref": "model_class:fast_structured_intent_small",
+            "policy_id": "provider_policy:local_fixture_fast_intent",
+            "provider_ref": "provider_class:local_or_private_structured_stub",
+            "reject_reasons": [
+              "LANE_NOT_ALLOWED",
+              "MODEL_CLASS_NOT_REQUESTED"
+            ],
+            "usable": false,
+            "weaknesses": [
+              "not enough for nuanced role voice",
+              "not for broad context synthesis"
+            ]
+          },
+          {
+            "expected_failure_modes": [
+              "false block",
+              "unnecessary clarification"
+            ],
+            "model_class_ref": "CONSERVATIVE_SENSITIVE_STRUCTURED",
+            "model_ref": "model_class:conservative_sensitive_structured",
+            "policy_id": "provider_policy:local_fixture_conservative_sensitive",
+            "provider_ref": "provider_class:local_or_private_conservative_stub",
+            "reject_reasons": [
+              "MODEL_CLASS_NOT_REQUESTED"
+            ],
+            "usable": false,
+            "weaknesses": [
+              "may over-clarify",
+              "higher latency",
+              "less warm voice"
+            ]
+          },
+          {
+            "expected_failure_modes": [
+              "privacy policy block",
+              "provider unavailability",
+              "schema drift"
+            ],
+            "model_class_ref": "STRONG_STRUCTURED_ROLE_REASONER",
+            "model_ref": "model_class:cloud_structured_candidate",
+            "policy_id": "provider_policy:future_cloud_structured_candidate",
+            "provider_ref": "provider_class:future_cloud_structured_candidate",
+            "reject_reasons": [
+              "STRUCTURED_OUTPUT_RELIABILITY_NOT_PROVEN"
+            ],
+            "usable": false,
+            "weaknesses": [
+              "privacy policy must be explicit",
+              "network/API key path required",
+              "cannot be used in private mode by default"
+            ]
+          }
+        ],
+        "request_id": "role_execution_package:3cebb4bdeae535ac:model_route",
+        "risk_notes": [],
+        "selected_model_class": "STRONG_STRUCTURED_ROLE_REASONER",
+        "selected_model_ref": "model_class:strong_structured_role_reasoner",
+        "selected_provider_policy_id": "provider_policy:local_fixture_strong_role",
+        "selected_provider_ref": "provider_class:local_or_private_role_reasoner_stub",
+        "selection_reason": "LM2 role response needs stronger package reasoning and operator wording. Provider policy: Selected first usable provider policy candidate for the requested lane/model class.",
+        "structured_output_required": true,
+        "tokenization_required_before_live": false
+      },
+      "operator_message": "OpenClaw can prepare a bounded Cassandra-style draft package, but it cannot send anything.",
+      "output_destination": {
+        "destination_type": "MISSION_CONTROL_SCOPED_RESPONSE",
+        "device_ref": "mission_control",
+        "gate_4_ref": "guardian_output_gate",
+        "next_safe_move": "A future LM2 response candidate must pass Guardian output gate before publication/action.",
+        "output_destination_id": "role_output_destination:583ac8fcd889fd7c",
+        "source_request_id": "role_package_gate_draft_request",
+        "thread_ref": "role_package_gate_draft_request"
+      },
+      "package_role": "CASSANDRA",
+      "package_status": "ROLE_PACKAGE_COMPILED",
+      "privacy_tokenization": {
+        "detokenization_policy_ref": "detokenization_denied_without_explicit_policy_receipt",
+        "model_may_see_raw_values": false,
+        "privacy_level": "metadata_only_tokenized_refs",
+        "raw_values_included": false,
+        "token_scope": "scope:finance:capital_hilton:capital_hilton_invoice_workflow",
+        "token_vault_ref": "generated/read_models/token_vault_status.json",
+        "tokenization_applied": true
+      },
+      "readback_id": "role_package_readback:6e818ed09aee10ac",
+      "task": "Prepare review language for the invoice email draft.",
+      "tool_policy": {
+        "allowed_actions": [
+          "respond_to_originating_device_thread",
+          "ask_clarifying_question",
+          "prepare_readback_text",
+          "compile_nonexecuting_package"
+        ],
+        "allowed_tools": [],
+        "forbidden_actions": [
+          "send_email",
+          "send_gmail",
+          "submit_to_coupa",
+          "open_browser",
+          "access_network",
+          "read_workbook_body",
+          "read_spreadsheet_cells",
+          "mutate_file",
+          "write_excel",
+          "generate_pdf",
+          "post_ledger_entry",
+          "mark_invoice_sent",
+          "mark_invoice_paid",
+          "execute_workflow",
+          "dispatch_agent",
+          "dispatch_worker",
+          "handle_credentials"
+        ],
+        "forbidden_tools": [
+          "gmail",
+          "coupa",
+          "browser",
+          "network",
+          "excel_writer",
+          "pdf_generator",
+          "ledger_writer",
+          "credential_vault",
+          "raw_body_reader",
+          "workflow_runner",
+          "agent_dispatcher",
+          "worker_dispatcher"
+        ],
+        "next_safe_move": "Treat all tools and external actions as blocked until a later gate provides receipts.",
+        "receipt_required_for_blocked_actions": [
+          "guardian_approval_receipt",
+          "exact_operator_approval_receipt",
+          "provider_or_adapter_receipt",
+          "post_action_proof_receipt"
+        ],
+        "tool_policy_id": "role_tool_policy:8d2a54af94a74ad7"
+      }
+    },
+    "chief_status": {
+      "allowed_context_classes": [
+        "tenant_scope:fixture_business_ops"
+      ],
+      "authority_policy": {
+        "authority_boundary": {
+          "credential_handling_allowed": false,
+          "live_agent_dispatch_allowed": false,
+          "live_approval_execution_allowed": false,
+          "live_browser_allowed": false,
+          "live_candidate_promotion_allowed": false,
+          "live_coupa_access_allowed": false,
+          "live_email_send_allowed": false,
+          "live_external_action_allowed": false,
+          "live_file_body_read_allowed": false,
+          "live_file_mutation_allowed": false,
+          "live_ledger_posting_allowed": false,
+          "live_lm2_call_allowed": false,
+          "live_model_call_allowed": false,
+          "live_pdf_generation_allowed": false,
+          "live_send_submit_allowed": false,
+          "live_spreadsheet_cell_read_allowed": false,
+          "live_tool_execution_allowed": false,
+          "live_workbook_body_read_allowed": false,
+          "live_worker_dispatch_allowed": false,
+          "live_workflow_execution_allowed": false,
+          "network_allowed": false,
+          "raw_body_ingestion_allowed": false
+        },
+        "authority_policy_id": "package_authority_policy:c9e2d486fc09b82d",
+        "external_action_authority_granted": false,
+        "next_safe_move": "No live authority is available in this package.",
+        "required_receipts_before_tools": [
+          "guardian_approval_receipt",
+          "exact_operator_approval_receipt",
+          "provider_or_adapter_receipt",
+          "post_action_proof_receipt"
+        ],
+        "send_submit_authority_granted": false,
+        "tool_authority_granted": false
+      },
+      "forbidden_context_classes": [
+        "credentials",
+        "tokens",
+        "raw private bodies",
+        "unrelated client data",
+        "unapproved file bodies"
+      ],
+      "gate4_readiness_state": "READY_FOR_GUARDIAN_OUTPUT_GATE",
+      "lm2_call_allowed": false,
+      "model_router_result": {
+        "authority_boundary": {
+          "authority_grant_allowed": false,
+          "external_action_allowed": false,
+          "live_model_call_allowed": false,
+          "model_api_integration_allowed": false,
+          "network_allowed": false,
+          "production_state_mutation_allowed": false,
+          "provider_key_material_access_allowed": false,
+          "send_submit_allowed": false,
+          "tool_execution_allowed": false,
+          "workflow_execution_allowed": false
+        },
+        "blocked_reasons": [],
+        "chain_lane": "LM2_ROLE_RESPONSE",
+        "confidence": "HIGH",
+        "conservative_posture": true,
+        "decision_id": "model_routing_decision:38face59e81d374f",
+        "expected_failure_modes": [
+          "malformed structured output",
+          "over-helpful completion claim",
+          "tool request outside package"
+        ],
+        "fallback_provider_policy_id": "provider_policy:local_fixture_conservative_sensitive",
+        "next_safe_move": "Use this model class only as a future candidate route; no model call is allowed in v0.",
+        "rejected_model_classes": [
+          "FAST_STRUCTURED_INTENT_SMALL",
+          "CONSERVATIVE_SENSITIVE_STRUCTURED"
+        ],
+        "rejected_provider_candidates": [
+          {
+            "expected_failure_modes": [
+              "under-specified intent",
+              "malformed JSON candidate"
+            ],
+            "model_class_ref": "FAST_STRUCTURED_INTENT_SMALL",
+            "model_ref": "model_class:fast_structured_intent_small",
+            "policy_id": "provider_policy:local_fixture_fast_intent",
+            "provider_ref": "provider_class:local_or_private_structured_stub",
+            "reject_reasons": [
+              "LANE_NOT_ALLOWED",
+              "MODEL_CLASS_NOT_REQUESTED"
+            ],
+            "usable": false,
+            "weaknesses": [
+              "not enough for nuanced role voice",
+              "not for broad context synthesis"
+            ]
+          },
+          {
+            "expected_failure_modes": [
+              "false block",
+              "unnecessary clarification"
+            ],
+            "model_class_ref": "CONSERVATIVE_SENSITIVE_STRUCTURED",
+            "model_ref": "model_class:conservative_sensitive_structured",
+            "policy_id": "provider_policy:local_fixture_conservative_sensitive",
+            "provider_ref": "provider_class:local_or_private_conservative_stub",
+            "reject_reasons": [
+              "MODEL_CLASS_NOT_REQUESTED"
+            ],
+            "usable": false,
+            "weaknesses": [
+              "may over-clarify",
+              "higher latency",
+              "less warm voice"
+            ]
+          },
+          {
+            "expected_failure_modes": [
+              "privacy policy block",
+              "provider unavailability",
+              "schema drift"
+            ],
+            "model_class_ref": "STRONG_STRUCTURED_ROLE_REASONER",
+            "model_ref": "model_class:cloud_structured_candidate",
+            "policy_id": "provider_policy:future_cloud_structured_candidate",
+            "provider_ref": "provider_class:future_cloud_structured_candidate",
+            "reject_reasons": [
+              "STRUCTURED_OUTPUT_RELIABILITY_NOT_PROVEN"
+            ],
+            "usable": false,
+            "weaknesses": [
+              "privacy policy must be explicit",
+              "network/API key path required",
+              "cannot be used in private mode by default"
+            ]
+          }
+        ],
+        "request_id": "role_execution_package:3e608d748a58fa14:model_route",
+        "risk_notes": [],
+        "selected_model_class": "STRONG_STRUCTURED_ROLE_REASONER",
+        "selected_model_ref": "model_class:strong_structured_role_reasoner",
+        "selected_provider_policy_id": "provider_policy:local_fixture_strong_role",
+        "selected_provider_ref": "provider_class:local_or_private_role_reasoner_stub",
+        "selection_reason": "LM2 role response needs stronger package reasoning and operator wording. Provider policy: Selected first usable provider policy candidate for the requested lane/model class.",
+        "structured_output_required": true,
+        "tokenization_required_before_live": false
+      },
+      "operator_message": "OpenClaw can prepare a Chief status response.",
+      "output_destination": {
+        "destination_type": "MISSION_CONTROL_SCOPED_RESPONSE",
+        "device_ref": "mission_control",
+        "gate_4_ref": "guardian_output_gate",
+        "next_safe_move": "A future LM2 response candidate must pass Guardian output gate before publication/action.",
+        "output_destination_id": "role_output_destination:b6f0e241958027a1",
+        "source_request_id": "role_package_gate_status_request",
+        "thread_ref": "role_package_gate_status_request"
+      },
+      "package_role": "CHIEF",
+      "package_status": "ROLE_PACKAGE_COMPILED",
+      "privacy_tokenization": {
+        "detokenization_policy_ref": "detokenization_denied_without_explicit_policy_receipt",
+        "model_may_see_raw_values": false,
+        "privacy_level": "metadata_only_tokenized_refs",
+        "raw_values_included": false,
+        "token_scope": "scope:finance:capital_hilton:capital_hilton_invoice_workflow",
+        "token_vault_ref": "generated/read_models/token_vault_status.json",
+        "tokenization_applied": true
+      },
+      "readback_id": "role_package_readback:5f5a53d9f48755aa",
+      "task": "Answer the Capital Hilton workflow status.",
+      "tool_policy": {
+        "allowed_actions": [
+          "respond_to_originating_device_thread",
+          "ask_clarifying_question",
+          "prepare_readback_text",
+          "compile_nonexecuting_package"
+        ],
+        "allowed_tools": [],
+        "forbidden_actions": [
+          "send_email",
+          "send_gmail",
+          "submit_to_coupa",
+          "open_browser",
+          "access_network",
+          "read_workbook_body",
+          "read_spreadsheet_cells",
+          "mutate_file",
+          "write_excel",
+          "generate_pdf",
+          "post_ledger_entry",
+          "mark_invoice_sent",
+          "mark_invoice_paid",
+          "execute_workflow",
+          "dispatch_agent",
+          "dispatch_worker",
+          "handle_credentials"
+        ],
+        "forbidden_tools": [
+          "gmail",
+          "coupa",
+          "browser",
+          "network",
+          "excel_writer",
+          "pdf_generator",
+          "ledger_writer",
+          "credential_vault",
+          "raw_body_reader",
+          "workflow_runner",
+          "agent_dispatcher",
+          "worker_dispatcher"
+        ],
+        "next_safe_move": "Treat all tools and external actions as blocked until a later gate provides receipts.",
+        "receipt_required_for_blocked_actions": [
+          "guardian_approval_receipt",
+          "exact_operator_approval_receipt",
+          "provider_or_adapter_receipt",
+          "post_action_proof_receipt"
+        ],
+        "tool_policy_id": "role_tool_policy:c9e2d486fc09b82d"
+      }
+    }
   },
   "read_model_id": "role_package_gate",
   "schema_version": "role_package_gate_v0"

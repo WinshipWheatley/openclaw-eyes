@@ -2,6 +2,7 @@
 
 Status: LM1_THREAD_CONTEXT_PACKAGE_READY_NO_LIVE_MODEL
 Package: lm1_thread_context_package:9bc6e878d2530704
+Gate 1 snapshot: gate1_operational_snapshot:e13f6847ab91d0f2
 World: finance
 Client: capital_hilton
 Workflow: capital_hilton_invoice_workflow

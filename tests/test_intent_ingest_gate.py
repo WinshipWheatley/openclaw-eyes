@@ -61,7 +61,9 @@ def _package(**overrides):
 
 
 def test_valid_low_risk_status_intent_is_accepted():
-    result = gate.ingest_intent_proposal(_candidate(), package_payload=_package())
+    candidate = _candidate()
+    result = gate.ingest_intent_proposal(candidate, package_payload=_package())
+    readback = gate.build_intent_ingest_readback(result, candidate)
 
     assert result["outcome"] == gate.ACCEPTED_INTENT
     assert result["validation_verdict"] == "VALIDATED_INTENT"
@@ -70,6 +72,8 @@ def test_valid_low_risk_status_intent_is_accepted():
     assert result["accepted_intent"]["workflow_ref"] == "capital_hilton_invoice_workflow"
     assert not any(result["accepted_intent"]["authority_granted"].values())
     assert result["trace"]["capability_checked"] is True
+    assert readback["plain_language_meaning"].startswith("OpenClaw can ingest")
+    assert readback["action_executed"] is False
 
 
 def test_ambiguous_intent_returns_needs_clarification():
@@ -89,6 +93,9 @@ def test_ambiguous_intent_returns_needs_clarification():
     assert result["outcome"] == gate.NEEDS_CLARIFICATION
     assert result["clarification_request"]["question"] == "Which workflow should OpenClaw continue?"
     assert result["accepted_intent"] is None
+    readback = gate.build_intent_ingest_readback(result, candidate)
+    assert readback["outcome"] == gate.NEEDS_CLARIFICATION
+    assert "Which workflow" in readback["blocked_or_clarification_reason"]
 
 
 def test_unsupported_capability_is_rejected_without_execution():
@@ -122,6 +129,9 @@ def test_send_submit_ledger_post_is_blocked_by_authority():
     assert "send" in result["authority_block"]["blocked_authority"]
     assert any("post ledger" in item or "ledger" in item for item in result["authority_block"]["blocked_authority"])
     assert not any(result["authority_block"]["authority_granted"].values())
+    readback = gate.build_intent_ingest_readback(result, candidate)
+    assert readback["outcome"] == gate.BLOCKED_AUTHORITY
+    assert readback["safe_next_chain_step"].startswith("Return a blocked response")
 
 
 def test_lm1_cannot_grant_itself_authority():
@@ -169,6 +179,9 @@ def test_delete_from_openclaw_becomes_reference_supersession_not_physical_delete
     assert result["accepted_intent"]["safe_action_type"] == "SUPERSEDE_ACTIVE_REFERENCE_NOT_PHYSICAL_DELETE"
     assert "do not delete any file from disk" in result["accepted_intent"]["requested_action"].lower()
     assert result["authority_block"] is None
+    readback = gate.build_intent_ingest_readback(result, candidate)
+    assert readback["safe_action_type"] == "SUPERSEDE_ACTIVE_REFERENCE_NOT_PHYSICAL_DELETE"
+    assert "Nothing runs yet" in readback["plain_language_meaning"]
 
 
 def test_unknown_messy_phrase_does_not_become_accepted_without_context():
@@ -196,5 +209,9 @@ def test_exported_readmodel_parses(tmp_path):
     assert parsed["read_model_id"] == gate.READ_MODEL_ID
     assert parsed["machine_proof"]["accepted_example_is_accepted"] is True
     assert parsed["machine_proof"]["blocked_example_is_blocked"] is True
+    assert parsed["machine_proof"]["ambiguous_example_needs_clarification"] is True
+    assert parsed["machine_proof"]["supersession_is_reference_only"] is True
+    assert parsed["machine_proof"]["cross_client_mismatch_not_accepted"] is True
+    assert parsed["machine_proof"]["readback_action_executed_any"] is False
     assert parsed["machine_proof"]["all_live_authority_false"] is True
     assert "Gate 2 accepts" in operator_path.read_text(encoding="utf-8")

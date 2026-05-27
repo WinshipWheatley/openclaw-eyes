@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 import gate1_privacy_request_readiness
+import gate1_operational_snapshot
 import gate_chain_harness
 import guardian_output_gate
 import guardian_trust_ramp_simulator
@@ -187,6 +188,20 @@ def build_floor_matrix(*, generated_at: str = DEFAULT_GENERATED_AT) -> tuple[dic
             ready_for_shadow=True,
             ready_for_live_review=True,
             not_ready_reason="Needs live device trust registry integration before live LM activation.",
+        ),
+        _assessment(
+            "gate1_operational_snapshot",
+            "Gate 1 operational request snapshot",
+            tested=True,
+            exported=True,
+            dashboard_visible=True,
+            connected_to_chain=True,
+            has_fixture=True,
+            has_operator_copy=True,
+            ready_for_shadow=True,
+            ready_for_live_review=True,
+            raised_this_pass=True,
+            not_ready_reason="Snapshot is fixture-only; live LM activation still needs provider/privacy receipts.",
         ),
         _assessment(
             "universal_intake",
@@ -451,6 +466,7 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
     matrix = build_floor_matrix(generated_at=generated_at)
     gate1_fixtures = gate1_privacy_trigger_fixtures()
     gate1_payload = gate1_privacy_request_readiness.build_payload(generated_at=generated_at)
+    gate1_snapshot_payload = gate1_operational_snapshot.build_payload(generated_at=generated_at)
     universal_payload = universal_intake_contract.build_payload(generated_at=generated_at)
     lm1_payload = lm1_thread_context_package.build_payload(generated_at=generated_at)
     lm1_package = lm1_payload["lm1_thread_context_package"]
@@ -479,10 +495,23 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
             "gate_1_output_can_feed_lm1_package": gate1_payload["chain_contract"]["gate_1_output_can_feed_lm1_package"],
             "lm1_may_receive_raw_values": gate1_payload["chain_contract"]["lm1_may_receive_raw_values"],
         },
+        "gate1_operational_snapshot_ref": {
+            "read_model_ref": "generated/read_models/gate1_operational_snapshot.json",
+            "contract_status": gate1_snapshot_payload["contract_status"],
+            "capital_hilton_snapshot_safe_for_lm1": gate1_snapshot_payload["machine_proof"][
+                "capital_hilton_snapshot_safe_for_lm1"
+            ],
+            "privacy_policy_missing_blocks_lm1": gate1_snapshot_payload["machine_proof"][
+                "privacy_policy_missing_blocks_lm1"
+            ],
+            "output_to": gate1_snapshot_payload["chain_contract"]["output_to"],
+        },
         "universal_intake_chain_candidate": universal_payload["examples"]["capital_hilton_running_workbook"],
         "lm1_thread_context_package_ref": {
             "read_model_ref": "generated/read_models/lm1_thread_context_package.json",
             "package_id": lm1_package["package_id"],
+            "gate1_operational_snapshot_ref": lm1_package["gate1_operational_snapshot_ref"],
+            "gate1_safe_to_package_for_lm1": lm1_package["gate1_safe_to_package_for_lm1"],
             "privacy_classification": lm1_package["privacy_classification"],
             "tokenization_required": lm1_package["tokenization_required"],
             "universal_intake_chain_contract": lm1_package.get("universal_intake_chain_contract", {}),
@@ -493,6 +522,7 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
         "gate2_visibility_summary": {
             "read_model_ref": "generated/read_models/intent_ingest_gate.json",
             "representative_outcome": gate2_result.get("outcome"),
+            "operator_readback": gate2_result.get("operator_readback"),
             "operator_copy": (
                 "Gate 2 can accept a safe intent proposal, ask for clarification, or block authority before anything executes."
             ),
@@ -555,12 +585,14 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
         "machine_proof": {
             "floor_matrix_lane_count": len(matrix),
-            "all_required_lanes_classified": len(matrix) == 20,
+            "all_required_lanes_classified": len(matrix) == 21,
             "weak_lanes_identified": bool(weakest_lanes(matrix)),
             "raised_lane_count": len(raised),
             "floor_was_uneven": weakest_lanes(matrix)[0]["maturity_score"] < strongest_lanes(matrix)[-1]["maturity_score"],
             "gate1_privacy_trigger_fixture_exists": len(gate1_fixtures) == 5,
             "gate1_privacy_readiness_exported": True,
+            "gate1_operational_snapshot_exported": True,
+            "gate1_operational_snapshot_connected": gate1_snapshot_payload["chain_contract"]["safe_snapshot_can_feed_lm1_package"],
             "lm1_thread_context_package_exported": True,
             "request_response_bridge_dashboard_visible": True,
             "request_response_bridge_ready_for_live_review": bridge_payload["bridge_contract"]["ready_for_live_review"],
@@ -572,6 +604,12 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
             "read_model_mirror_visibility_exported": True,
             "read_model_mirror_visibility_no_sync_created": mirror_payload["machine_proof"]["new_sync_system_created"] is False,
             "gate2_visibility_polished": gate2_result.get("outcome") == intent_ingest_gate.ACCEPTED_INTENT,
+            "gate2_operator_readback_visible": bool((gate2_result.get("operator_readback") or {}).get("plain_language_meaning")),
+            "gate3_operator_readback_visible": bool(
+                (dashboard_payload["representative_flow"]["gate3_package_summary"].get("operator_readback") or {}).get(
+                    "operator_message"
+                )
+            ),
             "universal_intake_chain_compatible": universal_payload["examples"]["capital_hilton_running_workbook"]["lm1_chain_ready"] is True,
             "universal_intake_unknown_artifact_fixture_exists": universal_payload["machine_proof"]["unknown_artifact_asks_clarification"],
             "invoice_fixtures_draft_source_only": universal_payload["machine_proof"]["batch_fixture_all_draft_source_only"],

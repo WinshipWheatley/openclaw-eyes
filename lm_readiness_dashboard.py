@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 import gate_chain_harness
+import gate1_operational_snapshot
 import gate1_privacy_request_readiness
 import guardian_output_gate
 import guardian_trust_ramp_simulator
@@ -68,6 +69,9 @@ AUTHORITY_BOUNDARY = {
 class LM1ThreadContextPackage:
     package_id: str
     source_request_id: str
+    gate1_operational_snapshot_ref: str
+    gate1_safe_to_package_for_lm1: bool
+    gate1_privacy_flags: dict[str, Any]
     source_device_ref: str
     user_message: str
     current_world_ref: str
@@ -119,31 +123,28 @@ def private_mode_readiness_stub() -> dict[str, Any]:
     }
 
 
-def build_lm1_thread_context_package(*, source_request_id: str = "lm_readiness_capital_hilton_fixture") -> dict[str, Any]:
-    user_message = "these are the invoice workbooks for the clients named in the files, handle them how you're supposed to"
-    intake = universal_intake_contract.infer_universal_intake(
+def build_lm1_thread_context_package(
+    *,
+    source_request_id: str = "lm_readiness_capital_hilton_fixture",
+    user_message: str = "these are the invoice workbooks for the clients named in the files, handle them how you're supposed to",
+    file_display_name: str = "Invoice Capitol Hilton Running.xlsx",
+    world_ref: str = "finance",
+) -> dict[str, Any]:
+    gate1_snapshot = gate1_operational_snapshot.build_gate1_operational_snapshot(
         {
-            "intake_id": "lm_readiness_universal_intake_fixture",
             "source_request_id": source_request_id,
-            "file_display_name": "Invoice Capitol Hilton Running.xlsx",
-            "file_extension": ".xlsx",
+            "source_device_ref": "mission_control_mac",
+            "thread_ref": "thread_ref:finance_capital_hilton",
+            "user_message": user_message,
+            "file_display_name": file_display_name,
+            "file_extension": Path(file_display_name).suffix or ".xlsx",
             "file_type": "spreadsheet",
-            "user_note": user_message,
-            "current_world_ref": "finance",
+            "world_ref": world_ref,
         }
     )
+    intake = gate1_snapshot["universal_intake_inference"]
     token_scope = "scope:finance:capital_hilton:lm_readiness_fixture"
-    private_mode = private_mode_readiness_stub()
-    token_policy = token_vault.evaluate_tokenization_policy(
-        {
-            "world_ref": intake.get("world_ref"),
-            "client_ref": intake.get("client_ref"),
-            "artifact_kind": intake.get("artifact_kind"),
-            "file_type": "spreadsheet",
-            "private_mode_active": private_mode["private_mode_active"],
-            "strict_private_mode_active": private_mode["strict_private_mode_active"],
-        }
-    )
+    token_policy = gate1_snapshot["tokenization_policy"]
     privacy = token_vault.role_package_tokenization_declaration(token_scope)
     privacy = {
         **privacy,
@@ -158,18 +159,29 @@ def build_lm1_thread_context_package(*, source_request_id: str = "lm_readiness_c
     package = LM1ThreadContextPackage(
         package_id=f"lm1_thread_context_package:{_short_hash(source_request_id, intake.get('candidate_id'))}",
         source_request_id=source_request_id,
-        source_device_ref="mission_control_mac",
-        user_message=user_message,
-        current_world_ref="finance",
-        current_thread_ref="thread_ref:finance_capital_hilton",
+        gate1_operational_snapshot_ref=gate1_snapshot["snapshot_id"],
+        gate1_safe_to_package_for_lm1=bool(gate1_snapshot["safe_to_package_for_lm1"]),
+        gate1_privacy_flags={
+            "privacy_class": gate1_snapshot["privacy_class"],
+            "tokenization_required": gate1_snapshot["tokenization_required"],
+            "private_mode_active": gate1_snapshot["private_mode_effect"]["active"],
+            "strict_private_mode_active": gate1_snapshot["strict_private_mode_effect"]["active"],
+            "raw_values_included": gate1_snapshot["raw_values_included"],
+            "safe_to_package_for_lm1": gate1_snapshot["safe_to_package_for_lm1"],
+            "unsafe_reason": gate1_snapshot["unsafe_reason"],
+        },
+        source_device_ref=str(gate1_snapshot["source_device_ref"]),
+        user_message=str(gate1_snapshot["user_message"]),
+        current_world_ref=str(gate1_snapshot["world_ref"]),
+        current_thread_ref=str(gate1_snapshot["thread_ref"]),
         universal_intake_inference=intake,
-        privacy_classification=str(token_policy["privacy_level"]),
+        privacy_classification=str(gate1_snapshot["privacy_class"]),
         tokenization_required=bool(token_policy["tokenization_required"]),
         tokenization_policy=token_policy,
         privacy=privacy,
         model_router_result={},
-        allowed_context_classes=("metadata_only_file_ref", "universal_intake_summary", "tokenized_fixture_refs", "thread_scope_refs"),
-        forbidden_context_classes=("raw workbook body", "spreadsheet cells", "credentials", "raw private bodies", "unrelated client data"),
+        allowed_context_classes=tuple(gate1_snapshot["allowed_context_classes"]),
+        forbidden_context_classes=tuple(gate1_snapshot["forbidden_context_classes"]),
         output_schema=tuple(MachineIntentCandidate.__dataclass_fields__),
         raw_values_included=False,
         tools_allowed=(),
@@ -183,6 +195,7 @@ def build_lm1_thread_context_package(*, source_request_id: str = "lm_readiness_c
         next_safe_move="A future LM1 may propose MachineIntentCandidate JSON only; Gate 2 decides ingestion.",
     )
     package_dict = asdict(package)
+    package_dict["gate1_operational_snapshot"] = gate1_snapshot
     package_dict["universal_intake_chain_contract"] = intake.get("chain_contract", {})
     package_dict["model_router_result"] = model_router_policy.select_for_lm1_thread_package(package_dict)
     return package_dict
@@ -190,19 +203,29 @@ def build_lm1_thread_context_package(*, source_request_id: str = "lm_readiness_c
 
 def _candidate_from_lm1_package(package: Mapping[str, Any]) -> MachineIntentCandidate:
     intake = package.get("universal_intake_inference") if isinstance(package.get("universal_intake_inference"), Mapping) else {}
+    operator_text = str(package.get("user_message") or "")
+    wants_status = "what" in operator_text.lower() and ("next" in operator_text.lower() or "status" in operator_text.lower())
     return MachineIntentCandidate(
         intent_id=f"lm_readiness_candidate:{_short_hash(package.get('source_request_id'), intake.get('candidate_id'))}",
         source_request_id=str(package.get("source_request_id") or "lm_readiness_fixture"),
-        original_operator_text=str(package.get("user_message") or ""),
-        inferred_intent_type="ATTACH_SOURCE_REF",
+        original_operator_text=operator_text,
+        inferred_intent_type="ANSWER_STATUS" if wants_status else "ATTACH_SOURCE_REF",
         target_world_ref=str(intake.get("world_ref") or "finance"),
         target_folder_ref=str(intake.get("client_ref") or "capital_hilton"),
         target_thread_ref=str(package.get("current_thread_ref") or "thread_ref:finance_capital_hilton"),
         target_workflow_ref=str(intake.get("workflow_ref") or "capital_hilton_invoice_workflow"),
-        target_agent_role="OPENCLAW_SYSTEM",
+        target_agent_role="CHIEF" if wants_status else "OPENCLAW_SYSTEM",
         target_worker_type="PC_CODEX",
-        requested_action="Attach the running draft invoice workbook reference as metadata-only source context.",
-        referenced_next_action="Next: register/resolve the workbook artifact through governed intake only.",
+        requested_action=(
+            "Answer the next safe move for the Capital Hilton invoice from safe read-models."
+            if wants_status
+            else "Attach the running draft invoice workbook reference as metadata-only source context."
+        ),
+        referenced_next_action=(
+            "Next: describe the next safe invoice step; do not send, submit, post, or mark final."
+            if wants_status
+            else "Next: register/resolve the workbook artifact through governed intake only."
+        ),
         confidence="HIGH",
         ambiguity_status="UNAMBIGUOUS",
         required_clarification="",
@@ -219,7 +242,10 @@ def _candidate_from_lm1_package(package: Mapping[str, Any]) -> MachineIntentCand
 
 
 def build_representative_flow(*, generated_at: str = DEFAULT_GENERATED_AT) -> dict[str, Any]:
-    lm1_package = build_lm1_thread_context_package()
+    lm1_package = build_lm1_thread_context_package(
+        source_request_id="lm_readiness_capital_hilton_next_step_fixture",
+        user_message="what's next for the Capital Hilton invoice?",
+    )
     lm1_model_decision = lm1_package["model_router_result"]
     candidate = _candidate_from_lm1_package(lm1_package)
     package_payload = lm_intent_proposal_contract.build_payload(
@@ -233,7 +259,9 @@ def build_representative_flow(*, generated_at: str = DEFAULT_GENERATED_AT) -> di
         generated_at=generated_at,
     )
     gate2_result = intent_ingest_gate.ingest_intent_proposal(candidate, package_payload=package_payload)
+    gate2_readback = intent_ingest_gate.build_intent_ingest_readback(gate2_result, candidate)
     gate3_result = role_package_gate.compile_role_package(gate2_result)
+    gate3_readback = role_package_gate.build_package_readback(gate3_result)
     role_package = gate3_result.get("role_execution_package") or {}
     lm2_model_decision = model_router_policy.select_for_lm2_role_package(role_package)
     lm2_response_candidate = {
@@ -243,19 +271,22 @@ def build_representative_flow(*, generated_at: str = DEFAULT_GENERATED_AT) -> di
         "response_author": role_package.get("role_identity") or "OPENCLAW_SYSTEM",
         "selected_model_backend": "LM2_STUB_ONLY",
         "allowed_tools_plugins": (),
-        "headline": "Capital Hilton workbook recognized",
-        "one_line_answer": "OpenClaw can treat this as a draft workbook reference candidate.",
-        "eliwinship": "OpenClaw recognized the Capital Hilton running invoice workbook as draft/source material only. Nothing was read, sent, posted, or marked final.",
-        "next_action": "Next: keep this as metadata-only intake proof or run the governed workbook intake.",
+        "headline": "Capital Hilton next step",
+        "one_line_answer": "OpenClaw can prepare a bounded next-step readback for the Capital Hilton invoice.",
+        "eliwinship": "OpenClaw can review the safe invoice state and tell you the next move. This package only prepares a readback for Mission Control.",
+        "next_action": "Next: keep the workbook as draft/source material, then use the whitelisted audit path after the operator chooses it.",
         "readback_files": ("generated/read_models/lm_readiness_dashboard.json",),
     }
     gate4_result = guardian_output_gate.validate_response_payload(lm2_response_candidate)
     return {
+        "gate1_operational_snapshot": lm1_package["gate1_operational_snapshot"],
         "lm1_thread_context_package": lm1_package,
         "lm1_model_decision": lm1_model_decision,
         "lm1_fixture_candidate": asdict(candidate),
         "gate2_result": gate2_result,
+        "gate2_readback": gate2_readback,
         "gate3_result": gate3_result,
+        "gate3_readback": gate3_readback,
         "gate3_tokenization": {
             "tokenization_applied": bool(role_package.get("tokenization_applied")),
             "token_scope": role_package.get("token_scope"),
@@ -283,6 +314,7 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
     readiness = live_lm_readiness_gate.build_payload(generated_at=generated_at)
     token_status = token_vault.build_payload(generated_at=generated_at)
     universal = universal_intake_contract.build_payload(generated_at=generated_at)
+    gate1_snapshot_payload = gate1_operational_snapshot.build_payload(generated_at=generated_at)
     gate1_privacy = gate1_privacy_request_readiness.build_payload(generated_at=generated_at)
     bridge_readiness = request_response_bridge_readiness.build_payload(generated_at=generated_at)
     activation_requirements = live_lm_activation_requirements.build_payload(generated_at=generated_at)
@@ -308,14 +340,18 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
         "universal_intake_batch": "READY" if universal["machine_proof"]["batch_fixture_all_high_confidence"] else "NEEDS_CLARIFICATION",
         "model_router": "SEEDED",
         "provider_policy_registry": "SEEDED",
+        "gate1_operational_snapshot": "EXPORTED_CONNECTED",
         "gate1_privacy_request": "EXPORTED",
+        "lm1_thread_context_package": "CONNECTED_TO_GATE1",
         "request_response_bridge": bridge_readiness["readiness_status"],
         "production_live_blockers": "EXPLICIT",
         "provider_activation_receipts": activation_requirements["provider_activation_status"],
         "private_mode_policy": private_policy["contract_status"],
         "read_model_mirror_visibility": mirror_visibility["contract_status"],
         "gate2_ingest": representative["gate2_result"].get("outcome"),
+        "gate2_readback": "OPERATOR_VISIBLE",
         "gate3_package": representative["gate3_result"].get("package_status"),
+        "gate3_package_readback": "OPERATOR_VISIBLE",
         "gate4_guardian": (representative["gate4_result"].get("validation_result") or {}).get("verdict"),
         "trust_ramp_candidate_level": trust_ramp["score"]["candidate_trust_level"],
         "trust_ramp_active_level": trust_ramp["score"]["active_trust_level"],
@@ -335,7 +371,7 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
         "dashboard_summary": dashboard_summary,
         "representative_request": {
             "filename": "Invoice Capitol Hilton Running.xlsx",
-            "user_note": "these are the invoice workbooks for the clients named in the files, handle them how you're supposed to",
+            "user_note": "what's next for the Capital Hilton invoice?",
             "world_ref": "finance",
             "source_request_id": representative["lm1_thread_context_package"]["source_request_id"],
         },
@@ -370,6 +406,13 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
                 "chain_contract": gate1_privacy["chain_contract"],
                 "operator_summary": gate1_privacy["operator_summary"],
             },
+            "gate1_operational_snapshot": {
+                "read_model_ref": "generated/read_models/gate1_operational_snapshot.json",
+                "contract_status": gate1_snapshot_payload["contract_status"],
+                "chain_contract": gate1_snapshot_payload["chain_contract"],
+                "snapshot_id": representative["gate1_operational_snapshot"]["snapshot_id"],
+                "safe_to_package_for_lm1": representative["gate1_operational_snapshot"]["safe_to_package_for_lm1"],
+            },
             "request_response_bridge_readiness": {
                 "read_model_ref": "generated/read_models/request_response_bridge_readiness.json",
                 "readiness_status": bridge_readiness["readiness_status"],
@@ -383,11 +426,13 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
                 "outcome": representative["gate2_result"].get("outcome"),
                 "accepted_intent": representative["gate2_result"].get("accepted_intent"),
                 "blocker_reasons": representative["gate2_result"].get("blocker_reasons"),
+                "operator_readback": representative["gate2_readback"],
             },
             "gate3_package_summary": {
                 "package_status": representative["gate3_result"].get("package_status"),
                 "package_id": role_package.get("package_id"),
                 "role_identity": role_package.get("role_identity"),
+                "operator_readback": representative["gate3_readback"],
                 "tokenization_applied": role_package.get("tokenization_applied"),
                 "token_scope": role_package.get("token_scope"),
                 "raw_values_included": role_package.get("raw_values_included"),
@@ -430,6 +475,10 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
             "what_would_be_sent_to_lm1": {
                 "package_id": representative["lm1_thread_context_package"]["package_id"],
                 "source_request_id": representative["lm1_thread_context_package"]["source_request_id"],
+                "gate1_operational_snapshot_ref": representative["lm1_thread_context_package"][
+                    "gate1_operational_snapshot_ref"
+                ],
+                "gate1_privacy_flags": representative["lm1_thread_context_package"]["gate1_privacy_flags"],
                 "user_message": representative["lm1_thread_context_package"]["user_message"],
                 "universal_intake_inference": representative["lm1_thread_context_package"]["universal_intake_inference"],
                 "universal_intake_chain_contract": representative["lm1_thread_context_package"].get("universal_intake_chain_contract", {}),
@@ -506,6 +555,10 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
                 "read_model_id": gate1_privacy_request_readiness.READ_MODEL_ID,
                 "machine_proof": gate1_privacy.get("machine_proof", {}),
             },
+            "gate1_operational_snapshot": {
+                "read_model_id": gate1_operational_snapshot.READ_MODEL_ID,
+                "machine_proof": gate1_snapshot_payload.get("machine_proof", {}),
+            },
             "request_response_bridge_readiness": {
                 "read_model_id": request_response_bridge_readiness.READ_MODEL_ID,
                 "machine_proof": bridge_readiness.get("machine_proof", {}),
@@ -531,6 +584,17 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
             "read_model_mirror_visibility_aggregated": True,
             "read_model_mirror_visibility_mac_visible_guaranteed": mirror_visibility["machine_proof"]["mac_visible_guaranteed"],
             "gate1_privacy_request_readiness_aggregated": True,
+            "gate1_operational_snapshot_aggregated": True,
+            "gate1_snapshot_connected_to_lm1_package": representative["lm1_thread_context_package"][
+                "gate1_operational_snapshot_ref"
+            ]
+            == representative["gate1_operational_snapshot"]["snapshot_id"],
+            "lm1_package_connected_to_gate1": representative["lm1_thread_context_package"]["gate1_safe_to_package_for_lm1"],
+            "gate2_readback_operator_visible": bool(representative["gate2_readback"]["plain_language_meaning"]),
+            "gate3_readback_operator_visible": bool(representative["gate3_readback"]["operator_message"]),
+            "end_to_end_non_live_chain_passed": representative["gate2_result"].get("outcome") == intent_ingest_gate.ACCEPTED_INTENT
+            and representative["gate3_result"].get("package_status") == role_package_gate.PACKAGE_COMPILED
+            and (representative["gate4_result"].get("validation_result") or {}).get("verdict") == guardian_output_gate.VALIDATED,
             "request_response_bridge_readiness_aggregated": True,
             "request_response_bridge_ready_for_live_review": bridge_readiness["bridge_contract"]["ready_for_live_review"],
             "private_mode_active": representative["private_mode"]["private_mode_active"],
@@ -583,7 +647,9 @@ def write_exports(payload: Mapping[str, Any], export_root: Path = DEFAULT_EXPORT
         f"Tokenization: {summary.get('tokenization')}",
         f"Privacy readiness: {summary.get('privacy_readiness_status')}",
         f"Provider policy registry: {summary.get('provider_policy_registry')}",
+        f"Gate 1 operational snapshot: {summary.get('gate1_operational_snapshot')}",
         f"Gate 1 privacy request: {summary.get('gate1_privacy_request')}",
+        f"LM1 thread package: {summary.get('lm1_thread_context_package')}",
         f"Request-response bridge: {summary.get('request_response_bridge')}",
         f"Production/live blockers: {summary.get('production_live_blockers')}",
         f"Provider activation receipts: {summary.get('provider_activation_receipts')}",
@@ -591,7 +657,9 @@ def write_exports(payload: Mapping[str, Any], export_root: Path = DEFAULT_EXPORT
         f"Read-model visibility: {summary.get('read_model_mirror_visibility')}",
         f"Universal intake batch: {summary.get('universal_intake_batch')}",
         f"Gate 2: {summary.get('gate2_ingest')}",
+        f"Gate 2 readback: {summary.get('gate2_readback')}",
         f"Gate 3: {summary.get('gate3_package')}",
+        f"Gate 3 readback: {summary.get('gate3_package_readback')}",
         f"Gate 4: {summary.get('gate4_guardian')}",
         "",
         "Private Mode backend policy exists, but production token vault is not active yet.",

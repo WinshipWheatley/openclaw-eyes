@@ -71,6 +71,8 @@ def build_payload(*, generated_at: str | None = None, source_request_id: str = "
         "package_summary": {
             "package_id": package["package_id"],
             "source_request_id": package["source_request_id"],
+            "gate1_operational_snapshot_ref": package["gate1_operational_snapshot_ref"],
+            "gate1_safe_to_package_for_lm1": package["gate1_safe_to_package_for_lm1"],
             "world_ref": package["current_world_ref"],
             "client_ref": package["universal_intake_inference"]["client_ref"],
             "workflow_ref": package["universal_intake_inference"]["workflow_ref"],
@@ -83,7 +85,13 @@ def build_payload(*, generated_at: str | None = None, source_request_id: str = "
             "ready_for_shadow": True,
         },
         "chain_contract": {
-            "input_from": ("Gate 1 privacy/request readiness", "Universal intake", "Tokenization policy", "Model router"),
+            "input_from": (
+                "Gate 1 operational snapshot",
+                "Gate 1 privacy/request readiness",
+                "Universal intake",
+                "Tokenization policy",
+                "Model router",
+            ),
             "output_to": "Gate 2 intent ingest",
             "future_lm1_may_propose": "MachineIntentCandidate JSON only",
             "gate2_must_validate_before_ingest": True,
@@ -92,6 +100,8 @@ def build_payload(*, generated_at: str | None = None, source_request_id: str = "
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
         "machine_proof": {
             "package_built": True,
+            "package_consumes_gate1_snapshot": bool(package.get("gate1_operational_snapshot_ref")),
+            "gate1_snapshot_safe_to_package": package["gate1_safe_to_package_for_lm1"],
             "package_consumes_universal_intake": bool(package.get("universal_intake_inference")),
             "package_consumes_token_policy": bool(package.get("tokenization_policy")),
             "package_has_model_router_result": bool(package.get("model_router_result")),
@@ -123,6 +133,7 @@ def write_exports(payload: Mapping[str, Any], export_root: Path = DEFAULT_EXPORT
         "",
         f"Status: {CONTRACT_STATUS}",
         f"Package: {summary['package_id']}",
+        f"Gate 1 snapshot: {summary['gate1_operational_snapshot_ref']}",
         f"World: {summary['world_ref']}",
         f"Client: {summary['client_ref']}",
         f"Workflow: {summary['workflow_ref']}",

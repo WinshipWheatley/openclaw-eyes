@@ -63,6 +63,9 @@ def test_proof_shelf_keeps_machine_fields_available():
     for key in (
         "gate_chain_status",
         "gate1_privacy_status",
+        "gate1_operational_snapshot_status",
+        "gate2_readback_status",
+        "gate3_package_readback_status",
         "lm1_shadow_status",
         "lm2_shadow_status",
         "tokenization_status",
@@ -80,6 +83,9 @@ def test_proof_shelf_keeps_machine_fields_available():
         assert key in proof
     assert "generated/read_models/lm_readiness_dashboard.json" in proof["read_model_refs"]
     assert "generated/read_models/gate1_privacy_request_readiness.json" in proof["read_model_refs"]
+    assert "generated/read_models/gate1_operational_snapshot.json" in proof["read_model_refs"]
+    assert "generated/read_models/intent_ingest_gate.json" in proof["read_model_refs"]
+    assert "generated/read_models/role_package_gate.json" in proof["read_model_refs"]
     assert "generated/read_models/request_response_bridge_readiness.json" in proof["read_model_refs"]
     assert "generated/read_models/live_lm_activation_requirements.json" in proof["read_model_refs"]
     assert "generated/read_models/private_mode_policy_readiness.json" in proof["read_model_refs"]

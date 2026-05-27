@@ -77,6 +77,7 @@ def test_accepted_chief_status_intent_compiles_chief_package():
     result = gate.compile_role_package(
         _accepted(intent_type="ANSWER_STATUS", action="Show me what is blocking Capital Hilton.", role="CHIEF")
     )
+    readback = gate.build_package_readback(result)
 
     package = result["role_execution_package"]
     assert result["package_status"] == gate.PACKAGE_COMPILED
@@ -85,6 +86,9 @@ def test_accepted_chief_status_intent_compiles_chief_package():
     assert package["output_destination"]["destination_type"] == "MISSION_CONTROL_SCOPED_RESPONSE"
     assert package["ready_for_gate_4"] is True
     assert package["lm2_call_allowed"] is False
+    assert readback["operator_message"] == "OpenClaw can prepare a Chief status response."
+    assert readback["gate4_readiness_state"] == "READY_FOR_GUARDIAN_OUTPUT_GATE"
+    assert readback["lm2_call_allowed"] is False
 
 
 def test_cassandra_comms_draft_package_has_no_send_authority():
@@ -92,12 +96,14 @@ def test_cassandra_comms_draft_package_has_no_send_authority():
         _accepted(intent_type="PREPARE_DRAFT", action="Prep the email draft for review.", role="CASSANDRA")
     )
     package = result["role_execution_package"]
+    readback = gate.build_package_readback(result)
 
     assert package["role_identity"] == "CASSANDRA"
     assert package["tool_policy"]["allowed_tools"] == ()
     assert "send_email" in package["tool_policy"]["forbidden_actions"]
     assert package["authority_policy"]["send_submit_authority_granted"] is False
     assert package["authority_policy"]["external_action_authority_granted"] is False
+    assert "cannot send anything" in readback["operator_message"]
 
 
 def test_finance_invoice_prep_compiles_cassandra_clara_style_package_without_ledger_authority():
@@ -175,6 +181,9 @@ def test_low_confidence_or_blocked_gate2_result_does_not_compile_execution_packa
 
     assert result["package_status"] == gate.PACKAGE_NOT_COMPILED
     assert result["role_execution_package"] is None
+    readback = gate.build_package_readback(result)
+    assert readback["gate4_readiness_state"] == "NOT_READY_FOR_GATE_4"
+    assert readback["model_router_result"]["selected_model_class"] == "NO_SAFE_MODEL"
 
 
 def test_package_output_is_ready_for_gate4_validation_later():
@@ -196,5 +205,8 @@ def test_exported_readmodel_parses(tmp_path):
     assert parsed["read_model_id"] == gate.READ_MODEL_ID
     assert parsed["machine_proof"]["chief_package_compiled"] is True
     assert parsed["machine_proof"]["blocked_gate2_not_compiled"] is True
+    assert parsed["machine_proof"]["package_readback_operator_visible"] is True
+    assert parsed["machine_proof"]["package_readback_gate4_ready"] is True
+    assert parsed["machine_proof"]["package_readback_model_router_present"] is True
     assert parsed["machine_proof"]["all_live_authority_false"] is True
     assert "Gate 3 compiles" in operator_path.read_text(encoding="utf-8")

@@ -10,7 +10,9 @@ LM2 live: NOT_ACTIVE
 Tokenization: SEEDED_NOT_PRODUCTION
 Privacy readiness: POLICY_SEEDED_PRODUCTION_TOKEN_VAULT_NOT_ACTIVE
 Provider policy registry: SEEDED
+Gate 1 operational snapshot: EXPORTED_CONNECTED
 Gate 1 privacy request: EXPORTED
+LM1 thread package: CONNECTED_TO_GATE1
 Request-response bridge: READY_FOR_LIVE_REVIEW
 Production/live blockers: EXPLICIT
 Provider activation receipts: RECEIPTS_REQUIRED_NOT_PRESENT
@@ -18,7 +20,9 @@ Private Mode policy: PRIVATE_MODE_POLICY_READY_INACTIVE
 Read-model visibility: READ_MODEL_VISIBILITY_PROOF_ONLY_NO_SYNC
 Universal intake batch: READY
 Gate 2: ACCEPTED_INTENT
+Gate 2 readback: OPERATOR_VISIBLE
 Gate 3: ROLE_PACKAGE_COMPILED
+Gate 3 readback: OPERATOR_VISIBLE
 Gate 4: ROLE_OUTPUT_VALIDATED
 
 Private Mode backend policy exists, but production token vault is not active yet.

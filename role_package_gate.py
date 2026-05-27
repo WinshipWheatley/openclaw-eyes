@@ -18,6 +18,7 @@ from typing import Any, Mapping
 import guardian_output_gate
 import intent_ingest_gate
 import machine_intent_candidate_validator as intent_validator
+import model_router_policy
 
 
 DEFAULT_EXPORT_ROOT = Path("generated/read_models")
@@ -203,6 +204,24 @@ class PackageCompilerResult:
     blocked_reasons: tuple[str, ...]
     authority_boundary: dict[str, bool]
     next_safe_move: str
+
+
+@dataclass(frozen=True)
+class PackageReadback:
+    readback_id: str
+    package_status: str
+    operator_message: str
+    package_role: str
+    task: str
+    allowed_context_classes: tuple[str, ...]
+    forbidden_context_classes: tuple[str, ...]
+    tool_policy: dict[str, Any]
+    authority_policy: dict[str, Any]
+    privacy_tokenization: dict[str, Any]
+    model_router_result: dict[str, Any]
+    output_destination: dict[str, Any]
+    gate4_readiness_state: str
+    lm2_call_allowed: bool
 
 
 def utc_now() -> str:
@@ -431,6 +450,83 @@ def compile_role_package(ingest_result: Mapping[str, Any]) -> dict[str, Any]:
     return asdict(result)
 
 
+def build_package_readback(compiler_result: Mapping[str, Any]) -> dict[str, Any]:
+    package = compiler_result.get("role_execution_package") if isinstance(compiler_result.get("role_execution_package"), Mapping) else {}
+    status = str(compiler_result.get("package_status") or PACKAGE_NOT_COMPILED)
+    if package:
+        role = str(package.get("role_identity") or "OPENCLAW_SYSTEM")
+        actor = str(package.get("actor_label") or role)
+        task = str(package.get("task") or "")
+        if role == "CASSANDRA":
+            operator_message = "OpenClaw can prepare a bounded Cassandra-style draft package, but it cannot send anything."
+        elif role == "CHIEF":
+            operator_message = "OpenClaw can prepare a Chief status response."
+        elif role == "CASSANDRA_CLARA":
+            operator_message = "OpenClaw can prepare bounded invoice support, but it cannot post, send, or mark anything final."
+        else:
+            operator_message = f"OpenClaw can prepare a bounded {actor} package."
+        context_packet = package.get("context_packet") if isinstance(package.get("context_packet"), Mapping) else {}
+        tool_policy = package.get("tool_policy") if isinstance(package.get("tool_policy"), Mapping) else {}
+        authority_policy = package.get("authority_policy") if isinstance(package.get("authority_policy"), Mapping) else {}
+        output_destination = package.get("output_destination") if isinstance(package.get("output_destination"), Mapping) else {}
+        model_router_result = model_router_policy.select_for_lm2_role_package(package)
+        gate4_state = "READY_FOR_GUARDIAN_OUTPUT_GATE" if package.get("ready_for_gate_4") else "NOT_READY_FOR_GATE_4"
+        privacy = {
+            "tokenization_applied": bool(package.get("tokenization_applied")),
+            "token_scope": str(package.get("token_scope") or ""),
+            "raw_values_included": bool(package.get("raw_values_included")),
+            "token_vault_ref": str(package.get("token_vault_ref") or ""),
+            "detokenization_policy_ref": str(package.get("detokenization_policy_ref") or ""),
+            "privacy_level": str(package.get("privacy_level") or ""),
+            "model_may_see_raw_values": bool(package.get("model_may_see_raw_values")),
+        }
+        readback = PackageReadback(
+            readback_id=f"role_package_readback:{_short_hash(compiler_result.get('compiler_result_id'), role)}",
+            package_status=status,
+            operator_message=operator_message,
+            package_role=role,
+            task=task,
+            allowed_context_classes=tuple(str(item) for item in context_packet.get("allowed_context_refs") or ()),
+            forbidden_context_classes=tuple(str(item) for item in context_packet.get("forbidden_context_refs") or ()),
+            tool_policy=dict(tool_policy),
+            authority_policy=dict(authority_policy),
+            privacy_tokenization=privacy,
+            model_router_result=model_router_result,
+            output_destination=dict(output_destination),
+            gate4_readiness_state=gate4_state,
+            lm2_call_allowed=bool(package.get("lm2_call_allowed")),
+        )
+        return asdict(readback)
+
+    blocked = tuple(str(item) for item in compiler_result.get("blocked_reasons") or ())
+    readback = PackageReadback(
+        readback_id=f"role_package_readback:{_short_hash(compiler_result.get('compiler_result_id'), status)}",
+        package_status=status,
+        operator_message="OpenClaw cannot package this because Gate 2 has not accepted it or authority is blocked.",
+        package_role="",
+        task="",
+        allowed_context_classes=(),
+        forbidden_context_classes=(),
+        tool_policy={"allowed_tools": (), "forbidden_tools": FORBIDDEN_TOOLS, "blocked_reasons": blocked},
+        authority_policy={
+            "authority_boundary": dict(AUTHORITY_BOUNDARY),
+            "tool_authority_granted": False,
+            "external_action_authority_granted": False,
+            "send_submit_authority_granted": False,
+        },
+        privacy_tokenization={
+            "tokenization_applied": False,
+            "raw_values_included": False,
+            "model_may_see_raw_values": False,
+        },
+        model_router_result={"selected_model_class": model_router_policy.NO_SAFE_MODEL, "blocked_reasons": blocked},
+        output_destination={},
+        gate4_readiness_state="NOT_READY_FOR_GATE_4",
+        lm2_call_allowed=False,
+    )
+    return asdict(readback)
+
+
 def _accepted_example(
     *,
     intent_id: str,
@@ -495,6 +591,11 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
     chief_package = compile_role_package(chief_ingest)
     cassandra_package = compile_role_package(cassandra_ingest)
     blocked_package = compile_role_package(blocked_ingest)
+    package_readbacks = {
+        "chief_status": build_package_readback(chief_package),
+        "cassandra_draft": build_package_readback(cassandra_package),
+        "blocked_gate2": build_package_readback(blocked_package),
+    }
     payload: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
         "read_model_id": READ_MODEL_ID,
@@ -506,6 +607,7 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
             "cassandra_draft_package": cassandra_package,
             "blocked_gate2_result": blocked_package,
         },
+        "package_readbacks": package_readbacks,
         "machine_proof": {
             "gate_3_present": True,
             "gate_2_required_before_gate_3": True,
@@ -514,6 +616,10 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
             "blocked_gate2_not_compiled": blocked_package["package_status"] == PACKAGE_NOT_COMPILED,
             "ready_for_gate_4": bool((chief_package.get("role_execution_package") or {}).get("ready_for_gate_4")),
             "tokenization_fields_present": bool((chief_package.get("role_execution_package") or {}).get("token_vault_ref")),
+            "package_readback_operator_visible": all(item["operator_message"] for item in package_readbacks.values()),
+            "package_readback_gate4_ready": package_readbacks["chief_status"]["gate4_readiness_state"]
+            == "READY_FOR_GUARDIAN_OUTPUT_GATE",
+            "package_readback_model_router_present": bool(package_readbacks["chief_status"]["model_router_result"]),
             "raw_values_included": bool((chief_package.get("role_execution_package") or {}).get("raw_values_included")),
             "model_may_see_raw_values": bool((chief_package.get("role_execution_package") or {}).get("model_may_see_raw_values")),
             "lm2_call_performed": False,
@@ -539,6 +645,7 @@ def write_exports(payload: Mapping[str, Any], export_root: Path = DEFAULT_EXPORT
     operator_path = export_root / OPERATOR_EXPORT_NAME
     json_path.write_text(stable_json(payload), encoding="utf-8")
     proof = payload.get("machine_proof", {})
+    readbacks = payload.get("package_readbacks", {})
     lines = [
         "# Role Package Gate",
         "",
@@ -548,6 +655,12 @@ def write_exports(payload: Mapping[str, Any], export_root: Path = DEFAULT_EXPORT
         f"Tokenization fields present: {str(proof.get('tokenization_fields_present')).lower()}",
         "",
         "Gate 3 compiles bounded role packages only from Gate 2 accepted intents.",
+        "",
+        "Operator-visible package readbacks:",
+        *[
+            f"- {name}: {item.get('operator_message')}"
+            for name, item in readbacks.items()
+        ],
         "",
         "Boundary: no LM2 call, no role dispatch, no tools, no send/submit, no authority grant.",
     ]

@@ -36,6 +36,7 @@ def test_readiness_dashboard_aggregates_all_seeded_lanes():
         "token_vault_status",
         "universal_intake_contract",
         "gate1_privacy_request_readiness",
+        "gate1_operational_snapshot",
         "request_response_bridge_readiness",
         "live_lm_activation_requirements",
         "private_mode_policy_readiness",
@@ -48,7 +49,9 @@ def test_readiness_dashboard_aggregates_all_seeded_lanes():
     assert payload["dashboard_summary"]["lm2_package_shadow"] == "READY"
     assert payload["dashboard_summary"]["lm2_shadow_comparison"] == "READY"
     assert payload["dashboard_summary"]["provider_policy_registry"] == "SEEDED"
+    assert payload["dashboard_summary"]["gate1_operational_snapshot"] == "EXPORTED_CONNECTED"
     assert payload["dashboard_summary"]["gate1_privacy_request"] == "EXPORTED"
+    assert payload["dashboard_summary"]["lm1_thread_context_package"] == "CONNECTED_TO_GATE1"
     assert payload["dashboard_summary"]["request_response_bridge"] in {
         "READY_FOR_LIVE_REVIEW",
         "SEEDED_NEEDS_OPERATOR_SERVICE_CHECK",
@@ -62,6 +65,8 @@ def test_lm1_thread_context_package_includes_universal_intake_and_token_declarat
     package = dashboard.build_lm1_thread_context_package(source_request_id="test_lm1_context")
 
     assert package["source_request_id"] == "test_lm1_context"
+    assert package["gate1_operational_snapshot_ref"].startswith("gate1_operational_snapshot:")
+    assert package["gate1_privacy_flags"]["safe_to_package_for_lm1"] is True
     assert package["source_device_ref"] == "mission_control_mac"
     assert package["universal_intake_inference"]["client_ref"] == "capital_hilton"
     assert package["universal_intake_inference"]["artifact_kind"] == "running_invoice_workbook"
@@ -160,8 +165,12 @@ def test_dashboard_exposes_bridge_and_gate1_without_expanding_authority():
     flow = payload["representative_flow"]
 
     assert flow["gate1_privacy_request_readiness"]["chain_contract"]["lm1_may_receive_raw_values"] is False
+    assert flow["gate1_operational_snapshot"]["safe_to_package_for_lm1"] is True
     assert flow["request_response_bridge_readiness"]["safe_delivery_policy"]["arbitrary_destination_allowed"] is False
     assert payload["machine_proof"]["gate1_privacy_request_readiness_aggregated"] is True
+    assert payload["machine_proof"]["gate1_operational_snapshot_aggregated"] is True
+    assert payload["machine_proof"]["gate1_snapshot_connected_to_lm1_package"] is True
+    assert payload["machine_proof"]["lm1_package_connected_to_gate1"] is True
     assert payload["machine_proof"]["request_response_bridge_readiness_aggregated"] is True
     assert payload["machine_proof"]["model_call_performed"] is False
     assert payload["machine_proof"]["tool_execution_performed"] is False
@@ -187,12 +196,17 @@ def test_representative_flow_reaches_gate2_gate3_gate4_without_live_status():
     flow = payload["representative_flow"]
 
     assert flow["gate2_result_summary"]["outcome"] == intent_ingest_gate.ACCEPTED_INTENT
+    assert flow["gate2_result_summary"]["operator_readback"]["outcome"] == intent_ingest_gate.ACCEPTED_INTENT
     assert flow["gate3_package_summary"]["package_status"] == role_package_gate.PACKAGE_COMPILED
+    assert flow["gate3_package_summary"]["operator_readback"]["gate4_readiness_state"] == "READY_FOR_GUARDIAN_OUTPUT_GATE"
     assert flow["gate4_result_summary"]["verdict"] == guardian_output_gate.VALIDATED
     assert flow["shadow_comparison_summary"]["failed"] == 0
     assert flow["shadow_comparison_summary"]["negative_case_count"] == 3
     assert payload["dashboard_summary"]["lm1_live"] == "NOT_ACTIVE"
     assert payload["dashboard_summary"]["lm2_live"] == "NOT_ACTIVE"
+    assert payload["machine_proof"]["end_to_end_non_live_chain_passed"] is True
+    assert payload["machine_proof"]["gate2_readback_operator_visible"] is True
+    assert payload["machine_proof"]["gate3_readback_operator_visible"] is True
 
 
 def test_private_mode_fields_are_seeded_but_inactive():

@@ -16,6 +16,7 @@
     "future_lm1_may_propose": "MachineIntentCandidate JSON only",
     "gate2_must_validate_before_ingest": true,
     "input_from": [
+      "Gate 1 operational snapshot",
       "Gate 1 privacy/request readiness",
       "Universal intake",
       "Tokenization policy",
@@ -28,10 +29,15 @@
   "generated_at": "2026-05-26T00:00:00+00:00",
   "lm1_thread_context_package": {
     "allowed_context_classes": [
-      "metadata_only_file_ref",
+      "source_request_id",
+      "device_ref",
+      "thread_ref",
+      "world_ref",
+      "metadata_summary",
+      "tokenized_refs",
       "universal_intake_summary",
-      "tokenized_fixture_refs",
-      "thread_scope_refs"
+      "privacy_trigger_result",
+      "tokenization_policy_result"
     ],
     "authority_granted": {
       "external_action": false,
@@ -47,8 +53,168 @@
       "spreadsheet cells",
       "credentials",
       "raw private bodies",
-      "unrelated client data"
+      "unrelated client data",
+      "full workbook",
+      "full sheet dump",
+      "external private data"
     ],
+    "gate1_operational_snapshot": {
+      "allowed_context_classes": [
+        "source_request_id",
+        "device_ref",
+        "thread_ref",
+        "world_ref",
+        "metadata_summary",
+        "tokenized_refs",
+        "universal_intake_summary",
+        "privacy_trigger_result",
+        "tokenization_policy_result"
+      ],
+      "artifact_metadata": {
+        "artifact_kind": "running_invoice_workbook",
+        "body_read": false,
+        "external_shared": false,
+        "file_display_name": "Invoice Capitol Hilton Running.xlsx",
+        "file_extension": ".xlsx",
+        "file_type": "spreadsheet",
+        "ocr_performed": false,
+        "spreadsheet_cell_read": false,
+        "workbook_body_read": false
+      },
+      "authority_boundary": {
+        "credential_handling_allowed": false,
+        "external_action_allowed": false,
+        "file_body_read_allowed": false,
+        "live_lm_call_allowed": false,
+        "model_api_integration_allowed": false,
+        "network_allowed": false,
+        "ocr_allowed": false,
+        "production_state_mutation_allowed": false,
+        "raw_value_exposure_allowed": false,
+        "spreadsheet_cell_read_allowed": false,
+        "tool_execution_allowed": false,
+        "workbook_body_read_allowed": false,
+        "workflow_execution_allowed": false
+      },
+      "client_ref": "capital_hilton",
+      "forbidden_context_classes": [
+        "raw workbook body",
+        "spreadsheet cells",
+        "credentials",
+        "raw private bodies",
+        "unrelated client data",
+        "full workbook",
+        "full sheet dump",
+        "external private data"
+      ],
+      "next_safe_move": "Build the LM1 shadow package from this snapshot; no model call or action is allowed.",
+      "privacy_class": "CLIENT_FINANCE_FILE_METADATA",
+      "private_mode_effect": {
+        "active": false,
+        "available": true,
+        "model_may_see_raw_values": false,
+        "operator_copy": "Private Mode would keep raw details local and use tokenized or summarized context.",
+        "raw_values_included": false,
+        "tokenization_required_when_active": true
+      },
+      "raw_values_included": false,
+      "safe_to_package_for_lm1": true,
+      "snapshot_id": "gate1_operational_snapshot:e13f6847ab91d0f2",
+      "source_device_ref": "mission_control_mac",
+      "source_request_id": "lm1_thread_context_package_fixture",
+      "strict_private_mode_effect": {
+        "active": false,
+        "available": true,
+        "local_only_required_when_active": true,
+        "model_may_see_raw_values": false,
+        "operator_copy": "Strict Private Mode would require local-only handling for sensitive packages.",
+        "raw_values_included": false
+      },
+      "thread_ref": "thread_ref:finance_capital_hilton",
+      "tokenization_policy": {
+        "authority_boundary": {
+          "cloud_tokenization_allowed": false,
+          "credential_handling_allowed": false,
+          "external_model_share_allowed": false,
+          "network_allowed": false,
+          "production_state_mutation_allowed": false,
+          "raw_value_export_allowed": false,
+          "real_data_ingestion_allowed": false
+        },
+        "detokenization_allowed": false,
+        "local_only_required": true,
+        "model_may_see_raw_values": false,
+        "next_safe_move": "Attach scoped tokens and metadata summaries only; do not expose raw values.",
+        "policy_decision_id": "tokenization_policy:7e0760610555939d",
+        "privacy_level": "CLIENT_FINANCE_FILE_METADATA",
+        "reason_codes": [
+          "SYNTHETIC_POLICY_ONLY",
+          "FINANCE_CONTEXT",
+          "CLIENT_FILE_METADATA",
+          "INVOICE_WORKBOOK_REFERENCE",
+          "CLIENT_SCOPED"
+        ],
+        "synthetic_fixture_only": true,
+        "tokenization_required": true
+      },
+      "tokenization_required": true,
+      "universal_intake_inference": {
+        "artifact_kind": "running_invoice_workbook",
+        "authority_boundary": {
+          "external_action_allowed": false,
+          "file_body_read_allowed": false,
+          "ledger_posting_allowed": false,
+          "model_call_allowed": false,
+          "ocr_allowed": false,
+          "pdf_generation_allowed": false,
+          "production_state_mutation_allowed": false,
+          "send_submit_allowed": false,
+          "spreadsheet_cell_read_allowed": false,
+          "workbook_body_read_allowed": false
+        },
+        "backend_paths_exposed": false,
+        "candidate_id": "universal_intake_candidate:b59dee0fce89e8c4",
+        "chain_contract": {
+          "candidate_may_enter_gate_2_after_lm1_proposal": true,
+          "gate_1_privacy_class": "CLIENT_FINANCE_FILE_METADATA",
+          "lm1_input_class": "metadata_only_intake_candidate",
+          "lm1_may_receive_raw_values": false,
+          "requires_tokenization_policy": true
+        },
+        "clarification_question": "",
+        "client_ref": "capital_hilton",
+        "confidence": "HIGH",
+        "final": false,
+        "intended_use": "register_or_resolve_invoice_workbook_artifact",
+        "ledger_posted": false,
+        "lm1_chain_ready": true,
+        "next_safe_action": "Propose metadata-only workbook intake, then ask before any audit, send, PDF, or ledger step.",
+        "operator_headline": "Capital Hilton workbook recognized",
+        "operator_message": "OpenClaw recognized this as a likely Capital Hilton running invoice workbook. It is still a draft/source workbook, not proof that anything was sent or paid.",
+        "paid": false,
+        "privacy_class": "CLIENT_FINANCE_FILE_METADATA",
+        "proposed_facts_only": true,
+        "source_request_id": "lm1_thread_context_package_fixture",
+        "submitted": false,
+        "workflow_ref": "capital_hilton_invoice_workflow",
+        "world_ref": "finance"
+      },
+      "unsafe_reason": "",
+      "user_message": "these are the invoice workbooks for the clients named in the files, handle them how you're supposed to",
+      "workflow_ref": "capital_hilton_invoice_workflow",
+      "world_ref": "finance"
+    },
+    "gate1_operational_snapshot_ref": "gate1_operational_snapshot:e13f6847ab91d0f2",
+    "gate1_privacy_flags": {
+      "privacy_class": "CLIENT_FINANCE_FILE_METADATA",
+      "private_mode_active": false,
+      "raw_values_included": false,
+      "safe_to_package_for_lm1": true,
+      "strict_private_mode_active": false,
+      "tokenization_required": true,
+      "unsafe_reason": ""
+    },
+    "gate1_safe_to_package_for_lm1": true,
     "model_router_result": {
       "authority_boundary": {
         "authority_grant_allowed": false,
@@ -295,10 +461,12 @@
   "machine_proof": {
     "all_live_authority_false": true,
     "authority_granted_any": false,
-    "content_hash": "sha256:b2520dd509eeff880b8b214c17d7211b157f6f0fa4cf279424a8143e5b9b7d45",
+    "content_hash": "sha256:539e39815111b302ad8e805fc4a0f3ce0335fdd4c1d391a6d7c00d3de2549d3d",
     "external_action_performed": false,
+    "gate1_snapshot_safe_to_package": true,
     "live_model_call_performed": false,
     "package_built": true,
+    "package_consumes_gate1_snapshot": true,
     "package_consumes_token_policy": true,
     "package_consumes_universal_intake": true,
     "package_has_model_router_result": true,
@@ -316,6 +484,8 @@
   ],
   "package_summary": {
     "client_ref": "capital_hilton",
+    "gate1_operational_snapshot_ref": "gate1_operational_snapshot:e13f6847ab91d0f2",
+    "gate1_safe_to_package_for_lm1": true,
     "output_schema_ref": "MachineIntentCandidate",
     "package_id": "lm1_thread_context_package:9bc6e878d2530704",
     "privacy_classification": "CLIENT_FINANCE_FILE_METADATA",

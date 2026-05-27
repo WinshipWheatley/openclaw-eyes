@@ -34,7 +34,7 @@
   "machine_proof": {
     "aggregates_lm_readiness_dashboard": true,
     "all_live_authority_false": true,
-    "content_hash": "sha256:5a4c58907e7e84065df8f113c0bca4c8ad602041e787549e662273772ed11888",
+    "content_hash": "sha256:b9efac449ff83e75402cb0711b6e93de7136276cd00aaed71888c25dd411fdf3",
     "external_action_performed": false,
     "live_lm_status": "NOT_ACTIVE",
     "live_model_call_performed": false,
@@ -141,7 +141,10 @@
     },
     "proof_shelf": {
       "active_trust_level": 1,
+      "gate1_operational_snapshot_status": "EXPORTED_CONNECTED",
       "gate1_privacy_status": "EXPORTED",
+      "gate2_readback_status": "OPERATOR_VISIBLE",
+      "gate3_package_readback_status": "OPERATOR_VISIBLE",
       "gate_chain_status": "PASS",
       "guardian_gate_status": "ROLE_OUTPUT_VALIDATED",
       "live_lm_blockers": [
@@ -167,6 +170,9 @@
         "generated/read_models/token_vault_status.json",
         "generated/read_models/universal_intake_contract.json",
         "generated/read_models/gate1_privacy_request_readiness.json",
+        "generated/read_models/gate1_operational_snapshot.json",
+        "generated/read_models/intent_ingest_gate.json",
+        "generated/read_models/role_package_gate.json",
         "generated/read_models/request_response_bridge_readiness.json",
         "generated/read_models/live_lm_activation_requirements.json",
         "generated/read_models/private_mode_policy_readiness.json",
