@@ -36,20 +36,31 @@ def test_quicklook_is_recommended_for_current_invoice_review():
 
 
 def test_dangerzone_future_provider_is_pending_when_not_installed():
-    payload = _payload({"docker": True, "podman": False, "dangerzone": False, "dangerzone-cli": False})
+    payload = provider.build_payload(
+        generated_at=FIXED_NOW,
+        detected_tools={"docker": True, "podman": False, "dangerzone": False, "dangerzone-cli": False},
+        install_probe={"sudo_status": "SUDO_PASSWORD_REQUIRED"},
+    )
 
     dangerzone = next(item for item in payload["provider_readiness"] if item["provider_type"] == "DANGERZONE_BACKEND")
     assert dangerzone["provider_available"] is False
     assert dangerzone["install_required"] is True
     assert dangerzone["production_ready"] is False
     assert payload["future_untrusted_docs_recommendation"]["provider_type"] == "DANGERZONE_BACKEND_PENDING_REVIEW"
-    assert payload["dangerzone_local_install_preview_spike"]["status"] == "BLOCKED_INSTALL_REQUIRED"
+    assert payload["dangerzone_local_install_preview_spike"]["status"] == "INSTALL_BLOCKED_SUDO_REQUIRED"
     assert payload["dangerzone_local_install_preview_spike"]["production_ready"] is False
     assert payload["dangerzone_local_install_preview_spike"]["conversion_attempted"] is False
 
 
 def test_dangerzone_can_be_shadow_ready_when_command_and_docker_exist():
-    payload = _payload({"docker": True, "podman": True, "dangerzone": True, "dangerzone-cli": False})
+    payload = provider.build_payload(
+        generated_at=FIXED_NOW,
+        detected_tools={"docker": True, "podman": True, "dangerzone": True, "dangerzone-cli": False},
+        install_probe={
+            "gpg_fingerprint_verified": True,
+            "official_source_verified": True,
+        },
+    )
 
     dangerzone = next(item for item in payload["provider_readiness"] if item["provider_type"] == "DANGERZONE_BACKEND")
     assert dangerzone["provider_available"] is True
@@ -60,16 +71,37 @@ def test_dangerzone_can_be_shadow_ready_when_command_and_docker_exist():
 
 
 def test_dangerzone_spike_receipt_records_install_blockers():
-    payload = _payload({"docker": True, "podman": False, "dangerzone": False, "dangerzone-cli": False})
+    payload = provider.build_payload(
+        generated_at=FIXED_NOW,
+        detected_tools={"docker": True, "podman": False, "dangerzone": False, "dangerzone-cli": False},
+        install_probe={
+            "sudo_status": "SUDO_PASSWORD_REQUIRED",
+            "gpg_fingerprint_verified": True,
+            "official_source_verified": True,
+            "podman_package_available": True,
+            "commands_run": ("sudo -n true", "gpg --fingerprint"),
+        },
+    )
     receipt = payload["dangerzone_local_install_preview_spike"]
 
     assert receipt["spike_id"] == provider.DANGERZONE_SPIKE_ID
     assert receipt["provider"] == "DANGERZONE_BACKEND"
     assert receipt["documented_latest_version_seen"] == provider.DANGERZONE_DOCUMENTED_VERSION
+    assert receipt["expected_gpg_fingerprint"] == provider.DANGERZONE_RELEASE_KEY_FINGERPRINT
+    assert receipt["gpg_fingerprint_verified"] is True
+    assert receipt["official_source_verified"] is True
+    assert receipt["install_status"] == "INSTALL_BLOCKED_SUDO_REQUIRED"
+    assert receipt["podman_status"] == "AVAILABLE_NOT_INSTALLED"
+    assert receipt["license"] == "AGPL-3.0"
+    assert receipt["license_review_required"] is True
     assert receipt["synthetic_input_sha256"] is None
     assert receipt["safe_pdf_output_sha256"] is None
     assert receipt["conversion_receipt_written"] is False
+    assert receipt["synthetic_conversion_ready"] is False
+    assert receipt["synthetic_conversion_receipt_ref"] is None
+    assert receipt["no_real_documents_processed"] is True
     assert receipt["real_invoice_artifacts_touched"] is False
+    assert tuple(receipt["commands_run"]) == ("sudo -n true", "gpg --fingerprint")
     assert any("not installed" in blocker for blocker in receipt["blockers"])
     assert any("AGPL" in blocker for blocker in receipt["blockers"])
 

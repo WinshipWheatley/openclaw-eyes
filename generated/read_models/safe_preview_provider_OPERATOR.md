@@ -11,8 +11,9 @@ Future untrusted documents:
 - Backend preview production ready: false
 
 Dangerzone local spike:
-- Status: BLOCKED_INSTALL_REQUIRED
+- Status: INSTALL_BLOCKED_SUDO_REQUIRED
 - Version checked: 0.10.0
+- Blocker: Install requires sudo/operator terminal entry.
 - Blocker: Dangerzone CLI/app is not installed locally.
 - Blocker: Dangerzone on Linux expects Podman; podman is not installed locally.
 - Blocker: Installing a new external document sanitizer package needs explicit install and AGPL packaging review.

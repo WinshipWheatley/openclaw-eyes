@@ -34,6 +34,7 @@ PROVIDER_TYPES = (
 
 DANGERZONE_SPIKE_ID = "dangerzone_local_preview_spike_v0"
 DANGERZONE_DOCUMENTED_VERSION = "0.10.0"
+DANGERZONE_RELEASE_KEY_FINGERPRINT = "DE28 AB24 1FA4 8260 FAC9 B8BA A7C9 B385 2260 4281"
 DANGERZONE_DOCUMENTED_SUPPORTED_OS = (
     "Ubuntu 24.04 noble",
     "Ubuntu 22.04 jammy",
@@ -189,41 +190,71 @@ def build_dangerzone_spike_receipt(
     *,
     detected_tools: Mapping[str, bool],
     os_release: str = "Ubuntu 24.04 noble on WSL2",
+    sudo_status: str = "UNKNOWN_NOT_ATTEMPTED",
+    gpg_fingerprint_verified: bool = False,
+    official_source_verified: bool = False,
+    podman_package_available: bool | None = None,
+    commands_run: tuple[str, ...] = (),
 ) -> dict[str, Any]:
     dangerzone_available = bool(detected_tools.get("dangerzone") or detected_tools.get("dangerzone-cli"))
     podman_available = bool(detected_tools.get("podman"))
     docker_available = bool(detected_tools.get("docker"))
+    sudo_required = sudo_status == "SUDO_PASSWORD_REQUIRED"
     can_attempt_conversion = dangerzone_available and (podman_available or docker_available)
     blockers = []
+    if sudo_required:
+        blockers.append("Install requires sudo/operator terminal entry.")
     if not dangerzone_available:
         blockers.append("Dangerzone CLI/app is not installed locally.")
     if not podman_available:
         blockers.append("Dangerzone on Linux expects Podman; podman is not installed locally.")
     blockers.append("Installing a new external document sanitizer package needs explicit install and AGPL packaging review.")
+    if not gpg_fingerprint_verified:
+        blockers.append("Dangerzone release key fingerprint has not been verified for this install receipt.")
+    if not official_source_verified:
+        blockers.append("Official package source has not been verified for this install receipt.")
+    install_status = "INSTALL_BLOCKED_SUDO_REQUIRED" if sudo_required else (
+        "INSTALL_BLOCKED_DEPENDENCY_UNSUPPORTED" if not dangerzone_available else "INSTALLED"
+    )
     return {
         "spike_id": DANGERZONE_SPIKE_ID,
         "provider": "DANGERZONE_BACKEND",
-        "status": "BLOCKED_INSTALL_REQUIRED" if not can_attempt_conversion else "READY_FOR_SYNTHETIC_CONVERSION_TEST",
+        "status": install_status if not can_attempt_conversion else "READY_FOR_SYNTHETIC_CONVERSION_TEST",
+        "install_status": install_status,
         "os_release": os_release,
         "documented_supported_os_match": True,
         "documented_latest_version_seen": DANGERZONE_DOCUMENTED_VERSION,
         "documented_install_path": "Official Linux release package for supported Ubuntu/Debian/Fedora; Linux runtime uses Podman sandboxing.",
+        "expected_gpg_fingerprint": DANGERZONE_RELEASE_KEY_FINGERPRINT,
+        "gpg_fingerprint_verified": gpg_fingerprint_verified,
+        "official_source_verified": official_source_verified,
         "license_notes": "Dangerzone is AGPLv3; commercial packaging/distribution requires legal review before bundling.",
+        "license": "AGPL-3.0",
+        "license_review_required": True,
         "dependency_notes": "Dangerzone converts potentially dangerous documents through a sandbox; Linux install requires Podman/container support.",
+        "dependency_status": "BLOCKED_SUDO_REQUIRED" if sudo_required else "INSTALL_REQUIRED",
+        "podman_status": "INSTALLED" if podman_available else (
+            "AVAILABLE_NOT_INSTALLED" if podman_package_available else "NOT_INSTALLED"
+        ),
+        "sudo_status": sudo_status,
         "local_detection": {
             "dangerzone": bool(detected_tools.get("dangerzone")),
             "dangerzone_cli": bool(detected_tools.get("dangerzone-cli")),
             "podman": podman_available,
             "docker": docker_available,
         },
+        "commands_run": commands_run,
         "synthetic_input_path": None,
         "synthetic_input_sha256": None,
         "safe_pdf_output_path": None,
         "safe_pdf_output_sha256": None,
         "conversion_attempted": False,
         "conversion_receipt_written": False,
+        "synthetic_conversion_ready": can_attempt_conversion,
+        "synthetic_conversion_receipt_ref": None,
         "blockers": tuple(dict.fromkeys(blockers)),
         "production_ready": False,
+        "no_real_documents_processed": True,
         "real_invoice_artifacts_touched": False,
         "capital_hilton_files_converted": False,
         "workbook_body_read": False,
@@ -236,11 +267,21 @@ def build_payload(
     *,
     generated_at: str | None = None,
     detected_tools: Mapping[str, bool] | None = None,
+    install_probe: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     generated_at = generated_at or DEFAULT_GENERATED_AT
     local_detection = dict(detected_tools or detect_local_tools())
     results = build_provider_results(detected_tools=local_detection)
-    dangerzone_spike = build_dangerzone_spike_receipt(detected_tools=local_detection)
+    probe = dict(install_probe or {})
+    dangerzone_spike = build_dangerzone_spike_receipt(
+        detected_tools=local_detection,
+        os_release=str(probe.get("os_release", "Ubuntu 24.04 noble on WSL2")),
+        sudo_status=str(probe.get("sudo_status", "UNKNOWN_NOT_ATTEMPTED")),
+        gpg_fingerprint_verified=bool(probe.get("gpg_fingerprint_verified", False)),
+        official_source_verified=bool(probe.get("official_source_verified", False)),
+        podman_package_available=probe.get("podman_package_available"),
+        commands_run=tuple(str(command) for command in probe.get("commands_run", ())),
+    )
     payload = {
         "schema_version": SCHEMA_VERSION,
         "read_model_id": READ_MODEL_ID,
@@ -275,7 +316,8 @@ def build_payload(
             == "QUICKLOOK_MAC_CLIENT",
             "dangerzone_recommended_for_future_review": True,
             "dangerzone_spike_receipt_present": True,
-            "dangerzone_conversion_blocked_by_install": dangerzone_spike["status"] == "BLOCKED_INSTALL_REQUIRED",
+            "dangerzone_conversion_blocked_by_install": dangerzone_spike["status"].startswith("INSTALL_BLOCKED"),
+            "dangerzone_gpg_fingerprint_verified": dangerzone_spike["gpg_fingerprint_verified"],
             "onlyoffice_not_recommended_for_v0": True,
             "production_ready_false_for_backend_preview": True,
             "all_action_authority_false": all(value is False for value in AUTHORITY_BOUNDARY.values()),
@@ -329,9 +371,27 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Export safe preview provider feasibility read-model.")
     parser.add_argument("--export-root", type=Path, default=DEFAULT_EXPORT_ROOT)
     parser.add_argument("--generated-at", default=DEFAULT_GENERATED_AT)
+    parser.add_argument("--sudo-status", default="UNKNOWN_NOT_ATTEMPTED")
+    parser.add_argument("--gpg-fingerprint-verified", action="store_true")
+    parser.add_argument("--official-source-verified", action="store_true")
+    parser.add_argument("--podman-package-available", action="store_true")
     parser.add_argument("--format", choices=("summary", "json"), default="summary")
     args = parser.parse_args(argv)
-    payload = build_payload(generated_at=args.generated_at)
+    payload = build_payload(
+        generated_at=args.generated_at,
+        install_probe={
+            "sudo_status": args.sudo_status,
+            "gpg_fingerprint_verified": args.gpg_fingerprint_verified,
+            "official_source_verified": args.official_source_verified,
+            "podman_package_available": args.podman_package_available,
+            "commands_run": (
+                "sudo -n true",
+                "gpg --homedir <tmp> --keyserver hkps://keys.openpgp.org --recv-keys DE28AB241FA48260FAC9B8BAA7C9B38522604281",
+                "gpg --homedir <tmp> --fingerprint DE28AB241FA48260FAC9B8BAA7C9B38522604281",
+                "apt-cache policy dangerzone podman",
+            ),
+        },
+    )
     json_path, operator_path = write_exports(payload, args.export_root)
     if args.format == "json":
         print(stable_json(payload), end="")
