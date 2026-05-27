@@ -98,6 +98,7 @@
 !bridge_manual_mount_recovery_packet.py
 !system_health_lights_taxonomy.py
 !helm_operator_attention_package.py
+!delegated_package_graph.py
 !operator_map_bundle_contract.py
 !agent_platform_alignment.py
 !agent_identity_actor_router_contract.py
@@ -737,6 +738,7 @@
 !scripts/export_bridge_manual_mount_recovery_packet.py
 !scripts/export_system_health_lights_taxonomy.py
 !scripts/export_helm_operator_attention_package.py
+!scripts/export_delegated_package_graph.py
 !scripts/export_operator_map_bundle.py
 !scripts/export_agent_platform_alignment.py
 !scripts/export_agent_identity_actor_router_contract.py
@@ -812,6 +814,7 @@
 !tests/test_bridge_manual_mount_recovery_packet.py
 !tests/test_system_health_lights_taxonomy.py
 !tests/test_helm_operator_attention_package.py
+!tests/test_delegated_package_graph.py
 !tests/test_operator_map_bundle_contract.py
 !tests/test_agent_platform_alignment.py
 !tests/test_agent_identity_actor_router_contract.py
