@@ -87,7 +87,9 @@ LIVE_AUTHORITY_TERMS = (
     "ledger post",
     "ledger-post",
     "mark paid",
+    "mark it paid",
     "mark sent",
+    "mark it sent",
     "finalize",
     "print to pdf",
     "generate pdf",
@@ -320,6 +322,8 @@ def _workflow_matches(package_workflow: object, candidate_workflow: object) -> b
 def _authority_terms(candidate: MachineIntentCandidate) -> tuple[str, ...]:
     text = " ".join((candidate.original_operator_text, candidate.requested_action)).lower()
     hits = [term for term in LIVE_AUTHORITY_TERMS if term in text]
+    if "email" in text and not any(term in text for term in ("draft", "prep", "prepare", "review", "wording")):
+        hits.append("email")
     if _safe_openclaw_reference_supersession(candidate):
         hits = [term for term in hits if term not in {"finalize"}]
     return tuple(dict.fromkeys(hits))
