@@ -1,0 +1,134 @@
+{
+  "authority_boundary": {
+    "browser_automation_allowed": false,
+    "container_started": false,
+    "coupa_access_allowed": false,
+    "document_conversion_performed": false,
+    "email_send_allowed": false,
+    "ledger_posting_allowed": false,
+    "long_running_service_started": false,
+    "network_server_started": false,
+    "pdf_generation_performed": false,
+    "production_state_mutation_allowed": false,
+    "workbook_body_read": false
+  },
+  "current_invoice_review_recommendation": {
+    "backend_preview_generation_needed_now": false,
+    "provider_type": "QUICKLOOK_MAC_CLIENT",
+    "reason": "Lowest latency and no backend conversion for the already bridged candidate artifact."
+  },
+  "future_untrusted_docs_recommendation": {
+    "backend_preview_production_ready": false,
+    "provider_type": "DANGERZONE_BACKEND_PENDING_REVIEW",
+    "reason": "Dangerzone is the best-fit candidate for future untrusted/legal/discovery preview sanitization, but it needs install, sandbox, and AGPL packaging review."
+  },
+  "generated_at": "2026-05-27T00:00:00+00:00",
+  "local_tool_detection": {
+    "dangerzone": false,
+    "dangerzone-cli": false,
+    "docker": true,
+    "libreoffice": false,
+    "soffice": false
+  },
+  "machine_proof": {
+    "all_action_authority_false": true,
+    "content_hash": "sha256:282a924357b9ec95be4c9b89c192b804492784248c33c6a245a37647e7760493",
+    "dangerzone_recommended_for_future_review": true,
+    "no_custom_renderer_built": true,
+    "no_document_conversion_performed": true,
+    "onlyoffice_not_recommended_for_v0": true,
+    "production_ready_false_for_backend_preview": true,
+    "provider_contract_present": true,
+    "quicklook_recommended_for_current_invoice": true
+  },
+  "operator_summary": "Mac Quick Look is enough for the current invoice candidate. Backend safe preview remains not ready until a sandboxed provider is approved.",
+  "prototype": {
+    "attempted": false,
+    "real_invoice_artifacts_touched": false,
+    "reason": "No approved backend preview provider is installed locally; avoiding custom rendering and avoiding real artifact conversion.",
+    "synthetic_document_only": true
+  },
+  "provider_readiness": [
+    {
+      "blocker": null,
+      "dependency_notes": "Best current path for candidate invoice inspection because the file is already bridged to Mac.",
+      "detected_commands": [],
+      "install_required": false,
+      "license_notes": "Native Mac client capability; no backend dependency added.",
+      "production_ready": true,
+      "provider_available": true,
+      "provider_type": "QUICKLOOK_MAC_CLIENT",
+      "recommendation": "Use for current invoice review side panel open/reveal behavior.",
+      "safe_for_invoice_candidate": true,
+      "safe_for_untrusted_docs": false,
+      "sandbox_required": false
+    },
+    {
+      "blocker": "Dangerzone command not installed locally.",
+      "dependency_notes": "Promising future provider for untrusted PDF/Office/image conversion to safer PDFs; uses containerized conversion.",
+      "detected_commands": [
+        "docker"
+      ],
+      "install_required": true,
+      "license_notes": "AGPLv3; commercial packaging and distribution need legal review before bundling.",
+      "production_ready": false,
+      "provider_available": false,
+      "provider_type": "DANGERZONE_BACKEND",
+      "recommendation": "Evaluate in an isolated install lane before any backend preview production use.",
+      "safe_for_invoice_candidate": false,
+      "safe_for_untrusted_docs": false,
+      "sandbox_required": true
+    },
+    {
+      "blocker": "LibreOffice/soffice not installed locally.",
+      "dependency_notes": "Useful for Office-to-PDF conversion only when sandboxed; not designed as a malware-safe document sanitizer.",
+      "detected_commands": [],
+      "install_required": true,
+      "license_notes": "Open-source office suite; confirm distribution packaging terms before bundling.",
+      "production_ready": false,
+      "provider_available": false,
+      "provider_type": "LIBREOFFICE_SANDBOXED",
+      "recommendation": "Use only behind an explicit sandbox and receipt gate; do not use for untrusted legal/discovery docs alone.",
+      "safe_for_invoice_candidate": false,
+      "safe_for_untrusted_docs": false,
+      "sandbox_required": true
+    },
+    {
+      "blocker": "Would add a long-running document server and wider attack surface.",
+      "dependency_notes": "Heavy network-facing document server; not appropriate for v0 low-latency local review.",
+      "detected_commands": [],
+      "install_required": true,
+      "license_notes": "Community edition is AGPLv3; commercial editions exist. Server packaging needs legal/security review.",
+      "production_ready": false,
+      "provider_available": false,
+      "provider_type": "ONLYOFFICE_SERVER",
+      "recommendation": "Do not install for v0; revisit only if collaborative editing/viewing becomes a real backend module.",
+      "safe_for_invoice_candidate": false,
+      "safe_for_untrusted_docs": false,
+      "sandbox_required": true
+    },
+    {
+      "blocker": null,
+      "dependency_notes": "Fail-closed mode when no approved preview provider is available.",
+      "detected_commands": [],
+      "install_required": false,
+      "license_notes": "No third-party dependency.",
+      "production_ready": true,
+      "provider_available": true,
+      "provider_type": "NONE",
+      "recommendation": "Return metadata-only/candidate-only preview status.",
+      "safe_for_invoice_candidate": true,
+      "safe_for_untrusted_docs": true,
+      "sandbox_required": false
+    }
+  ],
+  "provider_types": [
+    "NONE",
+    "QUICKLOOK_MAC_CLIENT",
+    "DANGERZONE_BACKEND",
+    "LIBREOFFICE_SANDBOXED",
+    "ONLYOFFICE_SERVER"
+  ],
+  "read_model_id": "safe_preview_provider",
+  "schema_version": "safe_preview_provider_feasibility_v0"
+}
