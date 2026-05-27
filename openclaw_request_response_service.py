@@ -501,19 +501,6 @@ def select_next_pending_request(
     for candidate in list_candidate_requests(inbox):
         identity = read_request_identity(candidate)
         identity_keys = _identity_keys(candidate, identity)
-        matching_keys = tuple(key for key in identity_keys if key in processed)
-        if matching_keys:
-            skipped.append(
-                {
-                    "source_request_id": identity.source_request_id,
-                    "source_request_filename": candidate.name,
-                    "request_key": identity.request_key,
-                    "identity_keys": identity_keys,
-                    "matched_duplicate_keys": matching_keys,
-                    "reason": "already processed by local request/response service",
-                }
-            )
-            continue
         existing_response = _scoped_response_exists(response_dir, identity.source_request_id)
         if existing_response is not None:
             skipped.append(
@@ -525,6 +512,25 @@ def select_next_pending_request(
                     "matched_duplicate_keys": (f"scoped_response:{identity.source_request_id}",),
                     "reason": "already has scoped Mac response",
                     "response_file": existing_response.as_posix(),
+                }
+            )
+            continue
+        matching_keys = tuple(key for key in identity_keys if key in processed)
+        exact_processed_keys = (
+            identity.request_key,
+            f"request_id:{identity.source_request_id}",
+            f"filename:{candidate.name}",
+        )
+        exact_matching_keys = tuple(key for key in matching_keys if key in exact_processed_keys)
+        if exact_matching_keys:
+            skipped.append(
+                {
+                    "source_request_id": identity.source_request_id,
+                    "source_request_filename": candidate.name,
+                    "request_key": identity.request_key,
+                    "identity_keys": identity_keys,
+                    "matched_duplicate_keys": exact_matching_keys,
+                    "reason": "already processed exact request by local request/response service",
                 }
             )
             continue
@@ -1627,6 +1633,9 @@ def _record_from_response(
     created_at: str,
     heartbeat: PublishedHeartbeat | None = None,
     route: RouteDecision | None = None,
+    request_file_mtime: str | None = None,
+    pickup_latency_ms: float | None = None,
+    processing_duration_ms: float | None = None,
 ) -> dict[str, Any]:
     return {
         "source_request_id": identity.source_request_id,
@@ -1645,6 +1654,9 @@ def _record_from_response(
         "selected_machine": route.selected_machine if route else None,
         "processing_heartbeat_path": heartbeat.heartbeat_file if heartbeat else None,
         "created_at": created_at,
+        "request_file_mtime": request_file_mtime,
+        "pickup_latency_ms": pickup_latency_ms,
+        "processing_duration_ms": processing_duration_ms,
     }
 
 
@@ -1707,6 +1719,18 @@ def process_one_pending_request(
             active_request_count=0,
             **_cache_result_fields(cache),
         )
+
+    processing_started = time.perf_counter()
+    pickup_checked_at = time.time()
+    request_file_mtime: str | None = None
+    pickup_latency_ms: float | None = None
+    try:
+        request_stat = request_path.stat()
+        request_file_mtime = datetime.fromtimestamp(request_stat.st_mtime, tz=timezone.utc).isoformat()
+        pickup_latency_ms = round(max(0.0, (pickup_checked_at - request_stat.st_mtime) * 1000.0), 3)
+    except OSError:
+        request_file_mtime = None
+        pickup_latency_ms = None
 
     identity = read_request_identity(request_path)
     try:
@@ -1865,6 +1889,7 @@ def process_one_pending_request(
         )
         errors = (str(response_payload["why_it_happened"]),)
     published = publish_response_for_mac(response_payload, response_dir=response_dir, created_at=created_at)
+    processing_duration_ms = round((time.perf_counter() - processing_started) * 1000.0, 3)
     record = _record_from_response(
         request_path,
         identity,
@@ -1873,6 +1898,9 @@ def process_one_pending_request(
         created_at=created_at,
         heartbeat=heartbeat,
         route=route,
+        request_file_mtime=request_file_mtime,
+        pickup_latency_ms=pickup_latency_ms,
+        processing_duration_ms=processing_duration_ms,
     )
     service_status = "REQUEST_PROCESSED" if not errors else "FAILED_WITH_REASON"
     return ServiceRunResult(

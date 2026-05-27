@@ -1519,7 +1519,7 @@ def test_duplicate_request_is_skipped_without_endless_processing(tmp_path, capsy
     assert request_path.exists()
 
 
-def test_duplicate_idempotency_key_is_skipped_before_reprocessing(tmp_path, capsys):
+def test_same_payload_new_request_id_processes_when_scoped_response_is_missing(tmp_path, capsys):
     inbox = tmp_path / "inbox"
     response_dir = tmp_path / "responses"
     export_root = tmp_path / "read_models"
@@ -1551,10 +1551,16 @@ def test_duplicate_idempotency_key_is_skipped_before_reprocessing(tmp_path, caps
     assert service_main(args) == 0
     payload = json.loads(capsys.readouterr().out)
 
-    assert payload["service_status"]["service_status"] == "REQUEST_SKIPPED_DUPLICATE"
-    assert payload["service_status"]["processed_count"] == 0
+    assert payload["service_status"]["service_status"] == "REQUEST_PROCESSED"
+    assert payload["service_status"]["processed_count"] == 1
+    assert payload["service_status"]["latest_response"]["source_request_id"] == duplicate["request_id"]
+    record = payload["service_status"]["processed_requests"][0]
+    assert record["source_request_id"] == duplicate["request_id"]
+    assert isinstance(record["pickup_latency_ms"], (int, float))
+    assert isinstance(record["processing_duration_ms"], (int, float))
     skipped = payload["service_status"]["skipped_duplicates"]
-    assert any("idempotency:" + request["idempotency_key"] in item["matched_duplicate_keys"] for item in skipped)
+    assert any("scoped_response:" + request["request_id"] in item["matched_duplicate_keys"] for item in skipped)
+    assert _safe_response_path(response_dir, duplicate["request_id"]).exists()
     assert second_path.exists()
 
 
