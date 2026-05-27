@@ -63,6 +63,23 @@ AUTOMATION_RECOMMENDATIONS = (
     "UNKNOWN_FAIL_CLOSED",
 )
 
+OPEN_SOURCE_SCOUT_RECOMMENDATIONS = (
+    "REUSE",
+    "WRAP",
+    "ADAPT",
+    "MINE_FOR_TESTS",
+    "BUILD_CUSTOM",
+    "AVOID",
+)
+
+OPEN_SOURCE_SCOUT_LICENSE_POSTURES = (
+    "PERMISSIVE_OK",
+    "WEAK_COPYLEFT_REVIEW",
+    "COPYLEFT_REVIEW_REQUIRED",
+    "COMMERCIAL_TERMS_REVIEW_REQUIRED",
+    "LICENSE_UNKNOWN_FAIL_CLOSED",
+)
+
 INFRASTRUCTURE_TYPES = (
     "APPROVED_SITE_REGISTRY",
     "PROTECTED_CREDENTIAL_BROKER",
@@ -151,6 +168,23 @@ REQUIRED_DEAD_ON_ARRIVAL_FIELDS = (
     "next_safe_move",
 )
 
+REQUIRED_OPEN_SOURCE_CAPABILITY_SCOUT_FIELDS = (
+    "scout_id",
+    "capability_needed",
+    "target_runtime",
+    "privacy_security_requirements",
+    "acceptable_licenses",
+    "dependency_weight_limit",
+    "candidate_projects",
+    "license_summary",
+    "security_risk",
+    "integration_plan",
+    "code_can_be_used_directly",
+    "ideas_tests_docs_only",
+    "recommendation",
+    "recommended_next_step",
+)
+
 AUTHORITY_BOUNDARY = {
     "automation_execution_allowed": False,
     "supervised_browser_execution_allowed": False,
@@ -158,6 +192,10 @@ AUTHORITY_BOUNDARY = {
     "credential_broker_active": False,
     "credential_handling_allowed": False,
     "network_operation_allowed": False,
+    "open_source_package_download_allowed": False,
+    "dependency_install_allowed": False,
+    "license_evasion_allowed": False,
+    "code_laundering_allowed": False,
     "coupa_access_allowed": False,
     "browser_automation_allowed": False,
     "email_send_allowed": False,
@@ -304,6 +342,43 @@ class AutomationDeadOnArrivalCriterion:
 
 
 @dataclass(frozen=True)
+class OpenSourceCandidateProject:
+    project_ref: str
+    project_name: str
+    project_home: str
+    license: str
+    license_posture: str
+    trust_basis: tuple[str, ...]
+    security_risks: tuple[str, ...]
+    dependency_weight: str
+    integration_mode: str
+    code_can_be_used_directly: bool
+    ideas_tests_docs_only: bool
+    attribution_required: bool
+    commercial_implication: str
+    recommendation: str
+    rationale: str
+
+
+@dataclass(frozen=True)
+class OpenSourceCapabilityScout:
+    scout_id: str
+    capability_needed: str
+    target_runtime: str
+    privacy_security_requirements: tuple[str, ...]
+    acceptable_licenses: tuple[str, ...]
+    dependency_weight_limit: str
+    candidate_projects: tuple[OpenSourceCandidateProject, ...]
+    license_summary: str
+    security_risk: str
+    integration_plan: str
+    code_can_be_used_directly: bool
+    ideas_tests_docs_only: bool
+    recommendation: str
+    recommended_next_step: str
+
+
+@dataclass(frozen=True)
 class AutomationReadinessExportResult:
     schema_version: str
     json_path: str
@@ -312,6 +387,7 @@ class AutomationReadinessExportResult:
     readiness_evaluation_count: int
     infrastructure_candidate_count: int
     dead_on_arrival_criteria_count: int
+    open_source_scout_count: int
     action_authority_granted: bool
 
 
@@ -444,6 +520,125 @@ def default_dead_on_arrival_criteria() -> tuple[AutomationDeadOnArrivalCriterion
             mitigation_candidate="REQUIRES_TERMS_REVIEW",
             operator_visibility="Show compliance review required before build.",
             next_safe_move="Keep current workflow non-executing and route to review.",
+        ),
+    )
+
+
+def default_open_source_capability_scouts() -> tuple[OpenSourceCapabilityScout, ...]:
+    """Seed scout decisions for known capability classes.
+
+    These are governance/evaluation records only. They do not fetch packages,
+    import third-party code, install dependencies, or grant runtime authority.
+    """
+
+    safe_preview_candidates = (
+        OpenSourceCandidateProject(
+            project_ref="dangerzone_backend_sanitizer",
+            project_name="Dangerzone",
+            project_home="https://github.com/freedomofpress/dangerzone",
+            license="AGPL-3.0",
+            license_posture="COPYLEFT_REVIEW_REQUIRED",
+            trust_basis=("Freedom of the Press Foundation project", "purpose-built document sanitization workflow"),
+            security_risks=(
+                "container/sandbox dependency must be verified on target runtime",
+                "AGPL/commercial packaging implications must be reviewed before bundling",
+                "untrusted documents must stay isolated from production workflow state",
+            ),
+            dependency_weight="MEDIUM_HEAVY",
+            integration_mode="WRAP_AS_BACKEND_PROVIDER_AFTER_LICENSE_SECURITY_REVIEW",
+            code_can_be_used_directly=False,
+            ideas_tests_docs_only=False,
+            attribution_required=True,
+            commercial_implication="Copyleft obligations require legal review before app/backend distribution.",
+            recommendation="WRAP",
+            rationale="Best fit for future untrusted/legal/discovery safe preview if installed as an isolated provider with receipts.",
+        ),
+        OpenSourceCandidateProject(
+            project_ref="libreoffice_headless_converter",
+            project_name="LibreOffice headless",
+            project_home="https://www.libreoffice.org/",
+            license="MPL-2.0 / LGPL family components",
+            license_posture="WEAK_COPYLEFT_REVIEW",
+            trust_basis=("mature office suite", "common headless conversion path"),
+            security_risks=(
+                "not primarily a malware sanitizer",
+                "must run sandboxed for untrusted input",
+                "document conversion can be heavyweight for low-latency client flows",
+            ),
+            dependency_weight="HEAVY",
+            integration_mode="ADAPT_ONLY_FOR_SANDBOXED_OFFICE_TO_PDF_CONVERSION",
+            code_can_be_used_directly=False,
+            ideas_tests_docs_only=False,
+            attribution_required=True,
+            commercial_implication="Weak-copyleft/distribution terms need packaging review.",
+            recommendation="ADAPT",
+            rationale="Useful for trusted or sandboxed office conversion, but not sufficient alone for untrusted discovery-grade previews.",
+        ),
+        OpenSourceCandidateProject(
+            project_ref="mac_quicklook_client_preview",
+            project_name="macOS Quick Look",
+            project_home="https://developer.apple.com/documentation/quicklook",
+            license="Platform API / Apple SDK terms",
+            license_posture="COMMERCIAL_TERMS_REVIEW_REQUIRED",
+            trust_basis=("native platform preview surface", "no backend document renderer required"),
+            security_risks=(
+                "Mac-only client surface",
+                "does not create backend safe-preview proof by itself",
+                "not a cross-platform server-side sanitizer",
+            ),
+            dependency_weight="LIGHT",
+            integration_mode="REUSE_CLIENT_API_FOR_CURRENT_MAC_INSPECTION",
+            code_can_be_used_directly=False,
+            ideas_tests_docs_only=False,
+            attribution_required=False,
+            commercial_implication="Use is governed by Apple platform terms, not open-source reuse.",
+            recommendation="REUSE",
+            rationale="Best current path for Mac invoice candidate inspection because it avoids backend rendering and keeps latency low.",
+        ),
+        OpenSourceCandidateProject(
+            project_ref="onlyoffice_document_server",
+            project_name="ONLYOFFICE Document Server",
+            project_home="https://github.com/ONLYOFFICE/DocumentServer",
+            license="AGPL-3.0 / commercial editions",
+            license_posture="COPYLEFT_REVIEW_REQUIRED",
+            trust_basis=("known document server project", "browser-based viewing/editing capability"),
+            security_risks=(
+                "long-running network-facing service",
+                "heavy operational footprint",
+                "wider attack surface than needed for v0 preview",
+            ),
+            dependency_weight="TOO_HEAVY_FOR_V0",
+            integration_mode="AVOID_FOR_NOW",
+            code_can_be_used_directly=False,
+            ideas_tests_docs_only=True,
+            attribution_required=True,
+            commercial_implication="AGPL/commercial edition choice requires legal and product review.",
+            recommendation="AVOID",
+            rationale="Too heavy for current low-latency Mission Control preview needs.",
+        ),
+    )
+    return (
+        OpenSourceCapabilityScout(
+            scout_id="safe_preview_provider_open_source_scout_v0",
+            capability_needed="safe preview provider for invoice, legal, discovery, and untrusted document artifacts",
+            target_runtime="PC/OpenClaw backend plus lightweight native Mission Control clients",
+            privacy_security_requirements=(
+                "no raw private document bodies in read-models",
+                "untrusted documents isolated before conversion",
+                "no long-running network-facing viewer unless explicitly approved",
+                "conversion receipts must record hashes and provider without exposing private content",
+                "Mac invoice candidate inspection should remain low-latency and client-native when possible",
+            ),
+            acceptable_licenses=("MIT", "Apache-2.0", "BSD", "MPL-2.0/LGPL with review", "AGPL-3.0 only with legal/commercial review"),
+            dependency_weight_limit="LIGHT_FOR_CURRENT_MAC_PREVIEW_MEDIUM_ALLOWED_FOR_FUTURE_BACKEND_SANITIZER",
+            candidate_projects=safe_preview_candidates,
+            license_summary="Quick Look is the current client-native path; Dangerzone is promising but AGPL; LibreOffice needs sandboxing and license review; ONLYOFFICE is too heavy for v0.",
+            security_risk="MEDIUM until backend sanitizer sandbox, license review, and conversion receipts are approved.",
+            integration_plan="Reuse Mac Quick Look now; wrap Dangerzone later behind safe_preview_provider readiness, receipts, sandbox checks, and production_ready=false until approved.",
+            code_can_be_used_directly=False,
+            ideas_tests_docs_only=False,
+            recommendation="WRAP",
+            recommended_next_step="Keep current Mac Quick Look path; continue Dangerzone backend provider only through the existing safe_preview_provider readiness lane.",
         ),
     )
 
@@ -865,6 +1060,7 @@ def build_automation_readiness_feasibility_evaluator_contract(
     evaluations = [asdict(item) for item in default_readiness_evaluations()]
     infrastructure = [asdict(item) for item in default_infrastructure_candidates()]
     doa_criteria = [asdict(item) for item in default_dead_on_arrival_criteria()]
+    open_source_scouts = [asdict(item) for item in default_open_source_capability_scouts()]
     prior_lanes = relationship_to_prior_lanes(repo_root)
     payload: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
@@ -884,6 +1080,8 @@ def build_automation_readiness_feasibility_evaluator_contract(
         "automation_feasibility_values": list(AUTOMATION_FEASIBILITY),
         "automation_risk_values": list(AUTOMATION_RISK),
         "automation_recommendations": list(AUTOMATION_RECOMMENDATIONS),
+        "open_source_scout_recommendations": list(OPEN_SOURCE_SCOUT_RECOMMENDATIONS),
+        "open_source_scout_license_postures": list(OPEN_SOURCE_SCOUT_LICENSE_POSTURES),
         "infrastructure_types": list(INFRASTRUCTURE_TYPES),
         "automation_bottleneck_assessment_schema": {
             "structure": "AutomationBottleneckAssessment",
@@ -901,6 +1099,12 @@ def build_automation_readiness_feasibility_evaluator_contract(
             "structure": "AutomationDeadOnArrivalCriterion",
             "required_fields": list(REQUIRED_DEAD_ON_ARRIVAL_FIELDS),
         },
+        "open_source_capability_scout_schema": {
+            "structure": "OpenSourceCapabilityScout",
+            "required_fields": list(REQUIRED_OPEN_SOURCE_CAPABILITY_SCOUT_FIELDS),
+            "candidate_recommendations": list(OPEN_SOURCE_SCOUT_RECOMMENDATIONS),
+            "license_postures": list(OPEN_SOURCE_SCOUT_LICENSE_POSTURES),
+        },
         "bottleneck_assessments": bottlenecks,
         "bottleneck_assessments_by_id": {item["assessment_id"]: item for item in bottlenecks},
         "readiness_evaluations": evaluations,
@@ -909,6 +1113,8 @@ def build_automation_readiness_feasibility_evaluator_contract(
         "infrastructure_candidates_by_id": {item["candidate_id"]: item for item in infrastructure},
         "dead_on_arrival_criteria": doa_criteria,
         "dead_on_arrival_criteria_by_id": {item["criterion_id"]: item for item in doa_criteria},
+        "open_source_capability_scouts": open_source_scouts,
+        "open_source_capability_scouts_by_id": {item["scout_id"]: item for item in open_source_scouts},
         "automation_stage_policy": {
             "manual_fallback_available_when_safe": True,
             "manual_fallback_treated_as_target": False,
@@ -931,6 +1137,8 @@ def build_automation_readiness_feasibility_evaluator_contract(
             "does_not_submit_approvals": True,
             "does_not_write_ledger_or_receipts": True,
             "does_not_launch_models_agents_tools_runtime_or_queues": True,
+            "does_not_download_install_or_vendor_open_source_code": True,
+            "does_not_launder_code_or_evade_licenses": True,
             "current_contract_models_future_candidates_only": True,
             "may_execute_automation_now": False,
             "may_access_external_system_now": False,
@@ -941,10 +1149,16 @@ def build_automation_readiness_feasibility_evaluator_contract(
             "readiness_evaluation_model_present": True,
             "infrastructure_candidate_model_present": True,
             "dead_on_arrival_criteria_present": True,
+            "open_source_capability_scout_model_present": True,
             "bottleneck_assessment_count": len(bottlenecks),
             "readiness_evaluation_count": len(evaluations),
             "infrastructure_candidate_count": len(infrastructure),
             "dead_on_arrival_criteria_count": len(doa_criteria),
+            "open_source_capability_scout_count": len(open_source_scouts),
+            "open_source_scout_recommendations_supported": True,
+            "open_source_scout_grants_dependency_authority": False,
+            "open_source_scout_preserves_license_attribution": True,
+            "open_source_scout_flags_copyleft": True,
             "default_assessments_present": {
                 item["assessment_id"]: True for item in bottlenecks
             },
@@ -992,6 +1206,7 @@ def format_automation_readiness_operator_markdown(payload: dict[str, Any]) -> st
         "- Keeps manual fallback available without treating it as the destination.",
         "- Marks assisted capture as the near-term bridge and governed automation as future-gated.",
         "- Lists the gates, receipts, and infrastructure needed before any live action.",
+        "- Scouts existing open-source components before custom builds, while preserving license and attribution boundaries.",
         "",
         "## Capital Hilton Coupa / PO Bottleneck",
         "",
@@ -1012,6 +1227,13 @@ def format_automation_readiness_operator_markdown(payload: dict[str, Any]) -> st
         "- Workflow session store and approval bus.",
         "- Guardian/security review and operator final authority.",
         "",
+        "## Open Source Capability Scout",
+        "",
+        "- OpenClaw should first check trusted existing projects, official APIs, libraries, protocols, and adapters.",
+        "- Recommendations are explicit: `REUSE`, `WRAP`, `ADAPT`, `MINE_FOR_TESTS`, `BUILD_CUSTOM`, or `AVOID`.",
+        "- Copyleft and commercial packaging implications are flagged before use.",
+        "- Scout records do not download, install, vendor, import, or execute third-party code.",
+        "",
         "## What Remains Blocked",
         "",
         "- No automation execution, browser/Coupa/network access, credential handling, invoice generation, email send, ledger write, approval submission, model/tool/agent/runtime/queue execution, or workflow execution.",
@@ -1026,6 +1248,7 @@ def format_automation_readiness_operator_markdown(payload: dict[str, Any]) -> st
         f"- Readiness evaluations: `{proof['readiness_evaluation_count']}`.",
         f"- Infrastructure candidates: `{proof['infrastructure_candidate_count']}`.",
         f"- Dead-on-arrival criteria: `{proof['dead_on_arrival_criteria_count']}`.",
+        f"- Open-source capability scouts: `{proof['open_source_capability_scout_count']}`.",
         f"- Capital Hilton Coupa/PO bottleneck present: `{str(proof['capital_hilton_coupa_po_bottleneck_present']).lower()}`.",
         f"- All current authority flags false: `{str(proof['all_current_authority_flags_false']).lower()}`.",
         f"- Content hash: `{proof['content_hash']}`.",
@@ -1059,6 +1282,7 @@ def export_automation_readiness_feasibility_evaluator_contract(
         readiness_evaluation_count=len(payload["readiness_evaluations"]),
         infrastructure_candidate_count=len(payload["infrastructure_candidates"]),
         dead_on_arrival_criteria_count=len(payload["dead_on_arrival_criteria"]),
+        open_source_scout_count=len(payload["open_source_capability_scouts"]),
         action_authority_granted=False,
     )
 
@@ -1087,6 +1311,7 @@ def main(argv: list[str] | None = None) -> int:
         "readiness_evaluation_count": result.readiness_evaluation_count,
         "infrastructure_candidate_count": result.infrastructure_candidate_count,
         "dead_on_arrival_criteria_count": result.dead_on_arrival_criteria_count,
+        "open_source_scout_count": result.open_source_scout_count,
         "action_authority_granted": result.action_authority_granted,
     }
     if args.format in {"summary", "json"}:
@@ -1105,17 +1330,21 @@ __all__ = [
     "AUTHORITY_BOUNDARY",
     "INFRASTRUCTURE_TYPES",
     "JSON_EXPORT_NAME",
+    "OPEN_SOURCE_SCOUT_LICENSE_POSTURES",
+    "OPEN_SOURCE_SCOUT_RECOMMENDATIONS",
     "OPERATOR_EXPORT_NAME",
     "READ_MODEL_ID",
     "REQUIRED_BOTTLENECK_ASSESSMENT_FIELDS",
     "REQUIRED_DEAD_ON_ARRIVAL_FIELDS",
     "REQUIRED_INFRASTRUCTURE_CANDIDATE_FIELDS",
+    "REQUIRED_OPEN_SOURCE_CAPABILITY_SCOUT_FIELDS",
     "REQUIRED_READINESS_EVALUATION_FIELDS",
     "SCHEMA_VERSION",
     "build_automation_readiness_feasibility_evaluator_contract",
     "default_bottleneck_assessments",
     "default_dead_on_arrival_criteria",
     "default_infrastructure_candidates",
+    "default_open_source_capability_scouts",
     "default_readiness_evaluations",
     "export_automation_readiness_feasibility_evaluator_contract",
     "format_automation_readiness_operator_markdown",

@@ -13,6 +13,7 @@ The point is to find the bottleneck before polishing the path. If the hard part 
 - Keeps manual fallback available without treating it as the destination.
 - Marks assisted capture as the near-term bridge and governed automation as future-gated.
 - Lists the gates, receipts, and infrastructure needed before any live action.
+- Scouts existing open-source components before custom builds, while preserving license and attribution boundaries.
 
 ## Capital Hilton Coupa / PO Bottleneck
 
@@ -33,6 +34,13 @@ The point is to find the bottleneck before polishing the path. If the hard part 
 - Workflow session store and approval bus.
 - Guardian/security review and operator final authority.
 
+## Open Source Capability Scout
+
+- OpenClaw should first check trusted existing projects, official APIs, libraries, protocols, and adapters.
+- Recommendations are explicit: `REUSE`, `WRAP`, `ADAPT`, `MINE_FOR_TESTS`, `BUILD_CUSTOM`, or `AVOID`.
+- Copyleft and commercial packaging implications are flagged before use.
+- Scout records do not download, install, vendor, import, or execute third-party code.
+
 ## What Remains Blocked
 
 - No automation execution, browser/Coupa/network access, credential handling, invoice generation, email send, ledger write, approval submission, model/tool/agent/runtime/queue execution, or workflow execution.
@@ -47,6 +55,7 @@ Winship should see the few real blockers and the cleanest next safe move. If aut
 - Readiness evaluations: `4`.
 - Infrastructure candidates: `10`.
 - Dead-on-arrival criteria: `10`.
+- Open-source capability scouts: `1`.
 - Capital Hilton Coupa/PO bottleneck present: `true`.
 - All current authority flags false: `true`.
-- Content hash: `sha256:5098a4370905942752c437297c8108ee316322ab6a6fcb887e1aab3cebd01154`.
+- Content hash: `sha256:c52f438bea320504c4d98560c6ed94e71e532141f5c03d6fe1806b6d3d011537`.
