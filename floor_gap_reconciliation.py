@@ -23,6 +23,7 @@ import guardian_output_gate
 import guardian_trust_ramp_simulator
 import intent_ingest_gate
 import live_lm_activation_requirements
+import live_lm_shadow_trial
 import lm1_thread_context_package
 import lm_readiness_dashboard
 import model_router_policy
@@ -398,6 +399,21 @@ def build_floor_matrix(*, generated_at: str = DEFAULT_GENERATED_AT) -> tuple[dic
             not_ready_reason="Provider activation requires missing receipts; no provider is active.",
         ),
         _assessment(
+            "live_lm_shadow_trial",
+            "Live LM shadow trial",
+            tested=True,
+            exported=True,
+            dashboard_visible=True,
+            connected_to_chain=True,
+            has_fixture=True,
+            has_sqlite_proof=True,
+            has_operator_copy=True,
+            ready_for_shadow=True,
+            ready_for_live_review=True,
+            raised_this_pass=True,
+            not_ready_reason="Local-only shadow proof exists; production live models still need provider/privacy/rollback receipts.",
+        ),
+        _assessment(
             "shadow_comparison",
             "Shadow comparison",
             tested=True,
@@ -473,8 +489,12 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
     token_payload = token_vault.build_payload(generated_at=generated_at)
     shadow_payload = shadow_lm_mode.build_payload(generated_at=generated_at, persist=True)
     dashboard_payload = lm_readiness_dashboard.build_payload(generated_at=generated_at)
+    live_shadow_payload = live_lm_shadow_trial.latest_or_ready_payload(generated_at=generated_at)
     bridge_payload = request_response_bridge_readiness.build_payload(generated_at=generated_at)
-    activation_payload = live_lm_activation_requirements.build_payload(generated_at=generated_at)
+    activation_payload = live_lm_activation_requirements.build_payload(
+        generated_at=generated_at,
+        live_shadow_payload=live_shadow_payload,
+    )
     private_policy_payload = private_mode_policy_readiness.build_payload(generated_at=generated_at)
     mirror_payload = read_model_mirror_visibility.build_payload(generated_at=generated_at)
     gate2_result = dashboard_payload["representative_flow"]["gate2_result_summary"]
@@ -544,6 +564,15 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
             "live_lm2_activation_status": activation_payload["live_lm2_activation_status"],
             "provider_activation_status": activation_payload["provider_activation_status"],
             "missing_receipts": activation_payload["missing_receipts"],
+            "live_shadow_receipt": activation_payload["live_shadow_receipt"],
+        },
+        "live_lm_shadow_trial_ref": {
+            "read_model_ref": "generated/read_models/live_lm_shadow_trial.json",
+            "trial_status": live_shadow_payload["trial_status"],
+            "provider_class": live_shadow_payload["machine_proof"]["provider_class"],
+            "model_ref": live_shadow_payload["machine_proof"]["model_ref"],
+            "live_model_call_performed": live_shadow_payload["machine_proof"]["live_model_call_performed"],
+            "live_shadow_receipt_valid": live_shadow_payload["machine_proof"]["live_shadow_receipt_valid"],
         },
         "private_mode_policy_readiness_ref": {
             "read_model_ref": "generated/read_models/private_mode_policy_readiness.json",
@@ -585,7 +614,7 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
         "machine_proof": {
             "floor_matrix_lane_count": len(matrix),
-            "all_required_lanes_classified": len(matrix) == 21,
+            "all_required_lanes_classified": len(matrix) == 22,
             "weak_lanes_identified": bool(weakest_lanes(matrix)),
             "raised_lane_count": len(raised),
             "floor_was_uneven": weakest_lanes(matrix)[0]["maturity_score"] < strongest_lanes(matrix)[-1]["maturity_score"],
@@ -596,7 +625,10 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
             "lm1_thread_context_package_exported": True,
             "request_response_bridge_dashboard_visible": True,
             "request_response_bridge_ready_for_live_review": bridge_payload["bridge_contract"]["ready_for_live_review"],
-            "production_live_blockers_explicit": activation_payload["machine_proof"]["missing_receipt_count"] >= 6,
+            "production_live_blockers_explicit": activation_payload["machine_proof"]["missing_receipt_count"] >= 5,
+            "live_lm_shadow_trial_exported": True,
+            "live_lm_shadow_trial_recorded": live_shadow_payload["machine_proof"]["live_model_call_performed"],
+            "live_shadow_receipt_valid": live_shadow_payload["machine_proof"]["live_shadow_receipt_valid"],
             "provider_activation_receipts_required": activation_payload["machine_proof"]["provider_activation_receipts_required"],
             "private_mode_policy_exported": private_policy_payload["machine_proof"]["private_mode_policy_exported"],
             "private_mode_policy_inactive": private_policy_payload["private_mode_active"] is False

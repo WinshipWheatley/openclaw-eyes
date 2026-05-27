@@ -14,6 +14,8 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Mapping
 
+import live_lm_shadow_trial
+
 
 DEFAULT_EXPORT_ROOT = Path("generated/read_models")
 DEFAULT_GENERATED_AT = "2026-05-26T00:00:00+00:00"
@@ -69,7 +71,7 @@ def _content_hash(payload: dict[str, Any]) -> str:
     return "sha256:" + hashlib.sha256(stable_json(clone).encode("utf-8")).hexdigest()
 
 
-def required_receipts() -> tuple[dict[str, Any], ...]:
+def required_receipts(*, live_shadow_receipt_present: bool = False) -> tuple[dict[str, Any], ...]:
     specs = (
         (
             "live_model_enablement_receipt",
@@ -121,7 +123,7 @@ def required_receipts() -> tuple[dict[str, Any], ...]:
                 receipt_type=receipt_type,
                 human_label=human_label,
                 required_for_lanes=lanes,
-                present=False,
+                present=receipt_type == "shadow_comparison_live_run_receipt" and live_shadow_receipt_present,
                 blocks_live_lm1="LM1" in lanes,
                 blocks_live_lm2="LM2" in lanes,
                 blocks_provider_activation=receipt_type in {"provider_policy_receipt", "model_selection_policy_receipt"},
@@ -133,10 +135,21 @@ def required_receipts() -> tuple[dict[str, Any], ...]:
     )
 
 
-def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
+def build_payload(*, generated_at: str | None = None, live_shadow_payload: Mapping[str, Any] | None = None) -> dict[str, Any]:
     generated_at = generated_at or DEFAULT_GENERATED_AT
-    receipts = required_receipts()
+    live_shadow = dict(live_shadow_payload or live_lm_shadow_trial.latest_or_ready_payload(generated_at=generated_at))
+    live_shadow_valid = bool((live_shadow.get("machine_proof") or {}).get("live_shadow_receipt_valid"))
+    receipts = required_receipts(live_shadow_receipt_present=live_shadow_valid)
     missing = tuple(item["receipt_type"] for item in receipts if item["present"] is False)
+    hard_blockers = [
+        "production_token_vault_inactive",
+        "provider_activation_receipts_missing",
+        "live_model_enablement_receipt_missing",
+        "production_privacy_policy_receipt_missing",
+        "rollback_disable_receipt_missing",
+    ]
+    if not live_shadow_valid:
+        hard_blockers.insert(4, "live_shadow_comparison_receipt_missing")
     payload: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
         "read_model_id": READ_MODEL_ID,
@@ -152,14 +165,14 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
         "provider_activation_status": "RECEIPTS_REQUIRED_NOT_PRESENT",
         "activation_receipt_requirements": receipts,
         "missing_receipts": missing,
-        "hard_blockers": (
-            "production_token_vault_inactive",
-            "provider_activation_receipts_missing",
-            "live_model_enablement_receipt_missing",
-            "production_privacy_policy_receipt_missing",
-            "live_shadow_comparison_receipt_missing",
-            "rollback_disable_receipt_missing",
-        ),
+        "live_shadow_receipt": {
+            "read_model_ref": "generated/read_models/live_lm_shadow_trial.json",
+            "status": live_shadow.get("trial_status"),
+            "present": live_shadow_valid,
+            "provider_class": (live_shadow.get("machine_proof") or {}).get("provider_class"),
+            "model_ref": (live_shadow.get("machine_proof") or {}).get("model_ref"),
+        },
+        "hard_blockers": tuple(hard_blockers),
         "next_safe_move": "Keep using fixture/shadow mode until these receipts exist.",
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
         "machine_proof": {
@@ -169,6 +182,8 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
             "provider_activation_receipts_present": False,
             "production_token_vault_ready_receipt_present": False,
             "live_model_enablement_receipt_present": False,
+            "live_shadow_comparison_receipt_present": live_shadow_valid,
+            "live_shadow_model_call_recorded": bool((live_shadow.get("machine_proof") or {}).get("live_model_call_performed")),
             "live_lm1_ready": False,
             "live_lm2_ready": False,
             "live_lm_status": "NOT_ACTIVE",
@@ -202,7 +217,7 @@ def write_exports(payload: Mapping[str, Any], export_root: Path = DEFAULT_EXPORT
         "Still blocked:",
         *[f"- {item}" for item in payload["hard_blockers"]],
         "",
-        "No live model, provider, tool, or action is enabled.",
+        "No production model, provider, tool, or action is enabled.",
     ]
     operator_path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
     return json_path, operator_path

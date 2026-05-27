@@ -58,6 +58,8 @@ def test_readiness_dashboard_aggregates_all_seeded_lanes():
     }
     assert payload["dashboard_summary"]["production_live_blockers"] == "EXPLICIT"
     assert payload["dashboard_summary"]["provider_activation_receipts"] == "RECEIPTS_REQUIRED_NOT_PRESENT"
+    assert payload["dashboard_summary"]["live_lm_shadow_trial"] == "LIVE_SHADOW_PASSED"
+    assert payload["dashboard_summary"]["live_shadow_receipt"] == "PRESENT"
     assert payload["dashboard_summary"]["private_mode_policy"] == "PRIVATE_MODE_POLICY_READY_INACTIVE"
 
 
@@ -182,10 +184,16 @@ def test_dashboard_exposes_activation_private_and_visibility_without_live_enable
 
     assert flow["live_lm_activation_requirements"]["live_lm1_activation_status"] == "NOT_READY"
     assert flow["live_lm_activation_requirements"]["provider_activation_status"] == "RECEIPTS_REQUIRED_NOT_PRESENT"
+    assert flow["live_lm_activation_requirements"]["live_shadow_receipt"]["present"] is True
+    assert flow["live_lm_shadow_trial"]["live_model_call_performed"] is True
+    assert flow["live_lm_shadow_trial"]["live_shadow_receipt_valid"] is True
     assert flow["private_mode_policy_readiness"]["active_state"] == "standard"
     assert flow["private_mode_policy_readiness"]["package_effect_summary"]["raw_values_included"] is False
     assert flow["read_model_mirror_visibility"]["mirror_policy"]["new_sync_system_allowed"] is False
     assert payload["machine_proof"]["live_activation_requirements_aggregated"] is True
+    assert payload["machine_proof"]["live_lm_shadow_trial_aggregated"] is True
+    assert payload["machine_proof"]["live_shadow_model_call_recorded"] is True
+    assert payload["machine_proof"]["live_shadow_receipt_valid"] is True
     assert payload["machine_proof"]["provider_activation_receipts_present"] is False
     assert payload["machine_proof"]["private_mode_policy_active"] is False
     assert payload["machine_proof"]["read_model_mirror_visibility_mac_visible_guaranteed"] is False

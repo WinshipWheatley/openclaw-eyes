@@ -23,7 +23,12 @@ def test_activation_requirements_make_live_blockers_explicit():
     assert "provider_policy_receipt" in receipts
     assert "rollback_disable_receipt" in receipts
     assert receipts["provider_policy_receipt"]["blocks_provider_activation"] is True
-    assert all(item["present"] is False for item in payload["activation_receipt_requirements"])
+    assert receipts["shadow_comparison_live_run_receipt"]["present"] is True
+    assert all(
+        item["present"] is False
+        for item in payload["activation_receipt_requirements"]
+        if item["receipt_type"] != "shadow_comparison_live_run_receipt"
+    )
 
 
 def test_activation_requirements_do_not_enable_models_or_actions():
@@ -32,6 +37,8 @@ def test_activation_requirements_do_not_enable_models_or_actions():
 
     assert proof["live_lm_status"] == "NOT_ACTIVE"
     assert proof["provider_activation_receipts_present"] is False
+    assert proof["live_shadow_comparison_receipt_present"] is True
+    assert proof["live_shadow_model_call_recorded"] is True
     assert proof["live_model_call_performed"] is False
     assert proof["model_api_call_performed"] is False
     assert proof["network_performed"] is False
@@ -46,5 +53,5 @@ def test_activation_requirements_export_parses(tmp_path):
 
     parsed = json.loads(json_path.read_text(encoding="utf-8"))
     assert parsed["read_model_id"] == activation.READ_MODEL_ID
-    assert parsed["machine_proof"]["missing_receipt_count"] >= 6
-    assert "No live model, provider, tool, or action is enabled" in operator_path.read_text(encoding="utf-8")
+    assert parsed["machine_proof"]["missing_receipt_count"] >= 5
+    assert "No production model, provider, tool, or action is enabled" in operator_path.read_text(encoding="utf-8")

@@ -16,6 +16,8 @@ LM1 thread package: CONNECTED_TO_GATE1
 Request-response bridge: READY_FOR_LIVE_REVIEW
 Production/live blockers: EXPLICIT
 Provider activation receipts: RECEIPTS_REQUIRED_NOT_PRESENT
+Live shadow trial: LIVE_SHADOW_PASSED
+Live shadow receipt: PRESENT
 Private Mode policy: PRIVATE_MODE_POLICY_READY_INACTIVE
 Read-model visibility: READ_MODEL_VISIBILITY_PROOF_ONLY_NO_SYNC
 Universal intake batch: READY

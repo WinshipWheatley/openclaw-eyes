@@ -120,6 +120,8 @@ class ProofShelf:
     request_response_bridge_status: str
     production_live_blocker_status: str
     provider_activation_receipt_status: str
+    live_shadow_trial_status: str
+    live_shadow_receipt_status: str
     private_mode_policy_status: str
     read_model_visibility_status: str
     provider_policy_status: str
@@ -280,6 +282,8 @@ def build_proof_shelf(inputs: Mapping[str, Any]) -> dict[str, Any]:
             request_response_bridge_status=str(summary.get("request_response_bridge", "UNKNOWN")),
             production_live_blocker_status=str(summary.get("production_live_blockers", "UNKNOWN")),
             provider_activation_receipt_status=str(summary.get("provider_activation_receipts", "UNKNOWN")),
+            live_shadow_trial_status=str(summary.get("live_lm_shadow_trial", "UNKNOWN")),
+            live_shadow_receipt_status=str(summary.get("live_shadow_receipt", "UNKNOWN")),
             private_mode_policy_status=str(summary.get("private_mode_policy", "UNKNOWN")),
             read_model_visibility_status=str(summary.get("read_model_mirror_visibility", "UNKNOWN")),
             provider_policy_status=str(summary.get("provider_policy_registry")),
@@ -300,6 +304,7 @@ def build_proof_shelf(inputs: Mapping[str, Any]) -> dict[str, Any]:
                 "generated/read_models/role_package_gate.json",
                 "generated/read_models/request_response_bridge_readiness.json",
                 "generated/read_models/live_lm_activation_requirements.json",
+                "generated/read_models/live_lm_shadow_trial.json",
                 "generated/read_models/private_mode_policy_readiness.json",
                 "generated/read_models/read_model_mirror_visibility.json",
                 "generated/read_models/guardian_trust_ramp_simulator.json",

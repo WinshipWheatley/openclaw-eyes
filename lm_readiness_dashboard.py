@@ -22,6 +22,7 @@ import guardian_trust_ramp_simulator
 import intent_ingest_gate
 import live_lm_readiness_gate
 import live_lm_activation_requirements
+import live_lm_shadow_trial
 import lm_intent_proposal_contract
 import model_router_policy
 import private_mode_policy_readiness
@@ -312,12 +313,16 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
     provider_registry = provider_policy_registry.build_payload(generated_at=generated_at)
     model_router = model_router_policy.build_payload(generated_at=generated_at)
     readiness = live_lm_readiness_gate.build_payload(generated_at=generated_at)
+    live_shadow_trial = live_lm_shadow_trial.latest_or_ready_payload(generated_at=generated_at)
     token_status = token_vault.build_payload(generated_at=generated_at)
     universal = universal_intake_contract.build_payload(generated_at=generated_at)
     gate1_snapshot_payload = gate1_operational_snapshot.build_payload(generated_at=generated_at)
     gate1_privacy = gate1_privacy_request_readiness.build_payload(generated_at=generated_at)
     bridge_readiness = request_response_bridge_readiness.build_payload(generated_at=generated_at)
-    activation_requirements = live_lm_activation_requirements.build_payload(generated_at=generated_at)
+    activation_requirements = live_lm_activation_requirements.build_payload(
+        generated_at=generated_at,
+        live_shadow_payload=live_shadow_trial,
+    )
     private_policy = private_mode_policy_readiness.build_payload(generated_at=generated_at)
     mirror_visibility = read_model_mirror_visibility.build_payload(generated_at=generated_at)
     privacy_readiness = token_status["privacy_readiness"]
@@ -346,6 +351,8 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
         "request_response_bridge": bridge_readiness["readiness_status"],
         "production_live_blockers": "EXPLICIT",
         "provider_activation_receipts": activation_requirements["provider_activation_status"],
+        "live_lm_shadow_trial": live_shadow_trial["trial_status"],
+        "live_shadow_receipt": "PRESENT" if live_shadow_trial["machine_proof"]["live_shadow_receipt_valid"] else "MISSING",
         "private_mode_policy": private_policy["contract_status"],
         "read_model_mirror_visibility": mirror_visibility["contract_status"],
         "gate2_ingest": representative["gate2_result"].get("outcome"),
@@ -394,6 +401,15 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
                 "live_lm2_activation_status": activation_requirements["live_lm2_activation_status"],
                 "provider_activation_status": activation_requirements["provider_activation_status"],
                 "missing_receipts": activation_requirements["missing_receipts"],
+                "live_shadow_receipt": activation_requirements["live_shadow_receipt"],
+            },
+            "live_lm_shadow_trial": {
+                "read_model_ref": "generated/read_models/live_lm_shadow_trial.json",
+                "trial_status": live_shadow_trial["trial_status"],
+                "provider_class": live_shadow_trial["machine_proof"]["provider_class"],
+                "model_ref": live_shadow_trial["machine_proof"]["model_ref"],
+                "live_model_call_performed": live_shadow_trial["machine_proof"]["live_model_call_performed"],
+                "live_shadow_receipt_valid": live_shadow_trial["machine_proof"]["live_shadow_receipt_valid"],
             },
             "read_model_mirror_visibility": {
                 "read_model_ref": "generated/read_models/read_model_mirror_visibility.json",
@@ -543,6 +559,10 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
                 "read_model_id": live_lm_activation_requirements.READ_MODEL_ID,
                 "machine_proof": activation_requirements.get("machine_proof", {}),
             },
+            "live_lm_shadow_trial": {
+                "read_model_id": live_lm_shadow_trial.READ_MODEL_ID,
+                "machine_proof": live_shadow_trial.get("machine_proof", {}),
+            },
             "private_mode_policy_readiness": {
                 "read_model_id": private_mode_policy_readiness.READ_MODEL_ID,
                 "machine_proof": private_policy.get("machine_proof", {}),
@@ -576,6 +596,10 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
             is False,
             "private_mode_fields_present": True,
             "live_activation_requirements_aggregated": True,
+            "live_lm_shadow_trial_aggregated": True,
+            "live_shadow_trial_status": live_shadow_trial["trial_status"],
+            "live_shadow_model_call_recorded": live_shadow_trial["machine_proof"]["live_model_call_performed"],
+            "live_shadow_receipt_valid": live_shadow_trial["machine_proof"]["live_shadow_receipt_valid"],
             "provider_activation_receipts_required": activation_requirements["machine_proof"]["provider_activation_receipts_required"],
             "provider_activation_receipts_present": activation_requirements["machine_proof"]["provider_activation_receipts_present"],
             "private_mode_policy_readiness_aggregated": True,
@@ -653,6 +677,8 @@ def write_exports(payload: Mapping[str, Any], export_root: Path = DEFAULT_EXPORT
         f"Request-response bridge: {summary.get('request_response_bridge')}",
         f"Production/live blockers: {summary.get('production_live_blockers')}",
         f"Provider activation receipts: {summary.get('provider_activation_receipts')}",
+        f"Live shadow trial: {summary.get('live_lm_shadow_trial')}",
+        f"Live shadow receipt: {summary.get('live_shadow_receipt')}",
         f"Private Mode policy: {summary.get('private_mode_policy')}",
         f"Read-model visibility: {summary.get('read_model_mirror_visibility')}",
         f"Universal intake batch: {summary.get('universal_intake_batch')}",
