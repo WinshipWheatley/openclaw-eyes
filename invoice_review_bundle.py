@@ -53,6 +53,10 @@ AUTHORITY_BOUNDARY = {
 }
 
 REQUIRED_RECEIPTS = (
+    "active_workbook_confirmed_receipt",
+    "invoice_record_selected_receipt",
+    "invoice_period_confirmed_receipt",
+    "generated_invoice_artifact_linkage_receipt",
     "excel_invoice_generated_receipt",
     "invoice_attachment_proof_receipt",
     "clara_email_draft_receipt",
@@ -61,6 +65,24 @@ REQUIRED_RECEIPTS = (
     "guardian_approval_receipt",
     "operator_approval_receipt",
     "email_send_receipt",
+)
+
+INVOICE_REVIEW_STATES = (
+    "ACTIVE_WORKBOOK_CONFIRMED",
+    "INVOICE_RECORD_SELECTED",
+    "INVOICE_PERIOD_CONFIRMED",
+    "GENERATED_INVOICE_ARTIFACT_CANDIDATE",
+    "GENERATED_INVOICE_ARTIFACT_CONFIRMED",
+    "EXCEL_INVOICE_ATTACHMENT_READY",
+    "BLOCKED_NEEDS_INVOICE_RECORD_SELECTION",
+    "BLOCKED_NEEDS_GENERATED_ARTIFACT_PROOF",
+)
+
+ARTIFACT_LINKAGE_RECEIPTS = (
+    "active_workbook_confirmed_receipt",
+    "invoice_record_selected_receipt",
+    "invoice_period_confirmed_receipt",
+    "generated_invoice_artifact_linkage_receipt",
 )
 
 BLOCKED_SEND_RECEIPTS = (
@@ -87,6 +109,10 @@ class InvoiceReviewArtifact:
     preview_available: bool
     preview_ref: str | None
     proof_status: str
+    attachment_ready: bool
+    linkage_status: str
+    required_linkage_receipts: tuple[str, ...]
+    missing_linkage_receipts: tuple[str, ...]
 
 
 @dataclass(frozen=True)
@@ -153,18 +179,24 @@ def _artifact_ref(path: Path) -> str:
     return f"local_artifact_ref:{_short_hash(path.as_posix())}"
 
 
-def _file_proof_status(path: Path) -> str:
-    return "LOCAL_ARTIFACT_PRESENT_REVIEW_ONLY" if path.exists() else "MISSING_ARTIFACT_PROOF"
+def _artifact_linked_to_selected_invoice(receipts: set[str]) -> bool:
+    return all(receipt in receipts for receipt in ARTIFACT_LINKAGE_RECEIPTS)
 
 
-def _excel_invoice_artifact() -> InvoiceReviewArtifact:
+def _excel_invoice_artifact(receipts: set[str]) -> InvoiceReviewArtifact:
     exists = CAPITAL_HILTON_EXCEL_PATH.exists()
+    linked = exists and _artifact_linked_to_selected_invoice(receipts)
+    missing = tuple(receipt for receipt in ARTIFACT_LINKAGE_RECEIPTS if receipt not in receipts)
     return InvoiceReviewArtifact(
         artifact_ref=_artifact_ref(CAPITAL_HILTON_EXCEL_PATH),
-        display_name="Capital Hilton Excel invoice for review",
+        display_name="Capital Hilton Excel invoice candidate",
         preview_available=exists,
         preview_ref=CAPITAL_HILTON_EXCEL_PATH.as_posix() if exists else None,
-        proof_status=_file_proof_status(CAPITAL_HILTON_EXCEL_PATH),
+        proof_status="GENERATED_INVOICE_ARTIFACT_CONFIRMED" if linked else "GENERATED_INVOICE_ARTIFACT_CANDIDATE",
+        attachment_ready=linked and "invoice_attachment_proof_receipt" in receipts,
+        linkage_status="LINKED_TO_SELECTED_INVOICE" if linked else "NEEDS_INVOICE_SELECTION",
+        required_linkage_receipts=ARTIFACT_LINKAGE_RECEIPTS,
+        missing_linkage_receipts=missing,
     )
 
 
@@ -261,13 +293,12 @@ def build_capital_hilton_bundle(
 ) -> dict[str, Any]:
     generated_at = generated_at or DEFAULT_GENERATED_AT
     receipts = _normalize_receipts(present_receipts)
-    excel = _excel_invoice_artifact()
+    excel = _excel_invoice_artifact(receipts)
     clara = _clara_draft()
     coupa = _coupa_invoice_proof(receipts)
     contacts_confirmed = "recipient_confirmation_receipt" in receipts
     ready_for_send_review = (
-        excel.preview_available
-        and "invoice_attachment_proof_receipt" in receipts
+        excel.attachment_ready
         and "clara_email_draft_receipt" in receipts
         and contacts_confirmed
     )
@@ -276,6 +307,11 @@ def build_capital_hilton_bundle(
     blockers = []
     if coupa.status == "MISSING":
         blockers.append("Coupa submission proof is still required.")
+    if "invoice_record_selected_receipt" not in receipts or "invoice_period_confirmed_receipt" not in receipts:
+        blockers.append("Which invoice page/period should OpenClaw prepare for Capital Hilton?")
+        blockers.append("OpenClaw needs the current invoice page/period before it can attach the Excel invoice.")
+    if excel.proof_status != "GENERATED_INVOICE_ARTIFACT_CONFIRMED":
+        blockers.append("Generated invoice artifact needs proof linking it to the selected invoice record.")
     if not contacts_confirmed:
         blockers.append("Recipient list needs confirmation.")
     if not _send_allowed(receipts):
@@ -288,14 +324,31 @@ def build_capital_hilton_bundle(
         "workflow_ref": CAPITAL_HILTON_WORKFLOW_REF,
         "invoice_period": {
             "display_label": "Capital Hilton current invoice package",
-            "status": "CANDIDATE_PENDING_CONFIRMATION",
+            "status": "INVOICE_PERIOD_CONFIRMED" if "invoice_period_confirmed_receipt" in receipts else "BLOCKED_NEEDS_INVOICE_RECORD_SELECTION",
         },
-        "status": "READY_FOR_REVIEW_BLOCKED_FOR_SEND",
+        "invoice_selection": {
+            "active_workbook_state": "ACTIVE_WORKBOOK_CONFIRMED"
+            if "active_workbook_confirmed_receipt" in receipts
+            else "BLOCKED_NEEDS_INVOICE_RECORD_SELECTION",
+            "invoice_record_state": "INVOICE_RECORD_SELECTED"
+            if "invoice_record_selected_receipt" in receipts
+            else "BLOCKED_NEEDS_INVOICE_RECORD_SELECTION",
+            "invoice_period_state": "INVOICE_PERIOD_CONFIRMED"
+            if "invoice_period_confirmed_receipt" in receipts
+            else "BLOCKED_NEEDS_INVOICE_RECORD_SELECTION",
+            "workbook_may_contain_multiple_invoice_records": True,
+            "operator_question": "Which invoice page/period should OpenClaw prepare for Capital Hilton?",
+        },
+        "status": "READY_FOR_REVIEW_BLOCKED_FOR_SELECTION"
+        if not _artifact_linked_to_selected_invoice(receipts)
+        else "READY_FOR_REVIEW_BLOCKED_FOR_SEND",
         "helm_card": {
             "title": "Review the Capital Hilton invoice package.",
             "operator_summary": "Nothing has been sent.",
-            "primary_warning": "Coupa submission proof is still required." if coupa.status == "MISSING" else None,
-            "safe_next_move": "Review the draft, confirm recipients, and keep send locked until approval.",
+            "primary_warning": "OpenClaw needs the current invoice page/period before it can attach the Excel invoice."
+            if not _artifact_linked_to_selected_invoice(receipts)
+            else "Coupa submission proof is still required." if coupa.status == "MISSING" else None,
+            "safe_next_move": "Select the current invoice page/period and link any generated artifact before approval.",
             "button_labels": APPROVAL_BUTTONS,
         },
         "excel_invoice_artifact": asdict(excel),
@@ -335,8 +388,13 @@ def build_capital_hilton_bundle(
             "headline": "Review the Capital Hilton invoice package.",
             "body": (
                 "Nothing has been sent. "
+                + (
+                    "OpenClaw needs the current invoice page/period before it can attach the Excel invoice. "
+                    if not _artifact_linked_to_selected_invoice(receipts)
+                    else ""
+                )
                 + ("Coupa submission proof is still required. " if coupa.status == "MISSING" else "")
-                + "Approve only after the invoice, draft, recipients, attachment, and Coupa proof are correct."
+                + "Approve only after the selected invoice record, draft, recipients, attachment, and Coupa proof are correct."
             ),
             "approval_question": guardian.operator_question,
             "button_labels": APPROVAL_BUTTONS,
@@ -345,6 +403,11 @@ def build_capital_hilton_bundle(
     }
     bundle["machine_proof"] = {
         "excel_invoice_artifact_slot_present": True,
+        "existing_artifact_without_invoice_record_linkage_is_candidate_only": excel.proof_status
+        == "GENERATED_INVOICE_ARTIFACT_CANDIDATE",
+        "workbook_may_contain_multiple_invoice_records": True,
+        "attachment_ready_requires_invoice_record_linkage": not excel.attachment_ready
+        or _artifact_linked_to_selected_invoice(receipts),
         "clara_draft_slot_present": True,
         "coupa_required_for_capital_hilton": True,
         "draft_does_not_imply_sent": clara.draft_only and not clara.sent,
@@ -352,6 +415,7 @@ def build_capital_hilton_bundle(
         "send_blocked_without_required_receipts": not _send_allowed(receipts),
         "all_action_authority_false": all(value is False for value in AUTHORITY_BOUNDARY.values()),
         "operator_copy_jargon_free": not _contains_operator_jargon(bundle["operator_copy"]),
+        "pdf_excel_generation_performed": False,
         "content_hash": "",
     }
     bundle["machine_proof"]["content_hash"] = _content_hash(bundle)
@@ -398,6 +462,7 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
             "typed_approval_code_required": False,
             "buttons_are_ui_controls": True,
         },
+        "invoice_review_states": INVOICE_REVIEW_STATES,
         "capital_hilton_bundle": capital,
         "non_coupa_recipe_example": non_coupa,
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
@@ -416,6 +481,7 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
             "typed_approval_codes_not_operator_primary": True,
             "send_action_enabled": False,
             "coupa_action_enabled": False,
+            "pdf_excel_generation_performed": False,
             "all_action_authority_false": all(value is False for value in AUTHORITY_BOUNDARY.values()),
             "content_hash": "",
         },
@@ -433,17 +499,24 @@ def write_exports(payload: Mapping[str, Any], export_root: Path = DEFAULT_EXPORT
     card = capital["helm_card"]
     buttons = ", ".join(card["button_labels"])
     blockers = capital.get("blockers") or ()
+    linkage_message = (
+        "OpenClaw needs the current invoice page/period before it can attach the Excel invoice."
+        if capital["excel_invoice_artifact"]["linkage_status"] != "LINKED_TO_SELECTED_INVOICE"
+        else "Generated invoice artifact is linked to the selected invoice record."
+    )
+    status_lines = tuple(dict.fromkeys((card["primary_warning"] or "Coupa proof is present.", linkage_message)))
     lines = [
         "# Invoice Review Bundle",
         "",
         "Review the Capital Hilton invoice package.",
         "Nothing has been sent.",
-        card["primary_warning"] or "Coupa proof is present.",
+        *status_lines,
         "",
         "Approval card:",
         f"- Question: {capital['guardian_approval_request']['operator_question']}",
         f"- Buttons: {buttons}",
-        f"- Excel invoice preview: {capital['excel_invoice_artifact']['display_name']}",
+        f"- Excel invoice candidate: {capital['excel_invoice_artifact']['display_name']}",
+        f"- Attachment readiness: {str(capital['excel_invoice_artifact']['attachment_ready']).lower()}",
         f"- Clara draft subject: {capital['clara_email_draft']['subject']}",
         "",
         "Blockers:",

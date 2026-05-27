@@ -43,6 +43,9 @@
     },
     "blockers": [
       "Coupa submission proof is still required.",
+      "Which invoice page/period should OpenClaw prepare for Capital Hilton?",
+      "OpenClaw needs the current invoice page/period before it can attach the Excel invoice.",
+      "Generated invoice artifact needs proof linking it to the selected invoice record.",
       "Recipient list needs confirmation.",
       "Send is blocked until approval and send execution receipts exist."
     ],
@@ -65,10 +68,24 @@
     },
     "excel_invoice_artifact": {
       "artifact_ref": "local_artifact_ref:deb5bc9b42567fd4",
-      "display_name": "Capital Hilton Excel invoice for review",
+      "attachment_ready": false,
+      "display_name": "Capital Hilton Excel invoice candidate",
+      "linkage_status": "NEEDS_INVOICE_SELECTION",
+      "missing_linkage_receipts": [
+        "active_workbook_confirmed_receipt",
+        "invoice_record_selected_receipt",
+        "invoice_period_confirmed_receipt",
+        "generated_invoice_artifact_linkage_receipt"
+      ],
       "preview_available": true,
       "preview_ref": "generated/invoice_artifacts/capital_hilton_invoice_artifact_v0/WINSHIP_CAPITAL_HILTON_INVOICE_2026-05-25.xlsx",
-      "proof_status": "LOCAL_ARTIFACT_PRESENT_REVIEW_ONLY"
+      "proof_status": "GENERATED_INVOICE_ARTIFACT_CANDIDATE",
+      "required_linkage_receipts": [
+        "active_workbook_confirmed_receipt",
+        "invoice_record_selected_receipt",
+        "invoice_period_confirmed_receipt",
+        "generated_invoice_artifact_linkage_receipt"
+      ]
     },
     "generated_at": "2026-05-27T00:00:00+00:00",
     "guardian_approval_request": {
@@ -134,8 +151,8 @@
         "HOLD"
       ],
       "operator_summary": "Nothing has been sent.",
-      "primary_warning": "Coupa submission proof is still required.",
-      "safe_next_move": "Review the draft, confirm recipients, and keep send locked until approval.",
+      "primary_warning": "OpenClaw needs the current invoice page/period before it can attach the Excel invoice.",
+      "safe_next_move": "Select the current invoice page/period and link any generated artifact before approval.",
       "title": "Review the Capital Hilton invoice package."
     },
     "hidden_backend_proof": {
@@ -158,20 +175,35 @@
     },
     "invoice_period": {
       "display_label": "Capital Hilton current invoice package",
-      "status": "CANDIDATE_PENDING_CONFIRMATION"
+      "status": "BLOCKED_NEEDS_INVOICE_RECORD_SELECTION"
+    },
+    "invoice_selection": {
+      "active_workbook_state": "BLOCKED_NEEDS_INVOICE_RECORD_SELECTION",
+      "invoice_period_state": "BLOCKED_NEEDS_INVOICE_RECORD_SELECTION",
+      "invoice_record_state": "BLOCKED_NEEDS_INVOICE_RECORD_SELECTION",
+      "operator_question": "Which invoice page/period should OpenClaw prepare for Capital Hilton?",
+      "workbook_may_contain_multiple_invoice_records": true
     },
     "machine_proof": {
       "all_action_authority_false": true,
       "approval_does_not_imply_send": true,
+      "attachment_ready_requires_invoice_record_linkage": true,
       "clara_draft_slot_present": true,
-      "content_hash": "sha256:db656b2be55de18f4197c56b7b2cd53ad7327bd7b89c271ebdcd0ffce7770d1a",
+      "content_hash": "sha256:1de8e60ce01ee8623b4b630dbae402695dcca2ea772ab7c53767ac4ab7855279",
       "coupa_required_for_capital_hilton": true,
       "draft_does_not_imply_sent": true,
       "excel_invoice_artifact_slot_present": true,
+      "existing_artifact_without_invoice_record_linkage_is_candidate_only": true,
       "operator_copy_jargon_free": true,
-      "send_blocked_without_required_receipts": true
+      "pdf_excel_generation_performed": false,
+      "send_blocked_without_required_receipts": true,
+      "workbook_may_contain_multiple_invoice_records": true
     },
     "missing_receipts": [
+      "active_workbook_confirmed_receipt",
+      "invoice_record_selected_receipt",
+      "invoice_period_confirmed_receipt",
+      "generated_invoice_artifact_linkage_receipt",
       "excel_invoice_generated_receipt",
       "invoice_attachment_proof_receipt",
       "clara_email_draft_receipt",
@@ -183,7 +215,7 @@
     ],
     "operator_copy": {
       "approval_question": "Review the Capital Hilton invoice package?",
-      "body": "Nothing has been sent. Coupa submission proof is still required. Approve only after the invoice, draft, recipients, attachment, and Coupa proof are correct.",
+      "body": "Nothing has been sent. OpenClaw needs the current invoice page/period before it can attach the Excel invoice. Coupa submission proof is still required. Approve only after the selected invoice record, draft, recipients, attachment, and Coupa proof are correct.",
       "button_labels": [
         "APPROVE",
         "DO_NOT_APPROVE",
@@ -240,6 +272,10 @@
       ]
     },
     "required_receipts": [
+      "active_workbook_confirmed_receipt",
+      "invoice_record_selected_receipt",
+      "invoice_period_confirmed_receipt",
+      "generated_invoice_artifact_linkage_receipt",
       "excel_invoice_generated_receipt",
       "invoice_attachment_proof_receipt",
       "clara_email_draft_receipt",
@@ -249,7 +285,7 @@
       "operator_approval_receipt",
       "email_send_receipt"
     ],
-    "status": "READY_FOR_REVIEW_BLOCKED_FOR_SEND",
+    "status": "READY_FOR_REVIEW_BLOCKED_FOR_SELECTION",
     "workflow_ref": "capital_hilton_invoice_workflow"
   },
   "contract_status": "MISSION_CONTROL_APPROVAL_CARD_CONTRACT_NO_ACTIONS",
@@ -261,14 +297,25 @@
     "required_receipts",
     "receipt hashes"
   ],
+  "invoice_review_states": [
+    "ACTIVE_WORKBOOK_CONFIRMED",
+    "INVOICE_RECORD_SELECTED",
+    "INVOICE_PERIOD_CONFIRMED",
+    "GENERATED_INVOICE_ARTIFACT_CANDIDATE",
+    "GENERATED_INVOICE_ARTIFACT_CONFIRMED",
+    "EXCEL_INVOICE_ATTACHMENT_READY",
+    "BLOCKED_NEEDS_INVOICE_RECORD_SELECTION",
+    "BLOCKED_NEEDS_GENERATED_ARTIFACT_PROOF"
+  ],
   "machine_proof": {
     "all_action_authority_false": true,
     "button_labels_present": true,
     "capital_hilton_coupa_proof_required": true,
     "capital_hilton_has_review_bundle": true,
-    "content_hash": "sha256:5b7faa23b9205c242ead8735a66a04f05239bd4260bbcc1c090a51c9e9cd9a86",
+    "content_hash": "sha256:0da30edb3384d3c1fb8306812cb2ad53ba23323884358537300229c99671d4a7",
     "coupa_action_enabled": false,
     "non_coupa_client_does_not_require_coupa": true,
+    "pdf_excel_generation_performed": false,
     "send_action_enabled": false,
     "typed_approval_codes_not_operator_primary": true
   },

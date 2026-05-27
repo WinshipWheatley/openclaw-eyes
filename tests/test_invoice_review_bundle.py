@@ -23,9 +23,10 @@ def test_capital_hilton_bundle_includes_excel_invoice_artifact_slot():
 
     artifact = payload["excel_invoice_artifact"]
     assert artifact["artifact_ref"].startswith("local_artifact_ref:")
-    assert artifact["display_name"] == "Capital Hilton Excel invoice for review"
+    assert artifact["display_name"] == "Capital Hilton Excel invoice candidate"
     assert "preview_available" in artifact
-    assert artifact["proof_status"] in ("LOCAL_ARTIFACT_PRESENT_REVIEW_ONLY", "MISSING_ARTIFACT_PROOF")
+    assert artifact["proof_status"] == "GENERATED_INVOICE_ARTIFACT_CANDIDATE"
+    assert artifact["attachment_ready"] is False
 
 
 def test_capital_hilton_bundle_includes_clara_draft_slot():
@@ -50,7 +51,9 @@ def test_bundle_shows_coupa_proof_missing_when_absent():
     payload = _capital()
 
     assert "Coupa submission proof is still required." in payload["blockers"]
-    assert payload["helm_card"]["primary_warning"] == "Coupa submission proof is still required."
+    assert payload["helm_card"]["primary_warning"] == (
+        "OpenClaw needs the current invoice page/period before it can attach the Excel invoice."
+    )
 
 
 def test_candidate_contacts_are_unconfirmed_without_receipt():
@@ -77,6 +80,62 @@ def test_guardian_approval_request_exposes_button_labels_not_typed_code():
     assert tuple(button["label"] for button in request["buttons"]) == bundle.APPROVAL_BUTTONS
     assert payload["operator_copy"]["button_labels"] == bundle.APPROVAL_BUTTONS
     assert payload["operator_copy"]["approval_question"] == "Review the Capital Hilton invoice package?"
+
+
+def test_existing_generated_artifact_without_invoice_record_linkage_is_candidate_only():
+    payload = _capital()
+    artifact = payload["excel_invoice_artifact"]
+
+    assert artifact["preview_available"] is True
+    assert artifact["proof_status"] == "GENERATED_INVOICE_ARTIFACT_CANDIDATE"
+    assert artifact["linkage_status"] == "NEEDS_INVOICE_SELECTION"
+    assert "generated_invoice_artifact_linkage_receipt" in artifact["missing_linkage_receipts"]
+    assert payload["machine_proof"]["existing_artifact_without_invoice_record_linkage_is_candidate_only"] is True
+
+
+def test_bundle_blocks_attachment_readiness_when_invoice_sheet_page_period_is_unknown():
+    payload = _capital()
+
+    assert payload["invoice_selection"]["workbook_may_contain_multiple_invoice_records"] is True
+    assert payload["invoice_selection"]["invoice_record_state"] == "BLOCKED_NEEDS_INVOICE_RECORD_SELECTION"
+    assert payload["invoice_period"]["status"] == "BLOCKED_NEEDS_INVOICE_RECORD_SELECTION"
+    assert payload["excel_invoice_artifact"]["attachment_ready"] is False
+    assert "Which invoice page/period should OpenClaw prepare for Capital Hilton?" in payload["blockers"]
+    assert "OpenClaw needs the current invoice page/period before it can attach the Excel invoice." in payload["blockers"]
+
+
+def test_bundle_cannot_ask_for_send_approval_until_artifact_is_linked_to_selected_invoice():
+    receipts = {
+        "invoice_attachment_proof_receipt",
+        "clara_email_draft_receipt",
+        "recipient_confirmation_receipt",
+    }
+    payload = _capital(receipts)
+
+    assert payload["excel_invoice_artifact"]["proof_status"] == "GENERATED_INVOICE_ARTIFACT_CANDIDATE"
+    assert payload["excel_invoice_artifact"]["attachment_ready"] is False
+    assert payload["guardian_approval_request"]["operator_question"] == "Review the Capital Hilton invoice package?"
+
+
+def test_linkage_receipts_can_confirm_generated_artifact_without_enabling_send():
+    receipts = {
+        "active_workbook_confirmed_receipt",
+        "invoice_record_selected_receipt",
+        "invoice_period_confirmed_receipt",
+        "generated_invoice_artifact_linkage_receipt",
+        "invoice_attachment_proof_receipt",
+        "clara_email_draft_receipt",
+        "recipient_confirmation_receipt",
+    }
+    payload = _capital(receipts)
+
+    assert payload["excel_invoice_artifact"]["proof_status"] == "GENERATED_INVOICE_ARTIFACT_CONFIRMED"
+    assert payload["excel_invoice_artifact"]["attachment_ready"] is True
+    assert payload["guardian_approval_request"]["operator_question"] == (
+        "Approve sending this Excel invoice email to Annette with Chyna and Will copied?"
+    )
+    assert payload["guardian_approval_request"]["send_allowed"] is False
+    assert payload["authority_boundary"]["email_send_allowed"] is False
 
 
 def test_approval_button_metadata_exists_internally_but_is_hidden_from_operator_copy():
@@ -119,6 +178,13 @@ def test_send_is_blocked_unless_approval_and_send_execution_receipts_exist():
     assert after_receipts["authority_boundary"]["email_send_allowed"] is False
 
 
+def test_capital_hilton_workbook_may_contain_multiple_invoice_records():
+    payload = _capital()
+
+    assert payload["invoice_selection"]["workbook_may_contain_multiple_invoice_records"] is True
+    assert "INVOICE_RECORD_SELECTED" in bundle.INVOICE_REVIEW_STATES
+
+
 def test_non_coupa_client_recipe_does_not_require_coupa_by_default():
     payload = bundle.build_payload(generated_at=FIXED_NOW)
     non_coupa = payload["non_coupa_recipe_example"]
@@ -135,6 +201,7 @@ def test_no_email_coupa_browser_send_action_is_enabled():
     assert all(value is False for value in payload["authority_boundary"].values())
     assert payload["machine_proof"]["send_action_enabled"] is False
     assert payload["machine_proof"]["coupa_action_enabled"] is False
+    assert payload["machine_proof"]["pdf_excel_generation_performed"] is False
 
 
 def test_operator_copy_contains_no_backend_jargon():
