@@ -178,6 +178,7 @@ def build_lm1_thread_context_package(*, source_request_id: str = "lm_readiness_c
         next_safe_move="A future LM1 may propose MachineIntentCandidate JSON only; Gate 2 decides ingestion.",
     )
     package_dict = asdict(package)
+    package_dict["universal_intake_chain_contract"] = intake.get("chain_contract", {})
     package_dict["model_router_result"] = model_router_policy.select_for_lm1_thread_package(package_dict)
     return package_dict
 
@@ -388,6 +389,7 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
                 "source_request_id": representative["lm1_thread_context_package"]["source_request_id"],
                 "user_message": representative["lm1_thread_context_package"]["user_message"],
                 "universal_intake_inference": representative["lm1_thread_context_package"]["universal_intake_inference"],
+                "universal_intake_chain_contract": representative["lm1_thread_context_package"].get("universal_intake_chain_contract", {}),
                 "privacy": representative["lm1_thread_context_package"]["privacy"],
                 "allowed_context_classes": representative["lm1_thread_context_package"]["allowed_context_classes"],
                 "forbidden_context_classes": representative["lm1_thread_context_package"]["forbidden_context_classes"],

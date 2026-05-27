@@ -52,6 +52,7 @@ def test_lm1_thread_context_package_includes_universal_intake_and_token_declarat
     assert package["source_device_ref"] == "mission_control_mac"
     assert package["universal_intake_inference"]["client_ref"] == "capital_hilton"
     assert package["universal_intake_inference"]["artifact_kind"] == "running_invoice_workbook"
+    assert package["universal_intake_chain_contract"]["candidate_may_enter_gate_2_after_lm1_proposal"] is True
     assert package["privacy_classification"] == "CLIENT_FINANCE_FILE_METADATA"
     assert package["tokenization_required"] is True
     assert package["tokenization_policy"]["tokenization_required"] is True
@@ -149,6 +150,7 @@ def test_representative_flow_reaches_gate2_gate3_gate4_without_live_status():
     assert flow["gate3_package_summary"]["package_status"] == role_package_gate.PACKAGE_COMPILED
     assert flow["gate4_result_summary"]["verdict"] == guardian_output_gate.VALIDATED
     assert flow["shadow_comparison_summary"]["failed"] == 0
+    assert flow["shadow_comparison_summary"]["negative_case_count"] == 3
     assert payload["dashboard_summary"]["lm1_live"] == "NOT_ACTIVE"
     assert payload["dashboard_summary"]["lm2_live"] == "NOT_ACTIVE"
 

@@ -26,6 +26,10 @@ def test_universal_intake_infers_capital_hilton_running_invoice_workbook():
     assert candidate["artifact_kind"] == "running_invoice_workbook"
     assert candidate["intended_use"] == "register_or_resolve_invoice_workbook_artifact"
     assert candidate["confidence"] == "HIGH"
+    assert candidate["privacy_class"] == "CLIENT_FINANCE_FILE_METADATA"
+    assert candidate["lm1_chain_ready"] is True
+    assert candidate["chain_contract"]["candidate_may_enter_gate_2_after_lm1_proposal"] is True
+    assert candidate["chain_contract"]["lm1_may_receive_raw_values"] is False
     assert candidate["submitted"] is False
     assert candidate["paid"] is False
     assert candidate["ledger_posted"] is False
@@ -48,6 +52,7 @@ def test_universal_intake_asks_one_question_for_ambiguous_file_note():
     assert candidate["confidence"] == "MEDIUM"
     assert candidate["client_ref"] == "unknown"
     assert candidate["clarification_question"] == "Which client or workflow should this workbook belong to?"
+    assert candidate["lm1_chain_ready"] is False
 
 
 def test_universal_intake_batch_classifies_three_running_invoice_workbooks_as_draft_source_only():
@@ -106,4 +111,5 @@ def test_exported_readmodel_parses(tmp_path):
     assert parsed["machine_proof"]["fixture_submitted_false"] is True
     assert parsed["machine_proof"]["batch_fixture_count"] == 3
     assert parsed["machine_proof"]["batch_fixture_all_draft_source_only"] is True
+    assert parsed["machine_proof"]["capital_hilton_chain_ready"] is True
     assert "metadata-only" in operator_path.read_text(encoding="utf-8")

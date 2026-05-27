@@ -1,0 +1,118 @@
+import json
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+import floor_gap_reconciliation as floor
+
+
+FIXED_NOW = "2026-05-26T00:00:00+00:00"
+
+
+def _payload() -> dict:
+    return floor.build_payload(generated_at=FIXED_NOW)
+
+
+def test_floor_matrix_classifies_each_required_lane():
+    payload = _payload()
+    matrix = payload["floor_matrix"]
+
+    assert payload["machine_proof"]["all_required_lanes_classified"] is True
+    assert len(matrix) == 15
+    for item in matrix:
+        assert "lane_id" in item
+        assert "maturity_label" in item
+        assert "not_ready_reason" in item
+
+
+def test_weak_lanes_are_identified_deterministically():
+    payload = _payload()
+    weakest_ids = [item["lane_id"] for item in payload["weakest_lanes"]]
+    weakest_scores = [item["maturity_score"] for item in payload["weakest_lanes"]]
+
+    assert payload["machine_proof"]["weak_lanes_identified"] is True
+    assert weakest_scores == sorted(weakest_scores)
+    assert "production_live_blockers" in {item["lane_id"] for item in payload["weakest_lanes"]}
+
+
+def test_at_least_three_weak_lanes_get_floor_improvements():
+    payload = _payload()
+    raised_ids = {item["lane_id"] for item in payload["raised_this_pass"]}
+
+    assert payload["machine_proof"]["raised_lane_count"] >= 3
+    assert {"gate1_ingress_privacy_request", "universal_intake", "lm2_package_shadow"}.issubset(raised_ids)
+
+
+def test_gate1_privacy_trigger_fixtures_exist():
+    fixtures = floor.gate1_privacy_trigger_fixtures()
+    by_input = {fixture["input_class"]: fixture for fixture in fixtures}
+
+    assert by_input["normal"]["privacy_class"] == "LOW_METADATA"
+    assert by_input["client_finance"]["tokenization_required"] is True
+    assert by_input["legal_confidential"]["strict_local_only_required"] is True
+    assert by_input["personal_private"]["private_mode_recommended"] is True
+    assert by_input["strict_local_only"]["privacy_class"] == "STRICT_PRIVATE_CLIENT_METADATA"
+    assert all(fixture["lm1_raw_values_allowed"] is False for fixture in fixtures)
+
+
+def test_universal_intake_candidate_is_chain_compatible():
+    payload = _payload()
+    candidate = payload["universal_intake_chain_candidate"]
+
+    assert candidate["lm1_chain_ready"] is True
+    assert candidate["privacy_class"] == "CLIENT_FINANCE_FILE_METADATA"
+    assert candidate["chain_contract"]["lm1_may_receive_raw_values"] is False
+    assert candidate["submitted"] is False
+    assert candidate["paid"] is False
+    assert candidate["ledger_posted"] is False
+    assert candidate["final"] is False
+
+
+def test_lm1_package_consumes_intake_and_privacy_declarations():
+    payload = _payload()
+    package = payload["lm1_thread_context_package_ref"]
+
+    assert package["tokenization_required"] is True
+    assert package["privacy_classification"] == "CLIENT_FINANCE_FILE_METADATA"
+    assert package["universal_intake_chain_contract"]["requires_tokenization_policy"] is True
+    assert package["raw_values_included"] is False
+    assert package["tools_allowed"] == ()
+
+
+def test_tokenization_proof_does_not_leak_synthetic_raw_values():
+    payload = _payload()
+    proof_text = json.dumps(payload["tokenization_proof"], sort_keys=True)
+
+    assert payload["tokenization_proof"]["raw_values_exported"] is False
+    for raw in ("Synthetic Example Person", "synthetic.person@example.invalid", "555-0100", "000123456789", "00-0000000"):
+        assert raw not in proof_text
+
+
+def test_negative_shadow_cases_remain_blocked_or_clarified():
+    payload = _payload()
+    shadow = payload["shadow_negative_case_summary"]
+
+    assert shadow["negative_case_count"] == 3
+    assert shadow["negative_cases_passed"] is True
+    assert shadow["shadow_comparison_failed_count"] == 0
+
+
+def test_dashboard_stays_live_lm_not_active():
+    payload = _payload()
+    honesty = payload["dashboard_honesty"]
+
+    assert honesty["lm1_live"] == "NOT_ACTIVE"
+    assert honesty["lm2_live"] == "NOT_ACTIVE"
+
+
+def test_exported_readmodel_parses(tmp_path):
+    payload = _payload()
+    json_path, operator_path = floor.write_exports(payload, tmp_path)
+
+    parsed = json.loads(json_path.read_text(encoding="utf-8"))
+    assert parsed["read_model_id"] == floor.READ_MODEL_ID
+    assert parsed["machine_proof"]["live_model_call_performed"] is False
+    assert "Raised this pass:" in operator_path.read_text(encoding="utf-8")

@@ -64,6 +64,9 @@ class UniversalIntakeCandidate:
     operator_message: str
     clarification_question: str
     next_safe_action: str
+    privacy_class: str
+    lm1_chain_ready: bool
+    chain_contract: dict[str, Any]
     submitted: bool
     paid: bool
     ledger_posted: bool
@@ -154,6 +157,7 @@ def infer_universal_intake(input_data: UniversalIntakeInput | Mapping[str, Any])
     finance = input_data.current_world_ref.lower() == "finance" or "invoice" in text.lower()
     client_ref, workflow_ref, client_display_name = _client_from_text(text)
     if spreadsheet and finance and client_ref != "unknown" and "running" in text.lower() and "invoice" in text.lower():
+        privacy_class = "CLIENT_FINANCE_FILE_METADATA"
         candidate = UniversalIntakeCandidate(
             candidate_id=f"universal_intake_candidate:{_short_hash(input_data.source_request_id, input_data.file_display_name)}",
             source_request_id=input_data.source_request_id,
@@ -167,6 +171,15 @@ def infer_universal_intake(input_data: UniversalIntakeInput | Mapping[str, Any])
             operator_message=f"OpenClaw recognized this as a likely {client_display_name} running invoice workbook. It is still a draft/source workbook, not proof that anything was sent or paid.",
             clarification_question="",
             next_safe_action="Propose metadata-only workbook intake, then ask before any audit, send, PDF, or ledger step.",
+            privacy_class=privacy_class,
+            lm1_chain_ready=True,
+            chain_contract={
+                "gate_1_privacy_class": privacy_class,
+                "lm1_input_class": "metadata_only_intake_candidate",
+                "lm1_may_receive_raw_values": False,
+                "requires_tokenization_policy": True,
+                "candidate_may_enter_gate_2_after_lm1_proposal": True,
+            },
             submitted=False,
             paid=False,
             ledger_posted=False,
@@ -178,6 +191,7 @@ def infer_universal_intake(input_data: UniversalIntakeInput | Mapping[str, Any])
         return asdict(candidate)
 
     if spreadsheet and finance and "invoice" in text.lower():
+        privacy_class = "CLIENT_FINANCE_FILE_METADATA"
         candidate = UniversalIntakeCandidate(
             candidate_id=f"universal_intake_candidate:{_short_hash(input_data.source_request_id, input_data.file_display_name, 'ambiguous_invoice')}",
             source_request_id=input_data.source_request_id,
@@ -191,6 +205,16 @@ def infer_universal_intake(input_data: UniversalIntakeInput | Mapping[str, Any])
             operator_message="OpenClaw sees an invoice workbook candidate, but needs the client or workflow before using it.",
             clarification_question="Which client or workflow should this workbook belong to?",
             next_safe_action="Ask one clarification question; do not read the workbook.",
+            privacy_class=privacy_class,
+            lm1_chain_ready=False,
+            chain_contract={
+                "gate_1_privacy_class": privacy_class,
+                "lm1_input_class": "metadata_only_intake_candidate",
+                "lm1_may_receive_raw_values": False,
+                "requires_tokenization_policy": True,
+                "candidate_may_enter_gate_2_after_lm1_proposal": False,
+                "blocking_reason": "CLIENT_OR_WORKFLOW_CLARIFICATION_REQUIRED",
+            },
             submitted=False,
             paid=False,
             ledger_posted=False,
@@ -214,6 +238,16 @@ def infer_universal_intake(input_data: UniversalIntakeInput | Mapping[str, Any])
         operator_message="OpenClaw received the file reference, but needs a little more context before using it.",
         clarification_question="What workflow should this file support?",
         next_safe_action="Ask one clarification question; do not read the file body.",
+        privacy_class="UNKNOWN_METADATA",
+        lm1_chain_ready=False,
+        chain_contract={
+            "gate_1_privacy_class": "UNKNOWN_METADATA",
+            "lm1_input_class": "metadata_only_intake_candidate",
+            "lm1_may_receive_raw_values": False,
+            "requires_tokenization_policy": True,
+            "candidate_may_enter_gate_2_after_lm1_proposal": False,
+            "blocking_reason": "WORKFLOW_CONTEXT_REQUIRED",
+        },
         submitted=False,
         paid=False,
         ledger_posted=False,
@@ -345,6 +379,8 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
                 and item["proposed_facts_only"] is True
                 for item in batch_fixture["candidates"]
             ),
+            "capital_hilton_chain_ready": examples["capital_hilton_running_workbook"]["lm1_chain_ready"] is True,
+            "capital_hilton_privacy_class": examples["capital_hilton_running_workbook"]["privacy_class"],
             "workbook_body_read_performed": False,
             "backend_paths_exposed": False,
             "all_live_authority_false": all(value is False for value in AUTHORITY_BOUNDARY.values()),
