@@ -976,6 +976,49 @@ def test_future_worker_route_without_adapter_blocks_with_how_to_fix(tmp_path, ca
     assert payload["service_status"]["selected_worker_target"] == "CASSANDRA"
 
 
+def test_unknown_freeform_fallback_uses_product_language_not_worker_sludge(tmp_path, capsys):
+    inbox = tmp_path / "inbox"
+    response_dir = tmp_path / "responses"
+    export_root = tmp_path / "read_models"
+    inbox.mkdir()
+    request_path = inbox / "mission_control_chat_request_unknown_freeform.json"
+    request = _write_custom_chat_request(
+        request_path,
+        message="make the blue thing less weird after lunch",
+        suffix="unknown_freeform",
+    )
+
+    assert service_main(
+        [
+            "--once",
+            "--inbox",
+            str(inbox),
+            "--response-dir",
+            str(response_dir),
+            "--export-root",
+            str(export_root),
+            "--generated-at",
+            FIXED_NOW,
+            "--format",
+            "json",
+        ]
+    ) == 0
+    payload = json.loads(capsys.readouterr().out)
+    response = json.loads(_safe_response_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
+
+    assert payload["service_status"]["last_routing_status"] == "UNKNOWN_FAIL_CLOSED"
+    assert response["headline"] == "I need one more detail"
+    public_text = " ".join(
+        str(response.get(field) or "")
+        for field in ("headline", "operator_message", "eliwinship", "next_action", "how_to_fix")
+    )
+    assert "Worker route is unavailable" not in public_text
+    assert "deterministic worker rule" not in public_text
+    assert "worker adapter" not in public_text
+    assert response["machine_proof"]["model_call_performed"] is False
+    assert response["machine_proof"]["external_action_performed"] is False
+
+
 def test_service_processes_file_metadata_request_and_writes_response(tmp_path, capsys):
     inbox = tmp_path / "inbox"
     response_dir = tmp_path / "responses"

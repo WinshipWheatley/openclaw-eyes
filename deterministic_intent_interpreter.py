@@ -212,7 +212,8 @@ def default_interpreter() -> DeterministicIntentInterpreter:
     return DeterministicIntentInterpreter(
         interpreter_id=INTERPRETER_ID,
         matching_policy=(
-            "Match only narrow deterministic operator phrases.",
+            "Match forgiving operator language for known safe intent families.",
+            "Treat typos, casual wording, and device-app summaries as language noise, not authority.",
             "Fallback to existing request processor routes when no phrase matches.",
             "Do not treat ambient approval language as exact approval.",
         ),
@@ -288,39 +289,130 @@ def _stable_id(prefix: str, *parts: object) -> str:
 
 
 def _operator_text(raw_request: Mapping[str, Any]) -> str:
-    for field in ("sanitized_message_summary", "operator_message", "operator_goal"):
+    seen: set[str] = set()
+    parts: list[str] = []
+    for field in ("operator_message", "sanitized_message_summary", "operator_goal", "message", "text"):
         value = raw_request.get(field)
         if isinstance(value, str) and value.strip():
-            return " ".join(value.split())
-    return ""
+            cleaned = " ".join(value.split())
+            key = cleaned.lower()
+            if key not in seen:
+                seen.add(key)
+                parts.append(cleaned)
+    return " ".join(parts)
 
 
 def _normalized_text(text: str) -> str:
-    lowered = " ".join(str(text or "").lower().replace("'", "").split())
-    return lowered.replace("’", "")
+    lowered = str(text or "").lower().replace("'", "").replace("’", "")
+    lowered = lowered.replace("&", " and ")
+    lowered = " ".join(lowered.split())
+    replacements = {
+        "open claw": "openclaw",
+        "capitol hilton": "capital hilton",
+        "captial hilton": "capital hilton",
+        "workbok": "workbook",
+        "work book": "workbook",
+        "couppa": "coupa",
+        "coopa": "coupa",
+        "copa": "coupa",
+        "cass": "cassandra",
+        "cassy": "cassandra",
+        "ch ": "capital hilton ",
+    }
+    for before, after in replacements.items():
+        lowered = lowered.replace(before, after)
+    return lowered
+
+
+def _has_any(text: str, phrases: tuple[str, ...]) -> bool:
+    return any(phrase in text for phrase in phrases)
+
+
+def _has_wordish(text: str, words: tuple[str, ...]) -> bool:
+    padded = f" {text} "
+    return any(f" {word} " in padded for word in words)
 
 
 def _match_operator_text(operator_text: str) -> str:
     text = _normalized_text(operator_text)
     if not text:
         return ""
-    if "ignore gates" in text and ("mark it sent" in text or "mark this sent" in text or "mark invoice sent" in text):
+    gate_bypass = _has_any(text, ("ignore gates", "bypass gates", "skip gates", "override gates", "force it"))
+    send_submit_terms = _has_any(
+        text,
+        (
+            "mark it sent",
+            "mark this sent",
+            "mark invoice sent",
+            "send that invoice",
+            "send the invoice",
+            "submit the invoice",
+            "send it to capital hilton",
+            "send it to ch",
+            "email the invoice",
+            "post the ledger",
+            "post ledger",
+            "mark paid",
+            "mark submitted",
+        ),
+    )
+    if gate_bypass and send_submit_terms:
         return "PROMPT_INJECTION_MARK_SENT"
-    if text in {"next", "continue"}:
+    if send_submit_terms:
+        return "OUTBOUND_SEND_REQUEST"
+    if text in {"next", "continue"} or _has_any(
+        text,
+        (
+            "keep going",
+            "do the next thing",
+            "do next",
+            "next step",
+            "move it forward",
+            "get this unstuck",
+        ),
+    ):
         return "NEXT"
-    if text in {"go ahead", "yeah do that", "yes do that", "do that"}:
+    if text in {"go ahead", "yeah do that", "yes do that", "do that"} or _has_any(
+        text,
+        (
+            "yep do it",
+            "yeah do it",
+            "ok do it",
+            "okay do it",
+            "do the thing",
+            "thats fine do it",
+            "that is fine do it",
+        ),
+    ):
         return "AMBIENT_GO_AHEAD"
-    if "handle the coupa thing" in text or ("coupa thing" in text and "handle" in text):
+    if "handle the coupa thing" in text or ("coupa thing" in text and _has_any(text, ("handle", "fix", "deal with"))):
         return "COUPA_MISSING_INPUT"
-    if text in {"what do you need from me", "what do you need from me?", "what do you need"}:
+    if text in {"what do you need from me", "what do you need from me?", "what do you need"} or _has_any(
+        text,
+        (
+            "what do u need",
+            "wat do u need",
+            "what u need",
+            "wat u need",
+            "what you need from me",
+            "what do you need winship",
+            "what are you waiting on",
+            "what is missing from me",
+            "what do i owe you",
+        ),
+    ):
         return "WHAT_DO_YOU_NEED"
     if "ask cassandra" in text and "email" in text and any(term in text for term in ("prep", "prepare", "draft")):
         return "CASSANDRA_PREP_EMAIL"
-    if "show me" in text and any(term in text for term in ("blocking it", "blockers", "blocked by", "what is blocking")):
+    if ("show me" in text or "tell me" in text or "whats" in text or "what is" in text) and any(
+        term in text for term in ("blocking it", "blockers", "blocked by", "what is blocking", "whats blocking", "stuck")
+    ):
         return "SHOW_BLOCKING_STATUS"
     if "niles" in text and "x32" in text:
         return "NILES_X32"
-    if "make a video" in text or "generate video" in text or "render video" in text:
+    if "make a video" in text or "generate video" in text or "render video" in text or (
+        _has_wordish(text, ("video",)) and _has_any(text, ("make", "create", "show", "preview"))
+    ):
         return "MAKE_VIDEO"
     return ""
 
@@ -392,7 +484,7 @@ def _authority_false() -> dict[str, bool]:
 
 def _authority_requested_for(match_id: str, state: session_state_resolver.ActiveSessionState) -> dict[str, bool]:
     requested = _authority_false()
-    if match_id == "PROMPT_INJECTION_MARK_SENT" or (
+    if match_id in {"PROMPT_INJECTION_MARK_SENT", "OUTBOUND_SEND_REQUEST"} or (
         match_id == "AMBIENT_GO_AHEAD" and _ambient_go_ahead_needs_authority(state)
     ):
         requested.update(
@@ -419,6 +511,7 @@ def _intent_for(match_id: str, state: session_state_resolver.ActiveSessionState)
         "NILES_X32": "ROUTE_TO_AGENT",
         "MAKE_VIDEO": "SHOW_VISUAL_WORKSPACE",
         "PROMPT_INJECTION_MARK_SENT": "REQUEST_APPROVAL",
+        "OUTBOUND_SEND_REQUEST": "REQUEST_APPROVAL",
     }.get(match_id, "UNKNOWN_FAIL_CLOSED")
 
 
@@ -433,6 +526,7 @@ def _task_type_for(match_id: str) -> str:
         "NILES_X32": "source_ref",
         "MAKE_VIDEO": "make_video",
         "PROMPT_INJECTION_MARK_SENT": "send_or_submit_request",
+        "OUTBOUND_SEND_REQUEST": "send_or_submit_request",
     }.get(match_id, "unknown")
 
 
@@ -499,6 +593,16 @@ def _build_candidate(
         target_agent_role = "GUARDIAN"
         referenced_next_action = "Next: Provide exact approval and proof receipts before any future send or submit lane."
         forbidden_assumptions = forbidden_assumptions + ("ignore gates", "completion can be claimed without receipt")
+    elif match_id == "OUTBOUND_SEND_REQUEST":
+        requested_action = "send, submit, email, or post invoice output"
+        target_agent_role = "GUARDIAN"
+        referenced_next_action = "Next: prepare a reviewable invoice/send packet first."
+        missing_requirements = ("MISSING_EXACT_APPROVAL", "MISSING_SEND_PACKET", "MISSING_PROOF_RECEIPTS")
+        forbidden_assumptions = forbidden_assumptions + (
+            "casual send language grants send authority",
+            "draft workbook means invoice is ready to send",
+            "ledger posting can happen without receipt",
+        )
     else:
         requested_action = "ask for clarification"
 

@@ -200,6 +200,53 @@ def test_prompt_injection_is_blocked_by_authority(tmp_path):
     assert not any(result.validation_result["authority_granted"].values())
 
 
+def test_casual_send_invoice_language_is_understood_then_blocked(tmp_path):
+    result = _interpret(tmp_path, "Cassandra yo send that invoice to CH")
+
+    _assert_core_path_used(result)
+    assert result.candidate.inferred_intent_type == "REQUEST_APPROVAL"
+    assert result.candidate.target_agent_role == "GUARDIAN"
+    assert result.validation_result["verdict"] == "BLOCKED_BY_AUTHORITY"
+    assert result.response_plan.response_author == "GUARDIAN"
+    assert result.machine_proof["send_submit_performed"] is False
+    assert result.machine_proof["email_send_performed"] is False
+    assert not any(result.validation_result["authority_granted"].values())
+
+
+def test_casual_or_typo_language_matches_safe_intents(tmp_path):
+    cases = (
+        ("wat do u need", "CAPTURE_MISSING_INPUT"),
+        ("get this unstuck", "CONTINUE_CURRENT_WORKFLOW"),
+        ("make me a video preview for this", "SHOW_VISUAL_WORKSPACE"),
+    )
+    for message, intent_type in cases:
+        result = _interpret(tmp_path, message)
+
+        _assert_core_path_used(result)
+        assert result.candidate.inferred_intent_type == intent_type
+        assert result.machine_proof["model_call_performed"] is False
+        assert result.machine_proof["external_action_performed"] is False
+
+
+def test_operator_message_is_not_hidden_by_generic_summary(tmp_path):
+    _write_json(tmp_path / "openclaw_response_for_mac.json", _terminal_response())
+    raw_request = {
+        "request_id": "summary_generic_operator_specific",
+        "operator_message": "yo send that invoice to CH",
+        "sanitized_message_summary": "Capital Hilton invoice workflow request",
+        "workflow_ref": "capital_hilton_invoice_workflow",
+        "world_ref": "finance",
+        "client_ref": "capital_hilton",
+    }
+
+    result = interpreter.interpret_request(raw_request, export_root=tmp_path, generated_at=FIXED_NOW)
+
+    assert result.matched is True
+    assert result.match_id == "OUTBOUND_SEND_REQUEST"
+    assert result.candidate.inferred_intent_type == "REQUEST_APPROVAL"
+    assert result.validation_result["verdict"] == "BLOCKED_BY_AUTHORITY"
+
+
 def test_export_writes_parseable_readmodel_without_raw_body_or_credentials(tmp_path, capsys):
     _write_json(tmp_path / "openclaw_response_for_mac.json", _terminal_response())
 

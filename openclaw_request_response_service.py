@@ -774,6 +774,22 @@ def _route_for_request(request_path: Path, identity: RequestIdentity, raw_reques
             mac_handoff_required=False,
             future_worker_blocked=False,
         )
+    if _contains_any(lowered, STRONG_MAC_ROUTE_TERMS):
+        route = worker_routing_intelligence.route_request(text, source_chat_ref=identity.source_request_id or request_path.name)
+        return RouteDecision(
+            routing_status="ROUTED_TO_MAC",
+            selected_worker_target="MAC_CODEX",
+            selected_machine="MAC",
+            processing_status="MAC_HANDOFF_NEEDED",
+            operator_headline="Routed to Mac",
+            operator_message="OpenClaw picked this up. This request needs Mac-side handling.",
+            next_safe_move="Wait for the Mac worker readback, or build the Mac handoff lane if unavailable.",
+            route_reason=route.route_reason,
+            pc_handled=False,
+            mac_handoff_required=True,
+            future_worker_blocked=False,
+            terminal_block_status="BLOCKED_MAC_HANDOFF_UNAVAILABLE",
+        )
     if deterministic_intent_interpreter.should_interpret(raw_request):
         return RouteDecision(
             routing_status="PROCESSING_ON_PC",
@@ -1312,17 +1328,14 @@ def _route_blocked_processor_payload(
         how_to_fix = "Build the Mac worker request watcher/handoff lane, or handle this manually in Mac Codex for now."
     else:
         target_label = route.selected_worker_target.replace("_", "/").title()
-        headline = f"{target_label} worker is not available" if route.selected_worker_target != "UNKNOWN" else "Worker route is unavailable"
-        message = (
-            f"OpenClaw routed this to {target_label}, but the live worker adapter is not connected yet."
-            if route.selected_worker_target != "UNKNOWN"
-            else "OpenClaw could not choose a safe live worker target for this request yet."
-        )
-        how_to_fix = (
-            f"Build the bounded {target_label} wrapper/adapter before this can run."
-            if route.selected_worker_target != "UNKNOWN"
-            else "Clarify the target worker or build the missing deterministic route before retrying."
-        )
+        if route.selected_worker_target == "UNKNOWN":
+            headline = "I need one more detail"
+            message = "OpenClaw could not safely turn that into a bounded action yet. Nothing was run or changed."
+            how_to_fix = "Next: say the object and the safe outcome you want, or choose the visible app option."
+        else:
+            headline = f"{target_label} helper is not connected yet"
+            message = f"OpenClaw understood the likely helper, but that bounded helper is not connected yet. Nothing was run or changed."
+            how_to_fix = f"Next: prepare the bounded {target_label} helper contract before this can run."
     response = processor.OpenClawResponseForMac(
         source_request_id=identity.source_request_id,
         source_request_filename=request_path.name,
@@ -1342,9 +1355,9 @@ def _route_blocked_processor_payload(
             {
                 "title": headline,
                 "bullets": (
-                    f"Selected worker: {route.selected_worker_target}",
-                    f"Selected machine: {route.selected_machine}",
-                    "No live worker adapter or Mac handoff rail is available in this lane.",
+                    "No model, worker, workflow, send, submit, or external action ran.",
+                    "OpenClaw needs a clearer bounded action or a connected helper contract.",
+                    how_to_fix,
                 ),
                 "status_tone": "blocked",
             },

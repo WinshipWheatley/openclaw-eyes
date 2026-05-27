@@ -2027,6 +2027,19 @@ def _is_capital_hilton_invoice_status_request(raw_request: Mapping[str, Any]) ->
     return capital_context and invoice_context and status_intent
 
 
+def _is_capital_hilton_mark_sent_status_question(raw_request: Mapping[str, Any]) -> bool:
+    text = _capital_hilton_status_text(raw_request)
+    return _is_capital_hilton_invoice_status_request(raw_request) and any(
+        phrase in text
+        for phrase in (
+            "can we mark",
+            "can i mark",
+            "mark invoice sent",
+            "invoice sent",
+        )
+    )
+
+
 def _capital_hilton_status_classification(classification: RequestClassification) -> RequestClassification:
     return RequestClassification(
         classification_id=f"request_classification_{_short_hash(classification.source_request_filename, 'capital_hilton_status')}",
@@ -3315,6 +3328,16 @@ def _process_chat_request(
     )
     if sheet_audit is not None:
         return sheet_audit
+
+    if _is_capital_hilton_mark_sent_status_question(raw_request):
+        return _process_capital_hilton_status_request(
+            request_path,
+            raw_request,
+            export_root=export_root,
+            generated_at=generated_at,
+            classification=classification,
+            read_model_reader=read_model_reader,
+        )
 
     interpreted = _process_deterministic_intent_request(
         request_path,
