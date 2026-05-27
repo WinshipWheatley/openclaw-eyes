@@ -259,7 +259,7 @@ def worker_result_candidate(
         next_action=str(worker_result.get("next_action") or ""),
         requested_tool_calls=tuple(str(item) for item in worker_result.get("requested_tool_calls") or ()),
         requested_external_actions=tuple(str(item) for item in worker_result.get("requested_external_actions") or ()),
-        completion_claims=(),
+        completion_claims=guardian_output_gate._unnegated_claims(raw_text),
         proof_refs=package.proof_refs,
         authority_requested={"external_action": bool(worker_result.get("external_action")), "authority_used": bool(worker_result.get("authority_used"))},
         raw_output_text=raw_text,
@@ -285,6 +285,9 @@ def record_worker_receipt(
     validation_result: Mapping[str, Any],
     db_path: Path = DEFAULT_RECEIPT_DB_PATH,
     created_at: str | None = None,
+    receipt_classification: str = "offline_worker_fixture",
+    production_receipt: bool = False,
+    harness_ref: str = "",
 ) -> dict[str, Any]:
     created_at = created_at or utc_now()
     if validation_result.get("verdict") != guardian_output_gate.VALIDATED:
@@ -298,6 +301,9 @@ def record_worker_receipt(
 
     receipt_payload = {
         "schema_version": SCHEMA_VERSION,
+        "receipt_classification": str(receipt_classification or "offline_worker_fixture"),
+        "production_receipt": bool(production_receipt),
+        "harness_ref": str(harness_ref or ""),
         "source_request_id": worker_result["source_request_id"],
         "package_id": role_package["package_id"],
         "worker_adapter_id": worker_result["worker_adapter_id"],
