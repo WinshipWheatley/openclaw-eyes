@@ -428,6 +428,13 @@ def _scoped_response_exists(response_dir: Path, source_request_id: str) -> Path 
     return response_path if response_path.exists() and response_path.is_file() else None
 
 
+def _latest_response_mtime_ns(response_dir: Path) -> int | None:
+    latest = response_dir / LATEST_RESPONSE_EXPORT_NAME
+    if not latest.exists() or not latest.is_file():
+        return None
+    return latest.stat().st_mtime_ns
+
+
 def read_request_identity(path: Path) -> RequestIdentity:
     request_type = classify_request_path(path)
     try:
@@ -481,6 +488,7 @@ def select_next_pending_request(
     response_dir: Path = DEFAULT_RESPONSE_DIR,
     export_root: Path = DEFAULT_EXPORT_ROOT,
     extra_processed_keys: set[str] | None = None,
+    stale_before_mtime_ns: int | None = None,
 ) -> tuple[Path | None, tuple[dict[str, Any], ...]]:
     existing_status = read_service_status(export_root)
     processed = _processed_identity_keys(existing_status)
@@ -514,6 +522,18 @@ def select_next_pending_request(
                     "matched_duplicate_keys": (f"scoped_response:{identity.source_request_id}",),
                     "reason": "already has scoped Mac response",
                     "response_file": existing_response.as_posix(),
+                }
+            )
+            continue
+        if stale_before_mtime_ns is not None and candidate.stat().st_mtime_ns <= stale_before_mtime_ns:
+            skipped.append(
+                {
+                    "source_request_id": identity.source_request_id,
+                    "source_request_filename": candidate.name,
+                    "request_key": identity.request_key,
+                    "identity_keys": identity_keys,
+                    "matched_duplicate_keys": (f"stale_before_latest_response:{identity.source_request_id}",),
+                    "reason": "stale inbox backlog older than latest Mac response",
                 }
             )
             continue
@@ -1371,6 +1391,7 @@ def process_one_pending_request(
     extra_processed_keys: set[str] | None = None,
     read_model_cache: ReadModelMemoryCache | None = None,
     mac_handoff_dir: Path = DEFAULT_MAC_HANDOFF_DIR,
+    stale_before_mtime_ns: int | None = None,
 ) -> ServiceRunResult:
     created_at = generated_at or utc_now()
     cache = read_model_cache or _new_read_model_cache(export_root)
@@ -1379,6 +1400,7 @@ def process_one_pending_request(
         response_dir=response_dir,
         export_root=export_root,
         extra_processed_keys=extra_processed_keys,
+        stale_before_mtime_ns=stale_before_mtime_ns,
     )
     if request_path is None:
         service_status = "REQUEST_SKIPPED_DUPLICATE" if skipped else "IDLE_NO_REQUEST_AVAILABLE"
@@ -1633,6 +1655,7 @@ def run_watch(
     active_window = max(0.0, float(active_window_seconds))
     active_until = 0.0
     read_model_cache = _new_read_model_cache(export_root)
+    stale_before_mtime_ns = _latest_response_mtime_ns(response_dir)
     processed: list[dict[str, Any]] = []
     skipped: list[dict[str, Any]] = []
     errors: list[str] = []
@@ -1657,6 +1680,7 @@ def run_watch(
             extra_processed_keys=in_memory_processed_keys,
             read_model_cache=read_model_cache,
             mac_handoff_dir=mac_handoff_dir,
+            stale_before_mtime_ns=stale_before_mtime_ns,
         )
         skipped.extend(result.skipped_duplicates)
         if result.processed_count:
