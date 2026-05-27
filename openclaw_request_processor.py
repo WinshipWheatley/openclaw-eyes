@@ -2802,7 +2802,24 @@ def _process_invoice_review_action_request(
         request_path=request_path,
         route_decision=route_decision,
     )
-    payload = invoice_review_action_request_handler.process_action_request(raw_request, generated_at=generated_at)
+    default_export_root = invoice_review_action_request_handler.invoice_review_state_machine.DEFAULT_EXPORT_ROOT.resolve()
+    bridge_export_root = (
+        invoice_review_action_request_handler.invoice_review_state_machine.DEFAULT_BRIDGE_EXPORT_ROOT
+        if export_root.resolve() == default_export_root
+        else None
+    )
+    db_path = (
+        invoice_review_action_request_handler.invoice_review_state_machine.DEFAULT_DB_PATH
+        if export_root.resolve() == default_export_root
+        else export_root.parent / "invoice_review_state.sqlite"
+    )
+    payload = invoice_review_action_request_handler.process_action_request(
+        raw_request,
+        generated_at=generated_at,
+        db_path=db_path,
+        export_root=export_root,
+        bridge_export_root=bridge_export_root,
+    )
     action_json, action_operator = invoice_review_action_request_handler.write_exports(payload, export_root)
     status = str(payload["status"])
     response_ready = status == "GUIDED_ACTION_STARTED"
@@ -2812,6 +2829,9 @@ def _process_invoice_review_action_request(
     operator_body = body if detail_text in body else f"{body} {detail_text}"
     next_action = str(payload["next_action"])
     receipt = payload["action_start_receipt"]
+    state_progress = payload.get("state_machine_progress") if isinstance(payload.get("state_machine_progress"), Mapping) else {}
+    completion_written = bool(payload.get("machine_proof", {}).get("completion_receipt_written")) if isinstance(payload.get("machine_proof"), Mapping) else False
+    blocker_completed = bool(payload.get("machine_proof", {}).get("underlying_blocker_completed")) if isinstance(payload.get("machine_proof"), Mapping) else False
     detail = {
         "invoice_review_action_request": {
             "readback_ref": action_json.as_posix(),
@@ -2819,9 +2839,13 @@ def _process_invoice_review_action_request(
             "action_kind": payload["action_kind"],
             "status": status,
             "action_start_receipt": receipt,
+            "state_machine_progress": state_progress,
             "expected_receipt_types": payload["expected_receipt_types"],
-            "underlying_blocker_completed": False,
-            "completion_receipt_written": False,
+            "underlying_blocker_completed": blocker_completed,
+            "completion_receipt_written": completion_written,
+            "refreshed_bundle_path": state_progress.get("source_bundle_path"),
+            "bridge_bundle_path": state_progress.get("bridge_bundle_path"),
+            "bridge_mirror_written": bool(state_progress.get("bridge_mirror_written")),
             "external_action_performed": False,
             "email_send_performed": False,
             "coupa_browser_automation_performed": False,
@@ -2843,6 +2867,8 @@ def _process_invoice_review_action_request(
             "missing_items_short": tuple(_ for _ in payload.get("expected_receipt_types") or ()),
             "detail_summary": detail_text,
             "proof_refs": (receipt["receipt_id"], action_json.as_posix()),
+            "refreshed_bundle_path": state_progress.get("source_bundle_path"),
+            "bridge_bundle_path": state_progress.get("bridge_bundle_path"),
             "mac_render_hint": "COMPACT_WITH_DISCLOSURE",
         },
         "request_classification": asdict(action_classification),
@@ -2861,8 +2887,8 @@ def _process_invoice_review_action_request(
         what_happened=(
             "PC consumed the invoice review action request.",
             "PC validated the bundle, workflow, client, action, and no-external-action boundary.",
-            "PC wrote only a guided action-start receipt/readback.",
-            "PC did not complete the underlying blocker or perform any external action.",
+            "PC wrote a guided action receipt/readback and refreshed the invoice review bundle.",
+            "PC did not perform any external action.",
         ),
         why_it_happened=str(payload["detail"]),
         how_to_fix=next_action,

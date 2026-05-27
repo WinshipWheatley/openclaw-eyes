@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 import invoice_review_bundle
+import invoice_review_state_machine
 
 
 READ_MODEL_ID = "invoice_review_action_request_receipt"
@@ -235,7 +236,14 @@ def _operator_copy(action_kind: str) -> tuple[str, str, str, str, tuple[str, ...
     )
 
 
-def process_action_request(raw_request: Mapping[str, Any], *, generated_at: str | None = None) -> dict[str, Any]:
+def process_action_request(
+    raw_request: Mapping[str, Any],
+    *,
+    generated_at: str | None = None,
+    db_path: Path = invoice_review_state_machine.DEFAULT_DB_PATH,
+    export_root: Path = invoice_review_state_machine.DEFAULT_EXPORT_ROOT,
+    bridge_export_root: Path | None = invoice_review_state_machine.DEFAULT_BRIDGE_EXPORT_ROOT,
+) -> dict[str, Any]:
     payload = _action_payload(raw_request)
     request_id = str(raw_request.get("request_id") or payload.get("request_id") or payload.get("source_request_id") or "unknown_invoice_review_action")
     action_kind = str(payload.get("action_kind") or payload.get("request_kind") or payload.get("intended_use") or "")
@@ -268,7 +276,22 @@ def process_action_request(raw_request: Mapping[str, Any], *, generated_at: str 
     if action_kind in {"prepare_send_approval_request", "setup_payment_watch_after_submission", "edit_clara_draft_request"}:
         can_start = False
         action_disabled_reason = action_disabled_reason or "This guided path is blocked until prerequisites exist."
-    if not valid_scope:
+    progress_result = None
+    if valid_scope and supported and no_external:
+        progress_result = invoice_review_state_machine.process_action(
+            raw_request,
+            db_path=db_path,
+            export_root=export_root,
+            bridge_export_root=bridge_export_root,
+            generated_at=generated_at,
+        )
+        headline = progress_result.headline
+        body = progress_result.body
+        detail = progress_result.detail
+        next_action = progress_result.next_action
+        expected = (progress_result.action_receipt["receipt_name"],)
+        status = "BLOCKED_PREREQUISITES" if str(progress_result.status).startswith("BLOCKED") else "GUIDED_ACTION_STARTED"
+    elif not valid_scope:
         headline = "Invoice review action blocked"
         body = "OpenClaw could not start that invoice review action because the bundle, workflow, or client did not match."
         detail = "No guided path started; the current invoice review bundle scope did not match the request."
@@ -312,6 +335,13 @@ def process_action_request(raw_request: Mapping[str, Any], *, generated_at: str 
         "external_action_performed": False,
         "generated_at": generated_at,
     }
+    if progress_result is not None:
+        receipt["receipt_id"] = progress_result.action_receipt["receipt_id"]
+        receipt["receipt_type"] = progress_result.action_receipt["receipt_type"]
+        receipt["receipt_name"] = progress_result.action_receipt["receipt_name"]
+        receipt["progress_status"] = progress_result.status
+        receipt["underlying_blocker_completed"] = progress_result.action_receipt["underlying_blocker_completed"]
+        receipt["completion_receipt_written"] = progress_result.action_receipt["completion_receipt_written"]
     return {
         "schema_version": SCHEMA_VERSION,
         "read_model_id": READ_MODEL_ID,
@@ -324,6 +354,15 @@ def process_action_request(raw_request: Mapping[str, Any], *, generated_at: str 
         "next_action": next_action,
         "expected_receipt_types": expected,
         "action_start_receipt": receipt,
+        "state_machine_progress": {
+            "used": progress_result is not None,
+            "progress_status": progress_result.status if progress_result else None,
+            "state_snapshot": progress_result.state_snapshot if progress_result else None,
+            "action_progress_receipt": progress_result.action_receipt if progress_result else None,
+            "source_bundle_path": progress_result.source_bundle_path if progress_result else None,
+            "bridge_bundle_path": progress_result.bridge_bundle_path if progress_result else None,
+            "bridge_mirror_written": progress_result.bridge_mirror_written if progress_result else False,
+        },
         "bundle_action": bundle_action,
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
         "machine_proof": {
@@ -332,8 +371,10 @@ def process_action_request(raw_request: Mapping[str, Any], *, generated_at: str 
             "current_bundle_action_found": bundle_action is not None,
             "no_external_action": no_external,
             "guided_path_started": status == "GUIDED_ACTION_STARTED",
-            "completion_receipt_written": False,
-            "underlying_blocker_completed": False,
+            "completion_receipt_written": bool(progress_result.action_receipt["completion_receipt_written"]) if progress_result else False,
+            "underlying_blocker_completed": bool(progress_result.action_receipt["underlying_blocker_completed"]) if progress_result else False,
+            "bundle_refreshed": bool(progress_result),
+            "bridge_bundle_mirrored": bool(progress_result and progress_result.bridge_mirror_written),
             "coupa_browser_automation_performed": False,
             "email_send_performed": False,
             "ledger_posting_performed": False,
