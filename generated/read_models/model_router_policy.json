@@ -42,6 +42,30 @@
       "structured_output_required": true,
       "tokenization_required_before_live": false
     },
+    "lm1_thread_package": {
+      "authority_boundary": {
+        "authority_grant_allowed": false,
+        "external_action_allowed": false,
+        "live_model_call_allowed": false,
+        "model_api_integration_allowed": false,
+        "network_allowed": false,
+        "production_state_mutation_allowed": false,
+        "provider_key_material_access_allowed": false,
+        "send_submit_allowed": false,
+        "tool_execution_allowed": false,
+        "workflow_execution_allowed": false
+      },
+      "blocked_reasons": [],
+      "chain_lane": "LM1_INTENT_PROPOSAL",
+      "conservative_posture": true,
+      "decision_id": "model_routing_decision:78ef8d3ca96b6c36",
+      "next_safe_move": "Use this model class only as a future candidate route; no model call is allowed in v0.",
+      "request_id": "model_router_fixture_lm1_thread_package:model_route",
+      "selected_model_class": "FAST_STRUCTURED_INTENT_SMALL",
+      "selection_reason": "LM1 intent proposal is narrow, structured, low-risk, and latency-sensitive.",
+      "structured_output_required": true,
+      "tokenization_required_before_live": false
+    },
     "lm2_role_package": {
       "authority_boundary": {
         "authority_grant_allowed": false,
@@ -61,6 +85,30 @@
       "decision_id": "model_routing_decision:fdd57cf89b99aee7",
       "next_safe_move": "Use this model class only as a future candidate route; no model call is allowed in v0.",
       "request_id": "model_router_fixture_lm2",
+      "selected_model_class": "STRONG_STRUCTURED_ROLE_REASONER",
+      "selection_reason": "LM2 role response needs stronger package reasoning and operator wording.",
+      "structured_output_required": true,
+      "tokenization_required_before_live": false
+    },
+    "lm2_role_package_integrated": {
+      "authority_boundary": {
+        "authority_grant_allowed": false,
+        "external_action_allowed": false,
+        "live_model_call_allowed": false,
+        "model_api_integration_allowed": false,
+        "network_allowed": false,
+        "production_state_mutation_allowed": false,
+        "provider_key_material_access_allowed": false,
+        "send_submit_allowed": false,
+        "tool_execution_allowed": false,
+        "workflow_execution_allowed": false
+      },
+      "blocked_reasons": [],
+      "chain_lane": "LM2_ROLE_RESPONSE",
+      "conservative_posture": true,
+      "decision_id": "model_routing_decision:4331b9470a4ab887",
+      "next_safe_move": "Use this model class only as a future candidate route; no model call is allowed in v0.",
+      "request_id": "model_router_fixture_lm2_role_package:model_route",
       "selected_model_class": "STRONG_STRUCTURED_ROLE_REASONER",
       "selection_reason": "LM2 role response needs stronger package reasoning and operator wording.",
       "structured_output_required": true,
@@ -97,9 +145,11 @@
   "machine_proof": {
     "all_live_authority_false": true,
     "authority_granted": false,
-    "content_hash": "sha256:8661fcdb369e9cc3c4a2bf144ca9283ee019e07431ebdcb921bbc18ca0b3a3cd",
+    "content_hash": "sha256:29e4c39e8d36d9b6989358a942a5ba8cbc453e147056c246a8ddf7b827884611",
     "lm1_example_selects_fast_class": true,
+    "lm1_thread_package_selects_fast_class": true,
     "lm2_example_selects_stronger_class": true,
+    "lm2_role_package_integrated_selects_class": true,
     "model_call_performed": false,
     "network_performed": false,
     "provider_key_material_access_performed": false,

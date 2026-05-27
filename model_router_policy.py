@@ -214,6 +214,60 @@ def select_model_class(request: ModelRoutingRequest | Mapping[str, Any]) -> dict
     return asdict(decision)
 
 
+def select_for_lm1_thread_package(thread_package: Mapping[str, Any]) -> dict[str, Any]:
+    privacy = thread_package.get("privacy") if isinstance(thread_package.get("privacy"), Mapping) else {}
+    inference = thread_package.get("universal_intake_inference") if isinstance(thread_package.get("universal_intake_inference"), Mapping) else {}
+    tokenization_applied = bool(privacy.get("tokenization_applied"))
+    raw_values_included = bool(privacy.get("raw_values_included"))
+    confidence = str(inference.get("confidence") or "MEDIUM").upper()
+    risk = "low" if confidence == "HIGH" and not raw_values_included else "medium"
+    sensitivity = str(privacy.get("privacy_level") or "low").lower()
+    if sensitivity in {"tokenized_fixture", "metadata_only_tokenized_refs"}:
+        sensitivity = "low"
+    return select_model_class(
+        {
+            "request_id": f"{thread_package.get('package_id', 'lm1_thread_package')}:model_route",
+            "chain_lane": "LM1_INTENT_PROPOSAL",
+            "task_type": "intent_proposal_from_thread_context",
+            "role": "OPENCLAW_SYSTEM",
+            "risk_level": risk,
+            "sensitivity_level": sensitivity,
+            "context_size": "small",
+            "requires_structured_output": True,
+            "tokenization_applied": tokenization_applied,
+            "raw_values_included": raw_values_included,
+            "requested_live_authority": False,
+        }
+    )
+
+
+def select_for_lm2_role_package(role_package: Mapping[str, Any]) -> dict[str, Any]:
+    role = str(role_package.get("role_identity") or role_package.get("actor_label") or "OPENCLAW_SYSTEM")
+    raw_values_included = bool(role_package.get("raw_values_included"))
+    tokenization_applied = bool(role_package.get("tokenization_applied"))
+    privacy_level = str(role_package.get("privacy_level") or "low").lower()
+    task = str(role_package.get("task") or "").lower()
+    risk = "high" if any(term in task for term in ("send", "submit", "paid", "ledger", "approval")) else "medium"
+    sensitivity = "high" if privacy_level in {"protected", "sensitive_raw"} else "low"
+    if raw_values_included:
+        sensitivity = "protected"
+    return select_model_class(
+        {
+            "request_id": f"{role_package.get('package_id', 'lm2_role_package')}:model_route",
+            "chain_lane": "LM2_ROLE_RESPONSE",
+            "task_type": "role_response_from_gate3_package",
+            "role": role,
+            "risk_level": risk,
+            "sensitivity_level": sensitivity,
+            "context_size": "medium",
+            "requires_structured_output": True,
+            "tokenization_applied": tokenization_applied,
+            "raw_values_included": raw_values_included,
+            "requested_live_authority": False,
+        }
+    )
+
+
 def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
     generated_at = generated_at or DEFAULT_GENERATED_AT
     examples = {
@@ -254,6 +308,27 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
                 "tokenization_applied": False,
             }
         ),
+        "lm1_thread_package": select_for_lm1_thread_package(
+            {
+                "package_id": "model_router_fixture_lm1_thread_package",
+                "universal_intake_inference": {"confidence": "HIGH"},
+                "privacy": {
+                    "tokenization_applied": True,
+                    "raw_values_included": False,
+                    "privacy_level": "metadata_only_tokenized_refs",
+                },
+            }
+        ),
+        "lm2_role_package_integrated": select_for_lm2_role_package(
+            {
+                "package_id": "model_router_fixture_lm2_role_package",
+                "role_identity": "CASSANDRA_CLARA",
+                "task": "Prepare invoice package readback only.",
+                "tokenization_applied": True,
+                "raw_values_included": False,
+                "privacy_level": "metadata_only_tokenized_refs",
+            }
+        ),
     }
     payload: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
@@ -275,6 +350,9 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
             "authority_granted": False,
             "lm1_example_selects_fast_class": examples["lm1_low_risk_intent"]["selected_model_class"] == FAST_STRUCTURED_INTENT_SMALL,
             "lm2_example_selects_stronger_class": examples["lm2_role_package"]["selected_model_class"] == STRONG_STRUCTURED_ROLE_REASONER,
+            "lm1_thread_package_selects_fast_class": examples["lm1_thread_package"]["selected_model_class"] == FAST_STRUCTURED_INTENT_SMALL,
+            "lm2_role_package_integrated_selects_class": examples["lm2_role_package_integrated"]["selected_model_class"]
+            in {STRONG_STRUCTURED_ROLE_REASONER, CONSERVATIVE_SENSITIVE_STRUCTURED},
             "sensitive_example_blocks_without_tokenization": examples["sensitive_without_tokenization"]["selected_model_class"] == NO_SAFE_MODEL,
             "all_live_authority_false": all(value is False for value in AUTHORITY_BOUNDARY.values()),
             "content_hash": "",

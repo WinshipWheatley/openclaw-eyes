@@ -149,7 +149,9 @@
           "raw_body_allowed": false,
           "source_refs": []
         },
+        "detokenization_policy_ref": "detokenization_denied_without_explicit_policy_receipt",
         "lm2_call_allowed": false,
+        "model_may_see_raw_values": false,
         "next_safe_move": "When a future lane enables LM2, send only this package; validate the response with Guardian output gate.",
         "output_contract_ref": "guardian_output_gate_v0",
         "output_destination": {
@@ -162,6 +164,8 @@
           "thread_ref": "role_package_gate_draft_request"
         },
         "package_id": "role_execution_package:3cebb4bdeae535ac",
+        "privacy_level": "metadata_only_tokenized_refs",
+        "raw_values_included": false,
         "ready_for_gate_4": true,
         "role_binding_decision": {
           "actor_label": "Cassandra",
@@ -179,6 +183,9 @@
         "source_intent_ref": "role_package_gate_fixture_draft",
         "source_request_id": "role_package_gate_draft_request",
         "task": "Prepare review language for the invoice email draft.",
+        "token_scope": "scope:finance:capital_hilton:capital_hilton_invoice_workflow",
+        "token_vault_ref": "generated/read_models/token_vault_status.json",
+        "tokenization_applied": true,
         "tool_policy": {
           "allowed_actions": [
             "respond_to_originating_device_thread",
@@ -324,7 +331,9 @@
           "raw_body_allowed": false,
           "source_refs": []
         },
+        "detokenization_policy_ref": "detokenization_denied_without_explicit_policy_receipt",
         "lm2_call_allowed": false,
+        "model_may_see_raw_values": false,
         "next_safe_move": "When a future lane enables LM2, send only this package; validate the response with Guardian output gate.",
         "output_contract_ref": "guardian_output_gate_v0",
         "output_destination": {
@@ -337,6 +346,8 @@
           "thread_ref": "role_package_gate_status_request"
         },
         "package_id": "role_execution_package:3e608d748a58fa14",
+        "privacy_level": "metadata_only_tokenized_refs",
+        "raw_values_included": false,
         "ready_for_gate_4": true,
         "role_binding_decision": {
           "actor_label": "Chief",
@@ -354,6 +365,9 @@
         "source_intent_ref": "role_package_gate_fixture_status",
         "source_request_id": "role_package_gate_status_request",
         "task": "Answer the Capital Hilton workflow status.",
+        "token_scope": "scope:finance:capital_hilton:capital_hilton_invoice_workflow",
+        "token_vault_ref": "generated/read_models/token_vault_status.json",
+        "tokenization_applied": true,
         "tool_policy": {
           "allowed_actions": [
             "respond_to_originating_device_thread",
@@ -420,14 +434,17 @@
     "blocked_gate2_not_compiled": true,
     "cassandra_package_compiled": true,
     "chief_package_compiled": true,
-    "content_hash": "sha256:fe52b421834e44fda970ac9f1faa5d577167e69577f6de6b1661ab219e1445ed",
+    "content_hash": "sha256:7e9b130c1acb4da3def282e7b3a5ac7a4a9c1942eef6e195ffac810e45d53eda",
     "external_action_performed": false,
     "gate_2_required_before_gate_3": true,
     "gate_3_present": true,
     "lm2_call_performed": false,
     "model_call_performed": false,
+    "model_may_see_raw_values": false,
+    "raw_values_included": false,
     "ready_for_gate_4": true,
     "send_submit_performed": false,
+    "tokenization_fields_present": true,
     "tool_execution_performed": false,
     "worker_dispatch_performed": false,
     "workflow_execution_performed": false

@@ -3,6 +3,7 @@
 Status: DETERMINISTIC_ROLE_PACKAGE_GATE_NO_EXECUTION
 Chief package compiled: true
 Blocked Gate 2 result compiled: false
+Tokenization fields present: true
 
 Gate 3 compiles bounded role packages only from Gate 2 accepted intents.
 

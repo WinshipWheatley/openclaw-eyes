@@ -178,6 +178,13 @@ class RoleExecutionPackage:
     tool_policy: dict[str, Any]
     output_destination: dict[str, Any]
     authority_policy: dict[str, Any]
+    tokenization_applied: bool
+    token_scope: str
+    raw_values_included: bool
+    token_vault_ref: str
+    detokenization_policy_ref: str
+    privacy_level: str
+    model_may_see_raw_values: bool
     output_contract_ref: str
     validation_required: bool
     ready_for_gate_4: bool
@@ -315,6 +322,10 @@ def compile_role_package(ingest_result: Mapping[str, Any]) -> dict[str, Any]:
     source_intent_ref = str(accepted.get("source_candidate_ref") or ingest_result.get("source_candidate_ref") or "")
     source_ingest_ref = str(ingest_result.get("ingest_result_id") or "")
     task = str(accepted.get("requested_action") or accepted.get("safe_action_type") or "Prepare bounded response.")
+    client_ref = str(accepted.get("client_ref") or "unknown")
+    workflow_ref = str(accepted.get("workflow_ref") or "unknown")
+    world_ref = str(accepted.get("world_ref") or "unknown")
+    token_scope = f"scope:{world_ref}:{client_ref}:{workflow_ref}"
     safe_refs = tuple(
         str(ref)
         for ref in (
@@ -385,14 +396,21 @@ def compile_role_package(ingest_result: Mapping[str, Any]) -> dict[str, Any]:
         role_identity=role,
         actor_label=actor_label,
         task=task,
-        client_ref=str(accepted.get("client_ref") or "unknown"),
-        workflow_ref=str(accepted.get("workflow_ref") or "unknown"),
-        world_ref=str(accepted.get("world_ref") or "unknown"),
+        client_ref=client_ref,
+        workflow_ref=workflow_ref,
+        world_ref=world_ref,
         role_binding_decision=asdict(binding),
         context_packet=asdict(context),
         tool_policy=asdict(tool_policy),
         output_destination=asdict(destination),
         authority_policy=asdict(authority_policy),
+        tokenization_applied=True,
+        token_scope=token_scope,
+        raw_values_included=False,
+        token_vault_ref="generated/read_models/token_vault_status.json",
+        detokenization_policy_ref="detokenization_denied_without_explicit_policy_receipt",
+        privacy_level="metadata_only_tokenized_refs",
+        model_may_see_raw_values=False,
         output_contract_ref=guardian_output_gate.SCHEMA_VERSION,
         validation_required=True,
         ready_for_gate_4=True,
@@ -495,6 +513,9 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
             "cassandra_package_compiled": cassandra_package["package_status"] == PACKAGE_COMPILED,
             "blocked_gate2_not_compiled": blocked_package["package_status"] == PACKAGE_NOT_COMPILED,
             "ready_for_gate_4": bool((chief_package.get("role_execution_package") or {}).get("ready_for_gate_4")),
+            "tokenization_fields_present": bool((chief_package.get("role_execution_package") or {}).get("token_vault_ref")),
+            "raw_values_included": bool((chief_package.get("role_execution_package") or {}).get("raw_values_included")),
+            "model_may_see_raw_values": bool((chief_package.get("role_execution_package") or {}).get("model_may_see_raw_values")),
             "lm2_call_performed": False,
             "model_call_performed": False,
             "agent_dispatch_performed": False,
@@ -524,6 +545,7 @@ def write_exports(payload: Mapping[str, Any], export_root: Path = DEFAULT_EXPORT
         f"Status: {CONTRACT_STATUS}",
         f"Chief package compiled: {str(proof.get('chief_package_compiled')).lower()}",
         f"Blocked Gate 2 result compiled: {str(not proof.get('blocked_gate2_not_compiled')).lower()}",
+        f"Tokenization fields present: {str(proof.get('tokenization_fields_present')).lower()}",
         "",
         "Gate 3 compiles bounded role packages only from Gate 2 accepted intents.",
         "",
