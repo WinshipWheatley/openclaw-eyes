@@ -337,7 +337,9 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
         "lm2_shadow_comparison": "READY" if shadow["machine_proof"]["shadow_comparison_failed_count"] == 0 else "NOT_READY",
         "can_lm2_shadow_test": shadow["machine_proof"]["lm2_expected_actual_compared"],
         "lm2_live": "NOT_ACTIVE",
-        "tokenization": "SEEDED_NOT_PRODUCTION",
+        "tokenization": "LOCAL_PRODUCTION_SUBSTRATE_READY_NO_REAL_DATA"
+        if privacy_readiness["production_token_vault_ready"]
+        else "SEEDED_NOT_PRODUCTION",
         "tokenization_policy": representative["lm1_thread_context_package"]["tokenization_policy"]["privacy_level"],
         "privacy_readiness_status": privacy_readiness["privacy_readiness_status"],
         "production_token_vault_ready": privacy_readiness["production_token_vault_ready"],

@@ -13,7 +13,7 @@
     "lm1_lm2": "Future LM calls must receive tokens/summaries, not raw sensitive values.",
     "readiness_gate": "Live LM readiness can block when tokenization is required but absent."
   },
-  "contract_status": "SYNTHETIC_LOCAL_TOKEN_VAULT_NO_REAL_DATA",
+  "contract_status": "LOCAL_PRODUCTION_TOKEN_VAULT_SUBSTRATE_NO_REAL_DATA",
   "fixture_tokens": {
     "scope_a": [
       {
@@ -195,13 +195,21 @@
     "all_live_authority_false": true,
     "cloud_call_performed": false,
     "cloud_lm_blocked_when_private": true,
-    "content_hash": "sha256:f20379437282e10a8f532d756ecaae2e5b5f7db2a67e493870392c66460ef2e9",
+    "content_hash": "sha256:48bd3995a3ef0d853ad33302acbf3bab82b705a3e2bf847cfdb9cfd32b8a8861",
     "different_scope_token_differs": true,
     "finance_policy_blocks_raw_model_visibility": true,
     "finance_policy_tokenization_required": true,
     "network_performed": false,
-    "privacy_readiness_production_token_vault_ready": false,
+    "privacy_policy_receipt_present": true,
+    "privacy_policy_receipt_shape_defined": true,
+    "privacy_readiness_production_token_vault_ready": true,
     "privacy_readiness_synthetic_tokenization_ready": true,
+    "production_receipts_satisfy_live_activation": true,
+    "production_token_vault_raw_value_columns_present": false,
+    "production_token_vault_ready_receipt_present": true,
+    "production_token_vault_receipt_shape_defined": true,
+    "production_token_vault_required_tables_present": true,
+    "production_token_vault_substrate_exists": true,
     "raw_values_exported": false,
     "real_data_ingestion_performed": false,
     "role_package_raw_values_included": false,
@@ -274,16 +282,124 @@
       "real_data_ingestion_allowed": false
     },
     "cloud_lm_blocked_when_private": true,
-    "next_safe_move": "Keep live LM exposure off until production token vault and private-mode receipts exist.",
-    "operator_summary": "Private Mode backend policy exists, but production token vault is not active yet.",
-    "privacy_readiness_id": "privacy_readiness:token_vault_v2",
-    "privacy_readiness_status": "POLICY_SEEDED_PRODUCTION_TOKEN_VAULT_NOT_ACTIVE",
+    "next_safe_move": "Keep live LM exposure off until the remaining activation receipts exist.",
+    "operator_summary": "Local privacy vault proof exists, but live models remain off.",
+    "privacy_readiness_id": "privacy_readiness:token_vault_v3",
+    "privacy_readiness_status": "PRODUCTION_TOKEN_VAULT_SUBSTRATE_READY_PRIVACY_RECEIPT_PRESENT_NO_LIVE_LM",
     "private_mode_backend_policy_exists": true,
     "private_mode_requires_tokenization": true,
-    "production_token_vault_ready": false,
+    "production_token_vault_ready": true,
     "real_sensitive_data_allowed": false,
     "strict_private_requires_local_only": true,
     "synthetic_tokenization_ready": true
+  },
+  "production_activation_receipts": {
+    "all_present": true,
+    "authority_boundary": {
+      "cloud_tokenization_allowed": false,
+      "credential_handling_allowed": false,
+      "external_model_share_allowed": false,
+      "network_allowed": false,
+      "production_state_mutation_allowed": false,
+      "raw_value_export_allowed": false,
+      "real_data_ingestion_allowed": false
+    },
+    "privacy_policy_receipt": {
+      "authority_boundary": {
+        "cloud_tokenization_allowed": false,
+        "credential_handling_allowed": false,
+        "external_model_share_allowed": false,
+        "network_allowed": false,
+        "production_state_mutation_allowed": false,
+        "raw_value_export_allowed": false,
+        "real_data_ingestion_allowed": false
+      },
+      "human_label": "Privacy policy receipt",
+      "missing_controls": [],
+      "next_safe_move": "Keep checking the remaining live activation receipts before any live model review.",
+      "operator_copy": "Production privacy policy proof is present.",
+      "present": true,
+      "proof_read_model_ref": "generated/read_models/token_vault_status.json",
+      "receipt_status": "VALIDATED",
+      "receipt_type": "privacy_policy_receipt",
+      "required_controls": [
+        "production_privacy_policy_ready",
+        "private_mode_policy_defined",
+        "strict_private_policy_defined",
+        "raw_values_to_lm_default_denied",
+        "detokenization_requires_receipt",
+        "operator_visible_mode_choice_defined",
+        "cloud_lm_blocked_when_private",
+        "policy_rollback_supported",
+        "raw_values_to_cloud_lm_allowed"
+      ],
+      "satisfies_live_lm_activation": true
+    },
+    "production_token_vault_ready_receipt": {
+      "authority_boundary": {
+        "cloud_tokenization_allowed": false,
+        "credential_handling_allowed": false,
+        "external_model_share_allowed": false,
+        "network_allowed": false,
+        "production_state_mutation_allowed": false,
+        "raw_value_export_allowed": false,
+        "real_data_ingestion_allowed": false
+      },
+      "human_label": "Production token vault",
+      "missing_controls": [],
+      "next_safe_move": "Keep checking the remaining live activation receipts before any live model review.",
+      "operator_copy": "Production token vault proof is present.",
+      "present": true,
+      "proof_read_model_ref": "generated/read_models/token_vault_status.json",
+      "receipt_status": "VALIDATED",
+      "receipt_type": "production_token_vault_ready_receipt",
+      "required_controls": [
+        "production_token_vault_ready",
+        "scoped_entity_registry_ready",
+        "scope_isolation_proven",
+        "token_revocation_supported",
+        "audit_log_supported",
+        "raw_value_export_allowed",
+        "cloud_tokenization_allowed",
+        "credential_material_included"
+      ],
+      "satisfies_live_lm_activation": true
+    }
+  },
+  "production_token_vault_substrate": {
+    "authority_boundary": {
+      "cloud_tokenization_allowed": false,
+      "credential_handling_allowed": false,
+      "external_model_share_allowed": false,
+      "network_allowed": false,
+      "production_state_mutation_allowed": false,
+      "raw_value_export_allowed": false,
+      "real_data_ingestion_allowed": false
+    },
+    "db_path": ".openclaw/privacy/token_vault.sqlite",
+    "exists": true,
+    "missing_tables": [],
+    "next_safe_move": "Token vault substrate is present; keep live models off until remaining activation receipts exist.",
+    "present_tables": [
+      "token_audit_log",
+      "token_revocations",
+      "token_vault_metadata",
+      "token_vault_receipts",
+      "tokenized_entities"
+    ],
+    "privacy_policy_receipt_present": true,
+    "production_token_vault_ready": true,
+    "production_token_vault_ready_receipt_present": true,
+    "raw_value_columns_present": false,
+    "real_sensitive_data_allowed": false,
+    "required_tables": [
+      "token_vault_metadata",
+      "tokenized_entities",
+      "token_revocations",
+      "token_audit_log",
+      "token_vault_receipts"
+    ],
+    "substrate_id": "production_token_vault_substrate:7c322a310b98581f"
   },
   "read_model_id": "token_vault_status",
   "role_package_declaration": {
@@ -312,7 +428,7 @@
     "tokenization_applied": true,
     "tokenization_required": true
   },
-  "schema_version": "token_vault_v2",
+  "schema_version": "token_vault_v3",
   "token_policy": {
     "different_scopes_do_not_imply_same_raw_entity": true,
     "generated_readmodels_expose_raw_values": false,

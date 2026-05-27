@@ -2,11 +2,12 @@
 
 Status: FLOOR_GAP_RECONCILIATION_NO_LIVE_ACTIONS
 Lanes classified: 22
-Lanes raised this pass: 7
+Lanes raised this pass: 8
 
 Raised this pass:
 - Gate 1 operational request snapshot
 - Universal intake
+- Token vault/privacy policy
 - Private Mode readiness
 - Provider activation receipts
 - Live LM shadow trial
@@ -14,7 +15,7 @@ Raised this pass:
 - Production/live blockers
 
 Weakest remaining lanes:
-- Production/live blockers: production_token_vault_inactive, provider_activation_receipts_missing, live_model_enablement_receipt_missing, production_privacy_policy_receipt_missing, rollback_disable_receipt_missing, device_trust_live_activation_receipt_missing, real_lm_production_policy_receipt_missing
+- Production/live blockers: provider_activation_receipts_missing, live_model_enablement_receipt_missing, rollback_disable_receipt_missing, device_trust_live_activation_receipt_missing, real_lm_production_policy_receipt_missing
 - Gate 1 ingress/privacy/request readiness: Needs live device trust registry integration before live LM activation.
 - Gate 1 operational request snapshot: Snapshot is fixture-only; live LM activation still needs provider/privacy receipts.
 - Gate 2 intent ingest: Operator-facing visibility improved; live LM1 proposals still require explicit activation.

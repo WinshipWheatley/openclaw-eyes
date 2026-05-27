@@ -35,10 +35,13 @@ def test_activation_requirements_make_live_blockers_explicit():
     assert payload["shadow_test_receipts"]["provider_policy_receipt"]["satisfies_production_activation"] is False
     assert payload["shadow_test_receipts"]["model_selection_policy_receipt"]["present"] is True
     assert payload["shadow_test_receipts"]["model_selection_policy_receipt"]["satisfies_production_activation"] is False
+    assert receipts["production_token_vault_ready_receipt"]["present"] is True
+    assert receipts["privacy_policy_receipt"]["present"] is True
     assert all(
         item["present"] is False
         for item in payload["activation_receipt_requirements"]
-        if item["receipt_type"] != "shadow_comparison_live_run_receipt"
+        if item["receipt_type"]
+        not in {"shadow_comparison_live_run_receipt", "production_token_vault_ready_receipt", "privacy_policy_receipt"}
     )
 
 
@@ -60,10 +63,16 @@ def test_activation_requirements_name_the_seven_production_beams():
         "provider_policy_receipt",
         "model_selection_policy_receipt",
     )
+    assert beams["production_token_vault"]["status"] == "PRESENT"
+    assert beams["privacy_receipt"]["status"] == "PRESENT"
     assert proof["production_activation_beam_count"] == 7
     assert proof["production_activation_beams_explicit"] is True
+    assert proof["production_token_vault_ready_receipt_present"] is True
+    assert proof["privacy_policy_receipt_present"] is True
     assert proof["device_trust_live_activation_receipt_present"] is False
     assert proof["real_lm_production_policy_receipt_present"] is False
+    assert "production_token_vault_inactive" not in payload["hard_blockers"]
+    assert "production_privacy_policy_receipt_missing" not in payload["hard_blockers"]
     assert "device_trust_live_activation_receipt_missing" in payload["hard_blockers"]
     assert "real_lm_production_policy_receipt_missing" in payload["hard_blockers"]
 
@@ -74,7 +83,8 @@ def test_activation_requirements_do_not_enable_models_or_actions():
 
     assert proof["live_lm_status"] == "NOT_ACTIVE"
     assert proof["provider_activation_receipts_present"] is False
-    assert proof["privacy_policy_receipt_present"] is False
+    assert proof["production_token_vault_ready_receipt_present"] is True
+    assert proof["privacy_policy_receipt_present"] is True
     assert proof["rollback_disable_receipt_present"] is False
     assert proof["device_trust_live_activation_receipt_present"] is False
     assert proof["real_lm_production_policy_receipt_present"] is False

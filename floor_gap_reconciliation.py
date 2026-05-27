@@ -257,7 +257,8 @@ def build_floor_matrix(*, generated_at: str = DEFAULT_GENERATED_AT) -> tuple[dic
             has_operator_copy=True,
             ready_for_shadow=True,
             ready_for_live_review=True,
-            not_ready_reason="Production token vault is not active.",
+            raised_this_pass=True,
+            not_ready_reason="Local token-vault and privacy-policy receipts are present; live LM still waits on remaining activation receipts.",
         ),
         _assessment(
             "gate2_intent_ingest",

@@ -7,8 +7,8 @@ LM1 live: NOT_ACTIVE
 LM2 package shadow: READY
 LM2 shadow comparison: READY
 LM2 live: NOT_ACTIVE
-Tokenization: SEEDED_NOT_PRODUCTION
-Privacy readiness: POLICY_SEEDED_PRODUCTION_TOKEN_VAULT_NOT_ACTIVE
+Tokenization: LOCAL_PRODUCTION_SUBSTRATE_READY_NO_REAL_DATA
+Privacy readiness: PRODUCTION_TOKEN_VAULT_SUBSTRATE_READY_PRIVACY_RECEIPT_PRESENT_NO_LIVE_LM
 Provider policy registry: SEEDED
 Gate 1 operational snapshot: EXPORTED_CONNECTED
 Gate 1 privacy request: EXPORTED

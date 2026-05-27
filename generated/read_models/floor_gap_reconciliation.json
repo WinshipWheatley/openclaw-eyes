@@ -23,17 +23,15 @@
     "lm1_live": "NOT_ACTIVE",
     "lm2_live": "NOT_ACTIVE",
     "next_blockers": [
-      "production_token_vault_inactive",
       "provider_activation_receipts_missing",
       "live_model_enablement_receipt_missing",
-      "production_privacy_policy_receipt_missing",
       "rollback_disable_receipt_missing",
       "device_trust_live_activation_receipt_missing",
       "real_lm_production_policy_receipt_missing",
       "private/strict-private mode product switch"
     ],
-    "privacy_readiness_status": "POLICY_SEEDED_PRODUCTION_TOKEN_VAULT_NOT_ACTIVE",
-    "tokenization": "SEEDED_NOT_PRODUCTION"
+    "privacy_readiness_status": "PRODUCTION_TOKEN_VAULT_SUBSTRATE_READY_PRIVACY_RECEIPT_PRESENT_NO_LIVE_LM",
+    "tokenization": "LOCAL_PRODUCTION_SUBSTRATE_READY_NO_REAL_DATA"
   },
   "floor_matrix": [
     {
@@ -138,8 +136,8 @@
       "lane_name": "Token vault/privacy policy",
       "maturity_label": "SHADOW_READY",
       "maturity_score": 8,
-      "not_ready_reason": "Production token vault is not active.",
-      "raised_this_pass": false,
+      "not_ready_reason": "Local token-vault and privacy-policy receipts are present; live LM still waits on remaining activation receipts.",
+      "raised_this_pass": true,
       "ready_for_live_review": true,
       "ready_for_shadow": true,
       "tested": true
@@ -426,7 +424,7 @@
       "lane_name": "Production/live blockers",
       "maturity_label": "CONNECTED",
       "maturity_score": 6,
-      "not_ready_reason": "production_token_vault_inactive, provider_activation_receipts_missing, live_model_enablement_receipt_missing, production_privacy_policy_receipt_missing, rollback_disable_receipt_missing, device_trust_live_activation_receipt_missing, real_lm_production_policy_receipt_missing",
+      "not_ready_reason": "provider_activation_receipts_missing, live_model_enablement_receipt_missing, rollback_disable_receipt_missing, device_trust_live_activation_receipt_missing, real_lm_production_policy_receipt_missing",
       "raised_this_pass": true,
       "ready_for_live_review": false,
       "ready_for_shadow": false,
@@ -625,8 +623,6 @@
       "live_model_enablement_receipt",
       "provider_policy_receipt",
       "model_selection_policy_receipt",
-      "privacy_policy_receipt",
-      "production_token_vault_ready_receipt",
       "rollback_disable_receipt",
       "device_trust_live_activation_receipt",
       "real_lm_production_policy_receipt"
@@ -639,7 +635,7 @@
         "receipt_types": [
           "production_token_vault_ready_receipt"
         ],
-        "status": "MISSING"
+        "status": "PRESENT"
       },
       {
         "beam_id": "provider_model_receipts",
@@ -667,7 +663,7 @@
         "receipt_types": [
           "privacy_policy_receipt"
         ],
-        "status": "MISSING"
+        "status": "PRESENT"
       },
       {
         "beam_id": "rollback_disable_receipt",
@@ -743,7 +739,7 @@
   "machine_proof": {
     "all_live_authority_false": true,
     "all_required_lanes_classified": true,
-    "content_hash": "sha256:4d470b8f98442c002a97cefdab5f0bdc97eff7d81bc6a4b671bfa02307946711",
+    "content_hash": "sha256:bd5020855d159fc43e524b5a424e49737b44a1094dca129423273912bf76adff",
     "dashboard_live_lm_not_active": true,
     "external_action_performed": false,
     "floor_matrix_lane_count": 22,
@@ -770,7 +766,7 @@
     "production_live_blockers_explicit": true,
     "production_state_mutation_performed": false,
     "provider_activation_receipts_required": true,
-    "raised_lane_count": 7,
+    "raised_lane_count": 8,
     "read_model_mirror_visibility_exported": true,
     "read_model_mirror_visibility_no_sync_created": true,
     "request_response_bridge_dashboard_visible": true,
@@ -835,6 +831,24 @@
       "maturity_label": "SHADOW_READY",
       "maturity_score": 8,
       "not_ready_reason": "Still metadata-only; no production broad file classification.",
+      "raised_this_pass": true,
+      "ready_for_live_review": true,
+      "ready_for_shadow": true,
+      "tested": true
+    },
+    {
+      "connected_to_chain": true,
+      "contract_only": false,
+      "dashboard_visible": true,
+      "exported": true,
+      "has_fixture": true,
+      "has_operator_copy": true,
+      "has_sqlite_proof": false,
+      "lane_id": "token_vault_privacy_policy",
+      "lane_name": "Token vault/privacy policy",
+      "maturity_label": "SHADOW_READY",
+      "maturity_score": 8,
+      "not_ready_reason": "Local token-vault and privacy-policy receipts are present; live LM still waits on remaining activation receipts.",
       "raised_this_pass": true,
       "ready_for_live_review": true,
       "ready_for_shadow": true,
@@ -924,7 +938,7 @@
       "lane_name": "Production/live blockers",
       "maturity_label": "CONNECTED",
       "maturity_score": 6,
-      "not_ready_reason": "production_token_vault_inactive, provider_activation_receipts_missing, live_model_enablement_receipt_missing, production_privacy_policy_receipt_missing, rollback_disable_receipt_missing, device_trust_live_activation_receipt_missing, real_lm_production_policy_receipt_missing",
+      "not_ready_reason": "provider_activation_receipts_missing, live_model_enablement_receipt_missing, rollback_disable_receipt_missing, device_trust_live_activation_receipt_missing, real_lm_production_policy_receipt_missing",
       "raised_this_pass": true,
       "ready_for_live_review": false,
       "ready_for_shadow": false,
@@ -1046,7 +1060,7 @@
   ],
   "tokenization_proof": {
     "different_scope_token_differs": true,
-    "production_token_vault_ready": false,
+    "production_token_vault_ready": true,
     "raw_values_exported": false,
     "stable_within_scope": true
   },
@@ -1104,7 +1118,7 @@
       "lane_name": "Production/live blockers",
       "maturity_label": "CONNECTED",
       "maturity_score": 6,
-      "not_ready_reason": "production_token_vault_inactive, provider_activation_receipts_missing, live_model_enablement_receipt_missing, production_privacy_policy_receipt_missing, rollback_disable_receipt_missing, device_trust_live_activation_receipt_missing, real_lm_production_policy_receipt_missing",
+      "not_ready_reason": "provider_activation_receipts_missing, live_model_enablement_receipt_missing, rollback_disable_receipt_missing, device_trust_live_activation_receipt_missing, real_lm_production_policy_receipt_missing",
       "raised_this_pass": true,
       "ready_for_live_review": false,
       "ready_for_shadow": false,

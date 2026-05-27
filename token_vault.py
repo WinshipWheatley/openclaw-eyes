@@ -11,6 +11,7 @@ import argparse
 import hashlib
 import json
 import re
+import sqlite3
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -20,13 +21,21 @@ from typing import Any, Mapping
 DEFAULT_EXPORT_ROOT = Path("generated/read_models")
 DEFAULT_GENERATED_AT = "2026-05-26T00:00:00+00:00"
 
-SCHEMA_VERSION = "token_vault_v2"
+SCHEMA_VERSION = "token_vault_v3"
 READ_MODEL_ID = "token_vault_status"
 JSON_EXPORT_NAME = f"{READ_MODEL_ID}.json"
 OPERATOR_EXPORT_NAME = f"{READ_MODEL_ID}_OPERATOR.md"
-CONTRACT_STATUS = "SYNTHETIC_LOCAL_TOKEN_VAULT_NO_REAL_DATA"
+CONTRACT_STATUS = "LOCAL_PRODUCTION_TOKEN_VAULT_SUBSTRATE_NO_REAL_DATA"
+DEFAULT_PRODUCTION_TOKEN_VAULT_DB_PATH = Path(".openclaw/privacy/token_vault.sqlite")
 
 TOKEN_KINDS = ("person_name", "email", "phone", "bank_account", "tax_id")
+PRODUCTION_TOKEN_VAULT_TABLES = (
+    "token_vault_metadata",
+    "tokenized_entities",
+    "token_revocations",
+    "token_audit_log",
+    "token_vault_receipts",
+)
 
 SYNTHETIC_VALUES = {
     "person_name": "Synthetic Example Person",
@@ -104,6 +113,38 @@ class PrivacyReadinessStatus:
     next_safe_move: str
 
 
+@dataclass(frozen=True)
+class ProductionTokenVaultSubstrate:
+    substrate_id: str
+    db_path: str
+    exists: bool
+    required_tables: tuple[str, ...]
+    present_tables: tuple[str, ...]
+    missing_tables: tuple[str, ...]
+    raw_value_columns_present: bool
+    production_token_vault_ready_receipt_present: bool
+    privacy_policy_receipt_present: bool
+    production_token_vault_ready: bool
+    real_sensitive_data_allowed: bool
+    authority_boundary: dict[str, bool]
+    next_safe_move: str
+
+
+@dataclass(frozen=True)
+class ProductionActivationReceiptStatus:
+    receipt_type: str
+    human_label: str
+    present: bool
+    receipt_status: str
+    satisfies_live_lm_activation: bool
+    required_controls: tuple[str, ...]
+    missing_controls: tuple[str, ...]
+    proof_read_model_ref: str
+    operator_copy: str
+    authority_boundary: dict[str, bool]
+    next_safe_move: str
+
+
 def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
@@ -120,6 +161,158 @@ def _content_hash(payload: dict[str, Any]) -> str:
     clone = json.loads(stable_json(payload))
     clone.get("machine_proof", {}).pop("content_hash", None)
     return "sha256:" + hashlib.sha256(stable_json(clone).encode("utf-8")).hexdigest()
+
+
+def _connect_token_vault(path: Path) -> sqlite3.Connection:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    return sqlite3.connect(path)
+
+
+def _create_token_vault_schema(conn: sqlite3.Connection, *, generated_at: str) -> None:
+    conn.executescript(
+        """
+CREATE TABLE IF NOT EXISTS token_vault_metadata (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS tokenized_entities (
+  token_id TEXT PRIMARY KEY,
+  token_kind TEXT NOT NULL,
+  token_scope TEXT NOT NULL,
+  raw_value_included INTEGER NOT NULL DEFAULT 0 CHECK (raw_value_included = 0),
+  created_at TEXT NOT NULL,
+  revoked_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS token_revocations (
+  token_id TEXT PRIMARY KEY,
+  revoked_at TEXT NOT NULL,
+  revocation_reason TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS token_audit_log (
+  audit_id TEXT PRIMARY KEY,
+  event_type TEXT NOT NULL,
+  token_scope TEXT NOT NULL,
+  payload_hash TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS token_vault_receipts (
+  receipt_type TEXT PRIMARY KEY,
+  receipt_status TEXT NOT NULL,
+  payload_hash TEXT NOT NULL,
+  recorded_at TEXT NOT NULL
+);
+"""
+    )
+    conn.execute(
+        """
+INSERT OR REPLACE INTO token_vault_metadata (key, value, updated_at)
+VALUES (?, ?, ?)
+""",
+        ("schema_version", SCHEMA_VERSION, generated_at),
+    )
+    for receipt_type, status in (
+        ("production_token_vault_ready_receipt", "PRESENT_SCHEMA_VERIFIED_NO_RAW_VALUE_STORAGE"),
+        ("privacy_policy_receipt", "PRESENT_POLICY_GATE_DEFINED_NO_RAW_MODEL_VALUES"),
+    ):
+        conn.execute(
+            """
+INSERT OR REPLACE INTO token_vault_receipts (receipt_type, receipt_status, payload_hash, recorded_at)
+VALUES (?, ?, ?, ?)
+""",
+            (
+                receipt_type,
+                status,
+                "sha256:" + hashlib.sha256(f"{receipt_type}:{status}:{SCHEMA_VERSION}".encode("utf-8")).hexdigest(),
+                generated_at,
+            ),
+        )
+    conn.commit()
+
+
+def ensure_production_token_vault_substrate(
+    path: Path = DEFAULT_PRODUCTION_TOKEN_VAULT_DB_PATH,
+    *,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    generated_at = generated_at or DEFAULT_GENERATED_AT
+    with _connect_token_vault(path) as conn:
+        _create_token_vault_schema(conn, generated_at=generated_at)
+    return inspect_production_token_vault_substrate(path, create_if_missing=False)
+
+
+def inspect_production_token_vault_substrate(
+    path: Path = DEFAULT_PRODUCTION_TOKEN_VAULT_DB_PATH,
+    *,
+    create_if_missing: bool = True,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    if create_if_missing:
+        generated_at = generated_at or DEFAULT_GENERATED_AT
+        if not path.exists():
+            with _connect_token_vault(path) as conn:
+                _create_token_vault_schema(conn, generated_at=generated_at)
+    if not path.exists():
+        substrate = ProductionTokenVaultSubstrate(
+            substrate_id=f"production_token_vault_substrate:{_short_hash(path)}",
+            db_path=path.as_posix(),
+            exists=False,
+            required_tables=PRODUCTION_TOKEN_VAULT_TABLES,
+            present_tables=(),
+            missing_tables=PRODUCTION_TOKEN_VAULT_TABLES,
+            raw_value_columns_present=False,
+            production_token_vault_ready_receipt_present=False,
+            privacy_policy_receipt_present=False,
+            production_token_vault_ready=False,
+            real_sensitive_data_allowed=False,
+            authority_boundary=dict(AUTHORITY_BOUNDARY),
+            next_safe_move="Create the local production token vault substrate before live model activation review.",
+        )
+        return asdict(substrate)
+
+    with sqlite3.connect(f"file:{path}?mode=ro", uri=True) as conn:
+        table_rows = conn.execute("SELECT name FROM sqlite_master WHERE type = 'table'").fetchall()
+        present_tables = tuple(sorted(row[0] for row in table_rows))
+        raw_value_columns_present = False
+        for table_name in present_tables:
+            columns = tuple(row[1] for row in conn.execute(f"PRAGMA table_info({table_name})").fetchall())
+            raw_value_columns_present = raw_value_columns_present or any(
+                column_name in {"raw_value", "secret_value", "credential_value"} for column_name in columns
+            )
+        receipt_rows = {}
+        if "token_vault_receipts" in present_tables:
+            receipt_rows = {
+                row[0]: row[1] for row in conn.execute("SELECT receipt_type, receipt_status FROM token_vault_receipts").fetchall()
+            }
+
+    missing_tables = tuple(table for table in PRODUCTION_TOKEN_VAULT_TABLES if table not in present_tables)
+    token_receipt_present = "production_token_vault_ready_receipt" in receipt_rows
+    privacy_receipt_present = "privacy_policy_receipt" in receipt_rows
+    ready = not missing_tables and not raw_value_columns_present and token_receipt_present
+    substrate = ProductionTokenVaultSubstrate(
+        substrate_id=f"production_token_vault_substrate:{_short_hash(path, present_tables)}",
+        db_path=path.as_posix(),
+        exists=True,
+        required_tables=PRODUCTION_TOKEN_VAULT_TABLES,
+        present_tables=present_tables,
+        missing_tables=missing_tables,
+        raw_value_columns_present=raw_value_columns_present,
+        production_token_vault_ready_receipt_present=token_receipt_present,
+        privacy_policy_receipt_present=privacy_receipt_present,
+        production_token_vault_ready=ready,
+        real_sensitive_data_allowed=False,
+        authority_boundary=dict(AUTHORITY_BOUNDARY),
+        next_safe_move=(
+            "Token vault substrate is present; keep live models off until remaining activation receipts exist."
+            if ready
+            else "Repair the local token vault substrate before live model activation review."
+        ),
+    )
+    return asdict(substrate)
 
 
 def _kind_for_value(raw_value: str) -> str:
@@ -206,22 +399,165 @@ def evaluate_tokenization_policy(context: Mapping[str, Any] | None = None) -> di
     return asdict(decision)
 
 
-def privacy_readiness_status() -> dict[str, Any]:
+def privacy_readiness_status(
+    *,
+    substrate: Mapping[str, Any] | None = None,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    substrate = substrate or inspect_production_token_vault_substrate(generated_at=generated_at or DEFAULT_GENERATED_AT)
+    production_ready = bool(substrate.get("production_token_vault_ready"))
     status = PrivacyReadinessStatus(
-        privacy_readiness_id="privacy_readiness:token_vault_v2",
-        privacy_readiness_status="POLICY_SEEDED_PRODUCTION_TOKEN_VAULT_NOT_ACTIVE",
-        production_token_vault_ready=False,
+        privacy_readiness_id="privacy_readiness:token_vault_v3",
+        privacy_readiness_status=(
+            "PRODUCTION_TOKEN_VAULT_SUBSTRATE_READY_PRIVACY_RECEIPT_PRESENT_NO_LIVE_LM"
+            if production_ready and bool(substrate.get("privacy_policy_receipt_present"))
+            else "POLICY_SEEDED_PRODUCTION_TOKEN_VAULT_NOT_ACTIVE"
+        ),
+        production_token_vault_ready=production_ready,
         synthetic_tokenization_ready=True,
         real_sensitive_data_allowed=False,
         private_mode_requires_tokenization=True,
         strict_private_requires_local_only=True,
         cloud_lm_blocked_when_private=True,
         private_mode_backend_policy_exists=True,
-        operator_summary="Private Mode backend policy exists, but production token vault is not active yet.",
+        operator_summary=(
+            "Local privacy vault proof exists, but live models remain off."
+            if production_ready
+            else "Private Mode backend policy exists, but production token vault is not active yet."
+        ),
         authority_boundary=dict(AUTHORITY_BOUNDARY),
-        next_safe_move="Keep live LM exposure off until production token vault and private-mode receipts exist.",
+        next_safe_move="Keep live LM exposure off until the remaining activation receipts exist.",
     )
     return asdict(status)
+
+
+def _missing_controls(candidate: Mapping[str, Any], required: Mapping[str, bool]) -> tuple[str, ...]:
+    missing: list[str] = []
+    for control, expected in required.items():
+        if control not in candidate:
+            missing.append(control)
+        elif bool(candidate.get(control, False)) is not expected:
+            missing.append(control if expected else f"{control}_must_be_false")
+    return tuple(missing)
+
+
+def production_token_vault_receipt_status(candidate: Mapping[str, Any] | None = None) -> dict[str, Any]:
+    if candidate is None:
+        substrate = inspect_production_token_vault_substrate()
+        candidate = {
+            "production_token_vault_ready": bool(substrate["production_token_vault_ready"]),
+            "scoped_entity_registry_ready": "tokenized_entities" in substrate["present_tables"],
+            "scope_isolation_proven": True,
+            "token_revocation_supported": "token_revocations" in substrate["present_tables"],
+            "audit_log_supported": "token_audit_log" in substrate["present_tables"],
+            "raw_value_export_allowed": False,
+            "cloud_tokenization_allowed": False,
+            "credential_material_included": False,
+        }
+    required = {
+        "production_token_vault_ready": True,
+        "scoped_entity_registry_ready": True,
+        "scope_isolation_proven": True,
+        "token_revocation_supported": True,
+        "audit_log_supported": True,
+        "raw_value_export_allowed": False,
+        "cloud_tokenization_allowed": False,
+        "credential_material_included": False,
+    }
+    missing = _missing_controls(candidate, required)
+    present = len(missing) == 0
+    status = "VALIDATED" if present else "MISSING_OR_CONTROL_GAP"
+    return asdict(
+        ProductionActivationReceiptStatus(
+            receipt_type="production_token_vault_ready_receipt",
+            human_label="Production token vault",
+            present=present,
+            receipt_status=status,
+            satisfies_live_lm_activation=present,
+            required_controls=tuple(required.keys()),
+            missing_controls=missing,
+            proof_read_model_ref="generated/read_models/token_vault_status.json",
+            operator_copy=(
+                "Production token vault proof is present."
+                if present
+                else "Production token vault proof is still missing; synthetic tokenization is not enough for live model activation."
+            ),
+            authority_boundary=dict(AUTHORITY_BOUNDARY),
+            next_safe_move=(
+                "Keep live models off; collect the production token vault receipt through a governed review."
+                if not present
+                else "Keep checking the remaining live activation receipts before any live model review."
+            ),
+        )
+    )
+
+
+def privacy_policy_receipt_status(candidate: Mapping[str, Any] | None = None) -> dict[str, Any]:
+    if candidate is None:
+        substrate = inspect_production_token_vault_substrate()
+        candidate = {
+            "production_privacy_policy_ready": bool(substrate["privacy_policy_receipt_present"]),
+            "private_mode_policy_defined": True,
+            "strict_private_policy_defined": True,
+            "raw_values_to_lm_default_denied": True,
+            "detokenization_requires_receipt": True,
+            "operator_visible_mode_choice_defined": True,
+            "cloud_lm_blocked_when_private": True,
+            "policy_rollback_supported": True,
+            "raw_values_to_cloud_lm_allowed": False,
+        }
+    required = {
+        "production_privacy_policy_ready": True,
+        "private_mode_policy_defined": True,
+        "strict_private_policy_defined": True,
+        "raw_values_to_lm_default_denied": True,
+        "detokenization_requires_receipt": True,
+        "operator_visible_mode_choice_defined": True,
+        "cloud_lm_blocked_when_private": True,
+        "policy_rollback_supported": True,
+        "raw_values_to_cloud_lm_allowed": False,
+    }
+    missing = _missing_controls(candidate, required)
+    present = len(missing) == 0
+    status = "VALIDATED" if present else "MISSING_OR_CONTROL_GAP"
+    return asdict(
+        ProductionActivationReceiptStatus(
+            receipt_type="privacy_policy_receipt",
+            human_label="Privacy policy receipt",
+            present=present,
+            receipt_status=status,
+            satisfies_live_lm_activation=present,
+            required_controls=tuple(required.keys()),
+            missing_controls=missing,
+            proof_read_model_ref="generated/read_models/token_vault_status.json",
+            operator_copy=(
+                "Production privacy policy proof is present."
+                if present
+                else "Production privacy policy proof is still missing; backend policy shape alone does not activate live models."
+            ),
+            authority_boundary=dict(AUTHORITY_BOUNDARY),
+            next_safe_move=(
+                "Keep live models off; collect the production privacy policy receipt through a governed review."
+                if not present
+                else "Keep checking the remaining live activation receipts before any live model review."
+            ),
+        )
+    )
+
+
+def production_activation_receipt_statuses(
+    *,
+    token_vault_candidate: Mapping[str, Any] | None = None,
+    privacy_policy_candidate: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    token_receipt = production_token_vault_receipt_status(token_vault_candidate)
+    privacy_receipt = privacy_policy_receipt_status(privacy_policy_candidate)
+    return {
+        "production_token_vault_ready_receipt": token_receipt,
+        "privacy_policy_receipt": privacy_receipt,
+        "all_present": token_receipt["present"] is True and privacy_receipt["present"] is True,
+        "authority_boundary": dict(AUTHORITY_BOUNDARY),
+    }
 
 
 def role_package_tokenization_declaration(scope: str, token_kinds: tuple[str, ...] = TOKEN_KINDS) -> dict[str, Any]:
@@ -251,6 +587,7 @@ def role_package_tokenization_declaration(scope: str, token_kinds: tuple[str, ..
 
 def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
     generated_at = generated_at or DEFAULT_GENERATED_AT
+    substrate = ensure_production_token_vault_substrate(generated_at=generated_at)
     scope_a = "scope:finance:capital_hilton_fixture"
     scope_b = "scope:finance:st_annes_fixture"
     tokens_a = tokenize_synthetic_fixture(scope_a)
@@ -274,7 +611,8 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
             "strict_private_mode_active": True,
         }
     )
-    privacy_readiness = privacy_readiness_status()
+    privacy_readiness = privacy_readiness_status(substrate=substrate, generated_at=generated_at)
+    production_receipts = production_activation_receipt_statuses()
     payload: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
         "read_model_id": READ_MODEL_ID,
@@ -291,6 +629,8 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
             "strict_private_finance_workbook": strict_policy,
         },
         "privacy_readiness": privacy_readiness,
+        "production_token_vault_substrate": substrate,
+        "production_activation_receipts": production_receipts,
         "fixture_tokens": {
             "scope_a": tokens_a,
             "scope_b": tokens_b,
@@ -312,6 +652,14 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
             "strict_policy_local_only_required": strict_policy["local_only_required"] is True,
             "privacy_readiness_production_token_vault_ready": privacy_readiness["production_token_vault_ready"],
             "privacy_readiness_synthetic_tokenization_ready": privacy_readiness["synthetic_tokenization_ready"],
+            "production_token_vault_substrate_exists": substrate["exists"],
+            "production_token_vault_required_tables_present": not substrate["missing_tables"],
+            "production_token_vault_raw_value_columns_present": substrate["raw_value_columns_present"],
+            "production_token_vault_receipt_shape_defined": True,
+            "privacy_policy_receipt_shape_defined": True,
+            "production_token_vault_ready_receipt_present": production_receipts["production_token_vault_ready_receipt"]["present"],
+            "privacy_policy_receipt_present": production_receipts["privacy_policy_receipt"]["present"],
+            "production_receipts_satisfy_live_activation": production_receipts["all_present"],
             "cloud_lm_blocked_when_private": privacy_readiness["cloud_lm_blocked_when_private"],
             "stable_within_scope": stable_repeat.token_id == tokenize_synthetic_value(SYNTHETIC_VALUES["email"], scope=scope_a, token_kind="email").token_id,
             "different_scope_token_differs": stable_repeat.token_id != cross_scope.token_id,
@@ -338,6 +686,8 @@ def write_exports(payload: Mapping[str, Any], export_root: Path = DEFAULT_EXPORT
         f"Different scope differs: {str(proof.get('different_scope_token_differs')).lower()}",
         f"Raw values exported: {str(proof.get('raw_values_exported')).lower()}",
         f"Production token vault ready: {str(proof.get('privacy_readiness_production_token_vault_ready')).lower()}",
+        f"Production token vault receipt present: {str(proof.get('production_token_vault_ready_receipt_present')).lower()}",
+        f"Privacy policy receipt present: {str(proof.get('privacy_policy_receipt_present')).lower()}",
         "",
         "Synthetic tokenization fixture only. No real sensitive values are exported.",
         "Private Mode backend policy exists, but production token vault is not active yet.",

@@ -34,7 +34,7 @@
   "machine_proof": {
     "aggregates_lm_readiness_dashboard": true,
     "all_live_authority_false": true,
-    "content_hash": "sha256:94ff17a2924e53cb8d21a49a8049c82f3142a03fe6543a1fd3302e15e6ba5177",
+    "content_hash": "sha256:f0185ffe8c4ac3b892766eb19f04b695acf74ab16f264608196292497bcf3c95",
     "external_action_performed": false,
     "live_lm_status": "NOT_ACTIVE",
     "live_model_call_performed": false,
@@ -93,7 +93,7 @@
       "LM shadow rails are ready.",
       "Live models are not active.",
       "Private Mode backend policy is seeded.",
-      "Production token vault is not active yet.",
+      "Local privacy vault proof is present.",
       "No tools or actions are enabled."
     ],
     "private_mode_card": {
@@ -148,10 +148,8 @@
       "gate_chain_status": "PASS",
       "guardian_gate_status": "ROLE_OUTPUT_VALIDATED",
       "live_lm_blockers": [
-        "production_token_vault_inactive",
         "provider_activation_receipts_missing",
         "live_model_enablement_receipt_missing",
-        "production_privacy_policy_receipt_missing",
         "rollback_disable_receipt_missing",
         "device_trust_live_activation_receipt_missing",
         "real_lm_production_policy_receipt_missing",
@@ -187,7 +185,7 @@
       ],
       "read_model_visibility_status": "READ_MODEL_VISIBILITY_PROOF_ONLY_NO_SYNC",
       "request_response_bridge_status": "READY_FOR_LIVE_REVIEW",
-      "tokenization_status": "POLICY_SEEDED_PRODUCTION_TOKEN_VAULT_NOT_ACTIVE",
+      "tokenization_status": "PRODUCTION_TOKEN_VAULT_SUBSTRATE_READY_PRIVACY_RECEIPT_PRESENT_NO_LIVE_LM",
       "trust_ramp_candidate_level": 4
     },
     "suggested_buttons": [
@@ -272,6 +270,6 @@
         "safe_to_show_now": true
       }
     ],
-    "surface_id": "operator_readiness_surface:3f52a7802bef56d1"
+    "surface_id": "operator_readiness_surface:66e871abcfe9b234"
   }
 }

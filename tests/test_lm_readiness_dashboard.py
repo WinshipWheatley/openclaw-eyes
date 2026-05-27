@@ -158,9 +158,12 @@ def test_dashboard_includes_universal_intake_batch_fixture_and_privacy_readiness
     assert len(batch["candidates"]) == 3
     assert {candidate["client_ref"] for candidate in batch["candidates"]} == {"capital_hilton", "live_arts_md", "st_annes"}
     assert payload["dashboard_summary"]["universal_intake_batch"] == "READY"
-    assert privacy["production_token_vault_ready"] is False
+    assert privacy["production_token_vault_ready"] is True
     assert privacy["synthetic_tokenization_ready"] is True
-    assert payload["dashboard_summary"]["privacy_readiness_status"] == "POLICY_SEEDED_PRODUCTION_TOKEN_VAULT_NOT_ACTIVE"
+    assert (
+        payload["dashboard_summary"]["privacy_readiness_status"]
+        == "PRODUCTION_TOKEN_VAULT_SUBSTRATE_READY_PRIVACY_RECEIPT_PRESENT_NO_LIVE_LM"
+    )
 
 
 def test_dashboard_exposes_bridge_and_gate1_without_expanding_authority():
@@ -186,10 +189,13 @@ def test_dashboard_exposes_activation_private_and_visibility_without_live_enable
     assert flow["live_lm_activation_requirements"]["live_lm1_activation_status"] == "NOT_READY"
     assert flow["live_lm_activation_requirements"]["provider_activation_status"] == "RECEIPTS_REQUIRED_NOT_PRESENT"
     assert len(flow["live_lm_activation_requirements"]["production_activation_beams"]) == 7
+    beams = {item["beam_id"]: item for item in flow["live_lm_activation_requirements"]["production_activation_beams"]}
+    assert beams["production_token_vault"]["status"] == "PRESENT"
+    assert beams["privacy_receipt"]["status"] == "PRESENT"
     assert {
         "device_trust_live_activation",
         "real_lm_production_policy",
-    }.issubset({item["beam_id"] for item in flow["live_lm_activation_requirements"]["production_activation_beams"]})
+    }.issubset(beams)
     assert flow["live_lm_activation_requirements"]["live_shadow_receipt"]["present"] is True
     assert flow["live_lm_activation_requirements"]["shadow_test_receipts"]["provider_policy_receipt"]["present"] is True
     assert flow["live_lm_activation_requirements"]["shadow_test_receipts"]["provider_policy_receipt"][
@@ -241,7 +247,7 @@ def test_private_mode_fields_are_seeded_but_inactive():
     assert private_mode["strict_private_mode_active"] is False
     assert private_mode["cloud_lm_allowed_when_private"] is False
     assert private_mode["local_only_required_when_strict"] is True
-    assert private_mode["production_token_vault_ready"] is False
+    assert private_mode["production_token_vault_ready"] is True
     assert payload["machine_proof"]["private_mode_active"] is False
     assert payload["machine_proof"]["strict_private_mode_active"] is False
 

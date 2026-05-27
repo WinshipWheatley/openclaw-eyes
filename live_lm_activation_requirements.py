@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 import live_lm_shadow_trial
+import token_vault
 
 
 DEFAULT_EXPORT_ROOT = Path("generated/read_models")
@@ -57,7 +58,7 @@ class ActivationReceiptRequirement:
     next_safe_move: str
 
 
-PRODUCTION_ACTIVATION_BEAMS: tuple[dict[str, Any], ...] = (
+PRODUCTION_ACTIVATION_BEAM_SPECS: tuple[dict[str, Any], ...] = (
     {
         "beam_id": "production_token_vault",
         "human_label": "Production token vault",
@@ -110,6 +111,14 @@ PRODUCTION_ACTIVATION_BEAMS: tuple[dict[str, Any], ...] = (
 )
 
 
+def production_activation_beams(*, token_vault_receipt_present: bool = False, privacy_policy_receipt_present: bool = False) -> tuple[dict[str, Any], ...]:
+    statuses = {
+        "production_token_vault": "PRESENT" if token_vault_receipt_present else "MISSING",
+        "privacy_receipt": "PRESENT" if privacy_policy_receipt_present else "MISSING",
+    }
+    return tuple({**item, "status": statuses.get(str(item["beam_id"]), item["status"])} for item in PRODUCTION_ACTIVATION_BEAM_SPECS)
+
+
 def stable_json(payload: Any) -> str:
     return json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
 
@@ -124,7 +133,12 @@ def _content_hash(payload: dict[str, Any]) -> str:
     return "sha256:" + hashlib.sha256(stable_json(clone).encode("utf-8")).hexdigest()
 
 
-def required_receipts(*, live_shadow_receipt_present: bool = False) -> tuple[dict[str, Any], ...]:
+def required_receipts(
+    *,
+    live_shadow_receipt_present: bool = False,
+    production_token_vault_receipt_present: bool = False,
+    privacy_policy_receipt_present: bool = False,
+) -> tuple[dict[str, Any], ...]:
     specs = (
         (
             "live_model_enablement_receipt",
@@ -188,7 +202,11 @@ def required_receipts(*, live_shadow_receipt_present: bool = False) -> tuple[dic
                 receipt_type=receipt_type,
                 human_label=human_label,
                 required_for_lanes=lanes,
-                present=receipt_type == "shadow_comparison_live_run_receipt" and live_shadow_receipt_present,
+                present=(
+                    (receipt_type == "shadow_comparison_live_run_receipt" and live_shadow_receipt_present)
+                    or (receipt_type == "production_token_vault_ready_receipt" and production_token_vault_receipt_present)
+                    or (receipt_type == "privacy_policy_receipt" and privacy_policy_receipt_present)
+                ),
                 blocks_live_lm1="LM1" in lanes,
                 blocks_live_lm2="LM2" in lanes,
                 blocks_provider_activation=receipt_type in {"provider_policy_receipt", "model_selection_policy_receipt"},
@@ -204,19 +222,34 @@ def build_payload(*, generated_at: str | None = None, live_shadow_payload: Mappi
     generated_at = generated_at or DEFAULT_GENERATED_AT
     live_shadow = dict(live_shadow_payload or live_lm_shadow_trial.latest_or_ready_payload(generated_at=generated_at))
     live_shadow_valid = bool((live_shadow.get("machine_proof") or {}).get("live_shadow_receipt_valid"))
-    receipts = required_receipts(live_shadow_receipt_present=live_shadow_valid)
+    token_receipts = token_vault.production_activation_receipt_statuses()
+    token_vault_receipt_present = bool(token_receipts["production_token_vault_ready_receipt"]["present"])
+    privacy_policy_receipt_present = bool(token_receipts["privacy_policy_receipt"]["present"])
+    receipts = required_receipts(
+        live_shadow_receipt_present=live_shadow_valid,
+        production_token_vault_receipt_present=token_vault_receipt_present,
+        privacy_policy_receipt_present=privacy_policy_receipt_present,
+    )
     missing = tuple(item["receipt_type"] for item in receipts if item["present"] is False)
-    hard_blockers = [
-        "production_token_vault_inactive",
-        "provider_activation_receipts_missing",
-        "live_model_enablement_receipt_missing",
-        "production_privacy_policy_receipt_missing",
-        "rollback_disable_receipt_missing",
-        "device_trust_live_activation_receipt_missing",
-        "real_lm_production_policy_receipt_missing",
-    ]
+    hard_blockers = []
+    if not token_vault_receipt_present:
+        hard_blockers.append("production_token_vault_inactive")
+    hard_blockers.extend(("provider_activation_receipts_missing", "live_model_enablement_receipt_missing"))
+    if not privacy_policy_receipt_present:
+        hard_blockers.append("production_privacy_policy_receipt_missing")
+    hard_blockers.extend(
+        (
+            "rollback_disable_receipt_missing",
+            "device_trust_live_activation_receipt_missing",
+            "real_lm_production_policy_receipt_missing",
+        )
+    )
     if not live_shadow_valid:
         hard_blockers.insert(4, "live_shadow_comparison_receipt_missing")
+    beams = production_activation_beams(
+        token_vault_receipt_present=token_vault_receipt_present,
+        privacy_policy_receipt_present=privacy_policy_receipt_present,
+    )
     payload: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
         "read_model_id": READ_MODEL_ID,
@@ -231,7 +264,7 @@ def build_payload(*, generated_at: str | None = None, live_shadow_payload: Mappi
         "live_lm2_activation_status": "NOT_READY",
         "provider_activation_status": "RECEIPTS_REQUIRED_NOT_PRESENT",
         "activation_receipt_requirements": receipts,
-        "production_activation_beams": PRODUCTION_ACTIVATION_BEAMS,
+        "production_activation_beams": beams,
         "missing_receipts": missing,
         "live_shadow_receipt": {
             "read_model_ref": "generated/read_models/live_lm_shadow_trial.json",
@@ -254,14 +287,15 @@ def build_payload(*, generated_at: str | None = None, live_shadow_payload: Mappi
                 "model_ref": (live_shadow.get("machine_proof") or {}).get("model_ref"),
             },
         },
+        "production_privacy_receipts": token_receipts,
         "hard_blockers": tuple(hard_blockers),
         "next_safe_move": "Keep using fixture/shadow mode until these receipts exist.",
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
         "machine_proof": {
             "receipt_requirement_count": len(receipts),
             "missing_receipt_count": len(missing),
-            "production_activation_beam_count": len(PRODUCTION_ACTIVATION_BEAMS),
-            "production_activation_beams_explicit": tuple(item["beam_id"] for item in PRODUCTION_ACTIVATION_BEAMS)
+            "production_activation_beam_count": len(beams),
+            "production_activation_beams_explicit": tuple(item["beam_id"] for item in beams)
             == (
                 "production_token_vault",
                 "provider_model_receipts",
@@ -273,9 +307,9 @@ def build_payload(*, generated_at: str | None = None, live_shadow_payload: Mappi
             ),
             "provider_activation_receipts_required": True,
             "provider_activation_receipts_present": False,
-            "production_token_vault_ready_receipt_present": False,
+            "production_token_vault_ready_receipt_present": token_vault_receipt_present,
             "live_model_enablement_receipt_present": False,
-            "privacy_policy_receipt_present": False,
+            "privacy_policy_receipt_present": privacy_policy_receipt_present,
             "rollback_disable_receipt_present": False,
             "device_trust_live_activation_receipt_present": False,
             "real_lm_production_policy_receipt_present": False,
