@@ -34,7 +34,7 @@
   "machine_proof": {
     "aggregates_lm_readiness_dashboard": true,
     "all_live_authority_false": true,
-    "content_hash": "sha256:667761bee08fdb3ee12b87546915d11630b226f1a1271e4f34a3baee7bf3e1bd",
+    "content_hash": "sha256:a6afac9a1b5f7afe45c3c1b64043546685182aeb0e5f60cffb5409a91c9f25bb",
     "external_action_performed": false,
     "live_lm_status": "NOT_ACTIVE",
     "live_model_call_performed": false,
@@ -91,6 +91,7 @@
     },
     "operator_summary": [
       "LM shadow rails are ready.",
+      "Privacy-safe stronger model rails are eligible, but not active.",
       "Live models are not active.",
       "Private Mode backend policy is seeded.",
       "Local privacy vault proof is present.",
@@ -141,6 +142,8 @@
     },
     "proof_shelf": {
       "active_trust_level": 1,
+      "external_lm_activation_status": "NOT_ACTIVE",
+      "external_lm_eligibility_status": "PRIVACY_SAFE_EXTERNAL_READY",
       "gate1_operational_snapshot_status": "EXPORTED_CONNECTED",
       "gate1_privacy_status": "EXPORTED",
       "gate2_readback_status": "OPERATOR_VISIBLE",
@@ -167,6 +170,7 @@
       "read_model_refs": [
         "generated/read_models/lm_readiness_dashboard.json",
         "generated/read_models/provider_policy_registry.json",
+        "generated/read_models/external_lm_eligibility_policy.json",
         "generated/read_models/model_router_policy.json",
         "generated/read_models/shadow_lm_mode.json",
         "generated/read_models/token_vault_status.json",

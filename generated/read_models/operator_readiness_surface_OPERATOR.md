@@ -3,6 +3,7 @@
 Status: MAC_READINESS_SURFACE_NO_LIVE_ACTIONS
 
 LM shadow rails are ready.
+Privacy-safe stronger model rails are eligible, but not active.
 Live models are not active.
 Private Mode backend policy is seeded.
 Local privacy vault proof is present.

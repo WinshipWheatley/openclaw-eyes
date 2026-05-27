@@ -27,6 +27,10 @@ OPERATOR_EXPORT_NAME = f"{READ_MODEL_ID}_OPERATOR.md"
 CONTRACT_STATUS = "PROVIDER_POLICY_AWARE_MODEL_ROUTER_NO_LIVE_CALLS"
 
 NO_SAFE_MODEL = "NO_SAFE_MODEL"
+FAST_EXTERNAL_INTENT_MODEL = "FAST_EXTERNAL_INTENT_MODEL"
+STRONG_EXTERNAL_ROLE_MODEL = "STRONG_EXTERNAL_ROLE_MODEL"
+LOCAL_FALLBACK_MODEL = "LOCAL_FALLBACK_MODEL"
+LOCAL_ONLY_MODEL = "LOCAL_ONLY_MODEL"
 FAST_STRUCTURED_INTENT_SMALL = "FAST_STRUCTURED_INTENT_SMALL"
 STRONG_STRUCTURED_ROLE_REASONER = "STRONG_STRUCTURED_ROLE_REASONER"
 CONSERVATIVE_SENSITIVE_STRUCTURED = "CONSERVATIVE_SENSITIVE_STRUCTURED"
@@ -72,6 +76,14 @@ class ModelRoutingRequest:
     tokenization_applied: bool
     raw_values_included: bool
     requested_live_authority: bool
+    external_lm_allowed: bool
+    local_lm_required: bool
+    offline_mode: bool
+    strict_private_mode_active: bool
+    credentials_or_secrets_present: bool
+    package_minimized: bool
+    baseline_external_passed: bool
+    downgrade_testing_requested: bool
 
 
 @dataclass(frozen=True)
@@ -119,6 +131,50 @@ def _content_hash(payload: dict[str, Any]) -> str:
 def model_candidate_classes() -> tuple[ModelCandidateClass, ...]:
     return (
         ModelCandidateClass(
+            model_class_id=FAST_EXTERNAL_INTENT_MODEL,
+            lane_fit=("LM1_INTENT_PROPOSAL",),
+            strengths=("fast external reasoning", "strict MachineIntentCandidate JSON", "low latency", "low cost"),
+            weaknesses=("requires minimized/tokenized package", "provider receipts required before production", "no tools or authority"),
+            default_posture="conservative_intent_only",
+            structured_output_reliability="high_required",
+            cost_latency_class="fast_external_low_cost",
+            authority_boundary=dict(AUTHORITY_BOUNDARY),
+            next_safe_move="Use only for LM1 intent proposal after Gate 1 privacy packaging and receipt review.",
+        ),
+        ModelCandidateClass(
+            model_class_id=STRONG_EXTERNAL_ROLE_MODEL,
+            lane_fit=("LM2_ROLE_RESPONSE",),
+            strengths=("strong role reasoning", "nuanced response drafting", "bounded package synthesis", "structured response"),
+            weaknesses=("higher cost", "must be Guardian-gated", "requires minimized/tokenized package"),
+            default_posture="bounded_role_reasoning",
+            structured_output_reliability="high_required",
+            cost_latency_class="strong_external_use_when_needed",
+            authority_boundary=dict(AUTHORITY_BOUNDARY),
+            next_safe_move="Use only after Gate 3 compiles a bounded role package; validate with Gate 4.",
+        ),
+        ModelCandidateClass(
+            model_class_id=LOCAL_FALLBACK_MODEL,
+            lane_fit=("LM1_INTENT_PROPOSAL", "LM2_ROLE_RESPONSE"),
+            strengths=("offline fallback", "local shadow smoke", "credit-saving mode", "policy-blocked fallback"),
+            weaknesses=("not the production-quality target", "weaker reasoning than preferred external classes"),
+            default_posture="fallback_conservative",
+            structured_output_reliability="high_required",
+            cost_latency_class="local_variable",
+            authority_boundary=dict(AUTHORITY_BOUNDARY),
+            next_safe_move="Use when external policy is blocked, offline mode is active, or local smoke is enough.",
+        ),
+        ModelCandidateClass(
+            model_class_id=LOCAL_ONLY_MODEL,
+            lane_fit=("LM1_INTENT_PROPOSAL", "LM2_ROLE_RESPONSE"),
+            strengths=("strict private/local-only", "no cloud exposure", "conservative handling"),
+            weaknesses=("not the external baseline", "may underperform stronger external role models"),
+            default_posture="strict_local_only",
+            structured_output_reliability="strict_required",
+            cost_latency_class="local_variable",
+            authority_boundary=dict(AUTHORITY_BOUNDARY),
+            next_safe_move="Use only when strict/private/local policy requires local-only handling.",
+        ),
+        ModelCandidateClass(
             model_class_id=FAST_STRUCTURED_INTENT_SMALL,
             lane_fit=("LM1_INTENT_PROPOSAL",),
             strengths=("cheap", "low latency", "strict JSON proposal", "narrow classification"),
@@ -156,7 +212,11 @@ def model_candidate_classes() -> tuple[ModelCandidateClass, ...]:
 
 def _provider_privacy_level(request: ModelRoutingRequest) -> str:
     sensitivity = request.sensitivity_level.lower()
+    if sensitivity == "tokenized_client_finance_metadata":
+        return "TOKENIZED_CLIENT_FINANCE_METADATA"
     if sensitivity == "client_finance_file_metadata":
+        if request.tokenization_applied and not request.raw_values_included and request.package_minimized:
+            return "TOKENIZED_CLIENT_FINANCE_METADATA"
         return "CLIENT_FINANCE_FILE_METADATA"
     if sensitivity == "strict_private_client_metadata":
         return "STRICT_PRIVATE_CLIENT_METADATA"
@@ -182,11 +242,23 @@ def select_model_class(request: ModelRoutingRequest | Mapping[str, Any]) -> dict
             tokenization_applied=bool(request.get("tokenization_applied", False)),
             raw_values_included=bool(request.get("raw_values_included", False)),
             requested_live_authority=bool(request.get("requested_live_authority", False)),
+            external_lm_allowed=bool(request.get("external_lm_allowed", False)),
+            local_lm_required=bool(request.get("local_lm_required", False)),
+            offline_mode=bool(request.get("offline_mode", False)),
+            strict_private_mode_active=bool(request.get("strict_private_mode_active", False)),
+            credentials_or_secrets_present=bool(
+                request.get("credentials_or_secrets_present", False) or request.get("secrets_present", False)
+            ),
+            package_minimized=bool(request.get("package_minimized", True)),
+            baseline_external_passed=bool(request.get("baseline_external_passed", False)),
+            downgrade_testing_requested=bool(request.get("downgrade_testing_requested", False)),
         )
 
     blocked: list[str] = []
     if request.requested_live_authority:
         blocked.append("MODEL_ROUTER_CANNOT_GRANT_AUTHORITY")
+    if request.credentials_or_secrets_present:
+        blocked.append("CREDENTIALS_OR_SECRETS_NOT_ALLOWED_IN_MODEL_PACKAGE")
     if request.raw_values_included and request.sensitivity_level in {"high", "protected"}:
         blocked.append("RAW_SENSITIVE_VALUES_REQUIRE_TOKENIZATION")
     if not request.requires_structured_output:
@@ -214,6 +286,9 @@ def select_model_class(request: ModelRoutingRequest | Mapping[str, Any]) -> dict
         risk_notes.append("CREATIVE_POSTURE_ALLOWED")
     if not request.tokenization_applied and request.sensitivity_level in {"high", "protected"}:
         expected_failure_modes.append("privacy gate blocks live model route")
+    if request.downgrade_testing_requested and not request.baseline_external_passed:
+        risk_notes.append("LOCAL_DOWNGRADE_TESTING_BLOCKED_UNTIL_EXTERNAL_BASELINE_PASSES")
+        expected_failure_modes.append("weak local baseline masks external-model quality problems")
 
     if blocked:
         selected = NO_SAFE_MODEL
@@ -222,23 +297,51 @@ def select_model_class(request: ModelRoutingRequest | Mapping[str, Any]) -> dict
         selected = NO_SAFE_MODEL
         reason = "Sensitive context needs tokenization before any live LM candidate."
         blocked.append("TOKENIZATION_REQUIRED")
+    elif request.strict_private_mode_active:
+        selected = LOCAL_ONLY_MODEL
+        reason = "Strict Private Mode requires local-only model handling."
+        risk_notes.append("STRICT_PRIVATE_MODE_LOCAL_ONLY")
+    elif request.local_lm_required or request.offline_mode:
+        selected = LOCAL_FALLBACK_MODEL
+        reason = "Local fallback selected because external policy is blocked, offline, private, or explicitly requested."
+        risk_notes.append("LOCAL_FALLBACK_SELECTED")
+    elif request.external_lm_allowed and not request.package_minimized:
+        selected = LOCAL_FALLBACK_MODEL
+        reason = "External LM blocked because the package is not minimized; local fallback is the only candidate."
+        risk_notes.append("PACKAGE_NOT_MINIMIZED")
     elif lane == "LM1_INTENT_PROPOSAL" and request.risk_level in {"low", "medium"} and request.context_size in {"tiny", "small"}:
-        selected = FAST_STRUCTURED_INTENT_SMALL
-        reason = "LM1 intent proposal is narrow, structured, low-risk, and latency-sensitive."
+        selected = FAST_EXTERNAL_INTENT_MODEL if request.external_lm_allowed else LOCAL_FALLBACK_MODEL
+        reason = (
+            "LM1 intent proposal is privacy-safe; prefer the fast external intent model class."
+            if request.external_lm_allowed
+            else "LM1 intent proposal has no external eligibility proof; use local fallback."
+        )
         confidence = "HIGH"
     elif lane == "LM2_ROLE_RESPONSE" and request.risk_level in {"low", "medium"}:
-        selected = STRONG_STRUCTURED_ROLE_REASONER
-        reason = "LM2 role response needs stronger package reasoning and operator wording."
+        selected = STRONG_EXTERNAL_ROLE_MODEL if request.external_lm_allowed else LOCAL_FALLBACK_MODEL
+        reason = (
+            "LM2 role response is privacy-safe; prefer the strongest external role model class."
+            if request.external_lm_allowed
+            else "LM2 role response has no external eligibility proof; use local fallback."
+        )
         conservative = not request.creative_posture_allowed
         confidence = "HIGH" if request.tokenization_applied and not request.raw_values_included else "MEDIUM"
     elif request.risk_level in {"high", "critical"} or request.sensitivity_level in {"medium", "high", "protected"}:
-        selected = CONSERVATIVE_SENSITIVE_STRUCTURED
+        selected = LOCAL_ONLY_MODEL if request.strict_private_mode_active else LOCAL_FALLBACK_MODEL
         reason = "High-risk or sensitive package requires conservative structured reasoning."
         confidence = "MEDIUM"
     else:
         blocked.append("UNKNOWN_OR_UNSUPPORTED_MODEL_LANE")
 
-    candidate_ids = (FAST_STRUCTURED_INTENT_SMALL, STRONG_STRUCTURED_ROLE_REASONER, CONSERVATIVE_SENSITIVE_STRUCTURED)
+    candidate_ids = (
+        FAST_EXTERNAL_INTENT_MODEL,
+        STRONG_EXTERNAL_ROLE_MODEL,
+        LOCAL_FALLBACK_MODEL,
+        LOCAL_ONLY_MODEL,
+        FAST_STRUCTURED_INTENT_SMALL,
+        STRONG_STRUCTURED_ROLE_REASONER,
+        CONSERVATIVE_SENSITIVE_STRUCTURED,
+    )
     rejected_model_classes = tuple(model_class for model_class in candidate_ids if model_class != selected)
     if selected == NO_SAFE_MODEL:
         rejected_model_classes = candidate_ids
@@ -253,10 +356,18 @@ def select_model_class(request: ModelRoutingRequest | Mapping[str, Any]) -> dict
             "chain_lane": request.chain_lane,
             "desired_model_class": selected,
             "privacy_level": provider_privacy_level,
-            "context_classes": (provider_privacy_level,),
+            "context_classes": (
+                provider_privacy_level,
+                "MACHINE_INTENT_PROPOSAL_SCHEMA" if lane == "LM1_INTENT_PROPOSAL" else "MINIMIZED_ROLE_PACKAGE",
+            ),
             "tokenization_applied": request.tokenization_applied,
             "raw_values_included": request.raw_values_included,
-            "local_only_required": provider_privacy_level in {"CLIENT_FINANCE_FILE_METADATA", "STRICT_PRIVATE_CLIENT_METADATA"},
+            "local_only_required": request.local_lm_required
+            or request.offline_mode
+            or request.strict_private_mode_active
+            or provider_privacy_level in {"STRICT_PRIVATE_CLIENT_METADATA"},
+            "private_mode_active": request.local_lm_required and provider_privacy_level in {"STRICT_PRIVATE_CLIENT_METADATA"},
+            "strict_private_mode_active": request.strict_private_mode_active,
             "requires_structured_output": request.requires_structured_output,
         }
     )
@@ -301,11 +412,20 @@ def select_model_class(request: ModelRoutingRequest | Mapping[str, Any]) -> dict
 def select_for_lm1_thread_package(thread_package: Mapping[str, Any]) -> dict[str, Any]:
     privacy = thread_package.get("privacy") if isinstance(thread_package.get("privacy"), Mapping) else {}
     inference = thread_package.get("universal_intake_inference") if isinstance(thread_package.get("universal_intake_inference"), Mapping) else {}
+    eligibility = (
+        thread_package.get("external_lm_eligibility")
+        if isinstance(thread_package.get("external_lm_eligibility"), Mapping)
+        else {}
+    )
     tokenization_applied = bool(privacy.get("tokenization_applied"))
     raw_values_included = bool(privacy.get("raw_values_included"))
     confidence = str(inference.get("confidence") or "MEDIUM").upper()
     risk = "low" if confidence == "HIGH" and not raw_values_included else "medium"
     sensitivity = str(privacy.get("privacy_level") or "low").lower()
+    if eligibility.get("safe_data_classes"):
+        safe_classes = {str(item).upper() for item in eligibility.get("safe_data_classes", ())}
+        if "TOKENIZED_CLIENT_FINANCE_METADATA" in safe_classes:
+            sensitivity = "tokenized_client_finance_metadata"
     if sensitivity in {"tokenized_fixture", "metadata_only_tokenized_refs"}:
         sensitivity = "low"
     return select_model_class(
@@ -321,6 +441,9 @@ def select_for_lm1_thread_package(thread_package: Mapping[str, Any]) -> dict[str
             "tokenization_applied": tokenization_applied,
             "raw_values_included": raw_values_included,
             "requested_live_authority": False,
+            "external_lm_allowed": bool(eligibility.get("external_lm_allowed")),
+            "local_lm_required": bool(eligibility.get("local_lm_required")),
+            "package_minimized": bool(eligibility.get("package_minimized", True)),
         }
     )
 
@@ -330,9 +453,18 @@ def select_for_lm2_role_package(role_package: Mapping[str, Any]) -> dict[str, An
     raw_values_included = bool(role_package.get("raw_values_included"))
     tokenization_applied = bool(role_package.get("tokenization_applied"))
     privacy_level = str(role_package.get("privacy_level") or "low").lower()
+    eligibility = (
+        role_package.get("external_lm_eligibility")
+        if isinstance(role_package.get("external_lm_eligibility"), Mapping)
+        else {}
+    )
     task = str(role_package.get("task") or "").lower()
     risk = "high" if any(term in task for term in ("send", "submit", "paid", "ledger", "approval")) else "medium"
     sensitivity = "high" if privacy_level in {"protected", "sensitive_raw"} else "low"
+    if eligibility.get("safe_data_classes"):
+        safe_classes = {str(item).upper() for item in eligibility.get("safe_data_classes", ())}
+        if "TOKENIZED_CLIENT_FINANCE_METADATA" in safe_classes:
+            sensitivity = "tokenized_client_finance_metadata"
     if raw_values_included:
         sensitivity = "protected"
     return select_model_class(
@@ -348,6 +480,9 @@ def select_for_lm2_role_package(role_package: Mapping[str, Any]) -> dict[str, An
             "tokenization_applied": tokenization_applied,
             "raw_values_included": raw_values_included,
             "requested_live_authority": False,
+            "external_lm_allowed": bool(eligibility.get("external_lm_allowed")),
+            "local_lm_required": bool(eligibility.get("local_lm_required")),
+            "package_minimized": bool(eligibility.get("package_minimized", True)),
         }
     )
 
@@ -362,9 +497,13 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
                 "task_type": "intent_proposal",
                 "role": "OPENCLAW_SYSTEM",
                 "risk_level": "low",
-                "sensitivity_level": "low",
+                "sensitivity_level": "tokenized_client_finance_metadata",
                 "context_size": "small",
                 "requires_structured_output": True,
+                "tokenization_applied": True,
+                "raw_values_included": False,
+                "external_lm_allowed": True,
+                "package_minimized": True,
             }
         ),
         "lm2_role_package": select_model_class(
@@ -374,9 +513,46 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
                 "task_type": "role_response",
                 "role": "CASSANDRA",
                 "risk_level": "medium",
-                "sensitivity_level": "low",
+                "sensitivity_level": "tokenized_client_finance_metadata",
                 "context_size": "medium",
                 "requires_structured_output": True,
+                "tokenization_applied": True,
+                "raw_values_included": False,
+                "external_lm_allowed": True,
+                "package_minimized": True,
+            }
+        ),
+        "local_fallback_when_external_blocked": select_model_class(
+            {
+                "request_id": "model_router_fixture_local_fallback",
+                "chain_lane": "LM2_ROLE_RESPONSE",
+                "task_type": "role_response",
+                "role": "CASSANDRA",
+                "risk_level": "medium",
+                "sensitivity_level": "client_finance_file_metadata",
+                "context_size": "medium",
+                "requires_structured_output": True,
+                "tokenization_applied": False,
+                "raw_values_included": False,
+                "local_lm_required": True,
+            }
+        ),
+        "downgrade_testing_before_baseline": select_model_class(
+            {
+                "request_id": "model_router_fixture_downgrade_block",
+                "chain_lane": "LM2_ROLE_RESPONSE",
+                "task_type": "role_response",
+                "role": "CASSANDRA",
+                "risk_level": "medium",
+                "sensitivity_level": "tokenized_client_finance_metadata",
+                "context_size": "medium",
+                "requires_structured_output": True,
+                "tokenization_applied": True,
+                "raw_values_included": False,
+                "external_lm_allowed": True,
+                "package_minimized": True,
+                "downgrade_testing_requested": True,
+                "baseline_external_passed": False,
             }
         ),
         "sensitive_without_tokenization": select_model_class(
@@ -399,7 +575,13 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
                 "privacy": {
                     "tokenization_applied": True,
                     "raw_values_included": False,
-                    "privacy_level": "metadata_only_tokenized_refs",
+                    "privacy_level": "CLIENT_FINANCE_FILE_METADATA",
+                },
+                "external_lm_eligibility": {
+                    "external_lm_allowed": True,
+                    "local_lm_required": False,
+                    "package_minimized": True,
+                    "safe_data_classes": ("TOKENIZED_CLIENT_FINANCE_METADATA",),
                 },
             }
         ),
@@ -410,7 +592,13 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
                 "task": "Prepare invoice package readback only.",
                 "tokenization_applied": True,
                 "raw_values_included": False,
-                "privacy_level": "metadata_only_tokenized_refs",
+                "privacy_level": "CLIENT_FINANCE_FILE_METADATA",
+                "external_lm_eligibility": {
+                    "external_lm_allowed": True,
+                    "local_lm_required": False,
+                    "package_minimized": True,
+                    "safe_data_classes": ("TOKENIZED_CLIENT_FINANCE_METADATA",),
+                },
             }
         ),
     }
@@ -435,13 +623,19 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
             "provider_key_material_access_performed": False,
             "authority_granted": False,
             "provider_policy_consulted": bool(examples["lm1_low_risk_intent"]["selected_provider_policy_id"]),
-            "lm1_example_selects_fast_class": examples["lm1_low_risk_intent"]["selected_model_class"] == FAST_STRUCTURED_INTENT_SMALL,
-            "lm2_example_selects_stronger_class": examples["lm2_role_package"]["selected_model_class"] == STRONG_STRUCTURED_ROLE_REASONER,
+            "lm1_example_selects_fast_class": examples["lm1_low_risk_intent"]["selected_model_class"] == FAST_EXTERNAL_INTENT_MODEL,
+            "lm2_example_selects_stronger_class": examples["lm2_role_package"]["selected_model_class"] == STRONG_EXTERNAL_ROLE_MODEL,
             "lm1_provider_policy_selected": bool(examples["lm1_low_risk_intent"]["selected_provider_ref"]),
             "lm2_provider_policy_selected": bool(examples["lm2_role_package"]["selected_provider_ref"]),
-            "lm1_thread_package_selects_fast_class": examples["lm1_thread_package"]["selected_model_class"] == FAST_STRUCTURED_INTENT_SMALL,
+            "local_fallback_selected_when_external_blocked": examples["local_fallback_when_external_blocked"][
+                "selected_model_class"
+            ]
+            == LOCAL_FALLBACK_MODEL,
+            "downgrade_testing_blocked_before_baseline": "LOCAL_DOWNGRADE_TESTING_BLOCKED_UNTIL_EXTERNAL_BASELINE_PASSES"
+            in examples["downgrade_testing_before_baseline"]["risk_notes"],
+            "lm1_thread_package_selects_fast_class": examples["lm1_thread_package"]["selected_model_class"] == FAST_EXTERNAL_INTENT_MODEL,
             "lm2_role_package_integrated_selects_class": examples["lm2_role_package_integrated"]["selected_model_class"]
-            in {STRONG_STRUCTURED_ROLE_REASONER, CONSERVATIVE_SENSITIVE_STRUCTURED},
+            in {STRONG_EXTERNAL_ROLE_MODEL, LOCAL_FALLBACK_MODEL},
             "sensitive_example_blocks_without_tokenization": examples["sensitive_without_tokenization"]["selected_model_class"] == NO_SAFE_MODEL,
             "all_live_authority_false": all(value is False for value in AUTHORITY_BOUNDARY.values()),
             "content_hash": "",

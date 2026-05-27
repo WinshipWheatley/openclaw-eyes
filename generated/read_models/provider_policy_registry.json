@@ -33,13 +33,94 @@
         "workflow_execution_allowed": false
       },
       "expected_failure_modes": [
+        "malformed MachineIntentCandidate",
         "under-specified intent",
-        "malformed JSON candidate"
+        "privacy-policy refusal"
       ],
-      "fallback_policy_id": "provider_policy:local_fixture_conservative_sensitive",
+      "fallback_policy_id": "provider_policy:local_fallback_structured",
       "next_safe_move": "Expose this as candidate policy only; no live model call is allowed.",
       "no_safe_model": false,
       "rejected_candidates": [
+        {
+          "expected_failure_modes": [
+            "over-helpful completion claim",
+            "role drift",
+            "tool request outside package"
+          ],
+          "model_class_ref": "STRONG_EXTERNAL_ROLE_MODEL",
+          "model_ref": "model_class:strong_external_role_model",
+          "policy_id": "provider_policy:external_strong_role_privacy_safe",
+          "provider_ref": "provider_class:external_privacy_safe_role_reasoner",
+          "reject_reasons": [
+            "LANE_NOT_ALLOWED",
+            "MODEL_CLASS_NOT_REQUESTED"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "higher cost",
+            "must be Guardian-gated",
+            "must receive minimized/tokenized package",
+            "provider receipts required before production"
+          ]
+        },
+        {
+          "expected_failure_modes": [
+            "lower-quality reasoning",
+            "malformed JSON candidate",
+            "over-clarification"
+          ],
+          "model_class_ref": "LOCAL_FALLBACK_MODEL",
+          "model_ref": "model_class:local_fallback_model",
+          "policy_id": "provider_policy:local_fallback_structured",
+          "provider_ref": "provider_class:local_or_private_fallback_model",
+          "reject_reasons": [
+            "MODEL_CLASS_NOT_REQUESTED"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "not the production-quality target",
+            "weaker reasoning than preferred external classes"
+          ]
+        },
+        {
+          "expected_failure_modes": [
+            "false block",
+            "unnecessary clarification",
+            "weaker synthesis"
+          ],
+          "model_class_ref": "LOCAL_ONLY_MODEL",
+          "model_ref": "model_class:local_only_model",
+          "policy_id": "provider_policy:local_only_private",
+          "provider_ref": "provider_class:local_or_private_strict_local_model",
+          "reject_reasons": [
+            "MODEL_CLASS_NOT_REQUESTED",
+            "NO_ALLOWED_CONTEXT_CLASS_MATCH"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "not the production-quality external target",
+            "may underperform strong external reasoning"
+          ]
+        },
+        {
+          "expected_failure_modes": [
+            "under-specified intent",
+            "malformed JSON candidate"
+          ],
+          "model_class_ref": "FAST_STRUCTURED_INTENT_SMALL",
+          "model_ref": "model_class:fast_structured_intent_small",
+          "policy_id": "provider_policy:local_fixture_fast_intent",
+          "provider_ref": "provider_class:local_or_private_structured_stub",
+          "reject_reasons": [
+            "MODEL_CLASS_NOT_REQUESTED",
+            "NO_ALLOWED_CONTEXT_CLASS_MATCH"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "not enough for nuanced role voice",
+            "not for broad context synthesis"
+          ]
+        },
         {
           "expected_failure_modes": [
             "over-helpful completion claim",
@@ -51,7 +132,8 @@
           "provider_ref": "provider_class:local_or_private_role_reasoner_stub",
           "reject_reasons": [
             "LANE_NOT_ALLOWED",
-            "MODEL_CLASS_NOT_REQUESTED"
+            "MODEL_CLASS_NOT_REQUESTED",
+            "NO_ALLOWED_CONTEXT_CLASS_MATCH"
           ],
           "usable": false,
           "weaknesses": [
@@ -69,7 +151,8 @@
           "policy_id": "provider_policy:local_fixture_conservative_sensitive",
           "provider_ref": "provider_class:local_or_private_conservative_stub",
           "reject_reasons": [
-            "MODEL_CLASS_NOT_REQUESTED"
+            "MODEL_CLASS_NOT_REQUESTED",
+            "NO_ALLOWED_CONTEXT_CLASS_MATCH"
           ],
           "usable": false,
           "weaknesses": [
@@ -91,9 +174,6 @@
           "reject_reasons": [
             "MODEL_CLASS_NOT_REQUESTED",
             "STRUCTURED_OUTPUT_RELIABILITY_NOT_PROVEN",
-            "LOCAL_ONLY_REQUIRED",
-            "PRIVACY_CLASS_FORBIDDEN",
-            "CONTEXT_CLASS_FORBIDDEN",
             "NO_ALLOWED_CONTEXT_CLASS_MATCH"
           ],
           "usable": false,
@@ -105,14 +185,12 @@
         }
       ],
       "request_id": "provider_policy_fixture_lm1",
-      "risk_notes": [
-        "CLIENT_PRIVACY_POLICY"
-      ],
-      "selected_model_class": "FAST_STRUCTURED_INTENT_SMALL",
-      "selected_model_ref": "model_class:fast_structured_intent_small",
-      "selected_policy_id": "provider_policy:local_fixture_fast_intent",
-      "selected_provider_ref": "provider_class:local_or_private_structured_stub",
-      "selection_id": "provider_policy_selection:0b81942ae1fb0b51",
+      "risk_notes": [],
+      "selected_model_class": "FAST_EXTERNAL_INTENT_MODEL",
+      "selected_model_ref": "model_class:fast_external_intent_model",
+      "selected_policy_id": "provider_policy:external_fast_intent_privacy_safe",
+      "selected_provider_ref": "provider_class:external_privacy_safe_fast_intent",
+      "selection_id": "provider_policy_selection:eaacc61a6b97d115",
       "selection_reason": "Selected first usable provider policy candidate for the requested lane/model class."
     },
     "lm2_role_policy": {
@@ -130,12 +208,257 @@
       },
       "expected_failure_modes": [
         "over-helpful completion claim",
+        "role drift",
         "tool request outside package"
       ],
-      "fallback_policy_id": "provider_policy:local_fixture_conservative_sensitive",
+      "fallback_policy_id": "provider_policy:local_fallback_structured",
       "next_safe_move": "Expose this as candidate policy only; no live model call is allowed.",
       "no_safe_model": false,
       "rejected_candidates": [
+        {
+          "expected_failure_modes": [
+            "malformed MachineIntentCandidate",
+            "under-specified intent",
+            "privacy-policy refusal"
+          ],
+          "model_class_ref": "FAST_EXTERNAL_INTENT_MODEL",
+          "model_ref": "model_class:fast_external_intent_model",
+          "policy_id": "provider_policy:external_fast_intent_privacy_safe",
+          "provider_ref": "provider_class:external_privacy_safe_fast_intent",
+          "reject_reasons": [
+            "LANE_NOT_ALLOWED",
+            "MODEL_CLASS_NOT_REQUESTED"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "must receive minimized/tokenized context",
+            "no tools",
+            "no direct authority",
+            "provider receipts required before production"
+          ]
+        },
+        {
+          "expected_failure_modes": [
+            "lower-quality reasoning",
+            "malformed JSON candidate",
+            "over-clarification"
+          ],
+          "model_class_ref": "LOCAL_FALLBACK_MODEL",
+          "model_ref": "model_class:local_fallback_model",
+          "policy_id": "provider_policy:local_fallback_structured",
+          "provider_ref": "provider_class:local_or_private_fallback_model",
+          "reject_reasons": [
+            "MODEL_CLASS_NOT_REQUESTED"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "not the production-quality target",
+            "weaker reasoning than preferred external classes"
+          ]
+        },
+        {
+          "expected_failure_modes": [
+            "false block",
+            "unnecessary clarification",
+            "weaker synthesis"
+          ],
+          "model_class_ref": "LOCAL_ONLY_MODEL",
+          "model_ref": "model_class:local_only_model",
+          "policy_id": "provider_policy:local_only_private",
+          "provider_ref": "provider_class:local_or_private_strict_local_model",
+          "reject_reasons": [
+            "MODEL_CLASS_NOT_REQUESTED",
+            "NO_ALLOWED_CONTEXT_CLASS_MATCH"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "not the production-quality external target",
+            "may underperform strong external reasoning"
+          ]
+        },
+        {
+          "expected_failure_modes": [
+            "under-specified intent",
+            "malformed JSON candidate"
+          ],
+          "model_class_ref": "FAST_STRUCTURED_INTENT_SMALL",
+          "model_ref": "model_class:fast_structured_intent_small",
+          "policy_id": "provider_policy:local_fixture_fast_intent",
+          "provider_ref": "provider_class:local_or_private_structured_stub",
+          "reject_reasons": [
+            "LANE_NOT_ALLOWED",
+            "MODEL_CLASS_NOT_REQUESTED",
+            "NO_ALLOWED_CONTEXT_CLASS_MATCH"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "not enough for nuanced role voice",
+            "not for broad context synthesis"
+          ]
+        },
+        {
+          "expected_failure_modes": [
+            "over-helpful completion claim",
+            "tool request outside package"
+          ],
+          "model_class_ref": "STRONG_STRUCTURED_ROLE_REASONER",
+          "model_ref": "model_class:strong_structured_role_reasoner",
+          "policy_id": "provider_policy:local_fixture_strong_role",
+          "provider_ref": "provider_class:local_or_private_role_reasoner_stub",
+          "reject_reasons": [
+            "MODEL_CLASS_NOT_REQUESTED",
+            "NO_ALLOWED_CONTEXT_CLASS_MATCH"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "higher latency than LM1 class",
+            "requires Guardian output gate"
+          ]
+        },
+        {
+          "expected_failure_modes": [
+            "false block",
+            "unnecessary clarification"
+          ],
+          "model_class_ref": "CONSERVATIVE_SENSITIVE_STRUCTURED",
+          "model_ref": "model_class:conservative_sensitive_structured",
+          "policy_id": "provider_policy:local_fixture_conservative_sensitive",
+          "provider_ref": "provider_class:local_or_private_conservative_stub",
+          "reject_reasons": [
+            "MODEL_CLASS_NOT_REQUESTED",
+            "NO_ALLOWED_CONTEXT_CLASS_MATCH"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "may over-clarify",
+            "higher latency",
+            "less warm voice"
+          ]
+        },
+        {
+          "expected_failure_modes": [
+            "privacy policy block",
+            "provider unavailability",
+            "schema drift"
+          ],
+          "model_class_ref": "STRONG_STRUCTURED_ROLE_REASONER",
+          "model_ref": "model_class:cloud_structured_candidate",
+          "policy_id": "provider_policy:future_cloud_structured_candidate",
+          "provider_ref": "provider_class:future_cloud_structured_candidate",
+          "reject_reasons": [
+            "MODEL_CLASS_NOT_REQUESTED",
+            "STRUCTURED_OUTPUT_RELIABILITY_NOT_PROVEN",
+            "NO_ALLOWED_CONTEXT_CLASS_MATCH"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "privacy policy must be explicit",
+            "network/API key path required",
+            "cannot be used in private mode by default"
+          ]
+        }
+      ],
+      "request_id": "provider_policy_fixture_lm2",
+      "risk_notes": [],
+      "selected_model_class": "STRONG_EXTERNAL_ROLE_MODEL",
+      "selected_model_ref": "model_class:strong_external_role_model",
+      "selected_policy_id": "provider_policy:external_strong_role_privacy_safe",
+      "selected_provider_ref": "provider_class:external_privacy_safe_role_reasoner",
+      "selection_id": "provider_policy_selection:ccc411cc201e89e4",
+      "selection_reason": "Selected first usable provider policy candidate for the requested lane/model class."
+    },
+    "local_fallback_policy": {
+      "authority_boundary": {
+        "authority_grant_allowed": false,
+        "external_action_allowed": false,
+        "live_model_call_allowed": false,
+        "model_api_integration_allowed": false,
+        "network_allowed": false,
+        "production_state_mutation_allowed": false,
+        "provider_key_material_access_allowed": false,
+        "send_submit_allowed": false,
+        "tool_execution_allowed": false,
+        "workflow_execution_allowed": false
+      },
+      "expected_failure_modes": [
+        "lower-quality reasoning",
+        "malformed JSON candidate",
+        "over-clarification"
+      ],
+      "fallback_policy_id": "provider_policy:local_only_private",
+      "next_safe_move": "Expose this as candidate policy only; no live model call is allowed.",
+      "no_safe_model": false,
+      "rejected_candidates": [
+        {
+          "expected_failure_modes": [
+            "malformed MachineIntentCandidate",
+            "under-specified intent",
+            "privacy-policy refusal"
+          ],
+          "model_class_ref": "FAST_EXTERNAL_INTENT_MODEL",
+          "model_ref": "model_class:fast_external_intent_model",
+          "policy_id": "provider_policy:external_fast_intent_privacy_safe",
+          "provider_ref": "provider_class:external_privacy_safe_fast_intent",
+          "reject_reasons": [
+            "LANE_NOT_ALLOWED",
+            "MODEL_CLASS_NOT_REQUESTED",
+            "LOCAL_ONLY_REQUIRED",
+            "PRIVACY_CLASS_FORBIDDEN",
+            "CONTEXT_CLASS_FORBIDDEN",
+            "NO_ALLOWED_CONTEXT_CLASS_MATCH"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "must receive minimized/tokenized context",
+            "no tools",
+            "no direct authority",
+            "provider receipts required before production"
+          ]
+        },
+        {
+          "expected_failure_modes": [
+            "over-helpful completion claim",
+            "role drift",
+            "tool request outside package"
+          ],
+          "model_class_ref": "STRONG_EXTERNAL_ROLE_MODEL",
+          "model_ref": "model_class:strong_external_role_model",
+          "policy_id": "provider_policy:external_strong_role_privacy_safe",
+          "provider_ref": "provider_class:external_privacy_safe_role_reasoner",
+          "reject_reasons": [
+            "MODEL_CLASS_NOT_REQUESTED",
+            "LOCAL_ONLY_REQUIRED",
+            "PRIVACY_CLASS_FORBIDDEN",
+            "CONTEXT_CLASS_FORBIDDEN",
+            "NO_ALLOWED_CONTEXT_CLASS_MATCH"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "higher cost",
+            "must be Guardian-gated",
+            "must receive minimized/tokenized package",
+            "provider receipts required before production"
+          ]
+        },
+        {
+          "expected_failure_modes": [
+            "false block",
+            "unnecessary clarification",
+            "weaker synthesis"
+          ],
+          "model_class_ref": "LOCAL_ONLY_MODEL",
+          "model_ref": "model_class:local_only_model",
+          "policy_id": "provider_policy:local_only_private",
+          "provider_ref": "provider_class:local_or_private_strict_local_model",
+          "reject_reasons": [
+            "MODEL_CLASS_NOT_REQUESTED"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "not the production-quality external target",
+            "may underperform strong external reasoning"
+          ]
+        },
         {
           "expected_failure_modes": [
             "under-specified intent",
@@ -153,6 +476,24 @@
           "weaknesses": [
             "not enough for nuanced role voice",
             "not for broad context synthesis"
+          ]
+        },
+        {
+          "expected_failure_modes": [
+            "over-helpful completion claim",
+            "tool request outside package"
+          ],
+          "model_class_ref": "STRONG_STRUCTURED_ROLE_REASONER",
+          "model_ref": "model_class:strong_structured_role_reasoner",
+          "policy_id": "provider_policy:local_fixture_strong_role",
+          "provider_ref": "provider_class:local_or_private_role_reasoner_stub",
+          "reject_reasons": [
+            "MODEL_CLASS_NOT_REQUESTED"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "higher latency than LM1 class",
+            "requires Guardian output gate"
           ]
         },
         {
@@ -185,6 +526,7 @@
           "policy_id": "provider_policy:future_cloud_structured_candidate",
           "provider_ref": "provider_class:future_cloud_structured_candidate",
           "reject_reasons": [
+            "MODEL_CLASS_NOT_REQUESTED",
             "STRUCTURED_OUTPUT_RELIABILITY_NOT_PROVEN",
             "LOCAL_ONLY_REQUIRED",
             "PRIVACY_CLASS_FORBIDDEN",
@@ -199,15 +541,15 @@
           ]
         }
       ],
-      "request_id": "provider_policy_fixture_lm2",
+      "request_id": "provider_policy_fixture_local_fallback",
       "risk_notes": [
         "CLIENT_PRIVACY_POLICY"
       ],
-      "selected_model_class": "STRONG_STRUCTURED_ROLE_REASONER",
-      "selected_model_ref": "model_class:strong_structured_role_reasoner",
-      "selected_policy_id": "provider_policy:local_fixture_strong_role",
-      "selected_provider_ref": "provider_class:local_or_private_role_reasoner_stub",
-      "selection_id": "provider_policy_selection:4183ce7c95b63f42",
+      "selected_model_class": "LOCAL_FALLBACK_MODEL",
+      "selected_model_ref": "model_class:local_fallback_model",
+      "selected_policy_id": "provider_policy:local_fallback_structured",
+      "selected_provider_ref": "provider_class:local_or_private_fallback_model",
+      "selection_id": "provider_policy_selection:8b7c7de1c5b537ea",
       "selection_reason": "Selected first usable provider policy candidate for the requested lane/model class."
     },
     "private_cloud_block": {
@@ -224,12 +566,18 @@
         "workflow_execution_allowed": false
       },
       "expected_failure_modes": [
+        "malformed MachineIntentCandidate",
         "under-specified intent",
-        "malformed JSON candidate",
+        "privacy-policy refusal",
         "over-helpful completion claim",
+        "role drift",
         "tool request outside package",
+        "lower-quality reasoning",
+        "malformed JSON candidate",
+        "over-clarification",
         "false block",
         "unnecessary clarification",
+        "weaker synthesis",
         "privacy policy block",
         "provider unavailability",
         "schema drift"
@@ -238,6 +586,99 @@
       "next_safe_move": "Do not call a model; resolve provider/privacy policy first.",
       "no_safe_model": true,
       "rejected_candidates": [
+        {
+          "expected_failure_modes": [
+            "malformed MachineIntentCandidate",
+            "under-specified intent",
+            "privacy-policy refusal"
+          ],
+          "model_class_ref": "FAST_EXTERNAL_INTENT_MODEL",
+          "model_ref": "model_class:fast_external_intent_model",
+          "policy_id": "provider_policy:external_fast_intent_privacy_safe",
+          "provider_ref": "provider_class:external_privacy_safe_fast_intent",
+          "reject_reasons": [
+            "LANE_NOT_ALLOWED",
+            "MODEL_CLASS_NOT_REQUESTED",
+            "LOCAL_ONLY_REQUIRED",
+            "PRIVATE_MODE_BLOCKS_CLOUD",
+            "STRICT_PRIVATE_REQUIRES_LOCAL_ONLY",
+            "PRIVACY_CLASS_FORBIDDEN",
+            "CONTEXT_CLASS_FORBIDDEN",
+            "NO_ALLOWED_CONTEXT_CLASS_MATCH"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "must receive minimized/tokenized context",
+            "no tools",
+            "no direct authority",
+            "provider receipts required before production"
+          ]
+        },
+        {
+          "expected_failure_modes": [
+            "over-helpful completion claim",
+            "role drift",
+            "tool request outside package"
+          ],
+          "model_class_ref": "STRONG_EXTERNAL_ROLE_MODEL",
+          "model_ref": "model_class:strong_external_role_model",
+          "policy_id": "provider_policy:external_strong_role_privacy_safe",
+          "provider_ref": "provider_class:external_privacy_safe_role_reasoner",
+          "reject_reasons": [
+            "LOCAL_ONLY_REQUIRED",
+            "PRIVATE_MODE_BLOCKS_CLOUD",
+            "STRICT_PRIVATE_REQUIRES_LOCAL_ONLY",
+            "PRIVACY_CLASS_FORBIDDEN",
+            "CONTEXT_CLASS_FORBIDDEN",
+            "NO_ALLOWED_CONTEXT_CLASS_MATCH"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "higher cost",
+            "must be Guardian-gated",
+            "must receive minimized/tokenized package",
+            "provider receipts required before production"
+          ]
+        },
+        {
+          "expected_failure_modes": [
+            "lower-quality reasoning",
+            "malformed JSON candidate",
+            "over-clarification"
+          ],
+          "model_class_ref": "LOCAL_FALLBACK_MODEL",
+          "model_ref": "model_class:local_fallback_model",
+          "policy_id": "provider_policy:local_fallback_structured",
+          "provider_ref": "provider_class:local_or_private_fallback_model",
+          "reject_reasons": [
+            "MODEL_CLASS_NOT_REQUESTED",
+            "NO_ALLOWED_CONTEXT_CLASS_MATCH"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "not the production-quality target",
+            "weaker reasoning than preferred external classes"
+          ]
+        },
+        {
+          "expected_failure_modes": [
+            "false block",
+            "unnecessary clarification",
+            "weaker synthesis"
+          ],
+          "model_class_ref": "LOCAL_ONLY_MODEL",
+          "model_ref": "model_class:local_only_model",
+          "policy_id": "provider_policy:local_only_private",
+          "provider_ref": "provider_class:local_or_private_strict_local_model",
+          "reject_reasons": [
+            "MODEL_CLASS_NOT_REQUESTED"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "not the production-quality external target",
+            "may underperform strong external reasoning"
+          ]
+        },
         {
           "expected_failure_modes": [
             "under-specified intent",
@@ -268,6 +709,7 @@
           "policy_id": "provider_policy:local_fixture_strong_role",
           "provider_ref": "provider_class:local_or_private_role_reasoner_stub",
           "reject_reasons": [
+            "MODEL_CLASS_NOT_REQUESTED",
             "NO_ALLOWED_CONTEXT_CLASS_MATCH"
           ],
           "usable": false,
@@ -306,6 +748,7 @@
           "policy_id": "provider_policy:future_cloud_structured_candidate",
           "provider_ref": "provider_class:future_cloud_structured_candidate",
           "reject_reasons": [
+            "MODEL_CLASS_NOT_REQUESTED",
             "STRUCTURED_OUTPUT_RELIABILITY_NOT_PROVEN",
             "LOCAL_ONLY_REQUIRED",
             "PRIVATE_MODE_BLOCKS_CLOUD",
@@ -349,12 +792,18 @@
         "workflow_execution_allowed": false
       },
       "expected_failure_modes": [
+        "malformed MachineIntentCandidate",
         "under-specified intent",
-        "malformed JSON candidate",
+        "privacy-policy refusal",
         "over-helpful completion claim",
+        "role drift",
         "tool request outside package",
+        "lower-quality reasoning",
+        "malformed JSON candidate",
+        "over-clarification",
         "false block",
         "unnecessary clarification",
+        "weaker synthesis",
         "privacy policy block",
         "provider unavailability",
         "schema drift"
@@ -363,6 +812,98 @@
       "next_safe_move": "Do not call a model; resolve provider/privacy policy first.",
       "no_safe_model": true,
       "rejected_candidates": [
+        {
+          "expected_failure_modes": [
+            "malformed MachineIntentCandidate",
+            "under-specified intent",
+            "privacy-policy refusal"
+          ],
+          "model_class_ref": "FAST_EXTERNAL_INTENT_MODEL",
+          "model_ref": "model_class:fast_external_intent_model",
+          "policy_id": "provider_policy:external_fast_intent_privacy_safe",
+          "provider_ref": "provider_class:external_privacy_safe_fast_intent",
+          "reject_reasons": [
+            "LANE_NOT_ALLOWED",
+            "MODEL_CLASS_NOT_REQUESTED",
+            "RAW_VALUES_NOT_ALLOWED",
+            "PRIVACY_CLASS_FORBIDDEN",
+            "CONTEXT_CLASS_FORBIDDEN",
+            "NO_ALLOWED_CONTEXT_CLASS_MATCH"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "must receive minimized/tokenized context",
+            "no tools",
+            "no direct authority",
+            "provider receipts required before production"
+          ]
+        },
+        {
+          "expected_failure_modes": [
+            "over-helpful completion claim",
+            "role drift",
+            "tool request outside package"
+          ],
+          "model_class_ref": "STRONG_EXTERNAL_ROLE_MODEL",
+          "model_ref": "model_class:strong_external_role_model",
+          "policy_id": "provider_policy:external_strong_role_privacy_safe",
+          "provider_ref": "provider_class:external_privacy_safe_role_reasoner",
+          "reject_reasons": [
+            "RAW_VALUES_NOT_ALLOWED",
+            "PRIVACY_CLASS_FORBIDDEN",
+            "CONTEXT_CLASS_FORBIDDEN",
+            "NO_ALLOWED_CONTEXT_CLASS_MATCH"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "higher cost",
+            "must be Guardian-gated",
+            "must receive minimized/tokenized package",
+            "provider receipts required before production"
+          ]
+        },
+        {
+          "expected_failure_modes": [
+            "lower-quality reasoning",
+            "malformed JSON candidate",
+            "over-clarification"
+          ],
+          "model_class_ref": "LOCAL_FALLBACK_MODEL",
+          "model_ref": "model_class:local_fallback_model",
+          "policy_id": "provider_policy:local_fallback_structured",
+          "provider_ref": "provider_class:local_or_private_fallback_model",
+          "reject_reasons": [
+            "MODEL_CLASS_NOT_REQUESTED",
+            "RAW_VALUES_NOT_ALLOWED",
+            "NO_ALLOWED_CONTEXT_CLASS_MATCH"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "not the production-quality target",
+            "weaker reasoning than preferred external classes"
+          ]
+        },
+        {
+          "expected_failure_modes": [
+            "false block",
+            "unnecessary clarification",
+            "weaker synthesis"
+          ],
+          "model_class_ref": "LOCAL_ONLY_MODEL",
+          "model_ref": "model_class:local_only_model",
+          "policy_id": "provider_policy:local_only_private",
+          "provider_ref": "provider_class:local_or_private_strict_local_model",
+          "reject_reasons": [
+            "MODEL_CLASS_NOT_REQUESTED",
+            "RAW_VALUES_NOT_ALLOWED",
+            "NO_ALLOWED_CONTEXT_CLASS_MATCH"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "not the production-quality external target",
+            "may underperform strong external reasoning"
+          ]
+        },
         {
           "expected_failure_modes": [
             "under-specified intent",
@@ -396,6 +937,7 @@
           "policy_id": "provider_policy:local_fixture_strong_role",
           "provider_ref": "provider_class:local_or_private_role_reasoner_stub",
           "reject_reasons": [
+            "MODEL_CLASS_NOT_REQUESTED",
             "RAW_VALUES_NOT_ALLOWED",
             "PRIVACY_CLASS_FORBIDDEN",
             "CONTEXT_CLASS_FORBIDDEN",
@@ -441,6 +983,7 @@
           "policy_id": "provider_policy:future_cloud_structured_candidate",
           "provider_ref": "provider_class:future_cloud_structured_candidate",
           "reject_reasons": [
+            "MODEL_CLASS_NOT_REQUESTED",
             "STRUCTURED_OUTPUT_RELIABILITY_NOT_PROVEN",
             "RAW_VALUES_NOT_ALLOWED",
             "PRIVACY_CLASS_FORBIDDEN",
@@ -470,16 +1013,301 @@
   "generated_at": "2026-05-26T00:00:00+00:00",
   "machine_proof": {
     "all_live_authority_false": true,
-    "content_hash": "sha256:9639cf3600d8e6d0646809128c5fd05bcc1c75dbde9be0eb767e00ffbdb10ad2",
+    "content_hash": "sha256:c749c51b91079e0bd923bc81a57fdf3e215cc9687cf289c3770ab6ede3c5eb1a",
     "live_model_call_performed": false,
     "lm1_policy_selects_fast_candidate": true,
     "lm2_policy_selects_strong_candidate": true,
+    "local_fallback_selects_local_candidate": true,
     "network_performed": false,
     "private_cloud_candidate_rejected": true,
     "provider_key_material_access_performed": false,
     "raw_values_block_no_safe_model": true
   },
   "provider_policy_records": [
+    {
+      "allowed_context_classes": [
+        "LOW_METADATA",
+        "TOKENIZED_METADATA",
+        "TOKENIZED_CLIENT_FINANCE_METADATA",
+        "MACHINE_INTENT_PROPOSAL_SCHEMA"
+      ],
+      "authority_boundary": {
+        "authority_grant_allowed": false,
+        "external_action_allowed": false,
+        "live_model_call_allowed": false,
+        "model_api_integration_allowed": false,
+        "network_allowed": false,
+        "production_state_mutation_allowed": false,
+        "provider_key_material_access_allowed": false,
+        "send_submit_allowed": false,
+        "tool_execution_allowed": false,
+        "workflow_execution_allowed": false
+      },
+      "blocked_use_cases": [
+        "tool execution",
+        "authority grant",
+        "raw private body reasoning",
+        "strict private mode"
+      ],
+      "cloud_allowed": true,
+      "conservative_reasoning_strength": "medium",
+      "cost_tier": "low",
+      "creative_strength": "low",
+      "default_use_cases": [
+        "future LM1 MachineIntentCandidate proposal",
+        "privacy-safe intent classification"
+      ],
+      "expected_failure_modes": [
+        "malformed MachineIntentCandidate",
+        "under-specified intent",
+        "privacy-policy refusal"
+      ],
+      "forbidden_context_classes": [
+        "CLIENT_FINANCE_FILE_METADATA",
+        "STRICT_PRIVATE_CLIENT_METADATA",
+        "RAW_PRIVATE_BODY",
+        "RAW_SECRET",
+        "CREDENTIAL_MATERIAL",
+        "UNMINIMIZED_CLIENT_CONTEXT",
+        "UNRELATED_CLIENT_DATA"
+      ],
+      "lane_allowed": [
+        "LM1_INTENT_PROPOSAL"
+      ],
+      "latency_tier": "low",
+      "local_only": false,
+      "long_context_strength": "low",
+      "model_class_ref": "FAST_EXTERNAL_INTENT_MODEL",
+      "model_ref": "model_class:fast_external_intent_model",
+      "next_safe_move": "Use as the preferred future LM1 class only after Gate 1 minimizes/tokenizes the package and receipts exist.",
+      "policy_id": "provider_policy:external_fast_intent_privacy_safe",
+      "privacy_risk_level": "acceptable_only_when_tokenized_minimized",
+      "provider_ref": "provider_class:external_privacy_safe_fast_intent",
+      "strengths": [
+        "fast intent proposal",
+        "strong structured JSON",
+        "cheap external reasoning",
+        "narrow classification"
+      ],
+      "structured_output_reliability": "high_required",
+      "weaknesses": [
+        "must receive minimized/tokenized context",
+        "no tools",
+        "no direct authority",
+        "provider receipts required before production"
+      ]
+    },
+    {
+      "allowed_context_classes": [
+        "LOW_METADATA",
+        "TOKENIZED_METADATA",
+        "TOKENIZED_CLIENT_FINANCE_METADATA",
+        "MINIMIZED_ROLE_PACKAGE"
+      ],
+      "authority_boundary": {
+        "authority_grant_allowed": false,
+        "external_action_allowed": false,
+        "live_model_call_allowed": false,
+        "model_api_integration_allowed": false,
+        "network_allowed": false,
+        "production_state_mutation_allowed": false,
+        "provider_key_material_access_allowed": false,
+        "send_submit_allowed": false,
+        "tool_execution_allowed": false,
+        "workflow_execution_allowed": false
+      },
+      "blocked_use_cases": [
+        "send/submit",
+        "ledger posting",
+        "credential use",
+        "raw private body reasoning"
+      ],
+      "cloud_allowed": true,
+      "conservative_reasoning_strength": "high",
+      "cost_tier": "higher",
+      "creative_strength": "medium",
+      "default_use_cases": [
+        "future LM2 role response",
+        "Cassandra/Clara/Chief bounded package reasoning"
+      ],
+      "expected_failure_modes": [
+        "over-helpful completion claim",
+        "role drift",
+        "tool request outside package"
+      ],
+      "forbidden_context_classes": [
+        "CLIENT_FINANCE_FILE_METADATA",
+        "STRICT_PRIVATE_CLIENT_METADATA",
+        "RAW_PRIVATE_BODY",
+        "RAW_SECRET",
+        "CREDENTIAL_MATERIAL",
+        "UNMINIMIZED_CLIENT_CONTEXT",
+        "UNRELATED_CLIENT_DATA"
+      ],
+      "lane_allowed": [
+        "LM2_ROLE_RESPONSE"
+      ],
+      "latency_tier": "medium",
+      "local_only": false,
+      "long_context_strength": "high",
+      "model_class_ref": "STRONG_EXTERNAL_ROLE_MODEL",
+      "model_ref": "model_class:strong_external_role_model",
+      "next_safe_move": "Use as the preferred future LM2 class only after Gate 3 compiles a minimized package and Gate 4 remains required.",
+      "policy_id": "provider_policy:external_strong_role_privacy_safe",
+      "privacy_risk_level": "acceptable_only_when_tokenized_minimized",
+      "provider_ref": "provider_class:external_privacy_safe_role_reasoner",
+      "strengths": [
+        "strong package reasoning",
+        "nuanced role voice",
+        "structured response",
+        "longer context synthesis"
+      ],
+      "structured_output_reliability": "high_required",
+      "weaknesses": [
+        "higher cost",
+        "must be Guardian-gated",
+        "must receive minimized/tokenized package",
+        "provider receipts required before production"
+      ]
+    },
+    {
+      "allowed_context_classes": [
+        "LOW_METADATA",
+        "CLIENT_FINANCE_FILE_METADATA",
+        "TOKENIZED_METADATA",
+        "TOKENIZED_CLIENT_FINANCE_METADATA",
+        "MINIMIZED_ROLE_PACKAGE"
+      ],
+      "authority_boundary": {
+        "authority_grant_allowed": false,
+        "external_action_allowed": false,
+        "live_model_call_allowed": false,
+        "model_api_integration_allowed": false,
+        "network_allowed": false,
+        "production_state_mutation_allowed": false,
+        "provider_key_material_access_allowed": false,
+        "send_submit_allowed": false,
+        "tool_execution_allowed": false,
+        "workflow_execution_allowed": false
+      },
+      "blocked_use_cases": [
+        "production-quality external baseline replacement",
+        "credential use",
+        "direct execution"
+      ],
+      "cloud_allowed": false,
+      "conservative_reasoning_strength": "medium",
+      "cost_tier": "low_local",
+      "creative_strength": "low",
+      "default_use_cases": [
+        "offline fallback",
+        "local shadow smoke",
+        "external policy blocked package"
+      ],
+      "expected_failure_modes": [
+        "lower-quality reasoning",
+        "malformed JSON candidate",
+        "over-clarification"
+      ],
+      "forbidden_context_classes": [
+        "RAW_SECRET",
+        "CREDENTIAL_MATERIAL",
+        "UNRELATED_CLIENT_DATA"
+      ],
+      "lane_allowed": [
+        "LM1_INTENT_PROPOSAL",
+        "LM2_ROLE_RESPONSE"
+      ],
+      "latency_tier": "variable_local",
+      "local_only": true,
+      "long_context_strength": "medium",
+      "model_class_ref": "LOCAL_FALLBACK_MODEL",
+      "model_ref": "model_class:local_fallback_model",
+      "next_safe_move": "Use only as fallback/offline/shadow path; prefer external classes when privacy controls allow them.",
+      "policy_id": "provider_policy:local_fallback_structured",
+      "privacy_risk_level": "low_when_local_only",
+      "provider_ref": "provider_class:local_or_private_fallback_model",
+      "strengths": [
+        "offline fallback",
+        "credit-saving smoke tests",
+        "local shadow comparison",
+        "private-mode fallback"
+      ],
+      "structured_output_reliability": "high_required",
+      "weaknesses": [
+        "not the production-quality target",
+        "weaker reasoning than preferred external classes"
+      ]
+    },
+    {
+      "allowed_context_classes": [
+        "LOW_METADATA",
+        "CLIENT_FINANCE_FILE_METADATA",
+        "TOKENIZED_METADATA",
+        "STRICT_PRIVATE_CLIENT_METADATA",
+        "LEGAL_PRIVILEGED_METADATA"
+      ],
+      "authority_boundary": {
+        "authority_grant_allowed": false,
+        "external_action_allowed": false,
+        "live_model_call_allowed": false,
+        "model_api_integration_allowed": false,
+        "network_allowed": false,
+        "production_state_mutation_allowed": false,
+        "provider_key_material_access_allowed": false,
+        "send_submit_allowed": false,
+        "tool_execution_allowed": false,
+        "workflow_execution_allowed": false
+      },
+      "blocked_use_cases": [
+        "cloud route",
+        "provider API call",
+        "credential use",
+        "direct execution"
+      ],
+      "cloud_allowed": false,
+      "conservative_reasoning_strength": "high",
+      "cost_tier": "low_local",
+      "creative_strength": "low",
+      "default_use_cases": [
+        "strict private mode",
+        "legal/local-only posture",
+        "policy-blocked external context"
+      ],
+      "expected_failure_modes": [
+        "false block",
+        "unnecessary clarification",
+        "weaker synthesis"
+      ],
+      "forbidden_context_classes": [
+        "RAW_SECRET",
+        "CREDENTIAL_MATERIAL",
+        "UNRELATED_CLIENT_DATA"
+      ],
+      "lane_allowed": [
+        "LM1_INTENT_PROPOSAL",
+        "LM2_ROLE_RESPONSE"
+      ],
+      "latency_tier": "variable_local",
+      "local_only": true,
+      "long_context_strength": "medium",
+      "model_class_ref": "LOCAL_ONLY_MODEL",
+      "model_ref": "model_class:local_only_model",
+      "next_safe_move": "Use when policy requires local-only handling; still no live production authority.",
+      "policy_id": "provider_policy:local_only_private",
+      "privacy_risk_level": "lowest_when_local_only",
+      "provider_ref": "provider_class:local_or_private_strict_local_model",
+      "strengths": [
+        "strict local handling",
+        "private-mode posture",
+        "no cloud exposure"
+      ],
+      "structured_output_reliability": "strict_required",
+      "weaknesses": [
+        "not the production-quality external target",
+        "may underperform strong external reasoning"
+      ]
+    },
     {
       "allowed_context_classes": [
         "LOW_METADATA",

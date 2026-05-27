@@ -366,8 +366,15 @@ def evaluate_tokenization_policy(context: Mapping[str, Any] | None = None) -> di
     if world_ref == "finance" or "invoice" in artifact_kind or "spreadsheet" in file_type:
         privacy_level = "CLIENT_FINANCE_FILE_METADATA"
         tokenization_required = True
-        local_only_required = True
-        reason_codes.extend(("FINANCE_CONTEXT", "CLIENT_FILE_METADATA", "INVOICE_WORKBOOK_REFERENCE"))
+        local_only_required = False
+        reason_codes.extend(
+            (
+                "FINANCE_CONTEXT",
+                "CLIENT_FILE_METADATA",
+                "INVOICE_WORKBOOK_REFERENCE",
+                "EXTERNAL_ELIGIBLE_AFTER_TOKENIZATION_AND_MINIMIZATION",
+            )
+        )
     if client_ref and client_ref != "unknown":
         reason_codes.append("CLIENT_SCOPED")
     if private_mode_active:

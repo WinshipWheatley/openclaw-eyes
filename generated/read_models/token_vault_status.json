@@ -195,7 +195,7 @@
     "all_live_authority_false": true,
     "cloud_call_performed": false,
     "cloud_lm_blocked_when_private": true,
-    "content_hash": "sha256:48bd3995a3ef0d853ad33302acbf3bab82b705a3e2bf847cfdb9cfd32b8a8861",
+    "content_hash": "sha256:55ed9556200b0b68392a714f47d7273481e1c1a3ba151b9a793acb410a86e440",
     "different_scope_token_differs": true,
     "finance_policy_blocks_raw_model_visibility": true,
     "finance_policy_tokenization_required": true,
@@ -228,7 +228,7 @@
         "real_data_ingestion_allowed": false
       },
       "detokenization_allowed": false,
-      "local_only_required": true,
+      "local_only_required": false,
       "model_may_see_raw_values": false,
       "next_safe_move": "Attach scoped tokens and metadata summaries only; do not expose raw values.",
       "policy_decision_id": "tokenization_policy:7e0760610555939d",
@@ -238,6 +238,7 @@
         "FINANCE_CONTEXT",
         "CLIENT_FILE_METADATA",
         "INVOICE_WORKBOOK_REFERENCE",
+        "EXTERNAL_ELIGIBLE_AFTER_TOKENIZATION_AND_MINIMIZATION",
         "CLIENT_SCOPED"
       ],
       "synthetic_fixture_only": true,
@@ -264,6 +265,7 @@
         "FINANCE_CONTEXT",
         "CLIENT_FILE_METADATA",
         "INVOICE_WORKBOOK_REFERENCE",
+        "EXTERNAL_ELIGIBLE_AFTER_TOKENIZATION_AND_MINIMIZATION",
         "CLIENT_SCOPED",
         "STRICT_PRIVATE_MODE_ACTIVE"
       ],
@@ -404,7 +406,7 @@
   "read_model_id": "token_vault_status",
   "role_package_declaration": {
     "detokenization_allowed": false,
-    "local_only_required": true,
+    "local_only_required": false,
     "model_may_see_raw_values": false,
     "next_safe_move": "Attach tokenization metadata to future role packages; never include raw sensitive values.",
     "privacy_level": "CLIENT_FINANCE_FILE_METADATA",
@@ -414,6 +416,7 @@
       "FINANCE_CONTEXT",
       "CLIENT_FILE_METADATA",
       "INVOICE_WORKBOOK_REFERENCE",
+      "EXTERNAL_ELIGIBLE_AFTER_TOKENIZATION_AND_MINIMIZATION",
       "CLIENT_SCOPED"
     ],
     "safe_for_role_package": true,

@@ -171,6 +171,17 @@ def select_local_model_for_class(
 ) -> str:
     installed = installed_models if installed_models is not None else installed_ollama_models()
     preferences = {
+        model_router_policy.LOCAL_FALLBACK_MODEL: (
+            "qwen3:8b-q4_K_M",
+            "qwen3:4b",
+            "nemotron-3-nano:4b",
+            "mistral-nemo:12b-instruct-2407-q2_K",
+        ),
+        model_router_policy.LOCAL_ONLY_MODEL: (
+            "qwen3:4b",
+            "nemotron-3-nano:4b",
+            "qwen3:8b-q4_K_M",
+        ),
         model_router_policy.FAST_STRUCTURED_INTENT_SMALL: (
             "qwen3:4b",
             "nemotron-3-nano:4b",

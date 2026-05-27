@@ -14,6 +14,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Mapping
 
+import external_lm_eligibility_policy
 import gate_chain_harness
 import gate1_operational_snapshot
 import gate1_privacy_request_readiness
@@ -82,6 +83,7 @@ class LM1ThreadContextPackage:
     tokenization_required: bool
     tokenization_policy: dict[str, Any]
     privacy: dict[str, Any]
+    external_lm_eligibility: dict[str, Any]
     model_router_result: dict[str, Any]
     allowed_context_classes: tuple[str, ...]
     forbidden_context_classes: tuple[str, ...]
@@ -180,6 +182,7 @@ def build_lm1_thread_context_package(
         tokenization_required=bool(token_policy["tokenization_required"]),
         tokenization_policy=token_policy,
         privacy=privacy,
+        external_lm_eligibility={},
         model_router_result={},
         allowed_context_classes=tuple(gate1_snapshot["allowed_context_classes"]),
         forbidden_context_classes=tuple(gate1_snapshot["forbidden_context_classes"]),
@@ -198,6 +201,7 @@ def build_lm1_thread_context_package(
     package_dict = asdict(package)
     package_dict["gate1_operational_snapshot"] = gate1_snapshot
     package_dict["universal_intake_chain_contract"] = intake.get("chain_contract", {})
+    package_dict["external_lm_eligibility"] = external_lm_eligibility_policy.evaluate_for_lm1_thread_package(package_dict)
     package_dict["model_router_result"] = model_router_policy.select_for_lm1_thread_package(package_dict)
     return package_dict
 
@@ -264,7 +268,9 @@ def build_representative_flow(*, generated_at: str = DEFAULT_GENERATED_AT) -> di
     gate3_result = role_package_gate.compile_role_package(gate2_result)
     gate3_readback = role_package_gate.build_package_readback(gate3_result)
     role_package = gate3_result.get("role_execution_package") or {}
-    lm2_model_decision = model_router_policy.select_for_lm2_role_package(role_package)
+    lm2_external_lm_eligibility = external_lm_eligibility_policy.evaluate_for_lm2_role_package(role_package)
+    role_package_for_model_route = {**role_package, "external_lm_eligibility": lm2_external_lm_eligibility}
+    lm2_model_decision = model_router_policy.select_for_lm2_role_package(role_package_for_model_route)
     lm2_response_candidate = {
         "source_request_id": candidate.source_request_id,
         "workflow_ref": candidate.target_workflow_ref,
@@ -297,6 +303,7 @@ def build_representative_flow(*, generated_at: str = DEFAULT_GENERATED_AT) -> di
             "privacy_level": role_package.get("privacy_level"),
             "model_may_see_raw_values": bool(role_package.get("model_may_see_raw_values")),
         },
+        "lm2_external_lm_eligibility": lm2_external_lm_eligibility,
         "lm2_model_decision": lm2_model_decision,
         "private_mode": private_mode_readiness_stub(),
         "lm2_response_candidate": lm2_response_candidate,
@@ -310,6 +317,7 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
     gate_chain = gate_chain_harness.run_harness(generated_at=generated_at, persist=True)
     trust_ramp = guardian_trust_ramp_simulator.run_trust_ramp(generated_at=generated_at, persist=True)
     shadow = shadow_lm_mode.build_payload(generated_at=generated_at, persist=True)
+    external_eligibility = external_lm_eligibility_policy.build_payload(generated_at=generated_at)
     provider_registry = provider_policy_registry.build_payload(generated_at=generated_at)
     model_router = model_router_policy.build_payload(generated_at=generated_at)
     readiness = live_lm_readiness_gate.build_payload(generated_at=generated_at)
@@ -347,6 +355,13 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
         "universal_intake_batch": "READY" if universal["machine_proof"]["batch_fixture_all_high_confidence"] else "NEEDS_CLARIFICATION",
         "model_router": "SEEDED",
         "provider_policy_registry": "SEEDED",
+        "external_lm_eligibility": (
+            "PRIVACY_SAFE_EXTERNAL_READY"
+            if external_eligibility["machine_proof"]["finance_lm1_external_eligible"]
+            and external_eligibility["machine_proof"]["finance_lm2_external_eligible"]
+            else "BLOCKED"
+        ),
+        "external_lm_activation": "NOT_ACTIVE",
         "gate1_operational_snapshot": "EXPORTED_CONNECTED",
         "gate1_privacy_request": "EXPORTED",
         "lm1_thread_context_package": "CONNECTED_TO_GATE1",
@@ -372,6 +387,8 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
         "trust_ramp_active_level": trust_ramp["score"]["active_trust_level"],
         "lm1_selected_provider": representative["lm1_model_decision"].get("selected_provider_ref"),
         "lm2_selected_provider": representative["lm2_model_decision"].get("selected_provider_ref"),
+        "lm1_external_model_class": representative["lm1_model_decision"].get("selected_model_class"),
+        "lm2_external_model_class": representative["lm2_model_decision"].get("selected_model_class"),
         "next_blockers": (
             *activation_requirements["hard_blockers"],
             "private/strict-private mode product switch",
@@ -393,6 +410,10 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
         "representative_flow": {
             "universal_intake_inference": representative["lm1_thread_context_package"]["universal_intake_inference"],
             "privacy": representative["lm1_thread_context_package"]["privacy"],
+            "external_lm_eligibility": {
+                "lm1": representative["lm1_thread_context_package"]["external_lm_eligibility"],
+                "lm2": representative["lm2_external_lm_eligibility"],
+            },
             "tokenization_policy_result": representative["lm1_thread_context_package"]["tokenization_policy"],
             "privacy_readiness_result": privacy_readiness,
             "private_mode_readiness": representative["private_mode"],
@@ -481,11 +502,11 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
                         "request_id": "dashboard_lm1_provider_policy",
                         "chain_lane": "LM1_INTENT_PROPOSAL",
                         "desired_model_class": representative["lm1_model_decision"]["selected_model_class"],
-                        "privacy_level": representative["lm1_thread_context_package"]["privacy_classification"],
-                        "context_classes": (representative["lm1_thread_context_package"]["privacy_classification"],),
+                        "privacy_level": "TOKENIZED_CLIENT_FINANCE_METADATA",
+                        "context_classes": ("TOKENIZED_CLIENT_FINANCE_METADATA", "MACHINE_INTENT_PROPOSAL_SCHEMA"),
                         "tokenization_applied": True,
                         "raw_values_included": False,
-                        "local_only_required": True,
+                        "local_only_required": False,
                         "requires_structured_output": True,
                     }
                 ),
@@ -494,8 +515,8 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
                         "request_id": "dashboard_lm2_provider_policy",
                         "chain_lane": "LM2_ROLE_RESPONSE",
                         "desired_model_class": representative["lm2_model_decision"]["selected_model_class"],
-                        "privacy_level": role_package.get("privacy_level") or "TOKENIZED_METADATA",
-                        "context_classes": ("TOKENIZED_METADATA",),
+                        "privacy_level": "TOKENIZED_CLIENT_FINANCE_METADATA",
+                        "context_classes": ("TOKENIZED_CLIENT_FINANCE_METADATA", "MINIMIZED_ROLE_PACKAGE"),
                         "tokenization_applied": True,
                         "raw_values_included": False,
                         "local_only_required": False,
@@ -553,6 +574,10 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
             "provider_policy_registry": {
                 "read_model_id": provider_policy_registry.READ_MODEL_ID,
                 "machine_proof": provider_registry.get("machine_proof", {}),
+            },
+            "external_lm_eligibility_policy": {
+                "read_model_id": external_lm_eligibility_policy.READ_MODEL_ID,
+                "machine_proof": external_eligibility.get("machine_proof", {}),
             },
             "live_lm_readiness_gate": {
                 "read_model_id": live_lm_readiness_gate.READ_MODEL_ID,
@@ -681,6 +706,12 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
             "provider_policy_registry_aggregated": True,
             "provider_policy_lm1_selected": bool(representative["lm1_model_decision"].get("selected_provider_ref")),
             "provider_policy_lm2_selected": bool(representative["lm2_model_decision"].get("selected_provider_ref")),
+            "external_lm_eligibility_aggregated": True,
+            "lm1_external_lm_allowed": representative["lm1_thread_context_package"]["external_lm_eligibility"][
+                "external_lm_allowed"
+            ],
+            "lm2_external_lm_allowed": representative["lm2_external_lm_eligibility"]["external_lm_allowed"],
+            "external_lm_live_production_allowed": False,
             "shadow_comparison_failed_count": shadow["machine_proof"]["shadow_comparison_failed_count"],
             "universal_intake_batch_count": len(universal_batch["candidates"]),
             "universal_intake_batch_draft_source_only": universal["machine_proof"]["batch_fixture_all_draft_source_only"],
@@ -723,6 +754,8 @@ def write_exports(payload: Mapping[str, Any], export_root: Path = DEFAULT_EXPORT
         f"Tokenization: {summary.get('tokenization')}",
         f"Privacy readiness: {summary.get('privacy_readiness_status')}",
         f"Provider policy registry: {summary.get('provider_policy_registry')}",
+        f"External LM eligibility: {summary.get('external_lm_eligibility')}",
+        f"External LM activation: {summary.get('external_lm_activation')}",
         f"Gate 1 operational snapshot: {summary.get('gate1_operational_snapshot')}",
         f"Gate 1 privacy request: {summary.get('gate1_privacy_request')}",
         f"LM1 thread package: {summary.get('lm1_thread_context_package')}",

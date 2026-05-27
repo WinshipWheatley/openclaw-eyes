@@ -27,6 +27,10 @@ OPERATOR_EXPORT_NAME = f"{READ_MODEL_ID}_OPERATOR.md"
 CONTRACT_STATUS = "PROVIDER_POLICY_REGISTRY_NO_LIVE_CALLS"
 
 NO_SAFE_MODEL = "NO_SAFE_MODEL"
+FAST_EXTERNAL_INTENT_MODEL = "FAST_EXTERNAL_INTENT_MODEL"
+STRONG_EXTERNAL_ROLE_MODEL = "STRONG_EXTERNAL_ROLE_MODEL"
+LOCAL_FALLBACK_MODEL = "LOCAL_FALLBACK_MODEL"
+LOCAL_ONLY_MODEL = "LOCAL_ONLY_MODEL"
 FAST_STRUCTURED_INTENT_SMALL = "FAST_STRUCTURED_INTENT_SMALL"
 STRONG_STRUCTURED_ROLE_REASONER = "STRONG_STRUCTURED_ROLE_REASONER"
 CONSERVATIVE_SENSITIVE_STRUCTURED = "CONSERVATIVE_SENSITIVE_STRUCTURED"
@@ -122,6 +126,144 @@ def _content_hash(payload: dict[str, Any]) -> str:
 
 def provider_policy_records() -> tuple[ProviderPolicyRecord, ...]:
     return (
+        ProviderPolicyRecord(
+            policy_id="provider_policy:external_fast_intent_privacy_safe",
+            provider_ref="provider_class:external_privacy_safe_fast_intent",
+            model_ref="model_class:fast_external_intent_model",
+            model_class_ref=FAST_EXTERNAL_INTENT_MODEL,
+            lane_allowed=("LM1_INTENT_PROPOSAL",),
+            strengths=("fast intent proposal", "strong structured JSON", "cheap external reasoning", "narrow classification"),
+            weaknesses=("must receive minimized/tokenized context", "no tools", "no direct authority", "provider receipts required before production"),
+            structured_output_reliability="high_required",
+            long_context_strength="low",
+            creative_strength="low",
+            conservative_reasoning_strength="medium",
+            privacy_risk_level="acceptable_only_when_tokenized_minimized",
+            allowed_context_classes=(
+                "LOW_METADATA",
+                "TOKENIZED_METADATA",
+                "TOKENIZED_CLIENT_FINANCE_METADATA",
+                "MACHINE_INTENT_PROPOSAL_SCHEMA",
+            ),
+            forbidden_context_classes=(
+                "CLIENT_FINANCE_FILE_METADATA",
+                "STRICT_PRIVATE_CLIENT_METADATA",
+                "RAW_PRIVATE_BODY",
+                "RAW_SECRET",
+                "CREDENTIAL_MATERIAL",
+                "UNMINIMIZED_CLIENT_CONTEXT",
+                "UNRELATED_CLIENT_DATA",
+            ),
+            cloud_allowed=True,
+            local_only=False,
+            cost_tier="low",
+            latency_tier="low",
+            default_use_cases=("future LM1 MachineIntentCandidate proposal", "privacy-safe intent classification"),
+            blocked_use_cases=("tool execution", "authority grant", "raw private body reasoning", "strict private mode"),
+            expected_failure_modes=("malformed MachineIntentCandidate", "under-specified intent", "privacy-policy refusal"),
+            authority_boundary=dict(AUTHORITY_BOUNDARY),
+            next_safe_move="Use as the preferred future LM1 class only after Gate 1 minimizes/tokenizes the package and receipts exist.",
+        ),
+        ProviderPolicyRecord(
+            policy_id="provider_policy:external_strong_role_privacy_safe",
+            provider_ref="provider_class:external_privacy_safe_role_reasoner",
+            model_ref="model_class:strong_external_role_model",
+            model_class_ref=STRONG_EXTERNAL_ROLE_MODEL,
+            lane_allowed=("LM2_ROLE_RESPONSE",),
+            strengths=("strong package reasoning", "nuanced role voice", "structured response", "longer context synthesis"),
+            weaknesses=("higher cost", "must be Guardian-gated", "must receive minimized/tokenized package", "provider receipts required before production"),
+            structured_output_reliability="high_required",
+            long_context_strength="high",
+            creative_strength="medium",
+            conservative_reasoning_strength="high",
+            privacy_risk_level="acceptable_only_when_tokenized_minimized",
+            allowed_context_classes=(
+                "LOW_METADATA",
+                "TOKENIZED_METADATA",
+                "TOKENIZED_CLIENT_FINANCE_METADATA",
+                "MINIMIZED_ROLE_PACKAGE",
+            ),
+            forbidden_context_classes=(
+                "CLIENT_FINANCE_FILE_METADATA",
+                "STRICT_PRIVATE_CLIENT_METADATA",
+                "RAW_PRIVATE_BODY",
+                "RAW_SECRET",
+                "CREDENTIAL_MATERIAL",
+                "UNMINIMIZED_CLIENT_CONTEXT",
+                "UNRELATED_CLIENT_DATA",
+            ),
+            cloud_allowed=True,
+            local_only=False,
+            cost_tier="higher",
+            latency_tier="medium",
+            default_use_cases=("future LM2 role response", "Cassandra/Clara/Chief bounded package reasoning"),
+            blocked_use_cases=("send/submit", "ledger posting", "credential use", "raw private body reasoning"),
+            expected_failure_modes=("over-helpful completion claim", "role drift", "tool request outside package"),
+            authority_boundary=dict(AUTHORITY_BOUNDARY),
+            next_safe_move="Use as the preferred future LM2 class only after Gate 3 compiles a minimized package and Gate 4 remains required.",
+        ),
+        ProviderPolicyRecord(
+            policy_id="provider_policy:local_fallback_structured",
+            provider_ref="provider_class:local_or_private_fallback_model",
+            model_ref="model_class:local_fallback_model",
+            model_class_ref=LOCAL_FALLBACK_MODEL,
+            lane_allowed=("LM1_INTENT_PROPOSAL", "LM2_ROLE_RESPONSE"),
+            strengths=("offline fallback", "credit-saving smoke tests", "local shadow comparison", "private-mode fallback"),
+            weaknesses=("not the production-quality target", "weaker reasoning than preferred external classes"),
+            structured_output_reliability="high_required",
+            long_context_strength="medium",
+            creative_strength="low",
+            conservative_reasoning_strength="medium",
+            privacy_risk_level="low_when_local_only",
+            allowed_context_classes=(
+                "LOW_METADATA",
+                "CLIENT_FINANCE_FILE_METADATA",
+                "TOKENIZED_METADATA",
+                "TOKENIZED_CLIENT_FINANCE_METADATA",
+                "MINIMIZED_ROLE_PACKAGE",
+            ),
+            forbidden_context_classes=("RAW_SECRET", "CREDENTIAL_MATERIAL", "UNRELATED_CLIENT_DATA"),
+            cloud_allowed=False,
+            local_only=True,
+            cost_tier="low_local",
+            latency_tier="variable_local",
+            default_use_cases=("offline fallback", "local shadow smoke", "external policy blocked package"),
+            blocked_use_cases=("production-quality external baseline replacement", "credential use", "direct execution"),
+            expected_failure_modes=("lower-quality reasoning", "malformed JSON candidate", "over-clarification"),
+            authority_boundary=dict(AUTHORITY_BOUNDARY),
+            next_safe_move="Use only as fallback/offline/shadow path; prefer external classes when privacy controls allow them.",
+        ),
+        ProviderPolicyRecord(
+            policy_id="provider_policy:local_only_private",
+            provider_ref="provider_class:local_or_private_strict_local_model",
+            model_ref="model_class:local_only_model",
+            model_class_ref=LOCAL_ONLY_MODEL,
+            lane_allowed=("LM1_INTENT_PROPOSAL", "LM2_ROLE_RESPONSE"),
+            strengths=("strict local handling", "private-mode posture", "no cloud exposure"),
+            weaknesses=("not the production-quality external target", "may underperform strong external reasoning"),
+            structured_output_reliability="strict_required",
+            long_context_strength="medium",
+            creative_strength="low",
+            conservative_reasoning_strength="high",
+            privacy_risk_level="lowest_when_local_only",
+            allowed_context_classes=(
+                "LOW_METADATA",
+                "CLIENT_FINANCE_FILE_METADATA",
+                "TOKENIZED_METADATA",
+                "STRICT_PRIVATE_CLIENT_METADATA",
+                "LEGAL_PRIVILEGED_METADATA",
+            ),
+            forbidden_context_classes=("RAW_SECRET", "CREDENTIAL_MATERIAL", "UNRELATED_CLIENT_DATA"),
+            cloud_allowed=False,
+            local_only=True,
+            cost_tier="low_local",
+            latency_tier="variable_local",
+            default_use_cases=("strict private mode", "legal/local-only posture", "policy-blocked external context"),
+            blocked_use_cases=("cloud route", "provider API call", "credential use", "direct execution"),
+            expected_failure_modes=("false block", "unnecessary clarification", "weaker synthesis"),
+            authority_boundary=dict(AUTHORITY_BOUNDARY),
+            next_safe_move="Use when policy requires local-only handling; still no live production authority.",
+        ),
         ProviderPolicyRecord(
             policy_id="provider_policy:local_fixture_fast_intent",
             provider_ref="provider_class:local_or_private_structured_stub",
@@ -290,13 +432,19 @@ def select_provider_candidate(request: Mapping[str, Any]) -> dict[str, Any]:
     def rank(item: ProviderCandidateEvaluation) -> tuple[int, str]:
         if desired_class and item.model_class_ref == desired_class:
             return (0, item.policy_id)
-        if lane == "LM1_INTENT_PROPOSAL" and item.model_class_ref == FAST_STRUCTURED_INTENT_SMALL:
+        if lane == "LM1_INTENT_PROPOSAL" and item.model_class_ref == FAST_EXTERNAL_INTENT_MODEL:
             return (1, item.policy_id)
-        if lane == "LM2_ROLE_RESPONSE" and item.model_class_ref == STRONG_STRUCTURED_ROLE_REASONER:
+        if lane == "LM2_ROLE_RESPONSE" and item.model_class_ref == STRONG_EXTERNAL_ROLE_MODEL:
             return (1, item.policy_id)
-        if item.model_class_ref == CONSERVATIVE_SENSITIVE_STRUCTURED:
+        if item.model_class_ref == LOCAL_FALLBACK_MODEL:
             return (2, item.policy_id)
-        return (3, item.policy_id)
+        if item.model_class_ref == LOCAL_ONLY_MODEL:
+            return (3, item.policy_id)
+        if item.model_class_ref in {FAST_STRUCTURED_INTENT_SMALL, STRONG_STRUCTURED_ROLE_REASONER}:
+            return (4, item.policy_id)
+        if item.model_class_ref == CONSERVATIVE_SENSITIVE_STRUCTURED:
+            return (5, item.policy_id)
+        return (6, item.policy_id)
 
     selected = sorted(usable, key=rank)[0] if usable else None
     fallback = sorted((item for item in usable if item != selected), key=rank)[0] if selected and len(usable) > 1 else None
@@ -365,12 +513,12 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
             {
                 "request_id": "provider_policy_fixture_lm1",
                 "chain_lane": "LM1_INTENT_PROPOSAL",
-                "desired_model_class": FAST_STRUCTURED_INTENT_SMALL,
-                "privacy_level": "CLIENT_FINANCE_FILE_METADATA",
-                "context_classes": ("CLIENT_FINANCE_FILE_METADATA",),
+                "desired_model_class": FAST_EXTERNAL_INTENT_MODEL,
+                "privacy_level": "TOKENIZED_CLIENT_FINANCE_METADATA",
+                "context_classes": ("TOKENIZED_CLIENT_FINANCE_METADATA", "MACHINE_INTENT_PROPOSAL_SCHEMA"),
                 "tokenization_applied": True,
                 "raw_values_included": False,
-                "local_only_required": True,
+                "local_only_required": False,
                 "requires_structured_output": True,
             }
         ),
@@ -378,10 +526,23 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
             {
                 "request_id": "provider_policy_fixture_lm2",
                 "chain_lane": "LM2_ROLE_RESPONSE",
-                "desired_model_class": STRONG_STRUCTURED_ROLE_REASONER,
+                "desired_model_class": STRONG_EXTERNAL_ROLE_MODEL,
+                "privacy_level": "TOKENIZED_CLIENT_FINANCE_METADATA",
+                "context_classes": ("TOKENIZED_CLIENT_FINANCE_METADATA", "MINIMIZED_ROLE_PACKAGE"),
+                "tokenization_applied": True,
+                "raw_values_included": False,
+                "local_only_required": False,
+                "requires_structured_output": True,
+            }
+        ),
+        "local_fallback_policy": select_provider_candidate(
+            {
+                "request_id": "provider_policy_fixture_local_fallback",
+                "chain_lane": "LM2_ROLE_RESPONSE",
+                "desired_model_class": LOCAL_FALLBACK_MODEL,
                 "privacy_level": "CLIENT_FINANCE_FILE_METADATA",
                 "context_classes": ("CLIENT_FINANCE_FILE_METADATA",),
-                "tokenization_applied": True,
+                "tokenization_applied": False,
                 "raw_values_included": False,
                 "local_only_required": True,
                 "requires_structured_output": True,
@@ -391,7 +552,7 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
             {
                 "request_id": "provider_policy_fixture_private_cloud_block",
                 "chain_lane": "LM2_ROLE_RESPONSE",
-                "desired_model_class": STRONG_STRUCTURED_ROLE_REASONER,
+                "desired_model_class": STRONG_EXTERNAL_ROLE_MODEL,
                 "privacy_level": "STRICT_PRIVATE_CLIENT_METADATA",
                 "context_classes": ("STRICT_PRIVATE_CLIENT_METADATA",),
                 "tokenization_applied": True,
@@ -406,7 +567,7 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
             {
                 "request_id": "provider_policy_fixture_raw_block",
                 "chain_lane": "LM2_ROLE_RESPONSE",
-                "desired_model_class": STRONG_STRUCTURED_ROLE_REASONER,
+                "desired_model_class": STRONG_EXTERNAL_ROLE_MODEL,
                 "privacy_level": "RAW_PRIVATE_BODY",
                 "context_classes": ("RAW_PRIVATE_BODY",),
                 "tokenization_applied": False,
@@ -433,8 +594,9 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
             "live_model_call_performed": False,
             "network_performed": False,
             "provider_key_material_access_performed": False,
-            "lm1_policy_selects_fast_candidate": examples["lm1_intent_policy"]["selected_model_class"] == FAST_STRUCTURED_INTENT_SMALL,
-            "lm2_policy_selects_strong_candidate": examples["lm2_role_policy"]["selected_model_class"] == STRONG_STRUCTURED_ROLE_REASONER,
+            "lm1_policy_selects_fast_candidate": examples["lm1_intent_policy"]["selected_model_class"] == FAST_EXTERNAL_INTENT_MODEL,
+            "lm2_policy_selects_strong_candidate": examples["lm2_role_policy"]["selected_model_class"] == STRONG_EXTERNAL_ROLE_MODEL,
+            "local_fallback_selects_local_candidate": examples["local_fallback_policy"]["selected_model_class"] == LOCAL_FALLBACK_MODEL,
             "private_cloud_candidate_rejected": any(
                 "STRICT_PRIVATE_REQUIRES_LOCAL_ONLY" in item["reject_reasons"] or "PRIVATE_MODE_BLOCKS_CLOUD" in item["reject_reasons"]
                 for item in examples["private_cloud_block"]["rejected_candidates"]

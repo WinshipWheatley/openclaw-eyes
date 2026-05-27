@@ -29,6 +29,7 @@
 !cassandra_clara_offline_worker_adapter.py
 !reality_bounce_harness.py
 !local_shadow_lm_runner.py
+!external_lm_eligibility_policy.py
 !chief_memory_worker.py
 !chief_reply_worker.py
 !chief_state_worker.py
@@ -921,6 +922,7 @@
 !scripts/export_workflow_session_channel_projection_approval_bus_contract.py
 !scripts/export_automation_readiness_feasibility_evaluator_contract.py
 !scripts/run_reality_bounce.py
+!scripts/export_external_lm_eligibility_policy.py
 !scripts/export_bridge_routing_operator_attention_contract.py
 !scripts/export_agent_conversation_handoff_step_packet_contract.py
 !scripts/export_agent_execution_packet_compiler_contract.py
@@ -970,6 +972,7 @@
 !tests/test_chief_offline_worker_adapter.py
 !tests/test_cassandra_clara_offline_worker_adapter.py
 !tests/test_reality_bounce_harness.py
+!tests/test_external_lm_eligibility_policy.py
 !tests/test_workflow_session_channel_projection_approval_bus_contract.py
 !tests/test_automation_readiness_feasibility_evaluator_contract.py
 !tests/test_bridge_routing_operator_attention_contract.py

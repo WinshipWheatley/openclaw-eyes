@@ -35,7 +35,7 @@ def test_lm1_package_model_router_and_authority_are_bounded():
     summary = payload["package_summary"]
     proof = payload["machine_proof"]
 
-    assert summary["selected_model_class"] == model_router_policy.FAST_STRUCTURED_INTENT_SMALL
+    assert summary["selected_model_class"] == model_router_policy.FAST_EXTERNAL_INTENT_MODEL
     assert summary["ready_for_shadow"] is True
     assert proof["package_has_model_router_result"] is True
     assert proof["package_consumes_gate1_snapshot"] is True

@@ -31,6 +31,7 @@ def test_readiness_dashboard_aggregates_all_seeded_lanes():
         "guardian_trust_ramp_simulator",
         "model_router_policy",
         "provider_policy_registry",
+        "external_lm_eligibility_policy",
         "live_lm_readiness_gate",
         "shadow_lm_mode",
         "token_vault_status",
@@ -49,6 +50,8 @@ def test_readiness_dashboard_aggregates_all_seeded_lanes():
     assert payload["dashboard_summary"]["lm2_package_shadow"] == "READY"
     assert payload["dashboard_summary"]["lm2_shadow_comparison"] == "READY"
     assert payload["dashboard_summary"]["provider_policy_registry"] == "SEEDED"
+    assert payload["dashboard_summary"]["external_lm_eligibility"] == "PRIVACY_SAFE_EXTERNAL_READY"
+    assert payload["dashboard_summary"]["external_lm_activation"] == "NOT_ACTIVE"
     assert payload["dashboard_summary"]["gate1_operational_snapshot"] == "EXPORTED_CONNECTED"
     assert payload["dashboard_summary"]["gate1_privacy_request"] == "EXPORTED"
     assert payload["dashboard_summary"]["lm1_thread_context_package"] == "CONNECTED_TO_GATE1"
@@ -80,8 +83,10 @@ def test_lm1_thread_context_package_includes_universal_intake_and_token_declarat
     assert package["tokenization_policy"]["model_may_see_raw_values"] is False
     assert package["privacy"]["tokenization_applied"] is True
     assert package["privacy"]["raw_values_included"] is False
-    assert package["model_router_result"]["selected_model_class"] == model_router_policy.FAST_STRUCTURED_INTENT_SMALL
-    assert package["model_router_result"]["selected_provider_ref"] == "provider_class:local_or_private_structured_stub"
+    assert package["external_lm_eligibility"]["external_lm_allowed"] is True
+    assert package["external_lm_eligibility"]["recommended_model_class"] == model_router_policy.FAST_EXTERNAL_INTENT_MODEL
+    assert package["model_router_result"]["selected_model_class"] == model_router_policy.FAST_EXTERNAL_INTENT_MODEL
+    assert package["model_router_result"]["selected_provider_ref"] == "provider_class:external_privacy_safe_fast_intent"
     assert package["raw_values_included"] is False
     assert "MachineIntentCandidate" not in package["output_schema"]
     assert "source_request_id" in package["output_schema"]
@@ -104,14 +109,17 @@ def test_gate3_role_package_includes_tokenization_fields():
 def test_model_router_integration_selects_lm1_and_lm2_model_classes():
     payload = _payload()
 
-    assert payload["representative_flow"]["lm1_model_decision"]["selected_model_class"] == model_router_policy.FAST_STRUCTURED_INTENT_SMALL
-    assert payload["representative_flow"]["lm2_model_decision"]["selected_model_class"] in {
-        model_router_policy.STRONG_STRUCTURED_ROLE_REASONER,
-        model_router_policy.CONSERVATIVE_SENSITIVE_STRUCTURED,
-    }
-    assert payload["representative_flow"]["provider_policy_decisions"]["lm1"]["selected_model_class"] == provider_policy_registry.FAST_STRUCTURED_INTENT_SMALL
+    assert payload["representative_flow"]["external_lm_eligibility"]["lm1"]["external_lm_allowed"] is True
+    assert payload["representative_flow"]["external_lm_eligibility"]["lm2"]["external_lm_allowed"] is True
+    assert payload["representative_flow"]["lm1_model_decision"]["selected_model_class"] == model_router_policy.FAST_EXTERNAL_INTENT_MODEL
+    assert payload["representative_flow"]["lm2_model_decision"]["selected_model_class"] == model_router_policy.STRONG_EXTERNAL_ROLE_MODEL
+    assert payload["representative_flow"]["provider_policy_decisions"]["lm1"]["selected_model_class"] == provider_policy_registry.FAST_EXTERNAL_INTENT_MODEL
     assert payload["machine_proof"]["provider_policy_lm1_selected"] is True
     assert payload["machine_proof"]["provider_policy_lm2_selected"] is True
+    assert payload["machine_proof"]["external_lm_eligibility_aggregated"] is True
+    assert payload["machine_proof"]["lm1_external_lm_allowed"] is True
+    assert payload["machine_proof"]["lm2_external_lm_allowed"] is True
+    assert payload["machine_proof"]["external_lm_live_production_allowed"] is False
 
 
 def test_model_router_returns_no_safe_model_when_privacy_is_insufficient():

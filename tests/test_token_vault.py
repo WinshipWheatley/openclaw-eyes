@@ -50,7 +50,8 @@ def test_tokenization_policy_raises_privacy_for_finance_client_files():
     assert policy["tokenization_required"] is True
     assert policy["model_may_see_raw_values"] is False
     assert policy["detokenization_allowed"] is False
-    assert policy["local_only_required"] is True
+    assert policy["local_only_required"] is False
+    assert "EXTERNAL_ELIGIBLE_AFTER_TOKENIZATION_AND_MINIMIZATION" in policy["reason_codes"]
     assert "FINANCE_CONTEXT" in policy["reason_codes"]
 
 
