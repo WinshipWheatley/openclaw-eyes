@@ -15,6 +15,7 @@ import capital_hilton_invoice_operator_readback as capital_readback
 import client_invoice_audit_handoff as audit_handoff
 import client_invoice_sheet_audit as sheet_audit
 import client_invoice_workbook_registry as workbook_registry
+import invoice_review_bundle
 import local_artifact_reference
 import mac_worker_handoff_package as mac_handoff
 import openclaw_request_processor as processor
@@ -137,6 +138,33 @@ def _write_workbook_registration_request(path: Path, suffix: str = "service_work
     )
     request["payload_hash"] = file_intake.compute_request_payload_hash(request)
     path.write_text(file_intake.stable_json(request), encoding="utf-8")
+    return request
+
+
+def _write_invoice_review_action_request(path: Path, *, action_kind: str) -> dict:
+    bundle_payload = invoice_review_bundle.build_capital_hilton_bundle(generated_at=FIXED_NOW)
+    actions = {}
+    for step in bundle_payload["review_proof_timeline"]:
+        if step["primary_action"]:
+            actions[step["primary_action"]["action_kind"]] = step["primary_action"]
+    action = actions[action_kind]
+    request = {
+        "request_id": f"mission_control_invoice_review_action_service_{action_kind}",
+        "request_type": "INVOICE_REVIEW_ACTION_REQUEST",
+        "type": "INVOICE_REVIEW_ACTION_REQUEST",
+        "kind": "INVOICE_REVIEW_ACTION_REQUEST",
+        "workflow_ref": "capital_hilton_invoice_workflow",
+        "world_ref": "finance",
+        "client_ref": "capital_hilton",
+        "intended_use": action_kind,
+        "action_kind": action_kind,
+        "hidden_request_payload": action["hidden_request_payload"],
+        "idempotency_key": f"invoice_review_action_service_{action_kind}",
+        "created_at": FIXED_NOW,
+        "authority_boundary": dict(processor.AUTHORITY_BOUNDARY),
+    }
+    request["payload_hash"] = processor._content_hash(request)
+    path.write_text(processor.stable_json(request), encoding="utf-8")
     return request
 
 
@@ -510,6 +538,7 @@ def test_service_processes_chat_request_and_writes_per_request_response(tmp_path
     assert (response_dir / service.MANIFEST_EXPORT_NAME).exists()
     assert heartbeat["source_request_id"] == request["request_id"]
     assert heartbeat["routing_status"] == "PROCESSING_ON_PC"
+
     assert heartbeat["selected_worker_target"] == "PC_CODEX"
     assert latest_heartbeat["source_request_id"] == request["request_id"]
     _assert_heartbeat_no_success_claims(heartbeat)
@@ -536,6 +565,44 @@ def test_service_processes_chat_request_and_writes_per_request_response(tmp_path
     assert response["machine_proof"]["external_action_performed"] is False
     assert response["machine_proof"]["send_submit_performed"] is False
     assert request_path.exists()
+
+
+def test_service_processes_invoice_review_action_and_writes_scoped_response(tmp_path, capsys):
+    inbox = tmp_path / "inbox"
+    response_dir = tmp_path / "responses"
+    export_root = tmp_path / "read_models"
+    inbox.mkdir()
+    request_path = inbox / "mission_control_invoice_review_action_select_page.json"
+    request = _write_invoice_review_action_request(request_path, action_kind="start_invoice_record_selection")
+
+    assert service_main(
+        [
+            "--once",
+            "--inbox",
+            str(inbox),
+            "--response-dir",
+            str(response_dir),
+            "--export-root",
+            str(export_root),
+            "--generated-at",
+            FIXED_NOW,
+            "--format",
+            "json",
+        ]
+    ) == 0
+    payload = json.loads(capsys.readouterr().out)
+    response_path = _safe_response_path(response_dir, request["request_id"])
+    response = json.loads(response_path.read_text(encoding="utf-8"))
+    receipt = json.loads((export_root / "invoice_review_action_request_receipt.json").read_text(encoding="utf-8"))
+
+    assert payload["service_status"]["service_status"] == "REQUEST_PROCESSED"
+    assert payload["service_status"]["last_routing_status"] == "PROCESSING_ON_PC"
+    assert response["source_request_id"] == request["request_id"]
+    assert response["response_kind"] == "INVOICE_REVIEW_ACTION_RESPONSE"
+    assert response["terminal"] is True
+    assert receipt["status"] == "GUIDED_ACTION_STARTED"
+    assert receipt["machine_proof"]["completion_receipt_written"] is False
+    assert response["machine_proof"]["external_action_performed"] is False
 
 
 def test_service_routes_freeform_workbook_selection_to_processor_not_worker_fallback(tmp_path, capsys):

@@ -185,11 +185,45 @@ def artifact_intake_handlers() -> tuple[RequestHandlerRegistration, ...]:
     )
 
 
+def invoice_review_action_handlers() -> tuple[RequestHandlerRegistration, ...]:
+    common = {
+        "handler_id": "invoice_review_action_request.capital_hilton",
+        "handler_label": "Capital Hilton invoice review guided action",
+        "request_kind": "INVOICE_REVIEW_ACTION_REQUEST",
+        "world_refs": ("finance",),
+        "workflow_refs": ("capital_hilton_invoice_workflow",),
+        "client_refs": ("capital_hilton",),
+        "project_refs": (),
+        "adapter_available": True,
+        "next_safe_move": "Start the guided invoice review fix path without external action authority.",
+    }
+    return tuple(
+        RequestHandlerRegistration(intended_use=intended_use, **common)
+        for intended_use in (
+            "confirm_source_workbook_reference",
+            "replace_source_workbook_reference",
+            "start_invoice_record_selection",
+            "regenerate_or_link_invoice_artifact",
+            "request_coupa_submission_proof",
+            "review_and_confirm_recipients",
+            "show_approval_prerequisites",
+            "review_clara_draft_prerequisites",
+            "edit_clara_draft_request",
+            "prepare_send_approval_request",
+            "setup_payment_watch_after_submission",
+            "explain_invoice_review",
+            "confirm_invoice_review_candidate",
+            "open_invoice_workbook_candidate",
+        )
+    )
+
+
 def default_handler_registrations() -> tuple[RequestHandlerRegistration, ...]:
     return (
         capital_hilton_field_mapping_handler(),
         *readable_artifact_approval_handlers(),
         *artifact_intake_handlers(),
+        *invoice_review_action_handlers(),
     )
 
 

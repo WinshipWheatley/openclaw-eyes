@@ -30,6 +30,7 @@ import client_invoice_workbook_registry
 import conversational_workflow_router_intake
 import deterministic_intent_interpreter
 import guardian_output_gate
+import invoice_review_action_request_handler
 import local_surface_request_contract
 import operator_file_metadata_intake
 import openclaw_request_router
@@ -72,6 +73,10 @@ ARTIFACT_INTAKE_REQUEST_PATTERNS = (
     "mission_control_approved_artifact_intake_*.json",
     "mission_control_capture_request_*artifact_intake*.json",
 )
+INVOICE_REVIEW_ACTION_PATTERNS = (
+    "mission_control_invoice_review_action_*.json",
+    "mission_control_capture_request_*invoice_review_action*.json",
+)
 CONTEXT_ATTACHMENT_PATTERN = "mission_control_context_request_*.json"
 SECRET_INTAKE_PATTERN = "mission_control_secret_intake_request_*.json"
 VISUAL_WORKSPACE_PATTERN = "mission_control_visual_workspace_request_*.json"
@@ -83,6 +88,7 @@ SUPPORTED_REQUEST_PATTERNS = (
     *LOCAL_SURFACE_RESULT_PATTERNS,
     *ARTIFACT_REFERENCE_APPROVAL_PATTERNS,
     *ARTIFACT_INTAKE_REQUEST_PATTERNS,
+    *INVOICE_REVIEW_ACTION_PATTERNS,
 )
 
 FUTURE_REQUEST_PATTERNS = (
@@ -797,6 +803,11 @@ def classify_request_filename(filename: str | None) -> RequestClassification:
         family = "ARTIFACT_INTAKE_REQUEST"
         rail = "register_or_resolve_invoice_workbook_artifact"
         reason = "Filename matches Mission Control artifact intake request pattern."
+        future_supported = False
+    elif filename and any(fnmatch.fnmatch(filename, pattern) for pattern in INVOICE_REVIEW_ACTION_PATTERNS):
+        family = "LOCAL_SURFACE_RESULT"
+        rail = "invoice_review_action_request"
+        reason = "Filename matches Mission Control invoice review guided action pattern."
         future_supported = False
     elif filename and fnmatch.fnmatch(filename, CONTEXT_ATTACHMENT_PATTERN):
         family = "CONTEXT_ATTACHMENT_FUTURE"
@@ -2753,6 +2764,131 @@ def _is_artifact_intake_route(route_decision: Mapping[str, Any]) -> bool:
     return str(route_decision.get("selected_handler_id") or "") == "register_or_resolve_invoice_workbook_artifact.generic"
 
 
+def _is_invoice_review_action_route(route_decision: Mapping[str, Any], raw_request: Mapping[str, Any]) -> bool:
+    return (
+        str(route_decision.get("selected_handler_id") or "") == "invoice_review_action_request.capital_hilton"
+        or invoice_review_action_request_handler.is_invoice_review_action_request(raw_request)
+    )
+
+
+def _invoice_review_action_classification(
+    classification: RequestClassification,
+    *,
+    request_path: Path,
+    route_decision: Mapping[str, Any] | None = None,
+) -> RequestClassification:
+    return RequestClassification(
+        classification_id=f"request_classification_{_short_hash(request_path.name, 'invoice_review_action_request')}",
+        source_request_filename=classification.source_request_filename,
+        request_family=classification.request_family,
+        selected_rail=str((route_decision or {}).get("selected_handler_id") or "invoice_review_action_request.capital_hilton"),
+        classification_reason="Generic request router selected the invoice review guided action rail.",
+        future_supported=False,
+        next_safe_move="Return guided fix-path copy without external action authority.",
+    )
+
+
+def _process_invoice_review_action_request(
+    request_path: Path,
+    raw_request: Mapping[str, Any],
+    *,
+    export_root: Path,
+    generated_at: str | None,
+    classification: RequestClassification,
+    route_decision: Mapping[str, Any] | None = None,
+) -> OpenClawResponseForMac:
+    action_classification = _invoice_review_action_classification(
+        classification,
+        request_path=request_path,
+        route_decision=route_decision,
+    )
+    payload = invoice_review_action_request_handler.process_action_request(raw_request, generated_at=generated_at)
+    action_json, action_operator = invoice_review_action_request_handler.write_exports(payload, export_root)
+    status = str(payload["status"])
+    response_ready = status == "GUIDED_ACTION_STARTED"
+    headline = str(payload["headline"])
+    body = str(payload["body"])
+    detail_text = str(payload["detail"])
+    operator_body = body if detail_text in body else f"{body} {detail_text}"
+    next_action = str(payload["next_action"])
+    receipt = payload["action_start_receipt"]
+    detail = {
+        "invoice_review_action_request": {
+            "readback_ref": action_json.as_posix(),
+            "operator_readback_ref": action_operator.as_posix(),
+            "action_kind": payload["action_kind"],
+            "status": status,
+            "action_start_receipt": receipt,
+            "expected_receipt_types": payload["expected_receipt_types"],
+            "underlying_blocker_completed": False,
+            "completion_receipt_written": False,
+            "external_action_performed": False,
+            "email_send_performed": False,
+            "coupa_browser_automation_performed": False,
+            "ledger_posting_performed": False,
+            "invoice_generation_performed": False,
+            "workbook_body_read_performed": False,
+            "spreadsheet_cell_read_performed": False,
+        },
+        "layered_response_fields": {
+            "response_kind": "INVOICE_REVIEW_ACTION_RESPONSE",
+            "audience_mode": "ELIWINSHIP",
+            "display_mode": "COMPACT_CHAT",
+            "headline": headline,
+            "one_line_answer": operator_body,
+            "eliwinship": operator_body,
+            "primary_status": status.replace("_", " ").title(),
+            "primary_blocker": "None" if response_ready else status,
+            "next_action": next_action,
+            "missing_items_short": tuple(_ for _ in payload.get("expected_receipt_types") or ()),
+            "detail_summary": detail_text,
+            "proof_refs": (receipt["receipt_id"], action_json.as_posix()),
+            "mac_render_hint": "COMPACT_WITH_DISCLOSURE",
+        },
+        "request_classification": asdict(action_classification),
+        "request_router_decision": dict(route_decision or {}),
+        "external_actions_locked": True,
+        "model_or_worker_response_adapter_called": False,
+    }
+    return OpenClawResponseForMac(
+        source_request_id=str(payload["source_request_id"]),
+        source_request_filename=request_path.name,
+        workflow_ref=str(raw_request.get("workflow_ref") or "capital_hilton_invoice_workflow"),
+        request_type=classification.request_family,
+        internal_status="RESPONSE_READY" if response_ready else "BLOCKED_WITH_REASON",
+        operator_headline=headline,
+        operator_message=operator_body,
+        what_happened=(
+            "PC consumed the invoice review action request.",
+            "PC validated the bundle, workflow, client, action, and no-external-action boundary.",
+            "PC wrote only a guided action-start receipt/readback.",
+            "PC did not complete the underlying blocker or perform any external action.",
+        ),
+        why_it_happened=str(payload["detail"]),
+        how_to_fix=next_action,
+        visible_cards=(
+            {
+                "title": headline,
+                "bullets": (
+                    operator_body,
+                    next_action,
+                    "Nothing was sent, submitted, generated, read from a workbook, posted, or changed in production.",
+                ),
+                "status_tone": "ready" if response_ready else "blocked",
+            },
+        ),
+        cards_available=True,
+        card_mirror_refs=(),
+        file_readback_refs=(action_json.as_posix(),),
+        worker_route_refs=(),
+        context_package_refs=(),
+        blocked_reason=None if response_ready else status,
+        detail_disclosure=detail,
+        readback_files=(action_json.as_posix(), action_operator.as_posix()),
+        next_safe_move=next_action,
+    )
+
+
 def _artifact_intake_classification(
     classification: RequestClassification,
     *,
@@ -4477,6 +4613,15 @@ def process_request_path(
             classification=effective_classification,
             route_decision=route_decision,
         )
+    if _is_invoice_review_action_route(route_decision, raw_request):
+        return _process_invoice_review_action_request(
+            request_path,
+            raw_request,
+            export_root=export_root,
+            generated_at=generated_at,
+            classification=effective_classification,
+            route_decision=route_decision,
+        )
     if _is_artifact_intake_route(route_decision):
         return _process_artifact_intake_request(
             request_path,
@@ -4691,6 +4836,7 @@ def _machine_proof(
     audit_handoff_detail = detail.get("client_invoice_audit_handoff") if isinstance(detail.get("client_invoice_audit_handoff"), Mapping) else {}
     sheet_audit_detail = detail.get("client_invoice_sheet_audit") if isinstance(detail.get("client_invoice_sheet_audit"), Mapping) else {}
     local_artifact_detail = detail.get("local_artifact_reference") if isinstance(detail.get("local_artifact_reference"), Mapping) else {}
+    invoice_action_detail = detail.get("invoice_review_action_request") if isinstance(detail.get("invoice_review_action_request"), Mapping) else {}
     router_decision = detail.get("request_router_decision") if isinstance(detail.get("request_router_decision"), Mapping) else {}
     targets = status.responder_targets
     future_lm_targets = [
@@ -4748,6 +4894,9 @@ def _machine_proof(
         "client_invoice_workbook_registry_used": bool(workbook_detail),
         "approved_readable_artifact_reference_used": bool(local_artifact_detail),
         "approved_readable_artifact_ready": bool(local_artifact_detail.get("artifact_ready")),
+        "invoice_review_action_request_used": bool(invoice_action_detail),
+        "invoice_review_action_completion_receipt_written": bool(invoice_action_detail.get("completion_receipt_written")),
+        "invoice_review_action_underlying_blocker_completed": bool(invoice_action_detail.get("underlying_blocker_completed")),
         "client_invoice_audit_handoff_used": bool(audit_handoff_detail),
         "client_invoice_audit_handoff_live_ready": bool(audit_handoff_detail.get("live_audit_ready")),
         "local_surface_result_consumed": bool((audit_handoff_detail.get("local_surface_result_receipt") or {}).get("receipt_id")),
@@ -4756,6 +4905,7 @@ def _machine_proof(
         "client_invoice_sheet_audit_used": bool(sheet_audit_detail),
         "live_lm_interpreter_called": False,
         "workflow_execution_performed": False,
+        "file_mutation_performed": False,
         "model_call_performed": False,
         "tool_execution_performed": False,
         "agent_dispatch_performed": False,

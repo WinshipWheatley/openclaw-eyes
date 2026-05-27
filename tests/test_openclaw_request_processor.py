@@ -14,6 +14,7 @@ import client_invoice_audit_handoff as audit_handoff
 import client_invoice_workbook_registry as workbook_registry
 import conversational_workflow_router_intake as chat_intake
 import guardian_output_gate
+import invoice_review_bundle
 import local_artifact_reference
 import openclaw_request_processor as processor
 import operator_file_metadata_intake as file_intake
@@ -65,6 +66,38 @@ def _write_intent_request(
     )
     request["payload_hash"] = chat_intake.compute_request_payload_hash(request)
     path.write_text(chat_intake.stable_json(request), encoding="utf-8")
+    return request
+
+
+def _invoice_review_action_request(path: Path, *, action_kind: str, request_id: str | None = None) -> dict:
+    bundle_payload = invoice_review_bundle.build_capital_hilton_bundle(generated_at=FIXED_NOW)
+    actions = {}
+    for action in bundle_payload["correction_actions"]:
+        actions[action["action_kind"]] = action
+    for step in bundle_payload["review_proof_timeline"]:
+        if step["primary_action"]:
+            actions[step["primary_action"]["action_kind"]] = step["primary_action"]
+        for action in step["secondary_actions"]:
+            actions[action["action_kind"]] = action
+    action = actions[action_kind]
+    hidden = dict(action["hidden_request_payload"])
+    request = {
+        "request_id": request_id or f"invoice_review_action_{action_kind}",
+        "request_type": "INVOICE_REVIEW_ACTION_REQUEST",
+        "type": "INVOICE_REVIEW_ACTION_REQUEST",
+        "kind": "INVOICE_REVIEW_ACTION_REQUEST",
+        "workflow_ref": "capital_hilton_invoice_workflow",
+        "world_ref": "finance",
+        "client_ref": "capital_hilton",
+        "intended_use": action_kind,
+        "action_kind": action_kind,
+        "hidden_request_payload": hidden,
+        "idempotency_key": f"invoice_review_action_{action_kind}_idempotency",
+        "created_at": FIXED_NOW,
+        "authority_boundary": dict(processor.AUTHORITY_BOUNDARY),
+    }
+    request["payload_hash"] = processor._content_hash(request)
+    path.write_text(processor.stable_json(request), encoding="utf-8")
     return request
 
 
@@ -1850,6 +1883,192 @@ def test_workbook_replacement_confirmation_publishes_scoped_response(tmp_path, c
     assert scoped["machine_proof"]["client_invoice_sheet_audit_used"] is False
     assert scoped["machine_proof"]["workbook_body_read_performed"] is False
     assert scoped["machine_proof"]["spreadsheet_cell_read_performed"] is False
+
+
+def test_invoice_review_select_page_action_publishes_guided_response(tmp_path, capsys, monkeypatch):
+    inbox = tmp_path / "approved_inbox"
+    inbox.mkdir()
+    request_path = inbox / "mission_control_invoice_review_action_select_page.json"
+    request = _invoice_review_action_request(request_path, action_kind="start_invoice_record_selection")
+    export_root = tmp_path / "read_models"
+    response_dir = tmp_path / "responses"
+    monkeypatch.setattr(processor, "APPROVED_INBOX", inbox)
+    monkeypatch.setattr(processor, "DEFAULT_RESPONSE_DIR", response_dir)
+
+    assert process_main(
+        [
+            "--file",
+            str(request_path),
+            "--export-root",
+            str(export_root),
+            "--generated-at",
+            FIXED_NOW,
+            "--format",
+            "json",
+        ]
+    ) == 0
+    response = json.loads(capsys.readouterr().out)
+    scoped = json.loads(_scoped_processor_response_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
+    receipt = json.loads((export_root / "invoice_review_action_request_receipt.json").read_text(encoding="utf-8"))
+
+    assert response["source_request_id"] == request["request_id"]
+    assert response["response_kind"] == "INVOICE_REVIEW_ACTION_RESPONSE"
+    assert response["headline"] == "Starting invoice page selection"
+    assert "Let's select the Capital Hilton invoice page/period." in response["eliwinship"]
+    assert scoped["source_request_id"] == request["request_id"]
+    assert scoped["terminal"] is True
+    assert receipt["action_kind"] == "start_invoice_record_selection"
+    assert receipt["status"] == "GUIDED_ACTION_STARTED"
+    assert receipt["machine_proof"]["completion_receipt_written"] is False
+    assert scoped["machine_proof"]["external_action_performed"] is False
+
+
+def test_invoice_review_coupa_proof_action_is_intake_not_browser(tmp_path, capsys, monkeypatch):
+    inbox = tmp_path / "approved_inbox"
+    inbox.mkdir()
+    request_path = inbox / "mission_control_invoice_review_action_coupa.json"
+    request = _invoice_review_action_request(request_path, action_kind="request_coupa_submission_proof")
+    export_root = tmp_path / "read_models"
+    response_dir = tmp_path / "responses"
+    monkeypatch.setattr(processor, "APPROVED_INBOX", inbox)
+    monkeypatch.setattr(processor, "DEFAULT_RESPONSE_DIR", response_dir)
+
+    assert process_main(["--file", str(request_path), "--export-root", str(export_root), "--generated-at", FIXED_NOW, "--format", "json"]) == 0
+    response = json.loads(capsys.readouterr().out)
+    scoped = json.loads(_scoped_processor_response_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
+    detail = scoped["detail_disclosure"]["invoice_review_action_request"]
+
+    assert response["headline"] == "Starting Coupa proof step"
+    assert "Nothing will be submitted from this step." in response["eliwinship"]
+    assert detail["coupa_browser_automation_performed"] is False
+    assert detail["external_action_performed"] is False
+    assert scoped["machine_proof"]["coupa_access_or_submit_performed"] is False
+
+
+def test_invoice_review_recipients_action_does_not_invent_emails(tmp_path, capsys, monkeypatch):
+    inbox = tmp_path / "approved_inbox"
+    inbox.mkdir()
+    request_path = inbox / "mission_control_invoice_review_action_recipients.json"
+    request = _invoice_review_action_request(request_path, action_kind="review_and_confirm_recipients")
+    export_root = tmp_path / "read_models"
+    response_dir = tmp_path / "responses"
+    monkeypatch.setattr(processor, "APPROVED_INBOX", inbox)
+    monkeypatch.setattr(processor, "DEFAULT_RESPONSE_DIR", response_dir)
+
+    assert process_main(["--file", str(request_path), "--export-root", str(export_root), "--generated-at", FIXED_NOW, "--format", "json"]) == 0
+    response = json.loads(capsys.readouterr().out)
+
+    assert response["headline"] == "Review recipients"
+    assert "Annette, Chyna, and Will" in response["eliwinship"]
+    assert "@" not in response["eliwinship"]
+
+
+def test_invoice_review_approval_prerequisites_lists_blockers(tmp_path, capsys, monkeypatch):
+    inbox = tmp_path / "approved_inbox"
+    inbox.mkdir()
+    request_path = inbox / "mission_control_invoice_review_action_approval_blockers.json"
+    request = _invoice_review_action_request(request_path, action_kind="show_approval_prerequisites")
+    export_root = tmp_path / "read_models"
+    response_dir = tmp_path / "responses"
+    monkeypatch.setattr(processor, "APPROVED_INBOX", inbox)
+    monkeypatch.setattr(processor, "DEFAULT_RESPONSE_DIR", response_dir)
+
+    assert process_main(["--file", str(request_path), "--export-root", str(export_root), "--generated-at", FIXED_NOW, "--format", "json"]) == 0
+    response = json.loads(capsys.readouterr().out)
+
+    assert response["headline"] == "Approval is not ready yet"
+    assert "Coupa proof missing" in response["eliwinship"]
+    assert "Invoice record/page not selected" in response["eliwinship"]
+    assert "Generated artifact not linked" in response["eliwinship"]
+    assert "Recipients unconfirmed" in response["eliwinship"]
+    assert "Attachment not ready" in response["eliwinship"]
+
+
+def test_invoice_review_replace_workbook_action_does_not_delete_files(tmp_path, capsys, monkeypatch):
+    inbox = tmp_path / "approved_inbox"
+    inbox.mkdir()
+    request_path = inbox / "mission_control_invoice_review_action_replace_workbook.json"
+    request = _invoice_review_action_request(request_path, action_kind="replace_source_workbook_reference")
+    export_root = tmp_path / "read_models"
+    response_dir = tmp_path / "responses"
+    monkeypatch.setattr(processor, "APPROVED_INBOX", inbox)
+    monkeypatch.setattr(processor, "DEFAULT_RESPONSE_DIR", response_dir)
+
+    assert process_main(["--file", str(request_path), "--export-root", str(export_root), "--generated-at", FIXED_NOW, "--format", "json"]) == 0
+    response = json.loads(capsys.readouterr().out)
+    scoped = json.loads(_scoped_processor_response_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
+
+    assert response["headline"] == "Choose the correct source workbook"
+    assert "No file will be deleted." in response["eliwinship"]
+    assert scoped["machine_proof"]["file_mutation_performed"] is False
+
+
+def test_invoice_review_regenerate_or_link_does_not_generate_export(tmp_path, capsys, monkeypatch):
+    inbox = tmp_path / "approved_inbox"
+    inbox.mkdir()
+    request_path = inbox / "mission_control_invoice_review_action_link_artifact.json"
+    request = _invoice_review_action_request(request_path, action_kind="regenerate_or_link_invoice_artifact")
+    export_root = tmp_path / "read_models"
+    response_dir = tmp_path / "responses"
+    monkeypatch.setattr(processor, "APPROVED_INBOX", inbox)
+    monkeypatch.setattr(processor, "DEFAULT_RESPONSE_DIR", response_dir)
+
+    assert process_main(["--file", str(request_path), "--export-root", str(export_root), "--generated-at", FIXED_NOW, "--format", "json"]) == 0
+    response = json.loads(capsys.readouterr().out)
+    scoped = json.loads(_scoped_processor_response_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
+
+    assert response["headline"] == "Invoice artifact needs linkage"
+    assert "No invoice was generated or exported from this step." in response["eliwinship"]
+    assert scoped["detail_disclosure"]["invoice_review_action_request"]["invoice_generation_performed"] is False
+
+
+def test_invoice_review_prepare_send_remains_blocked_until_prerequisites(tmp_path, capsys, monkeypatch):
+    inbox = tmp_path / "approved_inbox"
+    inbox.mkdir()
+    request_path = inbox / "mission_control_invoice_review_action_send.json"
+    request = _invoice_review_action_request(request_path, action_kind="prepare_send_approval_request")
+    export_root = tmp_path / "read_models"
+    response_dir = tmp_path / "responses"
+    monkeypatch.setattr(processor, "APPROVED_INBOX", inbox)
+    monkeypatch.setattr(processor, "DEFAULT_RESPONSE_DIR", response_dir)
+
+    assert process_main(["--file", str(request_path), "--export-root", str(export_root), "--generated-at", FIXED_NOW, "--format", "json"]) == 0
+    response = json.loads(capsys.readouterr().out)
+    scoped = json.loads(_scoped_processor_response_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
+    receipt = json.loads((export_root / "invoice_review_action_request_receipt.json").read_text(encoding="utf-8"))
+
+    assert response["headline"] == "Send approval is blocked"
+    assert response["internal_status"] == "BLOCKED_WITH_REASON"
+    assert "No send approval, email send, or Coupa submission happened." in response["detail_summary"]
+    assert receipt["status"] == "BLOCKED_PREREQUISITES"
+    assert receipt["action_start_receipt"]["completion_receipt_written"] is False
+    assert scoped["machine_proof"]["email_send_performed"] is False
+
+
+def test_invoice_review_unsupported_action_returns_clean_blocked_response(tmp_path, capsys, monkeypatch):
+    inbox = tmp_path / "approved_inbox"
+    inbox.mkdir()
+    request_path = inbox / "mission_control_invoice_review_action_unsupported.json"
+    request = _invoice_review_action_request(request_path, action_kind="start_invoice_record_selection")
+    request["intended_use"] = "launch_coupa_browser"
+    request["action_kind"] = "launch_coupa_browser"
+    request["hidden_request_payload"]["action_kind"] = "launch_coupa_browser"
+    request["hidden_request_payload"]["request_kind"] = "launch_coupa_browser"
+    request["payload_hash"] = processor._content_hash(request)
+    request_path.write_text(processor.stable_json(request), encoding="utf-8")
+    export_root = tmp_path / "read_models"
+    response_dir = tmp_path / "responses"
+    monkeypatch.setattr(processor, "APPROVED_INBOX", inbox)
+    monkeypatch.setattr(processor, "DEFAULT_RESPONSE_DIR", response_dir)
+
+    assert process_main(["--file", str(request_path), "--export-root", str(export_root), "--generated-at", FIXED_NOW, "--format", "json"]) == 0
+    response = json.loads(capsys.readouterr().out)
+    scoped = json.loads(_scoped_processor_response_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
+
+    assert response["headline"] == "Invoice review action not wired"
+    assert response["internal_status"] == "BLOCKED_WITH_REASON"
+    assert "not wired yet" in response["eliwinship"]
+    assert scoped["machine_proof"]["external_action_performed"] is False
 
 
 def test_workbook_candidate_cancel_choice_keeps_existing_and_publishes_scoped_response(tmp_path, capsys, monkeypatch):

@@ -118,6 +118,23 @@ def test_future_handler_can_register_without_transport_semantics_change():
     assert decision.selected_handler_id == "niles.struna.scene_mapping"
 
 
+def test_invoice_review_action_request_routes_to_guided_action_handler():
+    payload = _request(
+        request_type="INVOICE_REVIEW_ACTION_REQUEST",
+        intended_use="start_invoice_record_selection",
+        world_ref="finance",
+        workflow_ref="capital_hilton_invoice_workflow",
+        client_ref="capital_hilton",
+    )
+
+    envelope, decision = router.route_request(payload, filename_request_family="LOCAL_SURFACE_RESULT")
+
+    assert envelope.request_kind == "INVOICE_REVIEW_ACTION_REQUEST"
+    assert decision.route_status == "ROUTE_MATCHED"
+    assert decision.selected_handler_id == "invoice_review_action_request.capital_hilton"
+    assert decision.next_safe_move == "Start the guided invoice review fix path without external action authority."
+
+
 def test_contract_payload_has_no_live_authority():
     payload = router.build_contract_payload()
 
@@ -126,3 +143,4 @@ def test_contract_payload_has_no_live_authority():
     assert all(value is False for value in payload["authority_boundary"].values())
     assert asdict(router.capital_hilton_field_mapping_handler()) in payload["registered_handlers"]
     assert any(handler["handler_id"] == "approve_readable_artifact_reference.generic" for handler in payload["registered_handlers"])
+    assert any(handler["handler_id"] == "invoice_review_action_request.capital_hilton" for handler in payload["registered_handlers"])
