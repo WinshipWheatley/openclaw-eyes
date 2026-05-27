@@ -1,0 +1,19 @@
+# Operator Readiness Surface
+
+Status: MAC_READINESS_SURFACE_NO_LIVE_ACTIONS
+
+LM shadow rails are ready.
+Live models are not active.
+Private Mode backend policy is seeded.
+Production token vault is not active yet.
+No tools or actions are enabled.
+
+Suggested buttons:
+- Enable Private Mode
+- Enable Strict Private Mode
+- Keep Standard Mode
+- Explain Privacy
+- View Proof
+- Not now
+
+This payload is display/control shape only. It does not enable live models, tools, or actions.

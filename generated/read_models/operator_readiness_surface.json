@@ -1,0 +1,255 @@
+{
+  "authority_boundary": {
+    "agent_dispatch_allowed": false,
+    "approval_execution_allowed": false,
+    "external_action_allowed": false,
+    "ledger_posting_allowed": false,
+    "live_lm_call_allowed": false,
+    "model_api_integration_allowed": false,
+    "network_allowed": false,
+    "ocr_allowed": false,
+    "pdf_generation_allowed": false,
+    "production_state_mutation_allowed": false,
+    "provider_key_material_access_allowed": false,
+    "send_submit_allowed": false,
+    "spreadsheet_cell_read_allowed": false,
+    "tool_execution_allowed": false,
+    "workbook_body_read_allowed": false,
+    "worker_dispatch_allowed": false,
+    "workflow_execution_allowed": false
+  },
+  "contract_status": "MAC_READINESS_SURFACE_NO_LIVE_ACTIONS",
+  "generated_at": "2026-05-26T00:00:00+00:00",
+  "input_refs": [
+    "lm_readiness_dashboard",
+    "provider_policy_registry",
+    "model_router_policy",
+    "shadow_lm_mode",
+    "token_vault_status",
+    "universal_intake_contract",
+    "guardian_trust_ramp_simulator",
+    "gate_chain_harness",
+    "guardian_output_gate"
+  ],
+  "machine_proof": {
+    "aggregates_lm_readiness_dashboard": true,
+    "all_live_authority_false": true,
+    "content_hash": "sha256:2eb2a4d4eca54e4db916018dc0531d434d66f033a43bf4b0f3678bf92f647813",
+    "external_action_performed": false,
+    "live_lm_status": "NOT_ACTIVE",
+    "live_model_call_performed": false,
+    "model_api_call_performed": false,
+    "operator_summary_backend_jargon_free": true,
+    "private_mode_active": false,
+    "private_mode_choices_exposed": true,
+    "production_state_mutation_performed": false,
+    "proof_shelf_available": true,
+    "strict_private_mode_active": false,
+    "suggested_button_count": 6,
+    "suggested_buttons_enable_no_live_authority": true,
+    "tool_execution_performed": false
+  },
+  "read_model_id": "operator_readiness_surface",
+  "schema_version": "operator_readiness_surface_v0",
+  "surface_payload": {
+    "authority_boundary": {
+      "agent_dispatch_allowed": false,
+      "approval_execution_allowed": false,
+      "external_action_allowed": false,
+      "ledger_posting_allowed": false,
+      "live_lm_call_allowed": false,
+      "model_api_integration_allowed": false,
+      "network_allowed": false,
+      "ocr_allowed": false,
+      "pdf_generation_allowed": false,
+      "production_state_mutation_allowed": false,
+      "provider_key_material_access_allowed": false,
+      "send_submit_allowed": false,
+      "spreadsheet_cell_read_allowed": false,
+      "tool_execution_allowed": false,
+      "workbook_body_read_allowed": false,
+      "worker_dispatch_allowed": false,
+      "workflow_execution_allowed": false
+    },
+    "contract_status": "MAC_READINESS_SURFACE_NO_LIVE_ACTIONS",
+    "next_safe_move": "Mission Control can render this as a rare readiness/privacy choice card. Do not enable models, tools, or actions from this payload.",
+    "operator_language": {
+      "hidden_as_proof_only": [
+        "request contract",
+        "provider policy registry",
+        "token vault table",
+        "gate 2",
+        "gate 3"
+      ],
+      "preferred_phrases": [
+        "Private Mode keeps raw details local.",
+        "Models are not live yet.",
+        "OpenClaw can test the chain safely.",
+        "Strict Private Mode keeps processing local-only."
+      ],
+      "primary_copy_avoids_backend_jargon": true
+    },
+    "operator_summary": [
+      "LM shadow rails are ready.",
+      "Live models are not active.",
+      "Private Mode backend policy is seeded.",
+      "Production token vault is not active yet.",
+      "No tools or actions are enabled."
+    ],
+    "private_mode_card": {
+      "active": false,
+      "allowed_toggles_for_mac": [
+        "private_mode",
+        "strict_private_mode",
+        "standard_mode"
+      ],
+      "authority_boundary": {
+        "agent_dispatch_allowed": false,
+        "approval_execution_allowed": false,
+        "external_action_allowed": false,
+        "ledger_posting_allowed": false,
+        "live_lm_call_allowed": false,
+        "model_api_integration_allowed": false,
+        "network_allowed": false,
+        "ocr_allowed": false,
+        "pdf_generation_allowed": false,
+        "production_state_mutation_allowed": false,
+        "provider_key_material_access_allowed": false,
+        "send_submit_allowed": false,
+        "spreadsheet_cell_read_allowed": false,
+        "tool_execution_allowed": false,
+        "workbook_body_read_allowed": false,
+        "worker_dispatch_allowed": false,
+        "workflow_execution_allowed": false
+      },
+      "available": true,
+      "backend_effect_if_enabled": [
+        "Require tokenized or summarized context before model-shaped packages.",
+        "Keep live models off until production privacy receipts exist.",
+        "Prefer local-only model candidates when strict privacy is selected."
+      ],
+      "blocked_effects": [
+        "Does not enable live models.",
+        "Does not enable tools or actions.",
+        "Does not send data outside OpenClaw.",
+        "Does not read workbook bodies or cells."
+      ],
+      "plain_language_description": "Private Mode keeps raw details local. Strict Private Mode keeps processing local-only and blocks cloud model use unless a future policy explicitly allows it.",
+      "strict_active": false,
+      "strict_available": true,
+      "visual_state_hint": "available_inactive"
+    },
+    "proof_shelf": {
+      "active_trust_level": 1,
+      "gate_chain_status": "PASS",
+      "guardian_gate_status": "ROLE_OUTPUT_VALIDATED",
+      "live_lm_blockers": [
+        "live LM explicit enablement receipt",
+        "live provider activation receipt",
+        "production token vault readiness",
+        "private/strict-private mode product switch",
+        "live receipt/promotion policy",
+        "real LM shadow comparison runs beyond fixtures"
+      ],
+      "lm1_shadow_status": "READY",
+      "lm2_shadow_status": "READY",
+      "provider_policy_status": "SEEDED",
+      "read_model_refs": [
+        "generated/read_models/lm_readiness_dashboard.json",
+        "generated/read_models/provider_policy_registry.json",
+        "generated/read_models/model_router_policy.json",
+        "generated/read_models/shadow_lm_mode.json",
+        "generated/read_models/token_vault_status.json",
+        "generated/read_models/universal_intake_contract.json",
+        "generated/read_models/guardian_trust_ramp_simulator.json",
+        "generated/read_models/gate_chain_harness.json",
+        "generated/read_models/guardian_output_gate.json"
+      ],
+      "tokenization_status": "POLICY_SEEDED_PRODUCTION_TOKEN_VAULT_NOT_ACTIVE",
+      "trust_ramp_candidate_level": 4
+    },
+    "suggested_buttons": [
+      {
+        "button_id": "operator_choice:enable_private_mode",
+        "choice_contract": {
+          "choice_type": "privacy_mode",
+          "live_lm_enabled": false,
+          "requested_state": "private_mode_enabled"
+        },
+        "enables_live_lm": false,
+        "enables_tool_action": false,
+        "human_reason": "Keep raw details local when OpenClaw prepares future model-shaped packages.",
+        "label": "Enable Private Mode",
+        "requires_confirmation": true,
+        "safe_to_show_now": true
+      },
+      {
+        "button_id": "operator_choice:enable_strict_private_mode",
+        "choice_contract": {
+          "choice_type": "privacy_mode",
+          "live_lm_enabled": false,
+          "requested_state": "strict_private_mode_enabled"
+        },
+        "enables_live_lm": false,
+        "enables_tool_action": false,
+        "human_reason": "Use the strongest local-only posture for sensitive work.",
+        "label": "Enable Strict Private Mode",
+        "requires_confirmation": true,
+        "safe_to_show_now": true
+      },
+      {
+        "button_id": "operator_choice:keep_standard_mode",
+        "choice_contract": {
+          "choice_type": "privacy_mode",
+          "requested_state": "standard_mode"
+        },
+        "enables_live_lm": false,
+        "enables_tool_action": false,
+        "human_reason": "Leave privacy mode off for now while live models remain inactive.",
+        "label": "Keep Standard Mode",
+        "requires_confirmation": false,
+        "safe_to_show_now": true
+      },
+      {
+        "button_id": "operator_choice:explain_privacy",
+        "choice_contract": {
+          "choice_type": "readback",
+          "requested_surface": "privacy_explanation"
+        },
+        "enables_live_lm": false,
+        "enables_tool_action": false,
+        "human_reason": "Show a plain explanation of what Private Mode changes.",
+        "label": "Explain Privacy",
+        "requires_confirmation": false,
+        "safe_to_show_now": true
+      },
+      {
+        "button_id": "operator_choice:view_proof",
+        "choice_contract": {
+          "choice_type": "readback",
+          "requested_surface": "proof_shelf"
+        },
+        "enables_live_lm": false,
+        "enables_tool_action": false,
+        "human_reason": "Show the technical proof shelf below the calm summary.",
+        "label": "View Proof",
+        "requires_confirmation": false,
+        "safe_to_show_now": true
+      },
+      {
+        "button_id": "operator_choice:not_now",
+        "choice_contract": {
+          "choice_type": "dismiss",
+          "requested_state": "unchanged"
+        },
+        "enables_live_lm": false,
+        "enables_tool_action": false,
+        "human_reason": "Dismiss this choice without changing backend readiness.",
+        "label": "Not now",
+        "requires_confirmation": false,
+        "safe_to_show_now": true
+      }
+    ],
+    "surface_id": "operator_readiness_surface:3f52a7802bef56d1"
+  }
+}
