@@ -54,11 +54,15 @@ def test_chief_offline_worker_path_writes_sqlite_receipt(tmp_path):
     assert row["receipt_id"] == receipt["receipt_id"]
     assert row["source_request_id"] == "chief_worker_path_test_request"
     assert row["worker_adapter_id"] == chief.ADAPTER_ID
+    assert row["role_family"] == "CHIEF"
+    assert row["selected_voice"] == "CHIEF"
     assert row["validation_verdict"] == guardian_output_gate.VALIDATED
     assert row["action_taken"] == "none"
     assert row["external_action"] == 0
     assert row["authority_used"] == 0
     assert payload["action_taken"] == "none"
+    assert payload["role_family"] == "CHIEF"
+    assert payload["selected_voice"] == "CHIEF"
     assert payload["external_action"] is False
     assert payload["authority_used"] is False
     assert result["machine_proof"]["gate2_ingest_used"] is True
