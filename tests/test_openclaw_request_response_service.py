@@ -1608,21 +1608,23 @@ def test_existing_scoped_response_skips_stale_inbox_file_and_processes_next_requ
     assert _safe_response_path(response_dir, fresh["request_id"]).exists()
 
 
-def test_watch_skips_stale_backlog_older_than_latest_response(tmp_path, capsys):
+def test_watch_drains_scoped_missing_backlog_even_when_older_than_latest_response(tmp_path, capsys):
     inbox = tmp_path / "inbox"
     response_dir = tmp_path / "responses"
     export_root = tmp_path / "read_models"
     inbox.mkdir()
     response_dir.mkdir()
-    stale_path = inbox / "mission_control_file_intake_request_spreadsheet_old_backlog.json"
-    fresh_path = inbox / "mission_control_file_intake_request_spreadsheet_new_send.json"
-    stale = _write_unique_file_request(stale_path, "old_backlog")
-    fresh = _write_unique_file_request(fresh_path, "new_send")
+    first_path = inbox / "mission_control_file_intake_request_spreadsheet_old_backlog_one.json"
+    second_path = inbox / "mission_control_file_intake_request_spreadsheet_old_backlog_two.json"
+    first = _write_unique_file_request(first_path, "old_backlog_one")
+    second = dict(first)
+    second["request_id"] = first["request_id"] + "_second"
+    second_path.write_text(file_intake.stable_json(second), encoding="utf-8")
     latest_path = response_dir / service.LATEST_RESPONSE_EXPORT_NAME
     latest_path.write_text(json.dumps({"source_request_id": "already_rendered", "terminal": True}) + "\n", encoding="utf-8")
-    os.utime(stale_path, ns=(1_000_000_000, 1_000_000_000))
+    os.utime(first_path, ns=(1_000_000_000, 1_000_000_000))
+    os.utime(second_path, ns=(1_500_000_000, 1_500_000_000))
     os.utime(latest_path, ns=(2_000_000_000, 2_000_000_000))
-    os.utime(fresh_path, ns=(3_000_000_000, 3_000_000_000))
 
     assert service_main(
         [
@@ -1631,7 +1633,7 @@ def test_watch_skips_stale_backlog_older_than_latest_response(tmp_path, capsys):
             "--poll-interval",
             "0.05",
             "--max-requests",
-            "1",
+            "2",
             "--inbox",
             str(inbox),
             "--response-dir",
@@ -1645,15 +1647,17 @@ def test_watch_skips_stale_backlog_older_than_latest_response(tmp_path, capsys):
         ]
     ) == 0
     payload = json.loads(capsys.readouterr().out)
-    skipped = payload["service_status"]["skipped_duplicates"]
-    latest = payload["service_status"]["latest_response"]
+    status = payload["service_status"]
 
-    assert payload["service_status"]["service_status"] == "REQUEST_PROCESSED"
-    assert latest["source_request_id"] == fresh["request_id"]
-    assert any(item["source_request_id"] == stale["request_id"] for item in skipped)
-    assert any("stale_before_latest_response:" + stale["request_id"] in item["matched_duplicate_keys"] for item in skipped)
-    assert not _safe_response_path(response_dir, stale["request_id"]).exists()
-    assert _safe_response_path(response_dir, fresh["request_id"]).exists()
+    assert status["service_status"] == "REQUEST_PROCESSED"
+    assert status["processed_count"] == 2
+    assert status["latest_response"]["source_request_id"] == second["request_id"]
+    assert _safe_response_path(response_dir, first["request_id"]).exists()
+    assert _safe_response_path(response_dir, second["request_id"]).exists()
+    assert not any(
+        "stale_before_latest_response:" in " ".join(item.get("matched_duplicate_keys") or ())
+        for item in status["skipped_duplicates"]
+    )
 
 
 def test_failed_processing_writes_failure_response_with_fix_path(tmp_path, capsys):

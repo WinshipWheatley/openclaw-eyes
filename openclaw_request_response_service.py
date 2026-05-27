@@ -534,18 +534,6 @@ def select_next_pending_request(
                 }
             )
             continue
-        if stale_before_mtime_ns is not None and candidate.stat().st_mtime_ns <= stale_before_mtime_ns:
-            skipped.append(
-                {
-                    "source_request_id": identity.source_request_id,
-                    "source_request_filename": candidate.name,
-                    "request_key": identity.request_key,
-                    "identity_keys": identity_keys,
-                    "matched_duplicate_keys": (f"stale_before_latest_response:{identity.source_request_id}",),
-                    "reason": "stale inbox backlog older than latest Mac response",
-                }
-            )
-            continue
         return candidate, tuple(skipped)
     return None, tuple(skipped)
 
