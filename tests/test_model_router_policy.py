@@ -27,6 +27,8 @@ def test_model_router_selects_fast_cheap_class_for_low_risk_lm1_intent():
     assert decision["authority_boundary"]["authority_grant_allowed"] is False
     assert decision["confidence"] == "HIGH"
     assert policy.STRONG_STRUCTURED_ROLE_REASONER in decision["rejected_model_classes"]
+    assert decision["selected_provider_ref"] == "provider_class:local_or_private_structured_stub"
+    assert decision["selected_provider_policy_id"]
 
 
 def test_model_router_selects_stronger_class_for_lm2_role_package():
@@ -46,6 +48,8 @@ def test_model_router_selects_stronger_class_for_lm2_role_package():
     assert decision["selected_model_class"] == policy.STRONG_STRUCTURED_ROLE_REASONER
     assert decision["structured_output_required"] is True
     assert "malformed structured output" in decision["expected_failure_modes"]
+    assert decision["selected_provider_ref"] == "provider_class:local_or_private_role_reasoner_stub"
+    assert decision["rejected_provider_candidates"]
 
 
 def test_model_router_blocks_sensitive_raw_values_with_no_safe_model():
@@ -67,6 +71,7 @@ def test_model_router_blocks_sensitive_raw_values_with_no_safe_model():
     assert "RAW_SENSITIVE_VALUES_REQUIRE_TOKENIZATION" in decision["blocked_reasons"]
     assert "SENSITIVE_CONTEXT" in decision["risk_notes"]
     assert policy.FAST_STRUCTURED_INTENT_SMALL in decision["rejected_model_classes"]
+    assert decision["selected_provider_ref"] == ""
 
 
 def test_exported_readmodel_parses(tmp_path):
@@ -77,4 +82,5 @@ def test_exported_readmodel_parses(tmp_path):
     assert parsed["read_model_id"] == policy.READ_MODEL_ID
     assert parsed["machine_proof"]["lm1_example_selects_fast_class"] is True
     assert parsed["machine_proof"]["lm2_example_selects_stronger_class"] is True
+    assert parsed["machine_proof"]["provider_policy_consulted"] is True
     assert "does not call models" in operator_path.read_text(encoding="utf-8")

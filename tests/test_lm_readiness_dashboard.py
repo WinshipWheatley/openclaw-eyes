@@ -10,6 +10,7 @@ import guardian_output_gate
 import intent_ingest_gate
 import lm_readiness_dashboard as dashboard
 import model_router_policy
+import provider_policy_registry
 import role_package_gate
 import universal_intake_contract
 
@@ -29,6 +30,7 @@ def test_readiness_dashboard_aggregates_all_seeded_lanes():
         "gate_chain_harness",
         "guardian_trust_ramp_simulator",
         "model_router_policy",
+        "provider_policy_registry",
         "live_lm_readiness_gate",
         "shadow_lm_mode",
         "token_vault_status",
@@ -37,7 +39,10 @@ def test_readiness_dashboard_aggregates_all_seeded_lanes():
         assert lane in lanes
     assert payload["machine_proof"]["dashboard_aggregates_seeded_lanes"] is True
     assert payload["dashboard_summary"]["lm1_shadow"] == "READY"
+    assert payload["dashboard_summary"]["lm1_shadow_comparison"] == "READY"
     assert payload["dashboard_summary"]["lm2_package_shadow"] == "READY"
+    assert payload["dashboard_summary"]["lm2_shadow_comparison"] == "READY"
+    assert payload["dashboard_summary"]["provider_policy_registry"] == "SEEDED"
 
 
 def test_lm1_thread_context_package_includes_universal_intake_and_token_declarations():
@@ -54,6 +59,7 @@ def test_lm1_thread_context_package_includes_universal_intake_and_token_declarat
     assert package["privacy"]["tokenization_applied"] is True
     assert package["privacy"]["raw_values_included"] is False
     assert package["model_router_result"]["selected_model_class"] == model_router_policy.FAST_STRUCTURED_INTENT_SMALL
+    assert package["model_router_result"]["selected_provider_ref"] == "provider_class:local_or_private_structured_stub"
     assert package["raw_values_included"] is False
     assert "MachineIntentCandidate" not in package["output_schema"]
     assert "source_request_id" in package["output_schema"]
@@ -81,6 +87,9 @@ def test_model_router_integration_selects_lm1_and_lm2_model_classes():
         model_router_policy.STRONG_STRUCTURED_ROLE_REASONER,
         model_router_policy.CONSERVATIVE_SENSITIVE_STRUCTURED,
     }
+    assert payload["representative_flow"]["provider_policy_decisions"]["lm1"]["selected_model_class"] == provider_policy_registry.FAST_STRUCTURED_INTENT_SMALL
+    assert payload["machine_proof"]["provider_policy_lm1_selected"] is True
+    assert payload["machine_proof"]["provider_policy_lm2_selected"] is True
 
 
 def test_model_router_returns_no_safe_model_when_privacy_is_insufficient():
@@ -119,6 +128,19 @@ def test_universal_intake_fixture_stays_draft_source_only():
     assert inference["proposed_facts_only"] is True
 
 
+def test_dashboard_includes_universal_intake_batch_fixture_and_privacy_readiness():
+    payload = _payload()
+    batch = payload["representative_flow"]["universal_intake_batch_fixture"]
+    privacy = payload["representative_flow"]["privacy_readiness_result"]
+
+    assert len(batch["candidates"]) == 3
+    assert {candidate["client_ref"] for candidate in batch["candidates"]} == {"capital_hilton", "live_arts_md", "st_annes"}
+    assert payload["dashboard_summary"]["universal_intake_batch"] == "READY"
+    assert privacy["production_token_vault_ready"] is False
+    assert privacy["synthetic_tokenization_ready"] is True
+    assert payload["dashboard_summary"]["privacy_readiness_status"] == "POLICY_SEEDED_PRODUCTION_TOKEN_VAULT_NOT_ACTIVE"
+
+
 def test_representative_flow_reaches_gate2_gate3_gate4_without_live_status():
     payload = _payload()
     flow = payload["representative_flow"]
@@ -126,6 +148,7 @@ def test_representative_flow_reaches_gate2_gate3_gate4_without_live_status():
     assert flow["gate2_result_summary"]["outcome"] == intent_ingest_gate.ACCEPTED_INTENT
     assert flow["gate3_package_summary"]["package_status"] == role_package_gate.PACKAGE_COMPILED
     assert flow["gate4_result_summary"]["verdict"] == guardian_output_gate.VALIDATED
+    assert flow["shadow_comparison_summary"]["failed"] == 0
     assert payload["dashboard_summary"]["lm1_live"] == "NOT_ACTIVE"
     assert payload["dashboard_summary"]["lm2_live"] == "NOT_ACTIVE"
 
@@ -140,6 +163,7 @@ def test_private_mode_fields_are_seeded_but_inactive():
     assert private_mode["strict_private_mode_active"] is False
     assert private_mode["cloud_lm_allowed_when_private"] is False
     assert private_mode["local_only_required_when_strict"] is True
+    assert private_mode["production_token_vault_ready"] is False
     assert payload["machine_proof"]["private_mode_active"] is False
     assert payload["machine_proof"]["strict_private_mode_active"] is False
 
@@ -152,4 +176,5 @@ def test_exported_readmodel_parses(tmp_path):
     assert parsed["read_model_id"] == dashboard.READ_MODEL_ID
     assert parsed["machine_proof"]["model_call_performed"] is False
     assert parsed["machine_proof"]["workbook_body_read_performed"] is False
+    assert parsed["machine_proof"]["shadow_comparison_failed_count"] == 0
     assert "Live LM calls remain off" in operator_path.read_text(encoding="utf-8")

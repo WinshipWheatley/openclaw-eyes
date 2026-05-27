@@ -19,7 +19,7 @@ from typing import Any, Mapping
 DEFAULT_EXPORT_ROOT = Path("generated/read_models")
 DEFAULT_GENERATED_AT = "2026-05-26T00:00:00+00:00"
 
-SCHEMA_VERSION = "universal_intake_contract_v0"
+SCHEMA_VERSION = "universal_intake_contract_v1"
 READ_MODEL_ID = "universal_intake_contract"
 JSON_EXPORT_NAME = f"{READ_MODEL_ID}.json"
 OPERATOR_EXPORT_NAME = f"{READ_MODEL_ID}_OPERATOR.md"
@@ -73,6 +73,20 @@ class UniversalIntakeCandidate:
     authority_boundary: dict[str, bool]
 
 
+@dataclass(frozen=True)
+class UniversalIntakeBatchResult:
+    batch_id: str
+    source_request_id: str
+    user_note: str
+    current_world_ref: str
+    candidates: tuple[dict[str, Any], ...]
+    batch_confidence: str
+    needs_clarification: bool
+    clarification_question: str
+    next_safe_action: str
+    authority_boundary: dict[str, bool]
+
+
 def stable_json(payload: Any) -> str:
     return json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
 
@@ -97,6 +111,33 @@ def _capital_hilton_signal(text: str) -> bool:
     return "capital hilton" in lowered or "capitol hilton" in lowered or "hilton" in lowered
 
 
+CLIENT_FILENAME_SIGNALS = {
+    "capital_hilton": {
+        "aliases": ("capital hilton", "capitol hilton", "hilton"),
+        "workflow_ref": "capital_hilton_invoice_workflow",
+        "display_name": "Capital Hilton",
+    },
+    "live_arts_md": {
+        "aliases": ("live arts md", "live arts"),
+        "workflow_ref": "live_arts_md_invoice_workflow",
+        "display_name": "Live Arts MD",
+    },
+    "st_annes": {
+        "aliases": ("st. anne", "st anne", "st. anne's", "st anne's", "anne"),
+        "workflow_ref": "st_annes_invoice_workflow",
+        "display_name": "St. Anne's",
+    },
+}
+
+
+def _client_from_text(text: str) -> tuple[str, str, str]:
+    lowered = text.lower()
+    for client_ref, spec in CLIENT_FILENAME_SIGNALS.items():
+        if any(alias in lowered for alias in spec["aliases"]):
+            return client_ref, str(spec["workflow_ref"]), str(spec["display_name"])
+    return "unknown", "unknown", "Unknown client"
+
+
 def infer_universal_intake(input_data: UniversalIntakeInput | Mapping[str, Any]) -> dict[str, Any]:
     if not isinstance(input_data, UniversalIntakeInput):
         input_data = UniversalIntakeInput(
@@ -111,20 +152,19 @@ def infer_universal_intake(input_data: UniversalIntakeInput | Mapping[str, Any])
     text = " ".join((input_data.file_display_name, input_data.user_note, input_data.current_world_ref))
     spreadsheet = _is_spreadsheet(input_data.file_extension or Path(input_data.file_display_name).suffix, input_data.file_type)
     finance = input_data.current_world_ref.lower() == "finance" or "invoice" in text.lower()
-    capital_hilton = _capital_hilton_signal(text)
-
-    if spreadsheet and finance and capital_hilton and "running" in text.lower() and "invoice" in text.lower():
+    client_ref, workflow_ref, client_display_name = _client_from_text(text)
+    if spreadsheet and finance and client_ref != "unknown" and "running" in text.lower() and "invoice" in text.lower():
         candidate = UniversalIntakeCandidate(
             candidate_id=f"universal_intake_candidate:{_short_hash(input_data.source_request_id, input_data.file_display_name)}",
             source_request_id=input_data.source_request_id,
             world_ref="finance",
-            client_ref="capital_hilton",
-            workflow_ref="capital_hilton_invoice_workflow",
+            client_ref=client_ref,
+            workflow_ref=workflow_ref,
             artifact_kind="running_invoice_workbook",
             intended_use="register_or_resolve_invoice_workbook_artifact",
             confidence="HIGH",
-            operator_headline="Capital Hilton workbook recognized",
-            operator_message="OpenClaw recognized this as a likely Capital Hilton running invoice workbook. It is still a draft/source workbook, not proof that anything was sent or paid.",
+            operator_headline=f"{client_display_name} workbook recognized",
+            operator_message=f"OpenClaw recognized this as a likely {client_display_name} running invoice workbook. It is still a draft/source workbook, not proof that anything was sent or paid.",
             clarification_question="",
             next_safe_action="Propose metadata-only workbook intake, then ask before any audit, send, PDF, or ledger step.",
             submitted=False,
@@ -185,6 +225,56 @@ def infer_universal_intake(input_data: UniversalIntakeInput | Mapping[str, Any])
     return asdict(candidate)
 
 
+def infer_universal_intake_batch(batch_data: Mapping[str, Any]) -> dict[str, Any]:
+    files = batch_data.get("files") or ()
+    user_note = str(batch_data.get("user_note") or "")
+    current_world_ref = str(batch_data.get("current_world_ref") or "")
+    source_request_id = str(batch_data.get("source_request_id") or "universal_intake_batch_request")
+    candidates = []
+    for index, file_data in enumerate(files):
+        if isinstance(file_data, Mapping):
+            file_display_name = str(file_data.get("file_display_name") or "")
+            extension = str(file_data.get("file_extension") or Path(file_display_name).suffix)
+            file_type = str(file_data.get("file_type") or "spreadsheet")
+        else:
+            file_display_name = str(file_data)
+            extension = Path(file_display_name).suffix
+            file_type = "spreadsheet"
+        candidates.append(
+            infer_universal_intake(
+                {
+                    "intake_id": f"universal_intake_batch_item_{index}",
+                    "source_request_id": f"{source_request_id}:{index}",
+                    "file_display_name": file_display_name,
+                    "file_extension": extension,
+                    "file_type": file_type,
+                    "user_note": user_note,
+                    "current_world_ref": current_world_ref,
+                }
+            )
+        )
+    low_confidence = tuple(item for item in candidates if item["confidence"] == "LOW" or item["client_ref"] == "unknown")
+    medium_confidence = tuple(item for item in candidates if item["confidence"] == "MEDIUM")
+    needs_clarification = bool(low_confidence or medium_confidence)
+    result = UniversalIntakeBatchResult(
+        batch_id=f"universal_intake_batch:{_short_hash(source_request_id, tuple(item['candidate_id'] for item in candidates))}",
+        source_request_id=source_request_id,
+        user_note=user_note,
+        current_world_ref=current_world_ref,
+        candidates=tuple(candidates),
+        batch_confidence="HIGH" if candidates and not needs_clarification else "MEDIUM" if candidates else "LOW",
+        needs_clarification=needs_clarification,
+        clarification_question="Which client should the unclear workbook belong to?" if needs_clarification else "",
+        next_safe_action=(
+            "Prepare metadata-only intake candidates for each recognized running workbook; do not read files."
+            if not needs_clarification
+            else "Ask one clarification question for unclear workbook/client matches; do not read files."
+        ),
+        authority_boundary=dict(AUTHORITY_BOUNDARY),
+    )
+    return asdict(result)
+
+
 def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
     generated_at = generated_at or DEFAULT_GENERATED_AT
     examples = {
@@ -211,12 +301,27 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
             }
         ),
     }
+    batch_fixture = infer_universal_intake_batch(
+        {
+            "source_request_id": "universal_intake_batch_running_invoice_workbooks",
+            "user_note": "these are the invoice workbooks for the clients named in the files",
+            "current_world_ref": "finance",
+            "files": (
+                "Invoice Capitol Hilton Running.xlsx",
+                "Invoice Live Arts MD! Running.xlsx",
+                "Invoice St. Anne's Running.xlsx",
+            ),
+        }
+    )
     payload: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
         "read_model_id": READ_MODEL_ID,
         "contract_status": CONTRACT_STATUS,
         "generated_at": generated_at,
         "examples": examples,
+        "batch_examples": {
+            "running_invoice_workbooks": batch_fixture,
+        },
         "connects_to_chain": {
             "gate_1": "Consumes safe metadata-only file references and notes.",
             "lm1": "Can provide structured candidate context before LM1 proposal or deterministic intake.",
@@ -230,6 +335,16 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
             "fixture_paid_false": examples["capital_hilton_running_workbook"]["paid"] is False,
             "fixture_ledger_posted_false": examples["capital_hilton_running_workbook"]["ledger_posted"] is False,
             "fixture_final_false": examples["capital_hilton_running_workbook"]["final"] is False,
+            "batch_fixture_count": len(batch_fixture["candidates"]),
+            "batch_fixture_all_high_confidence": all(item["confidence"] == "HIGH" for item in batch_fixture["candidates"]),
+            "batch_fixture_all_draft_source_only": all(
+                item["submitted"] is False
+                and item["paid"] is False
+                and item["ledger_posted"] is False
+                and item["final"] is False
+                and item["proposed_facts_only"] is True
+                for item in batch_fixture["candidates"]
+            ),
             "workbook_body_read_performed": False,
             "backend_paths_exposed": False,
             "all_live_authority_false": all(value is False for value in AUTHORITY_BOUNDARY.values()),
@@ -252,6 +367,7 @@ def write_exports(payload: Mapping[str, Any], export_root: Path = DEFAULT_EXPORT
         f"Status: {CONTRACT_STATUS}",
         f"Capital Hilton fixture inferred: {str(proof.get('capital_hilton_fixture_inferred')).lower()}",
         f"Ambiguous fixture asks clarification: {str(proof.get('ambiguous_fixture_asks_clarification')).lower()}",
+        f"Running workbook batch count: {proof.get('batch_fixture_count')}",
         "",
         "Drop-file interpretation is metadata-only. Running invoice workbooks remain draft/source workbooks until audited and approved.",
     ]

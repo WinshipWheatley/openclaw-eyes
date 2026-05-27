@@ -50,6 +50,34 @@ def test_universal_intake_asks_one_question_for_ambiguous_file_note():
     assert candidate["clarification_question"] == "Which client or workflow should this workbook belong to?"
 
 
+def test_universal_intake_batch_classifies_three_running_invoice_workbooks_as_draft_source_only():
+    batch = intake.infer_universal_intake_batch(
+        {
+            "source_request_id": "test_batch",
+            "user_note": "these are the invoice workbooks for the clients named in the files",
+            "current_world_ref": "finance",
+            "files": (
+                "Invoice Capitol Hilton Running.xlsx",
+                "Invoice Live Arts MD! Running.xlsx",
+                "Invoice St. Anne's Running.xlsx",
+            ),
+        }
+    )
+
+    clients = {candidate["client_ref"] for candidate in batch["candidates"]}
+    assert clients == {"capital_hilton", "live_arts_md", "st_annes"}
+    assert batch["needs_clarification"] is False
+    assert batch["batch_confidence"] == "HIGH"
+    for candidate in batch["candidates"]:
+        assert candidate["world_ref"] == "finance"
+        assert candidate["artifact_kind"] == "running_invoice_workbook"
+        assert candidate["submitted"] is False
+        assert candidate["paid"] is False
+        assert candidate["ledger_posted"] is False
+        assert candidate["final"] is False
+        assert candidate["proposed_facts_only"] is True
+
+
 def test_universal_intake_operator_text_has_no_backend_path_language():
     candidate = intake.infer_universal_intake(
         {
@@ -76,4 +104,6 @@ def test_exported_readmodel_parses(tmp_path):
     assert parsed["read_model_id"] == intake.READ_MODEL_ID
     assert parsed["machine_proof"]["capital_hilton_fixture_inferred"] is True
     assert parsed["machine_proof"]["fixture_submitted_false"] is True
+    assert parsed["machine_proof"]["batch_fixture_count"] == 3
+    assert parsed["machine_proof"]["batch_fixture_all_draft_source_only"] is True
     assert "metadata-only" in operator_path.read_text(encoding="utf-8")

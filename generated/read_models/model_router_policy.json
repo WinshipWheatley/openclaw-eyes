@@ -16,7 +16,7 @@
     "lm1": "Model class selection may feed a future LM1 proposal socket before Gate 2.",
     "lm2": "Model class selection may feed a future LM2 role package socket after Gate 3."
   },
-  "contract_status": "MODEL_CLASS_ROUTER_NO_LIVE_CALLS",
+  "contract_status": "PROVIDER_POLICY_AWARE_MODEL_ROUTER_NO_LIVE_CALLS",
   "examples": {
     "lm1_low_risk_intent": {
       "authority_boundary": {
@@ -37,17 +37,84 @@
       "conservative_posture": true,
       "decision_id": "model_routing_decision:a6f38beefe68c637",
       "expected_failure_modes": [
-        "malformed structured output"
+        "malformed structured output",
+        "under-specified intent",
+        "malformed JSON candidate"
       ],
+      "fallback_provider_policy_id": "provider_policy:local_fixture_conservative_sensitive",
       "next_safe_move": "Use this model class only as a future candidate route; no model call is allowed in v0.",
       "rejected_model_classes": [
         "STRONG_STRUCTURED_ROLE_REASONER",
         "CONSERVATIVE_SENSITIVE_STRUCTURED"
       ],
+      "rejected_provider_candidates": [
+        {
+          "expected_failure_modes": [
+            "over-helpful completion claim",
+            "tool request outside package"
+          ],
+          "model_class_ref": "STRONG_STRUCTURED_ROLE_REASONER",
+          "model_ref": "model_class:strong_structured_role_reasoner",
+          "policy_id": "provider_policy:local_fixture_strong_role",
+          "provider_ref": "provider_class:local_or_private_role_reasoner_stub",
+          "reject_reasons": [
+            "LANE_NOT_ALLOWED",
+            "MODEL_CLASS_NOT_REQUESTED"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "higher latency than LM1 class",
+            "requires Guardian output gate"
+          ]
+        },
+        {
+          "expected_failure_modes": [
+            "false block",
+            "unnecessary clarification"
+          ],
+          "model_class_ref": "CONSERVATIVE_SENSITIVE_STRUCTURED",
+          "model_ref": "model_class:conservative_sensitive_structured",
+          "policy_id": "provider_policy:local_fixture_conservative_sensitive",
+          "provider_ref": "provider_class:local_or_private_conservative_stub",
+          "reject_reasons": [
+            "MODEL_CLASS_NOT_REQUESTED"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "may over-clarify",
+            "higher latency",
+            "less warm voice"
+          ]
+        },
+        {
+          "expected_failure_modes": [
+            "privacy policy block",
+            "provider unavailability",
+            "schema drift"
+          ],
+          "model_class_ref": "STRONG_STRUCTURED_ROLE_REASONER",
+          "model_ref": "model_class:cloud_structured_candidate",
+          "policy_id": "provider_policy:future_cloud_structured_candidate",
+          "provider_ref": "provider_class:future_cloud_structured_candidate",
+          "reject_reasons": [
+            "MODEL_CLASS_NOT_REQUESTED",
+            "STRUCTURED_OUTPUT_RELIABILITY_NOT_PROVEN"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "privacy policy must be explicit",
+            "network/API key path required",
+            "cannot be used in private mode by default"
+          ]
+        }
+      ],
       "request_id": "model_router_fixture_lm1",
       "risk_notes": [],
       "selected_model_class": "FAST_STRUCTURED_INTENT_SMALL",
-      "selection_reason": "LM1 intent proposal is narrow, structured, low-risk, and latency-sensitive.",
+      "selected_model_ref": "model_class:fast_structured_intent_small",
+      "selected_provider_policy_id": "provider_policy:local_fixture_fast_intent",
+      "selected_provider_ref": "provider_class:local_or_private_structured_stub",
+      "selection_reason": "LM1 intent proposal is narrow, structured, low-risk, and latency-sensitive. Provider policy: Selected first usable provider policy candidate for the requested lane/model class.",
       "structured_output_required": true,
       "tokenization_required_before_live": false
     },
@@ -70,17 +137,84 @@
       "conservative_posture": true,
       "decision_id": "model_routing_decision:78ef8d3ca96b6c36",
       "expected_failure_modes": [
-        "malformed structured output"
+        "malformed structured output",
+        "under-specified intent",
+        "malformed JSON candidate"
       ],
+      "fallback_provider_policy_id": "provider_policy:local_fixture_conservative_sensitive",
       "next_safe_move": "Use this model class only as a future candidate route; no model call is allowed in v0.",
       "rejected_model_classes": [
         "STRONG_STRUCTURED_ROLE_REASONER",
         "CONSERVATIVE_SENSITIVE_STRUCTURED"
       ],
+      "rejected_provider_candidates": [
+        {
+          "expected_failure_modes": [
+            "over-helpful completion claim",
+            "tool request outside package"
+          ],
+          "model_class_ref": "STRONG_STRUCTURED_ROLE_REASONER",
+          "model_ref": "model_class:strong_structured_role_reasoner",
+          "policy_id": "provider_policy:local_fixture_strong_role",
+          "provider_ref": "provider_class:local_or_private_role_reasoner_stub",
+          "reject_reasons": [
+            "LANE_NOT_ALLOWED",
+            "MODEL_CLASS_NOT_REQUESTED"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "higher latency than LM1 class",
+            "requires Guardian output gate"
+          ]
+        },
+        {
+          "expected_failure_modes": [
+            "false block",
+            "unnecessary clarification"
+          ],
+          "model_class_ref": "CONSERVATIVE_SENSITIVE_STRUCTURED",
+          "model_ref": "model_class:conservative_sensitive_structured",
+          "policy_id": "provider_policy:local_fixture_conservative_sensitive",
+          "provider_ref": "provider_class:local_or_private_conservative_stub",
+          "reject_reasons": [
+            "MODEL_CLASS_NOT_REQUESTED"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "may over-clarify",
+            "higher latency",
+            "less warm voice"
+          ]
+        },
+        {
+          "expected_failure_modes": [
+            "privacy policy block",
+            "provider unavailability",
+            "schema drift"
+          ],
+          "model_class_ref": "STRONG_STRUCTURED_ROLE_REASONER",
+          "model_ref": "model_class:cloud_structured_candidate",
+          "policy_id": "provider_policy:future_cloud_structured_candidate",
+          "provider_ref": "provider_class:future_cloud_structured_candidate",
+          "reject_reasons": [
+            "MODEL_CLASS_NOT_REQUESTED",
+            "STRUCTURED_OUTPUT_RELIABILITY_NOT_PROVEN"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "privacy policy must be explicit",
+            "network/API key path required",
+            "cannot be used in private mode by default"
+          ]
+        }
+      ],
       "request_id": "model_router_fixture_lm1_thread_package:model_route",
       "risk_notes": [],
       "selected_model_class": "FAST_STRUCTURED_INTENT_SMALL",
-      "selection_reason": "LM1 intent proposal is narrow, structured, low-risk, and latency-sensitive.",
+      "selected_model_ref": "model_class:fast_structured_intent_small",
+      "selected_provider_policy_id": "provider_policy:local_fixture_fast_intent",
+      "selected_provider_ref": "provider_class:local_or_private_structured_stub",
+      "selection_reason": "LM1 intent proposal is narrow, structured, low-risk, and latency-sensitive. Provider policy: Selected first usable provider policy candidate for the requested lane/model class.",
       "structured_output_required": true,
       "tokenization_required_before_live": false
     },
@@ -103,17 +237,83 @@
       "conservative_posture": true,
       "decision_id": "model_routing_decision:fdd57cf89b99aee7",
       "expected_failure_modes": [
-        "malformed structured output"
+        "malformed structured output",
+        "over-helpful completion claim",
+        "tool request outside package"
       ],
+      "fallback_provider_policy_id": "provider_policy:local_fixture_conservative_sensitive",
       "next_safe_move": "Use this model class only as a future candidate route; no model call is allowed in v0.",
       "rejected_model_classes": [
         "FAST_STRUCTURED_INTENT_SMALL",
         "CONSERVATIVE_SENSITIVE_STRUCTURED"
       ],
+      "rejected_provider_candidates": [
+        {
+          "expected_failure_modes": [
+            "under-specified intent",
+            "malformed JSON candidate"
+          ],
+          "model_class_ref": "FAST_STRUCTURED_INTENT_SMALL",
+          "model_ref": "model_class:fast_structured_intent_small",
+          "policy_id": "provider_policy:local_fixture_fast_intent",
+          "provider_ref": "provider_class:local_or_private_structured_stub",
+          "reject_reasons": [
+            "LANE_NOT_ALLOWED",
+            "MODEL_CLASS_NOT_REQUESTED"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "not enough for nuanced role voice",
+            "not for broad context synthesis"
+          ]
+        },
+        {
+          "expected_failure_modes": [
+            "false block",
+            "unnecessary clarification"
+          ],
+          "model_class_ref": "CONSERVATIVE_SENSITIVE_STRUCTURED",
+          "model_ref": "model_class:conservative_sensitive_structured",
+          "policy_id": "provider_policy:local_fixture_conservative_sensitive",
+          "provider_ref": "provider_class:local_or_private_conservative_stub",
+          "reject_reasons": [
+            "MODEL_CLASS_NOT_REQUESTED"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "may over-clarify",
+            "higher latency",
+            "less warm voice"
+          ]
+        },
+        {
+          "expected_failure_modes": [
+            "privacy policy block",
+            "provider unavailability",
+            "schema drift"
+          ],
+          "model_class_ref": "STRONG_STRUCTURED_ROLE_REASONER",
+          "model_ref": "model_class:cloud_structured_candidate",
+          "policy_id": "provider_policy:future_cloud_structured_candidate",
+          "provider_ref": "provider_class:future_cloud_structured_candidate",
+          "reject_reasons": [
+            "STRUCTURED_OUTPUT_RELIABILITY_NOT_PROVEN"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "privacy policy must be explicit",
+            "network/API key path required",
+            "cannot be used in private mode by default"
+          ]
+        }
+      ],
       "request_id": "model_router_fixture_lm2",
       "risk_notes": [],
       "selected_model_class": "STRONG_STRUCTURED_ROLE_REASONER",
-      "selection_reason": "LM2 role response needs stronger package reasoning and operator wording.",
+      "selected_model_ref": "model_class:strong_structured_role_reasoner",
+      "selected_provider_policy_id": "provider_policy:local_fixture_strong_role",
+      "selected_provider_ref": "provider_class:local_or_private_role_reasoner_stub",
+      "selection_reason": "LM2 role response needs stronger package reasoning and operator wording. Provider policy: Selected first usable provider policy candidate for the requested lane/model class.",
       "structured_output_required": true,
       "tokenization_required_before_live": false
     },
@@ -136,17 +336,83 @@
       "conservative_posture": true,
       "decision_id": "model_routing_decision:4331b9470a4ab887",
       "expected_failure_modes": [
-        "malformed structured output"
+        "malformed structured output",
+        "over-helpful completion claim",
+        "tool request outside package"
       ],
+      "fallback_provider_policy_id": "provider_policy:local_fixture_conservative_sensitive",
       "next_safe_move": "Use this model class only as a future candidate route; no model call is allowed in v0.",
       "rejected_model_classes": [
         "FAST_STRUCTURED_INTENT_SMALL",
         "CONSERVATIVE_SENSITIVE_STRUCTURED"
       ],
+      "rejected_provider_candidates": [
+        {
+          "expected_failure_modes": [
+            "under-specified intent",
+            "malformed JSON candidate"
+          ],
+          "model_class_ref": "FAST_STRUCTURED_INTENT_SMALL",
+          "model_ref": "model_class:fast_structured_intent_small",
+          "policy_id": "provider_policy:local_fixture_fast_intent",
+          "provider_ref": "provider_class:local_or_private_structured_stub",
+          "reject_reasons": [
+            "LANE_NOT_ALLOWED",
+            "MODEL_CLASS_NOT_REQUESTED"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "not enough for nuanced role voice",
+            "not for broad context synthesis"
+          ]
+        },
+        {
+          "expected_failure_modes": [
+            "false block",
+            "unnecessary clarification"
+          ],
+          "model_class_ref": "CONSERVATIVE_SENSITIVE_STRUCTURED",
+          "model_ref": "model_class:conservative_sensitive_structured",
+          "policy_id": "provider_policy:local_fixture_conservative_sensitive",
+          "provider_ref": "provider_class:local_or_private_conservative_stub",
+          "reject_reasons": [
+            "MODEL_CLASS_NOT_REQUESTED"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "may over-clarify",
+            "higher latency",
+            "less warm voice"
+          ]
+        },
+        {
+          "expected_failure_modes": [
+            "privacy policy block",
+            "provider unavailability",
+            "schema drift"
+          ],
+          "model_class_ref": "STRONG_STRUCTURED_ROLE_REASONER",
+          "model_ref": "model_class:cloud_structured_candidate",
+          "policy_id": "provider_policy:future_cloud_structured_candidate",
+          "provider_ref": "provider_class:future_cloud_structured_candidate",
+          "reject_reasons": [
+            "STRUCTURED_OUTPUT_RELIABILITY_NOT_PROVEN"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "privacy policy must be explicit",
+            "network/API key path required",
+            "cannot be used in private mode by default"
+          ]
+        }
+      ],
       "request_id": "model_router_fixture_lm2_role_package:model_route",
       "risk_notes": [],
       "selected_model_class": "STRONG_STRUCTURED_ROLE_REASONER",
-      "selection_reason": "LM2 role response needs stronger package reasoning and operator wording.",
+      "selected_model_ref": "model_class:strong_structured_role_reasoner",
+      "selected_provider_policy_id": "provider_policy:local_fixture_strong_role",
+      "selected_provider_ref": "provider_class:local_or_private_role_reasoner_stub",
+      "selection_reason": "LM2 role response needs stronger package reasoning and operator wording. Provider policy: Selected first usable provider policy candidate for the requested lane/model class.",
       "structured_output_required": true,
       "tokenization_required_before_live": false
     },
@@ -173,13 +439,110 @@
       "expected_failure_modes": [
         "over-permissive model suggestion",
         "raw value leakage if package is miscompiled",
-        "privacy gate blocks live model route"
+        "privacy gate blocks live model route",
+        "under-specified intent",
+        "malformed JSON candidate",
+        "over-helpful completion claim",
+        "tool request outside package",
+        "false block",
+        "unnecessary clarification",
+        "privacy policy block",
+        "provider unavailability",
+        "schema drift"
       ],
+      "fallback_provider_policy_id": "",
       "next_safe_move": "Do not call a model; resolve the blocked model routing condition first.",
       "rejected_model_classes": [
         "FAST_STRUCTURED_INTENT_SMALL",
         "STRONG_STRUCTURED_ROLE_REASONER",
         "CONSERVATIVE_SENSITIVE_STRUCTURED"
+      ],
+      "rejected_provider_candidates": [
+        {
+          "expected_failure_modes": [
+            "under-specified intent",
+            "malformed JSON candidate"
+          ],
+          "model_class_ref": "FAST_STRUCTURED_INTENT_SMALL",
+          "model_ref": "model_class:fast_structured_intent_small",
+          "policy_id": "provider_policy:local_fixture_fast_intent",
+          "provider_ref": "provider_class:local_or_private_structured_stub",
+          "reject_reasons": [
+            "LANE_NOT_ALLOWED",
+            "PRIVACY_CLASS_FORBIDDEN",
+            "CONTEXT_CLASS_FORBIDDEN",
+            "NO_ALLOWED_CONTEXT_CLASS_MATCH"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "not enough for nuanced role voice",
+            "not for broad context synthesis"
+          ]
+        },
+        {
+          "expected_failure_modes": [
+            "over-helpful completion claim",
+            "tool request outside package"
+          ],
+          "model_class_ref": "STRONG_STRUCTURED_ROLE_REASONER",
+          "model_ref": "model_class:strong_structured_role_reasoner",
+          "policy_id": "provider_policy:local_fixture_strong_role",
+          "provider_ref": "provider_class:local_or_private_role_reasoner_stub",
+          "reject_reasons": [
+            "PRIVACY_CLASS_FORBIDDEN",
+            "CONTEXT_CLASS_FORBIDDEN",
+            "NO_ALLOWED_CONTEXT_CLASS_MATCH"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "higher latency than LM1 class",
+            "requires Guardian output gate"
+          ]
+        },
+        {
+          "expected_failure_modes": [
+            "false block",
+            "unnecessary clarification"
+          ],
+          "model_class_ref": "CONSERVATIVE_SENSITIVE_STRUCTURED",
+          "model_ref": "model_class:conservative_sensitive_structured",
+          "policy_id": "provider_policy:local_fixture_conservative_sensitive",
+          "provider_ref": "provider_class:local_or_private_conservative_stub",
+          "reject_reasons": [
+            "PRIVACY_CLASS_FORBIDDEN",
+            "CONTEXT_CLASS_FORBIDDEN",
+            "NO_ALLOWED_CONTEXT_CLASS_MATCH"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "may over-clarify",
+            "higher latency",
+            "less warm voice"
+          ]
+        },
+        {
+          "expected_failure_modes": [
+            "privacy policy block",
+            "provider unavailability",
+            "schema drift"
+          ],
+          "model_class_ref": "STRONG_STRUCTURED_ROLE_REASONER",
+          "model_ref": "model_class:cloud_structured_candidate",
+          "policy_id": "provider_policy:future_cloud_structured_candidate",
+          "provider_ref": "provider_class:future_cloud_structured_candidate",
+          "reject_reasons": [
+            "STRUCTURED_OUTPUT_RELIABILITY_NOT_PROVEN",
+            "PRIVACY_CLASS_FORBIDDEN",
+            "CONTEXT_CLASS_FORBIDDEN",
+            "NO_ALLOWED_CONTEXT_CLASS_MATCH"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "privacy policy must be explicit",
+            "network/API key path required",
+            "cannot be used in private mode by default"
+          ]
+        }
       ],
       "request_id": "model_router_fixture_sensitive",
       "risk_notes": [
@@ -187,7 +550,10 @@
         "SENSITIVE_CONTEXT"
       ],
       "selected_model_class": "NO_SAFE_MODEL",
-      "selection_reason": "Sensitive context needs tokenization before any live LM candidate.",
+      "selected_model_ref": "",
+      "selected_provider_policy_id": "",
+      "selected_provider_ref": "",
+      "selection_reason": "Sensitive context needs tokenization before any live LM candidate. Provider policy: No provider policy candidate satisfied lane/privacy constraints.",
       "structured_output_required": true,
       "tokenization_required_before_live": true
     }
@@ -196,14 +562,17 @@
   "machine_proof": {
     "all_live_authority_false": true,
     "authority_granted": false,
-    "content_hash": "sha256:aa28c5e872e1df35d26c450123f0e587e97f1f564a21a95b7eadfaf1d71063f6",
+    "content_hash": "sha256:debd564c73a3b5c4dad930e72d868c1b79230ca8afc273b3363585296c38dc5d",
     "lm1_example_selects_fast_class": true,
+    "lm1_provider_policy_selected": true,
     "lm1_thread_package_selects_fast_class": true,
     "lm2_example_selects_stronger_class": true,
+    "lm2_provider_policy_selected": true,
     "lm2_role_package_integrated_selects_class": true,
     "model_call_performed": false,
     "network_performed": false,
     "provider_key_material_access_performed": false,
+    "provider_policy_consulted": true,
     "sensitive_example_blocks_without_tokenization": true
   },
   "model_candidate_classes": [
@@ -306,6 +675,456 @@
       ]
     }
   ],
+  "provider_policy_examples": {
+    "lm1_intent_policy": {
+      "authority_boundary": {
+        "authority_grant_allowed": false,
+        "external_action_allowed": false,
+        "live_model_call_allowed": false,
+        "model_api_integration_allowed": false,
+        "network_allowed": false,
+        "production_state_mutation_allowed": false,
+        "provider_key_material_access_allowed": false,
+        "send_submit_allowed": false,
+        "tool_execution_allowed": false,
+        "workflow_execution_allowed": false
+      },
+      "expected_failure_modes": [
+        "under-specified intent",
+        "malformed JSON candidate"
+      ],
+      "fallback_policy_id": "provider_policy:local_fixture_conservative_sensitive",
+      "next_safe_move": "Expose this as candidate policy only; no live model call is allowed.",
+      "no_safe_model": false,
+      "rejected_candidates": [
+        {
+          "expected_failure_modes": [
+            "over-helpful completion claim",
+            "tool request outside package"
+          ],
+          "model_class_ref": "STRONG_STRUCTURED_ROLE_REASONER",
+          "model_ref": "model_class:strong_structured_role_reasoner",
+          "policy_id": "provider_policy:local_fixture_strong_role",
+          "provider_ref": "provider_class:local_or_private_role_reasoner_stub",
+          "reject_reasons": [
+            "LANE_NOT_ALLOWED",
+            "MODEL_CLASS_NOT_REQUESTED"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "higher latency than LM1 class",
+            "requires Guardian output gate"
+          ]
+        },
+        {
+          "expected_failure_modes": [
+            "false block",
+            "unnecessary clarification"
+          ],
+          "model_class_ref": "CONSERVATIVE_SENSITIVE_STRUCTURED",
+          "model_ref": "model_class:conservative_sensitive_structured",
+          "policy_id": "provider_policy:local_fixture_conservative_sensitive",
+          "provider_ref": "provider_class:local_or_private_conservative_stub",
+          "reject_reasons": [
+            "MODEL_CLASS_NOT_REQUESTED"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "may over-clarify",
+            "higher latency",
+            "less warm voice"
+          ]
+        },
+        {
+          "expected_failure_modes": [
+            "privacy policy block",
+            "provider unavailability",
+            "schema drift"
+          ],
+          "model_class_ref": "STRONG_STRUCTURED_ROLE_REASONER",
+          "model_ref": "model_class:cloud_structured_candidate",
+          "policy_id": "provider_policy:future_cloud_structured_candidate",
+          "provider_ref": "provider_class:future_cloud_structured_candidate",
+          "reject_reasons": [
+            "MODEL_CLASS_NOT_REQUESTED",
+            "STRUCTURED_OUTPUT_RELIABILITY_NOT_PROVEN",
+            "LOCAL_ONLY_REQUIRED",
+            "PRIVACY_CLASS_FORBIDDEN",
+            "CONTEXT_CLASS_FORBIDDEN",
+            "NO_ALLOWED_CONTEXT_CLASS_MATCH"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "privacy policy must be explicit",
+            "network/API key path required",
+            "cannot be used in private mode by default"
+          ]
+        }
+      ],
+      "request_id": "provider_policy_fixture_lm1",
+      "risk_notes": [
+        "CLIENT_PRIVACY_POLICY"
+      ],
+      "selected_model_class": "FAST_STRUCTURED_INTENT_SMALL",
+      "selected_model_ref": "model_class:fast_structured_intent_small",
+      "selected_policy_id": "provider_policy:local_fixture_fast_intent",
+      "selected_provider_ref": "provider_class:local_or_private_structured_stub",
+      "selection_id": "provider_policy_selection:0b81942ae1fb0b51",
+      "selection_reason": "Selected first usable provider policy candidate for the requested lane/model class."
+    },
+    "lm2_role_policy": {
+      "authority_boundary": {
+        "authority_grant_allowed": false,
+        "external_action_allowed": false,
+        "live_model_call_allowed": false,
+        "model_api_integration_allowed": false,
+        "network_allowed": false,
+        "production_state_mutation_allowed": false,
+        "provider_key_material_access_allowed": false,
+        "send_submit_allowed": false,
+        "tool_execution_allowed": false,
+        "workflow_execution_allowed": false
+      },
+      "expected_failure_modes": [
+        "over-helpful completion claim",
+        "tool request outside package"
+      ],
+      "fallback_policy_id": "provider_policy:local_fixture_conservative_sensitive",
+      "next_safe_move": "Expose this as candidate policy only; no live model call is allowed.",
+      "no_safe_model": false,
+      "rejected_candidates": [
+        {
+          "expected_failure_modes": [
+            "under-specified intent",
+            "malformed JSON candidate"
+          ],
+          "model_class_ref": "FAST_STRUCTURED_INTENT_SMALL",
+          "model_ref": "model_class:fast_structured_intent_small",
+          "policy_id": "provider_policy:local_fixture_fast_intent",
+          "provider_ref": "provider_class:local_or_private_structured_stub",
+          "reject_reasons": [
+            "LANE_NOT_ALLOWED",
+            "MODEL_CLASS_NOT_REQUESTED"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "not enough for nuanced role voice",
+            "not for broad context synthesis"
+          ]
+        },
+        {
+          "expected_failure_modes": [
+            "false block",
+            "unnecessary clarification"
+          ],
+          "model_class_ref": "CONSERVATIVE_SENSITIVE_STRUCTURED",
+          "model_ref": "model_class:conservative_sensitive_structured",
+          "policy_id": "provider_policy:local_fixture_conservative_sensitive",
+          "provider_ref": "provider_class:local_or_private_conservative_stub",
+          "reject_reasons": [
+            "MODEL_CLASS_NOT_REQUESTED"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "may over-clarify",
+            "higher latency",
+            "less warm voice"
+          ]
+        },
+        {
+          "expected_failure_modes": [
+            "privacy policy block",
+            "provider unavailability",
+            "schema drift"
+          ],
+          "model_class_ref": "STRONG_STRUCTURED_ROLE_REASONER",
+          "model_ref": "model_class:cloud_structured_candidate",
+          "policy_id": "provider_policy:future_cloud_structured_candidate",
+          "provider_ref": "provider_class:future_cloud_structured_candidate",
+          "reject_reasons": [
+            "STRUCTURED_OUTPUT_RELIABILITY_NOT_PROVEN",
+            "LOCAL_ONLY_REQUIRED",
+            "PRIVACY_CLASS_FORBIDDEN",
+            "CONTEXT_CLASS_FORBIDDEN",
+            "NO_ALLOWED_CONTEXT_CLASS_MATCH"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "privacy policy must be explicit",
+            "network/API key path required",
+            "cannot be used in private mode by default"
+          ]
+        }
+      ],
+      "request_id": "provider_policy_fixture_lm2",
+      "risk_notes": [
+        "CLIENT_PRIVACY_POLICY"
+      ],
+      "selected_model_class": "STRONG_STRUCTURED_ROLE_REASONER",
+      "selected_model_ref": "model_class:strong_structured_role_reasoner",
+      "selected_policy_id": "provider_policy:local_fixture_strong_role",
+      "selected_provider_ref": "provider_class:local_or_private_role_reasoner_stub",
+      "selection_id": "provider_policy_selection:4183ce7c95b63f42",
+      "selection_reason": "Selected first usable provider policy candidate for the requested lane/model class."
+    },
+    "private_cloud_block": {
+      "authority_boundary": {
+        "authority_grant_allowed": false,
+        "external_action_allowed": false,
+        "live_model_call_allowed": false,
+        "model_api_integration_allowed": false,
+        "network_allowed": false,
+        "production_state_mutation_allowed": false,
+        "provider_key_material_access_allowed": false,
+        "send_submit_allowed": false,
+        "tool_execution_allowed": false,
+        "workflow_execution_allowed": false
+      },
+      "expected_failure_modes": [
+        "under-specified intent",
+        "malformed JSON candidate",
+        "over-helpful completion claim",
+        "tool request outside package",
+        "false block",
+        "unnecessary clarification",
+        "privacy policy block",
+        "provider unavailability",
+        "schema drift"
+      ],
+      "fallback_policy_id": "",
+      "next_safe_move": "Do not call a model; resolve provider/privacy policy first.",
+      "no_safe_model": true,
+      "rejected_candidates": [
+        {
+          "expected_failure_modes": [
+            "under-specified intent",
+            "malformed JSON candidate"
+          ],
+          "model_class_ref": "FAST_STRUCTURED_INTENT_SMALL",
+          "model_ref": "model_class:fast_structured_intent_small",
+          "policy_id": "provider_policy:local_fixture_fast_intent",
+          "provider_ref": "provider_class:local_or_private_structured_stub",
+          "reject_reasons": [
+            "LANE_NOT_ALLOWED",
+            "MODEL_CLASS_NOT_REQUESTED",
+            "NO_ALLOWED_CONTEXT_CLASS_MATCH"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "not enough for nuanced role voice",
+            "not for broad context synthesis"
+          ]
+        },
+        {
+          "expected_failure_modes": [
+            "over-helpful completion claim",
+            "tool request outside package"
+          ],
+          "model_class_ref": "STRONG_STRUCTURED_ROLE_REASONER",
+          "model_ref": "model_class:strong_structured_role_reasoner",
+          "policy_id": "provider_policy:local_fixture_strong_role",
+          "provider_ref": "provider_class:local_or_private_role_reasoner_stub",
+          "reject_reasons": [
+            "NO_ALLOWED_CONTEXT_CLASS_MATCH"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "higher latency than LM1 class",
+            "requires Guardian output gate"
+          ]
+        },
+        {
+          "expected_failure_modes": [
+            "false block",
+            "unnecessary clarification"
+          ],
+          "model_class_ref": "CONSERVATIVE_SENSITIVE_STRUCTURED",
+          "model_ref": "model_class:conservative_sensitive_structured",
+          "policy_id": "provider_policy:local_fixture_conservative_sensitive",
+          "provider_ref": "provider_class:local_or_private_conservative_stub",
+          "reject_reasons": [
+            "MODEL_CLASS_NOT_REQUESTED"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "may over-clarify",
+            "higher latency",
+            "less warm voice"
+          ]
+        },
+        {
+          "expected_failure_modes": [
+            "privacy policy block",
+            "provider unavailability",
+            "schema drift"
+          ],
+          "model_class_ref": "STRONG_STRUCTURED_ROLE_REASONER",
+          "model_ref": "model_class:cloud_structured_candidate",
+          "policy_id": "provider_policy:future_cloud_structured_candidate",
+          "provider_ref": "provider_class:future_cloud_structured_candidate",
+          "reject_reasons": [
+            "STRUCTURED_OUTPUT_RELIABILITY_NOT_PROVEN",
+            "LOCAL_ONLY_REQUIRED",
+            "PRIVATE_MODE_BLOCKS_CLOUD",
+            "STRICT_PRIVATE_REQUIRES_LOCAL_ONLY",
+            "PRIVACY_CLASS_FORBIDDEN",
+            "CONTEXT_CLASS_FORBIDDEN",
+            "NO_ALLOWED_CONTEXT_CLASS_MATCH"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "privacy policy must be explicit",
+            "network/API key path required",
+            "cannot be used in private mode by default"
+          ]
+        }
+      ],
+      "request_id": "provider_policy_fixture_private_cloud_block",
+      "risk_notes": [
+        "PRIVATE_MODE_ACTIVE",
+        "STRICT_PRIVATE_MODE_ACTIVE",
+        "CLIENT_PRIVACY_POLICY"
+      ],
+      "selected_model_class": "NO_SAFE_MODEL",
+      "selected_model_ref": "",
+      "selected_policy_id": "",
+      "selected_provider_ref": "",
+      "selection_id": "provider_policy_selection:ed886a60453c0ebe",
+      "selection_reason": "No provider policy candidate satisfied lane/privacy constraints."
+    },
+    "raw_values_block": {
+      "authority_boundary": {
+        "authority_grant_allowed": false,
+        "external_action_allowed": false,
+        "live_model_call_allowed": false,
+        "model_api_integration_allowed": false,
+        "network_allowed": false,
+        "production_state_mutation_allowed": false,
+        "provider_key_material_access_allowed": false,
+        "send_submit_allowed": false,
+        "tool_execution_allowed": false,
+        "workflow_execution_allowed": false
+      },
+      "expected_failure_modes": [
+        "under-specified intent",
+        "malformed JSON candidate",
+        "over-helpful completion claim",
+        "tool request outside package",
+        "false block",
+        "unnecessary clarification",
+        "privacy policy block",
+        "provider unavailability",
+        "schema drift"
+      ],
+      "fallback_policy_id": "",
+      "next_safe_move": "Do not call a model; resolve provider/privacy policy first.",
+      "no_safe_model": true,
+      "rejected_candidates": [
+        {
+          "expected_failure_modes": [
+            "under-specified intent",
+            "malformed JSON candidate"
+          ],
+          "model_class_ref": "FAST_STRUCTURED_INTENT_SMALL",
+          "model_ref": "model_class:fast_structured_intent_small",
+          "policy_id": "provider_policy:local_fixture_fast_intent",
+          "provider_ref": "provider_class:local_or_private_structured_stub",
+          "reject_reasons": [
+            "LANE_NOT_ALLOWED",
+            "MODEL_CLASS_NOT_REQUESTED",
+            "RAW_VALUES_NOT_ALLOWED",
+            "PRIVACY_CLASS_FORBIDDEN",
+            "CONTEXT_CLASS_FORBIDDEN",
+            "NO_ALLOWED_CONTEXT_CLASS_MATCH"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "not enough for nuanced role voice",
+            "not for broad context synthesis"
+          ]
+        },
+        {
+          "expected_failure_modes": [
+            "over-helpful completion claim",
+            "tool request outside package"
+          ],
+          "model_class_ref": "STRONG_STRUCTURED_ROLE_REASONER",
+          "model_ref": "model_class:strong_structured_role_reasoner",
+          "policy_id": "provider_policy:local_fixture_strong_role",
+          "provider_ref": "provider_class:local_or_private_role_reasoner_stub",
+          "reject_reasons": [
+            "RAW_VALUES_NOT_ALLOWED",
+            "PRIVACY_CLASS_FORBIDDEN",
+            "CONTEXT_CLASS_FORBIDDEN",
+            "NO_ALLOWED_CONTEXT_CLASS_MATCH"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "higher latency than LM1 class",
+            "requires Guardian output gate"
+          ]
+        },
+        {
+          "expected_failure_modes": [
+            "false block",
+            "unnecessary clarification"
+          ],
+          "model_class_ref": "CONSERVATIVE_SENSITIVE_STRUCTURED",
+          "model_ref": "model_class:conservative_sensitive_structured",
+          "policy_id": "provider_policy:local_fixture_conservative_sensitive",
+          "provider_ref": "provider_class:local_or_private_conservative_stub",
+          "reject_reasons": [
+            "MODEL_CLASS_NOT_REQUESTED",
+            "RAW_VALUES_NOT_ALLOWED",
+            "PRIVACY_CLASS_FORBIDDEN",
+            "CONTEXT_CLASS_FORBIDDEN",
+            "NO_ALLOWED_CONTEXT_CLASS_MATCH"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "may over-clarify",
+            "higher latency",
+            "less warm voice"
+          ]
+        },
+        {
+          "expected_failure_modes": [
+            "privacy policy block",
+            "provider unavailability",
+            "schema drift"
+          ],
+          "model_class_ref": "STRONG_STRUCTURED_ROLE_REASONER",
+          "model_ref": "model_class:cloud_structured_candidate",
+          "policy_id": "provider_policy:future_cloud_structured_candidate",
+          "provider_ref": "provider_class:future_cloud_structured_candidate",
+          "reject_reasons": [
+            "STRUCTURED_OUTPUT_RELIABILITY_NOT_PROVEN",
+            "RAW_VALUES_NOT_ALLOWED",
+            "PRIVACY_CLASS_FORBIDDEN",
+            "CONTEXT_CLASS_FORBIDDEN",
+            "NO_ALLOWED_CONTEXT_CLASS_MATCH"
+          ],
+          "usable": false,
+          "weaknesses": [
+            "privacy policy must be explicit",
+            "network/API key path required",
+            "cannot be used in private mode by default"
+          ]
+        }
+      ],
+      "request_id": "provider_policy_fixture_raw_block",
+      "risk_notes": [
+        "RAW_VALUES_INCLUDED"
+      ],
+      "selected_model_class": "NO_SAFE_MODEL",
+      "selected_model_ref": "",
+      "selected_policy_id": "",
+      "selected_provider_ref": "",
+      "selection_id": "provider_policy_selection:26b4889150bea3cd",
+      "selection_reason": "No provider policy candidate satisfied lane/privacy constraints."
+    }
+  },
+  "provider_policy_registry_ref": "generated/read_models/provider_policy_registry.json",
   "read_model_id": "model_router_policy",
-  "schema_version": "model_router_policy_v0"
+  "schema_version": "model_router_policy_v1"
 }

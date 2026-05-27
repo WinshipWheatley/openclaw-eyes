@@ -1,6 +1,6 @@
 # Shadow LM Mode
 
-Status: SHADOW_LM_FIXTURES_ONLY_NO_MODEL_CALLS
+Status: SHADOW_LM_FIXTURES_AND_COMPARISON_ONLY_NO_MODEL_CALLS
 LM1 shadow ready: true
 LM2 shadow ready: true
 Harness failures: 0

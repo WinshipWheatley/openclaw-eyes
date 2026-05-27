@@ -20,7 +20,7 @@ from typing import Any, Mapping
 DEFAULT_EXPORT_ROOT = Path("generated/read_models")
 DEFAULT_GENERATED_AT = "2026-05-26T00:00:00+00:00"
 
-SCHEMA_VERSION = "token_vault_v1"
+SCHEMA_VERSION = "token_vault_v2"
 READ_MODEL_ID = "token_vault_status"
 JSON_EXPORT_NAME = f"{READ_MODEL_ID}.json"
 OPERATOR_EXPORT_NAME = f"{READ_MODEL_ID}_OPERATOR.md"
@@ -84,6 +84,22 @@ class TokenizationPolicyDecision:
     local_only_required: bool
     reason_codes: tuple[str, ...]
     synthetic_fixture_only: bool
+    authority_boundary: dict[str, bool]
+    next_safe_move: str
+
+
+@dataclass(frozen=True)
+class PrivacyReadinessStatus:
+    privacy_readiness_id: str
+    privacy_readiness_status: str
+    production_token_vault_ready: bool
+    synthetic_tokenization_ready: bool
+    real_sensitive_data_allowed: bool
+    private_mode_requires_tokenization: bool
+    strict_private_requires_local_only: bool
+    cloud_lm_blocked_when_private: bool
+    private_mode_backend_policy_exists: bool
+    operator_summary: str
     authority_boundary: dict[str, bool]
     next_safe_move: str
 
@@ -190,6 +206,24 @@ def evaluate_tokenization_policy(context: Mapping[str, Any] | None = None) -> di
     return asdict(decision)
 
 
+def privacy_readiness_status() -> dict[str, Any]:
+    status = PrivacyReadinessStatus(
+        privacy_readiness_id="privacy_readiness:token_vault_v2",
+        privacy_readiness_status="POLICY_SEEDED_PRODUCTION_TOKEN_VAULT_NOT_ACTIVE",
+        production_token_vault_ready=False,
+        synthetic_tokenization_ready=True,
+        real_sensitive_data_allowed=False,
+        private_mode_requires_tokenization=True,
+        strict_private_requires_local_only=True,
+        cloud_lm_blocked_when_private=True,
+        private_mode_backend_policy_exists=True,
+        operator_summary="Private Mode backend policy exists, but production token vault is not active yet.",
+        authority_boundary=dict(AUTHORITY_BOUNDARY),
+        next_safe_move="Keep live LM exposure off until production token vault and private-mode receipts exist.",
+    )
+    return asdict(status)
+
+
 def role_package_tokenization_declaration(scope: str, token_kinds: tuple[str, ...] = TOKEN_KINDS) -> dict[str, Any]:
     policy = evaluate_tokenization_policy(
         {
@@ -240,6 +274,7 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
             "strict_private_mode_active": True,
         }
     )
+    privacy_readiness = privacy_readiness_status()
     payload: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
         "read_model_id": READ_MODEL_ID,
@@ -255,6 +290,7 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
             "capital_hilton_finance_workbook": finance_policy,
             "strict_private_finance_workbook": strict_policy,
         },
+        "privacy_readiness": privacy_readiness,
         "fixture_tokens": {
             "scope_a": tokens_a,
             "scope_b": tokens_b,
@@ -274,6 +310,9 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
             "finance_policy_tokenization_required": finance_policy["tokenization_required"] is True,
             "finance_policy_blocks_raw_model_visibility": finance_policy["model_may_see_raw_values"] is False,
             "strict_policy_local_only_required": strict_policy["local_only_required"] is True,
+            "privacy_readiness_production_token_vault_ready": privacy_readiness["production_token_vault_ready"],
+            "privacy_readiness_synthetic_tokenization_ready": privacy_readiness["synthetic_tokenization_ready"],
+            "cloud_lm_blocked_when_private": privacy_readiness["cloud_lm_blocked_when_private"],
             "stable_within_scope": stable_repeat.token_id == tokenize_synthetic_value(SYNTHETIC_VALUES["email"], scope=scope_a, token_kind="email").token_id,
             "different_scope_token_differs": stable_repeat.token_id != cross_scope.token_id,
             "role_package_raw_values_included": False,
@@ -298,8 +337,10 @@ def write_exports(payload: Mapping[str, Any], export_root: Path = DEFAULT_EXPORT
         f"Stable within scope: {str(proof.get('stable_within_scope')).lower()}",
         f"Different scope differs: {str(proof.get('different_scope_token_differs')).lower()}",
         f"Raw values exported: {str(proof.get('raw_values_exported')).lower()}",
+        f"Production token vault ready: {str(proof.get('privacy_readiness_production_token_vault_ready')).lower()}",
         "",
         "Synthetic tokenization fixture only. No real sensitive values are exported.",
+        "Private Mode backend policy exists, but production token vault is not active yet.",
     ]
     operator_path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
     return json_path, operator_path

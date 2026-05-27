@@ -194,11 +194,14 @@
   "machine_proof": {
     "all_live_authority_false": true,
     "cloud_call_performed": false,
-    "content_hash": "sha256:72431f81ccd5e148efb6a675b4510e8d5fd571d370fa0298d3bcdaa187864f40",
+    "cloud_lm_blocked_when_private": true,
+    "content_hash": "sha256:f20379437282e10a8f532d756ecaae2e5b5f7db2a67e493870392c66460ef2e9",
     "different_scope_token_differs": true,
     "finance_policy_blocks_raw_model_visibility": true,
     "finance_policy_tokenization_required": true,
     "network_performed": false,
+    "privacy_readiness_production_token_vault_ready": false,
+    "privacy_readiness_synthetic_tokenization_ready": true,
     "raw_values_exported": false,
     "real_data_ingestion_performed": false,
     "role_package_raw_values_included": false,
@@ -260,6 +263,28 @@
       "tokenization_required": true
     }
   },
+  "privacy_readiness": {
+    "authority_boundary": {
+      "cloud_tokenization_allowed": false,
+      "credential_handling_allowed": false,
+      "external_model_share_allowed": false,
+      "network_allowed": false,
+      "production_state_mutation_allowed": false,
+      "raw_value_export_allowed": false,
+      "real_data_ingestion_allowed": false
+    },
+    "cloud_lm_blocked_when_private": true,
+    "next_safe_move": "Keep live LM exposure off until production token vault and private-mode receipts exist.",
+    "operator_summary": "Private Mode backend policy exists, but production token vault is not active yet.",
+    "privacy_readiness_id": "privacy_readiness:token_vault_v2",
+    "privacy_readiness_status": "POLICY_SEEDED_PRODUCTION_TOKEN_VAULT_NOT_ACTIVE",
+    "private_mode_backend_policy_exists": true,
+    "private_mode_requires_tokenization": true,
+    "production_token_vault_ready": false,
+    "real_sensitive_data_allowed": false,
+    "strict_private_requires_local_only": true,
+    "synthetic_tokenization_ready": true
+  },
   "read_model_id": "token_vault_status",
   "role_package_declaration": {
     "detokenization_allowed": false,
@@ -287,7 +312,7 @@
     "tokenization_applied": true,
     "tokenization_required": true
   },
-  "schema_version": "token_vault_v1",
+  "schema_version": "token_vault_v2",
   "token_policy": {
     "different_scopes_do_not_imply_same_raw_entity": true,
     "generated_readmodels_expose_raw_values": false,

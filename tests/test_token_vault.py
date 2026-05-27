@@ -54,6 +54,18 @@ def test_tokenization_policy_raises_privacy_for_finance_client_files():
     assert "FINANCE_CONTEXT" in policy["reason_codes"]
 
 
+def test_privacy_readiness_reports_production_token_vault_not_active():
+    readiness = token_vault.privacy_readiness_status()
+
+    assert readiness["privacy_readiness_status"] == "POLICY_SEEDED_PRODUCTION_TOKEN_VAULT_NOT_ACTIVE"
+    assert readiness["production_token_vault_ready"] is False
+    assert readiness["synthetic_tokenization_ready"] is True
+    assert readiness["real_sensitive_data_allowed"] is False
+    assert readiness["private_mode_requires_tokenization"] is True
+    assert readiness["strict_private_requires_local_only"] is True
+    assert readiness["cloud_lm_blocked_when_private"] is True
+
+
 def test_generated_readmodel_does_not_expose_raw_synthetic_sensitive_values(tmp_path):
     payload = token_vault.build_payload()
     json_path, operator_path = token_vault.write_exports(payload, tmp_path)
@@ -69,3 +81,5 @@ def test_generated_readmodel_does_not_expose_raw_synthetic_sensitive_values(tmp_
     assert parsed["machine_proof"]["different_scope_token_differs"] is True
     assert parsed["machine_proof"]["finance_policy_tokenization_required"] is True
     assert parsed["machine_proof"]["finance_policy_blocks_raw_model_visibility"] is True
+    assert parsed["privacy_readiness"]["production_token_vault_ready"] is False
+    assert parsed["machine_proof"]["cloud_lm_blocked_when_private"] is True

@@ -21,13 +21,16 @@ def test_shadow_lm_uses_fixtures_only_and_persists_isolated_proof(tmp_path):
     assert payload["machine_proof"]["lm1_live_call_performed"] is False
     assert payload["machine_proof"]["lm2_live_call_performed"] is False
     assert payload["machine_proof"]["harness_failed_count"] == 0
+    assert payload["machine_proof"]["shadow_comparison_failed_count"] == 0
+    assert payload["machine_proof"]["lm1_expected_actual_compared"] is True
+    assert payload["machine_proof"]["lm2_expected_actual_compared"] is True
     assert payload["machine_proof"]["lm1_shadow_ready"] is True
     assert payload["machine_proof"]["lm2_shadow_ready"] is True
 
     db_path = Path(payload["isolated_sqlite"]["db_path"])
     with sqlite3.connect(db_path) as conn:
         tables = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
-    assert tables == {"shadow_lm_runs"}
+    assert tables == {"shadow_lm_runs", "shadow_lm_comparison_runs"}
 
 
 def test_shadow_slots_document_future_lm_interfaces_without_live_calls(tmp_path):
@@ -42,6 +45,8 @@ def test_shadow_slots_document_future_lm_interfaces_without_live_calls(tmp_path)
     assert run["lm2_slot"]["accepts_fixture_type"] == "RoleResponseCandidate-compatible response payload"
     assert run["lm1_slot"]["live_call_allowed"] is False
     assert run["lm2_slot"]["live_call_allowed"] is False
+    assert run["shadow_comparison_summary"]["comparison_count"] == 1
+    assert run["shadow_comparison_results"][0]["passed"] is True
 
 
 def test_exported_readmodel_parses(tmp_path):
@@ -55,4 +60,5 @@ def test_exported_readmodel_parses(tmp_path):
     parsed = json.loads(json_path.read_text(encoding="utf-8"))
     assert parsed["read_model_id"] == shadow.READ_MODEL_ID
     assert parsed["machine_proof"]["model_api_call_performed"] is False
+    assert parsed["machine_proof"]["shadow_comparison_count"] == 1
     assert "fixtures only" in operator_path.read_text(encoding="utf-8").lower()

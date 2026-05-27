@@ -14,15 +14,17 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping
 
+import provider_policy_registry
+
 
 DEFAULT_EXPORT_ROOT = Path("generated/read_models")
 DEFAULT_GENERATED_AT = "2026-05-26T00:00:00+00:00"
 
-SCHEMA_VERSION = "model_router_policy_v0"
+SCHEMA_VERSION = "model_router_policy_v1"
 READ_MODEL_ID = "model_router_policy"
 JSON_EXPORT_NAME = f"{READ_MODEL_ID}.json"
 OPERATOR_EXPORT_NAME = f"{READ_MODEL_ID}_OPERATOR.md"
-CONTRACT_STATUS = "MODEL_CLASS_ROUTER_NO_LIVE_CALLS"
+CONTRACT_STATUS = "PROVIDER_POLICY_AWARE_MODEL_ROUTER_NO_LIVE_CALLS"
 
 NO_SAFE_MODEL = "NO_SAFE_MODEL"
 FAST_STRUCTURED_INTENT_SMALL = "FAST_STRUCTURED_INTENT_SMALL"
@@ -77,12 +79,17 @@ class ModelRoutingDecision:
     decision_id: str
     request_id: str
     selected_model_class: str
+    selected_provider_ref: str
+    selected_model_ref: str
+    selected_provider_policy_id: str
+    fallback_provider_policy_id: str
     chain_lane: str
     selection_reason: str
     conservative_posture: bool
     structured_output_required: bool
     tokenization_required_before_live: bool
     rejected_model_classes: tuple[str, ...]
+    rejected_provider_candidates: tuple[dict[str, Any], ...]
     risk_notes: tuple[str, ...]
     expected_failure_modes: tuple[str, ...]
     confidence: str
@@ -145,6 +152,19 @@ def model_candidate_classes() -> tuple[ModelCandidateClass, ...]:
             next_safe_move="Use only for tokenized/high-risk packages when policy allows shadow/live candidate mode.",
         ),
     )
+
+
+def _provider_privacy_level(request: ModelRoutingRequest) -> str:
+    sensitivity = request.sensitivity_level.lower()
+    if sensitivity == "client_finance_file_metadata":
+        return "CLIENT_FINANCE_FILE_METADATA"
+    if sensitivity == "strict_private_client_metadata":
+        return "STRICT_PRIVATE_CLIENT_METADATA"
+    if sensitivity in {"high", "protected"} and (request.raw_values_included or not request.tokenization_applied):
+        return "RAW_PRIVATE_BODY"
+    if sensitivity in {"medium", "high", "protected"}:
+        return "TOKENIZED_METADATA"
+    return "LOW_METADATA"
 
 
 def select_model_class(request: ModelRoutingRequest | Mapping[str, Any]) -> dict[str, Any]:
@@ -226,16 +246,44 @@ def select_model_class(request: ModelRoutingRequest | Mapping[str, Any]) -> dict
     if not expected_failure_modes:
         expected_failure_modes.append("malformed structured output")
 
+    provider_privacy_level = _provider_privacy_level(request)
+    provider_selection = provider_policy_registry.select_provider_candidate(
+        {
+            "request_id": f"{request.request_id}:provider_policy",
+            "chain_lane": request.chain_lane,
+            "desired_model_class": selected,
+            "privacy_level": provider_privacy_level,
+            "context_classes": (provider_privacy_level,),
+            "tokenization_applied": request.tokenization_applied,
+            "raw_values_included": request.raw_values_included,
+            "local_only_required": provider_privacy_level in {"CLIENT_FINANCE_FILE_METADATA", "STRICT_PRIVATE_CLIENT_METADATA"},
+            "requires_structured_output": request.requires_structured_output,
+        }
+    )
+    if selected != NO_SAFE_MODEL and provider_selection["no_safe_model"]:
+        selected = NO_SAFE_MODEL
+        reason = "Provider policy blocked all model candidates for this request."
+        blocked.append("PROVIDER_POLICY_BLOCKED")
+    if provider_selection["risk_notes"]:
+        risk_notes.extend(str(note) for note in provider_selection["risk_notes"])
+    if provider_selection["expected_failure_modes"]:
+        expected_failure_modes.extend(str(mode) for mode in provider_selection["expected_failure_modes"])
+
     decision = ModelRoutingDecision(
         decision_id=f"model_routing_decision:{_short_hash(request.request_id, selected, tuple(blocked))}",
         request_id=request.request_id,
         selected_model_class=selected,
+        selected_provider_ref=str(provider_selection.get("selected_provider_ref") or ""),
+        selected_model_ref=str(provider_selection.get("selected_model_ref") or ""),
+        selected_provider_policy_id=str(provider_selection.get("selected_policy_id") or ""),
+        fallback_provider_policy_id=str(provider_selection.get("fallback_policy_id") or ""),
         chain_lane=request.chain_lane,
-        selection_reason=reason,
+        selection_reason=f"{reason} Provider policy: {provider_selection['selection_reason']}",
         conservative_posture=conservative,
         structured_output_required=True,
         tokenization_required_before_live=tokenization_required,
         rejected_model_classes=rejected_model_classes,
+        rejected_provider_candidates=tuple(provider_selection.get("rejected_candidates") or ()),
         risk_notes=tuple(dict.fromkeys(risk_notes)),
         expected_failure_modes=tuple(dict.fromkeys(expected_failure_modes)),
         confidence=confidence,
@@ -258,7 +306,7 @@ def select_for_lm1_thread_package(thread_package: Mapping[str, Any]) -> dict[str
     confidence = str(inference.get("confidence") or "MEDIUM").upper()
     risk = "low" if confidence == "HIGH" and not raw_values_included else "medium"
     sensitivity = str(privacy.get("privacy_level") or "low").lower()
-    if sensitivity in {"tokenized_fixture", "metadata_only_tokenized_refs", "client_finance_file_metadata"}:
+    if sensitivity in {"tokenized_fixture", "metadata_only_tokenized_refs"}:
         sensitivity = "low"
     return select_model_class(
         {
@@ -372,6 +420,8 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
         "contract_status": CONTRACT_STATUS,
         "generated_at": generated_at,
         "model_candidate_classes": tuple(asdict(item) for item in model_candidate_classes()),
+        "provider_policy_registry_ref": "generated/read_models/provider_policy_registry.json",
+        "provider_policy_examples": provider_policy_registry.build_payload(generated_at=generated_at)["examples"],
         "examples": examples,
         "connects_to_chain": {
             "lm1": "Model class selection may feed a future LM1 proposal socket before Gate 2.",
@@ -384,8 +434,11 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
             "network_performed": False,
             "provider_key_material_access_performed": False,
             "authority_granted": False,
+            "provider_policy_consulted": bool(examples["lm1_low_risk_intent"]["selected_provider_policy_id"]),
             "lm1_example_selects_fast_class": examples["lm1_low_risk_intent"]["selected_model_class"] == FAST_STRUCTURED_INTENT_SMALL,
             "lm2_example_selects_stronger_class": examples["lm2_role_package"]["selected_model_class"] == STRONG_STRUCTURED_ROLE_REASONER,
+            "lm1_provider_policy_selected": bool(examples["lm1_low_risk_intent"]["selected_provider_ref"]),
+            "lm2_provider_policy_selected": bool(examples["lm2_role_package"]["selected_provider_ref"]),
             "lm1_thread_package_selects_fast_class": examples["lm1_thread_package"]["selected_model_class"] == FAST_STRUCTURED_INTENT_SMALL,
             "lm2_role_package_integrated_selects_class": examples["lm2_role_package_integrated"]["selected_model_class"]
             in {STRONG_STRUCTURED_ROLE_REASONER, CONSERVATIVE_SENSITIVE_STRUCTURED},

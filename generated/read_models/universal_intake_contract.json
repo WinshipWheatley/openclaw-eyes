@@ -11,6 +11,128 @@
     "spreadsheet_cell_read_allowed": false,
     "workbook_body_read_allowed": false
   },
+  "batch_examples": {
+    "running_invoice_workbooks": {
+      "authority_boundary": {
+        "external_action_allowed": false,
+        "file_body_read_allowed": false,
+        "ledger_posting_allowed": false,
+        "model_call_allowed": false,
+        "ocr_allowed": false,
+        "pdf_generation_allowed": false,
+        "production_state_mutation_allowed": false,
+        "send_submit_allowed": false,
+        "spreadsheet_cell_read_allowed": false,
+        "workbook_body_read_allowed": false
+      },
+      "batch_confidence": "HIGH",
+      "batch_id": "universal_intake_batch:4250fd32d5d8095f",
+      "candidates": [
+        {
+          "artifact_kind": "running_invoice_workbook",
+          "authority_boundary": {
+            "external_action_allowed": false,
+            "file_body_read_allowed": false,
+            "ledger_posting_allowed": false,
+            "model_call_allowed": false,
+            "ocr_allowed": false,
+            "pdf_generation_allowed": false,
+            "production_state_mutation_allowed": false,
+            "send_submit_allowed": false,
+            "spreadsheet_cell_read_allowed": false,
+            "workbook_body_read_allowed": false
+          },
+          "backend_paths_exposed": false,
+          "candidate_id": "universal_intake_candidate:acb835f3987f5dd4",
+          "clarification_question": "",
+          "client_ref": "capital_hilton",
+          "confidence": "HIGH",
+          "final": false,
+          "intended_use": "register_or_resolve_invoice_workbook_artifact",
+          "ledger_posted": false,
+          "next_safe_action": "Propose metadata-only workbook intake, then ask before any audit, send, PDF, or ledger step.",
+          "operator_headline": "Capital Hilton workbook recognized",
+          "operator_message": "OpenClaw recognized this as a likely Capital Hilton running invoice workbook. It is still a draft/source workbook, not proof that anything was sent or paid.",
+          "paid": false,
+          "proposed_facts_only": true,
+          "source_request_id": "universal_intake_batch_running_invoice_workbooks:0",
+          "submitted": false,
+          "workflow_ref": "capital_hilton_invoice_workflow",
+          "world_ref": "finance"
+        },
+        {
+          "artifact_kind": "running_invoice_workbook",
+          "authority_boundary": {
+            "external_action_allowed": false,
+            "file_body_read_allowed": false,
+            "ledger_posting_allowed": false,
+            "model_call_allowed": false,
+            "ocr_allowed": false,
+            "pdf_generation_allowed": false,
+            "production_state_mutation_allowed": false,
+            "send_submit_allowed": false,
+            "spreadsheet_cell_read_allowed": false,
+            "workbook_body_read_allowed": false
+          },
+          "backend_paths_exposed": false,
+          "candidate_id": "universal_intake_candidate:cf1d2e86dcfaf49a",
+          "clarification_question": "",
+          "client_ref": "live_arts_md",
+          "confidence": "HIGH",
+          "final": false,
+          "intended_use": "register_or_resolve_invoice_workbook_artifact",
+          "ledger_posted": false,
+          "next_safe_action": "Propose metadata-only workbook intake, then ask before any audit, send, PDF, or ledger step.",
+          "operator_headline": "Live Arts MD workbook recognized",
+          "operator_message": "OpenClaw recognized this as a likely Live Arts MD running invoice workbook. It is still a draft/source workbook, not proof that anything was sent or paid.",
+          "paid": false,
+          "proposed_facts_only": true,
+          "source_request_id": "universal_intake_batch_running_invoice_workbooks:1",
+          "submitted": false,
+          "workflow_ref": "live_arts_md_invoice_workflow",
+          "world_ref": "finance"
+        },
+        {
+          "artifact_kind": "running_invoice_workbook",
+          "authority_boundary": {
+            "external_action_allowed": false,
+            "file_body_read_allowed": false,
+            "ledger_posting_allowed": false,
+            "model_call_allowed": false,
+            "ocr_allowed": false,
+            "pdf_generation_allowed": false,
+            "production_state_mutation_allowed": false,
+            "send_submit_allowed": false,
+            "spreadsheet_cell_read_allowed": false,
+            "workbook_body_read_allowed": false
+          },
+          "backend_paths_exposed": false,
+          "candidate_id": "universal_intake_candidate:cfdc89fbabeaac73",
+          "clarification_question": "",
+          "client_ref": "st_annes",
+          "confidence": "HIGH",
+          "final": false,
+          "intended_use": "register_or_resolve_invoice_workbook_artifact",
+          "ledger_posted": false,
+          "next_safe_action": "Propose metadata-only workbook intake, then ask before any audit, send, PDF, or ledger step.",
+          "operator_headline": "St. Anne's workbook recognized",
+          "operator_message": "OpenClaw recognized this as a likely St. Anne's running invoice workbook. It is still a draft/source workbook, not proof that anything was sent or paid.",
+          "paid": false,
+          "proposed_facts_only": true,
+          "source_request_id": "universal_intake_batch_running_invoice_workbooks:2",
+          "submitted": false,
+          "workflow_ref": "st_annes_invoice_workflow",
+          "world_ref": "finance"
+        }
+      ],
+      "clarification_question": "",
+      "current_world_ref": "finance",
+      "needs_clarification": false,
+      "next_safe_action": "Prepare metadata-only intake candidates for each recognized running workbook; do not read files.",
+      "source_request_id": "universal_intake_batch_running_invoice_workbooks",
+      "user_note": "these are the invoice workbooks for the clients named in the files"
+    }
+  },
   "connects_to_chain": {
     "gate_1": "Consumes safe metadata-only file references and notes.",
     "gate_2": "High-confidence candidates still need normal intent/capability validation before action.",
@@ -88,8 +210,11 @@
     "all_live_authority_false": true,
     "ambiguous_fixture_asks_clarification": true,
     "backend_paths_exposed": false,
+    "batch_fixture_all_draft_source_only": true,
+    "batch_fixture_all_high_confidence": true,
+    "batch_fixture_count": 3,
     "capital_hilton_fixture_inferred": true,
-    "content_hash": "sha256:2223b9bd892344e4bc5baabd3ddf7a672653984814d7506ab8dfa1cd0abcf20d",
+    "content_hash": "sha256:1f335fdd8493bbc7b940dd7594e92486f6a090ef5619bda0e2779a60b68d1c3c",
     "fixture_final_false": true,
     "fixture_ledger_posted_false": true,
     "fixture_paid_false": true,
@@ -97,5 +222,5 @@
     "workbook_body_read_performed": false
   },
   "read_model_id": "universal_intake_contract",
-  "schema_version": "universal_intake_contract_v0"
+  "schema_version": "universal_intake_contract_v1"
 }

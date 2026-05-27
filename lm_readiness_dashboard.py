@@ -21,6 +21,7 @@ import intent_ingest_gate
 import live_lm_readiness_gate
 import lm_intent_proposal_contract
 import model_router_policy
+import provider_policy_registry
 import role_package_gate
 import shadow_lm_mode
 import token_vault
@@ -31,11 +32,11 @@ from machine_intent_candidate_validator import MachineIntentCandidate
 DEFAULT_EXPORT_ROOT = Path("generated/read_models")
 DEFAULT_GENERATED_AT = "2026-05-26T00:00:00+00:00"
 
-SCHEMA_VERSION = "lm_readiness_dashboard_v0"
+SCHEMA_VERSION = "lm_readiness_dashboard_v1"
 READ_MODEL_ID = "lm_readiness_dashboard"
 JSON_EXPORT_NAME = f"{READ_MODEL_ID}.json"
 OPERATOR_EXPORT_NAME = f"{READ_MODEL_ID}_OPERATOR.md"
-CONTRACT_STATUS = "LM_READINESS_INTEGRATION_V1_NO_LIVE_LM"
+CONTRACT_STATUS = "LM_READINESS_INTEGRATION_V2_NO_LIVE_LM"
 
 AUTHORITY_BOUNDARY = {
     "live_lm_call_allowed": False,
@@ -96,6 +97,7 @@ def _content_hash(payload: dict[str, Any]) -> str:
 
 
 def private_mode_readiness_stub() -> dict[str, Any]:
+    privacy = token_vault.privacy_readiness_status()
     return {
         "private_mode_available": True,
         "private_mode_active": False,
@@ -105,6 +107,9 @@ def private_mode_readiness_stub() -> dict[str, Any]:
         "cloud_lm_allowed_when_private": False,
         "local_only_required_when_strict": True,
         "live_lm_exposure_allowed": False,
+        "privacy_readiness_status": privacy["privacy_readiness_status"],
+        "production_token_vault_ready": privacy["production_token_vault_ready"],
+        "operator_summary": privacy["operator_summary"],
         "next_safe_move": "Mission Control may expose this later as a local setting; backend defaults remain inactive.",
     }
 
@@ -267,33 +272,47 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
     gate_chain = gate_chain_harness.run_harness(generated_at=generated_at, persist=True)
     trust_ramp = guardian_trust_ramp_simulator.run_trust_ramp(generated_at=generated_at, persist=True)
     shadow = shadow_lm_mode.build_payload(generated_at=generated_at, persist=True)
+    provider_registry = provider_policy_registry.build_payload(generated_at=generated_at)
     model_router = model_router_policy.build_payload(generated_at=generated_at)
     readiness = live_lm_readiness_gate.build_payload(generated_at=generated_at)
     token_status = token_vault.build_payload(generated_at=generated_at)
     universal = universal_intake_contract.build_payload(generated_at=generated_at)
+    privacy_readiness = token_status["privacy_readiness"]
+    universal_batch = universal["batch_examples"]["running_invoice_workbooks"]
     role_package = representative["gate3_result"].get("role_execution_package") or {}
     dashboard_summary = {
         "lm1_shadow": "READY" if readiness["machine_proof"]["lm1_shadow_ready"] else "NOT_READY",
+        "lm1_shadow_comparison": "READY" if shadow["machine_proof"]["shadow_comparison_failed_count"] == 0 else "NOT_READY",
+        "can_lm1_shadow_test": shadow["machine_proof"]["lm1_expected_actual_compared"],
         "lm1_live": "NOT_ACTIVE",
         "lm2_package_shadow": "READY" if readiness["machine_proof"]["lm2_shadow_ready"] else "NOT_READY",
+        "lm2_shadow_comparison": "READY" if shadow["machine_proof"]["shadow_comparison_failed_count"] == 0 else "NOT_READY",
+        "can_lm2_shadow_test": shadow["machine_proof"]["lm2_expected_actual_compared"],
         "lm2_live": "NOT_ACTIVE",
         "tokenization": "SEEDED_NOT_PRODUCTION",
         "tokenization_policy": representative["lm1_thread_context_package"]["tokenization_policy"]["privacy_level"],
+        "privacy_readiness_status": privacy_readiness["privacy_readiness_status"],
+        "production_token_vault_ready": privacy_readiness["production_token_vault_ready"],
         "universal_intake": "SEEDED",
+        "universal_intake_batch": "READY" if universal["machine_proof"]["batch_fixture_all_high_confidence"] else "NEEDS_CLARIFICATION",
         "model_router": "SEEDED",
+        "provider_policy_registry": "SEEDED",
         "gate2_ingest": representative["gate2_result"].get("outcome"),
         "gate3_package": representative["gate3_result"].get("package_status"),
         "gate4_guardian": (representative["gate4_result"].get("validation_result") or {}).get("verdict"),
         "trust_ramp_candidate_level": trust_ramp["score"]["candidate_trust_level"],
         "trust_ramp_active_level": trust_ramp["score"]["active_trust_level"],
+        "lm1_selected_provider": representative["lm1_model_decision"].get("selected_provider_ref"),
+        "lm2_selected_provider": representative["lm2_model_decision"].get("selected_provider_ref"),
         "next_blockers": (
             "live LM explicit enablement receipt",
-            "live model/provider policy receipt",
+            "live provider activation receipt",
             "production token vault readiness",
             "private/strict-private mode product switch",
             "live receipt/promotion policy",
-            "real LM shadow comparison runs",
+            "real LM shadow comparison runs beyond fixtures",
         ),
+        "next_safe_move": "Keep running fixture/shadow comparisons and wire product confirmation surfaces only where the gates ask for missing privacy, scope, or approval.",
     }
     payload: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
@@ -311,7 +330,9 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
             "universal_intake_inference": representative["lm1_thread_context_package"]["universal_intake_inference"],
             "privacy": representative["lm1_thread_context_package"]["privacy"],
             "tokenization_policy_result": representative["lm1_thread_context_package"]["tokenization_policy"],
+            "privacy_readiness_result": privacy_readiness,
             "private_mode_readiness": representative["private_mode"],
+            "universal_intake_batch_fixture": universal_batch,
             "lm1_thread_context_package": representative["lm1_thread_context_package"],
             "lm1_model_decision": representative["lm1_model_decision"],
             "gate2_result_summary": {
@@ -334,6 +355,34 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
                 "forbidden_tools": (role_package.get("tool_policy") or {}).get("forbidden_tools", ()),
             },
             "lm2_model_decision": representative["lm2_model_decision"],
+            "provider_policy_decisions": {
+                "lm1": provider_policy_registry.select_provider_candidate(
+                    {
+                        "request_id": "dashboard_lm1_provider_policy",
+                        "chain_lane": "LM1_INTENT_PROPOSAL",
+                        "desired_model_class": representative["lm1_model_decision"]["selected_model_class"],
+                        "privacy_level": representative["lm1_thread_context_package"]["privacy_classification"],
+                        "context_classes": (representative["lm1_thread_context_package"]["privacy_classification"],),
+                        "tokenization_applied": True,
+                        "raw_values_included": False,
+                        "local_only_required": True,
+                        "requires_structured_output": True,
+                    }
+                ),
+                "lm2": provider_policy_registry.select_provider_candidate(
+                    {
+                        "request_id": "dashboard_lm2_provider_policy",
+                        "chain_lane": "LM2_ROLE_RESPONSE",
+                        "desired_model_class": representative["lm2_model_decision"]["selected_model_class"],
+                        "privacy_level": role_package.get("privacy_level") or "TOKENIZED_METADATA",
+                        "context_classes": ("TOKENIZED_METADATA",),
+                        "tokenization_applied": True,
+                        "raw_values_included": False,
+                        "local_only_required": False,
+                        "requires_structured_output": True,
+                    }
+                ),
+            },
             "what_would_be_sent_to_lm1": {
                 "package_id": representative["lm1_thread_context_package"]["package_id"],
                 "source_request_id": representative["lm1_thread_context_package"]["source_request_id"],
@@ -361,6 +410,7 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
                 }
             },
             "gate4_result_summary": representative["gate4_result"].get("validation_result"),
+            "shadow_comparison_summary": shadow["shadow_run"]["shadow_comparison_summary"],
         },
         "aggregated_lanes": {
             "gate_chain_harness": {
@@ -374,6 +424,10 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
             "model_router_policy": {
                 "read_model_id": model_router_policy.READ_MODEL_ID,
                 "machine_proof": model_router.get("machine_proof", {}),
+            },
+            "provider_policy_registry": {
+                "read_model_id": provider_policy_registry.READ_MODEL_ID,
+                "machine_proof": provider_registry.get("machine_proof", {}),
             },
             "live_lm_readiness_gate": {
                 "read_model_id": live_lm_readiness_gate.READ_MODEL_ID,
@@ -406,6 +460,14 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
             "private_mode_active": representative["private_mode"]["private_mode_active"],
             "strict_private_mode_active": representative["private_mode"]["strict_private_mode_active"],
             "cloud_lm_allowed_when_private": representative["private_mode"]["cloud_lm_allowed_when_private"],
+            "production_token_vault_ready": privacy_readiness["production_token_vault_ready"],
+            "synthetic_tokenization_ready": privacy_readiness["synthetic_tokenization_ready"],
+            "provider_policy_registry_aggregated": True,
+            "provider_policy_lm1_selected": bool(representative["lm1_model_decision"].get("selected_provider_ref")),
+            "provider_policy_lm2_selected": bool(representative["lm2_model_decision"].get("selected_provider_ref")),
+            "shadow_comparison_failed_count": shadow["machine_proof"]["shadow_comparison_failed_count"],
+            "universal_intake_batch_count": len(universal_batch["candidates"]),
+            "universal_intake_batch_draft_source_only": universal["machine_proof"]["batch_fixture_all_draft_source_only"],
             "gate3_tokenization_fields_present": bool(role_package.get("token_vault_ref")),
             "gate3_model_may_see_raw_values": bool(role_package.get("model_may_see_raw_values")),
             "lm1_model_class_selected": representative["lm1_model_decision"]["selected_model_class"],
@@ -437,14 +499,20 @@ def write_exports(payload: Mapping[str, Any], export_root: Path = DEFAULT_EXPORT
         "",
         f"Status: {CONTRACT_STATUS}",
         f"LM1 shadow: {summary.get('lm1_shadow')}",
+        f"LM1 shadow comparison: {summary.get('lm1_shadow_comparison')}",
         f"LM1 live: {summary.get('lm1_live')}",
         f"LM2 package shadow: {summary.get('lm2_package_shadow')}",
+        f"LM2 shadow comparison: {summary.get('lm2_shadow_comparison')}",
         f"LM2 live: {summary.get('lm2_live')}",
         f"Tokenization: {summary.get('tokenization')}",
+        f"Privacy readiness: {summary.get('privacy_readiness_status')}",
+        f"Provider policy registry: {summary.get('provider_policy_registry')}",
+        f"Universal intake batch: {summary.get('universal_intake_batch')}",
         f"Gate 2: {summary.get('gate2_ingest')}",
         f"Gate 3: {summary.get('gate3_package')}",
         f"Gate 4: {summary.get('gate4_guardian')}",
         "",
+        "Private Mode backend policy exists, but production token vault is not active yet.",
         "This dashboard integrates readiness contracts only. Live LM calls remain off.",
     ]
     operator_path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
