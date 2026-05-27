@@ -101,6 +101,26 @@ def test_universal_intake_operator_text_has_no_backend_path_language():
     assert "backend path" not in operator_text.lower()
 
 
+def test_universal_intake_unknown_non_invoice_artifact_asks_clarification():
+    candidate = intake.infer_universal_intake(
+        {
+            "source_request_id": "test_unknown_artifact",
+            "file_display_name": "stage_plot_notes.txt",
+            "file_extension": ".txt",
+            "file_type": "text",
+            "user_note": "handle this later",
+            "current_world_ref": "music",
+        }
+    )
+
+    assert candidate["artifact_kind"] == "unknown_file_reference"
+    assert candidate["intended_use"] == "needs_clarification"
+    assert candidate["confidence"] == "LOW"
+    assert candidate["clarification_question"] == "What workflow should this file support?"
+    assert candidate["lm1_chain_ready"] is False
+    assert candidate["backend_paths_exposed"] is False
+
+
 def test_exported_readmodel_parses(tmp_path):
     payload = intake.build_payload()
     json_path, operator_path = intake.write_exports(payload, tmp_path)
@@ -112,4 +132,6 @@ def test_exported_readmodel_parses(tmp_path):
     assert parsed["machine_proof"]["batch_fixture_count"] == 3
     assert parsed["machine_proof"]["batch_fixture_all_draft_source_only"] is True
     assert parsed["machine_proof"]["capital_hilton_chain_ready"] is True
+    assert parsed["machine_proof"]["unknown_artifact_asks_clarification"] is True
+    assert parsed["machine_proof"]["unknown_artifact_not_invoice"] is True
     assert "metadata-only" in operator_path.read_text(encoding="utf-8")

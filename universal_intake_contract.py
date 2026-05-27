@@ -334,6 +334,17 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
                 "current_world_ref": "finance",
             }
         ),
+        "unknown_non_invoice_artifact": infer_universal_intake(
+            {
+                "intake_id": "universal_intake_fixture_unknown",
+                "source_request_id": "universal_intake_fixture_unknown_request",
+                "file_display_name": "stage_plot_notes.txt",
+                "file_extension": ".txt",
+                "file_type": "text",
+                "user_note": "handle this later",
+                "current_world_ref": "music",
+            }
+        ),
     }
     batch_fixture = infer_universal_intake_batch(
         {
@@ -365,6 +376,8 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
         "machine_proof": {
             "capital_hilton_fixture_inferred": examples["capital_hilton_running_workbook"]["client_ref"] == "capital_hilton",
             "ambiguous_fixture_asks_clarification": bool(examples["ambiguous_invoice_workbook"]["clarification_question"]),
+            "unknown_artifact_asks_clarification": bool(examples["unknown_non_invoice_artifact"]["clarification_question"]),
+            "unknown_artifact_not_invoice": examples["unknown_non_invoice_artifact"]["artifact_kind"] == "unknown_file_reference",
             "fixture_submitted_false": examples["capital_hilton_running_workbook"]["submitted"] is False,
             "fixture_paid_false": examples["capital_hilton_running_workbook"]["paid"] is False,
             "fixture_ledger_posted_false": examples["capital_hilton_running_workbook"]["ledger_posted"] is False,

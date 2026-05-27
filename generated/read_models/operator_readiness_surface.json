@@ -34,7 +34,7 @@
   "machine_proof": {
     "aggregates_lm_readiness_dashboard": true,
     "all_live_authority_false": true,
-    "content_hash": "sha256:6acd95a9a168962b35ad6bf10faa607578ae07dbe3495b88f318edceb5044688",
+    "content_hash": "sha256:5a4c58907e7e84065df8f113c0bca4c8ad602041e787549e662273772ed11888",
     "external_action_performed": false,
     "live_lm_status": "NOT_ACTIVE",
     "live_model_call_performed": false,
@@ -145,15 +145,19 @@
       "gate_chain_status": "PASS",
       "guardian_gate_status": "ROLE_OUTPUT_VALIDATED",
       "live_lm_blockers": [
-        "live LM explicit enablement receipt",
-        "live provider activation receipt",
-        "production token vault readiness",
-        "private/strict-private mode product switch",
-        "live receipt/promotion policy",
-        "real LM shadow comparison runs beyond fixtures"
+        "production_token_vault_inactive",
+        "provider_activation_receipts_missing",
+        "live_model_enablement_receipt_missing",
+        "production_privacy_policy_receipt_missing",
+        "live_shadow_comparison_receipt_missing",
+        "rollback_disable_receipt_missing",
+        "private/strict-private mode product switch"
       ],
       "lm1_shadow_status": "READY",
       "lm2_shadow_status": "READY",
+      "private_mode_policy_status": "PRIVATE_MODE_POLICY_READY_INACTIVE",
+      "production_live_blocker_status": "EXPLICIT",
+      "provider_activation_receipt_status": "RECEIPTS_REQUIRED_NOT_PRESENT",
       "provider_policy_status": "SEEDED",
       "read_model_refs": [
         "generated/read_models/lm_readiness_dashboard.json",
@@ -164,10 +168,14 @@
         "generated/read_models/universal_intake_contract.json",
         "generated/read_models/gate1_privacy_request_readiness.json",
         "generated/read_models/request_response_bridge_readiness.json",
+        "generated/read_models/live_lm_activation_requirements.json",
+        "generated/read_models/private_mode_policy_readiness.json",
+        "generated/read_models/read_model_mirror_visibility.json",
         "generated/read_models/guardian_trust_ramp_simulator.json",
         "generated/read_models/gate_chain_harness.json",
         "generated/read_models/guardian_output_gate.json"
       ],
+      "read_model_visibility_status": "READ_MODEL_VISIBILITY_PROOF_ONLY_NO_SYNC",
       "request_response_bridge_status": "READY_FOR_LIVE_REVIEW",
       "tokenization_status": "POLICY_SEEDED_PRODUCTION_TOKEN_VAULT_NOT_ACTIVE",
       "trust_ramp_candidate_level": 4

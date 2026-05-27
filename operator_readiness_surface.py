@@ -115,6 +115,10 @@ class ProofShelf:
     lm2_shadow_status: str
     tokenization_status: str
     request_response_bridge_status: str
+    production_live_blocker_status: str
+    provider_activation_receipt_status: str
+    private_mode_policy_status: str
+    read_model_visibility_status: str
     provider_policy_status: str
     guardian_gate_status: str
     trust_ramp_candidate_level: int
@@ -268,6 +272,10 @@ def build_proof_shelf(inputs: Mapping[str, Any]) -> dict[str, Any]:
             lm2_shadow_status=str(summary.get("lm2_package_shadow")),
             tokenization_status=str(summary.get("privacy_readiness_status")),
             request_response_bridge_status=str(summary.get("request_response_bridge", "UNKNOWN")),
+            production_live_blocker_status=str(summary.get("production_live_blockers", "UNKNOWN")),
+            provider_activation_receipt_status=str(summary.get("provider_activation_receipts", "UNKNOWN")),
+            private_mode_policy_status=str(summary.get("private_mode_policy", "UNKNOWN")),
+            read_model_visibility_status=str(summary.get("read_model_mirror_visibility", "UNKNOWN")),
             provider_policy_status=str(summary.get("provider_policy_registry")),
             guardian_gate_status=str(guardian_verdict),
             trust_ramp_candidate_level=int(summary.get("trust_ramp_candidate_level") or 0),
@@ -282,6 +290,9 @@ def build_proof_shelf(inputs: Mapping[str, Any]) -> dict[str, Any]:
                 "generated/read_models/universal_intake_contract.json",
                 "generated/read_models/gate1_privacy_request_readiness.json",
                 "generated/read_models/request_response_bridge_readiness.json",
+                "generated/read_models/live_lm_activation_requirements.json",
+                "generated/read_models/private_mode_policy_readiness.json",
+                "generated/read_models/read_model_mirror_visibility.json",
                 "generated/read_models/guardian_trust_ramp_simulator.json",
                 "generated/read_models/gate_chain_harness.json",
                 "generated/read_models/guardian_output_gate.json",

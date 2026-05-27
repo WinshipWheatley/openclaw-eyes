@@ -67,6 +67,10 @@ def test_proof_shelf_keeps_machine_fields_available():
         "lm2_shadow_status",
         "tokenization_status",
         "request_response_bridge_status",
+        "production_live_blocker_status",
+        "provider_activation_receipt_status",
+        "private_mode_policy_status",
+        "read_model_visibility_status",
         "provider_policy_status",
         "guardian_gate_status",
         "trust_ramp_candidate_level",
@@ -77,6 +81,9 @@ def test_proof_shelf_keeps_machine_fields_available():
     assert "generated/read_models/lm_readiness_dashboard.json" in proof["read_model_refs"]
     assert "generated/read_models/gate1_privacy_request_readiness.json" in proof["read_model_refs"]
     assert "generated/read_models/request_response_bridge_readiness.json" in proof["read_model_refs"]
+    assert "generated/read_models/live_lm_activation_requirements.json" in proof["read_model_refs"]
+    assert "generated/read_models/private_mode_policy_readiness.json" in proof["read_model_refs"]
+    assert "generated/read_models/read_model_mirror_visibility.json" in proof["read_model_refs"]
 
 
 def test_suggested_buttons_only_represent_human_decisions():

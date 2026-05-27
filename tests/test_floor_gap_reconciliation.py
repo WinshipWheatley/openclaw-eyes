@@ -21,7 +21,7 @@ def test_floor_matrix_classifies_each_required_lane():
     matrix = payload["floor_matrix"]
 
     assert payload["machine_proof"]["all_required_lanes_classified"] is True
-    assert len(matrix) == 16
+    assert len(matrix) == 20
     for item in matrix:
         assert "lane_id" in item
         assert "maturity_label" in item
@@ -44,7 +44,8 @@ def test_at_least_three_weak_lanes_get_floor_improvements():
     raised_ids = {item["lane_id"] for item in payload["raised_this_pass"]}
 
     assert payload["machine_proof"]["raised_lane_count"] >= 3
-    assert {"gate1_ingress_privacy_request", "lm1_thread_context_package", "request_response_bridge"}.issubset(raised_ids)
+    assert {"private_mode_readiness", "provider_activation_receipts", "read_model_mirror_visibility"}.issubset(raised_ids)
+    assert payload["machine_proof"]["floor_was_uneven"] is True
 
 
 def test_gate1_privacy_trigger_fixtures_exist():
@@ -95,6 +96,25 @@ def test_equalization_exports_low_beam_readiness_refs():
     assert payload["machine_proof"]["gate1_privacy_readiness_exported"] is True
     assert payload["machine_proof"]["request_response_bridge_dashboard_visible"] is True
     assert payload["machine_proof"]["lm1_thread_context_package_exported"] is True
+    assert payload["machine_proof"]["production_live_blockers_explicit"] is True
+    assert payload["machine_proof"]["provider_activation_receipts_required"] is True
+    assert payload["machine_proof"]["private_mode_policy_exported"] is True
+    assert payload["machine_proof"]["read_model_mirror_visibility_no_sync_created"] is True
+
+
+def test_floor_matrix_includes_v2_required_lanes():
+    payload = _payload()
+    lane_ids = {item["lane_id"] for item in payload["floor_matrix"]}
+
+    assert {
+        "provider_activation_receipts",
+        "shadow_comparison",
+        "tokenized_package_readiness",
+        "read_model_mirror_visibility",
+    }.issubset(lane_ids)
+    assert payload["live_lm_activation_requirements_ref"]["live_lm1_activation_status"] == "NOT_READY"
+    assert payload["private_mode_policy_readiness_ref"]["private_mode_active"] is False
+    assert payload["read_model_mirror_visibility_ref"]["new_sync_system_created"] is False
 
 
 def test_tokenization_proof_does_not_leak_synthetic_raw_values():

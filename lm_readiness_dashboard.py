@@ -20,9 +20,12 @@ import guardian_output_gate
 import guardian_trust_ramp_simulator
 import intent_ingest_gate
 import live_lm_readiness_gate
+import live_lm_activation_requirements
 import lm_intent_proposal_contract
 import model_router_policy
+import private_mode_policy_readiness
 import provider_policy_registry
+import read_model_mirror_visibility
 import request_response_bridge_readiness
 import role_package_gate
 import shadow_lm_mode
@@ -282,6 +285,9 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
     universal = universal_intake_contract.build_payload(generated_at=generated_at)
     gate1_privacy = gate1_privacy_request_readiness.build_payload(generated_at=generated_at)
     bridge_readiness = request_response_bridge_readiness.build_payload(generated_at=generated_at)
+    activation_requirements = live_lm_activation_requirements.build_payload(generated_at=generated_at)
+    private_policy = private_mode_policy_readiness.build_payload(generated_at=generated_at)
+    mirror_visibility = read_model_mirror_visibility.build_payload(generated_at=generated_at)
     privacy_readiness = token_status["privacy_readiness"]
     universal_batch = universal["batch_examples"]["running_invoice_workbooks"]
     role_package = representative["gate3_result"].get("role_execution_package") or {}
@@ -304,6 +310,10 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
         "provider_policy_registry": "SEEDED",
         "gate1_privacy_request": "EXPORTED",
         "request_response_bridge": bridge_readiness["readiness_status"],
+        "production_live_blockers": "EXPLICIT",
+        "provider_activation_receipts": activation_requirements["provider_activation_status"],
+        "private_mode_policy": private_policy["contract_status"],
+        "read_model_mirror_visibility": mirror_visibility["contract_status"],
         "gate2_ingest": representative["gate2_result"].get("outcome"),
         "gate3_package": representative["gate3_result"].get("package_status"),
         "gate4_guardian": (representative["gate4_result"].get("validation_result") or {}).get("verdict"),
@@ -312,12 +322,8 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
         "lm1_selected_provider": representative["lm1_model_decision"].get("selected_provider_ref"),
         "lm2_selected_provider": representative["lm2_model_decision"].get("selected_provider_ref"),
         "next_blockers": (
-            "live LM explicit enablement receipt",
-            "live provider activation receipt",
-            "production token vault readiness",
+            *activation_requirements["hard_blockers"],
             "private/strict-private mode product switch",
-            "live receipt/promotion policy",
-            "real LM shadow comparison runs beyond fixtures",
         ),
         "next_safe_move": "Keep running fixture/shadow comparisons and wire product confirmation surfaces only where the gates ask for missing privacy, scope, or approval.",
     }
@@ -339,6 +345,25 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
             "tokenization_policy_result": representative["lm1_thread_context_package"]["tokenization_policy"],
             "privacy_readiness_result": privacy_readiness,
             "private_mode_readiness": representative["private_mode"],
+            "private_mode_policy_readiness": {
+                "read_model_ref": "generated/read_models/private_mode_policy_readiness.json",
+                "contract_status": private_policy["contract_status"],
+                "active_state": private_policy["active_state"],
+                "package_effect_summary": private_policy["package_effect_summary"],
+            },
+            "live_lm_activation_requirements": {
+                "read_model_ref": "generated/read_models/live_lm_activation_requirements.json",
+                "contract_status": activation_requirements["contract_status"],
+                "live_lm1_activation_status": activation_requirements["live_lm1_activation_status"],
+                "live_lm2_activation_status": activation_requirements["live_lm2_activation_status"],
+                "provider_activation_status": activation_requirements["provider_activation_status"],
+                "missing_receipts": activation_requirements["missing_receipts"],
+            },
+            "read_model_mirror_visibility": {
+                "read_model_ref": "generated/read_models/read_model_mirror_visibility.json",
+                "contract_status": mirror_visibility["contract_status"],
+                "mirror_policy": mirror_visibility["mirror_policy"],
+            },
             "gate1_privacy_request_readiness": {
                 "read_model_ref": "generated/read_models/gate1_privacy_request_readiness.json",
                 "contract_status": gate1_privacy["contract_status"],
@@ -465,6 +490,18 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
                 "read_model_id": universal_intake_contract.READ_MODEL_ID,
                 "machine_proof": universal.get("machine_proof", {}),
             },
+            "live_lm_activation_requirements": {
+                "read_model_id": live_lm_activation_requirements.READ_MODEL_ID,
+                "machine_proof": activation_requirements.get("machine_proof", {}),
+            },
+            "private_mode_policy_readiness": {
+                "read_model_id": private_mode_policy_readiness.READ_MODEL_ID,
+                "machine_proof": private_policy.get("machine_proof", {}),
+            },
+            "read_model_mirror_visibility": {
+                "read_model_id": read_model_mirror_visibility.READ_MODEL_ID,
+                "machine_proof": mirror_visibility.get("machine_proof", {}),
+            },
             "gate1_privacy_request_readiness": {
                 "read_model_id": gate1_privacy_request_readiness.READ_MODEL_ID,
                 "machine_proof": gate1_privacy.get("machine_proof", {}),
@@ -485,6 +522,14 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
             ]
             is False,
             "private_mode_fields_present": True,
+            "live_activation_requirements_aggregated": True,
+            "provider_activation_receipts_required": activation_requirements["machine_proof"]["provider_activation_receipts_required"],
+            "provider_activation_receipts_present": activation_requirements["machine_proof"]["provider_activation_receipts_present"],
+            "private_mode_policy_readiness_aggregated": True,
+            "private_mode_policy_active": private_policy["private_mode_active"],
+            "strict_private_mode_policy_active": private_policy["strict_private_mode_active"],
+            "read_model_mirror_visibility_aggregated": True,
+            "read_model_mirror_visibility_mac_visible_guaranteed": mirror_visibility["machine_proof"]["mac_visible_guaranteed"],
             "gate1_privacy_request_readiness_aggregated": True,
             "request_response_bridge_readiness_aggregated": True,
             "request_response_bridge_ready_for_live_review": bridge_readiness["bridge_contract"]["ready_for_live_review"],
@@ -540,6 +585,10 @@ def write_exports(payload: Mapping[str, Any], export_root: Path = DEFAULT_EXPORT
         f"Provider policy registry: {summary.get('provider_policy_registry')}",
         f"Gate 1 privacy request: {summary.get('gate1_privacy_request')}",
         f"Request-response bridge: {summary.get('request_response_bridge')}",
+        f"Production/live blockers: {summary.get('production_live_blockers')}",
+        f"Provider activation receipts: {summary.get('provider_activation_receipts')}",
+        f"Private Mode policy: {summary.get('private_mode_policy')}",
+        f"Read-model visibility: {summary.get('read_model_mirror_visibility')}",
         f"Universal intake batch: {summary.get('universal_intake_batch')}",
         f"Gate 2: {summary.get('gate2_ingest')}",
         f"Gate 3: {summary.get('gate3_package')}",

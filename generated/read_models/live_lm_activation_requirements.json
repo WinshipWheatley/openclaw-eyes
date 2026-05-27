@@ -1,0 +1,173 @@
+{
+  "activation_receipt_requirements": [
+    {
+      "blocks_live_lm1": true,
+      "blocks_live_lm2": true,
+      "blocks_provider_activation": false,
+      "human_label": "Operator enablement",
+      "next_safe_move": "Keep live models off; collect this receipt through a future governed review lane.",
+      "operator_copy": "OpenClaw needs an explicit operator enablement receipt before live models can turn on.",
+      "present": false,
+      "receipt_id": "activation_receipt:f004b605954f351c",
+      "receipt_type": "live_model_enablement_receipt",
+      "required_for_lanes": [
+        "LM1",
+        "LM2"
+      ]
+    },
+    {
+      "blocks_live_lm1": true,
+      "blocks_live_lm2": true,
+      "blocks_provider_activation": true,
+      "human_label": "Provider policy",
+      "next_safe_move": "Keep live models off; collect this receipt through a future governed review lane.",
+      "operator_copy": "OpenClaw needs a recorded provider policy choice before any provider can be used.",
+      "present": false,
+      "receipt_id": "activation_receipt:b5f67f818cc95a87",
+      "receipt_type": "provider_policy_receipt",
+      "required_for_lanes": [
+        "LM1",
+        "LM2"
+      ]
+    },
+    {
+      "blocks_live_lm1": true,
+      "blocks_live_lm2": true,
+      "blocks_provider_activation": true,
+      "human_label": "Model selection policy",
+      "next_safe_move": "Keep live models off; collect this receipt through a future governed review lane.",
+      "operator_copy": "OpenClaw needs a model-selection receipt that matches the lane, privacy class, and risk.",
+      "present": false,
+      "receipt_id": "activation_receipt:1b83cea89ca43eeb",
+      "receipt_type": "model_selection_policy_receipt",
+      "required_for_lanes": [
+        "LM1",
+        "LM2"
+      ]
+    },
+    {
+      "blocks_live_lm1": true,
+      "blocks_live_lm2": true,
+      "blocks_provider_activation": false,
+      "human_label": "Privacy policy",
+      "next_safe_move": "Keep live models off; collect this receipt through a future governed review lane.",
+      "operator_copy": "OpenClaw needs the production privacy policy receipt before live model-shaped packages can leave shadow mode.",
+      "present": false,
+      "receipt_id": "activation_receipt:48c7fcc7f5ead17c",
+      "receipt_type": "privacy_policy_receipt",
+      "required_for_lanes": [
+        "LM1",
+        "LM2"
+      ]
+    },
+    {
+      "blocks_live_lm1": true,
+      "blocks_live_lm2": true,
+      "blocks_provider_activation": false,
+      "human_label": "Production token vault",
+      "next_safe_move": "Keep live models off; collect this receipt through a future governed review lane.",
+      "operator_copy": "OpenClaw needs production token-vault readiness before sensitive live model packages are allowed.",
+      "present": false,
+      "receipt_id": "activation_receipt:234eb3084e6188bb",
+      "receipt_type": "production_token_vault_ready_receipt",
+      "required_for_lanes": [
+        "LM1",
+        "LM2"
+      ]
+    },
+    {
+      "blocks_live_lm1": true,
+      "blocks_live_lm2": true,
+      "blocks_provider_activation": false,
+      "human_label": "Live-shadow comparison",
+      "next_safe_move": "Keep live models off; collect this receipt through a future governed review lane.",
+      "operator_copy": "OpenClaw needs successful real shadow comparison receipts beyond fixtures.",
+      "present": false,
+      "receipt_id": "activation_receipt:c4e501936fe26d53",
+      "receipt_type": "shadow_comparison_live_run_receipt",
+      "required_for_lanes": [
+        "LM1",
+        "LM2"
+      ]
+    },
+    {
+      "blocks_live_lm1": true,
+      "blocks_live_lm2": true,
+      "blocks_provider_activation": false,
+      "human_label": "Rollback switch",
+      "next_safe_move": "Keep live models off; collect this receipt through a future governed review lane.",
+      "operator_copy": "OpenClaw needs a rollback or disable receipt before any future live model lane can be reviewed.",
+      "present": false,
+      "receipt_id": "activation_receipt:df8b41eb6699fbf7",
+      "receipt_type": "rollback_disable_receipt",
+      "required_for_lanes": [
+        "LM1",
+        "LM2"
+      ]
+    }
+  ],
+  "authority_boundary": {
+    "agent_dispatch_allowed": false,
+    "approval_execution_allowed": false,
+    "external_action_allowed": false,
+    "ledger_posting_allowed": false,
+    "live_lm_call_allowed": false,
+    "model_api_integration_allowed": false,
+    "network_allowed": false,
+    "production_state_mutation_allowed": false,
+    "provider_key_material_access_allowed": false,
+    "send_submit_allowed": false,
+    "tool_execution_allowed": false,
+    "worker_dispatch_allowed": false,
+    "workflow_execution_allowed": false
+  },
+  "contract_status": "LIVE_LM_ACTIVATION_BLOCKED_REQUIREMENTS_MISSING",
+  "generated_at": "2026-05-26T00:00:00+00:00",
+  "hard_blockers": [
+    "production_token_vault_inactive",
+    "provider_activation_receipts_missing",
+    "live_model_enablement_receipt_missing",
+    "production_privacy_policy_receipt_missing",
+    "live_shadow_comparison_receipt_missing",
+    "rollback_disable_receipt_missing"
+  ],
+  "live_lm1_activation_status": "NOT_READY",
+  "live_lm2_activation_status": "NOT_READY",
+  "machine_proof": {
+    "all_live_authority_false": true,
+    "content_hash": "sha256:dfaa31b5f8216999ce9d4d23e561a55b31204b02b02fd2e56120e9fc35b53d54",
+    "external_action_performed": false,
+    "live_lm1_ready": false,
+    "live_lm2_ready": false,
+    "live_lm_status": "NOT_ACTIVE",
+    "live_model_call_performed": false,
+    "live_model_enablement_receipt_present": false,
+    "missing_receipt_count": 7,
+    "model_api_call_performed": false,
+    "network_performed": false,
+    "production_state_mutation_performed": false,
+    "production_token_vault_ready_receipt_present": false,
+    "provider_activation_receipts_present": false,
+    "provider_activation_receipts_required": true,
+    "receipt_requirement_count": 7,
+    "tool_execution_performed": false
+  },
+  "missing_receipts": [
+    "live_model_enablement_receipt",
+    "provider_policy_receipt",
+    "model_selection_policy_receipt",
+    "privacy_policy_receipt",
+    "production_token_vault_ready_receipt",
+    "shadow_comparison_live_run_receipt",
+    "rollback_disable_receipt"
+  ],
+  "next_safe_move": "Keep using fixture/shadow mode until these receipts exist.",
+  "operator_summary": [
+    "Live models are still off.",
+    "OpenClaw now has an explicit checklist for what must exist before live LM1 or LM2 can be reviewed.",
+    "No provider, model, tool, or action is activated by this checklist."
+  ],
+  "provider_activation_status": "RECEIPTS_REQUIRED_NOT_PRESENT",
+  "read_model_id": "live_lm_activation_requirements",
+  "schema_version": "live_lm_activation_requirements_v0"
+}

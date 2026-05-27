@@ -21,11 +21,14 @@ import gate_chain_harness
 import guardian_output_gate
 import guardian_trust_ramp_simulator
 import intent_ingest_gate
+import live_lm_activation_requirements
 import lm1_thread_context_package
 import lm_readiness_dashboard
 import model_router_policy
 import operator_readiness_surface
+import private_mode_policy_readiness
 import provider_policy_registry
+import read_model_mirror_visibility
 import request_response_bridge_readiness
 import role_package_gate
 import shadow_lm_mode
@@ -166,6 +169,9 @@ def _assessment(
 def build_floor_matrix(*, generated_at: str = DEFAULT_GENERATED_AT) -> tuple[dict[str, Any], ...]:
     dashboard = lm_readiness_dashboard.build_payload(generated_at=generated_at)
     bridge_readiness = request_response_bridge_readiness.build_payload(generated_at=generated_at)
+    activation_requirements = live_lm_activation_requirements.build_payload(generated_at=generated_at)
+    private_policy = private_mode_policy_readiness.build_payload(generated_at=generated_at)
+    mirror_visibility = read_model_mirror_visibility.build_payload(generated_at=generated_at)
     readiness_summary = dashboard["dashboard_summary"]
     lm1_payload = lm1_thread_context_package.build_payload(generated_at=generated_at)
     return (
@@ -180,7 +186,6 @@ def build_floor_matrix(*, generated_at: str = DEFAULT_GENERATED_AT) -> tuple[dic
             has_operator_copy=True,
             ready_for_shadow=True,
             ready_for_live_review=True,
-            raised_this_pass=True,
             not_ready_reason="Needs live device trust registry integration before live LM activation.",
         ),
         _assessment(
@@ -193,6 +198,8 @@ def build_floor_matrix(*, generated_at: str = DEFAULT_GENERATED_AT) -> tuple[dic
             has_fixture=True,
             has_operator_copy=True,
             ready_for_shadow=True,
+            ready_for_live_review=True,
+            raised_this_pass=True,
             not_ready_reason="Still metadata-only; no production broad file classification.",
         ),
         _assessment(
@@ -206,7 +213,6 @@ def build_floor_matrix(*, generated_at: str = DEFAULT_GENERATED_AT) -> tuple[dic
             has_operator_copy=True,
             ready_for_shadow=readiness_summary["lm1_shadow"] == "READY",
             ready_for_live_review=lm1_payload["machine_proof"]["ready_for_shadow"],
-            raised_this_pass=True,
             not_ready_reason="Standalone package is exported; live LM1 remains blocked until explicit activation and production privacy receipts.",
         ),
         _assessment(
@@ -246,7 +252,6 @@ def build_floor_matrix(*, generated_at: str = DEFAULT_GENERATED_AT) -> tuple[dic
             has_operator_copy=True,
             ready_for_shadow=True,
             ready_for_live_review=True,
-            raised_this_pass=True,
             not_ready_reason="Operator-facing visibility improved; live LM1 proposals still require explicit activation.",
         ),
         _assessment(
@@ -334,7 +339,6 @@ def build_floor_matrix(*, generated_at: str = DEFAULT_GENERATED_AT) -> tuple[dic
             has_operator_copy=True,
             ready_for_shadow=True,
             ready_for_live_review=bridge_readiness["bridge_contract"]["ready_for_live_review"],
-            raised_this_pass=True,
             not_ready_reason="Readiness visibility exists; live service state is still checked outside this read-model.",
         ),
         _assessment(
@@ -347,6 +351,7 @@ def build_floor_matrix(*, generated_at: str = DEFAULT_GENERATED_AT) -> tuple[dic
             has_fixture=True,
             has_operator_copy=True,
             ready_for_shadow=True,
+            ready_for_live_review=True,
             not_ready_reason="Fixture-proven only; running workbooks are not submitted/paid/final truth.",
         ),
         _assessment(
@@ -359,16 +364,76 @@ def build_floor_matrix(*, generated_at: str = DEFAULT_GENERATED_AT) -> tuple[dic
             has_fixture=True,
             has_operator_copy=True,
             ready_for_shadow=True,
-            not_ready_reason="Backend policy is seeded, but product switch and production token vault are inactive.",
+            ready_for_live_review=private_policy["machine_proof"]["private_mode_policy_exported"],
+            raised_this_pass=True,
+            not_ready_reason="Backend policy is exported and inactive; product switch and production token vault are still inactive.",
+        ),
+        _assessment(
+            "provider_activation_receipts",
+            "Provider activation receipts",
+            tested=True,
+            exported=True,
+            dashboard_visible=True,
+            connected_to_chain=True,
+            has_fixture=True,
+            has_operator_copy=True,
+            ready_for_shadow=False,
+            ready_for_live_review=False,
+            raised_this_pass=True,
+            not_ready_reason="Provider activation requires missing receipts; no provider is active.",
+        ),
+        _assessment(
+            "shadow_comparison",
+            "Shadow comparison",
+            tested=True,
+            exported=True,
+            dashboard_visible=True,
+            connected_to_chain=True,
+            has_fixture=True,
+            has_sqlite_proof=True,
+            has_operator_copy=True,
+            ready_for_shadow=True,
+            not_ready_reason="Fixture comparisons pass; live-shadow receipt is still missing.",
+        ),
+        _assessment(
+            "tokenized_package_readiness",
+            "Tokenized package readiness",
+            tested=True,
+            exported=True,
+            dashboard_visible=True,
+            connected_to_chain=True,
+            has_fixture=True,
+            has_operator_copy=True,
+            ready_for_shadow=True,
+            ready_for_live_review=True,
+            not_ready_reason="Synthetic tokenization is proven; production token vault is still inactive.",
+        ),
+        _assessment(
+            "read_model_mirror_visibility",
+            "Read-model/mirror visibility",
+            tested=True,
+            exported=True,
+            dashboard_visible=True,
+            connected_to_chain=True,
+            has_fixture=True,
+            has_operator_copy=True,
+            ready_for_shadow=True,
+            ready_for_live_review=mirror_visibility["machine_proof"]["all_known_readiness_refs_recorded"],
+            raised_this_pass=True,
+            not_ready_reason="Visibility proof exists; this does not create a Mac sync system.",
         ),
         _assessment(
             "production_live_blockers",
             "Production/live blockers",
-            contract_only=True,
+            tested=True,
+            exported=True,
             dashboard_visible=True,
+            connected_to_chain=True,
+            has_fixture=True,
             has_operator_copy=True,
             ready_for_shadow=False,
-            not_ready_reason="Live LM explicit enablement, provider activation, production token vault, and live receipts remain blocked.",
+            raised_this_pass=True,
+            not_ready_reason=", ".join(activation_requirements["hard_blockers"]),
         ),
     )
 
@@ -393,6 +458,9 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
     shadow_payload = shadow_lm_mode.build_payload(generated_at=generated_at, persist=True)
     dashboard_payload = lm_readiness_dashboard.build_payload(generated_at=generated_at)
     bridge_payload = request_response_bridge_readiness.build_payload(generated_at=generated_at)
+    activation_payload = live_lm_activation_requirements.build_payload(generated_at=generated_at)
+    private_policy_payload = private_mode_policy_readiness.build_payload(generated_at=generated_at)
+    mirror_payload = read_model_mirror_visibility.build_payload(generated_at=generated_at)
     gate2_result = dashboard_payload["representative_flow"]["gate2_result_summary"]
     raised = tuple(item for item in matrix if item["raised_this_pass"])
     payload: dict[str, Any] = {
@@ -439,6 +507,27 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
             "scoped_response_filename_contract": bridge_payload["bridge_contract"]["scoped_response_filename_contract"],
             "ready_for_live_review": bridge_payload["bridge_contract"]["ready_for_live_review"],
         },
+        "live_lm_activation_requirements_ref": {
+            "read_model_ref": "generated/read_models/live_lm_activation_requirements.json",
+            "contract_status": activation_payload["contract_status"],
+            "live_lm1_activation_status": activation_payload["live_lm1_activation_status"],
+            "live_lm2_activation_status": activation_payload["live_lm2_activation_status"],
+            "provider_activation_status": activation_payload["provider_activation_status"],
+            "missing_receipts": activation_payload["missing_receipts"],
+        },
+        "private_mode_policy_readiness_ref": {
+            "read_model_ref": "generated/read_models/private_mode_policy_readiness.json",
+            "contract_status": private_policy_payload["contract_status"],
+            "private_mode_active": private_policy_payload["private_mode_active"],
+            "strict_private_mode_active": private_policy_payload["strict_private_mode_active"],
+            "package_effect_summary": private_policy_payload["package_effect_summary"],
+        },
+        "read_model_mirror_visibility_ref": {
+            "read_model_ref": "generated/read_models/read_model_mirror_visibility.json",
+            "contract_status": mirror_payload["contract_status"],
+            "mac_visible_guaranteed": mirror_payload["machine_proof"]["mac_visible_guaranteed"],
+            "new_sync_system_created": mirror_payload["machine_proof"]["new_sync_system_created"],
+        },
         "tokenization_proof": {
             "raw_values_exported": token_payload["machine_proof"]["raw_values_exported"],
             "stable_within_scope": token_payload["machine_proof"]["stable_within_scope"],
@@ -458,24 +547,34 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
             "next_blockers": dashboard_payload["dashboard_summary"]["next_blockers"],
         },
         "next_floor_raise_recommendations": (
-            "Connect Gate 1 privacy trigger to live request readbacks after device trust registry work.",
-            "Use the standalone LM1 package for future live-shadow fixture runs.",
-            "Keep bridge service health visible in readiness without giving it broader daemon authority.",
-            "Keep expanding negative shadow cases before live LM activation.",
+            "Collect real shadow-comparison receipts before any live LM review.",
+            "Turn Private Mode into an operator-controlled product setting only after production token-vault readiness.",
+            "Keep universal intake broadening with more metadata-only ambiguous fixtures.",
+            "Use existing scoped response/read-model surfaces for visibility; do not add a second sync plane.",
         ),
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
         "machine_proof": {
             "floor_matrix_lane_count": len(matrix),
-            "all_required_lanes_classified": len(matrix) == 16,
+            "all_required_lanes_classified": len(matrix) == 20,
             "weak_lanes_identified": bool(weakest_lanes(matrix)),
             "raised_lane_count": len(raised),
+            "floor_was_uneven": weakest_lanes(matrix)[0]["maturity_score"] < strongest_lanes(matrix)[-1]["maturity_score"],
             "gate1_privacy_trigger_fixture_exists": len(gate1_fixtures) == 5,
             "gate1_privacy_readiness_exported": True,
             "lm1_thread_context_package_exported": True,
             "request_response_bridge_dashboard_visible": True,
             "request_response_bridge_ready_for_live_review": bridge_payload["bridge_contract"]["ready_for_live_review"],
+            "production_live_blockers_explicit": activation_payload["machine_proof"]["missing_receipt_count"] >= 6,
+            "provider_activation_receipts_required": activation_payload["machine_proof"]["provider_activation_receipts_required"],
+            "private_mode_policy_exported": private_policy_payload["machine_proof"]["private_mode_policy_exported"],
+            "private_mode_policy_inactive": private_policy_payload["private_mode_active"] is False
+            and private_policy_payload["strict_private_mode_active"] is False,
+            "read_model_mirror_visibility_exported": True,
+            "read_model_mirror_visibility_no_sync_created": mirror_payload["machine_proof"]["new_sync_system_created"] is False,
             "gate2_visibility_polished": gate2_result.get("outcome") == intent_ingest_gate.ACCEPTED_INTENT,
             "universal_intake_chain_compatible": universal_payload["examples"]["capital_hilton_running_workbook"]["lm1_chain_ready"] is True,
+            "universal_intake_unknown_artifact_fixture_exists": universal_payload["machine_proof"]["unknown_artifact_asks_clarification"],
+            "invoice_fixtures_draft_source_only": universal_payload["machine_proof"]["batch_fixture_all_draft_source_only"],
             "lm1_package_consumes_intake_and_privacy": bool(lm1_package.get("universal_intake_chain_contract"))
             and lm1_package["tokenization_required"] is True,
             "tokenization_raw_values_exported": token_payload["machine_proof"]["raw_values_exported"],

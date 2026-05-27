@@ -37,6 +37,9 @@ def test_readiness_dashboard_aggregates_all_seeded_lanes():
         "universal_intake_contract",
         "gate1_privacy_request_readiness",
         "request_response_bridge_readiness",
+        "live_lm_activation_requirements",
+        "private_mode_policy_readiness",
+        "read_model_mirror_visibility",
     ):
         assert lane in lanes
     assert payload["machine_proof"]["dashboard_aggregates_seeded_lanes"] is True
@@ -50,6 +53,9 @@ def test_readiness_dashboard_aggregates_all_seeded_lanes():
         "READY_FOR_LIVE_REVIEW",
         "SEEDED_NEEDS_OPERATOR_SERVICE_CHECK",
     }
+    assert payload["dashboard_summary"]["production_live_blockers"] == "EXPLICIT"
+    assert payload["dashboard_summary"]["provider_activation_receipts"] == "RECEIPTS_REQUIRED_NOT_PRESENT"
+    assert payload["dashboard_summary"]["private_mode_policy"] == "PRIVATE_MODE_POLICY_READY_INACTIVE"
 
 
 def test_lm1_thread_context_package_includes_universal_intake_and_token_declarations():
@@ -159,6 +165,21 @@ def test_dashboard_exposes_bridge_and_gate1_without_expanding_authority():
     assert payload["machine_proof"]["request_response_bridge_readiness_aggregated"] is True
     assert payload["machine_proof"]["model_call_performed"] is False
     assert payload["machine_proof"]["tool_execution_performed"] is False
+
+
+def test_dashboard_exposes_activation_private_and_visibility_without_live_enablement():
+    payload = _payload()
+    flow = payload["representative_flow"]
+
+    assert flow["live_lm_activation_requirements"]["live_lm1_activation_status"] == "NOT_READY"
+    assert flow["live_lm_activation_requirements"]["provider_activation_status"] == "RECEIPTS_REQUIRED_NOT_PRESENT"
+    assert flow["private_mode_policy_readiness"]["active_state"] == "standard"
+    assert flow["private_mode_policy_readiness"]["package_effect_summary"]["raw_values_included"] is False
+    assert flow["read_model_mirror_visibility"]["mirror_policy"]["new_sync_system_allowed"] is False
+    assert payload["machine_proof"]["live_activation_requirements_aggregated"] is True
+    assert payload["machine_proof"]["provider_activation_receipts_present"] is False
+    assert payload["machine_proof"]["private_mode_policy_active"] is False
+    assert payload["machine_proof"]["read_model_mirror_visibility_mac_visible_guaranteed"] is False
 
 
 def test_representative_flow_reaches_gate2_gate3_gate4_without_live_status():
