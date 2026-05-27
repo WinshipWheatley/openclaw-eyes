@@ -97,6 +97,49 @@ def test_existing_generated_artifact_without_invoice_record_linkage_is_candidate
     assert payload["machine_proof"]["existing_artifact_without_invoice_record_linkage_is_candidate_only"] is True
 
 
+def test_bundle_exposes_preview_section_without_generating_pdf_or_image():
+    payload = _capital()
+    preview = payload["preview_section"]
+
+    assert preview["preview_kind"] == "EXCEL"
+    assert preview["preview_available"] is False
+    assert preview["preview_limited"] is True
+    assert preview["preview_mac_path"].startswith("/Volumes/openclaw_e/generated/invoice_artifacts/")
+    assert preview["preview_status"] == "EXCEL_CANDIDATE_OPEN_FILE_ONLY"
+    assert "Candidate only" in preview["candidate_notice"]
+    assert preview["generation_performed"] is False
+    assert payload["machine_proof"]["preview_section_present"] is True
+    assert payload["machine_proof"]["preview_generation_performed"] is False
+
+
+def test_open_and_reveal_actions_use_mac_visible_paths():
+    payload = _capital()
+    actions = payload["artifact_inspection_actions"]
+
+    assert actions["open_file_available"] is True
+    assert actions["open_file_mac_path"].startswith("/Volumes/openclaw_e/generated/invoice_artifacts/")
+    assert actions["reveal_in_finder_available"] is True
+    assert actions["reveal_in_finder_mac_path"] == actions["open_file_mac_path"]
+    assert actions["pop_out_available"] is True
+    assert actions["artifact_remains_candidate"] is True
+    assert actions["external_action"] is False
+    assert payload["machine_proof"]["artifact_inspection_paths_are_mac_visible"] is True
+
+
+def test_right_workbook_wrong_page_correction_is_governed_no_external_action():
+    payload = _capital()
+    actions = {action["label"]: action for action in payload["correction_actions"]}
+
+    action = actions["Right Workbook, Wrong Page"]
+    assert action["enabled"] is True
+    assert action["requires_followup"] is True
+    assert action["resulting_request_kind"] == "invoice_page_correction_request"
+    assert action["no_external_action"] is True
+    assert action["mutates_workbook"] is False
+    assert action["mutates_production_state"] is False
+    assert payload["machine_proof"]["right_workbook_wrong_page_no_external_action"] is True
+
+
 def test_bundle_blocks_attachment_readiness_when_invoice_sheet_page_period_is_unknown():
     payload = _capital()
 
@@ -119,6 +162,49 @@ def test_bundle_cannot_ask_for_send_approval_until_artifact_is_linked_to_selecte
     assert payload["excel_invoice_artifact"]["proof_status"] == "GENERATED_INVOICE_ARTIFACT_CANDIDATE"
     assert payload["excel_invoice_artifact"]["attachment_ready"] is False
     assert payload["guardian_approval_request"]["operator_question"] == "Review the Capital Hilton invoice package?"
+
+
+def test_approval_footer_is_disabled_with_clear_reasons():
+    payload = _capital()
+    footer = payload["approval_footer"]
+
+    assert footer["approval_ready"] is False
+    assert set(footer["approval_disabled_reasons"]) >= {
+        "Coupa proof missing",
+        "Invoice record/page not selected",
+        "Generated artifact not linked",
+        "Recipients unconfirmed",
+        "Attachment not ready",
+    }
+    approve = next(button for button in footer["approval_buttons"] if button["label"] == "APPROVE")
+    assert approve["enabled"] is False
+    assert "Approval is disabled" in footer["sticky_footer_operator_copy"]
+    assert payload["machine_proof"]["approval_footer_ready"] is False
+
+
+def test_proof_timeline_is_plain_primary_copy_with_hidden_refs_only():
+    payload = _capital()
+    timeline = payload["review_proof_timeline"]
+
+    labels = [item["label"] for item in timeline]
+    assert labels == [
+        "Active workbook",
+        "Invoice page/period",
+        "Generated invoice artifact",
+        "Coupa portal proof",
+        "Clara draft",
+        "Guardian approval request",
+        "Operator approval",
+        "Email send",
+        "Payment watch",
+        "Ledger/tax evidence",
+    ]
+    primary_text = json.dumps([item["operator_copy"] for item in timeline]).lower()
+    assert "source_request_id" not in primary_text
+    assert "sqlite" not in primary_text
+    assert "gate 2" not in primary_text
+    assert all("hidden_internal_refs" in item for item in timeline)
+    assert payload["machine_proof"]["proof_timeline_present"] is True
 
 
 def test_linkage_receipts_can_confirm_generated_artifact_without_enabling_send():

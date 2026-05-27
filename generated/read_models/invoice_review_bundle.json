@@ -26,6 +26,49 @@
     "tool_execution_allowed": false
   },
   "capital_hilton_bundle": {
+    "approval_footer": {
+      "approval_buttons": [
+        {
+          "enabled": false,
+          "label": "APPROVE",
+          "no_external_action": true
+        },
+        {
+          "enabled": true,
+          "label": "DO_NOT_APPROVE",
+          "no_external_action": true
+        },
+        {
+          "enabled": true,
+          "label": "HOLD",
+          "no_external_action": true
+        },
+        {
+          "enabled": true,
+          "label": "EXPLAIN",
+          "no_external_action": true
+        }
+      ],
+      "approval_disabled_reasons": [
+        "Coupa proof missing",
+        "Invoice record/page not selected",
+        "Generated artifact not linked",
+        "Recipients unconfirmed",
+        "Attachment not ready"
+      ],
+      "approval_ready": false,
+      "sticky_footer_operator_copy": "Approval is disabled until invoice selection, Coupa proof, recipients, and attachment proof are ready."
+    },
+    "artifact_inspection_actions": {
+      "artifact_remains_candidate": true,
+      "external_action": false,
+      "open_file_available": true,
+      "open_file_mac_path": "/Volumes/openclaw_e/generated/invoice_artifacts/capital_hilton_invoice_artifact_v0/WINSHIP_CAPITAL_HILTON_INVOICE_2026-05-25.xlsx",
+      "pop_out_available": true,
+      "pop_out_status": "AVAILABLE_FOR_CANDIDATE_ARTIFACT",
+      "reveal_in_finder_available": true,
+      "reveal_in_finder_mac_path": "/Volumes/openclaw_e/generated/invoice_artifacts/capital_hilton_invoice_artifact_v0/WINSHIP_CAPITAL_HILTON_INVOICE_2026-05-25.xlsx"
+    },
     "authority_boundary": {
       "approval_execution_allowed": false,
       "browser_automation_allowed": false,
@@ -59,6 +102,92 @@
     },
     "client_display_name": "Capital Hilton",
     "client_ref": "capital_hilton",
+    "correction_actions": [
+      {
+        "action_ref": "invoice_review_correction:confirm_this_invoice:0f80823ef78bd974",
+        "enabled": true,
+        "followup_prompt": "Confirm the workbook, invoice page/period, and generated artifact match.",
+        "intended_use": "review_correction_or_inspection",
+        "label": "Confirm This Invoice",
+        "mutates_production_state": false,
+        "mutates_workbook": false,
+        "no_external_action": true,
+        "requires_followup": true,
+        "resulting_request_kind": "invoice_selection_confirmation_request"
+      },
+      {
+        "action_ref": "invoice_review_correction:right_workbook_wrong_page:80ae5c54e647698d",
+        "enabled": true,
+        "followup_prompt": "Which invoice page or period should OpenClaw use instead?",
+        "intended_use": "review_correction_or_inspection",
+        "label": "Right Workbook, Wrong Page",
+        "mutates_production_state": false,
+        "mutates_workbook": false,
+        "no_external_action": true,
+        "requires_followup": true,
+        "resulting_request_kind": "invoice_page_correction_request"
+      },
+      {
+        "action_ref": "invoice_review_correction:wrong_workbook:bdefbed7c1d0f690",
+        "enabled": true,
+        "followup_prompt": "Which workbook should OpenClaw use for this invoice?",
+        "intended_use": "review_correction_or_inspection",
+        "label": "Wrong Workbook",
+        "mutates_production_state": false,
+        "mutates_workbook": false,
+        "no_external_action": true,
+        "requires_followup": true,
+        "resulting_request_kind": "workbook_correction_request"
+      },
+      {
+        "action_ref": "invoice_review_correction:wrong_client:7595f5752353ffef",
+        "enabled": true,
+        "followup_prompt": "Which client should this invoice review belong to?",
+        "intended_use": "review_correction_or_inspection",
+        "label": "Wrong Client",
+        "mutates_production_state": false,
+        "mutates_workbook": false,
+        "no_external_action": true,
+        "requires_followup": true,
+        "resulting_request_kind": "client_correction_request"
+      },
+      {
+        "action_ref": "invoice_review_correction:select_different_page:1a9e6ef42adc8a4c",
+        "enabled": true,
+        "followup_prompt": "Which page, sheet, or invoice period should OpenClaw prepare?",
+        "intended_use": "review_correction_or_inspection",
+        "label": "Select Different Page",
+        "mutates_production_state": false,
+        "mutates_workbook": false,
+        "no_external_action": true,
+        "requires_followup": true,
+        "resulting_request_kind": "invoice_page_selection_request"
+      },
+      {
+        "action_ref": "invoice_review_correction:open_workbook:4906e84cc220eb1c",
+        "enabled": true,
+        "followup_prompt": null,
+        "intended_use": "review_correction_or_inspection",
+        "label": "Open Workbook",
+        "mutates_production_state": false,
+        "mutates_workbook": false,
+        "no_external_action": true,
+        "requires_followup": false,
+        "resulting_request_kind": "local_artifact_inspection_request"
+      },
+      {
+        "action_ref": "invoice_review_correction:explain_this_review:bb3b18781a20c9a0",
+        "enabled": true,
+        "followup_prompt": null,
+        "intended_use": "review_correction_or_inspection",
+        "label": "Explain This Review",
+        "mutates_production_state": false,
+        "mutates_workbook": false,
+        "no_external_action": true,
+        "requires_followup": false,
+        "resulting_request_kind": "review_explanation_request"
+      }
+    ],
     "coupa_invoice_proof": {
       "amount": null,
       "po_ref": null,
@@ -191,9 +320,11 @@
     "machine_proof": {
       "all_action_authority_false": true,
       "approval_does_not_imply_send": true,
+      "approval_footer_ready": false,
+      "artifact_inspection_paths_are_mac_visible": true,
       "attachment_ready_requires_invoice_record_linkage": true,
       "clara_draft_slot_present": true,
-      "content_hash": "sha256:9d57b294e11962ab23cd724b9d2235b8761a17374ed1ffb1e6ffad1ca46931e0",
+      "content_hash": "sha256:65413034d08f86c9c3f3cb84d5747318999d3c9ce0ebb8103fd98c59688e9454",
       "coupa_primary_before_email_success": true,
       "coupa_required_for_capital_hilton": true,
       "draft_does_not_imply_sent": true,
@@ -203,6 +334,10 @@
       "operator_approval_does_not_imply_execution": true,
       "operator_copy_jargon_free": true,
       "pdf_excel_generation_performed": false,
+      "preview_generation_performed": false,
+      "preview_section_present": true,
+      "proof_timeline_present": true,
+      "right_workbook_wrong_page_no_external_action": true,
       "send_blocked_without_required_receipts": true,
       "workbook_may_contain_multiple_invoice_records": true
     },
@@ -233,6 +368,17 @@
       "headline": "Draft path prepared."
     },
     "present_receipts": [],
+    "preview_section": {
+      "candidate_notice": "Candidate only. This is not confirmed as the current invoice until the workbook, page/period, and artifact linkage are verified.",
+      "generation_performed": false,
+      "preview_available": false,
+      "preview_kind": "EXCEL",
+      "preview_limited": true,
+      "preview_mac_path": "/Volumes/openclaw_e/generated/invoice_artifacts/capital_hilton_invoice_artifact_v0/WINSHIP_CAPITAL_HILTON_INVOICE_2026-05-25.xlsx",
+      "preview_operator_copy": "Excel candidate available for inspection. Inline PDF/image preview is not available yet.",
+      "preview_ref": "generated/invoice_artifacts/capital_hilton_invoice_artifact_v0/WINSHIP_CAPITAL_HILTON_INVOICE_2026-05-25.xlsx",
+      "preview_status": "EXCEL_CANDIDATE_OPEN_FILE_ONLY"
+    },
     "proof_refs": [
       "local_artifact_ref:deb5bc9b42567fd4"
     ],
@@ -298,6 +444,109 @@
       "operator_approval_receipt",
       "email_send_receipt"
     ],
+    "review_proof_timeline": [
+      {
+        "hidden_internal_refs": [
+          "workflow_ref"
+        ],
+        "label": "Active workbook",
+        "operator_copy": "Workbook still needs confirmation.",
+        "proof_ref": null,
+        "receipt_ref": null,
+        "status": "NEEDS_CONFIRMATION"
+      },
+      {
+        "hidden_internal_refs": [
+          "invoice_record_selected_receipt",
+          "invoice_period_confirmed_receipt"
+        ],
+        "label": "Invoice page/period",
+        "operator_copy": "Choose the invoice page or period before treating the artifact as current.",
+        "proof_ref": null,
+        "receipt_ref": null,
+        "status": "NEEDS_SELECTION"
+      },
+      {
+        "hidden_internal_refs": [
+          "generated_invoice_artifact_linkage_receipt"
+        ],
+        "label": "Generated invoice artifact",
+        "operator_copy": "Excel artifact is candidate-only until linked to the selected invoice.",
+        "proof_ref": "local_artifact_ref:deb5bc9b42567fd4",
+        "receipt_ref": null,
+        "status": "GENERATED_INVOICE_ARTIFACT_CANDIDATE"
+      },
+      {
+        "hidden_internal_refs": [
+          "portal_invoice_submission_receipt"
+        ],
+        "label": "Coupa portal proof",
+        "operator_copy": "Coupa portal submission proof is still required.",
+        "proof_ref": null,
+        "receipt_ref": null,
+        "status": "MISSING"
+      },
+      {
+        "hidden_internal_refs": [
+          "clara_email_draft_receipt"
+        ],
+        "label": "Clara draft",
+        "operator_copy": "Draft only. Nothing was sent.",
+        "proof_ref": null,
+        "receipt_ref": null,
+        "status": "DRAFT_ONLY"
+      },
+      {
+        "hidden_internal_refs": [
+          "guardian_invoice_review_approval:29a79c0aad435df9"
+        ],
+        "label": "Guardian approval request",
+        "operator_copy": "Approval request is blocked until prerequisites are ready.",
+        "proof_ref": null,
+        "receipt_ref": null,
+        "status": "BLOCKED_PREREQUISITES_MISSING"
+      },
+      {
+        "hidden_internal_refs": [
+          "operator_approval_receipt"
+        ],
+        "label": "Operator approval",
+        "operator_copy": "No operator approval has been granted.",
+        "proof_ref": null,
+        "receipt_ref": null,
+        "status": "NOT_GRANTED"
+      },
+      {
+        "hidden_internal_refs": [
+          "email_send_receipt"
+        ],
+        "label": "Email send",
+        "operator_copy": "No email has been sent.",
+        "proof_ref": null,
+        "receipt_ref": null,
+        "status": "NOT_SENT"
+      },
+      {
+        "hidden_internal_refs": [
+          "payment_detected_receipt"
+        ],
+        "label": "Payment watch",
+        "operator_copy": "No payment has been detected.",
+        "proof_ref": null,
+        "receipt_ref": null,
+        "status": "NOT_RECEIVED"
+      },
+      {
+        "hidden_internal_refs": [
+          "ledger_tax_evidence_receipt"
+        ],
+        "label": "Ledger/tax evidence",
+        "operator_copy": "Ledger and tax evidence are not ready.",
+        "proof_ref": null,
+        "receipt_ref": null,
+        "status": "NOT_READY"
+      }
+    ],
     "semantic_status": {
       "clara_draft_status": "DRAFT_ONLY",
       "coupa_portal_rail_status": "PRIMARY_PAYMENT_TRIGGER_BLOCKED_PROOF_MISSING",
@@ -343,7 +592,7 @@
     "button_labels_present": true,
     "capital_hilton_coupa_proof_required": true,
     "capital_hilton_has_review_bundle": true,
-    "content_hash": "sha256:a6907450a336d2ac825fc1f6a4a51894270e64a81b48185621a29ecd636efcf8",
+    "content_hash": "sha256:6bc54047c7410c2ea0636293f93e552146d0ece6db9a829d878386250cb3ea69",
     "coupa_action_enabled": false,
     "non_coupa_client_does_not_require_coupa": true,
     "pdf_excel_generation_performed": false,

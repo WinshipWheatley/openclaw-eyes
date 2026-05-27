@@ -35,6 +35,16 @@ CAPITAL_HILTON_EXCEL_PATH = Path(
 )
 
 APPROVAL_BUTTONS = ("APPROVE", "DO_NOT_APPROVE", "EXPLAIN", "EDIT_DRAFT", "HOLD")
+APPROVAL_FOOTER_BUTTONS = ("APPROVE", "DO_NOT_APPROVE", "HOLD", "EXPLAIN")
+CORRECTION_ACTIONS = (
+    "CONFIRM_THIS_INVOICE",
+    "RIGHT_WORKBOOK_WRONG_PAGE",
+    "WRONG_WORKBOOK",
+    "WRONG_CLIENT",
+    "SELECT_DIFFERENT_PAGE",
+    "OPEN_WORKBOOK",
+    "EXPLAIN_THIS_REVIEW",
+)
 
 AUTHORITY_BOUNDARY = {
     "email_send_allowed": False,
@@ -295,6 +305,242 @@ def _send_allowed(receipts: set[str]) -> bool:
     return all(receipt in receipts for receipt in BLOCKED_SEND_RECEIPTS)
 
 
+def _preview_section(excel: InvoiceReviewArtifact) -> dict[str, Any]:
+    if not excel.preview_available:
+        return {
+            "preview_kind": "NONE",
+            "preview_available": False,
+            "preview_limited": False,
+            "preview_ref": None,
+            "preview_mac_path": None,
+            "preview_status": "NO_PREVIEW_ARTIFACT",
+            "preview_operator_copy": "No invoice preview is available yet.",
+            "candidate_notice": "OpenClaw needs the current invoice page/period before it can confirm an invoice artifact.",
+            "generation_performed": False,
+        }
+    return {
+        "preview_kind": "EXCEL",
+        "preview_available": False,
+        "preview_limited": True,
+        "preview_ref": excel.preview_ref,
+        "preview_mac_path": excel.mac_visible_ref,
+        "preview_status": "EXCEL_CANDIDATE_OPEN_FILE_ONLY",
+        "preview_operator_copy": "Excel candidate available for inspection. Inline PDF/image preview is not available yet.",
+        "candidate_notice": "Candidate only. This is not confirmed as the current invoice until the workbook, page/period, and artifact linkage are verified.",
+        "generation_performed": False,
+    }
+
+
+def _artifact_inspection_actions(excel: InvoiceReviewArtifact) -> dict[str, Any]:
+    mac_path = excel.mac_visible_ref if excel.preview_available else None
+    return {
+        "open_file_available": bool(mac_path),
+        "open_file_mac_path": mac_path,
+        "reveal_in_finder_available": bool(mac_path),
+        "reveal_in_finder_mac_path": mac_path,
+        "pop_out_available": bool(mac_path),
+        "pop_out_status": "AVAILABLE_FOR_CANDIDATE_ARTIFACT" if mac_path else "NO_ARTIFACT_AVAILABLE",
+        "artifact_remains_candidate": excel.proof_status == "GENERATED_INVOICE_ARTIFACT_CANDIDATE",
+        "external_action": False,
+    }
+
+
+def _correction_action(action: str, *, enabled: bool = True) -> dict[str, Any]:
+    labels = {
+        "CONFIRM_THIS_INVOICE": "Confirm This Invoice",
+        "RIGHT_WORKBOOK_WRONG_PAGE": "Right Workbook, Wrong Page",
+        "WRONG_WORKBOOK": "Wrong Workbook",
+        "WRONG_CLIENT": "Wrong Client",
+        "SELECT_DIFFERENT_PAGE": "Select Different Page",
+        "OPEN_WORKBOOK": "Open Workbook",
+        "EXPLAIN_THIS_REVIEW": "Explain This Review",
+    }
+    followups = {
+        "CONFIRM_THIS_INVOICE": "Confirm the workbook, invoice page/period, and generated artifact match.",
+        "RIGHT_WORKBOOK_WRONG_PAGE": "Which invoice page or period should OpenClaw use instead?",
+        "WRONG_WORKBOOK": "Which workbook should OpenClaw use for this invoice?",
+        "WRONG_CLIENT": "Which client should this invoice review belong to?",
+        "SELECT_DIFFERENT_PAGE": "Which page, sheet, or invoice period should OpenClaw prepare?",
+        "OPEN_WORKBOOK": None,
+        "EXPLAIN_THIS_REVIEW": None,
+    }
+    request_kinds = {
+        "CONFIRM_THIS_INVOICE": "invoice_selection_confirmation_request",
+        "RIGHT_WORKBOOK_WRONG_PAGE": "invoice_page_correction_request",
+        "WRONG_WORKBOOK": "workbook_correction_request",
+        "WRONG_CLIENT": "client_correction_request",
+        "SELECT_DIFFERENT_PAGE": "invoice_page_selection_request",
+        "OPEN_WORKBOOK": "local_artifact_inspection_request",
+        "EXPLAIN_THIS_REVIEW": "review_explanation_request",
+    }
+    return {
+        "action_ref": f"invoice_review_correction:{action.lower()}:{_short_hash(CAPITAL_HILTON_BUNDLE_ID, action)}",
+        "label": labels[action],
+        "enabled": enabled,
+        "requires_followup": followups[action] is not None,
+        "followup_prompt": followups[action],
+        "resulting_request_kind": request_kinds[action],
+        "intended_use": "review_correction_or_inspection",
+        "no_external_action": True,
+        "mutates_workbook": False,
+        "mutates_production_state": False,
+    }
+
+
+def _correction_actions(excel: InvoiceReviewArtifact) -> tuple[dict[str, Any], ...]:
+    return tuple(
+        _correction_action(action, enabled=(action != "OPEN_WORKBOOK" or excel.preview_available))
+        for action in CORRECTION_ACTIONS
+    )
+
+
+def _approval_disabled_reasons(
+    *,
+    receipts: set[str],
+    excel: InvoiceReviewArtifact,
+    coupa: CoupaInvoiceProof,
+    contacts_confirmed: bool,
+) -> tuple[str, ...]:
+    reasons: list[str] = []
+    if coupa.status == "MISSING":
+        reasons.append("Coupa proof missing")
+    if "invoice_record_selected_receipt" not in receipts or "invoice_period_confirmed_receipt" not in receipts:
+        reasons.append("Invoice record/page not selected")
+    if excel.proof_status != "GENERATED_INVOICE_ARTIFACT_CONFIRMED":
+        reasons.append("Generated artifact not linked")
+    if not contacts_confirmed:
+        reasons.append("Recipients unconfirmed")
+    if not excel.attachment_ready:
+        reasons.append("Attachment not ready")
+    return tuple(reasons)
+
+
+def _approval_footer(
+    *,
+    disabled_reasons: tuple[str, ...],
+    guardian: GuardianApprovalRequest,
+) -> dict[str, Any]:
+    approval_ready = len(disabled_reasons) == 0 and guardian.status == "READY_TO_REQUEST_OPERATOR_APPROVAL"
+    return {
+        "approval_ready": approval_ready,
+        "approval_disabled_reasons": disabled_reasons,
+        "approval_buttons": tuple(
+            {
+                "label": label,
+                "enabled": approval_ready if label == "APPROVE" else True,
+                "no_external_action": True,
+            }
+            for label in APPROVAL_FOOTER_BUTTONS
+        ),
+        "sticky_footer_operator_copy": "Approval is disabled until invoice selection, Coupa proof, recipients, and attachment proof are ready."
+        if not approval_ready
+        else "Ready for review approval. Approval still does not send anything by itself.",
+    }
+
+
+def _timeline_item(
+    label: str,
+    *,
+    status: str,
+    operator_copy: str,
+    receipt_ref: str | None = None,
+    proof_ref: str | None = None,
+    hidden_internal_refs: tuple[str, ...] = (),
+) -> dict[str, Any]:
+    return {
+        "label": label,
+        "status": status,
+        "receipt_ref": receipt_ref,
+        "proof_ref": proof_ref,
+        "operator_copy": operator_copy,
+        "hidden_internal_refs": hidden_internal_refs,
+    }
+
+
+def _review_proof_timeline(
+    *,
+    receipts: set[str],
+    excel: InvoiceReviewArtifact,
+    coupa: CoupaInvoiceProof,
+    guardian: GuardianApprovalRequest,
+    semantic_status: Mapping[str, Any],
+) -> tuple[dict[str, Any], ...]:
+    return (
+        _timeline_item(
+            "Active workbook",
+            status="CONFIRMED" if "active_workbook_confirmed_receipt" in receipts else "NEEDS_CONFIRMATION",
+            receipt_ref="active_workbook_confirmed_receipt" if "active_workbook_confirmed_receipt" in receipts else None,
+            operator_copy="Workbook still needs confirmation.",
+            hidden_internal_refs=("workflow_ref",),
+        ),
+        _timeline_item(
+            "Invoice page/period",
+            status="SELECTED"
+            if {"invoice_record_selected_receipt", "invoice_period_confirmed_receipt"} <= receipts
+            else "NEEDS_SELECTION",
+            receipt_ref="invoice_record_selected_receipt" if "invoice_record_selected_receipt" in receipts else None,
+            operator_copy="Choose the invoice page or period before treating the artifact as current.",
+            hidden_internal_refs=("invoice_record_selected_receipt", "invoice_period_confirmed_receipt"),
+        ),
+        _timeline_item(
+            "Generated invoice artifact",
+            status=excel.proof_status,
+            proof_ref=excel.artifact_ref if excel.preview_available else None,
+            operator_copy="Excel artifact is candidate-only until linked to the selected invoice.",
+            hidden_internal_refs=("generated_invoice_artifact_linkage_receipt",),
+        ),
+        _timeline_item(
+            "Coupa portal proof",
+            status=coupa.status,
+            receipt_ref=coupa.proof_ref,
+            operator_copy="Coupa portal submission proof is still required.",
+            hidden_internal_refs=("portal_invoice_submission_receipt",),
+        ),
+        _timeline_item(
+            "Clara draft",
+            status=semantic_status["clara_draft_status"],
+            receipt_ref="clara_email_draft_receipt" if "clara_email_draft_receipt" in receipts else None,
+            operator_copy="Draft only. Nothing was sent.",
+            hidden_internal_refs=("clara_email_draft_receipt",),
+        ),
+        _timeline_item(
+            "Guardian approval request",
+            status=guardian.status,
+            receipt_ref="guardian_approval_receipt" if "guardian_approval_receipt" in receipts else None,
+            operator_copy="Approval request is blocked until prerequisites are ready.",
+            hidden_internal_refs=(guardian.approval_ref,),
+        ),
+        _timeline_item(
+            "Operator approval",
+            status=semantic_status["operator_approval_status"],
+            receipt_ref="operator_approval_receipt" if "operator_approval_receipt" in receipts else None,
+            operator_copy="No operator approval has been granted.",
+            hidden_internal_refs=("operator_approval_receipt",),
+        ),
+        _timeline_item(
+            "Email send",
+            status=semantic_status["email_send_execution_status"],
+            receipt_ref="email_send_receipt" if "email_send_receipt" in receipts else None,
+            operator_copy="No email has been sent.",
+            hidden_internal_refs=("email_send_receipt",),
+        ),
+        _timeline_item(
+            "Payment watch",
+            status=semantic_status["payment_watch_status"],
+            receipt_ref="payment_detected_receipt" if "payment_detected_receipt" in receipts else None,
+            operator_copy="No payment has been detected.",
+            hidden_internal_refs=("payment_detected_receipt",),
+        ),
+        _timeline_item(
+            "Ledger/tax evidence",
+            status="NOT_READY",
+            receipt_ref="ledger_tax_evidence_receipt" if "ledger_tax_evidence_receipt" in receipts else None,
+            operator_copy="Ledger and tax evidence are not ready.",
+            hidden_internal_refs=("ledger_tax_evidence_receipt",),
+        ),
+    )
+
+
 def _status_model(*, receipts: set[str], excel: InvoiceReviewArtifact, clara: ClaraEmailDraft, coupa: CoupaInvoiceProof, guardian: GuardianApprovalRequest) -> dict[str, Any]:
     operator_approved = "operator_approval_receipt" in receipts
     email_sent = "email_send_receipt" in receipts
@@ -337,6 +583,23 @@ def build_capital_hilton_bundle(
     guardian = _guardian_approval_request(CAPITAL_HILTON_BUNDLE_ID, ready_for_send_review=ready_for_send_review)
     semantic_status = _status_model(receipts=receipts, excel=excel, clara=clara, coupa=coupa, guardian=guardian)
     missing_receipts = tuple(receipt for receipt in REQUIRED_RECEIPTS if receipt not in receipts)
+    approval_disabled_reasons = _approval_disabled_reasons(
+        receipts=receipts,
+        excel=excel,
+        coupa=coupa,
+        contacts_confirmed=contacts_confirmed,
+    )
+    approval_footer = _approval_footer(disabled_reasons=approval_disabled_reasons, guardian=guardian)
+    preview_section = _preview_section(excel)
+    artifact_actions = _artifact_inspection_actions(excel)
+    correction_actions = _correction_actions(excel)
+    proof_timeline = _review_proof_timeline(
+        receipts=receipts,
+        excel=excel,
+        coupa=coupa,
+        guardian=guardian,
+        semantic_status=semantic_status,
+    )
     blockers = []
     if coupa.status == "MISSING":
         blockers.append("Coupa submission proof is still required.")
@@ -389,6 +652,9 @@ def build_capital_hilton_bundle(
             "button_labels": APPROVAL_BUTTONS,
         },
         "excel_invoice_artifact": asdict(excel),
+        "preview_section": preview_section,
+        "artifact_inspection_actions": artifact_actions,
+        "correction_actions": correction_actions,
         "clara_email_draft": asdict(clara),
         "coupa_invoice_proof": asdict(coupa),
         "recipients": {
@@ -397,6 +663,8 @@ def build_capital_hilton_bundle(
             "confirmation_status": "CONFIRMED_BY_RECEIPT" if contacts_confirmed else "CANDIDATE_UNCONFIRMED",
         },
         "guardian_approval_request": asdict(guardian),
+        "approval_footer": approval_footer,
+        "review_proof_timeline": proof_timeline,
         "required_receipts": REQUIRED_RECEIPTS,
         "present_receipts": tuple(sorted(receipts)),
         "missing_receipts": missing_receipts,
@@ -451,6 +719,17 @@ def build_capital_hilton_bundle(
         "workbook_may_contain_multiple_invoice_records": True,
         "attachment_ready_requires_invoice_record_linkage": not excel.attachment_ready
         or _artifact_linked_to_selected_invoice(receipts),
+        "preview_section_present": preview_section["preview_kind"] in {"EXCEL", "NONE"},
+        "preview_generation_performed": preview_section["generation_performed"],
+        "artifact_inspection_paths_are_mac_visible": not artifact_actions["open_file_available"]
+        or str(artifact_actions["open_file_mac_path"]).startswith("/Volumes/openclaw_e/"),
+        "right_workbook_wrong_page_no_external_action": next(
+            action
+            for action in correction_actions
+            if action["resulting_request_kind"] == "invoice_page_correction_request"
+        )["no_external_action"],
+        "approval_footer_ready": approval_footer["approval_ready"],
+        "proof_timeline_present": len(proof_timeline) >= 10,
         "clara_draft_slot_present": True,
         "coupa_required_for_capital_hilton": True,
         "draft_does_not_imply_sent": clara.draft_only and not clara.sent,
@@ -569,8 +848,10 @@ def write_exports(payload: Mapping[str, Any], export_root: Path = DEFAULT_EXPORT
         f"- Question: {capital['guardian_approval_request']['operator_question']}",
         f"- Buttons: {buttons}",
         f"- Excel invoice candidate: {capital['excel_invoice_artifact']['display_name']}",
+        f"- Preview: {capital['preview_section']['preview_operator_copy']}",
         f"- Attachment readiness: {str(capital['excel_invoice_artifact']['attachment_ready']).lower()}",
         f"- Clara draft subject: {capital['clara_email_draft']['subject']}",
+        f"- Approval footer: {capital['approval_footer']['sticky_footer_operator_copy']}",
         "",
         "Blockers:",
         *[f"- {blocker}" for blocker in blockers],
