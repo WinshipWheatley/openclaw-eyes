@@ -21,6 +21,11 @@ from scripts.mac_sync_generated_read_models import (
     MAC_SHARE_ROOT,
     sync_generated_read_models,
 )
+from scripts.sync_read_model_mirror import (
+    INVOICE_REVIEW_CANDIDATE_ARTIFACT_FILES,
+    publish_pc_bridge_invoice_review_artifacts,
+    publish_pc_bridge_read_models,
+)
 
 
 def _write(path: Path, text: str = "{}\n") -> None:
@@ -84,6 +89,7 @@ def test_mac_sync_selects_safe_generated_read_models_only_without_share(tmp_path
     assert report["share_mounted"] is False
     for name in KEY_READ_MODEL_FILES:
         assert report["key_files_present"][name] is True
+    assert report["key_files_present"]["invoice_review_bundle.json"] is True
 
 
 def test_mac_sync_can_require_share_or_write_report_when_share_exists(tmp_path):
@@ -119,6 +125,41 @@ def test_mac_sync_can_require_share_or_write_report_when_share_exists(tmp_path):
         (share / "shuttle" / "from_mac" / "read_model_sync_latest.json").read_text(encoding="utf-8")
     )
     assert dropped_report["manifest_sha256"] == report["manifest_sha256"]
+
+
+def test_pc_direct_bridge_includes_invoice_review_bundle(tmp_path):
+    repo = _repo_fixture(tmp_path)
+    destination = tmp_path / "e" / "openclaw" / "generated" / "read_models"
+
+    report = publish_pc_bridge_read_models(
+        source_root=repo / "generated" / "read_models",
+        destination_root=destination,
+    )
+
+    copied = {item["relative_path"] for item in report["copied_files"]}
+    assert "invoice_review_bundle.json" in copied
+    assert (destination / "invoice_review_bundle.json").is_file()
+
+
+def test_pc_direct_bridge_publishes_invoice_review_candidate_artifact(tmp_path):
+    source = tmp_path / "generated" / "invoice_artifacts"
+    relative = INVOICE_REVIEW_CANDIDATE_ARTIFACT_FILES[0]
+    _write(source / relative, "synthetic xlsx candidate bytes\n")
+    destination = tmp_path / "e" / "openclaw" / "generated" / "invoice_artifacts"
+
+    report = publish_pc_bridge_invoice_review_artifacts(
+        source_root=source,
+        destination_root=destination,
+    )
+
+    assert report["status"] == "ok"
+    assert report["artifact_semantics"] == "candidate_only_no_current_invoice_or_attachment_ready_claim"
+    assert (destination / relative).is_file()
+    copied = report["copied_files"][0]
+    assert copied["relative_path"] == f"generated/invoice_artifacts/{relative}"
+    assert copied["candidate_only"] is True
+    assert copied["attachment_ready_claimed"] is False
+    assert copied["current_invoice_claimed"] is False
 
 
 def test_mac_sync_rejects_non_mac_platform(tmp_path):

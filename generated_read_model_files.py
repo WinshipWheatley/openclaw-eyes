@@ -51,6 +51,8 @@ MISSION_CONTROL_REVIEW_PACKET_READ_MODEL_FILES = (
     "capital_hilton_actionable_review_packet_OPERATOR.md",
     "cassandra_governed_review_packet_request_proof.json",
     "cassandra_governed_review_packet_request_proof_OPERATOR.md",
+    "invoice_review_bundle.json",
+    "invoice_review_bundle_OPERATOR.md",
 )
 
 MISSION_CONTROL_CAPTURE_INTAKE_READ_MODEL_FILES = (

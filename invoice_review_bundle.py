@@ -108,6 +108,9 @@ class InvoiceReviewArtifact:
     display_name: str
     preview_available: bool
     preview_ref: str | None
+    bridge_relative_ref: str | None
+    pc_bridge_ref: str | None
+    mac_visible_ref: str | None
     proof_status: str
     attachment_ready: bool
     linkage_status: str
@@ -188,11 +191,15 @@ def _excel_invoice_artifact(receipts: set[str]) -> InvoiceReviewArtifact:
     exists = CAPITAL_HILTON_EXCEL_PATH.exists()
     linked = exists and _artifact_linked_to_selected_invoice(receipts)
     missing = tuple(receipt for receipt in ARTIFACT_LINKAGE_RECEIPTS if receipt not in receipts)
+    bridge_relative_ref = CAPITAL_HILTON_EXCEL_PATH.as_posix() if exists else None
     return InvoiceReviewArtifact(
         artifact_ref=_artifact_ref(CAPITAL_HILTON_EXCEL_PATH),
         display_name="Capital Hilton Excel invoice candidate",
         preview_available=exists,
         preview_ref=CAPITAL_HILTON_EXCEL_PATH.as_posix() if exists else None,
+        bridge_relative_ref=bridge_relative_ref,
+        pc_bridge_ref=f"/mnt/e/openclaw/{bridge_relative_ref}" if bridge_relative_ref else None,
+        mac_visible_ref=f"/Volumes/openclaw_e/{bridge_relative_ref}" if bridge_relative_ref else None,
         proof_status="GENERATED_INVOICE_ARTIFACT_CONFIRMED" if linked else "GENERATED_INVOICE_ARTIFACT_CANDIDATE",
         attachment_ready=linked and "invoice_attachment_proof_receipt" in receipts,
         linkage_status="LINKED_TO_SELECTED_INVOICE" if linked else "NEEDS_INVOICE_SELECTION",

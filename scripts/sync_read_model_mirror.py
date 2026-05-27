@@ -24,6 +24,7 @@ if str(ROOT) not in sys.path:
 from corpus_atlas import stable_json
 from generated_read_model_files import (
     HELM_DECLUTTER_BRIDGE_READ_MODEL_FILES,
+    MISSION_CONTROL_REVIEW_PACKET_READ_MODEL_FILES,
     is_safe_generated_read_model_file,
 )
 from openclaw_substrate_utils import sha256_file
@@ -44,6 +45,7 @@ ENV_PC_WSL = "pc_wsl"
 RUNNER_VERSION = "read_model_mirror_auto_runner_v0_2"
 PC_ROOT = Path("/mnt/e/openclaw")
 PC_BRIDGE_READ_MODEL_ROOT = PC_ROOT / "generated" / "read_models"
+PC_BRIDGE_ARTIFACT_ROOT = PC_ROOT / "generated" / "invoice_artifacts"
 REQUEST_MARKER_PATH = PC_ROOT / "shuttle" / "to_mac" / "read_model_sync_required.json"
 NEXT_MAC_COMMAND = (
     "cd ~/Developer/OpenClawBackend/openclaw\n"
@@ -66,12 +68,25 @@ NO_AUTHORITY_FLAGS = {
     "file_move_allowed": False,
 }
 
+DIRECT_BRIDGE_READ_MODEL_FILES = tuple(
+    dict.fromkeys(
+        (
+            *HELM_DECLUTTER_BRIDGE_READ_MODEL_FILES,
+            *MISSION_CONTROL_REVIEW_PACKET_READ_MODEL_FILES,
+        )
+    )
+)
+
+INVOICE_REVIEW_CANDIDATE_ARTIFACT_FILES = (
+    "capital_hilton_invoice_artifact_v0/WINSHIP_CAPITAL_HILTON_INVOICE_2026-05-25.xlsx",
+)
+
 
 def publish_pc_bridge_read_models(
     *,
     source_root: str | Path = ROOT / "generated" / "read_models",
     destination_root: str | Path = PC_BRIDGE_READ_MODEL_ROOT,
-    file_names: tuple[str, ...] = HELM_DECLUTTER_BRIDGE_READ_MODEL_FILES,
+    file_names: tuple[str, ...] = DIRECT_BRIDGE_READ_MODEL_FILES,
 ) -> dict[str, Any]:
     source = Path(source_root)
     destination = Path(destination_root)
@@ -137,6 +152,85 @@ def publish_pc_bridge_read_models(
         "remote_control_allowed": False,
         "file_delete_allowed": False,
         "file_move_allowed": False,
+    }
+
+
+def _safe_invoice_artifact_relative_path(relative_path: str) -> bool:
+    path = Path(relative_path)
+    return (
+        not path.is_absolute()
+        and ".." not in path.parts
+        and path.suffix.lower() in {".xlsx", ".pdf", ".csv"}
+        and relative_path in INVOICE_REVIEW_CANDIDATE_ARTIFACT_FILES
+    )
+
+
+def publish_pc_bridge_invoice_review_artifacts(
+    *,
+    source_root: str | Path = ROOT / "generated" / "invoice_artifacts",
+    destination_root: str | Path = PC_BRIDGE_ARTIFACT_ROOT,
+    file_names: tuple[str, ...] = INVOICE_REVIEW_CANDIDATE_ARTIFACT_FILES,
+) -> dict[str, Any]:
+    source = Path(source_root)
+    destination = Path(destination_root)
+    copied: list[dict[str, Any]] = []
+    missing: list[str] = []
+    blocked: list[str] = []
+
+    if not source.is_dir():
+        return {
+            "status": "source_missing",
+            "source_root": source.as_posix(),
+            "destination_root": destination.as_posix(),
+            "copied_count": 0,
+            "copied_files": [],
+            "missing_files": list(file_names),
+            "blocked_files": [],
+            **NO_AUTHORITY_FLAGS,
+        }
+
+    for file_name in file_names:
+        if not _safe_invoice_artifact_relative_path(file_name):
+            blocked.append(file_name)
+            continue
+        source_path = source / file_name
+        if not source_path.is_file():
+            missing.append(file_name)
+            continue
+        destination_path = destination / file_name
+        destination_path.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source_path, destination_path)
+        source_hash = sha256_file(source_path)
+        destination_hash = sha256_file(destination_path)
+        if source_hash != destination_hash:
+            raise RuntimeError(f"hash mismatch after bridge artifact copy: {file_name}")
+        copied.append(
+            {
+                "relative_path": f"generated/invoice_artifacts/{file_name}",
+                "source_path": source_path.as_posix(),
+                "destination_path": destination_path.as_posix(),
+                "mac_visible_path": f"/Volumes/openclaw_e/generated/invoice_artifacts/{file_name}",
+                "size_bytes": destination_path.stat().st_size,
+                "sha256": destination_hash,
+                "candidate_only": True,
+                "attachment_ready_claimed": False,
+                "current_invoice_claimed": False,
+            }
+        )
+
+    status = "ok" if not missing and not blocked else "incomplete"
+    return {
+        "status": status,
+        "bridge_version": "pc_direct_invoice_review_artifact_bridge_v0",
+        "source_root": source.as_posix(),
+        "destination_root": destination.as_posix(),
+        "copied_count": len(copied),
+        "copied_files": copied,
+        "missing_files": missing,
+        "blocked_files": blocked,
+        "mac_visible_root": "/Volumes/openclaw_e/generated/invoice_artifacts",
+        "artifact_semantics": "candidate_only_no_current_invoice_or_attachment_ready_claim",
+        **NO_AUTHORITY_FLAGS,
     }
 
 
@@ -288,9 +382,13 @@ def sync_read_model_mirror(
         )
 
     direct_bridge_publish = None
+    direct_artifact_publish = None
     if environment == ENV_PC_WSL:
         direct_bridge_publish = publish_pc_bridge_read_models(
             destination_root=Path(e_drive_root) / "generated" / "read_models",
+        )
+        direct_artifact_publish = publish_pc_bridge_invoice_review_artifacts(
+            destination_root=Path(e_drive_root) / "generated" / "invoice_artifacts",
         )
         if bridge_only:
             return {
@@ -298,11 +396,13 @@ def sync_read_model_mirror(
                 "status": (
                     "bridge_published"
                     if direct_bridge_publish["status"] == "ok"
+                    and direct_artifact_publish["status"] == "ok"
                     else "bridge_publish_incomplete"
                 ),
                 "environment": environment,
                 "behavior": "publish_pc_bridge_read_models",
                 "direct_bridge_publish": direct_bridge_publish,
+                "direct_artifact_publish": direct_artifact_publish,
                 "mac_sync_not_attempted": True,
                 "pc_import_not_attempted": True,
                 **NO_AUTHORITY_FLAGS,
@@ -358,6 +458,7 @@ def sync_read_model_mirror(
             "mac_sync_not_attempted": True,
             "pc_import_not_attempted": True,
             "direct_bridge_publish": direct_bridge_publish,
+            "direct_artifact_publish": direct_artifact_publish,
             **NO_AUTHORITY_FLAGS,
         }
 
@@ -387,6 +488,7 @@ def sync_read_model_mirror(
         "next_expected_responder": "mac_read_model_sync_agent" if marker_path else None,
         "mac_sync_not_attempted": True,
         "direct_bridge_publish": direct_bridge_publish,
+        "direct_artifact_publish": direct_artifact_publish,
         "pc_import": report,
         **NO_AUTHORITY_FLAGS,
     }
@@ -414,6 +516,7 @@ def format_runner_report(payload: dict[str, Any]) -> str:
         )
     elif payload.get("behavior") == "publish_pc_bridge_read_models":
         bridge = payload["direct_bridge_publish"]
+        artifact = payload.get("direct_artifact_publish") or {}
         lines.extend(
             [
                 "",
@@ -424,10 +527,26 @@ def format_runner_report(payload: dict[str, Any]) -> str:
                 f"- Mac-visible root=`{bridge['mac_visible_root']}`",
             ]
         )
+        if artifact:
+            lines.extend(
+                [
+                    "",
+                    "Direct Mac bridge invoice review artifacts:",
+                    f"- status={artifact['status']}",
+                    f"- copied={artifact['copied_count']}",
+                    f"- destination=`{artifact['destination_root']}`",
+                    f"- Mac-visible root=`{artifact['mac_visible_root']}`",
+                    f"- semantics={artifact['artifact_semantics']}",
+                ]
+            )
         if bridge.get("missing_files"):
             lines.extend(["", "Missing source files:", *[f"- {item}" for item in bridge["missing_files"]]])
         if bridge.get("blocked_files"):
             lines.extend(["", "Blocked unsafe files:", *[f"- {item}" for item in bridge["blocked_files"]]])
+        if artifact.get("missing_files"):
+            lines.extend(["", "Missing artifact source files:", *[f"- {item}" for item in artifact["missing_files"]]])
+        if artifact.get("blocked_files"):
+            lines.extend(["", "Blocked artifact files:", *[f"- {item}" for item in artifact["blocked_files"]]])
     elif payload.get("behavior") == "mac_sync_generated_read_models":
         lines.extend(["", payload.get("message", ""), "", format_sync_report(payload["mac_sync"])])
         if payload.get("status") == "needs_pc_import":

@@ -90,6 +90,9 @@ def test_existing_generated_artifact_without_invoice_record_linkage_is_candidate
     assert artifact["preview_available"] is True
     assert artifact["proof_status"] == "GENERATED_INVOICE_ARTIFACT_CANDIDATE"
     assert artifact["linkage_status"] == "NEEDS_INVOICE_SELECTION"
+    assert artifact["bridge_relative_ref"] == artifact["preview_ref"]
+    assert artifact["pc_bridge_ref"].startswith("/mnt/e/openclaw/generated/invoice_artifacts/")
+    assert artifact["mac_visible_ref"].startswith("/Volumes/openclaw_e/generated/invoice_artifacts/")
     assert "generated_invoice_artifact_linkage_receipt" in artifact["missing_linkage_receipts"]
     assert payload["machine_proof"]["existing_artifact_without_invoice_record_linkage_is_candidate_only"] is True
 

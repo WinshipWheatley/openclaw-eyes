@@ -206,6 +206,8 @@ def test_capital_hilton_review_packet_files_are_mirror_expected_and_keyed():
         assert name in KEY_READ_MODEL_FILES
         assert name in CRITICAL_READ_MODEL_FILES
 
+    assert "invoice_review_bundle.json" in MISSION_CONTROL_REVIEW_PACKET_READ_MODEL_FILES
+
 
 def test_mission_control_capture_intake_files_are_mirror_expected_and_keyed():
     expected = set(canonical_generated_read_model_expected_files())
