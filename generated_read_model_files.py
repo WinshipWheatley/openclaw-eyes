@@ -68,6 +68,7 @@ VOLATILE_SELF_REPORT_READ_MODEL_FILES = (
 )
 
 HELM_DECLUTTER_BRIDGE_READ_MODEL_FILES = (
+    "helm_operator_attention_package.json",
     "operator_mission_priority_helm_declutter.json",
     "system_health_lights_taxonomy.json",
 )
