@@ -305,6 +305,36 @@ def test_po_reference_missing_remains_missing(tmp_path):
     assert payload["audit_readback"]["next_action"] == "Next: confirm the Coupa PO/reference."
 
 
+def test_mapped_value_type_mismatches_are_not_promoted(tmp_path):
+    _seed_registry(tmp_path)
+    workbook = tmp_path / "invoice_mismapped_values.xlsx"
+    _write_fixture_xlsx(
+        workbook,
+        {
+            "A1": ("inline", "Capital Hilton"),
+            "B2": ("inline", "INV-2026-001"),
+            "B3": ("inline", "2026-05-12"),
+            "B4": ("number", "1600"),
+            "B5": ("inline", "Dates"),
+            "B6": ("inline", "2026-05-08, 2026-05-15, 2026-05-22"),
+        },
+    )
+
+    payload = audit.run_audit(_audit_request(workbook_path=workbook, schema=_schema()), export_root=tmp_path, generated_at=FIXED_NOW)
+    fields = {field["field_name"]: field for field in payload["audit_result"]["fields_read"]}
+    conflicts = {conflict["field_name"]: conflict for conflict in payload["audit_result"]["conflicts_vs_known_facts"]}
+
+    assert payload["audit_result"]["status"] == "SHEET_AUDIT_REQUIRED_FIELD_MISSING"
+    assert payload["audit_result"]["po_reference_status"] == "PO_REFERENCE_MISSING_OR_UNVERIFIED"
+    assert fields["total"]["accepted_as_openclaw_fact"] is False
+    assert fields["total"]["promotion_status"] == "VALUE_TYPE_MISMATCH"
+    assert fields["coupa_po_reference"]["accepted_as_openclaw_fact"] is False
+    assert fields["coupa_po_reference"]["mismatch_reason"] == "PO_REFERENCE_LOOKS_LIKE_DATE_LIST"
+    assert "total" in payload["audit_result"]["fields_missing"]
+    assert "coupa_po_reference" in payload["audit_result"]["fields_missing"]
+    assert conflicts["total"]["reason"] == "EXPECTED_CURRENCY_VALUE"
+
+
 def test_formula_cells_are_reported_but_not_promoted_without_policy(tmp_path):
     _seed_registry(tmp_path)
     workbook = tmp_path / "invoice_formula.xlsx"

@@ -662,6 +662,8 @@ def _field_from_target(
     cached_value_present: bool,
     verified: bool,
     promotion_status: str,
+    value_type_valid: bool,
+    mismatch_reason: str,
 ) -> dict[str, Any]:
     return {
         "field_name": field_name,
@@ -675,6 +677,9 @@ def _field_from_target(
         "value_origin": "formula_derived_workbook_value" if formula_present else "whitelisted_workbook_cell",
         "accepted_as_openclaw_fact": verified,
         "promotion_status": promotion_status,
+        "value_type_valid": value_type_valid,
+        "mismatch_reason": mismatch_reason,
+        "confidence": "high" if verified else "low",
     }
 
 
@@ -698,6 +703,40 @@ def _value_missing(value: Any) -> bool:
     return value is None or (isinstance(value, str) and value.strip() == "")
 
 
+def _values_for_validation(value: Any) -> tuple[Any, ...]:
+    if isinstance(value, (tuple, list)):
+        return tuple(item for item in value if not _value_missing(item))
+    return () if _value_missing(value) else (value,)
+
+
+def _currency_value_valid(value: Any) -> bool:
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return True
+    if not isinstance(value, str):
+        return False
+    text = value.strip()
+    return bool(re.fullmatch(r"\$?\s*-?\d{1,3}(?:,\d{3})*(?:\.\d+)?|-?\d+(?:\.\d+)?", text))
+
+
+def _looks_like_date_list(value: Any) -> bool:
+    text = " ".join(str(item) for item in _values_for_validation(value))
+    return len(re.findall(r"\b\d{4}-\d{2}-\d{2}\b", text)) >= 2
+
+
+def _validate_expected_value(field_name: str, expected_value_type: str, value: Any) -> tuple[bool, str]:
+    values = _values_for_validation(value)
+    if not values:
+        return False, "VALUE_MISSING"
+    expected = expected_value_type.lower().strip()
+    if expected == "currency":
+        if all(_currency_value_valid(item) for item in values):
+            return True, ""
+        return False, "EXPECTED_CURRENCY_VALUE"
+    if field_name in {"po_reference", "coupa_po_reference"} and _looks_like_date_list(value):
+        return False, "PO_REFERENCE_LOOKS_LIKE_DATE_LIST"
+    return True, ""
+
+
 def _known_fact_conflicts(fields_read: tuple[dict[str, Any], ...], known_facts: Mapping[str, Any]) -> tuple[dict[str, Any], ...]:
     conflicts: list[dict[str, Any]] = []
     by_field = {field["field_name"]: field for field in fields_read}
@@ -715,6 +754,7 @@ def _evaluate_whitelist(
     fields_read: list[dict[str, Any]] = []
     missing: list[str] = []
     formula_blocked: list[dict[str, Any]] = []
+    mismatches: list[dict[str, Any]] = []
 
     for target in schema.sheet_target.allowed_cells:
         raw = dict(raw_cells.get(target.cell_ref) or {})
@@ -741,9 +781,28 @@ def _evaluate_whitelist(
             )
         if target.required and _value_missing(value):
             missing.append(target.field_name)
+        value_type_valid, mismatch_reason = _validate_expected_value(
+            target.field_name,
+            target.expected_value_type,
+            value,
+        )
+        if not _value_missing(value) and not value_type_valid:
+            mismatches.append(
+                {
+                    "field_name": target.field_name,
+                    "cell_refs": (target.cell_ref,),
+                    "expected_value_type": target.expected_value_type,
+                    "actual_value": value,
+                    "reason": mismatch_reason,
+                }
+            )
+        if target.required and not value_type_valid:
+            missing.append(target.field_name)
         promotion_status = (
             "FORMULA_VALUE_REQUIRES_PROMOTION_POLICY"
             if blocked
+            else "VALUE_TYPE_MISMATCH"
+            if not value_type_valid and not _value_missing(value)
             else "ACCEPTED_FROM_WHITELISTED_WORKBOOK_CELL"
             if not _value_missing(value)
             else "VALUE_MISSING"
@@ -757,8 +816,10 @@ def _evaluate_whitelist(
                 required=target.required,
                 formula_present=formula_present,
                 cached_value_present=cached_value_present,
-                verified=not blocked and not _value_missing(value),
+                verified=not blocked and not _value_missing(value) and value_type_valid,
                 promotion_status=promotion_status,
+                value_type_valid=value_type_valid,
+                mismatch_reason=mismatch_reason,
             )
         )
 
@@ -794,9 +855,28 @@ def _evaluate_whitelist(
             )
         if target.required and not clean_values:
             missing.append(target.field_name)
+        value_type_valid, mismatch_reason = _validate_expected_value(
+            target.field_name,
+            target.expected_value_type,
+            clean_values,
+        )
+        if clean_values and not value_type_valid:
+            mismatches.append(
+                {
+                    "field_name": target.field_name,
+                    "cell_refs": refs,
+                    "expected_value_type": target.expected_value_type,
+                    "actual_value": clean_values,
+                    "reason": mismatch_reason,
+                }
+            )
+        if target.required and not value_type_valid:
+            missing.append(target.field_name)
         promotion_status = (
             "FORMULA_VALUE_REQUIRES_PROMOTION_POLICY"
             if blocked
+            else "VALUE_TYPE_MISMATCH"
+            if clean_values and not value_type_valid
             else "ACCEPTED_FROM_WHITELISTED_WORKBOOK_CELL"
             if clean_values
             else "VALUE_MISSING"
@@ -810,8 +890,10 @@ def _evaluate_whitelist(
                 required=target.required,
                 formula_present=formula_present,
                 cached_value_present=cached_value_present,
-                verified=not blocked and bool(clean_values),
+                verified=not blocked and bool(clean_values) and value_type_valid,
                 promotion_status=promotion_status,
+                value_type_valid=value_type_valid,
+                mismatch_reason=mismatch_reason,
             )
         )
 
@@ -823,10 +905,11 @@ def _evaluate_whitelist(
         po_status = "PO_REFERENCE_DERIVED_REQUIRES_PROMOTION_POLICY"
     else:
         po_status = "PO_REFERENCE_MISSING_OR_UNVERIFIED"
-        if po_field and "coupa_po_reference" not in missing:
-            missing.append("coupa_po_reference")
+        missing_field = str(po_field.get("field_name") or "po_reference") if po_field else "po_reference"
+        if po_field and missing_field not in missing:
+            missing.append(missing_field)
 
-    conflicts = _known_fact_conflicts(tuple(fields_read), schema.known_facts)
+    conflicts = tuple(mismatches) + _known_fact_conflicts(tuple(fields_read), schema.known_facts)
     return tuple(fields_read), tuple(dict.fromkeys(missing)), tuple(formula_blocked), po_status, conflicts
 
 
