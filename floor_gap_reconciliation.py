@@ -170,6 +170,8 @@ def _assessment(
 
 def build_floor_matrix(*, generated_at: str = DEFAULT_GENERATED_AT) -> tuple[dict[str, Any], ...]:
     dashboard = lm_readiness_dashboard.build_payload(generated_at=generated_at)
+    live_shadow_payload = live_lm_shadow_trial.latest_or_ready_payload(generated_at=generated_at)
+    live_shadow_valid = bool((live_shadow_payload.get("machine_proof") or {}).get("live_shadow_receipt_valid"))
     bridge_readiness = request_response_bridge_readiness.build_payload(generated_at=generated_at)
     activation_requirements = live_lm_activation_requirements.build_payload(generated_at=generated_at)
     private_policy = private_mode_policy_readiness.build_payload(generated_at=generated_at)
@@ -392,11 +394,16 @@ def build_floor_matrix(*, generated_at: str = DEFAULT_GENERATED_AT) -> tuple[dic
             dashboard_visible=True,
             connected_to_chain=True,
             has_fixture=True,
+            has_sqlite_proof=live_shadow_valid,
             has_operator_copy=True,
-            ready_for_shadow=False,
+            ready_for_shadow=live_shadow_valid,
             ready_for_live_review=False,
             raised_this_pass=True,
-            not_ready_reason="Provider activation requires missing receipts; no provider is active.",
+            not_ready_reason=(
+                "Shadow provider/model receipts exist; production provider activation receipts are still missing."
+                if live_shadow_valid
+                else "Provider activation requires missing receipts; no provider is active."
+            ),
         ),
         _assessment(
             "live_lm_shadow_trial",
@@ -565,6 +572,7 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
             "provider_activation_status": activation_payload["provider_activation_status"],
             "missing_receipts": activation_payload["missing_receipts"],
             "live_shadow_receipt": activation_payload["live_shadow_receipt"],
+            "shadow_test_receipts": activation_payload["shadow_test_receipts"],
         },
         "live_lm_shadow_trial_ref": {
             "read_model_ref": "generated/read_models/live_lm_shadow_trial.json",
@@ -630,6 +638,15 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
             "live_lm_shadow_trial_recorded": live_shadow_payload["machine_proof"]["live_model_call_performed"],
             "live_shadow_receipt_valid": live_shadow_payload["machine_proof"]["live_shadow_receipt_valid"],
             "provider_activation_receipts_required": activation_payload["machine_proof"]["provider_activation_receipts_required"],
+            "shadow_provider_policy_receipt_present": activation_payload["machine_proof"][
+                "shadow_provider_policy_receipt_present"
+            ],
+            "shadow_model_selection_receipt_present": activation_payload["machine_proof"][
+                "shadow_model_selection_receipt_present"
+            ],
+            "shadow_receipts_satisfy_production_activation": activation_payload["machine_proof"][
+                "shadow_receipts_satisfy_production_activation"
+            ],
             "private_mode_policy_exported": private_policy_payload["machine_proof"]["private_mode_policy_exported"],
             "private_mode_policy_inactive": private_policy_payload["private_mode_active"] is False
             and private_policy_payload["strict_private_mode_active"] is False,

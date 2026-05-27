@@ -115,6 +115,9 @@ def test_equalization_exports_low_beam_readiness_refs():
     assert payload["machine_proof"]["live_lm_shadow_trial_recorded"] is True
     assert payload["machine_proof"]["live_shadow_receipt_valid"] is True
     assert payload["machine_proof"]["provider_activation_receipts_required"] is True
+    assert payload["machine_proof"]["shadow_provider_policy_receipt_present"] is True
+    assert payload["machine_proof"]["shadow_model_selection_receipt_present"] is True
+    assert payload["machine_proof"]["shadow_receipts_satisfy_production_activation"] is False
     assert payload["machine_proof"]["private_mode_policy_exported"] is True
     assert payload["machine_proof"]["read_model_mirror_visibility_no_sync_created"] is True
 
@@ -133,6 +136,13 @@ def test_floor_matrix_includes_v2_required_lanes():
     }.issubset(lane_ids)
     assert payload["live_lm_activation_requirements_ref"]["live_lm1_activation_status"] == "NOT_READY"
     assert payload["live_lm_activation_requirements_ref"]["live_shadow_receipt"]["present"] is True
+    assert payload["live_lm_activation_requirements_ref"]["shadow_test_receipts"]["provider_policy_receipt"]["present"] is True
+    assert (
+        payload["live_lm_activation_requirements_ref"]["shadow_test_receipts"]["provider_policy_receipt"][
+            "satisfies_production_activation"
+        ]
+        is False
+    )
     assert payload["live_lm_shadow_trial_ref"]["trial_status"] == "LIVE_SHADOW_PASSED"
     assert payload["private_mode_policy_readiness_ref"]["private_mode_active"] is False
     assert payload["read_model_mirror_visibility_ref"]["new_sync_system_created"] is False

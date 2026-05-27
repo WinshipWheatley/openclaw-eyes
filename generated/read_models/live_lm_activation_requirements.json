@@ -141,7 +141,7 @@
   },
   "machine_proof": {
     "all_live_authority_false": true,
-    "content_hash": "sha256:9046e0cf84153ccf16698f2517202f9fcb81b2ea3d74dffc5af6875c50cfdf86",
+    "content_hash": "sha256:6ba152dfe9bd9b2b060543979f511bf1e0e6f4b96ea1535108e9e8b28643012c",
     "external_action_performed": false,
     "live_lm1_ready": false,
     "live_lm2_ready": false,
@@ -158,6 +158,9 @@
     "provider_activation_receipts_present": false,
     "provider_activation_receipts_required": true,
     "receipt_requirement_count": 7,
+    "shadow_model_selection_receipt_present": true,
+    "shadow_provider_policy_receipt_present": true,
+    "shadow_receipts_satisfy_production_activation": false,
     "tool_execution_performed": false
   },
   "missing_receipts": [
@@ -176,5 +179,19 @@
   ],
   "provider_activation_status": "RECEIPTS_REQUIRED_NOT_PRESENT",
   "read_model_id": "live_lm_activation_requirements",
-  "schema_version": "live_lm_activation_requirements_v0"
+  "schema_version": "live_lm_activation_requirements_v0",
+  "shadow_test_receipts": {
+    "model_selection_policy_receipt": {
+      "model_ref": "nemotron-3-nano:4b",
+      "present": true,
+      "satisfies_production_activation": false,
+      "scope": "shadow_test_only"
+    },
+    "provider_policy_receipt": {
+      "present": true,
+      "provider_class": "provider_class:local_ollama_shadow_test",
+      "satisfies_production_activation": false,
+      "scope": "shadow_test_only"
+    }
+  }
 }

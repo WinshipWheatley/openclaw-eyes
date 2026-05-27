@@ -185,6 +185,10 @@ def test_dashboard_exposes_activation_private_and_visibility_without_live_enable
     assert flow["live_lm_activation_requirements"]["live_lm1_activation_status"] == "NOT_READY"
     assert flow["live_lm_activation_requirements"]["provider_activation_status"] == "RECEIPTS_REQUIRED_NOT_PRESENT"
     assert flow["live_lm_activation_requirements"]["live_shadow_receipt"]["present"] is True
+    assert flow["live_lm_activation_requirements"]["shadow_test_receipts"]["provider_policy_receipt"]["present"] is True
+    assert flow["live_lm_activation_requirements"]["shadow_test_receipts"]["provider_policy_receipt"][
+        "satisfies_production_activation"
+    ] is False
     assert flow["live_lm_shadow_trial"]["live_model_call_performed"] is True
     assert flow["live_lm_shadow_trial"]["live_shadow_receipt_valid"] is True
     assert flow["private_mode_policy_readiness"]["active_state"] == "standard"
@@ -194,6 +198,8 @@ def test_dashboard_exposes_activation_private_and_visibility_without_live_enable
     assert payload["machine_proof"]["live_lm_shadow_trial_aggregated"] is True
     assert payload["machine_proof"]["live_shadow_model_call_recorded"] is True
     assert payload["machine_proof"]["live_shadow_receipt_valid"] is True
+    assert payload["machine_proof"]["shadow_provider_policy_receipt_present"] is True
+    assert payload["machine_proof"]["shadow_model_selection_receipt_present"] is True
     assert payload["machine_proof"]["provider_activation_receipts_present"] is False
     assert payload["machine_proof"]["private_mode_policy_active"] is False
     assert payload["machine_proof"]["read_model_mirror_visibility_mac_visible_guaranteed"] is False

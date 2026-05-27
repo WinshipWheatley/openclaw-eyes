@@ -402,6 +402,7 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
                 "provider_activation_status": activation_requirements["provider_activation_status"],
                 "missing_receipts": activation_requirements["missing_receipts"],
                 "live_shadow_receipt": activation_requirements["live_shadow_receipt"],
+                "shadow_test_receipts": activation_requirements["shadow_test_receipts"],
             },
             "live_lm_shadow_trial": {
                 "read_model_ref": "generated/read_models/live_lm_shadow_trial.json",
@@ -600,6 +601,12 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
             "live_shadow_trial_status": live_shadow_trial["trial_status"],
             "live_shadow_model_call_recorded": live_shadow_trial["machine_proof"]["live_model_call_performed"],
             "live_shadow_receipt_valid": live_shadow_trial["machine_proof"]["live_shadow_receipt_valid"],
+            "shadow_provider_policy_receipt_present": activation_requirements["machine_proof"][
+                "shadow_provider_policy_receipt_present"
+            ],
+            "shadow_model_selection_receipt_present": activation_requirements["machine_proof"][
+                "shadow_model_selection_receipt_present"
+            ],
             "provider_activation_receipts_required": activation_requirements["machine_proof"]["provider_activation_receipts_required"],
             "provider_activation_receipts_present": activation_requirements["machine_proof"]["provider_activation_receipts_present"],
             "private_mode_policy_readiness_aggregated": True,

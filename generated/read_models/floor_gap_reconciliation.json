@@ -329,15 +329,15 @@
       "exported": true,
       "has_fixture": true,
       "has_operator_copy": true,
-      "has_sqlite_proof": false,
+      "has_sqlite_proof": true,
       "lane_id": "provider_activation_receipts",
       "lane_name": "Provider activation receipts",
-      "maturity_label": "CONNECTED",
-      "maturity_score": 6,
-      "not_ready_reason": "Provider activation requires missing receipts; no provider is active.",
+      "maturity_label": "SHADOW_READY",
+      "maturity_score": 8,
+      "not_ready_reason": "Shadow provider/model receipts exist; production provider activation receipts are still missing.",
       "raised_this_pass": true,
       "ready_for_live_review": false,
-      "ready_for_shadow": false,
+      "ready_for_shadow": true,
       "tested": true
     },
     {
@@ -628,7 +628,21 @@
       "rollback_disable_receipt"
     ],
     "provider_activation_status": "RECEIPTS_REQUIRED_NOT_PRESENT",
-    "read_model_ref": "generated/read_models/live_lm_activation_requirements.json"
+    "read_model_ref": "generated/read_models/live_lm_activation_requirements.json",
+    "shadow_test_receipts": {
+      "model_selection_policy_receipt": {
+        "model_ref": "nemotron-3-nano:4b",
+        "present": true,
+        "satisfies_production_activation": false,
+        "scope": "shadow_test_only"
+      },
+      "provider_policy_receipt": {
+        "present": true,
+        "provider_class": "provider_class:local_ollama_shadow_test",
+        "satisfies_production_activation": false,
+        "scope": "shadow_test_only"
+      }
+    }
   },
   "live_lm_shadow_trial_ref": {
     "live_model_call_performed": true,
@@ -659,7 +673,7 @@
   "machine_proof": {
     "all_live_authority_false": true,
     "all_required_lanes_classified": true,
-    "content_hash": "sha256:7225dc8a5f6ebb84bb78f6c6ecfb17c02573534d90d414eb8683bbf5b38e4c70",
+    "content_hash": "sha256:aeb49c06286b8c7d20143a5146fe302a5668dd982683bff33cba5ad912cf0a0b",
     "dashboard_live_lm_not_active": true,
     "external_action_performed": false,
     "floor_matrix_lane_count": 22,
@@ -689,6 +703,9 @@
     "read_model_mirror_visibility_no_sync_created": true,
     "request_response_bridge_dashboard_visible": true,
     "request_response_bridge_ready_for_live_review": true,
+    "shadow_model_selection_receipt_present": true,
+    "shadow_provider_policy_receipt_present": true,
+    "shadow_receipts_satisfy_production_activation": false,
     "tokenization_raw_values_exported": false,
     "tool_execution_performed": false,
     "universal_intake_chain_compatible": true,
@@ -776,15 +793,15 @@
       "exported": true,
       "has_fixture": true,
       "has_operator_copy": true,
-      "has_sqlite_proof": false,
+      "has_sqlite_proof": true,
       "lane_id": "provider_activation_receipts",
       "lane_name": "Provider activation receipts",
-      "maturity_label": "CONNECTED",
-      "maturity_score": 6,
-      "not_ready_reason": "Provider activation requires missing receipts; no provider is active.",
+      "maturity_label": "SHADOW_READY",
+      "maturity_score": 8,
+      "not_ready_reason": "Shadow provider/model receipts exist; production provider activation receipts are still missing.",
       "raised_this_pass": true,
       "ready_for_live_review": false,
-      "ready_for_shadow": false,
+      "ready_for_shadow": true,
       "tested": true
     },
     {
@@ -1029,24 +1046,6 @@
       "has_fixture": true,
       "has_operator_copy": true,
       "has_sqlite_proof": false,
-      "lane_id": "provider_activation_receipts",
-      "lane_name": "Provider activation receipts",
-      "maturity_label": "CONNECTED",
-      "maturity_score": 6,
-      "not_ready_reason": "Provider activation requires missing receipts; no provider is active.",
-      "raised_this_pass": true,
-      "ready_for_live_review": false,
-      "ready_for_shadow": false,
-      "tested": true
-    },
-    {
-      "connected_to_chain": true,
-      "contract_only": false,
-      "dashboard_visible": true,
-      "exported": true,
-      "has_fixture": true,
-      "has_operator_copy": true,
-      "has_sqlite_proof": false,
       "lane_id": "gate1_ingress_privacy_request",
       "lane_name": "Gate 1 ingress/privacy/request readiness",
       "maturity_label": "SHADOW_READY",
@@ -1088,6 +1087,24 @@
       "maturity_label": "SHADOW_READY",
       "maturity_score": 8,
       "not_ready_reason": "Operator-facing visibility improved; live LM1 proposals still require explicit activation.",
+      "raised_this_pass": false,
+      "ready_for_live_review": true,
+      "ready_for_shadow": true,
+      "tested": true
+    },
+    {
+      "connected_to_chain": true,
+      "contract_only": false,
+      "dashboard_visible": true,
+      "exported": true,
+      "has_fixture": true,
+      "has_operator_copy": true,
+      "has_sqlite_proof": false,
+      "lane_id": "gate3_role_package",
+      "lane_name": "Gate 3 role package",
+      "maturity_label": "SHADOW_READY",
+      "maturity_score": 8,
+      "not_ready_reason": "",
       "raised_this_pass": false,
       "ready_for_live_review": true,
       "ready_for_shadow": true,
