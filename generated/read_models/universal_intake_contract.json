@@ -1,0 +1,101 @@
+{
+  "authority_boundary": {
+    "external_action_allowed": false,
+    "file_body_read_allowed": false,
+    "ledger_posting_allowed": false,
+    "model_call_allowed": false,
+    "ocr_allowed": false,
+    "pdf_generation_allowed": false,
+    "production_state_mutation_allowed": false,
+    "send_submit_allowed": false,
+    "spreadsheet_cell_read_allowed": false,
+    "workbook_body_read_allowed": false
+  },
+  "connects_to_chain": {
+    "gate_1": "Consumes safe metadata-only file references and notes.",
+    "gate_2": "High-confidence candidates still need normal intent/capability validation before action.",
+    "lm1": "Can provide structured candidate context before LM1 proposal or deterministic intake."
+  },
+  "contract_status": "UNIVERSAL_INTAKE_METADATA_ONLY_NO_BODY_READ",
+  "examples": {
+    "ambiguous_invoice_workbook": {
+      "artifact_kind": "possible_invoice_workbook",
+      "authority_boundary": {
+        "external_action_allowed": false,
+        "file_body_read_allowed": false,
+        "ledger_posting_allowed": false,
+        "model_call_allowed": false,
+        "ocr_allowed": false,
+        "pdf_generation_allowed": false,
+        "production_state_mutation_allowed": false,
+        "send_submit_allowed": false,
+        "spreadsheet_cell_read_allowed": false,
+        "workbook_body_read_allowed": false
+      },
+      "backend_paths_exposed": false,
+      "candidate_id": "universal_intake_candidate:1b48814fa9be9d93",
+      "clarification_question": "Which client or workflow should this workbook belong to?",
+      "client_ref": "unknown",
+      "confidence": "MEDIUM",
+      "final": false,
+      "intended_use": "needs_client_workflow_clarification",
+      "ledger_posted": false,
+      "next_safe_action": "Ask one clarification question; do not read the workbook.",
+      "operator_headline": "Which client is this for?",
+      "operator_message": "OpenClaw sees an invoice workbook candidate, but needs the client or workflow before using it.",
+      "paid": false,
+      "proposed_facts_only": true,
+      "source_request_id": "universal_intake_fixture_ambiguous_request",
+      "submitted": false,
+      "workflow_ref": "unknown",
+      "world_ref": "finance"
+    },
+    "capital_hilton_running_workbook": {
+      "artifact_kind": "running_draft_invoice_workbook",
+      "authority_boundary": {
+        "external_action_allowed": false,
+        "file_body_read_allowed": false,
+        "ledger_posting_allowed": false,
+        "model_call_allowed": false,
+        "ocr_allowed": false,
+        "pdf_generation_allowed": false,
+        "production_state_mutation_allowed": false,
+        "send_submit_allowed": false,
+        "spreadsheet_cell_read_allowed": false,
+        "workbook_body_read_allowed": false
+      },
+      "backend_paths_exposed": false,
+      "candidate_id": "universal_intake_candidate:1e8b8c1e48cac703",
+      "clarification_question": "",
+      "client_ref": "capital_hilton",
+      "confidence": "HIGH",
+      "final": false,
+      "intended_use": "register_or_resolve_invoice_workbook_artifact",
+      "ledger_posted": false,
+      "next_safe_action": "Propose metadata-only workbook intake, then ask before any audit, send, PDF, or ledger step.",
+      "operator_headline": "Capital Hilton workbook recognized",
+      "operator_message": "OpenClaw recognized this as a likely Capital Hilton running invoice workbook. It is still a draft/source workbook, not proof that anything was sent or paid.",
+      "paid": false,
+      "proposed_facts_only": true,
+      "source_request_id": "universal_intake_fixture_capital_hilton_request",
+      "submitted": false,
+      "workflow_ref": "capital_hilton_invoice_workflow",
+      "world_ref": "finance"
+    }
+  },
+  "generated_at": "2026-05-26T00:00:00+00:00",
+  "machine_proof": {
+    "all_live_authority_false": true,
+    "ambiguous_fixture_asks_clarification": true,
+    "backend_paths_exposed": false,
+    "capital_hilton_fixture_inferred": true,
+    "content_hash": "sha256:cc84524550caa659010e70baf8b6832068d13b1c216b280dd2014044270421a5",
+    "fixture_final_false": true,
+    "fixture_ledger_posted_false": true,
+    "fixture_paid_false": true,
+    "fixture_submitted_false": true,
+    "workbook_body_read_performed": false
+  },
+  "read_model_id": "universal_intake_contract",
+  "schema_version": "universal_intake_contract_v0"
+}
