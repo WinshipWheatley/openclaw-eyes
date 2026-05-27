@@ -359,7 +359,7 @@ def _expected_invoice_workbook_package_path(source_request_id: str, filename: st
     safe_filename = _sanitized_filename(filename)
     if not request_segment or not safe_filename:
         return None
-    return pc_invoice_workbook_artifact_root() / request_segment / safe_filename
+    return pc_invoice_workbook_artifact_root() / request_segment / "source" / safe_filename
 
 
 def is_artifact_approval_request(raw_request: Mapping[str, Any]) -> bool:
@@ -637,7 +637,13 @@ def evaluate_artifact_reference(
         missing_items: list[str] = []
         candidates: list[str] = []
 
-        shared_path = str(raw_request.get("shared_artifact_path") or raw_request.get("artifact_package_path") or "").strip()
+        shared_path = str(
+            raw_request.get("shared_artifact_path")
+            or raw_request.get("artifact_package_path")
+            or raw_request.get("approved_pc_readable_path")
+            or raw_request.get("pc_path")
+            or ""
+        ).strip()
         source_request_id = str(raw_request.get("request_id") or raw_request.get("source_request_id") or "unknown_request").strip()
         filename_to_find = str(raw_request.get("file_display_name") or raw_request.get("filename") or "").strip()
         if not filename_to_find and shared_path:
@@ -653,7 +659,11 @@ def evaluate_artifact_reference(
         translation_guessed = raw_request.get("path_translation_guessed") is True
         request_mapping_verified = raw_request.get("path_mapping_verified") is True
         approved_read_flag = raw_request.get("approved_for_read") is True or raw_request.get("operator_approved_for_read") is True
-        operator_selected = raw_request.get("operator_selected") is True or raw_request.get("operator_approved") is True
+        operator_selected = (
+            raw_request.get("operator_selected") is True
+            or raw_request.get("operator_approved") is True
+            or raw_request.get("approved_for_read") is True
+        )
 
         if (approved_for_write or body_read or spreadsheet_cell_read or
             content_extracted or ocr_performed or external_shared or external_action):

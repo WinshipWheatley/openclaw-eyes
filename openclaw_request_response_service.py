@@ -71,6 +71,14 @@ ROUTING_STATUSES = (
     "UNKNOWN_FAIL_CLOSED",
 )
 
+SERVICE_SUPPORTED_REQUEST_FAMILIES = (
+    "CHAT",
+    "FILE_METADATA",
+    "LOCAL_SURFACE_RESULT",
+    "ARTIFACT_REFERENCE_APPROVAL",
+    "ARTIFACT_INTAKE_REQUEST",
+)
+
 WORKER_TARGETS = (
     "PC_CODEX",
     "MAC_CODEX",
@@ -408,7 +416,7 @@ def list_candidate_requests(inbox: Path = APPROVED_INBOX) -> tuple[Path, ...]:
             continue
         if not path.is_file():
             continue
-        if classify_request_path(path) in {"CHAT", "FILE_METADATA"}:
+        if classify_request_path(path) in SERVICE_SUPPORTED_REQUEST_FAMILIES:
             candidates.append(path)
     return tuple(sorted(candidates, key=lambda item: (item.stat().st_mtime_ns, item.name)))
 
@@ -616,6 +624,25 @@ def _route_for_request(request_path: Path, identity: RequestIdentity, raw_reques
             operator_message="OpenClaw picked this up and is checking the metadata-only local rail.",
             next_safe_move="Wait for the file reference readback.",
             route_reason="File metadata requests are handled by the deterministic PC metadata rail.",
+            pc_handled=True,
+            mac_handoff_required=False,
+            future_worker_blocked=False,
+        )
+    if request_type in {"LOCAL_SURFACE_RESULT", "ARTIFACT_REFERENCE_APPROVAL", "ARTIFACT_INTAKE_REQUEST"}:
+        processing_status = {
+            "LOCAL_SURFACE_RESULT": "CHECKING_LOCAL_SURFACE_RESULT_RAIL",
+            "ARTIFACT_REFERENCE_APPROVAL": "CHECKING_ARTIFACT_REFERENCE_RAIL",
+            "ARTIFACT_INTAKE_REQUEST": "RECEIVING_WORKBOOK_FROM_MAC",
+        }.get(request_type, "CHECKING_LOCAL_RAILS")
+        return RouteDecision(
+            routing_status="PROCESSING_ON_PC",
+            selected_worker_target="OPENCLAW_SYSTEM",
+            selected_machine="PC_WSL",
+            processing_status=processing_status,
+            operator_headline="OpenClaw is checking this request",
+            operator_message="OpenClaw picked this up and is checking the safe local handoff.",
+            next_safe_move="Wait for the OpenClaw readback.",
+            route_reason="Governed local result and artifact handoff requests are handled by deterministic PC rails.",
             pc_handled=True,
             mac_handoff_required=False,
             future_worker_blocked=False,
@@ -1813,6 +1840,7 @@ def build_service_status_payload(
             "all_processed_request_records": all_records,
         },
         "supported_request_patterns": processor.SUPPORTED_REQUEST_PATTERNS,
+        "service_supported_request_families": SERVICE_SUPPORTED_REQUEST_FAMILIES,
         "run_modes": {
             "once": "Process one pending supported request and exit.",
             "watch_seconds": "Poll the configured inbox for a bounded number of seconds, then exit.",
@@ -1820,7 +1848,7 @@ def build_service_status_payload(
             "active_poll_interval": "Fast poll interval used briefly after a new supported request is processed.",
             "active_window_seconds": "Bounded responsive window before backing off to idle polling.",
             "max_requests": "Caps how many new requests a watch run may process before exiting.",
-            "persistent_service": "Not installed or enabled in this lane.",
+            "persistent_service": "Template available for explicit operator-controlled systemd user activation; not auto-started by this status export.",
         },
         "read_model_cache_policy": {
             "enabled": result.cache_enabled,
@@ -1843,6 +1871,11 @@ def build_service_status_payload(
             "approved_inbox": APPROVED_INBOX.as_posix(),
             "response_dir": DEFAULT_RESPONSE_DIR.as_posix(),
             "mac_handoff_dir": DEFAULT_MAC_HANDOFF_DIR.as_posix(),
+            "systemd_user_template": "systemd/user/openclaw-request-response.service.in",
+            "activation_after_smoke_approval": (
+                "scripts/install_openclaw_stack.sh --apply --enable --start"
+            ),
+            "activation_status": "not started by this command",
         },
         "response_output_policy": {
             "response_dir": result.response_path,

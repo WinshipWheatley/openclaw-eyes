@@ -2740,6 +2740,103 @@ def _artifact_intake_classification(
     )
 
 
+def _artifact_intake_operator_copy(
+    *,
+    resolution_status: str,
+    validation_errors: tuple[str, ...],
+    artifact_ready: bool,
+    handoff_live_ready: bool,
+    client_ref: str,
+    next_action_from_handoff: str,
+) -> tuple[str, str, str, tuple[str, ...]]:
+    client_label = "Capital Hilton" if client_ref == "capital_hilton" else "invoice"
+    if resolution_status == "APPROVED_PC_PATH_CAPTURED":
+        headline = f"{client_label} workbook received" if client_ref == "capital_hilton" else "Workbook received"
+        if handoff_live_ready:
+            return (
+                headline,
+                "OpenClaw received the workbook and found the invoice field map. It is ready for the next safe step.",
+                "Next: run the whitelisted invoice sheet audit.",
+                (),
+            )
+        return (
+            headline,
+            "OpenClaw received the workbook and kept it sealed. The workbook body and cells were not read.",
+            next_action_from_handoff or "Next: tell OpenClaw where the invoice fields are.",
+            (),
+        )
+    if resolution_status == "ARTIFACT_APPROVAL_REQUIRED":
+        return (
+            "Workbook confirmation needed",
+            "OpenClaw received the workbook, but it still needs one confirmation before audit.",
+            "Next: confirm the workbook in the Mac app.",
+            ("workbook confirmation",),
+        )
+    if resolution_status in {"ARTIFACT_WRITE_AUTHORITY_BLOCKED", "ARTIFACT_BODY_OR_CONTENT_ALREADY_READ_BLOCKED"}:
+        return (
+            "Workbook handoff blocked",
+            "OpenClaw could not use this workbook handoff because it included work outside this safe step.",
+            "Next: choose the workbook again in the Mac app without reading or editing it.",
+            ("safe workbook handoff",),
+        )
+    if resolution_status == "ARTIFACT_PATH_TRANSLATION_GUESSED_BLOCKED":
+        return (
+            "Workbook handoff blocked",
+            "OpenClaw could not use a guessed workbook location. Please choose the workbook again in the Mac app.",
+            "Next: choose the workbook again in the Mac app.",
+            ("workbook handoff",),
+        )
+    joined_errors = " ".join(validation_errors).lower()
+    if "outside the approved bridge" in joined_errors:
+        return (
+            "Workbook outside OpenClaw bridge",
+            "The workbook was outside the approved OpenClaw bridge. Please choose it again in the Mac app.",
+            "Next: choose the workbook again in the Mac app.",
+            ("OpenClaw bridge copy",),
+        )
+    if "request-scoped package layout" in joined_errors or "source_request_id" in joined_errors:
+        return (
+            "Workbook package incomplete",
+            "OpenClaw received the workbook request, but the workbook copy was incomplete.",
+            "Next: choose the workbook again in the Mac app.",
+            ("workbook copy",),
+        )
+    if "path_mapping_verified" in joined_errors:
+        return (
+            "Workbook confirmation needed",
+            "OpenClaw received the workbook request, but the Mac app still needs to confirm the safe handoff.",
+            "Next: choose the workbook again in the Mac app.",
+            ("workbook handoff confirmation",),
+        )
+    if "artifact scope binding required" in joined_errors or "workflow_ref=" in joined_errors or "client_ref=" in joined_errors:
+        return (
+            "Which workflow is this for?",
+            "OpenClaw received the workbook, but it needs the client and workflow before using it.",
+            "Next: choose the workbook again from the correct workflow in the Mac app.",
+            ("client or workflow",),
+        )
+    if resolution_status == "WORKBOOK_NOT_SPREADSHEET":
+        return (
+            "Workbook type not supported",
+            "OpenClaw received a file, but it does not look like a supported invoice workbook.",
+            "Next: choose an Excel or CSV workbook in the Mac app.",
+            ("supported workbook file",),
+        )
+    if resolution_status == "WORKBOOK_NOT_FOUND":
+        return (
+            "OpenClaw could not receive the workbook",
+            "OpenClaw did not find the workbook copy in the approved bridge.",
+            "Next: choose the workbook again in the Mac app.",
+            ("workbook copy",),
+        )
+    return (
+        "OpenClaw could not receive the workbook",
+        "OpenClaw could not use this workbook handoff yet. Please choose the workbook again in the Mac app.",
+        "Next: choose the workbook again in the Mac app.",
+        ("workbook handoff",) if not artifact_ready else (),
+    )
+
+
 def _process_artifact_intake_request(
     request_path: Path,
     raw_request: Mapping[str, Any],
@@ -2790,38 +2887,18 @@ def _process_artifact_intake_request(
         handoff_readback = handoff_payload["audit_handoff_readback"]
 
     handoff_live_ready = bool((handoff_payload or {}).get("live_audit_ready"))
-    missing_items = tuple(
-        str(item)
-        for item in (
-            (handoff_readback.get("missing_items") if handoff_readback else None)
-            or readiness.get("missing_items")
-            or readiness.get("blocking_reasons")
-            or ()
-        )
-    )
-
     res_status = receipt.get("resolution_status")
-    primary_blocker = "None" if (artifact_ready and not missing_items) or handoff_live_ready else (missing_items[0] if missing_items else str(readiness["readiness_status"]))
 
-    if res_status == "APPROVED_PC_PATH_CAPTURED":
-        headline = "Capital Hilton workbook approved" if expected_scope.get("client_ref") == "capital_hilton" else "Workbook approved"
-        if handoff_live_ready:
-            message = "I received the workbook package and found the approved field mapping. The whitelisted sheet audit is ready."
-        else:
-            message = "I received the workbook package and approved the local read reference. The workbook body and cells were not read."
-        next_action = str((handoff_readback or {}).get("next_action") or "Next: run the sheet audit.")
-    elif res_status == "CLARIFICATION_REQUIRED":
-        headline = "Multiple workbooks found"
-        message = "I found multiple possible workbook files; choose one."
-        next_action = "Confirm a candidate file or provide an opaque intake package."
-    elif res_status in {"ARTIFACT_WRITE_AUTHORITY_BLOCKED", "ARTIFACT_BODY_OR_CONTENT_ALREADY_READ_BLOCKED"}:
-        headline = "Artifact approval blocked"
-        message = f"I received the file, but it failed validation because: {'; '.join(receipt.get('validation_errors') or ())}"
-        next_action = "Next: resend the artifact approval with matching scope, verified PC-readable path, and read-only flags."
-    else:
-        headline = "Workbook access blocked"
-        message = "I could not approve the workbook package because the bridge path, request scope, or read-only approval gate failed."
-        next_action = "Provide a valid shared artifact intake package."
+    headline, message, next_action, operator_missing_items = _artifact_intake_operator_copy(
+        resolution_status=str(res_status or ""),
+        validation_errors=tuple(str(item) for item in receipt.get("validation_errors") or ()),
+        artifact_ready=artifact_ready,
+        handoff_live_ready=handoff_live_ready,
+        client_ref=expected_scope.get("client_ref") or "",
+        next_action_from_handoff=str((handoff_readback or {}).get("next_action") or ""),
+    )
+    display_missing_items = operator_missing_items or (() if artifact_ready or handoff_live_ready else ("workbook handoff",))
+    primary_blocker = "None" if (artifact_ready and not display_missing_items) or handoff_live_ready else (display_missing_items[0] if display_missing_items else "workbook handoff")
 
     detail = {
         "local_artifact_reference": {
@@ -2850,7 +2927,7 @@ def _process_artifact_intake_request(
             "primary_status": str(readiness["readiness_status"]).replace("_", " ").title(),
             "primary_blocker": primary_blocker,
             "next_action": next_action,
-            "missing_items_short": missing_items,
+            "missing_items_short": display_missing_items,
             "detail_summary": f"Artifact ready: {artifact_ready}. Audit ready: {handoff_live_ready}.",
             "proof_refs": (artifact_json.as_posix(),)
             + ((handoff_json.as_posix(),) if handoff_json is not None else ()),
@@ -2889,14 +2966,14 @@ def _process_artifact_intake_request(
         operator_headline=headline,
         operator_message=message,
         what_happened=(
-            "PC consumed the artifact intake request through the generic router.",
-            "PC checked the governed bridge path and request-scoped artifact package rules.",
-            "PC used only request metadata and filesystem metadata; it did not read cells, parse spreadsheets, or invoke models.",
+            "OpenClaw received the workbook handoff from Mission Control.",
+            "OpenClaw checked the approved workbook bridge copy and request scope.",
+            "OpenClaw used only request metadata and filesystem metadata; it did not read cells, parse spreadsheets, or invoke models.",
         ),
         why_it_happened=(
-            "The workbook exists under the governed intake package folder and operator read approval is true."
+            "The workbook arrived through the approved OpenClaw bridge and the Mac app marked it for this workflow."
             if artifact_ready
-            else "The workbook is missing or fails required safety/bridge validation."
+            else "The workbook copy is missing or did not match the safe Mission Control handoff."
         ),
         how_to_fix="No fix is needed. Run the whitelisted sheet audit when ready." if handoff_live_ready else next_action,
         visible_cards=(

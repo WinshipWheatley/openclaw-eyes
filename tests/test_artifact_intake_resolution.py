@@ -27,7 +27,7 @@ def _package_file(
     source_request_id: str = "source_request_123",
     filename: str = "capital_hilton_invoice.xlsx",
 ) -> Path:
-    path = bridge_root / "artifacts" / "invoice_workbooks" / source_request_id / filename
+    path = bridge_root / "artifacts" / "invoice_workbooks" / source_request_id / "source" / filename
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(b"opaque workbook fixture bytes")
     return path
@@ -93,7 +93,7 @@ def _intake_request(**overrides):
         "workflow_ref": "capital_hilton_invoice_workflow",
         "client_ref": "capital_hilton",
         "project_ref": "",
-        "shared_artifact_path": "/Volumes/openclaw_e/artifacts/invoice_workbooks/source_request_123/capital_hilton_invoice.xlsx",
+        "shared_artifact_path": "/Volumes/openclaw_e/artifacts/invoice_workbooks/source_request_123/source/capital_hilton_invoice.xlsx",
         "file_display_name": "capital_hilton_invoice.xlsx",
         "operator_selected": True,
         "operator_approved_for_read": True,
@@ -147,7 +147,7 @@ def test_pattern_a_bridge_translation_and_auto_approval(monkeypatch, tmp_path):
     readiness = payload["artifact_readiness_state"]
     approved = payload["approved_readable_artifact"]
 
-    expected = bridge_root / "artifacts" / "invoice_workbooks" / "source_request_123" / "capital_hilton_invoice.xlsx"
+    expected = bridge_root / "artifacts" / "invoice_workbooks" / "source_request_123" / "source" / "capital_hilton_invoice.xlsx"
     assert receipt["resolution_status"] == "APPROVED_PC_PATH_CAPTURED"
     assert receipt["pc_path_resolved"] == expected.resolve(strict=False).as_posix()
     assert receipt["path_mapping_verified"] is True
@@ -165,7 +165,7 @@ def test_intake_accepts_xlsm_as_opaque_workbook_artifact(monkeypatch, tmp_path):
     _package_file(bridge_root, filename="capital_hilton_invoice.xlsm")
 
     req = _intake_request(
-        shared_artifact_path="/Volumes/openclaw_e/artifacts/invoice_workbooks/source_request_123/capital_hilton_invoice.xlsm",
+        shared_artifact_path="/Volumes/openclaw_e/artifacts/invoice_workbooks/source_request_123/source/capital_hilton_invoice.xlsm",
         file_display_name="capital_hilton_invoice.xlsm",
     )
     payload = artifacts.evaluate_artifact_reference(req, generated_at=FIXED_NOW)
@@ -186,6 +186,20 @@ def test_intake_without_shared_path_uses_only_request_scoped_package(monkeypatch
     assert payload["artifact_resolution_receipt"]["resolution_status"] == "APPROVED_PC_PATH_CAPTURED"
     assert payload["artifact_resolution_receipt"]["pc_path_resolved"] == expected.resolve(strict=False).as_posix()
     assert payload["approved_readable_artifact"] is not None
+
+
+def test_intake_accepts_verified_pc_path_under_request_source_package(monkeypatch, tmp_path):
+    bridge_root = _set_bridge_root(monkeypatch, tmp_path)
+    expected = _package_file(bridge_root)
+
+    payload = artifacts.evaluate_artifact_reference(
+        _intake_request(shared_artifact_path="", approved_pc_readable_path=expected.as_posix()),
+        generated_at=FIXED_NOW,
+    )
+
+    assert payload["artifact_resolution_receipt"]["resolution_status"] == "APPROVED_PC_PATH_CAPTURED"
+    assert payload["artifact_resolution_receipt"]["pc_path_resolved"] == expected.resolve(strict=False).as_posix()
+    assert payload["approved_readable_artifact"]["approved_for_read"] is True
 
 
 def test_intake_rejects_flat_layout_without_request_scoped_directory(monkeypatch, tmp_path):
@@ -210,7 +224,7 @@ def test_intake_rejects_prefix_path_escape(monkeypatch, tmp_path):
     _package_file(bridge_root, source_request_id="source_request_1234")
 
     req = _intake_request(
-        shared_artifact_path="/Volumes/openclaw_e/artifacts/invoice_workbooks/source_request_1234/capital_hilton_invoice.xlsx"
+        shared_artifact_path="/Volumes/openclaw_e/artifacts/invoice_workbooks/source_request_1234/source/capital_hilton_invoice.xlsx"
     )
     payload = artifacts.evaluate_artifact_reference(req, generated_at=FIXED_NOW)
 
@@ -341,8 +355,8 @@ def test_handoff_readiness_promoted_integrated_processor(monkeypatch, tmp_path):
     )
 
     assert response.internal_status == "RESPONSE_READY"
-    assert response.operator_headline == "Capital Hilton workbook approved"
-    assert "approved the local read reference" in response.operator_message or "whitelisted sheet audit is ready" in response.operator_message
+    assert response.operator_headline == "Capital Hilton workbook received"
+    assert "ready for the next safe step" in response.operator_message
     assert response.detail_disclosure["client_invoice_audit_handoff"]["live_audit_ready"] is True
     assert (tmp_path / "local_artifact_reference.json").exists()
     assert (tmp_path / "client_invoice_audit_handoff.json").exists()
@@ -363,5 +377,5 @@ def test_handoff_readiness_remains_false_if_artifact_missing(monkeypatch, tmp_pa
     )
 
     assert response.internal_status == "BLOCKED_WITH_REASON"
-    assert response.operator_headline == "Workbook access blocked"
+    assert response.operator_headline == "OpenClaw could not receive the workbook"
     assert response.detail_disclosure["client_invoice_audit_handoff"]["live_audit_ready"] is False

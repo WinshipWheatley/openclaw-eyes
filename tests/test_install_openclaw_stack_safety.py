@@ -7,6 +7,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 INSTALLER = REPO_ROOT / "scripts" / "install_openclaw_stack.sh"
 FREEZE_DOC = REPO_ROOT / "docs" / "operations" / "OPENCLAW_SERVICE_MANAGEMENT_FREEZE.md"
+REQUEST_RESPONSE_UNIT = REPO_ROOT / "systemd" / "user" / "openclaw-request-response.service.in"
 
 
 def _installer_text() -> str:
@@ -103,3 +104,17 @@ def test_legacy_launchers_remain_slice_4_out_of_scope():
     for script_name in ("scripts/start_all.sh", "start_chief.sh", "start_openclaw_brains.sh"):
         assert script_name in freeze
         assert script_name not in source
+
+
+def test_request_response_service_template_is_bounded_and_operator_activated():
+    source = REQUEST_RESPONSE_UNIT.read_text(encoding="utf-8")
+
+    assert "scripts/run_openclaw_request_response_service.py" in source
+    assert "--watch-seconds 300" in source
+    assert "--max-requests 100" in source
+    assert "ConditionPathIsDirectory=/mnt/e/openclaw/mission_control_capture_requests/inbox" in source
+    assert "ConditionPathIsDirectory=/mnt/e/openclaw/mission_control_responses/to_mac" in source
+    assert "NoNewPrivileges=true" in source
+    assert "WantedBy=openclaw-stack.target" in source
+    assert "Gmail" not in source
+    assert "Coupa" not in source

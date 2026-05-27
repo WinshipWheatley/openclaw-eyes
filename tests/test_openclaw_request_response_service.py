@@ -14,6 +14,7 @@ import capital_hilton_invoice_operator_readback as capital_readback
 import client_invoice_audit_handoff as audit_handoff
 import client_invoice_sheet_audit as sheet_audit
 import client_invoice_workbook_registry as workbook_registry
+import local_artifact_reference
 import mac_worker_handoff_package as mac_handoff
 import openclaw_request_processor as processor
 import openclaw_request_response_service as service
@@ -213,6 +214,45 @@ def _write_audit_handoff_request(path: Path, *, workbook_path: str = "", schema:
         request["sheet_schema_mapping"] = schema
     request["payload_hash"] = chat_intake.compute_request_payload_hash(request)
     path.write_text(chat_intake.stable_json(request), encoding="utf-8")
+    return request
+
+
+def _write_artifact_intake_request(path: Path, *, bridge_root: Path, suffix: str = "service_artifact") -> dict:
+    request_id = f"mission_control_artifact_intake_request_{suffix}"
+    filename = "capital_hilton_invoice.xlsx"
+    package_path = bridge_root / "artifacts" / "invoice_workbooks" / request_id / "source" / filename
+    package_path.parent.mkdir(parents=True, exist_ok=True)
+    package_path.write_bytes(b"opaque workbook fixture bytes")
+    request = {
+        "request_id": request_id,
+        "idempotency_key": f"artifact_intake_{suffix}",
+        "payload_hash": f"artifact_intake_hash_{suffix}",
+        "request_type": "ARTIFACT_INTAKE_REQUEST",
+        "intended_use": "register_or_resolve_invoice_workbook_artifact",
+        "artifact_intended_use": "client_invoice_sheet_audit",
+        "artifact_kind": "invoice_workbook",
+        "artifact_label": "Capital Hilton Invoice Workbook",
+        "world_ref": "finance",
+        "workflow_ref": "capital_hilton_invoice_workflow",
+        "client_ref": "capital_hilton",
+        "approved_pc_readable_path": package_path.as_posix(),
+        "file_display_name": filename,
+        "path_mapping_verified": True,
+        "path_translation_guessed": False,
+        "approved_for_read": True,
+        "approved_for_write": False,
+        "body_read": False,
+        "workbook_body_read": False,
+        "spreadsheet_cell_read": False,
+        "content_extracted": False,
+        "ocr_performed": False,
+        "external_shared": False,
+        "external_llm_shared": False,
+        "external_action": False,
+        "created_at": FIXED_NOW,
+        "authority_boundary": dict(service.AUTHORITY_BOUNDARY),
+    }
+    path.write_text(json.dumps(request, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return request
 
 
@@ -1039,6 +1079,62 @@ def test_service_processes_audit_handoff_request_with_route_heartbeat(tmp_path, 
     assert response["next_action"] == "Next: run the Capital Hilton sheet audit."
     assert response["terminal"] is True
     assert handoff_payload["live_audit_ready"] is True
+    assert response["machine_proof"]["spreadsheet_cell_read_performed"] is False
+    assert response["machine_proof"]["external_action_performed"] is False
+
+
+def test_service_processes_artifact_intake_request_without_backend_wording(tmp_path, capsys, monkeypatch):
+    inbox = tmp_path / "inbox"
+    response_dir = tmp_path / "responses"
+    export_root = tmp_path / "read_models"
+    bridge_root = tmp_path / "openclaw_bridge"
+    inbox.mkdir()
+    monkeypatch.setattr(local_artifact_reference, "PC_SHARED_BRIDGE_ROOT", bridge_root)
+    request_path = inbox / "mission_control_artifact_intake_request_capital_hilton.json"
+    request = _write_artifact_intake_request(request_path, bridge_root=bridge_root)
+
+    assert service_main(
+        [
+            "--once",
+            "--inbox",
+            str(inbox),
+            "--response-dir",
+            str(response_dir),
+            "--export-root",
+            str(export_root),
+            "--generated-at",
+            FIXED_NOW,
+            "--format",
+            "json",
+        ]
+    ) == 0
+    payload = json.loads(capsys.readouterr().out)
+    response = json.loads(_safe_response_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
+    heartbeat = json.loads(_safe_heartbeat_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
+    artifact_payload = json.loads((export_root / local_artifact_reference.JSON_EXPORT_NAME).read_text(encoding="utf-8"))
+
+    assert payload["service_status"]["service_status"] == "REQUEST_PROCESSED"
+    assert payload["service_status"]["last_routing_status"] == "PROCESSING_ON_PC"
+    assert heartbeat["processing_status"] == "RECEIVING_WORKBOOK_FROM_MAC"
+    assert response["headline"] == "Capital Hilton workbook received"
+    assert response["terminal"] is True
+    assert artifact_payload["approved_readable_artifact"]["approved_for_read"] is True
+    operator_text = " ".join(
+        str(response.get(field) or "")
+        for field in ("headline", "eliwinship", "operator_message", "next_action", "primary_blocker", "how_to_fix")
+    )
+    for forbidden in (
+        "PC-readable",
+        "approved PC-readable",
+        "artifact intake package",
+        "authority flags",
+        "validation_errors",
+        "read-only flags",
+        "resend artifact approval",
+        "/mnt/e/",
+    ):
+        assert forbidden not in operator_text
+    assert response["machine_proof"]["workbook_body_read_performed"] is False
     assert response["machine_proof"]["spreadsheet_cell_read_performed"] is False
     assert response["machine_proof"]["external_action_performed"] is False
 
