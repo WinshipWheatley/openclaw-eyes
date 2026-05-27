@@ -354,6 +354,11 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
         "production_live_blockers": "EXPLICIT",
         "production_activation_beams": "EXPLICIT_SEVEN_BEAMS",
         "provider_activation_receipts": activation_requirements["provider_activation_status"],
+        "activation_production_receipt_intake": (
+            "READY_METADATA_ONLY"
+            if activation_requirements["machine_proof"]["activation_production_receipt_intake_ready"]
+            else "NOT_READY"
+        ),
         "live_lm_shadow_trial": live_shadow_trial["trial_status"],
         "live_shadow_receipt": "PRESENT" if live_shadow_trial["machine_proof"]["live_shadow_receipt_valid"] else "MISSING",
         "private_mode_policy": private_policy["contract_status"],
@@ -408,6 +413,8 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
                 "activation_receipt_substrate": activation_requirements["activation_receipt_substrate"],
                 "activation_receipt_contracts": activation_requirements["activation_receipt_contracts"],
                 "activation_receipt_fixture_results": activation_requirements["activation_receipt_fixture_results"],
+                "activation_production_receipt_statuses": activation_requirements["activation_production_receipt_statuses"],
+                "activation_production_receipt_intake": activation_requirements["activation_production_receipt_intake"],
                 "live_shadow_receipt": activation_requirements["live_shadow_receipt"],
                 "shadow_test_receipts": activation_requirements["shadow_test_receipts"],
             },
@@ -620,6 +627,18 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
             "activation_receipt_substrate_fixtures_backed": activation_requirements["machine_proof"][
                 "activation_receipt_substrate_fixtures_backed"
             ],
+            "activation_production_receipt_intake_ready": activation_requirements["machine_proof"][
+                "activation_production_receipt_intake_ready"
+            ],
+            "activation_production_receipt_writer_authority_free": activation_requirements["machine_proof"][
+                "activation_production_receipt_writer_authority_free"
+            ],
+            "activation_production_receipt_status_count": activation_requirements["machine_proof"][
+                "activation_production_receipt_status_count"
+            ],
+            "activation_production_receipts_present_count": activation_requirements["machine_proof"][
+                "activation_production_receipts_present_count"
+            ],
             "activation_receipt_substrate_satisfies_production": activation_requirements["machine_proof"][
                 "activation_receipt_substrate_satisfies_production"
             ],
@@ -710,6 +729,7 @@ def write_exports(payload: Mapping[str, Any], export_root: Path = DEFAULT_EXPORT
         f"Request-response bridge: {summary.get('request_response_bridge')}",
         f"Production/live blockers: {summary.get('production_live_blockers')}",
         f"Provider activation receipts: {summary.get('provider_activation_receipts')}",
+        f"Governed production receipt intake: {summary.get('activation_production_receipt_intake')}",
         f"Live shadow trial: {summary.get('live_lm_shadow_trial')}",
         f"Live shadow receipt: {summary.get('live_shadow_receipt')}",
         f"Private Mode policy: {summary.get('private_mode_policy')}",
@@ -721,7 +741,7 @@ def write_exports(payload: Mapping[str, Any], export_root: Path = DEFAULT_EXPORT
         f"Gate 3 readback: {summary.get('gate3_package_readback')}",
         f"Gate 4: {summary.get('gate4_guardian')}",
         "",
-        "Private Mode backend policy exists, but production token vault is not active yet.",
+        "Private Mode backend policy exists, and local privacy vault proof is present; live models remain off.",
         "This dashboard integrates readiness contracts only. Live LM calls remain off.",
     ]
     operator_path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")

@@ -387,7 +387,7 @@ def build_floor_matrix(*, generated_at: str = DEFAULT_GENERATED_AT) -> tuple[dic
             ready_for_shadow=True,
             ready_for_live_review=private_policy["machine_proof"]["private_mode_policy_exported"],
             raised_this_pass=True,
-            not_ready_reason="Backend policy is exported and inactive; product switch and production token vault are still inactive.",
+            not_ready_reason="Backend policy is exported and inactive; product switch is still inactive while local privacy vault proof is present.",
         ),
         _assessment(
             "provider_activation_receipts",
@@ -447,7 +447,7 @@ def build_floor_matrix(*, generated_at: str = DEFAULT_GENERATED_AT) -> tuple[dic
             has_operator_copy=True,
             ready_for_shadow=True,
             ready_for_live_review=True,
-            not_ready_reason="Synthetic tokenization is proven; production token vault is still inactive.",
+            not_ready_reason="Synthetic tokenization and local vault proof are present; real sensitive-data use still needs live activation receipts.",
         ),
         _assessment(
             "read_model_mirror_visibility",
@@ -471,6 +471,7 @@ def build_floor_matrix(*, generated_at: str = DEFAULT_GENERATED_AT) -> tuple[dic
             dashboard_visible=True,
             connected_to_chain=True,
             has_fixture=True,
+            has_sqlite_proof=activation_requirements["machine_proof"]["activation_production_receipt_intake_ready"],
             has_operator_copy=True,
             ready_for_shadow=False,
             raised_this_pass=True,
@@ -578,6 +579,8 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
             "activation_receipt_substrate": activation_payload["activation_receipt_substrate"],
             "activation_receipt_contracts": activation_payload["activation_receipt_contracts"],
             "activation_receipt_fixture_results": activation_payload["activation_receipt_fixture_results"],
+            "activation_production_receipt_statuses": activation_payload["activation_production_receipt_statuses"],
+            "activation_production_receipt_intake": activation_payload["activation_production_receipt_intake"],
             "live_shadow_receipt": activation_payload["live_shadow_receipt"],
             "shadow_test_receipts": activation_payload["shadow_test_receipts"],
         },
@@ -622,7 +625,7 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
         },
         "next_floor_raise_recommendations": (
             "Collect real shadow-comparison receipts before any live LM review.",
-            "Turn Private Mode into an operator-controlled product setting only after production token-vault readiness.",
+            "Turn Private Mode into an operator-controlled product setting only after explicit product activation review.",
             "Keep universal intake broadening with more metadata-only ambiguous fixtures.",
             "Use existing scoped response/read-model surfaces for visibility; do not add a second sync plane.",
         ),
@@ -656,6 +659,18 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
             ],
             "activation_receipt_substrate_fixtures_backed": activation_payload["machine_proof"][
                 "activation_receipt_substrate_fixtures_backed"
+            ],
+            "activation_production_receipt_intake_ready": activation_payload["machine_proof"][
+                "activation_production_receipt_intake_ready"
+            ],
+            "activation_production_receipt_writer_authority_free": activation_payload["machine_proof"][
+                "activation_production_receipt_writer_authority_free"
+            ],
+            "activation_production_receipt_status_count": activation_payload["machine_proof"][
+                "activation_production_receipt_status_count"
+            ],
+            "activation_production_receipts_present_count": activation_payload["machine_proof"][
+                "activation_production_receipts_present_count"
             ],
             "activation_receipt_substrate_satisfies_production": activation_payload["machine_proof"][
                 "activation_receipt_substrate_satisfies_production"

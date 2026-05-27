@@ -120,6 +120,10 @@ def test_equalization_exports_low_beam_readiness_refs():
     assert payload["machine_proof"]["activation_receipt_fixtures_satisfy_production"] is False
     assert payload["machine_proof"]["activation_receipt_substrate_contracts_backed"] is True
     assert payload["machine_proof"]["activation_receipt_substrate_fixtures_backed"] is True
+    assert payload["machine_proof"]["activation_production_receipt_intake_ready"] is True
+    assert payload["machine_proof"]["activation_production_receipt_writer_authority_free"] is True
+    assert payload["machine_proof"]["activation_production_receipt_status_count"] == 7
+    assert payload["machine_proof"]["activation_production_receipts_present_count"] == 0
     assert payload["machine_proof"]["activation_receipt_substrate_satisfies_production"] is False
     assert payload["machine_proof"]["live_lm_shadow_trial_exported"] is True
     assert payload["machine_proof"]["live_lm_shadow_trial_recorded"] is True
@@ -158,7 +162,16 @@ def test_floor_matrix_includes_v2_required_lanes():
     assert len(payload["live_lm_activation_requirements_ref"]["activation_receipt_contracts"]) == 7
     assert payload["live_lm_activation_requirements_ref"]["activation_receipt_substrate"]["contracts_backed_by_sqlite"] is True
     assert payload["live_lm_activation_requirements_ref"]["activation_receipt_substrate"]["fixtures_backed_by_sqlite"] is True
+    assert (
+        payload["live_lm_activation_requirements_ref"]["activation_receipt_substrate"][
+            "production_receipt_intake_ready"
+        ]
+        is True
+    )
     assert payload["live_lm_activation_requirements_ref"]["activation_receipt_substrate"]["production_receipt_rows_present"] == 0
+    assert payload["live_lm_activation_requirements_ref"]["activation_production_receipt_intake"]["metadata_only"] is True
+    assert payload["live_lm_activation_requirements_ref"]["activation_production_receipt_intake"]["writer_authority_free"] is True
+    assert len(payload["live_lm_activation_requirements_ref"]["activation_production_receipt_statuses"]) == 7
     assert payload["live_lm_activation_requirements_ref"]["live_shadow_receipt"]["present"] is True
     assert payload["live_lm_activation_requirements_ref"]["shadow_test_receipts"]["provider_policy_receipt"]["present"] is True
     assert (

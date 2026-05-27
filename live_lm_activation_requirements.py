@@ -51,6 +51,23 @@ AUTHORITY_BOUNDARY = {
     "production_state_mutation_allowed": False,
 }
 
+FORBIDDEN_RECEIPT_TRUE_CONTROLS = (
+    "live_model_call_performed",
+    "model_api_call_performed",
+    "network_performed",
+    "provider_key_material_access_performed",
+    "credential_access_performed",
+    "tool_execution_performed",
+    "agent_dispatch_performed",
+    "worker_dispatch_performed",
+    "workflow_execution_performed",
+    "external_action_performed",
+    "send_submit_performed",
+    "approval_execution_performed",
+    "ledger_posting_performed",
+    "production_state_mutation_performed",
+)
+
 
 @dataclass(frozen=True)
 class ActivationReceiptRequirement:
@@ -93,11 +110,43 @@ class ActivationReceiptValidationResult:
     valid_for_contract: bool
     valid_as_test_fixture: bool
     satisfies_production_activation: bool
+    receipt_type_matches: bool
     missing_true_controls: tuple[str, ...]
     unsafe_true_controls: tuple[str, ...]
+    unsafe_authority_controls: tuple[str, ...]
     production_receipt_present: bool
     operator_approved: bool
     governed_review_source: bool
+    authority_boundary: dict[str, bool]
+    next_safe_move: str
+
+
+@dataclass(frozen=True)
+class ActivationProductionReceiptStatus:
+    receipt_type: str
+    beam_id: str
+    human_label: str
+    present: bool
+    receipt_status: str
+    operator_approved: bool
+    governed_review_source: bool
+    payload_hash: str
+    recorded_at: str
+    satisfies_production_activation: bool
+    authority_boundary: dict[str, bool]
+    next_safe_move: str
+
+
+@dataclass(frozen=True)
+class ActivationProductionReceiptIntakeResult:
+    receipt_type: str
+    intake_status: str
+    recorded: bool
+    valid_for_contract: bool
+    satisfies_production_activation: bool
+    payload_hash: str
+    db_path: str
+    production_receipt_rows_present: int
     authority_boundary: dict[str, bool]
     next_safe_move: str
 
@@ -113,8 +162,11 @@ class ActivationReceiptSubstrate:
     contract_rows_persisted: int
     fixture_validation_rows_persisted: int
     production_receipt_rows_present: int
+    valid_production_receipt_rows_present: int
     contracts_backed_by_sqlite: bool
     fixtures_backed_by_sqlite: bool
+    production_receipt_intake_ready: bool
+    production_receipt_writer_authority_free: bool
     satisfies_production_activation: bool
     authority_boundary: dict[str, bool]
     next_safe_move: str
@@ -321,20 +373,24 @@ def production_activation_beams(
     token_vault_receipt_present: bool = False,
     privacy_policy_receipt_present: bool = False,
     receipt_contracts_ready: bool = False,
+    production_receipts_present: Mapping[str, bool] | None = None,
 ) -> tuple[dict[str, Any], ...]:
+    production_receipts_present = production_receipts_present or {}
     statuses = {
         "production_token_vault": "PRESENT" if token_vault_receipt_present else "MISSING",
         "privacy_receipt": "PRESENT" if privacy_policy_receipt_present else "MISSING",
     }
     if receipt_contracts_ready:
-        for beam_id in (
-            "provider_model_receipts",
-            "live_enablement_receipt",
-            "rollback_disable_receipt",
-            "device_trust_live_activation",
-            "real_lm_production_policy",
-        ):
-            statuses[beam_id] = "RECEIPT_CONTRACT_READY_PRODUCTION_RECEIPT_MISSING"
+        for spec in PRODUCTION_ACTIVATION_BEAM_SPECS:
+            beam_id = str(spec["beam_id"])
+            if beam_id in statuses:
+                continue
+            receipt_types = tuple(spec["receipt_types"])
+            statuses[beam_id] = (
+                "PRESENT"
+                if all(production_receipts_present.get(receipt_type, False) for receipt_type in receipt_types)
+                else "RECEIPT_CONTRACT_READY_PRODUCTION_RECEIPT_MISSING"
+            )
     return tuple({**item, "status": statuses.get(str(item["beam_id"]), item["status"])} for item in PRODUCTION_ACTIVATION_BEAM_SPECS)
 
 
@@ -473,8 +529,11 @@ def inspect_activation_receipt_substrate(
             contract_rows_persisted=0,
             fixture_validation_rows_persisted=0,
             production_receipt_rows_present=0,
+            valid_production_receipt_rows_present=0,
             contracts_backed_by_sqlite=False,
             fixtures_backed_by_sqlite=False,
+            production_receipt_intake_ready=False,
+            production_receipt_writer_authority_free=True,
             satisfies_production_activation=False,
             authority_boundary=dict(AUTHORITY_BOUNDARY),
             next_safe_move="Create the local activation receipt substrate before production activation review.",
@@ -493,11 +552,28 @@ def inspect_activation_receipt_substrate(
         contract_count = count_rows("activation_receipt_contracts")
         fixture_count = count_rows("activation_receipt_fixture_validations")
         production_count = count_rows("activation_production_receipts")
+        valid_production_count = 0
+        if "activation_production_receipts" in present_tables:
+            valid_production_count = int(
+                conn.execute(
+                    """
+SELECT COUNT(*) FROM activation_production_receipts
+WHERE receipt_status = 'VALID_PRODUCTION_RECEIPT'
+  AND operator_approved = 1
+  AND governed_review_source = 1
+"""
+                ).fetchone()[0]
+            )
 
     missing_tables = tuple(table for table in ACTIVATION_RECEIPT_TABLES if table not in present_tables)
     expected_count = len(REMAINING_RECEIPT_CONTRACT_SPECS)
+    production_intake_ready = (
+        "activation_production_receipts" in present_tables
+        and contract_count == expected_count
+        and fixture_count == expected_count
+    )
     substrate = ActivationReceiptSubstrate(
-        substrate_id=f"activation_receipt_substrate:{_short_hash(path, present_tables, contract_count, fixture_count)}",
+        substrate_id=f"activation_receipt_substrate:{_short_hash(path, present_tables, contract_count, fixture_count, production_count)}",
         db_path=path.as_posix(),
         exists=True,
         required_tables=ACTIVATION_RECEIPT_TABLES,
@@ -506,13 +582,16 @@ def inspect_activation_receipt_substrate(
         contract_rows_persisted=contract_count,
         fixture_validation_rows_persisted=fixture_count,
         production_receipt_rows_present=production_count,
+        valid_production_receipt_rows_present=valid_production_count,
         contracts_backed_by_sqlite=contract_count == expected_count,
         fixtures_backed_by_sqlite=fixture_count == expected_count,
-        satisfies_production_activation=False,
+        production_receipt_intake_ready=production_intake_ready,
+        production_receipt_writer_authority_free=True,
+        satisfies_production_activation=production_intake_ready and valid_production_count == expected_count,
         authority_boundary=dict(AUTHORITY_BOUNDARY),
         next_safe_move=(
-            "Activation receipt contracts are backed by local SQLite proof; collect governed production receipts before activation."
-            if contract_count == expected_count and fixture_count == expected_count
+            "Activation receipt contracts and production receipt intake are backed by local SQLite proof; collect governed production receipts before activation."
+            if production_intake_ready
             else "Repair the activation receipt substrate before production activation review."
         ),
     )
@@ -570,9 +649,15 @@ def _fixture_candidate_for_contract(contract: Mapping[str, Any]) -> dict[str, An
 
 def validate_activation_receipt_candidate(receipt_type: str, candidate: Mapping[str, Any]) -> dict[str, Any]:
     contract = activation_receipt_contract_by_type(receipt_type)
+    receipt_type_matches = str(candidate.get("receipt_type") or receipt_type) == receipt_type
     missing_true = tuple(name for name in contract["required_true_controls"] if bool(candidate.get(name, False)) is not True)
     unsafe_true = tuple(name for name in contract["required_false_controls"] if bool(candidate.get(name, False)) is not False)
-    valid_for_contract = not missing_true and not unsafe_true
+    unsafe_authority = tuple(
+        name
+        for name in (*AUTHORITY_BOUNDARY.keys(), *FORBIDDEN_RECEIPT_TRUE_CONTROLS)
+        if bool(candidate.get(name, False)) is True
+    )
+    valid_for_contract = receipt_type_matches and not missing_true and not unsafe_true and not unsafe_authority
     test_fixture = bool(candidate.get("test_fixture", False))
     production_receipt = bool(candidate.get("production_receipt", False))
     operator_approved = bool(candidate.get("operator_approved", False))
@@ -590,8 +675,10 @@ def validate_activation_receipt_candidate(receipt_type: str, candidate: Mapping[
         valid_for_contract=valid_for_contract,
         valid_as_test_fixture=valid_for_contract and test_fixture,
         satisfies_production_activation=satisfies_production,
+        receipt_type_matches=receipt_type_matches,
         missing_true_controls=missing_true,
         unsafe_true_controls=unsafe_true,
+        unsafe_authority_controls=unsafe_authority,
         production_receipt_present=production_receipt,
         operator_approved=operator_approved,
         governed_review_source=governed_review_source,
@@ -614,12 +701,152 @@ def activation_receipt_contract_fixture_results() -> tuple[dict[str, Any], ...]:
     )
 
 
+def _activation_production_receipt_hash(receipt_type: str, candidate: Mapping[str, Any], validation: Mapping[str, Any]) -> str:
+    metadata_only_payload = {
+        "receipt_type": receipt_type,
+        "candidate_hash": "sha256:" + hashlib.sha256(stable_json(dict(candidate)).encode("utf-8")).hexdigest(),
+        "validation_status": validation["validation_status"],
+        "recorded_as_metadata_only": True,
+    }
+    return "sha256:" + hashlib.sha256(stable_json(metadata_only_payload).encode("utf-8")).hexdigest()
+
+
+def activation_production_receipt_statuses(
+    path: Path = DEFAULT_ACTIVATION_RECEIPT_DB_PATH,
+    *,
+    create_if_missing: bool = True,
+    generated_at: str | None = None,
+) -> tuple[dict[str, Any], ...]:
+    if create_if_missing:
+        ensure_activation_receipt_substrate(path, generated_at=generated_at or DEFAULT_GENERATED_AT)
+    rows: dict[str, dict[str, Any]] = {}
+    if path.exists():
+        with sqlite3.connect(f"file:{path}?mode=ro", uri=True) as conn:
+            table_exists = conn.execute(
+                """
+SELECT COUNT(*) FROM sqlite_master
+WHERE type = 'table' AND name = 'activation_production_receipts'
+"""
+            ).fetchone()[0]
+            if table_exists:
+                for row in conn.execute(
+                    """
+SELECT receipt_type, receipt_status, operator_approved, governed_review_source,
+       payload_hash, recorded_at
+FROM activation_production_receipts
+"""
+                ).fetchall():
+                    rows[str(row[0])] = {
+                        "receipt_status": str(row[1]),
+                        "operator_approved": bool(row[2]),
+                        "governed_review_source": bool(row[3]),
+                        "payload_hash": str(row[4]),
+                        "recorded_at": str(row[5]),
+                    }
+
+    statuses: list[dict[str, Any]] = []
+    for contract in activation_receipt_contracts():
+        row = rows.get(contract["receipt_type"], {})
+        present = (
+            row.get("receipt_status") == "VALID_PRODUCTION_RECEIPT"
+            and bool(row.get("operator_approved")) is True
+            and bool(row.get("governed_review_source")) is True
+            and str(row.get("payload_hash") or "").startswith("sha256:")
+        )
+        statuses.append(
+            asdict(
+                ActivationProductionReceiptStatus(
+                    receipt_type=contract["receipt_type"],
+                    beam_id=contract["beam_id"],
+                    human_label=contract["human_label"],
+                    present=present,
+                    receipt_status=str(row.get("receipt_status") or "MISSING_PRODUCTION_RECEIPT"),
+                    operator_approved=bool(row.get("operator_approved", False)),
+                    governed_review_source=bool(row.get("governed_review_source", False)),
+                    payload_hash=str(row.get("payload_hash") or ""),
+                    recorded_at=str(row.get("recorded_at") or ""),
+                    satisfies_production_activation=present,
+                    authority_boundary=dict(AUTHORITY_BOUNDARY),
+                    next_safe_move=(
+                        "Keep this receipt as activation evidence; live models still require the full receipt set and explicit enablement."
+                        if present
+                        else "Collect this receipt through governed production review before live activation can be considered."
+                    ),
+                )
+            )
+        )
+    return tuple(statuses)
+
+
+def record_activation_production_receipt_candidate(
+    receipt_type: str,
+    candidate: Mapping[str, Any],
+    path: Path = DEFAULT_ACTIVATION_RECEIPT_DB_PATH,
+    *,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    generated_at = generated_at or DEFAULT_GENERATED_AT
+    ensure_activation_receipt_substrate(path, generated_at=generated_at)
+    validation = validate_activation_receipt_candidate(receipt_type, candidate)
+    payload_hash = _activation_production_receipt_hash(receipt_type, candidate, validation)
+    if not validation["satisfies_production_activation"]:
+        substrate = inspect_activation_receipt_substrate(path, create_if_missing=False)
+        result = ActivationProductionReceiptIntakeResult(
+            receipt_type=receipt_type,
+            intake_status=validation["validation_status"],
+            recorded=False,
+            valid_for_contract=validation["valid_for_contract"],
+            satisfies_production_activation=False,
+            payload_hash=payload_hash,
+            db_path=path.as_posix(),
+            production_receipt_rows_present=substrate["production_receipt_rows_present"],
+            authority_boundary=dict(AUTHORITY_BOUNDARY),
+            next_safe_move="Reject this receipt candidate until missing or unsafe controls are repaired.",
+        )
+        return asdict(result)
+
+    with _connect_activation_receipts(path) as conn:
+        _create_activation_receipt_schema(conn)
+        conn.execute(
+            """
+INSERT OR REPLACE INTO activation_production_receipts
+  (receipt_type, receipt_status, operator_approved, governed_review_source, payload_hash, recorded_at)
+VALUES (?, ?, ?, ?, ?, ?)
+""",
+            (
+                receipt_type,
+                validation["validation_status"],
+                int(bool(validation["operator_approved"])),
+                int(bool(validation["governed_review_source"])),
+                payload_hash,
+                generated_at,
+            ),
+        )
+        conn.commit()
+    substrate = inspect_activation_receipt_substrate(path, create_if_missing=False)
+    result = ActivationProductionReceiptIntakeResult(
+        receipt_type=receipt_type,
+        intake_status=validation["validation_status"],
+        recorded=True,
+        valid_for_contract=True,
+        satisfies_production_activation=True,
+        payload_hash=payload_hash,
+        db_path=path.as_posix(),
+        production_receipt_rows_present=substrate["production_receipt_rows_present"],
+        authority_boundary=dict(AUTHORITY_BOUNDARY),
+        next_safe_move="Receipt recorded as metadata-only evidence; live models remain off until the full receipt set and explicit enablement exist.",
+    )
+    return asdict(result)
+
+
 def required_receipts(
     *,
     live_shadow_receipt_present: bool = False,
     production_token_vault_receipt_present: bool = False,
     privacy_policy_receipt_present: bool = False,
+    production_receipts_present: Mapping[str, bool] | None = None,
 ) -> tuple[dict[str, Any], ...]:
+    production_receipts_present = production_receipts_present or {}
     specs = (
         (
             "live_model_enablement_receipt",
@@ -693,6 +920,7 @@ def required_receipts(
                     (receipt_type == "shadow_comparison_live_run_receipt" and live_shadow_receipt_present)
                     or (receipt_type == "production_token_vault_ready_receipt" and production_token_vault_receipt_present)
                     or (receipt_type == "privacy_policy_receipt" and privacy_policy_receipt_present)
+                    or bool(production_receipts_present.get(receipt_type, False))
                 ),
                 blocks_live_lm1="LM1" in lanes,
                 blocks_live_lm2="LM2" in lanes,
@@ -715,26 +943,35 @@ def build_payload(*, generated_at: str | None = None, live_shadow_payload: Mappi
     receipt_contracts = activation_receipt_contracts()
     receipt_fixture_results = activation_receipt_contract_fixture_results()
     activation_substrate = ensure_activation_receipt_substrate(generated_at=generated_at)
+    production_receipt_statuses = activation_production_receipt_statuses(create_if_missing=False)
+    production_receipts_present = {item["receipt_type"]: bool(item["present"]) for item in production_receipt_statuses}
     receipts = required_receipts(
         live_shadow_receipt_present=live_shadow_valid,
         production_token_vault_receipt_present=token_vault_receipt_present,
         privacy_policy_receipt_present=privacy_policy_receipt_present,
+        production_receipts_present=production_receipts_present,
     )
     missing = tuple(item["receipt_type"] for item in receipts if item["present"] is False)
     hard_blockers = []
     if not token_vault_receipt_present:
         hard_blockers.append("production_token_vault_inactive")
-    hard_blockers.extend(("provider_activation_receipts_missing", "live_model_enablement_receipt_missing"))
+    if not (
+        production_receipts_present.get("provider_policy_receipt", False)
+        and production_receipts_present.get("model_selection_policy_receipt", False)
+    ):
+        hard_blockers.append("provider_activation_receipts_missing")
+    if not production_receipts_present.get("live_model_enablement_receipt", False):
+        hard_blockers.append("live_model_enablement_receipt_missing")
     if not privacy_policy_receipt_present:
         hard_blockers.append("production_privacy_policy_receipt_missing")
-    hard_blockers.extend(
-        (
-            "rollback_disable_receipt_missing",
-            "device_trust_live_activation_receipt_missing",
-            "real_lm1_production_policy_receipt_missing",
-            "real_lm2_production_policy_receipt_missing",
-        )
-    )
+    for receipt_type, blocker in (
+        ("rollback_disable_receipt", "rollback_disable_receipt_missing"),
+        ("device_trust_live_activation_receipt", "device_trust_live_activation_receipt_missing"),
+        ("real_lm1_production_policy_receipt", "real_lm1_production_policy_receipt_missing"),
+        ("real_lm2_production_policy_receipt", "real_lm2_production_policy_receipt_missing"),
+    ):
+        if not production_receipts_present.get(receipt_type, False):
+            hard_blockers.append(blocker)
     if not live_shadow_valid:
         hard_blockers.insert(4, "live_shadow_comparison_receipt_missing")
     beams = production_activation_beams(
@@ -744,6 +981,7 @@ def build_payload(*, generated_at: str | None = None, live_shadow_payload: Mappi
             contract["receipt_contract_status"] == "RECEIPT_CONTRACT_READY_PRODUCTION_RECEIPT_MISSING"
             for contract in receipt_contracts
         ),
+        production_receipts_present=production_receipts_present,
     )
     payload: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
@@ -763,6 +1001,15 @@ def build_payload(*, generated_at: str | None = None, live_shadow_payload: Mappi
         "activation_receipt_substrate": activation_substrate,
         "activation_receipt_contracts": receipt_contracts,
         "activation_receipt_fixture_results": receipt_fixture_results,
+        "activation_production_receipt_statuses": production_receipt_statuses,
+        "activation_production_receipt_intake": {
+            "intake_ready": activation_substrate["production_receipt_intake_ready"],
+            "metadata_only": True,
+            "writes_default_production_receipts": False,
+            "writer_authority_free": activation_substrate["production_receipt_writer_authority_free"],
+            "default_production_rows": activation_substrate["production_receipt_rows_present"],
+            "next_safe_move": "Use record_activation_production_receipt_candidate only for governed production-review receipts.",
+        },
         "missing_receipts": missing,
         "live_shadow_receipt": {
             "read_model_ref": "generated/read_models/live_lm_shadow_trial.json",
@@ -804,14 +1051,21 @@ def build_payload(*, generated_at: str | None = None, live_shadow_payload: Mappi
                 "real_lm_production_policy",
             ),
             "provider_activation_receipts_required": True,
-            "provider_activation_receipts_present": False,
+            "provider_activation_receipts_present": production_receipts_present.get("provider_policy_receipt", False)
+            and production_receipts_present.get("model_selection_policy_receipt", False),
             "production_token_vault_ready_receipt_present": token_vault_receipt_present,
-            "live_model_enablement_receipt_present": False,
+            "live_model_enablement_receipt_present": production_receipts_present.get("live_model_enablement_receipt", False),
             "privacy_policy_receipt_present": privacy_policy_receipt_present,
-            "rollback_disable_receipt_present": False,
-            "device_trust_live_activation_receipt_present": False,
-            "real_lm1_production_policy_receipt_present": False,
-            "real_lm2_production_policy_receipt_present": False,
+            "rollback_disable_receipt_present": production_receipts_present.get("rollback_disable_receipt", False),
+            "device_trust_live_activation_receipt_present": production_receipts_present.get(
+                "device_trust_live_activation_receipt", False
+            ),
+            "real_lm1_production_policy_receipt_present": production_receipts_present.get(
+                "real_lm1_production_policy_receipt", False
+            ),
+            "real_lm2_production_policy_receipt_present": production_receipts_present.get(
+                "real_lm2_production_policy_receipt", False
+            ),
             "activation_receipt_contract_count": len(receipt_contracts),
             "activation_receipt_contracts_ready": all(
                 contract["receipt_contract_status"] == "RECEIPT_CONTRACT_READY_PRODUCTION_RECEIPT_MISSING"
@@ -827,8 +1081,17 @@ def build_payload(*, generated_at: str | None = None, live_shadow_payload: Mappi
             "activation_receipt_substrate_contract_rows": activation_substrate["contract_rows_persisted"],
             "activation_receipt_substrate_fixture_rows": activation_substrate["fixture_validation_rows_persisted"],
             "activation_receipt_substrate_production_rows": activation_substrate["production_receipt_rows_present"],
+            "activation_receipt_substrate_valid_production_rows": activation_substrate[
+                "valid_production_receipt_rows_present"
+            ],
             "activation_receipt_substrate_contracts_backed": activation_substrate["contracts_backed_by_sqlite"],
             "activation_receipt_substrate_fixtures_backed": activation_substrate["fixtures_backed_by_sqlite"],
+            "activation_production_receipt_intake_ready": activation_substrate["production_receipt_intake_ready"],
+            "activation_production_receipt_writer_authority_free": activation_substrate[
+                "production_receipt_writer_authority_free"
+            ],
+            "activation_production_receipt_status_count": len(production_receipt_statuses),
+            "activation_production_receipts_present_count": sum(1 for item in production_receipt_statuses if item["present"]),
             "activation_receipt_substrate_satisfies_production": activation_substrate["satisfies_production_activation"],
             "live_shadow_comparison_receipt_present": live_shadow_valid,
             "live_shadow_model_call_recorded": bool((live_shadow.get("machine_proof") or {}).get("live_model_call_performed")),
@@ -866,6 +1129,8 @@ def write_exports(payload: Mapping[str, Any], export_root: Path = DEFAULT_EXPORT
         f"Missing receipts: {payload['machine_proof']['missing_receipt_count']}",
         f"Receipt contracts ready: {payload['machine_proof']['activation_receipt_contract_count']}",
         f"SQLite-backed receipt contracts: {payload['machine_proof']['activation_receipt_substrate_contract_rows']}",
+        f"Governed receipt intake ready: {payload['machine_proof']['activation_production_receipt_intake_ready']}",
+        f"Production receipts recorded: {payload['machine_proof']['activation_production_receipts_present_count']}",
         "",
         "Still blocked:",
         *[f"- {item}" for item in payload["hard_blockers"]],

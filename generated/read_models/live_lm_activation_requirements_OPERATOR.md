@@ -6,6 +6,8 @@ LM2 live: NOT_READY
 Missing receipts: 7
 Receipt contracts ready: 7
 SQLite-backed receipt contracts: 7
+Governed receipt intake ready: True
+Production receipts recorded: 0
 
 Still blocked:
 - provider_activation_receipts_missing

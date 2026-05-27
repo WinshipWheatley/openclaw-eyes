@@ -9,4 +9,4 @@ Production token vault receipt present: true
 Privacy policy receipt present: true
 
 Synthetic tokenization fixture only. No real sensitive values are exported.
-Private Mode backend policy exists, but production token vault is not active yet.
+Private Mode backend policy exists, and local privacy vault proof is present; live models remain off.

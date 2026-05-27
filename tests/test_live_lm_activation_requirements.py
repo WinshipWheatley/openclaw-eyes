@@ -91,6 +91,29 @@ def test_activation_requirements_name_the_seven_production_beams():
     assert "real_lm2_production_policy_receipt_missing" in payload["hard_blockers"]
 
 
+def test_activation_beams_can_detect_future_production_receipt_presence_without_enabling_live():
+    present = {
+        "provider_policy_receipt": True,
+        "model_selection_policy_receipt": True,
+        "live_model_enablement_receipt": True,
+        "rollback_disable_receipt": True,
+        "device_trust_live_activation_receipt": True,
+        "real_lm1_production_policy_receipt": True,
+        "real_lm2_production_policy_receipt": True,
+    }
+    beams = {
+        item["beam_id"]: item
+        for item in activation.production_activation_beams(
+            token_vault_receipt_present=True,
+            privacy_policy_receipt_present=True,
+            receipt_contracts_ready=True,
+            production_receipts_present=present,
+        )
+    }
+
+    assert all(item["status"] == "PRESENT" for item in beams.values())
+
+
 def test_activation_receipt_contracts_ready_without_production_approval():
     payload = activation.build_payload(generated_at=FIXED_NOW)
     contracts = {item["receipt_type"]: item for item in payload["activation_receipt_contracts"]}
@@ -127,8 +150,11 @@ def test_activation_receipt_contracts_are_backed_by_local_sqlite_substrate(tmp_p
     assert substrate["contract_rows_persisted"] == 7
     assert substrate["fixture_validation_rows_persisted"] == 7
     assert substrate["production_receipt_rows_present"] == 0
+    assert substrate["valid_production_receipt_rows_present"] == 0
     assert substrate["contracts_backed_by_sqlite"] is True
     assert substrate["fixtures_backed_by_sqlite"] is True
+    assert substrate["production_receipt_intake_ready"] is True
+    assert substrate["production_receipt_writer_authority_free"] is True
     assert substrate["satisfies_production_activation"] is False
 
     with sqlite3.connect(f"file:{db_path}?mode=ro", uri=True) as conn:
@@ -139,6 +165,79 @@ def test_activation_receipt_contracts_are_backed_by_local_sqlite_substrate(tmp_p
 
     assert production_rows == 0
     assert fixture_prod_rows == 0
+
+
+def _production_candidate(receipt_type: str) -> dict:
+    contract = activation.activation_receipt_contract_by_type(receipt_type)
+    return {
+        "receipt_type": receipt_type,
+        "test_fixture": False,
+        "production_receipt": True,
+        "operator_approved": True,
+        "receipt_source": "governed_production_review",
+        **{name: True for name in contract["required_true_controls"]},
+        **{name: False for name in contract["required_false_controls"]},
+    }
+
+
+def test_governed_production_receipt_candidate_records_metadata_only(tmp_path):
+    db_path = tmp_path / "activation_receipts.sqlite"
+    result = activation.record_activation_production_receipt_candidate(
+        "provider_policy_receipt",
+        _production_candidate("provider_policy_receipt"),
+        db_path,
+        generated_at=FIXED_NOW,
+    )
+    substrate = activation.inspect_activation_receipt_substrate(db_path, create_if_missing=False)
+    statuses = {
+        item["receipt_type"]: item
+        for item in activation.activation_production_receipt_statuses(db_path, create_if_missing=False)
+    }
+
+    assert result["recorded"] is True
+    assert result["intake_status"] == "VALID_PRODUCTION_RECEIPT"
+    assert result["payload_hash"].startswith("sha256:")
+    assert substrate["production_receipt_rows_present"] == 1
+    assert substrate["valid_production_receipt_rows_present"] == 1
+    assert substrate["satisfies_production_activation"] is False
+    assert statuses["provider_policy_receipt"]["present"] is True
+    assert statuses["provider_policy_receipt"]["payload_hash"].startswith("sha256:")
+    assert statuses["model_selection_policy_receipt"]["present"] is False
+
+    with sqlite3.connect(f"file:{db_path}?mode=ro", uri=True) as conn:
+        rows = conn.execute(
+            "SELECT receipt_type, receipt_status, operator_approved, governed_review_source FROM activation_production_receipts"
+        ).fetchall()
+
+    assert rows == [("provider_policy_receipt", "VALID_PRODUCTION_RECEIPT", 1, 1)]
+
+
+def test_governed_production_receipt_candidate_rejects_unsafe_or_unapproved_input(tmp_path):
+    db_path = tmp_path / "activation_receipts.sqlite"
+    unsafe = activation.record_activation_production_receipt_candidate(
+        "provider_policy_receipt",
+        {**_production_candidate("provider_policy_receipt"), "provider_api_call_enabled": True},
+        db_path,
+        generated_at=FIXED_NOW,
+    )
+    unapproved = activation.record_activation_production_receipt_candidate(
+        "provider_policy_receipt",
+        {**_production_candidate("provider_policy_receipt"), "operator_approved": False},
+        db_path,
+        generated_at=FIXED_NOW,
+    )
+    authority = activation.record_activation_production_receipt_candidate(
+        "provider_policy_receipt",
+        {**_production_candidate("provider_policy_receipt"), "tool_execution_allowed": True},
+        db_path,
+        generated_at=FIXED_NOW,
+    )
+    substrate = activation.inspect_activation_receipt_substrate(db_path, create_if_missing=False)
+
+    assert unsafe["recorded"] is False
+    assert unapproved["recorded"] is False
+    assert authority["recorded"] is False
+    assert substrate["production_receipt_rows_present"] == 0
 
 
 def test_activation_receipt_validator_blocks_missing_or_unsafe_controls():
@@ -169,6 +268,12 @@ def test_activation_receipt_validator_blocks_missing_or_unsafe_controls():
     assert "provider_api_call_enabled" in unsafe["unsafe_true_controls"]
     assert missing["valid_for_contract"] is False
     assert "provider_policy_defined" in missing["missing_true_controls"]
+    authority = activation.validate_activation_receipt_candidate(
+        "provider_policy_receipt",
+        {**valid_fixture, "tool_execution_allowed": True},
+    )
+    assert authority["valid_for_contract"] is False
+    assert "tool_execution_allowed" in authority["unsafe_authority_controls"]
 
 
 def test_activation_requirements_do_not_enable_models_or_actions():
@@ -187,8 +292,13 @@ def test_activation_requirements_do_not_enable_models_or_actions():
     assert proof["activation_receipt_substrate_contract_rows"] == 7
     assert proof["activation_receipt_substrate_fixture_rows"] == 7
     assert proof["activation_receipt_substrate_production_rows"] == 0
+    assert proof["activation_receipt_substrate_valid_production_rows"] == 0
     assert proof["activation_receipt_substrate_contracts_backed"] is True
     assert proof["activation_receipt_substrate_fixtures_backed"] is True
+    assert proof["activation_production_receipt_intake_ready"] is True
+    assert proof["activation_production_receipt_writer_authority_free"] is True
+    assert proof["activation_production_receipt_status_count"] == 7
+    assert proof["activation_production_receipts_present_count"] == 0
     assert proof["activation_receipt_substrate_satisfies_production"] is False
     assert proof["live_shadow_comparison_receipt_present"] is True
     assert proof["live_shadow_model_call_recorded"] is True

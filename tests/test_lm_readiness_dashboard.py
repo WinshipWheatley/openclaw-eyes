@@ -203,7 +203,15 @@ def test_dashboard_exposes_activation_private_and_visibility_without_live_enable
     assert len(flow["live_lm_activation_requirements"]["activation_receipt_contracts"]) == 7
     assert flow["live_lm_activation_requirements"]["activation_receipt_substrate"]["contracts_backed_by_sqlite"] is True
     assert flow["live_lm_activation_requirements"]["activation_receipt_substrate"]["fixtures_backed_by_sqlite"] is True
+    assert flow["live_lm_activation_requirements"]["activation_receipt_substrate"]["production_receipt_intake_ready"] is True
     assert flow["live_lm_activation_requirements"]["activation_receipt_substrate"]["production_receipt_rows_present"] == 0
+    assert flow["live_lm_activation_requirements"]["activation_production_receipt_intake"]["metadata_only"] is True
+    assert flow["live_lm_activation_requirements"]["activation_production_receipt_intake"]["writer_authority_free"] is True
+    assert len(flow["live_lm_activation_requirements"]["activation_production_receipt_statuses"]) == 7
+    assert all(
+        item["present"] is False
+        for item in flow["live_lm_activation_requirements"]["activation_production_receipt_statuses"]
+    )
     assert all(
         contract["receipt_contract_status"] == "RECEIPT_CONTRACT_READY_PRODUCTION_RECEIPT_MISSING"
         for contract in flow["live_lm_activation_requirements"]["activation_receipt_contracts"]
@@ -232,6 +240,10 @@ def test_dashboard_exposes_activation_private_and_visibility_without_live_enable
     assert payload["machine_proof"]["activation_receipt_fixtures_satisfy_production"] is False
     assert payload["machine_proof"]["activation_receipt_substrate_contracts_backed"] is True
     assert payload["machine_proof"]["activation_receipt_substrate_fixtures_backed"] is True
+    assert payload["machine_proof"]["activation_production_receipt_intake_ready"] is True
+    assert payload["machine_proof"]["activation_production_receipt_writer_authority_free"] is True
+    assert payload["machine_proof"]["activation_production_receipt_status_count"] == 7
+    assert payload["machine_proof"]["activation_production_receipts_present_count"] == 0
     assert payload["machine_proof"]["activation_receipt_substrate_satisfies_production"] is False
     assert payload["machine_proof"]["live_lm_shadow_trial_aggregated"] is True
     assert payload["machine_proof"]["live_shadow_model_call_recorded"] is True

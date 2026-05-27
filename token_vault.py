@@ -690,7 +690,11 @@ def write_exports(payload: Mapping[str, Any], export_root: Path = DEFAULT_EXPORT
         f"Privacy policy receipt present: {str(proof.get('privacy_policy_receipt_present')).lower()}",
         "",
         "Synthetic tokenization fixture only. No real sensitive values are exported.",
-        "Private Mode backend policy exists, but production token vault is not active yet.",
+        (
+            "Private Mode backend policy exists, and local privacy vault proof is present; live models remain off."
+            if proof.get("privacy_readiness_production_token_vault_ready")
+            else "Private Mode backend policy exists, but production token vault is not active yet."
+        ),
     ]
     operator_path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
     return json_path, operator_path

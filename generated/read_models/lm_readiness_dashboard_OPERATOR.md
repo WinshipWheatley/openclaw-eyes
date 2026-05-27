@@ -16,6 +16,7 @@ LM1 thread package: CONNECTED_TO_GATE1
 Request-response bridge: READY_FOR_LIVE_REVIEW
 Production/live blockers: EXPLICIT
 Provider activation receipts: RECEIPTS_REQUIRED_NOT_PRESENT
+Governed production receipt intake: READY_METADATA_ONLY
 Live shadow trial: LIVE_SHADOW_PASSED
 Live shadow receipt: PRESENT
 Private Mode policy: PRIVATE_MODE_POLICY_READY_INACTIVE
@@ -27,5 +28,5 @@ Gate 3: ROLE_PACKAGE_COMPILED
 Gate 3 readback: OPERATOR_VISIBLE
 Gate 4: ROLE_OUTPUT_VALIDATED
 
-Private Mode backend policy exists, but production token vault is not active yet.
+Private Mode backend policy exists, and local privacy vault proof is present; live models remain off.
 This dashboard integrates readiness contracts only. Live LM calls remain off.
