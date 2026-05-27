@@ -101,6 +101,11 @@ COMPLETION_CLAIMS = (
     "authorized",
     "dispatched",
     "emailed",
+    "removed",
+    "replaced",
+    "deleted",
+    "retired",
+    "updated",
 )
 
 LEAKAGE_PATTERNS = (

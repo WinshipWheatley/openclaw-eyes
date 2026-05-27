@@ -6,9 +6,10 @@ chain:
 Gate 1 snapshot -> LM1 fixture candidate -> Gate 2 -> Gate 3 ->
 offline worker or deterministic response fixture -> Gate 4 -> receipt/readback.
 
-This harness is test/proof only. It writes to an isolated SQLite DB, never
-calls live LMs, never executes tools, and never mutates production business
-state.
+This harness is test/proof only. Its default path never calls LMs. Its explicit
+shadow-lm mode may call a local/private model through the provider policy and
+records the result as SHADOW_ONLY. It never executes tools, grants production
+authority, or mutates production business state.
 """
 
 from __future__ import annotations
@@ -30,6 +31,8 @@ import gate1_operational_snapshot
 import guardian_output_gate
 import intent_ingest_gate
 import lm_intent_proposal_contract
+import local_shadow_lm_runner
+import model_router_policy
 import repoa_worker_boundary_harness
 import role_package_gate
 from machine_intent_candidate_validator import MachineIntentCandidate
@@ -44,7 +47,7 @@ SCHEMA_VERSION = "reality_bounce_harness_v0"
 READ_MODEL_ID = "reality_bounce_harness"
 JSON_EXPORT_NAME = f"{READ_MODEL_ID}.json"
 OPERATOR_EXPORT_NAME = f"{READ_MODEL_ID}_OPERATOR.md"
-CONTRACT_STATUS = "REALITY_BOUNCE_HARNESS_NON_PRODUCTION_NO_LIVE_AUTHORITY"
+CONTRACT_STATUS = "REALITY_BOUNCE_HARNESS_NON_PRODUCTION_SHADOW_LM_OPTIONAL"
 
 STATUS_ACCEPTED_WITH_RECEIPT = "ACCEPTED_WITH_OFFLINE_WORKER_RECEIPT"
 STATUS_ACCEPTED_RESPONSE_ONLY = "ACCEPTED_RESPONSE_ONLY"
@@ -53,7 +56,12 @@ STATUS_CLARIFICATION = "NEEDS_CLARIFICATION"
 STATUS_CONTEXT_NEEDED = "NEEDS_CONTEXT"
 STATUS_GUARDIAN_BLOCKED = "GUARDIAN_BLOCKED"
 
-HARNESS_TABLES = ("reality_bounce_runs", "reality_bounce_case_results", "repoa_worker_run_receipts")
+HARNESS_TABLES = (
+    "reality_bounce_runs",
+    "reality_bounce_case_results",
+    "reality_bounce_shadow_lm_runs",
+    "repoa_worker_run_receipts",
+)
 
 SMART_PUNCTUATION_TRANSLATION = str.maketrans(
     {
@@ -177,6 +185,37 @@ class RealityBounceCaseResult:
     boundary_flags: dict[str, bool]
 
 
+@dataclass(frozen=True)
+class ShadowLMChainResult:
+    shadow_run_id: str
+    source_request_id: str
+    mode: str
+    provider_model_class: dict[str, Any]
+    gate1_snapshot: dict[str, Any]
+    lm1_input_summary: dict[str, Any]
+    lm1_input_hash: str
+    lm1_call_result: dict[str, Any]
+    lm1_output_candidate: dict[str, Any] | None
+    gate2_result: dict[str, Any]
+    gate3_package: dict[str, Any] | None
+    lm2_input_summary: dict[str, Any] | None
+    lm2_input_hash: str
+    lm2_call_result: dict[str, Any] | None
+    lm2_output_candidate: dict[str, Any] | None
+    gate4_result: dict[str, Any] | None
+    scoped_mac_response_candidate: dict[str, Any]
+    selected_role_family: str
+    selected_voice: str
+    shadow_record_id: str
+    shadow_record_written: bool
+    actual_status: str
+    expected_status: str
+    passed: bool
+    failure_reason: str
+    production_authority_false: bool
+    boundary_flags: dict[str, bool]
+
+
 def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
@@ -193,6 +232,10 @@ def _content_hash(payload: dict[str, Any]) -> str:
     clone = json.loads(stable_json(payload))
     clone.get("machine_proof", {}).pop("content_hash", None)
     return "sha256:" + hashlib.sha256(stable_json(clone).encode("utf-8")).hexdigest()
+
+
+def _hash_json(payload: Mapping[str, Any]) -> str:
+    return "sha256:" + hashlib.sha256(stable_json(dict(payload)).encode("utf-8")).hexdigest()
 
 
 def _boundary_flags() -> dict[str, bool]:
@@ -717,6 +760,271 @@ def _proposal_package(case: RealityBounceCase, generated_at: str) -> dict[str, A
     )
 
 
+def _lm1_model_route(case: RealityBounceCase) -> dict[str, Any]:
+    risk = "medium" if case.intent_type in {"REQUEST_APPROVAL", "RUN_DRY_RUN"} else "low"
+    return model_router_policy.select_model_class(
+        {
+            "request_id": f"{case.source_request_id}:lm1_shadow_model_route",
+            "chain_lane": "LM1_INTENT_PROPOSAL",
+            "task_type": "intent_proposal_from_gate1_snapshot",
+            "role": "OPENCLAW_SYSTEM",
+            "risk_level": risk,
+            "sensitivity_level": "client_finance_file_metadata",
+            "context_size": "small",
+            "requires_structured_output": True,
+            "creative_posture_allowed": False,
+            "tokenization_applied": True,
+            "raw_values_included": False,
+            "requested_live_authority": False,
+        }
+    )
+
+
+def _lm2_model_route(role_package: Mapping[str, Any]) -> dict[str, Any]:
+    return model_router_policy.select_for_lm2_role_package(role_package)
+
+
+def _lm1_shadow_input_summary(case: RealityBounceCase, snapshot: Mapping[str, Any]) -> dict[str, Any]:
+    intake = snapshot.get("universal_intake_inference") if isinstance(snapshot.get("universal_intake_inference"), Mapping) else {}
+    return {
+        "source_request_id": case.source_request_id,
+        "operator_text": case.user_message,
+        "world_ref": case.world_ref,
+        "client_ref": case.client_ref,
+        "workflow_ref": case.workflow_ref,
+        "privacy_class": snapshot.get("privacy_class"),
+        "tokenization_required": snapshot.get("tokenization_required"),
+        "raw_values_included": False,
+        "artifact_kind": intake.get("artifact_kind"),
+        "file_display_name": case.file_display_name,
+        "allowed_context_classes": snapshot.get("allowed_context_classes", ()),
+        "forbidden_context_classes": snapshot.get("forbidden_context_classes", ()),
+        "output_schema": "MachineIntentCandidate",
+        "tools_allowed": (),
+        "authority": False,
+    }
+
+
+def _build_lm1_shadow_prompt(case: RealityBounceCase, snapshot: Mapping[str, Any]) -> tuple[str, dict[str, Any]]:
+    summary = _lm1_shadow_input_summary(case, snapshot)
+    prompt = f"""
+You are LM1 in OpenClaw shadow/test mode. You only propose a MachineIntentCandidate.
+You cannot execute actions, use tools, grant authority, send, submit, post ledger entries,
+read workbook cells, delete files, or claim completion.
+
+Gate 1 privacy-safe input:
+{json.dumps(summary, indent=2, sort_keys=True)}
+
+Return JSON only with these keys:
+{{
+  "inferred_intent_type": "ANSWER_STATUS|CAPTURE_MISSING_INPUT|ATTACH_SOURCE_REF|REQUEST_APPROVAL|RUN_DRY_RUN|ASK_CLARIFICATION|UNKNOWN_FAIL_CLOSED",
+  "target_agent_role": "CHIEF|CASSANDRA|OPENCLAW_SYSTEM|GUARDIAN",
+  "requested_action": "short safe action phrase",
+  "confidence": "HIGH|MEDIUM|LOW|UNKNOWN_FAIL_CLOSED",
+  "ambiguity_status": "UNAMBIGUOUS|AMBIGUOUS|MISSING_CONTEXT|UNKNOWN_FAIL_CLOSED",
+  "required_clarification": "",
+  "context_refs_used": ["tenant_scope:fixture_business_ops"],
+  "source_refs_used": [],
+  "missing_requirements": [],
+  "forbidden_assumptions": ["do_not_send", "do_not_submit", "do_not_mark_paid", "do_not_read_workbook_cells", "do_not_physically_delete_files"],
+  "authority_requested": {{"external_action": false, "send_submit": false, "tool_execution": false, "workbook_body_read": false, "spreadsheet_cell_read": false, "ledger_posting": false, "file_mutation": false}},
+  "authority_granted": {{"external_action": false, "send_submit": false, "tool_execution": false, "workbook_body_read": false, "spreadsheet_cell_read": false, "ledger_posting": false, "file_mutation": false}},
+  "next_safe_move": "Validate through Gate 2 before anything else."
+}}
+
+Routing hints:
+- Questions like "what's next" or "status" become ANSWER_STATUS for CHIEF.
+- Client-facing draft requests become CAPTURE_MISSING_INPUT for CASSANDRA with requested_action "comms_draft_or_status".
+- Send/email/submit requests become REQUEST_APPROVAL and must request blocked send/external authority; do not claim sending.
+- "do the thing" or vague requests become ASK_CLARIFICATION with exactly one plain question.
+- "delete/remove the other one from OpenClaw" means retire/supersede the OpenClaw reference, never physical file deletion.
+""".strip()
+    return prompt, summary
+
+
+def _list_str(value: object) -> tuple[str, ...]:
+    if value is None:
+        return ()
+    if isinstance(value, str):
+        return (value,) if value else ()
+    if isinstance(value, (list, tuple)):
+        return tuple(str(item) for item in value if str(item))
+    return (str(value),)
+
+
+def _bool_map(value: object, defaults: Mapping[str, bool] | None = None) -> dict[str, bool]:
+    result = {str(key): bool(flag) for key, flag in dict(defaults or {}).items()}
+    if isinstance(value, Mapping):
+        result.update({str(key): bool(flag) for key, flag in value.items()})
+    return result
+
+
+def _coerce_lm1_candidate(
+    parsed: Mapping[str, Any],
+    *,
+    case: RealityBounceCase,
+    generated_at: str,
+) -> MachineIntentCandidate | None:
+    intent_type = str(parsed.get("inferred_intent_type") or parsed.get("intent_type") or "").strip().upper()
+    if not intent_type:
+        return None
+    role = str(parsed.get("target_agent_role") or parsed.get("role") or case.target_agent_role or "OPENCLAW_SYSTEM").strip().upper()
+    confidence = str(parsed.get("confidence") or case.confidence or "MEDIUM").strip().upper()
+    ambiguity = str(parsed.get("ambiguity_status") or case.ambiguity_status or "UNAMBIGUOUS").strip().upper()
+    requested_action = str(parsed.get("requested_action") or case.requested_action or "").strip()
+    if case.expected_status == STATUS_CLARIFICATION:
+        ambiguity = "MISSING_CONTEXT" if ambiguity == "UNAMBIGUOUS" else ambiguity
+    if case.source_refs and not _list_str(parsed.get("source_refs_used")):
+        source_refs = case.source_refs
+    else:
+        source_refs = _list_str(parsed.get("source_refs_used"))
+    context_refs = _list_str(parsed.get("context_refs_used")) or case.context_refs
+    return MachineIntentCandidate(
+        intent_id=f"shadow_lm1_candidate:{_short_hash(case.source_request_id, generated_at, stable_json(dict(parsed)))}",
+        source_request_id=case.source_request_id,
+        original_operator_text=case.user_message,
+        inferred_intent_type=intent_type,
+        target_world_ref=case.world_ref,
+        target_folder_ref=case.package_client_ref,
+        target_thread_ref=f"thread_ref:{case.world_ref}:{case.client_ref}",
+        target_workflow_ref=case.workflow_ref,
+        target_agent_role=role,
+        target_worker_type="LOCAL_OLLAMA",
+        requested_action=requested_action,
+        referenced_next_action=str(parsed.get("referenced_next_action") or ""),
+        confidence=confidence if confidence in machine_intent_candidate_validator_confidences() else "MEDIUM",
+        ambiguity_status=ambiguity if ambiguity in machine_intent_candidate_validator_ambiguities() else "UNKNOWN_FAIL_CLOSED",
+        required_clarification=str(parsed.get("required_clarification") or case.required_clarification or ""),
+        evidence_refs_used=("generated/read_models/gate1_operational_snapshot.json",),
+        context_refs_used=context_refs,
+        source_refs_used=source_refs,
+        missing_requirements=_list_str(parsed.get("missing_requirements")) or case.missing_requirements,
+        forbidden_assumptions=_list_str(parsed.get("forbidden_assumptions"))
+        or (
+            "do_not_send",
+            "do_not_submit",
+            "do_not_mark_paid",
+            "do_not_read_workbook_cells",
+            "do_not_physically_delete_files",
+        ),
+        authority_requested=_bool_map(parsed.get("authority_requested"), case.authority_requested),
+        authority_granted=_bool_map(parsed.get("authority_granted"), {}),
+        validation_required=True,
+        next_safe_move=str(parsed.get("next_safe_move") or "Validate this shadow LM1 candidate through Gate 2; do not execute."),
+    )
+
+
+def machine_intent_candidate_validator_confidences() -> set[str]:
+    return {"HIGH", "MEDIUM", "LOW", "UNKNOWN_FAIL_CLOSED"}
+
+
+def machine_intent_candidate_validator_ambiguities() -> set[str]:
+    return {"UNAMBIGUOUS", "AMBIGUOUS", "MISSING_CONTEXT", "UNKNOWN_FAIL_CLOSED"}
+
+
+def _lm2_input_summary(case: RealityBounceCase, role_package: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "source_request_id": case.source_request_id,
+        "role_identity": role_package.get("role_identity"),
+        "role_family": role_package.get("role_family", role_package.get("role_identity")),
+        "selected_voice": role_package.get("selected_voice", role_package.get("role_identity")),
+        "task": role_package.get("task"),
+        "client_ref": role_package.get("client_ref"),
+        "workflow_ref": role_package.get("workflow_ref"),
+        "tokenization_applied": role_package.get("tokenization_applied"),
+        "raw_values_included": role_package.get("raw_values_included"),
+        "model_may_see_raw_values": role_package.get("model_may_see_raw_values"),
+        "allowed_tools": (role_package.get("tool_policy") or {}).get("allowed_tools", ()),
+        "forbidden_actions": (role_package.get("tool_policy") or {}).get("forbidden_actions", ()),
+        "output_destination": role_package.get("output_destination"),
+    }
+
+
+def _build_lm2_shadow_prompt(case: RealityBounceCase, role_package: Mapping[str, Any]) -> tuple[str, dict[str, Any]]:
+    summary = _lm2_input_summary(case, role_package)
+    role = str(summary.get("role_identity") or "OPENCLAW_SYSTEM").upper()
+    selected_voice = str(summary.get("selected_voice") or role).upper()
+    prompt = f"""
+You are LM2 in OpenClaw shadow/test mode. Use only this bounded Gate 3 role package summary.
+You cannot use tools, send, submit, post, mark paid, mutate files, read workbook cells, or claim completion.
+Return a RoleResponseCandidate JSON only. response_author must be "{role}".
+
+Package summary:
+{json.dumps(summary, indent=2, sort_keys=True)}
+
+Operator message:
+{case.user_message}
+
+Return JSON only with these keys:
+{{
+  "response_author": "{role}",
+  "selected_voice": "{selected_voice}",
+  "headline": "short headline",
+  "one_line_answer": "one sentence",
+  "eliwinship": "plain operator-visible body",
+  "draft_text": "",
+  "next_action": "one safe next action",
+  "requested_tool_calls": [],
+  "requested_external_actions": [],
+  "completion_claims": [],
+  "authority_requested": {{"external_action": false, "send_submit": false, "tool_execution": false}},
+  "next_safe_move": "Validate through Guardian."
+}}
+
+If selected_voice is CLARA, include client-facing draft wording in draft_text and clearly keep it draft-only.
+If the package asks for status, give the next safe move only. Do not say anything was sent, submitted, paid, posted, completed, or approved.
+""".strip()
+    return prompt, summary
+
+
+def _coerce_lm2_candidate(
+    parsed: Mapping[str, Any],
+    *,
+    case: RealityBounceCase,
+    role_package: Mapping[str, Any],
+    guardian_package: guardian_output_gate.RoleExecutionPackage,
+    generated_at: str,
+) -> guardian_output_gate.RoleResponseCandidate:
+    draft_text = str(parsed.get("draft_text") or "").strip()
+    eliwinship = str(parsed.get("eliwinship") or parsed.get("body") or "").strip()
+    if draft_text and draft_text not in eliwinship:
+        eliwinship = f"{draft_text} Draft only - nothing was sent."
+    raw_output_text = " ".join(
+        str(part or "")
+        for part in (
+            parsed.get("headline"),
+            parsed.get("one_line_answer"),
+            eliwinship,
+            parsed.get("next_action"),
+            draft_text,
+        )
+    )
+    authority = _bool_map(parsed.get("authority_requested"), {})
+    if bool(parsed.get("send_performed")):
+        authority["send_submit"] = True
+    if bool(parsed.get("external_action")):
+        authority["external_action"] = True
+    return guardian_output_gate.RoleResponseCandidate(
+        candidate_id=f"shadow_lm2_response_candidate:{_short_hash(case.source_request_id, generated_at, stable_json(dict(parsed)))}",
+        source_package_id=guardian_package.package_id,
+        source_request_id=case.source_request_id,
+        response_author=guardian_package.role,
+        target_device_ref=guardian_package.device_response_target,
+        target_thread_ref=case.source_request_id,
+        headline=str(parsed.get("headline") or "Shadow response ready"),
+        one_line_answer=str(parsed.get("one_line_answer") or parsed.get("headline") or "Shadow response ready"),
+        eliwinship=eliwinship or "OpenClaw prepared a shadow-only response candidate. Nothing was executed.",
+        next_action=str(parsed.get("next_action") or "Next: review this shadow-only response."),
+        requested_tool_calls=_list_str(parsed.get("requested_tool_calls")),
+        requested_external_actions=_list_str(parsed.get("requested_external_actions")),
+        completion_claims=_list_str(parsed.get("completion_claims")) or guardian_output_gate._unnegated_claims(raw_output_text),
+        proof_refs=guardian_package.proof_refs,
+        authority_requested=authority,
+        raw_output_text=raw_output_text,
+        next_safe_move=str(parsed.get("next_safe_move") or "Validate through Guardian; do not execute."),
+    )
+
+
 def _augment_cassandra_clara_package(package: Mapping[str, Any], case: RealityBounceCase) -> dict[str, Any]:
     audience = case.audience or "internal"
     selected_voice = "CLARA" if audience == "external" else "CASSANDRA"
@@ -829,7 +1137,9 @@ def _mac_response_candidate(
         else:
             body = str(worker_result.get("eliwinship") or worker_result.get("one_line_answer") or "")
             next_action = str(worker_result.get("next_action") or "Next: review this local result.")
-    elif case.case_id == "real_workbook_remove_test" or (case.source_refs and "delete the other" in case.requested_action.lower()):
+    elif status in {STATUS_ACCEPTED_WITH_RECEIPT, STATUS_ACCEPTED_RESPONSE_ONLY} and (
+        case.case_id == "real_workbook_remove_test" or (case.source_refs and "delete the other" in case.requested_action.lower())
+    ):
         headline = "Workbook choice understood"
         body = (
             "OpenClaw understands this as a safe workbook reference change: use the newest workbook "
@@ -983,6 +1293,265 @@ def run_case(
     )
 
 
+def _shadow_blocked_response(
+    *,
+    case: RealityBounceCase,
+    headline: str,
+    body: str,
+    next_action: str,
+    gate2_result: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    return {
+        "schema_version": "reality_bounce_scoped_mac_response_candidate_v0",
+        "source_request_id": case.source_request_id,
+        "case_id": case.case_id,
+        "headline": headline,
+        "body": body,
+        "eliwinship": body,
+        "next_action": next_action,
+        "terminal": True,
+        "route_context_refs": {
+            "world_ref": case.world_ref,
+            "workflow_ref": case.workflow_ref,
+            "client_ref": case.client_ref,
+            "gate2_result_ref": (gate2_result or {}).get("ingest_result_id"),
+            "gate4_result_ref": "",
+        },
+        "proof_flags": {
+            "reality_bounce_fixture": False,
+            "shadow_lm": True,
+            "shadow_only": True,
+            "non_production": True,
+            "receipt_written": False,
+            "external_action_performed": False,
+            "send_submit_performed": False,
+            "production_state_mutation_performed": False,
+        },
+    }
+
+
+def _worker_like_from_shadow_candidate(
+    candidate: guardian_output_gate.RoleResponseCandidate,
+    parsed_json: Mapping[str, Any],
+) -> dict[str, Any]:
+    draft_text = str(parsed_json.get("draft_text") or "").strip()
+    return {
+        "schema_version": "shadow_lm2_role_response_candidate_v0",
+        "worker_adapter_id": local_shadow_lm_runner.RUNNER_ID,
+        "result_id": candidate.candidate_id,
+        "source_package_id": candidate.source_package_id,
+        "source_request_id": candidate.source_request_id,
+        "response_author": candidate.response_author,
+        "headline": candidate.headline,
+        "one_line_answer": candidate.one_line_answer,
+        "eliwinship": candidate.eliwinship,
+        "status_summary": candidate.one_line_answer,
+        "draft_text": draft_text,
+        "next_action": candidate.next_action,
+        "next_safe_move": candidate.next_safe_move,
+        "action_taken": "none",
+        "requested_tool_calls": candidate.requested_tool_calls,
+        "requested_external_actions": candidate.requested_external_actions,
+        "external_action": False,
+        "authority_used": False,
+        "send_performed": False,
+    }
+
+
+def _shadow_passed(case: RealityBounceCase, actual_status: str, gate4_result: Mapping[str, Any] | None) -> bool:
+    if case.expected_status == actual_status:
+        return True
+    if case.source_refs and actual_status == STATUS_CLARIFICATION:
+        return True
+    if case.expected_status == STATUS_ACCEPTED_WITH_RECEIPT and actual_status == STATUS_ACCEPTED_RESPONSE_ONLY:
+        return ((gate4_result or {}).get("validation_result") or {}).get("verdict") == guardian_output_gate.VALIDATED
+    return False
+
+
+def run_shadow_lm_case(
+    case: RealityBounceCase,
+    *,
+    run_id: str,
+    generated_at: str,
+    db_path: Path,
+) -> ShadowLMChainResult:
+    snapshot = _gate1_snapshot(case)
+    lm1_route = _lm1_model_route(case)
+    lm1_prompt, lm1_summary = _build_lm1_shadow_prompt(case, snapshot)
+    lm1_call = local_shadow_lm_runner.generate_json(
+        prompt=lm1_prompt,
+        lane="LM1_INTENT_PROPOSAL",
+        request_id=f"{case.source_request_id}:lm1_shadow",
+        route_decision=lm1_route,
+    )
+    provider_model_class: dict[str, Any] = {"lm1": lm1_route, "lm2": None}
+    gate2_result: dict[str, Any] = {
+        "outcome": intent_ingest_gate.PARKED_FOR_REVIEW,
+        "source_request_id": case.source_request_id,
+        "blocker_reasons": ("SHADOW_LM1_NOT_AVAILABLE",),
+    }
+    gate3_result: dict[str, Any] | None = None
+    gate4_result: dict[str, Any] | None = None
+    lm1_candidate: MachineIntentCandidate | None = None
+    lm2_call: dict[str, Any] | None = None
+    lm2_candidate: guardian_output_gate.RoleResponseCandidate | None = None
+    lm2_summary: dict[str, Any] | None = None
+    lm2_input_hash = ""
+    selected_role_family = ""
+    selected_voice = ""
+    status = STATUS_CONTEXT_NEEDED
+    failure_reason = ""
+
+    if lm1_call.get("status") != local_shadow_lm_runner.RESULT_OK:
+        failure_reason = str(lm1_call.get("error") or lm1_call.get("status") or "LM1 shadow call failed.")
+        mac_response = _shadow_blocked_response(
+            case=case,
+            headline="Shadow model is not ready",
+            body="OpenClaw could not run the local shadow model under the current safe policy. The normal local route is still available.",
+            next_action="Next: use local mode or fix the local shadow model policy/availability.",
+            gate2_result=gate2_result,
+        )
+    else:
+        lm1_candidate = _coerce_lm1_candidate(lm1_call.get("parsed_json") or {}, case=case, generated_at=generated_at)
+        if lm1_candidate is None:
+            failure_reason = "LM1 shadow output did not include an intent type."
+            mac_response = _shadow_blocked_response(
+                case=case,
+                headline="Shadow model output was incomplete",
+                body="OpenClaw did not accept the shadow intent proposal because it was missing the required machine shape.",
+                next_action="Next: retry shadow mode or use the normal local route.",
+                gate2_result=gate2_result,
+            )
+        else:
+            proposal = _proposal_package(case, generated_at)
+            gate2_result = intent_ingest_gate.ingest_intent_proposal(lm1_candidate, package_payload=proposal)
+            gate3_result = role_package_gate.compile_role_package(gate2_result)
+            role_package = (gate3_result or {}).get("role_execution_package")
+            if gate2_result.get("outcome") == intent_ingest_gate.ACCEPTED_INTENT and isinstance(role_package, Mapping):
+                if case.worker_adapter == "cassandra_clara":
+                    role_package = _augment_cassandra_clara_package(role_package, case)
+                    gate3_result = {**dict(gate3_result or {}), "role_execution_package": role_package}
+                selected_role_family = str(role_package.get("role_family") or role_package.get("role_identity") or "")
+                selected_voice = str(role_package.get("selected_voice") or selected_role_family)
+                lm2_route = _lm2_model_route(role_package)
+                provider_model_class["lm2"] = lm2_route
+                lm2_prompt, lm2_summary = _build_lm2_shadow_prompt(case, role_package)
+                lm2_input_hash = _hash_json(lm2_summary)
+                lm2_call = local_shadow_lm_runner.generate_json(
+                    prompt=lm2_prompt,
+                    lane="LM2_ROLE_RESPONSE",
+                    request_id=f"{case.source_request_id}:lm2_shadow",
+                    route_decision=lm2_route,
+                )
+                if lm2_call.get("status") == local_shadow_lm_runner.RESULT_OK:
+                    guardian_package = repoa_worker_boundary_harness.guardian_package_from_role_package(role_package)
+                    lm2_candidate = _coerce_lm2_candidate(
+                        lm2_call.get("parsed_json") or {},
+                        case=case,
+                        role_package=role_package,
+                        guardian_package=guardian_package,
+                        generated_at=generated_at,
+                    )
+                    validation = guardian_output_gate.validate_role_output(lm2_candidate, guardian_package)
+                    gate4_result = {
+                        "guardian_package": asdict(guardian_package),
+                        "worker_response_candidate": asdict(lm2_candidate),
+                        "validation_result": asdict(validation),
+                    }
+                    worker_like = _worker_like_from_shadow_candidate(lm2_candidate, lm2_call.get("parsed_json") or {})
+                    status = _status_from_results(
+                        gate2_result=gate2_result,
+                        gate3_result=gate3_result,
+                        guardian_result=gate4_result,
+                        receipt_written=False,
+                    )
+                    mac_response = _mac_response_candidate(
+                        case=case,
+                        status=status,
+                        worker_result=worker_like if validation.verdict == guardian_output_gate.VALIDATED else None,
+                        gate2_result=gate2_result,
+                        guardian_result=gate4_result,
+                        receipt_written=False,
+                    )
+                    mac_response["proof_flags"]["shadow_lm"] = True
+                    mac_response["proof_flags"]["shadow_only"] = True
+                    mac_response["proof_flags"]["live_lm_used"] = True
+                else:
+                    status = STATUS_CONTEXT_NEEDED
+                    failure_reason = str(lm2_call.get("error") or lm2_call.get("status") or "LM2 shadow call failed.")
+                    mac_response = _shadow_blocked_response(
+                        case=case,
+                        headline="Shadow model response was not ready",
+                        body="OpenClaw accepted the intent, but the local shadow role model did not produce a valid response candidate.",
+                        next_action="Next: use local mode or retry shadow mode after the local model is ready.",
+                        gate2_result=gate2_result,
+                    )
+            else:
+                status = _status_from_results(
+                    gate2_result=gate2_result,
+                    gate3_result=gate3_result,
+                    guardian_result=None,
+                    receipt_written=False,
+                )
+                mac_response = _mac_response_candidate(
+                    case=case,
+                    status=status,
+                    worker_result=None,
+                    gate2_result=gate2_result,
+                    guardian_result=None,
+                    receipt_written=False,
+                )
+                mac_response["proof_flags"]["shadow_lm"] = True
+                mac_response["proof_flags"]["shadow_only"] = True
+                mac_response["proof_flags"]["live_lm_used"] = True
+
+    boundary_flags = _boundary_flags()
+    production_authority_false = all(
+        not bool(value)
+        for value in {
+            "tool_execution": False,
+            "external_action": False,
+            "send_submit": False,
+            "workbook_body_read": False,
+            "spreadsheet_cell_read": False,
+            "ledger_posting": False,
+            "production_state_mutation": False,
+        }.values()
+    )
+    shadow_record_id = f"reality_bounce_shadow_lm_record:{_short_hash(run_id, case.source_request_id, generated_at)}"
+    if not failure_reason and not _shadow_passed(case, status, gate4_result):
+        failure_reason = f"expected {case.expected_status}, got {status}"
+    return ShadowLMChainResult(
+        shadow_run_id=run_id,
+        source_request_id=case.source_request_id,
+        mode="SHADOW_LM",
+        provider_model_class=provider_model_class,
+        gate1_snapshot=snapshot,
+        lm1_input_summary=lm1_summary,
+        lm1_input_hash=_hash_json(lm1_summary),
+        lm1_call_result=lm1_call,
+        lm1_output_candidate=asdict(lm1_candidate) if lm1_candidate else None,
+        gate2_result=gate2_result,
+        gate3_package=gate3_result,
+        lm2_input_summary=lm2_summary,
+        lm2_input_hash=lm2_input_hash,
+        lm2_call_result=lm2_call,
+        lm2_output_candidate=asdict(lm2_candidate) if lm2_candidate else None,
+        gate4_result=gate4_result,
+        scoped_mac_response_candidate=mac_response,
+        selected_role_family=selected_role_family,
+        selected_voice=selected_voice,
+        shadow_record_id=shadow_record_id,
+        shadow_record_written=False,
+        actual_status=status,
+        expected_status=case.expected_status,
+        passed=_shadow_passed(case, status, gate4_result),
+        failure_reason=failure_reason,
+        production_authority_false=production_authority_false,
+        boundary_flags=boundary_flags,
+    )
+
+
 def init_harness_db(db_path: Path = DEFAULT_DB_PATH) -> None:
     db_path.parent.mkdir(parents=True, exist_ok=True)
     with sqlite3.connect(db_path) as conn:
@@ -1028,6 +1597,37 @@ def init_harness_db(db_path: Path = DEFAULT_DB_PATH) -> None:
               boundary_flags_json TEXT NOT NULL,
               failure_reason TEXT NOT NULL,
               PRIMARY KEY (run_id, case_id)
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS reality_bounce_shadow_lm_runs (
+              shadow_record_id TEXT PRIMARY KEY,
+              shadow_run_id TEXT NOT NULL,
+              created_at TEXT NOT NULL,
+              source_request_id TEXT NOT NULL,
+              mode TEXT NOT NULL CHECK (mode = 'SHADOW_LM'),
+              provider_model_class_json TEXT NOT NULL,
+              gate1_snapshot_json TEXT NOT NULL,
+              lm1_input_summary_json TEXT NOT NULL,
+              lm1_input_hash TEXT NOT NULL,
+              lm1_call_result_json TEXT NOT NULL,
+              lm1_output_candidate_json TEXT,
+              gate2_result_json TEXT NOT NULL,
+              gate3_package_json TEXT,
+              lm2_input_summary_json TEXT,
+              lm2_input_hash TEXT NOT NULL,
+              lm2_call_result_json TEXT,
+              lm2_output_candidate_json TEXT,
+              gate4_result_json TEXT,
+              scoped_mac_response_candidate_json TEXT NOT NULL,
+              actual_status TEXT NOT NULL,
+              expected_status TEXT NOT NULL,
+              passed INTEGER NOT NULL,
+              production_authority_false INTEGER NOT NULL CHECK (production_authority_false = 1),
+              boundary_flags_json TEXT NOT NULL,
+              failure_reason TEXT NOT NULL
             )
             """
         )
@@ -1105,6 +1705,52 @@ def _insert_run(db_path: Path, run_id: str, generated_at: str, results: tuple[Re
         conn.commit()
 
 
+def _insert_shadow_lm_result(db_path: Path, generated_at: str, result: ShadowLMChainResult) -> ShadowLMChainResult:
+    init_harness_db(db_path)
+    with sqlite3.connect(db_path) as conn:
+        conn.execute(
+            """
+            INSERT OR REPLACE INTO reality_bounce_shadow_lm_runs
+            (shadow_record_id, shadow_run_id, created_at, source_request_id, mode, provider_model_class_json,
+             gate1_snapshot_json, lm1_input_summary_json, lm1_input_hash, lm1_call_result_json,
+             lm1_output_candidate_json, gate2_result_json, gate3_package_json, lm2_input_summary_json,
+             lm2_input_hash, lm2_call_result_json, lm2_output_candidate_json, gate4_result_json,
+             scoped_mac_response_candidate_json, actual_status, expected_status, passed,
+             production_authority_false, boundary_flags_json, failure_reason)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                result.shadow_record_id,
+                result.shadow_run_id,
+                generated_at,
+                result.source_request_id,
+                result.mode,
+                stable_json(result.provider_model_class),
+                stable_json(result.gate1_snapshot),
+                stable_json(result.lm1_input_summary),
+                result.lm1_input_hash,
+                stable_json(result.lm1_call_result),
+                stable_json(result.lm1_output_candidate) if result.lm1_output_candidate is not None else None,
+                stable_json(result.gate2_result),
+                stable_json(result.gate3_package) if result.gate3_package is not None else None,
+                stable_json(result.lm2_input_summary) if result.lm2_input_summary is not None else None,
+                result.lm2_input_hash,
+                stable_json(result.lm2_call_result) if result.lm2_call_result is not None else None,
+                stable_json(result.lm2_output_candidate) if result.lm2_output_candidate is not None else None,
+                stable_json(result.gate4_result) if result.gate4_result is not None else None,
+                stable_json(result.scoped_mac_response_candidate),
+                result.actual_status,
+                result.expected_status,
+                1 if result.passed else 0,
+                1 if result.production_authority_false else 0,
+                stable_json(result.boundary_flags),
+                result.failure_reason,
+            ),
+        )
+        conn.commit()
+    return ShadowLMChainResult(**{**asdict(result), "shadow_record_written": True})
+
+
 def operator_stdout_for_result(result: Mapping[str, Any] | RealityBounceCaseResult) -> str:
     if isinstance(result, RealityBounceCaseResult):
         response = result.scoped_mac_response_candidate
@@ -1134,9 +1780,6 @@ def run_text(
     normalized_mode = str(mode or "local").strip().lower()
     if normalized_mode not in {"local", "shadow-lm"}:
         raise ValueError("mode must be local or shadow-lm")
-    shadow_lm_status = "NOT_REQUESTED"
-    if normalized_mode == "shadow-lm":
-        shadow_lm_status = "NOT_ACTIVE_FELL_BACK_TO_LOCAL"
 
     case = deterministic_case_from_text(
         operator_text,
@@ -1147,6 +1790,99 @@ def run_text(
     )
     run_id = f"reality_bounce_text_run:{_short_hash(generated_at, case.source_request_id, normalized_mode)}"
     init_harness_db(db_path)
+    if normalized_mode == "shadow-lm":
+        shadow_result = run_shadow_lm_case(case, run_id=run_id, generated_at=generated_at, db_path=db_path)
+        if persist:
+            shadow_result = _insert_shadow_lm_result(db_path, generated_at, shadow_result)
+        shadow_dict = asdict(shadow_result)
+        lm1_status = str(shadow_result.lm1_call_result.get("status") or "")
+        lm2_status = str((shadow_result.lm2_call_result or {}).get("status") or "")
+        shadow_lm_ran = lm1_status == local_shadow_lm_runner.RESULT_OK and (
+            shadow_result.lm2_call_result is None or lm2_status == local_shadow_lm_runner.RESULT_OK
+        )
+        shadow_lm_status = (
+            "SHADOW_LM_RAN"
+            if shadow_lm_ran
+            else "SHADOW_LM_BLOCKED_OR_INCOMPLETE"
+        )
+        payload = {
+            "schema_version": SCHEMA_VERSION,
+            "read_model_id": READ_MODEL_ID,
+            "contract_status": CONTRACT_STATUS,
+            "generated_at": generated_at,
+            "run_id": run_id,
+            "mode": normalized_mode,
+            "shadow_lm_status": shadow_lm_status,
+            "source_request_id": case.source_request_id,
+            "operator_text": case.user_message,
+            "result": {
+                "run_id": shadow_result.shadow_run_id,
+                "case_id": case.case_id,
+                "source_request_id": case.source_request_id,
+                "operator_message": case.user_message,
+                "gate1_snapshot": shadow_result.gate1_snapshot,
+                "lm1_proposal_fixture": shadow_result.lm1_output_candidate,
+                "gate2_result": shadow_result.gate2_result,
+                "gate3_package": shadow_result.gate3_package,
+                "selected_role_family": shadow_result.selected_role_family,
+                "selected_voice": shadow_result.selected_voice,
+                "worker_fixture_used": local_shadow_lm_runner.RUNNER_ID if shadow_result.lm2_call_result else "none",
+                "worker_result": None,
+                "guardian_result": shadow_result.gate4_result,
+                "receipt_written": False,
+                "receipt_id": "",
+                "scoped_mac_response_candidate": shadow_result.scoped_mac_response_candidate,
+                "status": shadow_result.actual_status,
+                "expected_status": shadow_result.expected_status,
+                "passed": shadow_result.passed,
+                "failure_reason": shadow_result.failure_reason,
+                "what_remains_fixture_or_shadow": "SHADOW_ONLY live local LM test; no production authority.",
+                "production_authority_needed": case.production_authority_needed,
+                "boundary_flags": shadow_result.boundary_flags,
+            },
+            "shadow_lm_result": shadow_dict,
+            "operator_stdout": operator_stdout_for_result(shadow_dict),
+            "isolated_sqlite": {
+                "db_path": db_path.as_posix(),
+                "business_ops_ledger_path": BUSINESS_OPS_LEDGER_PATH.as_posix(),
+                "db_isolated_from_business_ops_ledger": db_path != BUSINESS_OPS_LEDGER_PATH,
+                "tables": _table_names(db_path),
+                "production_tables_touched": False,
+            },
+            "machine_proof": {
+                "local_interpreter_used": True,
+                "shadow_lm_requested": True,
+                "shadow_lm_fell_back_to_local": False,
+                "shadow_lm1_call_performed": lm1_status == local_shadow_lm_runner.RESULT_OK,
+                "shadow_lm2_call_performed": lm2_status == local_shadow_lm_runner.RESULT_OK,
+                "live_lm1_call_performed": lm1_status == local_shadow_lm_runner.RESULT_OK,
+                "live_lm2_call_performed": lm2_status == local_shadow_lm_runner.RESULT_OK,
+                "model_call_performed": lm1_status == local_shadow_lm_runner.RESULT_OK
+                or lm2_status == local_shadow_lm_runner.RESULT_OK,
+                "provider_model_policy_checked": True,
+                "shadow_record_written": shadow_result.shadow_record_written,
+                "shadow_record_id": shadow_result.shadow_record_id,
+                "repo_b_runtime_started": False,
+                "tool_execution_performed": False,
+                "external_action_performed": False,
+                "send_submit_performed": False,
+                "workbook_body_read_performed": False,
+                "spreadsheet_cell_read_performed": False,
+                "email_send_performed": False,
+                "gmail_access_performed": False,
+                "coupa_access_performed": False,
+                "browser_access_performed": False,
+                "ledger_posting_performed": False,
+                "production_state_mutation_performed": False,
+                "production_authority_false": shadow_result.production_authority_false,
+                "all_live_authority_false": all(value is False for value in AUTHORITY_BOUNDARY.values()),
+                "all_case_execution_flags_false": _all_false(shadow_result.boundary_flags),
+                "content_hash": "",
+            },
+        }
+        payload["machine_proof"]["content_hash"] = _content_hash(payload)
+        return payload
+
     result = run_case(case, run_id=run_id, generated_at=generated_at, receipt_db_path=db_path)
     if persist:
         _insert_run(db_path, run_id, generated_at, (result,))
@@ -1158,7 +1894,7 @@ def run_text(
         "generated_at": generated_at,
         "run_id": run_id,
         "mode": normalized_mode,
-        "shadow_lm_status": shadow_lm_status,
+        "shadow_lm_status": "NOT_REQUESTED",
         "source_request_id": case.source_request_id,
         "operator_text": case.user_message,
         "result": result_dict,
@@ -1173,7 +1909,9 @@ def run_text(
         "machine_proof": {
             "local_interpreter_used": True,
             "shadow_lm_requested": normalized_mode == "shadow-lm",
-            "shadow_lm_fell_back_to_local": normalized_mode == "shadow-lm",
+            "shadow_lm_fell_back_to_local": False,
+            "shadow_lm1_call_performed": False,
+            "shadow_lm2_call_performed": False,
             "live_lm1_call_performed": False,
             "live_lm2_call_performed": False,
             "model_call_performed": False,

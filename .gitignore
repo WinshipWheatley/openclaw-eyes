@@ -28,6 +28,7 @@
 !chief_offline_worker_adapter.py
 !cassandra_clara_offline_worker_adapter.py
 !reality_bounce_harness.py
+!local_shadow_lm_runner.py
 !chief_memory_worker.py
 !chief_reply_worker.py
 !chief_state_worker.py

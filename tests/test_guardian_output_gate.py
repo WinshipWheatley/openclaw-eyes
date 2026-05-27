@@ -56,6 +56,20 @@ def test_completion_claim_without_policy_is_blocked():
     assert "posted" in result["validation_result"]["forbidden_claims"]
 
 
+def test_reference_mutation_claim_without_receipt_is_blocked():
+    result = gate.validate_response_payload(
+        _safe_payload(
+            headline="Workbook updated",
+            eliwinship="I removed the test workbook and replaced it with the real one.",
+            next_action="Next: continue.",
+        )
+    )
+
+    assert result["validation_result"]["verdict"] == gate.BLOCKED_FORBIDDEN_CLAIM
+    assert result["validation_result"]["output_publish_allowed"] is False
+    assert {"removed", "replaced"}.issubset(set(result["validation_result"]["forbidden_claims"]))
+
+
 def test_requested_external_action_is_blocked():
     result = gate.validate_response_payload(
         _safe_payload(requested_external_actions=("email_send",), eliwinship="Please send this now.")
