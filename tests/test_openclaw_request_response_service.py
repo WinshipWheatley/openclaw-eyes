@@ -1,5 +1,6 @@
 import json
 import os
+import sqlite3
 import sys
 import threading
 import time
@@ -309,6 +310,17 @@ def _safe_heartbeat_path(response_dir: Path, request_id: str) -> Path:
     return response_dir / f"openclaw_processing_for_mac_{service._safe_filename_part(request_id)}.json"
 
 
+def _worker_receipt_rows(db_path: Path) -> list[sqlite3.Row]:
+    with sqlite3.connect(db_path) as conn:
+        conn.row_factory = sqlite3.Row
+        exists = conn.execute(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='repoa_worker_run_receipts'"
+        ).fetchone()[0]
+        if not exists:
+            return []
+        return conn.execute("SELECT * FROM repoa_worker_run_receipts ORDER BY source_request_id").fetchall()
+
+
 def _assert_heartbeat_no_success_claims(heartbeat: dict) -> None:
     text = " ".join(
         str(heartbeat.get(field) or "")
@@ -453,11 +465,13 @@ def test_service_scans_only_selected_inbox(tmp_path, capsys):
     assert outside_request.exists()
 
 
-def test_service_processes_chat_request_and_writes_per_request_response(tmp_path, capsys):
+def test_service_processes_chat_request_and_writes_per_request_response(tmp_path, capsys, monkeypatch):
     inbox = tmp_path / "inbox"
     response_dir = tmp_path / "responses"
     export_root = tmp_path / "read_models"
+    receipt_db = tmp_path / "reality_bounce.sqlite"
     inbox.mkdir()
+    monkeypatch.setenv("OPENCLAW_REALITY_BOUNCE_DB_PATH", receipt_db.as_posix())
     request_path = inbox / "mission_control_chat_request_capital_hilton.json"
     request = _write_chat_request(request_path)
 
@@ -506,18 +520,21 @@ def test_service_processes_chat_request_and_writes_per_request_response(tmp_path
     assert response["response_id"]
     assert response["audience_mode"] == "ELIWINSHIP"
     assert response["display_mode"] == "COMPACT_CHAT"
-    assert response["response_author"] == "OPENCLAW_SYSTEM"
-    assert response["voice_profile_ref"] == "voice:system:neutral"
-    assert response["vibe_profile_ref"] == "vibe:system:neutral"
+    assert response["response_kind"] == "REALITY_BOUNCE_RESPONSE"
+    assert response["response_author"] == "GUARDIAN"
+    assert response["voice_profile_ref"] == "voice:guardian:proof_gate"
+    assert response["vibe_profile_ref"] == "vibe:guardian:strict_proof"
     assert response["voice_applied"] is True
     assert response["vibe_applied"] is True
-    assert response["spoken_response_packet"]["response_author"] == "OPENCLAW_SYSTEM"
+    assert response["spoken_response_packet"]["response_author"] == "GUARDIAN"
     assert response["spoken_response_packet"]["provider_policy"]["preferred_provider_family"] == "MAC_SYSTEM_TTS"
     assert response["spoken_response_packet"]["cloud_synthesis_allowed"] is False
     assert response["headline"]
     assert response["operator_message"]
     assert response["how_to_fix"]
     assert "RESPONSE_READY" not in response["operator_message"]
+    assert response["machine_proof"]["external_action_performed"] is False
+    assert response["machine_proof"]["send_submit_performed"] is False
     assert request_path.exists()
 
 
@@ -934,16 +951,18 @@ def test_mac_routed_external_action_request_blocks_without_handoff(tmp_path, cap
     assert not tuple(mac_handoff_dir.glob("mac_worker_handoff_*.json"))
 
 
-def test_future_worker_route_without_adapter_blocks_with_how_to_fix(tmp_path, capsys):
+def test_service_routes_freeform_status_through_reality_bounce_to_chief_receipt(tmp_path, capsys, monkeypatch):
     inbox = tmp_path / "inbox"
     response_dir = tmp_path / "responses"
     export_root = tmp_path / "read_models"
+    receipt_db = tmp_path / "reality_bounce.sqlite"
     inbox.mkdir()
-    request_path = inbox / "mission_control_chat_request_cassandra.json"
+    monkeypatch.setenv("OPENCLAW_REALITY_BOUNCE_DB_PATH", receipt_db.as_posix())
+    request_path = inbox / "mission_control_chat_request_reality_status.json"
     request = _write_custom_chat_request(
         request_path,
-        message="Cassandra, draft the email review language for this operator follow-up.",
-        suffix="cassandra",
+        message="what's next for Capital Hilton?",
+        suffix="reality_status",
     )
 
     assert service_main(
@@ -964,23 +983,132 @@ def test_future_worker_route_without_adapter_blocks_with_how_to_fix(tmp_path, ca
     payload = json.loads(capsys.readouterr().out)
     heartbeat = json.loads(_safe_heartbeat_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
     response = json.loads(_safe_response_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
+    rows = _worker_receipt_rows(receipt_db)
 
-    assert heartbeat["routing_status"] == "ROUTED_TO_FUTURE_WORKER"
-    assert heartbeat["selected_worker_target"] == "CASSANDRA"
+    assert payload["service_status"]["service_status"] == "REQUEST_PROCESSED"
+    assert payload["service_status"]["last_routing_status"] == "PROCESSING_ON_PC"
+    assert heartbeat["routing_status"] == "PROCESSING_ON_PC"
+    assert heartbeat["processing_status"] == "REALITY_BOUNCE_CHAIN"
+    assert heartbeat["selected_worker_target"] == "PC_CODEX"
     _assert_heartbeat_no_success_claims(heartbeat)
-    assert response["internal_status"] == "BLOCKED_WORKER_UNAVAILABLE"
+    assert response["internal_status"] == "RESPONSE_READY"
+    assert response["response_kind"] == "REALITY_BOUNCE_RESPONSE"
+    assert response["response_author"] == "CHIEF"
     assert response["terminal"] is True
     assert response["source_request_id"] == request["request_id"]
-    assert response["how_to_fix"]
-    assert payload["service_status"]["last_routing_status"] == "ROUTED_TO_FUTURE_WORKER"
-    assert payload["service_status"]["selected_worker_target"] == "CASSANDRA"
+    assert response["headline"] == "Next safe move"
+    assert "Chief checked Capital Hilton" in response["eliwinship"]
+    assert response["detail_disclosure"]["selected_rail"] == "reality_bounce_harness"
+    assert response["detail_disclosure"]["receipt_written"] is True
+    assert response["detail_disclosure"]["selected_role_family"] == "CHIEF"
+    assert rows
+    assert rows[0]["source_request_id"] == request["request_id"]
+    assert rows[0]["role_family"] == "CHIEF"
+    assert rows[0]["selected_voice"] == "CHIEF"
+    assert rows[0]["external_action"] == 0
+    assert rows[0]["authority_used"] == 0
 
 
-def test_unknown_freeform_fallback_uses_product_language_not_worker_sludge(tmp_path, capsys):
+def test_service_routes_freeform_client_draft_through_clara_receipt(tmp_path, capsys, monkeypatch):
     inbox = tmp_path / "inbox"
     response_dir = tmp_path / "responses"
     export_root = tmp_path / "read_models"
+    receipt_db = tmp_path / "reality_bounce.sqlite"
     inbox.mkdir()
+    monkeypatch.setenv("OPENCLAW_REALITY_BOUNCE_DB_PATH", receipt_db.as_posix())
+    request_path = inbox / "mission_control_chat_request_clara_draft.json"
+    request = _write_custom_chat_request(
+        request_path,
+        message="draft a note to Hilton about the invoice package",
+        suffix="clara_draft",
+    )
+
+    assert service_main(
+        [
+            "--once",
+            "--inbox",
+            str(inbox),
+            "--response-dir",
+            str(response_dir),
+            "--export-root",
+            str(export_root),
+            "--generated-at",
+            FIXED_NOW,
+            "--format",
+            "json",
+        ]
+    ) == 0
+    payload = json.loads(capsys.readouterr().out)
+    heartbeat = json.loads(_safe_heartbeat_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
+    response = json.loads(_safe_response_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
+    rows = _worker_receipt_rows(receipt_db)
+
+    assert payload["service_status"]["service_status"] == "REQUEST_PROCESSED"
+    assert heartbeat["processing_status"] == "REALITY_BOUNCE_CHAIN"
+    assert response["internal_status"] == "RESPONSE_READY"
+    assert response["response_author"] == "CLARA"
+    assert response["detail_disclosure"]["selected_role_family"] == "CASSANDRA_CLARA"
+    assert response["detail_disclosure"]["selected_voice"] == "CLARA"
+    assert response["headline"] == "Draft prepared"
+    assert "Clara drafted client-safe wording only" in response["eliwinship"]
+    assert "Nothing was sent" in response["eliwinship"]
+    assert response["guardian_output_gate"]["validation_result"]["verdict"] == "ROLE_OUTPUT_VALIDATED"
+    assert rows
+    assert rows[0]["role_family"] == "CASSANDRA_CLARA"
+    assert rows[0]["selected_voice"] == "CLARA"
+    assert rows[0]["external_action"] == 0
+    assert rows[0]["authority_used"] == 0
+
+
+def test_service_blocks_freeform_send_without_worker_receipt(tmp_path, capsys, monkeypatch):
+    inbox = tmp_path / "inbox"
+    response_dir = tmp_path / "responses"
+    export_root = tmp_path / "read_models"
+    receipt_db = tmp_path / "reality_bounce.sqlite"
+    inbox.mkdir()
+    monkeypatch.setenv("OPENCLAW_REALITY_BOUNCE_DB_PATH", receipt_db.as_posix())
+    request_path = inbox / "mission_control_chat_request_send_now.json"
+    request = _write_custom_chat_request(
+        request_path,
+        message="send the invoice now",
+        suffix="send_now",
+    )
+
+    assert service_main(
+        [
+            "--once",
+            "--inbox",
+            str(inbox),
+            "--response-dir",
+            str(response_dir),
+            "--export-root",
+            str(export_root),
+            "--generated-at",
+            FIXED_NOW,
+            "--format",
+            "json",
+        ]
+    ) == 0
+    capsys.readouterr()
+    response = json.loads(_safe_response_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
+    rows = _worker_receipt_rows(receipt_db)
+
+    assert response["internal_status"] == "BLOCKED_WITH_REASON"
+    assert response["headline"] in {"That needs approval first", "Authority gate blocked"}
+    assert "approval" in response["eliwinship"].lower() or "blocked" in response["eliwinship"].lower()
+    detail = response.get("detail_disclosure") if isinstance(response.get("detail_disclosure"), dict) else {}
+    assert detail.get("receipt_written") in {False, None}
+    assert response["machine_proof"]["send_submit_performed"] is False
+    assert rows == []
+
+
+def test_unknown_freeform_fallback_uses_reality_bounce_clarification_not_worker_sludge(tmp_path, capsys, monkeypatch):
+    inbox = tmp_path / "inbox"
+    response_dir = tmp_path / "responses"
+    export_root = tmp_path / "read_models"
+    receipt_db = tmp_path / "reality_bounce.sqlite"
+    inbox.mkdir()
+    monkeypatch.setenv("OPENCLAW_REALITY_BOUNCE_DB_PATH", receipt_db.as_posix())
     request_path = inbox / "mission_control_chat_request_unknown_freeform.json"
     request = _write_custom_chat_request(
         request_path,
@@ -1005,9 +1133,14 @@ def test_unknown_freeform_fallback_uses_product_language_not_worker_sludge(tmp_p
     ) == 0
     payload = json.loads(capsys.readouterr().out)
     response = json.loads(_safe_response_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
+    heartbeat = json.loads(_safe_heartbeat_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
 
-    assert payload["service_status"]["last_routing_status"] == "UNKNOWN_FAIL_CLOSED"
-    assert response["headline"] == "I need one more detail"
+    assert payload["service_status"]["last_routing_status"] == "PROCESSING_ON_PC"
+    assert heartbeat["processing_status"] == "REALITY_BOUNCE_CHAIN"
+    assert response["headline"] == "I need one detail"
+    assert response["internal_status"] == "BLOCKED_WITH_REASON"
+    assert response["detail_disclosure"]["receipt_written"] is False
+    assert _worker_receipt_rows(receipt_db) == []
     public_text = " ".join(
         str(response.get(field) or "")
         for field in ("headline", "operator_message", "eliwinship", "next_action", "how_to_fix")
@@ -1015,14 +1148,6 @@ def test_unknown_freeform_fallback_uses_product_language_not_worker_sludge(tmp_p
     assert "Worker route is unavailable" not in public_text
     assert "deterministic worker rule" not in public_text
     assert "worker adapter" not in public_text
-    proposal_path = export_root / "lm_intent_proposal_contract.json"
-    assert proposal_path.exists()
-    proposal = json.loads(proposal_path.read_text(encoding="utf-8"))
-    assert proposal["proposal_readback"]["status"] == "PROPOSAL_PACKAGE_CREATED"
-    assert proposal["proposal_package"]["source_request_id"] == request["request_id"]
-    assert response["detail_disclosure"]["proposal_package_created"] is True
-    assert response["detail_disclosure"]["intent_proposal_readback_ref"] == proposal_path.as_posix()
-    assert proposal_path.as_posix() in response["readback_files"]
     assert response["machine_proof"]["model_call_performed"] is False
     assert response["machine_proof"]["external_action_performed"] is False
 

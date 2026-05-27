@@ -30,6 +30,7 @@ import client_invoice_sheet_audit
 import deterministic_intent_interpreter
 import lm_intent_proposal_contract
 import mac_worker_handoff_package
+import reality_bounce_harness
 import worker_routing_intelligence
 
 
@@ -37,6 +38,7 @@ DEFAULT_EXPORT_ROOT = Path("generated/read_models")
 APPROVED_INBOX = processor.APPROVED_INBOX
 DEFAULT_RESPONSE_DIR = Path("/mnt/e/openclaw/mission_control_responses/to_mac")
 DEFAULT_MAC_HANDOFF_DIR = Path("/mnt/e/openclaw/mission_control_handoffs/to_mac")
+DEFAULT_REALITY_BOUNCE_DB_PATH = reality_bounce_harness.DEFAULT_DB_PATH
 DEFAULT_IDLE_POLL_INTERVAL = 1.0
 DEFAULT_ACTIVE_POLL_INTERVAL = 0.05
 DEFAULT_ACTIVE_WINDOW_SECONDS = 180.0
@@ -576,9 +578,22 @@ def _request_text(raw_request: Mapping[str, Any]) -> str:
     return " ".join(str(raw_request.get(field) or "") for field in fields).strip()
 
 
+def _operator_message_text(raw_request: Mapping[str, Any]) -> str:
+    for field in ("operator_message", "sanitized_message_summary", "operator_goal", "message", "text"):
+        value = str(raw_request.get(field) or "").strip()
+        if value:
+            return value
+    return _request_text(raw_request)
+
+
 def _contains_any(text: str, terms: tuple[str, ...]) -> bool:
     lowered = text.lower()
     return any(term in lowered for term in terms)
+
+
+def _reality_bounce_db_path() -> Path:
+    configured = os.environ.get("OPENCLAW_REALITY_BOUNCE_DB_PATH")
+    return Path(configured) if configured else DEFAULT_REALITY_BOUNCE_DB_PATH
 
 
 NILES_ROUTE_TERMS = (
@@ -837,6 +852,23 @@ def _route_for_request(request_path: Path, identity: RequestIdentity, raw_reques
             mac_handoff_required=True,
             future_worker_blocked=False,
             terminal_block_status="BLOCKED_MAC_HANDOFF_UNAVAILABLE",
+        )
+    if text.strip():
+        return RouteDecision(
+            routing_status="PROCESSING_ON_PC",
+            selected_worker_target="PC_CODEX",
+            selected_machine="PC_WSL",
+            processing_status="REALITY_BOUNCE_CHAIN",
+            operator_headline="OpenClaw is checking this message",
+            operator_message="OpenClaw picked this up and is routing it through the safe local response chain.",
+            next_safe_move="Wait for the safe local response.",
+            route_reason=(
+                "No more specific deterministic rail matched; freeform chat falls through to the Reality Bounce chain. "
+                f"Previous route hint: {route.route_reason}"
+            ),
+            pc_handled=False,
+            mac_handoff_required=False,
+            future_worker_blocked=False,
         )
     future_map = {
         "GEMINI_AGY": "GEMINI_AGY",
@@ -1315,6 +1347,139 @@ def _mac_handoff_blocked_processor_payload(
     return response_payload
 
 
+def _reality_bounce_processor_payload(
+    *,
+    request_path: Path,
+    identity: RequestIdentity,
+    route: RouteDecision,
+    raw_request: Mapping[str, Any],
+    created_at: str,
+) -> dict[str, Any]:
+    operator_text = _operator_message_text(raw_request)
+    bounce = reality_bounce_harness.run_text(
+        operator_text,
+        mode="local",
+        db_path=_reality_bounce_db_path(),
+        generated_at=created_at,
+        source_request_id=identity.source_request_id,
+        persist=True,
+    )
+    result = bounce["result"]
+    mac_response = result["scoped_mac_response_candidate"]
+    status = str(result["status"])
+    response_ready = status in {
+        reality_bounce_harness.STATUS_ACCEPTED_WITH_RECEIPT,
+        reality_bounce_harness.STATUS_ACCEPTED_RESPONSE_ONLY,
+    }
+    receipt_id = str(result.get("receipt_id") or "")
+    selected_role_family = str(result.get("selected_role_family") or "OPENCLAW_SYSTEM")
+    selected_voice = str(result.get("selected_voice") or selected_role_family)
+    operator_headline = str(mac_response.get("headline") or "OpenClaw response")
+    operator_message = str(mac_response.get("body") or mac_response.get("eliwinship") or "")
+    next_action = str(mac_response.get("next_action") or "Next: review the safe response.")
+    why = (
+        "Reality Bounce accepted the message and validated an offline worker result."
+        if result.get("receipt_written")
+        else "Reality Bounce handled the message without worker completion authority."
+    )
+    layered_fields = {
+        "response_kind": "REALITY_BOUNCE_RESPONSE",
+        "audience_mode": "ELIWINSHIP",
+        "display_mode": "COMPACT_CHAT",
+        "headline": operator_headline,
+        "one_line_answer": operator_headline,
+        "eliwinship": operator_message,
+        "primary_status": "Ready for review" if response_ready else "Blocked",
+        "primary_blocker": "None" if response_ready else status,
+        "next_action": next_action,
+        "missing_items_short": (),
+        "detail_summary": why,
+        "proof_refs": (receipt_id,) if receipt_id else (),
+        "debug_refs": (),
+        "raw_internal_status": "RESPONSE_READY" if response_ready else "BLOCKED_WITH_REASON",
+        "mac_render_hint": "COMPACT_WITH_DISCLOSURE",
+    }
+    response = processor.OpenClawResponseForMac(
+        source_request_id=identity.source_request_id,
+        source_request_filename=request_path.name,
+        workflow_ref=identity.workflow_ref,
+        request_type=identity.request_type,
+        internal_status="RESPONSE_READY" if response_ready else "BLOCKED_WITH_REASON",
+        operator_headline=operator_headline,
+        operator_message=operator_message,
+        what_happened=(
+            "PC received the freeform Mission Control message.",
+            "PC built a Gate 1 snapshot and local MachineIntentCandidate proposal.",
+            "PC ran Gate 2, Gate 3, the bounded offline worker path where applicable, and Guardian validation.",
+            "PC wrote a SQLite receipt only when Guardian validated real offline worker output.",
+            "No live model, tool, send, submit, workbook read, external action, or production mutation occurred.",
+        ),
+        why_it_happened=why,
+        how_to_fix=next_action,
+        visible_cards=(
+            {
+                "title": operator_headline,
+                "bullets": (
+                    operator_message,
+                    next_action,
+                    "Nothing was sent, posted, read from a workbook, or changed in production.",
+                ),
+                "status_tone": "ready" if response_ready else "blocked",
+            },
+        ),
+        cards_available=True,
+        card_mirror_refs=(),
+        file_readback_refs=(),
+        worker_route_refs=(
+            {
+                "selected_worker_target": route.selected_worker_target,
+                "selected_machine": route.selected_machine,
+                "routing_status": route.routing_status,
+                "route_reason": route.route_reason,
+                "reality_bounce_status": status,
+                "selected_role_family": selected_role_family,
+                "selected_voice": selected_voice,
+                "worker_fixture_used": result.get("worker_fixture_used"),
+                "guardian_verdict": ((result.get("guardian_result") or {}).get("validation_result") or {}).get("verdict"),
+                "receipt_written": bool(result.get("receipt_written")),
+                "receipt_id": receipt_id,
+            },
+        ),
+        context_package_refs=(),
+        blocked_reason=None if response_ready else status,
+        detail_disclosure={
+            "selected_rail": "reality_bounce_harness",
+            "routing_status": route.routing_status,
+            "processing_status": route.processing_status,
+            "reality_bounce_mode": bounce["mode"],
+            "reality_bounce_status": status,
+            "source_request_id": identity.source_request_id,
+            "selected_role_family": selected_role_family,
+            "selected_voice": selected_voice,
+            "worker_fixture_used": result.get("worker_fixture_used"),
+            "guardian_verdict": ((result.get("guardian_result") or {}).get("validation_result") or {}).get("verdict"),
+            "receipt_written": bool(result.get("receipt_written")),
+            "receipt_id": receipt_id,
+            "receipt_db_path": bounce["isolated_sqlite"]["db_path"],
+            "gate2_outcome": (result.get("gate2_result") or {}).get("outcome"),
+            "gate3_status": (result.get("gate3_package") or {}).get("package_status"),
+            "live_lm_call_performed": False,
+            "repo_b_runtime_started": False,
+            "tool_execution_performed": False,
+            "external_action_performed": False,
+            "send_submit_performed": False,
+            "workbook_body_read_performed": False,
+            "spreadsheet_cell_read_performed": False,
+            "production_state_mutation_performed": False,
+            "layered_response_fields": layered_fields,
+        },
+        readback_files=(),
+        next_safe_move=next_action,
+    )
+    response_payload, _status_payload = processor.build_payloads(response, generated_at=created_at)
+    return response_payload
+
+
 def _route_blocked_processor_payload(
     *,
     request_path: Path,
@@ -1627,6 +1792,15 @@ def process_one_pending_request(
                 route=route,
                 created_at=created_at,
                 handoff_payload=handoff_payload,
+            )
+            errors = ()
+        elif route.processing_status == "REALITY_BOUNCE_CHAIN":
+            response_payload = _reality_bounce_processor_payload(
+                request_path=request_path,
+                identity=identity,
+                route=route,
+                raw_request=raw_request_for_route,
+                created_at=created_at,
             )
             errors = ()
         elif route.pc_handled:

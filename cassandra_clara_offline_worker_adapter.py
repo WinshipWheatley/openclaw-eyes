@@ -73,6 +73,20 @@ def _mapping(value: object) -> Mapping[str, Any]:
     return value if isinstance(value, Mapping) else {}
 
 
+def _human_label(value: object) -> str:
+    text = str(value or "").strip()
+    if not text:
+        return "current workflow"
+    words = text.replace("-", "_").split("_")
+    small_words = {"and", "or", "of", "the", "for"}
+    label_words = [
+        word if index and word.lower() in small_words else word.capitalize()
+        for index, word in enumerate(words)
+        if word
+    ]
+    return " ".join(label_words) or text
+
+
 def validate_cassandra_clara_package(package: Mapping[str, Any]) -> tuple[str, ...]:
     reasons: list[str] = []
     if str(package.get("role_family") or "").upper() != "CASSANDRA_CLARA":
@@ -122,6 +136,8 @@ def run_cassandra_clara_offline_worker(package: Mapping[str, Any]) -> dict[str, 
     audience = str(package.get("audience") or "internal").lower()
     client_ref = str(package.get("client_ref") or "current client")
     workflow_ref = str(package.get("workflow_ref") or "current workflow")
+    client_label = _human_label(client_ref)
+    workflow_label = _human_label(workflow_ref)
     if selected_voice == "CLARA":
         response_kind = "draft"
         headline = "Draft prepared"
@@ -136,7 +152,7 @@ def run_cassandra_clara_offline_worker(package: Mapping[str, Any]) -> dict[str, 
         response_kind = "status"
         headline = "Invoice status"
         one_line_answer = "Cassandra checked the bounded package and prepared an internal status readback."
-        status_summary = f"{client_ref} / {workflow_ref} is still in safe preparation. No send or final status happened."
+        status_summary = f"{client_label} in {workflow_label} is still in safe preparation. No send or final status happened."
         draft_text = ""
         eliwinship = "Cassandra prepared an internal status readback only. Nothing was sent."
         next_action = "Next: review the status and choose the next safe local step."

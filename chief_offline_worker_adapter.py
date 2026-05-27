@@ -63,6 +63,20 @@ def _mapping(value: object) -> Mapping[str, Any]:
     return value if isinstance(value, Mapping) else {}
 
 
+def _human_label(value: object) -> str:
+    text = str(value or "").strip()
+    if not text:
+        return "current workflow"
+    words = text.replace("-", "_").split("_")
+    small_words = {"and", "or", "of", "the", "for"}
+    label_words = [
+        word if index and word.lower() in small_words else word.capitalize()
+        for index, word in enumerate(words)
+        if word
+    ]
+    return " ".join(label_words) or text
+
+
 def validate_chief_package(package: Mapping[str, Any]) -> tuple[str, ...]:
     """Return blocking reasons for packages this adapter must not run."""
 
@@ -106,6 +120,8 @@ def run_chief_offline_worker(package: Mapping[str, Any]) -> dict[str, Any]:
     package_id = str(package.get("package_id") or "")
     workflow_ref = str(package.get("workflow_ref") or "current workflow")
     client_ref = str(package.get("client_ref") or "current client")
+    client_label = _human_label(client_ref)
+    workflow_label = _human_label(workflow_ref)
     result = ChiefOfflineWorkerResult(
         schema_version=SCHEMA_VERSION,
         worker_adapter_id=ADAPTER_ID,
@@ -116,7 +132,7 @@ def run_chief_offline_worker(package: Mapping[str, Any]) -> dict[str, Any]:
         headline="Next safe move",
         one_line_answer="Chief checked the bounded package and found the next safe move.",
         eliwinship=(
-            f"Chief checked {client_ref} / {workflow_ref}. No tools ran and no outside action happened."
+            f"Chief checked {client_label} in {workflow_label}. No tools ran and no outside action happened."
         ),
         status_summary="The package is bounded for a local status readback only.",
         next_action="Next: respond in the originating Mission Control thread with the safe status readback.",

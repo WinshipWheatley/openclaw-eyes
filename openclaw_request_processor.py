@@ -151,6 +151,7 @@ INTERRUPTION_POLICIES = (
 VOICE_PROFILE_REFS = {
     "CHIEF": "voice:chief:operational",
     "CASSANDRA": "voice:cassandra:communications",
+    "CLARA": "voice:clara:client_safe_draft",
     "GUARDIAN": "voice:guardian:proof_gate",
     "NILES": "voice:niles:creative_flow",
     "HERMES": "voice:hermes:audit",
@@ -161,6 +162,7 @@ VOICE_PROFILE_REFS = {
 VIBE_PROFILE_REFS = {
     "CHIEF": "vibe:chief:command_center",
     "CASSANDRA": "vibe:cassandra:executive_calm",
+    "CLARA": "vibe:clara:client_safe_calm",
     "GUARDIAN": "vibe:guardian:strict_proof",
     "NILES": "vibe:niles:creative_flow",
     "HERMES": "vibe:hermes:architecture_critic",
@@ -291,6 +293,7 @@ SPOKEN_SENSITIVE_TERMS = (
 VOICE_DIRECTIONS = {
     "CHIEF": "operational_crisp",
     "CASSANDRA": "polished_calm",
+    "CLARA": "client_safe_polished_calm",
     "GUARDIAN": "proof_first",
     "NILES": "creative_flow",
     "HERMES": "skeptical_architecture_review",
@@ -336,6 +339,13 @@ AGENT_TASTE_FORBIDDEN = {
         "no worries",
     ),
     "CASSANDRA": (
+        "i sent",
+        "sent it",
+        "emailed",
+        "delivered to",
+        "ready to send",
+    ),
+    "CLARA": (
         "i sent",
         "sent it",
         "emailed",
@@ -1406,6 +1416,12 @@ def _voice_context_text(response: OpenClawResponseForMac, layered_fields: Mappin
 
 def _initial_response_author(response: OpenClawResponseForMac, layered_fields: Mapping[str, Any]) -> tuple[str, str]:
     detail = response.detail_disclosure if isinstance(response.detail_disclosure, Mapping) else {}
+    selected_voice = str(detail.get("selected_voice") or "").strip().upper()
+    if selected_voice in VOICE_PROFILE_REFS and selected_voice not in {"UNKNOWN", "OPENCLAW_SYSTEM"}:
+        return selected_voice, "offline worker selected voice"
+    selected_role_family = str(detail.get("selected_role_family") or "").strip().upper()
+    if selected_role_family in VOICE_PROFILE_REFS and selected_role_family not in {"UNKNOWN", "OPENCLAW_SYSTEM"}:
+        return selected_role_family, "offline worker selected role"
     interpreter = detail.get("deterministic_intent_interpreter") if isinstance(detail.get("deterministic_intent_interpreter"), Mapping) else {}
     forced_author = str(interpreter.get("response_author") or "") if interpreter else ""
     if forced_author in VOICE_PROFILE_REFS:
@@ -1492,12 +1508,12 @@ def _model_backend_selection_fields(
             "model_selection_reason": "Hermes remains the advisory agent; Gemini/Agy is modeled as a future audit backend only.",
             "credit_budget_policy": "Cloud audit backends require explicit privacy and credit gates before use.",
         }
-    if author == "CASSANDRA":
+    if author in {"CASSANDRA", "CLARA"}:
         return {
             "selected_model_backend": "GPT",
-            "selected_worker_type": "CASSANDRA",
+            "selected_worker_type": author,
             "allowed_tools_plugins": ("draft_readback_only",),
-            "model_selection_reason": "Cassandra may use a writing backend for drafts; send tools remain ungranted.",
+            "model_selection_reason": f"{author.title()} may use a writing backend for drafts; send tools remain ungranted.",
             "credit_budget_policy": "Writing backend use must pass privacy and credit gates; no send authority is included.",
         }
     if author == "GUARDIAN":
