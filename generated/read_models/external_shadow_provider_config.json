@@ -1,0 +1,261 @@
+{
+  "authority_boundary": {
+    "credential_value_storage_allowed": false,
+    "external_action_allowed": false,
+    "ledger_posting_allowed": false,
+    "network_call_allowed": false,
+    "production_live_lm_authority_allowed": false,
+    "production_provider_activation_allowed": false,
+    "production_state_mutation_allowed": false,
+    "provider_key_material_access_allowed": false,
+    "send_submit_allowed": false,
+    "tool_execution_allowed": false
+  },
+  "configured_provider_refs": [],
+  "contract_status": "EXTERNAL_SHADOW_PROVIDER_CONFIG_NO_PRODUCTION_AUTHORITY",
+  "examples": {
+    "lm1_provider_selection": {
+      "adapter_provider_config": {
+        "allow_local_fallback_smoke": false,
+        "configured_external_provider_refs": [],
+        "external_shadow_enabled": false,
+        "local_fallback_provider_refs": [
+          "provider_class:local_or_private_fallback_model"
+        ]
+      },
+      "authority_boundary": {
+        "credential_value_storage_allowed": false,
+        "external_action_allowed": false,
+        "ledger_posting_allowed": false,
+        "network_call_allowed": false,
+        "production_live_lm_authority_allowed": false,
+        "production_provider_activation_allowed": false,
+        "production_state_mutation_allowed": false,
+        "provider_key_material_access_allowed": false,
+        "send_submit_allowed": false,
+        "tool_execution_allowed": false
+      },
+      "blocked_reasons": [
+        "MISSING_SHADOW_CREDENTIAL"
+      ],
+      "credential_source_ref": "env:redacted_external_shadow_lm1_credential_absent",
+      "credentials_present": false,
+      "lane": "LM1",
+      "model_alias": "FAST_EXTERNAL_INTENT_MODEL",
+      "next_safe_move": "Do not call an external model until the blocked provider/package condition is resolved.",
+      "package_policy_passed": true,
+      "production_allowed": false,
+      "provider_class": "fast_external_intent_shadow_provider_class",
+      "provider_ref": "provider_class:external_privacy_safe_fast_intent",
+      "selection_id": "external_shadow_provider_selection:600aefec36f8b545",
+      "shadow_call_ready": false,
+      "source_request_id": "external_shadow_provider_lm1_fixture",
+      "status": "SHADOW_PROVIDER_NOT_CONFIGURED"
+    },
+    "lm2_provider_selection": {
+      "adapter_provider_config": {
+        "allow_local_fallback_smoke": false,
+        "configured_external_provider_refs": [],
+        "external_shadow_enabled": false,
+        "local_fallback_provider_refs": [
+          "provider_class:local_or_private_fallback_model"
+        ]
+      },
+      "authority_boundary": {
+        "credential_value_storage_allowed": false,
+        "external_action_allowed": false,
+        "ledger_posting_allowed": false,
+        "network_call_allowed": false,
+        "production_live_lm_authority_allowed": false,
+        "production_provider_activation_allowed": false,
+        "production_state_mutation_allowed": false,
+        "provider_key_material_access_allowed": false,
+        "send_submit_allowed": false,
+        "tool_execution_allowed": false
+      },
+      "blocked_reasons": [
+        "MISSING_SHADOW_CREDENTIAL"
+      ],
+      "credential_source_ref": "env:redacted_external_shadow_lm2_credential_absent",
+      "credentials_present": false,
+      "lane": "LM2",
+      "model_alias": "STRONG_EXTERNAL_ROLE_MODEL",
+      "next_safe_move": "Do not call an external model until the blocked provider/package condition is resolved.",
+      "package_policy_passed": true,
+      "production_allowed": false,
+      "provider_class": "strong_external_role_shadow_provider_class",
+      "provider_ref": "provider_class:external_privacy_safe_role_reasoner",
+      "selection_id": "external_shadow_provider_selection:a1464b3ae0c878bc",
+      "shadow_call_ready": false,
+      "source_request_id": "external_shadow_provider_lm2_fixture",
+      "status": "SHADOW_PROVIDER_NOT_CONFIGURED"
+    }
+  },
+  "generated_at": "2026-05-26T00:00:00+00:00",
+  "machine_proof": {
+    "all_live_authority_false": true,
+    "any_shadow_provider_configured": false,
+    "content_hash": "sha256:aa455388b887ff59997e725f32dff8e68d1d078a7212f4fd5a27a5123da48be4",
+    "credential_values_exposed": false,
+    "external_action_performed": false,
+    "lm1_alias_supported": true,
+    "lm2_alias_supported": true,
+    "model_call_performed": false,
+    "network_call_performed": false,
+    "production_allowed": false,
+    "provider_config_present": true,
+    "secret_values_stored": false,
+    "tool_execution_performed": false
+  },
+  "operator_summary": "External shadow provider policy exists. Credential presence is recorded only as booleans; production model authority remains blocked.",
+  "provider_configs": [
+    {
+      "allowed_data_classes": [
+        "LOW_METADATA",
+        "TOKENIZED_METADATA",
+        "TOKENIZED_CLIENT_FINANCE_METADATA",
+        "TOKENIZED_PERSONAL_FINANCE_METADATA",
+        "TOKENIZED_LEGAL_DISCOVERY_METADATA",
+        "TOKENIZED_SENSITIVE_METADATA",
+        "MACHINE_INTENT_PROPOSAL_SCHEMA"
+      ],
+      "allowed_mode": "SHADOW_ONLY",
+      "authority_boundary": {
+        "credential_value_storage_allowed": false,
+        "external_action_allowed": false,
+        "ledger_posting_allowed": false,
+        "network_call_allowed": false,
+        "production_live_lm_authority_allowed": false,
+        "production_provider_activation_allowed": false,
+        "production_state_mutation_allowed": false,
+        "provider_key_material_access_allowed": false,
+        "send_submit_allowed": false,
+        "tool_execution_allowed": false
+      },
+      "blocked_reasons": [
+        "MISSING_SHADOW_CREDENTIAL"
+      ],
+      "cost_tier": "low",
+      "credential_source_ref": "env:redacted_external_shadow_lm1_credential_absent",
+      "credential_value_exposed": false,
+      "credentials_present": false,
+      "expected_failure_modes": [
+        "malformed MachineIntentCandidate",
+        "under-specified intent",
+        "privacy-policy refusal"
+      ],
+      "expected_strengths": [
+        "fast intent proposal",
+        "strong structured JSON",
+        "cheap external reasoning",
+        "narrow classification"
+      ],
+      "forbidden_data_classes": [
+        "CLIENT_FINANCE_FILE_METADATA",
+        "STRICT_PRIVATE_CLIENT_METADATA",
+        "RAW_PRIVATE_BODY",
+        "RAW_SECRET",
+        "CREDENTIAL_MATERIAL",
+        "UNMINIMIZED_CLIENT_CONTEXT",
+        "UNRELATED_CLIENT_DATA"
+      ],
+      "lane_allowed": [
+        "LM1_INTENT_PROPOSAL"
+      ],
+      "latency_tier": "low",
+      "model_alias": "FAST_EXTERNAL_INTENT_MODEL",
+      "next_safe_move": "Keep returning SHADOW_PROVIDER_NOT_CONFIGURED until a shadow credential is present.",
+      "privacy_requirements": [
+        "tokenized/minimized package",
+        "raw_values_included=false",
+        "credentials_present=false",
+        "secrets_present=false",
+        "detokenization outside the model",
+        "Guardian privacy/output gate required"
+      ],
+      "production_allowed": false,
+      "provider_class": "fast_external_intent_shadow_provider_class",
+      "provider_ref": "provider_class:external_privacy_safe_fast_intent",
+      "raw_values_allowed": false,
+      "shadow_calls_allowed": false,
+      "tokenization_required": true
+    },
+    {
+      "allowed_data_classes": [
+        "LOW_METADATA",
+        "TOKENIZED_METADATA",
+        "TOKENIZED_CLIENT_FINANCE_METADATA",
+        "TOKENIZED_PERSONAL_FINANCE_METADATA",
+        "TOKENIZED_LEGAL_DISCOVERY_METADATA",
+        "TOKENIZED_SENSITIVE_METADATA",
+        "MINIMIZED_ROLE_PACKAGE"
+      ],
+      "allowed_mode": "SHADOW_ONLY",
+      "authority_boundary": {
+        "credential_value_storage_allowed": false,
+        "external_action_allowed": false,
+        "ledger_posting_allowed": false,
+        "network_call_allowed": false,
+        "production_live_lm_authority_allowed": false,
+        "production_provider_activation_allowed": false,
+        "production_state_mutation_allowed": false,
+        "provider_key_material_access_allowed": false,
+        "send_submit_allowed": false,
+        "tool_execution_allowed": false
+      },
+      "blocked_reasons": [
+        "MISSING_SHADOW_CREDENTIAL"
+      ],
+      "cost_tier": "higher",
+      "credential_source_ref": "env:redacted_external_shadow_lm2_credential_absent",
+      "credential_value_exposed": false,
+      "credentials_present": false,
+      "expected_failure_modes": [
+        "over-helpful completion claim",
+        "role drift",
+        "tool request outside package"
+      ],
+      "expected_strengths": [
+        "strong package reasoning",
+        "nuanced role voice",
+        "structured response",
+        "longer context synthesis"
+      ],
+      "forbidden_data_classes": [
+        "CLIENT_FINANCE_FILE_METADATA",
+        "STRICT_PRIVATE_CLIENT_METADATA",
+        "RAW_PRIVATE_BODY",
+        "RAW_SECRET",
+        "CREDENTIAL_MATERIAL",
+        "UNMINIMIZED_CLIENT_CONTEXT",
+        "UNRELATED_CLIENT_DATA"
+      ],
+      "lane_allowed": [
+        "LM2_ROLE_RESPONSE"
+      ],
+      "latency_tier": "medium",
+      "model_alias": "STRONG_EXTERNAL_ROLE_MODEL",
+      "next_safe_move": "Keep returning SHADOW_PROVIDER_NOT_CONFIGURED until a shadow credential is present.",
+      "privacy_requirements": [
+        "tokenized/minimized package",
+        "raw_values_included=false",
+        "credentials_present=false",
+        "secrets_present=false",
+        "detokenization outside the model",
+        "Guardian privacy/output gate required"
+      ],
+      "production_allowed": false,
+      "provider_class": "strong_external_role_shadow_provider_class",
+      "provider_ref": "provider_class:external_privacy_safe_role_reasoner",
+      "raw_values_allowed": false,
+      "shadow_calls_allowed": false,
+      "tokenization_required": true
+    }
+  ],
+  "read_model_id": "external_shadow_provider_config",
+  "schema_version": "external_shadow_provider_config_v0",
+  "target_aliases": {
+    "lm1": "FAST_EXTERNAL_INTENT_MODEL",
+    "lm2": "STRONG_EXTERNAL_ROLE_MODEL"
+  }
+}

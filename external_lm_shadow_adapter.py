@@ -16,6 +16,7 @@ from typing import Any, Callable, Mapping
 
 import external_lm_eligibility_policy
 import external_lm_safe_package_compiler
+import external_shadow_provider_config
 import guardian_output_gate
 import intent_ingest_gate
 import local_shadow_lm_runner
@@ -174,7 +175,14 @@ def verify_external_lm_safe_package(package_or_result: Mapping[str, Any]) -> dic
 def _provider_config(config: Mapping[str, Any] | ShadowProviderConfig | None) -> ShadowProviderConfig:
     if isinstance(config, ShadowProviderConfig):
         return config
-    config = dict(config or {})
+    if config is None:
+        config = external_shadow_provider_config.adapter_provider_config_from_environment()
+    else:
+        config = dict(config)
+        if isinstance(config.get("adapter_provider_config"), Mapping):
+            config = dict(config["adapter_provider_config"])
+        elif "provider_configs" in config:
+            config = external_shadow_provider_config.adapter_provider_config(config)
     return ShadowProviderConfig(
         configured_external_provider_refs=tuple(str(item) for item in config.get("configured_external_provider_refs", ())),
         allow_local_fallback_smoke=bool(config.get("allow_local_fallback_smoke", False)),

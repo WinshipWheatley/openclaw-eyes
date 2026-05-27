@@ -9,6 +9,7 @@ if str(ROOT) not in sys.path:
 
 import external_lm_safe_package_compiler as compiler
 import external_lm_shadow_adapter as adapter
+import external_shadow_provider_config
 import guardian_output_gate
 import intent_ingest_gate
 import local_shadow_lm_runner
@@ -180,6 +181,10 @@ def test_missing_external_provider_returns_clean_blocked_status(tmp_path):
 
 def test_configured_external_shadow_call_is_shadow_only_and_gate_validated(tmp_path):
     compile_result = _lm1_compile_result()
+    provider_selection = external_shadow_provider_config.select_provider_for_safe_package(
+        compile_result,
+        env={"OPENCLAW_EXTERNAL_LM1_SHADOW_CREDENTIAL": "configured-for-test-only"},
+    )
     route = adapter.select_shadow_model_route(compile_result["safe_package"])
 
     def fake_external_call(prompt, safe_package, route_decision):
@@ -204,10 +209,7 @@ def test_configured_external_shadow_call_is_shadow_only_and_gate_validated(tmp_p
     result = adapter.run_external_lm_shadow(
         compile_result,
         db_path=tmp_path / "shadow.sqlite",
-        provider_config={
-            "external_shadow_enabled": True,
-            "configured_external_provider_refs": (route["selected_provider_ref"],),
-        },
+        provider_config=provider_selection,
         external_shadow_call=fake_external_call,
     )
 
@@ -215,6 +217,39 @@ def test_configured_external_shadow_call_is_shadow_only_and_gate_validated(tmp_p
     assert result["local_fallback_smoke"] is False
     assert result["production_authority"] is False
     assert result["gate_verdict"] == intent_ingest_gate.ACCEPTED_INTENT
+
+
+def test_adapter_can_use_redacted_environment_provider_config(tmp_path, monkeypatch):
+    monkeypatch.setenv("OPENCLAW_EXTERNAL_LM1_SHADOW_CREDENTIAL", "configured-for-test-only")
+    compile_result = _lm1_compile_result()
+
+    def fake_external_call(prompt, safe_package, route_decision):
+        assert "configured-for-test-only" not in prompt
+        assert route_decision["selected_provider_ref"] == "provider_class:external_privacy_safe_fast_intent"
+        return {
+            "status": "SHADOW_EXTERNAL_RESULT",
+            "parsed_json": {
+                "inferred_intent_type": "ANSWER_STATUS",
+                "target_agent_role": "CHIEF",
+                "requested_action": "status_or_next_safe_move",
+                "confidence": "HIGH",
+                "ambiguity_status": "UNAMBIGUOUS",
+                "context_refs_used": ["tenant_scope:fixture_business_ops"],
+                "authority_requested": {"send_submit": False, "external_action": False, "tool_execution": False},
+                "authority_granted": {"send_submit": False, "external_action": False, "tool_execution": False},
+            },
+            "raw_response_text": "{}",
+        }
+
+    result = adapter.run_external_lm_shadow(
+        compile_result,
+        db_path=tmp_path / "shadow.sqlite",
+        external_shadow_call=fake_external_call,
+    )
+
+    assert result["status"] == adapter.SHADOW_VALIDATED
+    assert result["provider_ref"] == "provider_class:external_privacy_safe_fast_intent"
+    assert result["production_authority"] is False
 
 
 def test_local_fallback_is_marked_smoke_not_production_baseline(tmp_path, monkeypatch):
