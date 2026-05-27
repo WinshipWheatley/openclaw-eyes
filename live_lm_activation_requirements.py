@@ -57,6 +57,59 @@ class ActivationReceiptRequirement:
     next_safe_move: str
 
 
+PRODUCTION_ACTIVATION_BEAMS: tuple[dict[str, Any], ...] = (
+    {
+        "beam_id": "production_token_vault",
+        "human_label": "Production token vault",
+        "receipt_types": ("production_token_vault_ready_receipt",),
+        "status": "MISSING",
+        "operator_copy": "OpenClaw needs the production token vault to be ready before live model lanes can review sensitive work.",
+    },
+    {
+        "beam_id": "provider_model_receipts",
+        "human_label": "Provider/model receipts",
+        "receipt_types": ("provider_policy_receipt", "model_selection_policy_receipt"),
+        "status": "MISSING",
+        "operator_copy": "OpenClaw needs recorded provider and model-selection receipts for each live lane.",
+    },
+    {
+        "beam_id": "live_enablement_receipt",
+        "human_label": "Live enablement receipt",
+        "receipt_types": ("live_model_enablement_receipt",),
+        "status": "MISSING",
+        "operator_copy": "OpenClaw needs an explicit live enablement receipt before LM1 or LM2 can leave shadow mode.",
+    },
+    {
+        "beam_id": "privacy_receipt",
+        "human_label": "Privacy receipt",
+        "receipt_types": ("privacy_policy_receipt",),
+        "status": "MISSING",
+        "operator_copy": "OpenClaw needs a production privacy receipt before live model-shaped packages can be used.",
+    },
+    {
+        "beam_id": "rollback_disable_receipt",
+        "human_label": "Rollback/disable receipt",
+        "receipt_types": ("rollback_disable_receipt",),
+        "status": "MISSING",
+        "operator_copy": "OpenClaw needs a proven way to disable live model lanes before activation review.",
+    },
+    {
+        "beam_id": "device_trust_live_activation",
+        "human_label": "Device trust / live activation",
+        "receipt_types": ("device_trust_live_activation_receipt",),
+        "status": "MISSING",
+        "operator_copy": "OpenClaw needs trusted-device and live-activation proof for Mission Control traffic before it can feed live model lanes.",
+    },
+    {
+        "beam_id": "real_lm_production_policy",
+        "human_label": "Real LM1/LM2 production policy",
+        "receipt_types": ("real_lm_production_policy_receipt",),
+        "status": "MISSING",
+        "operator_copy": "OpenClaw needs a real LM1/LM2 production policy for routing, privacy, fallback, and rollback before live activation review.",
+    },
+)
+
+
 def stable_json(payload: Any) -> str:
     return json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
 
@@ -115,6 +168,18 @@ def required_receipts(*, live_shadow_receipt_present: bool = False) -> tuple[dic
             ("LM1", "LM2"),
             "OpenClaw needs a rollback or disable receipt before any future live model lane can be reviewed.",
         ),
+        (
+            "device_trust_live_activation_receipt",
+            "Device trust / live activation",
+            ("Gate 1", "LM1", "LM2"),
+            "OpenClaw needs a trusted-device and live-activation receipt before real Mission Control traffic can feed live model lanes.",
+        ),
+        (
+            "real_lm_production_policy_receipt",
+            "Real LM1/LM2 production policy",
+            ("LM1", "LM2"),
+            "OpenClaw needs a real LM1/LM2 production policy before live model lanes can be reviewed.",
+        ),
     )
     return tuple(
         asdict(
@@ -147,6 +212,8 @@ def build_payload(*, generated_at: str | None = None, live_shadow_payload: Mappi
         "live_model_enablement_receipt_missing",
         "production_privacy_policy_receipt_missing",
         "rollback_disable_receipt_missing",
+        "device_trust_live_activation_receipt_missing",
+        "real_lm_production_policy_receipt_missing",
     ]
     if not live_shadow_valid:
         hard_blockers.insert(4, "live_shadow_comparison_receipt_missing")
@@ -164,6 +231,7 @@ def build_payload(*, generated_at: str | None = None, live_shadow_payload: Mappi
         "live_lm2_activation_status": "NOT_READY",
         "provider_activation_status": "RECEIPTS_REQUIRED_NOT_PRESENT",
         "activation_receipt_requirements": receipts,
+        "production_activation_beams": PRODUCTION_ACTIVATION_BEAMS,
         "missing_receipts": missing,
         "live_shadow_receipt": {
             "read_model_ref": "generated/read_models/live_lm_shadow_trial.json",
@@ -192,10 +260,25 @@ def build_payload(*, generated_at: str | None = None, live_shadow_payload: Mappi
         "machine_proof": {
             "receipt_requirement_count": len(receipts),
             "missing_receipt_count": len(missing),
+            "production_activation_beam_count": len(PRODUCTION_ACTIVATION_BEAMS),
+            "production_activation_beams_explicit": tuple(item["beam_id"] for item in PRODUCTION_ACTIVATION_BEAMS)
+            == (
+                "production_token_vault",
+                "provider_model_receipts",
+                "live_enablement_receipt",
+                "privacy_receipt",
+                "rollback_disable_receipt",
+                "device_trust_live_activation",
+                "real_lm_production_policy",
+            ),
             "provider_activation_receipts_required": True,
             "provider_activation_receipts_present": False,
             "production_token_vault_ready_receipt_present": False,
             "live_model_enablement_receipt_present": False,
+            "privacy_policy_receipt_present": False,
+            "rollback_disable_receipt_present": False,
+            "device_trust_live_activation_receipt_present": False,
+            "real_lm_production_policy_receipt_present": False,
             "live_shadow_comparison_receipt_present": live_shadow_valid,
             "live_shadow_model_call_recorded": bool((live_shadow.get("machine_proof") or {}).get("live_model_call_performed")),
             "shadow_provider_policy_receipt_present": live_shadow_valid,

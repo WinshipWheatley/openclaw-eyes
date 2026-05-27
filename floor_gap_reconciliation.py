@@ -573,6 +573,7 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
             "live_lm2_activation_status": activation_payload["live_lm2_activation_status"],
             "provider_activation_status": activation_payload["provider_activation_status"],
             "missing_receipts": activation_payload["missing_receipts"],
+            "production_activation_beams": activation_payload["production_activation_beams"],
             "live_shadow_receipt": activation_payload["live_shadow_receipt"],
             "shadow_test_receipts": activation_payload["shadow_test_receipts"],
         },
@@ -636,6 +637,10 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
             "request_response_bridge_dashboard_visible": True,
             "request_response_bridge_ready_for_live_review": bridge_payload["bridge_contract"]["ready_for_live_review"],
             "production_live_blockers_explicit": activation_payload["machine_proof"]["missing_receipt_count"] >= 5,
+            "production_activation_beams_explicit": activation_payload["machine_proof"][
+                "production_activation_beams_explicit"
+            ],
+            "production_activation_beam_count": activation_payload["machine_proof"]["production_activation_beam_count"],
             "live_lm_shadow_trial_exported": True,
             "live_lm_shadow_trial_recorded": live_shadow_payload["machine_proof"]["live_model_call_performed"],
             "live_shadow_receipt_valid": live_shadow_payload["machine_proof"]["live_shadow_receipt_valid"],

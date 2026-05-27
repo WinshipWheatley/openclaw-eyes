@@ -28,6 +28,8 @@
       "live_model_enablement_receipt_missing",
       "production_privacy_policy_receipt_missing",
       "rollback_disable_receipt_missing",
+      "device_trust_live_activation_receipt_missing",
+      "real_lm_production_policy_receipt_missing",
       "private/strict-private mode product switch"
     ],
     "privacy_readiness_status": "POLICY_SEEDED_PRODUCTION_TOKEN_VAULT_NOT_ACTIVE",
@@ -424,7 +426,7 @@
       "lane_name": "Production/live blockers",
       "maturity_label": "CONNECTED",
       "maturity_score": 6,
-      "not_ready_reason": "production_token_vault_inactive, provider_activation_receipts_missing, live_model_enablement_receipt_missing, production_privacy_policy_receipt_missing, rollback_disable_receipt_missing",
+      "not_ready_reason": "production_token_vault_inactive, provider_activation_receipts_missing, live_model_enablement_receipt_missing, production_privacy_policy_receipt_missing, rollback_disable_receipt_missing, device_trust_live_activation_receipt_missing, real_lm_production_policy_receipt_missing",
       "raised_this_pass": true,
       "ready_for_live_review": false,
       "ready_for_shadow": false,
@@ -625,7 +627,75 @@
       "model_selection_policy_receipt",
       "privacy_policy_receipt",
       "production_token_vault_ready_receipt",
-      "rollback_disable_receipt"
+      "rollback_disable_receipt",
+      "device_trust_live_activation_receipt",
+      "real_lm_production_policy_receipt"
+    ],
+    "production_activation_beams": [
+      {
+        "beam_id": "production_token_vault",
+        "human_label": "Production token vault",
+        "operator_copy": "OpenClaw needs the production token vault to be ready before live model lanes can review sensitive work.",
+        "receipt_types": [
+          "production_token_vault_ready_receipt"
+        ],
+        "status": "MISSING"
+      },
+      {
+        "beam_id": "provider_model_receipts",
+        "human_label": "Provider/model receipts",
+        "operator_copy": "OpenClaw needs recorded provider and model-selection receipts for each live lane.",
+        "receipt_types": [
+          "provider_policy_receipt",
+          "model_selection_policy_receipt"
+        ],
+        "status": "MISSING"
+      },
+      {
+        "beam_id": "live_enablement_receipt",
+        "human_label": "Live enablement receipt",
+        "operator_copy": "OpenClaw needs an explicit live enablement receipt before LM1 or LM2 can leave shadow mode.",
+        "receipt_types": [
+          "live_model_enablement_receipt"
+        ],
+        "status": "MISSING"
+      },
+      {
+        "beam_id": "privacy_receipt",
+        "human_label": "Privacy receipt",
+        "operator_copy": "OpenClaw needs a production privacy receipt before live model-shaped packages can be used.",
+        "receipt_types": [
+          "privacy_policy_receipt"
+        ],
+        "status": "MISSING"
+      },
+      {
+        "beam_id": "rollback_disable_receipt",
+        "human_label": "Rollback/disable receipt",
+        "operator_copy": "OpenClaw needs a proven way to disable live model lanes before activation review.",
+        "receipt_types": [
+          "rollback_disable_receipt"
+        ],
+        "status": "MISSING"
+      },
+      {
+        "beam_id": "device_trust_live_activation",
+        "human_label": "Device trust / live activation",
+        "operator_copy": "OpenClaw needs trusted-device and live-activation proof for Mission Control traffic before it can feed live model lanes.",
+        "receipt_types": [
+          "device_trust_live_activation_receipt"
+        ],
+        "status": "MISSING"
+      },
+      {
+        "beam_id": "real_lm_production_policy",
+        "human_label": "Real LM1/LM2 production policy",
+        "operator_copy": "OpenClaw needs a real LM1/LM2 production policy for routing, privacy, fallback, and rollback before live activation review.",
+        "receipt_types": [
+          "real_lm_production_policy_receipt"
+        ],
+        "status": "MISSING"
+      }
     ],
     "provider_activation_status": "RECEIPTS_REQUIRED_NOT_PRESENT",
     "read_model_ref": "generated/read_models/live_lm_activation_requirements.json",
@@ -673,7 +743,7 @@
   "machine_proof": {
     "all_live_authority_false": true,
     "all_required_lanes_classified": true,
-    "content_hash": "sha256:2fdf31881d064f8bf33228cc9bd21e066b2f4813f12bd49768a61654dfa94812",
+    "content_hash": "sha256:4d470b8f98442c002a97cefdab5f0bdc97eff7d81bc6a4b671bfa02307946711",
     "dashboard_live_lm_not_active": true,
     "external_action_performed": false,
     "floor_matrix_lane_count": 22,
@@ -695,6 +765,8 @@
     "negative_shadow_cases_passed": true,
     "private_mode_policy_exported": true,
     "private_mode_policy_inactive": true,
+    "production_activation_beam_count": 7,
+    "production_activation_beams_explicit": true,
     "production_live_blockers_explicit": true,
     "production_state_mutation_performed": false,
     "provider_activation_receipts_required": true,
@@ -852,7 +924,7 @@
       "lane_name": "Production/live blockers",
       "maturity_label": "CONNECTED",
       "maturity_score": 6,
-      "not_ready_reason": "production_token_vault_inactive, provider_activation_receipts_missing, live_model_enablement_receipt_missing, production_privacy_policy_receipt_missing, rollback_disable_receipt_missing",
+      "not_ready_reason": "production_token_vault_inactive, provider_activation_receipts_missing, live_model_enablement_receipt_missing, production_privacy_policy_receipt_missing, rollback_disable_receipt_missing, device_trust_live_activation_receipt_missing, real_lm_production_policy_receipt_missing",
       "raised_this_pass": true,
       "ready_for_live_review": false,
       "ready_for_shadow": false,
@@ -1032,7 +1104,7 @@
       "lane_name": "Production/live blockers",
       "maturity_label": "CONNECTED",
       "maturity_score": 6,
-      "not_ready_reason": "production_token_vault_inactive, provider_activation_receipts_missing, live_model_enablement_receipt_missing, production_privacy_policy_receipt_missing, rollback_disable_receipt_missing",
+      "not_ready_reason": "production_token_vault_inactive, provider_activation_receipts_missing, live_model_enablement_receipt_missing, production_privacy_policy_receipt_missing, rollback_disable_receipt_missing, device_trust_live_activation_receipt_missing, real_lm_production_policy_receipt_missing",
       "raised_this_pass": true,
       "ready_for_live_review": false,
       "ready_for_shadow": false,

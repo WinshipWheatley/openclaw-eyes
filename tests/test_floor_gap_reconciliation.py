@@ -112,6 +112,8 @@ def test_equalization_exports_low_beam_readiness_refs():
     assert payload["machine_proof"]["gate2_operator_readback_visible"] is True
     assert payload["machine_proof"]["gate3_operator_readback_visible"] is True
     assert payload["machine_proof"]["production_live_blockers_explicit"] is True
+    assert payload["machine_proof"]["production_activation_beams_explicit"] is True
+    assert payload["machine_proof"]["production_activation_beam_count"] == 7
     assert payload["machine_proof"]["live_lm_shadow_trial_exported"] is True
     assert payload["machine_proof"]["live_lm_shadow_trial_recorded"] is True
     assert payload["machine_proof"]["live_shadow_receipt_valid"] is True
@@ -136,6 +138,11 @@ def test_floor_matrix_includes_v2_required_lanes():
         "read_model_mirror_visibility",
     }.issubset(lane_ids)
     assert payload["live_lm_activation_requirements_ref"]["live_lm1_activation_status"] == "NOT_READY"
+    assert len(payload["live_lm_activation_requirements_ref"]["production_activation_beams"]) == 7
+    assert {
+        "device_trust_live_activation",
+        "real_lm_production_policy",
+    }.issubset({item["beam_id"] for item in payload["live_lm_activation_requirements_ref"]["production_activation_beams"]})
     assert payload["live_lm_activation_requirements_ref"]["live_shadow_receipt"]["present"] is True
     assert payload["live_lm_activation_requirements_ref"]["shadow_test_receipts"]["provider_policy_receipt"]["present"] is True
     assert (

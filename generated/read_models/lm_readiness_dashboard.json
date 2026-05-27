@@ -139,7 +139,8 @@
     "live_lm_activation_requirements": {
       "machine_proof": {
         "all_live_authority_false": true,
-        "content_hash": "sha256:6ba152dfe9bd9b2b060543979f511bf1e0e6f4b96ea1535108e9e8b28643012c",
+        "content_hash": "sha256:a59db0cd0cdb5ae9b98162705b67ab802a2d2ce7b3eb6252dd34654285cf2d0d",
+        "device_trust_live_activation_receipt_present": false,
         "external_action_performed": false,
         "live_lm1_ready": false,
         "live_lm2_ready": false,
@@ -148,14 +149,19 @@
         "live_model_enablement_receipt_present": false,
         "live_shadow_comparison_receipt_present": true,
         "live_shadow_model_call_recorded": true,
-        "missing_receipt_count": 6,
+        "missing_receipt_count": 8,
         "model_api_call_performed": false,
         "network_performed": false,
+        "privacy_policy_receipt_present": false,
+        "production_activation_beam_count": 7,
+        "production_activation_beams_explicit": true,
         "production_state_mutation_performed": false,
         "production_token_vault_ready_receipt_present": false,
         "provider_activation_receipts_present": false,
         "provider_activation_receipts_required": true,
-        "receipt_requirement_count": 7,
+        "real_lm_production_policy_receipt_present": false,
+        "receipt_requirement_count": 9,
+        "rollback_disable_receipt_present": false,
         "shadow_model_selection_receipt_present": true,
         "shadow_provider_policy_receipt_present": true,
         "shadow_receipts_satisfy_production_activation": false,
@@ -403,11 +409,14 @@
       "live_model_enablement_receipt_missing",
       "production_privacy_policy_receipt_missing",
       "rollback_disable_receipt_missing",
+      "device_trust_live_activation_receipt_missing",
+      "real_lm_production_policy_receipt_missing",
       "private/strict-private mode product switch"
     ],
     "next_safe_move": "Keep running fixture/shadow comparisons and wire product confirmation surfaces only where the gates ask for missing privacy, scope, or approval.",
     "privacy_readiness_status": "POLICY_SEEDED_PRODUCTION_TOKEN_VAULT_NOT_ACTIVE",
     "private_mode_policy": "PRIVATE_MODE_POLICY_READY_INACTIVE",
+    "production_activation_beams": "EXPLICIT_SEVEN_BEAMS",
     "production_live_blockers": "EXPLICIT",
     "production_token_vault_ready": false,
     "provider_activation_receipts": "RECEIPTS_REQUIRED_NOT_PRESENT",
@@ -425,7 +434,7 @@
   "machine_proof": {
     "all_live_authority_false": true,
     "cloud_lm_allowed_when_private": false,
-    "content_hash": "sha256:5fc6f40a2c94e7e447343283f158c0afb6ed9bc92286a418d000959a38a03cb4",
+    "content_hash": "sha256:60d012d4a574e9e295ccf4f91cfb94e236520e2914f61e9010c255a8ace89115",
     "dashboard_aggregates_seeded_lanes": true,
     "end_to_end_non_live_chain_passed": true,
     "external_action_performed": false,
@@ -454,6 +463,8 @@
     "private_mode_fields_present": true,
     "private_mode_policy_active": false,
     "private_mode_policy_readiness_aggregated": true,
+    "production_activation_beam_count": 7,
+    "production_activation_beams_explicit": true,
     "production_state_mutation_performed": false,
     "production_token_vault_ready": false,
     "provider_activation_receipts_present": false,
@@ -900,7 +911,75 @@
         "model_selection_policy_receipt",
         "privacy_policy_receipt",
         "production_token_vault_ready_receipt",
-        "rollback_disable_receipt"
+        "rollback_disable_receipt",
+        "device_trust_live_activation_receipt",
+        "real_lm_production_policy_receipt"
+      ],
+      "production_activation_beams": [
+        {
+          "beam_id": "production_token_vault",
+          "human_label": "Production token vault",
+          "operator_copy": "OpenClaw needs the production token vault to be ready before live model lanes can review sensitive work.",
+          "receipt_types": [
+            "production_token_vault_ready_receipt"
+          ],
+          "status": "MISSING"
+        },
+        {
+          "beam_id": "provider_model_receipts",
+          "human_label": "Provider/model receipts",
+          "operator_copy": "OpenClaw needs recorded provider and model-selection receipts for each live lane.",
+          "receipt_types": [
+            "provider_policy_receipt",
+            "model_selection_policy_receipt"
+          ],
+          "status": "MISSING"
+        },
+        {
+          "beam_id": "live_enablement_receipt",
+          "human_label": "Live enablement receipt",
+          "operator_copy": "OpenClaw needs an explicit live enablement receipt before LM1 or LM2 can leave shadow mode.",
+          "receipt_types": [
+            "live_model_enablement_receipt"
+          ],
+          "status": "MISSING"
+        },
+        {
+          "beam_id": "privacy_receipt",
+          "human_label": "Privacy receipt",
+          "operator_copy": "OpenClaw needs a production privacy receipt before live model-shaped packages can be used.",
+          "receipt_types": [
+            "privacy_policy_receipt"
+          ],
+          "status": "MISSING"
+        },
+        {
+          "beam_id": "rollback_disable_receipt",
+          "human_label": "Rollback/disable receipt",
+          "operator_copy": "OpenClaw needs a proven way to disable live model lanes before activation review.",
+          "receipt_types": [
+            "rollback_disable_receipt"
+          ],
+          "status": "MISSING"
+        },
+        {
+          "beam_id": "device_trust_live_activation",
+          "human_label": "Device trust / live activation",
+          "operator_copy": "OpenClaw needs trusted-device and live-activation proof for Mission Control traffic before it can feed live model lanes.",
+          "receipt_types": [
+            "device_trust_live_activation_receipt"
+          ],
+          "status": "MISSING"
+        },
+        {
+          "beam_id": "real_lm_production_policy",
+          "human_label": "Real LM1/LM2 production policy",
+          "operator_copy": "OpenClaw needs a real LM1/LM2 production policy for routing, privacy, fallback, and rollback before live activation review.",
+          "receipt_types": [
+            "real_lm_production_policy_receipt"
+          ],
+          "status": "MISSING"
+        }
       ],
       "provider_activation_status": "RECEIPTS_REQUIRED_NOT_PRESENT",
       "read_model_ref": "generated/read_models/live_lm_activation_requirements.json",

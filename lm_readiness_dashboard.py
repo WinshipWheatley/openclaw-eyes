@@ -350,6 +350,7 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
         "lm1_thread_context_package": "CONNECTED_TO_GATE1",
         "request_response_bridge": bridge_readiness["readiness_status"],
         "production_live_blockers": "EXPLICIT",
+        "production_activation_beams": "EXPLICIT_SEVEN_BEAMS",
         "provider_activation_receipts": activation_requirements["provider_activation_status"],
         "live_lm_shadow_trial": live_shadow_trial["trial_status"],
         "live_shadow_receipt": "PRESENT" if live_shadow_trial["machine_proof"]["live_shadow_receipt_valid"] else "MISSING",
@@ -401,6 +402,7 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
                 "live_lm2_activation_status": activation_requirements["live_lm2_activation_status"],
                 "provider_activation_status": activation_requirements["provider_activation_status"],
                 "missing_receipts": activation_requirements["missing_receipts"],
+                "production_activation_beams": activation_requirements["production_activation_beams"],
                 "live_shadow_receipt": activation_requirements["live_shadow_receipt"],
                 "shadow_test_receipts": activation_requirements["shadow_test_receipts"],
             },
@@ -597,6 +599,10 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
             is False,
             "private_mode_fields_present": True,
             "live_activation_requirements_aggregated": True,
+            "production_activation_beams_explicit": activation_requirements["machine_proof"][
+                "production_activation_beams_explicit"
+            ],
+            "production_activation_beam_count": activation_requirements["machine_proof"]["production_activation_beam_count"],
             "live_lm_shadow_trial_aggregated": True,
             "live_shadow_trial_status": live_shadow_trial["trial_status"],
             "live_shadow_model_call_recorded": live_shadow_trial["machine_proof"]["live_model_call_performed"],

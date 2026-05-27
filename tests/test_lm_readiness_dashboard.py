@@ -57,6 +57,7 @@ def test_readiness_dashboard_aggregates_all_seeded_lanes():
         "SEEDED_NEEDS_OPERATOR_SERVICE_CHECK",
     }
     assert payload["dashboard_summary"]["production_live_blockers"] == "EXPLICIT"
+    assert payload["dashboard_summary"]["production_activation_beams"] == "EXPLICIT_SEVEN_BEAMS"
     assert payload["dashboard_summary"]["provider_activation_receipts"] == "RECEIPTS_REQUIRED_NOT_PRESENT"
     assert payload["dashboard_summary"]["live_lm_shadow_trial"] == "LIVE_SHADOW_PASSED"
     assert payload["dashboard_summary"]["live_shadow_receipt"] == "PRESENT"
@@ -184,6 +185,11 @@ def test_dashboard_exposes_activation_private_and_visibility_without_live_enable
 
     assert flow["live_lm_activation_requirements"]["live_lm1_activation_status"] == "NOT_READY"
     assert flow["live_lm_activation_requirements"]["provider_activation_status"] == "RECEIPTS_REQUIRED_NOT_PRESENT"
+    assert len(flow["live_lm_activation_requirements"]["production_activation_beams"]) == 7
+    assert {
+        "device_trust_live_activation",
+        "real_lm_production_policy",
+    }.issubset({item["beam_id"] for item in flow["live_lm_activation_requirements"]["production_activation_beams"]})
     assert flow["live_lm_activation_requirements"]["live_shadow_receipt"]["present"] is True
     assert flow["live_lm_activation_requirements"]["shadow_test_receipts"]["provider_policy_receipt"]["present"] is True
     assert flow["live_lm_activation_requirements"]["shadow_test_receipts"]["provider_policy_receipt"][
@@ -195,6 +201,8 @@ def test_dashboard_exposes_activation_private_and_visibility_without_live_enable
     assert flow["private_mode_policy_readiness"]["package_effect_summary"]["raw_values_included"] is False
     assert flow["read_model_mirror_visibility"]["mirror_policy"]["new_sync_system_allowed"] is False
     assert payload["machine_proof"]["live_activation_requirements_aggregated"] is True
+    assert payload["machine_proof"]["production_activation_beams_explicit"] is True
+    assert payload["machine_proof"]["production_activation_beam_count"] == 7
     assert payload["machine_proof"]["live_lm_shadow_trial_aggregated"] is True
     assert payload["machine_proof"]["live_shadow_model_call_recorded"] is True
     assert payload["machine_proof"]["live_shadow_receipt_valid"] is True
