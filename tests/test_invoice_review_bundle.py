@@ -76,6 +76,7 @@ def test_guardian_approval_request_exposes_button_labels_not_typed_code():
     request = payload["guardian_approval_request"]
 
     assert request["approval_required"] is True
+    assert request["status"] == "BLOCKED_PREREQUISITES_MISSING"
     assert request["send_allowed"] is False
     assert tuple(button["label"] for button in request["buttons"]) == bundle.APPROVAL_BUTTONS
     assert payload["operator_copy"]["button_labels"] == bundle.APPROVAL_BUTTONS
@@ -167,6 +168,44 @@ def test_approval_request_does_not_imply_send():
     assert payload["machine_proof"]["approval_does_not_imply_send"] is True
 
 
+def test_guardian_output_validation_does_not_imply_guardian_approval_request():
+    payload = _capital()
+    status = payload["semantic_status"]
+
+    assert status["guardian_output_validation_status"] == "PASSED_FOR_DRAFT_DISPLAY_ONLY"
+    assert status["guardian_approval_request_status"] == "BLOCKED_PREREQUISITES_MISSING"
+    assert payload["proof_shelf_copy"]["guardian_output_validation"] == (
+        "Safety check passed for showing this draft/status only."
+    )
+    assert payload["machine_proof"]["guardian_output_validation_does_not_imply_approval_request"] is True
+
+
+def test_guardian_approval_request_does_not_imply_operator_approval():
+    receipts = {
+        "active_workbook_confirmed_receipt",
+        "invoice_record_selected_receipt",
+        "invoice_period_confirmed_receipt",
+        "generated_invoice_artifact_linkage_receipt",
+        "invoice_attachment_proof_receipt",
+        "clara_email_draft_receipt",
+        "recipient_confirmation_receipt",
+    }
+    payload = _capital(receipts)
+
+    assert payload["semantic_status"]["guardian_approval_request_status"] == "READY_TO_REQUEST_OPERATOR_APPROVAL"
+    assert payload["semantic_status"]["operator_approval_status"] == "NOT_GRANTED"
+    assert payload["guardian_approval_request"]["send_allowed"] is False
+
+
+def test_operator_approval_does_not_imply_execution():
+    payload = _capital({"guardian_approval_receipt", "operator_approval_receipt"})
+    status = payload["semantic_status"]
+
+    assert status["operator_approval_status"] == "GRANTED_FOR_SPECIFIC_PACKAGE"
+    assert status["email_send_execution_status"] == "NOT_SENT"
+    assert status["portal_submission_execution_status"] == "NOT_SUBMITTED"
+
+
 def test_send_is_blocked_unless_approval_and_send_execution_receipts_exist():
     blocked = _capital({"guardian_approval_receipt", "operator_approval_receipt"})
     ready_receipts = {"guardian_approval_receipt", "operator_approval_receipt", "email_send_receipt"}
@@ -192,6 +231,16 @@ def test_non_coupa_client_recipe_does_not_require_coupa_by_default():
     assert non_coupa["client_ref"] == "st_annes"
     assert non_coupa["coupa_invoice_proof"]["required"] is False
     assert payload["machine_proof"]["non_coupa_client_does_not_require_coupa"] is True
+
+
+def test_capital_hilton_review_bundle_puts_coupa_portal_proof_before_email_send_success():
+    payload = _capital({"email_send_receipt"})
+    status = payload["semantic_status"]
+
+    assert status["primary_invoice_trigger"] == "COUPA_SUPPLIER_PORTAL_INVOICE"
+    assert status["coupa_portal_rail_status"] == "PRIMARY_PAYMENT_TRIGGER_BLOCKED_PROOF_MISSING"
+    assert status["coupa_submission_proof_status"] == "MISSING"
+    assert "Coupa submission proof is still required." in payload["blockers"]
 
 
 def test_no_email_coupa_browser_send_action_is_enabled():

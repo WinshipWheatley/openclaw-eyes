@@ -155,6 +155,7 @@ class ApprovalButton:
 class GuardianApprovalRequest:
     approval_ref: str
     operator_question: str
+    status: str
     approval_required: bool
     send_allowed: bool
     buttons: tuple[dict[str, Any], ...]
@@ -250,6 +251,7 @@ def _guardian_approval_request(bundle_id: str, *, ready_for_send_review: bool) -
     return GuardianApprovalRequest(
         approval_ref=f"guardian_invoice_review_approval:{_short_hash(bundle_id)}",
         operator_question=question,
+        status="READY_TO_REQUEST_OPERATOR_APPROVAL" if ready_for_send_review else "BLOCKED_PREREQUISITES_MISSING",
         approval_required=True,
         send_allowed=False,
         buttons=_approval_buttons(bundle_id),
@@ -286,6 +288,29 @@ def _send_allowed(receipts: set[str]) -> bool:
     return all(receipt in receipts for receipt in BLOCKED_SEND_RECEIPTS)
 
 
+def _status_model(*, receipts: set[str], excel: InvoiceReviewArtifact, clara: ClaraEmailDraft, coupa: CoupaInvoiceProof, guardian: GuardianApprovalRequest) -> dict[str, Any]:
+    operator_approved = "operator_approval_receipt" in receipts
+    email_sent = "email_send_receipt" in receipts
+    portal_submitted = "portal_invoice_submission_receipt" in receipts
+    return {
+        "coupa_portal_rail_status": "PRIMARY_PAYMENT_TRIGGER_BLOCKED_PROOF_MISSING"
+        if not portal_submitted
+        else "PRIMARY_PAYMENT_TRIGGER_SUBMITTED_RECEIPT_CONFIRMED",
+        "coupa_submission_proof_status": coupa.status,
+        "excel_invoice_artifact_status": excel.proof_status,
+        "excel_invoice_attachment_ready": excel.attachment_ready,
+        "clara_draft_status": "DRAFT_ONLY" if clara.draft_only and not clara.sent else "UNKNOWN_FAIL_CLOSED",
+        "guardian_output_validation_status": "PASSED_FOR_DRAFT_DISPLAY_ONLY",
+        "guardian_approval_request_status": guardian.status,
+        "operator_approval_status": "GRANTED_FOR_SPECIFIC_PACKAGE" if operator_approved else "NOT_GRANTED",
+        "email_send_execution_status": "SENT_RECEIPT_CONFIRMED" if email_sent else "NOT_SENT",
+        "portal_submission_execution_status": "SUBMITTED_RECEIPT_CONFIRMED" if portal_submitted else "NOT_SUBMITTED",
+        "payment_watch_status": "PAYMENT_RECEIVED_RECEIPT_CONFIRMED" if "payment_detected_receipt" in receipts else "NOT_RECEIVED",
+        "primary_invoice_trigger": "COUPA_SUPPLIER_PORTAL_INVOICE",
+        "supporting_artifacts": ("excel_invoice_for_records", "clara_email_draft_for_annette"),
+    }
+
+
 def build_capital_hilton_bundle(
     *,
     present_receipts: Mapping[str, Any] | set[str] | tuple[str, ...] | list[str] | None = None,
@@ -303,6 +328,7 @@ def build_capital_hilton_bundle(
         and contacts_confirmed
     )
     guardian = _guardian_approval_request(CAPITAL_HILTON_BUNDLE_ID, ready_for_send_review=ready_for_send_review)
+    semantic_status = _status_model(receipts=receipts, excel=excel, clara=clara, coupa=coupa, guardian=guardian)
     missing_receipts = tuple(receipt for receipt in REQUIRED_RECEIPTS if receipt not in receipts)
     blockers = []
     if coupa.status == "MISSING":
@@ -342,9 +368,13 @@ def build_capital_hilton_bundle(
         "status": "READY_FOR_REVIEW_BLOCKED_FOR_SELECTION"
         if not _artifact_linked_to_selected_invoice(receipts)
         else "READY_FOR_REVIEW_BLOCKED_FOR_SEND",
+        "semantic_status": semantic_status,
         "helm_card": {
             "title": "Review the Capital Hilton invoice package.",
-            "operator_summary": "Nothing has been sent.",
+            "operator_summary": (
+                "Draft path prepared. Nothing was sent or submitted. Coupa portal submission proof is still "
+                "required before this invoice can be treated as sent."
+            ),
             "primary_warning": "OpenClaw needs the current invoice page/period before it can attach the Excel invoice."
             if not _artifact_linked_to_selected_invoice(receipts)
             else "Coupa submission proof is still required." if coupa.status == "MISSING" else None,
@@ -385,19 +415,25 @@ def build_capital_hilton_bundle(
         },
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
         "operator_copy": {
-            "headline": "Review the Capital Hilton invoice package.",
+            "headline": "Draft path prepared.",
             "body": (
-                "Nothing has been sent. "
+                "Nothing was sent or submitted. Coupa portal submission proof is still required before this "
+                "invoice can be treated as sent. "
                 + (
                     "OpenClaw needs the current invoice page/period before it can attach the Excel invoice. "
                     if not _artifact_linked_to_selected_invoice(receipts)
                     else ""
                 )
-                + ("Coupa submission proof is still required. " if coupa.status == "MISSING" else "")
-                + "Approve only after the selected invoice record, draft, recipients, attachment, and Coupa proof are correct."
+                + "Review only; approval and execution remain separate."
             ),
             "approval_question": guardian.operator_question,
             "button_labels": APPROVAL_BUTTONS,
+        },
+        "proof_shelf_copy": {
+            "guardian_output_validation": "Safety check passed for showing this draft/status only.",
+            "guardian_approval": "No Guardian approval request is ready until prerequisites exist.",
+            "operator_approval": semantic_status["operator_approval_status"],
+            "execution": "No email send, Coupa submit, payment update, or ledger action happened.",
         },
         "generated_at": generated_at,
     }
@@ -412,6 +448,16 @@ def build_capital_hilton_bundle(
         "coupa_required_for_capital_hilton": True,
         "draft_does_not_imply_sent": clara.draft_only and not clara.sent,
         "approval_does_not_imply_send": guardian.approval_required and not guardian.send_allowed,
+        "guardian_output_validation_does_not_imply_approval_request": semantic_status[
+            "guardian_output_validation_status"
+        ]
+        == "PASSED_FOR_DRAFT_DISPLAY_ONLY"
+        and semantic_status["guardian_approval_request_status"] != "READY_TO_REQUEST_OPERATOR_APPROVAL",
+        "operator_approval_does_not_imply_execution": semantic_status["operator_approval_status"]
+        in {"NOT_GRANTED", "GRANTED_FOR_SPECIFIC_PACKAGE"}
+        and semantic_status["email_send_execution_status"] in {"NOT_SENT", "SENT_RECEIPT_CONFIRMED"},
+        "coupa_primary_before_email_success": semantic_status["primary_invoice_trigger"]
+        == "COUPA_SUPPLIER_PORTAL_INVOICE",
         "send_blocked_without_required_receipts": not _send_allowed(receipts),
         "all_action_authority_false": all(value is False for value in AUTHORITY_BOUNDARY.values()),
         "operator_copy_jargon_free": not _contains_operator_jargon(bundle["operator_copy"]),

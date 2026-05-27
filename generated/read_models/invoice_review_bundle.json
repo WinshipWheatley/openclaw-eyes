@@ -140,7 +140,8 @@
         "required_receipts"
       ],
       "operator_question": "Review the Capital Hilton invoice package?",
-      "send_allowed": false
+      "send_allowed": false,
+      "status": "BLOCKED_PREREQUISITES_MISSING"
     },
     "helm_card": {
       "button_labels": [
@@ -150,7 +151,7 @@
         "EDIT_DRAFT",
         "HOLD"
       ],
-      "operator_summary": "Nothing has been sent.",
+      "operator_summary": "Draft path prepared. Nothing was sent or submitted. Coupa portal submission proof is still required before this invoice can be treated as sent.",
       "primary_warning": "OpenClaw needs the current invoice page/period before it can attach the Excel invoice.",
       "safe_next_move": "Select the current invoice page/period and link any generated artifact before approval.",
       "title": "Review the Capital Hilton invoice package."
@@ -189,11 +190,14 @@
       "approval_does_not_imply_send": true,
       "attachment_ready_requires_invoice_record_linkage": true,
       "clara_draft_slot_present": true,
-      "content_hash": "sha256:1de8e60ce01ee8623b4b630dbae402695dcca2ea772ab7c53767ac4ab7855279",
+      "content_hash": "sha256:3c04b94f2bef77739ed5aae0955f55080ec61d1d8b8d85bf3f3a01c8092583a2",
+      "coupa_primary_before_email_success": true,
       "coupa_required_for_capital_hilton": true,
       "draft_does_not_imply_sent": true,
       "excel_invoice_artifact_slot_present": true,
       "existing_artifact_without_invoice_record_linkage_is_candidate_only": true,
+      "guardian_output_validation_does_not_imply_approval_request": true,
+      "operator_approval_does_not_imply_execution": true,
       "operator_copy_jargon_free": true,
       "pdf_excel_generation_performed": false,
       "send_blocked_without_required_receipts": true,
@@ -215,7 +219,7 @@
     ],
     "operator_copy": {
       "approval_question": "Review the Capital Hilton invoice package?",
-      "body": "Nothing has been sent. OpenClaw needs the current invoice page/period before it can attach the Excel invoice. Coupa submission proof is still required. Approve only after the selected invoice record, draft, recipients, attachment, and Coupa proof are correct.",
+      "body": "Nothing was sent or submitted. Coupa portal submission proof is still required before this invoice can be treated as sent. OpenClaw needs the current invoice page/period before it can attach the Excel invoice. Review only; approval and execution remain separate.",
       "button_labels": [
         "APPROVE",
         "DO_NOT_APPROVE",
@@ -223,12 +227,18 @@
         "EDIT_DRAFT",
         "HOLD"
       ],
-      "headline": "Review the Capital Hilton invoice package."
+      "headline": "Draft path prepared."
     },
     "present_receipts": [],
     "proof_refs": [
       "local_artifact_ref:deb5bc9b42567fd4"
     ],
+    "proof_shelf_copy": {
+      "execution": "No email send, Coupa submit, payment update, or ledger action happened.",
+      "guardian_approval": "No Guardian approval request is ready until prerequisites exist.",
+      "guardian_output_validation": "Safety check passed for showing this draft/status only.",
+      "operator_approval": "NOT_GRANTED"
+    },
     "recipe_refs": {
       "capital_hilton_is_complex_recipe_not_default": true,
       "selected_rails": [
@@ -285,6 +295,24 @@
       "operator_approval_receipt",
       "email_send_receipt"
     ],
+    "semantic_status": {
+      "clara_draft_status": "DRAFT_ONLY",
+      "coupa_portal_rail_status": "PRIMARY_PAYMENT_TRIGGER_BLOCKED_PROOF_MISSING",
+      "coupa_submission_proof_status": "MISSING",
+      "email_send_execution_status": "NOT_SENT",
+      "excel_invoice_artifact_status": "GENERATED_INVOICE_ARTIFACT_CANDIDATE",
+      "excel_invoice_attachment_ready": false,
+      "guardian_approval_request_status": "BLOCKED_PREREQUISITES_MISSING",
+      "guardian_output_validation_status": "PASSED_FOR_DRAFT_DISPLAY_ONLY",
+      "operator_approval_status": "NOT_GRANTED",
+      "payment_watch_status": "NOT_RECEIVED",
+      "portal_submission_execution_status": "NOT_SUBMITTED",
+      "primary_invoice_trigger": "COUPA_SUPPLIER_PORTAL_INVOICE",
+      "supporting_artifacts": [
+        "excel_invoice_for_records",
+        "clara_email_draft_for_annette"
+      ]
+    },
     "status": "READY_FOR_REVIEW_BLOCKED_FOR_SELECTION",
     "workflow_ref": "capital_hilton_invoice_workflow"
   },
@@ -312,7 +340,7 @@
     "button_labels_present": true,
     "capital_hilton_coupa_proof_required": true,
     "capital_hilton_has_review_bundle": true,
-    "content_hash": "sha256:0da30edb3384d3c1fb8306812cb2ad53ba23323884358537300229c99671d4a7",
+    "content_hash": "sha256:a3e05d090701934de3cfa5cbade4d28e9097e91cd278d264eb3748330cc905b2",
     "coupa_action_enabled": false,
     "non_coupa_client_does_not_require_coupa": true,
     "pdf_excel_generation_performed": false,

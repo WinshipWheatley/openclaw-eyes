@@ -1166,9 +1166,9 @@ def _mac_response_candidate(
         if case.worker_adapter == "delegated_package_graph":
             headline = "Invoice-package draft path prepared"
             body = (
-                "OpenClaw prepared a bounded invoice-package draft path for Capital Hilton. "
-                "Chief checked the next safe move, Clara drafted client-safe wording, and Guardian validated the outputs. "
-                "Nothing was sent, submitted, posted, or changed."
+                "Draft path prepared. Nothing was sent or submitted. Coupa portal submission proof is still required "
+                "before this invoice can be treated as sent. Chief prepared a local status check and Clara drafted "
+                "client-safe wording."
             )
             if case.production_authority_needed and "send" in normalize_operator_text_for_matching(case.user_message):
                 body += " Approval is required before any send step."
@@ -1237,6 +1237,13 @@ def _mac_response_candidate(
             "reality_bounce_fixture": True,
             "non_production": True,
             "receipt_written": receipt_written,
+            "guardian_output_validation_status": "PASSED_FOR_DRAFT_DISPLAY_ONLY"
+            if worker_result and case.worker_adapter == "delegated_package_graph"
+            else "",
+            "guardian_approval_request_status": "NOT_CREATED",
+            "operator_approval_status": "NOT_GRANTED",
+            "portal_submission_execution_status": "NOT_SUBMITTED",
+            "email_send_execution_status": "NOT_SENT",
             "live_lm_used": False,
             "external_action_performed": False,
             "send_submit_performed": False,

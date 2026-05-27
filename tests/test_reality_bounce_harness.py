@@ -124,10 +124,17 @@ def test_package_prep_text_routes_to_delegated_graph_and_writes_child_parent_rec
     assert result["worker_fixture_used"] == harness.WORKER_DELEGATED_PACKAGE_GRAPH
     assert result["receipt_written"] is True
     assert result["guardian_result"]["validation_result"]["verdict"] == guardian_output_gate.VALIDATED
-    assert "bounded invoice-package draft path" in payload["operator_stdout"]
-    assert "Nothing was sent, submitted, posted, or changed." in payload["operator_stdout"]
+    assert "Draft path prepared." in payload["operator_stdout"]
+    assert "Coupa portal submission proof is still required before this invoice can be treated as sent." in payload[
+        "operator_stdout"
+    ]
+    assert "Guardian validated outputs" not in payload["operator_stdout"]
     assert payload["machine_proof"]["delegated_package_graph_used"] is True
     assert payload["machine_proof"]["send_submit_performed"] is False
+    assert result["scoped_mac_response_candidate"]["proof_flags"]["guardian_output_validation_status"] == (
+        "PASSED_FOR_DRAFT_DISPLAY_ONLY"
+    )
+    assert result["scoped_mac_response_candidate"]["proof_flags"]["guardian_approval_request_status"] == "NOT_CREATED"
 
     rows = _receipt_rows(db_path)
     assert len(rows) == 3
@@ -160,7 +167,7 @@ def test_prepare_and_send_runs_delegated_graph_but_blocks_send_portion(tmp_path)
     assert result["worker_fixture_used"] == harness.WORKER_DELEGATED_PACKAGE_GRAPH
     assert result["receipt_written"] is True
     assert "Approval is required before any send step." in payload["operator_stdout"]
-    assert "Nothing was sent, submitted, posted, or changed." in payload["operator_stdout"]
+    assert "Nothing was sent or submitted." in payload["operator_stdout"]
     assert result["boundary_flags"]["send_submit_performed"] is False
 
     rows = _receipt_rows(db_path)
