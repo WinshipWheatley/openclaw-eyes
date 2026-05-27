@@ -117,7 +117,7 @@
       "machine_proof": {
         "all_live_authority_false": true,
         "authority_granted": false,
-        "content_hash": "sha256:29e4c39e8d36d9b6989358a942a5ba8cbc453e147056c246a8ddf7b827884611",
+        "content_hash": "sha256:aa28c5e872e1df35d26c450123f0e587e97f1f564a21a95b7eadfaf1d71063f6",
         "lm1_example_selects_fast_class": true,
         "lm1_thread_package_selects_fast_class": true,
         "lm2_example_selects_stronger_class": true,
@@ -148,13 +148,16 @@
       "machine_proof": {
         "all_live_authority_false": true,
         "cloud_call_performed": false,
-        "content_hash": "sha256:12e1cddb104454a5a3381f35f9f3722bf8478db2ead0f4899d492287d83a866a",
+        "content_hash": "sha256:72431f81ccd5e148efb6a675b4510e8d5fd571d370fa0298d3bcdaa187864f40",
         "different_scope_token_differs": true,
+        "finance_policy_blocks_raw_model_visibility": true,
+        "finance_policy_tokenization_required": true,
         "network_performed": false,
         "raw_values_exported": false,
         "real_data_ingestion_performed": false,
         "role_package_raw_values_included": false,
-        "stable_within_scope": true
+        "stable_within_scope": true,
+        "strict_policy_local_only_required": true
       },
       "read_model_id": "token_vault_status"
     },
@@ -164,7 +167,7 @@
         "ambiguous_fixture_asks_clarification": true,
         "backend_paths_exposed": false,
         "capital_hilton_fixture_inferred": true,
-        "content_hash": "sha256:cc84524550caa659010e70baf8b6832068d13b1c216b280dd2014044270421a5",
+        "content_hash": "sha256:2223b9bd892344e4bc5baabd3ddf7a672653984814d7506ab8dfa1cd0abcf20d",
         "fixture_final_false": true,
         "fixture_ledger_posted_false": true,
         "fixture_paid_false": true,
@@ -193,7 +196,7 @@
     "worker_dispatch_allowed": false,
     "workflow_execution_allowed": false
   },
-  "contract_status": "LM_READINESS_INTEGRATION_NO_LIVE_LM",
+  "contract_status": "LM_READINESS_INTEGRATION_V1_NO_LIVE_LM",
   "dashboard_summary": {
     "gate2_ingest": "ACCEPTED_INTENT",
     "gate3_package": "ROLE_PACKAGE_COMPILED",
@@ -207,10 +210,12 @@
       "live LM explicit enablement receipt",
       "live model/provider policy receipt",
       "production token vault readiness",
+      "private/strict-private mode product switch",
       "live receipt/promotion policy",
       "real LM shadow comparison runs"
     ],
     "tokenization": "SEEDED_NOT_PRODUCTION",
+    "tokenization_policy": "CLIENT_FINANCE_FILE_METADATA",
     "trust_ramp_active_level": 1,
     "trust_ramp_candidate_level": 4,
     "universal_intake": "SEEDED"
@@ -218,7 +223,8 @@
   "generated_at": "2026-05-26T00:00:00+00:00",
   "machine_proof": {
     "all_live_authority_false": true,
-    "content_hash": "sha256:1c68edb3c379419f9f7bac10eb2d33f411ad6f3144c3b6967b5a8b686249f80c",
+    "cloud_lm_allowed_when_private": false,
+    "content_hash": "sha256:3b60397be8c4dee309f9819a3b5f2e18535746edd5b5f2b7cfb22c1494222b45",
     "dashboard_aggregates_seeded_lanes": true,
     "external_action_performed": false,
     "gate3_model_may_see_raw_values": false,
@@ -227,11 +233,16 @@
     "lm1_model_class_selected": "FAST_STRUCTURED_INTENT_SMALL",
     "lm1_package_built": true,
     "lm1_package_raw_values_included": false,
+    "lm1_package_tokenization_required": true,
     "lm2_model_class_selected": "STRONG_STRUCTURED_ROLE_REASONER",
     "model_call_performed": false,
     "network_performed": false,
+    "private_mode_active": false,
+    "private_mode_fields_present": true,
     "production_state_mutation_performed": false,
     "spreadsheet_cell_read_performed": false,
+    "strict_private_mode_active": false,
+    "tokenization_policy_blocks_raw_model_visibility": true,
     "tool_execution_performed": false,
     "workbook_body_read_performed": false
   },
@@ -373,10 +384,19 @@
       },
       "blocked_reasons": [],
       "chain_lane": "LM1_INTENT_PROPOSAL",
+      "confidence": "HIGH",
       "conservative_posture": true,
       "decision_id": "model_routing_decision:27495dca8e030cb2",
+      "expected_failure_modes": [
+        "malformed structured output"
+      ],
       "next_safe_move": "Use this model class only as a future candidate route; no model call is allowed in v0.",
+      "rejected_model_classes": [
+        "STRONG_STRUCTURED_ROLE_REASONER",
+        "CONSERVATIVE_SENSITIVE_STRUCTURED"
+      ],
       "request_id": "lm1_thread_context_package:b828c05b1d55ae3f:model_route",
+      "risk_notes": [],
       "selected_model_class": "FAST_STRUCTURED_INTENT_SMALL",
       "selection_reason": "LM1 intent proposal is narrow, structured, low-risk, and latency-sensitive.",
       "structured_output_required": true,
@@ -405,6 +425,39 @@
         "raw private bodies",
         "unrelated client data"
       ],
+      "model_router_result": {
+        "authority_boundary": {
+          "authority_grant_allowed": false,
+          "external_action_allowed": false,
+          "live_model_call_allowed": false,
+          "model_api_integration_allowed": false,
+          "network_allowed": false,
+          "production_state_mutation_allowed": false,
+          "provider_key_material_access_allowed": false,
+          "send_submit_allowed": false,
+          "tool_execution_allowed": false,
+          "workflow_execution_allowed": false
+        },
+        "blocked_reasons": [],
+        "chain_lane": "LM1_INTENT_PROPOSAL",
+        "confidence": "HIGH",
+        "conservative_posture": true,
+        "decision_id": "model_routing_decision:27495dca8e030cb2",
+        "expected_failure_modes": [
+          "malformed structured output"
+        ],
+        "next_safe_move": "Use this model class only as a future candidate route; no model call is allowed in v0.",
+        "rejected_model_classes": [
+          "STRONG_STRUCTURED_ROLE_REASONER",
+          "CONSERVATIVE_SENSITIVE_STRUCTURED"
+        ],
+        "request_id": "lm1_thread_context_package:b828c05b1d55ae3f:model_route",
+        "risk_notes": [],
+        "selected_model_class": "FAST_STRUCTURED_INTENT_SMALL",
+        "selection_reason": "LM1 intent proposal is narrow, structured, low-risk, and latency-sensitive.",
+        "structured_output_required": true,
+        "tokenization_required_before_live": false
+      },
       "next_safe_move": "A future LM1 may propose MachineIntentCandidate JSON only; Gate 2 decides ingestion.",
       "output_schema": [
         "intent_id",
@@ -434,10 +487,19 @@
       ],
       "package_id": "lm1_thread_context_package:b828c05b1d55ae3f",
       "privacy": {
+        "detokenization_allowed": false,
+        "local_only_required": true,
         "model_may_see_raw_values": false,
         "next_safe_move": "Attach tokenization metadata to future role packages; never include raw sensitive values.",
-        "privacy_level": "metadata_only_tokenized_refs",
+        "privacy_level": "CLIENT_FINANCE_FILE_METADATA",
         "raw_values_included": false,
+        "reason_codes": [
+          "SYNTHETIC_POLICY_ONLY",
+          "FINANCE_CONTEXT",
+          "CLIENT_FILE_METADATA",
+          "INVOICE_WORKBOOK_REFERENCE",
+          "CLIENT_SCOPED"
+        ],
         "safe_for_role_package": true,
         "token_kinds": [
           "person_name",
@@ -448,13 +510,43 @@
         ],
         "token_scope": "scope:finance:capital_hilton:lm_readiness_fixture",
         "token_vault_ref": "generated/read_models/token_vault_status.json",
-        "tokenization_applied": true
+        "tokenization_applied": true,
+        "tokenization_required": true
       },
+      "privacy_classification": "CLIENT_FINANCE_FILE_METADATA",
       "raw_values_included": false,
+      "source_device_ref": "mission_control_mac",
       "source_request_id": "lm_readiness_capital_hilton_fixture",
+      "tokenization_policy": {
+        "authority_boundary": {
+          "cloud_tokenization_allowed": false,
+          "credential_handling_allowed": false,
+          "external_model_share_allowed": false,
+          "network_allowed": false,
+          "production_state_mutation_allowed": false,
+          "raw_value_export_allowed": false,
+          "real_data_ingestion_allowed": false
+        },
+        "detokenization_allowed": false,
+        "local_only_required": true,
+        "model_may_see_raw_values": false,
+        "next_safe_move": "Attach scoped tokens and metadata summaries only; do not expose raw values.",
+        "policy_decision_id": "tokenization_policy:7e0760610555939d",
+        "privacy_level": "CLIENT_FINANCE_FILE_METADATA",
+        "reason_codes": [
+          "SYNTHETIC_POLICY_ONLY",
+          "FINANCE_CONTEXT",
+          "CLIENT_FILE_METADATA",
+          "INVOICE_WORKBOOK_REFERENCE",
+          "CLIENT_SCOPED"
+        ],
+        "synthetic_fixture_only": true,
+        "tokenization_required": true
+      },
+      "tokenization_required": true,
       "tools_allowed": [],
       "universal_intake_inference": {
-        "artifact_kind": "running_draft_invoice_workbook",
+        "artifact_kind": "running_invoice_workbook",
         "authority_boundary": {
           "external_action_allowed": false,
           "file_body_read_allowed": false,
@@ -485,7 +577,7 @@
         "workflow_ref": "capital_hilton_invoice_workflow",
         "world_ref": "finance"
       },
-      "user_message": "these are invoice workbooks for the clients named in the files"
+      "user_message": "these are the invoice workbooks for the clients named in the files, handle them how you're supposed to"
     },
     "lm2_model_decision": {
       "authority_boundary": {
@@ -502,20 +594,38 @@
       },
       "blocked_reasons": [],
       "chain_lane": "LM2_ROLE_RESPONSE",
+      "confidence": "HIGH",
       "conservative_posture": true,
       "decision_id": "model_routing_decision:2033e043e1ba7e70",
+      "expected_failure_modes": [
+        "malformed structured output"
+      ],
       "next_safe_move": "Use this model class only as a future candidate route; no model call is allowed in v0.",
+      "rejected_model_classes": [
+        "FAST_STRUCTURED_INTENT_SMALL",
+        "CONSERVATIVE_SENSITIVE_STRUCTURED"
+      ],
       "request_id": "role_execution_package:96121e165a785fc3:model_route",
+      "risk_notes": [],
       "selected_model_class": "STRONG_STRUCTURED_ROLE_REASONER",
       "selection_reason": "LM2 role response needs stronger package reasoning and operator wording.",
       "structured_output_required": true,
       "tokenization_required_before_live": false
     },
     "privacy": {
+      "detokenization_allowed": false,
+      "local_only_required": true,
       "model_may_see_raw_values": false,
       "next_safe_move": "Attach tokenization metadata to future role packages; never include raw sensitive values.",
-      "privacy_level": "metadata_only_tokenized_refs",
+      "privacy_level": "CLIENT_FINANCE_FILE_METADATA",
       "raw_values_included": false,
+      "reason_codes": [
+        "SYNTHETIC_POLICY_ONLY",
+        "FINANCE_CONTEXT",
+        "CLIENT_FILE_METADATA",
+        "INVOICE_WORKBOOK_REFERENCE",
+        "CLIENT_SCOPED"
+      ],
       "safe_for_role_package": true,
       "token_kinds": [
         "person_name",
@@ -526,10 +636,48 @@
       ],
       "token_scope": "scope:finance:capital_hilton:lm_readiness_fixture",
       "token_vault_ref": "generated/read_models/token_vault_status.json",
-      "tokenization_applied": true
+      "tokenization_applied": true,
+      "tokenization_required": true
+    },
+    "private_mode_readiness": {
+      "cloud_lm_allowed_when_private": false,
+      "live_lm_exposure_allowed": false,
+      "local_only_required_when_strict": true,
+      "minimum_privacy_level_when_active": "CLIENT_FINANCE_FILE_METADATA",
+      "next_safe_move": "Mission Control may expose this later as a local setting; backend defaults remain inactive.",
+      "private_mode_active": false,
+      "private_mode_available": true,
+      "strict_private_mode_active": false,
+      "strict_private_mode_available": true
+    },
+    "tokenization_policy_result": {
+      "authority_boundary": {
+        "cloud_tokenization_allowed": false,
+        "credential_handling_allowed": false,
+        "external_model_share_allowed": false,
+        "network_allowed": false,
+        "production_state_mutation_allowed": false,
+        "raw_value_export_allowed": false,
+        "real_data_ingestion_allowed": false
+      },
+      "detokenization_allowed": false,
+      "local_only_required": true,
+      "model_may_see_raw_values": false,
+      "next_safe_move": "Attach scoped tokens and metadata summaries only; do not expose raw values.",
+      "policy_decision_id": "tokenization_policy:7e0760610555939d",
+      "privacy_level": "CLIENT_FINANCE_FILE_METADATA",
+      "reason_codes": [
+        "SYNTHETIC_POLICY_ONLY",
+        "FINANCE_CONTEXT",
+        "CLIENT_FILE_METADATA",
+        "INVOICE_WORKBOOK_REFERENCE",
+        "CLIENT_SCOPED"
+      ],
+      "synthetic_fixture_only": true,
+      "tokenization_required": true
     },
     "universal_intake_inference": {
-      "artifact_kind": "running_draft_invoice_workbook",
+      "artifact_kind": "running_invoice_workbook",
       "authority_boundary": {
         "external_action_allowed": false,
         "file_body_read_allowed": false,
@@ -559,12 +707,246 @@
       "submitted": false,
       "workflow_ref": "capital_hilton_invoice_workflow",
       "world_ref": "finance"
+    },
+    "what_would_be_sent_to_lm1": {
+      "allowed_context_classes": [
+        "metadata_only_file_ref",
+        "universal_intake_summary",
+        "tokenized_fixture_refs",
+        "thread_scope_refs"
+      ],
+      "authority_granted": {
+        "external_action": false,
+        "model_call": false,
+        "send_submit": false,
+        "tool_execution": false,
+        "workflow_execution": false
+      },
+      "forbidden_context_classes": [
+        "raw workbook body",
+        "spreadsheet cells",
+        "credentials",
+        "raw private bodies",
+        "unrelated client data"
+      ],
+      "output_schema": [
+        "intent_id",
+        "source_request_id",
+        "original_operator_text",
+        "inferred_intent_type",
+        "target_world_ref",
+        "target_folder_ref",
+        "target_thread_ref",
+        "target_workflow_ref",
+        "target_agent_role",
+        "target_worker_type",
+        "requested_action",
+        "referenced_next_action",
+        "confidence",
+        "ambiguity_status",
+        "required_clarification",
+        "evidence_refs_used",
+        "context_refs_used",
+        "source_refs_used",
+        "missing_requirements",
+        "forbidden_assumptions",
+        "authority_requested",
+        "authority_granted",
+        "validation_required",
+        "next_safe_move"
+      ],
+      "package_id": "lm1_thread_context_package:b828c05b1d55ae3f",
+      "privacy": {
+        "detokenization_allowed": false,
+        "local_only_required": true,
+        "model_may_see_raw_values": false,
+        "next_safe_move": "Attach tokenization metadata to future role packages; never include raw sensitive values.",
+        "privacy_level": "CLIENT_FINANCE_FILE_METADATA",
+        "raw_values_included": false,
+        "reason_codes": [
+          "SYNTHETIC_POLICY_ONLY",
+          "FINANCE_CONTEXT",
+          "CLIENT_FILE_METADATA",
+          "INVOICE_WORKBOOK_REFERENCE",
+          "CLIENT_SCOPED"
+        ],
+        "safe_for_role_package": true,
+        "token_kinds": [
+          "person_name",
+          "email",
+          "phone",
+          "bank_account",
+          "tax_id"
+        ],
+        "token_scope": "scope:finance:capital_hilton:lm_readiness_fixture",
+        "token_vault_ref": "generated/read_models/token_vault_status.json",
+        "tokenization_applied": true,
+        "tokenization_required": true
+      },
+      "source_request_id": "lm_readiness_capital_hilton_fixture",
+      "tools_allowed": [],
+      "universal_intake_inference": {
+        "artifact_kind": "running_invoice_workbook",
+        "authority_boundary": {
+          "external_action_allowed": false,
+          "file_body_read_allowed": false,
+          "ledger_posting_allowed": false,
+          "model_call_allowed": false,
+          "ocr_allowed": false,
+          "pdf_generation_allowed": false,
+          "production_state_mutation_allowed": false,
+          "send_submit_allowed": false,
+          "spreadsheet_cell_read_allowed": false,
+          "workbook_body_read_allowed": false
+        },
+        "backend_paths_exposed": false,
+        "candidate_id": "universal_intake_candidate:744b7b195e67d870",
+        "clarification_question": "",
+        "client_ref": "capital_hilton",
+        "confidence": "HIGH",
+        "final": false,
+        "intended_use": "register_or_resolve_invoice_workbook_artifact",
+        "ledger_posted": false,
+        "next_safe_action": "Propose metadata-only workbook intake, then ask before any audit, send, PDF, or ledger step.",
+        "operator_headline": "Capital Hilton workbook recognized",
+        "operator_message": "OpenClaw recognized this as a likely Capital Hilton running invoice workbook. It is still a draft/source workbook, not proof that anything was sent or paid.",
+        "paid": false,
+        "proposed_facts_only": true,
+        "source_request_id": "lm_readiness_capital_hilton_fixture",
+        "submitted": false,
+        "workflow_ref": "capital_hilton_invoice_workflow",
+        "world_ref": "finance"
+      },
+      "user_message": "these are the invoice workbooks for the clients named in the files, handle them how you're supposed to"
+    },
+    "what_would_be_sent_to_lm2": {
+      "role_package_summary": {
+        "authority_policy": {
+          "authority_boundary": {
+            "credential_handling_allowed": false,
+            "live_agent_dispatch_allowed": false,
+            "live_approval_execution_allowed": false,
+            "live_browser_allowed": false,
+            "live_candidate_promotion_allowed": false,
+            "live_coupa_access_allowed": false,
+            "live_email_send_allowed": false,
+            "live_external_action_allowed": false,
+            "live_file_body_read_allowed": false,
+            "live_file_mutation_allowed": false,
+            "live_ledger_posting_allowed": false,
+            "live_lm2_call_allowed": false,
+            "live_model_call_allowed": false,
+            "live_pdf_generation_allowed": false,
+            "live_send_submit_allowed": false,
+            "live_spreadsheet_cell_read_allowed": false,
+            "live_tool_execution_allowed": false,
+            "live_workbook_body_read_allowed": false,
+            "live_worker_dispatch_allowed": false,
+            "live_workflow_execution_allowed": false,
+            "network_allowed": false,
+            "raw_body_ingestion_allowed": false
+          },
+          "authority_policy_id": "package_authority_policy:c40a9d31c472b10e",
+          "external_action_authority_granted": false,
+          "next_safe_move": "No live authority is available in this package.",
+          "required_receipts_before_tools": [
+            "guardian_approval_receipt",
+            "exact_operator_approval_receipt",
+            "provider_or_adapter_receipt",
+            "post_action_proof_receipt"
+          ],
+          "send_submit_authority_granted": false,
+          "tool_authority_granted": false
+        },
+        "context_packet": {
+          "allowed_context_refs": [
+            "tenant_scope:fixture_business_ops",
+            "scope:finance:capital_hilton:lm_readiness_fixture",
+            "universal_intake_candidate:744b7b195e67d870",
+            "universal_intake:universal_intake_candidate:744b7b195e67d870"
+          ],
+          "context_packet_id": "role_context_packet:e209720f35bb1a1e",
+          "credential_material_allowed": false,
+          "evidence_refs": [
+            "universal_intake_candidate:744b7b195e67d870"
+          ],
+          "forbidden_context_refs": [
+            "credentials",
+            "tokens",
+            "raw private bodies",
+            "unrelated client data",
+            "unapproved file bodies"
+          ],
+          "next_safe_move": "Provide only safe refs/summaries to a future LM2 role call.",
+          "raw_body_allowed": false,
+          "source_refs": [
+            "universal_intake:universal_intake_candidate:744b7b195e67d870"
+          ]
+        },
+        "model_may_see_raw_values": false,
+        "package_id": "role_execution_package:96121e165a785fc3",
+        "privacy_level": "metadata_only_tokenized_refs",
+        "raw_values_included": false,
+        "role_identity": "CASSANDRA_CLARA",
+        "task": "Attach the running draft invoice workbook reference as metadata-only source context.",
+        "tokenization_applied": true,
+        "tool_policy": {
+          "allowed_actions": [
+            "respond_to_originating_device_thread",
+            "ask_clarifying_question",
+            "prepare_readback_text",
+            "compile_nonexecuting_package"
+          ],
+          "allowed_tools": [],
+          "forbidden_actions": [
+            "send_email",
+            "send_gmail",
+            "submit_to_coupa",
+            "open_browser",
+            "access_network",
+            "read_workbook_body",
+            "read_spreadsheet_cells",
+            "mutate_file",
+            "write_excel",
+            "generate_pdf",
+            "post_ledger_entry",
+            "mark_invoice_sent",
+            "mark_invoice_paid",
+            "execute_workflow",
+            "dispatch_agent",
+            "dispatch_worker",
+            "handle_credentials"
+          ],
+          "forbidden_tools": [
+            "gmail",
+            "coupa",
+            "browser",
+            "network",
+            "excel_writer",
+            "pdf_generator",
+            "ledger_writer",
+            "credential_vault",
+            "raw_body_reader",
+            "workflow_runner",
+            "agent_dispatcher",
+            "worker_dispatcher"
+          ],
+          "next_safe_move": "Treat all tools and external actions as blocked until a later gate provides receipts.",
+          "receipt_required_for_blocked_actions": [
+            "guardian_approval_receipt",
+            "exact_operator_approval_receipt",
+            "provider_or_adapter_receipt",
+            "post_action_proof_receipt"
+          ],
+          "tool_policy_id": "role_tool_policy:c40a9d31c472b10e"
+        }
+      }
     }
   },
   "representative_request": {
     "filename": "Invoice Capitol Hilton Running.xlsx",
     "source_request_id": "lm_readiness_capital_hilton_fixture",
-    "user_note": "these are invoice workbooks for the clients named in the files",
+    "user_note": "these are the invoice workbooks for the clients named in the files, handle them how you're supposed to",
     "world_ref": "finance"
   },
   "schema_version": "lm_readiness_dashboard_v0"

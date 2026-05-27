@@ -82,6 +82,10 @@ class ModelRoutingDecision:
     conservative_posture: bool
     structured_output_required: bool
     tokenization_required_before_live: bool
+    rejected_model_classes: tuple[str, ...]
+    risk_notes: tuple[str, ...]
+    expected_failure_modes: tuple[str, ...]
+    confidence: str
     blocked_reasons: tuple[str, ...]
     authority_boundary: dict[str, bool]
     next_safe_move: str
@@ -173,6 +177,23 @@ def select_model_class(request: ModelRoutingRequest | Mapping[str, Any]) -> dict
     reason = "No safe model class matched the request."
     conservative = True
     tokenization_required = request.sensitivity_level in {"high", "protected"} and not request.tokenization_applied
+    risk_notes: list[str] = []
+    expected_failure_modes: list[str] = []
+    confidence = "MEDIUM"
+
+    if request.risk_level in {"high", "critical"}:
+        risk_notes.append("HIGH_RISK_REQUEST")
+        expected_failure_modes.append("over-permissive model suggestion")
+    if request.sensitivity_level in {"medium", "high", "protected"}:
+        risk_notes.append("SENSITIVE_CONTEXT")
+        expected_failure_modes.append("raw value leakage if package is miscompiled")
+    if request.context_size in {"large", "huge"}:
+        risk_notes.append("LARGE_CONTEXT")
+        expected_failure_modes.append("context omission or instruction drift")
+    if request.creative_posture_allowed:
+        risk_notes.append("CREATIVE_POSTURE_ALLOWED")
+    if not request.tokenization_applied and request.sensitivity_level in {"high", "protected"}:
+        expected_failure_modes.append("privacy gate blocks live model route")
 
     if blocked:
         selected = NO_SAFE_MODEL
@@ -184,15 +205,26 @@ def select_model_class(request: ModelRoutingRequest | Mapping[str, Any]) -> dict
     elif lane == "LM1_INTENT_PROPOSAL" and request.risk_level in {"low", "medium"} and request.context_size in {"tiny", "small"}:
         selected = FAST_STRUCTURED_INTENT_SMALL
         reason = "LM1 intent proposal is narrow, structured, low-risk, and latency-sensitive."
+        confidence = "HIGH"
     elif lane == "LM2_ROLE_RESPONSE" and request.risk_level in {"low", "medium"}:
         selected = STRONG_STRUCTURED_ROLE_REASONER
         reason = "LM2 role response needs stronger package reasoning and operator wording."
         conservative = not request.creative_posture_allowed
+        confidence = "HIGH" if request.tokenization_applied and not request.raw_values_included else "MEDIUM"
     elif request.risk_level in {"high", "critical"} or request.sensitivity_level in {"medium", "high", "protected"}:
         selected = CONSERVATIVE_SENSITIVE_STRUCTURED
         reason = "High-risk or sensitive package requires conservative structured reasoning."
+        confidence = "MEDIUM"
     else:
         blocked.append("UNKNOWN_OR_UNSUPPORTED_MODEL_LANE")
+
+    candidate_ids = (FAST_STRUCTURED_INTENT_SMALL, STRONG_STRUCTURED_ROLE_REASONER, CONSERVATIVE_SENSITIVE_STRUCTURED)
+    rejected_model_classes = tuple(model_class for model_class in candidate_ids if model_class != selected)
+    if selected == NO_SAFE_MODEL:
+        rejected_model_classes = candidate_ids
+        confidence = "HIGH" if blocked else "MEDIUM"
+    if not expected_failure_modes:
+        expected_failure_modes.append("malformed structured output")
 
     decision = ModelRoutingDecision(
         decision_id=f"model_routing_decision:{_short_hash(request.request_id, selected, tuple(blocked))}",
@@ -203,6 +235,10 @@ def select_model_class(request: ModelRoutingRequest | Mapping[str, Any]) -> dict
         conservative_posture=conservative,
         structured_output_required=True,
         tokenization_required_before_live=tokenization_required,
+        rejected_model_classes=rejected_model_classes,
+        risk_notes=tuple(dict.fromkeys(risk_notes)),
+        expected_failure_modes=tuple(dict.fromkeys(expected_failure_modes)),
+        confidence=confidence,
         blocked_reasons=tuple(blocked),
         authority_boundary=dict(AUTHORITY_BOUNDARY),
         next_safe_move=(
@@ -222,7 +258,7 @@ def select_for_lm1_thread_package(thread_package: Mapping[str, Any]) -> dict[str
     confidence = str(inference.get("confidence") or "MEDIUM").upper()
     risk = "low" if confidence == "HIGH" and not raw_values_included else "medium"
     sensitivity = str(privacy.get("privacy_level") or "low").lower()
-    if sensitivity in {"tokenized_fixture", "metadata_only_tokenized_refs"}:
+    if sensitivity in {"tokenized_fixture", "metadata_only_tokenized_refs", "client_finance_file_metadata"}:
         sensitivity = "low"
     return select_model_class(
         {

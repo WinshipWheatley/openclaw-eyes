@@ -194,18 +194,87 @@
   "machine_proof": {
     "all_live_authority_false": true,
     "cloud_call_performed": false,
-    "content_hash": "sha256:12e1cddb104454a5a3381f35f9f3722bf8478db2ead0f4899d492287d83a866a",
+    "content_hash": "sha256:72431f81ccd5e148efb6a675b4510e8d5fd571d370fa0298d3bcdaa187864f40",
     "different_scope_token_differs": true,
+    "finance_policy_blocks_raw_model_visibility": true,
+    "finance_policy_tokenization_required": true,
     "network_performed": false,
     "raw_values_exported": false,
     "real_data_ingestion_performed": false,
     "role_package_raw_values_included": false,
-    "stable_within_scope": true
+    "stable_within_scope": true,
+    "strict_policy_local_only_required": true
+  },
+  "policy_examples": {
+    "capital_hilton_finance_workbook": {
+      "authority_boundary": {
+        "cloud_tokenization_allowed": false,
+        "credential_handling_allowed": false,
+        "external_model_share_allowed": false,
+        "network_allowed": false,
+        "production_state_mutation_allowed": false,
+        "raw_value_export_allowed": false,
+        "real_data_ingestion_allowed": false
+      },
+      "detokenization_allowed": false,
+      "local_only_required": true,
+      "model_may_see_raw_values": false,
+      "next_safe_move": "Attach scoped tokens and metadata summaries only; do not expose raw values.",
+      "policy_decision_id": "tokenization_policy:7e0760610555939d",
+      "privacy_level": "CLIENT_FINANCE_FILE_METADATA",
+      "reason_codes": [
+        "SYNTHETIC_POLICY_ONLY",
+        "FINANCE_CONTEXT",
+        "CLIENT_FILE_METADATA",
+        "INVOICE_WORKBOOK_REFERENCE",
+        "CLIENT_SCOPED"
+      ],
+      "synthetic_fixture_only": true,
+      "tokenization_required": true
+    },
+    "strict_private_finance_workbook": {
+      "authority_boundary": {
+        "cloud_tokenization_allowed": false,
+        "credential_handling_allowed": false,
+        "external_model_share_allowed": false,
+        "network_allowed": false,
+        "production_state_mutation_allowed": false,
+        "raw_value_export_allowed": false,
+        "real_data_ingestion_allowed": false
+      },
+      "detokenization_allowed": false,
+      "local_only_required": true,
+      "model_may_see_raw_values": false,
+      "next_safe_move": "Attach scoped tokens and metadata summaries only; do not expose raw values.",
+      "policy_decision_id": "tokenization_policy:20b6fabd19c3282e",
+      "privacy_level": "STRICT_PRIVATE_CLIENT_METADATA",
+      "reason_codes": [
+        "SYNTHETIC_POLICY_ONLY",
+        "FINANCE_CONTEXT",
+        "CLIENT_FILE_METADATA",
+        "INVOICE_WORKBOOK_REFERENCE",
+        "CLIENT_SCOPED",
+        "STRICT_PRIVATE_MODE_ACTIVE"
+      ],
+      "synthetic_fixture_only": true,
+      "tokenization_required": true
+    }
   },
   "read_model_id": "token_vault_status",
   "role_package_declaration": {
+    "detokenization_allowed": false,
+    "local_only_required": true,
+    "model_may_see_raw_values": false,
     "next_safe_move": "Attach tokenization metadata to future role packages; never include raw sensitive values.",
+    "privacy_level": "CLIENT_FINANCE_FILE_METADATA",
     "raw_values_included": false,
+    "reason_codes": [
+      "SYNTHETIC_POLICY_ONLY",
+      "FINANCE_CONTEXT",
+      "CLIENT_FILE_METADATA",
+      "INVOICE_WORKBOOK_REFERENCE",
+      "CLIENT_SCOPED"
+    ],
     "safe_for_role_package": true,
     "token_kinds": [
       "person_name",
@@ -215,9 +284,10 @@
       "tax_id"
     ],
     "token_scope": "scope:finance:capital_hilton_fixture",
-    "tokenization_applied": true
+    "tokenization_applied": true,
+    "tokenization_required": true
   },
-  "schema_version": "token_vault_v0",
+  "schema_version": "token_vault_v1",
   "token_policy": {
     "different_scopes_do_not_imply_same_raw_entity": true,
     "generated_readmodels_expose_raw_values": false,

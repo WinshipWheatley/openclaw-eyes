@@ -130,6 +130,10 @@ def test_package_includes_source_request_and_output_destination():
     assert package["source_request_id"] == "source_request_123"
     assert package["output_destination"]["source_request_id"] == "source_request_123"
     assert package["output_destination"]["gate_4_ref"] == "guardian_output_gate"
+    assert package["tokenization_applied"] is True
+    assert package["raw_values_included"] is False
+    assert package["model_may_see_raw_values"] is False
+    assert package["token_vault_ref"] == "generated/read_models/token_vault_status.json"
 
 
 def test_forbidden_tools_and_actions_are_explicit():

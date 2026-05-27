@@ -1,6 +1,6 @@
 # LM Readiness Dashboard
 
-Status: LM_READINESS_INTEGRATION_NO_LIVE_LM
+Status: LM_READINESS_INTEGRATION_V1_NO_LIVE_LM
 LM1 shadow: READY
 LM1 live: NOT_ACTIVE
 LM2 package shadow: READY

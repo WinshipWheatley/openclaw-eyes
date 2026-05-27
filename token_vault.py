@@ -1,4 +1,4 @@
-"""Token Vault v0.
+"""Token Vault v1.
 
 Minimal local privacy/tokenization contract using synthetic fixtures only. This
 module does not process real private data, call cloud services, or reveal raw
@@ -20,7 +20,7 @@ from typing import Any, Mapping
 DEFAULT_EXPORT_ROOT = Path("generated/read_models")
 DEFAULT_GENERATED_AT = "2026-05-26T00:00:00+00:00"
 
-SCHEMA_VERSION = "token_vault_v0"
+SCHEMA_VERSION = "token_vault_v1"
 READ_MODEL_ID = "token_vault_status"
 JSON_EXPORT_NAME = f"{READ_MODEL_ID}.json"
 OPERATOR_EXPORT_NAME = f"{READ_MODEL_ID}_OPERATOR.md"
@@ -63,8 +63,28 @@ class TokenizationDeclaration:
     tokenization_applied: bool
     token_scope: str
     raw_values_included: bool
+    privacy_level: str
+    tokenization_required: bool
+    model_may_see_raw_values: bool
+    detokenization_allowed: bool
+    local_only_required: bool
+    reason_codes: tuple[str, ...]
     token_kinds: tuple[str, ...]
     safe_for_role_package: bool
+    next_safe_move: str
+
+
+@dataclass(frozen=True)
+class TokenizationPolicyDecision:
+    policy_decision_id: str
+    privacy_level: str
+    tokenization_required: bool
+    model_may_see_raw_values: bool
+    detokenization_allowed: bool
+    local_only_required: bool
+    reason_codes: tuple[str, ...]
+    synthetic_fixture_only: bool
+    authority_boundary: dict[str, bool]
     next_safe_move: str
 
 
@@ -120,11 +140,74 @@ def tokenize_synthetic_fixture(scope: str) -> tuple[dict[str, Any], ...]:
     return tuple(asdict(tokenize_synthetic_value(value, scope=scope, token_kind=kind)) for kind, value in SYNTHETIC_VALUES.items())
 
 
+def evaluate_tokenization_policy(context: Mapping[str, Any] | None = None) -> dict[str, Any]:
+    context = context or {}
+    world_ref = str(context.get("world_ref") or "").lower()
+    client_ref = str(context.get("client_ref") or "").lower()
+    artifact_kind = str(context.get("artifact_kind") or "").lower()
+    file_type = str(context.get("file_type") or "").lower()
+    private_mode_active = bool(context.get("private_mode_active", False))
+    strict_private_mode_active = bool(context.get("strict_private_mode_active", False))
+
+    reason_codes: list[str] = ["SYNTHETIC_POLICY_ONLY"]
+    privacy_level = "LOW_METADATA"
+    tokenization_required = False
+    local_only_required = False
+
+    if world_ref == "finance" or "invoice" in artifact_kind or "spreadsheet" in file_type:
+        privacy_level = "CLIENT_FINANCE_FILE_METADATA"
+        tokenization_required = True
+        local_only_required = True
+        reason_codes.extend(("FINANCE_CONTEXT", "CLIENT_FILE_METADATA", "INVOICE_WORKBOOK_REFERENCE"))
+    if client_ref and client_ref != "unknown":
+        reason_codes.append("CLIENT_SCOPED")
+    if private_mode_active:
+        tokenization_required = True
+        local_only_required = True
+        reason_codes.append("PRIVATE_MODE_ACTIVE")
+    if strict_private_mode_active:
+        privacy_level = "STRICT_PRIVATE_CLIENT_METADATA"
+        tokenization_required = True
+        local_only_required = True
+        reason_codes.append("STRICT_PRIVATE_MODE_ACTIVE")
+
+    decision = TokenizationPolicyDecision(
+        policy_decision_id=f"tokenization_policy:{_short_hash(world_ref, client_ref, artifact_kind, private_mode_active, strict_private_mode_active)}",
+        privacy_level=privacy_level,
+        tokenization_required=tokenization_required,
+        model_may_see_raw_values=False,
+        detokenization_allowed=False,
+        local_only_required=local_only_required,
+        reason_codes=tuple(dict.fromkeys(reason_codes)),
+        synthetic_fixture_only=True,
+        authority_boundary=dict(AUTHORITY_BOUNDARY),
+        next_safe_move=(
+            "Attach scoped tokens and metadata summaries only; do not expose raw values."
+            if tokenization_required
+            else "Raw values still remain excluded in v1 fixtures; continue metadata-only packaging."
+        ),
+    )
+    return asdict(decision)
+
+
 def role_package_tokenization_declaration(scope: str, token_kinds: tuple[str, ...] = TOKEN_KINDS) -> dict[str, Any]:
+    policy = evaluate_tokenization_policy(
+        {
+            "world_ref": "finance" if "finance" in scope else "unknown",
+            "client_ref": scope.split(":")[2] if len(scope.split(":")) > 2 else "unknown",
+            "artifact_kind": "invoice_workbook" if "invoice" in scope or "finance" in scope else "",
+        }
+    )
     declaration = TokenizationDeclaration(
         tokenization_applied=True,
         token_scope=scope,
         raw_values_included=False,
+        privacy_level=str(policy["privacy_level"]),
+        tokenization_required=bool(policy["tokenization_required"]),
+        model_may_see_raw_values=False,
+        detokenization_allowed=False,
+        local_only_required=bool(policy["local_only_required"]),
+        reason_codes=tuple(policy["reason_codes"]),
         token_kinds=token_kinds,
         safe_for_role_package=True,
         next_safe_move="Attach tokenization metadata to future role packages; never include raw sensitive values.",
@@ -140,6 +223,23 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
     tokens_b = tokenize_synthetic_fixture(scope_b)
     stable_repeat = tokenize_synthetic_value(SYNTHETIC_VALUES["email"], scope=scope_a, token_kind="email")
     cross_scope = tokenize_synthetic_value(SYNTHETIC_VALUES["email"], scope=scope_b, token_kind="email")
+    finance_policy = evaluate_tokenization_policy(
+        {
+            "world_ref": "finance",
+            "client_ref": "capital_hilton",
+            "artifact_kind": "running_invoice_workbook",
+            "file_type": "spreadsheet",
+        }
+    )
+    strict_policy = evaluate_tokenization_policy(
+        {
+            "world_ref": "finance",
+            "client_ref": "capital_hilton",
+            "artifact_kind": "running_invoice_workbook",
+            "file_type": "spreadsheet",
+            "strict_private_mode_active": True,
+        }
+    )
     payload: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
         "read_model_id": READ_MODEL_ID,
@@ -150,6 +250,10 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
             "same_entity_stable_within_scope": True,
             "different_scopes_do_not_imply_same_raw_entity": True,
             "generated_readmodels_expose_raw_values": False,
+        },
+        "policy_examples": {
+            "capital_hilton_finance_workbook": finance_policy,
+            "strict_private_finance_workbook": strict_policy,
         },
         "fixture_tokens": {
             "scope_a": tokens_a,
@@ -167,6 +271,9 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
             "cloud_call_performed": False,
             "network_performed": False,
             "raw_values_exported": False,
+            "finance_policy_tokenization_required": finance_policy["tokenization_required"] is True,
+            "finance_policy_blocks_raw_model_visibility": finance_policy["model_may_see_raw_values"] is False,
+            "strict_policy_local_only_required": strict_policy["local_only_required"] is True,
             "stable_within_scope": stable_repeat.token_id == tokenize_synthetic_value(SYNTHETIC_VALUES["email"], scope=scope_a, token_kind="email").token_id,
             "different_scope_token_differs": stable_repeat.token_id != cross_scope.token_id,
             "role_package_raw_values_included": False,

@@ -51,7 +51,7 @@
       "world_ref": "finance"
     },
     "capital_hilton_running_workbook": {
-      "artifact_kind": "running_draft_invoice_workbook",
+      "artifact_kind": "running_invoice_workbook",
       "authority_boundary": {
         "external_action_allowed": false,
         "file_body_read_allowed": false,
@@ -89,7 +89,7 @@
     "ambiguous_fixture_asks_clarification": true,
     "backend_paths_exposed": false,
     "capital_hilton_fixture_inferred": true,
-    "content_hash": "sha256:cc84524550caa659010e70baf8b6832068d13b1c216b280dd2014044270421a5",
+    "content_hash": "sha256:2223b9bd892344e4bc5baabd3ddf7a672653984814d7506ab8dfa1cd0abcf20d",
     "fixture_final_false": true,
     "fixture_ledger_posted_false": true,
     "fixture_paid_false": true,

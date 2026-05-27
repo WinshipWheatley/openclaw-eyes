@@ -25,6 +25,8 @@ def test_model_router_selects_fast_cheap_class_for_low_risk_lm1_intent():
 
     assert decision["selected_model_class"] == policy.FAST_STRUCTURED_INTENT_SMALL
     assert decision["authority_boundary"]["authority_grant_allowed"] is False
+    assert decision["confidence"] == "HIGH"
+    assert policy.STRONG_STRUCTURED_ROLE_REASONER in decision["rejected_model_classes"]
 
 
 def test_model_router_selects_stronger_class_for_lm2_role_package():
@@ -43,6 +45,7 @@ def test_model_router_selects_stronger_class_for_lm2_role_package():
 
     assert decision["selected_model_class"] == policy.STRONG_STRUCTURED_ROLE_REASONER
     assert decision["structured_output_required"] is True
+    assert "malformed structured output" in decision["expected_failure_modes"]
 
 
 def test_model_router_blocks_sensitive_raw_values_with_no_safe_model():
@@ -62,6 +65,8 @@ def test_model_router_blocks_sensitive_raw_values_with_no_safe_model():
 
     assert decision["selected_model_class"] == policy.NO_SAFE_MODEL
     assert "RAW_SENSITIVE_VALUES_REQUIRE_TOKENIZATION" in decision["blocked_reasons"]
+    assert "SENSITIVE_CONTEXT" in decision["risk_notes"]
+    assert policy.FAST_STRUCTURED_INTENT_SMALL in decision["rejected_model_classes"]
 
 
 def test_exported_readmodel_parses(tmp_path):

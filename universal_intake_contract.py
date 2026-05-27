@@ -120,7 +120,7 @@ def infer_universal_intake(input_data: UniversalIntakeInput | Mapping[str, Any])
             world_ref="finance",
             client_ref="capital_hilton",
             workflow_ref="capital_hilton_invoice_workflow",
-            artifact_kind="running_draft_invoice_workbook",
+            artifact_kind="running_invoice_workbook",
             intended_use="register_or_resolve_invoice_workbook_artifact",
             confidence="HIGH",
             operator_headline="Capital Hilton workbook recognized",

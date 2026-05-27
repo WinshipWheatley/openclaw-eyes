@@ -30,7 +30,28 @@ def test_role_package_can_declare_tokenization_without_raw_values():
 
     assert declaration["tokenization_applied"] is True
     assert declaration["raw_values_included"] is False
+    assert declaration["tokenization_required"] is True
+    assert declaration["model_may_see_raw_values"] is False
+    assert declaration["detokenization_allowed"] is False
     assert declaration["safe_for_role_package"] is True
+
+
+def test_tokenization_policy_raises_privacy_for_finance_client_files():
+    policy = token_vault.evaluate_tokenization_policy(
+        {
+            "world_ref": "finance",
+            "client_ref": "capital_hilton",
+            "artifact_kind": "running_invoice_workbook",
+            "file_type": "spreadsheet",
+        }
+    )
+
+    assert policy["privacy_level"] == "CLIENT_FINANCE_FILE_METADATA"
+    assert policy["tokenization_required"] is True
+    assert policy["model_may_see_raw_values"] is False
+    assert policy["detokenization_allowed"] is False
+    assert policy["local_only_required"] is True
+    assert "FINANCE_CONTEXT" in policy["reason_codes"]
 
 
 def test_generated_readmodel_does_not_expose_raw_synthetic_sensitive_values(tmp_path):
@@ -46,3 +67,5 @@ def test_generated_readmodel_does_not_expose_raw_synthetic_sensitive_values(tmp_
     parsed = json.loads(text)
     assert parsed["machine_proof"]["raw_values_exported"] is False
     assert parsed["machine_proof"]["different_scope_token_differs"] is True
+    assert parsed["machine_proof"]["finance_policy_tokenization_required"] is True
+    assert parsed["machine_proof"]["finance_policy_blocks_raw_model_visibility"] is True

@@ -33,10 +33,19 @@
       },
       "blocked_reasons": [],
       "chain_lane": "LM1_INTENT_PROPOSAL",
+      "confidence": "HIGH",
       "conservative_posture": true,
       "decision_id": "model_routing_decision:a6f38beefe68c637",
+      "expected_failure_modes": [
+        "malformed structured output"
+      ],
       "next_safe_move": "Use this model class only as a future candidate route; no model call is allowed in v0.",
+      "rejected_model_classes": [
+        "STRONG_STRUCTURED_ROLE_REASONER",
+        "CONSERVATIVE_SENSITIVE_STRUCTURED"
+      ],
       "request_id": "model_router_fixture_lm1",
+      "risk_notes": [],
       "selected_model_class": "FAST_STRUCTURED_INTENT_SMALL",
       "selection_reason": "LM1 intent proposal is narrow, structured, low-risk, and latency-sensitive.",
       "structured_output_required": true,
@@ -57,10 +66,19 @@
       },
       "blocked_reasons": [],
       "chain_lane": "LM1_INTENT_PROPOSAL",
+      "confidence": "HIGH",
       "conservative_posture": true,
       "decision_id": "model_routing_decision:78ef8d3ca96b6c36",
+      "expected_failure_modes": [
+        "malformed structured output"
+      ],
       "next_safe_move": "Use this model class only as a future candidate route; no model call is allowed in v0.",
+      "rejected_model_classes": [
+        "STRONG_STRUCTURED_ROLE_REASONER",
+        "CONSERVATIVE_SENSITIVE_STRUCTURED"
+      ],
       "request_id": "model_router_fixture_lm1_thread_package:model_route",
+      "risk_notes": [],
       "selected_model_class": "FAST_STRUCTURED_INTENT_SMALL",
       "selection_reason": "LM1 intent proposal is narrow, structured, low-risk, and latency-sensitive.",
       "structured_output_required": true,
@@ -81,10 +99,19 @@
       },
       "blocked_reasons": [],
       "chain_lane": "LM2_ROLE_RESPONSE",
+      "confidence": "MEDIUM",
       "conservative_posture": true,
       "decision_id": "model_routing_decision:fdd57cf89b99aee7",
+      "expected_failure_modes": [
+        "malformed structured output"
+      ],
       "next_safe_move": "Use this model class only as a future candidate route; no model call is allowed in v0.",
+      "rejected_model_classes": [
+        "FAST_STRUCTURED_INTENT_SMALL",
+        "CONSERVATIVE_SENSITIVE_STRUCTURED"
+      ],
       "request_id": "model_router_fixture_lm2",
+      "risk_notes": [],
       "selected_model_class": "STRONG_STRUCTURED_ROLE_REASONER",
       "selection_reason": "LM2 role response needs stronger package reasoning and operator wording.",
       "structured_output_required": true,
@@ -105,10 +132,19 @@
       },
       "blocked_reasons": [],
       "chain_lane": "LM2_ROLE_RESPONSE",
+      "confidence": "HIGH",
       "conservative_posture": true,
       "decision_id": "model_routing_decision:4331b9470a4ab887",
+      "expected_failure_modes": [
+        "malformed structured output"
+      ],
       "next_safe_move": "Use this model class only as a future candidate route; no model call is allowed in v0.",
+      "rejected_model_classes": [
+        "FAST_STRUCTURED_INTENT_SMALL",
+        "CONSERVATIVE_SENSITIVE_STRUCTURED"
+      ],
       "request_id": "model_router_fixture_lm2_role_package:model_route",
+      "risk_notes": [],
       "selected_model_class": "STRONG_STRUCTURED_ROLE_REASONER",
       "selection_reason": "LM2 role response needs stronger package reasoning and operator wording.",
       "structured_output_required": true,
@@ -131,10 +167,25 @@
         "TOKENIZATION_REQUIRED"
       ],
       "chain_lane": "LM2_ROLE_RESPONSE",
+      "confidence": "HIGH",
       "conservative_posture": true,
       "decision_id": "model_routing_decision:223a68b2d1b33311",
+      "expected_failure_modes": [
+        "over-permissive model suggestion",
+        "raw value leakage if package is miscompiled",
+        "privacy gate blocks live model route"
+      ],
       "next_safe_move": "Do not call a model; resolve the blocked model routing condition first.",
+      "rejected_model_classes": [
+        "FAST_STRUCTURED_INTENT_SMALL",
+        "STRONG_STRUCTURED_ROLE_REASONER",
+        "CONSERVATIVE_SENSITIVE_STRUCTURED"
+      ],
       "request_id": "model_router_fixture_sensitive",
+      "risk_notes": [
+        "HIGH_RISK_REQUEST",
+        "SENSITIVE_CONTEXT"
+      ],
       "selected_model_class": "NO_SAFE_MODEL",
       "selection_reason": "Sensitive context needs tokenization before any live LM candidate.",
       "structured_output_required": true,
@@ -145,7 +196,7 @@
   "machine_proof": {
     "all_live_authority_false": true,
     "authority_granted": false,
-    "content_hash": "sha256:29e4c39e8d36d9b6989358a942a5ba8cbc453e147056c246a8ddf7b827884611",
+    "content_hash": "sha256:aa28c5e872e1df35d26c450123f0e587e97f1f564a21a95b7eadfaf1d71063f6",
     "lm1_example_selects_fast_class": true,
     "lm1_thread_package_selects_fast_class": true,
     "lm2_example_selects_stronger_class": true,

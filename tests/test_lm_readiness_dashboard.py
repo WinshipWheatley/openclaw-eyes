@@ -44,9 +44,16 @@ def test_lm1_thread_context_package_includes_universal_intake_and_token_declarat
     package = dashboard.build_lm1_thread_context_package(source_request_id="test_lm1_context")
 
     assert package["source_request_id"] == "test_lm1_context"
+    assert package["source_device_ref"] == "mission_control_mac"
     assert package["universal_intake_inference"]["client_ref"] == "capital_hilton"
+    assert package["universal_intake_inference"]["artifact_kind"] == "running_invoice_workbook"
+    assert package["privacy_classification"] == "CLIENT_FINANCE_FILE_METADATA"
+    assert package["tokenization_required"] is True
+    assert package["tokenization_policy"]["tokenization_required"] is True
+    assert package["tokenization_policy"]["model_may_see_raw_values"] is False
     assert package["privacy"]["tokenization_applied"] is True
     assert package["privacy"]["raw_values_included"] is False
+    assert package["model_router_result"]["selected_model_class"] == model_router_policy.FAST_STRUCTURED_INTENT_SMALL
     assert package["raw_values_included"] is False
     assert "MachineIntentCandidate" not in package["output_schema"]
     assert "source_request_id" in package["output_schema"]
@@ -104,7 +111,7 @@ def test_universal_intake_fixture_stays_draft_source_only():
         }
     )
 
-    assert inference["artifact_kind"] == "running_draft_invoice_workbook"
+    assert inference["artifact_kind"] == "running_invoice_workbook"
     assert inference["submitted"] is False
     assert inference["paid"] is False
     assert inference["ledger_posted"] is False
@@ -121,6 +128,20 @@ def test_representative_flow_reaches_gate2_gate3_gate4_without_live_status():
     assert flow["gate4_result_summary"]["verdict"] == guardian_output_gate.VALIDATED
     assert payload["dashboard_summary"]["lm1_live"] == "NOT_ACTIVE"
     assert payload["dashboard_summary"]["lm2_live"] == "NOT_ACTIVE"
+
+
+def test_private_mode_fields_are_seeded_but_inactive():
+    payload = _payload()
+    private_mode = payload["representative_flow"]["private_mode_readiness"]
+
+    assert private_mode["private_mode_available"] is True
+    assert private_mode["private_mode_active"] is False
+    assert private_mode["strict_private_mode_available"] is True
+    assert private_mode["strict_private_mode_active"] is False
+    assert private_mode["cloud_lm_allowed_when_private"] is False
+    assert private_mode["local_only_required_when_strict"] is True
+    assert payload["machine_proof"]["private_mode_active"] is False
+    assert payload["machine_proof"]["strict_private_mode_active"] is False
 
 
 def test_exported_readmodel_parses(tmp_path):

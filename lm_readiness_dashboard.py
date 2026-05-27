@@ -35,7 +35,7 @@ SCHEMA_VERSION = "lm_readiness_dashboard_v0"
 READ_MODEL_ID = "lm_readiness_dashboard"
 JSON_EXPORT_NAME = f"{READ_MODEL_ID}.json"
 OPERATOR_EXPORT_NAME = f"{READ_MODEL_ID}_OPERATOR.md"
-CONTRACT_STATUS = "LM_READINESS_INTEGRATION_NO_LIVE_LM"
+CONTRACT_STATUS = "LM_READINESS_INTEGRATION_V1_NO_LIVE_LM"
 
 AUTHORITY_BOUNDARY = {
     "live_lm_call_allowed": False,
@@ -62,11 +62,16 @@ AUTHORITY_BOUNDARY = {
 class LM1ThreadContextPackage:
     package_id: str
     source_request_id: str
+    source_device_ref: str
     user_message: str
     current_world_ref: str
     current_thread_ref: str
     universal_intake_inference: dict[str, Any]
+    privacy_classification: str
+    tokenization_required: bool
+    tokenization_policy: dict[str, Any]
     privacy: dict[str, Any]
+    model_router_result: dict[str, Any]
     allowed_context_classes: tuple[str, ...]
     forbidden_context_classes: tuple[str, ...]
     output_schema: tuple[str, ...]
@@ -90,8 +95,22 @@ def _content_hash(payload: dict[str, Any]) -> str:
     return "sha256:" + hashlib.sha256(stable_json(clone).encode("utf-8")).hexdigest()
 
 
+def private_mode_readiness_stub() -> dict[str, Any]:
+    return {
+        "private_mode_available": True,
+        "private_mode_active": False,
+        "strict_private_mode_available": True,
+        "strict_private_mode_active": False,
+        "minimum_privacy_level_when_active": "CLIENT_FINANCE_FILE_METADATA",
+        "cloud_lm_allowed_when_private": False,
+        "local_only_required_when_strict": True,
+        "live_lm_exposure_allowed": False,
+        "next_safe_move": "Mission Control may expose this later as a local setting; backend defaults remain inactive.",
+    }
+
+
 def build_lm1_thread_context_package(*, source_request_id: str = "lm_readiness_capital_hilton_fixture") -> dict[str, Any]:
-    user_message = "these are invoice workbooks for the clients named in the files"
+    user_message = "these are the invoice workbooks for the clients named in the files, handle them how you're supposed to"
     intake = universal_intake_contract.infer_universal_intake(
         {
             "intake_id": "lm_readiness_universal_intake_fixture",
@@ -104,20 +123,41 @@ def build_lm1_thread_context_package(*, source_request_id: str = "lm_readiness_c
         }
     )
     token_scope = "scope:finance:capital_hilton:lm_readiness_fixture"
+    private_mode = private_mode_readiness_stub()
+    token_policy = token_vault.evaluate_tokenization_policy(
+        {
+            "world_ref": intake.get("world_ref"),
+            "client_ref": intake.get("client_ref"),
+            "artifact_kind": intake.get("artifact_kind"),
+            "file_type": "spreadsheet",
+            "private_mode_active": private_mode["private_mode_active"],
+            "strict_private_mode_active": private_mode["strict_private_mode_active"],
+        }
+    )
     privacy = token_vault.role_package_tokenization_declaration(token_scope)
+    privacy = {
+        **privacy,
+        "privacy_level": token_policy["privacy_level"],
+        "tokenization_required": token_policy["tokenization_required"],
+        "model_may_see_raw_values": token_policy["model_may_see_raw_values"],
+        "detokenization_allowed": token_policy["detokenization_allowed"],
+        "local_only_required": token_policy["local_only_required"],
+        "reason_codes": token_policy["reason_codes"],
+        "token_vault_ref": "generated/read_models/token_vault_status.json",
+    }
     package = LM1ThreadContextPackage(
         package_id=f"lm1_thread_context_package:{_short_hash(source_request_id, intake.get('candidate_id'))}",
         source_request_id=source_request_id,
+        source_device_ref="mission_control_mac",
         user_message=user_message,
         current_world_ref="finance",
         current_thread_ref="thread_ref:finance_capital_hilton",
         universal_intake_inference=intake,
-        privacy={
-            **privacy,
-            "privacy_level": "metadata_only_tokenized_refs",
-            "token_vault_ref": "generated/read_models/token_vault_status.json",
-            "model_may_see_raw_values": False,
-        },
+        privacy_classification=str(token_policy["privacy_level"]),
+        tokenization_required=bool(token_policy["tokenization_required"]),
+        tokenization_policy=token_policy,
+        privacy=privacy,
+        model_router_result={},
         allowed_context_classes=("metadata_only_file_ref", "universal_intake_summary", "tokenized_fixture_refs", "thread_scope_refs"),
         forbidden_context_classes=("raw workbook body", "spreadsheet cells", "credentials", "raw private bodies", "unrelated client data"),
         output_schema=tuple(MachineIntentCandidate.__dataclass_fields__),
@@ -132,7 +172,9 @@ def build_lm1_thread_context_package(*, source_request_id: str = "lm_readiness_c
         },
         next_safe_move="A future LM1 may propose MachineIntentCandidate JSON only; Gate 2 decides ingestion.",
     )
-    return asdict(package)
+    package_dict = asdict(package)
+    package_dict["model_router_result"] = model_router_policy.select_for_lm1_thread_package(package_dict)
+    return package_dict
 
 
 def _candidate_from_lm1_package(package: Mapping[str, Any]) -> MachineIntentCandidate:
@@ -167,7 +209,7 @@ def _candidate_from_lm1_package(package: Mapping[str, Any]) -> MachineIntentCand
 
 def build_representative_flow(*, generated_at: str = DEFAULT_GENERATED_AT) -> dict[str, Any]:
     lm1_package = build_lm1_thread_context_package()
-    lm1_model_decision = model_router_policy.select_for_lm1_thread_package(lm1_package)
+    lm1_model_decision = lm1_package["model_router_result"]
     candidate = _candidate_from_lm1_package(lm1_package)
     package_payload = lm_intent_proposal_contract.build_payload(
         {
@@ -213,6 +255,7 @@ def build_representative_flow(*, generated_at: str = DEFAULT_GENERATED_AT) -> di
             "model_may_see_raw_values": bool(role_package.get("model_may_see_raw_values")),
         },
         "lm2_model_decision": lm2_model_decision,
+        "private_mode": private_mode_readiness_stub(),
         "lm2_response_candidate": lm2_response_candidate,
         "gate4_result": gate4_result,
     }
@@ -235,6 +278,7 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
         "lm2_package_shadow": "READY" if readiness["machine_proof"]["lm2_shadow_ready"] else "NOT_READY",
         "lm2_live": "NOT_ACTIVE",
         "tokenization": "SEEDED_NOT_PRODUCTION",
+        "tokenization_policy": representative["lm1_thread_context_package"]["tokenization_policy"]["privacy_level"],
         "universal_intake": "SEEDED",
         "model_router": "SEEDED",
         "gate2_ingest": representative["gate2_result"].get("outcome"),
@@ -246,6 +290,7 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
             "live LM explicit enablement receipt",
             "live model/provider policy receipt",
             "production token vault readiness",
+            "private/strict-private mode product switch",
             "live receipt/promotion policy",
             "real LM shadow comparison runs",
         ),
@@ -258,13 +303,15 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
         "dashboard_summary": dashboard_summary,
         "representative_request": {
             "filename": "Invoice Capitol Hilton Running.xlsx",
-            "user_note": "these are invoice workbooks for the clients named in the files",
+            "user_note": "these are the invoice workbooks for the clients named in the files, handle them how you're supposed to",
             "world_ref": "finance",
             "source_request_id": representative["lm1_thread_context_package"]["source_request_id"],
         },
         "representative_flow": {
             "universal_intake_inference": representative["lm1_thread_context_package"]["universal_intake_inference"],
             "privacy": representative["lm1_thread_context_package"]["privacy"],
+            "tokenization_policy_result": representative["lm1_thread_context_package"]["tokenization_policy"],
+            "private_mode_readiness": representative["private_mode"],
             "lm1_thread_context_package": representative["lm1_thread_context_package"],
             "lm1_model_decision": representative["lm1_model_decision"],
             "gate2_result_summary": {
@@ -287,6 +334,32 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
                 "forbidden_tools": (role_package.get("tool_policy") or {}).get("forbidden_tools", ()),
             },
             "lm2_model_decision": representative["lm2_model_decision"],
+            "what_would_be_sent_to_lm1": {
+                "package_id": representative["lm1_thread_context_package"]["package_id"],
+                "source_request_id": representative["lm1_thread_context_package"]["source_request_id"],
+                "user_message": representative["lm1_thread_context_package"]["user_message"],
+                "universal_intake_inference": representative["lm1_thread_context_package"]["universal_intake_inference"],
+                "privacy": representative["lm1_thread_context_package"]["privacy"],
+                "allowed_context_classes": representative["lm1_thread_context_package"]["allowed_context_classes"],
+                "forbidden_context_classes": representative["lm1_thread_context_package"]["forbidden_context_classes"],
+                "output_schema": representative["lm1_thread_context_package"]["output_schema"],
+                "tools_allowed": representative["lm1_thread_context_package"]["tools_allowed"],
+                "authority_granted": representative["lm1_thread_context_package"]["authority_granted"],
+            },
+            "what_would_be_sent_to_lm2": {
+                "role_package_summary": {
+                    "package_id": role_package.get("package_id"),
+                    "role_identity": role_package.get("role_identity"),
+                    "task": role_package.get("task"),
+                    "context_packet": role_package.get("context_packet"),
+                    "tool_policy": role_package.get("tool_policy"),
+                    "authority_policy": role_package.get("authority_policy"),
+                    "tokenization_applied": role_package.get("tokenization_applied"),
+                    "privacy_level": role_package.get("privacy_level"),
+                    "raw_values_included": role_package.get("raw_values_included"),
+                    "model_may_see_raw_values": role_package.get("model_may_see_raw_values"),
+                }
+            },
             "gate4_result_summary": representative["gate4_result"].get("validation_result"),
         },
         "aggregated_lanes": {
@@ -324,6 +397,15 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
             "dashboard_aggregates_seeded_lanes": True,
             "lm1_package_built": True,
             "lm1_package_raw_values_included": representative["lm1_thread_context_package"]["raw_values_included"],
+            "lm1_package_tokenization_required": representative["lm1_thread_context_package"]["tokenization_required"],
+            "tokenization_policy_blocks_raw_model_visibility": representative["lm1_thread_context_package"]["tokenization_policy"][
+                "model_may_see_raw_values"
+            ]
+            is False,
+            "private_mode_fields_present": True,
+            "private_mode_active": representative["private_mode"]["private_mode_active"],
+            "strict_private_mode_active": representative["private_mode"]["strict_private_mode_active"],
+            "cloud_lm_allowed_when_private": representative["private_mode"]["cloud_lm_allowed_when_private"],
             "gate3_tokenization_fields_present": bool(role_package.get("token_vault_ref")),
             "gate3_model_may_see_raw_values": bool(role_package.get("model_may_see_raw_values")),
             "lm1_model_class_selected": representative["lm1_model_decision"]["selected_model_class"],

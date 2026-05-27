@@ -23,7 +23,7 @@ def test_universal_intake_infers_capital_hilton_running_invoice_workbook():
 
     assert candidate["world_ref"] == "finance"
     assert candidate["client_ref"] == "capital_hilton"
-    assert candidate["artifact_kind"] == "running_draft_invoice_workbook"
+    assert candidate["artifact_kind"] == "running_invoice_workbook"
     assert candidate["intended_use"] == "register_or_resolve_invoice_workbook_artifact"
     assert candidate["confidence"] == "HIGH"
     assert candidate["submitted"] is False
