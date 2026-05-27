@@ -1015,6 +1015,14 @@ def test_unknown_freeform_fallback_uses_product_language_not_worker_sludge(tmp_p
     assert "Worker route is unavailable" not in public_text
     assert "deterministic worker rule" not in public_text
     assert "worker adapter" not in public_text
+    proposal_path = export_root / "lm_intent_proposal_contract.json"
+    assert proposal_path.exists()
+    proposal = json.loads(proposal_path.read_text(encoding="utf-8"))
+    assert proposal["proposal_readback"]["status"] == "PROPOSAL_PACKAGE_CREATED"
+    assert proposal["proposal_package"]["source_request_id"] == request["request_id"]
+    assert response["detail_disclosure"]["proposal_package_created"] is True
+    assert response["detail_disclosure"]["intent_proposal_readback_ref"] == proposal_path.as_posix()
+    assert proposal_path.as_posix() in response["readback_files"]
     assert response["machine_proof"]["model_call_performed"] is False
     assert response["machine_proof"]["external_action_performed"] is False
 

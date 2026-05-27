@@ -28,6 +28,7 @@ import openclaw_request_processor as processor
 import client_invoice_audit_handoff
 import client_invoice_sheet_audit
 import deterministic_intent_interpreter
+import lm_intent_proposal_contract
 import mac_worker_handoff_package
 import worker_routing_intelligence
 
@@ -1320,8 +1321,12 @@ def _route_blocked_processor_payload(
     identity: RequestIdentity,
     route: RouteDecision,
     created_at: str,
+    export_root: Path = DEFAULT_EXPORT_ROOT,
     handoff_path: str | None = None,
 ) -> dict[str, Any]:
+    proposal_payload: dict[str, Any] | None = None
+    proposal_json: Path | None = None
+    proposal_operator: Path | None = None
     if route.terminal_block_status == "BLOCKED_MAC_HANDOFF_UNAVAILABLE":
         headline = "Mac handoff is not wired yet"
         message = "OpenClaw understood that this needs Mac-side processing, but the Mac worker handoff rail is not available yet."
@@ -1329,8 +1334,24 @@ def _route_blocked_processor_payload(
     else:
         target_label = route.selected_worker_target.replace("_", "/").title()
         if route.selected_worker_target == "UNKNOWN":
+            try:
+                raw_request = json.loads(request_path.read_text(encoding="utf-8"))
+                if not isinstance(raw_request, Mapping):
+                    raw_request = {}
+            except (json.JSONDecodeError, OSError):
+                raw_request = {}
+            proposal_payload = lm_intent_proposal_contract.build_payload(
+                raw_request,
+                request_filename=request_path.name,
+                export_root=export_root,
+                generated_at=created_at,
+            )
+            proposal_json, proposal_operator = lm_intent_proposal_contract.write_exports(proposal_payload, export_root)
             headline = "I need one more detail"
-            message = "OpenClaw could not safely turn that into a bounded action yet. Nothing was run or changed."
+            message = (
+                "OpenClaw could not safely turn that into a bounded action yet. "
+                "I prepared a safe interpreter package, and nothing was run or changed."
+            )
             how_to_fix = "Next: say the object and the safe outcome you want, or choose the visible app option."
         else:
             headline = f"{target_label} helper is not connected yet"
@@ -1364,7 +1385,7 @@ def _route_blocked_processor_payload(
         ),
         cards_available=True,
         card_mirror_refs=(),
-        file_readback_refs=(),
+        file_readback_refs=tuple(path.as_posix() for path in (proposal_json,) if path is not None),
         worker_route_refs=(
             {
                 "selected_worker_target": route.selected_worker_target,
@@ -1384,9 +1405,14 @@ def _route_blocked_processor_payload(
             "mac_handoff_path": handoff_path,
             "worker_dispatched": False,
             "model_or_tool_called": False,
+            "intent_proposal_package": proposal_payload.get("proposal_package") if proposal_payload else None,
+            "intent_proposal_readback_ref": proposal_json.as_posix() if proposal_json else None,
+            "intent_proposal_operator_ref": proposal_operator.as_posix() if proposal_operator else None,
+            "proposal_package_created": proposal_payload is not None,
+            "live_lm_call_performed": False,
             "external_actions_locked": True,
         },
-        readback_files=(),
+        readback_files=tuple(path.as_posix() for path in (proposal_json, proposal_operator) if path is not None),
         next_safe_move=how_to_fix,
     )
     response_payload, _status_payload = processor.build_payloads(response, generated_at=created_at)
@@ -1619,6 +1645,7 @@ def process_one_pending_request(
                 identity=identity,
                 route=route,
                 created_at=created_at,
+                export_root=export_root,
                 handoff_path=handoff_path.as_posix() if handoff_path else None,
             )
             errors = ()
