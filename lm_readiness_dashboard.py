@@ -405,6 +405,8 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
                 "provider_activation_status": activation_requirements["provider_activation_status"],
                 "missing_receipts": activation_requirements["missing_receipts"],
                 "production_activation_beams": activation_requirements["production_activation_beams"],
+                "activation_receipt_contracts": activation_requirements["activation_receipt_contracts"],
+                "activation_receipt_fixture_results": activation_requirements["activation_receipt_fixture_results"],
                 "live_shadow_receipt": activation_requirements["live_shadow_receipt"],
                 "shadow_test_receipts": activation_requirements["shadow_test_receipts"],
             },
@@ -605,6 +607,12 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
                 "production_activation_beams_explicit"
             ],
             "production_activation_beam_count": activation_requirements["machine_proof"]["production_activation_beam_count"],
+            "activation_receipt_contract_count": activation_requirements["machine_proof"]["activation_receipt_contract_count"],
+            "activation_receipt_contracts_ready": activation_requirements["machine_proof"]["activation_receipt_contracts_ready"],
+            "activation_receipt_fixtures_valid": activation_requirements["machine_proof"]["activation_receipt_fixtures_valid"],
+            "activation_receipt_fixtures_satisfy_production": activation_requirements["machine_proof"][
+                "activation_receipt_fixtures_satisfy_production"
+            ],
             "live_lm_shadow_trial_aggregated": True,
             "live_shadow_trial_status": live_shadow_trial["trial_status"],
             "live_shadow_model_call_recorded": live_shadow_trial["machine_proof"]["live_model_call_performed"],

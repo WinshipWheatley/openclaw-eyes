@@ -1,4 +1,504 @@
 {
+  "activation_receipt_contracts": [
+    {
+      "authority_boundary": {
+        "agent_dispatch_allowed": false,
+        "approval_execution_allowed": false,
+        "external_action_allowed": false,
+        "ledger_posting_allowed": false,
+        "live_lm_call_allowed": false,
+        "model_api_integration_allowed": false,
+        "network_allowed": false,
+        "production_state_mutation_allowed": false,
+        "provider_key_material_access_allowed": false,
+        "send_submit_allowed": false,
+        "tool_execution_allowed": false,
+        "worker_dispatch_allowed": false,
+        "workflow_execution_allowed": false
+      },
+      "beam_id": "provider_model_receipts",
+      "blocks_live_lm1": true,
+      "blocks_live_lm2": true,
+      "can_be_collected_without_live_authority": true,
+      "fixture_validation_allowed": true,
+      "governed_review_required": true,
+      "human_label": "Provider policy receipt",
+      "next_safe_move": "Use this contract for review/test receipts only; do not mark production-present without governed approval.",
+      "operator_approval_required": true,
+      "operator_copy": "Provider policy can be reviewed without activating any provider or API key.",
+      "production_receipt_required": true,
+      "receipt_contract_status": "RECEIPT_CONTRACT_READY_PRODUCTION_RECEIPT_MISSING",
+      "receipt_type": "provider_policy_receipt",
+      "required_false_controls": [
+        "provider_key_material_included",
+        "provider_api_call_enabled",
+        "live_lm_call_enabled",
+        "network_enabled"
+      ],
+      "required_true_controls": [
+        "provider_policy_defined",
+        "allowed_context_classes_declared",
+        "forbidden_context_classes_declared",
+        "provider_key_access_denied",
+        "network_authority_denied"
+      ]
+    },
+    {
+      "authority_boundary": {
+        "agent_dispatch_allowed": false,
+        "approval_execution_allowed": false,
+        "external_action_allowed": false,
+        "ledger_posting_allowed": false,
+        "live_lm_call_allowed": false,
+        "model_api_integration_allowed": false,
+        "network_allowed": false,
+        "production_state_mutation_allowed": false,
+        "provider_key_material_access_allowed": false,
+        "send_submit_allowed": false,
+        "tool_execution_allowed": false,
+        "worker_dispatch_allowed": false,
+        "workflow_execution_allowed": false
+      },
+      "beam_id": "provider_model_receipts",
+      "blocks_live_lm1": true,
+      "blocks_live_lm2": true,
+      "can_be_collected_without_live_authority": true,
+      "fixture_validation_allowed": true,
+      "governed_review_required": true,
+      "human_label": "Model selection policy receipt",
+      "next_safe_move": "Use this contract for review/test receipts only; do not mark production-present without governed approval.",
+      "operator_approval_required": true,
+      "operator_copy": "Model-selection policy can be checked as metadata without calling a model.",
+      "production_receipt_required": true,
+      "receipt_contract_status": "RECEIPT_CONTRACT_READY_PRODUCTION_RECEIPT_MISSING",
+      "receipt_type": "model_selection_policy_receipt",
+      "required_false_controls": [
+        "model_call_performed",
+        "runtime_model_router_enabled",
+        "provider_api_call_enabled",
+        "live_lm_call_enabled"
+      ],
+      "required_true_controls": [
+        "lm1_model_class_policy_defined",
+        "lm2_model_class_policy_defined",
+        "fallback_model_class_defined",
+        "model_self_selection_denied",
+        "structured_output_requirement_defined"
+      ]
+    },
+    {
+      "authority_boundary": {
+        "agent_dispatch_allowed": false,
+        "approval_execution_allowed": false,
+        "external_action_allowed": false,
+        "ledger_posting_allowed": false,
+        "live_lm_call_allowed": false,
+        "model_api_integration_allowed": false,
+        "network_allowed": false,
+        "production_state_mutation_allowed": false,
+        "provider_key_material_access_allowed": false,
+        "send_submit_allowed": false,
+        "tool_execution_allowed": false,
+        "worker_dispatch_allowed": false,
+        "workflow_execution_allowed": false
+      },
+      "beam_id": "live_enablement_receipt",
+      "blocks_live_lm1": true,
+      "blocks_live_lm2": true,
+      "can_be_collected_without_live_authority": true,
+      "fixture_validation_allowed": true,
+      "governed_review_required": true,
+      "human_label": "Live enablement receipt",
+      "next_safe_move": "Use this contract for review/test receipts only; do not mark production-present without governed approval.",
+      "operator_approval_required": true,
+      "operator_copy": "Live enablement has a receipt shape, but the shape itself cannot enable live models.",
+      "production_receipt_required": true,
+      "receipt_contract_status": "RECEIPT_CONTRACT_READY_PRODUCTION_RECEIPT_MISSING",
+      "receipt_type": "live_model_enablement_receipt",
+      "required_false_controls": [
+        "live_lm_enabled_by_receipt_shape",
+        "provider_api_call_enabled",
+        "tool_execution_enabled",
+        "production_state_mutation_enabled"
+      ],
+      "required_true_controls": [
+        "explicit_operator_enablement_required",
+        "default_state_not_active",
+        "all_other_receipts_required_first",
+        "operator_visible_status_required"
+      ]
+    },
+    {
+      "authority_boundary": {
+        "agent_dispatch_allowed": false,
+        "approval_execution_allowed": false,
+        "external_action_allowed": false,
+        "ledger_posting_allowed": false,
+        "live_lm_call_allowed": false,
+        "model_api_integration_allowed": false,
+        "network_allowed": false,
+        "production_state_mutation_allowed": false,
+        "provider_key_material_access_allowed": false,
+        "send_submit_allowed": false,
+        "tool_execution_allowed": false,
+        "worker_dispatch_allowed": false,
+        "workflow_execution_allowed": false
+      },
+      "beam_id": "rollback_disable_receipt",
+      "blocks_live_lm1": true,
+      "blocks_live_lm2": true,
+      "can_be_collected_without_live_authority": true,
+      "fixture_validation_allowed": true,
+      "governed_review_required": true,
+      "human_label": "Rollback/disable receipt",
+      "next_safe_move": "Use this contract for review/test receipts only; do not mark production-present without governed approval.",
+      "operator_approval_required": true,
+      "operator_copy": "Rollback and disable controls can be reviewed before any live model activation.",
+      "production_receipt_required": true,
+      "receipt_contract_status": "RECEIPT_CONTRACT_READY_PRODUCTION_RECEIPT_MISSING",
+      "receipt_type": "rollback_disable_receipt",
+      "required_false_controls": [
+        "rollback_requires_provider_access",
+        "disable_depends_on_network",
+        "production_state_mutation_enabled",
+        "live_lm_call_enabled"
+      ],
+      "required_true_controls": [
+        "disable_switch_defined",
+        "rollback_path_defined",
+        "operator_visible_disable_defined",
+        "audit_log_required",
+        "default_disable_available"
+      ]
+    },
+    {
+      "authority_boundary": {
+        "agent_dispatch_allowed": false,
+        "approval_execution_allowed": false,
+        "external_action_allowed": false,
+        "ledger_posting_allowed": false,
+        "live_lm_call_allowed": false,
+        "model_api_integration_allowed": false,
+        "network_allowed": false,
+        "production_state_mutation_allowed": false,
+        "provider_key_material_access_allowed": false,
+        "send_submit_allowed": false,
+        "tool_execution_allowed": false,
+        "worker_dispatch_allowed": false,
+        "workflow_execution_allowed": false
+      },
+      "beam_id": "device_trust_live_activation",
+      "blocks_live_lm1": true,
+      "blocks_live_lm2": true,
+      "can_be_collected_without_live_authority": true,
+      "fixture_validation_allowed": true,
+      "governed_review_required": true,
+      "human_label": "Device trust / live activation receipt",
+      "next_safe_move": "Use this contract for review/test receipts only; do not mark production-present without governed approval.",
+      "operator_approval_required": true,
+      "operator_copy": "Device trust can be shaped as a receipt without granting live activation.",
+      "production_receipt_required": true,
+      "receipt_contract_status": "RECEIPT_CONTRACT_READY_PRODUCTION_RECEIPT_MISSING",
+      "receipt_type": "device_trust_live_activation_receipt",
+      "required_false_controls": [
+        "untrusted_device_activation_allowed",
+        "arbitrary_destination_allowed",
+        "lm_inferred_routing_allowed",
+        "live_lm_call_enabled"
+      ],
+      "required_true_controls": [
+        "trusted_device_registry_required",
+        "source_device_binding_required",
+        "thread_scope_binding_required",
+        "request_replay_protection_required",
+        "scoped_response_route_required"
+      ]
+    },
+    {
+      "authority_boundary": {
+        "agent_dispatch_allowed": false,
+        "approval_execution_allowed": false,
+        "external_action_allowed": false,
+        "ledger_posting_allowed": false,
+        "live_lm_call_allowed": false,
+        "model_api_integration_allowed": false,
+        "network_allowed": false,
+        "production_state_mutation_allowed": false,
+        "provider_key_material_access_allowed": false,
+        "send_submit_allowed": false,
+        "tool_execution_allowed": false,
+        "worker_dispatch_allowed": false,
+        "workflow_execution_allowed": false
+      },
+      "beam_id": "real_lm_production_policy",
+      "blocks_live_lm1": true,
+      "blocks_live_lm2": false,
+      "can_be_collected_without_live_authority": true,
+      "fixture_validation_allowed": true,
+      "governed_review_required": true,
+      "human_label": "Real LM1 production policy receipt",
+      "next_safe_move": "Use this contract for review/test receipts only; do not mark production-present without governed approval.",
+      "operator_approval_required": true,
+      "operator_copy": "LM1 production policy can be reviewed as intent-proposal-only, with no tool or authority path.",
+      "production_receipt_required": true,
+      "receipt_contract_status": "RECEIPT_CONTRACT_READY_PRODUCTION_RECEIPT_MISSING",
+      "receipt_type": "real_lm1_production_policy_receipt",
+      "required_false_controls": [
+        "lm1_can_execute_tools",
+        "lm1_can_grant_authority",
+        "lm1_can_dispatch_workers",
+        "raw_sensitive_values_allowed"
+      ],
+      "required_true_controls": [
+        "lm1_intent_only_policy_defined",
+        "machine_intent_candidate_schema_required",
+        "gate2_ingest_required",
+        "privacy_minimization_required",
+        "lm1_no_tool_authority_defined"
+      ]
+    },
+    {
+      "authority_boundary": {
+        "agent_dispatch_allowed": false,
+        "approval_execution_allowed": false,
+        "external_action_allowed": false,
+        "ledger_posting_allowed": false,
+        "live_lm_call_allowed": false,
+        "model_api_integration_allowed": false,
+        "network_allowed": false,
+        "production_state_mutation_allowed": false,
+        "provider_key_material_access_allowed": false,
+        "send_submit_allowed": false,
+        "tool_execution_allowed": false,
+        "worker_dispatch_allowed": false,
+        "workflow_execution_allowed": false
+      },
+      "beam_id": "real_lm_production_policy",
+      "blocks_live_lm1": false,
+      "blocks_live_lm2": true,
+      "can_be_collected_without_live_authority": true,
+      "fixture_validation_allowed": true,
+      "governed_review_required": true,
+      "human_label": "Real LM2 production policy receipt",
+      "next_safe_move": "Use this contract for review/test receipts only; do not mark production-present without governed approval.",
+      "operator_approval_required": true,
+      "operator_copy": "LM2 production policy can be reviewed as package-bound role response, with Guardian still behind it.",
+      "production_receipt_required": true,
+      "receipt_contract_status": "RECEIPT_CONTRACT_READY_PRODUCTION_RECEIPT_MISSING",
+      "receipt_type": "real_lm2_production_policy_receipt",
+      "required_false_controls": [
+        "lm2_can_bypass_guardian",
+        "lm2_can_send_submit_without_receipt",
+        "lm2_can_post_ledger",
+        "raw_sensitive_values_allowed"
+      ],
+      "required_true_controls": [
+        "lm2_role_package_policy_defined",
+        "gate3_package_required",
+        "guardian_gate_required",
+        "forbidden_tools_explicit",
+        "no_send_submit_without_receipts"
+      ]
+    }
+  ],
+  "activation_receipt_fixture_results": [
+    {
+      "authority_boundary": {
+        "agent_dispatch_allowed": false,
+        "approval_execution_allowed": false,
+        "external_action_allowed": false,
+        "ledger_posting_allowed": false,
+        "live_lm_call_allowed": false,
+        "model_api_integration_allowed": false,
+        "network_allowed": false,
+        "production_state_mutation_allowed": false,
+        "provider_key_material_access_allowed": false,
+        "send_submit_allowed": false,
+        "tool_execution_allowed": false,
+        "worker_dispatch_allowed": false,
+        "workflow_execution_allowed": false
+      },
+      "governed_review_source": false,
+      "missing_true_controls": [],
+      "next_safe_move": "Treat this as fixture proof only; collect a governed production receipt before activation.",
+      "operator_approved": false,
+      "production_receipt_present": false,
+      "receipt_type": "provider_policy_receipt",
+      "satisfies_production_activation": false,
+      "unsafe_true_controls": [],
+      "valid_as_test_fixture": true,
+      "valid_for_contract": true,
+      "validation_status": "VALID_TEST_FIXTURE_ONLY"
+    },
+    {
+      "authority_boundary": {
+        "agent_dispatch_allowed": false,
+        "approval_execution_allowed": false,
+        "external_action_allowed": false,
+        "ledger_posting_allowed": false,
+        "live_lm_call_allowed": false,
+        "model_api_integration_allowed": false,
+        "network_allowed": false,
+        "production_state_mutation_allowed": false,
+        "provider_key_material_access_allowed": false,
+        "send_submit_allowed": false,
+        "tool_execution_allowed": false,
+        "worker_dispatch_allowed": false,
+        "workflow_execution_allowed": false
+      },
+      "governed_review_source": false,
+      "missing_true_controls": [],
+      "next_safe_move": "Treat this as fixture proof only; collect a governed production receipt before activation.",
+      "operator_approved": false,
+      "production_receipt_present": false,
+      "receipt_type": "model_selection_policy_receipt",
+      "satisfies_production_activation": false,
+      "unsafe_true_controls": [],
+      "valid_as_test_fixture": true,
+      "valid_for_contract": true,
+      "validation_status": "VALID_TEST_FIXTURE_ONLY"
+    },
+    {
+      "authority_boundary": {
+        "agent_dispatch_allowed": false,
+        "approval_execution_allowed": false,
+        "external_action_allowed": false,
+        "ledger_posting_allowed": false,
+        "live_lm_call_allowed": false,
+        "model_api_integration_allowed": false,
+        "network_allowed": false,
+        "production_state_mutation_allowed": false,
+        "provider_key_material_access_allowed": false,
+        "send_submit_allowed": false,
+        "tool_execution_allowed": false,
+        "worker_dispatch_allowed": false,
+        "workflow_execution_allowed": false
+      },
+      "governed_review_source": false,
+      "missing_true_controls": [],
+      "next_safe_move": "Treat this as fixture proof only; collect a governed production receipt before activation.",
+      "operator_approved": false,
+      "production_receipt_present": false,
+      "receipt_type": "live_model_enablement_receipt",
+      "satisfies_production_activation": false,
+      "unsafe_true_controls": [],
+      "valid_as_test_fixture": true,
+      "valid_for_contract": true,
+      "validation_status": "VALID_TEST_FIXTURE_ONLY"
+    },
+    {
+      "authority_boundary": {
+        "agent_dispatch_allowed": false,
+        "approval_execution_allowed": false,
+        "external_action_allowed": false,
+        "ledger_posting_allowed": false,
+        "live_lm_call_allowed": false,
+        "model_api_integration_allowed": false,
+        "network_allowed": false,
+        "production_state_mutation_allowed": false,
+        "provider_key_material_access_allowed": false,
+        "send_submit_allowed": false,
+        "tool_execution_allowed": false,
+        "worker_dispatch_allowed": false,
+        "workflow_execution_allowed": false
+      },
+      "governed_review_source": false,
+      "missing_true_controls": [],
+      "next_safe_move": "Treat this as fixture proof only; collect a governed production receipt before activation.",
+      "operator_approved": false,
+      "production_receipt_present": false,
+      "receipt_type": "rollback_disable_receipt",
+      "satisfies_production_activation": false,
+      "unsafe_true_controls": [],
+      "valid_as_test_fixture": true,
+      "valid_for_contract": true,
+      "validation_status": "VALID_TEST_FIXTURE_ONLY"
+    },
+    {
+      "authority_boundary": {
+        "agent_dispatch_allowed": false,
+        "approval_execution_allowed": false,
+        "external_action_allowed": false,
+        "ledger_posting_allowed": false,
+        "live_lm_call_allowed": false,
+        "model_api_integration_allowed": false,
+        "network_allowed": false,
+        "production_state_mutation_allowed": false,
+        "provider_key_material_access_allowed": false,
+        "send_submit_allowed": false,
+        "tool_execution_allowed": false,
+        "worker_dispatch_allowed": false,
+        "workflow_execution_allowed": false
+      },
+      "governed_review_source": false,
+      "missing_true_controls": [],
+      "next_safe_move": "Treat this as fixture proof only; collect a governed production receipt before activation.",
+      "operator_approved": false,
+      "production_receipt_present": false,
+      "receipt_type": "device_trust_live_activation_receipt",
+      "satisfies_production_activation": false,
+      "unsafe_true_controls": [],
+      "valid_as_test_fixture": true,
+      "valid_for_contract": true,
+      "validation_status": "VALID_TEST_FIXTURE_ONLY"
+    },
+    {
+      "authority_boundary": {
+        "agent_dispatch_allowed": false,
+        "approval_execution_allowed": false,
+        "external_action_allowed": false,
+        "ledger_posting_allowed": false,
+        "live_lm_call_allowed": false,
+        "model_api_integration_allowed": false,
+        "network_allowed": false,
+        "production_state_mutation_allowed": false,
+        "provider_key_material_access_allowed": false,
+        "send_submit_allowed": false,
+        "tool_execution_allowed": false,
+        "worker_dispatch_allowed": false,
+        "workflow_execution_allowed": false
+      },
+      "governed_review_source": false,
+      "missing_true_controls": [],
+      "next_safe_move": "Treat this as fixture proof only; collect a governed production receipt before activation.",
+      "operator_approved": false,
+      "production_receipt_present": false,
+      "receipt_type": "real_lm1_production_policy_receipt",
+      "satisfies_production_activation": false,
+      "unsafe_true_controls": [],
+      "valid_as_test_fixture": true,
+      "valid_for_contract": true,
+      "validation_status": "VALID_TEST_FIXTURE_ONLY"
+    },
+    {
+      "authority_boundary": {
+        "agent_dispatch_allowed": false,
+        "approval_execution_allowed": false,
+        "external_action_allowed": false,
+        "ledger_posting_allowed": false,
+        "live_lm_call_allowed": false,
+        "model_api_integration_allowed": false,
+        "network_allowed": false,
+        "production_state_mutation_allowed": false,
+        "provider_key_material_access_allowed": false,
+        "send_submit_allowed": false,
+        "tool_execution_allowed": false,
+        "worker_dispatch_allowed": false,
+        "workflow_execution_allowed": false
+      },
+      "governed_review_source": false,
+      "missing_true_controls": [],
+      "next_safe_move": "Treat this as fixture proof only; collect a governed production receipt before activation.",
+      "operator_approved": false,
+      "production_receipt_present": false,
+      "receipt_type": "real_lm2_production_policy_receipt",
+      "satisfies_production_activation": false,
+      "unsafe_true_controls": [],
+      "valid_as_test_fixture": true,
+      "valid_for_contract": true,
+      "validation_status": "VALID_TEST_FIXTURE_ONLY"
+    }
+  ],
   "activation_receipt_requirements": [
     {
       "blocks_live_lm1": true,
@@ -123,16 +623,29 @@
     },
     {
       "blocks_live_lm1": true,
+      "blocks_live_lm2": false,
+      "blocks_provider_activation": false,
+      "human_label": "Real LM1 production policy",
+      "next_safe_move": "Keep live models off; collect this receipt through a future governed review lane.",
+      "operator_copy": "OpenClaw needs a real LM1 production policy before the intent-proposal lane can be reviewed.",
+      "present": false,
+      "receipt_id": "activation_receipt:c0db7a8cb28ca44d",
+      "receipt_type": "real_lm1_production_policy_receipt",
+      "required_for_lanes": [
+        "LM1"
+      ]
+    },
+    {
+      "blocks_live_lm1": false,
       "blocks_live_lm2": true,
       "blocks_provider_activation": false,
-      "human_label": "Real LM1/LM2 production policy",
+      "human_label": "Real LM2 production policy",
       "next_safe_move": "Keep live models off; collect this receipt through a future governed review lane.",
-      "operator_copy": "OpenClaw needs a real LM1/LM2 production policy before live model lanes can be reviewed.",
+      "operator_copy": "OpenClaw needs a real LM2 production policy before the role-response lane can be reviewed.",
       "present": false,
-      "receipt_id": "activation_receipt:44cd887443b1d45b",
-      "receipt_type": "real_lm_production_policy_receipt",
+      "receipt_id": "activation_receipt:76722a0611d8ab03",
+      "receipt_type": "real_lm2_production_policy_receipt",
       "required_for_lanes": [
-        "LM1",
         "LM2"
       ]
     }
@@ -159,7 +672,8 @@
     "live_model_enablement_receipt_missing",
     "rollback_disable_receipt_missing",
     "device_trust_live_activation_receipt_missing",
-    "real_lm_production_policy_receipt_missing"
+    "real_lm1_production_policy_receipt_missing",
+    "real_lm2_production_policy_receipt_missing"
   ],
   "live_lm1_activation_status": "NOT_READY",
   "live_lm2_activation_status": "NOT_READY",
@@ -171,8 +685,13 @@
     "status": "LIVE_SHADOW_PASSED"
   },
   "machine_proof": {
+    "activation_receipt_contract_count": 7,
+    "activation_receipt_contracts_ready": true,
+    "activation_receipt_fixture_count": 7,
+    "activation_receipt_fixtures_satisfy_production": false,
+    "activation_receipt_fixtures_valid": true,
     "all_live_authority_false": true,
-    "content_hash": "sha256:234bf50da60aa3528ae9d9ad00fe812309016e730890ccded2afb29f3fd49222",
+    "content_hash": "sha256:6c89cdb1f505452c2e1359e157f17b5254aab221f3389a02ccd1c869f21396bf",
     "device_trust_live_activation_receipt_present": false,
     "external_action_performed": false,
     "live_lm1_ready": false,
@@ -182,7 +701,7 @@
     "live_model_enablement_receipt_present": false,
     "live_shadow_comparison_receipt_present": true,
     "live_shadow_model_call_recorded": true,
-    "missing_receipt_count": 6,
+    "missing_receipt_count": 7,
     "model_api_call_performed": false,
     "network_performed": false,
     "privacy_policy_receipt_present": true,
@@ -192,8 +711,9 @@
     "production_token_vault_ready_receipt_present": true,
     "provider_activation_receipts_present": false,
     "provider_activation_receipts_required": true,
-    "real_lm_production_policy_receipt_present": false,
-    "receipt_requirement_count": 9,
+    "real_lm1_production_policy_receipt_present": false,
+    "real_lm2_production_policy_receipt_present": false,
+    "receipt_requirement_count": 10,
     "rollback_disable_receipt_present": false,
     "shadow_model_selection_receipt_present": true,
     "shadow_provider_policy_receipt_present": true,
@@ -206,7 +726,8 @@
     "model_selection_policy_receipt",
     "rollback_disable_receipt",
     "device_trust_live_activation_receipt",
-    "real_lm_production_policy_receipt"
+    "real_lm1_production_policy_receipt",
+    "real_lm2_production_policy_receipt"
   ],
   "next_safe_move": "Keep using fixture/shadow mode until these receipts exist.",
   "operator_summary": [
@@ -232,7 +753,7 @@
         "provider_policy_receipt",
         "model_selection_policy_receipt"
       ],
-      "status": "MISSING"
+      "status": "RECEIPT_CONTRACT_READY_PRODUCTION_RECEIPT_MISSING"
     },
     {
       "beam_id": "live_enablement_receipt",
@@ -241,7 +762,7 @@
       "receipt_types": [
         "live_model_enablement_receipt"
       ],
-      "status": "MISSING"
+      "status": "RECEIPT_CONTRACT_READY_PRODUCTION_RECEIPT_MISSING"
     },
     {
       "beam_id": "privacy_receipt",
@@ -259,7 +780,7 @@
       "receipt_types": [
         "rollback_disable_receipt"
       ],
-      "status": "MISSING"
+      "status": "RECEIPT_CONTRACT_READY_PRODUCTION_RECEIPT_MISSING"
     },
     {
       "beam_id": "device_trust_live_activation",
@@ -268,16 +789,17 @@
       "receipt_types": [
         "device_trust_live_activation_receipt"
       ],
-      "status": "MISSING"
+      "status": "RECEIPT_CONTRACT_READY_PRODUCTION_RECEIPT_MISSING"
     },
     {
       "beam_id": "real_lm_production_policy",
       "human_label": "Real LM1/LM2 production policy",
       "operator_copy": "OpenClaw needs a real LM1/LM2 production policy for routing, privacy, fallback, and rollback before live activation review.",
       "receipt_types": [
-        "real_lm_production_policy_receipt"
+        "real_lm1_production_policy_receipt",
+        "real_lm2_production_policy_receipt"
       ],
-      "status": "MISSING"
+      "status": "RECEIPT_CONTRACT_READY_PRODUCTION_RECEIPT_MISSING"
     }
   ],
   "production_privacy_receipts": {
