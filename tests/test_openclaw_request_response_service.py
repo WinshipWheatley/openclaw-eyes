@@ -266,6 +266,28 @@ def _seed_workbook_registry(export_root: Path) -> None:
     workbook_registry.write_exports(payload, export_root)
 
 
+def _seed_workbook_registry_with_candidate(export_root: Path) -> dict:
+    _seed_workbook_registry(export_root)
+    replacement = workbook_registry.make_capital_hilton_fixture_request(created_at=FIXED_NOW)
+    replacement.update(
+        {
+            "request_id": "mission_control_file_intake_request_capital_hilton_service_replacement_workbook",
+            "file_display_name": "Capital Hilton replacement workbook.xlsx",
+            "mac_visible_path_ref": "fixture_path_ref:capital_hilton_service_replacement_workbook",
+            "idempotency_key": "client_invoice_workbook_registration_service_replacement_fixture",
+            "payload_hash": "fixture_hash_capital_hilton_service_replacement_workbook",
+        }
+    )
+    payload = workbook_registry.register_workbook_request(
+        replacement,
+        export_root=export_root,
+        generated_at=FIXED_NOW,
+        source_file_metadata_ref="generated/read_models/operator_file_metadata_readback.json",
+    )
+    workbook_registry.write_exports(payload, export_root)
+    return payload
+
+
 def _write_unique_file_request(path: Path, suffix: str) -> dict:
     request = file_intake.make_fixture_request("spreadsheet", created_at=FIXED_NOW)
     request["request_id"] = f"mission_control_file_intake_request_spreadsheet_fixture_{suffix}"
@@ -497,6 +519,65 @@ def test_service_processes_chat_request_and_writes_per_request_response(tmp_path
     assert response["how_to_fix"]
     assert "RESPONSE_READY" not in response["operator_message"]
     assert request_path.exists()
+
+
+def test_service_routes_freeform_workbook_selection_to_processor_not_worker_fallback(tmp_path, capsys):
+    inbox = tmp_path / "inbox"
+    response_dir = tmp_path / "responses"
+    export_root = tmp_path / "read_models"
+    inbox.mkdir()
+    request_path = inbox / "mission_control_chat_request_capital_hilton_invoice_workflow_1779844485241_56f63a070002.json"
+    request = _write_intent_chat_request(
+        request_path,
+        message=(
+            "The file i just gave you is the actual workbook open claw should use for the Capital Hilton Hotel. "
+            "Delete the other one from open claw Capital Hilton invoice workflow request"
+        ),
+        suffix="capital_hilton_invoice_workflow_1779844485241_56f63a070002",
+    )
+    request["request_id"] = "capital_hilton_invoice_workflow_1779844485241_56f63a070002"
+    request["idempotency_key"] = "mc_chat_capital_hilton_invoice_workflow_1779844485241_56f63a070002"
+    request["client_ref"] = "capital_hilton"
+    request["world_ref"] = "finance"
+    request["payload_hash"] = chat_intake.compute_request_payload_hash(request)
+    request_path.write_text(chat_intake.stable_json(request), encoding="utf-8")
+    candidate_payload = _seed_workbook_registry_with_candidate(export_root)
+    previous_ref = candidate_payload["registry"]["client_records"][0]["workbook_ref"]
+    candidate_ref = candidate_payload["candidate_record"]["workbook_ref"]
+
+    assert service_main(
+        [
+            "--once",
+            "--inbox",
+            str(inbox),
+            "--response-dir",
+            str(response_dir),
+            "--export-root",
+            str(export_root),
+            "--generated-at",
+            FIXED_NOW,
+            "--format",
+            "json",
+        ]
+    ) == 0
+    payload = json.loads(capsys.readouterr().out)
+    response = json.loads(_safe_response_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
+    heartbeat = json.loads(_safe_heartbeat_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
+    registry_payload = json.loads((export_root / "client_invoice_workbook_registry.json").read_text(encoding="utf-8"))
+
+    assert payload["service_status"]["service_status"] == "REQUEST_PROCESSED"
+    assert payload["service_status"]["last_routing_status"] == "PROCESSING_ON_PC"
+    assert heartbeat["processing_status"] == "CHECKING_WORKBOOK_SELECTION_RAIL"
+    assert response["headline"] == "Capital Hilton workbook updated"
+    assert response["internal_status"] == "RESPONSE_READY"
+    assert "Worker route" not in response["headline"]
+    assert "deterministic worker rule" not in json.dumps(response)
+    assert "Nothing was deleted from disk" in response["eliwinship"]
+    assert registry_payload["registry"]["client_records"][0]["workbook_ref"] == candidate_ref
+    assert registry_payload["existing_record"]["workbook_ref"] == previous_ref
+    assert response["machine_proof"]["workbook_body_read_performed"] is False
+    assert response["machine_proof"]["spreadsheet_cell_read_performed"] is False
+    assert response["machine_proof"]["external_action_performed"] is False
 
 
 def test_service_routes_capital_hilton_status_query_to_mac_response(tmp_path, capsys):

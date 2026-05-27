@@ -3470,28 +3470,214 @@ def _is_workbook_candidate_keep_choice_request(raw_request: Mapping[str, Any]) -
     )
 
 
-def _is_workbook_candidate_replace_choice_request(raw_request: Mapping[str, Any]) -> bool:
-    text = " ".join(
+def _operator_text(raw_request: Mapping[str, Any]) -> str:
+    return " ".join(
         str(raw_request.get(field) or "")
-        for field in ("operator_message", "sanitized_message_summary", "operator_goal")
-    ).lower()
-    compact = re.sub(r"[^a-z0-9]+", " ", text)
+        for field in ("operator_message", "sanitized_message_summary", "operator_goal", "message", "text")
+    )
+
+
+def _compact_operator_text(raw_request: Mapping[str, Any]) -> str:
+    return re.sub(r"[^a-z0-9]+", " ", _operator_text(raw_request).lower()).strip()
+
+
+def _is_capital_hilton_workbook_scope(raw_request: Mapping[str, Any]) -> bool:
     if str(raw_request.get("client_ref") or "") != "capital_hilton":
         return False
     if str(raw_request.get("workflow_ref") or "") != "capital_hilton_invoice_workflow":
         return False
     if str(raw_request.get("world_ref") or "") != "finance":
         return False
-    negative_replace = any(phrase in compact for phrase in ("do not replace", "dont replace", "don't replace", "cancel replace"))
-    if negative_replace:
-        return False
-    has_workbook = "workbook" in compact or "workbok" in compact or "work book" in compact
-    marks_previous_as_test = any(term in compact for term in ("last", "old", "previous", "prior")) and "test" in compact
-    marks_new_as_real = any(term in compact for term in ("new", "this", "current")) and any(
-        term in compact for term in ("real", "actual", "correct", "right")
+    return True
+
+
+def _has_any_phrase(compact_text: str, phrases: tuple[str, ...]) -> bool:
+    return any(phrase in compact_text for phrase in phrases)
+
+
+def _has_workbook_selection_negative(compact_text: str) -> bool:
+    return _has_any_phrase(
+        compact_text,
+        (
+            "do not replace",
+            "dont replace",
+            "don t replace",
+            "cancel replace",
+            "cancel replacement",
+            "leave candidate",
+            "keep candidate",
+            "leave the test workbook as a candidate",
+            "keep the test workbook as a candidate",
+        ),
     )
-    asks_replace = any(term in compact for term in ("replace", "replacement", "make current", "use this", "make this"))
-    return has_workbook and ((marks_previous_as_test and marks_new_as_real) or (asks_replace and marks_new_as_real))
+
+
+def is_workbook_active_selection_request(raw_request: Mapping[str, Any]) -> bool:
+    """Detect safe operator intent to make the recent workbook the active reference.
+
+    This is intentionally scoped to the current Capital Hilton steel-thread refs
+    and only updates OpenClaw's active workbook reference. It never means
+    physical file deletion.
+    """
+
+    compact = _compact_operator_text(raw_request)
+    if not _is_capital_hilton_workbook_scope(raw_request):
+        return False
+    if _has_workbook_selection_negative(compact):
+        return False
+    has_workbook_or_file = _has_any_phrase(
+        compact,
+        (
+            "workbook",
+            "workbok",
+            "work book",
+            "spreadsheet",
+            "file",
+        ),
+    )
+    has_recent_or_selected_ref = _has_any_phrase(
+        compact,
+        (
+            "this is",
+            "this should",
+            "this one",
+            "file i just gave",
+            "file i just added",
+            "file just gave",
+            "file just added",
+            "just gave",
+            "just added",
+            "new workbook",
+            "new workbok",
+            "new file",
+            "newest workbook",
+            "newest file",
+            "latest workbook",
+            "latest file",
+            "this workbook",
+            "this workbok",
+            "this file",
+            "selected workbook",
+            "selected file",
+            "make this",
+            "set this",
+        ),
+    )
+    has_real_or_current_intent = _has_any_phrase(
+        compact,
+        (
+            "actual workbook",
+            "real workbook",
+            "correct workbook",
+            "right workbook",
+            "should use",
+            "use this workbook",
+            "use this workbok",
+            "use this file",
+            "use the file",
+            "use the newest",
+            "use the latest",
+            "make this the current",
+            "make this current",
+            "make current",
+            "make it current",
+            "set this as current",
+            "set it as current",
+            "active workbook",
+            "current workbook",
+            "replace the old",
+            "replace old",
+            "replace the previous",
+            "replace previous",
+            "replace the test",
+            "replace test",
+            "supersede the old",
+            "supersede old",
+        ),
+    )
+    if has_workbook_or_file and _has_any_phrase(compact, ("real", "actual", "correct", "right")):
+        has_real_or_current_intent = True
+    has_retire_other_intent = _has_any_phrase(
+        compact,
+        (
+            "delete the other",
+            "delete other",
+            "remove the other",
+            "remove other",
+            "retire the other",
+            "retire other",
+            "retire the old",
+            "retire old",
+            "get rid of the other",
+            "get rid of other",
+            "remove it from openclaw",
+            "remove it from open claw",
+            "delete it from openclaw",
+            "delete it from open claw",
+            "from openclaw",
+            "from open claw",
+        ),
+    )
+    marks_previous_as_test = _has_any_phrase(compact, ("last", "old", "previous", "prior", "other")) and "test" in compact
+
+    if has_workbook_or_file and has_recent_or_selected_ref and has_real_or_current_intent:
+        return True
+    if has_workbook_or_file and marks_previous_as_test and has_real_or_current_intent:
+        return True
+    if has_workbook_or_file and has_real_or_current_intent and has_retire_other_intent:
+        return True
+    if has_recent_or_selected_ref and has_real_or_current_intent and has_retire_other_intent:
+        return True
+    if has_retire_other_intent and _has_any_phrase(compact, ("other one", "other")) and _has_any_phrase(
+        compact, ("openclaw", "open claw")
+    ):
+        return True
+    return False
+
+
+def is_workbook_active_selection_ambiguous_request(raw_request: Mapping[str, Any]) -> bool:
+    compact = _compact_operator_text(raw_request)
+    if is_workbook_active_selection_request(raw_request):
+        return False
+    if not _is_capital_hilton_workbook_scope(raw_request):
+        return False
+    if _has_workbook_selection_negative(compact):
+        return False
+    if _has_any_phrase(
+        compact,
+        (
+            "show",
+            "status",
+            "where are we",
+            "what is",
+            "what s",
+            "whats",
+            "blocking",
+            "blocked",
+            "audit",
+        ),
+    ):
+        return False
+    has_workbook_or_file = _has_any_phrase(compact, ("workbook", "workbok", "work book", "spreadsheet", "file"))
+    has_mutating_selection_verb = _has_any_phrase(
+        compact,
+        (
+            "use",
+            "make",
+            "set",
+            "replace",
+            "switch",
+            "remove",
+            "delete",
+            "retire",
+            "supersede",
+        ),
+    )
+    return has_workbook_or_file and has_mutating_selection_verb
+
+
+def _is_workbook_candidate_replace_choice_request(raw_request: Mapping[str, Any]) -> bool:
+    return is_workbook_active_selection_request(raw_request)
 
 
 def _workbook_candidate_choice_classification(
@@ -3727,6 +3913,92 @@ def _process_workbook_candidate_replace_choice_request(
         blocked_reason=None if replacement_performed else "No staged workbook candidate.",
         detail_disclosure=detail,
         readback_files=response_files,
+        next_safe_move=next_action,
+    )
+
+
+def _process_workbook_active_selection_ambiguity_request(
+    request_path: Path,
+    raw_request: Mapping[str, Any],
+    *,
+    classification: RequestClassification,
+) -> OpenClawResponseForMac:
+    request_id = str(raw_request.get("request_id") or "unknown_workbook_selection_request")
+    workflow_ref = str(raw_request.get("workflow_ref") or "capital_hilton_invoice_workflow")
+    headline = "Which workbook should I use?"
+    message = (
+        "I found Capital Hilton workbook context, but I need to know whether to use the newest workbook you just added "
+        "or keep the current active one. Nothing was deleted from disk."
+    )
+    next_action = "Next: choose the newest workbook or keep the current active workbook."
+    detail = {
+        "workbook_selection_intent": {
+            "status": "AMBIGUOUS_WORKBOOK_SELECTION",
+            "client_ref": str(raw_request.get("client_ref") or ""),
+            "workflow_ref": workflow_ref,
+            "world_ref": str(raw_request.get("world_ref") or ""),
+            "physical_file_delete_performed": False,
+            "registry_reference_retired": False,
+            "workbook_body_read_performed": False,
+            "spreadsheet_parse_performed": False,
+            "spreadsheet_cell_read_performed": False,
+            "sheet_audit_performed": False,
+            "external_action_performed": False,
+            "invoice_sent_or_submitted": False,
+            "ledger_posted": False,
+        },
+        "layered_response_fields": {
+            "response_kind": "CLIENT_INVOICE_WORKBOOK_SELECTION_CLARIFICATION",
+            "audience_mode": "ELIWINSHIP",
+            "display_mode": "COMPACT_CHAT",
+            "headline": headline,
+            "one_line_answer": message,
+            "eliwinship": message,
+            "primary_status": "Workbook choice needed",
+            "primary_blocker": "Ambiguous workbook selection",
+            "next_action": next_action,
+            "missing_items_short": ("which workbook should be current",),
+            "detail_summary": "OpenClaw needs one workbook-selection confirmation before changing active references.",
+            "mac_render_hint": "COMPACT_WITH_DISCLOSURE",
+        },
+        "request_classification": asdict(classification),
+    }
+    return OpenClawResponseForMac(
+        source_request_id=request_id,
+        source_request_filename=request_path.name,
+        workflow_ref=workflow_ref,
+        request_type="CHAT",
+        internal_status="CLARIFICATION_REQUIRED",
+        operator_headline=headline,
+        operator_message=message,
+        what_happened=(
+            "PC recognized a workbook-selection request in the Capital Hilton workflow.",
+            "PC did not change the active workbook reference because the target workbook was ambiguous.",
+            "No file was deleted from disk.",
+            "No workbook body, cells, sheet audit, PDF, email, Coupa, ledger posting, or external action occurred.",
+        ),
+        why_it_happened="The operator asked to change workbook state, but the exact workbook choice was not deterministic enough.",
+        how_to_fix=next_action,
+        visible_cards=(
+            {
+                "title": headline,
+                "bullets": (
+                    "No workbook reference changed.",
+                    "Nothing was deleted from disk.",
+                    "Workbook body and cells were not read.",
+                    next_action,
+                ),
+                "status_tone": "blocked",
+            },
+        ),
+        cards_available=True,
+        card_mirror_refs=(),
+        file_readback_refs=(),
+        worker_route_refs=(),
+        context_package_refs=(),
+        blocked_reason="Ambiguous workbook selection.",
+        detail_disclosure=detail,
+        readback_files=(),
         next_safe_move=next_action,
     )
 
@@ -4140,6 +4412,12 @@ def process_request_path(
             raw_request,
             export_root=export_root,
             generated_at=generated_at,
+            classification=classification,
+        )
+    if classification.request_family == "CHAT" and is_workbook_active_selection_ambiguous_request(raw_request):
+        return _process_workbook_active_selection_ambiguity_request(
+            request_path,
+            raw_request,
             classification=classification,
         )
     if classification.request_family == "CHAT" and _is_workbook_candidate_keep_choice_request(raw_request):

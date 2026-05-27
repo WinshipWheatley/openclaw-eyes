@@ -746,6 +746,34 @@ def _route_for_request(request_path: Path, identity: RequestIdentity, raw_reques
             mac_handoff_required=False,
             future_worker_blocked=False,
         )
+    if processor.is_workbook_active_selection_request(raw_request):
+        return RouteDecision(
+            routing_status="PROCESSING_ON_PC",
+            selected_worker_target="PC_CODEX",
+            selected_machine="PC_WSL",
+            processing_status="CHECKING_WORKBOOK_SELECTION_RAIL",
+            operator_headline="OpenClaw is updating the workbook choice",
+            operator_message="OpenClaw picked this up and is checking the safe Capital Hilton workbook-selection rail.",
+            next_safe_move="Wait for the workbook choice readback.",
+            route_reason="Capital Hilton workbook selection is handled by a deterministic PC registry-reference rail.",
+            pc_handled=True,
+            mac_handoff_required=False,
+            future_worker_blocked=False,
+        )
+    if processor.is_workbook_active_selection_ambiguous_request(raw_request):
+        return RouteDecision(
+            routing_status="PROCESSING_ON_PC",
+            selected_worker_target="PC_CODEX",
+            selected_machine="PC_WSL",
+            processing_status="CHECKING_WORKBOOK_SELECTION_RAIL",
+            operator_headline="OpenClaw needs one workbook choice",
+            operator_message="OpenClaw picked this up and is checking which workbook should stay active.",
+            next_safe_move="Wait for the workbook choice clarification.",
+            route_reason="Ambiguous Capital Hilton workbook-selection language is handled by the deterministic PC clarification rail.",
+            pc_handled=True,
+            mac_handoff_required=False,
+            future_worker_blocked=False,
+        )
     if deterministic_intent_interpreter.should_interpret(raw_request):
         return RouteDecision(
             routing_status="PROCESSING_ON_PC",

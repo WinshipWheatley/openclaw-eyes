@@ -651,7 +651,8 @@ def replace_current_with_candidate(
         operator_headline="Capital Hilton workbook updated" if replacement_record else "No workbook candidate found",
         operator_message=(
             "OpenClaw made the new workbook the current Capital Hilton running invoice workbook. "
-            "The previous workbook is no longer the active workbook reference. No workbook body or cells were read."
+            "The previous workbook is no longer the active workbook reference. Nothing was deleted from disk. "
+            "No workbook body or cells were read."
             if replacement_record
             else "OpenClaw did not find a staged workbook candidate to make current. No workbook body or cells were read."
         ),

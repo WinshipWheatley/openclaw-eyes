@@ -227,6 +227,7 @@ def test_operator_choice_makes_candidate_current_without_reading_cells(tmp_path)
 
     assert choice["registration_readback"]["status"] == "WORKBOOK_REPLACEMENT_CONFIRMED"
     assert choice["registration_readback"]["operator_headline"] == "Capital Hilton workbook updated"
+    assert "Nothing was deleted from disk" in choice["registration_readback"]["operator_message"]
     assert choice["registry"]["client_records"][0]["workbook_ref"] == candidate_payload["candidate_record"]["workbook_ref"]
     assert choice["registry"]["client_records"][0]["workbook_status"] == "WORKBOOK_CONFIRMED"
     assert choice["registry"]["client_records"][0]["approved_for_cell_read"] is False

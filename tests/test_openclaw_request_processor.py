@@ -1941,7 +1941,8 @@ def test_workbook_candidate_replace_choice_accepts_real_workbook_language(tmp_pa
     assert response["headline"] == "Capital Hilton workbook updated"
     assert response["eliwinship"] == (
         "OpenClaw made the new workbook the current Capital Hilton running invoice workbook. "
-        "The previous workbook is no longer the active workbook reference. No workbook body or cells were read."
+        "The previous workbook is no longer the active workbook reference. Nothing was deleted from disk. "
+        "No workbook body or cells were read."
     )
     assert response["next_action"] == "Next: confirm the invoice field mapping before audit."
     assert scoped["source_request_id"] == request["request_id"]
@@ -1955,6 +1956,142 @@ def test_workbook_candidate_replace_choice_accepts_real_workbook_language(tmp_pa
     assert scoped["machine_proof"]["spreadsheet_cell_read_performed"] is False
     assert scoped["machine_proof"]["external_action_performed"] is False
     assert scoped["machine_proof"]["candidate_promotion_performed"] is False
+
+
+def test_freeform_live_workbook_selection_retires_previous_reference_without_file_delete(tmp_path, capsys, monkeypatch):
+    inbox = tmp_path / "approved_inbox"
+    inbox.mkdir()
+    request_path = inbox / "mission_control_chat_request_capital_hilton_invoice_workflow_1779844485241_56f63a070002.json"
+    request = _write_intent_request(
+        request_path,
+        message=(
+            "The file i just gave you is the actual workbook open claw should use for the Capital Hilton Hotel. "
+            "Delete the other one from open claw Capital Hilton invoice workflow request"
+        ),
+        suffix="capital_hilton_invoice_workflow_1779844485241_56f63a070002",
+    )
+    request["request_id"] = "capital_hilton_invoice_workflow_1779844485241_56f63a070002"
+    request["idempotency_key"] = "mc_chat_capital_hilton_invoice_workflow_1779844485241_56f63a070002"
+    request["client_ref"] = "capital_hilton"
+    request["world_ref"] = "finance"
+    request["payload_hash"] = chat_intake.compute_request_payload_hash(request)
+    request_path.write_text(chat_intake.stable_json(request), encoding="utf-8")
+    export_root = tmp_path / "read_models"
+    response_dir = tmp_path / "responses"
+    monkeypatch.setattr(processor, "APPROVED_INBOX", inbox)
+    monkeypatch.setattr(processor, "DEFAULT_RESPONSE_DIR", response_dir)
+    candidate_payload = _seed_workbook_registry_with_candidate(export_root)
+    previous_ref = candidate_payload["registry"]["client_records"][0]["workbook_ref"]
+    candidate_ref = candidate_payload["candidate_record"]["workbook_ref"]
+
+    assert process_main(
+        [
+            "--file",
+            str(request_path),
+            "--export-root",
+            str(export_root),
+            "--generated-at",
+            FIXED_NOW,
+            "--format",
+            "json",
+        ]
+    ) == 0
+    response = json.loads(capsys.readouterr().out)
+    scoped = json.loads(_scoped_processor_response_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
+    registry_payload = json.loads((export_root / "client_invoice_workbook_registry.json").read_text(encoding="utf-8"))
+
+    assert response["headline"] == "Capital Hilton workbook updated"
+    assert "Worker route" not in response["headline"]
+    assert "deterministic worker rule" not in json.dumps(scoped)
+    assert "Nothing was deleted from disk" in response["eliwinship"]
+    assert registry_payload["registry"]["client_records"][0]["workbook_ref"] == candidate_ref
+    assert registry_payload["existing_record"]["workbook_ref"] == previous_ref
+    assert registry_payload["operator_choice_request"]["previous_workbook_ref"] == previous_ref
+    assert registry_payload["operator_choice_request"]["current_workbook_ref"] == candidate_ref
+    assert registry_payload["operator_choice_request"]["workbook_replacement_performed"] is True
+    assert registry_payload["operator_choice_request"]["invoice_sent_or_submitted"] is False
+    assert registry_payload["operator_choice_request"]["ledger_posted"] is False
+    assert scoped["machine_proof"]["workbook_body_read_performed"] is False
+    assert scoped["machine_proof"]["spreadsheet_cell_read_performed"] is False
+    assert scoped["machine_proof"]["external_action_performed"] is False
+    assert scoped["machine_proof"]["client_invoice_sheet_audit_used"] is False
+
+
+def test_workbook_active_selection_classifier_handles_nearby_phrasing():
+    phrases = (
+        "use this workbook",
+        "this is the real workbook",
+        "replace the old test workbook",
+        "use the file I just added",
+        "remove the other one from OpenClaw",
+        "make this the current Capital Hilton workbook",
+    )
+    for index, phrase in enumerate(phrases):
+        raw_request = {
+            "request_id": f"workbook_selection_phrase_{index}",
+            "client_ref": "capital_hilton",
+            "workflow_ref": "capital_hilton_invoice_workflow",
+            "world_ref": "finance",
+            "operator_message": phrase,
+        }
+        assert processor.is_workbook_active_selection_request(raw_request), phrase
+
+
+def test_workbook_active_selection_ambiguous_request_asks_clean_question(tmp_path, capsys, monkeypatch):
+    inbox = tmp_path / "approved_inbox"
+    inbox.mkdir()
+    request_path = inbox / "mission_control_chat_request_capital_hilton_workbook_ambiguous.json"
+    request = _write_intent_request(
+        request_path,
+        message="Use the Capital Hilton workbook for this workflow.",
+        suffix="capital_hilton_workbook_ambiguous",
+    )
+    request["client_ref"] = "capital_hilton"
+    request["world_ref"] = "finance"
+    request["payload_hash"] = chat_intake.compute_request_payload_hash(request)
+    request_path.write_text(chat_intake.stable_json(request), encoding="utf-8")
+    export_root = tmp_path / "read_models"
+    response_dir = tmp_path / "responses"
+    monkeypatch.setattr(processor, "APPROVED_INBOX", inbox)
+    monkeypatch.setattr(processor, "DEFAULT_RESPONSE_DIR", response_dir)
+    candidate_payload = _seed_workbook_registry_with_candidate(export_root)
+    previous_ref = candidate_payload["registry"]["client_records"][0]["workbook_ref"]
+
+    assert process_main(
+        [
+            "--file",
+            str(request_path),
+            "--export-root",
+            str(export_root),
+            "--generated-at",
+            FIXED_NOW,
+            "--format",
+            "json",
+        ]
+    ) == 0
+    response = json.loads(capsys.readouterr().out)
+    scoped = json.loads(_scoped_processor_response_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
+    registry_payload = json.loads((export_root / "client_invoice_workbook_registry.json").read_text(encoding="utf-8"))
+
+    assert response["headline"] == "Which workbook should I use?"
+    assert response["internal_status"] == "CLARIFICATION_REQUIRED"
+    assert "newest workbook" in response["eliwinship"]
+    assert "Nothing was deleted from disk" in response["eliwinship"]
+    assert scoped["source_request_id"] == request["request_id"]
+    assert registry_payload["registry"]["client_records"][0]["workbook_ref"] == previous_ref
+
+
+def test_workbook_active_selection_does_not_catch_unrelated_freeform_message():
+    raw_request = {
+        "request_id": "capital_hilton_unrelated_freeform",
+        "client_ref": "capital_hilton",
+        "workflow_ref": "capital_hilton_invoice_workflow",
+        "world_ref": "finance",
+        "operator_message": "Show me the Capital Hilton notes for this invoice workflow.",
+    }
+
+    assert processor.is_workbook_active_selection_request(raw_request) is False
+    assert processor.is_workbook_active_selection_ambiguous_request(raw_request) is False
 
 
 def test_processor_does_not_publish_without_valid_source_request_id(tmp_path):
