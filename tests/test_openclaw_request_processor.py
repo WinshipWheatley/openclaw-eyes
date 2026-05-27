@@ -13,6 +13,7 @@ import client_invoice_sheet_audit as sheet_audit
 import client_invoice_audit_handoff as audit_handoff
 import client_invoice_workbook_registry as workbook_registry
 import conversational_workflow_router_intake as chat_intake
+import guardian_output_gate
 import local_artifact_reference
 import openclaw_request_processor as processor
 import operator_file_metadata_intake as file_intake
@@ -528,6 +529,11 @@ def _assert_taste_guardrails_pass(response: dict) -> None:
     assert not taste["taste_errors"]
     assert response["machine_proof"]["response_taste_guardrails_present"] is True
     assert response["machine_proof"]["response_taste_passed"] is True
+    assert response["machine_proof"]["guardian_output_gate_present"] is True
+    assert response["machine_proof"]["guardian_output_gate_used"] is True
+    assert response["machine_proof"]["role_output_validator_used"] is True
+    assert response["machine_proof"]["guardian_output_gate_passed"] is True
+    assert response["machine_proof"]["guardian_output_gate_verdict"] == guardian_output_gate.VALIDATED
 
 
 def _minimal_response(message: str, *, request_type: str = "CHAT", workflow_ref: str = "workflow_fixture") -> processor.OpenClawResponseForMac:
@@ -1511,6 +1517,41 @@ def test_response_taste_bad_phrase_fixtures_are_marked_invalid():
     assert "100% correct" in taste["bad_phrase_blockers"]
     assert any(error.startswith("BAD_PHRASE:") for error in taste["taste_errors"])
     assert any(error.startswith("INTERNAL_STATUS:") for error in taste["taste_errors"])
+
+
+def test_guardian_output_gate_is_attached_to_mac_payloads():
+    response = _minimal_response("Cassandra draft review is ready. Send authority remains locked.")
+    payload, status = processor.build_payloads(response, generated_at=FIXED_NOW)
+
+    gate_payload = payload["guardian_output_gate"]
+    assert gate_payload["schema_version"] == guardian_output_gate.SCHEMA_VERSION
+    assert gate_payload["role_execution_package"]["role"] == "CASSANDRA"
+    assert gate_payload["validation_result"]["verdict"] == guardian_output_gate.VALIDATED
+    assert gate_payload["validation_result"]["output_publish_allowed"] is True
+    assert payload["machine_proof"]["guardian_output_gate_passed"] is True
+    assert status["machine_proof"]["guardian_output_gate_passed"] is True
+    assert status["machine_proof"]["model_call_performed"] is False
+    assert status["machine_proof"]["agent_dispatch_performed"] is False
+    assert status["machine_proof"]["external_action_performed"] is False
+
+
+def test_guardian_output_gate_blocks_rogue_role_claims():
+    result = guardian_output_gate.validate_response_payload(
+        {
+            "source_request_id": "rogue_role_fixture",
+            "workflow_ref": "capital_hilton_invoice_workflow",
+            "response_author": "CASSANDRA",
+            "selected_model_backend": "GPT",
+            "headline": "Invoice sent",
+            "eliwinship": "I sent the invoice to Capital Hilton and posted it.",
+            "next_action": "Next: wait for payment.",
+        }
+    )
+
+    assert result["validation_result"]["verdict"] == guardian_output_gate.BLOCKED_FORBIDDEN_CLAIM
+    assert result["validation_result"]["output_publish_allowed"] is False
+    assert result["machine_proof"]["model_call_performed"] is False
+    assert result["machine_proof"]["send_submit_performed"] is False
 
 
 def test_agent_specific_taste_rules_cover_cassandra_guardian_hermes_and_chief():

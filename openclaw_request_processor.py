@@ -29,6 +29,7 @@ import client_invoice_sheet_audit
 import client_invoice_workbook_registry
 import conversational_workflow_router_intake
 import deterministic_intent_interpreter
+import guardian_output_gate
 import local_surface_request_contract
 import operator_file_metadata_intake
 import openclaw_request_router
@@ -4812,6 +4813,14 @@ def build_payloads(
     }
     local_surface_request = local_surface_request_contract.infer_surface_request(response_payload)
     response_payload["local_surface_request"] = local_surface_request
+    guardian_gate_payload = guardian_output_gate.validate_response_payload(response_payload)
+    guardian_gate_result = guardian_gate_payload["validation_result"]
+    response_payload["guardian_output_gate"] = {
+        "schema_version": guardian_gate_payload["schema_version"],
+        "contract_status": guardian_gate_payload["contract_status"],
+        "role_execution_package": guardian_gate_payload["role_execution_package"],
+        "validation_result": guardian_gate_result,
+    }
     taste_guardrails = _response_taste_guardrails(response_payload)
     response_payload["taste_guardrails"] = taste_guardrails
     status_payload: dict[str, Any] = {
@@ -4866,6 +4875,13 @@ def build_payloads(
             "bad_phrase_blockers_passed": taste_guardrails["bad_phrase_blockers_passed"],
             "agent_voice_taste_rules_passed": taste_guardrails["agent_voice_rules_passed"],
             "duplicate_sentence_reduction_passed": taste_guardrails["duplicate_sentence_reduction_passed"],
+            "guardian_output_gate_present": True,
+            "guardian_output_gate_used": guardian_gate_payload["machine_proof"]["guardian_output_gate_used"],
+            "role_output_validator_used": guardian_gate_payload["machine_proof"]["role_output_validator_used"],
+            "guardian_output_gate_verdict": guardian_gate_result["verdict"],
+            "guardian_output_gate_passed": guardian_gate_result["output_publish_allowed"],
+            "role_output_blocked": not guardian_gate_result["output_publish_allowed"],
+            "guardian_output_external_action_allowed": guardian_gate_result["external_action_allowed"],
             "local_surface_request_present": True,
             "local_surface_request_type": local_surface_request.get("surface_type"),
             "local_surface_request_raw_body_allowed": local_surface_request.get("raw_body_allowed"),
