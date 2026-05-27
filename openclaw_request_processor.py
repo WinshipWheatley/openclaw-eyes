@@ -3470,9 +3470,35 @@ def _is_workbook_candidate_keep_choice_request(raw_request: Mapping[str, Any]) -
     )
 
 
+def _is_workbook_candidate_replace_choice_request(raw_request: Mapping[str, Any]) -> bool:
+    text = " ".join(
+        str(raw_request.get(field) or "")
+        for field in ("operator_message", "sanitized_message_summary", "operator_goal")
+    ).lower()
+    compact = re.sub(r"[^a-z0-9]+", " ", text)
+    if str(raw_request.get("client_ref") or "") != "capital_hilton":
+        return False
+    if str(raw_request.get("workflow_ref") or "") != "capital_hilton_invoice_workflow":
+        return False
+    if str(raw_request.get("world_ref") or "") != "finance":
+        return False
+    negative_replace = any(phrase in compact for phrase in ("do not replace", "dont replace", "don't replace", "cancel replace"))
+    if negative_replace:
+        return False
+    has_workbook = "workbook" in compact or "workbok" in compact or "work book" in compact
+    marks_previous_as_test = any(term in compact for term in ("last", "old", "previous", "prior")) and "test" in compact
+    marks_new_as_real = any(term in compact for term in ("new", "this", "current")) and any(
+        term in compact for term in ("real", "actual", "correct", "right")
+    )
+    asks_replace = any(term in compact for term in ("replace", "replacement", "make current", "use this", "make this"))
+    return has_workbook and ((marks_previous_as_test and marks_new_as_real) or (asks_replace and marks_new_as_real))
+
+
 def _workbook_candidate_choice_classification(
     request_path: Path,
     classification: RequestClassification,
+    *,
+    action: str = "keep_candidate",
 ) -> RequestClassification:
     return RequestClassification(
         classification_id=classification.classification_id,
@@ -3480,10 +3506,14 @@ def _workbook_candidate_choice_classification(
         request_family=classification.request_family,
         selected_rail="client_invoice_workbook_candidate_choice",
         classification_reason=(
-            "Filename matches Mission Control chat request pattern and operator text deterministically cancels workbook replacement."
+            "Filename matches Mission Control chat request pattern and operator text deterministically resolves workbook replacement."
         ),
         future_supported=False,
-        next_safe_move="Record the candidate-only choice and publish a scoped Mac response.",
+        next_safe_move=(
+            "Record the candidate-only choice and publish a scoped Mac response."
+            if action == "keep_candidate"
+            else "Record the new workbook as current and publish a scoped Mac response."
+        ),
     )
 
 
@@ -3495,7 +3525,7 @@ def _process_workbook_candidate_choice_request(
     generated_at: str | None,
     classification: RequestClassification,
 ) -> OpenClawResponseForMac:
-    choice_classification = _workbook_candidate_choice_classification(request_path, classification)
+    choice_classification = _workbook_candidate_choice_classification(request_path, classification, action="keep_candidate")
     registry_payload = client_invoice_workbook_registry.keep_candidate_and_cancel_replacement(
         raw_request,
         export_root=export_root,
@@ -3589,6 +3619,115 @@ def _process_workbook_candidate_choice_request(
         detail_disclosure=detail,
         readback_files=response_files,
         next_safe_move=next_safe_move,
+    )
+
+
+def _process_workbook_candidate_replace_choice_request(
+    request_path: Path,
+    raw_request: Mapping[str, Any],
+    *,
+    export_root: Path,
+    generated_at: str | None,
+    classification: RequestClassification,
+) -> OpenClawResponseForMac:
+    choice_classification = _workbook_candidate_choice_classification(request_path, classification, action="replace_candidate")
+    registry_payload = client_invoice_workbook_registry.replace_current_with_candidate(
+        raw_request,
+        export_root=export_root,
+        generated_at=generated_at,
+    )
+    registry_json, registry_operator = client_invoice_workbook_registry.write_exports(registry_payload, export_root)
+    readback = registry_payload["registration_readback"]
+    active_record = registry_payload.get("active_record") or {}
+    headline = str(readback["operator_headline"])
+    message = str(readback["operator_message"])
+    next_action = str(readback["next_action"])
+    response_files = (registry_json.as_posix(), registry_operator.as_posix())
+    replacement_performed = bool(registry_payload.get("machine_proof", {}).get("workbook_replacement_performed"))
+    detail = {
+        "client_invoice_workbook_registry": {
+            "registry_readback_ref": registry_json.as_posix(),
+            "operator_readback_ref": registry_operator.as_posix(),
+            "registration_readback": readback,
+            "active_record": active_record,
+            "operator_choice_request": registry_payload.get("operator_choice_request"),
+            "duplicate_result": registry_payload.get("duplicate_result"),
+            "workbook_replacement_performed": replacement_performed,
+            "candidate_promoted_to_current_workbook": bool(
+                registry_payload.get("machine_proof", {}).get("candidate_promoted_to_current_workbook")
+            ),
+            "candidate_promoted_to_authoritative": False,
+            "approved_for_metadata_read": bool(active_record.get("approved_for_metadata_read")),
+            "approved_for_cell_read": bool(active_record.get("approved_for_cell_read")),
+            "workbook_body_read_performed": False,
+            "spreadsheet_parse_performed": False,
+            "spreadsheet_cell_read_performed": False,
+            "folder_scan_performed": False,
+            "external_action_performed": False,
+            "invoice_sent_or_submitted": False,
+            "ledger_posted": False,
+        },
+        "layered_response_fields": {
+            "response_kind": "CLIENT_INVOICE_WORKBOOK_CANDIDATE_CHOICE",
+            "audience_mode": "ELIWINSHIP",
+            "display_mode": "COMPACT_CHAT",
+            "headline": headline,
+            "one_line_answer": message,
+            "eliwinship": message,
+            "primary_status": "Workbook updated" if replacement_performed else "Workbook update blocked",
+            "primary_blocker": "None" if replacement_performed else "No staged workbook candidate",
+            "next_action": next_action,
+            "missing_items_short": tuple(readback.get("missing_items") or ()),
+            "detail_summary": str(readback.get("workbook_summary") or ""),
+            "proof_refs": (f"generated/read_models/{client_invoice_workbook_registry.JSON_EXPORT_NAME}",),
+            "mac_render_hint": "COMPACT_WITH_DISCLOSURE",
+        },
+        "persistent_registry_write": False,
+        "generated_registry_readmodel_write": True,
+        "request_classification": asdict(choice_classification),
+    }
+    return OpenClawResponseForMac(
+        source_request_id=str(raw_request.get("request_id") or "unknown_request"),
+        source_request_filename=request_path.name,
+        workflow_ref=str(raw_request.get("workflow_ref") or "capital_hilton_invoice_workflow"),
+        request_type="CHAT",
+        internal_status="RESPONSE_READY" if replacement_performed else "BLOCKED_WITH_REASON",
+        operator_headline=headline,
+        operator_message="Workbook updated." if replacement_performed else "Workbook update blocked.",
+        what_happened=(
+            "PC consumed the operator workbook choice request from the approved inbox.",
+            "PC made the staged workbook candidate the current running workbook reference."
+            if replacement_performed
+            else "PC could not find a staged workbook candidate to make current.",
+            "No workbook body, cells, sheet audit, PDF, email, Coupa, ledger posting, or external action occurred.",
+        ),
+        why_it_happened=(
+            "The operator said the previous workbook was a test and the new workbook is the real Capital Hilton running workbook."
+            if replacement_performed
+            else "There was no staged candidate in the workbook registry read-model."
+        ),
+        how_to_fix=next_action,
+        visible_cards=(
+            {
+                "title": headline,
+                "bullets": (
+                    message,
+                    "Workbook body and cells were not read.",
+                    "Nothing was sent, submitted, posted, exported, or marked paid.",
+                    next_action,
+                ),
+                "status_tone": "ready" if replacement_performed else "blocked",
+            },
+        ),
+        cards_available=True,
+        card_mirror_refs=(),
+        file_readback_refs=(registry_json.as_posix(),),
+        worker_route_refs=(),
+        context_package_refs=(),
+        blocked_reason=None if replacement_performed else "No staged workbook candidate.",
+        detail_disclosure=detail,
+        readback_files=response_files,
+        next_safe_move=next_action,
     )
 
 
@@ -3994,6 +4133,14 @@ def process_request_path(
             },
             readback_files=(),
             next_safe_move="Fix the request and rerun the bounded processor.",
+        )
+    if classification.request_family == "CHAT" and _is_workbook_candidate_replace_choice_request(raw_request):
+        return _process_workbook_candidate_replace_choice_request(
+            request_path,
+            raw_request,
+            export_root=export_root,
+            generated_at=generated_at,
+            classification=classification,
         )
     if classification.request_family == "CHAT" and _is_workbook_candidate_keep_choice_request(raw_request):
         return _process_workbook_candidate_choice_request(

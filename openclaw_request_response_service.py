@@ -421,6 +421,13 @@ def list_candidate_requests(inbox: Path = APPROVED_INBOX) -> tuple[Path, ...]:
     return tuple(sorted(candidates, key=lambda item: (item.stat().st_mtime_ns, item.name)))
 
 
+def _scoped_response_exists(response_dir: Path, source_request_id: str) -> Path | None:
+    if not source_request_id or source_request_id.startswith(("missing_request_id_", "invalid_", "unparseable_")):
+        return None
+    response_path = response_dir / f"openclaw_response_for_mac_{_safe_filename_part(source_request_id)}.json"
+    return response_path if response_path.exists() and response_path.is_file() else None
+
+
 def read_request_identity(path: Path) -> RequestIdentity:
     request_type = classify_request_path(path)
     try:
@@ -471,6 +478,7 @@ def read_request_identity(path: Path) -> RequestIdentity:
 def select_next_pending_request(
     *,
     inbox: Path = APPROVED_INBOX,
+    response_dir: Path = DEFAULT_RESPONSE_DIR,
     export_root: Path = DEFAULT_EXPORT_ROOT,
     extra_processed_keys: set[str] | None = None,
 ) -> tuple[Path | None, tuple[dict[str, Any], ...]]:
@@ -492,6 +500,20 @@ def select_next_pending_request(
                     "identity_keys": identity_keys,
                     "matched_duplicate_keys": matching_keys,
                     "reason": "already processed by local request/response service",
+                }
+            )
+            continue
+        existing_response = _scoped_response_exists(response_dir, identity.source_request_id)
+        if existing_response is not None:
+            skipped.append(
+                {
+                    "source_request_id": identity.source_request_id,
+                    "source_request_filename": candidate.name,
+                    "request_key": identity.request_key,
+                    "identity_keys": identity_keys,
+                    "matched_duplicate_keys": (f"scoped_response:{identity.source_request_id}",),
+                    "reason": "already has scoped Mac response",
+                    "response_file": existing_response.as_posix(),
                 }
             )
             continue
@@ -1354,6 +1376,7 @@ def process_one_pending_request(
     cache = read_model_cache or _new_read_model_cache(export_root)
     request_path, skipped = select_next_pending_request(
         inbox=inbox,
+        response_dir=response_dir,
         export_root=export_root,
         extra_processed_keys=extra_processed_keys,
     )
@@ -1873,7 +1896,7 @@ def build_service_status_payload(
             "mac_handoff_dir": DEFAULT_MAC_HANDOFF_DIR.as_posix(),
             "systemd_user_template": "systemd/user/openclaw-request-response.service.in",
             "activation_after_smoke_approval": (
-                "scripts/install_openclaw_stack.sh --apply --enable --start"
+                "scripts/install_openclaw_stack.sh --apply --enable --start --request-response-only"
             ),
             "activation_status": "not started by this command",
         },

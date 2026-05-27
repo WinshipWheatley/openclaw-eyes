@@ -1898,6 +1898,65 @@ def test_workbook_candidate_cancel_choice_keeps_existing_and_publishes_scoped_re
     assert rerun_latest["headline"] == "Workbook candidate kept"
 
 
+def test_workbook_candidate_replace_choice_accepts_real_workbook_language(tmp_path, capsys, monkeypatch):
+    inbox = tmp_path / "approved_inbox"
+    inbox.mkdir()
+    request_path = inbox / "mission_control_chat_request_capital_hilton_candidate_replace.json"
+    request = _write_intent_request(
+        request_path,
+        message=(
+            "That last workbok was just a test. This new workbook is the real Capital Hilton workbook. "
+            "Do not read or edit workbook cells."
+        ),
+        suffix="capital_hilton_candidate_replace",
+    )
+    request["client_ref"] = "capital_hilton"
+    request["world_ref"] = "finance"
+    request["payload_hash"] = chat_intake.compute_request_payload_hash(request)
+    request_path.write_text(chat_intake.stable_json(request), encoding="utf-8")
+    export_root = tmp_path / "read_models"
+    response_dir = tmp_path / "responses"
+    monkeypatch.setattr(processor, "APPROVED_INBOX", inbox)
+    monkeypatch.setattr(processor, "DEFAULT_RESPONSE_DIR", response_dir)
+    candidate_payload = _seed_workbook_registry_with_candidate(export_root)
+    candidate_ref = candidate_payload["candidate_record"]["workbook_ref"]
+
+    assert process_main(
+        [
+            "--file",
+            str(request_path),
+            "--export-root",
+            str(export_root),
+            "--generated-at",
+            FIXED_NOW,
+            "--format",
+            "json",
+        ]
+    ) == 0
+    response = json.loads(capsys.readouterr().out)
+    scoped = json.loads(_scoped_processor_response_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
+    registry_payload = json.loads((export_root / "client_invoice_workbook_registry.json").read_text(encoding="utf-8"))
+
+    assert response["source_request_id"] == request["request_id"]
+    assert response["headline"] == "Capital Hilton workbook updated"
+    assert response["eliwinship"] == (
+        "OpenClaw made the new workbook the current Capital Hilton running invoice workbook. "
+        "The previous workbook is no longer the active workbook reference. No workbook body or cells were read."
+    )
+    assert response["next_action"] == "Next: confirm the invoice field mapping before audit."
+    assert scoped["source_request_id"] == request["request_id"]
+    assert scoped["headline"] == "Capital Hilton workbook updated"
+    assert registry_payload["registration_readback"]["status"] == "WORKBOOK_REPLACEMENT_CONFIRMED"
+    assert registry_payload["registry"]["client_records"][0]["workbook_ref"] == candidate_ref
+    assert registry_payload["registry"]["client_records"][0]["workbook_status"] == "WORKBOOK_CONFIRMED"
+    assert registry_payload["registry"]["client_records"][0]["approved_for_cell_read"] is False
+    assert scoped["machine_proof"]["client_invoice_sheet_audit_used"] is False
+    assert scoped["machine_proof"]["workbook_body_read_performed"] is False
+    assert scoped["machine_proof"]["spreadsheet_cell_read_performed"] is False
+    assert scoped["machine_proof"]["external_action_performed"] is False
+    assert scoped["machine_proof"]["candidate_promotion_performed"] is False
+
+
 def test_processor_does_not_publish_without_valid_source_request_id(tmp_path):
     result = processor.publish_response_for_mac_outbox(
         {

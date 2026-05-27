@@ -1216,6 +1216,50 @@ def test_duplicate_idempotency_key_is_skipped_before_reprocessing(tmp_path, caps
     assert second_path.exists()
 
 
+def test_existing_scoped_response_skips_stale_inbox_file_and_processes_next_request(tmp_path, capsys):
+    inbox = tmp_path / "inbox"
+    response_dir = tmp_path / "responses"
+    export_root = tmp_path / "read_models"
+    inbox.mkdir()
+    response_dir.mkdir()
+    stale_path = inbox / "mission_control_file_intake_request_spreadsheet_stale.json"
+    fresh_path = inbox / "mission_control_file_intake_request_spreadsheet_fresh.json"
+    stale = _write_unique_file_request(stale_path, "already_answered")
+    fresh = _write_unique_file_request(fresh_path, "needs_answer")
+    os.utime(stale_path, ns=(1_000_000_000, 1_000_000_000))
+    os.utime(fresh_path, ns=(2_000_000_000, 2_000_000_000))
+    existing_response_path = _safe_response_path(response_dir, stale["request_id"])
+    existing_response_path.write_text(
+        json.dumps({"source_request_id": stale["request_id"], "terminal": True}) + "\n",
+        encoding="utf-8",
+    )
+
+    assert service_main(
+        [
+            "--once",
+            "--inbox",
+            str(inbox),
+            "--response-dir",
+            str(response_dir),
+            "--export-root",
+            str(export_root),
+            "--generated-at",
+            FIXED_NOW,
+            "--format",
+            "json",
+        ]
+    ) == 0
+    payload = json.loads(capsys.readouterr().out)
+    skipped = payload["service_status"]["skipped_duplicates"]
+    latest = payload["service_status"]["latest_response"]
+
+    assert payload["service_status"]["service_status"] == "REQUEST_PROCESSED"
+    assert latest["source_request_id"] == fresh["request_id"]
+    assert any(item["source_request_id"] == stale["request_id"] for item in skipped)
+    assert any("scoped_response:" + stale["request_id"] in item["matched_duplicate_keys"] for item in skipped)
+    assert _safe_response_path(response_dir, fresh["request_id"]).exists()
+
+
 def test_failed_processing_writes_failure_response_with_fix_path(tmp_path, capsys):
     inbox = tmp_path / "inbox"
     response_dir = tmp_path / "responses"

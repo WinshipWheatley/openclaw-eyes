@@ -43,6 +43,7 @@ WORKBOOK_STATUSES = (
 READBACK_STATUSES = (
     "WORKBOOK_REFERENCE_CAPTURED",
     "WORKBOOK_CANDIDATE_KEPT",
+    "WORKBOOK_REPLACEMENT_CONFIRMED",
     "WORKBOOK_CONTEXT_MISSING",
     "WORKBOOK_NOT_SPREADSHEET",
     "WORKBOOK_REGISTRATION_BLOCKED",
@@ -584,6 +585,150 @@ def keep_candidate_and_cancel_replacement(
             "candidate_preserved": candidate_record is not None,
             "workbook_replacement_performed": False,
             "candidate_promoted_to_authoritative": False,
+        }
+    )
+    payload["machine_proof"]["content_hash"] = _content_hash(payload)
+    return payload
+
+
+def replace_current_with_candidate(
+    raw_request: Mapping[str, Any],
+    *,
+    export_root: Path = DEFAULT_EXPORT_ROOT,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    """Record an operator choice to make the staged candidate the current workbook reference."""
+
+    generated_at = generated_at or utc_now()
+    existing_payload = load_existing_payload(export_root)
+    records = _records_from_existing(existing_payload)
+    candidate_mapping = (
+        existing_payload.get("candidate_record")
+        if isinstance(existing_payload, Mapping) and isinstance(existing_payload.get("candidate_record"), Mapping)
+        else None
+    )
+    candidate_record = _record_from_mapping(candidate_mapping)
+    client_ref = str(raw_request.get("client_ref") or (candidate_mapping or {}).get("client_ref") or "capital_hilton")
+    workflow_ref = str(
+        raw_request.get("workflow_ref") or (candidate_mapping or {}).get("workflow_ref") or "capital_hilton_invoice_workflow"
+    )
+    existing_mapping = _matching_record_by_refs(records, client_ref=client_ref, workflow_ref=workflow_ref)
+    old_active_record = _record_from_mapping(existing_mapping)
+    source_request_id = str(raw_request.get("request_id") or "unknown_candidate_replacement_request")
+    replacement_record: ClientInvoiceWorkbookRecord | None = None
+    if candidate_record is not None and candidate_record.client_ref == client_ref and candidate_record.workflow_ref == workflow_ref:
+        replacement_record = ClientInvoiceWorkbookRecord(
+            client_ref=candidate_record.client_ref,
+            client_display_name=candidate_record.client_display_name,
+            tenant_scope=candidate_record.tenant_scope,
+            workflow_ref=candidate_record.workflow_ref,
+            workbook_ref=candidate_record.workbook_ref,
+            workbook_display_name=candidate_record.workbook_display_name,
+            workbook_path_ref=candidate_record.workbook_path_ref,
+            workbook_extension=candidate_record.workbook_extension,
+            workbook_exists_status=candidate_record.workbook_exists_status,
+            workbook_status="WORKBOOK_CONFIRMED",
+            intended_use=candidate_record.intended_use,
+            approved_for_metadata_read=candidate_record.approved_for_metadata_read,
+            approved_for_cell_read=False,
+            source_request_id=candidate_record.source_request_id,
+            source_file_metadata_ref=candidate_record.source_file_metadata_ref,
+            next_safe_move="Next: confirm the invoice field mapping before audit.",
+        )
+        replacement_mapping = asdict(replacement_record)
+        replaced = False
+        for index, record in enumerate(records):
+            if record.get("client_ref") == client_ref and record.get("workflow_ref") == workflow_ref:
+                records[index] = replacement_mapping
+                replaced = True
+                break
+        if not replaced:
+            records.append(replacement_mapping)
+    readback_status = "WORKBOOK_REPLACEMENT_CONFIRMED" if replacement_record else "WORKBOOK_REGISTRATION_BLOCKED"
+    readback = WorkbookRegistrationReadback(
+        readback_id=f"workbook_registration_readback:{_short_hash(source_request_id, 'candidate_replaced')}",
+        status=readback_status,
+        operator_headline="Capital Hilton workbook updated" if replacement_record else "No workbook candidate found",
+        operator_message=(
+            "OpenClaw made the new workbook the current Capital Hilton running invoice workbook. "
+            "The previous workbook is no longer the active workbook reference. No workbook body or cells were read."
+            if replacement_record
+            else "OpenClaw did not find a staged workbook candidate to make current. No workbook body or cells were read."
+        ),
+        client_summary=f"{client_ref} / {workflow_ref}",
+        workbook_summary=(
+            f"Current workbook: {replacement_record.workbook_display_name}."
+            if replacement_record
+            else "No workbook replacement was performed."
+        ),
+        missing_items=() if replacement_record else ("staged workbook candidate",),
+        next_action=(
+            "Next: confirm the invoice field mapping before audit."
+            if replacement_record
+            else "Next: choose the workbook again in the Mac app."
+        ),
+        hidden_refs={
+            "source_request_id": source_request_id,
+            "previous_workbook_ref": old_active_record.workbook_ref if old_active_record else "",
+            "current_workbook_ref": replacement_record.workbook_ref if replacement_record else "",
+            "candidate_source_request_id": candidate_record.source_request_id if candidate_record else "",
+        },
+        authority_boundary=dict(AUTHORITY_BOUNDARY),
+        next_safe_move=(
+            "Next: confirm the invoice field mapping before audit."
+            if replacement_record
+            else "Next: choose the workbook again in the Mac app."
+        ),
+    )
+    registry = empty_registry()
+    registry_payload = ClientInvoiceWorkbookRegistry(
+        registry_id=registry.registry_id,
+        doctrine=registry.doctrine,
+        client_records=tuple(records),
+        workbook_policy=registry.workbook_policy,
+        invoice_sheet_policy=registry.invoice_sheet_policy,
+        registration_policy=registry.registration_policy,
+        authority_boundary=registry.authority_boundary,
+        next_safe_move=registry.next_safe_move,
+    )
+    payload = _build_payload(
+        generated_at=generated_at,
+        registry=registry_payload,
+        request=None,
+        readback=readback,
+        active_record=replacement_record,
+        candidate_record=None,
+        duplicate_result=(
+            "CANDIDATE_CONFIRMED_AS_CURRENT_WORKBOOK_BY_OPERATOR"
+            if replacement_record
+            else "NO_STAGED_CANDIDATE_TO_CONFIRM"
+        ),
+        existing_record=existing_mapping,
+    )
+    payload["operator_choice_request"] = {
+        "source_request_id": source_request_id,
+        "operator_choice": "MAKE_CANDIDATE_CURRENT_WORKBOOK",
+        "client_ref": client_ref,
+        "workflow_ref": workflow_ref,
+        "previous_workbook_ref": old_active_record.workbook_ref if old_active_record else "",
+        "current_workbook_ref": replacement_record.workbook_ref if replacement_record else "",
+        "workbook_replacement_performed": replacement_record is not None,
+        "workbook_body_read_performed": False,
+        "spreadsheet_cell_read_performed": False,
+        "external_action_performed": False,
+        "invoice_sent_or_submitted": False,
+        "ledger_posted": False,
+    }
+    payload["machine_proof"].update(
+        {
+            "operator_candidate_replace_choice_recorded": True,
+            "current_workbook_preserved": False,
+            "candidate_preserved": False,
+            "workbook_replacement_performed": replacement_record is not None,
+            "candidate_promoted_to_authoritative": False,
+            "candidate_promoted_to_current_workbook": replacement_record is not None,
+            "invoice_sent_or_submitted": False,
+            "ledger_posted": False,
         }
     )
     payload["machine_proof"]["content_hash"] = _content_hash(payload)
