@@ -80,6 +80,7 @@
 !business_ops_packet.py
 !business_ops_intent.py
 !business_ops_ledger.py
+!client_invoice_workflow_framework.py
 !capital_hilton_actionable_review_packet.py
 !capital_hilton_review_packet_approval.py
 !capital_hilton_external_artifact_proof_capture.py
@@ -911,6 +912,7 @@
 !scripts/export_conversational_workflow_router_contract.py
 !scripts/import_conversational_workflow_router_intake.py
 !scripts/export_conversational_workflow_router_readback.py
+!scripts/export_client_invoice_workflow_framework.py
 !scripts/export_cross_lane_reusable_block_registry_contract.py
 !scripts/export_cross_surface_artifact_handoff_registry_contract.py
 !scripts/export_cross_surface_handoff_registry_compatibility_audit.py
@@ -978,6 +980,7 @@
 !tests/test_chief_offline_worker_adapter.py
 !tests/test_cassandra_clara_offline_worker_adapter.py
 !tests/test_reality_bounce_harness.py
+!tests/test_client_invoice_workflow_framework.py
 !tests/test_external_lm_eligibility_policy.py
 !tests/test_external_lm_safe_package_compiler.py
 !tests/test_external_lm_shadow_adapter.py
