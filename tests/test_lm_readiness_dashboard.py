@@ -35,6 +35,8 @@ def test_readiness_dashboard_aggregates_all_seeded_lanes():
         "shadow_lm_mode",
         "token_vault_status",
         "universal_intake_contract",
+        "gate1_privacy_request_readiness",
+        "request_response_bridge_readiness",
     ):
         assert lane in lanes
     assert payload["machine_proof"]["dashboard_aggregates_seeded_lanes"] is True
@@ -43,6 +45,11 @@ def test_readiness_dashboard_aggregates_all_seeded_lanes():
     assert payload["dashboard_summary"]["lm2_package_shadow"] == "READY"
     assert payload["dashboard_summary"]["lm2_shadow_comparison"] == "READY"
     assert payload["dashboard_summary"]["provider_policy_registry"] == "SEEDED"
+    assert payload["dashboard_summary"]["gate1_privacy_request"] == "EXPORTED"
+    assert payload["dashboard_summary"]["request_response_bridge"] in {
+        "READY_FOR_LIVE_REVIEW",
+        "SEEDED_NEEDS_OPERATOR_SERVICE_CHECK",
+    }
 
 
 def test_lm1_thread_context_package_includes_universal_intake_and_token_declarations():
@@ -140,6 +147,18 @@ def test_dashboard_includes_universal_intake_batch_fixture_and_privacy_readiness
     assert privacy["production_token_vault_ready"] is False
     assert privacy["synthetic_tokenization_ready"] is True
     assert payload["dashboard_summary"]["privacy_readiness_status"] == "POLICY_SEEDED_PRODUCTION_TOKEN_VAULT_NOT_ACTIVE"
+
+
+def test_dashboard_exposes_bridge_and_gate1_without_expanding_authority():
+    payload = _payload()
+    flow = payload["representative_flow"]
+
+    assert flow["gate1_privacy_request_readiness"]["chain_contract"]["lm1_may_receive_raw_values"] is False
+    assert flow["request_response_bridge_readiness"]["safe_delivery_policy"]["arbitrary_destination_allowed"] is False
+    assert payload["machine_proof"]["gate1_privacy_request_readiness_aggregated"] is True
+    assert payload["machine_proof"]["request_response_bridge_readiness_aggregated"] is True
+    assert payload["machine_proof"]["model_call_performed"] is False
+    assert payload["machine_proof"]["tool_execution_performed"] is False
 
 
 def test_representative_flow_reaches_gate2_gate3_gate4_without_live_status():

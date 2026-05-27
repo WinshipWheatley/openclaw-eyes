@@ -16,14 +16,17 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Mapping
 
+import gate1_privacy_request_readiness
 import gate_chain_harness
 import guardian_output_gate
 import guardian_trust_ramp_simulator
 import intent_ingest_gate
+import lm1_thread_context_package
 import lm_readiness_dashboard
 import model_router_policy
 import operator_readiness_surface
 import provider_policy_registry
+import request_response_bridge_readiness
 import role_package_gate
 import shadow_lm_mode
 import token_vault
@@ -69,19 +72,8 @@ MATRIX_FIELDS = (
     "HAS_SQLITE_PROOF",
     "HAS_OPERATOR_COPY",
     "READY_FOR_SHADOW",
+    "READY_FOR_LIVE_REVIEW",
 )
-
-
-@dataclass(frozen=True)
-class Gate1PrivacyTriggerFixture:
-    fixture_id: str
-    input_class: str
-    privacy_class: str
-    tokenization_required: bool
-    private_mode_recommended: bool
-    strict_local_only_required: bool
-    lm1_raw_values_allowed: bool
-    next_safe_move: str
 
 
 @dataclass(frozen=True)
@@ -97,6 +89,7 @@ class FloorLaneAssessment:
     has_sqlite_proof: bool
     has_operator_copy: bool
     ready_for_shadow: bool
+    ready_for_live_review: bool
     maturity_score: int
     maturity_label: str
     not_ready_reason: str
@@ -118,55 +111,11 @@ def _content_hash(payload: dict[str, Any]) -> str:
 
 
 def classify_gate1_privacy_trigger(input_class: str) -> dict[str, Any]:
-    normalized = input_class.strip().lower().replace(" ", "_")
-    if normalized in {"client_finance", "finance", "invoice_workbook", "client_finance_file"}:
-        privacy_class = "CLIENT_FINANCE_FILE_METADATA"
-        tokenization_required = True
-        private_mode_recommended = True
-        strict_local_only_required = False
-    elif normalized in {"legal", "confidential", "legal_confidential"}:
-        privacy_class = "CONFIDENTIAL_CLIENT_METADATA"
-        tokenization_required = True
-        private_mode_recommended = True
-        strict_local_only_required = True
-    elif normalized in {"personal", "private", "personal_private"}:
-        privacy_class = "PERSONAL_PRIVATE_METADATA"
-        tokenization_required = True
-        private_mode_recommended = True
-        strict_local_only_required = True
-    elif normalized in {"strict", "strict_local_only", "strict_private"}:
-        privacy_class = "STRICT_PRIVATE_CLIENT_METADATA"
-        tokenization_required = True
-        private_mode_recommended = True
-        strict_local_only_required = True
-    else:
-        privacy_class = "LOW_METADATA"
-        tokenization_required = False
-        private_mode_recommended = False
-        strict_local_only_required = False
-
-    fixture = Gate1PrivacyTriggerFixture(
-        fixture_id=f"gate1_privacy_trigger:{_short_hash(normalized, privacy_class)}",
-        input_class=normalized or "normal",
-        privacy_class=privacy_class,
-        tokenization_required=tokenization_required,
-        private_mode_recommended=private_mode_recommended,
-        strict_local_only_required=strict_local_only_required,
-        lm1_raw_values_allowed=False,
-        next_safe_move=(
-            "Attach token/privacy declarations before LM1 packaging."
-            if tokenization_required
-            else "Allow metadata-only LM1 packaging; raw values still stay out by default."
-        ),
-    )
-    return asdict(fixture)
+    return gate1_privacy_request_readiness.classify_gate1_privacy_request(input_class)
 
 
 def gate1_privacy_trigger_fixtures() -> tuple[dict[str, Any], ...]:
-    return tuple(
-        classify_gate1_privacy_trigger(item)
-        for item in ("normal", "client_finance", "legal_confidential", "personal_private", "strict_local_only")
-    )
+    return gate1_privacy_request_readiness.gate1_privacy_trigger_fixtures()
 
 
 def _score(flags: Mapping[str, bool]) -> int:
@@ -205,6 +154,7 @@ def _assessment(
         has_sqlite_proof=normalized["HAS_SQLITE_PROOF"],
         has_operator_copy=normalized["HAS_OPERATOR_COPY"],
         ready_for_shadow=normalized["READY_FOR_SHADOW"],
+        ready_for_live_review=normalized["READY_FOR_LIVE_REVIEW"],
         maturity_score=score,
         maturity_label=_label(score),
         not_ready_reason=not_ready_reason,
@@ -215,22 +165,23 @@ def _assessment(
 
 def build_floor_matrix(*, generated_at: str = DEFAULT_GENERATED_AT) -> tuple[dict[str, Any], ...]:
     dashboard = lm_readiness_dashboard.build_payload(generated_at=generated_at)
-    shadow = shadow_lm_mode.build_payload(generated_at=generated_at, persist=True)
-    bridge_status = Path("systemd/user/openclaw-request-response.service.in").exists()
+    bridge_readiness = request_response_bridge_readiness.build_payload(generated_at=generated_at)
     readiness_summary = dashboard["dashboard_summary"]
+    lm1_payload = lm1_thread_context_package.build_payload(generated_at=generated_at)
     return (
         _assessment(
             "gate1_ingress_privacy_request",
             "Gate 1 ingress/privacy/request readiness",
             tested=True,
             exported=True,
-            dashboard_visible=False,
+            dashboard_visible=True,
             connected_to_chain=True,
             has_fixture=True,
             has_operator_copy=True,
             ready_for_shadow=True,
+            ready_for_live_review=True,
             raised_this_pass=True,
-            not_ready_reason="Needs live device trust registry integration before live LM.",
+            not_ready_reason="Needs live device trust registry integration before live LM activation.",
         ),
         _assessment(
             "universal_intake",
@@ -242,7 +193,6 @@ def build_floor_matrix(*, generated_at: str = DEFAULT_GENERATED_AT) -> tuple[dic
             has_fixture=True,
             has_operator_copy=True,
             ready_for_shadow=True,
-            raised_this_pass=True,
             not_ready_reason="Still metadata-only; no production broad file classification.",
         ),
         _assessment(
@@ -253,10 +203,11 @@ def build_floor_matrix(*, generated_at: str = DEFAULT_GENERATED_AT) -> tuple[dic
             dashboard_visible=True,
             connected_to_chain=True,
             has_fixture=True,
-            has_operator_copy=False,
+            has_operator_copy=True,
             ready_for_shadow=readiness_summary["lm1_shadow"] == "READY",
+            ready_for_live_review=lm1_payload["machine_proof"]["ready_for_shadow"],
             raised_this_pass=True,
-            not_ready_reason="Package is embedded in dashboard, not yet a standalone live ingress artifact.",
+            not_ready_reason="Standalone package is exported; live LM1 remains blocked until explicit activation and production privacy receipts.",
         ),
         _assessment(
             "model_router_provider_policy",
@@ -268,6 +219,7 @@ def build_floor_matrix(*, generated_at: str = DEFAULT_GENERATED_AT) -> tuple[dic
             has_fixture=True,
             has_operator_copy=True,
             ready_for_shadow=True,
+            ready_for_live_review=True,
             not_ready_reason="No live provider activation receipt.",
         ),
         _assessment(
@@ -280,6 +232,7 @@ def build_floor_matrix(*, generated_at: str = DEFAULT_GENERATED_AT) -> tuple[dic
             has_fixture=True,
             has_operator_copy=True,
             ready_for_shadow=True,
+            ready_for_live_review=True,
             not_ready_reason="Production token vault is not active.",
         ),
         _assessment(
@@ -292,6 +245,9 @@ def build_floor_matrix(*, generated_at: str = DEFAULT_GENERATED_AT) -> tuple[dic
             has_fixture=True,
             has_operator_copy=True,
             ready_for_shadow=True,
+            ready_for_live_review=True,
+            raised_this_pass=True,
+            not_ready_reason="Operator-facing visibility improved; live LM1 proposals still require explicit activation.",
         ),
         _assessment(
             "gate3_role_package",
@@ -303,6 +259,7 @@ def build_floor_matrix(*, generated_at: str = DEFAULT_GENERATED_AT) -> tuple[dic
             has_fixture=True,
             has_operator_copy=True,
             ready_for_shadow=True,
+            ready_for_live_review=True,
         ),
         _assessment(
             "lm2_package_shadow",
@@ -315,7 +272,6 @@ def build_floor_matrix(*, generated_at: str = DEFAULT_GENERATED_AT) -> tuple[dic
             has_sqlite_proof=True,
             has_operator_copy=True,
             ready_for_shadow=readiness_summary["lm2_package_shadow"] == "READY",
-            raised_this_pass=True,
             not_ready_reason="Negative fixtures added; still no live LM2 calls.",
         ),
         _assessment(
@@ -328,6 +284,7 @@ def build_floor_matrix(*, generated_at: str = DEFAULT_GENERATED_AT) -> tuple[dic
             has_fixture=True,
             has_operator_copy=True,
             ready_for_shadow=True,
+            ready_for_live_review=True,
         ),
         _assessment(
             "trust_ramp",
@@ -352,6 +309,7 @@ def build_floor_matrix(*, generated_at: str = DEFAULT_GENERATED_AT) -> tuple[dic
             has_fixture=True,
             has_operator_copy=True,
             ready_for_shadow=True,
+            ready_for_live_review=True,
         ),
         _assessment(
             "operator_readiness_surface",
@@ -363,18 +321,21 @@ def build_floor_matrix(*, generated_at: str = DEFAULT_GENERATED_AT) -> tuple[dic
             has_fixture=True,
             has_operator_copy=True,
             ready_for_shadow=True,
+            ready_for_live_review=True,
         ),
         _assessment(
             "request_response_bridge",
             "Request-response bridge",
             tested=True,
             exported=True,
-            dashboard_visible=False,
-            connected_to_chain=bridge_status,
+            dashboard_visible=True,
+            connected_to_chain=bridge_readiness["bridge_contract"]["service_template_present"],
             has_fixture=True,
             has_operator_copy=True,
-            ready_for_shadow=False,
-            not_ready_reason="Bridge is operationally separate from LM readiness dashboard.",
+            ready_for_shadow=True,
+            ready_for_live_review=bridge_readiness["bridge_contract"]["ready_for_live_review"],
+            raised_this_pass=True,
+            not_ready_reason="Readiness visibility exists; live service state is still checked outside this read-model.",
         ),
         _assessment(
             "invoice_fixture_integration",
@@ -387,6 +348,18 @@ def build_floor_matrix(*, generated_at: str = DEFAULT_GENERATED_AT) -> tuple[dic
             has_operator_copy=True,
             ready_for_shadow=True,
             not_ready_reason="Fixture-proven only; running workbooks are not submitted/paid/final truth.",
+        ),
+        _assessment(
+            "private_mode_readiness",
+            "Private Mode readiness",
+            tested=True,
+            exported=True,
+            dashboard_visible=True,
+            connected_to_chain=True,
+            has_fixture=True,
+            has_operator_copy=True,
+            ready_for_shadow=True,
+            not_ready_reason="Backend policy is seeded, but product switch and production token vault are inactive.",
         ),
         _assessment(
             "production_live_blockers",
@@ -412,11 +385,15 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
     generated_at = generated_at or DEFAULT_GENERATED_AT
     matrix = build_floor_matrix(generated_at=generated_at)
     gate1_fixtures = gate1_privacy_trigger_fixtures()
+    gate1_payload = gate1_privacy_request_readiness.build_payload(generated_at=generated_at)
     universal_payload = universal_intake_contract.build_payload(generated_at=generated_at)
-    lm1_package = lm_readiness_dashboard.build_lm1_thread_context_package()
+    lm1_payload = lm1_thread_context_package.build_payload(generated_at=generated_at)
+    lm1_package = lm1_payload["lm1_thread_context_package"]
     token_payload = token_vault.build_payload(generated_at=generated_at)
     shadow_payload = shadow_lm_mode.build_payload(generated_at=generated_at, persist=True)
     dashboard_payload = lm_readiness_dashboard.build_payload(generated_at=generated_at)
+    bridge_payload = request_response_bridge_readiness.build_payload(generated_at=generated_at)
+    gate2_result = dashboard_payload["representative_flow"]["gate2_result_summary"]
     raised = tuple(item for item in matrix if item["raised_this_pass"])
     payload: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
@@ -428,14 +405,39 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
         "weakest_lanes": weakest_lanes(matrix),
         "raised_this_pass": raised,
         "gate1_privacy_trigger_fixtures": gate1_fixtures,
+        "gate1_privacy_request_readiness_ref": {
+            "read_model_ref": "generated/read_models/gate1_privacy_request_readiness.json",
+            "contract_status": gate1_payload["contract_status"],
+            "gate_1_output_can_feed_lm1_package": gate1_payload["chain_contract"]["gate_1_output_can_feed_lm1_package"],
+            "lm1_may_receive_raw_values": gate1_payload["chain_contract"]["lm1_may_receive_raw_values"],
+        },
         "universal_intake_chain_candidate": universal_payload["examples"]["capital_hilton_running_workbook"],
         "lm1_thread_context_package_ref": {
+            "read_model_ref": "generated/read_models/lm1_thread_context_package.json",
             "package_id": lm1_package["package_id"],
             "privacy_classification": lm1_package["privacy_classification"],
             "tokenization_required": lm1_package["tokenization_required"],
             "universal_intake_chain_contract": lm1_package.get("universal_intake_chain_contract", {}),
             "raw_values_included": lm1_package["raw_values_included"],
             "tools_allowed": lm1_package["tools_allowed"],
+            "ready_for_shadow": lm1_payload["machine_proof"]["ready_for_shadow"],
+        },
+        "gate2_visibility_summary": {
+            "read_model_ref": "generated/read_models/intent_ingest_gate.json",
+            "representative_outcome": gate2_result.get("outcome"),
+            "operator_copy": (
+                "Gate 2 can accept a safe intent proposal, ask for clarification, or block authority before anything executes."
+            ),
+            "live_lm_ingest_allowed": False,
+            "tool_execution_allowed": False,
+        },
+        "request_response_bridge_readiness_ref": {
+            "read_model_ref": "generated/read_models/request_response_bridge_readiness.json",
+            "readiness_status": bridge_payload["readiness_status"],
+            "approved_inbox_ref": bridge_payload["bridge_contract"]["approved_inbox_ref"],
+            "response_output_ref": bridge_payload["bridge_contract"]["response_output_ref"],
+            "scoped_response_filename_contract": bridge_payload["bridge_contract"]["scoped_response_filename_contract"],
+            "ready_for_live_review": bridge_payload["bridge_contract"]["ready_for_live_review"],
         },
         "tokenization_proof": {
             "raw_values_exported": token_payload["machine_proof"]["raw_values_exported"],
@@ -456,18 +458,23 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
             "next_blockers": dashboard_payload["dashboard_summary"]["next_blockers"],
         },
         "next_floor_raise_recommendations": (
-            "Promote Gate 1 privacy trigger into the live request-response readback path.",
-            "Make LM1 thread-context package a standalone exported contract when live shadow starts.",
-            "Add request-response bridge health to the readiness dashboard without starting new services.",
+            "Connect Gate 1 privacy trigger to live request readbacks after device trust registry work.",
+            "Use the standalone LM1 package for future live-shadow fixture runs.",
+            "Keep bridge service health visible in readiness without giving it broader daemon authority.",
             "Keep expanding negative shadow cases before live LM activation.",
         ),
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
         "machine_proof": {
             "floor_matrix_lane_count": len(matrix),
-            "all_required_lanes_classified": len(matrix) == 15,
+            "all_required_lanes_classified": len(matrix) == 16,
             "weak_lanes_identified": bool(weakest_lanes(matrix)),
             "raised_lane_count": len(raised),
             "gate1_privacy_trigger_fixture_exists": len(gate1_fixtures) == 5,
+            "gate1_privacy_readiness_exported": True,
+            "lm1_thread_context_package_exported": True,
+            "request_response_bridge_dashboard_visible": True,
+            "request_response_bridge_ready_for_live_review": bridge_payload["bridge_contract"]["ready_for_live_review"],
+            "gate2_visibility_polished": gate2_result.get("outcome") == intent_ingest_gate.ACCEPTED_INTENT,
             "universal_intake_chain_compatible": universal_payload["examples"]["capital_hilton_running_workbook"]["lm1_chain_ready"] is True,
             "lm1_package_consumes_intake_and_privacy": bool(lm1_package.get("universal_intake_chain_contract"))
             and lm1_package["tokenization_required"] is True,

@@ -62,9 +62,11 @@ def test_proof_shelf_keeps_machine_fields_available():
 
     for key in (
         "gate_chain_status",
+        "gate1_privacy_status",
         "lm1_shadow_status",
         "lm2_shadow_status",
         "tokenization_status",
+        "request_response_bridge_status",
         "provider_policy_status",
         "guardian_gate_status",
         "trust_ramp_candidate_level",
@@ -73,6 +75,8 @@ def test_proof_shelf_keeps_machine_fields_available():
     ):
         assert key in proof
     assert "generated/read_models/lm_readiness_dashboard.json" in proof["read_model_refs"]
+    assert "generated/read_models/gate1_privacy_request_readiness.json" in proof["read_model_refs"]
+    assert "generated/read_models/request_response_bridge_readiness.json" in proof["read_model_refs"]
 
 
 def test_suggested_buttons_only_represent_human_decisions():

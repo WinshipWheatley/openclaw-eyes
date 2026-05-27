@@ -110,9 +110,11 @@ class PrivateModeCard:
 @dataclass(frozen=True)
 class ProofShelf:
     gate_chain_status: str
+    gate1_privacy_status: str
     lm1_shadow_status: str
     lm2_shadow_status: str
     tokenization_status: str
+    request_response_bridge_status: str
     provider_policy_status: str
     guardian_gate_status: str
     trust_ramp_candidate_level: int
@@ -261,9 +263,11 @@ def build_proof_shelf(inputs: Mapping[str, Any]) -> dict[str, Any]:
     return asdict(
         ProofShelf(
             gate_chain_status="PASS" if inputs["gate_chain_harness"]["summary"]["failed"] == 0 else "CHECK",
+            gate1_privacy_status=str(summary.get("gate1_privacy_request", "UNKNOWN")),
             lm1_shadow_status=str(summary.get("lm1_shadow")),
             lm2_shadow_status=str(summary.get("lm2_package_shadow")),
             tokenization_status=str(summary.get("privacy_readiness_status")),
+            request_response_bridge_status=str(summary.get("request_response_bridge", "UNKNOWN")),
             provider_policy_status=str(summary.get("provider_policy_registry")),
             guardian_gate_status=str(guardian_verdict),
             trust_ramp_candidate_level=int(summary.get("trust_ramp_candidate_level") or 0),
@@ -276,6 +280,8 @@ def build_proof_shelf(inputs: Mapping[str, Any]) -> dict[str, Any]:
                 "generated/read_models/shadow_lm_mode.json",
                 "generated/read_models/token_vault_status.json",
                 "generated/read_models/universal_intake_contract.json",
+                "generated/read_models/gate1_privacy_request_readiness.json",
+                "generated/read_models/request_response_bridge_readiness.json",
                 "generated/read_models/guardian_trust_ramp_simulator.json",
                 "generated/read_models/gate_chain_harness.json",
                 "generated/read_models/guardian_output_gate.json",

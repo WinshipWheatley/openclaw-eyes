@@ -10,6 +10,8 @@ LM2 live: NOT_ACTIVE
 Tokenization: SEEDED_NOT_PRODUCTION
 Privacy readiness: POLICY_SEEDED_PRODUCTION_TOKEN_VAULT_NOT_ACTIVE
 Provider policy registry: SEEDED
+Gate 1 privacy request: EXPORTED
+Request-response bridge: READY_FOR_LIVE_REVIEW
 Universal intake batch: READY
 Gate 2: ACCEPTED_INTENT
 Gate 3: ROLE_PACKAGE_COMPILED

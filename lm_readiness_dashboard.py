@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 import gate_chain_harness
+import gate1_privacy_request_readiness
 import guardian_output_gate
 import guardian_trust_ramp_simulator
 import intent_ingest_gate
@@ -22,6 +23,7 @@ import live_lm_readiness_gate
 import lm_intent_proposal_contract
 import model_router_policy
 import provider_policy_registry
+import request_response_bridge_readiness
 import role_package_gate
 import shadow_lm_mode
 import token_vault
@@ -278,6 +280,8 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
     readiness = live_lm_readiness_gate.build_payload(generated_at=generated_at)
     token_status = token_vault.build_payload(generated_at=generated_at)
     universal = universal_intake_contract.build_payload(generated_at=generated_at)
+    gate1_privacy = gate1_privacy_request_readiness.build_payload(generated_at=generated_at)
+    bridge_readiness = request_response_bridge_readiness.build_payload(generated_at=generated_at)
     privacy_readiness = token_status["privacy_readiness"]
     universal_batch = universal["batch_examples"]["running_invoice_workbooks"]
     role_package = representative["gate3_result"].get("role_execution_package") or {}
@@ -298,6 +302,8 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
         "universal_intake_batch": "READY" if universal["machine_proof"]["batch_fixture_all_high_confidence"] else "NEEDS_CLARIFICATION",
         "model_router": "SEEDED",
         "provider_policy_registry": "SEEDED",
+        "gate1_privacy_request": "EXPORTED",
+        "request_response_bridge": bridge_readiness["readiness_status"],
         "gate2_ingest": representative["gate2_result"].get("outcome"),
         "gate3_package": representative["gate3_result"].get("package_status"),
         "gate4_guardian": (representative["gate4_result"].get("validation_result") or {}).get("verdict"),
@@ -333,6 +339,18 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
             "tokenization_policy_result": representative["lm1_thread_context_package"]["tokenization_policy"],
             "privacy_readiness_result": privacy_readiness,
             "private_mode_readiness": representative["private_mode"],
+            "gate1_privacy_request_readiness": {
+                "read_model_ref": "generated/read_models/gate1_privacy_request_readiness.json",
+                "contract_status": gate1_privacy["contract_status"],
+                "chain_contract": gate1_privacy["chain_contract"],
+                "operator_summary": gate1_privacy["operator_summary"],
+            },
+            "request_response_bridge_readiness": {
+                "read_model_ref": "generated/read_models/request_response_bridge_readiness.json",
+                "readiness_status": bridge_readiness["readiness_status"],
+                "bridge_contract": bridge_readiness["bridge_contract"],
+                "safe_delivery_policy": bridge_readiness["safe_delivery_policy"],
+            },
             "universal_intake_batch_fixture": universal_batch,
             "lm1_thread_context_package": representative["lm1_thread_context_package"],
             "lm1_model_decision": representative["lm1_model_decision"],
@@ -447,6 +465,14 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
                 "read_model_id": universal_intake_contract.READ_MODEL_ID,
                 "machine_proof": universal.get("machine_proof", {}),
             },
+            "gate1_privacy_request_readiness": {
+                "read_model_id": gate1_privacy_request_readiness.READ_MODEL_ID,
+                "machine_proof": gate1_privacy.get("machine_proof", {}),
+            },
+            "request_response_bridge_readiness": {
+                "read_model_id": request_response_bridge_readiness.READ_MODEL_ID,
+                "machine_proof": bridge_readiness.get("machine_proof", {}),
+            },
         },
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
         "machine_proof": {
@@ -459,6 +485,9 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
             ]
             is False,
             "private_mode_fields_present": True,
+            "gate1_privacy_request_readiness_aggregated": True,
+            "request_response_bridge_readiness_aggregated": True,
+            "request_response_bridge_ready_for_live_review": bridge_readiness["bridge_contract"]["ready_for_live_review"],
             "private_mode_active": representative["private_mode"]["private_mode_active"],
             "strict_private_mode_active": representative["private_mode"]["strict_private_mode_active"],
             "cloud_lm_allowed_when_private": representative["private_mode"]["cloud_lm_allowed_when_private"],
@@ -509,6 +538,8 @@ def write_exports(payload: Mapping[str, Any], export_root: Path = DEFAULT_EXPORT
         f"Tokenization: {summary.get('tokenization')}",
         f"Privacy readiness: {summary.get('privacy_readiness_status')}",
         f"Provider policy registry: {summary.get('provider_policy_registry')}",
+        f"Gate 1 privacy request: {summary.get('gate1_privacy_request')}",
+        f"Request-response bridge: {summary.get('request_response_bridge')}",
         f"Universal intake batch: {summary.get('universal_intake_batch')}",
         f"Gate 2: {summary.get('gate2_ingest')}",
         f"Gate 3: {summary.get('gate3_package')}",

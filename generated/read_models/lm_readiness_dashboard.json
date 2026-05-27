@@ -1,5 +1,22 @@
 {
   "aggregated_lanes": {
+    "gate1_privacy_request_readiness": {
+      "machine_proof": {
+        "all_live_authority_false": true,
+        "content_hash": "sha256:0eaaf1f53ab8240cd2f65213db58571cae087d0e05885303fd6786f801fd5bad",
+        "external_action_performed": false,
+        "file_body_read_performed": false,
+        "finance_requires_tokenization": true,
+        "fixture_count": 5,
+        "live_model_call_performed": false,
+        "lm1_raw_values_allowed_any_fixture": false,
+        "normal_classified_low_metadata": true,
+        "spreadsheet_cell_read_performed": false,
+        "strict_local_only_fixture_exists": true,
+        "tool_execution_performed": false
+      },
+      "read_model_id": "gate1_privacy_request_readiness"
+    },
     "gate_chain_harness": {
       "read_model_id": "gate_chain_harness",
       "summary": {
@@ -146,6 +163,26 @@
       },
       "read_model_id": "provider_policy_registry"
     },
+    "request_response_bridge_readiness": {
+      "machine_proof": {
+        "all_live_authority_false": true,
+        "approved_inbox_only": true,
+        "content_hash": "sha256:248cccac17c55a75eccf1124b80f7aa0479a3346fb2fa046c783ec49e6dd9f29",
+        "external_action_performed": false,
+        "model_call_performed": false,
+        "per_request_response_written": true,
+        "ready_for_live_review": true,
+        "request_processed_by_this_readmodel": false,
+        "route_aware_processing_heartbeat_written": true,
+        "service_started_by_this_readmodel": false,
+        "service_template_present": true,
+        "status_read_model_present": true,
+        "terminal_response_written": true,
+        "tool_execution_performed": false,
+        "workflow_execution_performed": false
+      },
+      "read_model_id": "request_response_bridge_readiness"
+    },
     "shadow_lm_mode": {
       "machine_proof": {
         "all_live_authority_false": true,
@@ -231,6 +268,7 @@
   "dashboard_summary": {
     "can_lm1_shadow_test": true,
     "can_lm2_shadow_test": true,
+    "gate1_privacy_request": "EXPORTED",
     "gate2_ingest": "ACCEPTED_INTENT",
     "gate3_package": "ROLE_PACKAGE_COMPILED",
     "gate4_guardian": "ROLE_OUTPUT_VALIDATED",
@@ -255,6 +293,7 @@
     "privacy_readiness_status": "POLICY_SEEDED_PRODUCTION_TOKEN_VAULT_NOT_ACTIVE",
     "production_token_vault_ready": false,
     "provider_policy_registry": "SEEDED",
+    "request_response_bridge": "READY_FOR_LIVE_REVIEW",
     "tokenization": "SEEDED_NOT_PRODUCTION",
     "tokenization_policy": "CLIENT_FINANCE_FILE_METADATA",
     "trust_ramp_active_level": 1,
@@ -266,9 +305,10 @@
   "machine_proof": {
     "all_live_authority_false": true,
     "cloud_lm_allowed_when_private": false,
-    "content_hash": "sha256:c9dc157850656b1b9c54df62a712b8690824419488604226de012e9858d528c3",
+    "content_hash": "sha256:6473cb5ed73b0736758797027f37797b67746070b2992f75319bd21e36d2f6b8",
     "dashboard_aggregates_seeded_lanes": true,
     "external_action_performed": false,
+    "gate1_privacy_request_readiness_aggregated": true,
     "gate3_model_may_see_raw_values": false,
     "gate3_tokenization_fields_present": true,
     "live_lm_status": "NOT_ACTIVE",
@@ -286,6 +326,8 @@
     "provider_policy_lm1_selected": true,
     "provider_policy_lm2_selected": true,
     "provider_policy_registry_aggregated": true,
+    "request_response_bridge_readiness_aggregated": true,
+    "request_response_bridge_ready_for_live_review": true,
     "shadow_comparison_failed_count": 0,
     "spreadsheet_cell_read_performed": false,
     "strict_private_mode_active": false,
@@ -298,6 +340,22 @@
   },
   "read_model_id": "lm_readiness_dashboard",
   "representative_flow": {
+    "gate1_privacy_request_readiness": {
+      "chain_contract": {
+        "gate_1_output_can_feed_lm1_package": true,
+        "live_lm_enabled": false,
+        "lm1_may_receive_raw_values": false,
+        "private_mode_can_raise_local_only_requirement": true,
+        "tokenization_declaration_required_for_private_or_finance": true
+      },
+      "contract_status": "GATE1_PRIVACY_TRIGGER_READY_NO_LIVE_LM",
+      "operator_summary": [
+        "OpenClaw can classify privacy posture before a future LM1 package is built.",
+        "Finance and private items require tokenized or summarized context.",
+        "Raw file bodies, workbook cells, credentials, and unrelated client details stay out."
+      ],
+      "read_model_ref": "generated/read_models/gate1_privacy_request_readiness.json"
+    },
     "gate2_result_summary": {
       "accepted_intent": {
         "accepted_intent_id": "accepted_intent:5e37c4144d627a52",
@@ -1138,6 +1196,29 @@
         "selected_provider_ref": "provider_class:local_or_private_role_reasoner_stub",
         "selection_id": "provider_policy_selection:d4c7eeeb5e6012fb",
         "selection_reason": "Selected first usable provider policy candidate for the requested lane/model class."
+      }
+    },
+    "request_response_bridge_readiness": {
+      "bridge_contract": {
+        "approved_inbox_ref": "/mnt/e/openclaw/mission_control_capture_requests/inbox",
+        "dashboard_visible": true,
+        "latest_response_supported": true,
+        "ready_for_live_review": true,
+        "response_output_ref": "/mnt/e/openclaw/mission_control_responses/to_mac",
+        "route_aware_heartbeat_supported": true,
+        "scoped_response_filename_contract": "openclaw_response_for_mac_<source_request_id>.json",
+        "service_template_present": true,
+        "service_template_ref": "systemd/user/openclaw-request-response.service.in",
+        "status_read_model_ref": "generated/read_models/openclaw_request_response_service_status.json"
+      },
+      "read_model_ref": "generated/read_models/request_response_bridge_readiness.json",
+      "readiness_status": "READY_FOR_LIVE_REVIEW",
+      "safe_delivery_policy": {
+        "approved_inbox_only": true,
+        "arbitrary_destination_allowed": false,
+        "lm_inferred_routing_allowed": false,
+        "scoped_response_required": true,
+        "telegram_email_push_routing_allowed": false
       }
     },
     "shadow_comparison_summary": {

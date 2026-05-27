@@ -34,7 +34,7 @@
   "machine_proof": {
     "aggregates_lm_readiness_dashboard": true,
     "all_live_authority_false": true,
-    "content_hash": "sha256:2eb2a4d4eca54e4db916018dc0531d434d66f033a43bf4b0f3678bf92f647813",
+    "content_hash": "sha256:6acd95a9a168962b35ad6bf10faa607578ae07dbe3495b88f318edceb5044688",
     "external_action_performed": false,
     "live_lm_status": "NOT_ACTIVE",
     "live_model_call_performed": false,
@@ -141,6 +141,7 @@
     },
     "proof_shelf": {
       "active_trust_level": 1,
+      "gate1_privacy_status": "EXPORTED",
       "gate_chain_status": "PASS",
       "guardian_gate_status": "ROLE_OUTPUT_VALIDATED",
       "live_lm_blockers": [
@@ -161,10 +162,13 @@
         "generated/read_models/shadow_lm_mode.json",
         "generated/read_models/token_vault_status.json",
         "generated/read_models/universal_intake_contract.json",
+        "generated/read_models/gate1_privacy_request_readiness.json",
+        "generated/read_models/request_response_bridge_readiness.json",
         "generated/read_models/guardian_trust_ramp_simulator.json",
         "generated/read_models/gate_chain_harness.json",
         "generated/read_models/guardian_output_gate.json"
       ],
+      "request_response_bridge_status": "READY_FOR_LIVE_REVIEW",
       "tokenization_status": "POLICY_SEEDED_PRODUCTION_TOKEN_VAULT_NOT_ACTIVE",
       "trust_ramp_candidate_level": 4
     },

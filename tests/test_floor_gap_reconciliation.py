@@ -21,10 +21,11 @@ def test_floor_matrix_classifies_each_required_lane():
     matrix = payload["floor_matrix"]
 
     assert payload["machine_proof"]["all_required_lanes_classified"] is True
-    assert len(matrix) == 15
+    assert len(matrix) == 16
     for item in matrix:
         assert "lane_id" in item
         assert "maturity_label" in item
+        assert "ready_for_live_review" in item
         assert "not_ready_reason" in item
 
 
@@ -43,7 +44,7 @@ def test_at_least_three_weak_lanes_get_floor_improvements():
     raised_ids = {item["lane_id"] for item in payload["raised_this_pass"]}
 
     assert payload["machine_proof"]["raised_lane_count"] >= 3
-    assert {"gate1_ingress_privacy_request", "universal_intake", "lm2_package_shadow"}.issubset(raised_ids)
+    assert {"gate1_ingress_privacy_request", "lm1_thread_context_package", "request_response_bridge"}.issubset(raised_ids)
 
 
 def test_gate1_privacy_trigger_fixtures_exist():
@@ -80,6 +81,20 @@ def test_lm1_package_consumes_intake_and_privacy_declarations():
     assert package["universal_intake_chain_contract"]["requires_tokenization_policy"] is True
     assert package["raw_values_included"] is False
     assert package["tools_allowed"] == ()
+    assert package["read_model_ref"] == "generated/read_models/lm1_thread_context_package.json"
+    assert package["ready_for_shadow"] is True
+
+
+def test_equalization_exports_low_beam_readiness_refs():
+    payload = _payload()
+
+    assert payload["gate1_privacy_request_readiness_ref"]["read_model_ref"] == "generated/read_models/gate1_privacy_request_readiness.json"
+    assert payload["gate1_privacy_request_readiness_ref"]["lm1_may_receive_raw_values"] is False
+    assert payload["request_response_bridge_readiness_ref"]["read_model_ref"] == "generated/read_models/request_response_bridge_readiness.json"
+    assert payload["request_response_bridge_readiness_ref"]["scoped_response_filename_contract"] == "openclaw_response_for_mac_<source_request_id>.json"
+    assert payload["machine_proof"]["gate1_privacy_readiness_exported"] is True
+    assert payload["machine_proof"]["request_response_bridge_dashboard_visible"] is True
+    assert payload["machine_proof"]["lm1_thread_context_package_exported"] is True
 
 
 def test_tokenization_proof_does_not_leak_synthetic_raw_values():
