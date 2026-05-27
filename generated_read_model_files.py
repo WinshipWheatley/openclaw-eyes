@@ -67,6 +67,11 @@ VOLATILE_SELF_REPORT_READ_MODEL_FILES = (
     "system_health_lights_taxonomy_OPERATOR.md",
 )
 
+HELM_DECLUTTER_BRIDGE_READ_MODEL_FILES = (
+    "operator_mission_priority_helm_declutter.json",
+    "system_health_lights_taxonomy.json",
+)
+
 SAFE_GENERATED_READ_MODEL_MANIFEST_FILES = frozenset(
     {
         "capital_hilton_proof_resolution_batch_manifest.json",
@@ -204,6 +209,7 @@ __all__ = [
     "NO_GO_PARTS",
     "SAFE_READ_MODEL_SUFFIXES",
     "SAFE_GENERATED_READ_MODEL_MANIFEST_FILES",
+    "HELM_DECLUTTER_BRIDGE_READ_MODEL_FILES",
     "VOLATILE_SELF_REPORT_READ_MODEL_FILES",
     "canonical_generated_read_model_expected_files",
     "canonical_generated_read_model_records",

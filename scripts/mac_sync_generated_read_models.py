@@ -22,6 +22,7 @@ if str(ROOT) not in sys.path:
 
 from corpus_atlas import stable_json
 from generated_read_model_files import (
+    HELM_DECLUTTER_BRIDGE_READ_MODEL_FILES,
     MISSION_CONTROL_CAPTURE_INTAKE_READ_MODEL_FILES,
     MISSION_CONTROL_REVIEW_PACKET_READ_MODEL_FILES,
 )
@@ -42,6 +43,7 @@ KEY_READ_MODEL_FILES = (
     "project_capsules.json",
     "report_bridge.json",
     "context_selection.json",
+    *HELM_DECLUTTER_BRIDGE_READ_MODEL_FILES,
     *MISSION_CONTROL_REVIEW_PACKET_READ_MODEL_FILES,
     *MISSION_CONTROL_CAPTURE_INTAKE_READ_MODEL_FILES,
 )

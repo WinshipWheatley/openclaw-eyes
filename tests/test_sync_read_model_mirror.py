@@ -283,12 +283,76 @@ def test_dry_run_reports_planned_behavior_without_delegating(monkeypatch, tmp_pa
     assert pc["manifest_path"].endswith("/mac_generated_read_models_manifest.json")
 
 
+def test_pc_bridge_publish_copies_helm_declutter_read_models(tmp_path):
+    import json
+
+    source = tmp_path / "generated" / "read_models"
+    source.mkdir(parents=True)
+    for name in (
+        "operator_mission_priority_helm_declutter.json",
+        "system_health_lights_taxonomy.json",
+    ):
+        (source / name).write_text(json.dumps({"name": name}) + "\n", encoding="utf-8")
+    destination = tmp_path / "openclaw_e" / "generated" / "read_models"
+
+    report = runner.publish_pc_bridge_read_models(
+        source_root=source,
+        destination_root=destination,
+    )
+
+    assert report["status"] == "ok"
+    assert report["copied_count"] == 2
+    assert report["runtime_authority"] is False
+    assert report["network_authority"] is False
+    for record in report["copied_files"]:
+        path = Path(record["destination_path"])
+        assert path.parent == destination
+        assert json.loads(path.read_text(encoding="utf-8"))["name"] == record["relative_path"]
+
+
+def test_bridge_only_mode_publishes_without_manifest_import(monkeypatch, tmp_path):
+    e_drive = tmp_path / "openclaw"
+    e_drive.mkdir()
+    calls = []
+
+    def fake_publish(**kwargs):
+        calls.append(kwargs)
+        return {
+            "status": "ok",
+            "copied_count": 2,
+            "destination_root": (e_drive / "generated" / "read_models").as_posix(),
+            "mac_visible_root": "/Volumes/openclaw_e/generated/read_models",
+            "missing_files": [],
+            "blocked_files": [],
+        }
+
+    monkeypatch.setattr(runner, "publish_pc_bridge_read_models", fake_publish)
+    monkeypatch.setattr(
+        runner,
+        "import_latest_mac_read_model_mirror",
+        lambda **kwargs: (_ for _ in ()).throw(AssertionError("pc import should not run")),
+    )
+
+    report = runner.sync_read_model_mirror(
+        platform_name="Linux",
+        e_drive_root=e_drive,
+        manifest=e_drive / "missing_manifest.json",
+        bridge_only=True,
+    )
+
+    assert report["status"] == "bridge_published"
+    assert report["behavior"] == "publish_pc_bridge_read_models"
+    assert report["pc_import_not_attempted"] is True
+    assert calls == [{"destination_root": e_drive / "generated" / "read_models"}]
+
+
 def test_cli_defaults_use_e_drive_and_mac_share_not_c_drive():
     args = runner.parse_args([])
 
     assert args.manifest == "/mnt/e/openclaw/mac_generated_read_models_manifest.json"
     assert not args.manifest.startswith("/mnt/c/openclaw")
     assert runner.MAC_SHARE_ROOT.as_posix() == "/Volumes/openclaw_e"
+    assert not args.bridge_only
 
 
 def test_wrapper_sources_have_no_remote_copy_install_or_destructive_behavior():
@@ -327,3 +391,12 @@ def test_niles_metadata_packet_and_matrix_are_expected_in_mac_mirror_set():
     assert "niles_album_metadata_intake_packet_OPERATOR.md" in expected
     assert "niles_album_matrix_review.json" in expected
     assert "niles_album_matrix_review_OPERATOR.md" in expected
+
+
+def test_helm_declutter_files_are_expected_in_safe_read_model_set():
+    from generated_read_model_files import canonical_generated_read_model_expected_files
+
+    expected = set(canonical_generated_read_model_expected_files())
+
+    assert "operator_mission_priority_helm_declutter.json" in expected
+    assert "system_health_lights_taxonomy.json" in expected
