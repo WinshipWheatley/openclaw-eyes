@@ -36,23 +36,42 @@ def test_quicklook_is_recommended_for_current_invoice_review():
 
 
 def test_dangerzone_future_provider_is_pending_when_not_installed():
-    payload = _payload({"docker": True, "dangerzone": False, "dangerzone-cli": False})
+    payload = _payload({"docker": True, "podman": False, "dangerzone": False, "dangerzone-cli": False})
 
     dangerzone = next(item for item in payload["provider_readiness"] if item["provider_type"] == "DANGERZONE_BACKEND")
     assert dangerzone["provider_available"] is False
     assert dangerzone["install_required"] is True
     assert dangerzone["production_ready"] is False
     assert payload["future_untrusted_docs_recommendation"]["provider_type"] == "DANGERZONE_BACKEND_PENDING_REVIEW"
+    assert payload["dangerzone_local_install_preview_spike"]["status"] == "BLOCKED_INSTALL_REQUIRED"
+    assert payload["dangerzone_local_install_preview_spike"]["production_ready"] is False
+    assert payload["dangerzone_local_install_preview_spike"]["conversion_attempted"] is False
 
 
 def test_dangerzone_can_be_shadow_ready_when_command_and_docker_exist():
-    payload = _payload({"docker": True, "dangerzone": True, "dangerzone-cli": False})
+    payload = _payload({"docker": True, "podman": True, "dangerzone": True, "dangerzone-cli": False})
 
     dangerzone = next(item for item in payload["provider_readiness"] if item["provider_type"] == "DANGERZONE_BACKEND")
     assert dangerzone["provider_available"] is True
     assert dangerzone["safe_for_untrusted_docs"] is True
     assert dangerzone["production_ready"] is False
     assert payload["future_untrusted_docs_recommendation"]["provider_type"] == "DANGERZONE_BACKEND"
+    assert payload["dangerzone_local_install_preview_spike"]["status"] == "READY_FOR_SYNTHETIC_CONVERSION_TEST"
+
+
+def test_dangerzone_spike_receipt_records_install_blockers():
+    payload = _payload({"docker": True, "podman": False, "dangerzone": False, "dangerzone-cli": False})
+    receipt = payload["dangerzone_local_install_preview_spike"]
+
+    assert receipt["spike_id"] == provider.DANGERZONE_SPIKE_ID
+    assert receipt["provider"] == "DANGERZONE_BACKEND"
+    assert receipt["documented_latest_version_seen"] == provider.DANGERZONE_DOCUMENTED_VERSION
+    assert receipt["synthetic_input_sha256"] is None
+    assert receipt["safe_pdf_output_sha256"] is None
+    assert receipt["conversion_receipt_written"] is False
+    assert receipt["real_invoice_artifacts_touched"] is False
+    assert any("not installed" in blocker for blocker in receipt["blockers"])
+    assert any("AGPL" in blocker for blocker in receipt["blockers"])
 
 
 def test_libreoffice_is_not_marked_safe_for_untrusted_docs():
@@ -81,6 +100,7 @@ def test_no_conversion_or_service_authority_is_enabled():
     assert payload["prototype"]["attempted"] is False
     assert payload["prototype"]["real_invoice_artifacts_touched"] is False
     assert payload["machine_proof"]["no_document_conversion_performed"] is True
+    assert payload["machine_proof"]["dangerzone_spike_receipt_present"] is True
     assert payload["machine_proof"]["all_action_authority_false"] is True
     assert all(value is False for value in payload["authority_boundary"].values())
 

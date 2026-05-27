@@ -32,6 +32,16 @@ PROVIDER_TYPES = (
     "ONLYOFFICE_SERVER",
 )
 
+DANGERZONE_SPIKE_ID = "dangerzone_local_preview_spike_v0"
+DANGERZONE_DOCUMENTED_VERSION = "0.10.0"
+DANGERZONE_DOCUMENTED_SUPPORTED_OS = (
+    "Ubuntu 24.04 noble",
+    "Ubuntu 22.04 jammy",
+    "Debian 12 bookworm",
+    "Debian 13 trixie",
+    "Fedora current supported releases",
+)
+
 AUTHORITY_BOUNDARY = {
     "document_conversion_performed": False,
     "pdf_generation_performed": False,
@@ -78,7 +88,7 @@ def _command_available(command: str) -> bool:
 
 
 def detect_local_tools() -> dict[str, bool]:
-    commands = ("dangerzone", "dangerzone-cli", "libreoffice", "soffice", "docker")
+    commands = ("dangerzone", "dangerzone-cli", "libreoffice", "soffice", "docker", "podman")
     return {command: _command_available(command) for command in commands}
 
 
@@ -175,21 +185,71 @@ def recommended_future_untrusted_provider(results: tuple[ProviderReadinessResult
     return "DANGERZONE_BACKEND_PENDING_REVIEW"
 
 
+def build_dangerzone_spike_receipt(
+    *,
+    detected_tools: Mapping[str, bool],
+    os_release: str = "Ubuntu 24.04 noble on WSL2",
+) -> dict[str, Any]:
+    dangerzone_available = bool(detected_tools.get("dangerzone") or detected_tools.get("dangerzone-cli"))
+    podman_available = bool(detected_tools.get("podman"))
+    docker_available = bool(detected_tools.get("docker"))
+    can_attempt_conversion = dangerzone_available and (podman_available or docker_available)
+    blockers = []
+    if not dangerzone_available:
+        blockers.append("Dangerzone CLI/app is not installed locally.")
+    if not podman_available:
+        blockers.append("Dangerzone on Linux expects Podman; podman is not installed locally.")
+    blockers.append("Installing a new external document sanitizer package needs explicit install and AGPL packaging review.")
+    return {
+        "spike_id": DANGERZONE_SPIKE_ID,
+        "provider": "DANGERZONE_BACKEND",
+        "status": "BLOCKED_INSTALL_REQUIRED" if not can_attempt_conversion else "READY_FOR_SYNTHETIC_CONVERSION_TEST",
+        "os_release": os_release,
+        "documented_supported_os_match": True,
+        "documented_latest_version_seen": DANGERZONE_DOCUMENTED_VERSION,
+        "documented_install_path": "Official Linux release package for supported Ubuntu/Debian/Fedora; Linux runtime uses Podman sandboxing.",
+        "license_notes": "Dangerzone is AGPLv3; commercial packaging/distribution requires legal review before bundling.",
+        "dependency_notes": "Dangerzone converts potentially dangerous documents through a sandbox; Linux install requires Podman/container support.",
+        "local_detection": {
+            "dangerzone": bool(detected_tools.get("dangerzone")),
+            "dangerzone_cli": bool(detected_tools.get("dangerzone-cli")),
+            "podman": podman_available,
+            "docker": docker_available,
+        },
+        "synthetic_input_path": None,
+        "synthetic_input_sha256": None,
+        "safe_pdf_output_path": None,
+        "safe_pdf_output_sha256": None,
+        "conversion_attempted": False,
+        "conversion_receipt_written": False,
+        "blockers": tuple(dict.fromkeys(blockers)),
+        "production_ready": False,
+        "real_invoice_artifacts_touched": False,
+        "capital_hilton_files_converted": False,
+        "workbook_body_read": False,
+        "long_running_service_started": False,
+        "network_server_started": False,
+    }
+
+
 def build_payload(
     *,
     generated_at: str | None = None,
     detected_tools: Mapping[str, bool] | None = None,
 ) -> dict[str, Any]:
     generated_at = generated_at or DEFAULT_GENERATED_AT
-    results = build_provider_results(detected_tools=detected_tools)
+    local_detection = dict(detected_tools or detect_local_tools())
+    results = build_provider_results(detected_tools=local_detection)
+    dangerzone_spike = build_dangerzone_spike_receipt(detected_tools=local_detection)
     payload = {
         "schema_version": SCHEMA_VERSION,
         "read_model_id": READ_MODEL_ID,
         "generated_at": generated_at,
         "operator_summary": "Mac Quick Look is enough for the current invoice candidate. Backend safe preview remains not ready until a sandboxed provider is approved.",
         "provider_types": PROVIDER_TYPES,
-        "local_tool_detection": dict(detected_tools or detect_local_tools()),
+        "local_tool_detection": local_detection,
         "provider_readiness": tuple(asdict(result) for result in results),
+        "dangerzone_local_install_preview_spike": dangerzone_spike,
         "current_invoice_review_recommendation": {
             "provider_type": recommended_current_invoice_provider(results),
             "reason": "Lowest latency and no backend conversion for the already bridged candidate artifact.",
@@ -202,7 +262,7 @@ def build_payload(
         },
         "prototype": {
             "attempted": False,
-            "reason": "No approved backend preview provider is installed locally; avoiding custom rendering and avoiding real artifact conversion.",
+            "reason": "No approved backend preview provider is installed locally; Dangerzone install requires an explicit package/dependency approval lane.",
             "synthetic_document_only": True,
             "real_invoice_artifacts_touched": False,
         },
@@ -214,6 +274,8 @@ def build_payload(
             "quicklook_recommended_for_current_invoice": recommended_current_invoice_provider(results)
             == "QUICKLOOK_MAC_CLIENT",
             "dangerzone_recommended_for_future_review": True,
+            "dangerzone_spike_receipt_present": True,
+            "dangerzone_conversion_blocked_by_install": dangerzone_spike["status"] == "BLOCKED_INSTALL_REQUIRED",
             "onlyoffice_not_recommended_for_v0": True,
             "production_ready_false_for_backend_preview": True,
             "all_action_authority_false": all(value is False for value in AUTHORITY_BOUNDARY.values()),
@@ -241,6 +303,14 @@ def write_exports(payload: Mapping[str, Any], export_root: Path = DEFAULT_EXPORT
         "Future untrusted documents:",
         f"- Recommended provider: {payload['future_untrusted_docs_recommendation']['provider_type']}",
         "- Backend preview production ready: false",
+        "",
+        "Dangerzone local spike:",
+        f"- Status: {payload['dangerzone_local_install_preview_spike']['status']}",
+        f"- Version checked: {payload['dangerzone_local_install_preview_spike']['documented_latest_version_seen']}",
+        *[
+            f"- Blocker: {blocker}"
+            for blocker in payload["dangerzone_local_install_preview_spike"]["blockers"]
+        ],
         "",
         "Local tools:",
         *[
