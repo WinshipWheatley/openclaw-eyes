@@ -566,9 +566,10 @@ def run_capital_hilton_delegated_fixture(
     *,
     db_path: Path = DEFAULT_DB_PATH,
     created_at: str | None = None,
+    source_request_id: str = "delegated_capital_hilton_invoice_package_parent",
 ) -> dict[str, Any]:
     created_at = created_at or utc_now()
-    parent_flow = build_capital_hilton_parent_package()
+    parent_flow = build_capital_hilton_parent_package(source_request_id=source_request_id)
     parent_package = parent_flow["role_package"]
     child_requests = capital_hilton_child_requests(parent_package)
     child_validations = validate_child_package_requests(

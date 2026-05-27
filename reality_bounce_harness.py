@@ -27,6 +27,7 @@ from typing import Any, Mapping
 
 import cassandra_clara_offline_worker_adapter
 import chief_offline_worker_adapter
+import delegated_package_graph
 import gate1_operational_snapshot
 import guardian_output_gate
 import intent_ingest_gate
@@ -55,8 +56,10 @@ STATUS_BLOCKED = "BLOCKED"
 STATUS_CLARIFICATION = "NEEDS_CLARIFICATION"
 STATUS_CONTEXT_NEEDED = "NEEDS_CONTEXT"
 STATUS_GUARDIAN_BLOCKED = "GUARDIAN_BLOCKED"
+WORKER_DELEGATED_PACKAGE_GRAPH = "delegated_package_graph.package_scoped_v0"
 
 HARNESS_TABLES = (
+    "delegated_package_graph_runs",
     "reality_bounce_runs",
     "reality_bounce_case_results",
     "reality_bounce_shadow_lm_runs",
@@ -535,6 +538,36 @@ def deterministic_case_from_text(
             source_request_id=source_request_id,
         )
 
+    package_prep_requested = "invoice package" in lowered and any(
+        term in lowered for term in ("prepare", "prep", "package prep")
+    )
+    if package_prep_requested:
+        send_requested = any(term in lowered for term in external_delivery_terms)
+        return _case(
+            case_id,
+            message,
+            "PREPARE_DRAFT",
+            "prepare_invoice_package",
+            "CASSANDRA",
+            STATUS_ACCEPTED_WITH_RECEIPT,
+            worker_adapter="delegated_package_graph",
+            audience="internal",
+            world_ref=world_ref,
+            client_ref=client_ref,
+            workflow_ref=workflow_ref,
+            remains=(
+                "Delegated package graph is local proof only; send/submit authority remains blocked."
+                if send_requested
+                else "Delegated package graph is local proof only; no external action happened."
+            ),
+            production_authority_needed=(
+                ("exact_send_approval_receipt", "guardian_delivery_clearance_receipt")
+                if send_requested
+                else ("operator_package_approval_receipt",)
+            ),
+            source_request_id=source_request_id,
+        )
+
     if any(term in lowered for term in external_delivery_terms) and not any(term in lowered for term in draft_terms):
         return _case(
             case_id,
@@ -695,10 +728,16 @@ def deterministic_case_from_text(
 
 
 def _lm1_candidate(case: RealityBounceCase) -> MachineIntentCandidate:
+    candidate_operator_text = case.user_message
+    if case.worker_adapter == "delegated_package_graph":
+        candidate_operator_text = (
+            "Prepare the Capital Hilton invoice package as a bounded draft path. "
+            "Any delivery request is held for exact approval."
+        )
     return MachineIntentCandidate(
         intent_id=f"reality_bounce_candidate:{case.case_id}",
         source_request_id=case.source_request_id,
-        original_operator_text=case.user_message,
+        original_operator_text=candidate_operator_text,
         inferred_intent_type=case.intent_type,
         target_world_ref=case.world_ref,
         target_folder_ref=case.client_ref,
@@ -1124,7 +1163,17 @@ def _mac_response_candidate(
         headline = str(worker_result.get("headline") or "Response ready")
         draft_text = str(worker_result.get("draft_text") or "").strip()
         response_author = str(worker_result.get("response_author") or "")
-        if draft_text:
+        if case.worker_adapter == "delegated_package_graph":
+            headline = "Invoice-package draft path prepared"
+            body = (
+                "OpenClaw prepared a bounded invoice-package draft path for Capital Hilton. "
+                "Chief checked the next safe move, Clara drafted client-safe wording, and Guardian validated the outputs. "
+                "Nothing was sent, submitted, posted, or changed."
+            )
+            if case.production_authority_needed and "send" in normalize_operator_text_for_matching(case.user_message):
+                body += " Approval is required before any send step."
+            next_action = "Next: review the draft path and approve any outside step separately."
+        elif draft_text:
             body = f"{draft_text} Draft only - nothing was sent."
             next_action = "Next: review the draft before any delivery step."
         elif response_author == "CHIEF" and case.intent_type == "ANSWER_STATUS":
@@ -1223,6 +1272,20 @@ def run_case(
             selected_voice = "CHIEF"
             worker_result = chief_offline_worker_adapter.run_chief_offline_worker(role_package)
             guardian_result = repoa_worker_boundary_harness.validate_worker_result(worker_result, role_package)
+        elif case.worker_adapter == "delegated_package_graph":
+            graph_result = delegated_package_graph.run_capital_hilton_delegated_fixture(
+                db_path=receipt_db_path,
+                created_at=generated_at,
+                source_request_id=case.source_request_id,
+            )
+            role_package = graph_result["parent_package"]
+            gate3_result = {**dict(gate3_result or {}), "role_execution_package": role_package}
+            worker_fixture_used = WORKER_DELEGATED_PACKAGE_GRAPH
+            selected_role_family = "DELEGATED_PACKAGE_GRAPH"
+            selected_voice = str((graph_result.get("parent_result") or {}).get("selected_voice") or "CASSANDRA")
+            worker_result = graph_result["parent_result"]
+            guardian_result = graph_result["final_parent_guardian_validation"]
+            receipt = graph_result["parent_receipt"]
         elif case.worker_adapter == "cassandra_clara":
             role_package = _augment_cassandra_clara_package(role_package, case)
             gate3_result = {**dict(gate3_result or {}), "role_execution_package": role_package}
@@ -1237,7 +1300,11 @@ def run_case(
             guardian_result = _deterministic_response_candidate(case=case, role_package=role_package)
             worker_fixture_used = str(guardian_result["worker_fixture_used"])
 
-        if worker_result and ((guardian_result or {}).get("validation_result") or {}).get("verdict") == guardian_output_gate.VALIDATED:
+        if (
+            worker_result
+            and not receipt
+            and ((guardian_result or {}).get("validation_result") or {}).get("verdict") == guardian_output_gate.VALIDATED
+        ):
             receipt = repoa_worker_boundary_harness.record_worker_receipt(
                 role_package=role_package,
                 worker_result=worker_result,
@@ -1915,6 +1982,7 @@ def run_text(
             "live_lm1_call_performed": False,
             "live_lm2_call_performed": False,
             "model_call_performed": False,
+            "delegated_package_graph_used": result.worker_fixture_used == WORKER_DELEGATED_PACKAGE_GRAPH,
             "repo_b_runtime_started": False,
             "tool_execution_performed": False,
             "external_action_performed": False,

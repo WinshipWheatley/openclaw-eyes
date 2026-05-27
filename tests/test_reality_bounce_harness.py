@@ -110,6 +110,66 @@ def test_arbitrary_draft_text_routes_to_clara_and_writes_draft_receipt(tmp_path)
     assert rows[0]["authority_used"] == 0
 
 
+def test_package_prep_text_routes_to_delegated_graph_and_writes_child_parent_receipts(tmp_path):
+    db_path = tmp_path / "reality_bounce.sqlite"
+    payload = harness.run_text(
+        "prepare the Capital Hilton invoice package",
+        db_path=db_path,
+        generated_at=FIXED_NOW,
+    )
+    result = payload["result"]
+
+    assert result["status"] == harness.STATUS_ACCEPTED_WITH_RECEIPT
+    assert result["selected_role_family"] == "DELEGATED_PACKAGE_GRAPH"
+    assert result["worker_fixture_used"] == harness.WORKER_DELEGATED_PACKAGE_GRAPH
+    assert result["receipt_written"] is True
+    assert result["guardian_result"]["validation_result"]["verdict"] == guardian_output_gate.VALIDATED
+    assert "bounded invoice-package draft path" in payload["operator_stdout"]
+    assert "Nothing was sent, submitted, posted, or changed." in payload["operator_stdout"]
+    assert payload["machine_proof"]["delegated_package_graph_used"] is True
+    assert payload["machine_proof"]["send_submit_performed"] is False
+
+    rows = _receipt_rows(db_path)
+    assert len(rows) == 3
+    assert {row["role_family"] for row in rows} == {"CHIEF", "CASSANDRA_CLARA"}
+    assert all(row["external_action"] == 0 for row in rows)
+    assert all(row["authority_used"] == 0 for row in rows)
+
+    with sqlite3.connect(f"file:{db_path}?mode=ro", uri=True) as conn:
+        conn.row_factory = sqlite3.Row
+        graph_row = conn.execute("SELECT * FROM delegated_package_graph_runs").fetchone()
+
+    assert graph_row is not None
+    graph_payload = json.loads(graph_row["payload_json"])
+    assert len(graph_payload["child_receipt_ids"]) == 2
+    assert graph_payload["parent_receipt_id"] == result["receipt_id"]
+    assert graph_payload["parent_source_request_id"] == result["source_request_id"]
+
+
+def test_prepare_and_send_runs_delegated_graph_but_blocks_send_portion(tmp_path):
+    db_path = tmp_path / "reality_bounce.sqlite"
+    payload = harness.run_text(
+        "prepare and send the Capital Hilton invoice package",
+        db_path=db_path,
+        generated_at=FIXED_NOW,
+    )
+    result = payload["result"]
+
+    assert result["status"] == harness.STATUS_ACCEPTED_WITH_RECEIPT
+    assert result["selected_role_family"] == "DELEGATED_PACKAGE_GRAPH"
+    assert result["worker_fixture_used"] == harness.WORKER_DELEGATED_PACKAGE_GRAPH
+    assert result["receipt_written"] is True
+    assert "Approval is required before any send step." in payload["operator_stdout"]
+    assert "Nothing was sent, submitted, posted, or changed." in payload["operator_stdout"]
+    assert result["boundary_flags"]["send_submit_performed"] is False
+
+    rows = _receipt_rows(db_path)
+    assert len(rows) == 3
+    assert all("send" not in json.loads(row["payload_json"])["receipt_classification"] for row in rows)
+    assert all(row["external_action"] == 0 for row in rows)
+    assert all(row["authority_used"] == 0 for row in rows)
+
+
 def test_send_invoice_now_blocks_without_worker_completion_receipt(tmp_path):
     db_path = tmp_path / "reality_bounce.sqlite"
     payload = harness.run_text("send the invoice now", db_path=db_path, generated_at=FIXED_NOW)
@@ -133,6 +193,27 @@ def test_ambiguous_text_returns_clarification_without_worker_receipt(tmp_path):
     assert result["receipt_written"] is False
     assert "what should openclaw work on" in payload["operator_stdout"].lower()
     assert _receipt_count(db_path) == 0
+
+
+def test_whats_next_still_routes_to_chief_only_not_delegated_graph(tmp_path):
+    db_path = tmp_path / "reality_bounce.sqlite"
+    payload = harness.run_text(
+        "what's next for Capital Hilton?",
+        db_path=db_path,
+        generated_at=FIXED_NOW,
+    )
+    result = payload["result"]
+
+    assert result["status"] == harness.STATUS_ACCEPTED_WITH_RECEIPT
+    assert result["selected_role_family"] == "CHIEF"
+    assert result["worker_fixture_used"].endswith("local_status_v0")
+    assert payload["machine_proof"]["delegated_package_graph_used"] is False
+    assert _receipt_count(db_path) == 1
+    with sqlite3.connect(db_path) as conn:
+        exists = conn.execute(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='delegated_package_graph_runs'"
+        ).fetchone()[0]
+    assert exists == 0
 
 
 def test_delete_other_from_openclaw_is_supersession_or_clarification_not_physical_delete(tmp_path):
