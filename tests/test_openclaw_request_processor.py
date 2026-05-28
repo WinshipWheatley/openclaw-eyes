@@ -1919,11 +1919,23 @@ def test_invoice_review_select_page_action_publishes_guided_response(tmp_path, c
     assert response["source_request_id"] == request["request_id"]
     assert response["response_kind"] == "INVOICE_REVIEW_ACTION_RESPONSE"
     assert response["headline"] == "Starting invoice page selection"
-    assert "Let's select the Capital Hilton invoice page/period." in response["eliwinship"]
+    assert "Let's pick the Capital Hilton invoice page/period." in response["eliwinship"]
     assert scoped["source_request_id"] == request["request_id"]
     assert scoped["terminal"] is True
+    surface = scoped["detail_disclosure"]["invoice_review_action_request"]["local_surface_request"]
+    assert surface["surface_type"] == "SHOW_INVOICE_RECORD_SELECTION_PANEL"
+    assert surface["source_request_id"] == request["request_id"]
+    assert surface["client_ref"] == "capital_hilton"
+    assert surface["workflow_ref"] == "capital_hilton_invoice_workflow"
+    assert surface["action_ref"] == "start_invoice_record_selection"
+    assert surface["intended_use"] == "select_invoice_record_or_period"
+    assert surface["generated_candidate_status"] == "GENERATED_INVOICE_ARTIFACT_CANDIDATE"
+    assert surface["no_workbook_body_read"] is True
+    assert surface["no_cell_read"] is True
+    assert surface["no_external_action"] is True
     assert receipt["action_kind"] == "start_invoice_record_selection"
     assert receipt["status"] == "GUIDED_ACTION_STARTED"
+    assert receipt["machine_proof"]["local_surface_request_present"] is True
     assert receipt["machine_proof"]["completion_receipt_written"] is False
     assert scoped["machine_proof"]["external_action_performed"] is False
 

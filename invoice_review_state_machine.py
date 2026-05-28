@@ -371,7 +371,7 @@ def _apply_action(state: dict[str, Any], action_kind: str) -> tuple[str, str, st
     if action_kind == "start_invoice_record_selection":
         state["invoice_record_selection_status"] = "NEEDS_OPERATOR_SELECTION"
         state["invoice_period_status"] = "NEEDS_OPERATOR_SELECTION"
-        return ("REQUESTED", "Starting invoice page selection", "Let's select the Capital Hilton invoice page/period.", "Choose the invoice page or period in Mission Control.", "invoice_record_selection_started_receipt", False)
+        return ("REQUESTED", "Starting invoice page selection", "Let's pick the Capital Hilton invoice page/period. Choose the page or period from the running workbook so OpenClaw can link the generated invoice artifact correctly.", "Choose the invoice page or period in Mission Control.", "invoice_record_selection_started_receipt", False)
     if action_kind == "regenerate_or_link_invoice_artifact":
         if state["invoice_record_selection_status"] != "SELECTED" or state["invoice_period_status"] != "CONFIRMED":
             state["generated_artifact_status"] = "BLOCKED_NEEDS_INVOICE_RECORD_SELECTION"

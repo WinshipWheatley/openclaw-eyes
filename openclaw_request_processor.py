@@ -2830,6 +2830,7 @@ def _process_invoice_review_action_request(
     next_action = str(payload["next_action"])
     receipt = payload["action_start_receipt"]
     state_progress = payload.get("state_machine_progress") if isinstance(payload.get("state_machine_progress"), Mapping) else {}
+    local_surface_request = payload.get("local_surface_request") if isinstance(payload.get("local_surface_request"), Mapping) else None
     completion_written = bool(payload.get("machine_proof", {}).get("completion_receipt_written")) if isinstance(payload.get("machine_proof"), Mapping) else False
     blocker_completed = bool(payload.get("machine_proof", {}).get("underlying_blocker_completed")) if isinstance(payload.get("machine_proof"), Mapping) else False
     detail = {
@@ -2840,6 +2841,7 @@ def _process_invoice_review_action_request(
             "status": status,
             "action_start_receipt": receipt,
             "state_machine_progress": state_progress,
+            "local_surface_request": dict(local_surface_request) if local_surface_request else None,
             "expected_receipt_types": payload["expected_receipt_types"],
             "underlying_blocker_completed": blocker_completed,
             "completion_receipt_written": completion_written,
@@ -2870,6 +2872,7 @@ def _process_invoice_review_action_request(
             "refreshed_bundle_path": state_progress.get("source_bundle_path"),
             "bridge_bundle_path": state_progress.get("bridge_bundle_path"),
             "mac_render_hint": "COMPACT_WITH_DISCLOSURE",
+            "local_surface_request": dict(local_surface_request) if local_surface_request else None,
         },
         "request_classification": asdict(action_classification),
         "request_router_decision": dict(route_decision or {}),

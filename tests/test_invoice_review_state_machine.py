@@ -103,6 +103,9 @@ def test_start_invoice_record_selection_writes_action_start_and_requests_operato
     assert result.state_snapshot["invoice_record_selection_status"] == "NEEDS_OPERATOR_SELECTION"
     assert invoice_step["status"] == "IN_PROGRESS"
     assert "invoice_record_selected_receipt" not in state_machine.receipt_names(db_path)
+    assert source_bundle["capital_hilton_bundle"]["excel_invoice_artifact"]["proof_status"] == "GENERATED_INVOICE_ARTIFACT_CANDIDATE"
+    assert source_bundle["capital_hilton_bundle"]["excel_invoice_artifact"]["attachment_ready"] is False
+    assert source_bundle["capital_hilton_bundle"]["approval_footer"]["approval_ready"] is False
 
 
 def test_regenerate_or_link_artifact_blocks_until_invoice_record_selected(tmp_path):

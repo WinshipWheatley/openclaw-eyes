@@ -121,12 +121,67 @@ def _missing_prerequisites() -> tuple[str, ...]:
     return tuple(bundle.get("approval_footer", {}).get("approval_disabled_reasons") or ())
 
 
+def _invoice_record_selection_surface(
+    *,
+    request_id: str,
+    action_kind: str,
+    payload: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    if action_kind != "start_invoice_record_selection":
+        return None
+    bundle = invoice_review_bundle.build_capital_hilton_bundle()
+    artifact = bundle.get("excel_invoice_artifact") if isinstance(bundle.get("excel_invoice_artifact"), Mapping) else {}
+    return {
+        "surface_type": "SHOW_INVOICE_RECORD_SELECTION_PANEL",
+        "surface_ref": f"invoice_record_selection_surface:{_short_hash(request_id, invoice_review_bundle.CAPITAL_HILTON_BUNDLE_ID)}",
+        "source_request_id": request_id,
+        "client_ref": "capital_hilton",
+        "client_display_name": "Capital Hilton",
+        "workflow_ref": invoice_review_bundle.CAPITAL_HILTON_WORKFLOW_REF,
+        "bundle_id": invoice_review_bundle.CAPITAL_HILTON_BUNDLE_ID,
+        "action_ref": "start_invoice_record_selection",
+        "action_kind": "start_invoice_record_selection",
+        "intended_use": "select_invoice_record_or_period",
+        "operator_copy": (
+            "Let's pick the Capital Hilton invoice page/period. Choose the page or period from the running workbook "
+            "so OpenClaw can link the generated invoice artifact correctly."
+        ),
+        "fields_requested": (
+            "active_source_workbook",
+            "client",
+            "invoice_period",
+            "invoice_page_sheet_record_label",
+            "generated_candidate_disposition",
+            "optional_notes",
+        ),
+        "generated_candidate_disposition_options": (
+            "WRONG",
+            "STALE",
+            "REGENERATE_AFTER_SELECTION",
+            "LINK_AFTER_SELECTION",
+            "UNSURE",
+        ),
+        "source_workbook_ref": payload.get("source_workbook_ref"),
+        "source_workbook_mac_path": payload.get("source_workbook_mac_path"),
+        "generated_candidate_ref": artifact.get("artifact_ref"),
+        "generated_candidate_status": artifact.get("proof_status") or "GENERATED_INVOICE_ARTIFACT_CANDIDATE",
+        "generated_candidate_mac_path": artifact.get("mac_visible_ref"),
+        "no_workbook_body_read": True,
+        "no_cell_read": True,
+        "no_external_action": True,
+        "completion_requires_future_operator_selection_result": True,
+        "completion_receipt_required": "invoice_record_selected_receipt",
+        "artifact_linkage_receipt_required": "generated_invoice_artifact_linkage_receipt",
+        "response_completion_behavior": "TERMINAL_AFTER_SURFACE_REQUEST_PUBLISHED",
+    }
+
+
 def _operator_copy(action_kind: str) -> tuple[str, str, str, str, tuple[str, ...]]:
     missing = _missing_prerequisites()
     if action_kind == "start_invoice_record_selection":
         return (
             "Starting invoice page selection",
-            "Let's select the Capital Hilton invoice page/period.",
+            "Let's pick the Capital Hilton invoice page/period. Choose the page or period from the running workbook so OpenClaw can link the generated invoice artifact correctly.",
             "OpenClaw needs the invoice record before it can link the generated artifact.",
             "Choose the invoice page or period in Mission Control.",
             ("invoice_record_selection_request_receipt",),
@@ -254,6 +309,11 @@ def process_action_request(
     action_kind = str(payload.get("action_kind") or payload.get("request_kind") or payload.get("intended_use") or "")
     if action_kind == "invoice_review_guided_action_request":
         action_kind = str(payload.get("request_kind") or "")
+    local_surface_request = _invoice_record_selection_surface(
+        request_id=request_id,
+        action_kind=action_kind,
+        payload=payload,
+    )
     bundle_id = str(payload.get("source_bundle_id") or raw_request.get("bundle_id") or raw_request.get("source_bundle_id") or "")
     workflow_ref = str(payload.get("source_workflow_id") or raw_request.get("workflow_ref") or payload.get("workflow_ref") or "")
     client_ref = str(payload.get("client_ref") or raw_request.get("client_ref") or "")
@@ -371,6 +431,7 @@ def process_action_request(
             "bridge_bundle_path": progress_result.bridge_bundle_path if progress_result else None,
             "bridge_mirror_written": progress_result.bridge_mirror_written if progress_result else False,
         },
+        "local_surface_request": local_surface_request,
         "bundle_action": bundle_action,
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
         "machine_proof": {
@@ -379,6 +440,8 @@ def process_action_request(
             "current_bundle_action_found": bundle_action is not None,
             "no_external_action": no_external,
             "guided_path_started": status == "GUIDED_ACTION_STARTED",
+            "local_surface_request_present": local_surface_request is not None,
+            "local_surface_type": local_surface_request.get("surface_type") if local_surface_request else None,
             "completion_receipt_written": bool(progress_result.action_receipt["completion_receipt_written"]) if progress_result else False,
             "underlying_blocker_completed": bool(progress_result.action_receipt["underlying_blocker_completed"]) if progress_result else False,
             "bundle_refreshed": bool(progress_result),
