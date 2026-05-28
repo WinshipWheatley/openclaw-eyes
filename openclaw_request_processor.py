@@ -77,6 +77,10 @@ INVOICE_REVIEW_ACTION_PATTERNS = (
     "mission_control_invoice_review_action_*.json",
     "mission_control_capture_request_*invoice_review_action*.json",
 )
+INVOICE_REVIEW_ACTION_RESULT_PATTERNS = (
+    "mission_control_invoice_review_action_result_*.json",
+    "mission_control_capture_request_*invoice_review_action_result*.json",
+)
 CONTEXT_ATTACHMENT_PATTERN = "mission_control_context_request_*.json"
 SECRET_INTAKE_PATTERN = "mission_control_secret_intake_request_*.json"
 VISUAL_WORKSPACE_PATTERN = "mission_control_visual_workspace_request_*.json"
@@ -89,6 +93,7 @@ SUPPORTED_REQUEST_PATTERNS = (
     *ARTIFACT_REFERENCE_APPROVAL_PATTERNS,
     *ARTIFACT_INTAKE_REQUEST_PATTERNS,
     *INVOICE_REVIEW_ACTION_PATTERNS,
+    *INVOICE_REVIEW_ACTION_RESULT_PATTERNS,
 )
 
 FUTURE_REQUEST_PATTERNS = (
@@ -102,6 +107,7 @@ REQUEST_FAMILIES = (
     "CHAT",
     "FILE_METADATA",
     "LOCAL_SURFACE_RESULT",
+    "INVOICE_REVIEW_ACTION_RESULT",
     "ARTIFACT_REFERENCE_APPROVAL",
     "ARTIFACT_INTAKE_REQUEST",
     "CONTEXT_ATTACHMENT_FUTURE",
@@ -804,6 +810,11 @@ def classify_request_filename(filename: str | None) -> RequestClassification:
         rail = "register_or_resolve_invoice_workbook_artifact"
         reason = "Filename matches Mission Control artifact intake request pattern."
         future_supported = False
+    elif filename and any(fnmatch.fnmatch(filename, pattern) for pattern in INVOICE_REVIEW_ACTION_RESULT_PATTERNS):
+        family = "INVOICE_REVIEW_ACTION_RESULT"
+        rail = "invoice_record_selection_result"
+        reason = "Filename matches Mission Control invoice review action result pattern."
+        future_supported = False
     elif filename and any(fnmatch.fnmatch(filename, pattern) for pattern in INVOICE_REVIEW_ACTION_PATTERNS):
         family = "LOCAL_SURFACE_RESULT"
         rail = "invoice_review_action_request"
@@ -861,6 +872,7 @@ def list_supported_requests(inbox: Path = APPROVED_INBOX) -> tuple[Path, ...]:
             "LOCAL_SURFACE_RESULT",
             "ARTIFACT_REFERENCE_APPROVAL",
             "ARTIFACT_INTAKE_REQUEST",
+            "INVOICE_REVIEW_ACTION_RESULT",
         }
     ]
     return tuple(sorted(matches, key=lambda path: (path.stat().st_mtime_ns, path.name)))
@@ -2771,6 +2783,13 @@ def _is_invoice_review_action_route(route_decision: Mapping[str, Any], raw_reque
     )
 
 
+def _is_invoice_record_selection_result_route(route_decision: Mapping[str, Any], raw_request: Mapping[str, Any]) -> bool:
+    return (
+        str(route_decision.get("selected_handler_id") or "") == "invoice_record_selection_result.capital_hilton"
+        or invoice_review_action_request_handler.is_invoice_record_selection_result(raw_request)
+    )
+
+
 def _invoice_review_action_classification(
     classification: RequestClassification,
     *,
@@ -2785,6 +2804,133 @@ def _invoice_review_action_classification(
         classification_reason="Generic request router selected the invoice review guided action rail.",
         future_supported=False,
         next_safe_move="Return guided fix-path copy without external action authority.",
+    )
+
+
+def _process_invoice_record_selection_result_request(
+    request_path: Path,
+    raw_request: Mapping[str, Any],
+    *,
+    export_root: Path,
+    generated_at: str | None,
+    classification: RequestClassification,
+    route_decision: Mapping[str, Any] | None = None,
+) -> OpenClawResponseForMac:
+    action_classification = RequestClassification(
+        classification_id=f"request_classification_{_short_hash(request_path.name, 'invoice_record_selection_result')}",
+        source_request_filename=classification.source_request_filename,
+        request_family=str((route_decision or {}).get("request_kind") or classification.request_family),
+        selected_rail=str((route_decision or {}).get("selected_handler_id") or "invoice_record_selection_result.capital_hilton"),
+        classification_reason="Request is an operator-provided invoice record selection result.",
+        future_supported=False,
+        next_safe_move="Record the invoice page/period labels without workbook or cell reads.",
+    )
+    default_export_root = invoice_review_action_request_handler.invoice_review_state_machine.DEFAULT_EXPORT_ROOT.resolve()
+    bridge_export_root = (
+        invoice_review_action_request_handler.invoice_review_state_machine.DEFAULT_BRIDGE_EXPORT_ROOT
+        if export_root.resolve() == default_export_root
+        else None
+    )
+    db_path = (
+        invoice_review_action_request_handler.invoice_review_state_machine.DEFAULT_DB_PATH
+        if export_root.resolve() == default_export_root
+        else export_root.parent / "invoice_review_state.sqlite"
+    )
+    payload = invoice_review_action_request_handler.process_invoice_record_selection_result_request(
+        raw_request,
+        generated_at=generated_at,
+        db_path=db_path,
+        export_root=export_root,
+        bridge_export_root=bridge_export_root,
+    )
+    action_json, action_operator = invoice_review_action_request_handler.write_exports(payload, export_root)
+    status = str(payload["status"])
+    response_ready = status == "GUIDED_RESULT_RECORDED"
+    headline = str(payload["headline"])
+    body = str(payload["body"])
+    next_action = str(payload["next_action"])
+    receipt = payload["action_start_receipt"]
+    state_progress = payload.get("state_machine_progress") if isinstance(payload.get("state_machine_progress"), Mapping) else {}
+    local_surface_result = payload.get("local_surface_result") if isinstance(payload.get("local_surface_result"), Mapping) else {}
+    detail = {
+        "invoice_record_selection_result": {
+            "readback_ref": action_json.as_posix(),
+            "operator_readback_ref": action_operator.as_posix(),
+            "action_kind": payload["action_kind"],
+            "status": status,
+            "selection_receipt": receipt,
+            "state_machine_progress": state_progress,
+            "local_surface_result": dict(local_surface_result),
+            "refreshed_bundle_path": state_progress.get("source_bundle_path"),
+            "bridge_bundle_path": state_progress.get("bridge_bundle_path"),
+            "bridge_mirror_written": bool(state_progress.get("bridge_mirror_written")),
+            "external_action_performed": False,
+            "workbook_body_read_performed": False,
+            "spreadsheet_cell_read_performed": False,
+            "ocr_performed": False,
+            "invoice_generation_performed": False,
+            "artifact_linked": False,
+            "attachment_ready": False,
+            "approval_ready": False,
+        },
+        "layered_response_fields": {
+            "response_kind": "INVOICE_RECORD_SELECTION_RESULT_RESPONSE",
+            "audience_mode": "ELIWINSHIP",
+            "display_mode": "COMPACT_CHAT",
+            "headline": headline,
+            "one_line_answer": body,
+            "eliwinship": body,
+            "primary_status": status.replace("_", " ").title(),
+            "primary_blocker": "None" if response_ready else status,
+            "next_action": next_action,
+            "missing_items_short": tuple(payload.get("expected_receipt_types") or ()),
+            "detail_summary": str(payload["detail"]),
+            "proof_refs": (receipt["receipt_id"], action_json.as_posix()),
+            "refreshed_bundle_path": state_progress.get("source_bundle_path"),
+            "bridge_bundle_path": state_progress.get("bridge_bundle_path"),
+            "mac_render_hint": "COMPACT_WITH_DISCLOSURE",
+        },
+        "request_classification": asdict(action_classification),
+        "request_router_decision": dict(route_decision or {}),
+        "external_actions_locked": True,
+        "model_or_worker_response_adapter_called": False,
+    }
+    return OpenClawResponseForMac(
+        source_request_id=str(payload["source_request_id"]),
+        source_request_filename=request_path.name,
+        workflow_ref=str(raw_request.get("workflow_ref") or "capital_hilton_invoice_workflow"),
+        request_type=classification.request_family,
+        internal_status="RESPONSE_READY" if response_ready else "BLOCKED_WITH_REASON",
+        operator_headline=headline,
+        operator_message=body,
+        what_happened=(
+            "PC consumed the invoice record selection result.",
+            "PC recorded only operator-provided page/period labels.",
+            "PC refreshed the invoice review bundle.",
+            "PC did not read workbook cells, generate invoices, link artifacts, send, submit, or mutate production state.",
+        ),
+        why_it_happened=str(payload["detail"]),
+        how_to_fix=next_action,
+        visible_cards=(
+            {
+                "title": headline,
+                "bullets": (
+                    body,
+                    next_action,
+                    "No workbook body or cells were read.",
+                ),
+                "status_tone": "ready" if response_ready else "blocked",
+            },
+        ),
+        cards_available=True,
+        card_mirror_refs=(),
+        file_readback_refs=(action_json.as_posix(),),
+        worker_route_refs=(),
+        context_package_refs=(),
+        blocked_reason=None if response_ready else status,
+        detail_disclosure=detail,
+        readback_files=(action_json.as_posix(), action_operator.as_posix()),
+        next_safe_move=next_action,
     )
 
 
@@ -4635,6 +4781,15 @@ def process_request_path(
         )
     if _is_artifact_reference_approval_route(route_decision):
         return _process_artifact_reference_approval_request(
+            request_path,
+            raw_request,
+            export_root=export_root,
+            generated_at=generated_at,
+            classification=effective_classification,
+            route_decision=route_decision,
+        )
+    if _is_invoice_record_selection_result_route(route_decision, raw_request):
+        return _process_invoice_record_selection_result_request(
             request_path,
             raw_request,
             export_root=export_root,

@@ -219,12 +219,31 @@ def invoice_review_action_handlers() -> tuple[RequestHandlerRegistration, ...]:
     )
 
 
+def invoice_record_selection_result_handlers() -> tuple[RequestHandlerRegistration, ...]:
+    common = {
+        "handler_id": "invoice_record_selection_result.capital_hilton",
+        "handler_label": "Capital Hilton invoice record selection result",
+        "intended_use": "confirm_invoice_record_selection",
+        "world_refs": ("finance",),
+        "workflow_refs": ("capital_hilton_invoice_workflow",),
+        "client_refs": ("capital_hilton",),
+        "project_refs": (),
+        "adapter_available": True,
+        "next_safe_move": "Record the operator-confirmed invoice page/period without reading workbook cells.",
+    }
+    return (
+        RequestHandlerRegistration(request_kind="LOCAL_SURFACE_RESULT", **common),
+        RequestHandlerRegistration(request_kind="INVOICE_REVIEW_ACTION_RESULT", **common),
+    )
+
+
 def default_handler_registrations() -> tuple[RequestHandlerRegistration, ...]:
     return (
         capital_hilton_field_mapping_handler(),
         *readable_artifact_approval_handlers(),
         *artifact_intake_handlers(),
         *invoice_review_action_handlers(),
+        *invoice_record_selection_result_handlers(),
     )
 
 

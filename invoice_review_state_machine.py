@@ -40,6 +40,7 @@ ACTION_TO_RECEIPT = {
     "explain_invoice_review": "invoice_review_explanation_receipt",
     "confirm_invoice_review_candidate": "invoice_review_confirmation_intake_receipt",
     "open_invoice_workbook_candidate": "local_artifact_inspection_receipt",
+    "confirm_invoice_record_selection": "invoice_record_selection_operator_confirmed_receipt",
 }
 
 ACTION_TO_RECEIPT_EVENT = {
@@ -58,6 +59,7 @@ ACTION_TO_RECEIPT_EVENT = {
     "explain_invoice_review": "invoice_review_explained",
     "confirm_invoice_review_candidate": "invoice_review_confirmation_intake_requested",
     "open_invoice_workbook_candidate": "local_artifact_inspection_requested",
+    "confirm_invoice_record_selection": "invoice_record_selection_operator_confirmed",
 }
 
 COMPLETION_RECEIPTS = {
@@ -136,6 +138,10 @@ def init_store(db_path: Path = DEFAULT_DB_PATH) -> None:
               source_workbook_status TEXT NOT NULL,
               invoice_record_selection_status TEXT NOT NULL,
               invoice_period_status TEXT NOT NULL,
+              invoice_period_label TEXT,
+              invoice_record_label TEXT,
+              generated_candidate_disposition TEXT,
+              operator_notes TEXT,
               generated_artifact_status TEXT NOT NULL,
               coupa_proof_status TEXT NOT NULL,
               supplier_portal_provider TEXT,
@@ -172,6 +178,10 @@ def init_store(db_path: Path = DEFAULT_DB_PATH) -> None:
         _ensure_column(conn, "invoice_review_states", "recipient_review_status", "TEXT")
         _ensure_column(conn, "invoice_review_states", "supplier_portal_provider", "TEXT")
         _ensure_column(conn, "invoice_review_states", "supplier_portal_proof_status", "TEXT")
+        _ensure_column(conn, "invoice_review_states", "invoice_period_label", "TEXT")
+        _ensure_column(conn, "invoice_review_states", "invoice_record_label", "TEXT")
+        _ensure_column(conn, "invoice_review_states", "generated_candidate_disposition", "TEXT")
+        _ensure_column(conn, "invoice_review_states", "operator_notes", "TEXT")
         _ensure_column(conn, "invoice_review_receipts", "receipt_event", "TEXT")
 
 
@@ -189,6 +199,10 @@ def _default_state(*, generated_at: str | None = None) -> dict[str, Any]:
         "source_workbook_status": "CANDIDATE_PRESENT",
         "invoice_record_selection_status": "NEEDS_OPERATOR_SELECTION",
         "invoice_period_status": "NEEDS_OPERATOR_SELECTION",
+        "invoice_period_label": None,
+        "invoice_record_label": None,
+        "generated_candidate_disposition": None,
+        "operator_notes": None,
         "generated_artifact_status": "CANDIDATE_NEEDS_LINKAGE",
         "coupa_proof_status": "MISSING",
         "supplier_portal_provider": "COUPA",
@@ -237,16 +251,22 @@ def _upsert_state(conn: sqlite3.Connection, state: Mapping[str, Any]) -> None:
         INSERT INTO invoice_review_states (
           bundle_id, client_ref, workflow_ref, source_workbook_status,
           invoice_record_selection_status, invoice_period_status,
+          invoice_period_label, invoice_record_label, generated_candidate_disposition,
+          operator_notes,
           generated_artifact_status, coupa_proof_status,
           supplier_portal_provider, supplier_portal_proof_status,
           recipient_confirmation_status, recipient_review_status, clara_draft_status,
           approval_readiness_status, email_send_status, payment_watch_status,
           ledger_tax_status, last_action_kind, last_receipt_id, last_updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(bundle_id) DO UPDATE SET
           source_workbook_status=excluded.source_workbook_status,
           invoice_record_selection_status=excluded.invoice_record_selection_status,
           invoice_period_status=excluded.invoice_period_status,
+          invoice_period_label=excluded.invoice_period_label,
+          invoice_record_label=excluded.invoice_record_label,
+          generated_candidate_disposition=excluded.generated_candidate_disposition,
+          operator_notes=excluded.operator_notes,
           generated_artifact_status=excluded.generated_artifact_status,
           coupa_proof_status=excluded.coupa_proof_status,
           supplier_portal_provider=excluded.supplier_portal_provider,
@@ -269,6 +289,10 @@ def _upsert_state(conn: sqlite3.Connection, state: Mapping[str, Any]) -> None:
             state["source_workbook_status"],
             state["invoice_record_selection_status"],
             state["invoice_period_status"],
+            state.get("invoice_period_label"),
+            state.get("invoice_record_label"),
+            state.get("generated_candidate_disposition"),
+            state.get("operator_notes"),
             state["generated_artifact_status"],
             state["coupa_proof_status"],
             state.get("supplier_portal_provider", "COUPA"),
@@ -431,6 +455,8 @@ def _overlay_bundle_state(
     status_by_title: dict[str, str] = {}
     if state["source_workbook_status"] == "REPLACEMENT_REQUESTED":
         status_by_title["Active workbook"] = "REQUESTED"
+    if state["invoice_record_selection_status"] == "OPERATOR_CONFIRMED":
+        status_by_title["Invoice page/period"] = "OPERATOR_CONFIRMED"
     if state["invoice_record_selection_status"] == "NEEDS_OPERATOR_SELECTION":
         status_by_title["Invoice page/period"] = "IN_PROGRESS" if receipt["receipt_name"] == "invoice_record_selection_started_receipt" else "NEEDS_ACTION"
     if state["generated_artifact_status"].startswith("BLOCKED"):
@@ -452,6 +478,17 @@ def _overlay_bundle_state(
             step["proof_refs"] = tuple(dict.fromkeys((*refs, receipt["receipt_id"])))
         updated.append(step)
     capital["review_proof_timeline"] = tuple(updated)
+    if state["invoice_record_selection_status"] == "OPERATOR_CONFIRMED":
+        capital["invoice_selection"]["invoice_record_state"] = "INVOICE_RECORD_OPERATOR_CONFIRMED"
+        capital["invoice_selection"]["invoice_period_state"] = "INVOICE_PERIOD_OPERATOR_CONFIRMED"
+        capital["invoice_selection"]["invoice_period_label"] = state.get("invoice_period_label")
+        capital["invoice_selection"]["invoice_record_label"] = state.get("invoice_record_label")
+        capital["invoice_selection"]["operator_confirmed_selection"] = True
+        capital["invoice_selection"]["completion_receipt_still_required"] = "invoice_record_selected_receipt"
+        capital["invoice_selection"]["no_workbook_body_read"] = True
+        capital["invoice_selection"]["no_cell_read"] = True
+        capital["excel_invoice_artifact"]["linkage_status"] = "NEEDS_REGENERATION_OR_LINK"
+        capital["excel_invoice_artifact"]["attachment_ready"] = False
     capital["present_action_receipts"] = action_receipt_names
     capital["machine_proof"]["state_machine_overlay_applied"] = True
     capital["machine_proof"]["last_action_completion_receipt_written"] = receipt["completion_receipt_written"]
@@ -541,6 +578,117 @@ def process_action(
         headline=headline,
         body=body,
         detail=detail,
+        next_action=next_action,
+        action_receipt=receipt,
+        state_snapshot=state,
+        refreshed_bundle=refreshed,
+        source_bundle_path=source_bundle_path.as_posix(),
+        bridge_bundle_path=bridge_bundle_path.as_posix() if bridge_bundle_path else None,
+        bridge_mirror_written=bridge_written,
+    )
+
+
+def _selection_result_payload(raw_request: Mapping[str, Any]) -> Mapping[str, Any]:
+    nested = raw_request.get("hidden_request_payload")
+    if isinstance(nested, Mapping):
+        merged = dict(nested)
+        merged.update({key: value for key, value in raw_request.items() if key not in merged})
+        return merged
+    return raw_request
+
+
+def process_invoice_record_selection_result(
+    raw_request: Mapping[str, Any],
+    *,
+    db_path: Path = DEFAULT_DB_PATH,
+    export_root: Path = DEFAULT_EXPORT_ROOT,
+    bridge_export_root: Path | None = DEFAULT_BRIDGE_EXPORT_ROOT,
+    generated_at: str | None = None,
+) -> InvoiceReviewActionResult:
+    init_store(db_path)
+    payload = _selection_result_payload(raw_request)
+    source_request_id = str(raw_request.get("request_id") or payload.get("source_request_id") or "unknown_invoice_record_selection_result")
+    state = load_state(db_path, generated_at=generated_at)
+    invoice_period_label = str(payload.get("invoice_period_label") or "").strip()
+    invoice_record_label = str(
+        payload.get("invoice_record_label") or payload.get("invoice_page_label") or payload.get("sheet_label") or ""
+    ).strip()
+    disposition = str(payload.get("generated_candidate_disposition") or "").strip()
+    validation_errors: list[str] = []
+    if str(payload.get("client_ref") or raw_request.get("client_ref") or "") != "capital_hilton":
+        validation_errors.append("WRONG_CLIENT")
+    if str(payload.get("workflow_ref") or raw_request.get("workflow_ref") or "") != invoice_review_bundle.CAPITAL_HILTON_WORKFLOW_REF:
+        validation_errors.append("WRONG_WORKFLOW")
+    if str(payload.get("source_action_ref") or payload.get("action_ref") or "") != "start_invoice_record_selection":
+        validation_errors.append("WRONG_SOURCE_ACTION")
+    if payload.get("operator_provided") is not True:
+        validation_errors.append("OPERATOR_PROVIDED_REQUIRED")
+    if payload.get("operator_confirmed") is not True:
+        validation_errors.append("OPERATOR_CONFIRMED_REQUIRED")
+    if not invoice_period_label:
+        validation_errors.append("INVOICE_PERIOD_LABEL_REQUIRED")
+    if not invoice_record_label:
+        validation_errors.append("INVOICE_RECORD_OR_PAGE_LABEL_REQUIRED")
+    for flag in (
+        "no_workbook_body_read",
+        "no_cell_read",
+        "no_ocr",
+        "no_external_action",
+        "no_generation_export",
+    ):
+        if payload.get(flag) is not True:
+            validation_errors.append(f"{flag.upper()}_REQUIRED")
+
+    if validation_errors:
+        status = "BLOCKED_INVALID_SELECTION_RESULT"
+        headline = "Invoice page selection blocked"
+        body = "OpenClaw could not record the invoice page/period because the selection result was incomplete or unsafe."
+        next_action = "Send the invoice page/period result again with the required labels and safety flags."
+        receipt_name = "invoice_record_selection_result_blocked_receipt"
+    else:
+        status = "REQUESTED"
+        headline = "Invoice page/period recorded"
+        body = "Invoice page/period recorded. Next: regenerate or link the invoice artifact for the selected record."
+        next_action = "Next: regenerate or link the invoice artifact for the selected record."
+        receipt_name = "invoice_record_selection_operator_confirmed_receipt"
+        state["invoice_record_selection_status"] = "OPERATOR_CONFIRMED"
+        state["invoice_period_status"] = "OPERATOR_CONFIRMED"
+        state["invoice_period_label"] = invoice_period_label
+        state["invoice_record_label"] = invoice_record_label
+        state["generated_candidate_disposition"] = disposition or "unsure"
+        state["operator_notes"] = str(payload.get("operator_notes") or "").strip() or None
+        state["generated_artifact_status"] = "CANDIDATE_NEEDS_REGENERATION_OR_LINK"
+        state["approval_readiness_status"] = "BLOCKED_PREREQUISITES"
+
+    receipt = _receipt(
+        source_request_id=source_request_id,
+        action_kind="confirm_invoice_record_selection",
+        receipt_name=receipt_name,
+        status=status,
+        completion=False,
+        generated_at=generated_at,
+    )
+    receipt["validation_errors"] = tuple(validation_errors)
+    state["last_action_kind"] = "confirm_invoice_record_selection"
+    state["last_receipt_id"] = receipt["receipt_id"]
+    state["last_updated_at"] = generated_at
+    with _connect(db_path) as conn:
+        _upsert_state(conn, state)
+        _write_receipt(conn, receipt)
+    refreshed, source_bundle_path, bridge_bundle_path, bridge_written = refresh_bundle(
+        db_path=db_path,
+        export_root=export_root,
+        bridge_export_root=bridge_export_root,
+        generated_at=generated_at,
+        last_receipt=receipt,
+    )
+    return InvoiceReviewActionResult(
+        source_request_id=source_request_id,
+        action_kind="confirm_invoice_record_selection",
+        status=status,
+        headline=headline,
+        body=body,
+        detail="; ".join(validation_errors) if validation_errors else next_action,
         next_action=next_action,
         action_receipt=receipt,
         state_snapshot=state,

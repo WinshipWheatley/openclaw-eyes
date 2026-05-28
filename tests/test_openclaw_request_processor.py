@@ -106,6 +106,38 @@ def _invoice_review_action_request(path: Path, *, action_kind: str, request_id: 
     return request
 
 
+def _invoice_record_selection_result_request(path: Path, **overrides) -> dict:
+    request = {
+        "request_id": "invoice_record_selection_result_confirmed",
+        "request_type": "LOCAL_SURFACE_RESULT",
+        "type": "LOCAL_SURFACE_RESULT",
+        "kind": "LOCAL_SURFACE_RESULT",
+        "world_ref": "finance",
+        "workflow_ref": "capital_hilton_invoice_workflow",
+        "client_ref": "capital_hilton",
+        "intended_use": "confirm_invoice_record_selection",
+        "source_action_ref": "start_invoice_record_selection",
+        "operator_provided": True,
+        "operator_confirmed": True,
+        "invoice_period_label": "May 2026",
+        "invoice_page_label": "Capital Hilton May invoice page",
+        "generated_candidate_disposition": "wrong_page",
+        "operator_notes": "Use the May page.",
+        "no_workbook_body_read": True,
+        "no_cell_read": True,
+        "no_ocr": True,
+        "no_external_action": True,
+        "no_generation_export": True,
+        "idempotency_key": "invoice_record_selection_result_confirmed_idempotency",
+        "created_at": FIXED_NOW,
+        "authority_boundary": dict(processor.AUTHORITY_BOUNDARY),
+    }
+    request.update(overrides)
+    request["payload_hash"] = processor._content_hash(request)
+    path.write_text(processor.stable_json(request), encoding="utf-8")
+    return request
+
+
 def _seed_capital_hilton_session_response(export_root: Path, *, next_action: str = "Next: Confirm the Coupa PO/reference.") -> None:
     export_root.mkdir(parents=True, exist_ok=True)
     payload = {
@@ -1938,6 +1970,74 @@ def test_invoice_review_select_page_action_publishes_guided_response(tmp_path, c
     assert receipt["machine_proof"]["local_surface_request_present"] is True
     assert receipt["machine_proof"]["completion_receipt_written"] is False
     assert scoped["machine_proof"]["external_action_performed"] is False
+
+
+def test_invoice_record_selection_result_publishes_scoped_response_and_refreshes_bundle(tmp_path, capsys, monkeypatch):
+    inbox = tmp_path / "approved_inbox"
+    inbox.mkdir()
+    request_path = inbox / "mission_control_local_surface_result_invoice_record_selection.json"
+    request = _invoice_record_selection_result_request(request_path)
+    export_root = tmp_path / "read_models"
+    response_dir = tmp_path / "responses"
+    monkeypatch.setattr(processor, "APPROVED_INBOX", inbox)
+    monkeypatch.setattr(processor, "DEFAULT_RESPONSE_DIR", response_dir)
+
+    assert process_main(
+        [
+            "--file",
+            str(request_path),
+            "--export-root",
+            str(export_root),
+            "--generated-at",
+            FIXED_NOW,
+            "--format",
+            "json",
+        ]
+    ) == 0
+    response = json.loads(capsys.readouterr().out)
+    scoped = json.loads(_scoped_processor_response_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
+    receipt = json.loads((export_root / "invoice_review_action_request_receipt.json").read_text(encoding="utf-8"))
+    bundle_payload = json.loads((export_root / "invoice_review_bundle.json").read_text(encoding="utf-8"))
+    detail = scoped["detail_disclosure"]["invoice_record_selection_result"]
+
+    assert response["source_request_id"] == request["request_id"]
+    assert response["response_kind"] == "INVOICE_RECORD_SELECTION_RESULT_RESPONSE"
+    assert response["headline"] == "Invoice page/period recorded"
+    assert "Next: regenerate or link the invoice artifact" in response["eliwinship"]
+    assert scoped["terminal"] is True
+    assert detail["selection_receipt"]["receipt_event"] == "invoice_record_selection_operator_confirmed"
+    assert detail["workbook_body_read_performed"] is False
+    assert detail["spreadsheet_cell_read_performed"] is False
+    assert detail["invoice_generation_performed"] is False
+    assert detail["artifact_linked"] is False
+    assert detail["approval_ready"] is False
+    assert receipt["action_kind"] == "confirm_invoice_record_selection"
+    assert receipt["status"] == "GUIDED_RESULT_RECORDED"
+    capital = bundle_payload["capital_hilton_bundle"]
+    assert capital["invoice_selection"]["invoice_record_state"] == "INVOICE_RECORD_OPERATOR_CONFIRMED"
+    assert capital["excel_invoice_artifact"]["linkage_status"] == "NEEDS_REGENERATION_OR_LINK"
+    assert capital["excel_invoice_artifact"]["attachment_ready"] is False
+    assert capital["approval_footer"]["approval_ready"] is False
+    assert scoped["machine_proof"]["external_action_performed"] is False
+
+
+def test_invoice_record_selection_result_rejects_missing_period(tmp_path, capsys, monkeypatch):
+    inbox = tmp_path / "approved_inbox"
+    inbox.mkdir()
+    request_path = inbox / "mission_control_local_surface_result_invoice_record_selection_missing.json"
+    request = _invoice_record_selection_result_request(request_path, invoice_period_label="")
+    export_root = tmp_path / "read_models"
+    response_dir = tmp_path / "responses"
+    monkeypatch.setattr(processor, "APPROVED_INBOX", inbox)
+    monkeypatch.setattr(processor, "DEFAULT_RESPONSE_DIR", response_dir)
+
+    assert process_main(["--file", str(request_path), "--export-root", str(export_root), "--generated-at", FIXED_NOW, "--format", "json"]) == 0
+    response = json.loads(capsys.readouterr().out)
+    scoped = json.loads(_scoped_processor_response_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
+
+    assert response["headline"] == "Invoice page selection blocked"
+    assert response["internal_status"] == "BLOCKED_WITH_REASON"
+    assert "INVOICE_PERIOD_LABEL_REQUIRED" in scoped["detail_disclosure"]["invoice_record_selection_result"]["selection_receipt"]["validation_errors"]
 
 
 def test_invoice_review_coupa_proof_action_is_intake_not_browser(tmp_path, capsys, monkeypatch):

@@ -56,6 +56,43 @@ def _process(tmp_path: Path, action_kind: str):
     )
 
 
+def _selection_result_request(**overrides):
+    request = {
+        "request_id": "invoice_record_selection_result_valid",
+        "request_type": "LOCAL_SURFACE_RESULT",
+        "kind": "LOCAL_SURFACE_RESULT",
+        "type": "LOCAL_SURFACE_RESULT",
+        "intended_use": "confirm_invoice_record_selection",
+        "client_ref": "capital_hilton",
+        "workflow_ref": invoice_review_bundle.CAPITAL_HILTON_WORKFLOW_REF,
+        "source_action_ref": "start_invoice_record_selection",
+        "operator_provided": True,
+        "operator_confirmed": True,
+        "invoice_period_label": "May 2026",
+        "invoice_page_label": "Capital Hilton May invoice page",
+        "generated_candidate_disposition": "wrong_page",
+        "operator_notes": "Use the May page.",
+        "no_workbook_body_read": True,
+        "no_cell_read": True,
+        "no_ocr": True,
+        "no_external_action": True,
+        "no_generation_export": True,
+    }
+    request.update(overrides)
+    return request
+
+
+def _process_selection_result(tmp_path: Path, **overrides):
+    db_path, export_root, bridge_root = _paths(tmp_path)
+    return state_machine.process_invoice_record_selection_result(
+        _selection_result_request(**overrides),
+        db_path=db_path,
+        export_root=export_root,
+        bridge_export_root=bridge_root,
+        generated_at=FIXED_NOW,
+    )
+
+
 def test_confirm_source_workbook_writes_completion_receipt_and_refreshes_bundle(tmp_path):
     db_path, export_root, bridge_root = _paths(tmp_path)
 
@@ -190,3 +227,50 @@ def test_disabled_or_not_wired_action_returns_clean_blocked_response(tmp_path):
     assert result.status == "BLOCKED_NOT_WIRED"
     assert result.action_receipt["completion_receipt_written"] is False
     assert "not wired yet" in result.body
+
+
+def test_invoice_record_selection_result_writes_receipt_and_refreshes_bundle(tmp_path):
+    db_path, export_root, bridge_root = _paths(tmp_path)
+    result = _process_selection_result(tmp_path)
+    source_bundle = json.loads((export_root / invoice_review_bundle.JSON_EXPORT_NAME).read_text(encoding="utf-8"))
+    bridge_bundle = json.loads((bridge_root / invoice_review_bundle.JSON_EXPORT_NAME).read_text(encoding="utf-8"))
+    receipt = state_machine.read_receipt(db_path, result.action_receipt["receipt_id"])
+
+    assert result.status == "REQUESTED"
+    assert result.action_receipt["receipt_name"] == "invoice_record_selection_operator_confirmed_receipt"
+    assert result.action_receipt["receipt_event"] == "invoice_record_selection_operator_confirmed"
+    assert result.action_receipt["completion_receipt_written"] is False
+    assert receipt["receipt_event"] == "invoice_record_selection_operator_confirmed"
+    assert result.state_snapshot["invoice_record_selection_status"] == "OPERATOR_CONFIRMED"
+    assert result.state_snapshot["invoice_period_status"] == "OPERATOR_CONFIRMED"
+    assert result.state_snapshot["invoice_period_label"] == "May 2026"
+    assert result.state_snapshot["invoice_record_label"] == "Capital Hilton May invoice page"
+    capital = source_bundle["capital_hilton_bundle"]
+    assert capital["invoice_selection"]["invoice_record_state"] == "INVOICE_RECORD_OPERATOR_CONFIRMED"
+    assert capital["invoice_selection"]["invoice_period_state"] == "INVOICE_PERIOD_OPERATOR_CONFIRMED"
+    assert capital["excel_invoice_artifact"]["linkage_status"] == "NEEDS_REGENERATION_OR_LINK"
+    assert capital["excel_invoice_artifact"]["attachment_ready"] is False
+    assert capital["approval_footer"]["approval_ready"] is False
+    assert bridge_bundle["capital_hilton_bundle"]["invoice_selection"]["operator_confirmed_selection"] is True
+
+
+def test_invoice_record_selection_result_rejects_missing_required_fields(tmp_path):
+    missing_period = _process_selection_result(tmp_path, invoice_period_label="")
+    missing_record = _process_selection_result(tmp_path, invoice_page_label="", invoice_record_label="", sheet_label="")
+
+    assert missing_period.status == "BLOCKED_INVALID_SELECTION_RESULT"
+    assert "INVOICE_PERIOD_LABEL_REQUIRED" in missing_period.action_receipt["validation_errors"]
+    assert missing_record.status == "BLOCKED_INVALID_SELECTION_RESULT"
+    assert "INVOICE_RECORD_OR_PAGE_LABEL_REQUIRED" in missing_record.action_receipt["validation_errors"]
+
+
+def test_invoice_record_selection_result_rejects_unsafe_flags_and_scope(tmp_path):
+    unsafe = _process_selection_result(tmp_path, no_cell_read=False)
+    wrong_scope = _process_selection_result(tmp_path, client_ref="st_annes")
+
+    assert unsafe.status == "BLOCKED_INVALID_SELECTION_RESULT"
+    assert "NO_CELL_READ_REQUIRED" in unsafe.action_receipt["validation_errors"]
+    assert wrong_scope.status == "BLOCKED_INVALID_SELECTION_RESULT"
+    assert "WRONG_CLIENT" in wrong_scope.action_receipt["validation_errors"]
+    assert state_machine.AUTHORITY_BOUNDARY["workbook_body_read_performed"] is False
+    assert state_machine.AUTHORITY_BOUNDARY["spreadsheet_cell_read_performed"] is False

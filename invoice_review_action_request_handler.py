@@ -42,6 +42,7 @@ SUPPORTED_ACTIONS = {
 
 REQUEST_KINDS = {
     "INVOICE_REVIEW_ACTION_REQUEST",
+    "INVOICE_REVIEW_ACTION_RESULT",
     "INVOICE_REVIEW_GUIDED_ACTION_REQUEST",
     "invoice_review_guided_action_request",
 }
@@ -99,6 +100,13 @@ def is_invoice_review_action_request(raw_request: Mapping[str, Any]) -> bool:
         or action_kind in SUPPORTED_ACTIONS
         or intended_use in SUPPORTED_ACTIONS
     )
+
+
+def is_invoice_record_selection_result(raw_request: Mapping[str, Any]) -> bool:
+    payload = _action_payload(raw_request)
+    request_type = str(payload.get("request_type") or payload.get("type") or raw_request.get("request_type") or raw_request.get("type") or "")
+    intended_use = str(payload.get("intended_use") or raw_request.get("intended_use") or "")
+    return request_type in {"LOCAL_SURFACE_RESULT", "INVOICE_REVIEW_ACTION_RESULT"} and intended_use == "confirm_invoice_record_selection"
 
 
 def _current_action_index() -> dict[str, dict[str, Any]]:
@@ -453,6 +461,79 @@ def process_action_request(
             "invoice_generation_performed": False,
             "workbook_body_read_performed": False,
             "spreadsheet_cell_read_performed": False,
+            "production_mutation_performed": False,
+            "all_authority_boundary_false": all(value is False for value in AUTHORITY_BOUNDARY.values()),
+        },
+    }
+
+
+def process_invoice_record_selection_result_request(
+    raw_request: Mapping[str, Any],
+    *,
+    generated_at: str | None = None,
+    db_path: Path = invoice_review_state_machine.DEFAULT_DB_PATH,
+    export_root: Path = invoice_review_state_machine.DEFAULT_EXPORT_ROOT,
+    bridge_export_root: Path | None = invoice_review_state_machine.DEFAULT_BRIDGE_EXPORT_ROOT,
+) -> dict[str, Any]:
+    progress_result = invoice_review_state_machine.process_invoice_record_selection_result(
+        raw_request,
+        db_path=db_path,
+        export_root=export_root,
+        bridge_export_root=bridge_export_root,
+        generated_at=generated_at,
+    )
+    response_ready = progress_result.status == "REQUESTED"
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "read_model_id": READ_MODEL_ID,
+        "source_request_id": progress_result.source_request_id,
+        "action_kind": "confirm_invoice_record_selection",
+        "status": "GUIDED_RESULT_RECORDED" if response_ready else "BLOCKED_INVALID_RESULT",
+        "headline": progress_result.headline,
+        "body": progress_result.body,
+        "detail": progress_result.detail,
+        "next_action": progress_result.next_action,
+        "expected_receipt_types": (progress_result.action_receipt["receipt_name"],),
+        "action_start_receipt": progress_result.action_receipt,
+        "state_machine_progress": {
+            "used": True,
+            "progress_status": progress_result.status,
+            "state_snapshot": progress_result.state_snapshot,
+            "action_progress_receipt": progress_result.action_receipt,
+            "source_bundle_path": progress_result.source_bundle_path,
+            "bridge_bundle_path": progress_result.bridge_bundle_path,
+            "bridge_mirror_written": progress_result.bridge_mirror_written,
+        },
+        "local_surface_result": {
+            "intended_use": "confirm_invoice_record_selection",
+            "result_recorded": response_ready,
+            "validation_errors": progress_result.action_receipt.get("validation_errors") or (),
+            "no_workbook_body_read": True,
+            "no_cell_read": True,
+            "no_external_action": True,
+            "invoice_generation_performed": False,
+            "artifact_linked": False,
+            "attachment_ready": False,
+            "approval_ready": False,
+        },
+        "authority_boundary": dict(AUTHORITY_BOUNDARY),
+        "machine_proof": {
+            "bundle_scope_valid": "WRONG_CLIENT" not in progress_result.action_receipt.get("validation_errors", ())
+            and "WRONG_WORKFLOW" not in progress_result.action_receipt.get("validation_errors", ()),
+            "supported_action": True,
+            "no_external_action": True,
+            "guided_path_started": response_ready,
+            "completion_receipt_written": False,
+            "underlying_blocker_completed": False,
+            "bundle_refreshed": True,
+            "bridge_bundle_mirrored": progress_result.bridge_mirror_written,
+            "workbook_body_read_performed": False,
+            "spreadsheet_cell_read_performed": False,
+            "ocr_performed": False,
+            "invoice_generation_performed": False,
+            "email_send_performed": False,
+            "coupa_browser_automation_performed": False,
+            "ledger_posting_performed": False,
             "production_mutation_performed": False,
             "all_authority_boundary_false": all(value is False for value in AUTHORITY_BOUNDARY.values()),
         },
