@@ -93,7 +93,7 @@ def _process_selection_result(tmp_path: Path, **overrides):
     )
 
 
-def test_confirm_source_workbook_writes_completion_receipt_and_refreshes_bundle(tmp_path):
+def test_confirm_source_workbook_blocks_until_matching_proof_exists(tmp_path):
     db_path, export_root, bridge_root = _paths(tmp_path)
 
     result = state_machine.process_action(
@@ -108,11 +108,13 @@ def test_confirm_source_workbook_writes_completion_receipt_and_refreshes_bundle(
     bridge_bundle = json.loads((bridge_root / invoice_review_bundle.JSON_EXPORT_NAME).read_text(encoding="utf-8"))
     active = next(step for step in source_bundle["capital_hilton_bundle"]["review_proof_timeline"] if step["title"] == "Active workbook")
 
-    assert receipt["receipt_name"] == "active_workbook_confirmed_receipt"
-    assert receipt["completion_receipt_written"] == 1
-    assert result.state_snapshot["source_workbook_status"] == "CONFIRMED"
-    assert active["status"] == "COMPLETE"
-    assert source_bundle["capital_hilton_bundle"]["invoice_selection"]["active_workbook_state"] == "ACTIVE_WORKBOOK_CONFIRMED"
+    assert result.status == "BLOCKED_SOURCE_WORKBOOK_CONFIRMATION_NEEDED"
+    assert receipt["receipt_name"] == "source_workbook_confirmation_needed_receipt"
+    assert receipt["receipt_event"] == "source_workbook_confirmation_needed"
+    assert receipt["completion_receipt_written"] == 0
+    assert result.state_snapshot["source_workbook_status"] == "NEEDS_CONFIRMATION"
+    assert active["status"] != "COMPLETE"
+    assert "workbook body or cells were read" in result.body
     assert bridge_bundle["capital_hilton_bundle"]["bundle_id"] == invoice_review_bundle.CAPITAL_HILTON_BUNDLE_ID
     assert result.bridge_mirror_written is True
 

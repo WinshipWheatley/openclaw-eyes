@@ -34,6 +34,38 @@ def _all_receipts():
     )
 
 
+def _matching_workbook_payloads():
+    workbook_ref = "workbook_ref:client_invoice:capital_hilton:capital_hilton_invoice_workflow:match"
+    registry = {
+        "active_record": {
+            "client_ref": "capital_hilton",
+            "workflow_ref": "capital_hilton_invoice_workflow",
+            "workbook_ref": workbook_ref,
+        }
+    }
+    artifact = {
+        "approved_readable_artifact": {
+            "artifact_ref": workbook_ref,
+            "artifact_kind": "invoice_workbook",
+            "intended_use": "client_invoice_sheet_audit",
+            "approved_for_read": True,
+            "approved_for_write": False,
+            "body_read": False,
+            "content_extracted": False,
+            "external_shared": False,
+            "path_mapping_verified": True,
+            "pc_path": "/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/source.xlsx",
+            "mac_path": "/Volumes/openclaw_e/artifacts/invoice_workbooks/capital_hilton/source.xlsx",
+            "scope_binding": {
+                "world_ref": "finance",
+                "workflow_ref": "capital_hilton_invoice_workflow",
+                "client_ref": "capital_hilton",
+            },
+        }
+    }
+    return registry, artifact
+
+
 def test_existing_fixture_generators_are_not_selected_record_safe():
     audit = readiness.audit_existing_generators()
 
@@ -44,6 +76,37 @@ def test_existing_fixture_generators_are_not_selected_record_safe():
     assert all(item.found for item in audit)
     assert all(item.selected_record_safe is False for item in audit)
     assert "fixture" in audit[0].input_source.lower() or "constants" in audit[0].input_source.lower()
+
+
+def test_existing_approved_source_workbook_reference_can_satisfy_linkage():
+    registry, artifact = _matching_workbook_payloads()
+    linkage = readiness.discover_source_workbook_linkage(
+        workbook_registry_payload=registry,
+        artifact_reference_payload=artifact,
+    )
+
+    assert linkage.source_workbook_found is True
+    assert linkage.source_workbook_confirmed is True
+    assert linkage.source_workbook_ref == registry["active_record"]["workbook_ref"]
+    assert linkage.source_workbook_pc_path.startswith("/mnt/e/openclaw/")
+    assert linkage.source_workbook_mac_path.startswith("/Volumes/openclaw_e/")
+    assert linkage.receipt_name_if_confirmed == readiness.SOURCE_WORKBOOK_LINKAGE_RECEIPT
+    assert linkage.no_workbook_body_read is True
+    assert linkage.no_cell_read is True
+
+
+def test_mismatched_workbook_registry_and_artifact_keeps_linkage_blocked():
+    registry, artifact = _matching_workbook_payloads()
+    registry["active_record"]["workbook_ref"] = "workbook_ref:client_invoice:capital_hilton:other"
+    linkage = readiness.discover_source_workbook_linkage(
+        workbook_registry_payload=registry,
+        artifact_reference_payload=artifact,
+    )
+
+    assert linkage.source_workbook_found is True
+    assert linkage.source_workbook_confirmed is False
+    assert linkage.blocker == "ACTIVE_WORKBOOK_REF_DIFFERS_FROM_APPROVED_READABLE_ARTIFACT_REF"
+    assert "Confirm which Capital Hilton workbook" in linkage.guided_action
 
 
 def test_readiness_reports_missing_source_workbook_linkage():
@@ -144,8 +207,27 @@ def test_export_read_model_reports_current_blockers(tmp_path):
 
     assert payload["readiness"]["generator_ready"] is False
     assert "source_workbook_ref" in payload["readiness"]["missing_inputs"]
+    assert payload["source_workbook_linkage"]["source_workbook_confirmed"] is False
     assert payload["machine_proof"]["existing_fixture_generators_not_selected_record_safe"] is True
     assert payload["machine_proof"]["no_cell_read"] is True
+
+
+def test_generation_authority_receipt_shape_is_scoped_to_selected_invoice(tmp_path):
+    db_path = tmp_path / "invoice_review.sqlite"
+    state_machine.init_store(db_path)
+    with state_machine._connect(db_path) as conn:
+        state_machine._upsert_state(conn, _state())
+    payload = readiness.build_payload(db_path=db_path, generated_at=FIXED_NOW)
+    authority = payload["generation_authority_receipt"]
+
+    assert authority["receipt_name"] == readiness.GENERATION_AUTHORITY_RECEIPT
+    assert authority["status"] == "MISSING"
+    assert authority["scope_required"]["client_ref"] == "capital_hilton"
+    assert authority["scope_required"]["workflow_ref"] == "capital_hilton_invoice_workflow"
+    assert authority["scope_required"]["invoice_period_label"] == "May 2026"
+    assert authority["scope_required"]["invoice_record_label"] == "May tab / page 2"
+    assert authority["does_not_equal_execution"] is True
+    assert authority["allows_send_submit_ledger"] is False
 
 
 def test_no_send_coupa_email_ledger_authority_enabled():

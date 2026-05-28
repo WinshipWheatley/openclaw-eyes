@@ -17,6 +17,8 @@ from pathlib import Path
 from typing import Any, Mapping
 
 import invoice_review_state_machine
+import local_artifact_reference
+import client_invoice_workbook_registry
 
 
 SCHEMA_VERSION = "selected_record_invoice_artifact_generator_readiness_v0"
@@ -74,6 +76,23 @@ class SelectedRecordGeneratorReadiness:
     next_operator_action: str
 
 
+@dataclass(frozen=True)
+class SourceWorkbookLinkageReadiness:
+    source_workbook_found: bool
+    source_workbook_confirmed: bool
+    source_workbook_ref: str | None
+    source_workbook_pc_path: str | None
+    source_workbook_mac_path: str | None
+    registry_workbook_ref: str | None
+    approved_artifact_ref: str | None
+    linkage_status: str
+    blocker: str | None
+    guided_action: str
+    receipt_name_if_confirmed: str
+    no_workbook_body_read: bool
+    no_cell_read: bool
+
+
 def stable_json(payload: Any) -> str:
     return json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=True) + "\n"
 
@@ -115,6 +134,97 @@ def _receipt_set(receipts: tuple[str, ...] | list[str] | set[str]) -> set[str]:
     return {str(receipt) for receipt in receipts}
 
 
+def _active_workbook_record(payload: Mapping[str, Any] | None) -> dict[str, Any] | None:
+    if not isinstance(payload, Mapping):
+        return None
+    active = payload.get("active_record")
+    if isinstance(active, Mapping) and active.get("client_ref") == "capital_hilton":
+        return dict(active)
+    registry = payload.get("registry") if isinstance(payload.get("registry"), Mapping) else {}
+    for item in registry.get("client_records") or ():
+        if (
+            isinstance(item, Mapping)
+            and item.get("client_ref") == "capital_hilton"
+            and item.get("workflow_ref") == "capital_hilton_invoice_workflow"
+        ):
+            return dict(item)
+    return None
+
+
+def discover_source_workbook_linkage(
+    *,
+    workbook_registry_payload: Mapping[str, Any] | None = None,
+    artifact_reference_payload: Mapping[str, Any] | None = None,
+) -> SourceWorkbookLinkageReadiness:
+    workbook_registry_payload = (
+        workbook_registry_payload
+        if workbook_registry_payload is not None
+        else client_invoice_workbook_registry.load_existing_payload()
+    )
+    artifact_reference_payload = (
+        artifact_reference_payload
+        if artifact_reference_payload is not None
+        else local_artifact_reference.load_existing_payload()
+    )
+    active = _active_workbook_record(workbook_registry_payload)
+    approved = local_artifact_reference.find_approved_readable_artifact(
+        artifact_reference_payload,
+        world_ref="finance",
+        workflow_ref="capital_hilton_invoice_workflow",
+        client_ref="capital_hilton",
+        artifact_kind="invoice_workbook",
+        intended_use="client_invoice_sheet_audit",
+    )
+    registry_ref = str(active.get("workbook_ref")) if active else None
+    approved_ref = str(approved.get("artifact_ref")) if approved else None
+    pc_path = str(approved.get("pc_path") or approved.get("approved_path_ref") or "") if approved else ""
+    mac_path = str(approved.get("mac_path") or "") if approved else ""
+    found = bool(active or approved)
+    if active and approved and registry_ref == approved_ref:
+        return SourceWorkbookLinkageReadiness(
+            source_workbook_found=True,
+            source_workbook_confirmed=True,
+            source_workbook_ref=registry_ref,
+            source_workbook_pc_path=pc_path,
+            source_workbook_mac_path=mac_path or None,
+            registry_workbook_ref=registry_ref,
+            approved_artifact_ref=approved_ref,
+            linkage_status="CONFIRMED",
+            blocker=None,
+            guided_action="source_workbook_reference_confirmed",
+            receipt_name_if_confirmed=SOURCE_WORKBOOK_LINKAGE_RECEIPT,
+            no_workbook_body_read=True,
+            no_cell_read=True,
+        )
+    if active and approved:
+        blocker = "ACTIVE_WORKBOOK_REF_DIFFERS_FROM_APPROVED_READABLE_ARTIFACT_REF"
+        action = "Confirm which Capital Hilton workbook should be the source workbook before generating the invoice artifact."
+    elif active:
+        blocker = "APPROVED_READABLE_WORKBOOK_ARTIFACT_MISSING"
+        action = "Choose or approve a PC-readable Capital Hilton workbook reference."
+    elif approved:
+        blocker = "WORKBOOK_REGISTRY_ACTIVE_RECORD_MISSING"
+        action = "Confirm the approved workbook as the active Capital Hilton source workbook."
+    else:
+        blocker = "SOURCE_WORKBOOK_REFERENCE_MISSING"
+        action = "Choose or confirm the Capital Hilton source workbook before generating the invoice artifact."
+    return SourceWorkbookLinkageReadiness(
+        source_workbook_found=found,
+        source_workbook_confirmed=False,
+        source_workbook_ref=None,
+        source_workbook_pc_path=pc_path or None,
+        source_workbook_mac_path=mac_path or None,
+        registry_workbook_ref=registry_ref,
+        approved_artifact_ref=approved_ref,
+        linkage_status="BLOCKED",
+        blocker=blocker,
+        guided_action=action,
+        receipt_name_if_confirmed=SOURCE_WORKBOOK_LINKAGE_RECEIPT,
+        no_workbook_body_read=True,
+        no_cell_read=True,
+    )
+
+
 def evaluate_readiness(
     *,
     state: Mapping[str, Any],
@@ -125,6 +235,11 @@ def evaluate_readiness(
 ) -> SelectedRecordGeneratorReadiness:
     present = _receipt_set(receipts)
     missing: list[str] = []
+    linkage = discover_source_workbook_linkage()
+    source_workbook_ref = source_workbook_ref or (linkage.source_workbook_ref if linkage.source_workbook_confirmed else None)
+    source_workbook_path = source_workbook_path or (
+        linkage.source_workbook_pc_path if linkage.source_workbook_confirmed else None
+    )
     if not source_workbook_ref:
         missing.append("source_workbook_ref")
     if not source_workbook_path:
@@ -251,6 +366,7 @@ def build_payload(
 ) -> dict[str, Any]:
     state = invoice_review_state_machine.load_state(db_path, generated_at=generated_at)
     receipts = invoice_review_state_machine.receipt_names(db_path)
+    linkage = discover_source_workbook_linkage()
     readiness = evaluate_readiness(state=state, receipts=receipts)
     audit = audit_existing_generators()
     return {
@@ -259,6 +375,21 @@ def build_payload(
         "generated_at": generated_at,
         "existing_generator_audit": tuple(asdict(item) for item in audit),
         "readiness": asdict(readiness),
+        "source_workbook_linkage": asdict(linkage),
+        "generation_authority_receipt": {
+            "receipt_name": GENERATION_AUTHORITY_RECEIPT,
+            "status": "MISSING" if GENERATION_AUTHORITY_RECEIPT not in receipts else "PRESENT",
+            "scope_required": {
+                "client_ref": state.get("client_ref"),
+                "workflow_ref": state.get("workflow_ref"),
+                "invoice_period_label": state.get("invoice_period_label"),
+                "invoice_record_label": state.get("invoice_record_label"),
+                "source_workbook_ref": linkage.source_workbook_ref,
+                "intended_output_artifact_kind": "SELECTED_RECORD_INVOICE_CANDIDATE_JSON",
+            },
+            "does_not_equal_execution": True,
+            "allows_send_submit_ledger": False,
+        },
         "current_state_refs": {
             "client_ref": state.get("client_ref"),
             "workflow_ref": state.get("workflow_ref"),
@@ -276,6 +407,8 @@ def build_payload(
             "no_cell_read": True,
             "no_external_action": True,
             "safe_to_generate_now": readiness.safe_to_generate,
+            "source_workbook_linkage_confirmed": linkage.source_workbook_confirmed,
+            "generation_authority_receipt_required": True,
         },
     }
 

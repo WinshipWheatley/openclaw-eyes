@@ -19,6 +19,8 @@ from pathlib import Path
 from typing import Any, Mapping
 
 import invoice_review_bundle
+import client_invoice_workbook_registry
+import local_artifact_reference
 
 
 SCHEMA_VERSION = "invoice_review_state_machine_v0"
@@ -27,7 +29,7 @@ DEFAULT_EXPORT_ROOT = Path("generated/read_models")
 DEFAULT_BRIDGE_EXPORT_ROOT = Path("/mnt/e/openclaw/generated/read_models")
 
 ACTION_TO_RECEIPT = {
-    "confirm_source_workbook_reference": "active_workbook_confirmed_receipt",
+    "confirm_source_workbook_reference": "source_workbook_reference_confirmed_receipt",
     "replace_source_workbook_reference": "source_workbook_replacement_request_receipt",
     "start_invoice_record_selection": "invoice_record_selection_started_receipt",
     "regenerate_or_link_invoice_artifact": "invoice_artifact_link_or_regeneration_requested_receipt",
@@ -68,6 +70,7 @@ ARTIFACT_GENERATOR_NOT_WIRED_RECEIPT = "invoice_artifact_generator_not_wired_rec
 
 COMPLETION_RECEIPTS = {
     "active_workbook_confirmed_receipt",
+    "source_workbook_reference_confirmed_receipt",
     "invoice_record_selected_receipt",
     "invoice_period_confirmed_receipt",
     "generated_invoice_artifact_linkage_receipt",
@@ -366,11 +369,12 @@ def _receipt(
     generated_at: str | None,
 ) -> dict[str, Any]:
     receipt_id = f"invoice_review:{receipt_name}:{_short_hash(source_request_id, action_kind, status)}"
-    receipt_event = (
-        "invoice_artifact_generator_not_wired"
-        if receipt_name == ARTIFACT_GENERATOR_NOT_WIRED_RECEIPT
-        else ACTION_TO_RECEIPT_EVENT.get(action_kind, receipt_name.removesuffix("_receipt"))
-    )
+    if receipt_name == ARTIFACT_GENERATOR_NOT_WIRED_RECEIPT:
+        receipt_event = "invoice_artifact_generator_not_wired"
+    elif receipt_name == "source_workbook_confirmation_needed_receipt":
+        receipt_event = "source_workbook_confirmation_needed"
+    else:
+        receipt_event = ACTION_TO_RECEIPT_EVENT.get(action_kind, receipt_name.removesuffix("_receipt"))
     return {
         "receipt_id": receipt_id,
         "receipt_type": "invoice_review_action_progress_receipt",
@@ -429,6 +433,48 @@ def inspect_generated_invoice_artifact_metadata(path: Path) -> dict[str, Any]:
     result["metadata_status"] = "GENERATED_ARTIFACT_METADATA_VALID"
     result["invalid_reason"] = None
     return result
+
+
+def _source_workbook_linkage_readiness() -> dict[str, Any]:
+    registry_payload = client_invoice_workbook_registry.load_existing_payload()
+    artifact_payload = local_artifact_reference.load_existing_payload()
+    active = None
+    if isinstance(registry_payload, Mapping):
+        active_record = registry_payload.get("active_record")
+        if isinstance(active_record, Mapping):
+            active = dict(active_record)
+    approved = local_artifact_reference.find_approved_readable_artifact(
+        artifact_payload,
+        world_ref="finance",
+        workflow_ref=invoice_review_bundle.CAPITAL_HILTON_WORKFLOW_REF,
+        client_ref="capital_hilton",
+        artifact_kind="invoice_workbook",
+        intended_use="client_invoice_sheet_audit",
+    )
+    registry_ref = str(active.get("workbook_ref")) if active else None
+    approved_ref = str(approved.get("artifact_ref")) if approved else None
+    confirmed = bool(active and approved and registry_ref == approved_ref)
+    if confirmed:
+        blocker = None
+    elif active and approved:
+        blocker = "ACTIVE_WORKBOOK_REF_DIFFERS_FROM_APPROVED_READABLE_ARTIFACT_REF"
+    elif active:
+        blocker = "APPROVED_READABLE_WORKBOOK_ARTIFACT_MISSING"
+    elif approved:
+        blocker = "WORKBOOK_REGISTRY_ACTIVE_RECORD_MISSING"
+    else:
+        blocker = "SOURCE_WORKBOOK_REFERENCE_MISSING"
+    return {
+        "source_workbook_found": bool(active or approved),
+        "source_workbook_confirmed": confirmed,
+        "registry_workbook_ref": registry_ref,
+        "approved_artifact_ref": approved_ref,
+        "source_workbook_pc_path": str(approved.get("pc_path") or approved.get("approved_path_ref") or "") if approved else "",
+        "source_workbook_mac_path": str(approved.get("mac_path") or "") if approved else "",
+        "blocker": blocker,
+        "no_workbook_body_read": True,
+        "no_cell_read": True,
+    }
 
 
 def audit_current_invoice_artifact_generator(state: Mapping[str, Any]) -> dict[str, Any]:
@@ -508,10 +554,19 @@ def _write_receipt(conn: sqlite3.Connection, receipt: Mapping[str, Any]) -> None
 
 def _apply_action(state: dict[str, Any], action_kind: str) -> tuple[str, str, str, str, str, bool]:
     if action_kind == "confirm_source_workbook_reference":
-        if state["source_workbook_status"] not in {"CANDIDATE_PRESENT", "REPLACEMENT_REQUESTED", "CONFIRMED"}:
-            return ("BLOCKED_SOURCE_WORKBOOK_MISSING", "Source workbook missing", "OpenClaw needs a source workbook candidate first.", "Choose the source workbook in Mission Control.", "source_workbook_missing_receipt", False)
+        linkage = _source_workbook_linkage_readiness()
+        if not linkage["source_workbook_confirmed"]:
+            state["source_workbook_status"] = "NEEDS_CONFIRMATION"
+            return (
+                "BLOCKED_SOURCE_WORKBOOK_CONFIRMATION_NEEDED",
+                "Source workbook needs confirmation",
+                "Choose or confirm the Capital Hilton source workbook before generating the invoice artifact. OpenClaw found workbook metadata, but it is not yet linked by matching registry and approved-readable artifact proof. No workbook body or cells were read.",
+                "Choose or confirm the Capital Hilton source workbook.",
+                "source_workbook_confirmation_needed_receipt",
+                False,
+            )
         state["source_workbook_status"] = "CONFIRMED"
-        return ("COMPLETED", "Source workbook confirmed", "Source workbook reference is confirmed.", "Next: select the Capital Hilton invoice page/period.", "active_workbook_confirmed_receipt", True)
+        return ("COMPLETED", "Source workbook confirmed", "Source workbook reference is confirmed. No workbook body or cells were read.", "Next: request selected-record generation authority.", "source_workbook_reference_confirmed_receipt", True)
     if action_kind == "replace_source_workbook_reference":
         state["source_workbook_status"] = "REPLACEMENT_REQUESTED"
         return ("REQUESTED", "Choose the correct source workbook", "Choose the replacement source workbook. No file will be deleted.", "Select the replacement workbook in Mission Control.", "source_workbook_replacement_request_receipt", False)
