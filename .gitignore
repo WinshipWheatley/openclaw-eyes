@@ -33,6 +33,7 @@
 !external_lm_safe_package_compiler.py
 !external_lm_shadow_adapter.py
 !external_shadow_provider_config.py
+!selected_record_invoice_artifact_generator_readiness.py
 !chief_memory_worker.py
 !chief_reply_worker.py
 !chief_state_worker.py
@@ -936,6 +937,7 @@
 !scripts/export_external_lm_eligibility_policy.py
 !scripts/export_external_lm_safe_package.py
 !scripts/export_external_shadow_provider_config.py
+!scripts/export_selected_record_invoice_artifact_generator_readiness.py
 !scripts/run_external_lm_shadow_adapter.py
 !scripts/export_bridge_routing_operator_attention_contract.py
 !scripts/export_agent_conversation_handoff_step_packet_contract.py
@@ -991,6 +993,7 @@
 !tests/test_external_lm_safe_package_compiler.py
 !tests/test_external_lm_shadow_adapter.py
 !tests/test_external_shadow_provider_config.py
+!tests/test_selected_record_invoice_artifact_generator_readiness.py
 !tests/test_workflow_session_channel_projection_approval_bus_contract.py
 !tests/test_automation_readiness_feasibility_evaluator_contract.py
 !tests/test_bridge_routing_operator_attention_contract.py

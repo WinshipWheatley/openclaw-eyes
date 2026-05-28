@@ -1,0 +1,72 @@
+{
+  "authority_boundary": {
+    "coupa_browser_action_performed": false,
+    "email_send_performed": false,
+    "excel_office_automation_performed": false,
+    "external_action_performed": false,
+    "formula_evaluation_performed": false,
+    "ledger_posting_performed": false,
+    "pdf_export_performed": false,
+    "production_business_mutation_performed": false,
+    "spreadsheet_cell_read_performed": false,
+    "workbook_body_read_performed": false
+  },
+  "current_state_refs": {
+    "client_ref": "capital_hilton",
+    "generated_artifact_status": "ARTIFACT_GENERATOR_NOT_WIRED",
+    "invoice_period_label": "May 2026",
+    "invoice_record_label": "May tab / page 2",
+    "workflow_ref": "capital_hilton_invoice_workflow"
+  },
+  "existing_generator_audit": [
+    {
+      "blocker": "Does not accept source_workbook_ref, invoice_period_label, invoice_record_label, selected-record receipt, or generation authority receipt.",
+      "found": true,
+      "input_source": "module constants CAPITAL_HILTON_FACTS plus fixed record date",
+      "module_ref": "invoice_artifact_builder",
+      "output_kind": "PDF/XLSX/CSV fixture artifacts",
+      "selected_record_safe": false
+    },
+    {
+      "blocker": "Preview rail is not a current Excel/PDF invoice artifact generator and does not bind a selected workbook page/record.",
+      "found": true,
+      "input_source": "Mission Control capture-state rows for performance dates/rate/subtotal",
+      "module_ref": "capital_hilton_invoice_artifact_generator",
+      "output_kind": "Markdown preview only",
+      "selected_record_safe": false
+    }
+  ],
+  "generated_at": "2026-05-28T04:00:00+00:00",
+  "machine_proof": {
+    "existing_fixture_generators_not_selected_record_safe": true,
+    "no_cell_read": true,
+    "no_external_action": true,
+    "no_workbook_body_read": true,
+    "safe_to_generate_now": false
+  },
+  "operator_copy": "OpenClaw needs source workbook linkage and generation authority before creating the selected invoice artifact.",
+  "read_model_id": "selected_record_invoice_artifact_generator_readiness",
+  "readiness": {
+    "allowed_read_scope": "approved_selected_record_inputs_only_no_workbook_body_or_cell_read",
+    "generator_ready": false,
+    "missing_inputs": [
+      "source_workbook_ref",
+      "source_workbook_pc_or_mac_path",
+      "source_workbook_reference_confirmed_receipt",
+      "selected_record_invoice_artifact_generation_authority_receipt",
+      "approved_generation_inputs"
+    ],
+    "next_operator_action": "OpenClaw needs source workbook linkage and generation authority before creating the selected invoice artifact.",
+    "output_artifact_kind": "SELECTED_RECORD_INVOICE_CANDIDATE_JSON",
+    "required_authority": [
+      "source_workbook_reference_confirmed_receipt",
+      "invoice_record_selection_operator_confirmed_receipt",
+      "selected_record_invoice_artifact_generation_authority_receipt"
+    ],
+    "safe_to_generate": false,
+    "selected_record_linkage_status": "LINKED",
+    "source_workbook_linkage_status": "MISSING_LINKAGE",
+    "workbook_read_required": false
+  },
+  "schema_version": "selected_record_invoice_artifact_generator_readiness_v0"
+}
