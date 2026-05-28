@@ -218,12 +218,45 @@ def _ensure_column(conn: sqlite3.Connection, table: str, column: str, column_typ
         conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {column_type}")
 
 
-def _default_state(*, generated_at: str | None = None) -> dict[str, Any]:
+def _client_invoice_scope(client_ref: str | None = None, workflow_ref: str | None = None) -> dict[str, str | None]:
+    client = (client_ref or "capital_hilton").strip() or "capital_hilton"
+    if client == "live_arts_md":
+        return {
+            "client_ref": "live_arts_md",
+            "client_display_name": "Live Arts MD",
+            "workflow_ref": workflow_ref or "live_arts_md_invoice_workflow",
+            "bundle_id": "invoice_review_bundle:live_arts_md:v0",
+            "supplier_portal_provider": None,
+            "supplier_portal_proof_status": "NOT_REQUIRED_BY_RECIPE",
+            "coupa_proof_status": "NOT_REQUIRED_BY_RECIPE",
+            "source_workbook_status": "SOURCE_WORKBOOK_REQUIRED",
+            "generated_artifact_status": "ARTIFACT_REQUIRED",
+        }
     return {
-        "bundle_id": invoice_review_bundle.CAPITAL_HILTON_BUNDLE_ID,
         "client_ref": "capital_hilton",
-        "workflow_ref": invoice_review_bundle.CAPITAL_HILTON_WORKFLOW_REF,
+        "client_display_name": "Capital Hilton",
+        "workflow_ref": workflow_ref or invoice_review_bundle.CAPITAL_HILTON_WORKFLOW_REF,
+        "bundle_id": invoice_review_bundle.CAPITAL_HILTON_BUNDLE_ID,
+        "supplier_portal_provider": "COUPA",
+        "supplier_portal_proof_status": "MISSING",
+        "coupa_proof_status": "MISSING",
         "source_workbook_status": "CANDIDATE_PRESENT",
+        "generated_artifact_status": "CANDIDATE_NEEDS_LINKAGE",
+    }
+
+
+def _default_state(
+    *,
+    generated_at: str | None = None,
+    client_ref: str | None = None,
+    workflow_ref: str | None = None,
+) -> dict[str, Any]:
+    scope = _client_invoice_scope(client_ref, workflow_ref)
+    return {
+        "bundle_id": scope["bundle_id"],
+        "client_ref": scope["client_ref"],
+        "workflow_ref": scope["workflow_ref"],
+        "source_workbook_status": scope["source_workbook_status"],
         "invoice_record_selection_status": "NEEDS_OPERATOR_SELECTION",
         "invoice_period_status": "NEEDS_OPERATOR_SELECTION",
         "invoice_period_label": None,
@@ -235,13 +268,13 @@ def _default_state(*, generated_at: str | None = None) -> dict[str, Any]:
         "generated_artifact_metadata_size": None,
         "generated_artifact_generator_status": None,
         "generated_artifact_generator_reason": None,
-        "generated_artifact_status": "CANDIDATE_NEEDS_LINKAGE",
+        "generated_artifact_status": scope["generated_artifact_status"],
         "source_workbook_ref": None,
         "source_workbook_pc_path": None,
         "source_workbook_mac_path": None,
-        "coupa_proof_status": "MISSING",
-        "supplier_portal_provider": "COUPA",
-        "supplier_portal_proof_status": "MISSING",
+        "coupa_proof_status": scope["coupa_proof_status"],
+        "supplier_portal_provider": scope["supplier_portal_provider"],
+        "supplier_portal_proof_status": scope["supplier_portal_proof_status"],
         "recipient_confirmation_status": "CANDIDATE_UNCONFIRMED",
         "recipient_review_status": "NOT_STARTED",
         "clara_draft_status": "DRAFT_ONLY",
@@ -255,12 +288,19 @@ def _default_state(*, generated_at: str | None = None) -> dict[str, Any]:
     }
 
 
-def load_state(db_path: Path = DEFAULT_DB_PATH, *, generated_at: str | None = None) -> dict[str, Any]:
+def load_state(
+    db_path: Path = DEFAULT_DB_PATH,
+    *,
+    generated_at: str | None = None,
+    client_ref: str | None = None,
+    workflow_ref: str | None = None,
+) -> dict[str, Any]:
     init_store(db_path)
+    scope = _client_invoice_scope(client_ref, workflow_ref)
     with _connect(db_path) as conn:
         row = conn.execute(
             "SELECT * FROM invoice_review_states WHERE bundle_id = ?",
-            (invoice_review_bundle.CAPITAL_HILTON_BUNDLE_ID,),
+            (scope["bundle_id"],),
         ).fetchone()
         if row:
             state = dict(row)
@@ -270,12 +310,12 @@ def load_state(db_path: Path = DEFAULT_DB_PATH, *, generated_at: str | None = No
                     if state.get("recipient_confirmation_status") == "REVIEW_REQUESTED_EMAILS_MISSING"
                     else "NOT_STARTED"
                 )
-            if not state.get("supplier_portal_provider"):
+            if not state.get("supplier_portal_provider") and state.get("client_ref") == "capital_hilton":
                 state["supplier_portal_provider"] = "COUPA"
             if not state.get("supplier_portal_proof_status"):
-                state["supplier_portal_proof_status"] = state.get("coupa_proof_status") or "MISSING"
+                state["supplier_portal_proof_status"] = state.get("coupa_proof_status") or scope["supplier_portal_proof_status"]
             return state
-        state = _default_state(generated_at=generated_at)
+        state = _default_state(generated_at=generated_at, client_ref=str(scope["client_ref"]), workflow_ref=str(scope["workflow_ref"]))
         _upsert_state(conn, state)
         return state
 
@@ -365,17 +405,23 @@ def _upsert_state(conn: sqlite3.Connection, state: Mapping[str, Any]) -> None:
     )
 
 
-def receipt_names(db_path: Path = DEFAULT_DB_PATH) -> tuple[str, ...]:
+def receipt_names(db_path: Path = DEFAULT_DB_PATH, *, bundle_id: str | None = None) -> tuple[str, ...]:
     init_store(db_path)
     with _connect(db_path) as conn:
-        rows = conn.execute(
-            "SELECT DISTINCT receipt_name FROM invoice_review_receipts ORDER BY receipt_name"
-        ).fetchall()
+        if bundle_id:
+            rows = conn.execute(
+                "SELECT DISTINCT receipt_name FROM invoice_review_receipts WHERE bundle_id = ? ORDER BY receipt_name",
+                (bundle_id,),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                "SELECT DISTINCT receipt_name FROM invoice_review_receipts ORDER BY receipt_name"
+            ).fetchall()
     return tuple(str(row["receipt_name"]) for row in rows)
 
 
-def _completion_receipts_for_bundle(db_path: Path) -> tuple[str, ...]:
-    names = receipt_names(db_path)
+def _completion_receipts_for_bundle(db_path: Path, *, bundle_id: str | None = None) -> tuple[str, ...]:
+    names = receipt_names(db_path, bundle_id=bundle_id)
     return tuple(name for name in names if name in COMPLETION_RECEIPTS)
 
 
@@ -387,7 +433,11 @@ def _receipt(
     status: str,
     completion: bool,
     generated_at: str | None,
+    client_ref: str = "capital_hilton",
+    workflow_ref: str | None = None,
+    bundle_id: str | None = None,
 ) -> dict[str, Any]:
+    scope = _client_invoice_scope(client_ref, workflow_ref)
     receipt_id = f"invoice_review:{receipt_name}:{_short_hash(source_request_id, action_kind, status)}"
     if receipt_name == ARTIFACT_GENERATOR_NOT_WIRED_RECEIPT:
         receipt_event = "invoice_artifact_generator_not_wired"
@@ -403,9 +453,9 @@ def _receipt(
         "receipt_name": receipt_name,
         "receipt_event": receipt_event,
         "source_request_id": source_request_id,
-        "bundle_id": invoice_review_bundle.CAPITAL_HILTON_BUNDLE_ID,
-        "workflow_ref": invoice_review_bundle.CAPITAL_HILTON_WORKFLOW_REF,
-        "client_ref": "capital_hilton",
+        "bundle_id": bundle_id or scope["bundle_id"],
+        "workflow_ref": workflow_ref or str(scope["workflow_ref"]),
+        "client_ref": str(scope["client_ref"]),
         "action_kind": action_kind,
         "status": status,
         "underlying_blocker_completed": completion,
@@ -1049,9 +1099,49 @@ def refresh_bundle(
     bridge_export_root: Path | None = DEFAULT_BRIDGE_EXPORT_ROOT,
     generated_at: str | None = None,
     last_receipt: Mapping[str, Any] | None = None,
+    client_ref: str | None = None,
+    workflow_ref: str | None = None,
 ) -> tuple[dict[str, Any], Path, Path | None, bool]:
-    completion_receipts = _completion_receipts_for_bundle(db_path)
-    state = load_state(db_path, generated_at=generated_at)
+    state = load_state(db_path, generated_at=generated_at, client_ref=client_ref, workflow_ref=workflow_ref)
+    completion_receipts = _completion_receipts_for_bundle(db_path, bundle_id=str(state["bundle_id"]))
+    if state.get("client_ref") == "live_arts_md":
+        import live_arts_md_invoice_review_bundle
+
+        source_override = {
+            "status": state.get("source_workbook_status") or "SOURCE_WORKBOOK_REQUIRED",
+            "client_ref": "live_arts_md",
+            "workflow_ref": state.get("workflow_ref") or "live_arts_md_invoice_workflow",
+            "expected_display_name": live_arts_md_invoice_review_bundle.EXPECTED_WORKBOOK_NAME,
+            "workbook_ref": state.get("source_workbook_ref"),
+            "workbook_display_name": Path(str(state.get("source_workbook_mac_path") or state.get("source_workbook_pc_path") or "")).name
+            or live_arts_md_invoice_review_bundle.EXPECTED_WORKBOOK_NAME
+            if state.get("source_workbook_status") == "CONFIRMED"
+            else None,
+            "workbook_path_ref": state.get("source_workbook_mac_path") or state.get("source_workbook_pc_path"),
+            "source_workbook_mac_path": state.get("source_workbook_mac_path"),
+            "source_workbook_pc_path": state.get("source_workbook_pc_path"),
+            "approved_for_metadata_read": state.get("source_workbook_status") == "CONFIRMED",
+            "approved_for_cell_read": False,
+            "no_workbook_body_read": True,
+            "no_cell_read": True,
+            "next_action": (
+                "Select the Live Arts MD invoice page/period."
+                if state.get("source_workbook_status") == "CONFIRMED"
+                else "Choose the Live Arts MD source workbook."
+            ),
+        }
+        payload = live_arts_md_invoice_review_bundle.build_payload(
+            generated_at=generated_at,
+            source_workbook_override=source_override,
+            present_receipts=completion_receipts,
+        )
+        source_json, source_operator, bridge_json = live_arts_md_invoice_review_bundle.write_exports(
+            payload,
+            export_root,
+            bridge_export_root=bridge_export_root,
+        )
+        return payload, source_json, bridge_json, bridge_json is not None
+
     payload = invoice_review_bundle.build_payload(generated_at=generated_at)
     payload["capital_hilton_bundle"] = invoice_review_bundle.build_capital_hilton_bundle(
         present_receipts=completion_receipts,
@@ -1064,7 +1154,7 @@ def refresh_bundle(
             payload,
             state,
             last_receipt,
-            action_receipt_names=receipt_names(db_path),
+            action_receipt_names=receipt_names(db_path, bundle_id=str(state["bundle_id"])),
         )
     source_json, source_operator = invoice_review_bundle.write_exports(payload, export_root)
     bridge_json: Path | None = None
@@ -1091,8 +1181,16 @@ def process_action(
     payload = raw_request.get("hidden_request_payload") if isinstance(raw_request.get("hidden_request_payload"), Mapping) else raw_request
     source_request_id = str(raw_request.get("request_id") or payload.get("request_id") or payload.get("source_request_id") or "unknown_invoice_review_action")
     action_kind = str(payload.get("action_kind") or payload.get("request_kind") or raw_request.get("action_kind") or raw_request.get("intended_use") or "")
-    state = load_state(db_path, generated_at=generated_at)
-    current_receipt_names = receipt_names(db_path)
+    requested_client_ref = str(payload.get("client_ref") or raw_request.get("client_ref") or "capital_hilton")
+    requested_workflow_ref = str(payload.get("workflow_ref") or raw_request.get("workflow_ref") or "")
+    scope = _client_invoice_scope(requested_client_ref, requested_workflow_ref or None)
+    state = load_state(
+        db_path,
+        generated_at=generated_at,
+        client_ref=str(scope["client_ref"]),
+        workflow_ref=str(scope["workflow_ref"]),
+    )
+    current_receipt_names = receipt_names(db_path, bundle_id=str(state["bundle_id"]))
     state["_receipt_names"] = current_receipt_names
     if (
         action_kind == "regenerate_or_link_invoice_artifact"
@@ -1118,6 +1216,9 @@ def process_action(
         status=status,
         completion=completion,
         generated_at=generated_at,
+        client_ref=str(state["client_ref"]),
+        workflow_ref=str(state["workflow_ref"]),
+        bundle_id=str(state["bundle_id"]),
     )
     if action_kind == "regenerate_or_link_invoice_artifact":
         generator_audit = audit_current_invoice_artifact_generator(state)
@@ -1162,6 +1263,8 @@ def process_action(
         bridge_export_root=bridge_export_root,
         generated_at=generated_at,
         last_receipt=receipt,
+        client_ref=str(state["client_ref"]),
+        workflow_ref=str(state["workflow_ref"]),
     )
     return InvoiceReviewActionResult(
         source_request_id=source_request_id,
@@ -1317,7 +1420,16 @@ def process_source_workbook_selection_result(
     init_store(db_path)
     payload = _source_workbook_result_payload(raw_request)
     source_request_id = str(raw_request.get("request_id") or payload.get("source_request_id") or "unknown_source_workbook_selection_result")
-    state = load_state(db_path, generated_at=generated_at)
+    requested_client_ref = str(payload.get("client_ref") or raw_request.get("client_ref") or "capital_hilton")
+    requested_workflow_ref = str(payload.get("workflow_ref") or raw_request.get("workflow_ref") or "")
+    scope = _client_invoice_scope(requested_client_ref, requested_workflow_ref or None)
+    state = load_state(
+        db_path,
+        generated_at=generated_at,
+        client_ref=str(scope["client_ref"]),
+        workflow_ref=str(scope["workflow_ref"]),
+    )
+    client_display_name = str(scope["client_display_name"])
     selected_mac_path = str(payload.get("selected_workbook_mac_path") or payload.get("source_workbook_mac_path") or "").strip()
     selected_pc_path = str(payload.get("selected_workbook_pc_path") or payload.get("source_workbook_pc_path") or "").strip()
     artifact_ref = str(payload.get("artifact_ref") or payload.get("selected_artifact_ref") or "").strip()
@@ -1327,10 +1439,12 @@ def process_source_workbook_selection_result(
     if not selected_pc_path and selected_mac_path:
         selected_pc_path = _pc_path_from_mac_path(selected_mac_path)
     validation_errors: list[str] = []
-    if str(payload.get("client_ref") or raw_request.get("client_ref") or "") != "capital_hilton":
+    if requested_client_ref != scope["client_ref"]:
         validation_errors.append("WRONG_CLIENT")
-    if str(payload.get("workflow_ref") or raw_request.get("workflow_ref") or "") != invoice_review_bundle.CAPITAL_HILTON_WORKFLOW_REF:
+    if requested_workflow_ref != scope["workflow_ref"]:
         validation_errors.append("WRONG_WORKFLOW")
+    if scope["client_ref"] not in {"capital_hilton", "live_arts_md"}:
+        validation_errors.append("UNSUPPORTED_CLIENT")
     if str(payload.get("intended_use") or "") not in {"confirm_source_workbook_reference", "replace_source_workbook_reference_result"}:
         validation_errors.append("WRONG_INTENDED_USE")
     if payload.get("operator_provided") is not True:
@@ -1375,7 +1489,7 @@ def process_source_workbook_selection_result(
         status = "BLOCKED_INVALID_SOURCE_WORKBOOK_SELECTION"
         headline = "Source workbook selection blocked"
         body = "OpenClaw could not confirm the source workbook because the selection result was incomplete or unsafe."
-        next_action = "Choose the correct Capital Hilton source workbook with the required safety flags."
+        next_action = f"Choose the correct {client_display_name} source workbook with the required safety flags."
         receipt_name = "source_workbook_selection_blocked_receipt"
         completion = False
     else:
@@ -1400,6 +1514,9 @@ def process_source_workbook_selection_result(
         status=status,
         completion=completion,
         generated_at=generated_at,
+        client_ref=str(scope["client_ref"]),
+        workflow_ref=str(scope["workflow_ref"]),
+        bundle_id=str(scope["bundle_id"]),
     )
     receipt["validation_errors"] = tuple(validation_errors)
     receipt["source_workbook_selection"] = {
@@ -1427,6 +1544,8 @@ def process_source_workbook_selection_result(
         bridge_export_root=bridge_export_root,
         generated_at=generated_at,
         last_receipt=receipt,
+        client_ref=str(scope["client_ref"]),
+        workflow_ref=str(scope["workflow_ref"]),
     )
     return InvoiceReviewActionResult(
         source_request_id=source_request_id,

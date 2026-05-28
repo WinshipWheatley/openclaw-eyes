@@ -13,24 +13,24 @@
     "spreadsheet_cell_read_performed": false,
     "workbook_body_read_performed": false
   },
-  "generated_at": "2026-05-28T15:29:40+00:00",
+  "generated_at": "2026-05-28T15:53:45+00:00",
   "live_arts_md_bundle": {
     "actionable_blockers": [
       {
         "blocker_ref": "live_arts_md_blocker:89c158c3f6eeffbc",
         "operator_summary": "Choose the Live Arts MD source workbook.",
         "primary_action": {
-          "action_kind": "choose_source_workbook",
-          "action_ref": "live_arts_md_invoice_action:cf5a6e05a7dcf3fd",
+          "action_kind": "replace_source_workbook_reference",
+          "action_ref": "live_arts_md_invoice_action:69e707dab4c4fc5b",
           "disabled_reason": null,
           "enabled": true,
           "hidden_request_payload": {
-            "action_kind": "choose_source_workbook",
+            "action_kind": "replace_source_workbook_reference",
             "client_ref": "live_arts_md",
             "coupa_submit_allowed": false,
             "email_send_allowed": false,
             "expected_workbook_display_name": "Invoice Live Arts MD! Running.xlsx",
-            "intended_use": "choose_source_workbook_reference",
+            "intended_use": "replace_source_workbook_reference",
             "ledger_posting_allowed": false,
             "no_cell_read": true,
             "no_external_action": true,
@@ -84,7 +84,7 @@
     },
     "client_display_name": "Live Arts MD",
     "client_ref": "live_arts_md",
-    "generated_at": "2026-05-28T15:29:40+00:00",
+    "generated_at": "2026-05-28T15:53:45+00:00",
     "invoice_artifact": {
       "artifact_ref": null,
       "attachment_ready": false,
@@ -126,7 +126,7 @@
       "approval_send_disabled_without_receipts": true,
       "artifact_candidate_not_attachment_ready": true,
       "clara_draft_only": true,
-      "content_hash": "sha256:a82862629a9f3acd499e71574992885fa45eb523260f499cbebc28f2b343236a",
+      "content_hash": "sha256:0db236160b04f91826c894f347349c1bbd41d5f5a6352540e67a0118fe6bc4d2",
       "live_arts_md_does_not_require_coupa": true,
       "live_arts_md_does_not_require_po": true,
       "no_action_authority": true,
@@ -147,17 +147,17 @@
       {
         "operator_summary": "Choose the Live Arts MD source workbook.",
         "primary_action": {
-          "action_kind": "choose_source_workbook",
-          "action_ref": "live_arts_md_invoice_action:cf5a6e05a7dcf3fd",
+          "action_kind": "replace_source_workbook_reference",
+          "action_ref": "live_arts_md_invoice_action:69e707dab4c4fc5b",
           "disabled_reason": null,
           "enabled": true,
           "hidden_request_payload": {
-            "action_kind": "choose_source_workbook",
+            "action_kind": "replace_source_workbook_reference",
             "client_ref": "live_arts_md",
             "coupa_submit_allowed": false,
             "email_send_allowed": false,
             "expected_workbook_display_name": "Invoice Live Arts MD! Running.xlsx",
-            "intended_use": "choose_source_workbook_reference",
+            "intended_use": "replace_source_workbook_reference",
             "ledger_posting_allowed": false,
             "no_cell_read": true,
             "no_external_action": true,
@@ -401,7 +401,7 @@
   },
   "machine_proof": {
     "bridge_safe": true,
-    "content_hash": "sha256:a82862629a9f3acd499e71574992885fa45eb523260f499cbebc28f2b343236a",
+    "content_hash": "sha256:0db236160b04f91826c894f347349c1bbd41d5f5a6352540e67a0118fe6bc4d2",
     "live_arts_md_bundle_present": true,
     "no_action_authority": true
   },

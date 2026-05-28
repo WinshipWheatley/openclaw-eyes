@@ -2,6 +2,8 @@ import json
 from pathlib import Path
 
 import client_invoice_workflow_framework as framework
+import invoice_review_action_request_handler as action_handler
+import invoice_review_state_machine as state_machine
 import live_arts_md_invoice_review_bundle as bundle
 from scripts.export_live_arts_md_invoice_review_bundle import main as export_main
 
@@ -45,7 +47,41 @@ def test_missing_source_workbook_produces_guided_source_action():
     assert live["source_workbook"]["status"] == "SOURCE_WORKBOOK_REQUIRED"
     assert live["blockers"][0] == "Choose the Live Arts MD source workbook."
     assert live["actionable_blockers"][0]["primary_action"]["label"] == "Choose Live Arts MD source workbook"
-    assert live["actionable_blockers"][0]["primary_action"]["hidden_request_payload"]["expected_workbook_display_name"] == "Invoice Live Arts MD! Running.xlsx"
+    action = live["actionable_blockers"][0]["primary_action"]
+    assert action["action_kind"] == "replace_source_workbook_reference"
+    assert action["hidden_request_payload"]["intended_use"] == "replace_source_workbook_reference"
+    assert action["hidden_request_payload"]["expected_workbook_display_name"] == "Invoice Live Arts MD! Running.xlsx"
+
+
+def test_live_arts_md_source_workbook_selection_surface_exists(tmp_path):
+    payload = bundle.build_payload(generated_at=FIXED_NOW, workbook_registry_payload={})
+    action_payload = dict(
+        payload["live_arts_md_bundle"]["actionable_blockers"][0]["primary_action"]["hidden_request_payload"]
+    )
+    result = action_handler.process_action_request(
+        {
+            "request_id": "live_arts_md_choose_source_workbook",
+            "request_type": "INVOICE_REVIEW_ACTION_REQUEST",
+            "client_ref": "live_arts_md",
+            "workflow_ref": "live_arts_md_invoice_workflow",
+            "action_kind": "replace_source_workbook_reference",
+            "hidden_request_payload": action_payload,
+        },
+        generated_at=FIXED_NOW,
+        db_path=tmp_path / "live_arts_md_source_surface.sqlite",
+        export_root=tmp_path / "live_arts_md_source_surface_read_models",
+        bridge_export_root=None,
+        event_db_path=tmp_path / "live_arts_md_source_surface_events.sqlite",
+        event_export_root=tmp_path / "live_arts_md_source_surface_events",
+    )
+
+    surface = result["local_surface_request"]
+    assert surface["surface_type"] == "SHOW_SOURCE_WORKBOOK_SELECTION_PANEL"
+    assert surface["client_ref"] == "live_arts_md"
+    assert surface["workflow_ref"] == "live_arts_md_invoice_workflow"
+    assert surface["operator_copy"] == "Choose the Live Arts MD source workbook. No workbook cells will be read."
+    assert surface["no_workbook_body_read"] is True
+    assert surface["no_cell_read"] is True
 
 
 def test_confirmed_source_workbook_does_not_read_cells_and_enables_selection():
@@ -59,6 +95,56 @@ def test_confirmed_source_workbook_does_not_read_cells_and_enables_selection():
     assert live["source_workbook"]["no_cell_read"] is True
     assert live["invoice_selection"]["primary_action"]["enabled"] is True
     assert live["invoice_selection"]["status"] == "NEEDS_SELECTION"
+
+
+def test_live_arts_md_workbook_confirmation_writes_receipt_and_refreshes_bundle(tmp_path):
+    db_path = tmp_path / "invoice_review_state.sqlite"
+    export_root = tmp_path / "generated" / "read_models"
+    bridge_root = tmp_path / "bridge" / "generated" / "read_models"
+
+    result = state_machine.process_source_workbook_selection_result(
+        {
+            "request_id": "live_arts_md_source_workbook_result",
+            "request_type": "LOCAL_SURFACE_RESULT",
+            "kind": "LOCAL_SURFACE_RESULT",
+            "type": "LOCAL_SURFACE_RESULT",
+            "intended_use": "confirm_source_workbook_reference",
+            "client_ref": "live_arts_md",
+            "workflow_ref": "live_arts_md_invoice_workflow",
+            "source_action_ref": "replace_source_workbook_reference",
+            "operator_provided": True,
+            "operator_confirmed": True,
+            "artifact_ref": "workbook_ref:client_invoice:live_arts_md:operator_selected",
+            "workbook_display_name": "Invoice Live Arts MD! Running.xlsx",
+            "workbook_extension": ".xlsx",
+            "file_size_bytes": 12345,
+            "no_workbook_body_read": True,
+            "no_cell_read": True,
+            "no_external_action": True,
+            "physical_deletion_allowed": False,
+        },
+        db_path=db_path,
+        export_root=export_root,
+        bridge_export_root=bridge_root,
+        generated_at=FIXED_NOW,
+    )
+    receipt = state_machine.read_receipt(db_path, result.action_receipt["receipt_id"])
+    source_payload = json.loads((export_root / bundle.JSON_EXPORT_NAME).read_text(encoding="utf-8"))
+    bridge_payload = json.loads((bridge_root / bundle.JSON_EXPORT_NAME).read_text(encoding="utf-8"))
+    live = source_payload["live_arts_md_bundle"]
+
+    assert result.status == "COMPLETED"
+    assert receipt["receipt_name"] == "source_workbook_reference_confirmed_receipt"
+    assert receipt["client_ref"] == "live_arts_md"
+    assert result.state_snapshot["source_workbook_status"] == "CONFIRMED"
+    assert result.state_snapshot["invoice_record_selection_status"] == "NEEDS_RESELECTION_AFTER_SOURCE_WORKBOOK_CORRECTION"
+    assert live["source_workbook"]["status"] == "CONFIRMED"
+    assert live["invoice_selection"]["status"] == "NEEDS_SELECTION"
+    assert live["invoice_artifact"]["status"] == "ARTIFACT_REQUIRED"
+    assert live["invoice_artifact"]["attachment_ready"] is False
+    assert live["approval_footer"]["approval_ready"] is False
+    assert live["supplier_portal_invoice_submission"]["required"] is False
+    assert source_payload == bridge_payload
 
 
 def test_invoice_page_selection_follows_existing_pattern():

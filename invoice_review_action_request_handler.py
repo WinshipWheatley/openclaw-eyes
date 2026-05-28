@@ -15,6 +15,7 @@ from typing import Any, Mapping
 
 import invoice_review_bundle
 import invoice_review_state_machine
+import live_arts_md_invoice_review_bundle
 import operator_action_event_journal
 
 
@@ -40,6 +41,19 @@ SUPPORTED_ACTIONS = {
     "explain_invoice_review",
     "confirm_invoice_review_candidate",
     "open_invoice_workbook_candidate",
+}
+
+CLIENT_BUNDLES = {
+    "capital_hilton": {
+        "client_display_name": "Capital Hilton",
+        "workflow_ref": invoice_review_bundle.CAPITAL_HILTON_WORKFLOW_REF,
+        "bundle_id": invoice_review_bundle.CAPITAL_HILTON_BUNDLE_ID,
+    },
+    "live_arts_md": {
+        "client_display_name": "Live Arts MD",
+        "workflow_ref": live_arts_md_invoice_review_bundle.WORKFLOW_REF,
+        "bundle_id": "invoice_review_bundle:live_arts_md:v0",
+    },
 }
 
 REQUEST_KINDS = {
@@ -126,8 +140,24 @@ def is_source_workbook_selection_result(raw_request: Mapping[str, Any]) -> bool:
     }
 
 
-def _current_action_index() -> dict[str, dict[str, Any]]:
-    bundle = invoice_review_bundle.build_capital_hilton_bundle()
+def _client_context(payload: Mapping[str, Any], raw_request: Mapping[str, Any] | None = None) -> dict[str, str]:
+    raw_request = raw_request or {}
+    client_ref = str(payload.get("client_ref") or raw_request.get("client_ref") or "capital_hilton")
+    context = CLIENT_BUNDLES.get(client_ref, CLIENT_BUNDLES["capital_hilton"])
+    return {
+        "client_ref": client_ref if client_ref in CLIENT_BUNDLES else "capital_hilton",
+        "client_display_name": str(context["client_display_name"]),
+        "workflow_ref": str(payload.get("source_workflow_id") or payload.get("workflow_ref") or raw_request.get("workflow_ref") or context["workflow_ref"]),
+        "bundle_id": str(payload.get("source_bundle_id") or raw_request.get("bundle_id") or raw_request.get("source_bundle_id") or context["bundle_id"]),
+    }
+
+
+def _current_action_index(client_ref: str = "capital_hilton") -> dict[str, dict[str, Any]]:
+    bundle = (
+        live_arts_md_invoice_review_bundle.build_live_arts_md_bundle()
+        if client_ref == "live_arts_md"
+        else invoice_review_bundle.build_capital_hilton_bundle()
+    )
     actions: dict[str, dict[str, Any]] = {}
     for action in bundle.get("correction_actions") or ():
         if isinstance(action, Mapping):
@@ -209,24 +239,29 @@ def _source_workbook_selection_surface(
 ) -> dict[str, Any] | None:
     if action_kind != "replace_source_workbook_reference":
         return None
+    context = _client_context(payload)
+    client_ref = context["client_ref"]
+    client_display_name = context["client_display_name"]
+    workflow_ref = context["workflow_ref"]
+    bundle_id = context["bundle_id"]
     return {
         "surface_type": "SHOW_SOURCE_WORKBOOK_SELECTION_PANEL",
-        "surface_ref": f"source_workbook_selection_surface:{_short_hash(request_id, invoice_review_bundle.CAPITAL_HILTON_BUNDLE_ID)}",
+        "surface_ref": f"source_workbook_selection_surface:{_short_hash(request_id, bundle_id)}",
         "source_request_id": request_id,
-        "client_ref": "capital_hilton",
-        "client_display_name": "Capital Hilton",
-        "workflow_ref": invoice_review_bundle.CAPITAL_HILTON_WORKFLOW_REF,
-        "bundle_id": invoice_review_bundle.CAPITAL_HILTON_BUNDLE_ID,
+        "client_ref": client_ref,
+        "client_display_name": client_display_name,
+        "workflow_ref": workflow_ref,
+        "bundle_id": bundle_id,
         "action_ref": "replace_source_workbook_reference",
         "action_kind": "replace_source_workbook_reference",
         "intended_use": "replace_source_workbook_reference",
         "result_intended_use": "confirm_source_workbook_reference",
-        "operator_copy": "Choose the correct Capital Hilton source workbook. No files will be deleted.",
+        "operator_copy": f"Choose the {client_display_name} source workbook. No workbook cells will be read.",
         "allowed_file_types": ("xlsx",),
         "surface_actions": (
             {
                 "action_kind": "confirm_source_workbook_reference",
-                "label": "Use this workbook as the Capital Hilton source workbook",
+                "label": f"Use this workbook as the {client_display_name} source workbook",
                 "enabled": True,
                 "intended_use": "confirm_source_workbook_reference",
                 "no_external_action": True,
@@ -257,7 +292,7 @@ def _source_workbook_selection_surface(
                 "physical_deletion_allowed": False,
             },
         ),
-        "candidate_workbooks": invoice_review_state_machine.source_workbook_candidates(),
+        "candidate_workbooks": invoice_review_state_machine.source_workbook_candidates() if client_ref == "capital_hilton" else (),
         "current_wrong_workbook_ref": payload.get("current_wrong_workbook_ref") or payload.get("source_workbook_ref"),
         "physical_deletion_allowed": False,
         "no_workbook_body_read": True,
@@ -480,6 +515,7 @@ def process_action_request(
     action_kind = str(payload.get("action_kind") or payload.get("request_kind") or payload.get("intended_use") or "")
     if action_kind == "invoice_review_guided_action_request":
         action_kind = str(payload.get("request_kind") or "")
+    context = _client_context(payload, raw_request)
     local_surface_request = _invoice_record_selection_surface(
         request_id=request_id,
         action_kind=action_kind,
@@ -489,9 +525,9 @@ def process_action_request(
         action_kind=action_kind,
         payload=payload,
     )
-    bundle_id = str(payload.get("source_bundle_id") or raw_request.get("bundle_id") or raw_request.get("source_bundle_id") or "")
-    workflow_ref = str(payload.get("source_workflow_id") or raw_request.get("workflow_ref") or payload.get("workflow_ref") or "")
-    client_ref = str(payload.get("client_ref") or raw_request.get("client_ref") or "")
+    bundle_id = context["bundle_id"]
+    workflow_ref = context["workflow_ref"]
+    client_ref = context["client_ref"]
     no_external = payload.get("no_external_action") is True and not any(
         payload.get(flag) is True
         for flag in (
@@ -505,12 +541,12 @@ def process_action_request(
             "physical_deletion_allowed",
         )
     )
-    current_actions = _current_action_index()
+    current_actions = _current_action_index(client_ref)
     bundle_action = current_actions.get(action_kind)
     valid_scope = (
-        bundle_id == invoice_review_bundle.CAPITAL_HILTON_BUNDLE_ID
-        and workflow_ref == invoice_review_bundle.CAPITAL_HILTON_WORKFLOW_REF
-        and client_ref == "capital_hilton"
+        client_ref in CLIENT_BUNDLES
+        and bundle_id == CLIENT_BUNDLES[client_ref]["bundle_id"]
+        and workflow_ref == CLIENT_BUNDLES[client_ref]["workflow_ref"]
     )
     supported = action_kind in SUPPORTED_ACTIONS
     action_enabled = bool(bundle_action.get("enabled")) if bundle_action else supported
@@ -611,7 +647,7 @@ def process_action_request(
         action_category=journal_category,
         emitted_backend_request=True,
         handled=journal_handled,
-        handler_ref="invoice_review_action_request.capital_hilton",
+        handler_ref=f"invoice_review_action_request.{client_ref}",
         status=journal_status,
         operator_visible_summary=(
             _journal_summary(action_kind, label_clicked, body, next_action)
@@ -806,6 +842,8 @@ def process_source_workbook_selection_result_request(
     event_db_path: Path = operator_action_event_journal.DEFAULT_DB_PATH,
     event_export_root: Path = operator_action_event_journal.DEFAULT_EXPORT_ROOT,
 ) -> dict[str, Any]:
+    payload = _action_payload(raw_request)
+    context = _client_context(payload, raw_request)
     progress_result = invoice_review_state_machine.process_source_workbook_selection_result(
         raw_request,
         db_path=db_path,
@@ -816,19 +854,19 @@ def process_source_workbook_selection_result_request(
     response_ready = progress_result.status == "COMPLETED"
     journal_event = operator_action_event_journal.record_operator_action_event(
         source_request_id=progress_result.source_request_id,
-        client_ref="capital_hilton",
-        workflow_ref=invoice_review_bundle.CAPITAL_HILTON_WORKFLOW_REF,
-        bundle_id=invoice_review_bundle.CAPITAL_HILTON_BUNDLE_ID,
+        client_ref=str(progress_result.state_snapshot.get("client_ref") or context["client_ref"]),
+        workflow_ref=str(progress_result.state_snapshot.get("workflow_ref") or context["workflow_ref"]),
+        bundle_id=str(progress_result.state_snapshot.get("bundle_id") or context["bundle_id"]),
         action_ref="confirm_source_workbook_reference",
         intended_use="confirm_source_workbook_reference",
         label_clicked="Confirm source workbook",
         action_category="GOVERNED_REQUEST" if response_ready else "BLOCKED",
         emitted_backend_request=True,
         handled=True,
-        handler_ref="source_workbook_selection_result.capital_hilton",
+        handler_ref=f"source_workbook_selection_result.{progress_result.state_snapshot.get('client_ref') or context['client_ref']}",
         status="HANDLED" if response_ready else "BLOCKED",
         operator_visible_summary=(
-            "Operator confirmed the Capital Hilton source workbook reference."
+            f"Operator confirmed the {CLIENT_BUNDLES.get(str(progress_result.state_snapshot.get('client_ref') or context['client_ref']), context)['client_display_name']} source workbook reference."
             if response_ready
             else "OpenClaw blocked an incomplete or unsafe source workbook selection result."
         ),

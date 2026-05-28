@@ -216,6 +216,26 @@ def invoice_review_action_handlers() -> tuple[RequestHandlerRegistration, ...]:
             "confirm_invoice_review_candidate",
             "open_invoice_workbook_candidate",
         )
+    ) + tuple(
+        RequestHandlerRegistration(
+            request_kind="INVOICE_REVIEW_ACTION_REQUEST",
+            handler_id="invoice_review_action_request.live_arts_md",
+            handler_label="Live Arts MD invoice review guided action",
+            intended_use=intended_use,
+            world_refs=("finance",),
+            workflow_refs=("live_arts_md_invoice_workflow",),
+            client_refs=("live_arts_md",),
+            project_refs=(),
+            adapter_available=True,
+            next_safe_move="Start the guided simple invoice review fix path without external action authority.",
+        )
+        for intended_use in (
+            "replace_source_workbook_reference",
+            "start_invoice_record_selection",
+            "review_and_confirm_recipients",
+            "show_approval_prerequisites",
+            "explain_invoice_review",
+        )
     )
 
 

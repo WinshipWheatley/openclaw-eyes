@@ -239,6 +239,7 @@ def _action(
 def build_live_arts_md_bundle(
     *,
     workbook_registry_payload: Mapping[str, Any] | None = None,
+    source_workbook_override: Mapping[str, Any] | None = None,
     artifact_reference_payload: Mapping[str, Any] | None = None,
     operator_artifact_path: str | None = None,
     present_receipts: tuple[str, ...] | list[str] | set[str] = (),
@@ -247,7 +248,24 @@ def build_live_arts_md_bundle(
     generated_at = generated_at or DEFAULT_GENERATED_AT
     receipts = {str(receipt) for receipt in present_receipts}
     recipe = workflow.recipes_by_client_ref()[CLIENT_REF]
-    source = inspect_source_workbook_state(workbook_registry_payload=workbook_registry_payload)
+    source = (
+        dict(source_workbook_override)
+        if source_workbook_override is not None
+        else inspect_source_workbook_state(workbook_registry_payload=workbook_registry_payload)
+    )
+    source.setdefault("client_ref", CLIENT_REF)
+    source.setdefault("workflow_ref", WORKFLOW_REF)
+    source.setdefault("expected_display_name", EXPECTED_WORKBOOK_NAME)
+    source.setdefault("approved_for_metadata_read", False)
+    source.setdefault("approved_for_cell_read", False)
+    source.setdefault("no_workbook_body_read", True)
+    source.setdefault("no_cell_read", True)
+    source.setdefault(
+        "next_action",
+        "Select the Live Arts MD invoice page/period."
+        if source.get("status") == "CONFIRMED"
+        else "Choose the Live Arts MD source workbook.",
+    )
     source_confirmed = source["status"] == "CONFIRMED" or "source_workbook_reference_confirmed_receipt" in receipts
     invoice_selected = "invoice_record_selection_operator_confirmed_receipt" in receipts
     artifact = _artifact_state(
@@ -296,10 +314,10 @@ def build_live_arts_md_bundle(
         )
 
     source_action = _action(
-        "choose_source_workbook",
+        "replace_source_workbook_reference",
         "Choose Live Arts MD source workbook",
         enabled=not source_confirmed,
-        intended_use="choose_source_workbook_reference",
+        intended_use="replace_source_workbook_reference",
         disabled_reason=None if not source_confirmed else "Source workbook is already confirmed.",
         extra_payload={"expected_workbook_display_name": EXPECTED_WORKBOOK_NAME},
     )
@@ -491,6 +509,7 @@ def build_payload(
     *,
     generated_at: str | None = None,
     workbook_registry_payload: Mapping[str, Any] | None = None,
+    source_workbook_override: Mapping[str, Any] | None = None,
     artifact_reference_payload: Mapping[str, Any] | None = None,
     operator_artifact_path: str | None = None,
     present_receipts: tuple[str, ...] | list[str] | set[str] = (),
@@ -498,6 +517,7 @@ def build_payload(
     bundle = build_live_arts_md_bundle(
         generated_at=generated_at,
         workbook_registry_payload=workbook_registry_payload,
+        source_workbook_override=source_workbook_override,
         artifact_reference_payload=artifact_reference_payload,
         operator_artifact_path=operator_artifact_path,
         present_receipts=present_receipts,
