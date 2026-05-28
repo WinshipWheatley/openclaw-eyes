@@ -225,6 +225,13 @@ def discover_source_workbook_linkage(
     )
 
 
+def wrong_source_workbook_stop_line_active(state: Mapping[str, Any]) -> bool:
+    return state.get("source_workbook_status") in {
+        "OPERATOR_REPORTED_WRONG_WORKBOOK",
+        "SOURCE_WORKBOOK_REPLACEMENT_REQUIRED",
+    }
+
+
 def evaluate_readiness(
     *,
     state: Mapping[str, Any],
@@ -235,6 +242,7 @@ def evaluate_readiness(
 ) -> SelectedRecordGeneratorReadiness:
     present = _receipt_set(receipts)
     missing: list[str] = []
+    wrong_source = wrong_source_workbook_stop_line_active(state)
     linkage = discover_source_workbook_linkage()
     source_workbook_ref = source_workbook_ref or (linkage.source_workbook_ref if linkage.source_workbook_confirmed else None)
     source_workbook_path = source_workbook_path or (
@@ -253,14 +261,24 @@ def evaluate_readiness(
             missing.append(receipt)
     if approved_generation_inputs is None:
         missing.append("approved_generation_inputs")
+    if wrong_source:
+        missing.append("correct_source_workbook_required")
 
-    source_status = "LINKED" if SOURCE_WORKBOOK_LINKAGE_RECEIPT in present and source_workbook_ref else "MISSING_LINKAGE"
+    source_status = (
+        "BLOCKED_WRONG_SOURCE_WORKBOOK"
+        if wrong_source
+        else "LINKED"
+        if SOURCE_WORKBOOK_LINKAGE_RECEIPT in present and source_workbook_ref
+        else "MISSING_LINKAGE"
+    )
     record_status = "LINKED" if SELECTED_RECORD_RECEIPT in present and state.get("invoice_record_label") else "MISSING_SELECTION"
     authority_status = GENERATION_AUTHORITY_RECEIPT in present
     safe = not missing and authority_status
     next_action = (
         "Generate selected invoice artifact candidate from approved selected-record inputs."
         if safe
+        else "Choose the correct Capital Hilton source workbook before generating the invoice artifact."
+        if wrong_source
         else "OpenClaw needs source workbook linkage and generation authority before creating the selected invoice artifact."
     )
     return SelectedRecordGeneratorReadiness(
@@ -367,6 +385,22 @@ def build_payload(
     state = invoice_review_state_machine.load_state(db_path, generated_at=generated_at)
     receipts = invoice_review_state_machine.receipt_names(db_path)
     linkage = discover_source_workbook_linkage()
+    if wrong_source_workbook_stop_line_active(state):
+        linkage = SourceWorkbookLinkageReadiness(
+            source_workbook_found=linkage.source_workbook_found,
+            source_workbook_confirmed=False,
+            source_workbook_ref=None,
+            source_workbook_pc_path=linkage.source_workbook_pc_path,
+            source_workbook_mac_path=linkage.source_workbook_mac_path,
+            registry_workbook_ref=linkage.registry_workbook_ref,
+            approved_artifact_ref=linkage.approved_artifact_ref,
+            linkage_status="BLOCKED_WRONG_SOURCE_WORKBOOK",
+            blocker="CORRECT_SOURCE_WORKBOOK_REQUIRED",
+            guided_action="Choose the correct Capital Hilton source workbook before generating the invoice artifact.",
+            receipt_name_if_confirmed=SOURCE_WORKBOOK_LINKAGE_RECEIPT,
+            no_workbook_body_read=True,
+            no_cell_read=True,
+        )
     readiness = evaluate_readiness(state=state, receipts=receipts)
     audit = audit_existing_generators()
     return {

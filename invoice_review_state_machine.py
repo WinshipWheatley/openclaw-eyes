@@ -31,6 +31,7 @@ DEFAULT_BRIDGE_EXPORT_ROOT = Path("/mnt/e/openclaw/generated/read_models")
 ACTION_TO_RECEIPT = {
     "confirm_source_workbook_reference": "source_workbook_reference_confirmed_receipt",
     "replace_source_workbook_reference": "source_workbook_replacement_request_receipt",
+    "operator_reported_wrong_source_workbook": "wrong_source_workbook_operator_correction_receipt",
     "start_invoice_record_selection": "invoice_record_selection_started_receipt",
     "regenerate_or_link_invoice_artifact": "invoice_artifact_link_or_regeneration_requested_receipt",
     "request_supplier_portal_submission_proof": "supplier_portal_proof_intake_requested_receipt",
@@ -50,6 +51,7 @@ ACTION_TO_RECEIPT = {
 ACTION_TO_RECEIPT_EVENT = {
     "confirm_source_workbook_reference": "source_workbook_reference_confirmed",
     "replace_source_workbook_reference": "source_workbook_replacement_requested",
+    "operator_reported_wrong_source_workbook": "operator_reported_wrong_source_workbook",
     "start_invoice_record_selection": "invoice_record_selection_started",
     "regenerate_or_link_invoice_artifact": "invoice_artifact_link_or_regeneration_requested",
     "request_supplier_portal_submission_proof": "supplier_portal_proof_intake_requested",
@@ -570,6 +572,21 @@ def _apply_action(state: dict[str, Any], action_kind: str) -> tuple[str, str, st
     if action_kind == "replace_source_workbook_reference":
         state["source_workbook_status"] = "REPLACEMENT_REQUESTED"
         return ("REQUESTED", "Choose the correct source workbook", "Choose the replacement source workbook. No file will be deleted.", "Select the replacement workbook in Mission Control.", "source_workbook_replacement_request_receipt", False)
+    if action_kind == "operator_reported_wrong_source_workbook":
+        state["source_workbook_status"] = "OPERATOR_REPORTED_WRONG_WORKBOOK"
+        state["invoice_record_selection_status"] = "NEEDS_RESELECTION_AFTER_SOURCE_WORKBOOK_CORRECTION"
+        state["invoice_period_status"] = "NEEDS_RESELECTION_AFTER_SOURCE_WORKBOOK_CORRECTION"
+        state["generated_candidate_disposition"] = "wrong_source_workbook"
+        state["generated_artifact_status"] = "INVALIDATED_BY_WRONG_SOURCE_WORKBOOK"
+        state["approval_readiness_status"] = "BLOCKED_WRONG_SOURCE_WORKBOOK"
+        return (
+            "STOP_LINE_WRONG_SOURCE_WORKBOOK",
+            "Choose the correct source workbook",
+            "OpenClaw recorded that the Capital Hilton workflow is pointed at the wrong workbook. Choose or confirm the correct source workbook before any invoice artifact generation, linking, approval, send, Coupa, or ledger step continues. No file was deleted and no workbook body or cells were read.",
+            "Choose the correct Capital Hilton source workbook.",
+            "wrong_source_workbook_operator_correction_receipt",
+            False,
+        )
     if action_kind == "start_invoice_record_selection":
         state["invoice_record_selection_status"] = "NEEDS_OPERATOR_SELECTION"
         state["invoice_period_status"] = "NEEDS_OPERATOR_SELECTION"
@@ -657,6 +674,13 @@ def _overlay_bundle_state(
     status_by_title: dict[str, str] = {}
     if state["source_workbook_status"] == "REPLACEMENT_REQUESTED":
         status_by_title["Active workbook"] = "REQUESTED"
+    if state["source_workbook_status"] in {
+        "OPERATOR_REPORTED_WRONG_WORKBOOK",
+        "SOURCE_WORKBOOK_REPLACEMENT_REQUIRED",
+    }:
+        status_by_title["Active workbook"] = "NEEDS_ACTION"
+        status_by_title["Invoice page/period"] = "BLOCKED"
+        status_by_title["Generated invoice artifact"] = "BLOCKED"
     if state["invoice_record_selection_status"] == "OPERATOR_CONFIRMED":
         status_by_title["Invoice page/period"] = "OPERATOR_CONFIRMED"
     if state["invoice_record_selection_status"] == "NEEDS_OPERATOR_SELECTION":
@@ -669,6 +693,8 @@ def _overlay_bundle_state(
     }:
         status_by_title["Generated invoice artifact"] = "NEEDS_ACTION"
     if state["generated_artifact_status"] == "GENERATED_ARTIFACT_INVALID":
+        status_by_title["Generated invoice artifact"] = "BLOCKED"
+    if state["generated_artifact_status"] == "INVALIDATED_BY_WRONG_SOURCE_WORKBOOK":
         status_by_title["Generated invoice artifact"] = "BLOCKED"
     if state["coupa_proof_status"] == "PROOF_REQUESTED":
         status_by_title["Coupa portal proof"] = "REQUESTED"
@@ -698,15 +724,93 @@ def _overlay_bundle_state(
         capital["invoice_selection"]["no_cell_read"] = True
         capital["excel_invoice_artifact"]["linkage_status"] = "NEEDS_REGENERATION_OR_LINK"
         capital["excel_invoice_artifact"]["attachment_ready"] = False
+    if state["source_workbook_status"] in {
+        "OPERATOR_REPORTED_WRONG_WORKBOOK",
+        "SOURCE_WORKBOOK_REPLACEMENT_REQUIRED",
+    }:
+        capital["source_workbook_correction"] = {
+            "status": state["source_workbook_status"],
+            "operator_reported_wrong_workbook": True,
+            "superseded": False,
+            "physical_deletion_allowed": False,
+            "no_workbook_body_read": True,
+            "no_cell_read": True,
+            "stop_line_active": True,
+        }
+        capital["invoice_selection"]["invoice_record_state"] = "NEEDS_RESELECTION_AFTER_SOURCE_WORKBOOK_CORRECTION"
+        capital["invoice_selection"]["invoice_period_state"] = "NEEDS_RESELECTION_AFTER_SOURCE_WORKBOOK_CORRECTION"
+        capital["invoice_selection"]["previous_invoice_period_label"] = state.get("invoice_period_label")
+        capital["invoice_selection"]["previous_invoice_record_label"] = state.get("invoice_record_label")
+        capital["invoice_selection"]["operator_confirmed_selection"] = False
+        capital["excel_invoice_artifact"]["proof_status"] = "INVALIDATED_BY_WRONG_SOURCE_WORKBOOK"
+        capital["excel_invoice_artifact"]["linkage_status"] = "STALE_WRONG_SOURCE"
+        capital["excel_invoice_artifact"]["attachment_ready"] = False
+        capital["approval_footer"]["approval_ready"] = False
+        capital["approval_footer"]["approval_disabled_reasons"] = tuple(
+            dict.fromkeys(
+                (
+                    "Correct source workbook required",
+                    *tuple(capital["approval_footer"].get("approval_disabled_reasons") or ()),
+                )
+            )
+        )
+        replacement_action = next(
+            (
+                dict(action)
+                for action in capital.get("correction_actions", ())
+                if action.get("action_kind") == "replace_source_workbook_reference"
+            ),
+            None,
+        )
+        if replacement_action:
+            replacement_action["label"] = "Choose correct workbook"
+            replacement_action["operator_visible_message"] = "Starting source workbook replacement."
+            hidden = dict(replacement_action.get("hidden_request_payload") or {})
+            hidden.update(
+                {
+                    "intended_use": "replace_source_workbook_reference",
+                    "physical_deletion_allowed": False,
+                    "expected_next_surface": "local_file_picker_or_artifact_intake_for_replacement_workbook",
+                }
+            )
+            replacement_action["hidden_request_payload"] = hidden
+        primary_blocker = "Choose the correct Capital Hilton source workbook."
+        blockers = tuple(dict.fromkeys((primary_blocker, *tuple(capital.get("blockers") or ()))))
+        capital["blockers"] = blockers
+        capital["actionable_blockers"] = tuple(
+            dict.fromkeys(
+                (
+                    json.dumps(
+                        {
+                            "blocker_ref": f"invoice_review_blocker:{_short_hash(primary_blocker)}",
+                            "operator_summary": primary_blocker,
+                            "status": "NEEDS_ACTION",
+                            "primary_action": replacement_action,
+                            "disabled_reason": None,
+                            "proof_refs": (receipt["receipt_id"],),
+                        },
+                        sort_keys=True,
+                    ),
+                    *[
+                        json.dumps(item, sort_keys=True)
+                        for item in tuple(capital.get("actionable_blockers") or ())
+                    ],
+                )
+            )
+        )
+        capital["actionable_blockers"] = tuple(json.loads(item) for item in capital["actionable_blockers"])
     if state["generated_artifact_status"] in {
         "GENERATED_ARTIFACT_NEEDS_REGENERATION",
         "ARTIFACT_GENERATOR_NOT_WIRED",
         "GENERATED_ARTIFACT_INVALID",
+        "INVALIDATED_BY_WRONG_SOURCE_WORKBOOK",
     }:
         capital["excel_invoice_artifact"]["proof_status"] = state["generated_artifact_status"]
         capital["excel_invoice_artifact"]["linkage_status"] = (
             "INVALID_METADATA"
             if state["generated_artifact_status"] == "GENERATED_ARTIFACT_INVALID"
+            else "STALE_WRONG_SOURCE"
+            if state["generated_artifact_status"] == "INVALIDATED_BY_WRONG_SOURCE_WORKBOOK"
             else "NEEDS_REGENERATION_OR_LINK"
         )
         capital["excel_invoice_artifact"]["attachment_ready"] = False
@@ -815,6 +919,18 @@ def process_action(
             "required_linkage_inputs": generator_audit["required_linkage_inputs"],
             "artifact_created": False,
             "artifact_linked": False,
+        }
+    if action_kind == "operator_reported_wrong_source_workbook":
+        receipt["operator_correction"] = {
+            "receipt_event": "operator_reported_wrong_source_workbook",
+            "client_ref": "capital_hilton",
+            "workflow_ref": invoice_review_bundle.CAPITAL_HILTON_WORKFLOW_REF,
+            "no_file_deleted": True,
+            "no_workbook_body_read": True,
+            "no_cell_read": True,
+            "no_generation_export": True,
+            "no_external_action": True,
+            "physical_deletion_allowed": False,
         }
     state["last_action_kind"] = action_kind
     state["last_receipt_id"] = receipt["receipt_id"]

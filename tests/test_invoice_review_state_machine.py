@@ -130,6 +130,75 @@ def test_replace_source_workbook_requests_replacement_without_deletion(tmp_path)
     assert state_machine.AUTHORITY_BOUNDARY["file_deletion_performed"] is False
 
 
+def test_operator_wrong_workbook_correction_writes_stop_line_receipt_and_refreshes_bundle(tmp_path):
+    db_path, export_root, bridge_root = _paths(tmp_path)
+    state_machine.process_invoice_record_selection_result(
+        _selection_result_request(invoice_period_label="May 2026", invoice_page_label="May tab / page 2"),
+        db_path=db_path,
+        export_root=export_root,
+        bridge_export_root=bridge_root,
+        generated_at=FIXED_NOW,
+    )
+
+    result = state_machine.process_action(
+        {
+            "request_id": "wrong_source_workbook_correction",
+            "request_type": "INVOICE_REVIEW_ACTION_REQUEST",
+            "action_kind": "operator_reported_wrong_source_workbook",
+            "intended_use": "operator_reported_wrong_source_workbook",
+            "hidden_request_payload": {
+                "client_ref": "capital_hilton",
+                "workflow_ref": invoice_review_bundle.CAPITAL_HILTON_WORKFLOW_REF,
+                "action_kind": "operator_reported_wrong_source_workbook",
+                "operator_provided": True,
+                "no_workbook_body_read": True,
+                "no_cell_read": True,
+                "no_generation_export": True,
+                "no_external_action": True,
+            },
+        },
+        db_path=db_path,
+        export_root=export_root,
+        bridge_export_root=bridge_root,
+        generated_at=FIXED_NOW,
+    )
+    source_bundle = json.loads((export_root / invoice_review_bundle.JSON_EXPORT_NAME).read_text(encoding="utf-8"))
+    bridge_bundle = json.loads((bridge_root / invoice_review_bundle.JSON_EXPORT_NAME).read_text(encoding="utf-8"))
+    capital = source_bundle["capital_hilton_bundle"]
+
+    assert result.status == "STOP_LINE_WRONG_SOURCE_WORKBOOK"
+    assert result.action_receipt["receipt_name"] == "wrong_source_workbook_operator_correction_receipt"
+    assert result.action_receipt["receipt_event"] == "operator_reported_wrong_source_workbook"
+    assert result.action_receipt["completion_receipt_written"] is False
+    assert result.action_receipt["operator_correction"]["no_file_deleted"] is True
+    assert result.action_receipt["operator_correction"]["no_workbook_body_read"] is True
+    assert result.action_receipt["operator_correction"]["no_cell_read"] is True
+    assert result.action_receipt["operator_correction"]["no_generation_export"] is True
+    assert result.state_snapshot["source_workbook_status"] == "OPERATOR_REPORTED_WRONG_WORKBOOK"
+    assert result.state_snapshot["invoice_record_selection_status"] == "NEEDS_RESELECTION_AFTER_SOURCE_WORKBOOK_CORRECTION"
+    assert result.state_snapshot["invoice_period_status"] == "NEEDS_RESELECTION_AFTER_SOURCE_WORKBOOK_CORRECTION"
+    assert result.state_snapshot["generated_artifact_status"] == "INVALIDATED_BY_WRONG_SOURCE_WORKBOOK"
+    assert capital["blockers"][0] == "Choose the correct Capital Hilton source workbook."
+    assert capital["source_workbook_correction"]["physical_deletion_allowed"] is False
+    assert capital["invoice_selection"]["invoice_record_state"] == "NEEDS_RESELECTION_AFTER_SOURCE_WORKBOOK_CORRECTION"
+    assert capital["invoice_selection"]["previous_invoice_period_label"] == "May 2026"
+    assert capital["invoice_selection"]["previous_invoice_record_label"] == "May tab / page 2"
+    assert capital["invoice_selection"]["operator_confirmed_selection"] is False
+    assert capital["excel_invoice_artifact"]["proof_status"] == "INVALIDATED_BY_WRONG_SOURCE_WORKBOOK"
+    assert capital["excel_invoice_artifact"]["attachment_ready"] is False
+    assert capital["approval_footer"]["approval_ready"] is False
+    replacement = capital["actionable_blockers"][0]["primary_action"]
+    assert replacement["label"] == "Choose correct workbook"
+    assert replacement["action_kind"] == "replace_source_workbook_reference"
+    assert replacement["hidden_request_payload"]["physical_deletion_allowed"] is False
+    assert replacement["hidden_request_payload"]["no_external_action"] is True
+    assert bridge_bundle["capital_hilton_bundle"]["blockers"][0] == "Choose the correct Capital Hilton source workbook."
+    assert state_machine.AUTHORITY_BOUNDARY["file_deletion_performed"] is False
+    assert state_machine.AUTHORITY_BOUNDARY["workbook_body_read_performed"] is False
+    assert state_machine.AUTHORITY_BOUNDARY["spreadsheet_cell_read_performed"] is False
+    assert state_machine.AUTHORITY_BOUNDARY["invoice_generation_performed"] is False
+
+
 def test_start_invoice_record_selection_writes_action_start_and_requests_operator_selection(tmp_path):
     db_path, export_root, _ = _paths(tmp_path)
     result = _process(tmp_path, "start_invoice_record_selection")

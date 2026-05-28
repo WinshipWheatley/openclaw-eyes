@@ -28,6 +28,71 @@
   "capital_hilton_bundle": {
     "actionable_blockers": [
       {
+        "blocker_ref": "invoice_review_blocker:902de651cba5c988",
+        "disabled_reason": null,
+        "operator_summary": "Choose the correct Capital Hilton source workbook.",
+        "primary_action": {
+          "action_kind": "replace_source_workbook_reference",
+          "action_ref": "invoice_review_action:replace_source_workbook_reference:e22408cc500950ec",
+          "disabled_reason": null,
+          "enabled": true,
+          "expected_receipt_type": "source_workbook_replacement_request_receipt",
+          "followup_prompt": "Which workbook should OpenClaw use for this invoice?",
+          "hidden_request_payload": {
+            "action_kind": "replace_source_workbook_reference",
+            "action_ref": "invoice_review_action:replace_source_workbook_reference:e22408cc500950ec",
+            "browser_action": false,
+            "browser_automation_allowed": false,
+            "client_ref": "capital_hilton",
+            "coupa_submit_allowed": false,
+            "email_send_allowed": false,
+            "expected_next_surface": "local_file_picker_or_artifact_intake_for_replacement_workbook",
+            "expected_receipt_type": "source_workbook_replacement_request_receipt",
+            "followup_prompt": "Which workbook should OpenClaw use for this invoice?",
+            "idempotency_key": "invoice-review:b1cecd24bfe029fe",
+            "intended_use": "replace_source_workbook_reference",
+            "ledger_posting_allowed": false,
+            "no_external_action": true,
+            "open_file_mac_path": null,
+            "physical_deletion_allowed": false,
+            "portal_submission_action_allowed": false,
+            "proof_refs": [
+              "local_artifact_ref:deb5bc9b42567fd4"
+            ],
+            "request_kind": "replace_source_workbook_reference",
+            "request_type": "invoice_review_guided_action_request",
+            "requires_followup": true,
+            "resulting_request_kind": "workbook_reference_replacement_request",
+            "source_artifact_ref": "local_artifact_ref:deb5bc9b42567fd4",
+            "source_bundle_id": "invoice_review_bundle:capital_hilton:v0",
+            "source_workflow_id": "capital_hilton_invoice_workflow",
+            "supplier_portal_submit_allowed": false,
+            "type": "invoice_review_guided_action_request"
+          },
+          "idempotency_key": "invoice-review:b1cecd24bfe029fe",
+          "intended_use": "review_correction_or_inspection",
+          "label": "Choose correct workbook",
+          "mutates_production_state": false,
+          "mutates_workbook": false,
+          "no_external_action": true,
+          "operator_visible_message": "Starting source workbook replacement.",
+          "proof_refs": [
+            "local_artifact_ref:deb5bc9b42567fd4"
+          ],
+          "request_kind": "replace_source_workbook_reference",
+          "request_type": "invoice_review_guided_action_request",
+          "requires_followup": true,
+          "resulting_request_kind": "workbook_reference_replacement_request",
+          "source_bundle_id": "invoice_review_bundle:capital_hilton:v0",
+          "source_workflow_id": "capital_hilton_invoice_workflow",
+          "type": "invoice_review_guided_action_request"
+        },
+        "proof_refs": [
+          "invoice_review:wrong_source_workbook_operator_correction_receipt:77b0bc62104c6cf8"
+        ],
+        "status": "NEEDS_ACTION"
+      },
+      {
         "blocker_ref": "invoice_review_blocker:d288b9be7cc4171d",
         "disabled_reason": null,
         "operator_summary": "Coupa submission proof is still required.",
@@ -505,6 +570,7 @@
         }
       ],
       "approval_disabled_reasons": [
+        "Correct source workbook required",
         "Coupa proof missing",
         "Invoice record/page not selected",
         "Generated artifact not linked",
@@ -540,6 +606,7 @@
       "tool_execution_allowed": false
     },
     "blockers": [
+      "Choose the correct Capital Hilton source workbook.",
       "Coupa submission proof is still required.",
       "Which invoice page/period should OpenClaw prepare for Capital Hilton?",
       "OpenClaw needs the current invoice page/period before it can attach the Excel invoice.",
@@ -971,7 +1038,7 @@
       "attachment_ready": false,
       "bridge_relative_ref": "generated/invoice_artifacts/capital_hilton_invoice_artifact_v0/WINSHIP_CAPITAL_HILTON_INVOICE_2026-05-25.xlsx",
       "display_name": "Capital Hilton Excel invoice candidate",
-      "linkage_status": "NEEDS_REGENERATION_OR_LINK",
+      "linkage_status": "STALE_WRONG_SOURCE",
       "mac_visible_ref": "/Volumes/openclaw_e/generated/invoice_artifacts/capital_hilton_invoice_artifact_v0/WINSHIP_CAPITAL_HILTON_INVOICE_2026-05-25.xlsx",
       "metadata_file_size": 1845,
       "metadata_sha256": "44680845f750580f114cfc2d0cc8f06cd11dfb36c40fa555bbdcfbdef7d06eb4",
@@ -985,7 +1052,7 @@
       "pc_bridge_ref": "/mnt/e/openclaw/generated/invoice_artifacts/capital_hilton_invoice_artifact_v0/WINSHIP_CAPITAL_HILTON_INVOICE_2026-05-25.xlsx",
       "preview_available": true,
       "preview_ref": "generated/invoice_artifacts/capital_hilton_invoice_artifact_v0/WINSHIP_CAPITAL_HILTON_INVOICE_2026-05-25.xlsx",
-      "proof_status": "ARTIFACT_GENERATOR_NOT_WIRED",
+      "proof_status": "INVALIDATED_BY_WRONG_SOURCE_WORKBOOK",
       "required_linkage_receipts": [
         "active_workbook_confirmed_receipt",
         "invoice_record_selected_receipt",
@@ -993,7 +1060,7 @@
         "generated_invoice_artifact_linkage_receipt"
       ]
     },
-    "generated_at": "2026-05-28T03:36:12+00:00",
+    "generated_at": "2026-05-28T03:39:47+00:00",
     "guardian_approval_request": {
       "approval_ref": "guardian_invoice_review_approval:29a79c0aad435df9",
       "approval_required": true,
@@ -1098,15 +1165,12 @@
     },
     "invoice_selection": {
       "active_workbook_state": "BLOCKED_NEEDS_INVOICE_RECORD_SELECTION",
-      "completion_receipt_still_required": "invoice_record_selected_receipt",
-      "invoice_period_label": "May 2026",
-      "invoice_period_state": "INVOICE_PERIOD_OPERATOR_CONFIRMED",
-      "invoice_record_label": "May tab / page 2",
-      "invoice_record_state": "INVOICE_RECORD_OPERATOR_CONFIRMED",
-      "no_cell_read": true,
-      "no_workbook_body_read": true,
-      "operator_confirmed_selection": true,
+      "invoice_period_state": "NEEDS_RESELECTION_AFTER_SOURCE_WORKBOOK_CORRECTION",
+      "invoice_record_state": "NEEDS_RESELECTION_AFTER_SOURCE_WORKBOOK_CORRECTION",
+      "operator_confirmed_selection": false,
       "operator_question": "Which invoice page/period should OpenClaw prepare for Capital Hilton?",
+      "previous_invoice_period_label": "May 2026",
+      "previous_invoice_record_label": "May tab / page 2",
       "workbook_may_contain_multiple_invoice_records": true
     },
     "machine_proof": {
@@ -1118,7 +1182,7 @@
       "artifact_inspection_paths_are_mac_visible": true,
       "attachment_ready_requires_invoice_record_linkage": true,
       "clara_draft_slot_present": true,
-      "content_hash": "sha256:b792a11280f014de9d8e7ac19de3925414c3997ec2dd5a69dda6027ef507d2d7",
+      "content_hash": "sha256:185bf5ff361b4511b3f2219cc280954b111166c262a9f68393b144d40ef05a60",
       "coupa_primary_before_email_success": true,
       "coupa_required_for_capital_hilton": true,
       "draft_does_not_imply_sent": true,
@@ -1179,7 +1243,8 @@
       "recipient_review_started_receipt",
       "source_workbook_confirmation_needed_receipt",
       "source_workbook_replacement_request_receipt",
-      "supplier_portal_proof_intake_requested_receipt"
+      "supplier_portal_proof_intake_requested_receipt",
+      "wrong_source_workbook_operator_correction_receipt"
     ],
     "present_receipts": [],
     "preview_section": {
@@ -1266,8 +1331,8 @@
         ],
         "label": "Active workbook",
         "next_step_ref": "invoice_review_step:invoice_page_period",
-        "operator_copy": "Workbook still needs confirmation.",
-        "operator_summary": "Workbook still needs confirmation.",
+        "operator_copy": "Workbook still needs confirmation. Current guided status: needs action.",
+        "operator_summary": "Workbook still needs confirmation. Current guided status: needs action.",
         "primary_action": {
           "action_kind": "confirm_source_workbook_reference",
           "action_ref": "invoice_review_action:confirm_source_workbook_reference:ece85e2b98f0caa5",
@@ -1310,7 +1375,9 @@
           "type": "invoice_review_guided_action_request"
         },
         "proof_ref": null,
-        "proof_refs": [],
+        "proof_refs": [
+          "invoice_review:wrong_source_workbook_operator_correction_receipt:77b0bc62104c6cf8"
+        ],
         "receipt_ref": null,
         "required_receipts": [
           "active_workbook_confirmed_receipt"
@@ -1371,8 +1438,8 @@
         ],
         "label": "Invoice page/period",
         "next_step_ref": "invoice_review_step:generated_invoice_artifact",
-        "operator_copy": "Choose the invoice page or period before treating the artifact as current. Current guided status: operator confirmed.",
-        "operator_summary": "Choose the invoice page or period before treating the artifact as current. Current guided status: operator confirmed.",
+        "operator_copy": "Choose the invoice page or period before treating the artifact as current. Current guided status: blocked.",
+        "operator_summary": "Choose the invoice page or period before treating the artifact as current. Current guided status: blocked.",
         "primary_action": {
           "action_kind": "start_invoice_record_selection",
           "action_ref": "invoice_review_action:start_invoice_record_selection:a47676204ce682a7",
@@ -1416,7 +1483,7 @@
         },
         "proof_ref": null,
         "proof_refs": [
-          "invoice_review:source_workbook_confirmation_needed_receipt:a9864ec63437e49c"
+          "invoice_review:wrong_source_workbook_operator_correction_receipt:77b0bc62104c6cf8"
         ],
         "receipt_ref": null,
         "required_receipts": [
@@ -1424,7 +1491,7 @@
           "invoice_period_confirmed_receipt"
         ],
         "secondary_actions": [],
-        "status": "OPERATOR_CONFIRMED",
+        "status": "BLOCKED",
         "step_ref": "invoice_review_step:invoice_page_period",
         "title": "Invoice page/period",
         "why_it_matters": "A running workbook can contain multiple invoice records, so OpenClaw needs the exact one for this package."
@@ -1436,8 +1503,8 @@
         ],
         "label": "Generated invoice artifact",
         "next_step_ref": "invoice_review_step:coupa_portal_proof",
-        "operator_copy": "Excel artifact is candidate-only until linked to the selected invoice. Current guided status: needs action.",
-        "operator_summary": "Excel artifact is candidate-only until linked to the selected invoice. Current guided status: needs action.",
+        "operator_copy": "Excel artifact is candidate-only until linked to the selected invoice. Current guided status: blocked.",
+        "operator_summary": "Excel artifact is candidate-only until linked to the selected invoice. Current guided status: blocked.",
         "primary_action": {
           "action_kind": "regenerate_or_link_invoice_artifact",
           "action_ref": "invoice_review_action:regenerate_or_link_invoice_artifact:f037367d9152c13a",
@@ -1486,7 +1553,7 @@
         "proof_ref": "local_artifact_ref:deb5bc9b42567fd4",
         "proof_refs": [
           "local_artifact_ref:deb5bc9b42567fd4",
-          "invoice_review:source_workbook_confirmation_needed_receipt:a9864ec63437e49c"
+          "invoice_review:wrong_source_workbook_operator_correction_receipt:77b0bc62104c6cf8"
         ],
         "receipt_ref": null,
         "required_receipts": [
@@ -1494,7 +1561,7 @@
           "invoice_attachment_proof_receipt"
         ],
         "secondary_actions": [],
-        "status": "NEEDS_ACTION",
+        "status": "BLOCKED",
         "step_ref": "invoice_review_step:generated_invoice_artifact",
         "title": "Generated invoice artifact",
         "why_it_matters": "Existing files do not prove they are the current invoice or the correct attachment."
@@ -1559,7 +1626,7 @@
         },
         "proof_ref": null,
         "proof_refs": [
-          "invoice_review:source_workbook_confirmation_needed_receipt:a9864ec63437e49c"
+          "invoice_review:wrong_source_workbook_operator_correction_receipt:77b0bc62104c6cf8"
         ],
         "receipt_ref": null,
         "required_receipts": [
@@ -1735,7 +1802,7 @@
         },
         "proof_ref": null,
         "proof_refs": [
-          "invoice_review:source_workbook_confirmation_needed_receipt:a9864ec63437e49c"
+          "invoice_review:wrong_source_workbook_operator_correction_receipt:77b0bc62104c6cf8"
         ],
         "receipt_ref": null,
         "required_receipts": [
@@ -2078,27 +2145,47 @@
         "clara_email_draft_for_annette"
       ]
     },
+    "source_workbook_correction": {
+      "no_cell_read": true,
+      "no_workbook_body_read": true,
+      "operator_reported_wrong_workbook": true,
+      "physical_deletion_allowed": false,
+      "status": "OPERATOR_REPORTED_WRONG_WORKBOOK",
+      "stop_line_active": true,
+      "superseded": false
+    },
     "state_machine": {
       "completion_receipts_only_turn_steps_complete": true,
       "last_action_receipt": {
-        "action_kind": "confirm_source_workbook_reference",
+        "action_kind": "operator_reported_wrong_source_workbook",
         "bundle_id": "invoice_review_bundle:capital_hilton:v0",
         "client_ref": "capital_hilton",
         "completion_receipt_written": false,
         "external_action_performed": false,
-        "generated_at": "2026-05-28T03:36:12+00:00",
-        "receipt_event": "source_workbook_confirmation_needed",
-        "receipt_id": "invoice_review:source_workbook_confirmation_needed_receipt:a9864ec63437e49c",
-        "receipt_name": "source_workbook_confirmation_needed_receipt",
+        "generated_at": "2026-05-28T03:39:47+00:00",
+        "operator_correction": {
+          "client_ref": "capital_hilton",
+          "no_cell_read": true,
+          "no_external_action": true,
+          "no_file_deleted": true,
+          "no_generation_export": true,
+          "no_workbook_body_read": true,
+          "physical_deletion_allowed": false,
+          "receipt_event": "operator_reported_wrong_source_workbook",
+          "workflow_ref": "capital_hilton_invoice_workflow"
+        },
+        "receipt_event": "operator_reported_wrong_source_workbook",
+        "receipt_id": "invoice_review:wrong_source_workbook_operator_correction_receipt:77b0bc62104c6cf8",
+        "receipt_name": "wrong_source_workbook_operator_correction_receipt",
         "receipt_type": "invoice_review_action_progress_receipt",
-        "source_request_id": "capital_hilton_invoice_workflow_source_workbook_linkage_v0_receipt_event_20260528",
-        "status": "BLOCKED_SOURCE_WORKBOOK_CONFIRMATION_NEEDED",
+        "source_request_id": "capital_hilton_invoice_workflow_wrong_source_workbook_stop_line_20260528",
+        "status": "STOP_LINE_WRONG_SOURCE_WORKBOOK",
         "underlying_blocker_completed": false,
         "workflow_ref": "capital_hilton_invoice_workflow"
       },
       "schema_version": "invoice_review_state_machine_v0",
       "state": {
-        "approval_readiness_status": "BLOCKED_PREREQUISITES",
+        "approval_readiness_status": "BLOCKED_WRONG_SOURCE_WORKBOOK",
         "bundle_id": "invoice_review_bundle:capital_hilton:v0",
         "clara_draft_status": "DRAFT_ONLY",
         "client_ref": "capital_hilton",
@@ -2109,21 +2196,21 @@
         "generated_artifact_metadata_hash": "44680845f750580f114cfc2d0cc8f06cd11dfb36c40fa555bbdcfbdef7d06eb4",
         "generated_artifact_metadata_size": 1845,
         "generated_artifact_metadata_status": "GENERATED_ARTIFACT_METADATA_VALID",
-        "generated_artifact_status": "ARTIFACT_GENERATOR_NOT_WIRED",
-        "generated_candidate_disposition": "unsure",
+        "generated_artifact_status": "INVALIDATED_BY_WRONG_SOURCE_WORKBOOK",
+        "generated_candidate_disposition": "wrong_source_workbook",
         "invoice_period_label": "May 2026",
-        "invoice_period_status": "OPERATOR_CONFIRMED",
+        "invoice_period_status": "NEEDS_RESELECTION_AFTER_SOURCE_WORKBOOK_CORRECTION",
         "invoice_record_label": "May tab / page 2",
-        "invoice_record_selection_status": "OPERATOR_CONFIRMED",
-        "last_action_kind": "confirm_source_workbook_reference",
-        "last_receipt_id": "invoice_review:source_workbook_confirmation_needed_receipt:a9864ec63437e49c",
-        "last_updated_at": "2026-05-28T03:36:12+00:00",
+        "invoice_record_selection_status": "NEEDS_RESELECTION_AFTER_SOURCE_WORKBOOK_CORRECTION",
+        "last_action_kind": "operator_reported_wrong_source_workbook",
+        "last_receipt_id": "invoice_review:wrong_source_workbook_operator_correction_receipt:77b0bc62104c6cf8",
+        "last_updated_at": "2026-05-28T03:39:47+00:00",
         "ledger_tax_status": "NOT_READY",
         "operator_notes": null,
         "payment_watch_status": "NOT_READY",
         "recipient_confirmation_status": "REVIEW_REQUESTED_EMAILS_MISSING",
         "recipient_review_status": "NEEDS_CONTACT_CONFIRMATION",
-        "source_workbook_status": "NEEDS_CONFIRMATION",
+        "source_workbook_status": "OPERATOR_REPORTED_WRONG_WORKBOOK",
         "supplier_portal_proof_status": "PROOF_REQUESTED",
         "supplier_portal_provider": "COUPA",
         "workflow_ref": "capital_hilton_invoice_workflow"
@@ -2156,7 +2243,7 @@
     "workflow_ref": "capital_hilton_invoice_workflow"
   },
   "contract_status": "MISSION_CONTROL_APPROVAL_CARD_CONTRACT_NO_ACTIONS",
-  "generated_at": "2026-05-28T03:36:12+00:00",
+  "generated_at": "2026-05-28T03:39:47+00:00",
   "hidden_from_primary_ui": [
     "approval_ref",
     "button_ref",
@@ -2180,7 +2267,7 @@
     "capital_hilton_coupa_proof_required": true,
     "capital_hilton_has_review_bundle": true,
     "capital_hilton_supplier_portal_provider": "COUPA",
-    "content_hash": "sha256:c9e9038950a158cb4d6f71f96bcfbc830c463d32f36d254f77b9aaafd03d070d",
+    "content_hash": "sha256:eb083767442c2927b723c73c487938557a7f65d2e932d82ff07fc89d79fb45d4",
     "coupa_action_enabled": false,
     "non_coupa_client_does_not_require_coupa": true,
     "non_coupa_client_does_not_require_supplier_portal": true,
@@ -2211,7 +2298,7 @@
       "required": false,
       "status": "NOT_REQUIRED_BY_RECIPE"
     },
-    "generated_at": "2026-05-28T03:36:12+00:00",
+    "generated_at": "2026-05-28T03:39:47+00:00",
     "operator_copy": {
       "body": "This recipe does not require Coupa proof unless the client recipe is changed.",
       "headline": "Review the St. Anne's invoice package."

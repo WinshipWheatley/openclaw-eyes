@@ -25,6 +25,7 @@ SCHEMA_VERSION = "invoice_review_action_request_handler_v0"
 SUPPORTED_ACTIONS = {
     "confirm_source_workbook_reference",
     "replace_source_workbook_reference",
+    "operator_reported_wrong_source_workbook",
     "start_invoice_record_selection",
     "regenerate_or_link_invoice_artifact",
     "request_supplier_portal_submission_proof",

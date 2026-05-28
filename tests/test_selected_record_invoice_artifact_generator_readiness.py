@@ -230,5 +230,26 @@ def test_generation_authority_receipt_shape_is_scoped_to_selected_invoice(tmp_pa
     assert authority["allows_send_submit_ledger"] is False
 
 
+def test_wrong_source_workbook_stop_line_blocks_generation_readiness(tmp_path):
+    db_path = tmp_path / "invoice_review.sqlite"
+    state_machine.init_store(db_path)
+    with state_machine._connect(db_path) as conn:
+        state_machine._upsert_state(
+            conn,
+            _state(
+                source_workbook_status="OPERATOR_REPORTED_WRONG_WORKBOOK",
+                invoice_record_selection_status="NEEDS_RESELECTION_AFTER_SOURCE_WORKBOOK_CORRECTION",
+                generated_artifact_status="INVALIDATED_BY_WRONG_SOURCE_WORKBOOK",
+            ),
+        )
+    payload = readiness.build_payload(db_path=db_path, generated_at=FIXED_NOW)
+
+    assert payload["readiness"]["safe_to_generate"] is False
+    assert payload["readiness"]["source_workbook_linkage_status"] == "BLOCKED_WRONG_SOURCE_WORKBOOK"
+    assert "correct_source_workbook_required" in payload["readiness"]["missing_inputs"]
+    assert payload["source_workbook_linkage"]["blocker"] == "CORRECT_SOURCE_WORKBOOK_REQUIRED"
+    assert "Choose the correct Capital Hilton source workbook" in payload["operator_copy"]
+
+
 def test_no_send_coupa_email_ledger_authority_enabled():
     assert all(value is False for value in readiness.AUTHORITY_BOUNDARY.values())
