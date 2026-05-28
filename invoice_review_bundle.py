@@ -142,6 +142,19 @@ class ClaraEmailDraft:
 @dataclass(frozen=True)
 class CoupaInvoiceProof:
     required: bool
+    rail_ref: str
+    supplier_portal_required: bool
+    supplier_portal_provider: str
+    provider_display_name: str
+    requires_purchase_order: bool
+    purchase_order_ref: str | None
+    portal_invoice_draft_status: str
+    portal_submission_proof_required: bool
+    portal_submission_proof_status: str
+    portal_submission_receipt_required: bool
+    portal_submission_action_allowed: bool
+    canonical_action_kind: str
+    compatibility_action_kinds: tuple[str, ...]
     status: str
     po_ref: str | None
     amount: dict[str, Any] | None
@@ -288,9 +301,23 @@ def _guardian_approval_request(bundle_id: str, *, ready_for_send_review: bool) -
 def _coupa_invoice_proof(present_receipts: set[str]) -> CoupaInvoiceProof:
     submitted = "portal_invoice_submission_receipt" in present_receipts
     po_known = "purchase_order_confirmed_receipt" in present_receipts
+    status = "SUBMITTED_RECEIPT_CONFIRMED" if submitted else "MISSING"
     return CoupaInvoiceProof(
         required=True,
-        status="SUBMITTED_RECEIPT_CONFIRMED" if submitted else "MISSING",
+        rail_ref=workflow.SUPPLIER_PORTAL_RAIL,
+        supplier_portal_required=True,
+        supplier_portal_provider="COUPA",
+        provider_display_name="Coupa supplier portal",
+        requires_purchase_order=True,
+        purchase_order_ref="po_ref:confirmed_by_receipt" if po_known else None,
+        portal_invoice_draft_status="NOT_CREATED_BY_OPENCLAW",
+        portal_submission_proof_required=True,
+        portal_submission_proof_status=status,
+        portal_submission_receipt_required=True,
+        portal_submission_action_allowed=False,
+        canonical_action_kind="request_supplier_portal_submission_proof",
+        compatibility_action_kinds=("request_coupa_submission_proof",),
+        status=status,
         po_ref="po_ref:confirmed_by_receipt" if po_known else None,
         amount={"amount": 2000, "currency": "USD", "status": "candidate_unconfirmed"} if po_known else None,
         proof_ref="portal_invoice_submission_receipt" if submitted else None,
@@ -379,6 +406,7 @@ def _action_descriptor(
         "browser_automation_allowed": False,
         "email_send_allowed": False,
         "coupa_submit_allowed": False,
+        "supplier_portal_submit_allowed": False,
         "ledger_posting_allowed": False,
         "expected_receipt_type": expected_receipt_type,
         "proof_refs": proof_refs,
@@ -696,14 +724,20 @@ def _review_proof_timeline(
             primary_action=None
             if coupa.status == "SUBMITTED_RECEIPT_CONFIRMED"
             else _action_descriptor(
-                action_kind="request_coupa_submission_proof",
+                action_kind="request_supplier_portal_submission_proof",
                 label="Start Coupa proof step",
-                intended_use="start_coupa_proof_intake",
+                intended_use="request_supplier_portal_submission_proof",
                 operator_visible_message="Starting Coupa proof step.",
-                expected_receipt_type="coupa_submission_proof_intake_receipt",
+                expected_receipt_type="supplier_portal_proof_intake_requested_receipt",
                 payload_fields={
+                    "canonical_action_kind": "request_supplier_portal_submission_proof",
+                    "compatibility_action_kind": "request_coupa_submission_proof",
+                    "portal_provider": "COUPA",
+                    "provider_display_name": "Coupa supplier portal",
+                    "supplier_portal_required": True,
                     "browser_automation_allowed": False,
                     "portal_submission_allowed": False,
+                    "supplier_portal_submit_allowed": False,
                     "proof_intake_only": True,
                 },
             ),
@@ -1027,6 +1061,7 @@ def build_capital_hilton_bundle(
         "correction_actions": correction_actions,
         "clara_email_draft": asdict(clara),
         "coupa_invoice_proof": asdict(coupa),
+        "supplier_portal_invoice_submission": asdict(coupa),
         "recipients": {
             "to_candidates": tuple(asdict(item) for item in _capital_hilton_recipients(confirmed=contacts_confirmed) if item.lane == "to"),
             "cc_candidates": tuple(asdict(item) for item in _capital_hilton_recipients(confirmed=contacts_confirmed) if item.lane == "cc"),
@@ -1121,6 +1156,8 @@ def build_capital_hilton_bundle(
         ),
         "clara_draft_slot_present": True,
         "coupa_required_for_capital_hilton": True,
+        "supplier_portal_required_for_capital_hilton": True,
+        "supplier_portal_provider_for_capital_hilton": "COUPA",
         "draft_does_not_imply_sent": clara.draft_only and not clara.sent,
         "approval_does_not_imply_send": guardian.approval_required and not guardian.send_allowed,
         "guardian_output_validation_does_not_imply_approval_request": semantic_status[
@@ -1151,6 +1188,14 @@ def build_non_coupa_bundle_example(*, generated_at: str | None = None) -> dict[s
         "workflow_ref": "st_annes_invoice_workflow",
         "status": "RECIPE_PLACEHOLDER_REVIEW_ONLY",
         "coupa_invoice_proof": {"required": False, "status": "NOT_REQUIRED_BY_RECIPE"},
+        "supplier_portal_invoice_submission": {
+            "required": False,
+            "supplier_portal_required": False,
+            "supplier_portal_provider": None,
+            "portal_submission_proof_required": False,
+            "portal_submission_action_allowed": False,
+            "status": "NOT_REQUIRED_BY_RECIPE",
+        },
         "operator_copy": {
             "headline": "Review the St. Anne's invoice package.",
             "body": "This recipe does not require Coupa proof unless the client recipe is changed.",
@@ -1197,7 +1242,9 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
         "machine_proof": {
             "capital_hilton_has_review_bundle": True,
             "capital_hilton_coupa_proof_required": capital["coupa_invoice_proof"]["required"] is True,
+            "capital_hilton_supplier_portal_provider": capital["supplier_portal_invoice_submission"]["supplier_portal_provider"],
             "non_coupa_client_does_not_require_coupa": non_coupa["coupa_invoice_proof"]["required"] is False,
+            "non_coupa_client_does_not_require_supplier_portal": non_coupa["supplier_portal_invoice_submission"]["required"] is False,
             "button_labels_present": tuple(capital["guardian_approval_request"]["buttons"][i]["label"] for i in range(len(APPROVAL_BUTTONS))) == APPROVAL_BUTTONS,
             "typed_approval_codes_not_operator_primary": True,
             "send_action_enabled": False,

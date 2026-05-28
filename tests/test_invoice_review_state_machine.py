@@ -17,9 +17,14 @@ def _request(action_kind: str, request_id: str | None = None) -> dict:
     for step in bundle["review_proof_timeline"]:
         if step["primary_action"]:
             actions[step["primary_action"]["action_kind"]] = step["primary_action"]
+            compatibility = step["primary_action"]["hidden_request_payload"].get("compatibility_action_kind")
+            if compatibility:
+                actions[str(compatibility)] = step["primary_action"]
         for action in step["secondary_actions"]:
             actions[action["action_kind"]] = action
     hidden = dict(actions[action_kind]["hidden_request_payload"])
+    hidden["action_kind"] = action_kind
+    hidden["request_kind"] = action_kind
     return {
         "request_id": request_id or f"invoice_review_state_{action_kind}",
         "request_type": "INVOICE_REVIEW_ACTION_REQUEST",
@@ -111,15 +116,25 @@ def test_regenerate_or_link_artifact_blocks_until_invoice_record_selected(tmp_pa
     assert state_machine.AUTHORITY_BOUNDARY["pdf_export_performed"] is False
 
 
-def test_coupa_proof_action_writes_intake_receipt_without_submission(tmp_path):
-    result = _process(tmp_path, "request_coupa_submission_proof")
+def test_supplier_portal_proof_action_writes_intake_receipt_without_submission(tmp_path):
+    result = _process(tmp_path, "request_supplier_portal_submission_proof")
 
-    assert result.action_receipt["receipt_name"] == "coupa_proof_intake_requested_receipt"
-    assert result.action_receipt["receipt_event"] == "coupa_proof_intake_requested"
+    assert result.action_receipt["receipt_name"] == "supplier_portal_proof_intake_requested_receipt"
+    assert result.action_receipt["receipt_event"] == "supplier_portal_proof_intake_requested"
+    assert result.state_snapshot["supplier_portal_provider"] == "COUPA"
+    assert result.state_snapshot["supplier_portal_proof_status"] == "PROOF_REQUESTED"
     assert result.state_snapshot["coupa_proof_status"] == "PROOF_REQUESTED"
     assert "Nothing will be submitted" in result.body
     assert state_machine.AUTHORITY_BOUNDARY["coupa_submission_performed"] is False
     assert state_machine.AUTHORITY_BOUNDARY["coupa_browser_automation_performed"] is False
+
+
+def test_coupa_proof_action_remains_compatibility_alias(tmp_path):
+    result = _process(tmp_path, "request_coupa_submission_proof")
+
+    assert result.action_receipt["receipt_name"] == "coupa_proof_intake_requested_receipt"
+    assert result.action_receipt["receipt_event"] == "coupa_proof_intake_requested"
+    assert result.state_snapshot["supplier_portal_proof_status"] == "PROOF_REQUESTED"
 
 
 def test_recipient_review_starts_without_inventing_emails(tmp_path):
@@ -149,7 +164,7 @@ def test_approval_and_send_and_payment_watch_stay_blocked_with_missing_prerequis
 def test_sqlite_state_and_receipt_tables_are_queryable(tmp_path):
     db_path, export_root, bridge_root = _paths(tmp_path)
     result = state_machine.process_action(
-        _request("request_coupa_submission_proof"),
+        _request("request_supplier_portal_submission_proof"),
         db_path=db_path,
         export_root=export_root,
         bridge_export_root=bridge_root,
@@ -163,7 +178,7 @@ def test_sqlite_state_and_receipt_tables_are_queryable(tmp_path):
     assert state_row[0] == "PROOF_REQUESTED"
     receipt = state_machine.read_receipt(db_path, result.action_receipt["receipt_id"])
     assert receipt is not None
-    assert receipt["receipt_event"] == "coupa_proof_intake_requested"
+    assert receipt["receipt_event"] == "supplier_portal_proof_intake_requested"
 
 
 def test_disabled_or_not_wired_action_returns_clean_blocked_response(tmp_path):

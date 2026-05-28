@@ -77,10 +77,15 @@ def _invoice_review_action_request(path: Path, *, action_kind: str, request_id: 
     for step in bundle_payload["review_proof_timeline"]:
         if step["primary_action"]:
             actions[step["primary_action"]["action_kind"]] = step["primary_action"]
+            compatibility = step["primary_action"]["hidden_request_payload"].get("compatibility_action_kind")
+            if compatibility:
+                actions[str(compatibility)] = step["primary_action"]
         for action in step["secondary_actions"]:
             actions[action["action_kind"]] = action
     action = actions[action_kind]
     hidden = dict(action["hidden_request_payload"])
+    hidden["action_kind"] = action_kind
+    hidden["request_kind"] = action_kind
     request = {
         "request_id": request_id or f"invoice_review_action_{action_kind}",
         "request_type": "INVOICE_REVIEW_ACTION_REQUEST",

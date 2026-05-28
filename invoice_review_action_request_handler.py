@@ -27,6 +27,7 @@ SUPPORTED_ACTIONS = {
     "replace_source_workbook_reference",
     "start_invoice_record_selection",
     "regenerate_or_link_invoice_artifact",
+    "request_supplier_portal_submission_proof",
     "request_coupa_submission_proof",
     "review_and_confirm_recipients",
     "show_approval_prerequisites",
@@ -47,6 +48,7 @@ REQUEST_KINDS = {
 
 AUTHORITY_BOUNDARY = {
     "coupa_browser_automation_allowed": False,
+    "supplier_portal_submit_allowed": False,
     "email_send_allowed": False,
     "gmail_access_allowed": False,
     "ledger_posting_allowed": False,
@@ -129,13 +131,16 @@ def _operator_copy(action_kind: str) -> tuple[str, str, str, str, tuple[str, ...
             "Choose the invoice page or period in Mission Control.",
             ("invoice_record_selection_request_receipt",),
         )
-    if action_kind == "request_coupa_submission_proof":
+    if action_kind in {"request_supplier_portal_submission_proof", "request_coupa_submission_proof"}:
         return (
             "Starting Coupa proof step",
             "Coupa proof is required before this invoice can be treated as sent.",
             "Upload or provide the Coupa submission proof when it is available. Nothing will be submitted from this step.",
-            "Provide Coupa submission proof when available.",
-            ("coupa_submission_proof_intake_receipt",),
+            "Provide supplier portal submission proof when available.",
+            (
+                "supplier_portal_proof_intake_requested_receipt",
+                "coupa_submission_proof_intake_receipt",
+            ),
         )
     if action_kind == "review_and_confirm_recipients":
         return (
@@ -258,6 +263,7 @@ def process_action_request(
             "browser_automation_allowed",
             "email_send_allowed",
             "coupa_submit_allowed",
+            "supplier_portal_submit_allowed",
             "ledger_posting_allowed",
             "physical_deletion_allowed",
         )
@@ -376,6 +382,7 @@ def process_action_request(
             "bundle_refreshed": bool(progress_result),
             "bridge_bundle_mirrored": bool(progress_result and progress_result.bridge_mirror_written),
             "coupa_browser_automation_performed": False,
+            "supplier_portal_submit_performed": False,
             "email_send_performed": False,
             "ledger_posting_performed": False,
             "invoice_generation_performed": False,

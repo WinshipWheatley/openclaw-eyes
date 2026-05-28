@@ -29,6 +29,7 @@ ACTION_TO_RECEIPT = {
     "replace_source_workbook_reference": "source_workbook_replacement_request_receipt",
     "start_invoice_record_selection": "invoice_record_selection_started_receipt",
     "regenerate_or_link_invoice_artifact": "generated_invoice_artifact_linkage_request_receipt",
+    "request_supplier_portal_submission_proof": "supplier_portal_proof_intake_requested_receipt",
     "request_coupa_submission_proof": "coupa_proof_intake_requested_receipt",
     "review_and_confirm_recipients": "recipient_review_started_receipt",
     "show_approval_prerequisites": "approval_prerequisite_review_receipt",
@@ -46,6 +47,7 @@ ACTION_TO_RECEIPT_EVENT = {
     "replace_source_workbook_reference": "source_workbook_replacement_requested",
     "start_invoice_record_selection": "invoice_record_selection_started",
     "regenerate_or_link_invoice_artifact": "generated_invoice_artifact_linkage_requested",
+    "request_supplier_portal_submission_proof": "supplier_portal_proof_intake_requested",
     "request_coupa_submission_proof": "coupa_proof_intake_requested",
     "review_and_confirm_recipients": "recipient_review_started",
     "show_approval_prerequisites": "approval_prerequisites_readback",
@@ -136,6 +138,8 @@ def init_store(db_path: Path = DEFAULT_DB_PATH) -> None:
               invoice_period_status TEXT NOT NULL,
               generated_artifact_status TEXT NOT NULL,
               coupa_proof_status TEXT NOT NULL,
+              supplier_portal_provider TEXT,
+              supplier_portal_proof_status TEXT,
               recipient_confirmation_status TEXT NOT NULL,
               recipient_review_status TEXT,
               clara_draft_status TEXT NOT NULL,
@@ -166,6 +170,8 @@ def init_store(db_path: Path = DEFAULT_DB_PATH) -> None:
             """
         )
         _ensure_column(conn, "invoice_review_states", "recipient_review_status", "TEXT")
+        _ensure_column(conn, "invoice_review_states", "supplier_portal_provider", "TEXT")
+        _ensure_column(conn, "invoice_review_states", "supplier_portal_proof_status", "TEXT")
         _ensure_column(conn, "invoice_review_receipts", "receipt_event", "TEXT")
 
 
@@ -185,6 +191,8 @@ def _default_state(*, generated_at: str | None = None) -> dict[str, Any]:
         "invoice_period_status": "NEEDS_OPERATOR_SELECTION",
         "generated_artifact_status": "CANDIDATE_NEEDS_LINKAGE",
         "coupa_proof_status": "MISSING",
+        "supplier_portal_provider": "COUPA",
+        "supplier_portal_proof_status": "MISSING",
         "recipient_confirmation_status": "CANDIDATE_UNCONFIRMED",
         "recipient_review_status": "NOT_STARTED",
         "clara_draft_status": "DRAFT_ONLY",
@@ -213,6 +221,10 @@ def load_state(db_path: Path = DEFAULT_DB_PATH, *, generated_at: str | None = No
                     if state.get("recipient_confirmation_status") == "REVIEW_REQUESTED_EMAILS_MISSING"
                     else "NOT_STARTED"
                 )
+            if not state.get("supplier_portal_provider"):
+                state["supplier_portal_provider"] = "COUPA"
+            if not state.get("supplier_portal_proof_status"):
+                state["supplier_portal_proof_status"] = state.get("coupa_proof_status") or "MISSING"
             return state
         state = _default_state(generated_at=generated_at)
         _upsert_state(conn, state)
@@ -226,16 +238,19 @@ def _upsert_state(conn: sqlite3.Connection, state: Mapping[str, Any]) -> None:
           bundle_id, client_ref, workflow_ref, source_workbook_status,
           invoice_record_selection_status, invoice_period_status,
           generated_artifact_status, coupa_proof_status,
+          supplier_portal_provider, supplier_portal_proof_status,
           recipient_confirmation_status, recipient_review_status, clara_draft_status,
           approval_readiness_status, email_send_status, payment_watch_status,
           ledger_tax_status, last_action_kind, last_receipt_id, last_updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(bundle_id) DO UPDATE SET
           source_workbook_status=excluded.source_workbook_status,
           invoice_record_selection_status=excluded.invoice_record_selection_status,
           invoice_period_status=excluded.invoice_period_status,
           generated_artifact_status=excluded.generated_artifact_status,
           coupa_proof_status=excluded.coupa_proof_status,
+          supplier_portal_provider=excluded.supplier_portal_provider,
+          supplier_portal_proof_status=excluded.supplier_portal_proof_status,
           recipient_confirmation_status=excluded.recipient_confirmation_status,
           recipient_review_status=excluded.recipient_review_status,
           clara_draft_status=excluded.clara_draft_status,
@@ -256,6 +271,8 @@ def _upsert_state(conn: sqlite3.Connection, state: Mapping[str, Any]) -> None:
             state["invoice_period_status"],
             state["generated_artifact_status"],
             state["coupa_proof_status"],
+            state.get("supplier_portal_provider", "COUPA"),
+            state.get("supplier_portal_proof_status", state["coupa_proof_status"]),
             state["recipient_confirmation_status"],
             state.get("recipient_review_status", "NOT_STARTED"),
             state["clara_draft_status"],
@@ -361,9 +378,16 @@ def _apply_action(state: dict[str, Any], action_kind: str) -> tuple[str, str, st
             return ("BLOCKED_NEEDS_INVOICE_RECORD_SELECTION", "Invoice artifact needs linkage", "OpenClaw needs the invoice page/period before it can link or regenerate an artifact. No invoice was generated or exported from this step.", "Select the invoice page/period first.", "generated_invoice_artifact_linkage_request_receipt", False)
         state["generated_artifact_status"] = "GENERATOR_NOT_WIRED"
         return ("BLOCKED_GENERATOR_NOT_WIRED", "Artifact generation rail not wired yet", "Artifact generation/linkage is not wired in this safe pass.", "Use the governed artifact rail when it is available.", "generated_invoice_artifact_linkage_request_receipt", False)
-    if action_kind == "request_coupa_submission_proof":
+    if action_kind in {"request_supplier_portal_submission_proof", "request_coupa_submission_proof"}:
         state["coupa_proof_status"] = "PROOF_REQUESTED"
-        return ("REQUESTED", "Starting Coupa proof step", "Upload or provide Coupa submission proof when available. Nothing will be submitted from this step.", "Provide Coupa submission proof when available.", "coupa_proof_intake_requested_receipt", False)
+        state["supplier_portal_provider"] = "COUPA"
+        state["supplier_portal_proof_status"] = "PROOF_REQUESTED"
+        receipt_name = (
+            "supplier_portal_proof_intake_requested_receipt"
+            if action_kind == "request_supplier_portal_submission_proof"
+            else "coupa_proof_intake_requested_receipt"
+        )
+        return ("REQUESTED", "Starting Coupa proof step", "Upload or provide Coupa submission proof when available. Nothing will be submitted from this step.", "Provide supplier portal submission proof when available.", receipt_name, False)
     if action_kind == "review_and_confirm_recipients":
         state["recipient_confirmation_status"] = "REVIEW_REQUESTED_EMAILS_MISSING"
         state["recipient_review_status"] = "NEEDS_CONTACT_CONFIRMATION"

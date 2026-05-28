@@ -204,6 +204,7 @@ def invoice_review_action_handlers() -> tuple[RequestHandlerRegistration, ...]:
             "replace_source_workbook_reference",
             "start_invoice_record_selection",
             "regenerate_or_link_invoice_artifact",
+            "request_supplier_portal_submission_proof",
             "request_coupa_submission_proof",
             "review_and_confirm_recipients",
             "show_approval_prerequisites",

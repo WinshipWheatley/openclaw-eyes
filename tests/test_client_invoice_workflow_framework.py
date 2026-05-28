@@ -76,6 +76,9 @@ def test_capital_hilton_recipe_composes_coupa_excel_email_payment_and_ledger_tax
         assert framework.recipe_requires_rail(recipe, rail_ref)
 
     assert recipe["client_specific_portal_requirements"]["portal_ref"] == "coupa_supplier_portal"
+    assert recipe["client_specific_portal_requirements"]["supplier_portal_provider"] == "COUPA"
+    assert recipe["client_specific_portal_requirements"]["provider_display_name"] == "Coupa supplier portal"
+    assert recipe["client_specific_portal_requirements"]["portal_submission_action_allowed"] is False
     assert recipe["client_specific_portal_requirements"]["portal_submission_is_payment_trigger"] is True
     assert recipe["client_specific_invoice_artifact_requirements"]["excel_invoice_required_for_annette_records"] is True
     assert recipe["client_specific_invoice_artifact_requirements"]["cc_candidates"] == ("Chyna", "Will")
@@ -87,6 +90,7 @@ def test_st_annes_placeholder_does_not_inherit_coupa_or_po_by_default():
     assert not framework.recipe_selects_rail(recipe, framework.SUPPLIER_PORTAL_RAIL)
     assert not framework.recipe_selects_rail(recipe, framework.PURCHASE_ORDER_RAIL)
     assert recipe["client_specific_portal_requirements"]["supplier_portal_required"] is False
+    assert recipe["client_specific_portal_requirements"]["supplier_portal_provider"] is None
     assert recipe["client_specific_portal_requirements"]["purchase_order_required"] is False
 
 
@@ -96,6 +100,7 @@ def test_live_arts_md_placeholder_does_not_inherit_coupa_or_po_by_default():
     assert not framework.recipe_selects_rail(recipe, framework.SUPPLIER_PORTAL_RAIL)
     assert not framework.recipe_selects_rail(recipe, framework.PURCHASE_ORDER_RAIL)
     assert recipe["client_specific_portal_requirements"]["supplier_portal_required"] is False
+    assert recipe["client_specific_portal_requirements"]["supplier_portal_provider"] is None
 
 
 def test_recipe_can_require_po_only_when_selected():

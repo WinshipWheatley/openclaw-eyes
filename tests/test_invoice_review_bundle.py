@@ -43,6 +43,10 @@ def test_capital_hilton_bundle_includes_coupa_proof_requirement():
     proof = _capital()["coupa_invoice_proof"]
 
     assert proof["required"] is True
+    assert proof["rail_ref"] == "supplier_portal_rail"
+    assert proof["supplier_portal_provider"] == "COUPA"
+    assert proof["provider_display_name"] == "Coupa supplier portal"
+    assert proof["portal_submission_action_allowed"] is False
     assert proof["status"] == "MISSING"
     assert proof["proof_ref"] is None
 
@@ -255,11 +259,16 @@ def test_start_coupa_proof_step_is_proof_intake_not_browser_automation():
     hidden = action["hidden_request_payload"]
 
     assert action["label"] == "Start Coupa proof step"
-    assert action["action_kind"] == "request_coupa_submission_proof"
+    assert action["action_kind"] == "request_supplier_portal_submission_proof"
+    assert action["intended_use"] == "request_supplier_portal_submission_proof"
     assert hidden["proof_intake_only"] is True
+    assert hidden["portal_provider"] == "COUPA"
+    assert hidden["canonical_action_kind"] == "request_supplier_portal_submission_proof"
+    assert hidden["compatibility_action_kind"] == "request_coupa_submission_proof"
     assert hidden["browser_automation_allowed"] is False
     assert hidden["portal_submission_allowed"] is False
     assert hidden["coupa_submit_allowed"] is False
+    assert hidden["supplier_portal_submit_allowed"] is False
 
 
 def test_recipient_review_action_does_not_invent_emails():

@@ -76,6 +76,7 @@ AUTHORITY_BOUNDARY = {
     "gmail_access_allowed": False,
     "coupa_access_allowed": False,
     "coupa_submit_allowed": False,
+    "supplier_portal_submit_allowed": False,
     "browser_automation_allowed": False,
     "credential_handling_allowed": False,
     "external_action_allowed": False,
@@ -398,10 +399,15 @@ def build_capital_hilton_recipe() -> dict[str, Any]:
         ),
         client_specific_portal_requirements={
             "supplier_portal_required": True,
+            "supplier_portal_provider": "COUPA",
+            "portal_provider": "COUPA",
+            "provider_display_name": "Coupa supplier portal",
             "portal_ref": "coupa_supplier_portal",
+            "requires_purchase_order": True,
             "purchase_order_required": True,
             "portal_submission_is_payment_trigger": True,
             "portal_submission_proof_required": True,
+            "portal_submission_action_allowed": False,
         },
         client_specific_invoice_artifact_requirements={
             "excel_invoice_required_for_annette_records": True,
@@ -479,8 +485,13 @@ def _simple_email_recipe(client_ref: str, display_name: str, workflow_ref: str) 
         client_specific_contacts=(),
         client_specific_portal_requirements={
             "supplier_portal_required": False,
+            "supplier_portal_provider": None,
+            "portal_provider": None,
+            "provider_display_name": None,
             "purchase_order_required": False,
             "portal_ref": None,
+            "portal_submission_proof_required": False,
+            "portal_submission_action_allowed": False,
             "configure_only_if_client_requires_it": True,
         },
         client_specific_invoice_artifact_requirements={
@@ -682,6 +693,7 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
         "machine_proof": {
             "reusable_rails_defined": len(rails) >= 12,
             "capital_hilton_has_coupa_recipe": recipe_selects_rail(recipes[0], SUPPLIER_PORTAL_RAIL),
+            "capital_hilton_supplier_portal_provider": recipes[0]["client_specific_portal_requirements"].get("supplier_portal_provider"),
             "st_annes_has_no_coupa_by_default": not recipe_selects_rail(recipes[1], SUPPLIER_PORTAL_RAIL),
             "live_arts_md_has_no_coupa_by_default": not recipe_selects_rail(recipes[2], SUPPLIER_PORTAL_RAIL),
             "capital_hilton_workflow_incomplete_without_email_send": not capital_incomplete["workflow_complete"],
