@@ -171,6 +171,12 @@ def _current_action_index(client_ref: str = "capital_hilton") -> dict[str, dict[
         for action in (step.get("primary_action"), *(step.get("secondary_actions") or ())):
             if isinstance(action, Mapping):
                 actions[str(action.get("action_kind") or "")] = dict(action)
+    for step in bundle.get("proof_timeline") or ():
+        if not isinstance(step, Mapping):
+            continue
+        for action in (step.get("primary_action"), *(step.get("secondary_actions") or ())):
+            if isinstance(action, Mapping):
+                actions[str(action.get("action_kind") or "")] = dict(action)
     return actions
 
 
@@ -184,26 +190,53 @@ def _invoice_record_selection_surface(
     request_id: str,
     action_kind: str,
     payload: Mapping[str, Any],
+    context: Mapping[str, str],
 ) -> dict[str, Any] | None:
     if action_kind != "start_invoice_record_selection":
         return None
-    bundle = invoice_review_bundle.build_capital_hilton_bundle()
-    artifact = bundle.get("excel_invoice_artifact") if isinstance(bundle.get("excel_invoice_artifact"), Mapping) else {}
+    client_ref = str(context["client_ref"])
+    workflow_ref = str(context["workflow_ref"])
+    bundle_id = str(context["bundle_id"])
+    client_display_name = str(context["client_display_name"])
+    if client_ref == "live_arts_md":
+        register = live_arts_md_workbook_handoff.build_candidate_register()
+        artifact: Mapping[str, Any] = {}
+        operator_copy = "Let's select the Live Arts MD invoice page/period. No workbook cells will be read."
+        completion_receipt = "live_arts_md_invoice_candidate_selected_receipt"
+        artifact_receipt = "operator_provided_invoice_artifact_linked_candidate_receipt"
+        invoice_candidate_context = {
+            "candidate_register_ref": "generated/read_models/live_arts_md_invoice_candidate_register.json",
+            "primary_next_action": register["primary_next_action"],
+            "invoice_candidates": register["invoice_candidates"],
+            "urgent_actions": register["urgent_actions"],
+            "contact_ambiguity": register["contact_ambiguity"],
+        }
+        source_workbook_ref = register["source_workbook"]["source_workbook_ref"]
+        source_workbook_mac_path = register["source_workbook"]["source_workbook_mac_path"]
+    else:
+        bundle = invoice_review_bundle.build_capital_hilton_bundle()
+        artifact = bundle.get("excel_invoice_artifact") if isinstance(bundle.get("excel_invoice_artifact"), Mapping) else {}
+        operator_copy = (
+            "Let's pick the Capital Hilton invoice page/period. Choose the page or period from the running workbook "
+            "so OpenClaw can link the generated invoice artifact correctly."
+        )
+        completion_receipt = "invoice_record_selected_receipt"
+        artifact_receipt = "generated_invoice_artifact_linkage_receipt"
+        invoice_candidate_context = None
+        source_workbook_ref = payload.get("source_workbook_ref")
+        source_workbook_mac_path = payload.get("source_workbook_mac_path")
     return {
         "surface_type": "SHOW_INVOICE_RECORD_SELECTION_PANEL",
-        "surface_ref": f"invoice_record_selection_surface:{_short_hash(request_id, invoice_review_bundle.CAPITAL_HILTON_BUNDLE_ID)}",
+        "surface_ref": f"invoice_record_selection_surface:{_short_hash(request_id, bundle_id)}",
         "source_request_id": request_id,
-        "client_ref": "capital_hilton",
-        "client_display_name": "Capital Hilton",
-        "workflow_ref": invoice_review_bundle.CAPITAL_HILTON_WORKFLOW_REF,
-        "bundle_id": invoice_review_bundle.CAPITAL_HILTON_BUNDLE_ID,
+        "client_ref": client_ref,
+        "client_display_name": client_display_name,
+        "workflow_ref": workflow_ref,
+        "bundle_id": bundle_id,
         "action_ref": "start_invoice_record_selection",
         "action_kind": "start_invoice_record_selection",
         "intended_use": "select_invoice_record_or_period",
-        "operator_copy": (
-            "Let's pick the Capital Hilton invoice page/period. Choose the page or period from the running workbook "
-            "so OpenClaw can link the generated invoice artifact correctly."
-        ),
+        "operator_copy": operator_copy,
         "fields_requested": (
             "active_source_workbook",
             "client",
@@ -219,8 +252,9 @@ def _invoice_record_selection_surface(
             "LINK_AFTER_SELECTION",
             "UNSURE",
         ),
-        "source_workbook_ref": payload.get("source_workbook_ref"),
-        "source_workbook_mac_path": payload.get("source_workbook_mac_path"),
+        "source_workbook_ref": source_workbook_ref,
+        "source_workbook_mac_path": source_workbook_mac_path,
+        "invoice_candidate_context": invoice_candidate_context,
         "generated_candidate_ref": artifact.get("artifact_ref"),
         "generated_candidate_status": artifact.get("proof_status") or "GENERATED_INVOICE_ARTIFACT_CANDIDATE",
         "generated_candidate_mac_path": artifact.get("mac_visible_ref"),
@@ -228,8 +262,8 @@ def _invoice_record_selection_surface(
         "no_cell_read": True,
         "no_external_action": True,
         "completion_requires_future_operator_selection_result": True,
-        "completion_receipt_required": "invoice_record_selected_receipt",
-        "artifact_linkage_receipt_required": "generated_invoice_artifact_linkage_receipt",
+        "completion_receipt_required": completion_receipt,
+        "artifact_linkage_receipt_required": artifact_receipt,
         "response_completion_behavior": "TERMINAL_AFTER_SURFACE_REQUEST_PUBLISHED",
     }
 
@@ -307,9 +341,19 @@ def _source_workbook_selection_surface(
     }
 
 
-def _operator_copy(action_kind: str) -> tuple[str, str, str, str, tuple[str, ...]]:
+def _operator_copy(action_kind: str, *, context: Mapping[str, str] | None = None) -> tuple[str, str, str, str, tuple[str, ...]]:
+    context = context or CLIENT_BUNDLES["capital_hilton"]
+    client_ref = str(context.get("client_ref") or "capital_hilton")
     missing = _missing_prerequisites()
     if action_kind == "start_invoice_record_selection":
+        if client_ref == "live_arts_md":
+            return (
+                "Starting invoice page selection",
+                "Let's select the Live Arts MD invoice page/period. No workbook cells will be read.",
+                "OpenClaw needs the invoice candidate or page selection before it can link an invoice artifact.",
+                "Choose the Live Arts MD invoice page or period in Mission Control.",
+                ("live_arts_md_invoice_candidate_selected_receipt",),
+            )
         return (
             "Starting invoice page selection",
             "Let's pick the Capital Hilton invoice page/period. Choose the page or period from the running workbook so OpenClaw can link the generated invoice artifact correctly.",
@@ -523,6 +567,7 @@ def process_action_request(
         request_id=request_id,
         action_kind=action_kind,
         payload=payload,
+        context=context,
     ) or _source_workbook_selection_surface(
         request_id=request_id,
         action_kind=action_kind,
@@ -613,6 +658,12 @@ def process_action_request(
         next_action = progress_result.next_action
         expected = (progress_result.action_receipt["receipt_name"],)
         status = "BLOCKED_PREREQUISITES" if str(progress_result.status).startswith("BLOCKED") else "GUIDED_ACTION_STARTED"
+        if client_ref == "live_arts_md" and action_kind == "start_invoice_record_selection":
+            headline = "Starting Live Arts MD invoice selection"
+            body = "Let's select the Live Arts MD invoice page/period. No workbook cells will be read."
+            detail = "OpenClaw will use the operator-provided candidate register and wait for an operator selection result."
+            next_action = "Choose the Live Arts MD invoice page or period in Mission Control."
+            expected = ("live_arts_md_invoice_candidate_selected_receipt",)
     elif not valid_scope:
         headline = "Invoice review action blocked"
         body = "OpenClaw could not start that invoice review action because the bundle, workflow, or client did not match."
@@ -635,12 +686,12 @@ def process_action_request(
         next_action = "Use one of the visible enabled invoice review actions."
         expected = ()
     elif not can_start:
-        headline, body, detail, next_action, expected = _operator_copy(action_kind)
+        headline, body, detail, next_action, expected = _operator_copy(action_kind, context=context)
         status = "BLOCKED_PREREQUISITES"
         if action_disabled_reason:
             body = f"{body} {action_disabled_reason}"
     else:
-        headline, body, detail, next_action, expected = _operator_copy(action_kind)
+        headline, body, detail, next_action, expected = _operator_copy(action_kind, context=context)
         status = "GUIDED_ACTION_STARTED"
     receipt = {
         "receipt_id": f"invoice_review_action_start:{_short_hash(request_id, action_kind, status)}",

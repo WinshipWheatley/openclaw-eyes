@@ -129,6 +129,132 @@ def test_invoice_action_handler_accepts_live_arts_candidate_selection(tmp_path):
     assert result["state_machine_progress"]["bridge_mirror_written"] is True
 
 
+def test_live_arts_record_selection_surface_has_no_capital_hilton_leakage(tmp_path):
+    result = action_handler.process_action_request(
+        {
+            "request_id": "live_arts_md_start_invoice_record_selection",
+            "request_type": "INVOICE_REVIEW_ACTION_REQUEST",
+            "client_ref": "live_arts_md",
+            "workflow_ref": "live_arts_md_invoice_workflow",
+            "intended_use": "start_invoice_record_selection",
+            "action_kind": "start_invoice_record_selection",
+            "hidden_request_payload": {
+                "request_type": "INVOICE_REVIEW_ACTION_REQUEST",
+                "client_ref": "live_arts_md",
+                "workflow_ref": "live_arts_md_invoice_workflow",
+                "action_kind": "start_invoice_record_selection",
+                "intended_use": "start_invoice_record_selection",
+                "no_external_action": True,
+                "no_workbook_body_read": True,
+                "no_cell_read": True,
+                "email_send_allowed": False,
+                "ledger_posting_allowed": False,
+                "coupa_submit_allowed": False,
+                "physical_deletion_allowed": False,
+            },
+        },
+        generated_at=FIXED_NOW,
+        export_root=tmp_path / "read_models",
+        bridge_export_root=tmp_path / "bridge",
+        event_db_path=tmp_path / "events.sqlite",
+        event_export_root=tmp_path / "events",
+    )
+    surface = result["local_surface_request"]
+    response_text = json.dumps(result)
+
+    assert surface["surface_type"] == "SHOW_INVOICE_RECORD_SELECTION_PANEL"
+    assert surface["client_ref"] == "live_arts_md"
+    assert surface["workflow_ref"] == "live_arts_md_invoice_workflow"
+    assert surface["client_display_name"] == "Live Arts MD"
+    assert surface["operator_copy"] == "Let's select the Live Arts MD invoice page/period. No workbook cells will be read."
+    assert surface["completion_receipt_required"] == "live_arts_md_invoice_candidate_selected_receipt"
+    assert surface["invoice_candidate_context"]["candidate_register_ref"] == "generated/read_models/live_arts_md_invoice_candidate_register.json"
+    assert "Capital Hilton" not in response_text
+    assert "capital_hilton" not in response_text
+
+
+def test_capital_hilton_record_selection_surface_has_no_live_arts_leakage(tmp_path):
+    result = action_handler.process_action_request(
+        {
+            "request_id": "capital_hilton_start_invoice_record_selection",
+            "request_type": "INVOICE_REVIEW_ACTION_REQUEST",
+            "client_ref": "capital_hilton",
+            "workflow_ref": "capital_hilton_invoice_workflow",
+            "action_kind": "start_invoice_record_selection",
+            "hidden_request_payload": {
+                "request_type": "INVOICE_REVIEW_ACTION_REQUEST",
+                "client_ref": "capital_hilton",
+                "workflow_ref": "capital_hilton_invoice_workflow",
+                "action_kind": "start_invoice_record_selection",
+                "intended_use": "start_invoice_record_selection",
+                "no_external_action": True,
+                "no_workbook_body_read": True,
+                "no_cell_read": True,
+                "email_send_allowed": False,
+                "ledger_posting_allowed": False,
+                "coupa_submit_allowed": False,
+                "physical_deletion_allowed": False,
+            },
+        },
+        generated_at=FIXED_NOW,
+        export_root=tmp_path / "read_models",
+        bridge_export_root=tmp_path / "bridge",
+        event_db_path=tmp_path / "events.sqlite",
+        event_export_root=tmp_path / "events",
+    )
+    surface = result["local_surface_request"]
+    response_text = json.dumps(result)
+
+    assert surface["client_ref"] == "capital_hilton"
+    assert surface["workflow_ref"] == "capital_hilton_invoice_workflow"
+    assert "Capital Hilton invoice page/period" in surface["operator_copy"]
+    assert "Live Arts" not in response_text
+    assert "live_arts_md" not in response_text
+
+
+def test_live_arts_scoped_response_primary_payload_excludes_stale_capital_proof(tmp_path):
+    result = action_handler.process_action_request(
+        {
+            "request_id": "live_arts_md_selection_with_stale_capital_note",
+            "request_type": "INVOICE_REVIEW_ACTION_REQUEST",
+            "client_ref": "live_arts_md",
+            "workflow_ref": "live_arts_md_invoice_workflow",
+            "action_kind": "start_invoice_record_selection",
+            "hidden_request_payload": {
+                "request_type": "INVOICE_REVIEW_ACTION_REQUEST",
+                "client_ref": "live_arts_md",
+                "workflow_ref": "live_arts_md_invoice_workflow",
+                "action_kind": "start_invoice_record_selection",
+                "intended_use": "start_invoice_record_selection",
+                "proof_refs": ("capital_hilton_stale_ref",),
+                "operator_visible_message": "Capital Hilton stale text should not become primary response.",
+                "no_external_action": True,
+                "no_workbook_body_read": True,
+                "no_cell_read": True,
+                "email_send_allowed": False,
+                "ledger_posting_allowed": False,
+                "coupa_submit_allowed": False,
+                "physical_deletion_allowed": False,
+            },
+        },
+        generated_at=FIXED_NOW,
+        export_root=tmp_path / "read_models",
+        bridge_export_root=tmp_path / "bridge",
+        event_db_path=tmp_path / "events.sqlite",
+        event_export_root=tmp_path / "events",
+    )
+
+    primary_payload = {
+        "headline": result["headline"],
+        "body": result["body"],
+        "detail": result["detail"],
+        "next_action": result["next_action"],
+        "local_surface_request": result["local_surface_request"],
+    }
+    assert "Capital Hilton" not in json.dumps(primary_payload)
+    assert primary_payload["local_surface_request"]["client_ref"] == "live_arts_md"
+
+
 def test_payment_watch_and_ledger_planning_are_readiness_only():
     register = handoff.build_candidate_register(generated_at=FIXED_NOW)
     payment = register["expected_receivable_payment_watch_readiness"]
