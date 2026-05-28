@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 import client_invoice_workflow_framework as workflow
+import client_comms_thread_rail
 import client_invoice_workbook_registry
 import local_artifact_reference
 
@@ -47,6 +48,8 @@ AUTHORITY_BOUNDARY = {
     "production_business_mutation_performed": False,
     "physical_deletion_performed": False,
     "external_action_performed": False,
+    "live_gmail_polling_performed": False,
+    "gmail_draft_created": False,
 }
 
 
@@ -275,7 +278,22 @@ def build_live_arts_md_bundle(
     artifact_candidate = artifact["status"] == "OPERATOR_PROVIDED_ARTIFACT_CANDIDATE"
     attachment_ready = "invoice_attachment_confirmed_receipt" in receipts
     recipient_confirmed = "recipient_confirmation_receipt" in receipts
-    clara_ready = artifact_candidate or attachment_ready
+    comms_fixture = client_comms_thread_rail.build_clara_first_contact_draft(
+        client_ref=CLIENT_REF,
+        workflow_ref=WORKFLOW_REF,
+        recipient_ref="live_arts_md_billing_contact_candidate",
+        recipient_name="[Live Arts MD contact]",
+        subject="Live Arts MD invoice",
+        work_kind="invoice package",
+        prior_clara_thread_exists="clara_started_thread_receipt" in receipts,
+    )
+    comms_draft = dict(comms_fixture["draft_candidate"])
+    comms_policy = dict(comms_fixture["first_contact_policy"])
+    comms_thread = dict(comms_fixture["thread_registry_record"])
+    clara_ready = True
+    guardian_approval_request_ready = "guardian_approval_request_receipt" in receipts
+    email_sent = "email_send_receipt" in receipts
+    thread_watch_status = "THREAD_WATCH_READY" if email_sent else "BLOCKED_UNTIL_SENT_RECEIPT"
     approval_ready = all(
         (
             source_confirmed,
@@ -283,7 +301,8 @@ def build_live_arts_md_bundle(
             artifact_candidate,
             attachment_ready,
             recipient_confirmed,
-            "guardian_approval_request_receipt" in receipts,
+            clara_ready,
+            guardian_approval_request_ready,
         )
     )
     blockers = []
@@ -297,21 +316,10 @@ def build_live_arts_md_bundle(
         blockers.append("Confirm the invoice artifact as the email attachment.")
     if not recipient_confirmed:
         blockers.append("Confirm the Live Arts MD recipient/contact.")
+    if not guardian_approval_request_ready:
+        blockers.append("Guardian approval request is required before send approval.")
     if not approval_ready:
         blockers.append("Approval/send remains disabled until receipts exist.")
-
-    clara_body = (
-        "Hi [Live Arts MD contact],\n\n"
-        "I’m preparing the Live Arts MD invoice for review. I’ll send the invoice once the attachment "
-        "and recipient are confirmed.\n\n"
-        "Best,\nWinship"
-    )
-    if attachment_ready:
-        clara_body = (
-            "Hi [Live Arts MD contact],\n\n"
-            "Attached is the Live Arts MD invoice for review. Please let me know if you need anything else.\n\n"
-            "Best,\nWinship"
-        )
 
     source_action = _action(
         "replace_source_workbook_reference",
@@ -340,7 +348,7 @@ def build_live_arts_md_bundle(
         "review_and_confirm_recipients",
         "Confirm recipient",
         enabled=True,
-        intended_use="review_and_confirm_recipients",
+        intended_use="review_or_provide_recipient",
     )
     send_action = _action(
         "prepare_manual_send_package",
@@ -390,10 +398,18 @@ def build_live_arts_md_bundle(
         {
             "step_ref": "live_arts_md_step:clara_draft",
             "title": "Clara draft",
-            "status": "DRAFT_ONLY" if clara_ready else "PLACEHOLDER_DRAFT",
-            "operator_summary": "Draft only. Nothing was sent.",
+            "status": "DRAFT_ONLY",
+            "operator_summary": "Clara first-contact draft is ready for review only. Nothing was sent.",
             "primary_action": None,
             "required_receipts": ("clara_email_draft_receipt",),
+        },
+        {
+            "step_ref": "live_arts_md_step:client_comms_thread",
+            "title": "Client comms thread",
+            "status": "BLOCKED" if not email_sent else "THREAD_WATCH_READY",
+            "operator_summary": "Thread watch is not active until a future Clara send receipt starts the thread.",
+            "primary_action": None,
+            "required_receipts": ("email_send_receipt", "thread_ref_receipt"),
         },
         {
             "step_ref": "live_arts_md_step:recipient_send",
@@ -439,25 +455,62 @@ def build_live_arts_md_bundle(
             "primary_action": selection_action,
         },
         "invoice_artifact": artifact,
-        "clara_email_draft": {
+        "client_comms_thread": {
+            "comms_thread_status": "DRAFT_READY" if clara_ready else "NOT_STARTED",
+            "thread_ref": comms_draft["thread_ref"],
+            "thread_registry_record": comms_thread,
+            "external_identity": client_comms_thread_rail.CLARA_EXTERNAL_IDENTITY,
+            "internal_identity": client_comms_thread_rail.CASSANDRA_INTERNAL_IDENTITY,
             "selected_voice": "CLARA",
+            "channel": "email",
+            "audience": "external_client",
+            "first_contact_intro_required": comms_policy["intro_required"],
+            "first_contact_intro_policy_ref": "generated/read_models/client_comms_thread_rail.json#first_contact_intro_policy",
+            "first_contact_intro_policy": comms_policy,
+            "clara_draft_status": "DRAFT_ONLY",
             "draft_only": True,
             "sent": False,
-            "subject": "Live Arts MD invoice",
-            "body": clara_body,
+            "guardian_output_validation_status": comms_draft["guardian_output_validation_status"],
+            "guardian_approval_required": True,
+            "guardian_approval_request_status": "READY" if guardian_approval_request_ready else "NOT_CREATED",
+            "send_execution_receipt_required": True,
+            "send_execution_status": "SENT_RECEIPT_CONFIRMED" if email_sent else "NOT_SENT",
+            "thread_watch_status": thread_watch_status,
+            "thread_watch_future_gated": not email_sent,
+            "live_gmail_polling_active": False,
+            "gmail_draft_created": False,
+            "required_receipts_before_send": comms_draft["required_receipts_before_send"],
+        },
+        "clara_email_draft": {
+            "draft_ref": comms_draft["draft_ref"],
+            "selected_voice": comms_draft["selected_voice"],
+            "external_identity": comms_draft["external_identity"],
+            "draft_only": True,
+            "sent": False,
+            "send_allowed": False,
+            "guardian_approval_required": True,
+            "subject": comms_draft["subject"],
+            "body": comms_draft["body"],
             "attachment_claim": "attachment confirmed" if attachment_ready else "attachment not ready yet",
+            "thread_ref": comms_draft["thread_ref"],
         },
         "recipient_state": {
             "status": "CONFIRMED" if recipient_confirmed else "RECIPIENT_INFO_REQUIRED",
             "recipient_email_invented": False,
+            "recipient_candidates": (),
+            "confirmation_receipt_required": "recipient_confirmation_receipt",
             "primary_action": recipient_action,
         },
         "send_readiness": {
             "email_send_rail_exists": False,
             "manual_send_package_status": "MANUAL_SEND_PACKAGE_READY" if approval_ready else "BLOCKED_PREREQUISITES",
             "email_send_approval_required": True,
+            "guardian_approval_required": True,
+            "guardian_approval_request_ready": guardian_approval_request_ready,
+            "operator_approval_receipt_required": True,
             "email_send_execution_receipt_required": True,
-            "sent_receipt_confirmed": "email_send_receipt" in receipts,
+            "sent_receipt_confirmed": email_sent,
+            "thread_watch_status_after_send": "THREAD_WATCH_READY",
             "primary_action": send_action,
         },
         "payment_watch": {
@@ -494,6 +547,10 @@ def build_live_arts_md_bundle(
             "live_arts_md_does_not_require_po": True,
             "uses_reusable_simple_invoice_rails": True,
             "clara_draft_only": True,
+            "client_comms_thread_rail_consumed": True,
+            "clara_first_contact_intro_required": comms_policy["intro_required"],
+            "thread_watch_blocked_until_send_receipt": thread_watch_status == "BLOCKED_UNTIL_SENT_RECEIPT",
+            "send_execution_receipt_required": True,
             "no_recipient_email_invented": True,
             "artifact_candidate_not_attachment_ready": artifact.get("attachment_ready") is False,
             "approval_send_disabled_without_receipts": approval_ready is False,

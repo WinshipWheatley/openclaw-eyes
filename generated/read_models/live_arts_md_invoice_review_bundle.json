@@ -5,15 +5,17 @@
     "email_send_performed": false,
     "external_action_performed": false,
     "gmail_access_performed": false,
+    "gmail_draft_created": false,
     "invoice_generation_performed": false,
     "ledger_posting_performed": false,
+    "live_gmail_polling_performed": false,
     "pdf_export_performed": false,
     "physical_deletion_performed": false,
     "production_business_mutation_performed": false,
     "spreadsheet_cell_read_performed": false,
     "workbook_body_read_performed": false
   },
-  "generated_at": "2026-05-28T15:53:45+00:00",
+  "generated_at": "2026-05-28T16:38:03+00:00",
   "live_arts_md_bundle": {
     "actionable_blockers": [
       {
@@ -49,6 +51,7 @@
         "Choose the Live Arts MD source workbook.",
         "Attach or link the generated Live Arts MD invoice artifact.",
         "Confirm the Live Arts MD recipient/contact.",
+        "Guardian approval request is required before send approval.",
         "Approval/send remains disabled until receipts exist."
       ],
       "approval_ready": false
@@ -59,8 +62,10 @@
       "email_send_performed": false,
       "external_action_performed": false,
       "gmail_access_performed": false,
+      "gmail_draft_created": false,
       "invoice_generation_performed": false,
       "ledger_posting_performed": false,
+      "live_gmail_polling_performed": false,
       "pdf_export_performed": false,
       "physical_deletion_performed": false,
       "production_business_mutation_performed": false,
@@ -71,20 +76,92 @@
       "Choose the Live Arts MD source workbook.",
       "Attach or link the generated Live Arts MD invoice artifact.",
       "Confirm the Live Arts MD recipient/contact.",
+      "Guardian approval request is required before send approval.",
       "Approval/send remains disabled until receipts exist."
     ],
     "bundle_id": "invoice_review_bundle:live_arts_md:v0",
     "clara_email_draft": {
       "attachment_claim": "attachment not ready yet",
-      "body": "Hi [Live Arts MD contact],\n\nI\u2019m preparing the Live Arts MD invoice for review. I\u2019ll send the invoice once the attachment and recipient are confirmed.\n\nBest,\nWinship",
+      "body": "Hi [Live Arts MD contact] - I'm Clara Reid, helping Winship keep the Live Arts MD invoice package organized and easy to track.\n\nI'm preparing the invoice note for review. Winship will confirm the attachment and recipient details before anything is sent.\n\nBest,\nClara Reid",
       "draft_only": true,
+      "draft_ref": "clara_draft:006fc798d39f21ce",
+      "external_identity": "CLARA_REID",
+      "guardian_approval_required": true,
       "selected_voice": "CLARA",
+      "send_allowed": false,
       "sent": false,
-      "subject": "Live Arts MD invoice"
+      "subject": "Live Arts MD invoice",
+      "thread_ref": "client_comms_thread:live_arts_md:cc5418d57c6ca036"
+    },
+    "client_comms_thread": {
+      "audience": "external_client",
+      "channel": "email",
+      "clara_draft_status": "DRAFT_ONLY",
+      "comms_thread_status": "DRAFT_READY",
+      "draft_only": true,
+      "external_identity": "CLARA_REID",
+      "first_contact_intro_policy": {
+        "client_context": "Live Arts MD invoice communication.",
+        "client_ref": "live_arts_md",
+        "disclosure_posture": "Clara signs as Clara Reid and does not pretend to be Winship.",
+        "first_clara_contact": true,
+        "intro_required": true,
+        "intro_style": "warm_invoice_admin_intro",
+        "operator_context": "Winship remains the operator and final authority.",
+        "prior_clara_thread_exists": false,
+        "reason": "Live Arts MD has no prior Clara-owned email thread in this fixture.",
+        "recipient_ref": "live_arts_md_billing_contact_candidate"
+      },
+      "first_contact_intro_policy_ref": "generated/read_models/client_comms_thread_rail.json#first_contact_intro_policy",
+      "first_contact_intro_required": true,
+      "gmail_draft_created": false,
+      "guardian_approval_request_status": "NOT_CREATED",
+      "guardian_approval_required": true,
+      "guardian_output_validation_status": "SAFE_TO_SHOW_DRAFT",
+      "internal_identity": "CASSANDRA",
+      "live_gmail_polling_active": false,
+      "required_receipts_before_send": [
+        "thread_ref_receipt",
+        "recipient_confirmation_receipt",
+        "draft_hash_receipt",
+        "guardian_approval_request_receipt",
+        "operator_approval_receipt",
+        "email_send_receipt"
+      ],
+      "selected_voice": "CLARA",
+      "send_execution_receipt_required": true,
+      "send_execution_status": "NOT_SENT",
+      "sent": false,
+      "thread_ref": "client_comms_thread:live_arts_md:cc5418d57c6ca036",
+      "thread_registry_record": {
+        "adoption_status": "OPENCLAW_OWNED_DRAFT_ONLY",
+        "allowed_response_scope": "draft_only_until_guardian_operator_approval_and_send_receipt",
+        "channel": "email",
+        "client_ref": "live_arts_md",
+        "external_thread_id": null,
+        "first_sent_receipt_ref": null,
+        "latest_message_receipt_ref": null,
+        "participants": [
+          "live_arts_md_billing_contact_candidate",
+          "clara_reid"
+        ],
+        "privacy_class": "CLIENT_COMMS_MINIMIZED",
+        "proof_refs": [
+          "clara_draft:006fc798d39f21ce"
+        ],
+        "started_by_clara": true,
+        "started_by_openclaw": true,
+        "subject": "Live Arts MD invoice",
+        "thread_ref": "client_comms_thread:live_arts_md:cc5418d57c6ca036",
+        "watch_status": "NOT_STARTED",
+        "workflow_ref": "live_arts_md_invoice_workflow"
+      },
+      "thread_watch_future_gated": true,
+      "thread_watch_status": "BLOCKED_UNTIL_SENT_RECEIPT"
     },
     "client_display_name": "Live Arts MD",
     "client_ref": "live_arts_md",
-    "generated_at": "2026-05-28T15:53:45+00:00",
+    "generated_at": "2026-05-28T16:38:03+00:00",
     "invoice_artifact": {
       "artifact_ref": null,
       "attachment_ready": false,
@@ -126,11 +203,15 @@
       "approval_send_disabled_without_receipts": true,
       "artifact_candidate_not_attachment_ready": true,
       "clara_draft_only": true,
-      "content_hash": "sha256:0db236160b04f91826c894f347349c1bbd41d5f5a6352540e67a0118fe6bc4d2",
+      "clara_first_contact_intro_required": true,
+      "client_comms_thread_rail_consumed": true,
+      "content_hash": "sha256:906fde57f1bf4d1b38e54143bfe043f23896e19c917d5200b2463596d6964507",
       "live_arts_md_does_not_require_coupa": true,
       "live_arts_md_does_not_require_po": true,
       "no_action_authority": true,
       "no_recipient_email_invented": true,
+      "send_execution_receipt_required": true,
+      "thread_watch_blocked_until_send_receipt": true,
       "uses_reusable_simple_invoice_rails": true
     },
     "next_safe_move": "Choose the Live Arts MD source workbook.",
@@ -248,14 +329,25 @@
         "title": "Invoice artifact"
       },
       {
-        "operator_summary": "Draft only. Nothing was sent.",
+        "operator_summary": "Clara first-contact draft is ready for review only. Nothing was sent.",
         "primary_action": null,
         "required_receipts": [
           "clara_email_draft_receipt"
         ],
-        "status": "PLACEHOLDER_DRAFT",
+        "status": "DRAFT_ONLY",
         "step_ref": "live_arts_md_step:clara_draft",
         "title": "Clara draft"
+      },
+      {
+        "operator_summary": "Thread watch is not active until a future Clara send receipt starts the thread.",
+        "primary_action": null,
+        "required_receipts": [
+          "email_send_receipt",
+          "thread_ref_receipt"
+        ],
+        "status": "BLOCKED",
+        "step_ref": "live_arts_md_step:client_comms_thread",
+        "title": "Client comms thread"
       },
       {
         "operator_summary": "Manual send package can be prepared only after attachment, recipient, and approval receipts.",
@@ -308,6 +400,7 @@
     ],
     "recipe_ref": "live_arts_md_invoice_workflow",
     "recipient_state": {
+      "confirmation_receipt_required": "recipient_confirmation_receipt",
       "primary_action": {
         "action_kind": "review_and_confirm_recipients",
         "action_ref": "live_arts_md_invoice_action:80fd4bc7b1da8aec",
@@ -318,7 +411,7 @@
           "client_ref": "live_arts_md",
           "coupa_submit_allowed": false,
           "email_send_allowed": false,
-          "intended_use": "review_and_confirm_recipients",
+          "intended_use": "review_or_provide_recipient",
           "ledger_posting_allowed": false,
           "no_cell_read": true,
           "no_external_action": true,
@@ -330,6 +423,7 @@
         "label": "Confirm recipient",
         "operator_visible_message": "Confirm recipient"
       },
+      "recipient_candidates": [],
       "recipient_email_invented": false,
       "status": "RECIPIENT_INFO_REQUIRED"
     },
@@ -349,7 +443,10 @@
       "email_send_approval_required": true,
       "email_send_execution_receipt_required": true,
       "email_send_rail_exists": false,
+      "guardian_approval_request_ready": false,
+      "guardian_approval_required": true,
       "manual_send_package_status": "BLOCKED_PREREQUISITES",
+      "operator_approval_receipt_required": true,
       "primary_action": {
         "action_kind": "prepare_manual_send_package",
         "action_ref": "live_arts_md_invoice_action:ece0e17b47632e8e",
@@ -372,7 +469,8 @@
         "label": "Prepare manual send package",
         "operator_visible_message": "Prepare manual send package"
       },
-      "sent_receipt_confirmed": false
+      "sent_receipt_confirmed": false,
+      "thread_watch_status_after_send": "THREAD_WATCH_READY"
     },
     "source_workbook": {
       "approved_for_cell_read": false,
@@ -401,7 +499,7 @@
   },
   "machine_proof": {
     "bridge_safe": true,
-    "content_hash": "sha256:0db236160b04f91826c894f347349c1bbd41d5f5a6352540e67a0118fe6bc4d2",
+    "content_hash": "sha256:906fde57f1bf4d1b38e54143bfe043f23896e19c917d5200b2463596d6964507",
     "live_arts_md_bundle_present": true,
     "no_action_authority": true
   },

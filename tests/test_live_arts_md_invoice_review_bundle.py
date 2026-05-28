@@ -195,9 +195,35 @@ def test_clara_draft_is_draft_only_and_uses_clara_voice():
     live = bundle.build_live_arts_md_bundle(generated_at=FIXED_NOW)
 
     assert live["clara_email_draft"]["selected_voice"] == "CLARA"
+    assert live["clara_email_draft"]["external_identity"] == "CLARA_REID"
     assert live["clara_email_draft"]["draft_only"] is True
     assert live["clara_email_draft"]["sent"] is False
+    assert live["clara_email_draft"]["send_allowed"] is False
+    assert "Clara Reid" in live["clara_email_draft"]["body"]
     assert "Attached is" not in live["clara_email_draft"]["body"]
+
+
+def test_live_arts_md_bundle_includes_clara_comms_rail():
+    live = bundle.build_live_arts_md_bundle(generated_at=FIXED_NOW)
+    comms = live["client_comms_thread"]
+
+    assert comms["comms_thread_status"] == "DRAFT_READY"
+    assert comms["external_identity"] == "CLARA_REID"
+    assert comms["selected_voice"] == "CLARA"
+    assert comms["channel"] == "email"
+    assert comms["draft_only"] is True
+    assert comms["sent"] is False
+    assert comms["first_contact_intro_policy_ref"] == "generated/read_models/client_comms_thread_rail.json#first_contact_intro_policy"
+    assert live["machine_proof"]["client_comms_thread_rail_consumed"] is True
+
+
+def test_first_contact_intro_required_for_first_live_arts_invoice_email():
+    live = bundle.build_live_arts_md_bundle(generated_at=FIXED_NOW)
+
+    assert live["client_comms_thread"]["first_contact_intro_required"] is True
+    assert live["client_comms_thread"]["first_contact_intro_policy"]["intro_required"] is True
+    assert "I'm Clara Reid" in live["clara_email_draft"]["body"]
+    assert "invoice package organized" in live["clara_email_draft"]["body"]
 
 
 def test_missing_recipient_info_blocks_send_readiness():
@@ -209,7 +235,36 @@ def test_missing_recipient_info_blocks_send_readiness():
 
     assert live["recipient_state"]["status"] == "RECIPIENT_INFO_REQUIRED"
     assert live["recipient_state"]["recipient_email_invented"] is False
+    assert live["recipient_state"]["primary_action"]["hidden_request_payload"]["intended_use"] == "review_or_provide_recipient"
     assert live["send_readiness"]["manual_send_package_status"] == "BLOCKED_PREREQUISITES"
+
+
+def test_clara_draft_does_not_imply_attachment_readiness():
+    live = bundle.build_live_arts_md_bundle(generated_at=FIXED_NOW)
+
+    assert live["clara_email_draft"]["draft_only"] is True
+    assert live["invoice_artifact"]["attachment_ready"] is False
+    assert live["clara_email_draft"]["attachment_claim"] == "attachment not ready yet"
+
+
+def test_guardian_approval_and_send_execution_receipts_are_required():
+    live = bundle.build_live_arts_md_bundle(generated_at=FIXED_NOW)
+
+    assert live["client_comms_thread"]["guardian_approval_required"] is True
+    assert live["client_comms_thread"]["send_execution_receipt_required"] is True
+    assert live["send_readiness"]["guardian_approval_required"] is True
+    assert live["send_readiness"]["operator_approval_receipt_required"] is True
+    assert live["send_readiness"]["email_send_execution_receipt_required"] is True
+    assert "guardian_approval_request_receipt" in live["client_comms_thread"]["required_receipts_before_send"]
+    assert "email_send_receipt" in live["client_comms_thread"]["required_receipts_before_send"]
+
+
+def test_thread_watch_not_active_without_send_receipt():
+    live = bundle.build_live_arts_md_bundle(generated_at=FIXED_NOW)
+
+    assert live["client_comms_thread"]["thread_watch_status"] == "BLOCKED_UNTIL_SENT_RECEIPT"
+    assert live["client_comms_thread"]["thread_watch_future_gated"] is True
+    assert live["client_comms_thread"]["live_gmail_polling_active"] is False
 
 
 def test_approval_send_remains_disabled_until_receipts_exist(tmp_path):
@@ -261,6 +316,8 @@ def test_no_send_email_coupa_browser_ledger_or_workbook_read_action_enabled():
 
     assert all(value is False for value in live["authority_boundary"].values())
     assert live["machine_proof"]["no_action_authority"] is True
+    assert live["client_comms_thread"]["live_gmail_polling_active"] is False
+    assert live["client_comms_thread"]["gmail_draft_created"] is False
 
 
 def test_export_writes_json_operator_and_bridge(tmp_path):
