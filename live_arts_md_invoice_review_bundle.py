@@ -34,6 +34,39 @@ CLIENT_REF = "live_arts_md"
 CLIENT_DISPLAY_NAME = "Live Arts MD"
 WORKFLOW_REF = "live_arts_md_invoice_workflow"
 EXPECTED_WORKBOOK_NAME = "Invoice Live Arts MD! Running.xlsx"
+KNOWN_MANUAL_SEND_INVOICE_ID = "2026-1001"
+KNOWN_MANUAL_SEND_WORK = "June 2026 Speaker Rental"
+KNOWN_MANUAL_SEND_AMOUNT = 900
+KNOWN_MANUAL_SEND_PROOF_ATTACHMENTS = "Live_Arts_MD_Speaker_Rental_Invoice_September_May_2026.pdf"
+KNOWN_MANUAL_SEND_ARTIFACT_PATH = "/Users/hwinshipwheatley/Desktop/Live_Arts_MD_Speaker_Rental_Invoice_September_May_2026.pdf"
+KNOWN_MANUAL_SEND_TO = ("Dane",)
+KNOWN_MANUAL_SEND_CC = ("Draper", "Earnie", "Winship")
+KNOWN_MANUAL_SEND_SUBJECT = "Live Arts MD invoice"
+KNOWN_MANUAL_SEND_SEND_TIMESTAMP = "2026-05-28T14:32:00-04:00"
+MANUAL_SEND_COMPLETION_REQUIRED_FIELDS = (
+    "sent_timestamp",
+    "to",
+    "cc",
+    "subject",
+    "attachment_filename",
+    "invoice_id",
+    "amount",
+    "work_or_period",
+)
+MANUAL_SEND_PROOF_STATUS_PENDING = "MANUAL_SEND_PROOF_PENDING"
+MANUAL_SEND_PROOF_STATUS_CONFIRMED = "MANUAL_SEND_PROOF_CONFIRMED"
+PAYMENT_WATCH_STATUS_READY_TO_CONFIGURE = "READY_TO_CONFIGURE"
+PAYMENT_WATCH_STATUS_READINESS_ONLY = "READINESS_ONLY_NOT_ACTIVE"
+LIVE_ARTS_MD_MANUAL_SEND_PROOF = {
+    "execution_venue": "MAC_LOCAL",
+    "execution_actor": "OPERATOR",
+    "assistant_actor": "CODEX_DESKTOP_SPARK",
+    "openclaw_executed": False,
+    "manual_execution": True,
+    "send_method": "manual_gmail",
+    "artifact_exported_on": "MAC_EXCEL",
+    "proof_required": True,
+}
 
 ALLOWED_ARTIFACT_EXTENSIONS = (".pdf", ".xlsx", ".xls", ".png", ".jpg", ".jpeg")
 
@@ -67,6 +100,118 @@ def _content_hash(payload: Mapping[str, Any]) -> str:
     clone = json.loads(stable_json(dict(payload)))
     clone.get("machine_proof", {}).pop("content_hash", None)
     return "sha256:" + hashlib.sha256(stable_json(clone).encode("utf-8")).hexdigest()
+
+
+def _as_sequence(value: object) -> tuple[str, ...]:
+    if value is None:
+        return ()
+    if isinstance(value, str):
+        stripped = value.strip()
+        return (stripped,) if stripped else ()
+    if isinstance(value, (list, tuple, set)):
+        return tuple(
+            str(item).strip()
+            for item in value
+            if str(item).strip()
+        )
+    return (str(value).strip(),) if str(value).strip() else ()
+
+
+def _is_present_field(value: object) -> bool:
+    if value is None:
+        return False
+    if isinstance(value, str):
+        return bool(value.strip())
+    if isinstance(value, (list, tuple, set)):
+        return bool(_as_sequence(value))
+    if isinstance(value, bool):
+        return value is True
+    if isinstance(value, (int, float)):
+        return True
+    return bool(str(value).strip())
+
+
+def _normalize_manual_send_proof(
+    *,
+    manual_send_proof: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    payload = dict(manual_send_proof or {})
+    payload.setdefault("execution_context", dict(LIVE_ARTS_MD_MANUAL_SEND_PROOF))
+    execution = payload.get("execution_context")
+    if not isinstance(execution, Mapping):
+        execution = dict(LIVE_ARTS_MD_MANUAL_SEND_PROOF)
+    payload["execution_context"] = dict(execution)
+    payload.setdefault("attachment_filename", KNOWN_MANUAL_SEND_PROOF_ATTACHMENTS)
+    payload.setdefault("invoice_id", KNOWN_MANUAL_SEND_INVOICE_ID)
+    payload.setdefault("work_or_period", KNOWN_MANUAL_SEND_WORK)
+    payload.setdefault("amount", KNOWN_MANUAL_SEND_AMOUNT)
+    payload.setdefault("to", KNOWN_MANUAL_SEND_TO)
+    payload.setdefault("cc", KNOWN_MANUAL_SEND_CC)
+    payload.setdefault("subject", KNOWN_MANUAL_SEND_SUBJECT)
+    payload.setdefault("sent_timestamp", KNOWN_MANUAL_SEND_SEND_TIMESTAMP)
+    payload.setdefault("artifact_path", KNOWN_MANUAL_SEND_ARTIFACT_PATH)
+    proof_refs = payload.get("proof_refs")
+    if not isinstance(proof_refs, tuple):
+        proof_refs = tuple(_as_sequence(proof_refs))
+    payload["proof_refs"] = proof_refs
+    payload.setdefault("proof_required", True)
+    payload.setdefault("no_openclaw_send_claim", True)
+    payload.setdefault("manual_send_receipt_available", False)
+    payload.setdefault("proof_capture_required", ("screenshot_ref", "sent_mail_proof_ref"))
+    return payload
+
+
+def _manual_send_proof_status(
+    *,
+    manual_send_proof: Mapping[str, Any] | None,
+    present_receipts: set[str],
+) -> tuple[dict[str, Any], str]:
+    payload = _normalize_manual_send_proof(manual_send_proof=manual_send_proof)
+    present = [field for field in MANUAL_SEND_COMPLETION_REQUIRED_FIELDS if not _is_present_field(payload.get(field))]
+    sent_proof_ref = (
+        payload.get("screenshot_ref")
+        or payload.get("sent_mail_proof_ref")
+        or payload.get("manual_send_proof_ref")
+    )
+    has_screenshot_or_mail_proof = sent_proof_ref is not None
+    has_manual_send_receipt = "manual_send_receipt" in present_receipts
+    has_confirmed_receipt = has_manual_send_receipt or payload.get("manual_send_receipt_available") is True
+    proof_state = {
+        "execution_context": payload["execution_context"],
+        "artifact_path": payload["artifact_path"],
+        "attachment_filename": payload["attachment_filename"],
+        "invoice_id": payload["invoice_id"],
+        "work_or_period": payload["work_or_period"],
+        "amount": payload["amount"],
+        "sent_timestamp": payload["sent_timestamp"],
+        "subject": payload["subject"],
+        "to": tuple(_as_sequence(payload.get("to"))),
+        "cc": tuple(_as_sequence(payload.get("cc"))),
+        "manual_send_receipt_available": bool(payload.get("manual_send_receipt_available", False)),
+        "proof_required": bool(payload.get("proof_required", True)),
+        "receipt_received": bool(has_confirmed_receipt),
+        "proof_refs": tuple(_as_sequence(payload.get("proof_refs"))),
+        "required_fields": MANUAL_SEND_COMPLETION_REQUIRED_FIELDS,
+        "missing_required_fields": tuple(present),
+        "proof_capture_provided": bool(bool(sent_proof_ref)),
+        "proof_capture_fields": tuple(_as_sequence(payload.get("proof_capture_required"))),
+    }
+    complete = (
+        has_confirmed_receipt
+        and not present
+        and (
+            (payload.get("proof_required") is False)
+            or has_screenshot_or_mail_proof
+            or (payload.get("proof_capture_required") is False)
+        )
+    )
+    proof_status = (
+        MANUAL_SEND_PROOF_STATUS_CONFIRMED
+        if complete
+        else MANUAL_SEND_PROOF_STATUS_PENDING
+    )
+    proof_state["proof_status"] = proof_status
+    return proof_state, proof_status
 
 
 def _workbook_records(payload: Mapping[str, Any] | None) -> tuple[dict[str, Any], ...]:
@@ -247,6 +392,7 @@ def build_live_arts_md_bundle(
     source_workbook_override: Mapping[str, Any] | None = None,
     artifact_reference_payload: Mapping[str, Any] | None = None,
     operator_artifact_path: str | None = None,
+    manual_send_proof: Mapping[str, Any] | None = None,
     present_receipts: tuple[str, ...] | list[str] | set[str] = (),
     generated_at: str | None = None,
 ) -> dict[str, Any]:
@@ -319,6 +465,11 @@ def build_live_arts_md_bundle(
     comms_thread = dict(comms_fixture["thread_registry_record"])
     recipient_package = clara_drafts.live_arts_md_recipient_package(confirmed=recipient_confirmed)
     invoice_period_label = "operator-selected period" if invoice_selected else None
+    manual_send_proof_state, manual_send_status = _manual_send_proof_status(
+        manual_send_proof=manual_send_proof,
+        present_receipts=receipts,
+    )
+    email_send_status = manual_send_status
     clara_package = clara_drafts.build_clara_invoice_email_draft_package(
         client_ref=CLIENT_REF,
         workflow_ref=WORKFLOW_REF,
@@ -350,6 +501,11 @@ def build_live_arts_md_bundle(
     guardian_approval_request_ready = "guardian_approval_request_receipt" in receipts
     email_sent = "email_send_receipt" in receipts
     thread_watch_status = "THREAD_WATCH_READY" if email_sent else "BLOCKED_UNTIL_SENT_RECEIPT"
+    payment_watch_status = (
+        PAYMENT_WATCH_STATUS_READY_TO_CONFIGURE
+        if manual_send_status == MANUAL_SEND_PROOF_STATUS_CONFIRMED
+        else PAYMENT_WATCH_STATUS_READINESS_ONLY
+    )
     approval_ready = all(
         (
             source_confirmed,
@@ -391,6 +547,7 @@ def build_live_arts_md_bundle(
         enabled=source_confirmed,
         intended_use="choose_live_arts_md_invoice_candidate",
         disabled_reason=None if source_confirmed else "Choose the source workbook first.",
+        extra_payload={"operator_provided": True} if source_confirmed else None,
     )
     urgent_invoice_actions = tuple(handoff["urgent_actions"])
     artifact_action = _action(
@@ -475,15 +632,20 @@ def build_live_arts_md_bundle(
             "status": "READY" if approval_ready else "BLOCKED",
             "operator_summary": "Manual send package can be prepared only after attachment, recipient, and approval receipts.",
             "primary_action": send_action,
-            "required_receipts": ("recipient_confirmation_receipt", "operator_approval_receipt", "email_send_receipt"),
+            "required_receipts": (
+                "recipient_confirmation_receipt",
+                "operator_approval_receipt",
+                "email_send_receipt",
+                "manual_send_receipt",
+            ),
         },
         {
             "step_ref": "live_arts_md_step:payment_watch",
             "title": "Payment watch",
             "status": "READINESS_ONLY",
-            "operator_summary": "Payment watch pattern exists, but payment is not active or expected until send evidence exists.",
+            "operator_summary": "Payment watch can begin once send proof is confirmed.",
             "primary_action": None,
-            "required_receipts": ("email_send_receipt", "payment_watch_configured_receipt"),
+            "required_receipts": ("manual_send_receipt",),
         },
     )
 
@@ -554,6 +716,8 @@ def build_live_arts_md_bundle(
             "send_execution_status": "SENT_RECEIPT_CONFIRMED" if email_sent else "NOT_SENT",
             "thread_watch_status": thread_watch_status,
             "thread_watch_future_gated": not email_sent,
+            "manual_send_proof_status": manual_send_status,
+            "manual_send_proof": manual_send_proof_state,
             "live_gmail_polling_active": False,
             "gmail_draft_created": False,
             "required_receipts_before_send": comms_draft["required_receipts_before_send"],
@@ -591,6 +755,9 @@ def build_live_arts_md_bundle(
         "send_readiness": {
             "email_send_rail_exists": False,
             "manual_send_package_status": "MANUAL_SEND_PACKAGE_READY" if approval_ready else "BLOCKED_PREREQUISITES",
+            "email_send_status": email_send_status,
+            "manual_send_proof_status": manual_send_status,
+            "manual_send_proof": manual_send_proof_state,
             "email_send_approval_required": True,
             "guardian_approval_required": True,
             "guardian_approval_request_ready": guardian_approval_request_ready,
@@ -600,8 +767,9 @@ def build_live_arts_md_bundle(
             "thread_watch_status_after_send": "THREAD_WATCH_READY",
             "primary_action": send_action,
         },
+        "manual_send_proof": manual_send_proof_state,
         "payment_watch": {
-            "payment_watch_status": "READINESS_ONLY_NOT_ACTIVE",
+            "payment_watch_status": payment_watch_status,
             "client_ref": CLIENT_REF,
             "invoice_ref": artifact.get("artifact_ref"),
             "expected_amount": None,
@@ -611,6 +779,7 @@ def build_live_arts_md_bundle(
             "active_only_after_send_or_manual_send_receipt": True,
             "bank_ledger_read_performed": False,
             "bank_ledger_match_required": True,
+            "manual_send_evidence_ref": manual_send_proof_state["proof_refs"],
             "ledger_posting_allowed": False,
         },
         "ledger_planning": handoff["ledger_planning"],
@@ -664,6 +833,8 @@ def build_live_arts_md_bundle(
             "payment_watch_readiness_only_no_bank_read": True,
             "approval_send_disabled_without_receipts": approval_ready is False,
             "no_action_authority": all(value is False for value in AUTHORITY_BOUNDARY.values()),
+            "manual_send_proof_evaluated": bool(manual_send_proof_state),
+            "manual_send_proof_status": manual_send_status,
             "content_hash": "",
         },
     }
@@ -678,6 +849,7 @@ def build_payload(
     source_workbook_override: Mapping[str, Any] | None = None,
     artifact_reference_payload: Mapping[str, Any] | None = None,
     operator_artifact_path: str | None = None,
+    manual_send_proof: Mapping[str, Any] | None = None,
     present_receipts: tuple[str, ...] | list[str] | set[str] = (),
 ) -> dict[str, Any]:
     bundle = build_live_arts_md_bundle(
@@ -686,6 +858,7 @@ def build_payload(
         source_workbook_override=source_workbook_override,
         artifact_reference_payload=artifact_reference_payload,
         operator_artifact_path=operator_artifact_path,
+        manual_send_proof=manual_send_proof,
         present_receipts=present_receipts,
     )
     return {
@@ -716,6 +889,7 @@ def format_operator(payload: Mapping[str, Any]) -> str:
         f"- Clara draft: `{bundle['clara_email_draft']['selected_voice']}` draft-only",
         f"- Recipient state: `{bundle['recipient_state']['status']}`",
         f"- Manual send package: `{bundle['send_readiness']['manual_send_package_status']}`",
+        f"- Manual send proof: `{bundle['manual_send_proof']['proof_status']}`",
         f"- Payment watch: `{bundle['payment_watch']['payment_watch_status']}`",
         "",
         "No email, Coupa, browser, ledger, workbook body/cell read, generation, export, or production action occurred.",

@@ -31,6 +31,35 @@ def _confirmed_workbook_payload():
     }
 
 
+def _manual_send_payload(**overrides):
+    payload = {
+        "execution_context": {
+            "execution_venue": "MAC_LOCAL",
+            "execution_actor": "OPERATOR",
+            "assistant_actor": "CODEX_DESKTOP_SPARK",
+            "openclaw_executed": False,
+            "manual_execution": True,
+            "send_method": "manual_gmail",
+            "artifact_exported_on": "MAC_EXCEL",
+            "proof_required": True,
+        },
+        "sent_timestamp": "2026-05-28T14:32:00-04:00",
+        "to": ("Dane",),
+        "cc": ("Draper", "Earnie", "Winship"),
+        "subject": "Live Arts MD invoice",
+        "attachment_filename": "Live_Arts_MD_Speaker_Rental_Invoice_September_May_2026.pdf",
+        "invoice_id": "2026-1001",
+        "amount": 900,
+        "work_or_period": "June 2026 Speaker Rental",
+        "artifact_path": "/Users/hwinshipwheatley/Desktop/Live_Arts_MD_Speaker_Rental_Invoice_September_May_2026.pdf",
+        "manual_send_receipt_available": True,
+        "screenshot_ref": "live_arts_md_manual_send_screenshot",
+        "proof_refs": ("manual_send_receipt",),
+    }
+    payload.update(overrides)
+    return payload
+
+
 def test_live_arts_md_recipe_does_not_require_coupa_or_po():
     recipe = framework.recipes_by_client_ref()["live_arts_md"]
 
@@ -356,6 +385,96 @@ def test_no_send_email_coupa_browser_ledger_or_workbook_read_action_enabled():
     assert live["machine_proof"]["no_action_authority"] is True
     assert live["client_comms_thread"]["live_gmail_polling_active"] is False
     assert live["client_comms_thread"]["gmail_draft_created"] is False
+
+
+def test_manual_send_provenance_is_operator_executed_and_not_openclaw():
+    live = bundle.build_live_arts_md_bundle(
+        workbook_registry_payload=_confirmed_workbook_payload(),
+        operator_artifact_path="/tmp/live_arts_md_invoice.pdf",
+        manual_send_proof=_manual_send_payload(),
+        present_receipts=("manual_send_receipt",),
+        generated_at=FIXED_NOW,
+    )
+
+    manual_send = live["manual_send_proof"]
+    execution = manual_send["execution_context"]
+
+    assert manual_send["proof_status"] == bundle.MANUAL_SEND_PROOF_STATUS_CONFIRMED
+    assert execution["openclaw_executed"] is False
+    assert execution["manual_execution"] is True
+    assert execution["execution_actor"] == "OPERATOR"
+    assert execution["assistant_actor"] == "CODEX_DESKTOP_SPARK"
+    assert live["send_readiness"]["email_send_status"] == bundle.MANUAL_SEND_PROOF_STATUS_CONFIRMED
+    assert live["client_comms_thread"]["send_execution_status"] == "NOT_SENT"
+
+
+def test_manual_send_proof_pending_when_required_fields_missing():
+    live = bundle.build_live_arts_md_bundle(
+        workbook_registry_payload=_confirmed_workbook_payload(),
+        operator_artifact_path="/tmp/live_arts_md_invoice.pdf",
+        manual_send_proof=_manual_send_payload(subject=""),
+        present_receipts=("manual_send_receipt",),
+        generated_at=FIXED_NOW,
+    )
+
+    manual_send = live["manual_send_proof"]
+    assert manual_send["proof_status"] == bundle.MANUAL_SEND_PROOF_STATUS_PENDING
+    assert "subject" in manual_send["missing_required_fields"]
+
+
+def test_payment_watch_readiness_requires_manual_send_proof_then_ready():
+    live = bundle.build_live_arts_md_bundle(
+        workbook_registry_payload=_confirmed_workbook_payload(),
+        operator_artifact_path="/tmp/live_arts_md_invoice.pdf",
+        manual_send_proof=_manual_send_payload(),
+        present_receipts=("manual_send_receipt",),
+        generated_at=FIXED_NOW,
+    )
+    candidates = {
+        item["invoice_id"]: item for item in live["invoice_candidate_register"]["invoice_candidates"]
+    }
+
+    assert live["manual_send_proof"]["proof_status"] == bundle.MANUAL_SEND_PROOF_STATUS_CONFIRMED
+    assert live["payment_watch"]["payment_watch_status"] == bundle.PAYMENT_WATCH_STATUS_READY_TO_CONFIGURE
+    assert live["payment_watch"]["ledger_posting_allowed"] is False
+    assert candidates["2026-1001"]["receipt_status"] == "UNPAID"
+
+
+def test_pdf_artifact_metadata_recorded_without_workbook_cell_or_body_reading():
+    artifact = Path("/tmp/live_arts_md_invoice.pdf")
+    artifact.write_bytes(b"%PDF-1.4 synthetic invoice candidate\n")
+    live = bundle.build_live_arts_md_bundle(
+        workbook_registry_payload=_confirmed_workbook_payload(),
+        operator_artifact_path=artifact.as_posix(),
+        manual_send_proof=_manual_send_payload(artifact_path=artifact.as_posix()),
+        present_receipts=("manual_send_receipt",),
+        generated_at=FIXED_NOW,
+    )
+
+    assert live["source_workbook"]["approved_for_cell_read"] is False
+    assert live["source_workbook"]["no_cell_read"] is True
+    assert live["source_workbook"]["no_workbook_body_read"] is True
+    assert live["manual_send_proof"]["artifact_path"] == artifact.as_posix()
+    assert live["manual_send_proof"]["proof_capture_provided"] is True
+
+
+def test_no_gmail_browser_or_send_action_performed():
+    live = bundle.build_live_arts_md_bundle(
+        workbook_registry_payload=_confirmed_workbook_payload(),
+        manual_send_proof=_manual_send_payload(),
+        present_receipts=("manual_send_receipt",),
+        generated_at=FIXED_NOW,
+    )
+
+    boundary = live["authority_boundary"]
+    assert boundary["email_send_performed"] is False
+    assert boundary["gmail_access_performed"] is False
+    assert boundary["browser_automation_performed"] is False
+    assert boundary["coupa_access_performed"] is False
+    assert boundary["ledger_posting_performed"] is False
+    assert live["client_comms_thread"]["gmail_draft_created"] is False
+    assert live["client_comms_thread"]["live_gmail_polling_active"] is False
+    assert live["send_readiness"]["manual_send_proof"]["manual_send_receipt_available"] is True
 
 
 def test_export_writes_json_operator_and_bridge(tmp_path):

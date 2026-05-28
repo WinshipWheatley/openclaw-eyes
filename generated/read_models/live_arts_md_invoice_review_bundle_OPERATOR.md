@@ -8,6 +8,7 @@
 - Clara draft: `CLARA` draft-only
 - Recipient state: `RECIPIENT_INFO_REQUIRED`
 - Manual send package: `BLOCKED_PREREQUISITES`
+- Manual send proof: `MANUAL_SEND_PROOF_PENDING`
 - Payment watch: `READINESS_ONLY_NOT_ACTIVE`
 
 No email, Coupa, browser, ledger, workbook body/cell read, generation, export, or production action occurred.
