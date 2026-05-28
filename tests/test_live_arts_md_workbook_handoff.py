@@ -72,12 +72,13 @@ def test_workbook_existence_does_not_mark_sent_paid_or_ledger_posted():
     assert register["machine_proof"]["workbook_existence_does_not_mark_sent_paid_or_ledger_posted"] is True
 
 
-def test_dance_dane_ambiguity_is_flagged_for_operator_confirmation():
+def test_dane_correction_is_recorded_without_inventing_email():
     ambiguity = handoff.build_candidate_register(generated_at=FIXED_NOW)["contact_ambiguity"]
 
-    assert ambiguity["status"] == "NEEDS_OPERATOR_CONFIRMATION"
+    assert ambiguity["status"] == "OPERATOR_CORRECTED_TO_DANE_EMAILS_STILL_REQUIRED"
     assert ambiguity["ambiguous_names"] == ("Dance", "Dane")
-    assert ambiguity["do_not_silently_choose"] is True
+    assert ambiguity["canonical_contact_candidate"] == "Dane"
+    assert ambiguity["do_not_silently_choose"] is False
     assert ambiguity["emails_invented"] is False
 
 

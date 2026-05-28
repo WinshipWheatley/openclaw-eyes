@@ -82,9 +82,9 @@
     "clara_email_draft": {
       "attachment_claim": "attachment not ready yet",
       "attachment_ready": false,
-      "body": "Hi Dance - I'm Clara Reid, helping Winship keep the Live Arts MD invoice package organized.\n\nOnce Winship confirms the invoice file and recipient details, I'll send over the invoice for this period.\n\nBest,\nClara Reid",
+      "body": "Hi Dane - I'm Clara Reid, helping Winship keep the Live Arts MD invoice package organized.\n\nInvoice attachment: [confirmed Live Arts MD invoice].\nWork covered: [selected invoice period or work type].\nRecipient action: [review and process the confirmed invoice].\n\nBest,\nClara Reid",
       "draft_only": true,
-      "draft_ref": "clara_invoice_email_draft:live_arts_md:96fd15d57dd069a4",
+      "draft_ref": "clara_invoice_email_draft:live_arts_md:96a5538a43633e4e",
       "draft_status": "DRAFT_BLOCKED_PENDING_PREREQUISITES",
       "external_identity": "CLARA_REID",
       "guardian_approval_required": true,
@@ -122,7 +122,7 @@
         "production_mutation_performed": false,
         "workbook_cell_read_performed": false
       },
-      "body": "Hi Dance - I'm Clara Reid, helping Winship keep the Live Arts MD invoice package organized.\n\nOnce Winship confirms the invoice file and recipient details, I'll send over the invoice for this period.\n\nBest,\nClara Reid",
+      "body": "Hi Dane - I'm Clara Reid, helping Winship keep the Live Arts MD invoice package organized.\n\nInvoice attachment: [confirmed Live Arts MD invoice].\nWork covered: [selected invoice period or work type].\nRecipient action: [review and process the confirmed invoice].\n\nBest,\nClara Reid",
       "cc_recipients": [
         {
           "confirmation_status": "CANDIDATE_UNCONFIRMED",
@@ -156,9 +156,22 @@
         }
       ],
       "client_facing_body_has_backend_status_language": false,
+      "client_facing_draft_ready_for_approval": {
+        "blocked_by": [
+          "attachment_readiness",
+          "invoice_period_or_dates",
+          "recipient_confirmation",
+          "clara_draft_receipt"
+        ],
+        "body": null,
+        "exact_email_ready_for_guardian_operator_approval": false,
+        "ready": false,
+        "status": "CLIENT_FACING_DRAFT_BLOCKED",
+        "subject": null
+      },
       "client_ref": "live_arts_md",
       "draft_only": true,
-      "draft_ref": "clara_invoice_email_draft:live_arts_md:96fd15d57dd069a4",
+      "draft_ref": "clara_invoice_email_draft:live_arts_md:96a5538a43633e4e",
       "draft_status": "DRAFT_BLOCKED_PENDING_PREREQUISITES",
       "external_identity": "CLARA_REID",
       "first_contact_intro_policy_ref": "generated/read_models/client_comms_thread_rail.json#live_arts_md_first_contact_policy",
@@ -184,12 +197,44 @@
       "send_execution_status": "NOT_SENT",
       "send_readiness": "BLOCKED_PREREQUISITES",
       "sent": false,
+      "sent_email": {
+        "send_execution_receipt_ref": null,
+        "sent": false,
+        "status": "NOT_SENT"
+      },
       "subject": "Live Arts MD invoice",
       "supplier_portal_provider": null,
+      "target_client_email_blueprint": {
+        "body_template": "Hi Dane - I'm Clara Reid, helping Winship keep the Live Arts MD invoice package organized.\n\nInvoice attachment: [confirmed Live Arts MD invoice].\nWork covered: [selected invoice period or work type].\nRecipient action: [review and process the confirmed invoice].\n\nBest,\nClara Reid",
+        "gated_claims": [
+          {
+            "allowed": false,
+            "claim": "Invoice is attached.",
+            "claim_ref": "live_arts_md_invoice_attached",
+            "required_receipt": "invoice_attachment_confirmed_receipt"
+          },
+          {
+            "allowed": false,
+            "claim": "Invoice period or work type is stated.",
+            "claim_ref": "live_arts_md_invoice_period_or_work_type",
+            "required_receipt": "live_arts_md_invoice_candidate_selected_receipt"
+          }
+        ],
+        "purpose": "Target final client email blueprint with gated claims.",
+        "send_ready": false,
+        "status": "TARGET_BLUEPRINT_NOT_SEND_READY",
+        "subject_template": "Live Arts MD invoice",
+        "unresolved_slots": [
+          "attachment_readiness",
+          "invoice_period_or_dates",
+          "recipient_confirmation",
+          "clara_draft_receipt"
+        ]
+      },
       "to_recipients": [
         {
           "confirmation_status": "CANDIDATE_UNCONFIRMED",
-          "display_name": "Dance",
+          "display_name": "Dane",
           "email": null,
           "email_invented": false,
           "email_status": "MISSING",
@@ -283,10 +328,11 @@
         "Dance",
         "Dane"
       ],
-      "do_not_silently_choose": true,
+      "canonical_contact_candidate": "Dane",
+      "do_not_silently_choose": false,
       "emails_invented": false,
-      "reason": "Operator target said Dance; handoff mentioned Dane in alias-table context.",
-      "status": "NEEDS_OPERATOR_CONFIRMATION"
+      "reason": "Operator corrected Dance to Dane for Live Arts MD. Email address still requires confirmation.",
+      "status": "OPERATOR_CORRECTED_TO_DANE_EMAILS_STILL_REQUIRED"
     },
     "generated_at": "2026-05-28T00:00:00+00:00",
     "invoice_artifact": {
@@ -651,7 +697,7 @@
       "clara_first_contact_intro_required": true,
       "clara_invoice_draft_package_consumed": true,
       "client_comms_thread_rail_consumed": true,
-      "content_hash": "sha256:ee5c55146f6dbb6f51a9a50f0c07e4a544eea0e103d8a2c6430fed50c68936fb",
+      "content_hash": "sha256:b766d9ad62b6a3a8727d45981922204925ca02c13f31642b6a623bcfa3633c94",
       "live_arts_md_does_not_require_coupa": true,
       "live_arts_md_does_not_require_po": true,
       "no_action_authority": true,
@@ -1016,7 +1062,7 @@
       "recipient_candidates": [
         {
           "confirmation_status": "CANDIDATE_UNCONFIRMED",
-          "display_name": "Dance",
+          "display_name": "Dane",
           "email": null,
           "email_invented": false,
           "email_status": "MISSING",
@@ -1060,7 +1106,7 @@
       "to_candidates": [
         {
           "confirmation_status": "CANDIDATE_UNCONFIRMED",
-          "display_name": "Dance",
+          "display_name": "Dane",
           "email": null,
           "email_invented": false,
           "email_status": "MISSING",
@@ -1144,7 +1190,7 @@
   },
   "machine_proof": {
     "bridge_safe": true,
-    "content_hash": "sha256:ee5c55146f6dbb6f51a9a50f0c07e4a544eea0e103d8a2c6430fed50c68936fb",
+    "content_hash": "sha256:b766d9ad62b6a3a8727d45981922204925ca02c13f31642b6a623bcfa3633c94",
     "live_arts_md_bundle_present": true,
     "no_action_authority": true
   },

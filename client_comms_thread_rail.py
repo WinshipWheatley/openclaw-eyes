@@ -243,7 +243,9 @@ def build_clara_first_contact_draft(
     if client_ref == "live_arts_md":
         body_lines.extend(
             (
-                "Once Winship confirms the invoice file and recipient details, I'll send over the invoice for this period.",
+                "Invoice attachment: [confirmed Live Arts MD invoice].",
+                "Work covered: [selected invoice period or work type].",
+                "Recipient action: [review and process the confirmed invoice].",
                 "",
                 "Best,",
                 "Clara Reid",
@@ -252,14 +254,21 @@ def build_clara_first_contact_draft(
     elif client_ref == "capital_hilton":
         body_lines.extend(
             (
-                "Once Winship confirms the invoice file and recipient details, I'll send over the Excel invoice for your records.",
+                "Invoice attachment: [confirmed Excel invoice for your records].",
+                "Period covered: [confirmed Capital Hilton invoice dates or period].",
                 "",
                 "Best,",
                 "Clara Reid",
             )
         )
     else:
-        body_lines.extend(("I'm preparing this note for review before any send step.", "", "Best,", "Clara Reid"))
+        body_lines.extend((
+            "Invoice attachment: [confirmed invoice attachment].",
+            "Work covered: [confirmed invoice period or dates].",
+            "",
+            "Best,",
+            "Clara Reid",
+        ))
     thread_ref = f"client_comms_thread:{client_ref}:{_short_hash(workflow_ref, recipient_ref, subject)}"
     draft = ClaraDraftCandidate(
         draft_ref=f"clara_draft:{_short_hash(client_ref, workflow_ref, recipient_ref, subject)}",

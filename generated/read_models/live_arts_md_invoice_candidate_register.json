@@ -24,10 +24,11 @@
       "Dance",
       "Dane"
     ],
-    "do_not_silently_choose": true,
+    "canonical_contact_candidate": "Dane",
+    "do_not_silently_choose": false,
     "emails_invented": false,
-    "reason": "Operator target said Dance; handoff mentioned Dane in alias-table context.",
-    "status": "NEEDS_OPERATOR_CONFIRMATION"
+    "reason": "Operator corrected Dance to Dane for Live Arts MD. Email address still requires confirmation.",
+    "status": "OPERATOR_CORRECTED_TO_DANE_EMAILS_STILL_REQUIRED"
   },
   "expected_receivable_payment_watch_readiness": {
     "active_only_after_send_or_manual_send_receipt": true,
@@ -201,7 +202,7 @@
     "speaker_rental_variance_note": "$900 accepted vs. $1,100 internal record issue requires operator-approved handling."
   },
   "machine_proof": {
-    "content_hash": "sha256:f76293439d12e37cbcb7334c57c96ef24af721011356760cc43abcc7c9144b56",
+    "content_hash": "sha256:5678d7f98279dfe8afd995aaaaeafb043b5e1d917eec7803ad176a2d6ecba595",
     "no_action_authority": true,
     "operator_provided_not_workbook_parsed": true,
     "spreadsheet_cell_read_performed": false,

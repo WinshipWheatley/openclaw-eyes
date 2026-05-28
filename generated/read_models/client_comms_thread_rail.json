@@ -60,7 +60,7 @@
     "capital_hilton_followup_thread": {
       "draft_candidate": {
         "audience": "external_client",
-        "body": "Hi [Annette] - I'm Clara Reid, helping Winship keep the Capital Hilton invoice package and follow-up details organized.\n\nOnce Winship confirms the invoice file and recipient details, I'll send over the Excel invoice for your records.\n\nBest,\nClara Reid",
+        "body": "Hi [Annette] - I'm Clara Reid, helping Winship keep the Capital Hilton invoice package and follow-up details organized.\n\nInvoice attachment: [confirmed Excel invoice for your records].\nPeriod covered: [confirmed Capital Hilton invoice dates or period].\n\nBest,\nClara Reid",
         "channel": "email",
         "client_ref": "capital_hilton",
         "draft_only": true,
@@ -133,7 +133,7 @@
     "existing_clara_thread_no_repeat_intro": {
       "draft_candidate": {
         "audience": "external_client",
-        "body": "Once Winship confirms the invoice file and recipient details, I'll send over the Excel invoice for your records.\n\nBest,\nClara Reid",
+        "body": "Invoice attachment: [confirmed Excel invoice for your records].\nPeriod covered: [confirmed Capital Hilton invoice dates or period].\n\nBest,\nClara Reid",
         "channel": "email",
         "client_ref": "capital_hilton",
         "draft_only": true,
@@ -206,7 +206,7 @@
     "live_arts_md_first_invoice_email": {
       "draft_candidate": {
         "audience": "external_client",
-        "body": "Hi [Live Arts MD contact] - I'm Clara Reid, helping Winship keep the Live Arts MD invoice package organized and easy to track.\n\nOnce Winship confirms the invoice file and recipient details, I'll send over the invoice for this period.\n\nBest,\nClara Reid",
+        "body": "Hi [Live Arts MD contact] - I'm Clara Reid, helping Winship keep the Live Arts MD invoice package organized and easy to track.\n\nInvoice attachment: [confirmed Live Arts MD invoice].\nWork covered: [selected invoice period or work type].\nRecipient action: [review and process the confirmed invoice].\n\nBest,\nClara Reid",
         "channel": "email",
         "client_ref": "live_arts_md",
         "draft_only": true,
@@ -436,7 +436,7 @@
   },
   "machine_proof": {
     "clara_drafts_are_draft_only": true,
-    "content_hash": "sha256:aa710398f1b2bc982ffbdd736733984a04e61e21aee55b2293f9582d0b3e1869",
+    "content_hash": "sha256:cd8cf5e93ed265408fff688d7acf4b6172e7571599851c4f5cf9b4da028ca9c8",
     "guardian_approval_separated_from_output_validation": true,
     "no_email_send": true,
     "no_gmail_draft_created": true,

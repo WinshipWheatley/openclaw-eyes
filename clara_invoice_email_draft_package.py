@@ -21,6 +21,9 @@ FINAL_DRAFT_READY_FOR_APPROVAL = "FINAL_DRAFT_READY_FOR_APPROVAL"
 DRAFT_PREVIEW_NOT_SEND_READY = "DRAFT_PREVIEW_NOT_SEND_READY"
 DRAFT_BLOCKED_PENDING_PREREQUISITES = "DRAFT_BLOCKED_PENDING_PREREQUISITES"
 DRAFT_PLACEHOLDER_FOR_OPERATOR_REVIEW = "DRAFT_PLACEHOLDER_FOR_OPERATOR_REVIEW"
+TARGET_BLUEPRINT_NOT_SEND_READY = "TARGET_BLUEPRINT_NOT_SEND_READY"
+CLIENT_FACING_DRAFT_BLOCKED = "CLIENT_FACING_DRAFT_BLOCKED"
+SENT_EMAIL_NOT_SENT = "NOT_SENT"
 
 DRAFT_STATUSES = (
     FINAL_DRAFT_READY_FOR_APPROVAL,
@@ -50,6 +53,10 @@ CLIENT_FACING_FORBIDDEN_TERMS = (
     "gate 3",
     "receipt rail",
     "bundle state",
+    "once winship confirms",
+    "i'm preparing",
+    "backend",
+    "proof ui",
 )
 
 
@@ -93,7 +100,7 @@ def capital_hilton_recipient_package(*, confirmed: bool = False) -> dict[str, An
 
 def live_arts_md_recipient_package(*, confirmed: bool = False) -> dict[str, Any]:
     recipients = (
-        _recipient("Dance", "primary_invoice_contact", "to", confirmed=confirmed),
+        _recipient("Dane", "primary_invoice_contact", "to", confirmed=confirmed),
         _recipient("Draper", "cc_candidate", "cc", confirmed=confirmed),
         _recipient("Earnie", "cc_candidate", "cc", confirmed=confirmed),
         _recipient(
@@ -171,7 +178,8 @@ def _capital_hilton_body(
         else:
             lines.append("Attached is the Excel invoice for your records.")
     else:
-        lines.append("I'm preparing the Excel invoice note for your records once Winship confirms the invoice file.")
+        lines.append("Invoice attachment: [confirmed Excel invoice for Annette's records].")
+        lines.append("Period covered: [confirmed Capital Hilton invoice dates or period].")
     if portal_submission_status == "SUBMITTED_RECEIPT_CONFIRMED":
         lines.append("The matching invoice has been submitted through the Coupa supplier portal.")
     lines.extend(("", "Best,", "Clara Reid"))
@@ -187,7 +195,7 @@ def _live_arts_md_body(
 ) -> str:
     lines = [_intro_line(
         first_contact_intro_required=first_contact_intro_required,
-        recipient_name="Dance",
+        recipient_name="Dane",
         client_display_name="Live Arts MD",
         supplier_portal_provider=None,
     ), ""]
@@ -201,9 +209,123 @@ def _live_arts_md_body(
             lines.append("Attached is Winship's invoice.")
         lines.append("Please let us know if anything else is needed for processing.")
     else:
-        lines.append("Once Winship confirms the invoice file and recipient details, I'll send over the invoice for this period.")
+        lines.append("Invoice attachment: [confirmed Live Arts MD invoice].")
+        lines.append("Work covered: [selected invoice period or work type].")
+        lines.append("Recipient action: [review and process the confirmed invoice].")
     lines.extend(("", "Best,", "Clara Reid"))
     return "\n".join(lines)
+
+
+def _capital_hilton_target_blueprint(
+    *,
+    first_contact_intro_required: bool,
+    invoice_period_label: str | None,
+    invoice_dates_covered: tuple[str, ...],
+    portal_submission_status: str,
+    attachment_ready: bool,
+    missing_prerequisites: tuple[str, ...],
+    subject: str,
+) -> dict[str, Any]:
+    body_template = _capital_hilton_body(
+        first_contact_intro_required=first_contact_intro_required,
+        attachment_ready=attachment_ready,
+        invoice_period_label=invoice_period_label,
+        invoice_dates_covered=invoice_dates_covered,
+        portal_submission_status=portal_submission_status,
+    )
+    gated_claims = [
+        {
+            "claim_ref": "capital_hilton_excel_invoice_attached",
+            "claim": "Excel invoice is attached for Annette's records.",
+            "allowed": attachment_ready,
+            "required_receipt": "invoice_attachment_confirmed_receipt",
+        },
+        {
+            "claim_ref": "capital_hilton_invoice_period_dates",
+            "claim": "Invoice period or performance dates are stated.",
+            "allowed": bool(invoice_period_label or invoice_dates_covered),
+            "required_receipt": "invoice_period_confirmed_receipt",
+        },
+        {
+            "claim_ref": "capital_hilton_portal_submission",
+            "claim": "Supplier portal invoice has been submitted.",
+            "allowed": portal_submission_status == "SUBMITTED_RECEIPT_CONFIRMED",
+            "required_receipt": "portal_invoice_submission_receipt",
+            "supplier_portal_provider": "COUPA",
+        },
+    ]
+    return {
+        "status": TARGET_BLUEPRINT_NOT_SEND_READY if missing_prerequisites else FINAL_DRAFT_READY_FOR_APPROVAL,
+        "purpose": "Target final client email blueprint with gated claims.",
+        "subject_template": subject,
+        "body_template": body_template,
+        "unresolved_slots": tuple(missing_prerequisites),
+        "gated_claims": tuple(gated_claims),
+        "send_ready": False,
+    }
+
+
+def _live_arts_md_target_blueprint(
+    *,
+    first_contact_intro_required: bool,
+    invoice_period_label: str | None,
+    invoice_dates_covered: tuple[str, ...],
+    attachment_ready: bool,
+    missing_prerequisites: tuple[str, ...],
+    subject: str,
+) -> dict[str, Any]:
+    body_template = _live_arts_md_body(
+        first_contact_intro_required=first_contact_intro_required,
+        attachment_ready=attachment_ready,
+        invoice_period_label=invoice_period_label,
+        invoice_dates_covered=invoice_dates_covered,
+    )
+    gated_claims = (
+        {
+            "claim_ref": "live_arts_md_invoice_attached",
+            "claim": "Invoice is attached.",
+            "allowed": attachment_ready,
+            "required_receipt": "invoice_attachment_confirmed_receipt",
+        },
+        {
+            "claim_ref": "live_arts_md_invoice_period_or_work_type",
+            "claim": "Invoice period or work type is stated.",
+            "allowed": bool(invoice_period_label or invoice_dates_covered),
+            "required_receipt": "live_arts_md_invoice_candidate_selected_receipt",
+        },
+    )
+    return {
+        "status": TARGET_BLUEPRINT_NOT_SEND_READY if missing_prerequisites else FINAL_DRAFT_READY_FOR_APPROVAL,
+        "purpose": "Target final client email blueprint with gated claims.",
+        "subject_template": subject,
+        "body_template": body_template,
+        "unresolved_slots": tuple(missing_prerequisites),
+        "gated_claims": gated_claims,
+        "send_ready": False,
+    }
+
+
+def _generic_target_blueprint(
+    *,
+    client_display_name: str,
+    subject: str,
+    missing_prerequisites: tuple[str, ...],
+) -> dict[str, Any]:
+    body_template = (
+        f"Hi [Name] - I'm Clara Reid, helping Winship keep the {client_display_name} invoice organized.\n\n"
+        "Invoice attachment: [confirmed invoice attachment].\n"
+        "Work covered: [confirmed invoice period or dates].\n\n"
+        "Best,\nClara Reid"
+    )
+    return {
+        "status": TARGET_BLUEPRINT_NOT_SEND_READY if missing_prerequisites else FINAL_DRAFT_READY_FOR_APPROVAL,
+        "purpose": "Target final client email blueprint with gated claims.",
+        "subject_template": subject,
+        "body_template": body_template,
+        "unresolved_slots": tuple(missing_prerequisites),
+        "gated_claims": (),
+        "send_ready": False,
+    }
 
 
 def body_contains_backend_status_language(body: str) -> bool:
@@ -267,6 +389,7 @@ def build_clara_invoice_email_draft_package(
         portal_submission_status=portal_status,
         clara_draft_receipt_present=clara_receipt_present,
     )
+    subject = _safe_subject(client_display_name, invoice_period_label)
     if client_ref == "capital_hilton":
         body = _capital_hilton_body(
             first_contact_intro_required=first_contact_intro_required,
@@ -275,6 +398,15 @@ def build_clara_invoice_email_draft_package(
             invoice_dates_covered=dates,
             portal_submission_status=portal_status,
         )
+        target_blueprint = _capital_hilton_target_blueprint(
+            first_contact_intro_required=first_contact_intro_required,
+            invoice_period_label=invoice_period_label,
+            invoice_dates_covered=dates,
+            portal_submission_status=portal_status,
+            attachment_ready=attachment_ready,
+            missing_prerequisites=missing,
+            subject=subject,
+        )
     elif client_ref == "live_arts_md":
         body = _live_arts_md_body(
             first_contact_intro_required=first_contact_intro_required,
@@ -282,11 +414,25 @@ def build_clara_invoice_email_draft_package(
             invoice_period_label=invoice_period_label,
             invoice_dates_covered=dates,
         )
+        target_blueprint = _live_arts_md_target_blueprint(
+            first_contact_intro_required=first_contact_intro_required,
+            invoice_period_label=invoice_period_label,
+            invoice_dates_covered=dates,
+            attachment_ready=attachment_ready,
+            missing_prerequisites=missing,
+            subject=subject,
+        )
     else:
         body = (
             f"Hi [Name] - I'm Clara Reid, helping Winship keep the {client_display_name} invoice organized.\n\n"
-            "Once Winship confirms the invoice file and recipient details, I'll send it over.\n\n"
+            "Invoice attachment: [confirmed invoice attachment].\n"
+            "Work covered: [confirmed invoice period or dates].\n\n"
             "Best,\nClara Reid"
+        )
+        target_blueprint = _generic_target_blueprint(
+            client_display_name=client_display_name,
+            subject=subject,
+            missing_prerequisites=missing,
         )
     send_ready = not missing
     draft_status = FINAL_DRAFT_READY_FOR_APPROVAL if send_ready else DRAFT_PREVIEW_NOT_SEND_READY
@@ -294,7 +440,21 @@ def build_clara_invoice_email_draft_package(
         draft_status = DRAFT_BLOCKED_PENDING_PREREQUISITES
     if body_contains_backend_status_language(body):
         draft_status = DRAFT_PLACEHOLDER_FOR_OPERATOR_REVIEW
-    subject = _safe_subject(client_display_name, invoice_period_label)
+    target_blueprint = dict(target_blueprint)
+    target_blueprint["send_ready"] = send_ready
+    client_facing_ready = {
+        "status": FINAL_DRAFT_READY_FOR_APPROVAL if send_ready else CLIENT_FACING_DRAFT_BLOCKED,
+        "ready": send_ready,
+        "subject": subject if send_ready else None,
+        "body": body if send_ready else None,
+        "blocked_by": () if send_ready else missing,
+        "exact_email_ready_for_guardian_operator_approval": send_ready,
+    }
+    sent_email = {
+        "status": SENT_EMAIL_NOT_SENT,
+        "sent": False,
+        "send_execution_receipt_ref": None,
+    }
     draft_ref = f"clara_invoice_email_draft:{client_ref}:{_short_hash(workflow_ref, subject, body)}"
     return {
         "client_ref": client_ref,
@@ -309,6 +469,9 @@ def build_clara_invoice_email_draft_package(
         "send_allowed": False,
         "subject": subject,
         "body": body,
+        "target_client_email_blueprint": target_blueprint,
+        "client_facing_draft_ready_for_approval": client_facing_ready,
+        "sent_email": sent_email,
         "to_recipients": tuple(recipient_package.get("to_recipients", ())),
         "cc_recipients": tuple(recipient_package.get("cc_recipients", ())),
         "recipient_confirmation_status": recipient_package.get("recipient_confirmation_status", "CANDIDATE_UNCONFIRMED"),

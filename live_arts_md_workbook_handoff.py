@@ -250,10 +250,11 @@ def build_candidate_register(*, generated_at: str | None = None) -> dict[str, An
             "ledger_match": "G51",
         },
         "contact_ambiguity": {
-            "status": "NEEDS_OPERATOR_CONFIRMATION",
+            "status": "OPERATOR_CORRECTED_TO_DANE_EMAILS_STILL_REQUIRED",
             "ambiguous_names": ("Dance", "Dane"),
-            "reason": "Operator target said Dance; handoff mentioned Dane in alias-table context.",
-            "do_not_silently_choose": True,
+            "canonical_contact_candidate": "Dane",
+            "reason": "Operator corrected Dance to Dane for Live Arts MD. Email address still requires confirmation.",
+            "do_not_silently_choose": False,
             "emails_invented": False,
         },
         "expected_receivable_payment_watch_readiness": {

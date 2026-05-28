@@ -70,9 +70,10 @@ def test_live_arts_md_recipient_package_includes_required_candidates():
 
     to_names = {item["display_name"] for item in draft["to_recipients"]}
     cc_by_name = {item["display_name"]: item for item in draft["cc_recipients"]}
-    assert to_names == {"Dance"}
+    assert to_names == {"Dane"}
     assert {"Draper", "Earnie", "Winship"} <= set(cc_by_name)
     assert cc_by_name["Winship"]["email"] == "winshiplive@gmail.com"
+    assert next(item for item in draft["to_recipients"] if item["display_name"] == "Dane")["email"] is None
     assert cc_by_name["Draper"]["email"] is None
     assert cc_by_name["Earnie"]["email"] is None
     assert draft["recipient_email_invented"] is False
@@ -93,7 +94,7 @@ def test_live_arts_draft_does_not_claim_attachment_if_not_ready():
 
     assert draft["attachment_ready"] is False
     assert "Attached is" not in draft["body"]
-    assert "invoice file" in draft["body"]
+    assert "confirmed Live Arts MD invoice" in draft["body"]
 
 
 def test_live_arts_body_is_client_facing_not_backend_status_copy():
@@ -128,3 +129,41 @@ def test_guardian_approval_and_send_execution_remain_separate():
         assert draft["send_execution_receipt_required"] is True
         assert draft["send_execution_status"] == "NOT_SENT"
         assert draft["sent"] is False
+
+
+def test_target_blueprint_exists_while_send_ready_draft_is_blocked():
+    live = live_arts_md_invoice_review_bundle.build_live_arts_md_bundle()
+    draft = live["clara_invoice_email_draft_package"]
+
+    blueprint = draft["target_client_email_blueprint"]
+    ready = draft["client_facing_draft_ready_for_approval"]
+    sent = draft["sent_email"]
+
+    assert blueprint["status"] == drafts.TARGET_BLUEPRINT_NOT_SEND_READY
+    assert blueprint["send_ready"] is False
+    assert "selected invoice period or work type" in blueprint["body_template"]
+    assert ready["ready"] is False
+    assert ready["body"] is None
+    assert "attachment_readiness" in ready["blocked_by"]
+    assert sent["status"] == drafts.SENT_EMAIL_NOT_SENT
+    assert sent["sent"] is False
+
+
+def test_send_ready_draft_can_claim_attachment_only_when_ready():
+    ready = drafts.build_clara_invoice_email_draft_package(
+        client_ref="live_arts_md",
+        workflow_ref="live_arts_md_invoice_workflow",
+        client_display_name="Live Arts MD",
+        recipient_package=drafts.live_arts_md_recipient_package(confirmed=True),
+        attachment_ready=True,
+        attachment_refs=("artifact_ref:live_arts_invoice",),
+        invoice_period_label="June 2026 Speaker Rental",
+        supplier_portal_required=False,
+        first_contact_intro_required=True,
+        present_receipts=("clara_email_draft_receipt",),
+    )
+
+    assert ready["draft_status"] == drafts.FINAL_DRAFT_READY_FOR_APPROVAL
+    assert ready["client_facing_draft_ready_for_approval"]["ready"] is True
+    assert "Attached is Winship's invoice for June 2026 Speaker Rental." in ready["body"]
+    assert "Attached is" in ready["client_facing_draft_ready_for_approval"]["body"]
