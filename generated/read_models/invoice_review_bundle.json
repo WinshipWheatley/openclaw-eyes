@@ -32,40 +32,49 @@
         "disabled_reason": null,
         "operator_summary": "Coupa submission proof is still required.",
         "primary_action": {
-          "action_kind": "request_coupa_submission_proof",
-          "action_ref": "invoice_review_action:request_coupa_submission_proof:6b4773f62e78e725",
+          "action_kind": "request_supplier_portal_submission_proof",
+          "action_ref": "invoice_review_action:request_supplier_portal_submission_proof:d4e5bca7a65e8e49",
           "disabled_reason": null,
           "enabled": true,
-          "expected_receipt_type": "coupa_submission_proof_intake_receipt",
+          "expected_receipt_type": "supplier_portal_proof_intake_requested_receipt",
           "hidden_request_payload": {
-            "action_kind": "request_coupa_submission_proof",
-            "action_ref": "invoice_review_action:request_coupa_submission_proof:6b4773f62e78e725",
+            "action_kind": "request_supplier_portal_submission_proof",
+            "action_ref": "invoice_review_action:request_supplier_portal_submission_proof:d4e5bca7a65e8e49",
+            "browser_action": false,
             "browser_automation_allowed": false,
+            "canonical_action_kind": "request_supplier_portal_submission_proof",
             "client_ref": "capital_hilton",
+            "compatibility_action_kind": "request_coupa_submission_proof",
             "coupa_submit_allowed": false,
             "email_send_allowed": false,
-            "expected_receipt_type": "coupa_submission_proof_intake_receipt",
-            "idempotency_key": "invoice-review:0d20e8a2d10053d0",
-            "intended_use": "start_coupa_proof_intake",
+            "expected_receipt_type": "supplier_portal_proof_intake_requested_receipt",
+            "idempotency_key": "invoice-review:caed0c918b110d15",
+            "intended_use": "request_supplier_portal_submission_proof",
             "ledger_posting_allowed": false,
             "no_external_action": true,
             "physical_deletion_allowed": false,
+            "portal_provider": "COUPA",
+            "portal_submission_action_allowed": false,
             "portal_submission_allowed": false,
             "proof_intake_only": true,
             "proof_refs": [],
-            "request_kind": "request_coupa_submission_proof",
+            "provider_display_name": "Coupa supplier portal",
+            "request_kind": "request_supplier_portal_submission_proof",
             "request_type": "invoice_review_guided_action_request",
+            "requires_purchase_order": true,
             "source_bundle_id": "invoice_review_bundle:capital_hilton:v0",
             "source_workflow_id": "capital_hilton_invoice_workflow",
+            "supplier_portal_required": true,
+            "supplier_portal_submit_allowed": false,
             "type": "invoice_review_guided_action_request"
           },
-          "idempotency_key": "invoice-review:0d20e8a2d10053d0",
-          "intended_use": "start_coupa_proof_intake",
+          "idempotency_key": "invoice-review:caed0c918b110d15",
+          "intended_use": "request_supplier_portal_submission_proof",
           "label": "Start Coupa proof step",
           "no_external_action": true,
           "operator_visible_message": "Starting Coupa proof step.",
           "proof_refs": [],
-          "request_kind": "request_coupa_submission_proof",
+          "request_kind": "request_supplier_portal_submission_proof",
           "request_type": "invoice_review_guided_action_request",
           "source_bundle_id": "invoice_review_bundle:capital_hilton:v0",
           "source_workflow_id": "capital_hilton_invoice_workflow",
@@ -87,6 +96,7 @@
           "hidden_request_payload": {
             "action_kind": "start_invoice_record_selection",
             "action_ref": "invoice_review_action:start_invoice_record_selection:a47676204ce682a7",
+            "browser_action": false,
             "browser_automation_allowed": false,
             "client_ref": "capital_hilton",
             "coupa_submit_allowed": false,
@@ -97,11 +107,13 @@
             "ledger_posting_allowed": false,
             "no_external_action": true,
             "physical_deletion_allowed": false,
+            "portal_submission_action_allowed": false,
             "proof_refs": [],
             "request_kind": "start_invoice_record_selection",
             "request_type": "invoice_review_guided_action_request",
             "source_bundle_id": "invoice_review_bundle:capital_hilton:v0",
             "source_workflow_id": "capital_hilton_invoice_workflow",
+            "supplier_portal_submit_allowed": false,
             "type": "invoice_review_guided_action_request"
           },
           "idempotency_key": "invoice-review:b624dc674d144271",
@@ -132,6 +144,7 @@
           "hidden_request_payload": {
             "action_kind": "start_invoice_record_selection",
             "action_ref": "invoice_review_action:start_invoice_record_selection:a47676204ce682a7",
+            "browser_action": false,
             "browser_automation_allowed": false,
             "client_ref": "capital_hilton",
             "coupa_submit_allowed": false,
@@ -142,11 +155,13 @@
             "ledger_posting_allowed": false,
             "no_external_action": true,
             "physical_deletion_allowed": false,
+            "portal_submission_action_allowed": false,
             "proof_refs": [],
             "request_kind": "start_invoice_record_selection",
             "request_type": "invoice_review_guided_action_request",
             "source_bundle_id": "invoice_review_bundle:capital_hilton:v0",
             "source_workflow_id": "capital_hilton_invoice_workflow",
+            "supplier_portal_submit_allowed": false,
             "type": "invoice_review_guided_action_request"
           },
           "idempotency_key": "invoice-review:b624dc674d144271",
@@ -177,6 +192,7 @@
           "hidden_request_payload": {
             "action_kind": "regenerate_or_link_invoice_artifact",
             "action_ref": "invoice_review_action:regenerate_or_link_invoice_artifact:f037367d9152c13a",
+            "browser_action": false,
             "browser_automation_allowed": false,
             "client_ref": "capital_hilton",
             "coupa_submit_allowed": false,
@@ -187,6 +203,7 @@
             "ledger_posting_allowed": false,
             "no_external_action": true,
             "physical_deletion_allowed": false,
+            "portal_submission_action_allowed": false,
             "proof_refs": [
               "local_artifact_ref:deb5bc9b42567fd4"
             ],
@@ -194,6 +211,7 @@
             "request_type": "invoice_review_guided_action_request",
             "source_bundle_id": "invoice_review_bundle:capital_hilton:v0",
             "source_workflow_id": "capital_hilton_invoice_workflow",
+            "supplier_portal_submit_allowed": false,
             "type": "invoice_review_guided_action_request"
           },
           "idempotency_key": "invoice-review:240da32a4a0badc8",
@@ -228,6 +246,7 @@
           "hidden_request_payload": {
             "action_kind": "review_and_confirm_recipients",
             "action_ref": "invoice_review_action:review_and_confirm_recipients:5967df24a359b432",
+            "browser_action": false,
             "browser_automation_allowed": false,
             "candidate_contacts": [
               "Annette",
@@ -245,11 +264,13 @@
             "ledger_posting_allowed": false,
             "no_external_action": true,
             "physical_deletion_allowed": false,
+            "portal_submission_action_allowed": false,
             "proof_refs": [],
             "request_kind": "review_and_confirm_recipients",
             "request_type": "invoice_review_guided_action_request",
             "source_bundle_id": "invoice_review_bundle:capital_hilton:v0",
             "source_workflow_id": "capital_hilton_invoice_workflow",
+            "supplier_portal_submit_allowed": false,
             "type": "invoice_review_guided_action_request"
           },
           "idempotency_key": "invoice-review:bef726553ec2e3a1",
@@ -280,6 +301,7 @@
           "hidden_request_payload": {
             "action_kind": "prepare_send_approval_request",
             "action_ref": "invoice_review_action:prepare_send_approval_request:260ae7e669398e97",
+            "browser_action": false,
             "browser_automation_allowed": false,
             "client_ref": "capital_hilton",
             "coupa_submit_allowed": false,
@@ -290,11 +312,13 @@
             "ledger_posting_allowed": false,
             "no_external_action": true,
             "physical_deletion_allowed": false,
+            "portal_submission_action_allowed": false,
             "proof_refs": [],
             "request_kind": "prepare_send_approval_request",
             "request_type": "invoice_review_guided_action_request",
             "source_bundle_id": "invoice_review_bundle:capital_hilton:v0",
             "source_workflow_id": "capital_hilton_invoice_workflow",
+            "supplier_portal_submit_allowed": false,
             "type": "invoice_review_guided_action_request"
           },
           "idempotency_key": "invoice-review:ae8986f2f794457f",
@@ -324,6 +348,7 @@
           "hidden_request_payload": {
             "action_kind": "approval_footer_approve",
             "action_ref": "invoice_review_action:approval_footer_approve:b65c268c5b4b5f71",
+            "browser_action": false,
             "browser_automation_allowed": false,
             "client_ref": "capital_hilton",
             "coupa_submit_allowed": false,
@@ -334,11 +359,13 @@
             "ledger_posting_allowed": false,
             "no_external_action": true,
             "physical_deletion_allowed": false,
+            "portal_submission_action_allowed": false,
             "proof_refs": [],
             "request_kind": "approval_footer_approve",
             "request_type": "invoice_review_guided_action_request",
             "source_bundle_id": "invoice_review_bundle:capital_hilton:v0",
             "source_workflow_id": "capital_hilton_invoice_workflow",
+            "supplier_portal_submit_allowed": false,
             "type": "invoice_review_guided_action_request"
           },
           "idempotency_key": "invoice-review:6cac27cce7205537",
@@ -362,6 +389,7 @@
           "hidden_request_payload": {
             "action_kind": "approval_footer_do_not_approve",
             "action_ref": "invoice_review_action:approval_footer_do_not_approve:79c0cb62611074dd",
+            "browser_action": false,
             "browser_automation_allowed": false,
             "client_ref": "capital_hilton",
             "coupa_submit_allowed": false,
@@ -372,11 +400,13 @@
             "ledger_posting_allowed": false,
             "no_external_action": true,
             "physical_deletion_allowed": false,
+            "portal_submission_action_allowed": false,
             "proof_refs": [],
             "request_kind": "approval_footer_do_not_approve",
             "request_type": "invoice_review_guided_action_request",
             "source_bundle_id": "invoice_review_bundle:capital_hilton:v0",
             "source_workflow_id": "capital_hilton_invoice_workflow",
+            "supplier_portal_submit_allowed": false,
             "type": "invoice_review_guided_action_request"
           },
           "idempotency_key": "invoice-review:8daffd83544ff323",
@@ -400,6 +430,7 @@
           "hidden_request_payload": {
             "action_kind": "approval_footer_hold",
             "action_ref": "invoice_review_action:approval_footer_hold:4c0bb2421f4b8d84",
+            "browser_action": false,
             "browser_automation_allowed": false,
             "client_ref": "capital_hilton",
             "coupa_submit_allowed": false,
@@ -410,11 +441,13 @@
             "ledger_posting_allowed": false,
             "no_external_action": true,
             "physical_deletion_allowed": false,
+            "portal_submission_action_allowed": false,
             "proof_refs": [],
             "request_kind": "approval_footer_hold",
             "request_type": "invoice_review_guided_action_request",
             "source_bundle_id": "invoice_review_bundle:capital_hilton:v0",
             "source_workflow_id": "capital_hilton_invoice_workflow",
+            "supplier_portal_submit_allowed": false,
             "type": "invoice_review_guided_action_request"
           },
           "idempotency_key": "invoice-review:33bf690416f6502e",
@@ -438,6 +471,7 @@
           "hidden_request_payload": {
             "action_kind": "approval_footer_explain",
             "action_ref": "invoice_review_action:approval_footer_explain:a974e80b744c90a2",
+            "browser_action": false,
             "browser_automation_allowed": false,
             "client_ref": "capital_hilton",
             "coupa_submit_allowed": false,
@@ -448,11 +482,13 @@
             "ledger_posting_allowed": false,
             "no_external_action": true,
             "physical_deletion_allowed": false,
+            "portal_submission_action_allowed": false,
             "proof_refs": [],
             "request_kind": "approval_footer_explain",
             "request_type": "invoice_review_guided_action_request",
             "source_bundle_id": "invoice_review_bundle:capital_hilton:v0",
             "source_workflow_id": "capital_hilton_invoice_workflow",
+            "supplier_portal_submit_allowed": false,
             "type": "invoice_review_guided_action_request"
           },
           "idempotency_key": "invoice-review:5b35b71b9194645e",
@@ -532,6 +568,7 @@
         "hidden_request_payload": {
           "action_kind": "confirm_invoice_review_candidate",
           "action_ref": "invoice_review_action:confirm_invoice_review_candidate:234975835cbd3b10",
+          "browser_action": false,
           "browser_automation_allowed": false,
           "client_ref": "capital_hilton",
           "coupa_submit_allowed": false,
@@ -544,6 +581,7 @@
           "no_external_action": true,
           "open_file_mac_path": null,
           "physical_deletion_allowed": false,
+          "portal_submission_action_allowed": false,
           "proof_refs": [
             "local_artifact_ref:deb5bc9b42567fd4"
           ],
@@ -554,6 +592,7 @@
           "source_artifact_ref": "local_artifact_ref:deb5bc9b42567fd4",
           "source_bundle_id": "invoice_review_bundle:capital_hilton:v0",
           "source_workflow_id": "capital_hilton_invoice_workflow",
+          "supplier_portal_submit_allowed": false,
           "type": "invoice_review_guided_action_request"
         },
         "idempotency_key": "invoice-review:2889001b3de8d3a7",
@@ -584,6 +623,7 @@
         "hidden_request_payload": {
           "action_kind": "start_invoice_record_selection",
           "action_ref": "invoice_review_action:start_invoice_record_selection:a47676204ce682a7",
+          "browser_action": false,
           "browser_automation_allowed": false,
           "client_ref": "capital_hilton",
           "coupa_submit_allowed": false,
@@ -596,6 +636,7 @@
           "no_external_action": true,
           "open_file_mac_path": null,
           "physical_deletion_allowed": false,
+          "portal_submission_action_allowed": false,
           "proof_refs": [
             "local_artifact_ref:deb5bc9b42567fd4"
           ],
@@ -606,6 +647,7 @@
           "source_artifact_ref": "local_artifact_ref:deb5bc9b42567fd4",
           "source_bundle_id": "invoice_review_bundle:capital_hilton:v0",
           "source_workflow_id": "capital_hilton_invoice_workflow",
+          "supplier_portal_submit_allowed": false,
           "type": "invoice_review_guided_action_request"
         },
         "idempotency_key": "invoice-review:b624dc674d144271",
@@ -636,6 +678,7 @@
         "hidden_request_payload": {
           "action_kind": "replace_source_workbook_reference",
           "action_ref": "invoice_review_action:replace_source_workbook_reference:e22408cc500950ec",
+          "browser_action": false,
           "browser_automation_allowed": false,
           "client_ref": "capital_hilton",
           "coupa_submit_allowed": false,
@@ -648,6 +691,7 @@
           "no_external_action": true,
           "open_file_mac_path": null,
           "physical_deletion_allowed": false,
+          "portal_submission_action_allowed": false,
           "proof_refs": [
             "local_artifact_ref:deb5bc9b42567fd4"
           ],
@@ -658,6 +702,7 @@
           "source_artifact_ref": "local_artifact_ref:deb5bc9b42567fd4",
           "source_bundle_id": "invoice_review_bundle:capital_hilton:v0",
           "source_workflow_id": "capital_hilton_invoice_workflow",
+          "supplier_portal_submit_allowed": false,
           "type": "invoice_review_guided_action_request"
         },
         "idempotency_key": "invoice-review:b1cecd24bfe029fe",
@@ -688,6 +733,7 @@
         "hidden_request_payload": {
           "action_kind": "reassign_invoice_review_client",
           "action_ref": "invoice_review_action:reassign_invoice_review_client:3839dc39d4fa3d12",
+          "browser_action": false,
           "browser_automation_allowed": false,
           "client_ref": "capital_hilton",
           "coupa_submit_allowed": false,
@@ -700,6 +746,7 @@
           "no_external_action": true,
           "open_file_mac_path": null,
           "physical_deletion_allowed": false,
+          "portal_submission_action_allowed": false,
           "proof_refs": [
             "local_artifact_ref:deb5bc9b42567fd4"
           ],
@@ -710,6 +757,7 @@
           "source_artifact_ref": "local_artifact_ref:deb5bc9b42567fd4",
           "source_bundle_id": "invoice_review_bundle:capital_hilton:v0",
           "source_workflow_id": "capital_hilton_invoice_workflow",
+          "supplier_portal_submit_allowed": false,
           "type": "invoice_review_guided_action_request"
         },
         "idempotency_key": "invoice-review:d816f77691050280",
@@ -740,6 +788,7 @@
         "hidden_request_payload": {
           "action_kind": "start_invoice_record_selection",
           "action_ref": "invoice_review_action:start_invoice_record_selection:a47676204ce682a7",
+          "browser_action": false,
           "browser_automation_allowed": false,
           "client_ref": "capital_hilton",
           "coupa_submit_allowed": false,
@@ -752,6 +801,7 @@
           "no_external_action": true,
           "open_file_mac_path": null,
           "physical_deletion_allowed": false,
+          "portal_submission_action_allowed": false,
           "proof_refs": [
             "local_artifact_ref:deb5bc9b42567fd4"
           ],
@@ -762,6 +812,7 @@
           "source_artifact_ref": "local_artifact_ref:deb5bc9b42567fd4",
           "source_bundle_id": "invoice_review_bundle:capital_hilton:v0",
           "source_workflow_id": "capital_hilton_invoice_workflow",
+          "supplier_portal_submit_allowed": false,
           "type": "invoice_review_guided_action_request"
         },
         "idempotency_key": "invoice-review:b624dc674d144271",
@@ -792,6 +843,7 @@
         "hidden_request_payload": {
           "action_kind": "open_invoice_workbook_candidate",
           "action_ref": "invoice_review_action:open_invoice_workbook_candidate:359932dba989b6e3",
+          "browser_action": false,
           "browser_automation_allowed": false,
           "client_ref": "capital_hilton",
           "coupa_submit_allowed": false,
@@ -804,6 +856,7 @@
           "no_external_action": true,
           "open_file_mac_path": "/Volumes/openclaw_e/generated/invoice_artifacts/capital_hilton_invoice_artifact_v0/WINSHIP_CAPITAL_HILTON_INVOICE_2026-05-25.xlsx",
           "physical_deletion_allowed": false,
+          "portal_submission_action_allowed": false,
           "proof_refs": [
             "local_artifact_ref:deb5bc9b42567fd4"
           ],
@@ -814,6 +867,7 @@
           "source_artifact_ref": "local_artifact_ref:deb5bc9b42567fd4",
           "source_bundle_id": "invoice_review_bundle:capital_hilton:v0",
           "source_workflow_id": "capital_hilton_invoice_workflow",
+          "supplier_portal_submit_allowed": false,
           "type": "invoice_review_guided_action_request"
         },
         "idempotency_key": "invoice-review:7512efa097481782",
@@ -844,6 +898,7 @@
         "hidden_request_payload": {
           "action_kind": "explain_invoice_review",
           "action_ref": "invoice_review_action:explain_invoice_review:f063cf744abf9dbd",
+          "browser_action": false,
           "browser_automation_allowed": false,
           "client_ref": "capital_hilton",
           "coupa_submit_allowed": false,
@@ -856,6 +911,7 @@
           "no_external_action": true,
           "open_file_mac_path": null,
           "physical_deletion_allowed": false,
+          "portal_submission_action_allowed": false,
           "proof_refs": [
             "local_artifact_ref:deb5bc9b42567fd4"
           ],
@@ -866,6 +922,7 @@
           "source_artifact_ref": "local_artifact_ref:deb5bc9b42567fd4",
           "source_bundle_id": "invoice_review_bundle:capital_hilton:v0",
           "source_workflow_id": "capital_hilton_invoice_workflow",
+          "supplier_portal_submit_allowed": false,
           "type": "invoice_review_guided_action_request"
         },
         "idempotency_key": "invoice-review:61ae6b47f53aa2f3",
@@ -889,10 +946,25 @@
     ],
     "coupa_invoice_proof": {
       "amount": null,
+      "canonical_action_kind": "request_supplier_portal_submission_proof",
+      "compatibility_action_kinds": [
+        "request_coupa_submission_proof"
+      ],
       "po_ref": null,
+      "portal_invoice_draft_status": "NOT_CREATED_BY_OPENCLAW",
+      "portal_submission_action_allowed": false,
+      "portal_submission_proof_required": true,
+      "portal_submission_proof_status": "MISSING",
+      "portal_submission_receipt_required": true,
       "proof_ref": null,
+      "provider_display_name": "Coupa supplier portal",
+      "purchase_order_ref": null,
+      "rail_ref": "supplier_portal_rail",
       "required": true,
-      "status": "MISSING"
+      "requires_purchase_order": true,
+      "status": "MISSING",
+      "supplier_portal_provider": "COUPA",
+      "supplier_portal_required": true
     },
     "excel_invoice_artifact": {
       "artifact_ref": "local_artifact_ref:deb5bc9b42567fd4",
@@ -918,7 +990,7 @@
         "generated_invoice_artifact_linkage_receipt"
       ]
     },
-    "generated_at": "2026-05-27T00:00:00+00:00",
+    "generated_at": "2026-05-27T22:30:00+00:00",
     "guardian_approval_request": {
       "approval_ref": "guardian_invoice_review_approval:29a79c0aad435df9",
       "approval_required": true,
@@ -1036,7 +1108,7 @@
       "artifact_inspection_paths_are_mac_visible": true,
       "attachment_ready_requires_invoice_record_linkage": true,
       "clara_draft_slot_present": true,
-      "content_hash": "sha256:ce79ac1ea3d9d7cfa41dc721677396fbc61899e06d7b0f1f42a632a225c1a76e",
+      "content_hash": "sha256:21b6ca78792f232c2025fcc63110993353fe3fc83d16809bd83df556603aaca0",
       "coupa_primary_before_email_success": true,
       "coupa_required_for_capital_hilton": true,
       "draft_does_not_imply_sent": true,
@@ -1052,6 +1124,8 @@
       "proof_timeline_present": true,
       "right_workbook_wrong_page_no_external_action": true,
       "send_blocked_without_required_receipts": true,
+      "supplier_portal_provider_for_capital_hilton": "COUPA",
+      "supplier_portal_required_for_capital_hilton": true,
       "visible_buttons_have_action_refs": true,
       "workbook_may_contain_multiple_invoice_records": true
     },
@@ -1177,6 +1251,7 @@
           "hidden_request_payload": {
             "action_kind": "confirm_source_workbook_reference",
             "action_ref": "invoice_review_action:confirm_source_workbook_reference:ece85e2b98f0caa5",
+            "browser_action": false,
             "browser_automation_allowed": false,
             "client_ref": "capital_hilton",
             "coupa_submit_allowed": false,
@@ -1187,11 +1262,13 @@
             "ledger_posting_allowed": false,
             "no_external_action": true,
             "physical_deletion_allowed": false,
+            "portal_submission_action_allowed": false,
             "proof_refs": [],
             "request_kind": "confirm_source_workbook_reference",
             "request_type": "invoice_review_guided_action_request",
             "source_bundle_id": "invoice_review_bundle:capital_hilton:v0",
             "source_workflow_id": "capital_hilton_invoice_workflow",
+            "supplier_portal_submit_allowed": false,
             "type": "invoice_review_guided_action_request"
           },
           "idempotency_key": "invoice-review:187c2e1761a3642a",
@@ -1222,6 +1299,7 @@
             "hidden_request_payload": {
               "action_kind": "replace_source_workbook_reference",
               "action_ref": "invoice_review_action:replace_source_workbook_reference:e22408cc500950ec",
+              "browser_action": false,
               "browser_automation_allowed": false,
               "client_ref": "capital_hilton",
               "coupa_submit_allowed": false,
@@ -1232,11 +1310,13 @@
               "ledger_posting_allowed": false,
               "no_external_action": true,
               "physical_deletion_allowed": false,
+              "portal_submission_action_allowed": false,
               "proof_refs": [],
               "request_kind": "replace_source_workbook_reference",
               "request_type": "invoice_review_guided_action_request",
               "source_bundle_id": "invoice_review_bundle:capital_hilton:v0",
               "source_workflow_id": "capital_hilton_invoice_workflow",
+              "supplier_portal_submit_allowed": false,
               "type": "invoice_review_guided_action_request"
             },
             "idempotency_key": "invoice-review:b1cecd24bfe029fe",
@@ -1276,6 +1356,7 @@
           "hidden_request_payload": {
             "action_kind": "start_invoice_record_selection",
             "action_ref": "invoice_review_action:start_invoice_record_selection:a47676204ce682a7",
+            "browser_action": false,
             "browser_automation_allowed": false,
             "client_ref": "capital_hilton",
             "coupa_submit_allowed": false,
@@ -1286,11 +1367,13 @@
             "ledger_posting_allowed": false,
             "no_external_action": true,
             "physical_deletion_allowed": false,
+            "portal_submission_action_allowed": false,
             "proof_refs": [],
             "request_kind": "start_invoice_record_selection",
             "request_type": "invoice_review_guided_action_request",
             "source_bundle_id": "invoice_review_bundle:capital_hilton:v0",
             "source_workflow_id": "capital_hilton_invoice_workflow",
+            "supplier_portal_submit_allowed": false,
             "type": "invoice_review_guided_action_request"
           },
           "idempotency_key": "invoice-review:b624dc674d144271",
@@ -1336,6 +1419,7 @@
           "hidden_request_payload": {
             "action_kind": "regenerate_or_link_invoice_artifact",
             "action_ref": "invoice_review_action:regenerate_or_link_invoice_artifact:f037367d9152c13a",
+            "browser_action": false,
             "browser_automation_allowed": false,
             "client_ref": "capital_hilton",
             "coupa_submit_allowed": false,
@@ -1346,6 +1430,7 @@
             "ledger_posting_allowed": false,
             "no_external_action": true,
             "physical_deletion_allowed": false,
+            "portal_submission_action_allowed": false,
             "proof_refs": [
               "local_artifact_ref:deb5bc9b42567fd4"
             ],
@@ -1353,6 +1438,7 @@
             "request_type": "invoice_review_guided_action_request",
             "source_bundle_id": "invoice_review_bundle:capital_hilton:v0",
             "source_workflow_id": "capital_hilton_invoice_workflow",
+            "supplier_portal_submit_allowed": false,
             "type": "invoice_review_guided_action_request"
           },
           "idempotency_key": "invoice-review:240da32a4a0badc8",
@@ -1394,40 +1480,49 @@
         "operator_copy": "Coupa portal submission proof is still required.",
         "operator_summary": "Coupa portal submission proof is still required.",
         "primary_action": {
-          "action_kind": "request_coupa_submission_proof",
-          "action_ref": "invoice_review_action:request_coupa_submission_proof:6b4773f62e78e725",
+          "action_kind": "request_supplier_portal_submission_proof",
+          "action_ref": "invoice_review_action:request_supplier_portal_submission_proof:d4e5bca7a65e8e49",
           "disabled_reason": null,
           "enabled": true,
-          "expected_receipt_type": "coupa_submission_proof_intake_receipt",
+          "expected_receipt_type": "supplier_portal_proof_intake_requested_receipt",
           "hidden_request_payload": {
-            "action_kind": "request_coupa_submission_proof",
-            "action_ref": "invoice_review_action:request_coupa_submission_proof:6b4773f62e78e725",
+            "action_kind": "request_supplier_portal_submission_proof",
+            "action_ref": "invoice_review_action:request_supplier_portal_submission_proof:d4e5bca7a65e8e49",
+            "browser_action": false,
             "browser_automation_allowed": false,
+            "canonical_action_kind": "request_supplier_portal_submission_proof",
             "client_ref": "capital_hilton",
+            "compatibility_action_kind": "request_coupa_submission_proof",
             "coupa_submit_allowed": false,
             "email_send_allowed": false,
-            "expected_receipt_type": "coupa_submission_proof_intake_receipt",
-            "idempotency_key": "invoice-review:0d20e8a2d10053d0",
-            "intended_use": "start_coupa_proof_intake",
+            "expected_receipt_type": "supplier_portal_proof_intake_requested_receipt",
+            "idempotency_key": "invoice-review:caed0c918b110d15",
+            "intended_use": "request_supplier_portal_submission_proof",
             "ledger_posting_allowed": false,
             "no_external_action": true,
             "physical_deletion_allowed": false,
+            "portal_provider": "COUPA",
+            "portal_submission_action_allowed": false,
             "portal_submission_allowed": false,
             "proof_intake_only": true,
             "proof_refs": [],
-            "request_kind": "request_coupa_submission_proof",
+            "provider_display_name": "Coupa supplier portal",
+            "request_kind": "request_supplier_portal_submission_proof",
             "request_type": "invoice_review_guided_action_request",
+            "requires_purchase_order": true,
             "source_bundle_id": "invoice_review_bundle:capital_hilton:v0",
             "source_workflow_id": "capital_hilton_invoice_workflow",
+            "supplier_portal_required": true,
+            "supplier_portal_submit_allowed": false,
             "type": "invoice_review_guided_action_request"
           },
-          "idempotency_key": "invoice-review:0d20e8a2d10053d0",
-          "intended_use": "start_coupa_proof_intake",
+          "idempotency_key": "invoice-review:caed0c918b110d15",
+          "intended_use": "request_supplier_portal_submission_proof",
           "label": "Start Coupa proof step",
           "no_external_action": true,
           "operator_visible_message": "Starting Coupa proof step.",
           "proof_refs": [],
-          "request_kind": "request_coupa_submission_proof",
+          "request_kind": "request_supplier_portal_submission_proof",
           "request_type": "invoice_review_guided_action_request",
           "source_bundle_id": "invoice_review_bundle:capital_hilton:v0",
           "source_workflow_id": "capital_hilton_invoice_workflow",
@@ -1464,6 +1559,7 @@
           "hidden_request_payload": {
             "action_kind": "review_clara_draft_prerequisites",
             "action_ref": "invoice_review_action:review_clara_draft_prerequisites:8013420f6c41d8c0",
+            "browser_action": false,
             "browser_automation_allowed": false,
             "client_ref": "capital_hilton",
             "coupa_submit_allowed": false,
@@ -1474,11 +1570,13 @@
             "ledger_posting_allowed": false,
             "no_external_action": true,
             "physical_deletion_allowed": false,
+            "portal_submission_action_allowed": false,
             "proof_refs": [],
             "request_kind": "review_clara_draft_prerequisites",
             "request_type": "invoice_review_guided_action_request",
             "source_bundle_id": "invoice_review_bundle:capital_hilton:v0",
             "source_workflow_id": "capital_hilton_invoice_workflow",
+            "supplier_portal_submit_allowed": false,
             "type": "invoice_review_guided_action_request"
           },
           "idempotency_key": "invoice-review:feb5bc68ad48a1c7",
@@ -1509,6 +1607,7 @@
             "hidden_request_payload": {
               "action_kind": "edit_clara_draft_request",
               "action_ref": "invoice_review_action:edit_clara_draft_request:7b6c7f6d0825744a",
+              "browser_action": false,
               "browser_automation_allowed": false,
               "client_ref": "capital_hilton",
               "coupa_submit_allowed": false,
@@ -1519,11 +1618,13 @@
               "ledger_posting_allowed": false,
               "no_external_action": true,
               "physical_deletion_allowed": false,
+              "portal_submission_action_allowed": false,
               "proof_refs": [],
               "request_kind": "edit_clara_draft_request",
               "request_type": "invoice_review_guided_action_request",
               "source_bundle_id": "invoice_review_bundle:capital_hilton:v0",
               "source_workflow_id": "capital_hilton_invoice_workflow",
+              "supplier_portal_submit_allowed": false,
               "type": "invoice_review_guided_action_request"
             },
             "idempotency_key": "invoice-review:88e5754ff9381bf2",
@@ -1562,6 +1663,7 @@
           "hidden_request_payload": {
             "action_kind": "review_and_confirm_recipients",
             "action_ref": "invoice_review_action:review_and_confirm_recipients:5967df24a359b432",
+            "browser_action": false,
             "browser_automation_allowed": false,
             "candidate_contacts": [
               "Annette",
@@ -1579,11 +1681,13 @@
             "ledger_posting_allowed": false,
             "no_external_action": true,
             "physical_deletion_allowed": false,
+            "portal_submission_action_allowed": false,
             "proof_refs": [],
             "request_kind": "review_and_confirm_recipients",
             "request_type": "invoice_review_guided_action_request",
             "source_bundle_id": "invoice_review_bundle:capital_hilton:v0",
             "source_workflow_id": "capital_hilton_invoice_workflow",
+            "supplier_portal_submit_allowed": false,
             "type": "invoice_review_guided_action_request"
           },
           "idempotency_key": "invoice-review:bef726553ec2e3a1",
@@ -1628,6 +1732,7 @@
           "hidden_request_payload": {
             "action_kind": "show_approval_prerequisites",
             "action_ref": "invoice_review_action:show_approval_prerequisites:586a69402e312171",
+            "browser_action": false,
             "browser_automation_allowed": false,
             "client_ref": "capital_hilton",
             "coupa_submit_allowed": false,
@@ -1638,11 +1743,13 @@
             "ledger_posting_allowed": false,
             "no_external_action": true,
             "physical_deletion_allowed": false,
+            "portal_submission_action_allowed": false,
             "proof_refs": [],
             "request_kind": "show_approval_prerequisites",
             "request_type": "invoice_review_guided_action_request",
             "source_bundle_id": "invoice_review_bundle:capital_hilton:v0",
             "source_workflow_id": "capital_hilton_invoice_workflow",
+            "supplier_portal_submit_allowed": false,
             "type": "invoice_review_guided_action_request"
           },
           "idempotency_key": "invoice-review:65b6393faa244c79",
@@ -1687,6 +1794,7 @@
           "hidden_request_payload": {
             "action_kind": "show_approval_prerequisites",
             "action_ref": "invoice_review_action:show_approval_prerequisites:586a69402e312171",
+            "browser_action": false,
             "browser_automation_allowed": false,
             "client_ref": "capital_hilton",
             "coupa_submit_allowed": false,
@@ -1697,11 +1805,13 @@
             "ledger_posting_allowed": false,
             "no_external_action": true,
             "physical_deletion_allowed": false,
+            "portal_submission_action_allowed": false,
             "proof_refs": [],
             "request_kind": "show_approval_prerequisites",
             "request_type": "invoice_review_guided_action_request",
             "source_bundle_id": "invoice_review_bundle:capital_hilton:v0",
             "source_workflow_id": "capital_hilton_invoice_workflow",
+            "supplier_portal_submit_allowed": false,
             "type": "invoice_review_guided_action_request"
           },
           "idempotency_key": "invoice-review:65b6393faa244c79",
@@ -1746,6 +1856,7 @@
           "hidden_request_payload": {
             "action_kind": "prepare_send_approval_request",
             "action_ref": "invoice_review_action:prepare_send_approval_request:260ae7e669398e97",
+            "browser_action": false,
             "browser_automation_allowed": false,
             "client_ref": "capital_hilton",
             "coupa_submit_allowed": false,
@@ -1756,11 +1867,13 @@
             "ledger_posting_allowed": false,
             "no_external_action": true,
             "physical_deletion_allowed": false,
+            "portal_submission_action_allowed": false,
             "proof_refs": [],
             "request_kind": "prepare_send_approval_request",
             "request_type": "invoice_review_guided_action_request",
             "source_bundle_id": "invoice_review_bundle:capital_hilton:v0",
             "source_workflow_id": "capital_hilton_invoice_workflow",
+            "supplier_portal_submit_allowed": false,
             "type": "invoice_review_guided_action_request"
           },
           "idempotency_key": "invoice-review:ae8986f2f794457f",
@@ -1807,6 +1920,7 @@
           "hidden_request_payload": {
             "action_kind": "setup_payment_watch_after_submission",
             "action_ref": "invoice_review_action:setup_payment_watch_after_submission:759b7aafbe1360dd",
+            "browser_action": false,
             "browser_automation_allowed": false,
             "client_ref": "capital_hilton",
             "coupa_submit_allowed": false,
@@ -1817,11 +1931,13 @@
             "ledger_posting_allowed": false,
             "no_external_action": true,
             "physical_deletion_allowed": false,
+            "portal_submission_action_allowed": false,
             "proof_refs": [],
             "request_kind": "setup_payment_watch_after_submission",
             "request_type": "invoice_review_guided_action_request",
             "source_bundle_id": "invoice_review_bundle:capital_hilton:v0",
             "source_workflow_id": "capital_hilton_invoice_workflow",
+            "supplier_portal_submit_allowed": false,
             "type": "invoice_review_guided_action_request"
           },
           "idempotency_key": "invoice-review:9873ba9dfccff18d",
@@ -1866,6 +1982,7 @@
           "hidden_request_payload": {
             "action_kind": "setup_payment_watch_after_submission",
             "action_ref": "invoice_review_action:setup_payment_watch_after_submission:759b7aafbe1360dd",
+            "browser_action": false,
             "browser_automation_allowed": false,
             "client_ref": "capital_hilton",
             "coupa_submit_allowed": false,
@@ -1876,11 +1993,13 @@
             "ledger_posting_allowed": false,
             "no_external_action": true,
             "physical_deletion_allowed": false,
+            "portal_submission_action_allowed": false,
             "proof_refs": [],
             "request_kind": "setup_payment_watch_after_submission",
             "request_type": "invoice_review_guided_action_request",
             "source_bundle_id": "invoice_review_bundle:capital_hilton:v0",
             "source_workflow_id": "capital_hilton_invoice_workflow",
+            "supplier_portal_submit_allowed": false,
             "type": "invoice_review_guided_action_request"
           },
           "idempotency_key": "invoice-review:9873ba9dfccff18d",
@@ -1927,10 +2046,32 @@
       ]
     },
     "status": "READY_FOR_REVIEW_BLOCKED_FOR_SELECTION",
+    "supplier_portal_invoice_submission": {
+      "amount": null,
+      "canonical_action_kind": "request_supplier_portal_submission_proof",
+      "compatibility_action_kinds": [
+        "request_coupa_submission_proof"
+      ],
+      "po_ref": null,
+      "portal_invoice_draft_status": "NOT_CREATED_BY_OPENCLAW",
+      "portal_submission_action_allowed": false,
+      "portal_submission_proof_required": true,
+      "portal_submission_proof_status": "MISSING",
+      "portal_submission_receipt_required": true,
+      "proof_ref": null,
+      "provider_display_name": "Coupa supplier portal",
+      "purchase_order_ref": null,
+      "rail_ref": "supplier_portal_rail",
+      "required": true,
+      "requires_purchase_order": true,
+      "status": "MISSING",
+      "supplier_portal_provider": "COUPA",
+      "supplier_portal_required": true
+    },
     "workflow_ref": "capital_hilton_invoice_workflow"
   },
   "contract_status": "MISSION_CONTROL_APPROVAL_CARD_CONTRACT_NO_ACTIONS",
-  "generated_at": "2026-05-27T00:00:00+00:00",
+  "generated_at": "2026-05-27T22:30:00+00:00",
   "hidden_from_primary_ui": [
     "approval_ref",
     "button_ref",
@@ -1953,9 +2094,11 @@
     "button_labels_present": true,
     "capital_hilton_coupa_proof_required": true,
     "capital_hilton_has_review_bundle": true,
-    "content_hash": "sha256:fe66ed69174ba7ac8073b4e95053cb2e1b95110c1e8c9b7c7ceca2413280d96a",
+    "capital_hilton_supplier_portal_provider": "COUPA",
+    "content_hash": "sha256:889d5a60da042066f9c8f30be73e2dcbb336d9bb88d012cfe29a588c624721c1",
     "coupa_action_enabled": false,
     "non_coupa_client_does_not_require_coupa": true,
+    "non_coupa_client_does_not_require_supplier_portal": true,
     "pdf_excel_generation_performed": false,
     "send_action_enabled": false,
     "typed_approval_codes_not_operator_primary": true
@@ -1982,12 +2125,20 @@
       "required": false,
       "status": "NOT_REQUIRED_BY_RECIPE"
     },
-    "generated_at": "2026-05-27T00:00:00+00:00",
+    "generated_at": "2026-05-27T22:30:00+00:00",
     "operator_copy": {
       "body": "This recipe does not require Coupa proof unless the client recipe is changed.",
       "headline": "Review the St. Anne's invoice package."
     },
     "status": "RECIPE_PLACEHOLDER_REVIEW_ONLY",
+    "supplier_portal_invoice_submission": {
+      "portal_submission_action_allowed": false,
+      "portal_submission_proof_required": false,
+      "required": false,
+      "status": "NOT_REQUIRED_BY_RECIPE",
+      "supplier_portal_provider": null,
+      "supplier_portal_required": false
+    },
     "workflow_ref": "st_annes_invoice_workflow"
   },
   "operator_summary": "Mission Control can render a Capital Hilton invoice review card with invoice artifact, Clara draft, Coupa proof status, recipients, and approval buttons. Nothing is sent.",

@@ -263,10 +263,15 @@ def test_start_coupa_proof_step_is_proof_intake_not_browser_automation():
     assert action["intended_use"] == "request_supplier_portal_submission_proof"
     assert hidden["proof_intake_only"] is True
     assert hidden["portal_provider"] == "COUPA"
+    assert hidden["provider_display_name"] == "Coupa supplier portal"
+    assert hidden["requires_purchase_order"] is True
     assert hidden["canonical_action_kind"] == "request_supplier_portal_submission_proof"
     assert hidden["compatibility_action_kind"] == "request_coupa_submission_proof"
+    assert hidden["no_external_action"] is True
+    assert hidden["browser_action"] is False
     assert hidden["browser_automation_allowed"] is False
     assert hidden["portal_submission_allowed"] is False
+    assert hidden["portal_submission_action_allowed"] is False
     assert hidden["coupa_submit_allowed"] is False
     assert hidden["supplier_portal_submit_allowed"] is False
 

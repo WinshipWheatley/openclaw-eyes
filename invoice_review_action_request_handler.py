@@ -261,9 +261,11 @@ def process_action_request(
         payload.get(flag) is True
         for flag in (
             "browser_automation_allowed",
+            "browser_action",
             "email_send_allowed",
             "coupa_submit_allowed",
             "supplier_portal_submit_allowed",
+            "portal_submission_action_allowed",
             "ledger_posting_allowed",
             "physical_deletion_allowed",
         )
