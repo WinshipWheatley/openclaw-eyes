@@ -80,6 +80,7 @@ def test_replace_source_workbook_requests_replacement_without_deletion(tmp_path)
 
     assert result.status == "REQUESTED"
     assert "No file will be deleted" in result.body
+    assert result.action_receipt["receipt_event"] == "source_workbook_replacement_requested"
     assert result.action_receipt["completion_receipt_written"] is False
     assert result.state_snapshot["source_workbook_status"] == "REPLACEMENT_REQUESTED"
     assert state_machine.AUTHORITY_BOUNDARY["file_deletion_performed"] is False
@@ -92,6 +93,7 @@ def test_start_invoice_record_selection_writes_action_start_and_requests_operato
     invoice_step = next(step for step in source_bundle["capital_hilton_bundle"]["review_proof_timeline"] if step["title"] == "Invoice page/period")
 
     assert result.action_receipt["receipt_name"] == "invoice_record_selection_started_receipt"
+    assert result.action_receipt["receipt_event"] == "invoice_record_selection_started"
     assert result.action_receipt["completion_receipt_written"] is False
     assert result.state_snapshot["invoice_record_selection_status"] == "NEEDS_OPERATOR_SELECTION"
     assert invoice_step["status"] == "IN_PROGRESS"
@@ -113,6 +115,7 @@ def test_coupa_proof_action_writes_intake_receipt_without_submission(tmp_path):
     result = _process(tmp_path, "request_coupa_submission_proof")
 
     assert result.action_receipt["receipt_name"] == "coupa_proof_intake_requested_receipt"
+    assert result.action_receipt["receipt_event"] == "coupa_proof_intake_requested"
     assert result.state_snapshot["coupa_proof_status"] == "PROOF_REQUESTED"
     assert "Nothing will be submitted" in result.body
     assert state_machine.AUTHORITY_BOUNDARY["coupa_submission_performed"] is False
@@ -123,7 +126,9 @@ def test_recipient_review_starts_without_inventing_emails(tmp_path):
     result = _process(tmp_path, "review_and_confirm_recipients")
 
     assert result.action_receipt["receipt_name"] == "recipient_review_started_receipt"
+    assert result.action_receipt["receipt_event"] == "recipient_review_started"
     assert result.state_snapshot["recipient_confirmation_status"] == "REVIEW_REQUESTED_EMAILS_MISSING"
+    assert result.state_snapshot["recipient_review_status"] == "NEEDS_CONTACT_CONFIRMATION"
     assert "Annette, Chyna, and Will" in result.body
     assert "@" not in result.body
     assert result.action_receipt["completion_receipt_written"] is False
@@ -156,7 +161,9 @@ def test_sqlite_state_and_receipt_tables_are_queryable(tmp_path):
 
     assert receipt_count == 1
     assert state_row[0] == "PROOF_REQUESTED"
-    assert state_machine.read_receipt(db_path, result.action_receipt["receipt_id"]) is not None
+    receipt = state_machine.read_receipt(db_path, result.action_receipt["receipt_id"])
+    assert receipt is not None
+    assert receipt["receipt_event"] == "coupa_proof_intake_requested"
 
 
 def test_disabled_or_not_wired_action_returns_clean_blocked_response(tmp_path):

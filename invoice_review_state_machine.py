@@ -41,6 +41,23 @@ ACTION_TO_RECEIPT = {
     "open_invoice_workbook_candidate": "local_artifact_inspection_receipt",
 }
 
+ACTION_TO_RECEIPT_EVENT = {
+    "confirm_source_workbook_reference": "source_workbook_reference_confirmed",
+    "replace_source_workbook_reference": "source_workbook_replacement_requested",
+    "start_invoice_record_selection": "invoice_record_selection_started",
+    "regenerate_or_link_invoice_artifact": "generated_invoice_artifact_linkage_requested",
+    "request_coupa_submission_proof": "coupa_proof_intake_requested",
+    "review_and_confirm_recipients": "recipient_review_started",
+    "show_approval_prerequisites": "approval_prerequisites_readback",
+    "review_clara_draft_prerequisites": "clara_draft_prerequisites_readback",
+    "edit_clara_draft_request": "clara_draft_edit_requested",
+    "prepare_send_approval_request": "send_approval_preparation_requested",
+    "setup_payment_watch_after_submission": "payment_watch_setup_requested",
+    "explain_invoice_review": "invoice_review_explained",
+    "confirm_invoice_review_candidate": "invoice_review_confirmation_intake_requested",
+    "open_invoice_workbook_candidate": "local_artifact_inspection_requested",
+}
+
 COMPLETION_RECEIPTS = {
     "active_workbook_confirmed_receipt",
     "invoice_record_selected_receipt",
@@ -120,6 +137,7 @@ def init_store(db_path: Path = DEFAULT_DB_PATH) -> None:
               generated_artifact_status TEXT NOT NULL,
               coupa_proof_status TEXT NOT NULL,
               recipient_confirmation_status TEXT NOT NULL,
+              recipient_review_status TEXT,
               clara_draft_status TEXT NOT NULL,
               approval_readiness_status TEXT NOT NULL,
               email_send_status TEXT NOT NULL,
@@ -142,10 +160,19 @@ def init_store(db_path: Path = DEFAULT_DB_PATH) -> None:
               underlying_blocker_completed INTEGER NOT NULL CHECK (underlying_blocker_completed IN (0,1)),
               external_action_performed INTEGER NOT NULL CHECK (external_action_performed IN (0,1)),
               receipt_name TEXT NOT NULL,
+              receipt_event TEXT,
               generated_at TEXT
             );
             """
         )
+        _ensure_column(conn, "invoice_review_states", "recipient_review_status", "TEXT")
+        _ensure_column(conn, "invoice_review_receipts", "receipt_event", "TEXT")
+
+
+def _ensure_column(conn: sqlite3.Connection, table: str, column: str, column_type: str) -> None:
+    columns = {str(row["name"]) for row in conn.execute(f"PRAGMA table_info({table})").fetchall()}
+    if column not in columns:
+        conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {column_type}")
 
 
 def _default_state(*, generated_at: str | None = None) -> dict[str, Any]:
@@ -159,6 +186,7 @@ def _default_state(*, generated_at: str | None = None) -> dict[str, Any]:
         "generated_artifact_status": "CANDIDATE_NEEDS_LINKAGE",
         "coupa_proof_status": "MISSING",
         "recipient_confirmation_status": "CANDIDATE_UNCONFIRMED",
+        "recipient_review_status": "NOT_STARTED",
         "clara_draft_status": "DRAFT_ONLY",
         "approval_readiness_status": "BLOCKED_PREREQUISITES",
         "email_send_status": "NOT_SENT",
@@ -178,7 +206,14 @@ def load_state(db_path: Path = DEFAULT_DB_PATH, *, generated_at: str | None = No
             (invoice_review_bundle.CAPITAL_HILTON_BUNDLE_ID,),
         ).fetchone()
         if row:
-            return dict(row)
+            state = dict(row)
+            if not state.get("recipient_review_status"):
+                state["recipient_review_status"] = (
+                    "NEEDS_CONTACT_CONFIRMATION"
+                    if state.get("recipient_confirmation_status") == "REVIEW_REQUESTED_EMAILS_MISSING"
+                    else "NOT_STARTED"
+                )
+            return state
         state = _default_state(generated_at=generated_at)
         _upsert_state(conn, state)
         return state
@@ -191,10 +226,10 @@ def _upsert_state(conn: sqlite3.Connection, state: Mapping[str, Any]) -> None:
           bundle_id, client_ref, workflow_ref, source_workbook_status,
           invoice_record_selection_status, invoice_period_status,
           generated_artifact_status, coupa_proof_status,
-          recipient_confirmation_status, clara_draft_status,
+          recipient_confirmation_status, recipient_review_status, clara_draft_status,
           approval_readiness_status, email_send_status, payment_watch_status,
           ledger_tax_status, last_action_kind, last_receipt_id, last_updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(bundle_id) DO UPDATE SET
           source_workbook_status=excluded.source_workbook_status,
           invoice_record_selection_status=excluded.invoice_record_selection_status,
@@ -202,6 +237,7 @@ def _upsert_state(conn: sqlite3.Connection, state: Mapping[str, Any]) -> None:
           generated_artifact_status=excluded.generated_artifact_status,
           coupa_proof_status=excluded.coupa_proof_status,
           recipient_confirmation_status=excluded.recipient_confirmation_status,
+          recipient_review_status=excluded.recipient_review_status,
           clara_draft_status=excluded.clara_draft_status,
           approval_readiness_status=excluded.approval_readiness_status,
           email_send_status=excluded.email_send_status,
@@ -221,6 +257,7 @@ def _upsert_state(conn: sqlite3.Connection, state: Mapping[str, Any]) -> None:
             state["generated_artifact_status"],
             state["coupa_proof_status"],
             state["recipient_confirmation_status"],
+            state.get("recipient_review_status", "NOT_STARTED"),
             state["clara_draft_status"],
             state["approval_readiness_status"],
             state["email_send_status"],
@@ -257,10 +294,12 @@ def _receipt(
     generated_at: str | None,
 ) -> dict[str, Any]:
     receipt_id = f"invoice_review:{receipt_name}:{_short_hash(source_request_id, action_kind, status)}"
+    receipt_event = ACTION_TO_RECEIPT_EVENT.get(action_kind, receipt_name.removesuffix("_receipt"))
     return {
         "receipt_id": receipt_id,
         "receipt_type": "invoice_review_action_progress_receipt",
         "receipt_name": receipt_name,
+        "receipt_event": receipt_event,
         "source_request_id": source_request_id,
         "bundle_id": invoice_review_bundle.CAPITAL_HILTON_BUNDLE_ID,
         "workflow_ref": invoice_review_bundle.CAPITAL_HILTON_WORKFLOW_REF,
@@ -281,8 +320,8 @@ def _write_receipt(conn: sqlite3.Connection, receipt: Mapping[str, Any]) -> None
           receipt_id, receipt_type, source_request_id, bundle_id, client_ref,
           workflow_ref, action_kind, status, completion_receipt_written,
           underlying_blocker_completed, external_action_performed, receipt_name,
-          generated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          receipt_event, generated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             receipt["receipt_id"],
@@ -297,6 +336,7 @@ def _write_receipt(conn: sqlite3.Connection, receipt: Mapping[str, Any]) -> None
             1 if receipt["underlying_blocker_completed"] else 0,
             1 if receipt["external_action_performed"] else 0,
             receipt["receipt_name"],
+            receipt["receipt_event"],
             receipt.get("generated_at"),
         ),
     )
@@ -326,6 +366,7 @@ def _apply_action(state: dict[str, Any], action_kind: str) -> tuple[str, str, st
         return ("REQUESTED", "Starting Coupa proof step", "Upload or provide Coupa submission proof when available. Nothing will be submitted from this step.", "Provide Coupa submission proof when available.", "coupa_proof_intake_requested_receipt", False)
     if action_kind == "review_and_confirm_recipients":
         state["recipient_confirmation_status"] = "REVIEW_REQUESTED_EMAILS_MISSING"
+        state["recipient_review_status"] = "NEEDS_CONTACT_CONFIRMATION"
         return ("REQUESTED", "Review recipients", "Review the Capital Hilton recipient candidates: Annette, Chyna, and Will. No email addresses were invented.", "Confirm or provide recipient contact details.", "recipient_review_started_receipt", False)
     if action_kind == "show_approval_prerequisites":
         return ("READBACK", "Approval is not ready yet", "Missing: Coupa proof missing, Invoice record/page not selected, Generated artifact not linked, Recipients unconfirmed, Attachment not ready.", "Resolve the listed blockers first.", "approval_prerequisite_review_receipt", False)
