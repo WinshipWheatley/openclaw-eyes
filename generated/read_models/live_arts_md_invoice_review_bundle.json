@@ -1,0 +1,410 @@
+{
+  "authority_boundary": {
+    "browser_automation_performed": false,
+    "coupa_access_performed": false,
+    "email_send_performed": false,
+    "external_action_performed": false,
+    "gmail_access_performed": false,
+    "invoice_generation_performed": false,
+    "ledger_posting_performed": false,
+    "pdf_export_performed": false,
+    "physical_deletion_performed": false,
+    "production_business_mutation_performed": false,
+    "spreadsheet_cell_read_performed": false,
+    "workbook_body_read_performed": false
+  },
+  "generated_at": "2026-05-28T15:29:40+00:00",
+  "live_arts_md_bundle": {
+    "actionable_blockers": [
+      {
+        "blocker_ref": "live_arts_md_blocker:89c158c3f6eeffbc",
+        "operator_summary": "Choose the Live Arts MD source workbook.",
+        "primary_action": {
+          "action_kind": "choose_source_workbook",
+          "action_ref": "live_arts_md_invoice_action:cf5a6e05a7dcf3fd",
+          "disabled_reason": null,
+          "enabled": true,
+          "hidden_request_payload": {
+            "action_kind": "choose_source_workbook",
+            "client_ref": "live_arts_md",
+            "coupa_submit_allowed": false,
+            "email_send_allowed": false,
+            "expected_workbook_display_name": "Invoice Live Arts MD! Running.xlsx",
+            "intended_use": "choose_source_workbook_reference",
+            "ledger_posting_allowed": false,
+            "no_cell_read": true,
+            "no_external_action": true,
+            "no_workbook_body_read": true,
+            "physical_deletion_allowed": false,
+            "request_type": "INVOICE_REVIEW_ACTION_REQUEST",
+            "workflow_ref": "live_arts_md_invoice_workflow"
+          },
+          "label": "Choose Live Arts MD source workbook",
+          "operator_visible_message": "Choose Live Arts MD source workbook"
+        }
+      }
+    ],
+    "approval_footer": {
+      "approval_disabled_reasons": [
+        "Choose the Live Arts MD source workbook.",
+        "Attach or link the generated Live Arts MD invoice artifact.",
+        "Confirm the Live Arts MD recipient/contact.",
+        "Approval/send remains disabled until receipts exist."
+      ],
+      "approval_ready": false
+    },
+    "authority_boundary": {
+      "browser_automation_performed": false,
+      "coupa_access_performed": false,
+      "email_send_performed": false,
+      "external_action_performed": false,
+      "gmail_access_performed": false,
+      "invoice_generation_performed": false,
+      "ledger_posting_performed": false,
+      "pdf_export_performed": false,
+      "physical_deletion_performed": false,
+      "production_business_mutation_performed": false,
+      "spreadsheet_cell_read_performed": false,
+      "workbook_body_read_performed": false
+    },
+    "blockers": [
+      "Choose the Live Arts MD source workbook.",
+      "Attach or link the generated Live Arts MD invoice artifact.",
+      "Confirm the Live Arts MD recipient/contact.",
+      "Approval/send remains disabled until receipts exist."
+    ],
+    "bundle_id": "invoice_review_bundle:live_arts_md:v0",
+    "clara_email_draft": {
+      "attachment_claim": "attachment not ready yet",
+      "body": "Hi [Live Arts MD contact],\n\nI\u2019m preparing the Live Arts MD invoice for review. I\u2019ll send the invoice once the attachment and recipient are confirmed.\n\nBest,\nWinship",
+      "draft_only": true,
+      "selected_voice": "CLARA",
+      "sent": false,
+      "subject": "Live Arts MD invoice"
+    },
+    "client_display_name": "Live Arts MD",
+    "client_ref": "live_arts_md",
+    "generated_at": "2026-05-28T15:29:40+00:00",
+    "invoice_artifact": {
+      "artifact_ref": null,
+      "attachment_ready": false,
+      "candidate_only": false,
+      "hash": null,
+      "next_action": "Export selected invoice page manually, then attach it here.",
+      "path_ref": null,
+      "receipt_required_for_attachment_ready": "operator_provided_invoice_artifact_linked_candidate_receipt",
+      "status": "ARTIFACT_REQUIRED"
+    },
+    "invoice_selection": {
+      "no_cell_read": true,
+      "no_workbook_body_read": true,
+      "primary_action": {
+        "action_kind": "start_invoice_record_selection",
+        "action_ref": "live_arts_md_invoice_action:33094d0f415abf4b",
+        "disabled_reason": "Choose the source workbook first.",
+        "enabled": false,
+        "hidden_request_payload": {
+          "action_kind": "start_invoice_record_selection",
+          "client_ref": "live_arts_md",
+          "coupa_submit_allowed": false,
+          "email_send_allowed": false,
+          "intended_use": "select_invoice_record_or_period",
+          "ledger_posting_allowed": false,
+          "no_cell_read": true,
+          "no_external_action": true,
+          "no_workbook_body_read": true,
+          "physical_deletion_allowed": false,
+          "request_type": "INVOICE_REVIEW_ACTION_REQUEST",
+          "workflow_ref": "live_arts_md_invoice_workflow"
+        },
+        "label": "Select invoice page",
+        "operator_visible_message": "Select invoice page"
+      },
+      "status": "BLOCKED_NEEDS_SOURCE_WORKBOOK"
+    },
+    "machine_proof": {
+      "approval_send_disabled_without_receipts": true,
+      "artifact_candidate_not_attachment_ready": true,
+      "clara_draft_only": true,
+      "content_hash": "sha256:a82862629a9f3acd499e71574992885fa45eb523260f499cbebc28f2b343236a",
+      "live_arts_md_does_not_require_coupa": true,
+      "live_arts_md_does_not_require_po": true,
+      "no_action_authority": true,
+      "no_recipient_email_invented": true,
+      "uses_reusable_simple_invoice_rails": true
+    },
+    "next_safe_move": "Choose the Live Arts MD source workbook.",
+    "payment_watch": {
+      "bank_ledger_match_required": true,
+      "client_ref": "live_arts_md",
+      "expected_amount": null,
+      "expected_window": null,
+      "invoice_ref": null,
+      "ledger_posting_allowed": false,
+      "payment_watch_status": "READINESS_ONLY"
+    },
+    "proof_timeline": [
+      {
+        "operator_summary": "Choose the Live Arts MD source workbook.",
+        "primary_action": {
+          "action_kind": "choose_source_workbook",
+          "action_ref": "live_arts_md_invoice_action:cf5a6e05a7dcf3fd",
+          "disabled_reason": null,
+          "enabled": true,
+          "hidden_request_payload": {
+            "action_kind": "choose_source_workbook",
+            "client_ref": "live_arts_md",
+            "coupa_submit_allowed": false,
+            "email_send_allowed": false,
+            "expected_workbook_display_name": "Invoice Live Arts MD! Running.xlsx",
+            "intended_use": "choose_source_workbook_reference",
+            "ledger_posting_allowed": false,
+            "no_cell_read": true,
+            "no_external_action": true,
+            "no_workbook_body_read": true,
+            "physical_deletion_allowed": false,
+            "request_type": "INVOICE_REVIEW_ACTION_REQUEST",
+            "workflow_ref": "live_arts_md_invoice_workflow"
+          },
+          "label": "Choose Live Arts MD source workbook",
+          "operator_visible_message": "Choose Live Arts MD source workbook"
+        },
+        "required_receipts": [
+          "source_workbook_reference_confirmed_receipt"
+        ],
+        "status": "NEEDS_ACTION",
+        "step_ref": "live_arts_md_step:source_workbook",
+        "title": "Source workbook"
+      },
+      {
+        "operator_summary": "Select the invoice page/period from the source workbook.",
+        "primary_action": {
+          "action_kind": "start_invoice_record_selection",
+          "action_ref": "live_arts_md_invoice_action:33094d0f415abf4b",
+          "disabled_reason": "Choose the source workbook first.",
+          "enabled": false,
+          "hidden_request_payload": {
+            "action_kind": "start_invoice_record_selection",
+            "client_ref": "live_arts_md",
+            "coupa_submit_allowed": false,
+            "email_send_allowed": false,
+            "intended_use": "select_invoice_record_or_period",
+            "ledger_posting_allowed": false,
+            "no_cell_read": true,
+            "no_external_action": true,
+            "no_workbook_body_read": true,
+            "physical_deletion_allowed": false,
+            "request_type": "INVOICE_REVIEW_ACTION_REQUEST",
+            "workflow_ref": "live_arts_md_invoice_workflow"
+          },
+          "label": "Select invoice page",
+          "operator_visible_message": "Select invoice page"
+        },
+        "required_receipts": [
+          "invoice_record_selection_operator_confirmed_receipt"
+        ],
+        "status": "BLOCKED",
+        "step_ref": "live_arts_md_step:invoice_page_period",
+        "title": "Invoice page/period"
+      },
+      {
+        "operator_summary": "Artifact is candidate-only until attachment confirmation receipt exists.",
+        "primary_action": {
+          "action_kind": "attach_generated_invoice_artifact",
+          "action_ref": "live_arts_md_invoice_action:9d4b55e681b1386b",
+          "disabled_reason": "Select the invoice page/period first.",
+          "enabled": false,
+          "hidden_request_payload": {
+            "action_kind": "attach_generated_invoice_artifact",
+            "allowed_extensions": [
+              ".pdf",
+              ".xlsx",
+              ".xls",
+              ".png",
+              ".jpg",
+              ".jpeg"
+            ],
+            "client_ref": "live_arts_md",
+            "coupa_submit_allowed": false,
+            "email_send_allowed": false,
+            "intended_use": "manual_operator_link_generated_invoice_artifact",
+            "ledger_posting_allowed": false,
+            "no_cell_read": true,
+            "no_external_action": true,
+            "no_workbook_body_read": true,
+            "physical_deletion_allowed": false,
+            "request_type": "INVOICE_REVIEW_ACTION_REQUEST",
+            "workflow_ref": "live_arts_md_invoice_workflow"
+          },
+          "label": "Attach generated invoice artifact",
+          "operator_visible_message": "Attach generated invoice artifact"
+        },
+        "required_receipts": [
+          "operator_provided_invoice_artifact_linked_candidate_receipt",
+          "invoice_attachment_confirmed_receipt"
+        ],
+        "status": "BLOCKED",
+        "step_ref": "live_arts_md_step:invoice_artifact",
+        "title": "Invoice artifact"
+      },
+      {
+        "operator_summary": "Draft only. Nothing was sent.",
+        "primary_action": null,
+        "required_receipts": [
+          "clara_email_draft_receipt"
+        ],
+        "status": "PLACEHOLDER_DRAFT",
+        "step_ref": "live_arts_md_step:clara_draft",
+        "title": "Clara draft"
+      },
+      {
+        "operator_summary": "Manual send package can be prepared only after attachment, recipient, and approval receipts.",
+        "primary_action": {
+          "action_kind": "prepare_manual_send_package",
+          "action_ref": "live_arts_md_invoice_action:ece0e17b47632e8e",
+          "disabled_reason": "Attachment, recipient, and approval receipts are required first.",
+          "enabled": false,
+          "hidden_request_payload": {
+            "action_kind": "prepare_manual_send_package",
+            "client_ref": "live_arts_md",
+            "coupa_submit_allowed": false,
+            "email_send_allowed": false,
+            "intended_use": "prepare_manual_send_package",
+            "ledger_posting_allowed": false,
+            "no_cell_read": true,
+            "no_external_action": true,
+            "no_workbook_body_read": true,
+            "physical_deletion_allowed": false,
+            "request_type": "INVOICE_REVIEW_ACTION_REQUEST",
+            "workflow_ref": "live_arts_md_invoice_workflow"
+          },
+          "label": "Prepare manual send package",
+          "operator_visible_message": "Prepare manual send package"
+        },
+        "required_receipts": [
+          "recipient_confirmation_receipt",
+          "operator_approval_receipt",
+          "email_send_receipt"
+        ],
+        "status": "BLOCKED",
+        "step_ref": "live_arts_md_step:recipient_send",
+        "title": "Recipient and send readiness"
+      },
+      {
+        "operator_summary": "Payment watch pattern exists, but payment is not active or expected until send evidence exists.",
+        "primary_action": null,
+        "required_receipts": [
+          "email_send_receipt",
+          "payment_watch_configured_receipt"
+        ],
+        "status": "READINESS_ONLY",
+        "step_ref": "live_arts_md_step:payment_watch",
+        "title": "Payment watch"
+      }
+    ],
+    "rails_not_selected_by_default": [
+      "supplier_portal_rail",
+      "purchase_order_rail"
+    ],
+    "recipe_ref": "live_arts_md_invoice_workflow",
+    "recipient_state": {
+      "primary_action": {
+        "action_kind": "review_and_confirm_recipients",
+        "action_ref": "live_arts_md_invoice_action:80fd4bc7b1da8aec",
+        "disabled_reason": null,
+        "enabled": true,
+        "hidden_request_payload": {
+          "action_kind": "review_and_confirm_recipients",
+          "client_ref": "live_arts_md",
+          "coupa_submit_allowed": false,
+          "email_send_allowed": false,
+          "intended_use": "review_and_confirm_recipients",
+          "ledger_posting_allowed": false,
+          "no_cell_read": true,
+          "no_external_action": true,
+          "no_workbook_body_read": true,
+          "physical_deletion_allowed": false,
+          "request_type": "INVOICE_REVIEW_ACTION_REQUEST",
+          "workflow_ref": "live_arts_md_invoice_workflow"
+        },
+        "label": "Confirm recipient",
+        "operator_visible_message": "Confirm recipient"
+      },
+      "recipient_email_invented": false,
+      "status": "RECIPIENT_INFO_REQUIRED"
+    },
+    "schema_version": "live_arts_md_invoice_review_bundle_v0",
+    "selected_rails": [
+      "source_workbook_rail",
+      "invoice_period_sheet_rail",
+      "excel_invoice_generation_rail",
+      "clara_email_draft_rail",
+      "guardian_approval_rail",
+      "external_send_rail",
+      "payment_watch_rail",
+      "ledger_handoff_rail",
+      "tax_evidence_rail"
+    ],
+    "send_readiness": {
+      "email_send_approval_required": true,
+      "email_send_execution_receipt_required": true,
+      "email_send_rail_exists": false,
+      "manual_send_package_status": "BLOCKED_PREREQUISITES",
+      "primary_action": {
+        "action_kind": "prepare_manual_send_package",
+        "action_ref": "live_arts_md_invoice_action:ece0e17b47632e8e",
+        "disabled_reason": "Attachment, recipient, and approval receipts are required first.",
+        "enabled": false,
+        "hidden_request_payload": {
+          "action_kind": "prepare_manual_send_package",
+          "client_ref": "live_arts_md",
+          "coupa_submit_allowed": false,
+          "email_send_allowed": false,
+          "intended_use": "prepare_manual_send_package",
+          "ledger_posting_allowed": false,
+          "no_cell_read": true,
+          "no_external_action": true,
+          "no_workbook_body_read": true,
+          "physical_deletion_allowed": false,
+          "request_type": "INVOICE_REVIEW_ACTION_REQUEST",
+          "workflow_ref": "live_arts_md_invoice_workflow"
+        },
+        "label": "Prepare manual send package",
+        "operator_visible_message": "Prepare manual send package"
+      },
+      "sent_receipt_confirmed": false
+    },
+    "source_workbook": {
+      "approved_for_cell_read": false,
+      "approved_for_metadata_read": false,
+      "client_ref": "live_arts_md",
+      "expected_display_name": "Invoice Live Arts MD! Running.xlsx",
+      "next_action": "Choose the Live Arts MD source workbook.",
+      "no_cell_read": true,
+      "no_workbook_body_read": true,
+      "status": "SOURCE_WORKBOOK_REQUIRED",
+      "workbook_display_name": null,
+      "workbook_path_ref": null,
+      "workbook_ref": null,
+      "workflow_ref": "live_arts_md_invoice_workflow"
+    },
+    "status": "SIMPLE_EMAIL_INVOICE_REVIEW",
+    "supplier_portal_invoice_submission": {
+      "portal_submission_proof_required": false,
+      "purchase_order_required": false,
+      "required": false,
+      "status": "NOT_REQUIRED_BY_RECIPE",
+      "supplier_portal_provider": null,
+      "supplier_portal_required": false
+    },
+    "workflow_ref": "live_arts_md_invoice_workflow"
+  },
+  "machine_proof": {
+    "bridge_safe": true,
+    "content_hash": "sha256:a82862629a9f3acd499e71574992885fa45eb523260f499cbebc28f2b343236a",
+    "live_arts_md_bundle_present": true,
+    "no_action_authority": true
+  },
+  "read_model_id": "live_arts_md_invoice_review_bundle",
+  "schema_version": "live_arts_md_invoice_review_bundle_v0"
+}
