@@ -3,16 +3,13 @@
 Ready: `false`
 Safe to generate now: `false`
 
-Choose the correct Capital Hilton source workbook before generating the invoice artifact.
+OpenClaw has the correct workbook and invoice page. It still needs generation/export authority before creating the invoice artifact.
 
 ## Missing Inputs
 
-- `source_workbook_ref`
 - `source_workbook_pc_or_mac_path`
-- `source_workbook_reference_confirmed_receipt`
 - `selected_record_invoice_artifact_generation_authority_receipt`
 - `approved_generation_inputs`
-- `correct_source_workbook_required`
 
 ## Existing Generator Audit
 

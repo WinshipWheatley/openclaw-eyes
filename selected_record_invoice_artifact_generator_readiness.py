@@ -274,13 +274,17 @@ def evaluate_readiness(
     record_status = "LINKED" if SELECTED_RECORD_RECEIPT in present and state.get("invoice_record_label") else "MISSING_SELECTION"
     authority_status = GENERATION_AUTHORITY_RECEIPT in present
     safe = not missing and authority_status
-    next_action = (
-        "Generate selected invoice artifact candidate from approved selected-record inputs."
-        if safe
-        else "Choose the correct Capital Hilton source workbook before generating the invoice artifact."
-        if wrong_source
-        else "OpenClaw needs source workbook linkage and generation authority before creating the selected invoice artifact."
-    )
+    if safe:
+        next_action = "Generate selected invoice artifact candidate from approved selected-record inputs."
+    elif wrong_source:
+        next_action = "Choose the correct Capital Hilton source workbook before generating the invoice artifact."
+    elif GENERATION_AUTHORITY_RECEIPT not in present:
+        next_action = (
+            "OpenClaw has the correct workbook and invoice page. It still needs generation/export authority "
+            "before creating the invoice artifact."
+        )
+    else:
+        next_action = "OpenClaw needs source workbook linkage and generation authority before creating the selected invoice artifact."
     return SelectedRecordGeneratorReadiness(
         generator_ready=safe,
         safe_to_generate=safe,
@@ -385,6 +389,24 @@ def build_payload(
     state = invoice_review_state_machine.load_state(db_path, generated_at=generated_at)
     receipts = invoice_review_state_machine.receipt_names(db_path)
     linkage = discover_source_workbook_linkage()
+    state_source_ref = state.get("source_workbook_ref")
+    state_source_path = state.get("source_workbook_pc_path") or state.get("source_workbook_mac_path")
+    if state.get("source_workbook_status") == "CONFIRMED" and state_source_ref:
+        linkage = SourceWorkbookLinkageReadiness(
+            source_workbook_found=True,
+            source_workbook_confirmed=True,
+            source_workbook_ref=str(state_source_ref),
+            source_workbook_pc_path=str(state.get("source_workbook_pc_path") or "") or None,
+            source_workbook_mac_path=str(state.get("source_workbook_mac_path") or "") or None,
+            registry_workbook_ref=linkage.registry_workbook_ref or str(state_source_ref),
+            approved_artifact_ref=linkage.approved_artifact_ref,
+            linkage_status="CONFIRMED_BY_OPERATOR_RECEIPT",
+            blocker=None,
+            guided_action="source_workbook_reference_confirmed",
+            receipt_name_if_confirmed=SOURCE_WORKBOOK_LINKAGE_RECEIPT,
+            no_workbook_body_read=True,
+            no_cell_read=True,
+        )
     if wrong_source_workbook_stop_line_active(state):
         linkage = SourceWorkbookLinkageReadiness(
             source_workbook_found=linkage.source_workbook_found,
@@ -401,7 +423,12 @@ def build_payload(
             no_workbook_body_read=True,
             no_cell_read=True,
         )
-    readiness = evaluate_readiness(state=state, receipts=receipts)
+    readiness = evaluate_readiness(
+        state=state,
+        receipts=receipts,
+        source_workbook_ref=str(state_source_ref) if state_source_ref else None,
+        source_workbook_path=str(state_source_path) if state_source_path else None,
+    )
     audit = audit_existing_generators()
     return {
         "schema_version": SCHEMA_VERSION,

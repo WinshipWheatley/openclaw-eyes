@@ -14,7 +14,7 @@ Approval card:
 - Approval footer: Approval is disabled until invoice selection, Coupa proof, recipients, and attachment proof are ready.
 
 Blockers:
-- Select the Capital Hilton invoice page/period from the confirmed workbook.
+- Generation/export authority is required before creating the selected invoice artifact.
 - Coupa submission proof is still required.
 - Which invoice page/period should OpenClaw prepare for Capital Hilton?
 - OpenClaw needs the current invoice page/period before it can attach the Excel invoice.
@@ -23,7 +23,7 @@ Blockers:
 - Send is blocked until approval and send execution receipts exist.
 
 Guided fix paths:
-- Select the Capital Hilton invoice page/period from the confirmed workbook. -> Select invoice page
+- Generation/export authority is required before creating the selected invoice artifact. -> Export selected invoice page
 - Coupa submission proof is still required. -> Start Coupa proof step
 - Which invoice page/period should OpenClaw prepare for Capital Hilton? -> Select invoice page
 - OpenClaw needs the current invoice page/period before it can attach the Excel invoice. -> Select invoice page

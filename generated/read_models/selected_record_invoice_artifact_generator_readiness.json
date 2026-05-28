@@ -13,7 +13,7 @@
   },
   "current_state_refs": {
     "client_ref": "capital_hilton",
-    "generated_artifact_status": "INVALIDATED_BY_WRONG_SOURCE_WORKBOOK",
+    "generated_artifact_status": "GENERATION_AUTHORITY_REQUIRED",
     "invoice_period_label": "May 2026",
     "invoice_record_label": "May tab / page 2",
     "workflow_ref": "capital_hilton_invoice_workflow"
@@ -36,7 +36,7 @@
       "selected_record_safe": false
     }
   ],
-  "generated_at": "2026-05-28T04:45:00+00:00",
+  "generated_at": "2026-05-28T14:06:40+00:00",
   "generation_authority_receipt": {
     "allows_send_submit_ledger": false,
     "does_not_equal_execution": true,
@@ -46,7 +46,7 @@
       "intended_output_artifact_kind": "SELECTED_RECORD_INVOICE_CANDIDATE_JSON",
       "invoice_period_label": "May 2026",
       "invoice_record_label": "May tab / page 2",
-      "source_workbook_ref": null,
+      "source_workbook_ref": "workbook_ref:client_invoice:capital_hilton:capital_hilton_invoice_workflow:a1039befe485542d",
       "workflow_ref": "capital_hilton_invoice_workflow"
     },
     "status": "MISSING"
@@ -58,22 +58,19 @@
     "no_external_action": true,
     "no_workbook_body_read": true,
     "safe_to_generate_now": false,
-    "source_workbook_linkage_confirmed": false
+    "source_workbook_linkage_confirmed": true
   },
-  "operator_copy": "Choose the correct Capital Hilton source workbook before generating the invoice artifact.",
+  "operator_copy": "OpenClaw has the correct workbook and invoice page. It still needs generation/export authority before creating the invoice artifact.",
   "read_model_id": "selected_record_invoice_artifact_generator_readiness",
   "readiness": {
     "allowed_read_scope": "approved_selected_record_inputs_only_no_workbook_body_or_cell_read",
     "generator_ready": false,
     "missing_inputs": [
-      "source_workbook_ref",
       "source_workbook_pc_or_mac_path",
-      "source_workbook_reference_confirmed_receipt",
       "selected_record_invoice_artifact_generation_authority_receipt",
-      "approved_generation_inputs",
-      "correct_source_workbook_required"
+      "approved_generation_inputs"
     ],
-    "next_operator_action": "Choose the correct Capital Hilton source workbook before generating the invoice artifact.",
+    "next_operator_action": "OpenClaw has the correct workbook and invoice page. It still needs generation/export authority before creating the invoice artifact.",
     "output_artifact_kind": "SELECTED_RECORD_INVOICE_CANDIDATE_JSON",
     "required_authority": [
       "source_workbook_reference_confirmed_receipt",
@@ -82,23 +79,23 @@
     ],
     "safe_to_generate": false,
     "selected_record_linkage_status": "LINKED",
-    "source_workbook_linkage_status": "BLOCKED_WRONG_SOURCE_WORKBOOK",
+    "source_workbook_linkage_status": "LINKED",
     "workbook_read_required": false
   },
   "schema_version": "selected_record_invoice_artifact_generator_readiness_v0",
   "source_workbook_linkage": {
     "approved_artifact_ref": "workbook_ref:client_invoice:capital_hilton:capital_hilton_invoice_workflow:8ef4246d2dbb38a1",
-    "blocker": "CORRECT_SOURCE_WORKBOOK_REQUIRED",
-    "guided_action": "Choose the correct Capital Hilton source workbook before generating the invoice artifact.",
-    "linkage_status": "BLOCKED_WRONG_SOURCE_WORKBOOK",
+    "blocker": null,
+    "guided_action": "source_workbook_reference_confirmed",
+    "linkage_status": "CONFIRMED_BY_OPERATOR_RECEIPT",
     "no_cell_read": true,
     "no_workbook_body_read": true,
     "receipt_name_if_confirmed": "source_workbook_reference_confirmed_receipt",
     "registry_workbook_ref": "workbook_ref:client_invoice:capital_hilton:capital_hilton_invoice_workflow:c74b65e4b01f47e1",
-    "source_workbook_confirmed": false,
+    "source_workbook_confirmed": true,
     "source_workbook_found": true,
     "source_workbook_mac_path": null,
-    "source_workbook_pc_path": "/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton_invoice_workflow_artifact_intake_1779839744512_8ffc9d4056b9/source/Invoice_Capitol_Hilton_20260512_v2.xlsx",
-    "source_workbook_ref": null
+    "source_workbook_pc_path": null,
+    "source_workbook_ref": "workbook_ref:client_invoice:capital_hilton:capital_hilton_invoice_workflow:a1039befe485542d"
   }
 }

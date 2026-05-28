@@ -391,6 +391,8 @@ def _receipt(
     receipt_id = f"invoice_review:{receipt_name}:{_short_hash(source_request_id, action_kind, status)}"
     if receipt_name == ARTIFACT_GENERATOR_NOT_WIRED_RECEIPT:
         receipt_event = "invoice_artifact_generator_not_wired"
+    elif receipt_name == "selected_record_invoice_artifact_generation_authority_required_receipt":
+        receipt_event = "selected_record_invoice_artifact_generation_authority_required"
     elif receipt_name == "source_workbook_confirmation_needed_receipt":
         receipt_event = "source_workbook_confirmation_needed"
     else:
@@ -701,6 +703,26 @@ def _apply_action(state: dict[str, Any], action_kind: str) -> tuple[str, str, st
         if metadata["metadata_status"] == "GENERATED_ARTIFACT_INVALID":
             state["generated_artifact_status"] = "GENERATED_ARTIFACT_INVALID"
             return ("GENERATED_ARTIFACT_INVALID", "Invoice artifact is not attach-ready", "OpenClaw has the selected invoice page/period, but the existing generated invoice artifact failed metadata/package checks. Nothing was generated, exported, linked, attached, or approved.", "Next: regenerate the invoice artifact for the selected record when the generator rail is wired.", "generated_invoice_artifact_invalid_receipt", False)
+        import selected_record_invoice_artifact_generator_readiness as generator_readiness
+
+        readiness = generator_readiness.evaluate_readiness(
+            state=state,
+            receipts=tuple(state.get("_receipt_names") or ()),
+            source_workbook_ref=state.get("source_workbook_ref"),
+            source_workbook_path=state.get("source_workbook_pc_path") or state.get("source_workbook_mac_path"),
+        )
+        state["generated_artifact_generator_status"] = "GENERATION_AUTHORITY_REQUIRED"
+        state["generated_artifact_generator_reason"] = ", ".join(readiness.missing_inputs)
+        if not readiness.safe_to_generate and generator_readiness.GENERATION_AUTHORITY_RECEIPT in readiness.missing_inputs:
+            state["generated_artifact_status"] = "GENERATION_AUTHORITY_REQUIRED"
+            return (
+                "GENERATION_AUTHORITY_REQUIRED",
+                "Generation authority required",
+                "OpenClaw has the correct workbook and invoice page. It still needs generation/export authority before creating the invoice artifact. Nothing was generated, exported, linked, attached, or approved.",
+                "Next: request generation/export authority or attach a generated invoice artifact through a governed intake path.",
+                "selected_record_invoice_artifact_generation_authority_required_receipt",
+                False,
+            )
         generator_audit = audit_current_invoice_artifact_generator(state)
         state["generated_artifact_generator_status"] = generator_audit["generator_status"]
         state["generated_artifact_generator_reason"] = ", ".join(generator_audit["reason_codes"])
@@ -952,6 +974,7 @@ def _overlay_bundle_state(
         "ARTIFACT_GENERATOR_NOT_WIRED",
         "GENERATED_ARTIFACT_INVALID",
         "INVALIDATED_BY_WRONG_SOURCE_WORKBOOK",
+        "GENERATION_AUTHORITY_REQUIRED",
     }:
         capital["excel_invoice_artifact"]["proof_status"] = state["generated_artifact_status"]
         capital["excel_invoice_artifact"]["linkage_status"] = (
@@ -959,12 +982,54 @@ def _overlay_bundle_state(
             if state["generated_artifact_status"] == "GENERATED_ARTIFACT_INVALID"
             else "STALE_WRONG_SOURCE"
             if state["generated_artifact_status"] == "INVALIDATED_BY_WRONG_SOURCE_WORKBOOK"
+            else "GENERATION_AUTHORITY_REQUIRED"
+            if state["generated_artifact_status"] == "GENERATION_AUTHORITY_REQUIRED"
             else "NEEDS_REGENERATION_OR_LINK"
         )
         capital["excel_invoice_artifact"]["attachment_ready"] = False
         capital["excel_invoice_artifact"]["metadata_status"] = state.get("generated_artifact_metadata_status")
         capital["excel_invoice_artifact"]["metadata_sha256"] = state.get("generated_artifact_metadata_hash")
         capital["excel_invoice_artifact"]["metadata_file_size"] = state.get("generated_artifact_metadata_size")
+        if state["generated_artifact_status"] == "GENERATION_AUTHORITY_REQUIRED":
+            capital["excel_invoice_artifact"]["generation_strategy"] = "MANUAL_EXPORT_OR_GOVERNED_LINK_REQUIRED"
+            capital["excel_invoice_artifact"]["generation_authority_required"] = True
+            capital["excel_invoice_artifact"]["manual_operator_actions"] = (
+                {
+                    "action_ref": f"invoice_review_action:{_short_hash('export_selected_invoice_page', state.get('invoice_period_label'), state.get('invoice_record_label'))}",
+                    "label": "Export selected invoice page",
+                    "action_kind": "export_selected_invoice_page",
+                    "intended_use": "manual_operator_export_selected_invoice_page",
+                    "enabled": False,
+                    "disabled_reason": "This manual export authority path is not wired yet.",
+                    "no_external_action": True,
+                    "no_workbook_body_read": True,
+                    "no_cell_read": True,
+                },
+                {
+                    "action_ref": f"invoice_review_action:{_short_hash('attach_generated_invoice_artifact', state.get('invoice_period_label'), state.get('invoice_record_label'))}",
+                    "label": "Attach generated invoice artifact",
+                    "action_kind": "attach_generated_invoice_artifact",
+                    "intended_use": "manual_operator_link_generated_invoice_artifact",
+                    "enabled": False,
+                    "disabled_reason": "This artifact-link intake path is not wired yet.",
+                    "no_external_action": True,
+                    "no_workbook_body_read": True,
+                    "no_cell_read": True,
+                },
+            )
+            authority_blocker = "Generation/export authority is required before creating the selected invoice artifact."
+            capital["blockers"] = tuple(dict.fromkeys((authority_blocker, *tuple(capital.get("blockers") or ()))))
+            capital["actionable_blockers"] = (
+                {
+                    "blocker_ref": f"invoice_review_blocker:{_short_hash(authority_blocker)}",
+                    "operator_summary": authority_blocker,
+                    "status": "NOT_READY",
+                    "primary_action": capital["excel_invoice_artifact"]["manual_operator_actions"][0],
+                    "disabled_reason": "Generation/export authority intake is not wired yet.",
+                    "proof_refs": (receipt["receipt_id"],),
+                },
+                *tuple(capital.get("actionable_blockers") or ()),
+            )
         capital["approval_footer"]["approval_ready"] = False
     capital["present_action_receipts"] = action_receipt_names
     capital["machine_proof"]["state_machine_overlay_applied"] = True
@@ -1027,10 +1092,12 @@ def process_action(
     source_request_id = str(raw_request.get("request_id") or payload.get("request_id") or payload.get("source_request_id") or "unknown_invoice_review_action")
     action_kind = str(payload.get("action_kind") or payload.get("request_kind") or raw_request.get("action_kind") or raw_request.get("intended_use") or "")
     state = load_state(db_path, generated_at=generated_at)
+    current_receipt_names = receipt_names(db_path)
+    state["_receipt_names"] = current_receipt_names
     if (
         action_kind == "regenerate_or_link_invoice_artifact"
         and state.get("source_workbook_status") == "CONFIRMED"
-        and "invoice_record_selection_operator_confirmed_receipt" not in receipt_names(db_path)
+        and "invoice_record_selection_operator_confirmed_receipt" not in current_receipt_names
     ):
         state["generated_artifact_status"] = "BLOCKED_NEEDS_INVOICE_RECORD_SELECTION"
         status, headline, body, next_action, receipt_name, completion = (

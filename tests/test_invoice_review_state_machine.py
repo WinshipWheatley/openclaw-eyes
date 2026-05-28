@@ -322,7 +322,7 @@ def test_regenerate_or_link_artifact_requires_operator_selection_receipt(tmp_pat
     assert "selection receipt" in result.body
 
 
-def test_regenerate_or_link_artifact_after_selection_returns_generator_not_wired_without_output(tmp_path):
+def test_regenerate_or_link_artifact_after_selection_requires_generation_authority_without_output(tmp_path):
     db_path, export_root, bridge_root = _paths(tmp_path)
     source = state_machine.process_source_workbook_selection_result(
         _source_workbook_result_request(),
@@ -351,26 +351,30 @@ def test_regenerate_or_link_artifact_after_selection_returns_generator_not_wired
 
     assert source.action_receipt["receipt_name"] == "source_workbook_reference_confirmed_receipt"
     assert selection.action_receipt["receipt_name"] == "invoice_record_selection_operator_confirmed_receipt"
-    assert result.status == "GENERATOR_NOT_WIRED"
-    assert result.action_receipt["receipt_name"] == "invoice_artifact_generator_not_wired_receipt"
-    assert result.action_receipt["receipt_event"] == "invoice_artifact_generator_not_wired"
+    assert result.status == "GENERATION_AUTHORITY_REQUIRED"
+    assert result.action_receipt["receipt_name"] == "selected_record_invoice_artifact_generation_authority_required_receipt"
+    assert result.action_receipt["receipt_event"] == "selected_record_invoice_artifact_generation_authority_required"
     assert result.action_receipt["completion_receipt_written"] is False
     assert result.action_receipt["artifact_metadata"]["metadata_status"] == "GENERATED_ARTIFACT_METADATA_VALID"
     assert result.action_receipt["generator_audit"]["existing_generator_found"] is True
     assert "invoice_artifact_builder" in result.action_receipt["generator_audit"]["generator_refs"]
-    assert result.action_receipt["generator_audit"]["generator_status"] == "GENERATOR_NOT_WIRED"
+    assert result.action_receipt["generator_audit"]["generator_status"] == "GENERATION_AUTHORITY_REQUIRED"
+    assert "selected_record_invoice_artifact_generation_authority_receipt" in result.action_receipt["generator_audit"]["reason"]
     assert result.action_receipt["generator_audit"]["artifact_created"] is False
     assert result.action_receipt["generator_audit"]["artifact_linked"] is False
     assert result.action_receipt["artifact_metadata"]["workbook_business_cells_read"] is False
     assert result.action_receipt["artifact_metadata"]["generation_or_export_performed"] is False
-    assert result.state_snapshot["generated_artifact_status"] == "ARTIFACT_GENERATOR_NOT_WIRED"
-    assert result.state_snapshot["generated_artifact_generator_status"] == "GENERATOR_NOT_WIRED"
+    assert result.state_snapshot["generated_artifact_status"] == "GENERATION_AUTHORITY_REQUIRED"
+    assert result.state_snapshot["generated_artifact_generator_status"] == "GENERATION_AUTHORITY_REQUIRED"
     assert capital["invoice_selection"]["invoice_record_state"] == "INVOICE_RECORD_OPERATOR_CONFIRMED"
-    assert capital["excel_invoice_artifact"]["proof_status"] == "ARTIFACT_GENERATOR_NOT_WIRED"
-    assert capital["excel_invoice_artifact"]["linkage_status"] == "NEEDS_REGENERATION_OR_LINK"
+    assert capital["excel_invoice_artifact"]["proof_status"] == "GENERATION_AUTHORITY_REQUIRED"
+    assert capital["excel_invoice_artifact"]["linkage_status"] == "GENERATION_AUTHORITY_REQUIRED"
+    assert capital["excel_invoice_artifact"]["generation_authority_required"] is True
+    assert capital["excel_invoice_artifact"]["manual_operator_actions"][0]["label"] == "Export selected invoice page"
+    assert capital["excel_invoice_artifact"]["manual_operator_actions"][0]["enabled"] is False
     assert capital["excel_invoice_artifact"]["attachment_ready"] is False
     assert capital["approval_footer"]["approval_ready"] is False
-    assert bridge_bundle["capital_hilton_bundle"]["excel_invoice_artifact"]["linkage_status"] == "NEEDS_REGENERATION_OR_LINK"
+    assert bridge_bundle["capital_hilton_bundle"]["excel_invoice_artifact"]["linkage_status"] == "GENERATION_AUTHORITY_REQUIRED"
     assert state_machine.AUTHORITY_BOUNDARY["spreadsheet_cell_read_performed"] is False
     assert state_machine.AUTHORITY_BOUNDARY["invoice_generation_performed"] is False
     assert state_machine.AUTHORITY_BOUNDARY["pdf_export_performed"] is False

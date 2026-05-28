@@ -135,7 +135,7 @@ def test_readiness_reports_missing_generation_authority():
 
     assert result.safe_to_generate is False
     assert readiness.GENERATION_AUTHORITY_RECEIPT in result.missing_inputs
-    assert "generation authority" in result.next_operator_action.lower()
+    assert "generation/export authority" in result.next_operator_action.lower()
 
 
 def test_readiness_identifies_workbook_read_scope_without_reading_cells():
