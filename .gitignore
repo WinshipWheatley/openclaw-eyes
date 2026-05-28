@@ -62,6 +62,7 @@
 !read_model_shuttle.py
 !report_bridge.py
 !operator_action.py
+!operator_action_event_journal.py
 !operator_action_inbox.py
 !project_capsule.py
 !legacy_repo_intake.py
@@ -773,6 +774,7 @@
 !scripts/execute_operator_action.py
 !scripts/query_operator_actions.py
 !scripts/export_operator_actions_read_model.py
+!scripts/export_operator_action_event_journal.py
 !scripts/import_operator_action_request.py
 !scripts/query_operator_action_inbox.py
 !tests/test_corpus_atlas.py
@@ -797,6 +799,7 @@
 !tests/test_report_bridge.py
 !tests/test_report_bridge_read_model.py
 !tests/test_operator_action.py
+!tests/test_operator_action_event_journal.py
 !tests/test_operator_action_inbox.py
 !tests/test_capital_hilton_actionable_review_packet.py
 !tests/test_capital_hilton_review_packet_approval.py

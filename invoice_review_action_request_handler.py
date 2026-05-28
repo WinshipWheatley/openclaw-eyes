@@ -15,6 +15,7 @@ from typing import Any, Mapping
 
 import invoice_review_bundle
 import invoice_review_state_machine
+import operator_action_event_journal
 
 
 READ_MODEL_ID = "invoice_review_action_request_receipt"
@@ -305,6 +306,82 @@ def _operator_copy(action_kind: str) -> tuple[str, str, str, str, tuple[str, ...
     )
 
 
+def _journal_classification(
+    *,
+    action_kind: str,
+    status: str,
+    supported: bool,
+    valid_scope: bool,
+    no_external: bool,
+    action_enabled: bool,
+    progress_status: str | None,
+) -> tuple[str, str, bool, str]:
+    if not supported:
+        return (
+            "UNSUPPORTED_PENDING",
+            "PENDING_NOT_WIRED",
+            False,
+            "Operator clicked an invoice review action that is not wired yet.",
+        )
+    if not valid_scope or not no_external:
+        return (
+            "BLOCKED",
+            "BLOCKED",
+            True,
+            "OpenClaw blocked the operator action before starting a guided path.",
+        )
+    if not action_enabled:
+        return (
+            "DISABLED",
+            "DISABLED",
+            True,
+            "Operator clicked a disabled invoice review action; no workflow step was completed.",
+        )
+    if action_kind == "open_invoice_workbook_candidate":
+        return (
+            "LOCAL_INSPECTION",
+            "HANDLED",
+            True,
+            "Operator requested local inspection of a candidate artifact.",
+        )
+    if progress_status and str(progress_status).startswith("BLOCKED"):
+        return (
+            "BLOCKED",
+            "BLOCKED",
+            True,
+            "OpenClaw handled the operator action as a blocked guided request.",
+        )
+    if status.startswith("BLOCKED"):
+        return (
+            "BLOCKED",
+            "BLOCKED",
+            True,
+            "OpenClaw returned a blocked response for the operator action.",
+        )
+    return (
+        "GOVERNED_REQUEST",
+        "HANDLED",
+        True,
+        "OpenClaw handled the operator action as a governed backend request.",
+    )
+
+
+def _journal_summary(action_kind: str, label: str, body: str, next_action: str) -> str:
+    if action_kind in {"replace_source_workbook_reference", "operator_reported_wrong_source_workbook"}:
+        return "Operator indicated the current workbook reference may be wrong."
+    if action_kind == "start_invoice_record_selection":
+        return "Operator started invoice page/period selection."
+    if action_kind in {"request_supplier_portal_submission_proof", "request_coupa_submission_proof"}:
+        return "Operator started supplier portal proof intake."
+    if action_kind == "review_and_confirm_recipients":
+        return "Operator started recipient review."
+    if action_kind == "show_approval_prerequisites":
+        return "Operator requested current approval prerequisites."
+    if body:
+        return body
+    return f"Operator clicked {label or action_kind}."
+
+
 def process_action_request(
     raw_request: Mapping[str, Any],
     *,
@@ -312,6 +389,8 @@ def process_action_request(
     db_path: Path = invoice_review_state_machine.DEFAULT_DB_PATH,
     export_root: Path = invoice_review_state_machine.DEFAULT_EXPORT_ROOT,
     bridge_export_root: Path | None = invoice_review_state_machine.DEFAULT_BRIDGE_EXPORT_ROOT,
+    event_db_path: Path = operator_action_event_journal.DEFAULT_DB_PATH,
+    event_export_root: Path = operator_action_event_journal.DEFAULT_EXPORT_ROOT,
 ) -> dict[str, Any]:
     payload = _action_payload(raw_request)
     request_id = str(raw_request.get("request_id") or payload.get("request_id") or payload.get("source_request_id") or "unknown_invoice_review_action")
@@ -419,6 +498,51 @@ def process_action_request(
         receipt["progress_status"] = progress_result.status
         receipt["underlying_blocker_completed"] = progress_result.action_receipt["underlying_blocker_completed"]
         receipt["completion_receipt_written"] = progress_result.action_receipt["completion_receipt_written"]
+    label_clicked = str(
+        payload.get("label_clicked")
+        or payload.get("label")
+        or (bundle_action or {}).get("label")
+        or action_kind
+    )
+    journal_category, journal_status, journal_handled, default_summary = _journal_classification(
+        action_kind=action_kind,
+        status=status,
+        supported=supported,
+        valid_scope=valid_scope,
+        no_external=no_external,
+        action_enabled=action_enabled,
+        progress_status=progress_result.status if progress_result else None,
+    )
+    journal_event = operator_action_event_journal.record_operator_action_event(
+        source_request_id=request_id,
+        client_ref=client_ref,
+        workflow_ref=workflow_ref,
+        bundle_id=bundle_id,
+        action_ref=str(payload.get("action_ref") or action_kind),
+        intended_use=str(payload.get("intended_use") or action_kind),
+        label_clicked=label_clicked,
+        action_category=journal_category,
+        emitted_backend_request=True,
+        handled=journal_handled,
+        handler_ref="invoice_review_action_request.capital_hilton",
+        status=journal_status,
+        operator_visible_summary=(
+            _journal_summary(action_kind, label_clicked, body, next_action)
+            if journal_status != "PENDING_NOT_WIRED"
+            else default_summary
+        ),
+        no_external_action=no_external,
+        physical_deletion_allowed=bool(payload.get("physical_deletion_allowed") is True),
+        proof_refs=(receipt.get("receipt_id"),),
+        expected_next_safe_move=next_action,
+        db_path=event_db_path,
+        generated_at=generated_at,
+    )
+    journal_payload, journal_json, journal_operator = operator_action_event_journal.export_read_model(
+        db_path=event_db_path,
+        export_root=event_export_root,
+        generated_at=generated_at,
+    )
     return {
         "schema_version": SCHEMA_VERSION,
         "read_model_id": READ_MODEL_ID,
@@ -431,6 +555,12 @@ def process_action_request(
         "next_action": next_action,
         "expected_receipt_types": expected,
         "action_start_receipt": receipt,
+        "operator_action_event": journal_event,
+        "operator_action_event_journal": {
+            "readback_ref": journal_json.as_posix(),
+            "operator_readback_ref": journal_operator.as_posix(),
+            "pending_operator_intent_count": len(journal_payload.get("pending_operator_intents") or ()),
+        },
         "state_machine_progress": {
             "used": progress_result is not None,
             "progress_status": progress_result.status if progress_result else None,
@@ -475,6 +605,8 @@ def process_invoice_record_selection_result_request(
     db_path: Path = invoice_review_state_machine.DEFAULT_DB_PATH,
     export_root: Path = invoice_review_state_machine.DEFAULT_EXPORT_ROOT,
     bridge_export_root: Path | None = invoice_review_state_machine.DEFAULT_BRIDGE_EXPORT_ROOT,
+    event_db_path: Path = operator_action_event_journal.DEFAULT_DB_PATH,
+    event_export_root: Path = operator_action_event_journal.DEFAULT_EXPORT_ROOT,
 ) -> dict[str, Any]:
     progress_result = invoice_review_state_machine.process_invoice_record_selection_result(
         raw_request,
@@ -484,6 +616,36 @@ def process_invoice_record_selection_result_request(
         generated_at=generated_at,
     )
     response_ready = progress_result.status == "REQUESTED"
+    journal_event = operator_action_event_journal.record_operator_action_event(
+        source_request_id=progress_result.source_request_id,
+        client_ref="capital_hilton",
+        workflow_ref=invoice_review_bundle.CAPITAL_HILTON_WORKFLOW_REF,
+        bundle_id=invoice_review_bundle.CAPITAL_HILTON_BUNDLE_ID,
+        action_ref="confirm_invoice_record_selection",
+        intended_use="confirm_invoice_record_selection",
+        label_clicked="Confirm invoice page/period",
+        action_category="GOVERNED_REQUEST" if response_ready else "BLOCKED",
+        emitted_backend_request=True,
+        handled=True,
+        handler_ref="invoice_record_selection_result.capital_hilton",
+        status="HANDLED" if response_ready else "BLOCKED",
+        operator_visible_summary=(
+            "Operator confirmed the invoice page/period selection."
+            if response_ready
+            else "OpenClaw blocked an incomplete or unsafe invoice page/period selection result."
+        ),
+        no_external_action=True,
+        physical_deletion_allowed=False,
+        proof_refs=(progress_result.action_receipt["receipt_id"],),
+        expected_next_safe_move=progress_result.next_action,
+        db_path=event_db_path,
+        generated_at=generated_at,
+    )
+    journal_payload, journal_json, journal_operator = operator_action_event_journal.export_read_model(
+        db_path=event_db_path,
+        export_root=event_export_root,
+        generated_at=generated_at,
+    )
     return {
         "schema_version": SCHEMA_VERSION,
         "read_model_id": READ_MODEL_ID,
@@ -496,6 +658,12 @@ def process_invoice_record_selection_result_request(
         "next_action": progress_result.next_action,
         "expected_receipt_types": (progress_result.action_receipt["receipt_name"],),
         "action_start_receipt": progress_result.action_receipt,
+        "operator_action_event": journal_event,
+        "operator_action_event_journal": {
+            "readback_ref": journal_json.as_posix(),
+            "operator_readback_ref": journal_operator.as_posix(),
+            "pending_operator_intent_count": len(journal_payload.get("pending_operator_intents") or ()),
+        },
         "state_machine_progress": {
             "used": True,
             "progress_status": progress_result.status,

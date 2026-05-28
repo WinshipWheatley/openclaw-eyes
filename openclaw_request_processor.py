@@ -2836,12 +2836,19 @@ def _process_invoice_record_selection_result_request(
         if export_root.resolve() == default_export_root
         else export_root.parent / "invoice_review_state.sqlite"
     )
+    event_db_path = (
+        invoice_review_action_request_handler.operator_action_event_journal.DEFAULT_DB_PATH
+        if export_root.resolve() == default_export_root
+        else export_root.parent / "operator_action_events.sqlite"
+    )
     payload = invoice_review_action_request_handler.process_invoice_record_selection_result_request(
         raw_request,
         generated_at=generated_at,
         db_path=db_path,
         export_root=export_root,
         bridge_export_root=bridge_export_root,
+        event_db_path=event_db_path,
+        event_export_root=export_root,
     )
     action_json, action_operator = invoice_review_action_request_handler.write_exports(payload, export_root)
     status = str(payload["status"])
@@ -2850,6 +2857,8 @@ def _process_invoice_record_selection_result_request(
     body = str(payload["body"])
     next_action = str(payload["next_action"])
     receipt = payload["action_start_receipt"]
+    operator_event = payload.get("operator_action_event") if isinstance(payload.get("operator_action_event"), Mapping) else None
+    operator_event_journal = payload.get("operator_action_event_journal") if isinstance(payload.get("operator_action_event_journal"), Mapping) else {}
     state_progress = payload.get("state_machine_progress") if isinstance(payload.get("state_machine_progress"), Mapping) else {}
     local_surface_result = payload.get("local_surface_result") if isinstance(payload.get("local_surface_result"), Mapping) else {}
     detail = {
@@ -2959,12 +2968,19 @@ def _process_invoice_review_action_request(
         if export_root.resolve() == default_export_root
         else export_root.parent / "invoice_review_state.sqlite"
     )
+    event_db_path = (
+        invoice_review_action_request_handler.operator_action_event_journal.DEFAULT_DB_PATH
+        if export_root.resolve() == default_export_root
+        else export_root.parent / "operator_action_events.sqlite"
+    )
     payload = invoice_review_action_request_handler.process_action_request(
         raw_request,
         generated_at=generated_at,
         db_path=db_path,
         export_root=export_root,
         bridge_export_root=bridge_export_root,
+        event_db_path=event_db_path,
+        event_export_root=export_root,
     )
     action_json, action_operator = invoice_review_action_request_handler.write_exports(payload, export_root)
     status = str(payload["status"])
@@ -2975,6 +2991,8 @@ def _process_invoice_review_action_request(
     operator_body = body if detail_text in body else f"{body} {detail_text}"
     next_action = str(payload["next_action"])
     receipt = payload["action_start_receipt"]
+    operator_event = payload.get("operator_action_event") if isinstance(payload.get("operator_action_event"), Mapping) else None
+    operator_event_journal = payload.get("operator_action_event_journal") if isinstance(payload.get("operator_action_event_journal"), Mapping) else {}
     state_progress = payload.get("state_machine_progress") if isinstance(payload.get("state_machine_progress"), Mapping) else {}
     local_surface_request = payload.get("local_surface_request") if isinstance(payload.get("local_surface_request"), Mapping) else None
     completion_written = bool(payload.get("machine_proof", {}).get("completion_receipt_written")) if isinstance(payload.get("machine_proof"), Mapping) else False
@@ -2986,6 +3004,8 @@ def _process_invoice_review_action_request(
             "action_kind": payload["action_kind"],
             "status": status,
             "action_start_receipt": receipt,
+            "operator_action_event": dict(operator_event) if operator_event else None,
+            "operator_action_event_journal": dict(operator_event_journal),
             "state_machine_progress": state_progress,
             "local_surface_request": dict(local_surface_request) if local_surface_request else None,
             "expected_receipt_types": payload["expected_receipt_types"],

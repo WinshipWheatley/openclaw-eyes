@@ -1,0 +1,70 @@
+{
+  "authority_boundary": {
+    "email_send_performed": false,
+    "external_actions_executed": false,
+    "invoice_generation_performed": false,
+    "ledger_posting_performed": false,
+    "physical_deletion_performed": false,
+    "production_business_mutation_performed": false,
+    "spreadsheet_cell_read_performed": false,
+    "supplier_portal_submit_performed": false,
+    "workbook_body_read_performed": false
+  },
+  "blocked_or_disabled_events": [],
+  "event_count_returned": 2,
+  "events": [
+    {
+      "action_category": "GOVERNED_REQUEST",
+      "action_ref": "replace_source_workbook_reference",
+      "bundle_id": "invoice_review_bundle:capital_hilton:v0",
+      "client_ref": "capital_hilton",
+      "created_at": "2026-05-28T03:45:21.253488+00:00",
+      "emitted_backend_request": true,
+      "event_id": "operator_action_event:f5bd5fc6daea7dd8",
+      "expected_next_safe_move": "Choose or confirm the correct source workbook.",
+      "handled": true,
+      "handler_ref": "invoice_review_action_request.capital_hilton",
+      "intended_use": "replace_source_workbook_reference",
+      "label_clicked": "Wrong workbook",
+      "no_external_action": true,
+      "operator_visible_summary": "Operator indicated the current workbook reference may be wrong.",
+      "physical_deletion_allowed": false,
+      "proof_refs": [
+        "invoice_review:wrong_source_workbook_operator_correction_receipt:77b0bc62104c6cf8"
+      ],
+      "source_request_id": "capital_hilton_invoice_workflow_wrong_source_workbook_stop_line_20260528",
+      "status": "HANDLED",
+      "updated_at": "2026-05-28T03:45:21.253488+00:00",
+      "workflow_ref": "capital_hilton_invoice_workflow"
+    },
+    {
+      "action_category": "GOVERNED_REQUEST",
+      "action_ref": "invoice_review_action:replace_source_workbook_reference:e22408cc500950ec",
+      "bundle_id": "invoice_review_bundle:capital_hilton:v0",
+      "client_ref": "capital_hilton",
+      "created_at": "2026-05-28T03:44:05+00:00",
+      "emitted_backend_request": true,
+      "event_id": "operator_action_event:1efd61ed881e3519",
+      "expected_next_safe_move": "Select the replacement workbook in Mission Control.",
+      "handled": true,
+      "handler_ref": "invoice_review_action_request.capital_hilton",
+      "intended_use": "replace_invoice_source_workbook",
+      "label_clicked": "Use a different workbook",
+      "no_external_action": true,
+      "operator_visible_summary": "Operator indicated the current workbook reference may be wrong.",
+      "physical_deletion_allowed": false,
+      "proof_refs": [
+        "invoice_review:source_workbook_replacement_request_receipt:180768c988db5107"
+      ],
+      "source_request_id": "capital_hilton_invoice_workflow_invoice_review_action_1779939854490_e65e26d2a787",
+      "status": "HANDLED",
+      "updated_at": "2026-05-28T03:44:05+00:00",
+      "workflow_ref": "capital_hilton_invoice_workflow"
+    }
+  ],
+  "generated_at": null,
+  "pending_operator_intents": [],
+  "read_model_id": "operator_action_event_journal",
+  "schema_version": "operator_action_event_journal_v0",
+  "store_path": ".openclaw/operator_events/operator_action_events.sqlite"
+}
