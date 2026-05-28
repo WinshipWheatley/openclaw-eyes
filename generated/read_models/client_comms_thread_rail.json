@@ -60,7 +60,7 @@
     "capital_hilton_followup_thread": {
       "draft_candidate": {
         "audience": "external_client",
-        "body": "Hi [Annette] - I'm Clara Reid, helping Winship keep the Capital Hilton invoice package and follow-up details organized.\n\nI'm preparing the invoice package follow-up for review. Nothing will be sent until Winship approves the exact message and recipients.\n\nBest,\nClara Reid",
+        "body": "Hi [Annette] - I'm Clara Reid, helping Winship keep the Capital Hilton invoice package and follow-up details organized.\n\nOnce Winship confirms the invoice file and recipient details, I'll send over the Excel invoice for your records.\n\nBest,\nClara Reid",
         "channel": "email",
         "client_ref": "capital_hilton",
         "draft_only": true,
@@ -133,7 +133,7 @@
     "existing_clara_thread_no_repeat_intro": {
       "draft_candidate": {
         "audience": "external_client",
-        "body": "I'm preparing the invoice package follow-up for review. Nothing will be sent until Winship approves the exact message and recipients.\n\nBest,\nClara Reid",
+        "body": "Once Winship confirms the invoice file and recipient details, I'll send over the Excel invoice for your records.\n\nBest,\nClara Reid",
         "channel": "email",
         "client_ref": "capital_hilton",
         "draft_only": true,
@@ -206,7 +206,7 @@
     "live_arts_md_first_invoice_email": {
       "draft_candidate": {
         "audience": "external_client",
-        "body": "Hi [Live Arts MD contact] - I'm Clara Reid, helping Winship keep the Live Arts MD invoice package organized and easy to track.\n\nI'm preparing the invoice note for review. Winship will confirm the attachment and recipient details before anything is sent.\n\nBest,\nClara Reid",
+        "body": "Hi [Live Arts MD contact] - I'm Clara Reid, helping Winship keep the Live Arts MD invoice package organized and easy to track.\n\nOnce Winship confirms the invoice file and recipient details, I'll send over the invoice for this period.\n\nBest,\nClara Reid",
         "channel": "email",
         "client_ref": "live_arts_md",
         "draft_only": true,
@@ -426,7 +426,7 @@
       "thread_ref": "client_comms_thread:capital_hilton:14853df793ce1ece"
     }
   },
-  "generated_at": "2026-05-28T16:19:53+00:00",
+  "generated_at": "2026-05-28T00:00:00+00:00",
   "guardian_approval_separation": {
     "guardian_approval_request": "Ask operator to approve a future exact send package.",
     "guardian_output_validation": "Safe to show a draft only.",
@@ -436,7 +436,7 @@
   },
   "machine_proof": {
     "clara_drafts_are_draft_only": true,
-    "content_hash": "sha256:983867e832635ecbe75f4fe1480ee8a0a25a48bbf1a2e4e5b8c776c957850285",
+    "content_hash": "sha256:aa710398f1b2bc982ffbdd736733984a04e61e21aee55b2293f9582d0b3e1869",
     "guardian_approval_separated_from_output_validation": true,
     "no_email_send": true,
     "no_gmail_draft_created": true,

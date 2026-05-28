@@ -15,7 +15,7 @@
     "spreadsheet_cell_read_performed": false,
     "workbook_body_read_performed": false
   },
-  "generated_at": "2026-05-28T16:38:03+00:00",
+  "generated_at": "2026-05-28T00:00:00+00:00",
   "live_arts_md_bundle": {
     "actionable_blockers": [
       {
@@ -82,21 +82,139 @@
     "bundle_id": "invoice_review_bundle:live_arts_md:v0",
     "clara_email_draft": {
       "attachment_claim": "attachment not ready yet",
-      "body": "Hi [Live Arts MD contact] - I'm Clara Reid, helping Winship keep the Live Arts MD invoice package organized and easy to track.\n\nI'm preparing the invoice note for review. Winship will confirm the attachment and recipient details before anything is sent.\n\nBest,\nClara Reid",
+      "attachment_ready": false,
+      "body": "Hi Dance - I'm Clara Reid, helping Winship keep the Live Arts MD invoice package organized.\n\nOnce Winship confirms the invoice file and recipient details, I'll send over the invoice for this period.\n\nBest,\nClara Reid",
       "draft_only": true,
-      "draft_ref": "clara_draft:006fc798d39f21ce",
+      "draft_ref": "clara_invoice_email_draft:live_arts_md:96fd15d57dd069a4",
+      "draft_status": "DRAFT_BLOCKED_PENDING_PREREQUISITES",
       "external_identity": "CLARA_REID",
       "guardian_approval_required": true,
+      "internal_identity": "CASSANDRA",
+      "missing_prerequisites": [
+        "attachment_readiness",
+        "invoice_period_or_dates",
+        "recipient_confirmation",
+        "clara_draft_receipt"
+      ],
+      "recipient_confirmation_status": "CANDIDATE_UNCONFIRMED",
       "selected_voice": "CLARA",
       "send_allowed": false,
+      "send_readiness": "BLOCKED_PREREQUISITES",
       "sent": false,
       "subject": "Live Arts MD invoice",
       "thread_ref": "client_comms_thread:live_arts_md:cc5418d57c6ca036"
     },
+    "clara_invoice_email_draft_package": {
+      "allowed_draft_statuses": [
+        "FINAL_DRAFT_READY_FOR_APPROVAL",
+        "DRAFT_PREVIEW_NOT_SEND_READY",
+        "DRAFT_BLOCKED_PENDING_PREREQUISITES",
+        "DRAFT_PLACEHOLDER_FOR_OPERATOR_REVIEW"
+      ],
+      "attachment_ready": false,
+      "attachment_refs": [],
+      "authority_boundary": {
+        "browser_or_supplier_portal_access_performed": false,
+        "email_send_performed": false,
+        "gmail_draft_created": false,
+        "gmail_polling_performed": false,
+        "invoice_generation_performed": false,
+        "ledger_posting_performed": false,
+        "production_mutation_performed": false,
+        "workbook_cell_read_performed": false
+      },
+      "body": "Hi Dance - I'm Clara Reid, helping Winship keep the Live Arts MD invoice package organized.\n\nOnce Winship confirms the invoice file and recipient details, I'll send over the invoice for this period.\n\nBest,\nClara Reid",
+      "cc_recipients": [
+        {
+          "confirmation_status": "CANDIDATE_UNCONFIRMED",
+          "display_name": "Draper",
+          "email": null,
+          "email_invented": false,
+          "email_status": "MISSING",
+          "lane": "cc",
+          "proof_ref": null,
+          "role": "cc_candidate"
+        },
+        {
+          "confirmation_status": "CANDIDATE_UNCONFIRMED",
+          "display_name": "Earnie",
+          "email": null,
+          "email_invented": false,
+          "email_status": "MISSING",
+          "lane": "cc",
+          "proof_ref": null,
+          "role": "cc_candidate"
+        },
+        {
+          "confirmation_status": "CANDIDATE_UNCONFIRMED",
+          "display_name": "Winship",
+          "email": "winshiplive@gmail.com",
+          "email_invented": false,
+          "email_status": "KNOWN_OPERATOR_PROVIDED",
+          "lane": "cc",
+          "proof_ref": "operator_known_email:winshiplive@gmail.com",
+          "role": "operator_copy"
+        }
+      ],
+      "client_facing_body_has_backend_status_language": false,
+      "client_ref": "live_arts_md",
+      "draft_only": true,
+      "draft_ref": "clara_invoice_email_draft:live_arts_md:96fd15d57dd069a4",
+      "draft_status": "DRAFT_BLOCKED_PENDING_PREREQUISITES",
+      "external_identity": "CLARA_REID",
+      "first_contact_intro_policy_ref": "generated/read_models/client_comms_thread_rail.json#live_arts_md_first_contact_policy",
+      "first_contact_intro_required": true,
+      "guardian_approval_request_status": "NOT_CREATED",
+      "guardian_approval_required": true,
+      "internal_identity": "CASSANDRA",
+      "invoice_dates_covered": [],
+      "invoice_period_label": null,
+      "missing_prerequisites": [
+        "attachment_readiness",
+        "invoice_period_or_dates",
+        "recipient_confirmation",
+        "clara_draft_receipt"
+      ],
+      "portal_submission_status": null,
+      "proof_refs": [],
+      "recipient_confirmation_status": "CANDIDATE_UNCONFIRMED",
+      "recipient_email_invented": false,
+      "selected_voice": "CLARA",
+      "send_allowed": false,
+      "send_execution_receipt_required": true,
+      "send_execution_status": "NOT_SENT",
+      "send_readiness": "BLOCKED_PREREQUISITES",
+      "sent": false,
+      "subject": "Live Arts MD invoice",
+      "supplier_portal_provider": null,
+      "to_recipients": [
+        {
+          "confirmation_status": "CANDIDATE_UNCONFIRMED",
+          "display_name": "Dance",
+          "email": null,
+          "email_invented": false,
+          "email_status": "MISSING",
+          "lane": "to",
+          "proof_ref": null,
+          "role": "primary_invoice_contact"
+        }
+      ],
+      "workflow_ref": "live_arts_md_invoice_workflow"
+    },
+    "client_alias_readiness": {
+      "aliases": [
+        "Arts Alive MD!",
+        "Arts Alive MD",
+        "arts_alive_md"
+      ],
+      "canonical_client_ref": "live_arts_md",
+      "operator_copy": "Treat Arts Alive MD as a possible operator alias for Live Arts MD until confirmed.",
+      "status": "ALIAS_CORRECTION_CANDIDATE"
+    },
     "client_comms_thread": {
       "audience": "external_client",
       "channel": "email",
-      "clara_draft_status": "DRAFT_ONLY",
+      "clara_draft_status": "DRAFT_BLOCKED_PENDING_PREREQUISITES",
       "comms_thread_status": "DRAFT_READY",
       "draft_only": true,
       "external_identity": "CLARA_REID",
@@ -161,7 +279,7 @@
     },
     "client_display_name": "Live Arts MD",
     "client_ref": "live_arts_md",
-    "generated_at": "2026-05-28T16:38:03+00:00",
+    "generated_at": "2026-05-28T00:00:00+00:00",
     "invoice_artifact": {
       "artifact_ref": null,
       "attachment_ready": false,
@@ -202,10 +320,13 @@
     "machine_proof": {
       "approval_send_disabled_without_receipts": true,
       "artifact_candidate_not_attachment_ready": true,
+      "arts_alive_alias_mapped_to_live_arts_md": true,
+      "clara_client_draft_body_status_free": true,
       "clara_draft_only": true,
       "clara_first_contact_intro_required": true,
+      "clara_invoice_draft_package_consumed": true,
       "client_comms_thread_rail_consumed": true,
-      "content_hash": "sha256:906fde57f1bf4d1b38e54143bfe043f23896e19c917d5200b2463596d6964507",
+      "content_hash": "sha256:14d8ec80a94a321f89133fe544ab7f6e3a5f1dbabe161f32897e02e3e482318d",
       "live_arts_md_does_not_require_coupa": true,
       "live_arts_md_does_not_require_po": true,
       "no_action_authority": true,
@@ -400,6 +521,38 @@
     ],
     "recipe_ref": "live_arts_md_invoice_workflow",
     "recipient_state": {
+      "cc_candidates": [
+        {
+          "confirmation_status": "CANDIDATE_UNCONFIRMED",
+          "display_name": "Draper",
+          "email": null,
+          "email_invented": false,
+          "email_status": "MISSING",
+          "lane": "cc",
+          "proof_ref": null,
+          "role": "cc_candidate"
+        },
+        {
+          "confirmation_status": "CANDIDATE_UNCONFIRMED",
+          "display_name": "Earnie",
+          "email": null,
+          "email_invented": false,
+          "email_status": "MISSING",
+          "lane": "cc",
+          "proof_ref": null,
+          "role": "cc_candidate"
+        },
+        {
+          "confirmation_status": "CANDIDATE_UNCONFIRMED",
+          "display_name": "Winship",
+          "email": "winshiplive@gmail.com",
+          "email_invented": false,
+          "email_status": "KNOWN_OPERATOR_PROVIDED",
+          "lane": "cc",
+          "proof_ref": "operator_known_email:winshiplive@gmail.com",
+          "role": "operator_copy"
+        }
+      ],
       "confirmation_receipt_required": "recipient_confirmation_receipt",
       "primary_action": {
         "action_kind": "review_and_confirm_recipients",
@@ -423,9 +576,62 @@
         "label": "Confirm recipient",
         "operator_visible_message": "Confirm recipient"
       },
-      "recipient_candidates": [],
+      "recipient_candidates": [
+        {
+          "confirmation_status": "CANDIDATE_UNCONFIRMED",
+          "display_name": "Dance",
+          "email": null,
+          "email_invented": false,
+          "email_status": "MISSING",
+          "lane": "to",
+          "proof_ref": null,
+          "role": "primary_invoice_contact"
+        },
+        {
+          "confirmation_status": "CANDIDATE_UNCONFIRMED",
+          "display_name": "Draper",
+          "email": null,
+          "email_invented": false,
+          "email_status": "MISSING",
+          "lane": "cc",
+          "proof_ref": null,
+          "role": "cc_candidate"
+        },
+        {
+          "confirmation_status": "CANDIDATE_UNCONFIRMED",
+          "display_name": "Earnie",
+          "email": null,
+          "email_invented": false,
+          "email_status": "MISSING",
+          "lane": "cc",
+          "proof_ref": null,
+          "role": "cc_candidate"
+        },
+        {
+          "confirmation_status": "CANDIDATE_UNCONFIRMED",
+          "display_name": "Winship",
+          "email": "winshiplive@gmail.com",
+          "email_invented": false,
+          "email_status": "KNOWN_OPERATOR_PROVIDED",
+          "lane": "cc",
+          "proof_ref": "operator_known_email:winshiplive@gmail.com",
+          "role": "operator_copy"
+        }
+      ],
       "recipient_email_invented": false,
-      "status": "RECIPIENT_INFO_REQUIRED"
+      "status": "RECIPIENT_INFO_REQUIRED",
+      "to_candidates": [
+        {
+          "confirmation_status": "CANDIDATE_UNCONFIRMED",
+          "display_name": "Dance",
+          "email": null,
+          "email_invented": false,
+          "email_status": "MISSING",
+          "lane": "to",
+          "proof_ref": null,
+          "role": "primary_invoice_contact"
+        }
+      ]
     },
     "schema_version": "live_arts_md_invoice_review_bundle_v0",
     "selected_rails": [
@@ -499,7 +705,7 @@
   },
   "machine_proof": {
     "bridge_safe": true,
-    "content_hash": "sha256:906fde57f1bf4d1b38e54143bfe043f23896e19c917d5200b2463596d6964507",
+    "content_hash": "sha256:14d8ec80a94a321f89133fe544ab7f6e3a5f1dbabe161f32897e02e3e482318d",
     "live_arts_md_bundle_present": true,
     "no_action_authority": true
   },

@@ -243,7 +243,7 @@ def build_clara_first_contact_draft(
     if client_ref == "live_arts_md":
         body_lines.extend(
             (
-                "I'm preparing the invoice note for review. Winship will confirm the attachment and recipient details before anything is sent.",
+                "Once Winship confirms the invoice file and recipient details, I'll send over the invoice for this period.",
                 "",
                 "Best,",
                 "Clara Reid",
@@ -252,7 +252,7 @@ def build_clara_first_contact_draft(
     elif client_ref == "capital_hilton":
         body_lines.extend(
             (
-                "I'm preparing the invoice package follow-up for review. Nothing will be sent until Winship approves the exact message and recipients.",
+                "Once Winship confirms the invoice file and recipient details, I'll send over the Excel invoice for your records.",
                 "",
                 "Best,",
                 "Clara Reid",

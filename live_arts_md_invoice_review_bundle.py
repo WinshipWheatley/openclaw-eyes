@@ -16,6 +16,7 @@ from typing import Any, Mapping
 
 import client_invoice_workflow_framework as workflow
 import client_comms_thread_rail
+import clara_invoice_email_draft_package as clara_drafts
 import client_invoice_workbook_registry
 import local_artifact_reference
 
@@ -290,6 +291,35 @@ def build_live_arts_md_bundle(
     comms_draft = dict(comms_fixture["draft_candidate"])
     comms_policy = dict(comms_fixture["first_contact_policy"])
     comms_thread = dict(comms_fixture["thread_registry_record"])
+    recipient_package = clara_drafts.live_arts_md_recipient_package(confirmed=recipient_confirmed)
+    invoice_period_label = "operator-selected period" if invoice_selected else None
+    clara_package = clara_drafts.build_clara_invoice_email_draft_package(
+        client_ref=CLIENT_REF,
+        workflow_ref=WORKFLOW_REF,
+        client_display_name=CLIENT_DISPLAY_NAME,
+        recipient_package=recipient_package,
+        attachment_ready=attachment_ready,
+        attachment_refs=(str(artifact.get("artifact_ref")),) if attachment_ready and artifact.get("artifact_ref") else (),
+        invoice_period_label=invoice_period_label,
+        invoice_dates_covered=(),
+        supplier_portal_required=False,
+        supplier_portal_provider=None,
+        portal_submission_status=None,
+        first_contact_intro_required=bool(comms_policy["intro_required"]),
+        first_contact_intro_policy_ref="generated/read_models/client_comms_thread_rail.json#live_arts_md_first_contact_policy",
+        proof_refs=tuple(item for item in (artifact.get("artifact_ref"),) if item),
+        present_receipts=receipts,
+    )
+    comms_draft.update(
+        {
+            "draft_ref": clara_package["draft_ref"],
+            "subject": clara_package["subject"],
+            "body": clara_package["body"],
+            "selected_voice": clara_package["selected_voice"],
+            "external_identity": clara_package["external_identity"],
+            "draft_status": clara_package["draft_status"],
+        }
+    )
     clara_ready = True
     guardian_approval_request_ready = "guardian_approval_request_receipt" in receipts
     email_sent = "email_send_receipt" in receipts
@@ -467,7 +497,7 @@ def build_live_arts_md_bundle(
             "first_contact_intro_required": comms_policy["intro_required"],
             "first_contact_intro_policy_ref": "generated/read_models/client_comms_thread_rail.json#first_contact_intro_policy",
             "first_contact_intro_policy": comms_policy,
-            "clara_draft_status": "DRAFT_ONLY",
+            "clara_draft_status": clara_package["draft_status"],
             "draft_only": True,
             "sent": False,
             "guardian_output_validation_status": comms_draft["guardian_output_validation_status"],
@@ -485,6 +515,8 @@ def build_live_arts_md_bundle(
             "draft_ref": comms_draft["draft_ref"],
             "selected_voice": comms_draft["selected_voice"],
             "external_identity": comms_draft["external_identity"],
+            "internal_identity": clara_package["internal_identity"],
+            "draft_status": clara_package["draft_status"],
             "draft_only": True,
             "sent": False,
             "send_allowed": False,
@@ -492,12 +524,20 @@ def build_live_arts_md_bundle(
             "subject": comms_draft["subject"],
             "body": comms_draft["body"],
             "attachment_claim": "attachment confirmed" if attachment_ready else "attachment not ready yet",
+            "attachment_ready": clara_package["attachment_ready"],
+            "missing_prerequisites": clara_package["missing_prerequisites"],
+            "recipient_confirmation_status": clara_package["recipient_confirmation_status"],
+            "send_readiness": clara_package["send_readiness"],
             "thread_ref": comms_draft["thread_ref"],
         },
+        "clara_invoice_email_draft_package": clara_package,
+        "client_alias_readiness": clara_drafts.CLIENT_ALIAS_READINESS["arts_alive_md"],
         "recipient_state": {
             "status": "CONFIRMED" if recipient_confirmed else "RECIPIENT_INFO_REQUIRED",
             "recipient_email_invented": False,
-            "recipient_candidates": (),
+            "to_candidates": clara_package["to_recipients"],
+            "cc_candidates": clara_package["cc_recipients"],
+            "recipient_candidates": (*clara_package["to_recipients"], *clara_package["cc_recipients"]),
             "confirmation_receipt_required": "recipient_confirmation_receipt",
             "primary_action": recipient_action,
         },
@@ -548,6 +588,14 @@ def build_live_arts_md_bundle(
             "uses_reusable_simple_invoice_rails": True,
             "clara_draft_only": True,
             "client_comms_thread_rail_consumed": True,
+            "clara_invoice_draft_package_consumed": True,
+            "clara_client_draft_body_status_free": not clara_package[
+                "client_facing_body_has_backend_status_language"
+            ],
+            "arts_alive_alias_mapped_to_live_arts_md": clara_drafts.CLIENT_ALIAS_READINESS["arts_alive_md"][
+                "canonical_client_ref"
+            ]
+            == CLIENT_REF,
             "clara_first_contact_intro_required": comms_policy["intro_required"],
             "thread_watch_blocked_until_send_receipt": thread_watch_status == "BLOCKED_UNTIL_SENT_RECEIPT",
             "send_execution_receipt_required": True,

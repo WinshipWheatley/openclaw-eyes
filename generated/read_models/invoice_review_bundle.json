@@ -570,11 +570,101 @@
     ],
     "bundle_id": "invoice_review_bundle:capital_hilton:v0",
     "clara_email_draft": {
-      "body": "Hi Annette,\n\nI'm preparing the Capital Hilton invoice package for review. I can send over the Excel invoice for your records once the package and recipients are confirmed.\n\nBest,\nClara",
+      "body": "Hi Annette - I'm Clara Reid, helping Winship keep the Capital Hilton invoice details organized.\n\nI'm preparing the Excel invoice note for your records once Winship confirms the invoice file.\n\nBest,\nClara Reid",
       "draft_only": true,
       "selected_voice": "CLARA",
       "sent": false,
-      "subject": "Capital Hilton invoice package for review"
+      "subject": "Capital Hilton invoice"
+    },
+    "clara_invoice_email_draft_package": {
+      "allowed_draft_statuses": [
+        "FINAL_DRAFT_READY_FOR_APPROVAL",
+        "DRAFT_PREVIEW_NOT_SEND_READY",
+        "DRAFT_BLOCKED_PENDING_PREREQUISITES",
+        "DRAFT_PLACEHOLDER_FOR_OPERATOR_REVIEW"
+      ],
+      "attachment_ready": false,
+      "attachment_refs": [],
+      "authority_boundary": {
+        "browser_or_supplier_portal_access_performed": false,
+        "email_send_performed": false,
+        "gmail_draft_created": false,
+        "gmail_polling_performed": false,
+        "invoice_generation_performed": false,
+        "ledger_posting_performed": false,
+        "production_mutation_performed": false,
+        "workbook_cell_read_performed": false
+      },
+      "body": "Hi Annette - I'm Clara Reid, helping Winship keep the Capital Hilton invoice details organized.\n\nI'm preparing the Excel invoice note for your records once Winship confirms the invoice file.\n\nBest,\nClara Reid",
+      "cc_recipients": [
+        {
+          "confirmation_status": "CANDIDATE_UNCONFIRMED",
+          "display_name": "Chyna",
+          "email": null,
+          "email_invented": false,
+          "email_status": "MISSING",
+          "lane": "cc",
+          "proof_ref": null,
+          "role": "finance_secondary"
+        },
+        {
+          "confirmation_status": "CANDIDATE_UNCONFIRMED",
+          "display_name": "Will",
+          "email": null,
+          "email_invented": false,
+          "email_status": "MISSING",
+          "lane": "cc",
+          "proof_ref": null,
+          "role": "relationship_contact"
+        }
+      ],
+      "client_facing_body_has_backend_status_language": false,
+      "client_ref": "capital_hilton",
+      "draft_only": true,
+      "draft_ref": "clara_invoice_email_draft:capital_hilton:334ae6db4782af14",
+      "draft_status": "DRAFT_BLOCKED_PENDING_PREREQUISITES",
+      "external_identity": "CLARA_REID",
+      "first_contact_intro_policy_ref": "generated/read_models/client_comms_thread_rail.json#capital_hilton_first_contact_policy",
+      "first_contact_intro_required": true,
+      "guardian_approval_request_status": "NOT_CREATED",
+      "guardian_approval_required": true,
+      "internal_identity": "CASSANDRA",
+      "invoice_dates_covered": [],
+      "invoice_period_label": null,
+      "missing_prerequisites": [
+        "attachment_readiness",
+        "invoice_period_or_dates",
+        "recipient_confirmation",
+        "supplier_portal_submission_proof",
+        "clara_draft_receipt"
+      ],
+      "portal_submission_status": "MISSING",
+      "proof_refs": [
+        "local_artifact_ref:deb5bc9b42567fd4"
+      ],
+      "recipient_confirmation_status": "CANDIDATE_UNCONFIRMED",
+      "recipient_email_invented": false,
+      "selected_voice": "CLARA",
+      "send_allowed": false,
+      "send_execution_receipt_required": true,
+      "send_execution_status": "NOT_SENT",
+      "send_readiness": "BLOCKED_PREREQUISITES",
+      "sent": false,
+      "subject": "Capital Hilton invoice",
+      "supplier_portal_provider": "COUPA",
+      "to_recipients": [
+        {
+          "confirmation_status": "CANDIDATE_UNCONFIRMED",
+          "display_name": "Annette",
+          "email": null,
+          "email_invented": false,
+          "email_status": "MISSING",
+          "lane": "to",
+          "proof_ref": null,
+          "role": "finance_primary"
+        }
+      ],
+      "workflow_ref": "capital_hilton_invoice_workflow"
     },
     "client_display_name": "Capital Hilton",
     "client_ref": "capital_hilton",
@@ -1040,7 +1130,7 @@
         "generated_invoice_artifact_linkage_receipt"
       ]
     },
-    "generated_at": "2026-05-28T14:06:40.359225+00:00",
+    "generated_at": "2026-05-28T00:00:00+00:00",
     "guardian_approval_request": {
       "approval_ref": "guardian_invoice_review_approval:29a79c0aad435df9",
       "approval_required": true,
@@ -1164,8 +1254,9 @@
       "approval_footer_ready": false,
       "artifact_inspection_paths_are_mac_visible": true,
       "attachment_ready_requires_invoice_record_linkage": true,
+      "clara_client_draft_body_status_free": true,
       "clara_draft_slot_present": true,
-      "content_hash": "sha256:1d1fb232cddad64f246a91af36c8ec5a4269496b1d74427d58e1a60a88406876",
+      "content_hash": "sha256:cc0f98c4d752fbd8d4e8dbfa676981357aee7503fde28bce990af4409076b973",
       "coupa_primary_before_email_success": true,
       "coupa_required_for_capital_hilton": true,
       "draft_does_not_imply_sent": true,
@@ -1173,8 +1264,8 @@
       "existing_artifact_without_invoice_record_linkage_is_candidate_only": true,
       "guardian_output_validation_does_not_imply_approval_request": true,
       "incomplete_timeline_steps_have_actions_or_disabled_reasons": true,
-      "last_action_completion_receipt_written": false,
-      "last_action_underlying_blocker_completed": false,
+      "last_action_completion_receipt_written": 0,
+      "last_action_underlying_blocker_completed": 0,
       "operator_approval_does_not_imply_execution": true,
       "operator_copy_jargon_free": true,
       "pdf_excel_generation_performed": false,
@@ -1286,7 +1377,42 @@
           "role": "relationship_contact"
         }
       ],
+      "client_draft_cc_recipients": [
+        {
+          "confirmation_status": "CANDIDATE_UNCONFIRMED",
+          "display_name": "Chyna",
+          "email": null,
+          "email_invented": false,
+          "email_status": "MISSING",
+          "lane": "cc",
+          "proof_ref": null,
+          "role": "finance_secondary"
+        },
+        {
+          "confirmation_status": "CANDIDATE_UNCONFIRMED",
+          "display_name": "Will",
+          "email": null,
+          "email_invented": false,
+          "email_status": "MISSING",
+          "lane": "cc",
+          "proof_ref": null,
+          "role": "relationship_contact"
+        }
+      ],
+      "client_draft_to_recipients": [
+        {
+          "confirmation_status": "CANDIDATE_UNCONFIRMED",
+          "display_name": "Annette",
+          "email": null,
+          "email_invented": false,
+          "email_status": "MISSING",
+          "lane": "to",
+          "proof_ref": null,
+          "role": "finance_primary"
+        }
+      ],
       "confirmation_status": "CANDIDATE_UNCONFIRMED",
+      "recipient_email_invented": false,
       "to_candidates": [
         {
           "confirmation_status": "CANDIDATE_UNCONFIRMED",
@@ -2135,44 +2261,18 @@
       "completion_receipts_only_turn_steps_complete": true,
       "last_action_receipt": {
         "action_kind": "regenerate_or_link_invoice_artifact",
-        "artifact_metadata": {
-          "file_size": 1845,
-          "generation_or_export_performed": false,
-          "metadata_status": "GENERATED_ARTIFACT_METADATA_VALID",
-          "sha256": "44680845f750580f114cfc2d0cc8f06cd11dfb36c40fa555bbdcfbdef7d06eb4",
-          "workbook_business_cells_read": false,
-          "workbook_business_contents_parsed": false
-        },
         "bundle_id": "invoice_review_bundle:capital_hilton:v0",
         "client_ref": "capital_hilton",
-        "completion_receipt_written": false,
-        "external_action_performed": false,
+        "completion_receipt_written": 0,
+        "external_action_performed": 0,
         "generated_at": "2026-05-28T14:06:40.359225+00:00",
-        "generator_audit": {
-          "artifact_created": false,
-          "artifact_linked": false,
-          "existing_generator_found": true,
-          "generator_refs": [
-            "invoice_artifact_builder",
-            "capital_hilton_invoice_artifact_generator"
-          ],
-          "generator_status": "GENERATION_AUTHORITY_REQUIRED",
-          "reason": "source_workbook_pc_or_mac_path, selected_record_invoice_artifact_generation_authority_receipt, approved_generation_inputs",
-          "required_linkage_inputs": {
-            "client_ref": "capital_hilton",
-            "invoice_period_label": "May 2026",
-            "invoice_record_label": "May tab / page 2",
-            "source_workbook_status": "CONFIRMED",
-            "workflow_ref": "capital_hilton_invoice_workflow"
-          }
-        },
         "receipt_event": "selected_record_invoice_artifact_generation_authority_required",
         "receipt_id": "invoice_review:selected_record_invoice_artifact_generation_authority_required_receipt:7a4d0b2669c9fdbb",
         "receipt_name": "selected_record_invoice_artifact_generation_authority_required_receipt",
         "receipt_type": "invoice_review_action_progress_receipt",
         "source_request_id": "capital_hilton_selected_invoice_artifact_generation_rail_v0",
         "status": "GENERATION_AUTHORITY_REQUIRED",
-        "underlying_blocker_completed": false,
+        "underlying_blocker_completed": 0,
         "workflow_ref": "capital_hilton_invoice_workflow"
       },
       "schema_version": "invoice_review_state_machine_v0",
@@ -2238,7 +2338,7 @@
     "workflow_ref": "capital_hilton_invoice_workflow"
   },
   "contract_status": "MISSION_CONTROL_APPROVAL_CARD_CONTRACT_NO_ACTIONS",
-  "generated_at": "2026-05-28T14:06:40.359225+00:00",
+  "generated_at": "2026-05-28T00:00:00+00:00",
   "hidden_from_primary_ui": [
     "approval_ref",
     "button_ref",
@@ -2262,7 +2362,7 @@
     "capital_hilton_coupa_proof_required": true,
     "capital_hilton_has_review_bundle": true,
     "capital_hilton_supplier_portal_provider": "COUPA",
-    "content_hash": "sha256:594bd56b1630e40fc64b78bcf7cdc1119704613debd523c75deeecd3e2799d5e",
+    "content_hash": "sha256:643f99f7b9688fa1b6a623aa913a0e29906ea7f1f0ddf92586ad45b584eb56cf",
     "coupa_action_enabled": false,
     "non_coupa_client_does_not_require_coupa": true,
     "non_coupa_client_does_not_require_supplier_portal": true,
@@ -2293,7 +2393,7 @@
       "required": false,
       "status": "NOT_REQUIRED_BY_RECIPE"
     },
-    "generated_at": "2026-05-28T14:06:40.359225+00:00",
+    "generated_at": "2026-05-28T00:00:00+00:00",
     "operator_copy": {
       "body": "This recipe does not require Coupa proof unless the client recipe is changed.",
       "headline": "Review the St. Anne's invoice package."

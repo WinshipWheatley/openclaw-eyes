@@ -10,7 +10,7 @@ Approval card:
 - Excel invoice candidate: Capital Hilton Excel invoice candidate
 - Preview: Excel candidate available for inspection. Inline PDF/image preview is not available yet.
 - Attachment readiness: false
-- Clara draft subject: Capital Hilton invoice package for review
+- Clara draft subject: Capital Hilton invoice
 - Approval footer: Approval is disabled until invoice selection, Coupa proof, recipients, and attachment proof are ready.
 
 Blockers:

@@ -11,14 +11,17 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import shutil
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Mapping
 
 import client_invoice_workflow_framework as workflow
+import clara_invoice_email_draft_package as clara_drafts
 
 
 DEFAULT_EXPORT_ROOT = Path("generated/read_models")
+DEFAULT_BRIDGE_EXPORT_ROOT = Path("/mnt/e/openclaw/generated/read_models")
 DEFAULT_GENERATED_AT = "2026-05-27T00:00:00+00:00"
 
 SCHEMA_VERSION = "invoice_review_bundle_v0"
@@ -234,7 +237,15 @@ def _excel_invoice_artifact(receipts: set[str]) -> InvoiceReviewArtifact:
     )
 
 
-def _clara_draft() -> ClaraEmailDraft:
+def _clara_draft(package: Mapping[str, Any] | None = None) -> ClaraEmailDraft:
+    if package is not None:
+        return ClaraEmailDraft(
+            subject=str(package["subject"]),
+            body=str(package["body"]),
+            selected_voice=str(package["selected_voice"]),
+            draft_only=bool(package["draft_only"]),
+            sent=bool(package["sent"]),
+        )
     return ClaraEmailDraft(
         subject="Capital Hilton invoice package for review",
         body=(
@@ -979,9 +990,27 @@ def build_capital_hilton_bundle(
     generated_at = generated_at or DEFAULT_GENERATED_AT
     receipts = _normalize_receipts(present_receipts)
     excel = _excel_invoice_artifact(receipts)
-    clara = _clara_draft()
     coupa = _coupa_invoice_proof(receipts)
     contacts_confirmed = "recipient_confirmation_receipt" in receipts
+    recipient_package = clara_drafts.capital_hilton_recipient_package(confirmed=contacts_confirmed)
+    clara_package = clara_drafts.build_clara_invoice_email_draft_package(
+        client_ref="capital_hilton",
+        workflow_ref=CAPITAL_HILTON_WORKFLOW_REF,
+        client_display_name="Capital Hilton",
+        recipient_package=recipient_package,
+        attachment_ready=excel.attachment_ready,
+        attachment_refs=(excel.artifact_ref,) if excel.attachment_ready else (),
+        invoice_period_label=None,
+        invoice_dates_covered=(),
+        supplier_portal_required=True,
+        supplier_portal_provider="COUPA",
+        portal_submission_status=coupa.status,
+        first_contact_intro_required=True,
+        first_contact_intro_policy_ref="generated/read_models/client_comms_thread_rail.json#capital_hilton_first_contact_policy",
+        proof_refs=tuple(item for item in (excel.artifact_ref, coupa.proof_ref) if item),
+        present_receipts=receipts,
+    )
+    clara = _clara_draft(clara_package)
     ready_for_send_review = (
         excel.attachment_ready
         and "clara_email_draft_receipt" in receipts
@@ -1065,12 +1094,16 @@ def build_capital_hilton_bundle(
         "artifact_inspection_actions": artifact_actions,
         "correction_actions": correction_actions,
         "clara_email_draft": asdict(clara),
+        "clara_invoice_email_draft_package": clara_package,
         "coupa_invoice_proof": asdict(coupa),
         "supplier_portal_invoice_submission": asdict(coupa),
         "recipients": {
             "to_candidates": tuple(asdict(item) for item in _capital_hilton_recipients(confirmed=contacts_confirmed) if item.lane == "to"),
             "cc_candidates": tuple(asdict(item) for item in _capital_hilton_recipients(confirmed=contacts_confirmed) if item.lane == "cc"),
+            "client_draft_to_recipients": clara_package["to_recipients"],
+            "client_draft_cc_recipients": clara_package["cc_recipients"],
             "confirmation_status": "CONFIRMED_BY_RECEIPT" if contacts_confirmed else "CANDIDATE_UNCONFIRMED",
+            "recipient_email_invented": clara_package["recipient_email_invented"],
         },
         "guardian_approval_request": asdict(guardian),
         "approval_footer": approval_footer,
@@ -1160,6 +1193,9 @@ def build_capital_hilton_bundle(
             for item in proof_timeline
         ),
         "clara_draft_slot_present": True,
+        "clara_client_draft_body_status_free": not clara_package[
+            "client_facing_body_has_backend_status_language"
+        ],
         "coupa_required_for_capital_hilton": True,
         "supplier_portal_required_for_capital_hilton": True,
         "supplier_portal_provider_for_capital_hilton": "COUPA",
@@ -1263,7 +1299,12 @@ def build_payload(*, generated_at: str | None = None) -> dict[str, Any]:
     return payload
 
 
-def write_exports(payload: Mapping[str, Any], export_root: Path = DEFAULT_EXPORT_ROOT) -> tuple[Path, Path]:
+def write_exports(
+    payload: Mapping[str, Any],
+    export_root: Path = DEFAULT_EXPORT_ROOT,
+    *,
+    bridge_export_root: Path | None = None,
+) -> tuple[Path, Path] | tuple[Path, Path, Path]:
     export_root.mkdir(parents=True, exist_ok=True)
     json_path = export_root / JSON_EXPORT_NAME
     operator_path = export_root / OPERATOR_EXPORT_NAME
@@ -1309,17 +1350,32 @@ def write_exports(payload: Mapping[str, Any], export_root: Path = DEFAULT_EXPORT
         "Proof is available behind disclosure. No email, Coupa, browser, ledger, or production action is enabled.",
     ]
     operator_path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+    bridge_path = None
+    if bridge_export_root is not None:
+        bridge_export_root.mkdir(parents=True, exist_ok=True)
+        bridge_path = bridge_export_root / JSON_EXPORT_NAME
+        shutil.copy2(json_path, bridge_path)
+        return json_path, operator_path, bridge_path
     return json_path, operator_path
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Export invoice review bundle read-model.")
     parser.add_argument("--export-root", type=Path, default=DEFAULT_EXPORT_ROOT)
+    parser.add_argument("--bridge-export-root", type=Path)
+    parser.add_argument("--no-bridge", action="store_true")
     parser.add_argument("--generated-at", default=DEFAULT_GENERATED_AT)
     parser.add_argument("--format", choices=("summary", "json"), default="summary")
     args = parser.parse_args(argv)
     payload = build_payload(generated_at=args.generated_at)
-    json_path, operator_path = write_exports(payload, args.export_root)
+    written = write_exports(
+        payload,
+        args.export_root,
+        bridge_export_root=None if args.no_bridge else args.bridge_export_root,
+    )
+    json_path = written[0]
+    operator_path = written[1]
+    bridge_path = written[2] if len(written) > 2 else None
     if args.format == "json":
         print(stable_json(payload), end="")
     else:
@@ -1329,6 +1385,7 @@ def main(argv: list[str] | None = None) -> int:
                     "read_model_id": READ_MODEL_ID,
                     "json_path": json_path.as_posix(),
                     "operator_path": operator_path.as_posix(),
+                    "bridge_path": bridge_path.as_posix() if bridge_path else None,
                     "status": payload["contract_status"],
                     "button_labels": payload["approval_button_contract"]["button_labels"],
                     "send_action_enabled": payload["machine_proof"]["send_action_enabled"],
