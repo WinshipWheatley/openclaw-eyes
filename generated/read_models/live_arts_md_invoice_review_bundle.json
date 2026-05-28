@@ -19,20 +19,19 @@
   "live_arts_md_bundle": {
     "actionable_blockers": [
       {
-        "blocker_ref": "live_arts_md_blocker:89c158c3f6eeffbc",
-        "operator_summary": "Choose the Live Arts MD source workbook.",
+        "blocker_ref": "live_arts_md_blocker:cd43374578c885bb",
+        "operator_summary": "Choose which Live Arts MD invoice to prepare.",
         "primary_action": {
-          "action_kind": "replace_source_workbook_reference",
-          "action_ref": "live_arts_md_invoice_action:69e707dab4c4fc5b",
+          "action_kind": "select_invoice_candidate",
+          "action_ref": "live_arts_md_invoice_action:952695ccd00d1e4c",
           "disabled_reason": null,
           "enabled": true,
           "hidden_request_payload": {
-            "action_kind": "replace_source_workbook_reference",
+            "action_kind": "select_invoice_candidate",
             "client_ref": "live_arts_md",
             "coupa_submit_allowed": false,
             "email_send_allowed": false,
-            "expected_workbook_display_name": "Invoice Live Arts MD! Running.xlsx",
-            "intended_use": "replace_source_workbook_reference",
+            "intended_use": "choose_live_arts_md_invoice_candidate",
             "ledger_posting_allowed": false,
             "no_cell_read": true,
             "no_external_action": true,
@@ -41,14 +40,14 @@
             "request_type": "INVOICE_REVIEW_ACTION_REQUEST",
             "workflow_ref": "live_arts_md_invoice_workflow"
           },
-          "label": "Choose Live Arts MD source workbook",
-          "operator_visible_message": "Choose Live Arts MD source workbook"
+          "label": "Choose invoice candidate",
+          "operator_visible_message": "Choose invoice candidate"
         }
       }
     ],
     "approval_footer": {
       "approval_disabled_reasons": [
-        "Choose the Live Arts MD source workbook.",
+        "Choose which Live Arts MD invoice to prepare.",
         "Attach or link the generated Live Arts MD invoice artifact.",
         "Confirm the Live Arts MD recipient/contact.",
         "Guardian approval request is required before send approval.",
@@ -73,7 +72,7 @@
       "workbook_body_read_performed": false
     },
     "blockers": [
-      "Choose the Live Arts MD source workbook.",
+      "Choose which Live Arts MD invoice to prepare.",
       "Attach or link the generated Live Arts MD invoice artifact.",
       "Confirm the Live Arts MD recipient/contact.",
       "Guardian approval request is required before send approval.",
@@ -279,6 +278,16 @@
     },
     "client_display_name": "Live Arts MD",
     "client_ref": "live_arts_md",
+    "contact_ambiguity": {
+      "ambiguous_names": [
+        "Dance",
+        "Dane"
+      ],
+      "do_not_silently_choose": true,
+      "emails_invented": false,
+      "reason": "Operator target said Dance; handoff mentioned Dane in alias-table context.",
+      "status": "NEEDS_OPERATOR_CONFIRMATION"
+    },
     "generated_at": "2026-05-28T00:00:00+00:00",
     "invoice_artifact": {
       "artifact_ref": null,
@@ -290,20 +299,253 @@
       "receipt_required_for_attachment_ready": "operator_provided_invoice_artifact_linked_candidate_receipt",
       "status": "ARTIFACT_REQUIRED"
     },
+    "invoice_candidate_register": {
+      "candidate_count": 3,
+      "invoice_candidates": [
+        {
+          "amount": 900,
+          "amount_display": "$900",
+          "artifact_status": "NOT_READY_REQUIRES_MANUAL_EXPORT_OR_LINK",
+          "bank_ledger_source_of_truth_for_actual_receipts": true,
+          "client": "Live Arts MD",
+          "invoice_id": "2026-1001",
+          "invoice_status": "Draft - ready to send",
+          "ledger_handoff_status": "PLANNING_ONLY_NO_MUTATION",
+          "ledger_posted": false,
+          "operator_provided_ranges": [
+            "June 2026 Speaker Rental!G2:G5",
+            "June 2026 Speaker Rental!F40:G43",
+            "June 2026 Speaker Rental!B49:G53"
+          ],
+          "paid": false,
+          "payment_watch_status": "READINESS_ONLY_NOT_ACTIVE",
+          "readiness_status": "NEEDS_ARTIFACT_RECIPIENT_GUARDIAN_APPROVAL",
+          "receipt_status": "UNPAID",
+          "review_status": "OPERATOR_HANDOFF_DRAFT_READY_TO_SEND",
+          "selection_action": {
+            "action_kind": "select_invoice_candidate",
+            "action_ref": "live_arts_md_invoice_candidate_select:2026-1001",
+            "disabled_reason": null,
+            "enabled": true,
+            "hidden_request_payload": {
+              "client_ref": "live_arts_md",
+              "email_send_allowed": false,
+              "intended_use": "select_live_arts_md_invoice_candidate",
+              "invoice_id": "2026-1001",
+              "ledger_posting_allowed": false,
+              "no_cell_read": true,
+              "no_external_action": true,
+              "no_generation_export": true,
+              "no_workbook_body_read": true,
+              "operator_provided": true,
+              "request_type": "INVOICE_REVIEW_ACTION_REQUEST",
+              "sheet_label": "June 2026 Speaker Rental",
+              "work_type": "Speaker Rental",
+              "workflow_ref": "live_arts_md_invoice_workflow"
+            },
+            "label": "Select June 2026 Speaker Rental",
+            "operator_visible_message": "Selecting Live Arts MD invoice 2026-1001."
+          },
+          "send_readiness": "BLOCKED_NEEDS_ARTIFACT_RECIPIENT_GUARDIAN_APPROVAL",
+          "sent": false,
+          "sheet_label": "June 2026 Speaker Rental",
+          "submitted": false,
+          "work_type": "Speaker Rental",
+          "workbook_source_of_truth_for_invoice_intent": true
+        },
+        {
+          "amount": 4625,
+          "amount_display": "$4,625",
+          "artifact_status": "NOT_READY_REQUIRES_MANUAL_EXPORT_OR_LINK",
+          "bank_ledger_source_of_truth_for_actual_receipts": true,
+          "client": "Live Arts MD",
+          "invoice_id": "2026-1002",
+          "invoice_status": "Draft - verify before send",
+          "ledger_handoff_status": "PLANNING_ONLY_NO_MUTATION",
+          "ledger_posted": false,
+          "operator_provided_ranges": [
+            "June 2026 AV Tech!G2:G5",
+            "June 2026 AV Tech!F40:G43",
+            "June 2026 AV Tech!B49:G53"
+          ],
+          "paid": false,
+          "payment_watch_status": "READINESS_ONLY_NOT_ACTIVE",
+          "readiness_status": "NEEDS_OPERATOR_VERIFICATION",
+          "receipt_status": "UNPAID",
+          "review_status": "VERIFY_BEFORE_SEND",
+          "selection_action": {
+            "action_kind": "select_invoice_candidate",
+            "action_ref": "live_arts_md_invoice_candidate_select:2026-1002",
+            "disabled_reason": null,
+            "enabled": true,
+            "hidden_request_payload": {
+              "client_ref": "live_arts_md",
+              "email_send_allowed": false,
+              "intended_use": "select_live_arts_md_invoice_candidate",
+              "invoice_id": "2026-1002",
+              "ledger_posting_allowed": false,
+              "no_cell_read": true,
+              "no_external_action": true,
+              "no_generation_export": true,
+              "no_workbook_body_read": true,
+              "operator_provided": true,
+              "request_type": "INVOICE_REVIEW_ACTION_REQUEST",
+              "sheet_label": "June 2026 AV Tech",
+              "work_type": "AV Tech",
+              "workflow_ref": "live_arts_md_invoice_workflow"
+            },
+            "label": "Select June 2026 AV Tech",
+            "operator_visible_message": "Selecting Live Arts MD invoice 2026-1002."
+          },
+          "send_readiness": "NOT_SEND_READY",
+          "sent": false,
+          "sheet_label": "June 2026 AV Tech",
+          "submitted": false,
+          "work_type": "AV Tech",
+          "workbook_source_of_truth_for_invoice_intent": true
+        },
+        {
+          "amount": 0,
+          "amount_display": "$0",
+          "artifact_status": "NOT_READY_REQUIRES_MANUAL_EXPORT_OR_LINK",
+          "bank_ledger_source_of_truth_for_actual_receipts": true,
+          "client": "Live Arts MD",
+          "invoice_id": "2026-1003",
+          "invoice_status": "Future/draft",
+          "ledger_handoff_status": "PLANNING_ONLY_NO_MUTATION",
+          "ledger_posted": false,
+          "operator_provided_ranges": [
+            "July 2026!G2:G5",
+            "July 2026!B49:G54"
+          ],
+          "paid": false,
+          "payment_watch_status": "READINESS_ONLY_NOT_ACTIVE",
+          "readiness_status": "FUTURE_NOT_SEND_READY",
+          "receipt_status": "UNPAID",
+          "review_status": "FUTURE_DRAFT_CHECK_JUNE_PAYMENT_STATUS_FIRST",
+          "selection_action": {
+            "action_kind": "select_invoice_candidate",
+            "action_ref": "live_arts_md_invoice_candidate_select:2026-1003",
+            "disabled_reason": "Review this future invoice later after June payment status is known.",
+            "enabled": false,
+            "hidden_request_payload": {
+              "client_ref": "live_arts_md",
+              "email_send_allowed": false,
+              "intended_use": "select_live_arts_md_invoice_candidate",
+              "invoice_id": "2026-1003",
+              "ledger_posting_allowed": false,
+              "no_cell_read": true,
+              "no_external_action": true,
+              "no_generation_export": true,
+              "no_workbook_body_read": true,
+              "operator_provided": true,
+              "request_type": "INVOICE_REVIEW_ACTION_REQUEST",
+              "sheet_label": "July 2026",
+              "work_type": "Future invoice",
+              "workflow_ref": "live_arts_md_invoice_workflow"
+            },
+            "label": "Select July 2026",
+            "operator_visible_message": "Selecting Live Arts MD invoice 2026-1003."
+          },
+          "send_readiness": "NOT_SEND_READY",
+          "sent": false,
+          "sheet_label": "July 2026",
+          "submitted": false,
+          "work_type": "Future invoice",
+          "workbook_source_of_truth_for_invoice_intent": true
+        }
+      ],
+      "primary_next_action": "Choose which Live Arts MD invoice to prepare.",
+      "urgent_actions": [
+        {
+          "action_kind": "select_invoice_candidate",
+          "action_ref": "live_arts_md_invoice_candidate_select:2026-1001",
+          "disabled_reason": null,
+          "enabled": true,
+          "hidden_request_payload": {
+            "client_ref": "live_arts_md",
+            "email_send_allowed": false,
+            "intended_use": "select_live_arts_md_invoice_candidate",
+            "invoice_id": "2026-1001",
+            "ledger_posting_allowed": false,
+            "no_cell_read": true,
+            "no_external_action": true,
+            "no_generation_export": true,
+            "no_workbook_body_read": true,
+            "operator_provided": true,
+            "request_type": "INVOICE_REVIEW_ACTION_REQUEST",
+            "sheet_label": "June 2026 Speaker Rental",
+            "work_type": "Speaker Rental",
+            "workflow_ref": "live_arts_md_invoice_workflow"
+          },
+          "label": "Select June 2026 Speaker Rental",
+          "operator_visible_message": "Selecting Live Arts MD invoice 2026-1001."
+        },
+        {
+          "action_kind": "select_invoice_candidate",
+          "action_ref": "live_arts_md_invoice_candidate_select:2026-1002",
+          "disabled_reason": null,
+          "enabled": true,
+          "hidden_request_payload": {
+            "client_ref": "live_arts_md",
+            "email_send_allowed": false,
+            "intended_use": "select_live_arts_md_invoice_candidate",
+            "invoice_id": "2026-1002",
+            "ledger_posting_allowed": false,
+            "no_cell_read": true,
+            "no_external_action": true,
+            "no_generation_export": true,
+            "no_workbook_body_read": true,
+            "operator_provided": true,
+            "request_type": "INVOICE_REVIEW_ACTION_REQUEST",
+            "sheet_label": "June 2026 AV Tech",
+            "work_type": "AV Tech",
+            "workflow_ref": "live_arts_md_invoice_workflow"
+          },
+          "label": "Select June 2026 AV Tech",
+          "operator_visible_message": "Selecting Live Arts MD invoice 2026-1002."
+        },
+        {
+          "action_kind": "select_invoice_candidate",
+          "action_ref": "live_arts_md_invoice_candidate_select:2026-1003",
+          "disabled_reason": "Review this future invoice later after June payment status is known.",
+          "enabled": false,
+          "hidden_request_payload": {
+            "client_ref": "live_arts_md",
+            "email_send_allowed": false,
+            "intended_use": "select_live_arts_md_invoice_candidate",
+            "invoice_id": "2026-1003",
+            "ledger_posting_allowed": false,
+            "no_cell_read": true,
+            "no_external_action": true,
+            "no_generation_export": true,
+            "no_workbook_body_read": true,
+            "operator_provided": true,
+            "request_type": "INVOICE_REVIEW_ACTION_REQUEST",
+            "sheet_label": "July 2026",
+            "work_type": "Future invoice",
+            "workflow_ref": "live_arts_md_invoice_workflow"
+          },
+          "label": "Review July 2026 later",
+          "operator_visible_message": "Selecting Live Arts MD invoice 2026-1003."
+        }
+      ]
+    },
+    "invoice_candidate_register_ref": "generated/read_models/live_arts_md_invoice_candidate_register.json",
     "invoice_selection": {
       "no_cell_read": true,
       "no_workbook_body_read": true,
       "primary_action": {
-        "action_kind": "start_invoice_record_selection",
-        "action_ref": "live_arts_md_invoice_action:33094d0f415abf4b",
-        "disabled_reason": "Choose the source workbook first.",
-        "enabled": false,
+        "action_kind": "select_invoice_candidate",
+        "action_ref": "live_arts_md_invoice_action:952695ccd00d1e4c",
+        "disabled_reason": null,
+        "enabled": true,
         "hidden_request_payload": {
-          "action_kind": "start_invoice_record_selection",
+          "action_kind": "select_invoice_candidate",
           "client_ref": "live_arts_md",
           "coupa_submit_allowed": false,
           "email_send_allowed": false,
-          "intended_use": "select_invoice_record_or_period",
+          "intended_use": "choose_live_arts_md_invoice_candidate",
           "ledger_posting_allowed": false,
           "no_cell_read": true,
           "no_external_action": true,
@@ -312,47 +554,168 @@
           "request_type": "INVOICE_REVIEW_ACTION_REQUEST",
           "workflow_ref": "live_arts_md_invoice_workflow"
         },
-        "label": "Select invoice page",
-        "operator_visible_message": "Select invoice page"
+        "label": "Choose invoice candidate",
+        "operator_visible_message": "Choose invoice candidate"
       },
-      "status": "BLOCKED_NEEDS_SOURCE_WORKBOOK"
+      "status": "NEEDS_CANDIDATE_SELECTION",
+      "urgent_actions": [
+        {
+          "action_kind": "select_invoice_candidate",
+          "action_ref": "live_arts_md_invoice_candidate_select:2026-1001",
+          "disabled_reason": null,
+          "enabled": true,
+          "hidden_request_payload": {
+            "client_ref": "live_arts_md",
+            "email_send_allowed": false,
+            "intended_use": "select_live_arts_md_invoice_candidate",
+            "invoice_id": "2026-1001",
+            "ledger_posting_allowed": false,
+            "no_cell_read": true,
+            "no_external_action": true,
+            "no_generation_export": true,
+            "no_workbook_body_read": true,
+            "operator_provided": true,
+            "request_type": "INVOICE_REVIEW_ACTION_REQUEST",
+            "sheet_label": "June 2026 Speaker Rental",
+            "work_type": "Speaker Rental",
+            "workflow_ref": "live_arts_md_invoice_workflow"
+          },
+          "label": "Select June 2026 Speaker Rental",
+          "operator_visible_message": "Selecting Live Arts MD invoice 2026-1001."
+        },
+        {
+          "action_kind": "select_invoice_candidate",
+          "action_ref": "live_arts_md_invoice_candidate_select:2026-1002",
+          "disabled_reason": null,
+          "enabled": true,
+          "hidden_request_payload": {
+            "client_ref": "live_arts_md",
+            "email_send_allowed": false,
+            "intended_use": "select_live_arts_md_invoice_candidate",
+            "invoice_id": "2026-1002",
+            "ledger_posting_allowed": false,
+            "no_cell_read": true,
+            "no_external_action": true,
+            "no_generation_export": true,
+            "no_workbook_body_read": true,
+            "operator_provided": true,
+            "request_type": "INVOICE_REVIEW_ACTION_REQUEST",
+            "sheet_label": "June 2026 AV Tech",
+            "work_type": "AV Tech",
+            "workflow_ref": "live_arts_md_invoice_workflow"
+          },
+          "label": "Select June 2026 AV Tech",
+          "operator_visible_message": "Selecting Live Arts MD invoice 2026-1002."
+        },
+        {
+          "action_kind": "select_invoice_candidate",
+          "action_ref": "live_arts_md_invoice_candidate_select:2026-1003",
+          "disabled_reason": "Review this future invoice later after June payment status is known.",
+          "enabled": false,
+          "hidden_request_payload": {
+            "client_ref": "live_arts_md",
+            "email_send_allowed": false,
+            "intended_use": "select_live_arts_md_invoice_candidate",
+            "invoice_id": "2026-1003",
+            "ledger_posting_allowed": false,
+            "no_cell_read": true,
+            "no_external_action": true,
+            "no_generation_export": true,
+            "no_workbook_body_read": true,
+            "operator_provided": true,
+            "request_type": "INVOICE_REVIEW_ACTION_REQUEST",
+            "sheet_label": "July 2026",
+            "work_type": "Future invoice",
+            "workflow_ref": "live_arts_md_invoice_workflow"
+          },
+          "label": "Review July 2026 later",
+          "operator_visible_message": "Selecting Live Arts MD invoice 2026-1003."
+        }
+      ]
+    },
+    "ledger_planning": {
+      "alias_map_requires_human_approval": true,
+      "current_ledger_pointer_manifest_required": true,
+      "handles_partial_multi_invoice_multi_deposit_overpayment_credit_writeoff_variance": true,
+      "hardcoded_dated_ledger_path_allowed": false,
+      "silent_ledger_mutation_allowed": false,
+      "speaker_rental_variance_note": "$900 accepted vs. $1,100 internal record issue requires operator-approved handling."
     },
     "machine_proof": {
       "approval_send_disabled_without_receipts": true,
       "artifact_candidate_not_attachment_ready": true,
       "arts_alive_alias_mapped_to_live_arts_md": true,
+      "candidate_register_present": true,
       "clara_client_draft_body_status_free": true,
       "clara_draft_only": true,
       "clara_first_contact_intro_required": true,
       "clara_invoice_draft_package_consumed": true,
       "client_comms_thread_rail_consumed": true,
-      "content_hash": "sha256:14d8ec80a94a321f89133fe544ab7f6e3a5f1dbabe161f32897e02e3e482318d",
+      "content_hash": "sha256:ee5c55146f6dbb6f51a9a50f0c07e4a544eea0e103d8a2c6430fed50c68936fb",
       "live_arts_md_does_not_require_coupa": true,
       "live_arts_md_does_not_require_po": true,
       "no_action_authority": true,
       "no_recipient_email_invented": true,
+      "operator_handoff_not_workbook_parsed": true,
+      "payment_watch_readiness_only_no_bank_read": true,
       "send_execution_receipt_required": true,
       "thread_watch_blocked_until_send_receipt": true,
-      "uses_reusable_simple_invoice_rails": true
+      "uses_reusable_simple_invoice_rails": true,
+      "workbook_existence_does_not_mark_sent_paid_or_ledger_posted": true
     },
-    "next_safe_move": "Choose the Live Arts MD source workbook.",
+    "next_safe_move": "Choose which Live Arts MD invoice to prepare.",
+    "operator_workbook_handoff": {
+      "cell_read": false,
+      "confidence": "operator_handoff",
+      "operator_provided": true,
+      "receipt": {
+        "cell_read": false,
+        "client_ref": "live_arts_md",
+        "confidence": "operator_handoff",
+        "generated_at": "2026-05-28T00:00:00+00:00",
+        "operator_provided": true,
+        "proof_refs": [
+          "June 2026 Speaker Rental!G2:G5",
+          "June 2026 Speaker Rental!F40:G43",
+          "June 2026 Speaker Rental!B49:G53",
+          "June 2026 AV Tech!G2:G5",
+          "June 2026 AV Tech!F40:G43",
+          "June 2026 AV Tech!B49:G53",
+          "July 2026!G2:G5",
+          "July 2026!B49:G54",
+          "Invoice Register!A1:K7"
+        ],
+        "receipt_event": "operator_provided_live_arts_md_workbook_handoff",
+        "receipt_id": "operator_handoff:live_arts_md_workbook:b9cd42c066273d21",
+        "receipt_type": "operator_provided_workbook_handoff_receipt",
+        "source_workbook_mac_path": "/Users/hwinshipwheatley/Documents/Invoices/Invoice Clinets/Invoice Live Arts MD! Running.xlsx",
+        "source_workbook_ref": "workbook_ref:client_invoice:live_arts_md:running_operator_confirmed",
+        "workbook_body_read": false,
+        "workflow_ref": "live_arts_md_invoice_workflow"
+      },
+      "workbook_body_read": false
+    },
     "payment_watch": {
+      "active_only_after_send_or_manual_send_receipt": true,
+      "actual_bank_transactions_separate": true,
       "bank_ledger_match_required": true,
+      "bank_ledger_read_performed": false,
       "client_ref": "live_arts_md",
       "expected_amount": null,
+      "expected_ar_layer_required": true,
       "expected_window": null,
       "invoice_ref": null,
       "ledger_posting_allowed": false,
-      "payment_watch_status": "READINESS_ONLY"
+      "payment_watch_status": "READINESS_ONLY_NOT_ACTIVE"
     },
     "proof_timeline": [
       {
-        "operator_summary": "Choose the Live Arts MD source workbook.",
+        "operator_summary": "Choose which Live Arts MD invoice to prepare.",
         "primary_action": {
           "action_kind": "replace_source_workbook_reference",
           "action_ref": "live_arts_md_invoice_action:69e707dab4c4fc5b",
-          "disabled_reason": null,
-          "enabled": true,
+          "disabled_reason": "Source workbook is already confirmed.",
+          "enabled": false,
           "hidden_request_payload": {
             "action_kind": "replace_source_workbook_reference",
             "client_ref": "live_arts_md",
@@ -374,23 +737,23 @@
         "required_receipts": [
           "source_workbook_reference_confirmed_receipt"
         ],
-        "status": "NEEDS_ACTION",
+        "status": "COMPLETE",
         "step_ref": "live_arts_md_step:source_workbook",
         "title": "Source workbook"
       },
       {
-        "operator_summary": "Select the invoice page/period from the source workbook.",
+        "operator_summary": "Choose which Live Arts MD invoice to prepare from operator-provided handoff facts.",
         "primary_action": {
-          "action_kind": "start_invoice_record_selection",
-          "action_ref": "live_arts_md_invoice_action:33094d0f415abf4b",
-          "disabled_reason": "Choose the source workbook first.",
-          "enabled": false,
+          "action_kind": "select_invoice_candidate",
+          "action_ref": "live_arts_md_invoice_action:952695ccd00d1e4c",
+          "disabled_reason": null,
+          "enabled": true,
           "hidden_request_payload": {
-            "action_kind": "start_invoice_record_selection",
+            "action_kind": "select_invoice_candidate",
             "client_ref": "live_arts_md",
             "coupa_submit_allowed": false,
             "email_send_allowed": false,
-            "intended_use": "select_invoice_record_or_period",
+            "intended_use": "choose_live_arts_md_invoice_candidate",
             "ledger_posting_allowed": false,
             "no_cell_read": true,
             "no_external_action": true,
@@ -399,15 +762,89 @@
             "request_type": "INVOICE_REVIEW_ACTION_REQUEST",
             "workflow_ref": "live_arts_md_invoice_workflow"
           },
-          "label": "Select invoice page",
-          "operator_visible_message": "Select invoice page"
+          "label": "Choose invoice candidate",
+          "operator_visible_message": "Choose invoice candidate"
         },
         "required_receipts": [
-          "invoice_record_selection_operator_confirmed_receipt"
+          "live_arts_md_invoice_candidate_selected_receipt"
         ],
-        "status": "BLOCKED",
+        "secondary_actions": [
+          {
+            "action_kind": "select_invoice_candidate",
+            "action_ref": "live_arts_md_invoice_candidate_select:2026-1001",
+            "disabled_reason": null,
+            "enabled": true,
+            "hidden_request_payload": {
+              "client_ref": "live_arts_md",
+              "email_send_allowed": false,
+              "intended_use": "select_live_arts_md_invoice_candidate",
+              "invoice_id": "2026-1001",
+              "ledger_posting_allowed": false,
+              "no_cell_read": true,
+              "no_external_action": true,
+              "no_generation_export": true,
+              "no_workbook_body_read": true,
+              "operator_provided": true,
+              "request_type": "INVOICE_REVIEW_ACTION_REQUEST",
+              "sheet_label": "June 2026 Speaker Rental",
+              "work_type": "Speaker Rental",
+              "workflow_ref": "live_arts_md_invoice_workflow"
+            },
+            "label": "Select June 2026 Speaker Rental",
+            "operator_visible_message": "Selecting Live Arts MD invoice 2026-1001."
+          },
+          {
+            "action_kind": "select_invoice_candidate",
+            "action_ref": "live_arts_md_invoice_candidate_select:2026-1002",
+            "disabled_reason": null,
+            "enabled": true,
+            "hidden_request_payload": {
+              "client_ref": "live_arts_md",
+              "email_send_allowed": false,
+              "intended_use": "select_live_arts_md_invoice_candidate",
+              "invoice_id": "2026-1002",
+              "ledger_posting_allowed": false,
+              "no_cell_read": true,
+              "no_external_action": true,
+              "no_generation_export": true,
+              "no_workbook_body_read": true,
+              "operator_provided": true,
+              "request_type": "INVOICE_REVIEW_ACTION_REQUEST",
+              "sheet_label": "June 2026 AV Tech",
+              "work_type": "AV Tech",
+              "workflow_ref": "live_arts_md_invoice_workflow"
+            },
+            "label": "Select June 2026 AV Tech",
+            "operator_visible_message": "Selecting Live Arts MD invoice 2026-1002."
+          },
+          {
+            "action_kind": "select_invoice_candidate",
+            "action_ref": "live_arts_md_invoice_candidate_select:2026-1003",
+            "disabled_reason": "Review this future invoice later after June payment status is known.",
+            "enabled": false,
+            "hidden_request_payload": {
+              "client_ref": "live_arts_md",
+              "email_send_allowed": false,
+              "intended_use": "select_live_arts_md_invoice_candidate",
+              "invoice_id": "2026-1003",
+              "ledger_posting_allowed": false,
+              "no_cell_read": true,
+              "no_external_action": true,
+              "no_generation_export": true,
+              "no_workbook_body_read": true,
+              "operator_provided": true,
+              "request_type": "INVOICE_REVIEW_ACTION_REQUEST",
+              "sheet_label": "July 2026",
+              "work_type": "Future invoice",
+              "workflow_ref": "live_arts_md_invoice_workflow"
+            },
+            "label": "Review July 2026 later",
+            "operator_visible_message": "Selecting Live Arts MD invoice 2026-1003."
+          }
+        ],
+        "status": "NEEDS_ACTION",
         "step_ref": "live_arts_md_step:invoice_page_period",
-        "title": "Invoice page/period"
+        "title": "Invoice candidate"
       },
       {
         "operator_summary": "Artifact is candidate-only until attachment confirmation receipt exists.",
@@ -680,16 +1117,18 @@
     },
     "source_workbook": {
       "approved_for_cell_read": false,
-      "approved_for_metadata_read": false,
+      "approved_for_metadata_read": true,
       "client_ref": "live_arts_md",
+      "confirmation_basis": "operator_provided_workbook_handoff",
       "expected_display_name": "Invoice Live Arts MD! Running.xlsx",
-      "next_action": "Choose the Live Arts MD source workbook.",
+      "next_action": "Choose which Live Arts MD invoice to prepare.",
       "no_cell_read": true,
       "no_workbook_body_read": true,
-      "status": "SOURCE_WORKBOOK_REQUIRED",
-      "workbook_display_name": null,
-      "workbook_path_ref": null,
-      "workbook_ref": null,
+      "source_workbook_mac_path": "/Users/hwinshipwheatley/Documents/Invoices/Invoice Clinets/Invoice Live Arts MD! Running.xlsx",
+      "status": "CONFIRMED",
+      "workbook_display_name": "Invoice Live Arts MD! Running.xlsx",
+      "workbook_path_ref": "/Users/hwinshipwheatley/Documents/Invoices/Invoice Clinets/Invoice Live Arts MD! Running.xlsx",
+      "workbook_ref": "workbook_ref:client_invoice:live_arts_md:running_operator_confirmed",
       "workflow_ref": "live_arts_md_invoice_workflow"
     },
     "status": "SIMPLE_EMAIL_INVOICE_REVIEW",
@@ -705,7 +1144,7 @@
   },
   "machine_proof": {
     "bridge_safe": true,
-    "content_hash": "sha256:14d8ec80a94a321f89133fe544ab7f6e3a5f1dbabe161f32897e02e3e482318d",
+    "content_hash": "sha256:ee5c55146f6dbb6f51a9a50f0c07e4a544eea0e103d8a2c6430fed50c68936fb",
     "live_arts_md_bundle_present": true,
     "no_action_authority": true
   },

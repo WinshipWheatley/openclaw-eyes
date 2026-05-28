@@ -16,6 +16,7 @@ from typing import Any, Mapping
 import invoice_review_bundle
 import invoice_review_state_machine
 import live_arts_md_invoice_review_bundle
+import live_arts_md_workbook_handoff
 import operator_action_event_journal
 
 
@@ -41,6 +42,8 @@ SUPPORTED_ACTIONS = {
     "explain_invoice_review",
     "confirm_invoice_review_candidate",
     "open_invoice_workbook_candidate",
+    "select_invoice_candidate",
+    "select_live_arts_md_invoice_candidate",
 }
 
 CLIENT_BUNDLES = {
@@ -556,7 +559,47 @@ def process_action_request(
         can_start = False
         action_disabled_reason = action_disabled_reason or "This guided path is blocked until prerequisites exist."
     progress_result = None
-    if valid_scope and supported and no_external:
+    live_arts_selection_result = None
+    live_arts_bundle_paths: tuple[str | None, str | None, bool] = (None, None, False)
+    if (
+        valid_scope
+        and supported
+        and no_external
+        and client_ref == "live_arts_md"
+        and action_kind in {"select_invoice_candidate", "select_live_arts_md_invoice_candidate"}
+    ):
+        live_arts_selection_result = live_arts_md_workbook_handoff.process_invoice_candidate_selection(
+            payload,
+            generated_at=generated_at,
+        )
+        source_json, _source_operator, bridge_json = live_arts_md_invoice_review_bundle.write_exports(
+            live_arts_md_invoice_review_bundle.build_payload(
+                generated_at=generated_at,
+                present_receipts=("live_arts_md_invoice_candidate_selected_receipt",)
+                if live_arts_selection_result["status"] == "SELECTED_REQUIRES_ARTIFACT_AND_APPROVAL"
+                else (),
+            ),
+            export_root,
+            bridge_export_root=bridge_export_root,
+        )
+        live_arts_bundle_paths = (
+            source_json.as_posix(),
+            bridge_json.as_posix() if bridge_json else None,
+            bridge_json is not None,
+        )
+        receipt = live_arts_selection_result["receipt"]
+        headline = "Live Arts MD invoice selected" if not receipt["validation_errors"] else "Invoice selection blocked"
+        body = (
+            "Live Arts MD invoice candidate recorded. Next: export or link the selected invoice artifact manually. "
+            "Nothing was sent, paid, generated, or ledger-posted."
+            if not receipt["validation_errors"]
+            else "OpenClaw could not record that invoice candidate because the selection payload was incomplete or unsafe."
+        )
+        detail = "No workbook cells were read."
+        next_action = live_arts_selection_result["next_action"]
+        expected = (receipt["receipt_event"],)
+        status = "GUIDED_ACTION_STARTED" if not receipt["validation_errors"] else "BLOCKED_PREREQUISITES"
+    elif valid_scope and supported and no_external:
         progress_result = invoice_review_state_machine.process_action(
             raw_request,
             db_path=db_path,
@@ -621,6 +664,12 @@ def process_action_request(
         receipt["progress_status"] = progress_result.status
         receipt["underlying_blocker_completed"] = progress_result.action_receipt["underlying_blocker_completed"]
         receipt["completion_receipt_written"] = progress_result.action_receipt["completion_receipt_written"]
+    if live_arts_selection_result is not None:
+        receipt.update(live_arts_selection_result["receipt"])
+        receipt["receipt_type"] = "invoice_review_action_progress_receipt"
+        receipt["receipt_name"] = live_arts_selection_result["receipt"]["receipt_event"]
+        receipt["underlying_blocker_completed"] = False
+        receipt["completion_receipt_written"] = False
     label_clicked = str(
         payload.get("label_clicked")
         or payload.get("label")
@@ -686,12 +735,12 @@ def process_action_request(
         },
         "state_machine_progress": {
             "used": progress_result is not None,
-            "progress_status": progress_result.status if progress_result else None,
+            "progress_status": progress_result.status if progress_result else live_arts_selection_result["status"] if live_arts_selection_result else None,
             "state_snapshot": progress_result.state_snapshot if progress_result else None,
-            "action_progress_receipt": progress_result.action_receipt if progress_result else None,
-            "source_bundle_path": progress_result.source_bundle_path if progress_result else None,
-            "bridge_bundle_path": progress_result.bridge_bundle_path if progress_result else None,
-            "bridge_mirror_written": progress_result.bridge_mirror_written if progress_result else False,
+            "action_progress_receipt": progress_result.action_receipt if progress_result else live_arts_selection_result["receipt"] if live_arts_selection_result else None,
+            "source_bundle_path": progress_result.source_bundle_path if progress_result else live_arts_bundle_paths[0],
+            "bridge_bundle_path": progress_result.bridge_bundle_path if progress_result else live_arts_bundle_paths[1],
+            "bridge_mirror_written": progress_result.bridge_mirror_written if progress_result else live_arts_bundle_paths[2],
         },
         "local_surface_request": local_surface_request,
         "bundle_action": bundle_action,

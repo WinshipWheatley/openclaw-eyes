@@ -18,6 +18,7 @@ import client_invoice_workflow_framework as workflow
 import client_comms_thread_rail
 import clara_invoice_email_draft_package as clara_drafts
 import client_invoice_workbook_registry
+import live_arts_md_workbook_handoff
 import local_artifact_reference
 
 
@@ -252,11 +253,32 @@ def build_live_arts_md_bundle(
     generated_at = generated_at or DEFAULT_GENERATED_AT
     receipts = {str(receipt) for receipt in present_receipts}
     recipe = workflow.recipes_by_client_ref()[CLIENT_REF]
+    handoff = live_arts_md_workbook_handoff.build_candidate_register(generated_at=generated_at)
     source = (
         dict(source_workbook_override)
         if source_workbook_override is not None
         else inspect_source_workbook_state(workbook_registry_payload=workbook_registry_payload)
     )
+    if (
+        source.get("status") == "SOURCE_WORKBOOK_REQUIRED"
+        and workbook_registry_payload is None
+        and source_workbook_override is None
+    ):
+        source.update(
+            {
+                "status": "CONFIRMED",
+                "workbook_ref": handoff["source_workbook"]["source_workbook_ref"],
+                "workbook_display_name": EXPECTED_WORKBOOK_NAME,
+                "workbook_path_ref": handoff["source_workbook"]["source_workbook_mac_path"],
+                "source_workbook_mac_path": handoff["source_workbook"]["source_workbook_mac_path"],
+                "approved_for_metadata_read": True,
+                "approved_for_cell_read": False,
+                "no_workbook_body_read": True,
+                "no_cell_read": True,
+                "confirmation_basis": "operator_provided_workbook_handoff",
+                "next_action": "Choose which Live Arts MD invoice to prepare.",
+            }
+        )
     source.setdefault("client_ref", CLIENT_REF)
     source.setdefault("workflow_ref", WORKFLOW_REF)
     source.setdefault("expected_display_name", EXPECTED_WORKBOOK_NAME)
@@ -271,7 +293,11 @@ def build_live_arts_md_bundle(
         else "Choose the Live Arts MD source workbook.",
     )
     source_confirmed = source["status"] == "CONFIRMED" or "source_workbook_reference_confirmed_receipt" in receipts
-    invoice_selected = "invoice_record_selection_operator_confirmed_receipt" in receipts
+    invoice_selected = (
+        "invoice_record_selection_operator_confirmed_receipt" in receipts
+        or "live_arts_md_invoice_candidate_selected_receipt" in receipts
+    )
+    invoice_candidate_selected = "live_arts_md_invoice_candidate_selected_receipt" in receipts
     artifact = _artifact_state(
         artifact_reference_payload=artifact_reference_payload,
         operator_artifact_path=operator_artifact_path,
@@ -339,7 +365,7 @@ def build_live_arts_md_bundle(
     if not source_confirmed:
         blockers.append("Choose the Live Arts MD source workbook.")
     if source_confirmed and not invoice_selected:
-        blockers.append("Select the Live Arts MD invoice page/period.")
+        blockers.append("Choose which Live Arts MD invoice to prepare.")
     if not artifact_candidate:
         blockers.append("Attach or link the generated Live Arts MD invoice artifact.")
     if artifact_candidate and not attachment_ready:
@@ -360,12 +386,13 @@ def build_live_arts_md_bundle(
         extra_payload={"expected_workbook_display_name": EXPECTED_WORKBOOK_NAME},
     )
     selection_action = _action(
-        "start_invoice_record_selection",
-        "Select invoice page",
+        "select_invoice_candidate",
+        "Choose invoice candidate",
         enabled=source_confirmed,
-        intended_use="select_invoice_record_or_period",
+        intended_use="choose_live_arts_md_invoice_candidate",
         disabled_reason=None if source_confirmed else "Choose the source workbook first.",
     )
+    urgent_invoice_actions = tuple(handoff["urgent_actions"])
     artifact_action = _action(
         "attach_generated_invoice_artifact",
         "Attach generated invoice artifact",
@@ -408,11 +435,12 @@ def build_live_arts_md_bundle(
         },
         {
             "step_ref": "live_arts_md_step:invoice_page_period",
-            "title": "Invoice page/period",
+            "title": "Invoice candidate",
             "status": "COMPLETE" if invoice_selected else "NEEDS_ACTION" if source_confirmed else "BLOCKED",
-            "operator_summary": "Select the invoice page/period from the source workbook.",
+            "operator_summary": "Choose which Live Arts MD invoice to prepare from operator-provided handoff facts.",
             "primary_action": selection_action,
-            "required_receipts": ("invoice_record_selection_operator_confirmed_receipt",),
+            "secondary_actions": urgent_invoice_actions,
+            "required_receipts": ("live_arts_md_invoice_candidate_selected_receipt",),
         },
         {
             "step_ref": "live_arts_md_step:invoice_artifact",
@@ -478,11 +506,30 @@ def build_live_arts_md_bundle(
             "status": "NOT_REQUIRED_BY_RECIPE",
         },
         "source_workbook": source,
+        "operator_workbook_handoff": {
+            "receipt": handoff["operator_handoff_receipt"],
+            "operator_provided": True,
+            "workbook_body_read": False,
+            "cell_read": False,
+            "confidence": "operator_handoff",
+        },
+        "invoice_candidate_register_ref": "generated/read_models/live_arts_md_invoice_candidate_register.json",
+        "invoice_candidate_register": {
+            "candidate_count": handoff["candidate_count"],
+            "primary_next_action": handoff["primary_next_action"],
+            "invoice_candidates": handoff["invoice_candidates"],
+            "urgent_actions": urgent_invoice_actions,
+        },
         "invoice_selection": {
-            "status": "OPERATOR_CONFIRMED" if invoice_selected else "NEEDS_SELECTION" if source_confirmed else "BLOCKED_NEEDS_SOURCE_WORKBOOK",
+            "status": "CANDIDATE_SELECTED"
+            if invoice_candidate_selected
+            else "NEEDS_CANDIDATE_SELECTION"
+            if source_confirmed
+            else "BLOCKED_NEEDS_SOURCE_WORKBOOK",
             "no_workbook_body_read": True,
             "no_cell_read": True,
             "primary_action": selection_action,
+            "urgent_actions": urgent_invoice_actions,
         },
         "invoice_artifact": artifact,
         "client_comms_thread": {
@@ -554,20 +601,30 @@ def build_live_arts_md_bundle(
             "primary_action": send_action,
         },
         "payment_watch": {
-            "payment_watch_status": "READINESS_ONLY",
+            "payment_watch_status": "READINESS_ONLY_NOT_ACTIVE",
             "client_ref": CLIENT_REF,
             "invoice_ref": artifact.get("artifact_ref"),
             "expected_amount": None,
             "expected_window": None,
+            "expected_ar_layer_required": True,
+            "actual_bank_transactions_separate": True,
+            "active_only_after_send_or_manual_send_receipt": True,
+            "bank_ledger_read_performed": False,
             "bank_ledger_match_required": True,
             "ledger_posting_allowed": False,
         },
+        "ledger_planning": handoff["ledger_planning"],
+        "contact_ambiguity": handoff["contact_ambiguity"],
         "approval_footer": {
             "approval_ready": approval_ready,
             "approval_disabled_reasons": tuple(blockers),
         },
         "blockers": tuple(blockers),
-        "next_safe_move": blockers[0] if blockers else "Prepare manual send package after approval receipts.",
+        "next_safe_move": "Choose which Live Arts MD invoice to prepare."
+        if source_confirmed and not invoice_selected
+        else blockers[0]
+        if blockers
+        else "Prepare manual send package after approval receipts.",
         "actionable_blockers": (
             (
                 {
@@ -586,6 +643,9 @@ def build_live_arts_md_bundle(
             "live_arts_md_does_not_require_coupa": True,
             "live_arts_md_does_not_require_po": True,
             "uses_reusable_simple_invoice_rails": True,
+            "operator_handoff_not_workbook_parsed": True,
+            "candidate_register_present": True,
+            "workbook_existence_does_not_mark_sent_paid_or_ledger_posted": True,
             "clara_draft_only": True,
             "client_comms_thread_rail_consumed": True,
             "clara_invoice_draft_package_consumed": True,
@@ -601,6 +661,7 @@ def build_live_arts_md_bundle(
             "send_execution_receipt_required": True,
             "no_recipient_email_invented": True,
             "artifact_candidate_not_attachment_ready": artifact.get("attachment_ready") is False,
+            "payment_watch_readiness_only_no_bank_read": True,
             "approval_send_disabled_without_receipts": approval_ready is False,
             "no_action_authority": all(value is False for value in AUTHORITY_BOUNDARY.values()),
             "content_hash": "",

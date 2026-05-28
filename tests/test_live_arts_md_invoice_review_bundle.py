@@ -94,7 +94,8 @@ def test_confirmed_source_workbook_does_not_read_cells_and_enables_selection():
     assert live["source_workbook"]["approved_for_cell_read"] is False
     assert live["source_workbook"]["no_cell_read"] is True
     assert live["invoice_selection"]["primary_action"]["enabled"] is True
-    assert live["invoice_selection"]["status"] == "NEEDS_SELECTION"
+    assert live["invoice_selection"]["status"] == "NEEDS_CANDIDATE_SELECTION"
+    assert live["next_safe_move"] == "Choose which Live Arts MD invoice to prepare."
 
 
 def test_live_arts_md_workbook_confirmation_writes_receipt_and_refreshes_bundle(tmp_path):
@@ -139,7 +140,7 @@ def test_live_arts_md_workbook_confirmation_writes_receipt_and_refreshes_bundle(
     assert result.state_snapshot["source_workbook_status"] == "CONFIRMED"
     assert result.state_snapshot["invoice_record_selection_status"] == "NEEDS_RESELECTION_AFTER_SOURCE_WORKBOOK_CORRECTION"
     assert live["source_workbook"]["status"] == "CONFIRMED"
-    assert live["invoice_selection"]["status"] == "NEEDS_SELECTION"
+    assert live["invoice_selection"]["status"] == "NEEDS_CANDIDATE_SELECTION"
     assert live["invoice_artifact"]["status"] == "ARTIFACT_REQUIRED"
     assert live["invoice_artifact"]["attachment_ready"] is False
     assert live["approval_footer"]["approval_ready"] is False
@@ -147,17 +148,22 @@ def test_live_arts_md_workbook_confirmation_writes_receipt_and_refreshes_bundle(
     assert source_payload == bridge_payload
 
 
-def test_invoice_page_selection_follows_existing_pattern():
+def test_invoice_candidate_selection_replaces_page_selection_after_handoff():
     live = bundle.build_live_arts_md_bundle(
         workbook_registry_payload=_confirmed_workbook_payload(),
         generated_at=FIXED_NOW,
     )
     action = live["invoice_selection"]["primary_action"]
 
-    assert action["action_kind"] == "start_invoice_record_selection"
-    assert action["hidden_request_payload"]["intended_use"] == "select_invoice_record_or_period"
+    assert action["action_kind"] == "select_invoice_candidate"
+    assert action["hidden_request_payload"]["intended_use"] == "choose_live_arts_md_invoice_candidate"
     assert action["hidden_request_payload"]["no_workbook_body_read"] is True
     assert action["hidden_request_payload"]["no_cell_read"] is True
+    assert {item["invoice_id"] for item in live["invoice_candidate_register"]["invoice_candidates"]} == {
+        "2026-1001",
+        "2026-1002",
+        "2026-1003",
+    }
 
 
 def test_manual_artifact_link_validates_metadata_only(tmp_path):
@@ -239,12 +245,41 @@ def test_missing_recipient_info_blocks_send_readiness():
     assert live["send_readiness"]["manual_send_package_status"] == "BLOCKED_PREREQUISITES"
 
 
+def test_operator_handoff_adds_invoice_choices_without_workbook_parse():
+    live = bundle.build_live_arts_md_bundle(generated_at=FIXED_NOW)
+    register = live["invoice_candidate_register"]
+
+    assert live["operator_workbook_handoff"]["operator_provided"] is True
+    assert live["operator_workbook_handoff"]["workbook_body_read"] is False
+    assert live["operator_workbook_handoff"]["cell_read"] is False
+    assert live["next_safe_move"] == "Choose which Live Arts MD invoice to prepare."
+    assert register["primary_next_action"] == "Choose which Live Arts MD invoice to prepare."
+    labels = {item["sheet_label"] for item in register["invoice_candidates"]}
+    assert labels == {"June 2026 Speaker Rental", "June 2026 AV Tech", "July 2026"}
+
+
+def test_live_arts_invoice_candidate_choices_show_today_urgent_paths():
+    live = bundle.build_live_arts_md_bundle(generated_at=FIXED_NOW)
+    actions = {item["label"]: item for item in live["invoice_candidate_register"]["urgent_actions"]}
+
+    assert "Select June 2026 Speaker Rental" in actions
+    assert "Select June 2026 AV Tech" in actions
+    assert "Review July 2026 later" in actions
+    assert actions["Select June 2026 Speaker Rental"]["hidden_request_payload"]["invoice_id"] == "2026-1001"
+    assert actions["Select June 2026 AV Tech"]["hidden_request_payload"]["invoice_id"] == "2026-1002"
+    assert actions["Review July 2026 later"]["enabled"] is False
+
+
 def test_clara_draft_does_not_imply_attachment_readiness():
     live = bundle.build_live_arts_md_bundle(generated_at=FIXED_NOW)
 
     assert live["clara_email_draft"]["draft_only"] is True
     assert live["invoice_artifact"]["attachment_ready"] is False
     assert live["clara_email_draft"]["attachment_claim"] == "attachment not ready yet"
+    assert live["clara_email_draft"]["draft_status"] in {
+        "DRAFT_PREVIEW_NOT_SEND_READY",
+        "DRAFT_BLOCKED_PENDING_PREREQUISITES",
+    }
 
 
 def test_guardian_approval_and_send_execution_receipts_are_required():
@@ -288,9 +323,12 @@ def test_approval_send_remains_disabled_until_receipts_exist(tmp_path):
 def test_payment_watch_remains_readiness_only_until_send_payment_receipts():
     live = bundle.build_live_arts_md_bundle(generated_at=FIXED_NOW)
 
-    assert live["payment_watch"]["payment_watch_status"] == "READINESS_ONLY"
+    assert live["payment_watch"]["payment_watch_status"] == "READINESS_ONLY_NOT_ACTIVE"
+    assert live["payment_watch"]["bank_ledger_read_performed"] is False
     assert live["payment_watch"]["bank_ledger_match_required"] is True
     assert live["payment_watch"]["ledger_posting_allowed"] is False
+    assert live["ledger_planning"]["silent_ledger_mutation_allowed"] is False
+    assert live["ledger_planning"]["current_ledger_pointer_manifest_required"] is True
 
 
 def test_capital_hilton_can_reuse_simple_rails_plus_supplier_portal():
