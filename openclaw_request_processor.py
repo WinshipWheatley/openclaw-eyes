@@ -2790,6 +2790,13 @@ def _is_invoice_record_selection_result_route(route_decision: Mapping[str, Any],
     )
 
 
+def _is_source_workbook_selection_result_route(route_decision: Mapping[str, Any], raw_request: Mapping[str, Any]) -> bool:
+    return (
+        str(route_decision.get("selected_handler_id") or "") == "source_workbook_selection_result.capital_hilton"
+        or invoice_review_action_request_handler.is_source_workbook_selection_result(raw_request)
+    )
+
+
 def _invoice_review_action_classification(
     classification: RequestClassification,
     *,
@@ -2928,6 +2935,132 @@ def _process_invoice_record_selection_result_request(
                     next_action,
                     "No workbook body or cells were read.",
                 ),
+                "status_tone": "ready" if response_ready else "blocked",
+            },
+        ),
+        cards_available=True,
+        card_mirror_refs=(),
+        file_readback_refs=(action_json.as_posix(),),
+        worker_route_refs=(),
+        context_package_refs=(),
+        blocked_reason=None if response_ready else status,
+        detail_disclosure=detail,
+        readback_files=(action_json.as_posix(), action_operator.as_posix()),
+        next_safe_move=next_action,
+    )
+
+
+def _process_source_workbook_selection_result_request(
+    request_path: Path,
+    raw_request: Mapping[str, Any],
+    *,
+    export_root: Path,
+    generated_at: str | None,
+    classification: RequestClassification,
+    route_decision: Mapping[str, Any] | None = None,
+) -> OpenClawResponseForMac:
+    action_classification = RequestClassification(
+        classification_id=f"request_classification_{_short_hash(request_path.name, 'source_workbook_selection_result')}",
+        source_request_filename=classification.source_request_filename,
+        request_family=str((route_decision or {}).get("request_kind") or classification.request_family),
+        selected_rail=str((route_decision or {}).get("selected_handler_id") or "source_workbook_selection_result.capital_hilton"),
+        classification_reason="Request is an operator-provided source workbook selection result.",
+        future_supported=False,
+        next_safe_move="Record the source workbook reference without workbook or cell reads.",
+    )
+    default_export_root = invoice_review_action_request_handler.invoice_review_state_machine.DEFAULT_EXPORT_ROOT.resolve()
+    bridge_export_root = (
+        invoice_review_action_request_handler.invoice_review_state_machine.DEFAULT_BRIDGE_EXPORT_ROOT
+        if export_root.resolve() == default_export_root
+        else None
+    )
+    db_path = (
+        invoice_review_action_request_handler.invoice_review_state_machine.DEFAULT_DB_PATH
+        if export_root.resolve() == default_export_root
+        else export_root.parent / "invoice_review_state.sqlite"
+    )
+    event_db_path = (
+        invoice_review_action_request_handler.operator_action_event_journal.DEFAULT_DB_PATH
+        if export_root.resolve() == default_export_root
+        else export_root.parent / "operator_action_events.sqlite"
+    )
+    payload = invoice_review_action_request_handler.process_source_workbook_selection_result_request(
+        raw_request,
+        generated_at=generated_at,
+        db_path=db_path,
+        export_root=export_root,
+        bridge_export_root=bridge_export_root,
+        event_db_path=event_db_path,
+        event_export_root=export_root,
+    )
+    action_json, action_operator = invoice_review_action_request_handler.write_exports(payload, export_root)
+    status = str(payload["status"])
+    response_ready = status == "GUIDED_RESULT_RECORDED"
+    headline = str(payload["headline"])
+    body = str(payload["body"])
+    next_action = str(payload["next_action"])
+    receipt = payload["action_start_receipt"]
+    state_progress = payload.get("state_machine_progress") if isinstance(payload.get("state_machine_progress"), Mapping) else {}
+    detail = {
+        "source_workbook_selection_result": {
+            "readback_ref": action_json.as_posix(),
+            "operator_readback_ref": action_operator.as_posix(),
+            "action_kind": payload["action_kind"],
+            "status": status,
+            "selection_receipt": receipt,
+            "state_machine_progress": state_progress,
+            "local_surface_result": dict(payload.get("local_surface_result") or {}),
+            "refreshed_bundle_path": state_progress.get("source_bundle_path"),
+            "bridge_bundle_path": state_progress.get("bridge_bundle_path"),
+            "bridge_mirror_written": bool(state_progress.get("bridge_mirror_written")),
+            "external_action_performed": False,
+            "workbook_body_read_performed": False,
+            "spreadsheet_cell_read_performed": False,
+            "invoice_generation_performed": False,
+            "artifact_linked": False,
+            "attachment_ready": False,
+            "approval_ready": False,
+        },
+        "layered_response_fields": {
+            "response_kind": "SOURCE_WORKBOOK_SELECTION_RESULT_RESPONSE",
+            "audience_mode": "ELIWINSHIP",
+            "display_mode": "COMPACT_CHAT",
+            "headline": headline,
+            "one_line_answer": body,
+            "eliwinship": body,
+            "primary_status": status.replace("_", " ").title(),
+            "primary_blocker": "None" if response_ready else status,
+            "next_action": next_action,
+            "proof_refs": (receipt["receipt_id"], action_json.as_posix()),
+            "refreshed_bundle_path": state_progress.get("source_bundle_path"),
+            "bridge_bundle_path": state_progress.get("bridge_bundle_path"),
+            "mac_render_hint": "COMPACT_WITH_DISCLOSURE",
+        },
+        "request_classification": asdict(action_classification),
+        "request_router_decision": dict(route_decision or {}),
+        "external_actions_locked": True,
+        "model_or_worker_response_adapter_called": False,
+    }
+    return OpenClawResponseForMac(
+        source_request_id=str(payload["source_request_id"]),
+        source_request_filename=request_path.name,
+        workflow_ref=str(raw_request.get("workflow_ref") or "capital_hilton_invoice_workflow"),
+        request_type=classification.request_family,
+        internal_status="RESPONSE_READY" if response_ready else "BLOCKED_WITH_REASON",
+        operator_headline=headline,
+        operator_message=body,
+        what_happened=(
+            "PC consumed the source workbook selection result.",
+            "PC recorded only the operator-provided workbook reference.",
+            "PC refreshed the invoice review bundle.",
+            "PC did not read workbook cells, generate invoices, send, submit, or mutate production state.",
+        ),
+        why_it_happened=str(payload["detail"]),
+        how_to_fix=next_action,
+        visible_cards=(
+            {
+                "title": headline,
+                "bullets": (body, next_action, "No workbook body or cells were read."),
                 "status_tone": "ready" if response_ready else "blocked",
             },
         ),
@@ -3916,6 +4049,10 @@ def is_workbook_active_selection_request(raw_request: Mapping[str, Any]) -> bool
             "file i just added",
             "file just gave",
             "file just added",
+            "just told",
+            "already gave",
+            "already provided",
+            "already told",
             "just gave",
             "just added",
             "new workbook",
@@ -3956,6 +4093,7 @@ def is_workbook_active_selection_request(raw_request: Mapping[str, Any]) -> bool
             "set it as current",
             "active workbook",
             "current workbook",
+            "current work book",
             "replace the old",
             "replace old",
             "replace the previous",
@@ -4201,6 +4339,50 @@ def _process_workbook_candidate_replace_choice_request(
     next_action = str(readback["next_action"])
     response_files = (registry_json.as_posix(), registry_operator.as_posix())
     replacement_performed = bool(registry_payload.get("machine_proof", {}).get("workbook_replacement_performed"))
+    source_workbook_payload: dict[str, Any] | None = None
+    if replacement_performed and active_record:
+        source_workbook_payload = invoice_review_action_request_handler.process_source_workbook_selection_result_request(
+            {
+                "request_id": str(raw_request.get("request_id") or "workbook_candidate_replace_choice"),
+                "request_type": "OPERATOR_CORRECTION_TO_PENDING_REQUEST",
+                "type": "OPERATOR_CORRECTION_TO_PENDING_REQUEST",
+                "kind": "OPERATOR_CORRECTION_TO_PENDING_REQUEST",
+                "intended_use": "confirm_source_workbook_reference",
+                "client_ref": "capital_hilton",
+                "workflow_ref": "capital_hilton_invoice_workflow",
+                "related_source_request_id": raw_request.get("related_source_request_id"),
+                "operator_text": _operator_text(raw_request),
+                "correction_kind": "confirm_current_source_workbook",
+                "operator_provided": True,
+                "operator_confirmed": True,
+                "artifact_ref": active_record.get("workbook_ref"),
+                "workbook_display_name": active_record.get("workbook_display_name"),
+                "workbook_extension": active_record.get("workbook_extension"),
+                "file_size_bytes": active_record.get("file_size_bytes"),
+                "no_workbook_body_read": True,
+                "no_cell_read": True,
+                "no_external_action": True,
+                "physical_deletion_allowed": False,
+            },
+            generated_at=generated_at,
+            db_path=(
+                invoice_review_action_request_handler.invoice_review_state_machine.DEFAULT_DB_PATH
+                if export_root.resolve() == invoice_review_action_request_handler.invoice_review_state_machine.DEFAULT_EXPORT_ROOT.resolve()
+                else export_root.parent / "invoice_review_state.sqlite"
+            ),
+            export_root=export_root,
+            bridge_export_root=(
+                invoice_review_action_request_handler.invoice_review_state_machine.DEFAULT_BRIDGE_EXPORT_ROOT
+                if export_root.resolve() == invoice_review_action_request_handler.invoice_review_state_machine.DEFAULT_EXPORT_ROOT.resolve()
+                else None
+            ),
+            event_db_path=(
+                invoice_review_action_request_handler.operator_action_event_journal.DEFAULT_DB_PATH
+                if export_root.resolve() == invoice_review_action_request_handler.invoice_review_state_machine.DEFAULT_EXPORT_ROOT.resolve()
+                else export_root.parent / "operator_action_events.sqlite"
+            ),
+            event_export_root=export_root,
+        )
     detail = {
         "client_invoice_workbook_registry": {
             "registry_readback_ref": registry_json.as_posix(),
@@ -4224,19 +4406,41 @@ def _process_workbook_candidate_replace_choice_request(
             "invoice_sent_or_submitted": False,
             "ledger_posted": False,
         },
+        "source_workbook_selection_result": source_workbook_payload,
         "layered_response_fields": {
             "response_kind": "CLIENT_INVOICE_WORKBOOK_CANDIDATE_CHOICE",
             "audience_mode": "ELIWINSHIP",
             "display_mode": "COMPACT_CHAT",
             "headline": headline,
-            "one_line_answer": message,
-            "eliwinship": message,
+            "one_line_answer": (
+                "Capital Hilton source workbook confirmed. Nothing was deleted from disk and workbook cells were not read. Next: select the invoice page/period again from this workbook."
+                if source_workbook_payload and source_workbook_payload.get("status") == "GUIDED_RESULT_RECORDED"
+                else message
+            ),
+            "eliwinship": (
+                "Capital Hilton source workbook confirmed. Nothing was deleted from disk and workbook cells were not read. Next: select the invoice page/period again from this workbook."
+                if source_workbook_payload and source_workbook_payload.get("status") == "GUIDED_RESULT_RECORDED"
+                else message
+            ),
             "primary_status": "Workbook updated" if replacement_performed else "Workbook update blocked",
             "primary_blocker": "None" if replacement_performed else "No staged workbook candidate",
-            "next_action": next_action,
+            "next_action": (
+                "Next: select the invoice page/period again from the confirmed workbook."
+                if source_workbook_payload and source_workbook_payload.get("status") == "GUIDED_RESULT_RECORDED"
+                else next_action
+            ),
             "missing_items_short": tuple(readback.get("missing_items") or ()),
             "detail_summary": str(readback.get("workbook_summary") or ""),
-            "proof_refs": (f"generated/read_models/{client_invoice_workbook_registry.JSON_EXPORT_NAME}",),
+            "proof_refs": tuple(
+                ref
+                for ref in (
+                    f"generated/read_models/{client_invoice_workbook_registry.JSON_EXPORT_NAME}",
+                    (source_workbook_payload or {}).get("action_start_receipt", {}).get("receipt_id")
+                    if source_workbook_payload
+                    else None,
+                )
+                if ref
+            ),
             "mac_render_hint": "COMPACT_WITH_DISCLOSURE",
         },
         "persistent_registry_write": False,
@@ -4250,10 +4454,18 @@ def _process_workbook_candidate_replace_choice_request(
         request_type="CHAT",
         internal_status="RESPONSE_READY" if replacement_performed else "BLOCKED_WITH_REASON",
         operator_headline=headline,
-        operator_message="Workbook updated." if replacement_performed else "Workbook update blocked.",
+        operator_message=(
+            "Capital Hilton source workbook confirmed. Nothing was deleted from disk and workbook cells were not read. Next: select the invoice page/period again from this workbook."
+            if source_workbook_payload and source_workbook_payload.get("status") == "GUIDED_RESULT_RECORDED"
+            else "I have the workbook candidate. To make it the Capital Hilton source workbook, confirm it as the source workbook. I will not read workbook cells or delete anything."
+            if replacement_performed
+            else "Workbook update blocked."
+        ),
         what_happened=(
             "PC consumed the operator workbook choice request from the approved inbox.",
-            "PC made the staged workbook candidate the current running workbook reference."
+            "PC confirmed the staged workbook candidate as the Capital Hilton source workbook."
+            if source_workbook_payload and source_workbook_payload.get("status") == "GUIDED_RESULT_RECORDED"
+            else "PC made the staged workbook candidate the current running workbook reference."
             if replacement_performed
             else "PC could not find a staged workbook candidate to make current.",
             "No workbook body, cells, sheet audit, PDF, email, Coupa, ledger posting, or external action occurred.",
@@ -4263,7 +4475,11 @@ def _process_workbook_candidate_replace_choice_request(
             if replacement_performed
             else "There was no staged candidate in the workbook registry read-model."
         ),
-        how_to_fix=next_action,
+        how_to_fix=(
+            "Next: select the invoice page/period again from the confirmed workbook."
+            if source_workbook_payload and source_workbook_payload.get("status") == "GUIDED_RESULT_RECORDED"
+            else next_action
+        ),
         visible_cards=(
             {
                 "title": headline,
@@ -4284,7 +4500,11 @@ def _process_workbook_candidate_replace_choice_request(
         blocked_reason=None if replacement_performed else "No staged workbook candidate.",
         detail_disclosure=detail,
         readback_files=response_files,
-        next_safe_move=next_action,
+        next_safe_move=(
+            "Next: select the invoice page/period again from the confirmed workbook."
+            if source_workbook_payload and source_workbook_payload.get("status") == "GUIDED_RESULT_RECORDED"
+            else next_action
+        ),
     )
 
 
@@ -4801,6 +5021,15 @@ def process_request_path(
         )
     if _is_artifact_reference_approval_route(route_decision):
         return _process_artifact_reference_approval_request(
+            request_path,
+            raw_request,
+            export_root=export_root,
+            generated_at=generated_at,
+            classification=effective_classification,
+            route_decision=route_decision,
+        )
+    if _is_source_workbook_selection_result_route(route_decision, raw_request):
+        return _process_source_workbook_selection_result_request(
             request_path,
             raw_request,
             export_root=export_root,

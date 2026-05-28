@@ -93,6 +93,42 @@ def _process_selection_result(tmp_path: Path, **overrides):
     )
 
 
+def _source_workbook_result_request(**overrides):
+    request = {
+        "request_id": "source_workbook_selection_result_valid",
+        "request_type": "LOCAL_SURFACE_RESULT",
+        "kind": "LOCAL_SURFACE_RESULT",
+        "type": "LOCAL_SURFACE_RESULT",
+        "intended_use": "confirm_source_workbook_reference",
+        "client_ref": "capital_hilton",
+        "workflow_ref": invoice_review_bundle.CAPITAL_HILTON_WORKFLOW_REF,
+        "source_action_ref": "replace_source_workbook_reference",
+        "operator_provided": True,
+        "operator_confirmed": True,
+        "artifact_ref": "workbook_ref:client_invoice:capital_hilton:test",
+        "workbook_display_name": "Invoice Capitol Hilton Running.xlsx",
+        "workbook_extension": ".xlsx",
+        "file_size_bytes": 12345,
+        "no_workbook_body_read": True,
+        "no_cell_read": True,
+        "no_external_action": True,
+        "physical_deletion_allowed": False,
+    }
+    request.update(overrides)
+    return request
+
+
+def _process_source_workbook_result(tmp_path: Path, **overrides):
+    db_path, export_root, bridge_root = _paths(tmp_path)
+    return state_machine.process_source_workbook_selection_result(
+        _source_workbook_result_request(**overrides),
+        db_path=db_path,
+        export_root=export_root,
+        bridge_export_root=bridge_root,
+        generated_at=FIXED_NOW,
+    )
+
+
 def test_confirm_source_workbook_blocks_until_matching_proof_exists(tmp_path):
     db_path, export_root, bridge_root = _paths(tmp_path)
 
@@ -216,19 +252,55 @@ def test_start_invoice_record_selection_writes_action_start_and_requests_operato
     assert source_bundle["capital_hilton_bundle"]["approval_footer"]["approval_ready"] is False
 
 
-def test_regenerate_or_link_artifact_blocks_until_invoice_record_selected(tmp_path):
-    result = _process(tmp_path, "regenerate_or_link_invoice_artifact")
+def test_regenerate_or_link_artifact_blocks_until_correct_source_workbook_confirmed(tmp_path):
+    db_path, export_root, bridge_root = _paths(tmp_path)
+    state_machine.process_action(
+        {
+            "request_id": "wrong_source_workbook_correction",
+            "request_type": "INVOICE_REVIEW_ACTION_REQUEST",
+            "action_kind": "operator_reported_wrong_source_workbook",
+            "intended_use": "operator_reported_wrong_source_workbook",
+            "hidden_request_payload": {
+                "client_ref": "capital_hilton",
+                "workflow_ref": invoice_review_bundle.CAPITAL_HILTON_WORKFLOW_REF,
+                "action_kind": "operator_reported_wrong_source_workbook",
+                "operator_provided": True,
+                "no_workbook_body_read": True,
+                "no_cell_read": True,
+                "no_generation_export": True,
+                "no_external_action": True,
+            },
+        },
+        db_path=db_path,
+        export_root=export_root,
+        bridge_export_root=bridge_root,
+        generated_at=FIXED_NOW,
+    )
+    result = state_machine.process_action(
+        _request("regenerate_or_link_invoice_artifact"),
+        db_path=db_path,
+        export_root=export_root,
+        bridge_export_root=bridge_root,
+        generated_at=FIXED_NOW,
+    )
 
-    assert result.status == "BLOCKED_NEEDS_INVOICE_RECORD_SELECTION"
+    assert result.status == "BLOCKED_NEEDS_CORRECT_SOURCE_WORKBOOK"
     assert result.action_receipt["completion_receipt_written"] is False
-    assert result.headline == "Invoice artifact needs selection receipt"
-    assert "selection receipt" in result.body
+    assert result.headline == "Choose the correct source workbook first"
+    assert "correct Capital Hilton source workbook" in result.body
     assert state_machine.AUTHORITY_BOUNDARY["invoice_generation_performed"] is False
     assert state_machine.AUTHORITY_BOUNDARY["pdf_export_performed"] is False
 
 
 def test_regenerate_or_link_artifact_requires_operator_selection_receipt(tmp_path):
     db_path, export_root, bridge_root = _paths(tmp_path)
+    state_machine.process_source_workbook_selection_result(
+        _source_workbook_result_request(),
+        db_path=db_path,
+        export_root=export_root,
+        bridge_export_root=bridge_root,
+        generated_at=FIXED_NOW,
+    )
     state_machine.init_store(db_path)
     state = state_machine.load_state(db_path, generated_at=FIXED_NOW)
     state["invoice_record_selection_status"] = "OPERATOR_CONFIRMED"
@@ -252,6 +324,13 @@ def test_regenerate_or_link_artifact_requires_operator_selection_receipt(tmp_pat
 
 def test_regenerate_or_link_artifact_after_selection_returns_generator_not_wired_without_output(tmp_path):
     db_path, export_root, bridge_root = _paths(tmp_path)
+    source = state_machine.process_source_workbook_selection_result(
+        _source_workbook_result_request(),
+        db_path=db_path,
+        export_root=export_root,
+        bridge_export_root=bridge_root,
+        generated_at=FIXED_NOW,
+    )
     selection = state_machine.process_invoice_record_selection_result(
         _selection_result_request(),
         db_path=db_path,
@@ -270,6 +349,7 @@ def test_regenerate_or_link_artifact_after_selection_returns_generator_not_wired
     bridge_bundle = json.loads((bridge_root / invoice_review_bundle.JSON_EXPORT_NAME).read_text(encoding="utf-8"))
     capital = source_bundle["capital_hilton_bundle"]
 
+    assert source.action_receipt["receipt_name"] == "source_workbook_reference_confirmed_receipt"
     assert selection.action_receipt["receipt_name"] == "invoice_record_selection_operator_confirmed_receipt"
     assert result.status == "GENERATOR_NOT_WIRED"
     assert result.action_receipt["receipt_name"] == "invoice_artifact_generator_not_wired_receipt"
@@ -301,6 +381,13 @@ def test_regenerate_or_link_artifact_marks_invalid_candidate_not_attach_ready(tm
     bad_artifact.write_text("not an xlsx package", encoding="utf-8")
     monkeypatch.setattr(invoice_review_bundle, "CAPITAL_HILTON_EXCEL_PATH", bad_artifact)
     db_path, export_root, bridge_root = _paths(tmp_path)
+    state_machine.process_source_workbook_selection_result(
+        _source_workbook_result_request(),
+        db_path=db_path,
+        export_root=export_root,
+        bridge_export_root=bridge_root,
+        generated_at=FIXED_NOW,
+    )
     state_machine.process_invoice_record_selection_result(
         _selection_result_request(),
         db_path=db_path,

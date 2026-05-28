@@ -11,8 +11,32 @@
     "workbook_body_read_performed": false
   },
   "blocked_or_disabled_events": [],
-  "event_count_returned": 2,
+  "event_count_returned": 3,
   "events": [
+    {
+      "action_category": "GOVERNED_REQUEST",
+      "action_ref": "confirm_source_workbook_reference",
+      "bundle_id": "invoice_review_bundle:capital_hilton:v0",
+      "client_ref": "capital_hilton",
+      "created_at": "2026-05-28T04:01:42.786352+00:00",
+      "emitted_backend_request": true,
+      "event_id": "operator_action_event:611aa8eb1ac58a4f",
+      "expected_next_safe_move": "Select the invoice page/period again from the confirmed workbook.",
+      "handled": true,
+      "handler_ref": "source_workbook_selection_result.capital_hilton",
+      "intended_use": "confirm_source_workbook_reference",
+      "label_clicked": "Confirm source workbook",
+      "no_external_action": true,
+      "operator_visible_summary": "Operator confirmed the Capital Hilton source workbook reference.",
+      "physical_deletion_allowed": false,
+      "proof_refs": [
+        "invoice_review:source_workbook_reference_confirmed_receipt:8ae3f3a395d10037"
+      ],
+      "source_request_id": "capital_hilton_source_workbook_operator_correction_live",
+      "status": "HANDLED",
+      "updated_at": "2026-05-28T04:01:42.786352+00:00",
+      "workflow_ref": "capital_hilton_invoice_workflow"
+    },
     {
       "action_category": "GOVERNED_REQUEST",
       "action_ref": "replace_source_workbook_reference",
@@ -62,7 +86,7 @@
       "workflow_ref": "capital_hilton_invoice_workflow"
     }
   ],
-  "generated_at": null,
+  "generated_at": "2026-05-28T04:01:42.786352+00:00",
   "pending_operator_intents": [],
   "read_model_id": "operator_action_event_journal",
   "schema_version": "operator_action_event_journal_v0",

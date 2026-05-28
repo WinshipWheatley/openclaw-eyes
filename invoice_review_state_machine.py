@@ -46,6 +46,7 @@ ACTION_TO_RECEIPT = {
     "confirm_invoice_review_candidate": "invoice_review_confirmation_intake_receipt",
     "open_invoice_workbook_candidate": "local_artifact_inspection_receipt",
     "confirm_invoice_record_selection": "invoice_record_selection_operator_confirmed_receipt",
+    "confirm_source_workbook_selection": "source_workbook_reference_confirmed_receipt",
 }
 
 ACTION_TO_RECEIPT_EVENT = {
@@ -66,6 +67,7 @@ ACTION_TO_RECEIPT_EVENT = {
     "confirm_invoice_review_candidate": "invoice_review_confirmation_intake_requested",
     "open_invoice_workbook_candidate": "local_artifact_inspection_requested",
     "confirm_invoice_record_selection": "invoice_record_selection_operator_confirmed",
+    "confirm_source_workbook_selection": "source_workbook_reference_confirmed",
 }
 
 ARTIFACT_GENERATOR_NOT_WIRED_RECEIPT = "invoice_artifact_generator_not_wired_receipt"
@@ -157,6 +159,9 @@ def init_store(db_path: Path = DEFAULT_DB_PATH) -> None:
               generated_artifact_generator_status TEXT,
               generated_artifact_generator_reason TEXT,
               generated_artifact_status TEXT NOT NULL,
+              source_workbook_ref TEXT,
+              source_workbook_pc_path TEXT,
+              source_workbook_mac_path TEXT,
               coupa_proof_status TEXT NOT NULL,
               supplier_portal_provider TEXT,
               supplier_portal_proof_status TEXT,
@@ -201,6 +206,9 @@ def init_store(db_path: Path = DEFAULT_DB_PATH) -> None:
         _ensure_column(conn, "invoice_review_states", "generated_artifact_metadata_size", "INTEGER")
         _ensure_column(conn, "invoice_review_states", "generated_artifact_generator_status", "TEXT")
         _ensure_column(conn, "invoice_review_states", "generated_artifact_generator_reason", "TEXT")
+        _ensure_column(conn, "invoice_review_states", "source_workbook_ref", "TEXT")
+        _ensure_column(conn, "invoice_review_states", "source_workbook_pc_path", "TEXT")
+        _ensure_column(conn, "invoice_review_states", "source_workbook_mac_path", "TEXT")
         _ensure_column(conn, "invoice_review_receipts", "receipt_event", "TEXT")
 
 
@@ -228,6 +236,9 @@ def _default_state(*, generated_at: str | None = None) -> dict[str, Any]:
         "generated_artifact_generator_status": None,
         "generated_artifact_generator_reason": None,
         "generated_artifact_status": "CANDIDATE_NEEDS_LINKAGE",
+        "source_workbook_ref": None,
+        "source_workbook_pc_path": None,
+        "source_workbook_mac_path": None,
         "coupa_proof_status": "MISSING",
         "supplier_portal_provider": "COUPA",
         "supplier_portal_proof_status": "MISSING",
@@ -279,12 +290,13 @@ def _upsert_state(conn: sqlite3.Connection, state: Mapping[str, Any]) -> None:
           operator_notes, generated_artifact_metadata_status,
           generated_artifact_metadata_hash, generated_artifact_metadata_size,
           generated_artifact_generator_status, generated_artifact_generator_reason,
-          generated_artifact_status, coupa_proof_status,
+          generated_artifact_status, source_workbook_ref, source_workbook_pc_path,
+          source_workbook_mac_path, coupa_proof_status,
           supplier_portal_provider, supplier_portal_proof_status,
           recipient_confirmation_status, recipient_review_status, clara_draft_status,
           approval_readiness_status, email_send_status, payment_watch_status,
           ledger_tax_status, last_action_kind, last_receipt_id, last_updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(bundle_id) DO UPDATE SET
           source_workbook_status=excluded.source_workbook_status,
           invoice_record_selection_status=excluded.invoice_record_selection_status,
@@ -299,6 +311,9 @@ def _upsert_state(conn: sqlite3.Connection, state: Mapping[str, Any]) -> None:
           generated_artifact_generator_status=excluded.generated_artifact_generator_status,
           generated_artifact_generator_reason=excluded.generated_artifact_generator_reason,
           generated_artifact_status=excluded.generated_artifact_status,
+          source_workbook_ref=excluded.source_workbook_ref,
+          source_workbook_pc_path=excluded.source_workbook_pc_path,
+          source_workbook_mac_path=excluded.source_workbook_mac_path,
           coupa_proof_status=excluded.coupa_proof_status,
           supplier_portal_provider=excluded.supplier_portal_provider,
           supplier_portal_proof_status=excluded.supplier_portal_proof_status,
@@ -330,6 +345,9 @@ def _upsert_state(conn: sqlite3.Connection, state: Mapping[str, Any]) -> None:
             state.get("generated_artifact_generator_status"),
             state.get("generated_artifact_generator_reason"),
             state["generated_artifact_status"],
+            state.get("source_workbook_ref"),
+            state.get("source_workbook_pc_path"),
+            state.get("source_workbook_mac_path"),
             state["coupa_proof_status"],
             state.get("supplier_portal_provider", "COUPA"),
             state.get("supplier_portal_proof_status", state["coupa_proof_status"]),
@@ -437,6 +455,39 @@ def inspect_generated_invoice_artifact_metadata(path: Path) -> dict[str, Any]:
     return result
 
 
+def inspect_workbook_candidate_metadata(path: Path) -> dict[str, Any]:
+    result: dict[str, Any] = {
+        "path": path.as_posix(),
+        "exists": path.exists(),
+        "file_extension": path.suffix.lower(),
+        "file_size": None,
+        "sha256": None,
+        "xlsx_package_valid": False,
+        "workbook_business_cells_read": False,
+        "spreadsheet_cell_read_performed": False,
+    }
+    if path.suffix.lower() != ".xlsx":
+        result["metadata_status"] = "INVALID_EXTENSION"
+        return result
+    if not path.exists() or not path.is_file():
+        result["metadata_status"] = "PATH_NOT_READABLE"
+        return result
+    stat = path.stat()
+    result["file_size"] = stat.st_size
+    result["sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
+    try:
+        with zipfile.ZipFile(path) as package:
+            names = set(package.namelist())
+            result["xlsx_package_valid"] = "[Content_Types].xml" in names and any(
+                name.startswith("xl/") for name in names
+            )
+    except zipfile.BadZipFile:
+        result["metadata_status"] = "BAD_XLSX_ZIP_CONTAINER"
+        return result
+    result["metadata_status"] = "METADATA_VALID" if result["xlsx_package_valid"] else "MISSING_XLSX_PACKAGE_PARTS"
+    return result
+
+
 def _source_workbook_linkage_readiness() -> dict[str, Any]:
     registry_payload = client_invoice_workbook_registry.load_existing_payload()
     artifact_payload = local_artifact_reference.load_existing_payload()
@@ -479,6 +530,43 @@ def _source_workbook_linkage_readiness() -> dict[str, Any]:
     }
 
 
+def source_workbook_candidates() -> tuple[dict[str, Any], ...]:
+    linkage = _source_workbook_linkage_readiness()
+    candidates = []
+    registry_payload = client_invoice_workbook_registry.load_existing_payload()
+    candidate_record = registry_payload.get("candidate_record") if isinstance(registry_payload, Mapping) else None
+    if isinstance(candidate_record, Mapping) and candidate_record.get("workbook_ref"):
+        candidates.append(
+            {
+                "candidate_ref": str(candidate_record["workbook_ref"]),
+                "candidate_kind": "staged_workbook_candidate",
+                "display_name": str(candidate_record.get("workbook_display_name") or ""),
+                "extension": str(candidate_record.get("workbook_extension") or ""),
+                "source_request_id": str(candidate_record.get("source_request_id") or ""),
+                "confirmation_status": "CANDIDATE_ONLY",
+            }
+        )
+    if linkage.get("registry_workbook_ref"):
+        candidates.append(
+            {
+                "candidate_ref": linkage["registry_workbook_ref"],
+                "candidate_kind": "active_registry_workbook_ref",
+                "confirmation_status": "CANDIDATE_ONLY",
+            }
+        )
+    if linkage.get("approved_artifact_ref"):
+        candidates.append(
+            {
+                "candidate_ref": linkage["approved_artifact_ref"],
+                "candidate_kind": "approved_readable_artifact_ref",
+                "pc_path": linkage.get("source_workbook_pc_path") or "",
+                "mac_path": linkage.get("source_workbook_mac_path") or "",
+                "confirmation_status": "CANDIDATE_ONLY",
+            }
+        )
+    return tuple(candidates)
+
+
 def audit_current_invoice_artifact_generator(state: Mapping[str, Any]) -> dict[str, Any]:
     builder_spec = importlib_util.find_spec("invoice_artifact_builder")
     preview_spec = importlib_util.find_spec("capital_hilton_invoice_artifact_generator")
@@ -509,6 +597,7 @@ def audit_current_invoice_artifact_generator(state: Mapping[str, Any]) -> dict[s
             "EXISTING_GENERATORS_USE_STATIC_FIXTURE_FACTS",
             "NO_GENERATOR_ACCEPTS_SELECTED_INVOICE_RECORD_AND_SOURCE_WORKBOOK_RECEIPT",
             "WORKBOOK_BODY_READ_NOT_AUTHORIZED",
+            "GENERATION_AUTHORITY_RECEIPT_REQUIRED",
         )
     )
     return {
@@ -592,9 +681,19 @@ def _apply_action(state: dict[str, Any], action_kind: str) -> tuple[str, str, st
         state["invoice_period_status"] = "NEEDS_OPERATOR_SELECTION"
         return ("REQUESTED", "Starting invoice page selection", "Let's pick the Capital Hilton invoice page/period. Choose the page or period from the running workbook so OpenClaw can link the generated invoice artifact correctly.", "Choose the invoice page or period in Mission Control.", "invoice_record_selection_started_receipt", False)
     if action_kind == "regenerate_or_link_invoice_artifact":
+        if state["source_workbook_status"] != "CONFIRMED":
+            state["generated_artifact_status"] = "BLOCKED_NEEDS_CORRECT_SOURCE_WORKBOOK"
+            return (
+                "BLOCKED_NEEDS_CORRECT_SOURCE_WORKBOOK",
+                "Choose the correct source workbook first",
+                "Choose the correct Capital Hilton source workbook before regenerating or linking the invoice artifact. Nothing was generated, exported, linked, attached, or approved.",
+                "Choose or confirm the correct source workbook.",
+                "generated_invoice_artifact_linkage_request_receipt",
+                False,
+            )
         if state["invoice_record_selection_status"] not in {"OPERATOR_CONFIRMED", "SELECTED"} or state["invoice_period_status"] not in {"OPERATOR_CONFIRMED", "CONFIRMED"}:
             state["generated_artifact_status"] = "BLOCKED_NEEDS_INVOICE_RECORD_SELECTION"
-            return ("BLOCKED_NEEDS_INVOICE_RECORD_SELECTION", "Invoice artifact needs linkage", "OpenClaw needs the invoice page/period before it can link or regenerate an artifact. No invoice was generated or exported from this step.", "Select the invoice page/period first.", "generated_invoice_artifact_linkage_request_receipt", False)
+            return ("BLOCKED_NEEDS_INVOICE_RECORD_SELECTION", "Select the invoice page first", "Select the invoice page/period from the confirmed source workbook before regenerating or linking an artifact. No invoice was generated or exported from this step.", "Select the invoice page/period first.", "generated_invoice_artifact_linkage_request_receipt", False)
         metadata = inspect_generated_invoice_artifact_metadata(invoice_review_bundle.CAPITAL_HILTON_EXCEL_PATH)
         state["generated_artifact_metadata_status"] = metadata["metadata_status"]
         state["generated_artifact_metadata_hash"] = metadata.get("sha256")
@@ -672,15 +771,16 @@ def _overlay_bundle_state(
         "completion_receipts_only_turn_steps_complete": True,
     }
     status_by_title: dict[str, str] = {}
-    if state["source_workbook_status"] == "REPLACEMENT_REQUESTED":
-        status_by_title["Active workbook"] = "REQUESTED"
     if state["source_workbook_status"] in {
         "OPERATOR_REPORTED_WRONG_WORKBOOK",
         "SOURCE_WORKBOOK_REPLACEMENT_REQUIRED",
+        "REPLACEMENT_REQUESTED",
     }:
         status_by_title["Active workbook"] = "NEEDS_ACTION"
         status_by_title["Invoice page/period"] = "BLOCKED"
         status_by_title["Generated invoice artifact"] = "BLOCKED"
+    if state["source_workbook_status"] == "CONFIRMED":
+        status_by_title["Active workbook"] = "COMPLETE"
     if state["invoice_record_selection_status"] == "OPERATOR_CONFIRMED":
         status_by_title["Invoice page/period"] = "OPERATOR_CONFIRMED"
     if state["invoice_record_selection_status"] == "NEEDS_OPERATOR_SELECTION":
@@ -727,10 +827,12 @@ def _overlay_bundle_state(
     if state["source_workbook_status"] in {
         "OPERATOR_REPORTED_WRONG_WORKBOOK",
         "SOURCE_WORKBOOK_REPLACEMENT_REQUIRED",
+        "REPLACEMENT_REQUESTED",
     }:
         capital["source_workbook_correction"] = {
             "status": state["source_workbook_status"],
-            "operator_reported_wrong_workbook": True,
+            "operator_reported_wrong_workbook": state["source_workbook_status"] == "OPERATOR_REPORTED_WRONG_WORKBOOK",
+            "replacement_requested": state["source_workbook_status"] == "REPLACEMENT_REQUESTED",
             "superseded": False,
             "physical_deletion_allowed": False,
             "no_workbook_body_read": True,
@@ -799,6 +901,52 @@ def _overlay_bundle_state(
             )
         )
         capital["actionable_blockers"] = tuple(json.loads(item) for item in capital["actionable_blockers"])
+    if (
+        state["source_workbook_status"] == "CONFIRMED"
+        and state["invoice_record_selection_status"] == "NEEDS_RESELECTION_AFTER_SOURCE_WORKBOOK_CORRECTION"
+    ):
+        capital["source_workbook_correction"] = {
+            "status": "SOURCE_WORKBOOK_CONFIRMED_RESELECTION_REQUIRED",
+            "source_workbook_ref": state.get("source_workbook_ref"),
+            "source_workbook_pc_path": state.get("source_workbook_pc_path"),
+            "source_workbook_mac_path": state.get("source_workbook_mac_path"),
+            "operator_reported_wrong_workbook": False,
+            "superseded": True,
+            "physical_deletion_allowed": False,
+            "no_workbook_body_read": True,
+            "no_cell_read": True,
+            "stop_line_active": False,
+        }
+        capital["invoice_selection"]["active_workbook_state"] = "SOURCE_WORKBOOK_CONFIRMED"
+        capital["invoice_selection"]["invoice_record_state"] = "NEEDS_RESELECTION_AFTER_SOURCE_WORKBOOK_CORRECTION"
+        capital["invoice_selection"]["invoice_period_state"] = "NEEDS_RESELECTION_AFTER_SOURCE_WORKBOOK_CORRECTION"
+        capital["invoice_selection"]["operator_question"] = (
+            "The source workbook was corrected. Select the invoice page/period again from the confirmed workbook."
+        )
+        capital["invoice_selection"]["previous_invoice_period_label"] = state.get("invoice_period_label")
+        capital["invoice_selection"]["previous_invoice_record_label"] = state.get("invoice_record_label")
+        capital["invoice_selection"]["operator_confirmed_selection"] = False
+        primary_blocker = "Select the Capital Hilton invoice page/period from the confirmed workbook."
+        selection_action = next(
+            (
+                dict(step.get("primary_action"))
+                for step in capital.get("review_proof_timeline", ())
+                if step.get("title") == "Invoice page/period" and isinstance(step.get("primary_action"), Mapping)
+            ),
+            None,
+        )
+        capital["blockers"] = tuple(dict.fromkeys((primary_blocker, *tuple(capital.get("blockers") or ()))))
+        capital["actionable_blockers"] = (
+            {
+                "blocker_ref": f"invoice_review_blocker:{_short_hash(primary_blocker)}",
+                "operator_summary": primary_blocker,
+                "status": "NEEDS_ACTION",
+                "primary_action": selection_action,
+                "disabled_reason": None,
+                "proof_refs": (receipt["receipt_id"],),
+            },
+            *tuple(capital.get("actionable_blockers") or ()),
+        )
     if state["generated_artifact_status"] in {
         "GENERATED_ARTIFACT_NEEDS_REGENERATION",
         "ARTIFACT_GENERATOR_NOT_WIRED",
@@ -844,6 +992,8 @@ def refresh_bundle(
         present_receipts=completion_receipts,
         generated_at=generated_at,
     )
+    if last_receipt is None and state.get("last_receipt_id"):
+        last_receipt = read_receipt(db_path, str(state["last_receipt_id"]))
     if last_receipt:
         payload = _overlay_bundle_state(
             payload,
@@ -879,6 +1029,7 @@ def process_action(
     state = load_state(db_path, generated_at=generated_at)
     if (
         action_kind == "regenerate_or_link_invoice_artifact"
+        and state.get("source_workbook_status") == "CONFIRMED"
         and "invoice_record_selection_operator_confirmed_receipt" not in receipt_names(db_path)
     ):
         state["generated_artifact_status"] = "BLOCKED_NEEDS_INVOICE_RECORD_SELECTION"
@@ -1059,6 +1210,160 @@ def process_invoice_record_selection_result(
     return InvoiceReviewActionResult(
         source_request_id=source_request_id,
         action_kind="confirm_invoice_record_selection",
+        status=status,
+        headline=headline,
+        body=body,
+        detail="; ".join(validation_errors) if validation_errors else next_action,
+        next_action=next_action,
+        action_receipt=receipt,
+        state_snapshot=state,
+        refreshed_bundle=refreshed,
+        source_bundle_path=source_bundle_path.as_posix(),
+        bridge_bundle_path=bridge_bundle_path.as_posix() if bridge_bundle_path else None,
+        bridge_mirror_written=bridge_written,
+    )
+
+
+def _source_workbook_result_payload(raw_request: Mapping[str, Any]) -> Mapping[str, Any]:
+    nested = raw_request.get("hidden_request_payload")
+    if isinstance(nested, Mapping):
+        merged = dict(nested)
+        merged.update({key: value for key, value in raw_request.items() if key not in merged})
+        return merged
+    return raw_request
+
+
+def _pc_path_from_mac_path(mac_path: str) -> str:
+    if mac_path.startswith("/Volumes/openclaw_e/"):
+        return "/mnt/e/openclaw/" + mac_path.removeprefix("/Volumes/openclaw_e/")
+    return ""
+
+
+def process_source_workbook_selection_result(
+    raw_request: Mapping[str, Any],
+    *,
+    db_path: Path = DEFAULT_DB_PATH,
+    export_root: Path = DEFAULT_EXPORT_ROOT,
+    bridge_export_root: Path | None = DEFAULT_BRIDGE_EXPORT_ROOT,
+    generated_at: str | None = None,
+) -> InvoiceReviewActionResult:
+    init_store(db_path)
+    payload = _source_workbook_result_payload(raw_request)
+    source_request_id = str(raw_request.get("request_id") or payload.get("source_request_id") or "unknown_source_workbook_selection_result")
+    state = load_state(db_path, generated_at=generated_at)
+    selected_mac_path = str(payload.get("selected_workbook_mac_path") or payload.get("source_workbook_mac_path") or "").strip()
+    selected_pc_path = str(payload.get("selected_workbook_pc_path") or payload.get("source_workbook_pc_path") or "").strip()
+    artifact_ref = str(payload.get("artifact_ref") or payload.get("selected_artifact_ref") or "").strip()
+    workbook_extension = str(payload.get("workbook_extension") or payload.get("selected_workbook_extension") or "").strip().lower()
+    workbook_display_name = str(payload.get("workbook_display_name") or payload.get("selected_workbook_display_name") or "").strip()
+    workbook_size = payload.get("workbook_size_bytes") or payload.get("file_size_bytes")
+    if not selected_pc_path and selected_mac_path:
+        selected_pc_path = _pc_path_from_mac_path(selected_mac_path)
+    validation_errors: list[str] = []
+    if str(payload.get("client_ref") or raw_request.get("client_ref") or "") != "capital_hilton":
+        validation_errors.append("WRONG_CLIENT")
+    if str(payload.get("workflow_ref") or raw_request.get("workflow_ref") or "") != invoice_review_bundle.CAPITAL_HILTON_WORKFLOW_REF:
+        validation_errors.append("WRONG_WORKFLOW")
+    if str(payload.get("intended_use") or "") not in {"confirm_source_workbook_reference", "replace_source_workbook_reference_result"}:
+        validation_errors.append("WRONG_INTENDED_USE")
+    if payload.get("operator_provided") is not True:
+        validation_errors.append("OPERATOR_PROVIDED_REQUIRED")
+    if payload.get("operator_confirmed") is not True:
+        validation_errors.append("OPERATOR_CONFIRMED_REQUIRED")
+    for flag in (
+        "no_workbook_body_read",
+        "no_cell_read",
+        "no_external_action",
+        "physical_deletion_allowed",
+    ):
+        expected = False if flag == "physical_deletion_allowed" else True
+        if payload.get(flag) is not expected:
+            validation_errors.append(f"{flag.upper()}_{'FALSE' if expected is False else 'REQUIRED'}")
+    if not artifact_ref and not selected_mac_path and not selected_pc_path:
+        validation_errors.append("WORKBOOK_PATH_OR_ARTIFACT_REF_REQUIRED")
+    metadata: dict[str, Any] = {
+        "metadata_status": "NOT_CHECKED",
+        "workbook_business_cells_read": False,
+        "spreadsheet_cell_read_performed": False,
+    }
+    if selected_pc_path:
+        metadata = inspect_workbook_candidate_metadata(Path(selected_pc_path))
+        if metadata["metadata_status"] != "METADATA_VALID":
+            validation_errors.append(str(metadata["metadata_status"]))
+    elif selected_mac_path and not selected_mac_path.lower().endswith(".xlsx"):
+        validation_errors.append("INVALID_EXTENSION")
+    elif artifact_ref:
+        if workbook_extension and workbook_extension not in {".xlsx", ".xlsm", ".xls"}:
+            validation_errors.append("INVALID_EXTENSION")
+        metadata = {
+            "metadata_status": "ARTIFACT_REF_METADATA_VALID" if not validation_errors else "ARTIFACT_REF_METADATA_BLOCKED",
+            "artifact_ref": artifact_ref,
+            "workbook_display_name": workbook_display_name,
+            "workbook_extension": workbook_extension,
+            "workbook_size_bytes": workbook_size,
+            "workbook_business_cells_read": False,
+            "spreadsheet_cell_read_performed": False,
+        }
+    if validation_errors:
+        status = "BLOCKED_INVALID_SOURCE_WORKBOOK_SELECTION"
+        headline = "Source workbook selection blocked"
+        body = "OpenClaw could not confirm the source workbook because the selection result was incomplete or unsafe."
+        next_action = "Choose the correct Capital Hilton source workbook with the required safety flags."
+        receipt_name = "source_workbook_selection_blocked_receipt"
+        completion = False
+    else:
+        status = "COMPLETED"
+        headline = "Source workbook confirmed"
+        body = "Source workbook reference recorded. No workbook body or cells were read. Select the invoice page/period again from the confirmed workbook."
+        next_action = "Select the invoice page/period again from the confirmed workbook."
+        receipt_name = "source_workbook_reference_confirmed_receipt"
+        completion = True
+        state["source_workbook_status"] = "CONFIRMED"
+        state["source_workbook_ref"] = artifact_ref or f"operator_selected_workbook:{_short_hash(selected_mac_path, selected_pc_path)}"
+        state["source_workbook_mac_path"] = selected_mac_path or None
+        state["source_workbook_pc_path"] = selected_pc_path or None
+        state["invoice_record_selection_status"] = "NEEDS_RESELECTION_AFTER_SOURCE_WORKBOOK_CORRECTION"
+        state["invoice_period_status"] = "NEEDS_RESELECTION_AFTER_SOURCE_WORKBOOK_CORRECTION"
+        state["generated_artifact_status"] = "INVALIDATED_BY_WRONG_SOURCE_WORKBOOK"
+        state["approval_readiness_status"] = "BLOCKED_PREREQUISITES"
+    receipt = _receipt(
+        source_request_id=source_request_id,
+        action_kind="confirm_source_workbook_selection",
+        receipt_name=receipt_name,
+        status=status,
+        completion=completion,
+        generated_at=generated_at,
+    )
+    receipt["validation_errors"] = tuple(validation_errors)
+    receipt["source_workbook_selection"] = {
+        "artifact_ref": artifact_ref,
+        "selected_workbook_mac_path": selected_mac_path,
+        "selected_workbook_pc_path": selected_pc_path,
+        "workbook_display_name": workbook_display_name,
+        "workbook_extension": workbook_extension,
+        "workbook_size_bytes": workbook_size,
+        "metadata": metadata,
+        "no_workbook_body_read": True,
+        "no_cell_read": True,
+        "no_external_action": True,
+        "physical_deletion_allowed": False,
+    }
+    state["last_action_kind"] = "confirm_source_workbook_selection"
+    state["last_receipt_id"] = receipt["receipt_id"]
+    state["last_updated_at"] = generated_at
+    with _connect(db_path) as conn:
+        _upsert_state(conn, state)
+        _write_receipt(conn, receipt)
+    refreshed, source_bundle_path, bridge_bundle_path, bridge_written = refresh_bundle(
+        db_path=db_path,
+        export_root=export_root,
+        bridge_export_root=bridge_export_root,
+        generated_at=generated_at,
+        last_receipt=receipt,
+    )
+    return InvoiceReviewActionResult(
+        source_request_id=source_request_id,
+        action_kind="confirm_source_workbook_selection",
         status=status,
         headline=headline,
         body=body,

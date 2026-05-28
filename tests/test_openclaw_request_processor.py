@@ -138,6 +138,39 @@ def _invoice_record_selection_result_request(path: Path, **overrides) -> dict:
     return request
 
 
+def _source_workbook_selection_result_request(path: Path, *, workbook_path: Path | None = None, **overrides) -> dict:
+    if workbook_path is None:
+        workbook_path = path.parent / "Invoice_Capitol_Hilton_Running.xlsx"
+        with zipfile.ZipFile(workbook_path, "w") as package:
+            package.writestr("[Content_Types].xml", "<Types></Types>")
+            package.writestr("xl/workbook.xml", "<workbook></workbook>")
+    request = {
+        "request_id": "source_workbook_selection_result_confirmed",
+        "request_type": "LOCAL_SURFACE_RESULT",
+        "type": "LOCAL_SURFACE_RESULT",
+        "kind": "LOCAL_SURFACE_RESULT",
+        "world_ref": "finance",
+        "workflow_ref": "capital_hilton_invoice_workflow",
+        "client_ref": "capital_hilton",
+        "intended_use": "confirm_source_workbook_reference",
+        "operator_provided": True,
+        "operator_confirmed": True,
+        "selected_workbook_pc_path": workbook_path.as_posix(),
+        "selected_workbook_mac_path": "/Volumes/openclaw_e/artifacts/invoice_workbooks/Invoice_Capitol_Hilton_Running.xlsx",
+        "no_workbook_body_read": True,
+        "no_cell_read": True,
+        "no_external_action": True,
+        "physical_deletion_allowed": False,
+        "idempotency_key": "source_workbook_selection_result_confirmed_idempotency",
+        "created_at": FIXED_NOW,
+        "authority_boundary": dict(processor.AUTHORITY_BOUNDARY),
+    }
+    request.update(overrides)
+    request["payload_hash"] = processor._content_hash(request)
+    path.write_text(processor.stable_json(request), encoding="utf-8")
+    return request
+
+
 def _seed_capital_hilton_session_response(export_root: Path, *, next_action: str = "Next: Confirm the Coupa PO/reference.") -> None:
     export_root.mkdir(parents=True, exist_ok=True)
     payload = {
@@ -2117,7 +2150,82 @@ def test_invoice_review_replace_workbook_action_does_not_delete_files(tmp_path, 
 
     assert response["headline"] == "Choose the correct source workbook"
     assert "No file will be deleted." in response["eliwinship"]
+    detail = scoped["detail_disclosure"]["invoice_review_action_request"]
+    surface = detail["local_surface_request"]
+    assert surface["surface_type"] == "SHOW_SOURCE_WORKBOOK_SELECTION_PANEL"
+    assert [action["label"] for action in surface["surface_actions"]] == [
+        "Use this workbook as the Capital Hilton source workbook",
+        "Choose a different workbook",
+        "Keep previous workbook reference",
+        "Cancel",
+    ]
+    assert "test file" not in json.dumps(surface).lower()
+    assert surface["physical_deletion_allowed"] is False
+    assert surface["no_workbook_body_read"] is True
+    assert surface["no_cell_read"] is True
     assert scoped["machine_proof"]["file_mutation_performed"] is False
+
+
+def test_source_workbook_selection_result_confirms_without_cell_read_and_keeps_reselection_required(tmp_path, capsys, monkeypatch):
+    inbox = tmp_path / "approved_inbox"
+    inbox.mkdir()
+    request_path = inbox / "mission_control_local_surface_result_source_workbook.json"
+    request = _source_workbook_selection_result_request(request_path)
+    export_root = tmp_path / "read_models"
+    response_dir = tmp_path / "responses"
+    monkeypatch.setattr(processor, "APPROVED_INBOX", inbox)
+    monkeypatch.setattr(processor, "DEFAULT_RESPONSE_DIR", response_dir)
+
+    assert process_main(["--file", str(request_path), "--export-root", str(export_root), "--generated-at", FIXED_NOW, "--format", "json"]) == 0
+    response = json.loads(capsys.readouterr().out)
+    scoped = json.loads(_scoped_processor_response_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
+    receipt = json.loads((export_root / "invoice_review_action_request_receipt.json").read_text(encoding="utf-8"))
+    bundle = json.loads((export_root / "invoice_review_bundle.json").read_text(encoding="utf-8"))["capital_hilton_bundle"]
+
+    assert response["headline"] == "Source workbook confirmed"
+    assert "No workbook body or cells were read" in response["eliwinship"]
+    assert receipt["action_start_receipt"]["receipt_name"] == "source_workbook_reference_confirmed_receipt"
+    assert receipt["state_machine_progress"]["state_snapshot"]["source_workbook_status"] == "CONFIRMED"
+    assert receipt["state_machine_progress"]["state_snapshot"]["invoice_record_selection_status"] == "NEEDS_RESELECTION_AFTER_SOURCE_WORKBOOK_CORRECTION"
+    assert bundle["source_workbook_correction"]["status"] == "SOURCE_WORKBOOK_CONFIRMED_RESELECTION_REQUIRED"
+    assert bundle["invoice_selection"]["operator_confirmed_selection"] is False
+    assert bundle["excel_invoice_artifact"]["attachment_ready"] is False
+    assert bundle["approval_footer"]["approval_ready"] is False
+    assert scoped["detail_disclosure"]["source_workbook_selection_result"]["workbook_body_read_performed"] is False
+    assert scoped["detail_disclosure"]["source_workbook_selection_result"]["spreadsheet_cell_read_performed"] is False
+
+
+def test_operator_correction_chat_confirms_current_workbook_candidate_without_commands(tmp_path, capsys, monkeypatch):
+    inbox = tmp_path / "approved_inbox"
+    inbox.mkdir()
+    request_path = inbox / "mission_control_chat_request_capital_hilton_workbook_correction.json"
+    request = _write_capital_hilton_status_request(
+        request_path,
+        message="I just told you what the current work book is.",
+    )
+    request["world_ref"] = "finance"
+    request["client_ref"] = "capital_hilton"
+    request_path.write_text(processor.stable_json(request), encoding="utf-8")
+    export_root = tmp_path / "read_models"
+    export_root.mkdir(parents=True, exist_ok=True)
+    (export_root / "client_invoice_workbook_registry.json").write_text(
+        Path("generated/read_models/client_invoice_workbook_registry.json").read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
+    response_dir = tmp_path / "responses"
+    monkeypatch.setattr(processor, "APPROVED_INBOX", inbox)
+    monkeypatch.setattr(processor, "DEFAULT_RESPONSE_DIR", response_dir)
+
+    assert process_main(["--file", str(request_path), "--export-root", str(export_root), "--generated-at", FIXED_NOW, "--format", "json"]) == 0
+    response = json.loads(capsys.readouterr().out)
+    scoped = json.loads(_scoped_processor_response_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
+
+    assert response["headline"] == "Capital Hilton workbook updated"
+    assert "source workbook confirmed" in response["eliwinship"].lower()
+    assert "request_type" not in response["eliwinship"]
+    assert "command" not in response["eliwinship"].lower()
+    assert "workbook body and cells were not read" in json.dumps(scoped).lower()
+    assert scoped["detail_disclosure"]["source_workbook_selection_result"]["action_start_receipt"]["receipt_name"] == "source_workbook_reference_confirmed_receipt"
 
 
 def test_invoice_review_regenerate_or_link_does_not_generate_export(tmp_path, capsys, monkeypatch):
@@ -2134,8 +2242,9 @@ def test_invoice_review_regenerate_or_link_does_not_generate_export(tmp_path, ca
     response = json.loads(capsys.readouterr().out)
     scoped = json.loads(_scoped_processor_response_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
 
-    assert response["headline"] == "Invoice artifact needs selection receipt"
-    assert "No invoice was generated or exported from this step." in response["eliwinship"]
+    assert response["headline"] == "Choose the correct source workbook first"
+    assert "correct Capital Hilton source workbook" in response["eliwinship"]
+    assert "Nothing was generated" in response["eliwinship"]
     assert scoped["detail_disclosure"]["invoice_review_action_request"]["invoice_generation_performed"] is False
 
 
@@ -2317,12 +2426,10 @@ def test_workbook_candidate_replace_choice_accepts_real_workbook_language(tmp_pa
 
     assert response["source_request_id"] == request["request_id"]
     assert response["headline"] == "Capital Hilton workbook updated"
-    assert response["eliwinship"] == (
-        "OpenClaw made the new workbook the current Capital Hilton running invoice workbook. "
-        "The previous workbook is no longer the active workbook reference. Nothing was deleted from disk. "
-        "No workbook body or cells were read."
-    )
-    assert response["next_action"] == "Next: confirm the invoice field mapping before audit."
+    assert "source workbook confirmed" in response["eliwinship"]
+    assert "Nothing was deleted from disk" in response["eliwinship"]
+    assert "workbook cells were not read" in response["eliwinship"]
+    assert response["next_action"] == "Next: select the invoice page/period again from the confirmed workbook."
     assert scoped["source_request_id"] == request["request_id"]
     assert scoped["headline"] == "Capital Hilton workbook updated"
     assert registry_payload["registration_readback"]["status"] == "WORKBOOK_REPLACEMENT_CONFIRMED"

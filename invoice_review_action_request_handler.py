@@ -111,6 +111,21 @@ def is_invoice_record_selection_result(raw_request: Mapping[str, Any]) -> bool:
     return request_type in {"LOCAL_SURFACE_RESULT", "INVOICE_REVIEW_ACTION_RESULT"} and intended_use == "confirm_invoice_record_selection"
 
 
+def is_source_workbook_selection_result(raw_request: Mapping[str, Any]) -> bool:
+    payload = _action_payload(raw_request)
+    request_type = str(payload.get("request_type") or payload.get("type") or raw_request.get("request_type") or raw_request.get("type") or "")
+    intended_use = str(payload.get("intended_use") or raw_request.get("intended_use") or "")
+    return request_type in {
+        "LOCAL_SURFACE_RESULT",
+        "INVOICE_REVIEW_ACTION_RESULT",
+        "OPERATOR_CORRECTION",
+        "OPERATOR_CORRECTION_TO_PENDING_REQUEST",
+    } and intended_use in {
+        "confirm_source_workbook_reference",
+        "replace_source_workbook_reference_result",
+    }
+
+
 def _current_action_index() -> dict[str, dict[str, Any]]:
     bundle = invoice_review_bundle.build_capital_hilton_bundle()
     actions: dict[str, dict[str, Any]] = {}
@@ -182,6 +197,74 @@ def _invoice_record_selection_surface(
         "completion_requires_future_operator_selection_result": True,
         "completion_receipt_required": "invoice_record_selected_receipt",
         "artifact_linkage_receipt_required": "generated_invoice_artifact_linkage_receipt",
+        "response_completion_behavior": "TERMINAL_AFTER_SURFACE_REQUEST_PUBLISHED",
+    }
+
+
+def _source_workbook_selection_surface(
+    *,
+    request_id: str,
+    action_kind: str,
+    payload: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    if action_kind != "replace_source_workbook_reference":
+        return None
+    return {
+        "surface_type": "SHOW_SOURCE_WORKBOOK_SELECTION_PANEL",
+        "surface_ref": f"source_workbook_selection_surface:{_short_hash(request_id, invoice_review_bundle.CAPITAL_HILTON_BUNDLE_ID)}",
+        "source_request_id": request_id,
+        "client_ref": "capital_hilton",
+        "client_display_name": "Capital Hilton",
+        "workflow_ref": invoice_review_bundle.CAPITAL_HILTON_WORKFLOW_REF,
+        "bundle_id": invoice_review_bundle.CAPITAL_HILTON_BUNDLE_ID,
+        "action_ref": "replace_source_workbook_reference",
+        "action_kind": "replace_source_workbook_reference",
+        "intended_use": "replace_source_workbook_reference",
+        "result_intended_use": "confirm_source_workbook_reference",
+        "operator_copy": "Choose the correct Capital Hilton source workbook. No files will be deleted.",
+        "allowed_file_types": ("xlsx",),
+        "surface_actions": (
+            {
+                "action_kind": "confirm_source_workbook_reference",
+                "label": "Use this workbook as the Capital Hilton source workbook",
+                "enabled": True,
+                "intended_use": "confirm_source_workbook_reference",
+                "no_external_action": True,
+                "physical_deletion_allowed": False,
+            },
+            {
+                "action_kind": "choose_different_source_workbook",
+                "label": "Choose a different workbook",
+                "enabled": True,
+                "intended_use": "replace_source_workbook_reference_result",
+                "no_external_action": True,
+                "physical_deletion_allowed": False,
+            },
+            {
+                "action_kind": "keep_previous_workbook_reference",
+                "label": "Keep previous workbook reference",
+                "enabled": True,
+                "intended_use": "keep_previous_workbook_reference",
+                "no_external_action": True,
+                "physical_deletion_allowed": False,
+            },
+            {
+                "action_kind": "cancel_source_workbook_replacement",
+                "label": "Cancel",
+                "enabled": True,
+                "intended_use": "cancel_source_workbook_replacement",
+                "no_external_action": True,
+                "physical_deletion_allowed": False,
+            },
+        ),
+        "candidate_workbooks": invoice_review_state_machine.source_workbook_candidates(),
+        "current_wrong_workbook_ref": payload.get("current_wrong_workbook_ref") or payload.get("source_workbook_ref"),
+        "physical_deletion_allowed": False,
+        "no_workbook_body_read": True,
+        "no_cell_read": True,
+        "no_external_action": True,
+        "completion_requires_future_operator_selection_result": True,
+        "completion_receipt_required": "source_workbook_reference_confirmed_receipt",
         "response_completion_behavior": "TERMINAL_AFTER_SURFACE_REQUEST_PUBLISHED",
     }
 
@@ -398,6 +481,10 @@ def process_action_request(
     if action_kind == "invoice_review_guided_action_request":
         action_kind = str(payload.get("request_kind") or "")
     local_surface_request = _invoice_record_selection_surface(
+        request_id=request_id,
+        action_kind=action_kind,
+        payload=payload,
+    ) or _source_workbook_selection_surface(
         request_id=request_id,
         action_kind=action_kind,
         payload=payload,
@@ -699,6 +786,117 @@ def process_invoice_record_selection_result_request(
             "workbook_body_read_performed": False,
             "spreadsheet_cell_read_performed": False,
             "ocr_performed": False,
+            "invoice_generation_performed": False,
+            "email_send_performed": False,
+            "coupa_browser_automation_performed": False,
+            "ledger_posting_performed": False,
+            "production_mutation_performed": False,
+            "all_authority_boundary_false": all(value is False for value in AUTHORITY_BOUNDARY.values()),
+        },
+    }
+
+
+def process_source_workbook_selection_result_request(
+    raw_request: Mapping[str, Any],
+    *,
+    generated_at: str | None = None,
+    db_path: Path = invoice_review_state_machine.DEFAULT_DB_PATH,
+    export_root: Path = invoice_review_state_machine.DEFAULT_EXPORT_ROOT,
+    bridge_export_root: Path | None = invoice_review_state_machine.DEFAULT_BRIDGE_EXPORT_ROOT,
+    event_db_path: Path = operator_action_event_journal.DEFAULT_DB_PATH,
+    event_export_root: Path = operator_action_event_journal.DEFAULT_EXPORT_ROOT,
+) -> dict[str, Any]:
+    progress_result = invoice_review_state_machine.process_source_workbook_selection_result(
+        raw_request,
+        db_path=db_path,
+        export_root=export_root,
+        bridge_export_root=bridge_export_root,
+        generated_at=generated_at,
+    )
+    response_ready = progress_result.status == "COMPLETED"
+    journal_event = operator_action_event_journal.record_operator_action_event(
+        source_request_id=progress_result.source_request_id,
+        client_ref="capital_hilton",
+        workflow_ref=invoice_review_bundle.CAPITAL_HILTON_WORKFLOW_REF,
+        bundle_id=invoice_review_bundle.CAPITAL_HILTON_BUNDLE_ID,
+        action_ref="confirm_source_workbook_reference",
+        intended_use="confirm_source_workbook_reference",
+        label_clicked="Confirm source workbook",
+        action_category="GOVERNED_REQUEST" if response_ready else "BLOCKED",
+        emitted_backend_request=True,
+        handled=True,
+        handler_ref="source_workbook_selection_result.capital_hilton",
+        status="HANDLED" if response_ready else "BLOCKED",
+        operator_visible_summary=(
+            "Operator confirmed the Capital Hilton source workbook reference."
+            if response_ready
+            else "OpenClaw blocked an incomplete or unsafe source workbook selection result."
+        ),
+        no_external_action=True,
+        physical_deletion_allowed=False,
+        proof_refs=(progress_result.action_receipt["receipt_id"],),
+        expected_next_safe_move=progress_result.next_action,
+        db_path=event_db_path,
+        generated_at=generated_at,
+    )
+    journal_payload, journal_json, journal_operator = operator_action_event_journal.export_read_model(
+        db_path=event_db_path,
+        export_root=event_export_root,
+        generated_at=generated_at,
+    )
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "read_model_id": READ_MODEL_ID,
+        "source_request_id": progress_result.source_request_id,
+        "action_kind": "confirm_source_workbook_reference",
+        "status": "GUIDED_RESULT_RECORDED" if response_ready else "BLOCKED_INVALID_RESULT",
+        "headline": progress_result.headline,
+        "body": progress_result.body,
+        "detail": progress_result.detail,
+        "next_action": progress_result.next_action,
+        "expected_receipt_types": (progress_result.action_receipt["receipt_name"],),
+        "action_start_receipt": progress_result.action_receipt,
+        "operator_action_event": journal_event,
+        "operator_action_event_journal": {
+            "readback_ref": journal_json.as_posix(),
+            "operator_readback_ref": journal_operator.as_posix(),
+            "pending_operator_intent_count": len(journal_payload.get("pending_operator_intents") or ()),
+        },
+        "state_machine_progress": {
+            "used": True,
+            "progress_status": progress_result.status,
+            "state_snapshot": progress_result.state_snapshot,
+            "action_progress_receipt": progress_result.action_receipt,
+            "source_bundle_path": progress_result.source_bundle_path,
+            "bridge_bundle_path": progress_result.bridge_bundle_path,
+            "bridge_mirror_written": progress_result.bridge_mirror_written,
+        },
+        "local_surface_result": {
+            "intended_use": "confirm_source_workbook_reference",
+            "result_recorded": response_ready,
+            "validation_errors": progress_result.action_receipt.get("validation_errors") or (),
+            "no_workbook_body_read": True,
+            "no_cell_read": True,
+            "no_external_action": True,
+            "physical_deletion_allowed": False,
+            "invoice_generation_performed": False,
+            "artifact_linked": False,
+            "attachment_ready": False,
+            "approval_ready": False,
+        },
+        "authority_boundary": dict(AUTHORITY_BOUNDARY),
+        "machine_proof": {
+            "bundle_scope_valid": "WRONG_CLIENT" not in progress_result.action_receipt.get("validation_errors", ())
+            and "WRONG_WORKFLOW" not in progress_result.action_receipt.get("validation_errors", ()),
+            "supported_action": True,
+            "no_external_action": True,
+            "guided_path_started": response_ready,
+            "completion_receipt_written": response_ready,
+            "underlying_blocker_completed": response_ready,
+            "bundle_refreshed": True,
+            "bridge_bundle_mirrored": progress_result.bridge_mirror_written,
+            "workbook_body_read_performed": False,
+            "spreadsheet_cell_read_performed": False,
             "invoice_generation_performed": False,
             "email_send_performed": False,
             "coupa_browser_automation_performed": False,
