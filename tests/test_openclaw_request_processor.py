@@ -2134,7 +2134,7 @@ def test_invoice_review_regenerate_or_link_does_not_generate_export(tmp_path, ca
     response = json.loads(capsys.readouterr().out)
     scoped = json.loads(_scoped_processor_response_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
 
-    assert response["headline"] == "Invoice artifact needs linkage"
+    assert response["headline"] == "Invoice artifact needs selection receipt"
     assert "No invoice was generated or exported from this step." in response["eliwinship"]
     assert scoped["detail_disclosure"]["invoice_review_action_request"]["invoice_generation_performed"] is False
 
