@@ -179,7 +179,7 @@ def test_regenerate_or_link_artifact_requires_operator_selection_receipt(tmp_pat
     assert "selection receipt" in result.body
 
 
-def test_regenerate_or_link_artifact_after_selection_writes_metadata_readback(tmp_path):
+def test_regenerate_or_link_artifact_after_selection_returns_generator_not_wired_without_output(tmp_path):
     db_path, export_root, bridge_root = _paths(tmp_path)
     selection = state_machine.process_invoice_record_selection_result(
         _selection_result_request(),
@@ -200,16 +200,22 @@ def test_regenerate_or_link_artifact_after_selection_writes_metadata_readback(tm
     capital = source_bundle["capital_hilton_bundle"]
 
     assert selection.action_receipt["receipt_name"] == "invoice_record_selection_operator_confirmed_receipt"
-    assert result.status == "GENERATED_ARTIFACT_NEEDS_REGENERATION"
-    assert result.action_receipt["receipt_name"] == "invoice_artifact_link_or_regeneration_requested_receipt"
-    assert result.action_receipt["receipt_event"] == "invoice_artifact_link_or_regeneration_requested"
+    assert result.status == "GENERATOR_NOT_WIRED"
+    assert result.action_receipt["receipt_name"] == "invoice_artifact_generator_not_wired_receipt"
+    assert result.action_receipt["receipt_event"] == "invoice_artifact_generator_not_wired"
     assert result.action_receipt["completion_receipt_written"] is False
     assert result.action_receipt["artifact_metadata"]["metadata_status"] == "GENERATED_ARTIFACT_METADATA_VALID"
+    assert result.action_receipt["generator_audit"]["existing_generator_found"] is True
+    assert "invoice_artifact_builder" in result.action_receipt["generator_audit"]["generator_refs"]
+    assert result.action_receipt["generator_audit"]["generator_status"] == "GENERATOR_NOT_WIRED"
+    assert result.action_receipt["generator_audit"]["artifact_created"] is False
+    assert result.action_receipt["generator_audit"]["artifact_linked"] is False
     assert result.action_receipt["artifact_metadata"]["workbook_business_cells_read"] is False
     assert result.action_receipt["artifact_metadata"]["generation_or_export_performed"] is False
-    assert result.state_snapshot["generated_artifact_status"] == "GENERATED_ARTIFACT_NEEDS_REGENERATION"
+    assert result.state_snapshot["generated_artifact_status"] == "ARTIFACT_GENERATOR_NOT_WIRED"
+    assert result.state_snapshot["generated_artifact_generator_status"] == "GENERATOR_NOT_WIRED"
     assert capital["invoice_selection"]["invoice_record_state"] == "INVOICE_RECORD_OPERATOR_CONFIRMED"
-    assert capital["excel_invoice_artifact"]["proof_status"] == "GENERATED_ARTIFACT_NEEDS_REGENERATION"
+    assert capital["excel_invoice_artifact"]["proof_status"] == "ARTIFACT_GENERATOR_NOT_WIRED"
     assert capital["excel_invoice_artifact"]["linkage_status"] == "NEEDS_REGENERATION_OR_LINK"
     assert capital["excel_invoice_artifact"]["attachment_ready"] is False
     assert capital["approval_footer"]["approval_ready"] is False

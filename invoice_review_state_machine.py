@@ -14,6 +14,7 @@ import shutil
 import sqlite3
 import zipfile
 from dataclasses import dataclass
+from importlib import util as importlib_util
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -62,6 +63,8 @@ ACTION_TO_RECEIPT_EVENT = {
     "open_invoice_workbook_candidate": "local_artifact_inspection_requested",
     "confirm_invoice_record_selection": "invoice_record_selection_operator_confirmed",
 }
+
+ARTIFACT_GENERATOR_NOT_WIRED_RECEIPT = "invoice_artifact_generator_not_wired_receipt"
 
 COMPLETION_RECEIPTS = {
     "active_workbook_confirmed_receipt",
@@ -146,6 +149,8 @@ def init_store(db_path: Path = DEFAULT_DB_PATH) -> None:
               generated_artifact_metadata_status TEXT,
               generated_artifact_metadata_hash TEXT,
               generated_artifact_metadata_size INTEGER,
+              generated_artifact_generator_status TEXT,
+              generated_artifact_generator_reason TEXT,
               generated_artifact_status TEXT NOT NULL,
               coupa_proof_status TEXT NOT NULL,
               supplier_portal_provider TEXT,
@@ -189,6 +194,8 @@ def init_store(db_path: Path = DEFAULT_DB_PATH) -> None:
         _ensure_column(conn, "invoice_review_states", "generated_artifact_metadata_status", "TEXT")
         _ensure_column(conn, "invoice_review_states", "generated_artifact_metadata_hash", "TEXT")
         _ensure_column(conn, "invoice_review_states", "generated_artifact_metadata_size", "INTEGER")
+        _ensure_column(conn, "invoice_review_states", "generated_artifact_generator_status", "TEXT")
+        _ensure_column(conn, "invoice_review_states", "generated_artifact_generator_reason", "TEXT")
         _ensure_column(conn, "invoice_review_receipts", "receipt_event", "TEXT")
 
 
@@ -213,6 +220,8 @@ def _default_state(*, generated_at: str | None = None) -> dict[str, Any]:
         "generated_artifact_metadata_status": None,
         "generated_artifact_metadata_hash": None,
         "generated_artifact_metadata_size": None,
+        "generated_artifact_generator_status": None,
+        "generated_artifact_generator_reason": None,
         "generated_artifact_status": "CANDIDATE_NEEDS_LINKAGE",
         "coupa_proof_status": "MISSING",
         "supplier_portal_provider": "COUPA",
@@ -264,12 +273,13 @@ def _upsert_state(conn: sqlite3.Connection, state: Mapping[str, Any]) -> None:
           invoice_period_label, invoice_record_label, generated_candidate_disposition,
           operator_notes, generated_artifact_metadata_status,
           generated_artifact_metadata_hash, generated_artifact_metadata_size,
+          generated_artifact_generator_status, generated_artifact_generator_reason,
           generated_artifact_status, coupa_proof_status,
           supplier_portal_provider, supplier_portal_proof_status,
           recipient_confirmation_status, recipient_review_status, clara_draft_status,
           approval_readiness_status, email_send_status, payment_watch_status,
           ledger_tax_status, last_action_kind, last_receipt_id, last_updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(bundle_id) DO UPDATE SET
           source_workbook_status=excluded.source_workbook_status,
           invoice_record_selection_status=excluded.invoice_record_selection_status,
@@ -281,6 +291,8 @@ def _upsert_state(conn: sqlite3.Connection, state: Mapping[str, Any]) -> None:
           generated_artifact_metadata_status=excluded.generated_artifact_metadata_status,
           generated_artifact_metadata_hash=excluded.generated_artifact_metadata_hash,
           generated_artifact_metadata_size=excluded.generated_artifact_metadata_size,
+          generated_artifact_generator_status=excluded.generated_artifact_generator_status,
+          generated_artifact_generator_reason=excluded.generated_artifact_generator_reason,
           generated_artifact_status=excluded.generated_artifact_status,
           coupa_proof_status=excluded.coupa_proof_status,
           supplier_portal_provider=excluded.supplier_portal_provider,
@@ -310,6 +322,8 @@ def _upsert_state(conn: sqlite3.Connection, state: Mapping[str, Any]) -> None:
             state.get("generated_artifact_metadata_status"),
             state.get("generated_artifact_metadata_hash"),
             state.get("generated_artifact_metadata_size"),
+            state.get("generated_artifact_generator_status"),
+            state.get("generated_artifact_generator_reason"),
             state["generated_artifact_status"],
             state["coupa_proof_status"],
             state.get("supplier_portal_provider", "COUPA"),
@@ -352,7 +366,11 @@ def _receipt(
     generated_at: str | None,
 ) -> dict[str, Any]:
     receipt_id = f"invoice_review:{receipt_name}:{_short_hash(source_request_id, action_kind, status)}"
-    receipt_event = ACTION_TO_RECEIPT_EVENT.get(action_kind, receipt_name.removesuffix("_receipt"))
+    receipt_event = (
+        "invoice_artifact_generator_not_wired"
+        if receipt_name == ARTIFACT_GENERATOR_NOT_WIRED_RECEIPT
+        else ACTION_TO_RECEIPT_EVENT.get(action_kind, receipt_name.removesuffix("_receipt"))
+    )
     return {
         "receipt_id": receipt_id,
         "receipt_type": "invoice_review_action_progress_receipt",
@@ -413,6 +431,52 @@ def inspect_generated_invoice_artifact_metadata(path: Path) -> dict[str, Any]:
     return result
 
 
+def audit_current_invoice_artifact_generator(state: Mapping[str, Any]) -> dict[str, Any]:
+    builder_spec = importlib_util.find_spec("invoice_artifact_builder")
+    preview_spec = importlib_util.find_spec("capital_hilton_invoice_artifact_generator")
+    found_refs = tuple(
+        ref
+        for ref, present in (
+            ("invoice_artifact_builder", builder_spec is not None),
+            ("capital_hilton_invoice_artifact_generator", preview_spec is not None),
+        )
+        if present
+    )
+    required_linkage_inputs = {
+        "client_ref": state.get("client_ref"),
+        "workflow_ref": state.get("workflow_ref"),
+        "invoice_period_label": state.get("invoice_period_label"),
+        "invoice_record_label": state.get("invoice_record_label"),
+        "source_workbook_status": state.get("source_workbook_status"),
+    }
+    reason_codes: list[str] = []
+    if not found_refs:
+        reason_codes.append("NO_LOCAL_GENERATOR_MODULE_FOUND")
+    if state.get("source_workbook_status") != "CONFIRMED":
+        reason_codes.append("SOURCE_WORKBOOK_REFERENCE_NOT_CONFIRMED")
+    if not state.get("invoice_period_label") or not state.get("invoice_record_label"):
+        reason_codes.append("SELECTED_INVOICE_RECORD_LABELS_MISSING")
+    reason_codes.extend(
+        (
+            "EXISTING_GENERATORS_USE_STATIC_FIXTURE_FACTS",
+            "NO_GENERATOR_ACCEPTS_SELECTED_INVOICE_RECORD_AND_SOURCE_WORKBOOK_RECEIPT",
+            "WORKBOOK_BODY_READ_NOT_AUTHORIZED",
+        )
+    )
+    return {
+        "existing_generator_found": bool(found_refs),
+        "generator_refs": found_refs,
+        "safe_generator_available": False,
+        "generator_status": "GENERATOR_NOT_WIRED",
+        "reason_codes": tuple(dict.fromkeys(reason_codes)),
+        "required_linkage_inputs": required_linkage_inputs,
+        "workbook_business_cells_read": False,
+        "generation_or_export_performed": False,
+        "artifact_created": False,
+        "artifact_linked": False,
+    }
+
+
 def _write_receipt(conn: sqlite3.Connection, receipt: Mapping[str, Any]) -> None:
     conn.execute(
         """
@@ -466,6 +530,21 @@ def _apply_action(state: dict[str, Any], action_kind: str) -> tuple[str, str, st
         if metadata["metadata_status"] == "GENERATED_ARTIFACT_INVALID":
             state["generated_artifact_status"] = "GENERATED_ARTIFACT_INVALID"
             return ("GENERATED_ARTIFACT_INVALID", "Invoice artifact is not attach-ready", "OpenClaw has the selected invoice page/period, but the existing generated invoice artifact failed metadata/package checks. Nothing was generated, exported, linked, attached, or approved.", "Next: regenerate the invoice artifact for the selected record when the generator rail is wired.", "generated_invoice_artifact_invalid_receipt", False)
+        generator_audit = audit_current_invoice_artifact_generator(state)
+        state["generated_artifact_generator_status"] = generator_audit["generator_status"]
+        state["generated_artifact_generator_reason"] = ", ".join(generator_audit["reason_codes"])
+        if not generator_audit["safe_generator_available"]:
+            state["generated_artifact_status"] = "ARTIFACT_GENERATOR_NOT_WIRED"
+            period = state.get("invoice_period_label") or "the selected period"
+            record = state.get("invoice_record_label") or "the selected record"
+            return (
+                "GENERATOR_NOT_WIRED",
+                "Invoice artifact generator is not wired",
+                f"OpenClaw has the selected invoice page/period ({period} / {record}), but no safe generator can create or link a current artifact from that selection without guessing or reading workbook cells. Nothing was generated, exported, linked, attached, or approved.",
+                "Next: wire a generator that accepts the selected invoice record, source workbook reference, and linkage receipt.",
+                ARTIFACT_GENERATOR_NOT_WIRED_RECEIPT,
+                False,
+            )
         state["generated_artifact_status"] = "GENERATED_ARTIFACT_NEEDS_REGENERATION"
         period = state.get("invoice_period_label") or "the selected period"
         record = state.get("invoice_record_label") or "the selected record"
@@ -664,6 +743,7 @@ def process_action(
         generated_at=generated_at,
     )
     if action_kind == "regenerate_or_link_invoice_artifact":
+        generator_audit = audit_current_invoice_artifact_generator(state)
         receipt["artifact_metadata"] = {
             "metadata_status": state.get("generated_artifact_metadata_status"),
             "sha256": state.get("generated_artifact_metadata_hash"),
@@ -671,6 +751,15 @@ def process_action(
             "workbook_business_cells_read": False,
             "workbook_business_contents_parsed": False,
             "generation_or_export_performed": False,
+        }
+        receipt["generator_audit"] = {
+            "existing_generator_found": generator_audit["existing_generator_found"],
+            "generator_refs": generator_audit["generator_refs"],
+            "generator_status": state.get("generated_artifact_generator_status"),
+            "reason": state.get("generated_artifact_generator_reason") or ", ".join(generator_audit["reason_codes"]),
+            "required_linkage_inputs": generator_audit["required_linkage_inputs"],
+            "artifact_created": False,
+            "artifact_linked": False,
         }
     state["last_action_kind"] = action_kind
     state["last_receipt_id"] = receipt["receipt_id"]
