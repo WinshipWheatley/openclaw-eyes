@@ -232,6 +232,7 @@ def invoice_review_action_handlers() -> tuple[RequestHandlerRegistration, ...]:
         for intended_use in (
             "replace_source_workbook_reference",
             "start_invoice_record_selection",
+            "prepare_selected_invoice_pdf_artifact",
             "review_and_confirm_recipients",
             "show_approval_prerequisites",
             "explain_invoice_review",

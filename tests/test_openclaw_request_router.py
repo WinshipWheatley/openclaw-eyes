@@ -135,6 +135,25 @@ def test_invoice_review_action_request_routes_to_guided_action_handler():
     assert decision.next_safe_move == "Start the guided invoice review fix path without external action authority."
 
 
+def test_live_arts_invoice_review_action_request_routes_explicit_pdf_export_preflight():
+    payload = _request(
+        request_type="INVOICE_REVIEW_ACTION_REQUEST",
+        intended_use="prepare_selected_invoice_pdf_artifact",
+        world_ref="finance",
+        workflow_ref="live_arts_md_invoice_workflow",
+        client_ref="live_arts_md",
+        action_kind="prepare_selected_invoice_pdf_artifact",
+    )
+
+    envelope, decision = router.route_request(payload, filename_request_family="LOCAL_SURFACE_RESULT")
+
+    assert envelope.request_kind == "INVOICE_REVIEW_ACTION_REQUEST"
+    assert decision.route_status == "ROUTE_MATCHED"
+    assert decision.selected_handler_id == "invoice_review_action_request.live_arts_md"
+    assert decision.selected_handler_label == "Live Arts MD invoice review guided action"
+    assert decision.matched_by == ("request_kind", "intended_use", "world_ref", "workflow_ref", "client_ref")
+
+
 def test_contract_payload_has_no_live_authority():
     payload = router.build_contract_payload()
 
