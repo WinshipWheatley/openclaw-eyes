@@ -370,8 +370,12 @@ def test_regenerate_or_link_artifact_after_selection_requires_generation_authori
     assert capital["excel_invoice_artifact"]["proof_status"] == "GENERATION_AUTHORITY_REQUIRED"
     assert capital["excel_invoice_artifact"]["linkage_status"] == "GENERATION_AUTHORITY_REQUIRED"
     assert capital["excel_invoice_artifact"]["generation_authority_required"] is True
-    assert capital["excel_invoice_artifact"]["manual_operator_actions"][0]["label"] == "Export selected invoice page"
+    assert capital["excel_invoice_artifact"]["manual_operator_actions"][0]["label"] == "Manual fallback"
     assert capital["excel_invoice_artifact"]["manual_operator_actions"][0]["enabled"] is False
+    assert capital["excel_invoice_artifact"]["manual_operator_actions"][1]["label"] == "Link external artifact"
+    assert capital["excel_invoice_artifact"]["manual_operator_actions"][1]["enabled"] is False
+    assert capital["excel_invoice_artifact"]["manual_operator_actions"][0]["disabled_reason"] == "Manual artifact export is not wired yet. Attach an external artifact if already prepared."
+    assert capital["excel_invoice_artifact"]["manual_operator_actions"][1]["disabled_reason"] == "Linking an external invoice artifact is not wired yet."
     assert capital["excel_invoice_artifact"]["attachment_ready"] is False
     assert capital["approval_footer"]["approval_ready"] is False
     assert bridge_bundle["capital_hilton_bundle"]["excel_invoice_artifact"]["linkage_status"] == "GENERATION_AUTHORITY_REQUIRED"
