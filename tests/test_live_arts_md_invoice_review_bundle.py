@@ -202,7 +202,7 @@ def test_invoice_candidate_selection_replaces_page_selection_after_handoff():
     action = live["invoice_selection"]["primary_action"]
 
     assert action["action_kind"] == "select_invoice_candidate"
-    assert action["hidden_request_payload"]["intended_use"] == "choose_live_arts_md_invoice_candidate"
+    assert action["hidden_request_payload"]["intended_use"] == "select_live_arts_md_invoice_candidate"
     assert action["hidden_request_payload"]["no_workbook_body_read"] is True
     assert action["hidden_request_payload"]["no_cell_read"] is True
     assert {item["invoice_id"] for item in live["invoice_candidate_register"]["invoice_candidates"]} == {
@@ -614,7 +614,7 @@ def test_pdf_export_rail_appears_after_invoice_selected():
     assert artifact_step["status"] == "NEEDS_ACTION"
     assert pdf_action["action_kind"] == "prepare_selected_invoice_pdf_artifact"
     assert pdf_action["label"] == "Prepare invoice PDF"
-    assert manual_action["label"] == "Attach PDF manually"
+    assert manual_action["label"] == "Attach existing PDF"
     assert live["invoice_artifact"]["pdf_export_package"]["status"] == bundle.PDF_EXPORT_PACKAGE_READY_FOR_MAC
 
 
@@ -698,6 +698,26 @@ def test_pdf_export_blocked_with_missing_print_scope():
         blocker == package["operator_review_prompt"]
         for blocker in live["blockers"]
     )
+
+
+def test_manual_artifact_action_remains_fallback_when_pdf_export_blocked():
+    selected_candidate = _selected_live_arts_candidate("2026-1001")
+    selected_candidate["operator_provided_ranges"] = ()
+    live = bundle.build_live_arts_md_bundle(
+        workbook_registry_payload=_confirmed_workbook_payload_with_mac_path(),
+        selected_invoice_candidate=selected_candidate,
+        generated_at=FIXED_NOW,
+    )
+    artifact_step = live["proof_timeline"][2]
+    pdf_action = artifact_step["primary_action"]
+    manual_action = artifact_step["secondary_actions"][0]
+
+    assert artifact_step["title"] == "Invoice artifact"
+    assert pdf_action["label"] == "Prepare invoice PDF"
+    assert pdf_action["disabled_reason"] == "Confirm the selected sheet/print area for invoice 2026-1001."
+    assert manual_action["label"] == "Attach existing PDF"
+    assert manual_action["enabled"] is True
+    assert manual_action["operator_visible_message"] == "Attach existing PDF"
 
 
 def test_no_gmail_browser_or_send_action_performed():

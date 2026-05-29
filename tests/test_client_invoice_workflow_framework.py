@@ -217,6 +217,20 @@ def test_non_coupa_client_workflow_can_complete_without_coupa_rails():
         assert all(item["rail_ref"] != framework.SUPPLIER_PORTAL_RAIL for item in result["rail_evaluations"])
 
 
+def test_st_annes_and_live_arts_share_simple_invoice_rails():
+    recipes = framework.recipes_by_client_ref()
+
+    st_annes = tuple(item["rail_ref"] for item in recipes["st_annes"]["selected_rails"])
+    live_arts_md = tuple(item["rail_ref"] for item in recipes["live_arts_md"]["selected_rails"])
+
+    assert st_annes == live_arts_md
+    assert all(
+        not framework.recipe_selects_rail(recipe, framework.SUPPLIER_PORTAL_RAIL)
+        and not framework.recipe_selects_rail(recipe, framework.PURCHASE_ORDER_RAIL)
+        for recipe in (recipes["st_annes"], recipes["live_arts_md"])
+    )
+
+
 def test_no_action_authority_is_enabled():
     payload = framework.build_payload(generated_at=FIXED_NOW)
 
