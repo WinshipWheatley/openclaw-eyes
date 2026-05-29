@@ -58,6 +58,10 @@ MANUAL_SEND_PROOF_STATUS_CONFIRMED = "MANUAL_SEND_PROOF_CONFIRMED"
 MANUAL_SEND_PROOF_CONFIRMED_RECEIPT = "manual_send_proof_confirmed_receipt"
 PAYMENT_WATCH_STATUS_READY_TO_CONFIGURE = "READY_TO_CONFIGURE"
 PAYMENT_WATCH_STATUS_READINESS_ONLY = "READINESS_ONLY_NOT_ACTIVE"
+PROOF_CAPTURE_TYPE_REFERENCE_ONLY = "REFERENCE_ONLY"
+PROOF_CAPTURE_TYPE_FILE_BACKED = "FILE_BACKED"
+PROOF_STRENGTH_OPERATOR_ATTESTED_REFERENCE = "OPERATOR_ATTESTED_REFERENCE"
+PROOF_STRENGTH_FILE_VERIFIED = "FILE_VERIFIED"
 PDF_EXPORT_PACKAGE_READY_FOR_MAC = "PDF_EXPORT_PACKAGE_READY_FOR_MAC"
 PDF_EXPORT_BLOCKED_MISSING_MAC_CAPABILITY = "PDF_EXPORT_BLOCKED_MISSING_MAC_CAPABILITY"
 PDF_EXPORT_BLOCKED_MISSING_PRINT_SCOPE = "PDF_EXPORT_BLOCKED_MISSING_PRINT_SCOPE"
@@ -348,6 +352,21 @@ def _manual_send_proof_status(
     )
     has_screenshot_or_mail_proof = bool(sent_proof_ref)
     proof_capture_meta = _proof_capture_metadata(sent_proof_ref)
+    if proof_capture_meta.get("is_path") and proof_capture_meta.get("exists"):
+        proof_capture_type = PROOF_CAPTURE_TYPE_FILE_BACKED
+        proof_strength = PROOF_STRENGTH_FILE_VERIFIED
+        file_backed_proof = True
+        screenshot_file_verified = proof_capture_meta.get("proof_path_status") == "metadata_valid"
+    elif sent_proof_ref:
+        proof_capture_type = PROOF_CAPTURE_TYPE_REFERENCE_ONLY
+        proof_strength = PROOF_STRENGTH_OPERATOR_ATTESTED_REFERENCE
+        file_backed_proof = False
+        screenshot_file_verified = False
+    else:
+        proof_capture_type = None
+        proof_strength = None
+        file_backed_proof = False
+        screenshot_file_verified = False
     missing_capture_fields: list[str] = []
     proof_capture_required = payload.get("proof_capture_required", ("screenshot_ref", "sent_mail_proof_ref"))
     if proof_capture_required is not False:
@@ -357,6 +376,10 @@ def _manual_send_proof_status(
             missing_capture_fields.append("proof screenshot/ref")
     has_manual_send_receipt = "manual_send_receipt" in present_receipts
     has_confirmed_receipt = has_manual_send_receipt or payload.get("manual_send_receipt_available") is True
+    proof_capture_complete = bool(
+        (proof_capture_required is False)
+        or (has_screenshot_or_mail_proof and not (proof_capture_meta.get("is_path") and not proof_capture_meta.get("exists")))
+    )
     proof_state = {
         "execution_context": payload["execution_context"],
         "artifact_path": payload["artifact_path"],
@@ -377,18 +400,22 @@ def _manual_send_proof_status(
         "proof_capture_provided": bool(bool(sent_proof_ref)),
         "proof_capture_fields": tuple(_as_sequence(payload.get("proof_capture_required"))),
         "proof_capture_metadata": proof_capture_meta,
+        "proof_capture_type": proof_capture_type,
+        "proof_strength": proof_strength,
+        "file_backed_proof": file_backed_proof,
+        "screenshot_file_verified": screenshot_file_verified,
         "proof_capture_request": _proof_capture_request(
             str(payload.get("invoice_id") or KNOWN_MANUAL_SEND_INVOICE_ID),
             bool(missing_capture_fields),
         ),
         "proof_receipts": (
             (MANUAL_SEND_PROOF_CONFIRMED_RECEIPT,)
-            if has_confirmed_receipt and not present and not missing_capture_fields
+            if (has_confirmed_receipt or proof_capture_complete) and not present and not missing_capture_fields
             else ()
         ),
     }
     complete = (
-        has_confirmed_receipt
+        (has_confirmed_receipt or proof_capture_complete)
         and not present
         and not missing_capture_fields
         and (

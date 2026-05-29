@@ -473,12 +473,59 @@ def test_manual_send_proof_confirmed_adds_manual_send_proof_confirmed_receipt(tm
 
     manual_send = live["manual_send_proof"]
     assert manual_send["proof_status"] == bundle.MANUAL_SEND_PROOF_STATUS_CONFIRMED
+    assert manual_send["proof_capture_type"] == bundle.PROOF_CAPTURE_TYPE_FILE_BACKED
+    assert manual_send["proof_strength"] == bundle.PROOF_STRENGTH_FILE_VERIFIED
+    assert manual_send["file_backed_proof"] is True
+    assert manual_send["screenshot_file_verified"] is True
     assert manual_send["proof_capture_metadata"]["is_path"] is True
     assert manual_send["proof_capture_metadata"]["proof_path_status"] == "metadata_valid"
     assert manual_send["proof_receipts"] == (bundle.MANUAL_SEND_PROOF_CONFIRMED_RECEIPT,)
     assert live["send_readiness"]["email_send_status"] == bundle.MANUAL_SEND_PROOF_STATUS_CONFIRMED
     assert live["payment_watch"]["payment_watch_status"] == bundle.PAYMENT_WATCH_STATUS_READY_TO_CONFIGURE
     assert live["payment_watch"]["ledger_posting_allowed"] is False
+
+
+def test_manual_send_proof_confirmed_without_file_path_reference_only():
+    live = bundle.build_live_arts_md_bundle(
+        workbook_registry_payload=_confirmed_workbook_payload(),
+        operator_artifact_path="/tmp/live_arts_md_invoice.pdf",
+        manual_send_proof=_manual_send_payload(),
+        present_receipts=("manual_send_receipt",),
+        generated_at=FIXED_NOW,
+    )
+
+    manual_send = live["manual_send_proof"]
+    assert manual_send["proof_status"] == bundle.MANUAL_SEND_PROOF_STATUS_CONFIRMED
+    assert manual_send["proof_capture_type"] == bundle.PROOF_CAPTURE_TYPE_REFERENCE_ONLY
+    assert manual_send["proof_strength"] == bundle.PROOF_STRENGTH_OPERATOR_ATTESTED_REFERENCE
+    assert manual_send["file_backed_proof"] is False
+    assert manual_send["screenshot_file_verified"] is False
+    assert manual_send["proof_capture_metadata"]["is_path"] is False
+    assert manual_send["proof_capture_metadata"]["proof_path_status"] == "reference_only"
+
+
+def test_manual_send_proof_confirmed_without_manual_send_receipt_when_screenshot_provided(tmp_path):
+    screenshot = tmp_path / "live_arts_md_manual_send_screenshot.png"
+    screenshot.write_bytes(b"\x89PNG\r\n\x1a\nfake-png")
+    live = bundle.build_live_arts_md_bundle(
+        workbook_registry_payload=_confirmed_workbook_payload(),
+        operator_artifact_path="/tmp/live_arts_md_invoice.pdf",
+        manual_send_proof=_manual_send_payload(screenshot_ref=screenshot.as_posix(), proof_refs=()),
+        present_receipts=(),
+        generated_at=FIXED_NOW,
+    )
+
+    manual_send = live["manual_send_proof"]
+    assert manual_send["proof_status"] == bundle.MANUAL_SEND_PROOF_STATUS_CONFIRMED
+    assert manual_send["proof_capture_type"] == bundle.PROOF_CAPTURE_TYPE_FILE_BACKED
+    assert manual_send["proof_strength"] == bundle.PROOF_STRENGTH_FILE_VERIFIED
+    assert manual_send["file_backed_proof"] is True
+    assert manual_send["screenshot_file_verified"] is True
+    assert manual_send["proof_capture_metadata"]["is_path"] is True
+    assert manual_send["proof_capture_metadata"]["proof_path_status"] == "metadata_valid"
+    assert manual_send["proof_receipts"] == (bundle.MANUAL_SEND_PROOF_CONFIRMED_RECEIPT,)
+    assert live["send_readiness"]["email_send_status"] == bundle.MANUAL_SEND_PROOF_STATUS_CONFIRMED
+    assert live["payment_watch"]["payment_watch_status"] == bundle.PAYMENT_WATCH_STATUS_READY_TO_CONFIGURE
 
 
 def test_payment_watch_readiness_does_not_advance_without_capture_proof():
