@@ -10,5 +10,6 @@
 - Manual send package: `BLOCKED_PREREQUISITES`
 - Manual send proof: `MANUAL_SEND_PROOF_PENDING`
 - Payment watch: `READINESS_ONLY_NOT_ACTIVE`
+- Manual send proof is missing: `proof screenshot/ref`.
 
 No email, Coupa, browser, ledger, workbook body/cell read, generation, export, or production action occurred.
