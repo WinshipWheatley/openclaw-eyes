@@ -2797,6 +2797,13 @@ def _is_source_workbook_selection_result_route(route_decision: Mapping[str, Any]
     )
 
 
+
+def _is_selected_invoice_pdf_export_completed_candidate_result_route(route_decision: Mapping[str, Any], raw_request: Mapping[str, Any]) -> bool:
+    return (
+        str(route_decision.get("selected_handler_id") or "") == "selected_invoice_pdf_export_completed_candidate.live_arts_md"
+        or invoice_review_action_request_handler.is_selected_invoice_pdf_export_completed_candidate_result(raw_request)
+    )
+
 def _invoice_review_action_classification(
     classification: RequestClassification,
     *,
@@ -3075,6 +3082,69 @@ def _process_source_workbook_selection_result_request(
         next_safe_move=next_action,
     )
 
+
+
+def _process_selected_invoice_pdf_export_completed_result_request(
+    request_path: Path,
+    raw_request: Mapping[str, Any],
+    *,
+    export_root: Path,
+    generated_at: str | None,
+    classification: RequestClassification,
+    route_decision: Mapping[str, Any] | None = None,
+) -> OpenClawResponseForMac:
+    action_classification = RequestClassification(
+        classification_id=f"request_classification_{_short_hash(request_path.name, 'selected_invoice_pdf_export_completed')}",
+        source_request_filename=classification.source_request_filename,
+        request_family=str((route_decision or {}).get("request_kind") or classification.request_family),
+        selected_rail=str((route_decision or {}).get("selected_handler_id") or "selected_invoice_pdf_export_completed_candidate.live_arts_md"),
+        classification_reason="Request is PDF export completed candidate.",
+        future_supported=False,
+        next_safe_move="Record candidate receipt.",
+    )
+    payload = invoice_review_action_request_handler.process_selected_invoice_pdf_export_completed_candidate_result_request(
+        raw_request,
+        generated_at=generated_at,
+        export_root=export_root,
+        bridge_export_root=invoice_review_action_request_handler.invoice_review_state_machine.DEFAULT_BRIDGE_EXPORT_ROOT if export_root.resolve() == invoice_review_action_request_handler.invoice_review_state_machine.DEFAULT_EXPORT_ROOT.resolve() else None,
+    )
+    action_json, action_operator = invoice_review_action_request_handler.write_exports(payload, export_root)
+    status = str(payload["status"])
+    response_ready = status == "GUIDED_RESULT_RECORDED"
+    receipt = payload["action_start_receipt"]
+    state_progress = payload.get("state_machine_progress") or {}
+    
+    detail = {
+        "pdf_export_completed_result": {
+            "readback_ref": action_json.as_posix(),
+            "operator_readback_ref": action_operator.as_posix(),
+            "status": status,
+            "receipt": receipt,
+        }
+    }
+    
+    return OpenClawResponseForMac(
+        source_request_id=payload["source_request_id"],
+        source_request_filename=request_path.name,
+        workflow_ref="live_arts_md_invoice_workflow",
+        request_type="LOCAL_SURFACE_RESULT",
+        internal_status="RESPONSE_READY" if response_ready else "BLOCKED_WITH_REASON",
+        operator_headline="PDF Export Candidate Recorded" if response_ready else "PDF Export Blocked",
+        operator_message=payload["body"],
+        what_happened=("Validated PDF result",),
+        why_it_happened="Valid" if response_ready else "Invalid",
+        how_to_fix="Provide valid PDF." if not response_ready else "Proceed to operator review.",
+        visible_cards=(),
+        cards_available=False,
+        card_mirror_refs=(),
+        file_readback_refs=(action_json.as_posix(),),
+        worker_route_refs=(),
+        context_package_refs=(),
+        blocked_reason=None if response_ready else "Invalid pdf export",
+        detail_disclosure=detail,
+        readback_files=(action_json,),
+        next_safe_move=payload["next_action"],
+    )
 
 def _process_invoice_review_action_request(
     request_path: Path,
@@ -5039,6 +5109,15 @@ def process_request_path(
         )
     if _is_invoice_record_selection_result_route(route_decision, raw_request):
         return _process_invoice_record_selection_result_request(
+            request_path,
+            raw_request,
+            export_root=export_root,
+            generated_at=generated_at,
+            classification=effective_classification,
+            route_decision=route_decision,
+        )
+    if _is_selected_invoice_pdf_export_completed_candidate_result_route(route_decision, raw_request):
+        return _process_selected_invoice_pdf_export_completed_result_request(
             request_path,
             raw_request,
             export_root=export_root,

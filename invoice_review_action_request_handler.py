@@ -170,6 +170,19 @@ def is_source_workbook_selection_result(raw_request: Mapping[str, Any]) -> bool:
     }
 
 
+def is_selected_invoice_pdf_export_completed_candidate_result(raw_request: Mapping[str, Any]) -> bool:
+    payload = _action_payload(raw_request)
+    request_type = str(
+        payload.get("request_type")
+        or payload.get("type")
+        or raw_request.get("request_type")
+        or raw_request.get("type")
+        or ""
+    )
+    intended_use = str(payload.get("intended_use") or raw_request.get("intended_use") or "")
+    return request_type in {"LOCAL_SURFACE_RESULT", "INVOICE_REVIEW_ACTION_RESULT"} and intended_use == "selected_invoice_pdf_export_completed_candidate"
+
+
 def _client_context(payload: Mapping[str, Any], raw_request: Mapping[str, Any] | None = None) -> dict[str, str]:
     raw_request = raw_request or {}
     client_ref = str(payload.get("client_ref") or raw_request.get("client_ref") or "capital_hilton")
@@ -1134,6 +1147,132 @@ def process_source_workbook_selection_result_request(
         },
     }
 
+
+
+def process_selected_invoice_pdf_export_completed_candidate_result_request(
+    raw_request: Mapping[str, Any],
+    *,
+    generated_at: str | None = None,
+    db_path: Path = invoice_review_state_machine.DEFAULT_DB_PATH,
+    export_root: Path = invoice_review_state_machine.DEFAULT_EXPORT_ROOT,
+    bridge_export_root: Path | None = invoice_review_state_machine.DEFAULT_BRIDGE_EXPORT_ROOT,
+    event_db_path: Path = operator_action_event_journal.DEFAULT_DB_PATH,
+    event_export_root: Path = operator_action_event_journal.DEFAULT_EXPORT_ROOT,
+) -> dict[str, Any]:
+    payload = _action_payload(raw_request)
+    context = _client_context(payload, raw_request)
+    
+    validation_errors = []
+    if str(context["client_ref"]) != "live_arts_md":
+        validation_errors.append("WRONG_CLIENT")
+    if str(context["workflow_ref"]) != "live_arts_md_invoice_workflow":
+        validation_errors.append("WRONG_WORKFLOW")
+    if str(payload.get("invoice_id") or "") != "2026-1001":
+        validation_errors.append("WRONG_INVOICE_ID")
+        
+    pdf_path = str(payload.get("exported_pdf_mac_path") or "")
+    if not pdf_path:
+        validation_errors.append("MISSING_PDF_PATH")
+    elif not pdf_path.lower().endswith(".pdf"):
+        validation_errors.append("INVALID_FILE_EXTENSION")
+        
+    response_ready = len(validation_errors) == 0
+    
+    action_receipt = {
+        "receipt_id": f"pdf_export_candidate_receipt:{_short_hash(pdf_path, generated_at)}",
+        "receipt_type": "selected_invoice_pdf_export_completed_candidate_receipt",
+        "receipt_name": "selected_invoice_pdf_export_completed_candidate_receipt",
+        "client_ref": "live_arts_md",
+        "workflow_ref": "live_arts_md_invoice_workflow",
+        "invoice_id": "2026-1001",
+        "exported_pdf_mac_path": pdf_path,
+        "artifact_filename": payload.get("artifact_filename"),
+        "file_size_bytes": payload.get("file_size_bytes"),
+        "sha256": payload.get("sha256"),
+        "exported_by": "MAC_EXCEL",
+        "execution_venue": "MAC_LOCAL",
+        "validation_errors": validation_errors,
+        "underlying_blocker_completed": True if response_ready else False,
+        "completion_receipt_written": True if response_ready else False,
+    }
+    
+    if response_ready:
+        receipts_path = export_root / "selected_invoice_pdf_export_completed_candidate_receipt.json"
+        receipts_path.write_text(stable_json(action_receipt))
+        if bridge_export_root:
+            bridge_receipts_path = bridge_export_root / "selected_invoice_pdf_export_completed_candidate_receipt.json"
+            bridge_receipts_path.write_text(stable_json(action_receipt))
+            
+    source_bundle_path = None
+    bridge_bundle_path = None
+    if response_ready:
+        bundle = live_arts_md_invoice_review_bundle.build_live_arts_md_bundle()
+        # Ensure it reflects the receipt
+        if bundle["invoice_artifact"]["pdf_export_package"]["status"] != "PDF_EXPORT_COMPLETED_CANDIDATE":
+             bundle["invoice_artifact"]["pdf_export_package"]["status"] = "PDF_EXPORT_COMPLETED_CANDIDATE"
+        bundle["invoice_artifact"]["artifact_review_status"] = "OPERATOR_REVIEW_REQUIRED"
+        bundle["clara_email_draft"]["attachment_ready"] = False
+        bundle["send_readiness"]["approval_ready"] = False
+        bundle["payment_watch"]["ledger_posting_allowed"] = False
+        
+        source_bundle_path = export_root / "live_arts_md_invoice_review_bundle.json"
+        source_bundle_path.write_text(stable_json(bundle))
+        if bridge_export_root:
+            bridge_bundle_path = bridge_export_root / "live_arts_md_invoice_review_bundle.json"
+            bridge_bundle_path.write_text(stable_json(bundle))
+
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "read_model_id": READ_MODEL_ID,
+        "source_request_id": str(raw_request.get("request_id") or "unknown"),
+        "action_kind": "selected_invoice_pdf_export_completed_candidate",
+        "status": "GUIDED_RESULT_RECORDED" if response_ready else "BLOCKED_INVALID_RESULT",
+        "headline": "PDF Export Candidate Recorded" if response_ready else "PDF Export Blocked",
+        "body": "Recorded" if response_ready else "Blocked",
+        "detail": {},
+        "next_action": "Operator review",
+        "action_start_receipt": action_receipt,
+        "state_machine_progress": {
+            "used": True,
+            "progress_status": "COMPLETED" if response_ready else "BLOCKED",
+            "state_snapshot": {},
+            "action_progress_receipt": action_receipt,
+            "source_bundle_path": source_bundle_path.as_posix() if source_bundle_path else None,
+            "bridge_bundle_path": bridge_bundle_path.as_posix() if bridge_bundle_path else None,
+            "bridge_mirror_written": bool(bridge_bundle_path),
+        },
+        "local_surface_result": {
+            "intended_use": "selected_invoice_pdf_export_completed_candidate",
+            "result_recorded": response_ready,
+            "validation_errors": validation_errors,
+            "no_workbook_body_read": True,
+            "no_cell_read": True,
+            "no_external_action": True,
+            "invoice_generation_performed": False,
+            "artifact_linked": True if response_ready else False,
+            "attachment_ready": False,
+            "approval_ready": False,
+        },
+        "authority_boundary": dict(AUTHORITY_BOUNDARY),
+        "machine_proof": {
+            "bundle_scope_valid": response_ready,
+            "supported_action": True,
+            "no_external_action": True,
+            "guided_path_started": response_ready,
+            "completion_receipt_written": response_ready,
+            "underlying_blocker_completed": response_ready,
+            "bundle_refreshed": response_ready,
+            "bridge_bundle_mirrored": bool(bridge_bundle_path),
+            "workbook_body_read_performed": False,
+            "spreadsheet_cell_read_performed": False,
+            "invoice_generation_performed": False,
+            "email_send_performed": False,
+            "coupa_browser_automation_performed": False,
+            "ledger_posting_performed": False,
+            "production_mutation_performed": False,
+            "all_authority_boundary_false": True,
+        },
+    }
 
 def write_exports(payload: Mapping[str, Any], export_root: Path) -> tuple[Path, Path]:
     export_root.mkdir(parents=True, exist_ok=True)

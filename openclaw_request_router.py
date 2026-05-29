@@ -258,6 +258,30 @@ def invoice_record_selection_result_handlers() -> tuple[RequestHandlerRegistrati
     )
 
 
+def selected_invoice_pdf_export_completed_result_handlers() -> tuple[RequestHandlerRegistration, ...]:
+    common = {
+        "handler_id": "selected_invoice_pdf_export_completed_candidate.live_arts_md",
+        "handler_label": "Live Arts PDF export completion result",
+        "intended_use": "selected_invoice_pdf_export_completed_candidate",
+        "world_refs": ("finance",),
+        "workflow_refs": ("live_arts_md_invoice_workflow",),
+        "client_refs": ("live_arts_md",),
+        "project_refs": (),
+        "adapter_available": True,
+        "next_safe_move": "Record the exported invoice PDF metadata and keep the result candidate-only until operator confirms attachment.",
+    }
+    return (
+        RequestHandlerRegistration(
+            request_kind="INVOICE_REVIEW_ACTION_RESULT",
+            **common,
+        ),
+        RequestHandlerRegistration(
+            request_kind="LOCAL_SURFACE_RESULT",
+            **common,
+        ),
+    )
+
+
 def default_handler_registrations() -> tuple[RequestHandlerRegistration, ...]:
     return (
         capital_hilton_field_mapping_handler(),
@@ -265,6 +289,7 @@ def default_handler_registrations() -> tuple[RequestHandlerRegistration, ...]:
         *artifact_intake_handlers(),
         *invoice_review_action_handlers(),
         *invoice_record_selection_result_handlers(),
+        *selected_invoice_pdf_export_completed_result_handlers(),
     )
 
 
