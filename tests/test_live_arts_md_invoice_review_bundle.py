@@ -481,8 +481,21 @@ def test_manual_send_proof_confirmed_adds_manual_send_proof_confirmed_receipt(tm
     assert manual_send["proof_capture_metadata"]["proof_path_status"] == "metadata_valid"
     assert manual_send["proof_receipts"] == (bundle.MANUAL_SEND_PROOF_CONFIRMED_RECEIPT,)
     assert live["send_readiness"]["email_send_status"] == bundle.MANUAL_SEND_PROOF_STATUS_CONFIRMED
-    assert live["payment_watch"]["payment_watch_status"] == bundle.PAYMENT_WATCH_STATUS_READY_TO_CONFIGURE
+    assert live["payment_watch"]["payment_watch_status"] == bundle.PAYMENT_WATCH_STATUS_ACTIVE_PENDING_PAYMENT
+    assert live["payment_watch"]["next_operator_copy"] == (
+        "Payment watch is active for Live Arts MD invoice 2026-1001. Ledger posting remains blocked until bank/payment proof exists."
+    )
+    assert live["payment_watch"]["expected_receivable_status"] == "OPEN"
+    assert live["payment_watch"]["expected_client"] == "Live Arts MD"
+    assert live["payment_watch"]["invoice_id"] == "2026-1001"
+    assert live["payment_watch"]["expected_amount"] == 900
+    assert live["payment_watch"]["work_type"] == "Speaker Rental"
+    assert live["payment_watch"]["work_or_period"] == "June 2026 Speaker Rental"
+    assert live["payment_watch"]["receipt_status"] == "UNPAID"
+    assert live["payment_watch"]["ledger_match_status"] == "NOT_MATCHED"
+    assert live["payment_watch"]["ledger_handoff_status"] == "PLANNING_ONLY_NO_MUTATION"
     assert live["payment_watch"]["ledger_posting_allowed"] is False
+    assert "Capture bank/payment proof for invoice 2026-1001." in live["payment_watch"]["allowed_next_steps"]
 
 
 def test_manual_send_proof_confirmed_without_file_path_reference_only():
@@ -502,6 +515,9 @@ def test_manual_send_proof_confirmed_without_file_path_reference_only():
     assert manual_send["screenshot_file_verified"] is False
     assert manual_send["proof_capture_metadata"]["is_path"] is False
     assert manual_send["proof_capture_metadata"]["proof_path_status"] == "reference_only"
+    assert live["payment_watch"]["payment_watch_status"] == bundle.PAYMENT_WATCH_STATUS_ACTIVE_PENDING_PAYMENT
+    assert live["payment_watch"]["send_proof_strength"] == bundle.PROOF_STRENGTH_OPERATOR_ATTESTED_REFERENCE
+    assert live["payment_watch"]["review_status"] == bundle.PAYMENT_WATCH_REVIEW_STATUS_WAITING_FOR_PAYMENT
 
 
 def test_manual_send_proof_confirmed_without_manual_send_receipt_when_screenshot_provided(tmp_path):
@@ -525,7 +541,7 @@ def test_manual_send_proof_confirmed_without_manual_send_receipt_when_screenshot
     assert manual_send["proof_capture_metadata"]["proof_path_status"] == "metadata_valid"
     assert manual_send["proof_receipts"] == (bundle.MANUAL_SEND_PROOF_CONFIRMED_RECEIPT,)
     assert live["send_readiness"]["email_send_status"] == bundle.MANUAL_SEND_PROOF_STATUS_CONFIRMED
-    assert live["payment_watch"]["payment_watch_status"] == bundle.PAYMENT_WATCH_STATUS_READY_TO_CONFIGURE
+    assert live["payment_watch"]["payment_watch_status"] == bundle.PAYMENT_WATCH_STATUS_ACTIVE_PENDING_PAYMENT
 
 
 def test_payment_watch_readiness_does_not_advance_without_capture_proof():
@@ -554,8 +570,14 @@ def test_payment_watch_readiness_requires_manual_send_proof_then_ready():
     }
 
     assert live["manual_send_proof"]["proof_status"] == bundle.MANUAL_SEND_PROOF_STATUS_CONFIRMED
-    assert live["payment_watch"]["payment_watch_status"] == bundle.PAYMENT_WATCH_STATUS_READY_TO_CONFIGURE
+    assert live["payment_watch"]["payment_watch_status"] == bundle.PAYMENT_WATCH_STATUS_ACTIVE_PENDING_PAYMENT
     assert live["payment_watch"]["ledger_posting_allowed"] is False
+    assert live["payment_watch"]["expected_receivable_status"] == "OPEN"
+    assert live["payment_watch"]["review_status"] == bundle.PAYMENT_WATCH_REVIEW_STATUS_WAITING_FOR_PAYMENT
+    assert live["payment_watch"]["ledger_match_status"] == "NOT_MATCHED"
+    assert live["payment_watch"]["next_operator_copy"] == (
+        "Payment watch is active for Live Arts MD invoice 2026-1001. Ledger posting remains blocked until bank/payment proof exists."
+    )
     assert candidates["2026-1001"]["receipt_status"] == "UNPAID"
 
 

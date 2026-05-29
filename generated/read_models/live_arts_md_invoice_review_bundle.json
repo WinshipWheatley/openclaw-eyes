@@ -300,6 +300,7 @@
           "proof_required": true,
           "send_method": "manual_gmail"
         },
+        "file_backed_proof": false,
         "invoice_id": "2026-1001",
         "manual_send_receipt_available": false,
         "missing_required_fields": [
@@ -320,10 +321,12 @@
         },
         "proof_capture_provided": false,
         "proof_capture_request": "Add sent-email screenshot or sent-mail proof for Live Arts MD invoice 2026-1001.",
+        "proof_capture_type": null,
         "proof_receipts": [],
         "proof_refs": [],
         "proof_required": true,
         "proof_status": "MANUAL_SEND_PROOF_PENDING",
+        "proof_strength": null,
         "receipt_received": false,
         "required_fields": [
           "sent_timestamp",
@@ -335,6 +338,7 @@
           "amount",
           "work_or_period"
         ],
+        "screenshot_file_verified": false,
         "sent_timestamp": "2026-05-28T14:32:00-04:00",
         "subject": "Live Arts MD invoice",
         "to": [
@@ -809,7 +813,7 @@
       "clara_first_contact_intro_required": true,
       "clara_invoice_draft_package_consumed": true,
       "client_comms_thread_rail_consumed": true,
-      "content_hash": "sha256:2558ad488521746ebafbdae6adc6c26ffb9ba6d32b6966486f21ec5b6f010d0b",
+      "content_hash": "sha256:14bfa0bce3d69eed5152e53cb6de4e5c2849fd84dbe625f43d8948e03ae59a82",
       "live_arts_md_does_not_require_coupa": true,
       "live_arts_md_does_not_require_po": true,
       "manual_send_proof_evaluated": true,
@@ -842,6 +846,7 @@
         "proof_required": true,
         "send_method": "manual_gmail"
       },
+      "file_backed_proof": false,
       "invoice_id": "2026-1001",
       "manual_send_receipt_available": false,
       "missing_required_fields": [
@@ -862,10 +867,12 @@
       },
       "proof_capture_provided": false,
       "proof_capture_request": "Add sent-email screenshot or sent-mail proof for Live Arts MD invoice 2026-1001.",
+      "proof_capture_type": null,
       "proof_receipts": [],
       "proof_refs": [],
       "proof_required": true,
       "proof_status": "MANUAL_SEND_PROOF_PENDING",
+      "proof_strength": null,
       "receipt_received": false,
       "required_fields": [
         "sent_timestamp",
@@ -877,6 +884,7 @@
         "amount",
         "work_or_period"
       ],
+      "screenshot_file_verified": false,
       "sent_timestamp": "2026-05-28T14:32:00-04:00",
       "subject": "Live Arts MD invoice",
       "to": [
@@ -919,16 +927,37 @@
     "payment_watch": {
       "active_only_after_send_or_manual_send_receipt": true,
       "actual_bank_transactions_separate": true,
+      "allowed_next_steps": [
+        "Capture bank/payment proof for invoice 2026-1001.",
+        "Confirm ledger match status before any posting attempt."
+      ],
       "bank_ledger_match_required": true,
       "bank_ledger_read_performed": false,
       "client_ref": "live_arts_md",
-      "expected_amount": null,
+      "expected_amount": 900,
       "expected_ar_layer_required": true,
+      "expected_client": "Live Arts MD",
+      "expected_receivable_status": "BLOCKED",
       "expected_window": null,
+      "invoice_id": "2026-1001",
       "invoice_ref": null,
+      "ledger_handoff_status": "PLANNING_ONLY_NO_MUTATION",
+      "ledger_match_status": "NOT_ATTEMPTED",
       "ledger_posting_allowed": false,
       "manual_send_evidence_ref": [],
-      "payment_watch_status": "READINESS_ONLY_NOT_ACTIVE"
+      "matching_requirements": [
+        "manual_send_proof",
+        "bank_payment_confirmation_receipt"
+      ],
+      "next_operator_copy": "Payment watch is read-only readiness until manual send proof is confirmed.",
+      "payment_watch_status": "READINESS_ONLY_NOT_ACTIVE",
+      "proof_capture_type": null,
+      "receipt_status": "UNPAID",
+      "review_status": "WAITING_FOR_MANUAL_SEND_PROOF",
+      "send_proof_ref": [],
+      "send_proof_strength": null,
+      "work_or_period": "June 2026 Speaker Rental",
+      "work_type": "Speaker Rental"
     },
     "proof_timeline": [
       {
@@ -1385,6 +1414,7 @@
           "proof_required": true,
           "send_method": "manual_gmail"
         },
+        "file_backed_proof": false,
         "invoice_id": "2026-1001",
         "manual_send_receipt_available": false,
         "missing_required_fields": [
@@ -1405,10 +1435,12 @@
         },
         "proof_capture_provided": false,
         "proof_capture_request": "Add sent-email screenshot or sent-mail proof for Live Arts MD invoice 2026-1001.",
+        "proof_capture_type": null,
         "proof_receipts": [],
         "proof_refs": [],
         "proof_required": true,
         "proof_status": "MANUAL_SEND_PROOF_PENDING",
+        "proof_strength": null,
         "receipt_received": false,
         "required_fields": [
           "sent_timestamp",
@@ -1420,6 +1452,7 @@
           "amount",
           "work_or_period"
         ],
+        "screenshot_file_verified": false,
         "sent_timestamp": "2026-05-28T14:32:00-04:00",
         "subject": "Live Arts MD invoice",
         "to": [
@@ -1483,7 +1516,7 @@
   },
   "machine_proof": {
     "bridge_safe": true,
-    "content_hash": "sha256:2558ad488521746ebafbdae6adc6c26ffb9ba6d32b6966486f21ec5b6f010d0b",
+    "content_hash": "sha256:14bfa0bce3d69eed5152e53cb6de4e5c2849fd84dbe625f43d8948e03ae59a82",
     "live_arts_md_bundle_present": true,
     "no_action_authority": true
   },

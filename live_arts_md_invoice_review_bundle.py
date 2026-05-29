@@ -57,7 +57,14 @@ MANUAL_SEND_PROOF_STATUS_PENDING = "MANUAL_SEND_PROOF_PENDING"
 MANUAL_SEND_PROOF_STATUS_CONFIRMED = "MANUAL_SEND_PROOF_CONFIRMED"
 MANUAL_SEND_PROOF_CONFIRMED_RECEIPT = "manual_send_proof_confirmed_receipt"
 PAYMENT_WATCH_STATUS_READY_TO_CONFIGURE = "READY_TO_CONFIGURE"
+PAYMENT_WATCH_STATUS_ACTIVE_PENDING_PAYMENT = "ACTIVE_PENDING_PAYMENT"
 PAYMENT_WATCH_STATUS_READINESS_ONLY = "READINESS_ONLY_NOT_ACTIVE"
+PAYMENT_WATCH_EXPECTED_STATUS_OPEN = "OPEN"
+PAYMENT_WATCH_REVIEW_STATUS_WAITING_FOR_PAYMENT = "WAITING_FOR_PAYMENT"
+PAYMENT_WATCH_REVIEW_STATUS_WAITING_FOR_PROOF = "WAITING_FOR_MANUAL_SEND_PROOF"
+PAYMENT_WATCH_LEDGER_MATCH_NOT_MATCHED = "NOT_MATCHED"
+PAYMENT_WATCH_LEDGER_MATCH_NOT_ATTEMPTED = "NOT_ATTEMPTED"
+PAYMENT_WATCH_LEDGER_HANDOFF_PLANNING_ONLY = "PLANNING_ONLY_NO_MUTATION"
 PROOF_CAPTURE_TYPE_REFERENCE_ONLY = "REFERENCE_ONLY"
 PROOF_CAPTURE_TYPE_FILE_BACKED = "FILE_BACKED"
 PROOF_STRENGTH_OPERATOR_ATTESTED_REFERENCE = "OPERATOR_ATTESTED_REFERENCE"
@@ -433,6 +440,114 @@ def _manual_send_proof_status(
     return proof_state, proof_status
 
 
+def _invoice_candidate_lookup(invoice_id: str) -> Mapping[str, Any] | None:
+    target = str(invoice_id).strip()
+    if not target:
+        return None
+    candidates = live_arts_md_workbook_handoff.invoice_candidates()
+    return next((item for item in candidates if str(item.get("invoice_id") or "") == target), None)
+
+
+def _expected_receivable_state(
+    *,
+    manual_send_proof: Mapping[str, Any] | None,
+    selected_invoice_summary: Mapping[str, Any] | None,
+    payment_watch_status: str,
+    manual_send_status: str,
+) -> dict[str, Any]:
+    manual_send_payload = dict(manual_send_proof or {})
+    send_proof_ref = str(
+        manual_send_payload.get("screenshot_ref")
+        or manual_send_payload.get("sent_mail_proof_ref")
+        or manual_send_payload.get("manual_send_proof_ref")
+        or ""
+    ).strip()
+    proof_refs = tuple(item for item in _as_sequence(manual_send_payload.get("proof_refs")) if item)
+    if send_proof_ref and send_proof_ref not in proof_refs:
+        proof_refs = (send_proof_ref, *proof_refs)
+    invoice_id = str(
+        (selected_invoice_summary.get("invoice_id") if isinstance(selected_invoice_summary, Mapping) else "")
+        or manual_send_payload.get("invoice_id")
+        or KNOWN_MANUAL_SEND_INVOICE_ID
+    )
+    candidate = None
+    if isinstance(selected_invoice_summary, Mapping):
+        candidate = selected_invoice_summary
+    if not candidate:
+        candidate = _invoice_candidate_lookup(invoice_id)
+    if not isinstance(candidate, Mapping):
+        candidate = {}
+
+    expected_amount = candidate.get("amount")
+    if expected_amount is None:
+        try:
+            expected_amount = int(manual_send_payload.get("amount", KNOWN_MANUAL_SEND_AMOUNT))
+        except (TypeError, ValueError):
+            expected_amount = KNOWN_MANUAL_SEND_AMOUNT
+
+    if isinstance(selected_invoice_summary, Mapping):
+        expected_work_type = candidate.get("work_type") or selected_invoice_summary.get("work_type")
+        expected_work_or_period = selected_invoice_summary.get("sheet_label")
+    else:
+        expected_work_type = candidate.get("work_type")
+        expected_work_or_period = None
+    if expected_work_type is None:
+        expected_work_type = str(manual_send_payload.get("work_or_period") or KNOWN_MANUAL_SEND_WORK)
+    if not expected_work_or_period:
+        expected_work_or_period = str(manual_send_payload.get("work_or_period") or expected_work_type)
+
+    expected_receipt_status = candidate.get("receipt_status") or "UNPAID"
+    expected_review_status = (
+        PAYMENT_WATCH_REVIEW_STATUS_WAITING_FOR_PAYMENT
+        if payment_watch_status != PAYMENT_WATCH_STATUS_READINESS_ONLY
+        else PAYMENT_WATCH_REVIEW_STATUS_WAITING_FOR_PROOF
+    )
+    ledger_match_status = (
+        PAYMENT_WATCH_LEDGER_MATCH_NOT_MATCHED
+        if payment_watch_status != PAYMENT_WATCH_STATUS_READINESS_ONLY
+        else PAYMENT_WATCH_LEDGER_MATCH_NOT_ATTEMPTED
+    )
+    matching_requirements = (
+        "manual_send_proof",
+        "bank_payment_confirmation_receipt",
+    )
+    allowed_next_steps = (
+        f"Capture bank/payment proof for invoice {invoice_id}.",
+        "Confirm ledger match status before any posting attempt.",
+    )
+    proof_strength = manual_send_payload.get("proof_strength")
+    if proof_strength is None:
+        if manual_send_payload.get("proof_capture_type") == PROOF_CAPTURE_TYPE_FILE_BACKED:
+            proof_strength = PROOF_STRENGTH_FILE_VERIFIED
+        elif manual_send_payload.get("proof_capture_type") == PROOF_CAPTURE_TYPE_REFERENCE_ONLY:
+            proof_strength = PROOF_STRENGTH_OPERATOR_ATTESTED_REFERENCE
+
+    return {
+        "expected_payer_client": CLIENT_DISPLAY_NAME,
+        "invoice_id": invoice_id,
+        "expected_amount": expected_amount,
+        "work_type": expected_work_type,
+        "work_or_period": expected_work_or_period,
+        "receipt_status": expected_receipt_status,
+        "payment_watch_status": payment_watch_status,
+        "ledger_match_status": ledger_match_status,
+        "ledger_handoff_status": PAYMENT_WATCH_LEDGER_HANDOFF_PLANNING_ONLY,
+        "review_status": expected_review_status,
+        "matching_requirements": matching_requirements,
+        "allowed_next_steps": allowed_next_steps,
+        "send_proof_ref": proof_refs,
+        "send_proof_strength": proof_strength,
+        "proof_capture_type": manual_send_payload.get("proof_capture_type"),
+        "expected_receivable_status": (
+            PAYMENT_WATCH_EXPECTED_STATUS_OPEN
+            if manual_send_status == MANUAL_SEND_PROOF_STATUS_CONFIRMED
+            else "BLOCKED"
+        ),
+        "bank_ledger_match_required": True,
+        "receipt_required": True,
+    }
+
+
 def _workbook_records(payload: Mapping[str, Any] | None) -> tuple[dict[str, Any], ...]:
     if not isinstance(payload, Mapping):
         return ()
@@ -749,9 +864,21 @@ def build_live_arts_md_bundle(
     email_sent = "email_send_receipt" in receipts
     thread_watch_status = "THREAD_WATCH_READY" if email_sent else "BLOCKED_UNTIL_SENT_RECEIPT"
     payment_watch_status = (
-        PAYMENT_WATCH_STATUS_READY_TO_CONFIGURE
+        PAYMENT_WATCH_STATUS_ACTIVE_PENDING_PAYMENT
         if manual_send_status == MANUAL_SEND_PROOF_STATUS_CONFIRMED
         else PAYMENT_WATCH_STATUS_READINESS_ONLY
+    )
+    payment_watch_expected = _expected_receivable_state(
+        manual_send_proof=manual_send_proof_state,
+        selected_invoice_summary=selected_invoice_summary,
+        payment_watch_status=payment_watch_status,
+        manual_send_status=manual_send_status,
+    )
+    payment_watch_next_operator_copy = (
+        f"Payment watch is active for {CLIENT_DISPLAY_NAME} invoice {payment_watch_expected['invoice_id']}. "
+        "Ledger posting remains blocked until bank/payment proof exists."
+        if payment_watch_status != PAYMENT_WATCH_STATUS_READINESS_ONLY
+        else "Payment watch is read-only readiness until manual send proof is confirmed."
     )
     approval_ready = all(
         (
@@ -949,8 +1076,10 @@ def build_live_arts_md_bundle(
         {
             "step_ref": "live_arts_md_step:payment_watch",
             "title": "Payment watch",
-            "status": "READINESS_ONLY",
-            "operator_summary": "Payment watch can begin once send proof is confirmed.",
+            "status": "READY" if payment_watch_status != PAYMENT_WATCH_STATUS_READINESS_ONLY else "READINESS_ONLY",
+            "operator_summary": payment_watch_next_operator_copy
+            if payment_watch_status != PAYMENT_WATCH_STATUS_READINESS_ONLY
+            else "Payment watch can begin once send proof is confirmed.",
             "primary_action": None,
             "required_receipts": ("manual_send_receipt",),
         },
@@ -1083,8 +1212,6 @@ def build_live_arts_md_bundle(
             "payment_watch_status": payment_watch_status,
             "client_ref": CLIENT_REF,
             "invoice_ref": artifact.get("artifact_ref"),
-            "expected_amount": None,
-            "expected_window": None,
             "expected_ar_layer_required": True,
             "actual_bank_transactions_separate": True,
             "active_only_after_send_or_manual_send_receipt": True,
@@ -1092,6 +1219,23 @@ def build_live_arts_md_bundle(
             "bank_ledger_match_required": True,
             "manual_send_evidence_ref": manual_send_proof_state["proof_refs"],
             "ledger_posting_allowed": False,
+            "expected_receivable_status": payment_watch_expected["expected_receivable_status"],
+            "expected_client": payment_watch_expected["expected_payer_client"],
+            "invoice_id": payment_watch_expected["invoice_id"],
+            "expected_amount": payment_watch_expected["expected_amount"],
+            "work_type": payment_watch_expected["work_type"],
+            "work_or_period": payment_watch_expected["work_or_period"],
+            "receipt_status": payment_watch_expected["receipt_status"],
+            "ledger_match_status": payment_watch_expected["ledger_match_status"],
+            "ledger_handoff_status": payment_watch_expected["ledger_handoff_status"],
+            "review_status": payment_watch_expected["review_status"],
+            "matching_requirements": payment_watch_expected["matching_requirements"],
+            "allowed_next_steps": payment_watch_expected["allowed_next_steps"],
+            "send_proof_ref": payment_watch_expected["send_proof_ref"],
+            "send_proof_strength": payment_watch_expected["send_proof_strength"],
+            "proof_capture_type": payment_watch_expected["proof_capture_type"],
+            "expected_window": None,
+            "next_operator_copy": payment_watch_next_operator_copy,
         },
         "ledger_planning": handoff["ledger_planning"],
         "contact_ambiguity": handoff["contact_ambiguity"],
