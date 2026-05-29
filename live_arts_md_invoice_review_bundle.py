@@ -55,8 +55,26 @@ MANUAL_SEND_COMPLETION_REQUIRED_FIELDS = (
 )
 MANUAL_SEND_PROOF_STATUS_PENDING = "MANUAL_SEND_PROOF_PENDING"
 MANUAL_SEND_PROOF_STATUS_CONFIRMED = "MANUAL_SEND_PROOF_CONFIRMED"
+MANUAL_SEND_PROOF_CONFIRMED_RECEIPT = "manual_send_proof_confirmed_receipt"
 PAYMENT_WATCH_STATUS_READY_TO_CONFIGURE = "READY_TO_CONFIGURE"
 PAYMENT_WATCH_STATUS_READINESS_ONLY = "READINESS_ONLY_NOT_ACTIVE"
+PDF_EXPORT_PACKAGE_READY_FOR_MAC = "PDF_EXPORT_PACKAGE_READY_FOR_MAC"
+PDF_EXPORT_BLOCKED_MISSING_MAC_CAPABILITY = "PDF_EXPORT_BLOCKED_MISSING_MAC_CAPABILITY"
+PDF_EXPORT_BLOCKED_MISSING_PRINT_SCOPE = "PDF_EXPORT_BLOCKED_MISSING_PRINT_SCOPE"
+PDF_EXPORT_COMPLETED_CANDIDATE = "PDF_EXPORT_COMPLETED_CANDIDATE"
+PDF_EXPORT_REQUIRES_OPERATOR_REVIEW = "PDF_EXPORT_REQUIRES_OPERATOR_REVIEW"
+PDF_EXPORT_REQUIRED_CAPABILITY = "MAC_EXCEL_PDF_EXPORT"
+PDF_EXPORT_EXECUTION_VENUE = "MAC_LOCAL"
+PDF_EXPORT_OUTPUT_ARTIFACT_KIND = "PDF"
+PDF_EXPORT_PACKAGE_REQUESTED_RECEIPT = "selected_invoice_pdf_export_requested_receipt"
+PDF_EXPORT_COMPLETION_RECEIPT = "selected_invoice_pdf_export_completed_candidate"
+PDF_EXPORT_PACKAGE_REQUEST_TEMPLATE = (
+    "Prepare the selected Live Arts MD invoice PDF from {selected_sheet_label} on Mac with scoped print area."
+)
+PDF_EXPORT_SCOPE_REVIEW_TEMPLATE = "Confirm the selected sheet/print area for invoice {invoice_id}."
+PROOF_CAPTURE_REF_REQUEST_TEMPLATE = (
+    "Add sent-email screenshot or sent-mail proof for Live Arts MD invoice {invoice_id}."
+)
 LIVE_ARTS_MD_MANUAL_SEND_PROOF = {
     "execution_venue": "MAC_LOCAL",
     "execution_actor": "OPERATOR",
@@ -131,6 +149,161 @@ def _is_present_field(value: object) -> bool:
     return bool(str(value).strip())
 
 
+def _looks_like_path(value: str) -> bool:
+    value = value.strip()
+    return (
+        value.startswith(("/", "./", "../", "~", "file://"))
+        or (len(value) >= 3 and value[1] == ":" and value[2] in ("/", "\\") )
+    )
+
+
+def _proof_capture_metadata(value: object) -> dict[str, Any]:
+    if not isinstance(value, str):
+        return {
+            "proof_ref": value,
+            "is_path": False,
+            "proof_path_status": "non_text_reference",
+            "exists": False,
+            "extension": None,
+            "file_size": None,
+            "sha256": None,
+        }
+    text = value.strip()
+    if not text:
+        return {
+            "proof_ref": value,
+            "is_path": False,
+            "proof_path_status": "missing",
+            "exists": False,
+            "extension": None,
+            "file_size": None,
+            "sha256": None,
+        }
+    if not _looks_like_path(text):
+        return {
+            "proof_ref": value,
+            "is_path": False,
+            "proof_path_status": "reference_only",
+            "exists": True,
+            "extension": None,
+            "file_size": None,
+            "sha256": None,
+        }
+    path = Path(text[7:] if text.startswith("file://") else text).expanduser()
+    if not path.exists() or not path.is_file():
+        return {
+            "proof_ref": value,
+            "is_path": True,
+            "proof_path_status": "missing",
+            "path_candidate": path.as_posix(),
+            "exists": path.exists(),
+            "extension": path.suffix.lower(),
+            "file_size": None,
+            "sha256": None,
+        }
+    data = path.read_bytes()
+    return {
+        "proof_ref": value,
+        "is_path": True,
+        "proof_path_status": "metadata_valid",
+        "path_candidate": path.as_posix(),
+        "exists": True,
+        "extension": path.suffix.lower(),
+        "file_size": len(data),
+        "sha256": "sha256:" + hashlib.sha256(data).hexdigest(),
+    }
+
+
+def _proof_capture_request(invoice_id: str, request_needed: bool) -> str | None:
+    if not request_needed:
+        return None
+    return PROOF_CAPTURE_REF_REQUEST_TEMPLATE.format(invoice_id=invoice_id)
+
+
+def _selected_invoice_pdf_export_package(
+    *,
+    selected_candidate: Mapping[str, Any] | None,
+    source_workbook: Mapping[str, Any] | None,
+    present_receipts: set[str],
+) -> tuple[dict[str, Any], str | None]:
+    invoice_id = str((selected_candidate or {}).get("invoice_id") or "")
+    selected_sheet_label = str((selected_candidate or {}).get("sheet_label") or "")
+    selected_print_areas = tuple(_as_sequence((selected_candidate or {}).get("operator_provided_ranges")))
+    source_path = (
+        str(
+            (source_workbook or {}).get("workbook_path_ref")
+            or (source_workbook or {}).get("source_workbook_mac_path")
+            or (source_workbook or {}).get("workbook_path")
+            or ""
+        )
+        if source_workbook is not None
+        else ""
+    )
+    output_sheet_slug = (selected_sheet_label or "unknown-sheet").replace(" ", "_").replace("/", "_")
+    output_path_policy = f"scoped_live_arts_md_export/{output_sheet_slug}/{invoice_id or 'selected-invoice'}.pdf"
+    completion_receipt = PDF_EXPORT_COMPLETION_RECEIPT
+    required_receipts: tuple[str, ...] = (completion_receipt,)
+    package: dict[str, Any] = {
+        "execution_venue": PDF_EXPORT_EXECUTION_VENUE,
+        "required_capability": PDF_EXPORT_REQUIRED_CAPABILITY,
+        "source_workbook_path": source_path,
+        "selected_sheet_label": selected_sheet_label,
+        "selected_print_areas": selected_print_areas,
+        "invoice_id": invoice_id,
+        "output_artifact_kind": PDF_EXPORT_OUTPUT_ARTIFACT_KIND,
+        "output_path_policy": output_path_policy,
+        "no_physical_printing": True,
+        "no_email_send": True,
+        "no_gmail": True,
+        "no_ledger_post": True,
+        "no_coupa": True,
+        "no_source_workbook_mutation": True,
+        "workbook_cell_read_required": False,
+        "operator_review_required_after_export": True,
+        "required_receipts": required_receipts,
+        "request_receipt": PDF_EXPORT_PACKAGE_REQUESTED_RECEIPT,
+        "missing_requirements": (),
+        "proof_refs": tuple(),
+        "request_payload_ready": bool(selected_candidate) and bool(source_path) and bool(selected_print_areas),
+        "request_copy": PDF_EXPORT_PACKAGE_REQUEST_TEMPLATE.format(selected_sheet_label=selected_sheet_label or "unknown sheet"),
+    }
+    if not selected_candidate:
+        package.update(
+            {
+                "status": PDF_EXPORT_REQUIRES_OPERATOR_REVIEW,
+                "missing_requirements": ("selected_invoice_candidate",),
+                "operator_review_prompt": PDF_EXPORT_SCOPE_REVIEW_TEMPLATE.format(invoice_id="selected invoice"),
+                "prompt_invoice_id": invoice_id or "selected invoice",
+            }
+        )
+        return package, completion_receipt
+    if not source_path:
+        package.update(
+            {
+                "status": PDF_EXPORT_BLOCKED_MISSING_MAC_CAPABILITY,
+                "missing_requirements": ("source_workbook_path",),
+                "operator_review_prompt": "Select the confirmed source workbook path before preparing invoice PDF.",
+                "prompt_invoice_id": invoice_id or "selected invoice",
+            }
+        )
+        return package, completion_receipt
+    if not selected_print_areas:
+        package.update(
+            {
+                "status": PDF_EXPORT_BLOCKED_MISSING_PRINT_SCOPE,
+                "missing_requirements": ("selected_print_scope",),
+                "operator_review_prompt": PDF_EXPORT_SCOPE_REVIEW_TEMPLATE.format(invoice_id=invoice_id),
+                "prompt_invoice_id": invoice_id,
+            }
+        )
+        return package, completion_receipt
+    if completion_receipt in present_receipts:
+        package["status"] = PDF_EXPORT_COMPLETED_CANDIDATE
+    else:
+        package["status"] = PDF_EXPORT_PACKAGE_READY_FOR_MAC
+    return package, completion_receipt
+
+
 def _normalize_manual_send_proof(
     *,
     manual_send_proof: Mapping[str, Any] | None,
@@ -173,7 +346,15 @@ def _manual_send_proof_status(
         or payload.get("sent_mail_proof_ref")
         or payload.get("manual_send_proof_ref")
     )
-    has_screenshot_or_mail_proof = sent_proof_ref is not None
+    has_screenshot_or_mail_proof = bool(sent_proof_ref)
+    proof_capture_meta = _proof_capture_metadata(sent_proof_ref)
+    missing_capture_fields: list[str] = []
+    proof_capture_required = payload.get("proof_capture_required", ("screenshot_ref", "sent_mail_proof_ref"))
+    if proof_capture_required is not False:
+        if not has_screenshot_or_mail_proof:
+            missing_capture_fields.append("proof screenshot/ref")
+        elif proof_capture_meta.get("is_path") and not proof_capture_meta.get("exists"):
+            missing_capture_fields.append("proof screenshot/ref")
     has_manual_send_receipt = "manual_send_receipt" in present_receipts
     has_confirmed_receipt = has_manual_send_receipt or payload.get("manual_send_receipt_available") is True
     proof_state = {
@@ -192,17 +373,28 @@ def _manual_send_proof_status(
         "receipt_received": bool(has_confirmed_receipt),
         "proof_refs": tuple(_as_sequence(payload.get("proof_refs"))),
         "required_fields": MANUAL_SEND_COMPLETION_REQUIRED_FIELDS,
-        "missing_required_fields": tuple(present),
+        "missing_required_fields": tuple([*present, *missing_capture_fields]),
         "proof_capture_provided": bool(bool(sent_proof_ref)),
         "proof_capture_fields": tuple(_as_sequence(payload.get("proof_capture_required"))),
+        "proof_capture_metadata": proof_capture_meta,
+        "proof_capture_request": _proof_capture_request(
+            str(payload.get("invoice_id") or KNOWN_MANUAL_SEND_INVOICE_ID),
+            bool(missing_capture_fields),
+        ),
+        "proof_receipts": (
+            (MANUAL_SEND_PROOF_CONFIRMED_RECEIPT,)
+            if has_confirmed_receipt and not present and not missing_capture_fields
+            else ()
+        ),
     }
     complete = (
         has_confirmed_receipt
         and not present
+        and not missing_capture_fields
         and (
             (payload.get("proof_required") is False)
             or has_screenshot_or_mail_proof
-            or (payload.get("proof_capture_required") is False)
+            or (proof_capture_required is False)
         )
     )
     proof_status = (
@@ -298,11 +490,18 @@ def _artifact_state(
     *,
     artifact_reference_payload: Mapping[str, Any] | None = None,
     operator_artifact_path: str | None = None,
+    present_receipts: set[str] | list[str] | tuple[str, ...] = (),
 ) -> dict[str, Any]:
+    receipt_set = {str(item) for item in present_receipts}
     payload = (
         artifact_reference_payload
         if artifact_reference_payload is not None
         else local_artifact_reference.load_existing_payload()
+    )
+    attachment_receipts = (
+        "invoice_attachment_confirmed_receipt" in receipt_set
+        or "operator_provided_invoice_artifact_linked_candidate_receipt" in receipt_set
+        or PDF_EXPORT_COMPLETION_RECEIPT in receipt_set
     )
     approved = local_artifact_reference.find_approved_readable_artifact(
         payload,
@@ -318,7 +517,7 @@ def _artifact_state(
             "artifact_ref": approved.get("artifact_ref"),
             "path_ref": approved.get("pc_path") or approved.get("approved_path_ref"),
             "hash": approved.get("sha256") or approved.get("artifact_hash"),
-            "attachment_ready": False,
+            "attachment_ready": bool(attachment_receipts),
             "candidate_only": True,
             "receipt_required_for_attachment_ready": "invoice_attachment_confirmed_receipt",
             "metadata_only": True,
@@ -332,7 +531,7 @@ def _artifact_state(
             "artifact_ref": f"operator_invoice_artifact_candidate:{_short_hash(operator_artifact_path, metadata.get('sha256'))}",
             "path_ref": operator_artifact_path,
             "hash": metadata.get("sha256"),
-            "attachment_ready": False,
+            "attachment_ready": bool(attachment_receipts),
             "candidate_only": True,
             "receipt_required_for_attachment_ready": "invoice_attachment_confirmed_receipt",
             "metadata": metadata,
@@ -343,10 +542,10 @@ def _artifact_state(
         "artifact_ref": None,
         "path_ref": None,
         "hash": None,
-        "attachment_ready": False,
+        "attachment_ready": bool(attachment_receipts),
         "candidate_only": False,
         "receipt_required_for_attachment_ready": "operator_provided_invoice_artifact_linked_candidate_receipt",
-        "next_action": "Export selected invoice page manually, then attach it here.",
+        "next_action": "Attach the PDF manually only if automatic export is unavailable.",
     }
 
 
@@ -393,6 +592,7 @@ def build_live_arts_md_bundle(
     artifact_reference_payload: Mapping[str, Any] | None = None,
     operator_artifact_path: str | None = None,
     manual_send_proof: Mapping[str, Any] | None = None,
+    selected_invoice_candidate: Mapping[str, Any] | None = None,
     present_receipts: tuple[str, ...] | list[str] | set[str] = (),
     generated_at: str | None = None,
 ) -> dict[str, Any]:
@@ -439,17 +639,37 @@ def build_live_arts_md_bundle(
         else "Choose the Live Arts MD source workbook.",
     )
     source_confirmed = source["status"] == "CONFIRMED" or "source_workbook_reference_confirmed_receipt" in receipts
+    selected_invoice_summary = (
+        dict(selected_invoice_candidate) if isinstance(selected_invoice_candidate, Mapping) else None
+    )
+    if selected_invoice_summary is not None:
+        selected_invoice_summary.setdefault("selection_status", "SELECTED")
+        selected_invoice_summary.setdefault("selection_source", "live_arts_candidate_register")
     invoice_selected = (
-        "invoice_record_selection_operator_confirmed_receipt" in receipts
+        bool(selected_invoice_summary)
+        or "invoice_record_selection_operator_confirmed_receipt" in receipts
         or "live_arts_md_invoice_candidate_selected_receipt" in receipts
     )
     invoice_candidate_selected = "live_arts_md_invoice_candidate_selected_receipt" in receipts
     artifact = _artifact_state(
         artifact_reference_payload=artifact_reference_payload,
         operator_artifact_path=operator_artifact_path,
+        present_receipts=receipts,
     )
+    attachment_receipt = "invoice_attachment_confirmed_receipt"
+    pdf_export_completion_receipt = PDF_EXPORT_COMPLETION_RECEIPT
+    attachment_ready = (
+        attachment_receipt in receipts
+        or pdf_export_completion_receipt in receipts
+    )
+    pdf_export_package, _ = _selected_invoice_pdf_export_package(
+        selected_candidate=selected_invoice_summary,
+        source_workbook=source,
+        present_receipts=receipts,
+    )
+    selected_invoice_pdf_prepared = pdf_export_package["status"] == PDF_EXPORT_COMPLETED_CANDIDATE
     artifact_candidate = artifact["status"] == "OPERATOR_PROVIDED_ARTIFACT_CANDIDATE"
-    attachment_ready = "invoice_attachment_confirmed_receipt" in receipts
+    artifact_candidate_or_exported = artifact_candidate or (pdf_export_completion_receipt in receipts)
     recipient_confirmed = "recipient_confirmation_receipt" in receipts
     comms_fixture = client_comms_thread_rail.build_clara_first_contact_draft(
         client_ref=CLIENT_REF,
@@ -510,7 +730,7 @@ def build_live_arts_md_bundle(
         (
             source_confirmed,
             invoice_selected,
-            artifact_candidate,
+            artifact_candidate_or_exported,
             attachment_ready,
             recipient_confirmed,
             clara_ready,
@@ -522,9 +742,19 @@ def build_live_arts_md_bundle(
         blockers.append("Choose the Live Arts MD source workbook.")
     if source_confirmed and not invoice_selected:
         blockers.append("Choose which Live Arts MD invoice to prepare.")
-    if not artifact_candidate:
-        blockers.append("Attach or link the generated Live Arts MD invoice artifact.")
-    if artifact_candidate and not attachment_ready:
+    if source_confirmed and invoice_selected and not artifact_candidate_or_exported:
+        if pdf_export_package["status"] == PDF_EXPORT_BLOCKED_MISSING_PRINT_SCOPE:
+            blockers.append(str(pdf_export_package.get("operator_review_prompt") or "Confirm the selected sheet/print area for the invoice.")
+            )
+        elif pdf_export_package["status"] == PDF_EXPORT_BLOCKED_MISSING_MAC_CAPABILITY:
+            blockers.append("Prepare the selected invoice PDF requires a supported Mac workbook path.")
+        elif pdf_export_package["status"] == PDF_EXPORT_REQUIRES_OPERATOR_REVIEW:
+            blockers.append(
+                str(pdf_export_package.get("operator_review_prompt") or "Confirm the selected invoice scope for PDF export.")
+            )
+        else:
+            blockers.append("Prepare invoice PDF.")
+    if artifact_candidate_or_exported and not attachment_ready:
         blockers.append("Confirm the invoice artifact as the email attachment.")
     if not recipient_confirmed:
         blockers.append("Confirm the Live Arts MD recipient/contact.")
@@ -550,9 +780,51 @@ def build_live_arts_md_bundle(
         extra_payload={"operator_provided": True} if source_confirmed else None,
     )
     urgent_invoice_actions = tuple(handoff["urgent_actions"])
+    prepare_pdf_action = _action(
+        "prepare_selected_invoice_pdf_artifact",
+        "Prepare invoice PDF",
+        enabled=invoice_selected,
+        intended_use="prepare_selected_invoice_pdf_artifact",
+        disabled_reason=(
+            "Select the invoice page/period first."
+            if not invoice_selected
+            else None
+            if pdf_export_package["status"] in {
+                PDF_EXPORT_PACKAGE_READY_FOR_MAC,
+                PDF_EXPORT_COMPLETED_CANDIDATE,
+                PDF_EXPORT_REQUIRES_OPERATOR_REVIEW,
+            }
+            else (
+                pdf_export_package["operator_review_prompt"]
+                if pdf_export_package["status"] == PDF_EXPORT_BLOCKED_MISSING_PRINT_SCOPE
+                else "Prepare the selected invoice PDF requires source/workbook scope inputs."
+            )
+        ),
+        extra_payload={
+            "execution_venue": PDF_EXPORT_EXECUTION_VENUE,
+            "required_capability": PDF_EXPORT_REQUIRED_CAPABILITY,
+            "source_workbook_path": pdf_export_package["source_workbook_path"],
+            "selected_sheet_label": pdf_export_package["selected_sheet_label"],
+            "selected_print_areas": pdf_export_package["selected_print_areas"],
+            "invoice_id": pdf_export_package["invoice_id"],
+            "output_artifact_kind": PDF_EXPORT_OUTPUT_ARTIFACT_KIND,
+            "output_path_policy": pdf_export_package["output_path_policy"],
+            "request_copy": pdf_export_package["request_copy"],
+            "no_physical_printing": True,
+            "no_email_send": True,
+            "no_gmail": True,
+            "no_ledger_post": True,
+            "no_coupa": True,
+            "no_source_workbook_mutation": True,
+            "workbook_cell_read_required": False,
+            "operator_review_required_after_export": True,
+            "required_receipts": pdf_export_package["required_receipts"],
+            "required_receipt_ref": pdf_export_completion_receipt,
+        },
+    )
     artifact_action = _action(
         "attach_generated_invoice_artifact",
-        "Attach generated invoice artifact",
+        "Attach PDF manually",
         enabled=invoice_selected,
         intended_use="manual_operator_link_generated_invoice_artifact",
         disabled_reason=None if invoice_selected else "Select the invoice page/period first.",
@@ -576,8 +848,8 @@ def build_live_arts_md_bundle(
         if not source_confirmed
         else selection_action
         if not invoice_selected
-        else artifact_action
-        if not artifact_candidate
+        else prepare_pdf_action
+        if invoice_selected and not artifact_candidate_or_exported
         else recipient_action
     )
 
@@ -602,10 +874,18 @@ def build_live_arts_md_bundle(
         {
             "step_ref": "live_arts_md_step:invoice_artifact",
             "title": "Invoice artifact",
-            "status": "CANDIDATE" if artifact_candidate else "NEEDS_ACTION" if invoice_selected else "BLOCKED",
-            "operator_summary": "Artifact is candidate-only until attachment confirmation receipt exists.",
-            "primary_action": artifact_action,
+            "status": (
+                "READY" if artifact_candidate_or_exported and attachment_ready else
+                "READY" if selected_invoice_pdf_prepared else
+                "CANDIDATE" if artifact_candidate else
+                "NEEDS_ACTION" if invoice_selected else "BLOCKED"
+            ),
+            "operator_summary": "Prepare a scoped PDF for the selected Live Arts MD invoice and attach it as the email artifact.",
+            "selected_invoice_summary": selected_invoice_summary,
+            "primary_action": prepare_pdf_action,
+            "secondary_actions": (artifact_action,),
             "required_receipts": (
+                PDF_EXPORT_COMPLETION_RECEIPT,
                 "operator_provided_invoice_artifact_linked_candidate_receipt",
                 "invoice_attachment_confirmed_receipt",
             ),
@@ -688,12 +968,16 @@ def build_live_arts_md_bundle(
             else "NEEDS_CANDIDATE_SELECTION"
             if source_confirmed
             else "BLOCKED_NEEDS_SOURCE_WORKBOOK",
+            "selected_invoice_summary": selected_invoice_summary,
             "no_workbook_body_read": True,
             "no_cell_read": True,
             "primary_action": selection_action,
             "urgent_actions": urgent_invoice_actions,
         },
-        "invoice_artifact": artifact,
+        "invoice_artifact": {
+            **artifact,
+            "pdf_export_package": pdf_export_package,
+        },
         "client_comms_thread": {
             "comms_thread_status": "DRAFT_READY" if clara_ready else "NOT_STARTED",
             "thread_ref": comms_draft["thread_ref"],
@@ -845,6 +1129,7 @@ def build_live_arts_md_bundle(
 def build_payload(
     *,
     generated_at: str | None = None,
+    selected_invoice_candidate: Mapping[str, Any] | None = None,
     workbook_registry_payload: Mapping[str, Any] | None = None,
     source_workbook_override: Mapping[str, Any] | None = None,
     artifact_reference_payload: Mapping[str, Any] | None = None,
@@ -854,6 +1139,7 @@ def build_payload(
 ) -> dict[str, Any]:
     bundle = build_live_arts_md_bundle(
         generated_at=generated_at,
+        selected_invoice_candidate=selected_invoice_candidate,
         workbook_registry_payload=workbook_registry_payload,
         source_workbook_override=source_workbook_override,
         artifact_reference_payload=artifact_reference_payload,
@@ -891,6 +1177,11 @@ def format_operator(payload: Mapping[str, Any]) -> str:
         f"- Manual send package: `{bundle['send_readiness']['manual_send_package_status']}`",
         f"- Manual send proof: `{bundle['manual_send_proof']['proof_status']}`",
         f"- Payment watch: `{bundle['payment_watch']['payment_watch_status']}`",
+        *(
+            (f"- {bundle['manual_send_proof']['proof_capture_request']}",)
+            if bundle["manual_send_proof"].get("proof_capture_request")
+            else tuple()
+        ),
         "",
         "No email, Coupa, browser, ledger, workbook body/cell read, generation, export, or production action occurred.",
     ]

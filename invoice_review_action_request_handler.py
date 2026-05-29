@@ -44,6 +44,7 @@ SUPPORTED_ACTIONS = {
     "open_invoice_workbook_candidate",
     "select_invoice_candidate",
     "select_live_arts_md_invoice_candidate",
+    "prepare_selected_invoice_pdf_artifact",
 }
 
 CLIENT_BUNDLES = {
@@ -88,6 +89,32 @@ def stable_json(payload: Any) -> str:
 
 def _short_hash(*parts: object) -> str:
     return hashlib.sha256("\0".join(str(part) for part in parts).encode("utf-8")).hexdigest()[:16]
+
+
+def _selected_invoice_candidate_from_payload(payload: Mapping[str, Any]) -> dict[str, Any] | None:
+    invoice_id = str(payload.get("invoice_id") or payload.get("candidate_ref") or "")
+    selected_print_areas = payload.get("selected_print_areas")
+    if isinstance(selected_print_areas, str):
+        selected_print_areas = (selected_print_areas,)
+    if isinstance(selected_print_areas, list):
+        selected_print_areas = tuple(selected_print_areas)
+    if isinstance(selected_print_areas, tuple):
+        selected_print_areas = tuple(str(item) for item in selected_print_areas if str(item).strip())
+    elif selected_print_areas is None:
+        selected_print_areas = tuple()
+
+    candidate: dict[str, Any] = {
+        "invoice_id": invoice_id or "",
+        "sheet_label": str(payload.get("selected_sheet_label") or payload.get("sheet_label") or ""),
+        "work_type": str(payload.get("work_type") or ""),
+        "amount": payload.get("amount"),
+        "operator_provided_ranges": selected_print_areas,
+    }
+    if not candidate["invoice_id"] and not candidate["sheet_label"]:
+        return None
+    if candidate["amount"] is None and isinstance(payload.get("amount"), (int, float)):
+        candidate["amount"] = payload.get("amount")
+    return candidate
 
 
 def _action_payload(raw_request: Mapping[str, Any]) -> Mapping[str, Any]:
@@ -372,6 +399,14 @@ def _operator_copy(action_kind: str, *, context: Mapping[str, str] | None = None
                 "coupa_submission_proof_intake_receipt",
             ),
         )
+    if action_kind == "prepare_selected_invoice_pdf_artifact":
+        return (
+            "Prepare selected invoice PDF",
+            "Prepare a scoped Live Arts MD invoice PDF on Mac for the selected invoice.",
+            "OpenClaw exposes a strict export package for the selected sheet/print area. No export happens on this control plane.",
+            "Run the scoped export package on Mac and then provide receipt proof.",
+            ("selected_invoice_pdf_export_requested_receipt",),
+        )
     if action_kind == "review_and_confirm_recipients":
         return (
             "Review recipients",
@@ -620,7 +655,10 @@ def process_action_request(
         source_json, _source_operator, bridge_json = live_arts_md_invoice_review_bundle.write_exports(
             live_arts_md_invoice_review_bundle.build_payload(
                 generated_at=generated_at,
-                present_receipts=("live_arts_md_invoice_candidate_selected_receipt",)
+                selected_invoice_candidate=live_arts_selection_result["selected_candidate"],
+                present_receipts=(
+                    "live_arts_md_invoice_candidate_selected_receipt",
+                )
                 if live_arts_selection_result["status"] == "SELECTED_REQUIRES_ARTIFACT_AND_APPROVAL"
                 else (),
             ),
@@ -635,8 +673,7 @@ def process_action_request(
         receipt = live_arts_selection_result["receipt"]
         headline = "Live Arts MD invoice selected" if not receipt["validation_errors"] else "Invoice selection blocked"
         body = (
-            "Live Arts MD invoice candidate recorded. Next: export or link the selected invoice artifact manually. "
-            "Nothing was sent, paid, generated, or ledger-posted."
+            "Live Arts MD invoice candidate recorded. Next: prepare the selected invoice PDF package through the governed scope before attaching or sending. "
             if not receipt["validation_errors"]
             else "OpenClaw could not record that invoice candidate because the selection payload was incomplete or unsafe."
         )
@@ -644,6 +681,59 @@ def process_action_request(
         next_action = live_arts_selection_result["next_action"]
         expected = (receipt["receipt_event"],)
         status = "GUIDED_ACTION_STARTED" if not receipt["validation_errors"] else "BLOCKED_PREREQUISITES"
+    elif valid_scope and supported and no_external and action_kind == "prepare_selected_invoice_pdf_artifact":
+        selected_candidate = _selected_invoice_candidate_from_payload(payload)
+        if selected_candidate is not None:
+            bundle_payload = live_arts_md_invoice_review_bundle.build_payload(
+                generated_at=generated_at,
+                selected_invoice_candidate=selected_candidate,
+            )
+            package = bundle_payload["live_arts_md_bundle"]["invoice_artifact"]["pdf_export_package"]
+            source_json, _source_operator, bridge_json = live_arts_md_invoice_review_bundle.write_exports(
+                bundle_payload,
+                export_root,
+                bridge_export_root=bridge_export_root,
+            )
+            live_arts_bundle_paths = (
+                source_json.as_posix(),
+                bridge_json.as_posix() if bridge_json else None,
+                bridge_json is not None,
+            )
+            if package["status"] in {
+                live_arts_md_invoice_review_bundle.PDF_EXPORT_BLOCKED_MISSING_PRINT_SCOPE,
+                live_arts_md_invoice_review_bundle.PDF_EXPORT_BLOCKED_MISSING_MAC_CAPABILITY,
+                live_arts_md_invoice_review_bundle.PDF_EXPORT_REQUIRES_OPERATOR_REVIEW,
+            }:
+                headline = "Prepare selected invoice PDF package is blocked"
+                body = str(
+                    package.get("operator_review_prompt")
+                    or "Prepare a scoped invoice PDF package requires additional invoice scope inputs."
+                )
+                detail = "OpenClaw can only start the guided package path once the invoice print scope is complete."
+                next_action = str(
+                    package.get("operator_review_prompt")
+                    or "Confirm the selected invoice scope for PDF export."
+                )
+                status = "BLOCKED_PREREQUISITES"
+                expected = tuple()
+            else:
+                headline = "Prepare selected invoice PDF package"
+                body = "Prepared a scoped invoice PDF export package request for the selected invoice. No export was executed."
+                detail = (
+                    "Use the scoped Mac package to create the PDF for the selected invoice sheet and print area, then return a completion receipt."
+                )
+                next_action = "Prepare the selected invoice PDF on Mac."
+                status = "GUIDED_ACTION_STARTED"
+                expected = ("selected_invoice_pdf_export_requested_receipt",)
+        else:
+            headline, body, detail, next_action, expected = _operator_copy(
+                "prepare_selected_invoice_pdf_artifact",
+                context={"client_ref": client_ref},
+            )
+            status = "BLOCKED_PREREQUISITES"
+            if action_disabled_reason:
+                body = f"{body} {action_disabled_reason}"
+            live_arts_bundle_paths = (None, None, False)
     elif valid_scope and supported and no_external:
         progress_result = invoice_review_state_machine.process_action(
             raw_request,

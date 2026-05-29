@@ -5,6 +5,7 @@ import client_invoice_workflow_framework as framework
 import invoice_review_action_request_handler as action_handler
 import invoice_review_state_machine as state_machine
 import live_arts_md_invoice_review_bundle as bundle
+import live_arts_md_workbook_handoff
 from scripts.export_live_arts_md_invoice_review_bundle import main as export_main
 
 
@@ -29,6 +30,22 @@ def _confirmed_workbook_payload():
             ]
         }
     }
+
+
+def _confirmed_workbook_payload_with_mac_path():
+    payload = _confirmed_workbook_payload()
+    payload["registry"]["client_records"][0]["workbook_path_ref"] = (
+        live_arts_md_workbook_handoff.SOURCE_WORKBOOK_MAC_PATH
+    )
+    payload["registry"]["client_records"][0]["source_workbook_mac_path"] = (
+        live_arts_md_workbook_handoff.SOURCE_WORKBOOK_MAC_PATH
+    )
+    return payload
+
+
+def _selected_live_arts_candidate(invoice_id: str = "2026-1001"):
+    candidates = live_arts_md_workbook_handoff.invoice_candidates()
+    return dict(next(candidate for candidate in candidates if candidate["invoice_id"] == invoice_id))
 
 
 def _manual_send_payload(**overrides):
@@ -422,6 +439,61 @@ def test_manual_send_proof_pending_when_required_fields_missing():
     assert "subject" in manual_send["missing_required_fields"]
 
 
+def test_manual_send_proof_missing_screenshot_ref_prompts_operator_capture_request():
+    screenshotless_payload = _manual_send_payload(screenshot_ref="")
+    live = bundle.build_live_arts_md_bundle(
+        workbook_registry_payload=_confirmed_workbook_payload(),
+        operator_artifact_path="/tmp/live_arts_md_invoice.pdf",
+        manual_send_proof=screenshotless_payload,
+        present_receipts=("manual_send_receipt",),
+        generated_at=FIXED_NOW,
+    )
+
+    manual_send = live["manual_send_proof"]
+    assert manual_send["proof_status"] == bundle.MANUAL_SEND_PROOF_STATUS_PENDING
+    assert "proof screenshot/ref" in manual_send["missing_required_fields"]
+    assert (
+        manual_send["proof_capture_request"]
+        == "Add sent-email screenshot or sent-mail proof for Live Arts MD invoice 2026-1001."
+    )
+    assert live["send_readiness"]["email_send_status"] == bundle.MANUAL_SEND_PROOF_STATUS_PENDING
+    assert live["payment_watch"]["payment_watch_status"] == bundle.PAYMENT_WATCH_STATUS_READINESS_ONLY
+
+
+def test_manual_send_proof_confirmed_adds_manual_send_proof_confirmed_receipt(tmp_path):
+    screenshot = tmp_path / "live_arts_md_manual_send_screenshot.png"
+    screenshot.write_bytes(b"\x89PNG\r\n\x1a\nfake-png")
+    live = bundle.build_live_arts_md_bundle(
+        workbook_registry_payload=_confirmed_workbook_payload(),
+        operator_artifact_path="/tmp/live_arts_md_invoice.pdf",
+        manual_send_proof=_manual_send_payload(screenshot_ref=screenshot.as_posix()),
+        present_receipts=("manual_send_receipt",),
+        generated_at=FIXED_NOW,
+    )
+
+    manual_send = live["manual_send_proof"]
+    assert manual_send["proof_status"] == bundle.MANUAL_SEND_PROOF_STATUS_CONFIRMED
+    assert manual_send["proof_capture_metadata"]["is_path"] is True
+    assert manual_send["proof_capture_metadata"]["proof_path_status"] == "metadata_valid"
+    assert manual_send["proof_receipts"] == (bundle.MANUAL_SEND_PROOF_CONFIRMED_RECEIPT,)
+    assert live["send_readiness"]["email_send_status"] == bundle.MANUAL_SEND_PROOF_STATUS_CONFIRMED
+    assert live["payment_watch"]["payment_watch_status"] == bundle.PAYMENT_WATCH_STATUS_READY_TO_CONFIGURE
+    assert live["payment_watch"]["ledger_posting_allowed"] is False
+
+
+def test_payment_watch_readiness_does_not_advance_without_capture_proof():
+    live = bundle.build_live_arts_md_bundle(
+        workbook_registry_payload=_confirmed_workbook_payload(),
+        operator_artifact_path="/tmp/live_arts_md_invoice.pdf",
+        manual_send_proof=_manual_send_payload(screenshot_ref=""),
+        present_receipts=("manual_send_receipt",),
+        generated_at=FIXED_NOW,
+    )
+
+    assert live["manual_send_proof"]["proof_status"] == bundle.MANUAL_SEND_PROOF_STATUS_PENDING
+    assert live["payment_watch"]["payment_watch_status"] == bundle.PAYMENT_WATCH_STATUS_READINESS_ONLY
+
+
 def test_payment_watch_readiness_requires_manual_send_proof_then_ready():
     live = bundle.build_live_arts_md_bundle(
         workbook_registry_payload=_confirmed_workbook_payload(),
@@ -456,6 +528,107 @@ def test_pdf_artifact_metadata_recorded_without_workbook_cell_or_body_reading():
     assert live["source_workbook"]["no_workbook_body_read"] is True
     assert live["manual_send_proof"]["artifact_path"] == artifact.as_posix()
     assert live["manual_send_proof"]["proof_capture_provided"] is True
+
+
+def test_pdf_export_rail_appears_after_invoice_selected():
+    selected_candidate = _selected_live_arts_candidate("2026-1001")
+    live = bundle.build_live_arts_md_bundle(
+        workbook_registry_payload=_confirmed_workbook_payload_with_mac_path(),
+        selected_invoice_candidate=selected_candidate,
+        generated_at=FIXED_NOW,
+    )
+    artifact_step = live["proof_timeline"][2]
+    pdf_action = artifact_step["primary_action"]
+    manual_action = artifact_step["secondary_actions"][0]
+
+    assert artifact_step["title"] == "Invoice artifact"
+    assert artifact_step["status"] == "NEEDS_ACTION"
+    assert pdf_action["action_kind"] == "prepare_selected_invoice_pdf_artifact"
+    assert pdf_action["label"] == "Prepare invoice PDF"
+    assert manual_action["label"] == "Attach PDF manually"
+    assert live["invoice_artifact"]["pdf_export_package"]["status"] == bundle.PDF_EXPORT_PACKAGE_READY_FOR_MAC
+
+
+def test_pdf_export_package_scoped_to_selected_candidate():
+    selected_candidate = _selected_live_arts_candidate("2026-1001")
+    live = bundle.build_live_arts_md_bundle(
+        workbook_registry_payload=_confirmed_workbook_payload_with_mac_path(),
+        selected_invoice_candidate=selected_candidate,
+        generated_at=FIXED_NOW,
+    )
+    package = live["invoice_artifact"]["pdf_export_package"]
+
+    assert package["execution_venue"] == bundle.PDF_EXPORT_EXECUTION_VENUE
+    assert package["required_capability"] == bundle.PDF_EXPORT_REQUIRED_CAPABILITY
+    assert package["invoice_id"] == "2026-1001"
+    assert package["selected_sheet_label"] == "June 2026 Speaker Rental"
+    assert package["selected_print_areas"] == (
+        "June 2026 Speaker Rental!G2:G5",
+        "June 2026 Speaker Rental!F40:G43",
+        "June 2026 Speaker Rental!B49:G53",
+    )
+    assert package["source_workbook_path"] == live_arts_md_workbook_handoff.SOURCE_WORKBOOK_MAC_PATH
+    assert "scoped_live_arts_md_export/June_2026_Speaker_Rental/2026-1001.pdf" in package["output_path_policy"]
+    assert package["workbook_cell_read_required"] is False
+    assert package["operator_review_required_after_export"] is True
+
+
+def test_pdf_export_package_restricts_external_actions():
+    selected_candidate = _selected_live_arts_candidate("2026-1001")
+    live = bundle.build_live_arts_md_bundle(
+        workbook_registry_payload=_confirmed_workbook_payload_with_mac_path(),
+        selected_invoice_candidate=selected_candidate,
+        generated_at=FIXED_NOW,
+    )
+    package = live["invoice_artifact"]["pdf_export_package"]
+
+    assert package["no_physical_printing"] is True
+    assert package["no_email_send"] is True
+    assert package["no_gmail"] is True
+    assert package["no_ledger_post"] is True
+    assert package["no_coupa"] is True
+    assert package["no_source_workbook_mutation"] is True
+    assert package["required_receipts"] == (bundle.PDF_EXPORT_COMPLETION_RECEIPT,)
+
+
+def test_pdf_export_does_not_claim_attachment_ready_until_completion_receipt():
+    selected_candidate = _selected_live_arts_candidate("2026-1001")
+    pending = bundle.build_live_arts_md_bundle(
+        workbook_registry_payload=_confirmed_workbook_payload_with_mac_path(),
+        selected_invoice_candidate=selected_candidate,
+        generated_at=FIXED_NOW,
+    )
+    completed = bundle.build_live_arts_md_bundle(
+        workbook_registry_payload=_confirmed_workbook_payload_with_mac_path(),
+        selected_invoice_candidate=selected_candidate,
+        present_receipts=(bundle.PDF_EXPORT_COMPLETION_RECEIPT,),
+        generated_at=FIXED_NOW,
+    )
+
+    assert pending["invoice_artifact"]["attachment_ready"] is False
+    assert completed["invoice_artifact"]["attachment_ready"] is True
+    assert completed["proof_timeline"][2]["status"] == "READY"
+
+
+def test_pdf_export_blocked_with_missing_print_scope():
+    selected_candidate = _selected_live_arts_candidate("2026-1001")
+    selected_candidate["operator_provided_ranges"] = ()
+    live = bundle.build_live_arts_md_bundle(
+        workbook_registry_payload=_confirmed_workbook_payload_with_mac_path(),
+        selected_invoice_candidate=selected_candidate,
+        generated_at=FIXED_NOW,
+    )
+
+    package = live["invoice_artifact"]["pdf_export_package"]
+    assert package["status"] == bundle.PDF_EXPORT_BLOCKED_MISSING_PRINT_SCOPE
+    assert (
+        package["operator_review_prompt"]
+        == "Confirm the selected sheet/print area for invoice 2026-1001."
+    )
+    assert any(
+        blocker == package["operator_review_prompt"]
+        for blocker in live["blockers"]
+    )
 
 
 def test_no_gmail_browser_or_send_action_performed():

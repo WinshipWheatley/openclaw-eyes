@@ -2,10 +2,38 @@ import json
 
 import live_arts_md_workbook_handoff as handoff
 import invoice_review_action_request_handler as action_handler
+import live_arts_md_invoice_review_bundle as bundle
 from scripts.export_live_arts_md_invoice_candidate_register import main as export_main
 
 
 FIXED_NOW = "2026-05-28T18:00:00+00:00"
+
+
+def _prepare_pdf_action_payload(invoice_id: str = "2026-1001", with_print_scope: bool = True) -> dict[str, object]:
+    candidates = {
+        candidate["invoice_id"]: candidate for candidate in handoff.build_candidate_register(generated_at=FIXED_NOW)["invoice_candidates"]
+    }
+    selected = dict(candidates[invoice_id])
+    return {
+        "request_type": "INVOICE_REVIEW_ACTION_REQUEST",
+        "client_ref": "live_arts_md",
+        "workflow_ref": "live_arts_md_invoice_workflow",
+        "intended_use": "prepare_selected_invoice_pdf_artifact",
+        "invoice_id": selected["invoice_id"],
+        "sheet": selected["sheet_label"],
+        "sheet_label": selected["sheet_label"],
+        "selected_sheet_label": selected["sheet_label"],
+        "selected_print_areas": tuple(selected["operator_provided_ranges"]) if with_print_scope else tuple(),
+        "operator_provided": True,
+        "no_workbook_body_read": True,
+        "no_cell_read": True,
+        "no_external_action": True,
+        "email_send_allowed": False,
+        "ledger_posting_allowed": False,
+        "coupa_submit_allowed": False,
+        "physical_deletion_allowed": False,
+        "no_generation_export": True,
+    }
 
 
 def test_operator_handoff_receipt_marks_facts_operator_provided_not_workbook_parsed():
@@ -128,6 +156,59 @@ def test_invoice_action_handler_accepts_live_arts_candidate_selection(tmp_path):
     assert receipt["paid"] is False
     assert receipt["ledger_posted"] is False
     assert result["state_machine_progress"]["bridge_mirror_written"] is True
+
+
+def test_prepare_selected_invoice_pdf_action_starts_scoped_package_request(tmp_path):
+    result = action_handler.process_action_request(
+        {
+            "request_id": "live_arts_md_prepare_invoice_pdf",
+            "request_type": "INVOICE_REVIEW_ACTION_REQUEST",
+            "client_ref": "live_arts_md",
+            "workflow_ref": "live_arts_md_invoice_workflow",
+            "action_kind": "prepare_selected_invoice_pdf_artifact",
+            "hidden_request_payload": _prepare_pdf_action_payload(),
+        },
+        generated_at=FIXED_NOW,
+        export_root=tmp_path / "read_models",
+        bridge_export_root=tmp_path / "bridge",
+        event_db_path=tmp_path / "events.sqlite",
+        event_export_root=tmp_path / "events",
+    )
+    source_bundle = json.loads((tmp_path / "read_models" / bundle.JSON_EXPORT_NAME).read_text(encoding="utf-8"))
+    package = source_bundle["live_arts_md_bundle"]["invoice_artifact"]["pdf_export_package"]
+
+    assert result["status"] == "GUIDED_ACTION_STARTED"
+    assert result["headline"] == "Prepare selected invoice PDF package"
+    assert result["expected_receipt_types"] == (bundle.PDF_EXPORT_PACKAGE_REQUESTED_RECEIPT,)
+    assert package["status"] == bundle.PDF_EXPORT_PACKAGE_READY_FOR_MAC
+    assert package["execution_venue"] == bundle.PDF_EXPORT_EXECUTION_VENUE
+    assert package["required_capability"] == bundle.PDF_EXPORT_REQUIRED_CAPABILITY
+    assert package["source_workbook_path"] == handoff.SOURCE_WORKBOOK_MAC_PATH
+
+
+def test_prepare_selected_invoice_pdf_action_blocks_when_print_scope_missing(tmp_path):
+    result = action_handler.process_action_request(
+        {
+            "request_id": "live_arts_md_prepare_invoice_pdf_missing_scope",
+            "request_type": "INVOICE_REVIEW_ACTION_REQUEST",
+            "client_ref": "live_arts_md",
+            "workflow_ref": "live_arts_md_invoice_workflow",
+            "action_kind": "prepare_selected_invoice_pdf_artifact",
+            "hidden_request_payload": _prepare_pdf_action_payload(with_print_scope=False),
+        },
+        generated_at=FIXED_NOW,
+        export_root=tmp_path / "read_models",
+        bridge_export_root=tmp_path / "bridge",
+        event_db_path=tmp_path / "events.sqlite",
+        event_export_root=tmp_path / "events",
+    )
+    source_bundle = json.loads((tmp_path / "read_models" / bundle.JSON_EXPORT_NAME).read_text(encoding="utf-8"))
+    package = source_bundle["live_arts_md_bundle"]["invoice_artifact"]["pdf_export_package"]
+
+    assert result["status"] == "BLOCKED_PREREQUISITES"
+    assert result["headline"] == "Prepare selected invoice PDF package is blocked"
+    assert package["status"] == bundle.PDF_EXPORT_BLOCKED_MISSING_PRINT_SCOPE
+    assert result["next_action"] == "Confirm the selected sheet/print area for invoice 2026-1001."
 
 
 def test_live_arts_record_selection_surface_has_no_capital_hilton_leakage(tmp_path):
