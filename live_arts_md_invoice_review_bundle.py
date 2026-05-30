@@ -723,7 +723,7 @@ def build_live_arts_md_bundle(
     if source_confirmed and invoice_selected and not artifact_candidate_or_exported:
         if pdf_export_package["status"] == "EXPORT_FAILED":
             blockers.append(f"PDF export failed: {pdf_export_package.get('failure_message', 'Unknown failure')}.")
-        elif pdf_export_package["status"] == PDF_EXPORT_BLOCKED_MISSING_PRINT_SCOPE:
+        elif pdf_export_package["status"] == "BLOCKED_MISSING_EXPORT_SCOPE":
             blockers.append(str(pdf_export_package.get("operator_review_prompt") or "Confirm the selected sheet/print area for the invoice.")
             )
         elif pdf_export_package["status"] == PDF_EXPORT_BLOCKED_MISSING_MAC_CAPABILITY:

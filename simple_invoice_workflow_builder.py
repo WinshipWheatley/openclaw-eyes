@@ -22,7 +22,7 @@ MANUAL_SEND_PROOF_CONFIRMED_RECEIPT = "manual_send_proof_confirmed_receipt"
 
 PDF_EXPORT_PACKAGE_READY_FOR_MAC = "PDF_EXPORT_PACKAGE_READY_FOR_MAC"
 PDF_EXPORT_BLOCKED_MISSING_MAC_CAPABILITY = "PDF_EXPORT_BLOCKED_MISSING_MAC_CAPABILITY"
-PDF_EXPORT_BLOCKED_MISSING_PRINT_SCOPE = "PDF_EXPORT_BLOCKED_MISSING_PRINT_SCOPE"
+PDF_EXPORT_BLOCKED_MISSING_PRINT_SCOPE = "BLOCKED_MISSING_EXPORT_SCOPE"
 PDF_EXPORT_COMPLETED_CANDIDATE = "PDF_EXPORT_COMPLETED_CANDIDATE"
 PDF_EXPORT_REQUIRES_OPERATOR_REVIEW = "PDF_EXPORT_REQUIRES_OPERATOR_REVIEW"
 PDF_EXPORT_REQUIRED_CAPABILITY = "MAC_EXCEL_PDF_EXPORT"
@@ -132,6 +132,30 @@ def _proof_capture_metadata(value: object) -> dict[str, Any]:
     }
 
 
+def build_artifact_transport_policy(
+    *,
+    bridge_available: bool = True,
+) -> dict[str, Any]:
+    if not bridge_available:
+        return {
+            "transport_status": "REMOTE_EDGE_TRANSPORT_NOT_CONFIGURED",
+            "developer_task": "expose developer task for remote edge transport later",
+            "data_egress_allowed": False,
+            "remote_mac_supported": False,
+        }
+    return {
+        "preferred_transport": "LOCAL_BRIDGE",
+        "fallback_transports": ["LOCAL_NETWORK_DIRECT"],
+        "data_egress_allowed": False,
+        "local_network_preferred": True,
+        "remote_mac_supported": False,
+        "artifact_should_exist_on_mac": True,
+        "artifact_should_be_registered_on_pc": True,
+        "artifact_should_be_mirrored_to_bridge": True,
+        "telegram_artifact_preview_supported": False,
+    }
+
+
 def build_selected_invoice_pdf_export_package(
     *,
     fixture: Mapping[str, Any],
@@ -156,21 +180,48 @@ def build_selected_invoice_pdf_export_package(
     )
     completion_receipt = PDF_EXPORT_COMPLETION_RECEIPT
     required_receipts = (completion_receipt,)
+    
+    client_ref = fixture.get("client_ref", "client")
+    output_filename = f"Invoice_{invoice_id}_{fixture.get('client_display_name', 'client').replace(' ', '_')}.pdf"
+    output_bridge_path = f"/mnt/e/openclaw/artifacts/invoice_workbooks/{client_ref}/{invoice_id}/{output_filename}"
+    
     package = {
-        "execution_venue": PDF_EXPORT_EXECUTION_VENUE,
-        "required_capability": PDF_EXPORT_REQUIRED_CAPABILITY,
-        "source_workbook_path": source_path,
-        "selected_sheet_label": selected_sheet_label,
-        "selected_print_areas": selected_print_areas,
+        "job_ref": f"mac_edge_job_{invoice_id}_{hashlib.sha256(str(invoice_id).encode()).hexdigest()[:8]}",
+        "job_type": "SELECTED_INVOICE_PDF_EXPORT",
+        "client_ref": client_ref,
+        "workflow_ref": fixture.get("workflow_ref"),
         "invoice_id": invoice_id,
+        "invoice_candidate_ref": str((selected_candidate or {}).get("candidate_ref") or invoice_id),
+        "source_workbook_mac_path": source_path,
+        "source_workbook_bridge_ref": source_path,
+        "selected_sheet_label": selected_sheet_label,
+        "selected_print_area": selected_print_areas[0] if selected_print_areas else None,
+        "selected_page_label": None,
+        "selected_invoice_summary": f"{(selected_candidate or {}).get('work_or_period')} — ${(selected_candidate or {}).get('amount')}" if selected_candidate else None,
         "output_artifact_kind": PDF_EXPORT_OUTPUT_ARTIFACT_KIND,
-        "output_path_policy": output_path_policy,
+        "output_filename": output_filename,
+        "output_mac_path": output_path_policy,
+        "output_bridge_path": output_bridge_path,
+        "output_pc_reference_path": output_bridge_path,
+        "artifact_storage_policy": {},
+        "execution_venue": "MAC_LOCAL",
+        "required_capability": "MAC_EXCEL_PDF_EXPORT",
+        "transport_policy": build_artifact_transport_policy(bridge_available=True),
+        "result_intended_use": "selected_invoice_pdf_export_completed_candidate",
+        "operator_review_required": True,
         "no_physical_printing": True,
         "no_email_send": True,
         "no_gmail": True,
+        "no_browser": True,
         "no_ledger_post": True,
         "no_coupa": True,
         "no_source_workbook_mutation": True,
+        "no_workbook_cell_read": True,
+
+        # Legacy backward-compatibility mapping
+        "source_workbook_path": source_path,
+        "selected_print_areas": selected_print_areas,
+        "output_path_policy": output_path_policy,
         "workbook_cell_read_required": False,
         "operator_review_required_after_export": True,
         "required_receipts": required_receipts,
@@ -179,7 +230,7 @@ def build_selected_invoice_pdf_export_package(
         "proof_refs": tuple(),
         "request_payload_ready": bool(selected_candidate) and bool(source_path) and bool(selected_print_areas),
         "request_copy": fixture.get("pdf_package_request_template", "Prepare the selected invoice PDF from {selected_sheet_label} on Mac with scoped print area.").format(
-            client_ref=fixture.get("client_ref", "client"),
+            client_ref=client_ref,
             selected_sheet_label=selected_sheet_label or "unknown sheet",
         ),
     }
@@ -205,14 +256,12 @@ def build_selected_invoice_pdf_export_package(
             }
         )
         return package, completion_receipt
-    if not selected_print_areas:
+    if not selected_sheet_label or not selected_print_areas:
         package.update(
             {
-                "status": PDF_EXPORT_BLOCKED_MISSING_PRINT_SCOPE,
+                "status": "BLOCKED_MISSING_EXPORT_SCOPE",
                 "missing_requirements": ("selected_print_scope",),
-                "operator_review_prompt": fixture.get("pdf_scope_review_template", "Confirm the selected sheet/print area for invoice {invoice_id}").format(
-                    invoice_id=invoice_id,
-                ),
+                "operator_review_prompt": f"Confirm the selected sheet/print area for invoice {invoice_id}.",
                 "prompt_invoice_id": invoice_id,
             }
         )
