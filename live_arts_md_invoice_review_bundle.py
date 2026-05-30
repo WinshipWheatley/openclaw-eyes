@@ -493,6 +493,7 @@ def build_live_arts_md_bundle(
     operator_artifact_path: str | None = None,
     manual_send_proof: Mapping[str, Any] | None = None,
     selected_invoice_candidate: Mapping[str, Any] | None = None,
+    selected_invoice_candidates: tuple[Mapping[str, Any], ...] | list[Mapping[str, Any]] | None = None,
     present_receipts: tuple[str, ...] | list[str] | set[str] = (),
     generated_at: str | None = None,
 ) -> dict[str, Any]:
@@ -543,18 +544,39 @@ def build_live_arts_md_bundle(
         else f"Choose the {CLIENT_DISPLAY_NAME} source workbook.",
     )
     source_confirmed = source["status"] == "CONFIRMED" or "source_workbook_reference_confirmed_receipt" in receipts
-    selected_invoice_summary = (
-        dict(selected_invoice_candidate) if isinstance(selected_invoice_candidate, Mapping) else None
-    )
+    candidates_list = list(selected_invoice_candidates) if selected_invoice_candidates is not None else []
+    if not candidates_list and selected_invoice_candidate:
+        candidates_list = [selected_invoice_candidate]
+
+    selected_invoice_summary = dict(candidates_list[0]) if len(candidates_list) == 1 else None
+
+    if len(candidates_list) == 1:
+        selected_invoice_summary_text = f"{candidates_list[0].get('invoice_id')} — {candidates_list[0].get('sheet_label')} — ${candidates_list[0].get('amount')}"
+    elif len(candidates_list) > 1:
+        selected_invoice_summary_text = f"{len(candidates_list)} candidates selected"
+    else:
+        selected_invoice_summary_text = None
+
     if selected_invoice_summary is not None:
         selected_invoice_summary.setdefault("selection_status", "SELECTED")
         selected_invoice_summary.setdefault("selection_source", f"{CLIENT_REF}_invoice_candidate_register")
     invoice_selected = (
-        bool(selected_invoice_summary)
+        len(candidates_list) > 0
         or "invoice_record_selection_operator_confirmed_receipt" in receipts
         or INVOICE_CANDIDATE_SELECTED_RECEIPT in receipts
     )
     invoice_candidate_selected = INVOICE_CANDIDATE_SELECTED_RECEIPT in receipts
+
+    candidate_selection_rail = simple_builder.build_generic_candidate_selection_rail(
+        client_ref=CLIENT_REF,
+        selection_mode="MULTI",
+        candidate_selection_status="OPERATOR_CONFIRMED" if invoice_selected else "NEEDS_SELECTION",
+        selected_invoice_ids=tuple(str(c.get("invoice_id")) for c in candidates_list),
+        selected_invoice_candidates=tuple(candidates_list),
+        selected_invoice_summary=selected_invoice_summary_text,
+        allow_multiple=True,
+        max_candidates=None,
+    )
     artifact = _artifact_state(
         artifact_reference_payload=artifact_reference_payload,
         operator_artifact_path=operator_artifact_path,
@@ -669,7 +691,7 @@ def build_live_arts_md_bundle(
                 str(pdf_export_package.get("operator_review_prompt") or "Confirm the selected invoice scope for PDF export.")
             )
         else:
-            blockers.append("Prepare invoice PDF.")
+            blockers.append("Prepare invoice PDFs." if len(candidates_list) > 1 else "Prepare invoice PDF.")
     if artifact_candidate_or_exported and not attachment_ready:
         blockers.append("Confirm the invoice artifact as the email attachment.")
     if not recipient_confirmed:
@@ -698,7 +720,7 @@ def build_live_arts_md_bundle(
     urgent_invoice_actions = tuple(handoff["urgent_actions"])
     prepare_pdf_action = _action(
         "prepare_selected_invoice_pdf_artifact",
-        "Prepare invoice PDF",
+        "Prepare invoice PDFs" if len(candidates_list) > 1 else "Prepare invoice PDF",
         enabled=invoice_selected,
         intended_use="prepare_selected_invoice_pdf_artifact",
         disabled_reason=(
@@ -873,6 +895,7 @@ def build_live_arts_md_bundle(
             "cell_read": False,
             "confidence": "operator_handoff",
         },
+        "candidate_selection_rail": candidate_selection_rail,
         "invoice_candidate_register_ref": INVOICE_CANDIDATE_REGISTER_REF,
         "invoice_candidate_register": {
             "candidate_count": handoff["candidate_count"],
@@ -1060,6 +1083,7 @@ def build_payload(
     *,
     generated_at: str | None = None,
     selected_invoice_candidate: Mapping[str, Any] | None = None,
+    selected_invoice_candidates: tuple[Mapping[str, Any], ...] | list[Mapping[str, Any]] | None = None,
     workbook_registry_payload: Mapping[str, Any] | None = None,
     source_workbook_override: Mapping[str, Any] | None = None,
     artifact_reference_payload: Mapping[str, Any] | None = None,
@@ -1070,6 +1094,7 @@ def build_payload(
     bundle = build_live_arts_md_bundle(
         generated_at=generated_at,
         selected_invoice_candidate=selected_invoice_candidate,
+        selected_invoice_candidates=selected_invoice_candidates,
         workbook_registry_payload=workbook_registry_payload,
         source_workbook_override=source_workbook_override,
         artifact_reference_payload=artifact_reference_payload,
