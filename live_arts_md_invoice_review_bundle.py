@@ -494,6 +494,7 @@ def build_live_arts_md_bundle(
     manual_send_proof: Mapping[str, Any] | None = None,
     selected_invoice_candidate: Mapping[str, Any] | None = None,
     selected_invoice_candidates: tuple[Mapping[str, Any], ...] | list[Mapping[str, Any]] | None = None,
+    export_receipt_payload: Mapping[str, Any] | None = None,
     present_receipts: tuple[str, ...] | list[str] | set[str] = (),
     generated_at: str | None = None,
 ) -> dict[str, Any]:
@@ -593,6 +594,45 @@ def build_live_arts_md_bundle(
         source_workbook=source,
         present_receipts=receipts,
     )
+    if export_receipt_payload and export_receipt_payload.get("export_attempted") and not export_receipt_payload.get("export_success"):
+        pdf_export_package["status"] = "EXPORT_FAILED"
+        pdf_export_package["export_attempted"] = True
+        pdf_export_package["export_success"] = False
+        pdf_export_package["failure_code"] = export_receipt_payload.get("failure_code", "UNKNOWN_ERROR")
+        pdf_export_package["failure_message"] = export_receipt_payload.get("failure_message", "Unknown export failure")
+        pdf_export_package["failed_stage"] = export_receipt_payload.get("failed_stage", "UNKNOWN")
+        pdf_export_package["fallback_available"] = True
+        pdf_export_package["fallback_action"] = "Attach existing PDF"
+        pdf_export_package["no_email_send"] = True
+        pdf_export_package["no_ledger_post"] = True
+
+    if invoice_selected and selected_invoice_summary:
+        invoice_id = str(selected_invoice_summary.get("invoice_id") or "unknown_invoice")
+        filename_policy = f"Invoice_{invoice_id}_{CLIENT_DISPLAY_NAME.replace(' ', '_')}.pdf"
+        artifact_placement_policy = {
+            "canonical_artifact_ref": f"{CLIENT_REF}_invoice_pdf_{invoice_id}",
+            "canonical_storage_venue": "MAC_LOCAL",
+            "preferred_mac_output_dir": f"/Volumes/openclaw_e/artifacts/invoice_workbooks/{CLIENT_REF}/{invoice_id}",
+            "preferred_bridge_output_dir": f"/mnt/e/openclaw/artifacts/invoice_workbooks/{CLIENT_REF}/{invoice_id}",
+            "filename_policy": filename_policy,
+            "client_ref": CLIENT_REF,
+            "workflow_ref": WORKFLOW_REF,
+            "invoice_id": invoice_id,
+            "work_type": str(selected_invoice_summary.get("work_or_period") or "unknown"),
+            "artifact_kind": "PDF",
+            "retrieval_paths": {
+                "open_in_app": True,
+                "show_in_finder": True,
+                "bridge_path": f"/mnt/e/openclaw/artifacts/invoice_workbooks/{CLIENT_REF}/{invoice_id}/{filename_policy}",
+                "telegram_available": False,
+            },
+            "access_required": ("WORKBOOK_ACCESS", "OUTPUT_FOLDER_PERMISSION", "APPLE_EVENTS"),
+            "permission_repair_action": "Grant file/folder access via Access Broker",
+            "retention_policy": "PERMANENT_FINANCE_RECORD",
+        }
+    else:
+        artifact_placement_policy = None
+
     selected_invoice_pdf_prepared = pdf_export_package["status"] == PDF_EXPORT_COMPLETED_CANDIDATE
     artifact_candidate = artifact["status"] == "OPERATOR_PROVIDED_ARTIFACT_CANDIDATE"
     artifact_candidate_or_exported = artifact_candidate or (pdf_export_completion_receipt in receipts)
@@ -681,7 +721,9 @@ def build_live_arts_md_bundle(
     if source_confirmed and not invoice_selected:
         blockers.append(f"Choose which {CLIENT_DISPLAY_NAME} invoice to prepare.")
     if source_confirmed and invoice_selected and not artifact_candidate_or_exported:
-        if pdf_export_package["status"] == PDF_EXPORT_BLOCKED_MISSING_PRINT_SCOPE:
+        if pdf_export_package["status"] == "EXPORT_FAILED":
+            blockers.append(f"PDF export failed: {pdf_export_package.get('failure_message', 'Unknown failure')}.")
+        elif pdf_export_package["status"] == PDF_EXPORT_BLOCKED_MISSING_PRINT_SCOPE:
             blockers.append(str(pdf_export_package.get("operator_review_prompt") or "Confirm the selected sheet/print area for the invoice.")
             )
         elif pdf_export_package["status"] == PDF_EXPORT_BLOCKED_MISSING_MAC_CAPABILITY:
@@ -918,6 +960,7 @@ def build_live_arts_md_bundle(
         "invoice_artifact": {
             **artifact,
             "pdf_export_package": pdf_export_package,
+            "artifact_placement_policy": artifact_placement_policy,
         },
         "client_comms_thread": {
             "comms_thread_status": "DRAFT_READY" if clara_ready else "NOT_STARTED",
@@ -1048,6 +1091,22 @@ def build_live_arts_md_bundle(
         "proof_timeline": timeline,
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
         "generated_at": generated_at,
+        "developer_end_to_end_card": {
+            "title": "Live Arts invoice automation path",
+            "workbook_confirmed": source_confirmed,
+            "invoice_selected": invoice_selected,
+            "pdf_export_rail_status": pdf_export_package["status"],
+            "artifact_storage_policy": artifact_placement_policy,
+            "clara_draft_status": clara_package["draft_status"],
+            "recipient_status": "CONFIRMED" if recipient_confirmed else "PENDING",
+            "send_proof_status": email_send_status,
+            "payment_watch_status": payment_watch_status,
+            "ledger_status": payment_watch_expected["ledger_match_status"],
+            "fallbacks": {
+                "mac_unavailable": "Attach existing PDF manually",
+                "openclaw_bridge_unavailable": "Manual email + manual folder placement",
+            }
+        },
         "machine_proof": {
             "live_arts_md_does_not_require_coupa": True,
             "live_arts_md_does_not_require_po": True,
@@ -1084,6 +1143,7 @@ def build_payload(
     generated_at: str | None = None,
     selected_invoice_candidate: Mapping[str, Any] | None = None,
     selected_invoice_candidates: tuple[Mapping[str, Any], ...] | list[Mapping[str, Any]] | None = None,
+    export_receipt_payload: Mapping[str, Any] | None = None,
     workbook_registry_payload: Mapping[str, Any] | None = None,
     source_workbook_override: Mapping[str, Any] | None = None,
     artifact_reference_payload: Mapping[str, Any] | None = None,
@@ -1095,6 +1155,7 @@ def build_payload(
         generated_at=generated_at,
         selected_invoice_candidate=selected_invoice_candidate,
         selected_invoice_candidates=selected_invoice_candidates,
+        export_receipt_payload=export_receipt_payload,
         workbook_registry_payload=workbook_registry_payload,
         source_workbook_override=source_workbook_override,
         artifact_reference_payload=artifact_reference_payload,

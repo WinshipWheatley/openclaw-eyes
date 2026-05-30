@@ -31,7 +31,7 @@
             "client_ref": "live_arts_md",
             "coupa_submit_allowed": false,
             "email_send_allowed": false,
-            "intended_use": "choose_live_arts_md_invoice_candidate",
+            "intended_use": "select_live_arts_md_invoice_candidate",
             "ledger_posting_allowed": false,
             "no_cell_read": true,
             "no_external_action": true,
@@ -78,6 +78,31 @@
       "Approval/send remains disabled until receipts exist."
     ],
     "bundle_id": "invoice_review_bundle:live_arts_md:v0",
+    "candidate_selection_rail": {
+      "allow_multiple": true,
+      "candidate_selection_set": [],
+      "candidate_selection_status": "NEEDS_SELECTION",
+      "max_candidates": null,
+      "presentation_hints": {
+        "ask_for_more_invoices_after_first_selection": true,
+        "candidate_cards_hidden_when_confirmed": true,
+        "collapse_candidates_after_selection": true,
+        "selected_summary_primary": true,
+        "show_selected_summary": true
+      },
+      "primary_action": "commit_selected_invoice_candidates",
+      "rail_ref": "live_arts_md_generic_candidate_selection_rail",
+      "required_receipt": "invoice_candidate_selection_confirmed_receipt",
+      "secondary_actions": [
+        "add_another_invoice",
+        "clear_selection",
+        "no_other_invoices_continue"
+      ],
+      "selected_invoice_candidates": [],
+      "selected_invoice_ids": [],
+      "selected_invoice_summary": null,
+      "selection_mode": "MULTI"
+    },
     "clara_email_draft": {
       "attachment_claim": "attachment not ready yet",
       "attachment_ready": false,
@@ -399,13 +424,30 @@
       "reason": "Operator corrected Dance to Dane for Live Arts MD. Email address still requires confirmation.",
       "status": "OPERATOR_CORRECTED_TO_DANE_EMAILS_STILL_REQUIRED"
     },
+    "developer_end_to_end_card": {
+      "artifact_storage_policy": null,
+      "clara_draft_status": "DRAFT_PREVIEW_NOT_SEND_READY",
+      "fallbacks": {
+        "mac_unavailable": "Attach existing PDF manually",
+        "openclaw_bridge_unavailable": "Manual email + manual folder placement"
+      },
+      "invoice_selected": false,
+      "ledger_status": "NOT_ATTEMPTED",
+      "payment_watch_status": "READINESS_ONLY_NOT_ACTIVE",
+      "pdf_export_rail_status": "PDF_EXPORT_REQUIRES_OPERATOR_REVIEW",
+      "recipient_status": "PENDING",
+      "send_proof_status": "MANUAL_SEND_PROOF_PENDING",
+      "title": "Live Arts invoice automation path",
+      "workbook_confirmed": true
+    },
     "generated_at": "2026-05-28T00:00:00+00:00",
     "invoice_artifact": {
+      "artifact_placement_policy": null,
       "artifact_ref": null,
       "attachment_ready": false,
       "candidate_only": false,
       "hash": null,
-      "next_action": "Attach the PDF manually only if automatic export is unavailable.",
+      "next_action": "Attach existing PDF / link external artifact as a fallback if automatic export is unavailable.",
       "path_ref": null,
       "pdf_export_package": {
         "execution_venue": "MAC_LOCAL",
@@ -699,7 +741,7 @@
           "client_ref": "live_arts_md",
           "coupa_submit_allowed": false,
           "email_send_allowed": false,
-          "intended_use": "choose_live_arts_md_invoice_candidate",
+          "intended_use": "select_live_arts_md_invoice_candidate",
           "ledger_posting_allowed": false,
           "no_cell_read": true,
           "no_external_action": true,
@@ -813,7 +855,7 @@
       "clara_first_contact_intro_required": true,
       "clara_invoice_draft_package_consumed": true,
       "client_comms_thread_rail_consumed": true,
-      "content_hash": "sha256:14bfa0bce3d69eed5152e53cb6de4e5c2849fd84dbe625f43d8948e03ae59a82",
+      "content_hash": "sha256:9b9cbd3524a8f5ca0f952855f925cbebd897066411d81ab6c9af54a7bf6c9b3e",
       "live_arts_md_does_not_require_coupa": true,
       "live_arts_md_does_not_require_po": true,
       "manual_send_proof_evaluated": true,
@@ -1004,7 +1046,7 @@
             "client_ref": "live_arts_md",
             "coupa_submit_allowed": false,
             "email_send_allowed": false,
-            "intended_use": "choose_live_arts_md_invoice_candidate",
+            "intended_use": "select_live_arts_md_invoice_candidate",
             "ledger_posting_allowed": false,
             "no_cell_read": true,
             "no_external_action": true,
@@ -1157,7 +1199,7 @@
         "secondary_actions": [
           {
             "action_kind": "attach_generated_invoice_artifact",
-            "action_ref": "live_arts_md_invoice_action:4c993bf2d428c511",
+            "action_ref": "live_arts_md_invoice_action:804e093e08b2a205",
             "disabled_reason": "Select the invoice page/period first.",
             "enabled": false,
             "hidden_request_payload": {
@@ -1182,8 +1224,8 @@
               "request_type": "INVOICE_REVIEW_ACTION_REQUEST",
               "workflow_ref": "live_arts_md_invoice_workflow"
             },
-            "label": "Attach PDF manually",
-            "operator_visible_message": "Attach PDF manually"
+            "label": "Attach existing PDF",
+            "operator_visible_message": "Attach existing PDF"
           }
         ],
         "selected_invoice_summary": null,
@@ -1516,7 +1558,7 @@
   },
   "machine_proof": {
     "bridge_safe": true,
-    "content_hash": "sha256:14bfa0bce3d69eed5152e53cb6de4e5c2849fd84dbe625f43d8948e03ae59a82",
+    "content_hash": "sha256:9b9cbd3524a8f5ca0f952855f925cbebd897066411d81ab6c9af54a7bf6c9b3e",
     "live_arts_md_bundle_present": true,
     "no_action_authority": true
   },
