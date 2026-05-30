@@ -204,20 +204,27 @@ def _current_action_index(client_ref: str = "capital_hilton") -> dict[str, dict[
     actions: dict[str, dict[str, Any]] = {}
     for action in bundle.get("correction_actions") or ():
         if isinstance(action, Mapping):
-            actions[str(action.get("action_kind") or "")] = dict(action)
+            _remember_action(actions, action)
     for step in bundle.get("review_proof_timeline") or ():
         if not isinstance(step, Mapping):
             continue
         for action in (step.get("primary_action"), *(step.get("secondary_actions") or ())):
             if isinstance(action, Mapping):
-                actions[str(action.get("action_kind") or "")] = dict(action)
+                _remember_action(actions, action)
     for step in bundle.get("proof_timeline") or ():
         if not isinstance(step, Mapping):
             continue
         for action in (step.get("primary_action"), *(step.get("secondary_actions") or ())):
             if isinstance(action, Mapping):
-                actions[str(action.get("action_kind") or "")] = dict(action)
+                _remember_action(actions, action)
     return actions
+
+
+def _remember_action(actions: dict[str, dict[str, Any]], action: Mapping[str, Any]) -> None:
+    action_kind = str(action.get("action_kind") or "")
+    existing = actions.get(action_kind)
+    if existing is None or (not existing.get("enabled") and action.get("enabled")):
+        actions[action_kind] = dict(action)
 
 
 def _missing_prerequisites() -> tuple[str, ...]:
@@ -909,8 +916,8 @@ def process_action_request(
             "local_surface_type": local_surface_request.get("surface_type") if local_surface_request else None,
             "completion_receipt_written": bool(progress_result.action_receipt["completion_receipt_written"]) if progress_result else False,
             "underlying_blocker_completed": bool(progress_result.action_receipt["underlying_blocker_completed"]) if progress_result else False,
-            "bundle_refreshed": bool(progress_result),
-            "bridge_bundle_mirrored": bool(progress_result and progress_result.bridge_mirror_written),
+            "bundle_refreshed": bool(progress_result) or bool(live_arts_bundle_paths[0]),
+            "bridge_bundle_mirrored": bool(progress_result and progress_result.bridge_mirror_written) or bool(live_arts_bundle_paths[2]),
             "coupa_browser_automation_performed": False,
             "supplier_portal_submit_performed": False,
             "email_send_performed": False,

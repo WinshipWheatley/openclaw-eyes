@@ -105,6 +105,7 @@ def _candidate(
     readiness_status: str,
     ranges: tuple[str, ...],
     send_ready: bool,
+    selected_page_label: str | None = None,
 ) -> dict[str, Any]:
     return {
         "invoice_id": invoice_id,
@@ -118,6 +119,7 @@ def _candidate(
         "review_status": review_status,
         "readiness_status": readiness_status,
         "operator_provided_ranges": ranges,
+        "selected_page_label": selected_page_label,
         "send_readiness": "BLOCKED_NEEDS_ARTIFACT_RECIPIENT_GUARDIAN_APPROVAL"
         if send_ready
         else "NOT_SEND_READY",
@@ -150,6 +152,7 @@ def invoice_candidates() -> tuple[dict[str, Any], ...]:
                 "June 2026 Speaker Rental!B49:G53",
             ),
             send_ready=True,
+            selected_page_label="page 1",
         ),
         _candidate(
             invoice_id="2026-1002",
@@ -198,8 +201,10 @@ def _select_action(candidate: Mapping[str, Any]) -> dict[str, Any]:
             "workflow_ref": WORKFLOW_REF,
             "intended_use": "select_live_arts_md_invoice_candidate",
             "invoice_id": candidate["invoice_id"],
+            "sheet": candidate["sheet_label"],
             "sheet_label": candidate["sheet_label"],
             "work_type": candidate["work_type"],
+            "candidate_ref": candidate["invoice_id"],
             "operator_provided": True,
             "no_workbook_body_read": True,
             "no_cell_read": True,
@@ -331,7 +336,7 @@ def process_invoice_candidate_selection(
         "status": status,
         "receipt": receipt,
         "selected_candidate": candidate,
-        "next_action": "Export or link the selected invoice artifact manually."
+        "next_action": "Prepare invoice PDF for the selected invoice."
         if not validation_errors
         else "Choose a valid Live Arts MD invoice candidate.",
     }

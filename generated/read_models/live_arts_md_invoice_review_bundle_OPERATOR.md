@@ -1,9 +1,9 @@
 # Live Arts MD Invoice Review Bundle
 
 - Status: `SIMPLE_EMAIL_INVOICE_REVIEW`
-- Next safe move: Choose which Live Arts MD invoice to prepare.
+- Next safe move: Prepare invoice PDF
 - Source workbook: `CONFIRMED`
-- Invoice page/period: `NEEDS_CANDIDATE_SELECTION`
+- Invoice page/period: `OPERATOR_CONFIRMED`
 - Artifact: `ARTIFACT_REQUIRED`
 - Clara draft: `CLARA` draft-only
 - Recipient state: `RECIPIENT_INFO_REQUIRED`

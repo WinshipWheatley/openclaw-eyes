@@ -208,7 +208,7 @@ def test_prepare_selected_invoice_pdf_action_blocks_when_print_scope_missing(tmp
     assert result["status"] == "BLOCKED_PREREQUISITES"
     assert result["headline"] == "Prepare selected invoice PDF package is blocked"
     assert package["status"] == bundle.PDF_EXPORT_BLOCKED_MISSING_PRINT_SCOPE
-    assert result["next_action"] == "Confirm the selected sheet/print area for invoice 2026-1001."
+    assert result["next_action"] == "Confirm selected print area for invoice 2026-1001."
 
 
 def test_live_arts_record_selection_surface_has_no_capital_hilton_leakage(tmp_path):

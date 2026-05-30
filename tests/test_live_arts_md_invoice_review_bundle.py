@@ -48,6 +48,18 @@ def _selected_live_arts_candidate(invoice_id: str = "2026-1001"):
     return dict(next(candidate for candidate in candidates if candidate["invoice_id"] == invoice_id))
 
 
+def _selected_2026_1001_receipt():
+    return {
+        "receipt_event": "live_arts_md_invoice_candidate_selected_receipt",
+        "receipt_id": "live_arts_md_invoice_candidate_selected:test",
+        "client_ref": "live_arts_md",
+        "workflow_ref": "live_arts_md_invoice_workflow",
+        "invoice_id": "2026-1001",
+        "sheet_label": "June 2026 Speaker Rental",
+        "validation_errors": [],
+    }
+
+
 def _manual_send_payload(**overrides):
     payload = {
         "execution_context": {
@@ -84,6 +96,17 @@ def test_live_arts_md_recipe_does_not_require_coupa_or_po():
     assert not framework.recipe_selects_rail(recipe, framework.PURCHASE_ORDER_RAIL)
     assert recipe["client_specific_portal_requirements"]["supplier_portal_required"] is False
     assert recipe["client_specific_portal_requirements"]["purchase_order_required"] is False
+
+
+def test_supplier_portal_not_required_is_not_an_action_blocker():
+    live = bundle.build_live_arts_md_bundle(
+        workbook_registry_payload=_confirmed_workbook_payload_with_mac_path(),
+        selection_receipt_payload=_selected_2026_1001_receipt(),
+        generated_at=FIXED_NOW,
+    )
+
+    assert live["supplier_portal_invoice_submission"]["required"] is False
+    assert not any("Supplier portal proof: Not required" in blocker for blocker in live["blockers"])
 
 
 def test_missing_source_workbook_produces_guided_source_action():
@@ -134,6 +157,7 @@ def test_confirmed_source_workbook_does_not_read_cells_and_enables_selection():
     live = bundle.build_live_arts_md_bundle(
         workbook_registry_payload=_confirmed_workbook_payload(),
         generated_at=FIXED_NOW,
+        consume_existing_selection_receipt=False,
     )
 
     assert live["source_workbook"]["status"] == "CONFIRMED"
@@ -141,7 +165,77 @@ def test_confirmed_source_workbook_does_not_read_cells_and_enables_selection():
     assert live["source_workbook"]["no_cell_read"] is True
     assert live["invoice_selection"]["primary_action"]["enabled"] is True
     assert live["invoice_selection"]["status"] == "NEEDS_CANDIDATE_SELECTION"
-    assert live["next_safe_move"] == "Choose which Live Arts MD invoice to prepare."
+    assert live["next_safe_move"] == "Invoice candidate selection has not been confirmed."
+
+
+def test_confirmed_2026_1001_selection_receipt_promotes_current_bundle_state():
+    live = bundle.build_live_arts_md_bundle(
+        workbook_registry_payload=_confirmed_workbook_payload_with_mac_path(),
+        selection_receipt_payload=_selected_2026_1001_receipt(),
+        generated_at=FIXED_NOW,
+    )
+
+    assert live["invoice_selection"]["status"] == "OPERATOR_CONFIRMED"
+    assert live["invoice_selection"]["selected_invoice_ids"] == ("2026-1001",)
+    assert live["invoice_selection"]["selected_invoice_summary"] == "2026-1001 — June 2026 Speaker Rental — $900"
+    assert live["candidate_selection_rail"]["candidate_selection_status"] == "OPERATOR_CONFIRMED"
+    assert live["candidate_selection_rail"]["presentation_hints"]["candidate_list_collapsed"] is True
+    assert live["invoice_candidate_register"]["candidate_list_status"] == "COLLAPSED_AFTER_CONFIRMED_SELECTION"
+    assert [item["invoice_id"] for item in live["invoice_candidate_register"]["invoice_candidates"]] == ["2026-1001"]
+    assert live["invoice_candidate_register"]["urgent_actions"] == ()
+    assert live["invoice_selection"]["primary_action"]["enabled"] is False
+
+
+def test_confirmed_selection_enables_scoped_prepare_pdf_primary_action():
+    live = bundle.build_live_arts_md_bundle(
+        workbook_registry_payload=_confirmed_workbook_payload_with_mac_path(),
+        selection_receipt_payload=_selected_2026_1001_receipt(),
+        generated_at=FIXED_NOW,
+    )
+    action = live["actionable_blockers"][0]["primary_action"]
+    payload = action["hidden_request_payload"]
+
+    assert action["label"] == "Prepare invoice PDF"
+    assert action["enabled"] is True
+    assert payload["action_kind"] == "prepare_selected_invoice_pdf_artifact"
+    assert payload["client_ref"] == "live_arts_md"
+    assert payload["workflow_ref"] == "live_arts_md_invoice_workflow"
+    assert payload["invoice_id"] == "2026-1001"
+    assert payload["selected_sheet_label"] == "June 2026 Speaker Rental"
+    assert payload["selected_page_label"] == "page 1"
+    assert payload["selected_print_areas"] == (
+        "June 2026 Speaker Rental!G2:G5",
+        "June 2026 Speaker Rental!F40:G43",
+        "June 2026 Speaker Rental!B49:G53",
+    )
+    assert payload["source_workbook_mac_path"] == live_arts_md_workbook_handoff.SOURCE_WORKBOOK_MAC_PATH
+    assert payload["output_filename"] == "Invoice_2026-1001_Live_Arts_MD_June_2026_Speaker_Rental.pdf"
+    assert payload["execution_venue"] == "MAC_LOCAL"
+    assert payload["required_capability"] == "MAC_EXCEL_PDF_EXPORT"
+    assert payload["result_intended_use"] == "selected_invoice_pdf_export_completed_candidate"
+    assert payload["no_physical_printing"] is True
+    assert payload["no_email_send"] is True
+    assert payload["no_gmail"] is True
+    assert payload["no_browser"] is True
+    assert payload["no_ledger_post"] is True
+    assert payload["no_coupa"] is True
+    assert payload["no_source_workbook_mutation"] is True
+    assert payload["no_workbook_cell_read"] is True
+
+
+def test_missing_receipt_keeps_clear_candidate_selection_blocker():
+    live = bundle.build_live_arts_md_bundle(
+        workbook_registry_payload=_confirmed_workbook_payload_with_mac_path(),
+        consume_existing_selection_receipt=False,
+        generated_at=FIXED_NOW,
+    )
+
+    assert live["invoice_selection"]["status"] == "NEEDS_CANDIDATE_SELECTION"
+    assert live["blockers"][0] == "Invoice candidate selection has not been confirmed."
+    assert live["next_safe_move"] == "Invoice candidate selection has not been confirmed."
+    assert live["invoice_selection"]["primary_action"]["hidden_request_payload"]["intended_use"] == (
+        "select_live_arts_md_invoice_candidate"
+    )
 
 
 def test_live_arts_md_workbook_confirmation_writes_receipt_and_refreshes_bundle(tmp_path):
@@ -186,7 +280,9 @@ def test_live_arts_md_workbook_confirmation_writes_receipt_and_refreshes_bundle(
     assert result.state_snapshot["source_workbook_status"] == "CONFIRMED"
     assert result.state_snapshot["invoice_record_selection_status"] == "NEEDS_RESELECTION_AFTER_SOURCE_WORKBOOK_CORRECTION"
     assert live["source_workbook"]["status"] == "CONFIRMED"
-    assert live["invoice_selection"]["status"] == "NEEDS_CANDIDATE_SELECTION"
+    assert live["invoice_selection"]["status"] == "OPERATOR_CONFIRMED"
+    assert live["invoice_selection"]["selected_invoice_ids"] == ["2026-1001"]
+    assert live["invoice_selection"]["selected_invoice_summary"] == "2026-1001 — June 2026 Speaker Rental — $900"
     assert live["invoice_artifact"]["status"] == "ARTIFACT_REQUIRED"
     assert live["invoice_artifact"]["attachment_ready"] is False
     assert live["approval_footer"]["approval_ready"] is False
@@ -198,6 +294,7 @@ def test_invoice_candidate_selection_replaces_page_selection_after_handoff():
     live = bundle.build_live_arts_md_bundle(
         workbook_registry_payload=_confirmed_workbook_payload(),
         generated_at=FIXED_NOW,
+        consume_existing_selection_receipt=False,
     )
     action = live["invoice_selection"]["primary_action"]
 
@@ -240,6 +337,30 @@ def test_artifact_candidate_does_not_imply_attachment_readiness(tmp_path):
 
     assert live["invoice_artifact"]["candidate_only"] is True
     assert live["invoice_artifact"]["attachment_ready"] is False
+    assert live["approval_footer"]["approval_ready"] is False
+
+
+def test_known_existing_pdfs_are_not_trusted_as_selected_invoice_artifacts():
+    live = bundle.build_live_arts_md_bundle(
+        workbook_registry_payload=_confirmed_workbook_payload_with_mac_path(),
+        selection_receipt_payload=_selected_2026_1001_receipt(),
+        generated_at=FIXED_NOW,
+    )
+    guardrails = live["invoice_artifact"]["known_artifact_guardrails"]
+
+    assert guardrails["desktop_pdf"]["path"].endswith(
+        "Live_Arts_MD_Speaker_Rental_Invoice_September_May_2026.pdf"
+    )
+    assert guardrails["desktop_pdf"]["known_page_count"] == 7
+    assert guardrails["desktop_pdf"]["trusted_as_selected_invoice_artifact"] is False
+    assert guardrails["bridge_pdf_placeholder"]["expected_placeholder_size_bytes"] == 14
+    assert guardrails["bridge_pdf_placeholder"]["trusted_as_selected_invoice_artifact"] is False
+    assert guardrails["bridge_pdf_placeholder"]["status"] in {
+        "INVALID_PLACEHOLDER",
+        "INVALID_UNTRUSTED_EXISTING_BRIDGE_ARTIFACT",
+    }
+    assert live["invoice_artifact"]["attachment_ready"] is False
+    assert live["clara_email_draft"]["attachment_ready"] is False
     assert live["approval_footer"]["approval_ready"] is False
 
 
@@ -292,20 +413,26 @@ def test_missing_recipient_info_blocks_send_readiness():
 
 
 def test_operator_handoff_adds_invoice_choices_without_workbook_parse():
-    live = bundle.build_live_arts_md_bundle(generated_at=FIXED_NOW)
+    live = bundle.build_live_arts_md_bundle(
+        generated_at=FIXED_NOW,
+        consume_existing_selection_receipt=False,
+    )
     register = live["invoice_candidate_register"]
 
     assert live["operator_workbook_handoff"]["operator_provided"] is True
     assert live["operator_workbook_handoff"]["workbook_body_read"] is False
     assert live["operator_workbook_handoff"]["cell_read"] is False
-    assert live["next_safe_move"] == "Choose which Live Arts MD invoice to prepare."
+    assert live["next_safe_move"] == "Invoice candidate selection has not been confirmed."
     assert register["primary_next_action"] == "Choose which Live Arts MD invoice to prepare."
     labels = {item["sheet_label"] for item in register["invoice_candidates"]}
     assert labels == {"June 2026 Speaker Rental", "June 2026 AV Tech", "July 2026"}
 
 
 def test_live_arts_invoice_candidate_choices_show_today_urgent_paths():
-    live = bundle.build_live_arts_md_bundle(generated_at=FIXED_NOW)
+    live = bundle.build_live_arts_md_bundle(
+        generated_at=FIXED_NOW,
+        consume_existing_selection_receipt=False,
+    )
     actions = {item["label"]: item for item in live["invoice_candidate_register"]["urgent_actions"]}
 
     assert "Select June 2026 Speaker Rental" in actions
@@ -631,11 +758,13 @@ def test_pdf_export_package_scoped_to_selected_candidate():
     assert package["required_capability"] == bundle.PDF_EXPORT_REQUIRED_CAPABILITY
     assert package["invoice_id"] == "2026-1001"
     assert package["selected_sheet_label"] == "June 2026 Speaker Rental"
+    assert package["selected_page_label"] == "page 1"
     assert package["selected_print_areas"] == (
         "June 2026 Speaker Rental!G2:G5",
         "June 2026 Speaker Rental!F40:G43",
         "June 2026 Speaker Rental!B49:G53",
     )
+    assert package["output_filename"] == "Invoice_2026-1001_Live_Arts_MD_June_2026_Speaker_Rental.pdf"
     assert package["source_workbook_path"] == live_arts_md_workbook_handoff.SOURCE_WORKBOOK_MAC_PATH
     assert "scoped_live_arts_md_export/June_2026_Speaker_Rental/2026-1001.pdf" in package["output_path_policy"]
     assert package["workbook_cell_read_required"] is False
@@ -675,8 +804,9 @@ def test_pdf_export_does_not_claim_attachment_ready_until_completion_receipt():
     )
 
     assert pending["invoice_artifact"]["attachment_ready"] is False
-    assert completed["invoice_artifact"]["attachment_ready"] is True
-    assert completed["proof_timeline"][2]["status"] == "READY"
+    assert completed["invoice_artifact"]["attachment_ready"] is False
+    assert completed["invoice_artifact"]["artifact_review_status"] == "OPERATOR_REVIEW_REQUIRED"
+    assert completed["proof_timeline"][2]["status"] == "CANDIDATE"
 
 
 def test_pdf_export_blocked_with_missing_print_scope():
@@ -690,9 +820,10 @@ def test_pdf_export_blocked_with_missing_print_scope():
 
     package = live["invoice_artifact"]["pdf_export_package"]
     assert package["status"] == bundle.PDF_EXPORT_BLOCKED_MISSING_PRINT_SCOPE
+    assert package["missing_requirements"] == ("selected_print_areas",)
     assert (
         package["operator_review_prompt"]
-        == "Confirm the selected sheet/print area for invoice 2026-1001."
+        == "Confirm selected print area for invoice 2026-1001."
     )
     assert any(
         blocker == package["operator_review_prompt"]
@@ -714,7 +845,8 @@ def test_manual_artifact_action_remains_fallback_when_pdf_export_blocked():
 
     assert artifact_step["title"] == "Invoice artifact"
     assert pdf_action["label"] == "Prepare invoice PDF"
-    assert pdf_action["disabled_reason"] == "Confirm the selected sheet/print area for invoice 2026-1001."
+    assert pdf_action["enabled"] is False
+    assert pdf_action["disabled_reason"] == "Confirm selected print area for invoice 2026-1001."
     assert manual_action["label"] == "Attach existing PDF"
     assert manual_action["enabled"] is True
     assert manual_action["operator_visible_message"] == "Attach existing PDF"

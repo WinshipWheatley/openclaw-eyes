@@ -165,6 +165,7 @@ def build_selected_invoice_pdf_export_package(
 ) -> tuple[dict[str, Any], str]:
     invoice_id = str((selected_candidate or {}).get("invoice_id") or "")
     selected_sheet_label = str((selected_candidate or {}).get("sheet_label") or "")
+    selected_page_label = str((selected_candidate or {}).get("selected_page_label") or "").strip() or None
     selected_print_areas = tuple(_as_sequence((selected_candidate or {}).get("operator_provided_ranges")))
     source_path = str(
         (source_workbook or {}).get("workbook_path_ref")
@@ -182,8 +183,36 @@ def build_selected_invoice_pdf_export_package(
     required_receipts = (completion_receipt,)
     
     client_ref = fixture.get("client_ref", "client")
-    output_filename = f"Invoice_{invoice_id}_{fixture.get('client_display_name', 'client').replace(' ', '_')}.pdf"
+    selected_sheet_slug = selected_sheet_label.replace(" ", "_").replace("/", "_")
+    output_filename_parts = [
+        "Invoice",
+        invoice_id,
+        str(fixture.get("client_display_name", "client")).replace(" ", "_"),
+    ]
+    if selected_sheet_slug:
+        output_filename_parts.append(selected_sheet_slug)
+    output_filename = "_".join(part for part in output_filename_parts if part) + ".pdf"
     output_bridge_path = f"/mnt/e/openclaw/artifacts/invoice_workbooks/{client_ref}/{invoice_id}/{output_filename}"
+    selected_invoice_summary = None
+    if selected_candidate:
+        work_or_period = (
+            (selected_candidate or {}).get("work_or_period")
+            or selected_sheet_label
+            or (selected_candidate or {}).get("work_type")
+        )
+        amount = (selected_candidate or {}).get("amount")
+        amount_display = (selected_candidate or {}).get("amount_display") or (
+            f"${amount:,.0f}" if isinstance(amount, (int, float)) else f"${amount}" if amount not in (None, "") else ""
+        )
+        selected_invoice_summary = " — ".join(
+            part
+            for part in (
+                invoice_id,
+                str(work_or_period or "").strip(),
+                str(amount_display or "").strip(),
+            )
+            if part
+        )
     
     package = {
         "job_ref": f"mac_edge_job_{invoice_id}_{hashlib.sha256(str(invoice_id).encode()).hexdigest()[:8]}",
@@ -196,8 +225,8 @@ def build_selected_invoice_pdf_export_package(
         "source_workbook_bridge_ref": source_path,
         "selected_sheet_label": selected_sheet_label,
         "selected_print_area": selected_print_areas[0] if selected_print_areas else None,
-        "selected_page_label": None,
-        "selected_invoice_summary": f"{(selected_candidate or {}).get('work_or_period')} — ${(selected_candidate or {}).get('amount')}" if selected_candidate else None,
+        "selected_page_label": selected_page_label,
+        "selected_invoice_summary": selected_invoice_summary,
         "output_artifact_kind": PDF_EXPORT_OUTPUT_ARTIFACT_KIND,
         "output_filename": output_filename,
         "output_mac_path": output_path_policy,
@@ -256,12 +285,25 @@ def build_selected_invoice_pdf_export_package(
             }
         )
         return package, completion_receipt
-    if not selected_sheet_label or not selected_print_areas:
+    missing_scope = []
+    if not selected_sheet_label:
+        missing_scope.append("selected_sheet_label")
+    if not selected_print_areas:
+        missing_scope.append("selected_print_areas")
+    if missing_scope:
+        if not selected_print_areas and selected_sheet_label:
+            operator_review_prompt = f"Confirm selected print area for invoice {invoice_id}."
+        elif not selected_sheet_label:
+            operator_review_prompt = f"Confirm selected sheet for invoice {invoice_id}."
+        else:
+            operator_review_prompt = fixture.get("pdf_scope_review_template", "Confirm the selected invoice scope").format(
+                invoice_id=invoice_id
+            )
         package.update(
             {
-                "status": "BLOCKED_MISSING_EXPORT_SCOPE",
-                "missing_requirements": ("selected_print_scope",),
-                "operator_review_prompt": f"Confirm the selected sheet/print area for invoice {invoice_id}.",
+                "status": PDF_EXPORT_BLOCKED_MISSING_PRINT_SCOPE,
+                "missing_requirements": tuple(missing_scope),
+                "operator_review_prompt": operator_review_prompt,
                 "prompt_invoice_id": invoice_id,
             }
         )
