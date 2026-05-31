@@ -50,6 +50,7 @@ INPUT_READ_MODELS = {
     "request_response_service_status": "openclaw_request_response_service_status.json",
     "business_object_audit": "openclaw_business_object_layer_audit.json",
     "authority_semantics_registry": "openclaw_authority_semantics_registry.json",
+    "lane_capability_harvest": "openclaw_lane_capability_harvest.json",
 }
 
 STATUS_VALUES = (
@@ -63,6 +64,7 @@ STATUS_VALUES = (
     "WORKFLOW_STATE_CHANGED",
     "BUSINESS_OBJECT_AUDIT_STALE",
     "AUTHORITY_SEMANTICS_DRIFT",
+    "LANE_CAPABILITY_HARVEST_STALE",
     "ACTION_REQUIRED",
     "UNKNOWN",
 )
@@ -109,6 +111,7 @@ CHANGE_STATUS_PRIORITY = (
     "WORKFLOW_STATE_CHANGED",
     "BUSINESS_OBJECT_AUDIT_STALE",
     "AUTHORITY_SEMANTICS_DRIFT",
+    "LANE_CAPABILITY_HARVEST_STALE",
     "ACTION_REQUIRED",
     "MATERIAL_CHANGE_DETECTED",
 )
@@ -688,6 +691,60 @@ def _authority_semantics_targets(
     ]
 
 
+def _lane_capability_harvest_targets(
+    payload: dict[str, Any],
+    *,
+    source_path: str,
+    observed_at: str,
+) -> list[dict[str, Any]]:
+    if not payload:
+        return []
+    lanes = payload.get("lanes")
+    if not isinstance(lanes, list):
+        lanes = []
+    capabilities = payload.get("harvested_capabilities")
+    if not isinstance(capabilities, list):
+        capabilities = []
+    recommendation = payload.get("hermes_recommendation")
+    if not isinstance(recommendation, dict):
+        recommendation = {}
+    missing_inputs = payload.get("missing_inputs")
+    if not isinstance(missing_inputs, list):
+        missing_inputs = []
+    readiness = str(payload.get("readiness", "UNKNOWN"))
+    observed_payload = {
+        "schema_version": payload.get("schema_version", ""),
+        "readiness": readiness,
+        "lane_count": len(lanes),
+        "harvested_capability_count": len(capabilities),
+        "lane_statuses": {
+            str(row.get("lane_ref", "")): str(row.get("status", ""))
+            for row in lanes
+            if isinstance(row, dict)
+        },
+        "hermes_recommendation": str(recommendation.get("recommended_next_lane", "")),
+        "hermes_reason": str(recommendation.get("reason", "")),
+        "next_after_three": "payment_proof_intake_lane",
+        "missing_inputs": missing_inputs,
+        "recommended_command": "python3 scripts/export_openclaw_lane_capability_harvest.py",
+        "lm_called": False,
+        "chief_launched": False,
+    }
+    stale = bool(missing_inputs) or not readiness.startswith("READY")
+    return [
+        _target_row(
+            target_ref="lane_capability_harvest:recommendation",
+            target_type="LANE_CAPABILITY_HARVEST",
+            source_path=source_path,
+            observation_status="LANE_CAPABILITY_HARVEST_STALE" if stale else "NO_MATERIAL_CHANGE",
+            observed_value=str(recommendation.get("recommended_next_lane", "UNKNOWN")),
+            observed_payload=observed_payload,
+            observed_at=observed_at,
+            unreachable_reason="lane capability harvest missing inputs or not ready" if stale else "",
+        )
+    ]
+
+
 def read_systemd_service_snapshot(
     *,
     service_name: str = SERVICE_NAME,
@@ -847,6 +904,13 @@ def collect_observed_targets(
             observed_at=observed_at,
         )
     )
+    rows.extend(
+        _lane_capability_harvest_targets(
+            payloads["lane_capability_harvest"],
+            source_path=_display_path(read_root / INPUT_READ_MODELS["lane_capability_harvest"]),
+            observed_at=observed_at,
+        )
+    )
     if include_systemd:
         snapshot = systemd_snapshot if systemd_snapshot is not None else read_systemd_service_snapshot()
         rows.extend(_service_targets(snapshot, observed_at=observed_at))
@@ -898,6 +962,8 @@ def _change_status(current: dict[str, Any], previous: dict[str, Any]) -> str:
         return "BUSINESS_OBJECT_AUDIT_STALE"
     if target_type == "AUTHORITY_SEMANTICS_REGISTRY":
         return "AUTHORITY_SEMANTICS_DRIFT"
+    if target_type == "LANE_CAPABILITY_HARVEST":
+        return "LANE_CAPABILITY_HARVEST_STALE"
     return "MATERIAL_CHANGE_DETECTED"
 
 
@@ -981,8 +1047,14 @@ def _material_change_rows(changes: list[dict[str, Any]]) -> list[dict[str, Any]]
         status = change["change_status"]
         severity = (
             "HIGH"
-            if status in {"SERVICE_UNSTABLE", "DRIFT_DETECTED", "BUSINESS_OBJECT_AUDIT_STALE"}
-            or status == "AUTHORITY_SEMANTICS_DRIFT"
+            if status
+            in {
+                "SERVICE_UNSTABLE",
+                "DRIFT_DETECTED",
+                "BUSINESS_OBJECT_AUDIT_STALE",
+                "AUTHORITY_SEMANTICS_DRIFT",
+                "LANE_CAPABILITY_HARVEST_STALE",
+            }
             else "MEDIUM"
         )
         rows.append(
@@ -1001,6 +1073,7 @@ def _material_change_rows(changes: list[dict[str, Any]]) -> list[dict[str, Any]]
                     "REMOTE_REF_MOVED",
                     "BUSINESS_OBJECT_AUDIT_STALE",
                     "AUTHORITY_SEMANTICS_DRIFT",
+                    "LANE_CAPABILITY_HARVEST_STALE",
                     "ACTION_REQUIRED",
                 },
                 "can_wait": status
@@ -1009,6 +1082,7 @@ def _material_change_rows(changes: list[dict[str, Any]]) -> list[dict[str, Any]]
                     "DRIFT_DETECTED",
                     "BUSINESS_OBJECT_AUDIT_STALE",
                     "AUTHORITY_SEMANTICS_DRIFT",
+                    "LANE_CAPABILITY_HARVEST_STALE",
                 },
             }
         )
@@ -1035,6 +1109,9 @@ def _recommended_action_for_material(material: dict[str, Any]) -> dict[str, Any]
     elif status == "AUTHORITY_SEMANTICS_DRIFT":
         title = "Review authority semantics registry drift"
         validation = "python3 scripts/export_openclaw_authority_semantics_registry.py"
+    elif status == "LANE_CAPABILITY_HARVEST_STALE":
+        title = "Regenerate lane capability harvest registry"
+        validation = "python3 scripts/export_openclaw_lane_capability_harvest.py"
     elif status == "WORKFLOW_STATE_CHANGED":
         title = "Review workflow read-model change"
         validation = "python3 scripts/export_openclaw_change_sentinel.py --format operator"

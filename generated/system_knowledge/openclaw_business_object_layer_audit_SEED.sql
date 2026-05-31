@@ -1,8 +1,10 @@
-INSERT INTO audit_run (run_ref, generated_at, freshness_status, fresh_for_minutes, readiness, overall_score, business_object_count, gap_count, missing_eval_count, stale_reasons_json) VALUES ('openclaw_business_object_layer_audit_run', '2026-05-31T04:42:19+00:00', 'FRESH', 60, 'READY_FOR_BUILD_PLANNING_NOT_EXECUTION', 3.67, 16, 13, 10, '[]');
+INSERT INTO audit_run (run_ref, generated_at, freshness_status, fresh_for_minutes, readiness, overall_score, business_object_count, gap_count, missing_eval_count, stale_reasons_json) VALUES ('openclaw_business_object_layer_audit_run', '2026-05-31T21:39:11+00:00', 'FRESH', 60, 'READY_FOR_BUILD_PLANNING_NOT_EXECUTION', 3.67, 16, 13, 10, '[]');
 INSERT INTO audit_input (input_ref, path, required, status, sha256, schema_version, generated_at, source_ref) VALUES ('estate_topology', 'generated/read_models/openclaw_estate_topology_registry.json', 1, 'PRESENT', 'sha256:e32c278f0bb6c52fd2c3e514406f93e9b2c8dd9724825164ec4158d21c7fb2ae', 'openclaw_estate_topology_registry_read_model_v0', '2026-05-31T04:28:39+00:00', 'generated/read_models/openclaw_estate_topology_registry.json');
 INSERT INTO audit_input (input_ref, path, required, status, sha256, schema_version, generated_at, source_ref) VALUES ('reference_resolver', 'generated/read_models/openclaw_reference_resolver.json', 1, 'PRESENT', 'sha256:ca025f59ab8060942c7a75f1b1e4a8d562d9c50e807d7c96fa5c1312f009adba', 'openclaw_reference_resolver_read_model_v0', '2026-05-31T04:09:09+00:00', 'generated/read_models/openclaw_reference_resolver.json');
-INSERT INTO audit_input (input_ref, path, required, status, sha256, schema_version, generated_at, source_ref) VALUES ('change_sentinel', 'generated/read_models/openclaw_change_sentinel.json', 1, 'PRESENT', 'sha256:8b8e587cb645b82e8600e4b408999b1c8f3bccff23bcaa165bfb9179863f6d83', 'openclaw_change_sentinel_read_model_v0', '2026-05-31T04:41:59+00:00', 'generated/read_models/openclaw_change_sentinel.json');
-INSERT INTO audit_input (input_ref, path, required, status, sha256, schema_version, generated_at, source_ref) VALUES ('context_wiki_index', 'generated/read_models/openclaw_context_wiki_index.json', 1, 'PRESENT', 'sha256:ed4b535363c9ae0befdcf2356dcab59a9adfe20e8ee14c6c1f1dc6566c848c1b', 'openclaw_context_wiki_compiler_v0', '2026-05-31T04:32:51+00:00', 'generated/read_models/openclaw_context_wiki_index.json');
+INSERT INTO audit_input (input_ref, path, required, status, sha256, schema_version, generated_at, source_ref) VALUES ('change_sentinel', 'generated/read_models/openclaw_change_sentinel.json', 1, 'PRESENT', 'sha256:732fefb22a8fd5f394ab1d9c6583b1fee1c063546545eb92f5e33137aa583463', 'openclaw_change_sentinel_read_model_v0', '2026-05-31T21:38:42+00:00', 'generated/read_models/openclaw_change_sentinel.json');
+INSERT INTO audit_input (input_ref, path, required, status, sha256, schema_version, generated_at, source_ref) VALUES ('authority_semantics_registry', 'generated/read_models/openclaw_authority_semantics_registry.json', 1, 'PRESENT', 'sha256:73f8d59f3a0cefdf435e532da55eca2590e59a081a6e795db5f5bb2191c89383', 'openclaw_authority_semantics_registry_v0', '2026-05-31T15:00:00+00:00', 'generated/read_models/openclaw_authority_semantics_registry.json');
+INSERT INTO audit_input (input_ref, path, required, status, sha256, schema_version, generated_at, source_ref) VALUES ('context_wiki_index', 'generated/read_models/openclaw_context_wiki_index.json', 1, 'PRESENT', 'sha256:093bf33205108c12f205a18dc537952db0a7add651f3b80f2714417b13d3620f', 'openclaw_context_wiki_compiler_v0', '2026-05-31T21:39:09+00:00', 'generated/read_models/openclaw_context_wiki_index.json');
+INSERT INTO audit_input (input_ref, path, required, status, sha256, schema_version, generated_at, source_ref) VALUES ('lane_capability_harvest', 'generated/read_models/openclaw_lane_capability_harvest.json', 0, 'PRESENT', 'sha256:f37a900ac43108090e70d85e710f1d67e961b81568dc061f730b7ebdb8ec3f05', 'openclaw_lane_capability_harvest_read_model_v0', '2026-05-31T21:39:09+00:00', 'generated/read_models/openclaw_lane_capability_harvest.json');
 INSERT INTO audit_input (input_ref, path, required, status, sha256, schema_version, generated_at, source_ref) VALUES ('external_system_knowledge_registry_index', 'generated/read_models/external_system_knowledge_registry_index.json', 0, 'PRESENT', 'sha256:5665a7b3bfbfec9a9c9a6df1a99a13f93194dd04fb46958176c2cd1f30769c50', 'external_system_knowledge_registry_index_v0', '', 'generated/read_models/external_system_knowledge_registry_index.json');
 INSERT INTO audit_input (input_ref, path, required, status, sha256, schema_version, generated_at, source_ref) VALUES ('live_arts_bundle', 'generated/read_models/live_arts_md_invoice_review_bundle.json', 1, 'PRESENT', 'sha256:32aed1bf62bceab78634e1feeb02651b41155f27827aae8433e5df18db1d352b', 'live_arts_md_invoice_review_bundle_v0', '2026-05-28T00:00:00+00:00', 'generated/read_models/live_arts_md_invoice_review_bundle.json');
 INSERT INTO audit_input (input_ref, path, required, status, sha256, schema_version, generated_at, source_ref) VALUES ('capital_hilton_bundle', 'generated/read_models/invoice_review_bundle.json', 1, 'PRESENT', 'sha256:f384551a2558a0f8c8ef8bbfeea37f4d9d3fdd08f422a543e4385cd09964ed71', 'invoice_review_bundle_v0', '2026-05-29T18:53:14+00:00', 'generated/read_models/invoice_review_bundle.json');
@@ -31,11 +33,15 @@ INSERT INTO audit_category_score (category, score, max_score, confidence, status
     "path": "generated/read_models/openclaw_reference_resolver.json"
   },
   {
-    "note": "Wiki pages=11.",
+    "note": "Wiki pages=12.",
     "path": "generated/read_models/openclaw_context_wiki_index.json"
   }
 ]', 'Data-access score is valid only while input_manifest hashes match current files.');
-INSERT INTO audit_category_score (category, score, max_score, confidence, status, strongest_evidence, biggest_gap, fastest_improvement, rationale, source_refs_json, freshness_notes) VALUES ('Authority', 4.5, 5.0, 'MEDIUM_HIGH', 'STRONG_DEFAULT_DENY', 'Mac PDF package denies email, Gmail, browser, Coupa, ledger, and workbook cell reads.', 'Mac helper permission architecture remains unresolved and must preserve the same boundary.', 'Add helper contract tests that prove scoped export only.', 'Business read-models and supervision carry no-live-action flags; Mac export package is scoped and no ledger/email/browser/workbook-cell authority is granted.', '[
+INSERT INTO audit_category_score (category, score, max_score, confidence, status, strongest_evidence, biggest_gap, fastest_improvement, rationale, source_refs_json, freshness_notes) VALUES ('Authority', 4.5, 5.0, 'MEDIUM_HIGH', 'STRONG_DEFAULT_DENY_WITH_REGISTRY', 'Authority Semantics Registry is present and defines prohibition flags, authority grants, positive templates, and golden fixtures.', 'Mac helper permission architecture remains unresolved and must preserve the same boundary.', 'Keep Event Bridge and future Mac helper payloads validating against the authority semantics registry.', 'Business read-models, supervision, and the Authority Semantics Registry carry default-deny flags; Mac export package is scoped and no ledger/email/browser/workbook-cell authority is granted.', '[
+  {
+    "note": "Authority registry schema=openclaw_authority_semantics_registry_v0.",
+    "path": "generated/read_models/openclaw_authority_semantics_registry.json"
+  },
   {
     "note": "Mac package no_email=True no_ledger=True.",
     "path": "generated/read_models/live_arts_md_invoice_review_bundle.json"
@@ -44,7 +50,7 @@ INSERT INTO audit_category_score (category, score, max_score, confidence, status
     "note": "Startup readiness=READY.",
     "path": "generated/read_models/openclaw_service_supervision.json"
   }
-]', 'Authority score should be rechecked whenever Live Arts package or service supervision hashes change.');
+]', 'Authority score should be rechecked whenever the Authority Semantics Registry, Live Arts package, or service supervision hashes change.');
 INSERT INTO audit_category_score (category, score, max_score, confidence, status, strongest_evidence, biggest_gap, fastest_improvement, rationale, source_refs_json, freshness_notes) VALUES ('Evals', 2.5, 5.0, 'MEDIUM_HIGH', 'FOCUSED_TESTS_PRESENT_END_TO_END_GAPS', 'Focused tests exist for wiki, resolver, sentinel, service supervision, and this audit.', 'Business-object end-to-end evals are still missing.', 'Add synthetic result-intake and attachment-promotion tests without executing PDF export.', 'Registry and monitor tests exist, but business-object end-to-end evals for Mac helper, PDF result intake, attachment promotion, manual proof, payment watch, and Capital Hilton proof are still missing.', '[
   {
     "note": "Wiki compiler tests exist.",
@@ -57,7 +63,7 @@ INSERT INTO audit_category_score (category, score, max_score, confidence, status
 ]', 'Eval score is less volatile than workflow state, but should be refreshed when source/test files change.');
 INSERT INTO audit_category_score (category, score, max_score, confidence, status, strongest_evidence, biggest_gap, fastest_improvement, rationale, source_refs_json, freshness_notes) VALUES ('Audit Trails & Recovery', 4.0, 5.0, 'MEDIUM_HIGH', 'GOOD_RECEIPTS_AND_MONITORS_STALE_VIEWS', 'Change Sentinel and Service Supervision are active read-model sources; invalid artifact guardrails are explicit.', 'Stale generated views can persist unless their input hashes are checked.', 'Use this audit freshness contract and sentinel stale-audit detection.', 'Reference resolver, sentinel, service supervision, receipts, and invalid artifact guardrails are strong; stale Hermes/wiki claims and missing bridge mirror still need recovery paths.', '[
   {
-    "note": "Sentinel run_status=NO_MATERIAL_CHANGE.",
+    "note": "Sentinel run_status=BUSINESS_OBJECT_AUDIT_STALE.",
     "path": "generated/read_models/openclaw_change_sentinel.json"
   },
   {
@@ -201,7 +207,7 @@ INSERT INTO business_object_inventory (object_name, implementation_status, busin
     "path": "generated/read_models/openclaw_reference_resolver.json"
   }
 ]');
-INSERT INTO business_object_inventory (object_name, implementation_status, business_object_proximity, current_fact, blockers_json, next_safe_action, source_refs_json) VALUES ('change sentinel', 'NO_MATERIAL_CHANGE', 'INFRA_MEDIUM', 'material_changes=0; timer observed=True', '[]', 'Observe only; do not make sentinel start services directly.', '[
+INSERT INTO business_object_inventory (object_name, implementation_status, business_object_proximity, current_fact, blockers_json, next_safe_action, source_refs_json) VALUES ('change sentinel', 'BUSINESS_OBJECT_AUDIT_STALE', 'INFRA_MEDIUM', 'material_changes=1; timer observed=True', '[]', 'Observe only; do not make sentinel start services directly.', '[
   {
     "note": "",
     "path": "generated/read_models/openclaw_change_sentinel.json"
@@ -219,7 +225,7 @@ INSERT INTO business_object_inventory (object_name, implementation_status, busin
     "path": "generated/read_models/openclaw_estate_topology_registry.json"
   }
 ]');
-INSERT INTO business_object_inventory (object_name, implementation_status, business_object_proximity, current_fact, blockers_json, next_safe_action, source_refs_json) VALUES ('context wiki', 'PRESENT_GENERATED_VIEW', 'INFRA_MEDIUM', 'pages=11; contradictions=10', '[]', 'Fix upstream registries/read-models, then regenerate; do not edit wiki as source truth.', '[
+INSERT INTO business_object_inventory (object_name, implementation_status, business_object_proximity, current_fact, blockers_json, next_safe_action, source_refs_json) VALUES ('context wiki', 'PRESENT_GENERATED_VIEW', 'INFRA_MEDIUM', 'pages=12; contradictions=10', '[]', 'Fix upstream registries/read-models, then regenerate; do not edit wiki as source truth.', '[
   {
     "note": "",
     "path": "generated/read_models/openclaw_context_wiki_index.json"
@@ -268,4 +274,4 @@ INSERT INTO audit_recommended_action (action_ref, bucket, rank, task, reason) VA
 INSERT INTO audit_recommended_action (action_ref, bucket, rank, task, reason) VALUES ('parked:1', 'parked', 1, 'Ledger posting automation.', 'Explicitly blocked until sent/payment/ledger receipts exist.');
 INSERT INTO audit_recommended_action (action_ref, bucket, rank, task, reason) VALUES ('parked:2', 'parked', 2, 'Live email/Gmail/browser/Coupa execution.', 'Outside this audit and still receipt/authority gated.');
 INSERT INTO audit_recommended_action (action_ref, bucket, rank, task, reason) VALUES ('parked:3', 'parked', 3, 'Broad LM summarization or Chief launch.', 'This audit is deterministic and read-only.');
-INSERT INTO audit_freshness_signal (signal_ref, status, input_ref, reason, source_ref, observed_at) VALUES ('freshness:current', 'FRESH', '', 'Audit generated from current input manifest.', 'openclaw_business_object_layer_audit.py', '2026-05-31T04:42:19+00:00');
+INSERT INTO audit_freshness_signal (signal_ref, status, input_ref, reason, source_ref, observed_at) VALUES ('freshness:current', 'FRESH', '', 'Audit generated from current input manifest.', 'openclaw_business_object_layer_audit.py', '2026-05-31T21:39:11+00:00');

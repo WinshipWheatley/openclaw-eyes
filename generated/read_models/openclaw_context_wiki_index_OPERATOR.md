@@ -1,6 +1,6 @@
 # OpenClaw Context Wiki Index
 
-Generated at: 2026-05-31T04:32:51+00:00
+Generated at: 2026-05-31T21:39:09+00:00
 
 Warning:
 - SQLite/read-models/receipts are source of truth; generated wiki pages are views.
@@ -9,6 +9,7 @@ Pages generated:
 - OpenClaw Context Wiki (CONFIRMED) - generated/wiki/openclaw/README.md
 - System Overview (PARTIAL) - generated/wiki/openclaw/System Overview.md
 - Evidence-Grounded Context Registry (PARTIAL) - generated/wiki/openclaw/Evidence-Grounded Context Registry.md
+- Authority Semantics (UNKNOWN) - generated/wiki/openclaw/Authority Semantics.md
 - Estate Topology (PARTIAL) - generated/wiki/openclaw/Estate Topology.md
 - Reference Resolver (PARTIAL) - generated/wiki/openclaw/Reference Resolver.md
 - Live Arts MD Invoice Automation (PARTIAL) - generated/wiki/openclaw/Live Arts MD Invoice Automation.md
@@ -20,6 +21,7 @@ Pages generated:
 
 Key findings:
 - Business-object audit freshness: FRESH.
+- Lane harvest Hermes recommendation: finish_invoice_steel_thread_sequence.
 - 10 tension/contradiction signals detected.
 - 14 known unknowns detected.
 - 0 expected inputs are missing.

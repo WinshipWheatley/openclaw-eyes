@@ -9,8 +9,8 @@ The context layer is intended to stay deterministic: stable registries, SQLite/r
 - OpenClaw context v0 is deterministic registry/read-model/receipt work, not generic vector RAG.
 - The generated wiki is a compiled view over those structures and does not become source truth.
 - Business-object audit freshness: FRESH.
-- Business-object audit generated_at: 2026-05-31T04:24:07+00:00.
-- Business-object audit inputs tracked: 11.
+- Business-object audit generated_at: 2026-05-31T21:35:23+00:00.
+- Business-object audit inputs tracked: 14.
 - Business-object audit missing inputs: none.
 - Business-object audit stale reasons: none.
 - Evidence-Grounded Context Registry status: CANONICAL_ON_MAIN on main at 1a6b7b0b463968f3161e048bd7936dc06505a3bb.
@@ -50,6 +50,6 @@ The context layer is intended to stay deterministic: stable registries, SQLite/r
 - generated/external_registries/openclaw-eyes/openclaw_system_knowledge_registry_SCHEMA.sql (openclaw_system_knowledge_registry_d500da978d)
 - generated/external_registries/openclaw-eyes/openclaw_system_knowledge_registry_SEED.sql (openclaw_system_knowledge_registry_b7961063f8)
 
-Last generated timestamp: 2026-05-31T04:32:51+00:00
+Last generated timestamp: 2026-05-31T21:39:09+00:00
 
 Generated understanding view. Registry/read-models/receipts remain source of truth.

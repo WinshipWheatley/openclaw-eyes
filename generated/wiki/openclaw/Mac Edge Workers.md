@@ -47,6 +47,6 @@ Mac edge work is represented as scoped local execution/helper responsibility. PC
 - generated/read_models/openclaw_reference_resolver.json (reference_resolver)
 - generated/read_models/live_arts_md_invoice_review_bundle.json (live_arts_md_invoice_review_bundle)
 
-Last generated timestamp: 2026-05-31T04:32:51+00:00
+Last generated timestamp: 2026-05-31T21:39:09+00:00
 
 Generated understanding view. Registry/read-models/receipts remain source of truth.

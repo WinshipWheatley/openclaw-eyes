@@ -71,7 +71,7 @@
     "generic AI chat upgrades without a bounded business object"
   ],
   "email_accessed": false,
-  "generated_at": "2026-05-31T21:29:13+00:00",
+  "generated_at": "2026-05-31T21:39:09+00:00",
   "generated_by": "codex",
   "git_push_performed": false,
   "gmail_accessed": false,
@@ -265,7 +265,7 @@
     "evidence_refs": "[\n  \"generated/read_models/live_arts_md_invoice_review_bundle.json\",\n  \"generated/read_models/invoice_review_bundle.json\",\n  \"generated/read_models/simple_invoice_event_bridge_rail_registry.json\"\n]",
     "expected_new_capability": "completed reusable invoice steel-thread sequence",
     "expected_reused_capabilities": "[\n  \"simple invoice rail\",\n  \"Event Bridge Prepare PDF action\",\n  \"proof receipts\",\n  \"authority boundary\",\n  \"payment watch\"\n]",
-    "generated_at": "2026-05-31T21:29:13+00:00",
+    "generated_at": "2026-05-31T21:39:09+00:00",
     "operator_copy": "Hermes should keep the build order on Live Arts -> Capital Hilton -> St. Anne's until those lanes prove the reusable invoice rail.",
     "reason": "Live Arts, Capital Hilton, and St. Anne's are not all proven. Finish the invoice steel-thread sequence before opening a new adjacent lane.",
     "recommendation_ref": "hermes_recommendation:finish_invoice_steel_thread_sequence",
@@ -330,7 +330,7 @@
       "required": false,
       "resolved_path": "generated/read_models/openclaw_business_object_layer_audit.json",
       "schema_version": "openclaw_business_object_layer_audit_read_model_v0",
-      "sha256": "sha256:df5afa75e56afa7d41e2252d44cd32a8fa9578c245f912015bbcbcfed30eb5f3",
+      "sha256": "sha256:677bea5c741bac93d8afe6445e2236fb21b1661f37a3ea112ce26e78b8b05833",
       "status": "PRESENT"
     },
     {
@@ -350,7 +350,7 @@
       "required": false,
       "resolved_path": "generated/read_models/openclaw_context_wiki_index.json",
       "schema_version": "openclaw_context_wiki_compiler_v0",
-      "sha256": "sha256:ed4b535363c9ae0befdcf2356dcab59a9adfe20e8ee14c6c1f1dc6566c848c1b",
+      "sha256": "sha256:d6074415d43e14dae6554abe8b85699ab4daa53980308ccf3379f6f3c58a5862",
       "status": "PRESENT"
     },
     {

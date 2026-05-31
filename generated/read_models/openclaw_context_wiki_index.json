@@ -19,8 +19,8 @@
   },
   "business_object_audit_freshness": {
     "freshness_status": "FRESH",
-    "generated_at": "2026-05-31T04:24:07+00:00",
-    "inputs_tracked": 11,
+    "generated_at": "2026-05-31T21:35:23+00:00",
+    "inputs_tracked": 14,
     "is_fresh": true,
     "missing_inputs": [],
     "operator_line": "Business-object audit freshness: FRESH.",
@@ -28,8 +28,8 @@
     "stale_reasons": []
   },
   "business_object_audit_freshness_status": "FRESH",
-  "business_object_audit_generated_at": "2026-05-31T04:24:07+00:00",
-  "business_object_audit_inputs_tracked": 11,
+  "business_object_audit_generated_at": "2026-05-31T21:35:23+00:00",
+  "business_object_audit_inputs_tracked": 14,
   "business_object_audit_missing_inputs": [],
   "business_object_audit_stale_reasons": [],
   "contradiction_count": 10,
@@ -106,7 +106,7 @@
     }
   ],
   "footer": "Generated understanding view. Registry/read-models/receipts remain source of truth.",
-  "generated_at": "2026-05-31T04:32:51+00:00",
+  "generated_at": "2026-05-31T21:39:09+00:00",
   "known_unknown_count": 14,
   "known_unknowns": [
     "Why Codex Web commits were not reachable from GitHub remotes. [generated/read_models/openclaw_estate_topology_registry.json]",
@@ -124,6 +124,32 @@
     "Intent: Hermes, synthesize current posture. [generated/read_models/build_now_vs_hold_queue_posture.json]",
     "Mission Control read-model refresh [generated/read_models/build_now_vs_hold_queue_posture.json]"
   ],
+  "lane_capability_harvest_active_steel_thread": "Live Arts MD invoice lane",
+  "lane_capability_harvest_capabilities": [
+    "Simple invoice rail: PROVEN",
+    "Invoice candidate selection and collapse: PROVEN",
+    "Selected invoice summary state: PROVEN",
+    "Event Bridge Prepare PDF action: PARTIAL",
+    "Scoped PDF artifact package: PARTIAL",
+    "Manual send proof receipt: PARTIAL",
+    "Read-only payment watch: PARTIAL",
+    "No-authority invoice boundary: PARTIAL",
+    "Mac/PC bridge scoped response: PARTIAL",
+    "Supplier portal proof intake: PARTIAL",
+    "Coupa/PO extension: PLANNED",
+    "Multi-invoice review and selection: PARTIAL",
+    "Guardian approval gates: PARTIAL",
+    "St. Anne's simple invoice generalization: PLANNED"
+  ],
+  "lane_capability_harvest_hermes_recommendation": "finish_invoice_steel_thread_sequence",
+  "lane_capability_harvest_next_after_three": "payment_proof_intake_lane",
+  "lane_capability_harvest_sequence": [
+    "Live Arts MD invoice lane: ACTIVE_STEEL_THREAD",
+    "Capital Hilton invoice lane: PARTIAL",
+    "St. Anne's invoice lane: PARTIAL"
+  ],
+  "lane_capability_harvest_source_ref": "generated/read_models/openclaw_lane_capability_harvest.json (lane_capability_harvest)",
+  "lane_capability_harvest_status": "READY_FOR_PLANNING_NOT_EXECUTION",
   "missing_inputs": [],
   "pages": [
     {
@@ -140,7 +166,9 @@
         "generated/system_knowledge/openclaw_reference_resolver.sqlite (reference_resolver_sqlite)",
         "generated/read_models/openclaw_reference_resolver.json (reference_resolver)",
         "generated/read_models/external_system_knowledge_registry_index.json (external_system_knowledge_registry_index)",
+        "generated/read_models/openclaw_authority_semantics_registry.json (authority_semantics_registry)",
         "generated/read_models/openclaw_business_object_layer_audit.json (business_object_layer_audit)",
+        "generated/read_models/openclaw_lane_capability_harvest.json (lane_capability_harvest)",
         "generated/read_models/live_arts_md_invoice_review_bundle.json (live_arts_md_invoice_review_bundle)",
         "generated/read_models/invoice_review_bundle.json (invoice_review_bundle)",
         "generated/read_models/hermes_mission_sentinel.json (hermes_mission_sentinel)",
@@ -177,7 +205,8 @@
         "generated/read_models/openclaw_reference_resolver.json (reference_resolver)",
         "generated/read_models/estate_topology.json (estate_topology)",
         "generated/read_models/openclaw_estate_node_registry.json (openclaw_estate_node_registry)",
-        "generated/read_models/openclaw_business_object_layer_audit.json (business_object_layer_audit)"
+        "generated/read_models/openclaw_business_object_layer_audit.json (business_object_layer_audit)",
+        "generated/read_models/openclaw_lane_capability_harvest.json (lane_capability_harvest)"
       ],
       "status": "PARTIAL",
       "tension_count": 6,
@@ -204,6 +233,24 @@
       "status": "PARTIAL",
       "tension_count": 2,
       "title": "Evidence-Grounded Context Registry"
+    },
+    {
+      "known_unknown_count": 0,
+      "next_actions": [
+        "event_bridge_finance_workflow_action_template",
+        "event_bridge_finance_response_template",
+        "live_arts_prepare_pdf_event_template",
+        "telegram_finance_command_template",
+        "mac_app_event_bridge_writer_template"
+      ],
+      "path": "generated/wiki/openclaw/Authority Semantics.md",
+      "source_refs": [
+        "generated/read_models/openclaw_authority_semantics_registry.json (authority_semantics_registry)",
+        "generated/read_models/openclaw_business_object_layer_audit.json (business_object_layer_audit)"
+      ],
+      "status": "UNKNOWN",
+      "tension_count": 0,
+      "title": "Authority Semantics"
     },
     {
       "known_unknown_count": 6,
@@ -290,7 +337,8 @@
         "generated/read_models/purpose_bound_automation_charter.json (purpose_bound_automation_charter)",
         "generated/read_models/hermes_gravity_controller.json (hermes_gravity_controller)",
         "generated/read_models/chief_dynamic_workflow_deferred_build.json (chief_dynamic_workflow_deferred_build)",
-        "generated/read_models/openclaw_business_object_layer_audit.json (business_object_layer_audit)"
+        "generated/read_models/openclaw_business_object_layer_audit.json (business_object_layer_audit)",
+        "generated/read_models/openclaw_lane_capability_harvest.json (lane_capability_harvest)"
       ],
       "status": "PARTIAL",
       "tension_count": 0,
@@ -327,7 +375,9 @@
         "generated/system_knowledge/openclaw_reference_resolver.sqlite (reference_resolver_sqlite)",
         "generated/read_models/openclaw_reference_resolver.json (reference_resolver)",
         "generated/read_models/external_system_knowledge_registry_index.json (external_system_knowledge_registry_index)",
+        "generated/read_models/openclaw_authority_semantics_registry.json (authority_semantics_registry)",
         "generated/read_models/openclaw_business_object_layer_audit.json (business_object_layer_audit)",
+        "generated/read_models/openclaw_lane_capability_harvest.json (lane_capability_harvest)",
         "generated/read_models/live_arts_md_invoice_review_bundle.json (live_arts_md_invoice_review_bundle)",
         "generated/read_models/invoice_review_bundle.json (invoice_review_bundle)",
         "generated/read_models/hermes_mission_sentinel.json (hermes_mission_sentinel)",
@@ -364,6 +414,7 @@
         "generated/read_models/hermes_mission_sentinel.json (hermes_mission_sentinel)",
         "generated/read_models/hermes_chief_build_handoff.json (hermes_chief_build_handoff)",
         "generated/read_models/openclaw_business_object_layer_audit.json (business_object_layer_audit)",
+        "generated/read_models/openclaw_lane_capability_harvest.json (lane_capability_harvest)",
         "generated/read_models/build_now_vs_hold_queue_posture.json (build_now_vs_hold_queue_posture)",
         "generated/read_models/work_terrain_build_cue_reconciliation_queue.json (work_terrain_build_cue_reconciliation_queue)"
       ],
@@ -488,10 +539,26 @@
     },
     {
       "exists": true,
+      "label": "Authority Semantics Registry",
+      "path": "generated/read_models/openclaw_authority_semantics_registry.json",
+      "sha256": "sha256:73f8d59f3a0cefdf435e532da55eca2590e59a081a6e795db5f5bb2191c89383",
+      "source_id": "authority_semantics_registry",
+      "source_type": "json_read_model"
+    },
+    {
+      "exists": true,
       "label": "Business-object implementation layer audit",
       "path": "generated/read_models/openclaw_business_object_layer_audit.json",
-      "sha256": "sha256:8bb5d269144099948e39daf778de3ed948af04c6aa442ca820fbc32e713c77da",
+      "sha256": "sha256:677bea5c741bac93d8afe6445e2236fb21b1661f37a3ea112ce26e78b8b05833",
       "source_id": "business_object_layer_audit",
+      "source_type": "json_read_model"
+    },
+    {
+      "exists": true,
+      "label": "Lane capability harvest registry",
+      "path": "generated/read_models/openclaw_lane_capability_harvest.json",
+      "sha256": "sha256:db4118b3631320b678585e75ba10c6592d559ee5e18f97d9eed33b0354e8e47d",
+      "source_id": "lane_capability_harvest",
       "source_type": "json_read_model"
     },
     {

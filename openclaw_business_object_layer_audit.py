@@ -61,6 +61,7 @@ AUDIT_INPUT_SPECS = (
     ("change_sentinel", "generated/read_models/openclaw_change_sentinel.json", True),
     ("authority_semantics_registry", "generated/read_models/openclaw_authority_semantics_registry.json", True),
     ("context_wiki_index", "generated/read_models/openclaw_context_wiki_index.json", True),
+    ("lane_capability_harvest", "generated/read_models/openclaw_lane_capability_harvest.json", False),
     ("external_system_knowledge_registry_index", "generated/read_models/external_system_knowledge_registry_index.json", False),
     ("live_arts_bundle", "generated/read_models/live_arts_md_invoice_review_bundle.json", True),
     ("capital_hilton_bundle", "generated/read_models/invoice_review_bundle.json", True),
@@ -360,6 +361,7 @@ def collect_inputs(
         "sentinel": _read_json(read_root / "openclaw_change_sentinel.json"),
         "authority_registry": _read_json(read_root / "openclaw_authority_semantics_registry.json"),
         "wiki_index": _read_json(read_root / "openclaw_context_wiki_index.json"),
+        "lane_harvest": _read_json(read_root / "openclaw_lane_capability_harvest.json"),
         "external_registry_index": _read_json(read_root / "external_system_knowledge_registry_index.json"),
         "live_arts": _read_json(read_root / "live_arts_md_invoice_review_bundle.json"),
         "capital_hilton": _read_json(read_root / "invoice_review_bundle.json"),
@@ -992,11 +994,21 @@ def build_missing_evals() -> list[dict[str, str]]:
 
 
 def build_hermes_chief_implications(inputs: dict[str, Any]) -> list[dict[str, str]]:
-    return [
+    lane_recommendation = inputs.get("lane_harvest", {}).get("hermes_recommendation", {})
+    lane_recommendation = lane_recommendation if isinstance(lane_recommendation, dict) else {}
+    rows = [
         {
             "implication_ref": "do_not_launch_chief_from_audit",
             "summary": "Chief must not be launched by this audit; any Chief work should be a bounded build task with tests only.",
             "source_ref": "Boundary for this task",
+        },
+        {
+            "implication_ref": "use_lane_capability_harvest_for_next_build",
+            "summary": (
+                "Hermes should read the Lane Capability Harvest Registry for next-build recommendations; "
+                f"current recommendation is {lane_recommendation.get('recommended_next_lane', 'UNKNOWN')}."
+            ),
+            "source_ref": "generated/read_models/openclaw_lane_capability_harvest.json",
         },
         {
             "implication_ref": "drop_stale_candidate_selection_task",
@@ -1014,6 +1026,7 @@ def build_hermes_chief_implications(inputs: dict[str, Any]) -> list[dict[str, st
             "source_ref": "generated/read_models/purpose_bound_automation_charter.json",
         },
     ]
+    return rows
 
 
 def build_audit_freshness_signals(
@@ -1175,6 +1188,7 @@ def build_openclaw_business_object_layer_audit(
                 "generated/read_models/openclaw_reference_resolver.json",
                 "generated/read_models/openclaw_change_sentinel.json",
                 "generated/read_models/openclaw_context_wiki_index.json",
+                "generated/read_models/openclaw_lane_capability_harvest.json",
                 "generated/read_models/live_arts_md_invoice_review_bundle.json",
                 "generated/read_models/invoice_review_bundle.json",
                 "generated/read_models/purpose_bound_automation_charter.json",

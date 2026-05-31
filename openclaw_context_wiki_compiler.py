@@ -58,6 +58,7 @@ EXPECTED_SOURCE_SPECS = (
     ("external_system_knowledge_registry_index", "External system knowledge registry index", "generated/read_models/external_system_knowledge_registry_index.json", "json_read_model"),
     ("authority_semantics_registry", "Authority Semantics Registry", "generated/read_models/openclaw_authority_semantics_registry.json", "json_read_model"),
     ("business_object_layer_audit", "Business-object implementation layer audit", "generated/read_models/openclaw_business_object_layer_audit.json", "json_read_model"),
+    ("lane_capability_harvest", "Lane capability harvest registry", "generated/read_models/openclaw_lane_capability_harvest.json", "json_read_model"),
     ("live_arts_md_invoice_review_bundle", "Live Arts MD invoice bundle", "generated/read_models/live_arts_md_invoice_review_bundle.json", "json_read_model"),
     ("invoice_review_bundle", "Capital Hilton invoice bundle", "generated/read_models/invoice_review_bundle.json", "json_read_model"),
     ("hermes_mission_sentinel", "Hermes mission sentinel", "generated/read_models/hermes_mission_sentinel.json", "json_read_model"),
@@ -336,6 +337,71 @@ def audit_freshness_facts(audit_freshness: dict[str, Any]) -> tuple[str, ...]:
         + ".",
     ]
     return tuple(facts)
+
+
+def lane_capability_harvest_summary(sources: dict[str, SourceInput]) -> dict[str, Any]:
+    source = sources.get("lane_capability_harvest")
+    payload = source.payload if source else None
+    if not source or not source.exists or not isinstance(payload, dict):
+        return {
+            "status": "MISSING",
+            "active_steel_thread": "unknown",
+            "lane_sequence": [],
+            "harvested_capabilities": [],
+            "hermes_recommendation": "UNKNOWN",
+            "hermes_reason": "Lane capability harvest read-model is missing.",
+            "next_after_three": "UNKNOWN",
+            "source_ref": source_ref(source) if source else "generated/read_models/openclaw_lane_capability_harvest.json (lane_capability_harvest, missing)",
+            "facts": ("Lane capability harvest registry is missing.",),
+        }
+    lanes = [row for row in as_list(payload.get("lanes")) if isinstance(row, dict)]
+    capabilities = [row for row in as_list(payload.get("harvested_capabilities")) if isinstance(row, dict)]
+    candidates = [row for row in as_list(payload.get("next_lane_candidates")) if isinstance(row, dict)]
+    recommendation = payload.get("hermes_recommendation")
+    recommendation = recommendation if isinstance(recommendation, dict) else {}
+    active = next(
+        (
+            clean_text(row.get("lane_name") or row.get("lane_ref"))
+            for row in lanes
+            if clean_text(row.get("status")).upper() == "ACTIVE_STEEL_THREAD"
+        ),
+        "unknown",
+    )
+    sequence = [
+        f"{row.get('lane_name') or row.get('lane_ref')}: {row.get('status')}"
+        for row in lanes
+    ]
+    capability_names = [
+        f"{row.get('capability_name')}: {row.get('status')}"
+        for row in capabilities
+    ]
+    next_after_three = next(
+        (
+            clean_text(row.get("candidate_ref"))
+            for row in candidates
+            if clean_text(row.get("candidate_ref")) == "payment_proof_intake_lane"
+        ),
+        clean_text(candidates[0].get("candidate_ref")) if candidates else "UNKNOWN",
+    )
+    facts = (
+        f"Current active steel thread: {active}.",
+        "Lane sequence: " + (" | ".join(sequence) if sequence else "unknown") + ".",
+        "Harvested capabilities: " + (" | ".join(capability_names[:12]) if capability_names else "unknown") + ".",
+        f"Hermes recommendation from lane harvest: {recommendation.get('recommended_next_lane', 'UNKNOWN')}.",
+        f"Hermes recommendation reason: {recommendation.get('reason', 'unknown')}",
+        f"Next-after-three recommendation: {next_after_three}.",
+    )
+    return {
+        "status": clean_text(payload.get("readiness") or payload.get("status") or "PRESENT"),
+        "active_steel_thread": active,
+        "lane_sequence": sequence,
+        "harvested_capabilities": capability_names,
+        "hermes_recommendation": clean_text(recommendation.get("recommended_next_lane") or "UNKNOWN"),
+        "hermes_reason": clean_text(recommendation.get("reason") or ""),
+        "next_after_three": next_after_three,
+        "source_ref": source_ref(source),
+        "facts": facts,
+    }
 
 
 def load_json_payload(path: Path) -> tuple[Any, str]:
@@ -798,6 +864,14 @@ def collect_top_actions(sources: dict[str, SourceInput]) -> tuple[str, ...]:
             if isinstance(item, dict) and item.get("priority") in {"CRITICAL", "HIGH"}:
                 actions.append(f"Chief {item.get('priority')}: {item.get('title')}")
 
+    lane_harvest = sources.get("lane_capability_harvest")
+    if lane_harvest and isinstance(lane_harvest.payload, dict):
+        recommendation = lane_harvest.payload.get("hermes_recommendation")
+        if isinstance(recommendation, dict):
+            actions.append(
+                f"Lane harvest: {recommendation.get('recommended_next_lane')} - {recommendation.get('reason')}"
+            )
+
     terrain = sources.get("work_terrain_build_cue_reconciliation_queue")
     if terrain and isinstance(terrain.payload, dict):
         for item in as_list(terrain.payload.get("priority_assessments")) + as_list(terrain.payload.get("default_priority_assessments")):
@@ -903,6 +977,8 @@ def build_pages(
     deferred = sources.get("chief_dynamic_workflow_deferred_build")
     audit_freshness = business_object_audit_freshness(sources)
     audit_facts = audit_freshness_facts(audit_freshness)
+    lane_summary = lane_capability_harvest_summary(sources)
+    lane_facts = tuple(lane_summary["facts"])
 
     all_source_refs = tuple(source_ref(source) for source in sources.values() if source.exists)
     missing_source_unknowns = tuple(f"{source.relative_path} is missing" for source in sources.values() if not source.exists)
@@ -970,7 +1046,7 @@ def build_pages(
             filename="System Overview.md",
             status=page_status_from_sources([sources["estate_topology_registry"]], fallback="PARTIAL"),
             summary="OpenClaw is currently described as a PC backend/read-model workspace plus Mac app, Mac edge/helper responsibilities, openclaw-eyes context, openclaw-runtime actor work, and a bridge transport layer.",
-            confirmed_facts=tuple(overview_facts) + audit_facts,
+            confirmed_facts=tuple(overview_facts) + audit_facts + lane_facts,
             known_unknowns=tuple(item for item in known_unknowns if any(marker in item.lower() for marker in ("runtime", "mac", "codex", "repo", "bridge"))) + source_missing_unknowns(sources, ("estate_topology_registry",)),
             tensions=tension_texts(tensions, ("estate_topology_registry", "reference_resolver")),
             next_actions=top_actions[:5],
@@ -979,7 +1055,7 @@ def build_pages(
                 "Do not route Swift app ownership into the PC backend by convenience.",
                 "Do not collapse bridge transport into source truth.",
             ),
-            source_refs=source_refs(sources, ("estate_topology_registry", "reference_resolver", "estate_topology", "openclaw_estate_node_registry", "business_object_layer_audit")),
+            source_refs=source_refs(sources, ("estate_topology_registry", "reference_resolver", "estate_topology", "openclaw_estate_node_registry", "business_object_layer_audit", "lane_capability_harvest")),
         )
     )
 
@@ -1332,7 +1408,7 @@ def build_pages(
             filename="Hermes and Chief.md",
             status="PARTIAL" if any(source.exists for source in (hermes or [], handoff or [])) else "UNKNOWN",
             summary="Hermes and Chief read-models currently describe deterministic mission focus, purpose-bound gravity, build handoff, and deferred workflow work without production authority.",
-            confirmed_facts=tuple(hermes_facts) + audit_facts,
+            confirmed_facts=tuple(hermes_facts) + audit_facts + lane_facts,
             known_unknowns=tuple(hermes_unknowns),
             tensions=tension_texts(tensions, ("hermes", "chief", "purpose_bound", "gravity")),
             next_actions=(
@@ -1354,6 +1430,7 @@ def build_pages(
                     "hermes_gravity_controller",
                     "chief_dynamic_workflow_deferred_build",
                     "business_object_layer_audit",
+                    "lane_capability_harvest",
                 ),
             ),
         )
@@ -1482,9 +1559,15 @@ def build_pages(
     if isinstance(hermes_payload, dict):
         for item in as_list(hermes_payload.get("do_not_spend_time_on")):
             do_not.append(f"Hermes says do not spend time now: {item}")
+    if lane_summary.get("hermes_recommendation") not in {"UNKNOWN", "unknown", ""}:
+        urgent.append(
+            f"Lane harvest Hermes recommendation: {lane_summary.get('hermes_recommendation')} - {lane_summary.get('hermes_reason')}"
+        )
+        later.append(f"After three invoice lanes: {lane_summary.get('next_after_three')}")
 
     build_order_facts = [
         *audit_facts,
+        *lane_facts,
         "Urgent: " + " | ".join(unique(urgent, limit=6)),
         "Soon: " + " | ".join(unique(soon, limit=8)),
         "Later: " + " | ".join(unique(later, limit=8)),
@@ -1512,6 +1595,7 @@ def build_pages(
                     "hermes_mission_sentinel",
                     "hermes_chief_build_handoff",
                     "business_object_layer_audit",
+                    "lane_capability_harvest",
                     "build_now_vs_hold_queue_posture",
                     "work_terrain_build_cue_reconciliation_queue",
                 ),
@@ -1564,6 +1648,7 @@ def build_index(
 ) -> dict[str, Any]:
     top_actions = collect_top_actions(sources)
     audit_freshness = business_object_audit_freshness(sources)
+    lane_summary = lane_capability_harvest_summary(sources)
     return {
         "schema_version": SCHEMA_VERSION,
         "generated_at": generated_at,
@@ -1573,6 +1658,13 @@ def build_index(
         "business_object_audit_missing_inputs": audit_freshness["missing_inputs"],
         "business_object_audit_stale_reasons": audit_freshness["stale_reasons"],
         "business_object_audit_freshness": audit_freshness,
+        "lane_capability_harvest_status": lane_summary["status"],
+        "lane_capability_harvest_active_steel_thread": lane_summary["active_steel_thread"],
+        "lane_capability_harvest_sequence": lane_summary["lane_sequence"],
+        "lane_capability_harvest_capabilities": lane_summary["harvested_capabilities"],
+        "lane_capability_harvest_hermes_recommendation": lane_summary["hermes_recommendation"],
+        "lane_capability_harvest_next_after_three": lane_summary["next_after_three"],
+        "lane_capability_harvest_source_ref": lane_summary["source_ref"],
         "pages": [page_index_entry(page, tensions) for page in pages],
         "source_inputs": [source_input_record(source) for source in sources.values() if source.exists],
         "missing_inputs": [source_input_record(source) for source in sources.values() if not source.exists],
@@ -1615,6 +1707,7 @@ def format_operator_index(index: dict[str, Any]) -> str:
         bullet_lines(
             [
                 f"Business-object audit freshness: {index.get('business_object_audit_freshness_status')}.",
+                f"Lane harvest Hermes recommendation: {index.get('lane_capability_harvest_hermes_recommendation')}.",
                 f"{index.get('contradiction_count')} tension/contradiction signals detected.",
                 f"{index.get('known_unknown_count')} known unknowns detected.",
                 f"{len(index.get('missing_inputs', []))} expected inputs are missing.",

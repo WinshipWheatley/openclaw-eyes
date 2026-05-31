@@ -295,7 +295,7 @@ INSERT INTO next_lane_candidate VALUES ('service_supervision_recovery_action_lan
 ]', '[
   "do not run proofs or Chief from keeper"
 ]', 'PLANNED');
-INSERT INTO hermes_recommendation VALUES ('hermes_recommendation:finish_invoice_steel_thread_sequence', '2026-05-31T21:29:13+00:00', 'finish_invoice_steel_thread_sequence', 'Live Arts, Capital Hilton, and St. Anne''s are not all proven. Finish the invoice steel-thread sequence before opening a new adjacent lane.', '[
+INSERT INTO hermes_recommendation VALUES ('hermes_recommendation:finish_invoice_steel_thread_sequence', '2026-05-31T21:39:09+00:00', 'finish_invoice_steel_thread_sequence', 'Live Arts, Capital Hilton, and St. Anne''s are not all proven. Finish the invoice steel-thread sequence before opening a new adjacent lane.', '[
   "generated/read_models/live_arts_md_invoice_review_bundle.json",
   "generated/read_models/invoice_review_bundle.json",
   "generated/read_models/simple_invoice_event_bridge_rail_registry.json"

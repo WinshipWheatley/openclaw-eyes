@@ -197,6 +197,7 @@ def _write_fixture_read_models(
         root / "openclaw_authority_semantics_registry.json",
         authority_registry.build_registry_payload(generated_at="2026-05-31T03:00:00+00:00"),
     )
+    _write_json(root / "openclaw_lane_capability_harvest.json", _lane_capability_harvest_payload())
 
 
 def _business_object_audit_payload(root: Path) -> dict:
@@ -228,6 +229,27 @@ def _business_object_audit_payload(root: Path) -> dict:
         ],
         "input_hashes": {},
         "stale_reasons": [],
+    }
+
+
+def _lane_capability_harvest_payload(*, recommendation: str = "finish_invoice_steel_thread_sequence") -> dict:
+    return {
+        "schema_version": "openclaw_lane_capability_harvest_read_model_v0",
+        "readiness": "READY_FOR_PLANNING_NOT_EXECUTION",
+        "missing_inputs": [],
+        "lanes": [
+            {"lane_ref": "live_arts_md_invoice_lane", "status": "ACTIVE_STEEL_THREAD"},
+            {"lane_ref": "capital_hilton_invoice_lane", "status": "PARTIAL"},
+            {"lane_ref": "st_annes_invoice_lane", "status": "PARTIAL"},
+        ],
+        "harvested_capabilities": [
+            {"capability_ref": "capability:simple_invoice_rail", "status": "PROVEN"},
+            {"capability_ref": "capability:payment_watch", "status": "PARTIAL"},
+        ],
+        "hermes_recommendation": {
+            "recommended_next_lane": recommendation,
+            "reason": "Live Arts, Capital Hilton, and St. Anne's are not all proven yet.",
+        },
     }
 
 
@@ -313,6 +335,42 @@ def test_authority_semantics_registry_change_emits_authority_drift_without_lm(tm
         row["target_ref"]: row for row in changed["observed_targets"]
     }["authority_semantics_registry:fingerprint"]
     assert target["observation_status"] == "AUTHORITY_SEMANTICS_DRIFT"
+
+
+def test_lane_capability_harvest_is_observed_and_recommendation_change_is_material(tmp_path):
+    read_root = tmp_path / "read_models"
+    _write_fixture_read_models(read_root)
+    baseline = _build(read_root)
+    _write_json(
+        read_root / "openclaw_lane_capability_harvest.json",
+        _lane_capability_harvest_payload(recommendation="payment_proof_intake_lane"),
+    )
+
+    changed = _build(read_root, previous=baseline)
+
+    assert "LANE_CAPABILITY_HARVEST_STALE" in _status_set(changed)
+    target = {
+        row["target_ref"]: row for row in changed["observed_targets"]
+    }["lane_capability_harvest:recommendation"]
+    assert target["observed_value"] == "payment_proof_intake_lane"
+    assert any(
+        row["validation_command"] == "python3 scripts/export_openclaw_lane_capability_harvest.py"
+        for row in changed["recommended_actions"]
+    )
+
+
+def test_missing_lane_capability_harvest_input_is_recorded(tmp_path):
+    read_root = tmp_path / "read_models"
+    _write_fixture_read_models(read_root)
+    (read_root / "openclaw_lane_capability_harvest.json").unlink()
+
+    payload = _build(read_root)
+    target = {
+        row["target_ref"]: row for row in payload["observed_targets"]
+    }["input_read_model:lane_capability_harvest"]
+
+    assert target["observed_value"] == "missing"
+    assert target["unreachable_reason"] == "input read model missing or not JSON"
 
 
 def test_dirty_repo_change_emits_repo_dirty(tmp_path):

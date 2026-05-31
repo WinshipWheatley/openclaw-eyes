@@ -45,6 +45,6 @@ Live Arts MD has selected-invoice and manual-send metadata, but source evidence 
 - generated/read_models/hermes_mission_sentinel.json (hermes_mission_sentinel)
 - generated/read_models/hermes_chief_build_handoff.json (hermes_chief_build_handoff)
 
-Last generated timestamp: 2026-05-31T04:32:51+00:00
+Last generated timestamp: 2026-05-31T21:39:09+00:00
 
 Generated understanding view. Registry/read-models/receipts remain source of truth.

@@ -53,7 +53,9 @@ This page aggregates explicit unknowns, missing proof, unavailable inputs, and f
 - generated/system_knowledge/openclaw_reference_resolver.sqlite (reference_resolver_sqlite)
 - generated/read_models/openclaw_reference_resolver.json (reference_resolver)
 - generated/read_models/external_system_knowledge_registry_index.json (external_system_knowledge_registry_index)
+- generated/read_models/openclaw_authority_semantics_registry.json (authority_semantics_registry)
 - generated/read_models/openclaw_business_object_layer_audit.json (business_object_layer_audit)
+- generated/read_models/openclaw_lane_capability_harvest.json (lane_capability_harvest)
 - generated/read_models/live_arts_md_invoice_review_bundle.json (live_arts_md_invoice_review_bundle)
 - generated/read_models/invoice_review_bundle.json (invoice_review_bundle)
 - generated/read_models/hermes_mission_sentinel.json (hermes_mission_sentinel)
@@ -71,6 +73,6 @@ This page aggregates explicit unknowns, missing proof, unavailable inputs, and f
 - generated/external_registries/openclaw-eyes/openclaw_system_knowledge_registry_SCHEMA.sql (openclaw_system_knowledge_registry_d500da978d)
 - generated/external_registries/openclaw-eyes/openclaw_system_knowledge_registry_SEED.sql (openclaw_system_knowledge_registry_b7961063f8)
 
-Last generated timestamp: 2026-05-31T04:32:51+00:00
+Last generated timestamp: 2026-05-31T21:39:09+00:00
 
 Generated understanding view. Registry/read-models/receipts remain source of truth.

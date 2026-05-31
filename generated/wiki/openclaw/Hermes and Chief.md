@@ -23,10 +23,16 @@ Hermes and Chief read-models currently describe deterministic mission focus, pur
 - Hermes gravity controller: DETERMINISTIC_NON_EXECUTING_PURPOSE_BOUND_GRAVITY_CONTROLLER; charter_count=6.
 - Deferred Chief dynamic workflow: DEFERRED_WAITING_FOR_CODEX_5_5_CAPACITY; preferred_model=GPT-5.5 Codex.
 - Business-object audit freshness: FRESH.
-- Business-object audit generated_at: 2026-05-31T04:24:07+00:00.
-- Business-object audit inputs tracked: 11.
+- Business-object audit generated_at: 2026-05-31T21:35:23+00:00.
+- Business-object audit inputs tracked: 14.
 - Business-object audit missing inputs: none.
 - Business-object audit stale reasons: none.
+- Current active steel thread: Live Arts MD invoice lane.
+- Lane sequence: Live Arts MD invoice lane: ACTIVE_STEEL_THREAD | Capital Hilton invoice lane: PARTIAL | St. Anne's invoice lane: PARTIAL.
+- Harvested capabilities: Simple invoice rail: PROVEN | Invoice candidate selection and collapse: PROVEN | Selected invoice summary state: PROVEN | Event Bridge Prepare PDF action: PARTIAL | Scoped PDF artifact package: PARTIAL | Manual send proof receipt: PA...
+- Hermes recommendation from lane harvest: finish_invoice_steel_thread_sequence.
+- Hermes recommendation reason: Live Arts, Capital Hilton, and St. Anne's are not all proven. Finish the invoice steel-thread sequence before opening a new adjacent lane.
+- Next-after-three recommendation: payment_proof_intake_lane.
 
 ## Known unknowns
 - Hermes blocker: invoice candidate not selected
@@ -60,7 +66,8 @@ Hermes and Chief read-models currently describe deterministic mission focus, pur
 - generated/read_models/hermes_gravity_controller.json (hermes_gravity_controller)
 - generated/read_models/chief_dynamic_workflow_deferred_build.json (chief_dynamic_workflow_deferred_build)
 - generated/read_models/openclaw_business_object_layer_audit.json (business_object_layer_audit)
+- generated/read_models/openclaw_lane_capability_harvest.json (lane_capability_harvest)
 
-Last generated timestamp: 2026-05-31T04:32:51+00:00
+Last generated timestamp: 2026-05-31T21:39:09+00:00
 
 Generated understanding view. Registry/read-models/receipts remain source of truth.

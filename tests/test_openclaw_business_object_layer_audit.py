@@ -123,6 +123,22 @@ def _fixtures(read_root: Path, wiki_root: Path) -> None:
         },
     )
     _write_json(
+        read_root / "openclaw_lane_capability_harvest.json",
+        {
+            "schema_version": "openclaw_lane_capability_harvest_read_model_v0",
+            "readiness": "READY_FOR_PLANNING_NOT_EXECUTION",
+            "hermes_recommendation": {
+                "recommended_next_lane": "finish_invoice_steel_thread_sequence",
+                "reason": "Live Arts, Capital Hilton, and St. Anne's are not all proven yet.",
+            },
+            "lanes": [
+                {"lane_ref": "live_arts_md_invoice_lane", "status": "ACTIVE_STEEL_THREAD"},
+                {"lane_ref": "capital_hilton_invoice_lane", "status": "PARTIAL"},
+                {"lane_ref": "st_annes_invoice_lane", "status": "PARTIAL"},
+            ],
+        },
+    )
+    _write_json(
         read_root / "external_system_knowledge_registry_index.json",
         {
             "schema_version": "external_system_knowledge_registry_index_v0",
@@ -292,6 +308,11 @@ def test_audit_reflects_live_arts_and_external_registry_claims(tmp_path):
     assert branch_object["blockers"] == []
     assert payload["external_registry_materialization"]["local_role"] == "READ_ONLY_EXTERNAL_INPUT"
     assert payload["missing_inputs"] == []
+    assert any(
+        row["implication_ref"] == "use_lane_capability_harvest_for_next_build"
+        and "finish_invoice_steel_thread_sequence" in row["summary"]
+        for row in payload["hermes_chief_implications"]
+    )
 
 
 def test_missing_required_input_marks_audit_stale(tmp_path):

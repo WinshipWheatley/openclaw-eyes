@@ -176,6 +176,43 @@ def _base_sources(root: Path) -> None:
     )
     _write_json(
         root,
+        "generated/read_models/openclaw_lane_capability_harvest.json",
+        {
+            "schema_version": "openclaw_lane_capability_harvest_read_model_v0",
+            "readiness": "READY_FOR_PLANNING_NOT_EXECUTION",
+            "lanes": [
+                {
+                    "lane_name": "Live Arts MD invoice lane",
+                    "lane_ref": "live_arts_md_invoice_lane",
+                    "status": "ACTIVE_STEEL_THREAD",
+                },
+                {
+                    "lane_name": "Capital Hilton invoice lane",
+                    "lane_ref": "capital_hilton_invoice_lane",
+                    "status": "PARTIAL",
+                },
+                {
+                    "lane_name": "St. Anne's invoice lane",
+                    "lane_ref": "st_annes_invoice_lane",
+                    "status": "PARTIAL",
+                },
+            ],
+            "harvested_capabilities": [
+                {"capability_name": "Simple invoice rail", "status": "PROVEN"},
+                {"capability_name": "Event Bridge Prepare PDF action", "status": "PARTIAL"},
+                {"capability_name": "Read-only payment watch", "status": "PARTIAL"},
+            ],
+            "next_lane_candidates": [
+                {"candidate_ref": "payment_proof_intake_lane", "recommended_order": 1}
+            ],
+            "hermes_recommendation": {
+                "recommended_next_lane": "finish_invoice_steel_thread_sequence",
+                "reason": "Live Arts, Capital Hilton, and St. Anne's are not all proven yet.",
+            },
+        },
+    )
+    _write_json(
+        root,
         "generated/read_models/live_arts_md_invoice_review_bundle.json",
         {
             "live_arts_md_bundle": {
@@ -384,6 +421,30 @@ def test_wiki_index_includes_business_object_audit_freshness(tmp_path):
     assert index["business_object_audit_inputs_tracked"] == 4
     assert index["business_object_audit_missing_inputs"] == []
     assert index["business_object_audit_stale_reasons"] == []
+
+
+def test_wiki_index_includes_lane_capability_harvest_recommendation(tmp_path):
+    summary = _compile(tmp_path)
+    index = summary["index"]
+
+    assert index["lane_capability_harvest_active_steel_thread"] == "Live Arts MD invoice lane"
+    assert index["lane_capability_harvest_hermes_recommendation"] == "finish_invoice_steel_thread_sequence"
+    assert index["lane_capability_harvest_next_after_three"] == "payment_proof_intake_lane"
+    assert any("Capital Hilton invoice lane: PARTIAL" in item for item in index["lane_capability_harvest_sequence"])
+
+
+def test_wiki_pages_surface_lane_capability_harvest(tmp_path):
+    _compile(tmp_path)
+
+    for filename in (
+        "System Overview.md",
+        "Hermes and Chief.md",
+        "Build Order.md",
+    ):
+        text = (tmp_path / "generated/wiki/openclaw" / filename).read_text(encoding="utf-8")
+        assert "Current active steel thread: Live Arts MD invoice lane." in text
+        assert "Hermes recommendation from lane harvest: finish_invoice_steel_thread_sequence." in text
+        assert "Next-after-three recommendation: payment_proof_intake_lane." in text
 
 
 def test_fresh_business_object_audit_renders_fresh_line(tmp_path):
