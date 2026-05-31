@@ -27,23 +27,23 @@ INSERT INTO reference_resolution (resolution_ref, target_ref, resolved_status, r
   "remote_url": "git@github.com:WinshipWheatley/openclaw-eyes.git",
   "repo_ref": "openclaw-eyes",
   "resolution_source": "readonly_equivalent",
-  "resolved_at": "2026-05-31T02:57:06+00:00",
+  "resolved_at": "2026-05-31T02:59:53+00:00",
   "resolved_status": "RESOLVED_REMOTE",
   "target_ref": "openclaw_eyes_registry_review_branch",
   "target_type": "GIT_BRANCH"
-}', 'DIRTY', '', '2026-05-31T02:57:06+00:00');
-INSERT INTO reference_resolution (resolution_ref, target_ref, resolved_status, resolved_value, resolved_json, dirty_status, error_message, resolved_at) VALUES ('estate_topology_registry_read_model_mirror_resolution', 'estate_topology_registry_read_model_mirror', 'MISSING', 'sha256:54769dbb71b72fe8153f14e58ab8a22c03903955102177051a8e846d5d6e0b8d', '{
+}', 'DIRTY', '', '2026-05-31T02:59:53+00:00');
+INSERT INTO reference_resolution (resolution_ref, target_ref, resolved_status, resolved_value, resolved_json, dirty_status, error_message, resolved_at) VALUES ('estate_topology_registry_read_model_mirror_resolution', 'estate_topology_registry_read_model_mirror', 'MISSING', 'sha256:8b3e48e23dd812e3f2fe8178bee322c9e0557192aa7e48bb55734f1a811258c1', '{
   "bridge_exists": false,
   "bridge_path": "/mnt/e/openclaw/generated/read_models/openclaw_estate_topology_registry.json",
   "hash_match": false,
-  "resolved_at": "2026-05-31T02:57:06+00:00",
+  "resolved_at": "2026-05-31T02:59:53+00:00",
   "resolved_status": "MISSING",
   "sha256_bridge": "",
-  "sha256_source": "sha256:54769dbb71b72fe8153f14e58ab8a22c03903955102177051a8e846d5d6e0b8d",
+  "sha256_source": "sha256:8b3e48e23dd812e3f2fe8178bee322c9e0557192aa7e48bb55734f1a811258c1",
   "source_exists": true,
   "source_path": "generated/read_models/openclaw_estate_topology_registry.json",
   "target_ref": "estate_topology_registry_read_model_mirror",
   "target_type": "READ_MODEL_MIRROR"
-}', '', 'source or bridge counterpart missing', '2026-05-31T02:57:06+00:00');
+}', '', 'source or bridge counterpart missing', '2026-05-31T02:59:53+00:00');
 INSERT INTO reference_dependency (dependency_ref, target_ref, consumer_component, generated_model_path, reason) VALUES ('estate_topology_uses_openclaw_eyes_registry_review_branch', 'openclaw_eyes_registry_review_branch', 'openclaw_estate_topology_registry', 'generated/read_models/openclaw_estate_topology_registry.json', 'Estate topology stores the branch ref as canonical input and resolves current_head_commit during export.');
-INSERT INTO resolution_run (run_ref, started_at, completed_at, targets_checked, drift_count, status) VALUES ('openclaw_reference_resolver_run', '2026-05-31T02:57:06+00:00', '2026-05-31T02:57:06+00:00', 2, 0, 'RESOLVED_LOCAL');
+INSERT INTO resolution_run (run_ref, started_at, completed_at, targets_checked, drift_count, status) VALUES ('openclaw_reference_resolver_run', '2026-05-31T02:59:53+00:00', '2026-05-31T02:59:53+00:00', 2, 0, 'RESOLVED_LOCAL');
