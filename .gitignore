@@ -70,6 +70,7 @@
 !bundle_blueprint_planner.py
 !governed_intake_spine.py
 !estate_read_model.py
+!openclaw_context_wiki_compiler.py
 !active_machinery_classification_orchestrator.py
 !active_machinery_gemini_verification.py
 !active_machinery_operator_disposition.py
@@ -720,6 +721,7 @@
 !scripts/query_governed_intake_spine.py
 !scripts/export_governed_intake_spine_read_model.py
 !scripts/export_estate_read_model.py
+!scripts/export_openclaw_context_wiki.py
 !scripts/query_estate_read_model.py
 !scripts/update_project_capsule_modules.py
 !scripts/build_context_packet.py
@@ -1011,6 +1013,7 @@
 !tests/test_openclaw_work_terrain_reconciliation_batch_manifest.py
 !tests/test_work_terrain_surface_map_build_cue_scout.py
 !tests/test_work_terrain_build_cue_reconciliation_queue.py
+!tests/test_openclaw_context_wiki_compiler.py
 !docs/operations/OPENCLAW_EXTERNAL_AI_CONTEXT_PACKAGER_V0.md
 !docs/operations/OPENCLAW_WORK_BOARD_V0.md
 !docs/operations/OPENCLAW_STEEL_THREAD_FRONTIER_RADAR_V0.md
@@ -1019,6 +1022,9 @@
 !generated/read_models/*.json
 !generated/read_models/*.txt
 !generated/read_models/*.md
+!generated/wiki/
+!generated/wiki/openclaw/
+!generated/wiki/openclaw/*.md
 !generated/finance_packets/
 !generated/finance_packets/capital_hilton_invoice_artifact_preview_v0/
 !generated/finance_packets/capital_hilton_invoice_artifact_preview_v0/*.md
