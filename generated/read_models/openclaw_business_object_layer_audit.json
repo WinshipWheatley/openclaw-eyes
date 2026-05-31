@@ -1,0 +1,863 @@
+{
+  "browser_accessed": false,
+  "build_order": {
+    "later": [
+      {
+        "reason": "Wiki reports the system knowledge registry input missing.",
+        "task": "Refresh/install canonical system knowledge registry inputs for the context wiki."
+      },
+      {
+        "reason": "Capital Hilton remains farther from business-object execution than Live Arts.",
+        "task": "Advance Capital Hilton invoice selection/Coupa proof/artifact linkage rails."
+      },
+      {
+        "reason": "Topology known unknowns still affect repo ownership.",
+        "task": "Decide Mac app remote/backup strategy and runtime actor canonical home."
+      }
+    ],
+    "next": [
+      {
+        "reason": "Attachment readiness must remain receipt-gated.",
+        "task": "After Mac export succeeds, ingest result candidate and keep artifact OPERATOR_REVIEW_REQUIRED until reviewed."
+      },
+      {
+        "reason": "Clara/send readiness is blocked by recipient and approval receipts.",
+        "task": "Confirm Live Arts recipients and Guardian/operator approval gates."
+      },
+      {
+        "reason": "Payment watch cannot become real until send proof exists.",
+        "task": "Capture manual-send proof if manual send already happened, then activate payment watch readiness only."
+      },
+      {
+        "reason": "Resolver reports missing bridge mirror and Mac bridge unavailable.",
+        "task": "Repair estate topology bridge mirror and Mac bridge permission representation."
+      }
+    ],
+    "now": [
+      {
+        "reason": "Avoid sending Chief after already-solved candidate selection work.",
+        "task": "Reconcile stale Hermes/Chief Live Arts blockers against the confirmed 2026-1001 bundle state."
+      },
+      {
+        "reason": "Stop source-truth drift in topology/wiki outputs.",
+        "task": "Correct openclaw-eyes registry branch canonicality back to review-branch pending review unless merge evidence is explicit."
+      },
+      {
+        "reason": "This is the current blocker before Live Arts PDF export retry.",
+        "task": "Build or verify Mac helper/Access Broker permission path for scoped Excel PDF export."
+      },
+      {
+        "reason": "The backend needs proof that selected_invoice_pdf_export_completed_candidate promotes safely.",
+        "task": "Add end-to-end evals for Mac result intake and attachment promotion without executing Excel/PDF."
+      }
+    ],
+    "parked": [
+      {
+        "reason": "Explicitly blocked until sent/payment/ledger receipts exist.",
+        "task": "Ledger posting automation."
+      },
+      {
+        "reason": "Outside this audit and still receipt/authority gated.",
+        "task": "Live email/Gmail/browser/Coupa execution."
+      },
+      {
+        "reason": "This audit is deterministic and read-only.",
+        "task": "Broad LM summarization or Chief launch."
+      }
+    ]
+  },
+  "business_object_names_required": [
+    "Live Arts invoice",
+    "Live Arts PDF artifact",
+    "Live Arts payment watch",
+    "Capital Hilton invoice",
+    "Clara draft",
+    "client comms thread",
+    "Guardian approval",
+    "Mac edge job package",
+    "Mac Excel helper/proposed helper",
+    "Access Broker",
+    "service supervision",
+    "reference resolver",
+    "change sentinel",
+    "estate topology registry",
+    "context wiki",
+    "openclaw-eyes registry branch"
+  ],
+  "business_objects": [
+    {
+      "blockers": [
+        "attachment_ready=false",
+        "recipient confirmation pending",
+        "Guardian/operator approval missing",
+        "send proof missing"
+      ],
+      "business_object_proximity": "HIGH",
+      "current_fact": "2026-1001 \u2014 June 2026 Speaker Rental \u2014 $900",
+      "implementation_status": "SELECTED_NOT_SEND_READY",
+      "next_safe_action": "Finish artifact proof path before recipient/Guardian/send-readiness promotion.",
+      "object_name": "Live Arts invoice",
+      "source_refs": [
+        {
+          "note": "",
+          "path": "generated/read_models/live_arts_md_invoice_review_bundle.json"
+        }
+      ]
+    },
+    {
+      "blockers": [
+        "actual Mac export completion receipt missing",
+        "attachment_ready=false",
+        "operator review after export required"
+      ],
+      "business_object_proximity": "HIGH",
+      "current_fact": "PDF_EXPORT_PACKAGE_READY_FOR_MAC for invoice 2026-1001",
+      "implementation_status": "PACKAGE_READY_EXPORT_NOT_CONFIRMED",
+      "next_safe_action": "Resolve Mac helper/permission path, then ingest selected_invoice_pdf_export_completed_candidate.",
+      "object_name": "Live Arts PDF artifact",
+      "source_refs": [
+        {
+          "note": "pdf_export_package",
+          "path": "generated/read_models/live_arts_md_invoice_review_bundle.json"
+        }
+      ]
+    },
+    {
+      "blockers": [
+        "manual send proof missing",
+        "bank/payment confirmation missing",
+        "ledger posting disallowed"
+      ],
+      "business_object_proximity": "MEDIUM",
+      "current_fact": "ledger_match=NOT_ATTEMPTED; bank_read=False",
+      "implementation_status": "READINESS_ONLY_NOT_ACTIVE",
+      "next_safe_action": "Keep readiness-only until manual/send proof exists.",
+      "object_name": "Live Arts payment watch",
+      "source_refs": [
+        {
+          "note": "payment_watch",
+          "path": "generated/read_models/live_arts_md_invoice_review_bundle.json"
+        }
+      ]
+    },
+    {
+      "blockers": [
+        "active_workbook_confirmed_receipt",
+        "invoice_record_selected_receipt",
+        "invoice_period_confirmed_receipt",
+        "generated_invoice_artifact_linkage_receipt",
+        "excel_invoice_generated_receipt",
+        "invoice_attachment_proof_receipt",
+        "clara_email_draft_receipt",
+        "purchase_order_confirmed_receipt"
+      ],
+      "business_object_proximity": "MEDIUM_LOW",
+      "current_fact": "Which invoice page/period should OpenClaw prepare for Capital Hilton?",
+      "implementation_status": "READY_FOR_REVIEW_BLOCKED_FOR_SELECTION",
+      "next_safe_action": "Confirm invoice record/period and Coupa proof before attachment or send readiness.",
+      "object_name": "Capital Hilton invoice",
+      "source_refs": [
+        {
+          "note": "",
+          "path": "generated/read_models/invoice_review_bundle.json"
+        }
+      ]
+    },
+    {
+      "blockers": [
+        "attachment_readiness",
+        "recipient_confirmation",
+        "clara_draft_receipt"
+      ],
+      "business_object_proximity": "MEDIUM",
+      "current_fact": "Live Arts and Capital Hilton drafts are draft-only / not send-ready.",
+      "implementation_status": "DRAFT_PREVIEW_NOT_SEND_READY",
+      "next_safe_action": "Promote only after attachment, recipient, draft receipt, Guardian/operator approvals.",
+      "object_name": "Clara draft",
+      "source_refs": [
+        {
+          "note": "clara draft",
+          "path": "generated/read_models/live_arts_md_invoice_review_bundle.json"
+        },
+        {
+          "note": "Capital Hilton clara draft",
+          "path": "generated/read_models/invoice_review_bundle.json"
+        }
+      ]
+    },
+    {
+      "blockers": [
+        "thread watch blocked until sent receipt",
+        "no Gmail draft/send performed"
+      ],
+      "business_object_proximity": "MEDIUM",
+      "current_fact": "client_comms_thread:live_arts_md:cc5418d57c6ca036",
+      "implementation_status": "BLOCKED_UNTIL_SENT_RECEIPT",
+      "next_safe_action": "Keep thread watch future-gated until send receipt exists.",
+      "object_name": "client comms thread",
+      "source_refs": [
+        {
+          "note": "client_comms_thread",
+          "path": "generated/read_models/live_arts_md_invoice_review_bundle.json"
+        }
+      ]
+    },
+    {
+      "blockers": [
+        "attachment readiness",
+        "recipient confirmation",
+        "operator approval/send receipts"
+      ],
+      "business_object_proximity": "MEDIUM",
+      "current_fact": "Guardian approval is required and not a send authority by itself.",
+      "implementation_status": "BLOCKED_PREREQUISITES_MISSING",
+      "next_safe_action": "Create request only after prerequisites are true.",
+      "object_name": "Guardian approval",
+      "source_refs": [
+        {
+          "note": "",
+          "path": "generated/read_models/live_arts_md_invoice_review_bundle.json"
+        },
+        {
+          "note": "",
+          "path": "generated/read_models/invoice_review_bundle.json"
+        }
+      ]
+    },
+    {
+      "blockers": [
+        "Mac export not completed",
+        "result receipt missing",
+        "helper/permission architecture unresolved"
+      ],
+      "business_object_proximity": "HIGH",
+      "current_fact": "execution_venue=MAC_LOCAL; required_capability=MAC_EXCEL_PDF_EXPORT; no_workbook_cell_read=True",
+      "implementation_status": "PDF_EXPORT_PACKAGE_READY_FOR_MAC",
+      "next_safe_action": "Mac emits scoped result only after local helper succeeds.",
+      "object_name": "Mac edge job package",
+      "source_refs": [
+        {
+          "note": "Mac edge job package",
+          "path": "generated/read_models/live_arts_md_invoice_review_bundle.json"
+        }
+      ]
+    },
+    {
+      "blockers": [
+        "in-app Excel Automation blocked",
+        "file/folder and Apple Events permission shape unresolved"
+      ],
+      "business_object_proximity": "MEDIUM",
+      "current_fact": "Mac-local Excel/PDF helper code belongs with the Mac app/helper architecture.",
+      "implementation_status": "HELPER_ARCHITECTURE_RECOMMENDED",
+      "next_safe_action": "Implement/verify helper architecture on Mac; PC only emits packages.",
+      "object_name": "Mac Excel helper/proposed helper",
+      "source_refs": [
+        {
+          "note": "mac_excel_edge_worker",
+          "path": "generated/read_models/openclaw_estate_topology_registry.json"
+        }
+      ]
+    },
+    {
+      "blockers": [
+        "split Mac UI/backend policy not fully implemented",
+        "Mac permission failures still modeled as partial"
+      ],
+      "business_object_proximity": "MEDIUM",
+      "current_fact": "Swift UI surface belongs in Mac app; policy/registry side belongs in backend when present.",
+      "implementation_status": "PARTIAL",
+      "next_safe_action": "Define helper permission repair path without collapsing ownership boundaries.",
+      "object_name": "Access Broker",
+      "source_refs": [
+        {
+          "note": "access_broker",
+          "path": "generated/read_models/openclaw_estate_topology_registry.json"
+        }
+      ]
+    },
+    {
+      "blockers": [],
+      "business_object_proximity": "INFRA_HIGH",
+      "current_fact": "request-response=active/running; watch=/usr/bin/env python3 /home/openclaw/scripts/run_openclaw_request_response_service.py --watch-seconds 21600 --poll-interval 1 --active-poll-interval 0.05 --active-window-seconds 180 --max-requests 100 --format summary",
+      "implementation_status": "READY",
+      "next_safe_action": "Keep observing; keeper may start inactive allowlisted units only.",
+      "object_name": "service supervision",
+      "source_refs": [
+        {
+          "note": "",
+          "path": "generated/read_models/openclaw_service_supervision.json"
+        }
+      ]
+    },
+    {
+      "blockers": [
+        "Mac local path unreachable from PC",
+        "estate mirror=MISSING"
+      ],
+      "business_object_proximity": "INFRA_HIGH",
+      "current_fact": "review branch remote=RESOLVED_REMOTE; local=UNREACHABLE; mac=LOCAL_PATH_UNREACHABLE",
+      "implementation_status": "RESOLVED_REMOTE",
+      "next_safe_action": "Use resolver output for volatile refs; do not copy branch heads into source truth.",
+      "object_name": "reference resolver",
+      "source_refs": [
+        {
+          "note": "",
+          "path": "generated/read_models/openclaw_reference_resolver.json"
+        }
+      ]
+    },
+    {
+      "blockers": [],
+      "business_object_proximity": "INFRA_MEDIUM",
+      "current_fact": "material_changes=2; timer observed=True",
+      "implementation_status": "MATERIAL_CHANGE_DETECTED",
+      "next_safe_action": "Observe only; do not make sentinel start services directly.",
+      "object_name": "change sentinel",
+      "source_refs": [
+        {
+          "note": "",
+          "path": "generated/read_models/openclaw_change_sentinel.json"
+        },
+        {
+          "note": "",
+          "path": "generated/read_models/openclaw_service_supervision.json"
+        }
+      ]
+    },
+    {
+      "blockers": [
+        "openclaw-eyes registry branch canonicality must be corrected to pending review unless merge evidence is explicit",
+        "bridge mirror missing"
+      ],
+      "business_object_proximity": "INFRA_HIGH",
+      "current_fact": "machines=2; working_copies=5; context_registry_area=CANONICAL_ON_MAIN",
+      "implementation_status": "PRESENT_WITH_CANONICALITY_CONFLICT",
+      "next_safe_action": "Refresh topology to keep review branch as PENDING_REVIEW until canonical merge is proven.",
+      "object_name": "estate topology registry",
+      "source_refs": [
+        {
+          "note": "",
+          "path": "generated/read_models/openclaw_estate_topology_registry.json"
+        }
+      ]
+    },
+    {
+      "blockers": [
+        {
+          "exists": false,
+          "label": "OpenClaw system knowledge registry files",
+          "path": "generated/system_knowledge/openclaw_system_knowledge_registry.*",
+          "sha256": "",
+          "source_id": "openclaw_system_knowledge_registry_files",
+          "source_type": "registry_file"
+        }
+      ],
+      "business_object_proximity": "INFRA_MEDIUM",
+      "current_fact": "pages=11; contradictions=11",
+      "implementation_status": "PRESENT_GENERATED_VIEW",
+      "next_safe_action": "Fix upstream registries/read-models, then regenerate; do not edit wiki as source truth.",
+      "object_name": "context wiki",
+      "source_refs": [
+        {
+          "note": "",
+          "path": "generated/read_models/openclaw_context_wiki_index.json"
+        },
+        {
+          "note": "",
+          "path": "generated/wiki/openclaw/"
+        }
+      ]
+    },
+    {
+      "blockers": [
+        "current estate/wiki generated state also claims CANONICAL_ON_MAIN; audit treats that as stale/conflicting until canonical merge is confirmed"
+      ],
+      "business_object_proximity": "INFRA_HIGH",
+      "current_fact": "branch=codex/system-knowledge-registry-v0-local; remote_status=RESOLVED_REMOTE; head=1a6b7b0b463968f3161e048bd7936dc06505a3bb",
+      "implementation_status": "PRESENT_ON_REVIEW_BRANCH_PENDING_REVIEW",
+      "next_safe_action": "Keep source truth as repo/branch ref and generated current_head_commit only.",
+      "object_name": "openclaw-eyes registry branch",
+      "source_refs": [
+        {
+          "note": "",
+          "path": "generated/read_models/openclaw_reference_resolver.json"
+        },
+        {
+          "note": "",
+          "path": "generated/read_models/openclaw_estate_topology_registry.json"
+        }
+      ]
+    }
+  ],
+  "chief_launched": false,
+  "contract_schema_version": "openclaw_business_object_layer_audit_v0",
+  "coupa_accessed": false,
+  "email_accessed": false,
+  "generated_at": "2026-05-31T04:15:18+00:00",
+  "generated_by": "codex",
+  "git_push_performed": false,
+  "gmail_accessed": false,
+  "hermes_chief_implications": [
+    {
+      "implication_ref": "do_not_launch_chief_from_audit",
+      "source_ref": "Boundary for this task",
+      "summary": "Chief must not be launched by this audit; any Chief work should be a bounded build task with tests only."
+    },
+    {
+      "implication_ref": "drop_stale_candidate_selection_task",
+      "source_ref": "generated/read_models/live_arts_md_invoice_review_bundle.json",
+      "summary": "Hermes/Chief should stop treating Live Arts invoice candidate selection as unresolved; 2026-1001 is confirmed in the bundle."
+    },
+    {
+      "implication_ref": "prioritize_mac_helper_and_result_intake",
+      "source_ref": "generated/read_models/live_arts_md_invoice_review_bundle.json",
+      "summary": "The next real build pressure is Mac helper/permission architecture plus backend result intake/attachment promotion, not invoice selection."
+    },
+    {
+      "implication_ref": "keep_business_execution_blocked",
+      "source_ref": "generated/read_models/purpose_bound_automation_charter.json",
+      "summary": "Hermes may summarize and Chief may build tests/code, but no email, PDF export, Coupa, workbook, ledger, or production action is authorized here."
+    }
+  ],
+  "input_sources": {
+    "read_models": [
+      "generated/read_models/openclaw_estate_topology_registry.json",
+      "generated/read_models/openclaw_reference_resolver.json",
+      "generated/read_models/openclaw_change_sentinel.json",
+      "generated/read_models/openclaw_context_wiki_index.json",
+      "generated/read_models/live_arts_md_invoice_review_bundle.json",
+      "generated/read_models/invoice_review_bundle.json",
+      "generated/read_models/purpose_bound_automation_charter.json",
+      "generated/read_models/openclaw_service_supervision.json",
+      "generated/read_models/hermes_chief_build_handoff.json",
+      "generated/read_models/hermes_gravity_controller.json",
+      "generated/read_models/hermes_mission_sentinel.json"
+    ],
+    "source_evidence": {
+      "change_sentinel_source": true,
+      "context_wiki_compiler": true,
+      "context_wiki_tests": true,
+      "estate_topology_source": true,
+      "reference_resolver_source": true,
+      "request_response_service_template": true,
+      "service_keeper_source": true,
+      "service_supervision_source": true
+    },
+    "wiki_pages": [
+      "generated/wiki/openclaw/Build Order.md",
+      "generated/wiki/openclaw/Capital Hilton Invoice Workflow.md",
+      "generated/wiki/openclaw/Estate Topology.md",
+      "generated/wiki/openclaw/Evidence-Grounded Context Registry.md",
+      "generated/wiki/openclaw/Hermes and Chief.md",
+      "generated/wiki/openclaw/Known Unknowns.md",
+      "generated/wiki/openclaw/Live Arts MD Invoice Automation.md",
+      "generated/wiki/openclaw/Mac Edge Workers.md",
+      "generated/wiki/openclaw/README.md",
+      "generated/wiki/openclaw/Reference Resolver.md",
+      "generated/wiki/openclaw/System Overview.md"
+    ]
+  },
+  "ledger_mutated": false,
+  "lm_called": false,
+  "metadata_only": true,
+  "missing_evals": [
+    {
+      "eval_ref": "mac_pdf_helper_no_cell_read_eval",
+      "missing_eval": "Mock Mac helper package proves no workbook cell read, no workbook mutation, scoped output only.",
+      "status": "MISSING"
+    },
+    {
+      "eval_ref": "selected_pdf_result_intake_eval",
+      "missing_eval": "Synthetic selected_invoice_pdf_export_completed_candidate promotes a candidate artifact without marking attachment_ready prematurely.",
+      "status": "MISSING"
+    },
+    {
+      "eval_ref": "invalid_pdf_guardrail_eval",
+      "missing_eval": "7-page desktop PDF and 14-byte bridge placeholder never become selected invoice proof.",
+      "status": "MISSING"
+    },
+    {
+      "eval_ref": "manual_send_proof_promotion_eval",
+      "missing_eval": "Manual-send proof receipt moves proof state without claiming OpenClaw sent email.",
+      "status": "MISSING"
+    },
+    {
+      "eval_ref": "payment_watch_activation_eval",
+      "missing_eval": "Payment watch stays readiness-only until send/manual-send proof exists.",
+      "status": "MISSING"
+    },
+    {
+      "eval_ref": "recipient_guardian_clara_gate_eval",
+      "missing_eval": "Recipient confirmation and Guardian approval are required before Clara final draft/send readiness.",
+      "status": "MISSING"
+    },
+    {
+      "eval_ref": "capital_hilton_selection_coupa_eval",
+      "missing_eval": "Capital Hilton invoice period/Coupa proof/artifact linkage receipt flow blocks approval until complete.",
+      "status": "MISSING"
+    },
+    {
+      "eval_ref": "hermes_stale_blocker_regression_eval",
+      "missing_eval": "Hermes/Chief handoff cannot keep obsolete candidate-selection blockers after bundle selection is confirmed.",
+      "status": "MISSING"
+    },
+    {
+      "eval_ref": "registry_canonicality_eval",
+      "missing_eval": "Topology registry cannot mark review branch canonical on main without explicit merge/canonical evidence.",
+      "status": "MISSING"
+    },
+    {
+      "eval_ref": "service_supervision_reboot_smoke",
+      "missing_eval": "Reboot/linger/timer behavior verified in a controlled reboot smoke, not only live status.",
+      "status": "MISSING"
+    }
+  ],
+  "no_authority_flags": {
+    "browser_accessed": false,
+    "chief_launched": false,
+    "coupa_accessed": false,
+    "email_accessed": false,
+    "git_push_performed": false,
+    "gmail_accessed": false,
+    "ledger_mutated": false,
+    "lm_called": false,
+    "metadata_only": true,
+    "pdf_generated_or_exported": false,
+    "production_state_mutated": false,
+    "read_model_only": true,
+    "services_restarted": false,
+    "services_started": false,
+    "sqlite_registry_only": true,
+    "workbook_cells_read": false
+  },
+  "overall_score": 3.67,
+  "pdf_generated_or_exported": false,
+  "production_state_mutated": false,
+  "purpose": "Refresh the business-object implementation layer audit from current registries/read-models without live actions.",
+  "read_model_only": true,
+  "readiness": "READY_FOR_BUILD_PLANNING_NOT_EXECUTION",
+  "schema_version": "openclaw_business_object_layer_audit_read_model_v0",
+  "scorecard": [
+    {
+      "category": "Workflow Design",
+      "max_score": 5.0,
+      "rationale": "Live Arts and Capital Hilton have explicit rails, blockers, receipts, and safe actions, but Hermes/Chief still contains stale Live Arts candidate-selection blockers.",
+      "score": 4.0,
+      "source_refs": [
+        {
+          "note": "Selected invoice and PDF package rails.",
+          "path": "generated/read_models/live_arts_md_invoice_review_bundle.json"
+        },
+        {
+          "note": "Capital Hilton blocker and receipt rails.",
+          "path": "generated/read_models/invoice_review_bundle.json"
+        },
+        {
+          "note": "Stale candidate blocker still present.",
+          "path": "generated/read_models/hermes_mission_sentinel.json"
+        }
+      ],
+      "status": "STRONG_WITH_STALE_HANDOFFS"
+    },
+    {
+      "category": "Data Access",
+      "max_score": 5.0,
+      "rationale": "Registries, resolver, wiki, invoice bundles, and supervision read-models exist; bridge mirror and Mac-local paths remain unavailable or partial.",
+      "score": 3.5,
+      "source_refs": [
+        {
+          "note": "Resolver drift_count=0.",
+          "path": "generated/read_models/openclaw_reference_resolver.json"
+        },
+        {
+          "note": "Wiki pages=11.",
+          "path": "generated/read_models/openclaw_context_wiki_index.json"
+        }
+      ],
+      "status": "GOOD_LOCAL_READ_MODELS_BRIDGE_PARTIAL"
+    },
+    {
+      "category": "Authority",
+      "max_score": 5.0,
+      "rationale": "Business read-models and supervision carry no-live-action flags; Mac export package is scoped and no ledger/email/browser/workbook-cell authority is granted.",
+      "score": 4.5,
+      "source_refs": [
+        {
+          "note": "Mac package no_email=True no_ledger=True.",
+          "path": "generated/read_models/live_arts_md_invoice_review_bundle.json"
+        },
+        {
+          "note": "Startup readiness=READY.",
+          "path": "generated/read_models/openclaw_service_supervision.json"
+        }
+      ],
+      "status": "STRONG_DEFAULT_DENY"
+    },
+    {
+      "category": "Evals",
+      "max_score": 5.0,
+      "rationale": "Registry and monitor tests exist, but business-object end-to-end evals for Mac helper, PDF result intake, attachment promotion, manual proof, payment watch, and Capital Hilton proof are still missing.",
+      "score": 2.5,
+      "source_refs": [
+        {
+          "note": "Wiki compiler tests exist.",
+          "path": "tests/test_openclaw_context_wiki_compiler.py"
+        },
+        {
+          "note": "Service supervision tests exist.",
+          "path": "tests/test_openclaw_service_supervision.py"
+        }
+      ],
+      "status": "FOCUSED_TESTS_PRESENT_END_TO_END_GAPS"
+    },
+    {
+      "category": "Audit Trails & Recovery",
+      "max_score": 5.0,
+      "rationale": "Reference resolver, sentinel, service supervision, receipts, and invalid artifact guardrails are strong; stale Hermes/wiki claims and missing bridge mirror still need recovery paths.",
+      "score": 4.0,
+      "source_refs": [
+        {
+          "note": "Sentinel run_status=MATERIAL_CHANGE_DETECTED.",
+          "path": "generated/read_models/openclaw_change_sentinel.json"
+        },
+        {
+          "note": "Invalid PDF placeholders are explicitly not trusted.",
+          "path": "generated/read_models/live_arts_md_invoice_review_bundle.json"
+        }
+      ],
+      "status": "GOOD_RECEIPTS_AND_MONITORS_STALE_VIEWS"
+    },
+    {
+      "category": "Business Object Proximity",
+      "max_score": 5.0,
+      "rationale": "Live Arts has selected invoice and a scoped Mac PDF package ready, but attachment, recipient, approval, proof, payment, and ledger states remain gated; Capital Hilton is still selection/proof blocked.",
+      "score": 3.5,
+      "source_refs": [
+        {
+          "note": "PDF package status=PDF_EXPORT_PACKAGE_READY_FOR_MAC.",
+          "path": "generated/read_models/live_arts_md_invoice_review_bundle.json"
+        },
+        {
+          "note": "Capital Hilton status=READY_FOR_REVIEW_BLOCKED_FOR_SELECTION.",
+          "path": "generated/read_models/invoice_review_bundle.json"
+        }
+      ],
+      "status": "LIVE_ARTS_CLOSE_CAPITAL_HILTON_FARTHER"
+    }
+  ],
+  "services_restarted": false,
+  "services_started": false,
+  "source_truth_policy": {
+    "current_registries_and_read_models_are_inputs": true,
+    "generated_wiki_is_view_only": true,
+    "prior_audit_paths_compared": [],
+    "prior_audit_used_as_source_truth": false
+  },
+  "sqlite_registry_only": true,
+  "stale_claims_corrected": [
+    {
+      "claim_ref": "live_arts_candidate_unselected",
+      "corrected_current_claim": "2026-1001 \u2014 June 2026 Speaker Rental \u2014 $900",
+      "correction_status": "CORRECTED_IN_AUDIT_SOURCE_STILL_STALE",
+      "source_refs": [
+        {
+          "note": "",
+          "path": "generated/read_models/live_arts_md_invoice_review_bundle.json"
+        },
+        {
+          "note": "current_blockers=['invoice candidate not selected', 'invoice artifact/attachment not ready', 'recipient details unconfirmed', 'approval/send readiness disabled']",
+          "path": "generated/read_models/hermes_mission_sentinel.json"
+        }
+      ],
+      "stale_or_conflicting_claim": "Hermes/Chief still says the Live Arts invoice candidate is not selected."
+    },
+    {
+      "claim_ref": "pdf_package_missing_fields",
+      "corrected_current_claim": "pdf_export_package has invoice_id=2026-1001, selected_sheet_label=June 2026 Speaker Rental, output_bridge_path=/mnt/e/openclaw/artifacts/invoice_workbooks/live_arts_md/2026-1001/Invoice_2026-1001_Live_Arts_MD_June_2026_Speaker_Rental.pdf.",
+      "correction_status": "CORRECTED_IN_AUDIT_SOURCE_STILL_STALE",
+      "source_refs": [
+        {
+          "note": "invoice_artifact.pdf_export_package",
+          "path": "generated/read_models/live_arts_md_invoice_review_bundle.json"
+        }
+      ],
+      "stale_or_conflicting_claim": "Wiki contradiction says the PDF export package is missing invoice_id, selected_sheet_label, and output_bridge_path."
+    },
+    {
+      "claim_ref": "openclaw_eyes_registry_canonical_main",
+      "corrected_current_claim": "Treat openclaw-eyes system knowledge registry as PRESENT_ON_REVIEW_BRANCH / PENDING_REVIEW until merge/canonical evidence is deliberately recorded.",
+      "correction_status": "CONFLICT_RECORDED_UPSTREAM_REFRESH_REQUIRED",
+      "source_refs": [
+        {
+          "note": "",
+          "path": "generated/read_models/openclaw_estate_topology_registry.json"
+        },
+        {
+          "note": "",
+          "path": "generated/read_models/openclaw_reference_resolver.json"
+        }
+      ],
+      "stale_or_conflicting_claim": "Current estate/wiki generated state claims the system knowledge registry is canonical on openclaw-eyes main."
+    },
+    {
+      "claim_ref": "request_response_unstable",
+      "corrected_current_claim": "Service supervision reports READY and request-response ExecStart includes --watch-seconds 21600; core status={'last_keeper_action': 'NO_ACTION_REQUIRED', 'request_response_active': True, 'request_response_sub_state': 'running', 'sentinel_timer_active': True, 'sentinel_timer_sub_state': 'waiting', 'service_keeper_timer_active': True, 'service_keeper_timer_sub_state': 'waiting', 'unresolved_supervision_risks': []}.",
+      "correction_status": "CORRECTED",
+      "source_refs": [
+        {
+          "note": "",
+          "path": "generated/read_models/openclaw_service_supervision.json"
+        }
+      ],
+      "stale_or_conflicting_claim": "Request-response service restart churn is still the current blocker."
+    },
+    {
+      "claim_ref": "mac_export_completed",
+      "corrected_current_claim": "Live Arts backend PDF package is ready, but actual Mac export completion and selected artifact attachment are not confirmed.",
+      "correction_status": "CORRECTED",
+      "source_refs": [
+        {
+          "note": "",
+          "path": "generated/read_models/live_arts_md_invoice_review_bundle.json"
+        }
+      ],
+      "stale_or_conflicting_claim": "A ready Mac package or existing desktop PDF is proof of completed selected-invoice export."
+    },
+    {
+      "claim_ref": "ledger_ready",
+      "corrected_current_claim": "Ledger posting remains blocked/disallowed until send proof, payment confirmation, and explicit ledger receipts exist.",
+      "correction_status": "CORRECTED",
+      "source_refs": [
+        {
+          "note": "payment_watch",
+          "path": "generated/read_models/live_arts_md_invoice_review_bundle.json"
+        }
+      ],
+      "stale_or_conflicting_claim": "Ledger posting can proceed after invoice package readiness."
+    }
+  ],
+  "top_gaps": [
+    {
+      "build_bucket": "Now",
+      "gap": "Mac Excel helper / Access Broker permission path is unresolved; in-app Excel automation is blocked.",
+      "gap_ref": "mac_helper_permission_architecture",
+      "owner_hint": "MAC_APP",
+      "rank": 1,
+      "severity": "HIGH"
+    },
+    {
+      "build_bucket": "Now",
+      "gap": "Live Arts PDF package is ready, but selected_invoice_pdf_export_completed_candidate is missing.",
+      "gap_ref": "live_arts_pdf_export_completion",
+      "owner_hint": "MAC_APP+PC_BACKEND",
+      "rank": 2,
+      "severity": "HIGH"
+    },
+    {
+      "build_bucket": "Now",
+      "gap": "Live Arts attachment_ready remains false until valid export and operator review receipts exist.",
+      "gap_ref": "live_arts_attachment_ready",
+      "owner_hint": "PC_BACKEND",
+      "rank": 3,
+      "severity": "HIGH"
+    },
+    {
+      "build_bucket": "Next",
+      "gap": "Manual send metadata exists, but proof screenshot/ref is missing and file-backed proof is false.",
+      "gap_ref": "live_arts_manual_send_proof",
+      "owner_hint": "OPERATOR_PROOF",
+      "rank": 4,
+      "severity": "HIGH"
+    },
+    {
+      "build_bucket": "Next",
+      "gap": "Dane/Draper/Earnie email details are not confirmed; Winship copy is known only.",
+      "gap_ref": "live_arts_recipient_confirmation",
+      "owner_hint": "PC_BACKEND",
+      "rank": 5,
+      "severity": "HIGH"
+    },
+    {
+      "build_bucket": "Next",
+      "gap": "Guardian approval request is required but not created/ready for Live Arts.",
+      "gap_ref": "guardian_approval_not_created",
+      "owner_hint": "PC_BACKEND",
+      "rank": 6,
+      "severity": "HIGH"
+    },
+    {
+      "build_bucket": "Next",
+      "gap": "Clara drafts are preview/draft-only and not send-ready.",
+      "gap_ref": "clara_final_draft_blocked",
+      "owner_hint": "PC_BACKEND",
+      "rank": 7,
+      "severity": "MEDIUM"
+    },
+    {
+      "build_bucket": "Next",
+      "gap": "Payment watch is readiness-only until send/manual-send proof exists; no bank read or ledger match has run.",
+      "gap_ref": "payment_watch_readiness_only",
+      "owner_hint": "PC_BACKEND",
+      "rank": 8,
+      "severity": "MEDIUM"
+    },
+    {
+      "build_bucket": "Parked",
+      "gap": "Ledger posting remains explicitly disallowed and must stay parked until proof chain exists.",
+      "gap_ref": "ledger_posting_blocked",
+      "owner_hint": "LEDGER",
+      "rank": 9,
+      "severity": "HIGH"
+    },
+    {
+      "build_bucket": "Now",
+      "gap": "Hermes/Chief still list invoice candidate selection as blocking despite Live Arts confirmed selection.",
+      "gap_ref": "hermes_handoff_stale",
+      "owner_hint": "PC_BACKEND",
+      "rank": 10,
+      "severity": "MEDIUM"
+    },
+    {
+      "build_bucket": "Now",
+      "gap": "Topology/wiki claim canonical-on-main while current target posture is review branch pending review.",
+      "gap_ref": "openclaw_eyes_registry_branch_conflict",
+      "owner_hint": "PC_BACKEND",
+      "rank": 11,
+      "severity": "MEDIUM"
+    },
+    {
+      "build_bucket": "Next",
+      "gap": "Reference resolver marks estate topology read-model bridge mirror as MISSING.",
+      "gap_ref": "estate_bridge_mirror_missing",
+      "owner_hint": "BRIDGE_TRANSPORT",
+      "rank": 12,
+      "severity": "MEDIUM"
+    },
+    {
+      "build_bucket": "Later",
+      "gap": "Context wiki reports missing generated/system_knowledge/openclaw_system_knowledge_registry.* input.",
+      "gap_ref": "context_wiki_missing_system_registry",
+      "owner_hint": "PC_BACKEND",
+      "rank": 13,
+      "severity": "MEDIUM"
+    },
+    {
+      "build_bucket": "Later",
+      "gap": "Capital Hilton still needs invoice record/period selection, Coupa proof, recipients, and artifact linkage.",
+      "gap_ref": "capital_hilton_selection_and_coupa",
+      "owner_hint": "PC_BACKEND",
+      "rank": 14,
+      "severity": "MEDIUM"
+    },
+    {
+      "build_bucket": "Now",
+      "gap": "End-to-end business-object evals are missing for Mac helper, result intake, attachment promotion, proof, payment, and Capital Hilton.",
+      "gap_ref": "business_object_evals_missing",
+      "owner_hint": "PC_BACKEND",
+      "rank": 15,
+      "severity": "HIGH"
+    }
+  ],
+  "workbook_cells_read": false
+}
