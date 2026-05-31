@@ -5,6 +5,8 @@ CREATE TABLE reference_target (
     local_path TEXT NOT NULL,
     remote_url TEXT NOT NULL,
     branch TEXT NOT NULL,
+    mac_mirror_path TEXT NOT NULL,
+    mac_bridge_resolution_path TEXT NOT NULL,
     source_path TEXT NOT NULL,
     bridge_path TEXT NOT NULL,
     receipt_type TEXT NOT NULL,
@@ -18,7 +20,7 @@ CREATE TABLE reference_target (
 CREATE TABLE reference_resolution (
     resolution_ref TEXT PRIMARY KEY,
     target_ref TEXT NOT NULL REFERENCES reference_target(target_ref),
-    resolved_status TEXT NOT NULL CHECK(resolved_status IN ('RESOLVED', 'UNREACHABLE', 'DIRTY', 'DRIFT', 'MISSING', 'UNKNOWN')),
+    resolved_status TEXT NOT NULL CHECK(resolved_status IN ('RESOLVED_LOCAL', 'RESOLVED_REMOTE', 'RESOLVED_MAC_BRIDGE', 'LOCAL_PATH_UNREACHABLE', 'REMOTE_UNAVAILABLE', 'MAC_BRIDGE_UNAVAILABLE', 'UNREACHABLE', 'DRIFT', 'MISSING', 'UNKNOWN')),
     resolved_value TEXT NOT NULL,
     resolved_json TEXT NOT NULL,
     dirty_status TEXT NOT NULL,

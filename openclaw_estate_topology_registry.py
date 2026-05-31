@@ -42,7 +42,13 @@ STATUS_VALUES = (
     "PARTIAL",
     "UNKNOWN",
     "MISSING",
+    "RESOLVED_LOCAL",
+    "RESOLVED_REMOTE",
+    "RESOLVED_MAC_BRIDGE",
     "UNREACHABLE",
+    "LOCAL_PATH_UNREACHABLE",
+    "REMOTE_UNAVAILABLE",
+    "MAC_BRIDGE_UNAVAILABLE",
     "PRESENT_ON_REVIEW_BRANCH",
     "PENDING_REVIEW",
     "PLANNED",
@@ -434,26 +440,61 @@ def _system_knowledge_registry_branch_resolution(reference_resolver_payload: dic
 
 
 def _review_branch_status(branch_resolution: dict[str, Any]) -> str:
-    if branch_resolution.get("dirty_status") == "DIRTY" or branch_resolution.get("resolution_status") == "DIRTY":
+    if (
+        branch_resolution.get("dirty_status") == "DIRTY"
+        and branch_resolution.get("resolution_status") == "RESOLVED_LOCAL"
+    ):
         return "DIRTY"
-    return "PRESENT_ON_REVIEW_BRANCH" if branch_resolution.get("reachable") else "UNREACHABLE"
+    if branch_resolution.get("resolution_status") in {
+        "RESOLVED_LOCAL",
+        "RESOLVED_REMOTE",
+        "RESOLVED_MAC_BRIDGE",
+    }:
+        return "PRESENT_ON_REVIEW_BRANCH"
+    if branch_resolution.get("resolution_status") == "REMOTE_UNAVAILABLE":
+        return "REMOTE_UNAVAILABLE"
+    if branch_resolution.get("resolution_status") == "LOCAL_PATH_UNREACHABLE":
+        return "LOCAL_PATH_UNREACHABLE"
+    if branch_resolution.get("resolution_status") == "MAC_BRIDGE_UNAVAILABLE":
+        return "MAC_BRIDGE_UNAVAILABLE"
+    return "UNREACHABLE"
 
 
 def _review_branch_canonical_status(branch_resolution: dict[str, Any]) -> str:
-    return "PENDING_REVIEW" if branch_resolution.get("reachable") else "UNREACHABLE"
+    return "PENDING_REVIEW" if _review_branch_status(branch_resolution) in {
+        "PRESENT_ON_REVIEW_BRANCH",
+        "DIRTY",
+    } else _review_branch_status(branch_resolution)
 
 
 def source_of_truth_areas(reference_resolver_payload: dict[str, Any]) -> tuple[dict[str, Any], ...]:
     branch_resolution = _system_knowledge_registry_branch_resolution(reference_resolver_payload)
     branch_status = _review_branch_status(branch_resolution)
     canonical_status = _review_branch_canonical_status(branch_resolution)
+    resolution_status = branch_resolution.get("resolution_status", "UNREACHABLE")
     if branch_status == "UNREACHABLE":
         branch_ownership_rule = (
             "Review branch ref is configured, but the resolver cannot reach the branch from this machine."
         )
+    elif resolution_status == "REMOTE_UNAVAILABLE":
+        branch_ownership_rule = (
+            "Git remote branch is canonical, but remote resolution is unavailable from this machine."
+        )
     elif branch_status == "DIRTY":
         branch_ownership_rule = (
             "Review branch ref resolves, but the working copy is dirty; not canonical or merged to main."
+        )
+    elif resolution_status == "RESOLVED_REMOTE":
+        branch_ownership_rule = (
+            "Git remote branch is canonical and resolved by read-only remote inspection; Mac path is optional mirror."
+        )
+    elif resolution_status == "RESOLVED_LOCAL":
+        branch_ownership_rule = (
+            "Review branch resolved from a local working copy; canonical branch ref remains the source input."
+        )
+    elif resolution_status == "RESOLVED_MAC_BRIDGE":
+        branch_ownership_rule = (
+            "Review branch resolved from Mac-published bridge state; canonical branch ref remains the source input."
         )
     else:
         branch_ownership_rule = (
@@ -936,6 +977,20 @@ def build_openclaw_estate_topology_registry(
             "system_knowledge_registry_resolution_status": branch_resolution.get(
                 "resolution_status", "UNREACHABLE"
             ),
+            "system_knowledge_registry_resolution_source": branch_resolution.get(
+                "resolution_source", ""
+            ),
+            "system_knowledge_registry_local_status": branch_resolution.get("local_status", ""),
+            "system_knowledge_registry_remote_status": branch_resolution.get("remote_status", ""),
+            "system_knowledge_registry_mac_mirror_path": branch_resolution.get(
+                "mac_mirror_path", ""
+            ),
+            "system_knowledge_registry_mac_mirror_status": branch_resolution.get(
+                "mac_mirror_status", ""
+            ),
+            "system_knowledge_registry_mac_bridge_status": branch_resolution.get(
+                "mac_bridge_status", ""
+            ),
             "system_knowledge_registry_dirty_status": branch_resolution.get(
                 "dirty_status", "UNKNOWN"
             ),
@@ -1147,6 +1202,16 @@ def create_sqlite_registry(read_model: dict[str, Any], sqlite_path: str | Path) 
 
 
 def format_operator_read_model(read_model: dict[str, Any]) -> str:
+    summary = read_model["reference_resolver_summary"]
+    branch_line = (
+        "- System knowledge registry branch is present for review and remains pending, not canonical."
+    )
+    if summary.get("system_knowledge_registry_resolution_status") == "RESOLVED_REMOTE":
+        branch_line = (
+            "- System knowledge registry review branch resolves from the Git remote; Mac local path is optional mirror state."
+        )
+    elif summary.get("system_knowledge_registry_resolution_status") == "REMOTE_UNAVAILABLE":
+        branch_line = "- System knowledge registry review branch is configured, but the Git remote is unavailable."
     lines = [
         "# OpenClaw Estate Topology Registry",
         "",
@@ -1155,7 +1220,7 @@ def format_operator_read_model(read_model: dict[str, Any]) -> str:
         f"- Working copies: {read_model['repo_working_copy_count']}.",
         f"- Actual repos: {read_model['actual_repo_count']} ({', '.join(read_model['actual_repos'])}).",
         f"- Known unknowns: {read_model['known_unknown_count']}.",
-        "- System knowledge registry branch is present for review and remains pending, not canonical.",
+        branch_line,
         "- Older unreachable Codex Web commits remain recorded as artifacts, not source truth.",
         "",
         "Working Copies:",

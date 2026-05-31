@@ -16,20 +16,37 @@ def _areas_by_id(payload: dict) -> dict[str, dict]:
     return {area["area_id"]: area for area in payload["source_of_truth_areas"]}
 
 
-def _reference_payload(commit: str = FIXED_REVIEW_COMMIT, *, reachable: bool = True) -> dict:
-    status = "RESOLVED" if reachable else "UNREACHABLE"
+def _reference_payload(
+    commit: str = FIXED_REVIEW_COMMIT,
+    *,
+    resolution_status: str = "RESOLVED_REMOTE",
+) -> dict:
+    reachable = resolution_status in {
+        "RESOLVED_LOCAL",
+        "RESOLVED_REMOTE",
+        "RESOLVED_MAC_BRIDGE",
+    }
     return {
         "schema_version": "openclaw_reference_resolver_read_model_v0",
         "generated_at": FIXED_NOW,
         "git_branch_refs": [
             {
+                "target_ref": registry.OPENCLAW_EYES_SYSTEM_KNOWLEDGE_REVIEW_BRANCH_REF,
                 "repo_ref": registry.OPENCLAW_EYES_SYSTEM_KNOWLEDGE_REVIEW_BRANCH_REF,
                 "local_path": "/home/openclaw",
                 "remote_url": "https://github.com/WinshipWheatley/openclaw-eyes.git",
                 "branch": registry.OPENCLAW_EYES_SYSTEM_KNOWLEDGE_REVIEW_BRANCH,
                 "current_head_commit": commit if reachable else "",
                 "reachable": reachable,
-                "resolution_status": status,
+                "resolution_status": resolution_status,
+                "resolution_source": "configured_remote" if resolution_status == "RESOLVED_REMOTE" else "",
+                "local_status": "LOCAL_PATH_UNREACHABLE",
+                "remote_status": "RESOLVED_REMOTE"
+                if resolution_status == "RESOLVED_REMOTE"
+                else "REMOTE_UNAVAILABLE",
+                "mac_mirror_path": "/Users/hwinshipwheatley/Eyes",
+                "mac_mirror_status": "LOCAL_PATH_UNREACHABLE",
+                "mac_bridge_status": "MAC_BRIDGE_UNAVAILABLE",
                 "dirty_status": "CLEAN",
                 "dirty": False,
                 "last_resolved_at": FIXED_NOW,
@@ -258,6 +275,36 @@ def test_estate_registry_uses_branch_ref_as_canonical_and_generated_commit_field
     assert first_area["review_commit"] == first_commit
     assert second_area["review_commit"] == second_commit
     assert first_area["review_commit"] != second_area["review_commit"]
+
+
+def test_remote_unavailable_is_preserved_in_estate_registry():
+    payload = registry.build_openclaw_estate_topology_registry(
+        generated_at=FIXED_NOW,
+        reference_resolver_payload=_reference_payload(
+            "dddddddddddddddddddddddddddddddddddddddd",
+            resolution_status="REMOTE_UNAVAILABLE",
+        ),
+    )
+    areas = _areas_by_id(payload)
+    artifact = {
+        row["artifact_id"]: row for row in payload["codex_web_artifacts"]
+    }["openclaw_eyes_system_knowledge_registry_review_branch"]
+
+    assert areas["evidence_grounded_context_registry"]["status"] == "REMOTE_UNAVAILABLE"
+    assert areas["evidence_grounded_context_registry"]["review_commit"] == ""
+    assert artifact["status"] == "REMOTE_UNAVAILABLE"
+    assert payload["reference_resolver_summary"][
+        "system_knowledge_registry_resolution_status"
+    ] == "REMOTE_UNAVAILABLE"
+
+
+def test_mac_mirror_unreachable_is_represented_separately_from_remote_resolution():
+    payload = _build_payload()
+    summary = payload["reference_resolver_summary"]
+
+    assert summary["system_knowledge_registry_resolution_status"] == "RESOLVED_REMOTE"
+    assert summary["system_knowledge_registry_mac_mirror_status"] == "LOCAL_PATH_UNREACHABLE"
+    assert summary["system_knowledge_registry_resolution_source"] == "configured_remote"
 
 
 def test_registry_adds_no_runtime_or_external_authority():

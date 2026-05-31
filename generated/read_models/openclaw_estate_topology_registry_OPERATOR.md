@@ -5,7 +5,7 @@ Plain Summary:
 - Working copies: 5.
 - Actual repos: 3 (openclaw-eyes, openclaw-mission-control, openclaw-runtime).
 - Known unknowns: 7.
-- System knowledge registry branch is present for review and remains pending, not canonical.
+- System knowledge registry review branch resolves from the Git remote; Mac local path is optional mirror state.
 - Older unreachable Codex Web commits remain recorded as artifacts, not source truth.
 
 Working Copies:
@@ -24,7 +24,7 @@ Ownership Boundaries:
 - Request/Response service: `PC_BACKEND` / `CONFIRMED`. The request/response backend service code belongs in /home/openclaw.
 - Hermes: `PC_BACKEND` / `PARTIAL`. Hermes reads /home/openclaw first for estate-wide task planning unless runtime evidence says otherwise.
 - Chief/Guardian/Cassandra/Clara runtime: `RUNTIME_ACTORS` / `PARTIAL`. Runtime actor implementation is mapped to openclaw-runtime pending canonical-home decision.
-- Evidence-Grounded Context Registry: `PC_BACKEND_REVIEW_BRANCH` / `UNREACHABLE`. Review branch ref is configured, but the resolver cannot reach the branch from this machine.
+- Evidence-Grounded Context Registry: `PC_BACKEND_REVIEW_BRANCH` / `PRESENT_ON_REVIEW_BRANCH`. Git remote branch is canonical and resolved by read-only remote inspection; Mac path is optional mirror.
 - openclaw-eyes Mac repo: `EYES_CONTEXT_REPO` / `CONFIRMED`. Mac Eyes is context/mirror, not live backend unless later proven.
 - bridge/mirror transport: `BRIDGE_TRANSPORT` / `PARTIAL`. /mnt/e/openclaw <-> /Volumes/openclaw_e is transport, not source truth.
 

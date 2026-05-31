@@ -41,7 +41,7 @@ def _branch_target(repo: Path, *, branch: str = "main") -> resolver.ReferenceTar
         target_type="GIT_BRANCH",
         repo_ref="openclaw-eyes",
         local_path=repo.as_posix(),
-        remote_url="git@github.com:WinshipWheatley/openclaw-eyes.git",
+        remote_url="",
         branch=branch,
         canonical_input={
             "repo_ref": "openclaw-eyes",
@@ -92,12 +92,14 @@ def test_seed_target_records_openclaw_eyes_branch_as_canonical_ref():
     assert target["target_ref"] == "openclaw_eyes_registry_review_branch"
     assert target["target_type"] == "GIT_BRANCH"
     assert target["repo_ref"] == "openclaw-eyes"
-    assert target["local_path"] == "/Users/hwinshipwheatley/Eyes"
+    assert target["local_path"] == "/home/openclaw"
     assert target["remote_url"] == "git@github.com:WinshipWheatley/openclaw-eyes.git"
     assert target["branch"] == "codex/system-knowledge-registry-v0-local"
+    assert target["mac_mirror_path"] == "/Users/hwinshipwheatley/Eyes"
     assert canonical == {
         "branch": "codex/system-knowledge-registry-v0-local",
         "repo_ref": "openclaw-eyes",
+        "remote_url": "git@github.com:WinshipWheatley/openclaw-eyes.git",
     }
 
 
@@ -113,9 +115,10 @@ def test_generated_output_contains_resolved_current_head_commit(tmp_path):
     row = _resolution_by_target(payload, resolver.OPENCLAW_EYES_REGISTRY_REVIEW_BRANCH_TARGET_REF)
     resolved_json = json.loads(row["resolved_json"])
 
-    assert row["resolved_status"] == "RESOLVED"
+    assert row["resolved_status"] == "RESOLVED_LOCAL"
     assert row["resolved_value"] == expected
     assert resolved_json["current_head_commit"] == expected
+    assert resolved_json["resolution_source"] == "local_working_copy"
 
 
 def test_source_registry_does_not_hardcode_stale_commit_as_canonical_fact():
@@ -127,7 +130,117 @@ def test_source_registry_does_not_hardcode_stale_commit_as_canonical_fact():
     assert hardcoded_review_commit.search(resolver_source) is None
 
 
-def test_unreachable_branch_becomes_unreachable_not_invented(tmp_path):
+def test_mac_only_local_path_becomes_local_path_unreachable_from_pc():
+    target = resolver.ReferenceTargetSpec(
+        target_ref="mac_only_branch",
+        target_type="GIT_BRANCH",
+        repo_ref="openclaw-eyes",
+        local_path="/Users/hwinshipwheatley/Eyes",
+        branch="codex/system-knowledge-registry-v0-local",
+        owner_component="test",
+    )
+
+    payload = resolver.build_openclaw_reference_resolver(
+        generated_at=FIXED_NOW,
+        reference_targets=(target,),
+        reference_dependencies=(),
+    )
+    row = _resolution_by_target(payload, "mac_only_branch")
+    resolved_json = json.loads(row["resolved_json"])
+
+    assert row["resolved_status"] == "LOCAL_PATH_UNREACHABLE"
+    assert row["resolved_value"] == ""
+    assert resolved_json["local_status"] == "LOCAL_PATH_UNREACHABLE"
+    assert "local path" in row["error_message"].lower()
+
+
+def test_remote_branch_resolution_uses_read_only_remote_ref(tmp_path):
+    repo = _init_repo(tmp_path / "remote", branch="review")
+    expected = _git(repo, "rev-parse", "review")
+    target = resolver.ReferenceTargetSpec(
+        target_ref="remote_branch",
+        target_type="GIT_BRANCH",
+        repo_ref="openclaw-eyes",
+        local_path="",
+        remote_url=repo.as_posix(),
+        branch="review",
+        canonical_input={
+            "repo_ref": "openclaw-eyes",
+            "remote_url": repo.as_posix(),
+            "branch": "review",
+        },
+        owner_component="test",
+    )
+
+    payload = resolver.build_openclaw_reference_resolver(
+        generated_at=FIXED_NOW,
+        reference_targets=(target,),
+        reference_dependencies=(),
+    )
+    row = _resolution_by_target(payload, "remote_branch")
+    resolved_json = json.loads(row["resolved_json"])
+
+    assert row["resolved_status"] == "RESOLVED_REMOTE"
+    assert row["resolved_value"] == expected
+    assert resolved_json["resolution_source"] == "configured_remote"
+    assert resolved_json["remote_status"] == "RESOLVED_REMOTE"
+
+
+def test_local_and_remote_resolutions_are_distinguished(tmp_path):
+    local_repo = _init_repo(tmp_path / "local", branch="review")
+    remote_repo = _init_repo(tmp_path / "remote", branch="review")
+    local_target = resolver.ReferenceTargetSpec(
+        target_ref="local_branch",
+        target_type="GIT_BRANCH",
+        repo_ref="openclaw-eyes",
+        local_path=local_repo.as_posix(),
+        branch="review",
+        owner_component="test",
+    )
+    remote_target = resolver.ReferenceTargetSpec(
+        target_ref="remote_branch",
+        target_type="GIT_BRANCH",
+        repo_ref="openclaw-eyes",
+        remote_url=remote_repo.as_posix(),
+        branch="review",
+        owner_component="test",
+    )
+
+    payload = resolver.build_openclaw_reference_resolver(
+        generated_at=FIXED_NOW,
+        reference_targets=(local_target, remote_target),
+        reference_dependencies=(),
+    )
+
+    assert _resolution_by_target(payload, "local_branch")["resolved_status"] == "RESOLVED_LOCAL"
+    assert _resolution_by_target(payload, "remote_branch")["resolved_status"] == "RESOLVED_REMOTE"
+
+
+def test_unavailable_remote_becomes_remote_unavailable_not_invented(tmp_path):
+    missing_remote = tmp_path / "missing-remote"
+    target = resolver.ReferenceTargetSpec(
+        target_ref="missing_remote_branch",
+        target_type="GIT_BRANCH",
+        repo_ref="openclaw-eyes",
+        local_path="",
+        remote_url=missing_remote.as_posix(),
+        branch="review",
+        owner_component="test",
+    )
+
+    payload = resolver.build_openclaw_reference_resolver(
+        generated_at=FIXED_NOW,
+        reference_targets=(target,),
+        reference_dependencies=(),
+    )
+    row = _resolution_by_target(payload, "missing_remote_branch")
+
+    assert row["resolved_status"] == "REMOTE_UNAVAILABLE"
+    assert row["resolved_value"] == ""
+    assert "configured_remote" in row["error_message"]
+
+
+def test_existing_local_worktree_missing_branch_is_unreachable_not_path_unreachable(tmp_path):
     repo = _init_repo(tmp_path / "repo")
 
     payload = resolver.build_openclaw_reference_resolver(
@@ -136,8 +249,10 @@ def test_unreachable_branch_becomes_unreachable_not_invented(tmp_path):
         reference_dependencies=(),
     )
     row = _resolution_by_target(payload, resolver.OPENCLAW_EYES_REGISTRY_REVIEW_BRANCH_TARGET_REF)
+    resolved_json = json.loads(row["resolved_json"])
 
     assert row["resolved_status"] == "UNREACHABLE"
+    assert resolved_json["local_status"] == "UNREACHABLE"
     assert row["resolved_value"] == ""
 
 
@@ -152,7 +267,7 @@ def test_dirty_repo_becomes_dirty(tmp_path):
     )
     row = _resolution_by_target(payload, resolver.OPENCLAW_EYES_REGISTRY_REVIEW_BRANCH_TARGET_REF)
 
-    assert row["resolved_status"] == "DIRTY"
+    assert row["resolved_status"] == "RESOLVED_LOCAL"
     assert row["dirty_status"] == "DIRTY"
     assert row["resolved_value"] == _git(repo, "rev-parse", "main")
 
@@ -206,7 +321,21 @@ def test_estate_topology_registry_consumes_resolver_output(tmp_path):
 
 def test_changing_mocked_branch_head_changes_generated_output(tmp_path):
     repo = _init_repo(tmp_path / "repo", branch="codex/system-knowledge-registry-v0-local")
-    target = _branch_target(repo, branch="codex/system-knowledge-registry-v0-local")
+    target = resolver.ReferenceTargetSpec(
+        target_ref=resolver.OPENCLAW_EYES_REGISTRY_REVIEW_BRANCH_TARGET_REF,
+        target_type="GIT_BRANCH",
+        repo_ref="openclaw-eyes",
+        local_path="",
+        remote_url=repo.as_posix(),
+        branch="codex/system-knowledge-registry-v0-local",
+        canonical_input={
+            "repo_ref": "openclaw-eyes",
+            "remote_url": repo.as_posix(),
+            "branch": "codex/system-knowledge-registry-v0-local",
+        },
+        refresh_policy="ON_EXPORT",
+        owner_component="openclaw_estate_topology_registry",
+    )
 
     first = resolver.build_openclaw_reference_resolver(
         generated_at=FIXED_NOW,

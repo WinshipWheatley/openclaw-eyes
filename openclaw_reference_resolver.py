@@ -50,9 +50,13 @@ TARGET_TYPES = (
 )
 
 RESOLVED_STATUSES = (
-    "RESOLVED",
+    "RESOLVED_LOCAL",
+    "RESOLVED_REMOTE",
+    "RESOLVED_MAC_BRIDGE",
+    "LOCAL_PATH_UNREACHABLE",
+    "REMOTE_UNAVAILABLE",
+    "MAC_BRIDGE_UNAVAILABLE",
     "UNREACHABLE",
-    "DIRTY",
     "DRIFT",
     "MISSING",
     "UNKNOWN",
@@ -93,6 +97,8 @@ class ReferenceTargetSpec:
     local_path: str = ""
     remote_url: str = ""
     branch: str = ""
+    mac_mirror_path: str = ""
+    mac_bridge_resolution_path: str = ""
     source_path: str = ""
     bridge_path: str = ""
     receipt_type: str = ""
@@ -130,11 +136,13 @@ DEFAULT_REFERENCE_TARGETS = (
         target_ref=OPENCLAW_EYES_REGISTRY_REVIEW_BRANCH_TARGET_REF,
         target_type="GIT_BRANCH",
         repo_ref="openclaw-eyes",
-        local_path="/Users/hwinshipwheatley/Eyes",
+        local_path="/home/openclaw",
         remote_url="git@github.com:WinshipWheatley/openclaw-eyes.git",
         branch=OPENCLAW_EYES_SYSTEM_KNOWLEDGE_REVIEW_BRANCH,
+        mac_mirror_path="/Users/hwinshipwheatley/Eyes",
         canonical_input={
             "repo_ref": "openclaw-eyes",
+            "remote_url": "git@github.com:WinshipWheatley/openclaw-eyes.git",
             "branch": OPENCLAW_EYES_SYSTEM_KNOWLEDGE_REVIEW_BRANCH,
         },
         refresh_policy="ON_EXPORT",
@@ -210,17 +218,27 @@ def sha256_file(path: str | Path) -> str:
     return "sha256:" + digest.hexdigest()
 
 
-def _git(args: list[str], *, cwd: str | Path, timeout_seconds: int = 12) -> tuple[int, str, str]:
-    if not args or args[0] not in {"rev-parse", "status"}:
-        raise ValueError("reference resolver only allows read-only local git inspection commands")
-    completed = subprocess.run(
-        ["git", *args],
-        cwd=str(cwd),
-        check=False,
-        capture_output=True,
-        text=True,
-        timeout=timeout_seconds,
-    )
+def _git(
+    args: list[str],
+    *,
+    cwd: str | Path | None = None,
+    timeout_seconds: int = 12,
+) -> tuple[int, str, str]:
+    if not args or args[0] not in {"rev-parse", "status", "ls-remote"}:
+        raise ValueError("reference resolver only allows read-only git inspection commands")
+    try:
+        completed = subprocess.run(
+            ["git", *args],
+            cwd=str(cwd) if cwd is not None else None,
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=timeout_seconds,
+        )
+    except subprocess.TimeoutExpired as exc:
+        stdout = exc.stdout.decode("utf-8", errors="replace") if isinstance(exc.stdout, bytes) else (exc.stdout or "")
+        stderr = exc.stderr.decode("utf-8", errors="replace") if isinstance(exc.stderr, bytes) else (exc.stderr or "")
+        return 124, stdout.strip(), stderr.strip() or f"git {' '.join(args)} timed out"
     return completed.returncode, completed.stdout.strip(), completed.stderr.strip()
 
 
@@ -232,6 +250,8 @@ def reference_target_record(spec: ReferenceTargetSpec) -> dict[str, Any]:
             "local_path": spec.local_path,
             "remote_url": spec.remote_url,
             "branch": spec.branch,
+            "mac_mirror_path": spec.mac_mirror_path,
+            "mac_bridge_resolution_path": spec.mac_bridge_resolution_path,
             "source_path": spec.source_path,
             "bridge_path": spec.bridge_path,
             "receipt_type": spec.receipt_type,
@@ -245,6 +265,8 @@ def reference_target_record(spec: ReferenceTargetSpec) -> dict[str, Any]:
         "local_path": spec.local_path,
         "remote_url": spec.remote_url,
         "branch": spec.branch,
+        "mac_mirror_path": spec.mac_mirror_path,
+        "mac_bridge_resolution_path": spec.mac_bridge_resolution_path,
         "source_path": spec.source_path,
         "bridge_path": spec.bridge_path,
         "receipt_type": spec.receipt_type,
@@ -267,9 +289,11 @@ def reference_dependency_record(spec: ReferenceDependencySpec) -> dict[str, Any]
 
 
 def _dirty_status(local_path: str) -> tuple[str, str]:
+    if not local_path:
+        return "UNKNOWN", "local path not configured"
     path = _rooted(local_path)
     if not path.exists():
-        return "UNKNOWN", "local path does not exist"
+        return "LOCAL_PATH_UNREACHABLE", "local path does not exist"
     code, stdout, stderr = _git(["status", "--porcelain"], cwd=path)
     if code != 0:
         return "UNKNOWN", stderr or "git status failed"
@@ -279,6 +303,8 @@ def _dirty_status(local_path: str) -> tuple[str, str]:
 
 
 def _local_branch_head(local_path: str, branch: str) -> tuple[bool, str, str]:
+    if not local_path:
+        return False, "", "local path not configured"
     path = _rooted(local_path)
     if not path.exists():
         return False, "", "local path does not exist"
@@ -287,6 +313,75 @@ def _local_branch_head(local_path: str, branch: str) -> tuple[bool, str, str]:
         if code == 0 and stdout:
             return True, stdout.splitlines()[0], ""
     return False, "", f"local branch not reachable: {branch}"
+
+
+def _github_ssh_to_https(remote_url: str) -> str:
+    prefix = "git@github.com:"
+    if remote_url.startswith(prefix):
+        return "https://github.com/" + remote_url[len(prefix) :]
+    return ""
+
+
+def _remote_branch_head(remote_url: str, branch: str) -> tuple[bool, str, str, str]:
+    if not remote_url:
+        return False, "", "", "remote URL not configured"
+    attempted: list[tuple[str, str]] = [("configured_remote", remote_url)]
+    equivalent = _github_ssh_to_https(remote_url)
+    if equivalent and equivalent != remote_url:
+        attempted.append(("readonly_equivalent", equivalent))
+    errors: list[str] = []
+    for source, url in attempted:
+        code, stdout, stderr = _git(["ls-remote", "--heads", url, branch], timeout_seconds=12)
+        if code == 0 and stdout:
+            first_line = stdout.splitlines()[0]
+            parts = first_line.split()
+            commit = parts[0] if parts else ""
+            if commit:
+                return True, commit, source, ""
+        errors.append(f"{source}: {stderr or 'remote branch not found'}")
+    return False, "", "", "; ".join(errors) or "remote branch not reachable"
+
+
+def _mac_bridge_branch_head(path_value: str) -> tuple[bool, str, str]:
+    if not path_value:
+        return False, "", "Mac bridge resolution path not configured"
+    path = _rooted(path_value)
+    if not path.is_file():
+        return False, "", "Mac bridge resolution file missing"
+    payload = _read_json_object(path)
+    commit = str(
+        payload.get("current_head_commit")
+        or payload.get("commit")
+        or payload.get("resolved_value")
+        or ""
+    )
+    if not commit:
+        return False, "", "Mac bridge resolution file did not include a commit"
+    return True, commit, ""
+
+
+def _mac_mirror_status(mac_mirror_path: str) -> tuple[str, str]:
+    if not mac_mirror_path:
+        return "UNKNOWN", "Mac mirror path not configured"
+    path = _rooted(mac_mirror_path)
+    if not path.exists():
+        return "LOCAL_PATH_UNREACHABLE", "Mac mirror path is not reachable from this machine"
+    return "REACHABLE", ""
+
+
+def _local_branch_status(
+    *,
+    local_path: str,
+    local_reachable: bool,
+    dirty_status: str,
+) -> str:
+    if local_reachable:
+        return "RESOLVED_LOCAL"
+    if not local_path:
+        return "UNKNOWN"
+    if dirty_status == "LOCAL_PATH_UNREACHABLE":
+        return "LOCAL_PATH_UNREACHABLE"
+    return "UNREACHABLE"
 
 
 def _resolution_ref(target_ref: str) -> str:
@@ -316,17 +411,53 @@ def _resolution_row(
 
 
 def _resolve_git_branch(spec: ReferenceTargetSpec, *, resolved_at: str) -> dict[str, Any]:
+    mac_mirror_status, mac_mirror_error = _mac_mirror_status(spec.mac_mirror_path)
     dirty_status, dirty_error = _dirty_status(spec.local_path)
-    reachable, commit, branch_error = _local_branch_head(spec.local_path, spec.branch)
-    if not reachable:
-        status = "UNREACHABLE"
-        error = branch_error or dirty_error
-    elif dirty_status == "DIRTY":
-        status = "DIRTY"
-        error = dirty_error
-    else:
-        status = "RESOLVED"
+    local_reachable, local_commit, local_error = _local_branch_head(spec.local_path, spec.branch)
+    local_status = _local_branch_status(
+        local_path=spec.local_path,
+        local_reachable=local_reachable,
+        dirty_status=dirty_status,
+    )
+    remote_reachable, remote_commit, remote_source, remote_error = _remote_branch_head(
+        spec.remote_url,
+        spec.branch,
+    )
+    bridge_reachable, bridge_commit, bridge_error = _mac_bridge_branch_head(
+        spec.mac_bridge_resolution_path
+    )
+    resolution_source = ""
+    if local_reachable:
+        status = "RESOLVED_LOCAL"
+        commit = local_commit
+        resolution_source = "local_working_copy"
+        error = dirty_error if dirty_status == "DIRTY" else ""
+    elif remote_reachable:
+        status = "RESOLVED_REMOTE"
+        commit = remote_commit
+        resolution_source = remote_source or "remote"
         error = ""
+    elif bridge_reachable:
+        status = "RESOLVED_MAC_BRIDGE"
+        commit = bridge_commit
+        resolution_source = "mac_bridge"
+        error = ""
+    elif spec.remote_url:
+        status = "REMOTE_UNAVAILABLE"
+        commit = ""
+        error = remote_error
+    elif spec.local_path:
+        status = local_status
+        commit = ""
+        error = local_error or dirty_error
+    elif spec.mac_bridge_resolution_path:
+        status = "MAC_BRIDGE_UNAVAILABLE"
+        commit = ""
+        error = bridge_error
+    else:
+        status = "UNKNOWN"
+        commit = ""
+        error = "no local path, remote URL, or Mac bridge resolution path configured"
     payload = {
         "target_ref": spec.target_ref,
         "target_type": spec.target_type,
@@ -334,8 +465,20 @@ def _resolve_git_branch(spec: ReferenceTargetSpec, *, resolved_at: str) -> dict[
         "local_path": spec.local_path,
         "remote_url": spec.remote_url,
         "branch": spec.branch,
-        "current_head_commit": commit if reachable else "",
-        "reachable": reachable,
+        "mac_mirror_path": spec.mac_mirror_path,
+        "mac_bridge_resolution_path": spec.mac_bridge_resolution_path,
+        "current_head_commit": commit,
+        "reachable": status in {"RESOLVED_LOCAL", "RESOLVED_REMOTE", "RESOLVED_MAC_BRIDGE"},
+        "resolution_source": resolution_source,
+        "local_status": local_status,
+        "local_error": "" if local_reachable else local_error,
+        "remote_status": "RESOLVED_REMOTE" if remote_reachable else "REMOTE_UNAVAILABLE",
+        "remote_error": "" if remote_reachable else remote_error,
+        "remote_resolution_source": remote_source,
+        "mac_mirror_status": mac_mirror_status,
+        "mac_mirror_error": mac_mirror_error,
+        "mac_bridge_status": "RESOLVED_MAC_BRIDGE" if bridge_reachable else "MAC_BRIDGE_UNAVAILABLE",
+        "mac_bridge_error": "" if bridge_reachable else bridge_error,
         "dirty_status": dirty_status,
         "resolved_status": status,
         "resolved_at": resolved_at,
@@ -343,7 +486,7 @@ def _resolve_git_branch(spec: ReferenceTargetSpec, *, resolved_at: str) -> dict[
     return _resolution_row(
         target_ref=spec.target_ref,
         resolved_status=status,
-        resolved_value=commit if reachable else "",
+        resolved_value=commit,
         resolved_payload=payload,
         dirty_status=dirty_status,
         error_message=error,
@@ -363,7 +506,7 @@ def _resolve_read_model_mirror(spec: ReferenceTargetSpec, *, resolved_at: str) -
         status = "DRIFT"
         error = "source and bridge hashes differ"
     elif source_exists and bridge_exists:
-        status = "RESOLVED"
+        status = "RESOLVED_LOCAL"
         error = ""
     elif source_exists or bridge_exists:
         status = "MISSING"
@@ -432,7 +575,7 @@ def _resolve_workflow_receipt(spec: ReferenceTargetSpec, *, resolved_at: str) ->
             or payload.get("source_request_id")
             or ""
         )
-    status = "RESOLVED" if pointer else ("MISSING" if target_path else "UNKNOWN")
+    status = "RESOLVED_LOCAL" if pointer else ("MISSING" if target_path else "UNKNOWN")
     resolved_payload = {
         "target_ref": spec.target_ref,
         "target_type": spec.target_type,
@@ -459,7 +602,7 @@ def _resolve_artifact(spec: ReferenceTargetSpec, *, resolved_at: str) -> dict[st
     candidate_paths = [spec.local_path, spec.source_path, spec.bridge_path]
     primary = next((_rooted(path) for path in candidate_paths if path and _rooted(path).is_file()), None)
     digest = sha256_file(primary) if primary else ""
-    status = "RESOLVED" if primary else "MISSING"
+    status = "RESOLVED_LOCAL" if primary else "MISSING"
     resolved_payload = {
         "target_ref": spec.target_ref,
         "target_type": spec.target_type,
@@ -531,7 +674,7 @@ def _resolution_run(
         "completed_at": completed_at,
         "targets_checked": targets_checked,
         "drift_count": drift_count,
-        "status": "DRIFT" if drift_count else "RESOLVED",
+        "status": "DRIFT" if drift_count else "RESOLVED_LOCAL",
     }
 
 
@@ -569,8 +712,9 @@ def build_openclaw_reference_resolver(
             "Canonical sources store stable refs.",
             "Generated read-models store resolved values.",
             "Do not manually hardcode branch commit hashes as source truth.",
-            "If a repo or branch cannot be reached, mark UNREACHABLE and leave the resolved value blank.",
-            "If a working copy is dirty, mark DIRTY.",
+            "Resolve Git branches from local working copy, read-only remote, then Mac bridge when configured.",
+            "If a repo or branch cannot be reached, mark the exact unavailable path and leave the resolved value blank.",
+            "If a working copy is dirty, record dirty_status=DIRTY without copying it as source truth.",
             "If source and bridge hashes differ, mark DRIFT.",
         ],
         "target_type_values": list(TARGET_TYPES),
@@ -606,14 +750,22 @@ def _git_branch_compat_rows(
         rows.append(
             {
                 "target_ref": target["target_ref"],
-                "repo_ref": target["target_ref"],
+                "repo_ref": target.get("repo_ref", ""),
                 "repo_name": target.get("repo_ref", ""),
                 "local_path": target.get("local_path", ""),
                 "remote_url": target.get("remote_url", ""),
                 "branch": target.get("branch", ""),
+                "mac_mirror_path": target.get("mac_mirror_path", ""),
+                "mac_bridge_resolution_path": target.get("mac_bridge_resolution_path", ""),
                 "current_head_commit": resolution["resolved_value"],
-                "reachable": resolution["resolved_status"] in {"RESOLVED", "DIRTY"},
+                "reachable": resolution["resolved_status"]
+                in {"RESOLVED_LOCAL", "RESOLVED_REMOTE", "RESOLVED_MAC_BRIDGE"},
                 "resolution_status": resolution["resolved_status"],
+                "resolution_source": resolved_json.get("resolution_source", ""),
+                "local_status": resolved_json.get("local_status", ""),
+                "remote_status": resolved_json.get("remote_status", ""),
+                "mac_mirror_status": resolved_json.get("mac_mirror_status", ""),
+                "mac_bridge_status": resolved_json.get("mac_bridge_status", ""),
                 "dirty_status": resolution["dirty_status"],
                 "dirty": resolution["dirty_status"] == "DIRTY",
                 "last_resolved_at": resolution["resolved_at"],
@@ -652,6 +804,8 @@ def sqlite_schema_sql() -> str:
     local_path TEXT NOT NULL,
     remote_url TEXT NOT NULL,
     branch TEXT NOT NULL,
+    mac_mirror_path TEXT NOT NULL,
+    mac_bridge_resolution_path TEXT NOT NULL,
     source_path TEXT NOT NULL,
     bridge_path TEXT NOT NULL,
     receipt_type TEXT NOT NULL,
