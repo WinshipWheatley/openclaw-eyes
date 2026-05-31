@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 import openclaw_authority_semantics_registry as authority_registry
+import simple_invoice_workflow_fixtures
 
 
 DEFAULT_EXPORT_ROOT = Path("generated/read_models")
@@ -144,6 +145,9 @@ WORKFLOW_STATUSES = (
 )
 
 WORKFLOW_PAYLOAD_SHAPE_REF = "openclaw_event_bridge.workflow_action_payload.v0"
+SIMPLE_INVOICE_EVENT_BRIDGE_PDF_ARTIFACT_RAIL_REF = "simple_invoice_event_bridge_pdf_artifact_rail_v0"
+SIMPLE_INVOICE_PREPARE_PDF_ACTION_KIND = "prepare_selected_invoice_pdf_artifact"
+SIMPLE_INVOICE_PDF_RESULT_ACTION_KIND = "selected_invoice_pdf_export_completed_candidate"
 WORKFLOW_PAYLOAD_FIELDS = (
     "payload_shape_ref",
     "authority_semantics_version",
@@ -460,6 +464,131 @@ def make_event_envelope(
     return asdict(envelope)
 
 
+def make_simple_invoice_prepare_pdf_event(
+    *,
+    client_ref: str,
+    workflow_ref: str,
+    thread_ref: str,
+    invoice_id: str,
+    selected_invoice_summary: str | None = None,
+    selected_sheet_label: str = "",
+    selected_page_label: str | None = None,
+    selected_print_areas: tuple[str, ...] = (),
+    source_workbook_mac_path: str = "",
+    output_bridge_path: str = "",
+    output_mac_path: str = "",
+    client_display_name: str = "",
+    source_channel: str = "MAC_APP",
+    event_kind: str = "WORKFLOW_ACTION_REQUEST",
+    event_id: str | None = None,
+    parent_event_id: str = "",
+    actor_ref: str = "operator:winship",
+    created_at: str | None = None,
+    expires_at: str | None = None,
+    telegram_command: str | None = None,
+) -> dict[str, Any]:
+    display_name = client_display_name or client_ref.replace("_", " ").title()
+    payload: dict[str, Any] = {
+        "rail_ref": SIMPLE_INVOICE_EVENT_BRIDGE_PDF_ARTIFACT_RAIL_REF,
+        "request_type": "INVOICE_REVIEW_ACTION_REQUEST",
+        "action_kind": SIMPLE_INVOICE_PREPARE_PDF_ACTION_KIND,
+        "intended_use": SIMPLE_INVOICE_PREPARE_PDF_ACTION_KIND,
+        "button_ref": f"{client_ref}.{SIMPLE_INVOICE_PREPARE_PDF_ACTION_KIND}",
+        "workflow_payload_shape_ref": WORKFLOW_PAYLOAD_SHAPE_REF,
+        "invoice_id": invoice_id,
+        "selected_invoice_summary": selected_invoice_summary,
+        "selected_sheet_label": selected_sheet_label,
+        "selected_page_label": selected_page_label,
+        "selected_print_areas": selected_print_areas,
+        "source_workbook_mac_path": source_workbook_mac_path,
+        "output_bridge_path": output_bridge_path,
+        "output_mac_path": output_mac_path,
+        "operator_copy": f"Prepare the scoped {display_name} invoice PDF package.",
+        "no_email_send": True,
+        "no_gmail": True,
+        "no_browser": True,
+        "no_ledger_post": True,
+        "no_coupa": True,
+        "no_workbook_cell_read": True,
+        "no_physical_printing": True,
+    }
+    if source_channel == "TELEGRAM" and telegram_command:
+        payload["command"] = telegram_command
+        payload["compact_surface"] = True
+    return make_event_envelope(
+        event_id=event_id,
+        event_kind=event_kind,
+        source_channel=source_channel,
+        client_ref=client_ref,
+        workflow_ref=workflow_ref,
+        world_ref="finance",
+        thread_ref=thread_ref,
+        actor_ref=actor_ref,
+        payload=payload,
+        parent_event_id=parent_event_id or f"current_{client_ref}_prepare_pdf_action",
+        created_at=created_at,
+        expires_at=expires_at,
+        expected_response_kind="WORKFLOW_ACTION_RESPONSE",
+        result_receipt_required=True,
+    )
+
+
+def make_simple_invoice_pdf_candidate_result_event(
+    *,
+    client_ref: str,
+    workflow_ref: str,
+    thread_ref: str,
+    invoice_id: str,
+    exported_pdf_mac_path: str,
+    artifact_filename: str,
+    receipt_ref: str,
+    client_display_name: str = "",
+    source_channel: str = "MAC_APP",
+    event_id: str | None = None,
+    parent_event_id: str = "",
+    actor_ref: str = "operator:winship",
+    created_at: str | None = None,
+    expires_at: str | None = None,
+) -> dict[str, Any]:
+    return make_event_envelope(
+        event_id=event_id,
+        event_kind="LOCAL_SURFACE_RESULT",
+        source_channel=source_channel,
+        client_ref=client_ref,
+        workflow_ref=workflow_ref,
+        world_ref="finance",
+        thread_ref=thread_ref,
+        actor_ref=actor_ref,
+        payload={
+            "rail_ref": SIMPLE_INVOICE_EVENT_BRIDGE_PDF_ARTIFACT_RAIL_REF,
+            "request_type": "LOCAL_SURFACE_RESULT",
+            "action_kind": SIMPLE_INVOICE_PDF_RESULT_ACTION_KIND,
+            "intended_use": SIMPLE_INVOICE_PDF_RESULT_ACTION_KIND,
+            "invoice_id": invoice_id,
+            "exported_pdf_mac_path": exported_pdf_mac_path,
+            "artifact_filename": artifact_filename,
+            "receipt_ref": receipt_ref,
+            "artifact_review_status": "OPERATOR_REVIEW_REQUIRED",
+            "attachment_ready": False,
+            "approval_ready": False,
+            "ledger_posting_allowed": False,
+            "client_display_name": client_display_name,
+            "no_email_send": True,
+            "no_gmail": True,
+            "no_browser": True,
+            "no_ledger_post": True,
+            "no_coupa": True,
+            "no_workbook_cell_read": True,
+            "no_physical_printing": True,
+        },
+        parent_event_id=parent_event_id or f"current_{client_ref}_prepare_pdf_action",
+        created_at=created_at,
+        expires_at=expires_at,
+        expected_response_kind="LOCAL_SURFACE_RESULT_RESPONSE",
+        result_receipt_required=True,
+    )
+
+
 def make_live_arts_prepare_pdf_event(
     *,
     source_channel: str = "MAC_APP",
@@ -469,38 +598,21 @@ def make_live_arts_prepare_pdf_event(
     created_at: str = "2026-05-31T14:00:00+00:00",
     expires_at: str = "2026-05-31T14:05:00+00:00",
 ) -> dict[str, Any]:
-    payload: dict[str, Any] = {
-        "request_type": "INVOICE_REVIEW_ACTION_REQUEST",
-        "action_kind": "prepare_selected_invoice_pdf_artifact",
-        "intended_use": "prepare_selected_invoice_pdf_artifact",
-        "button_ref": "live_arts_md.prepare_selected_invoice_pdf_artifact",
-        "workflow_payload_shape_ref": WORKFLOW_PAYLOAD_SHAPE_REF,
-        "invoice_id": "2026-1001",
-        "selected_sheet_label": "June 2026 Speaker Rental",
-        "selected_print_areas": ("A1:H42",),
-        "operator_copy": "Prepare the scoped Live Arts MD invoice PDF package.",
-        "no_email_send": True,
-        "no_ledger_post": True,
-        "no_workbook_cell_read": True,
-    }
-    if source_channel == "TELEGRAM":
-        payload["command"] = "/prepare_live_arts_pdf"
-        payload["compact_surface"] = True
-    return make_event_envelope(
+    return make_simple_invoice_prepare_pdf_event(
         event_id=event_id,
         event_kind=event_kind,
         source_channel=source_channel,
         client_ref="live_arts_md",
         workflow_ref="live_arts_md_invoice_workflow",
-        world_ref="finance",
         thread_ref="live_arts_md_invoice_workflow:2026-1001",
-        actor_ref="operator:winship",
-        payload=payload,
+        invoice_id="2026-1001",
+        selected_sheet_label="June 2026 Speaker Rental",
+        selected_print_areas=("A1:H42",),
+        client_display_name="Live Arts MD",
         parent_event_id=parent_event_id,
         created_at=created_at,
         expires_at=expires_at,
-        expected_response_kind="WORKFLOW_ACTION_RESPONSE",
-        result_receipt_required=True,
+        telegram_command="/prepare_live_arts_pdf",
     )
 
 
@@ -511,86 +623,96 @@ def make_live_arts_pdf_candidate_result_event(
     created_at: str = "2026-05-31T14:02:00+00:00",
     expires_at: str = "2026-05-31T14:07:00+00:00",
 ) -> dict[str, Any]:
-    return make_event_envelope(
+    return make_simple_invoice_pdf_candidate_result_event(
         event_id=event_id,
-        event_kind="LOCAL_SURFACE_RESULT",
         source_channel=source_channel,
         client_ref="live_arts_md",
         workflow_ref="live_arts_md_invoice_workflow",
-        world_ref="finance",
         thread_ref="live_arts_md_invoice_workflow:2026-1001",
-        actor_ref="operator:winship",
-        payload={
-            "request_type": "LOCAL_SURFACE_RESULT",
-            "action_kind": "selected_invoice_pdf_export_completed_candidate",
-            "intended_use": "selected_invoice_pdf_export_completed_candidate",
-            "invoice_id": "2026-1001",
-            "exported_pdf_mac_path": "/Users/winship/Desktop/Live Arts MD Invoice 2026-1001.pdf",
-            "artifact_filename": "Live Arts MD Invoice 2026-1001.pdf",
-            "receipt_ref": "pdf_export_candidate_receipt:live_arts_md:2026-1001",
-            "artifact_review_status": "OPERATOR_REVIEW_REQUIRED",
-            "attachment_ready": False,
-            "approval_ready": False,
-            "ledger_posting_allowed": False,
-            "no_email_send": True,
-            "no_ledger_post": True,
-            "no_workbook_cell_read": True,
-        },
+        invoice_id="2026-1001",
+        exported_pdf_mac_path="/Users/winship/Desktop/Live Arts MD Invoice 2026-1001.pdf",
+        artifact_filename="Live Arts MD Invoice 2026-1001.pdf",
+        receipt_ref="pdf_export_candidate_receipt:live_arts_md:2026-1001",
+        client_display_name="Live Arts MD",
         parent_event_id="current_live_arts_md_prepare_pdf_action",
         created_at=created_at,
         expires_at=expires_at,
-        expected_response_kind="LOCAL_SURFACE_RESULT_RESPONSE",
+    )
+
+
+def _simple_invoice_fixtures() -> tuple[simple_invoice_workflow_fixtures.SimpleInvoiceClientFixture, ...]:
+    return tuple(
+        fixture
+        for fixture in simple_invoice_workflow_fixtures.SIMPLE_INVOICE_WORKFLOW_FIXTURES.values()
+        if not fixture.allowed_send_coupa and not fixture.allowed_po
+    )
+
+
+def _simple_invoice_prepare_pdf_registration(
+    fixture: simple_invoice_workflow_fixtures.SimpleInvoiceClientFixture,
+) -> WorkflowActionRegistration:
+    return WorkflowActionRegistration(
+        handler_id=f"invoice_review_action_request.{fixture.client_ref}",
+        handler_label=f"{fixture.client_display_name} invoice review guided action",
+        action_kind=SIMPLE_INVOICE_PREPARE_PDF_ACTION_KIND,
+        request_type="INVOICE_REVIEW_ACTION_REQUEST",
+        event_kinds=("UI_BUTTON_CLICK", "WORKFLOW_ACTION_REQUEST", "TELEGRAM_COMMAND"),
+        source_channels=("MAC_APP", "TELEGRAM"),
+        world_refs=("finance",),
+        workflow_refs=(fixture.workflow_ref,),
+        client_refs=(fixture.client_ref,),
+        structured_action_kind="ROUTE_TO_WORKFLOW_ACTION",
+        expected_response_kind="WORKFLOW_ACTION_RESPONSE",
+        workflow_status="WORKFLOW_ACTION_ROUTED",
         result_receipt_required=True,
+        required_receipts=("selected_invoice_pdf_export_requested_receipt",),
+        result_intended_use=SIMPLE_INVOICE_PDF_RESULT_ACTION_KIND,
+        operator_copy=(
+            f"Routed {fixture.client_display_name} Prepare PDF to the workflow action payload. "
+            "No email, Gmail, browser, Coupa, ledger, workbook cell read, or printing authority is present."
+        ),
+        next_safe_move="Run the scoped Mac PDF export package, then return a candidate result receipt.",
+    )
+
+
+def _simple_invoice_pdf_result_registration(
+    fixture: simple_invoice_workflow_fixtures.SimpleInvoiceClientFixture,
+) -> WorkflowActionRegistration:
+    return WorkflowActionRegistration(
+        handler_id=f"selected_invoice_pdf_export_completed_candidate.{fixture.client_ref}",
+        handler_label=f"{fixture.client_display_name} PDF export candidate result",
+        action_kind=SIMPLE_INVOICE_PDF_RESULT_ACTION_KIND,
+        request_type="LOCAL_SURFACE_RESULT",
+        event_kinds=("LOCAL_SURFACE_RESULT", "ARTIFACT_RESULT"),
+        source_channels=("MAC_APP", "PC_SERVICE"),
+        world_refs=("finance",),
+        workflow_refs=(fixture.workflow_ref,),
+        client_refs=(fixture.client_ref,),
+        structured_action_kind="REPORT_RESULT_CANDIDATE",
+        expected_response_kind="LOCAL_SURFACE_RESULT_RESPONSE",
+        workflow_status="WORKFLOW_RESULT_CANDIDATE_RECORDED",
+        result_receipt_required=True,
+        required_receipts=("selected_invoice_pdf_export_completed_candidate_receipt",),
+        result_intended_use="operator_review_pdf_candidate",
+        operator_copy=(
+            f"Recorded a {fixture.client_display_name} PDF export candidate for operator review only. "
+            "Attachment, approval, send, ledger, and workbook-cell authority remain locked."
+        ),
+        next_safe_move="Review the PDF candidate and provide an approval receipt before any attachment or send step.",
     )
 
 
 def default_workflow_action_registrations() -> tuple[WorkflowActionRegistration, ...]:
-    live_arts_prepare_copy = (
-        "Routed Live Arts MD Prepare PDF to the workflow action payload. "
-        "No email, Gmail, browser, Coupa, ledger, workbook cell read, or printing authority is present."
+    simple_invoice_registrations = tuple(
+        registration
+        for fixture in _simple_invoice_fixtures()
+        for registration in (
+            _simple_invoice_prepare_pdf_registration(fixture),
+            _simple_invoice_pdf_result_registration(fixture),
+        )
     )
     return (
-        WorkflowActionRegistration(
-            handler_id="invoice_review_action_request.live_arts_md",
-            handler_label="Live Arts MD invoice review guided action",
-            action_kind="prepare_selected_invoice_pdf_artifact",
-            request_type="INVOICE_REVIEW_ACTION_REQUEST",
-            event_kinds=("UI_BUTTON_CLICK", "WORKFLOW_ACTION_REQUEST", "TELEGRAM_COMMAND"),
-            source_channels=("MAC_APP", "TELEGRAM"),
-            world_refs=("finance",),
-            workflow_refs=("live_arts_md_invoice_workflow",),
-            client_refs=("live_arts_md",),
-            structured_action_kind="ROUTE_TO_WORKFLOW_ACTION",
-            expected_response_kind="WORKFLOW_ACTION_RESPONSE",
-            workflow_status="WORKFLOW_ACTION_ROUTED",
-            result_receipt_required=True,
-            required_receipts=("selected_invoice_pdf_export_requested_receipt",),
-            result_intended_use="selected_invoice_pdf_export_completed_candidate",
-            operator_copy=live_arts_prepare_copy,
-            next_safe_move="Run the scoped Mac PDF export package, then return a candidate result receipt.",
-        ),
-        WorkflowActionRegistration(
-            handler_id="selected_invoice_pdf_export_completed_candidate.live_arts_md",
-            handler_label="Live Arts MD PDF export candidate result",
-            action_kind="selected_invoice_pdf_export_completed_candidate",
-            request_type="LOCAL_SURFACE_RESULT",
-            event_kinds=("LOCAL_SURFACE_RESULT", "ARTIFACT_RESULT"),
-            source_channels=("MAC_APP", "PC_SERVICE"),
-            world_refs=("finance",),
-            workflow_refs=("live_arts_md_invoice_workflow",),
-            client_refs=("live_arts_md",),
-            structured_action_kind="REPORT_RESULT_CANDIDATE",
-            expected_response_kind="LOCAL_SURFACE_RESULT_RESPONSE",
-            workflow_status="WORKFLOW_RESULT_CANDIDATE_RECORDED",
-            result_receipt_required=True,
-            required_receipts=("selected_invoice_pdf_export_completed_candidate_receipt",),
-            result_intended_use="operator_review_pdf_candidate",
-            operator_copy=(
-                "Recorded a Live Arts MD PDF export candidate for operator review only. "
-                "Attachment, approval, send, ledger, and workbook-cell authority remain locked."
-            ),
-            next_safe_move="Review the PDF candidate and provide an approval receipt before any attachment or send step.",
-        ),
+        *simple_invoice_registrations,
         WorkflowActionRegistration(
             handler_id="invoice_review_action_request.capital_hilton",
             handler_label="Capital Hilton invoice review guided action",
@@ -1181,6 +1303,9 @@ __all__ = [
     "WORKFLOW_PAYLOAD_FIELDS",
     "WORKFLOW_PAYLOAD_SHAPE_REF",
     "WORKFLOW_STATUSES",
+    "SIMPLE_INVOICE_EVENT_BRIDGE_PDF_ARTIFACT_RAIL_REF",
+    "SIMPLE_INVOICE_PDF_RESULT_ACTION_KIND",
+    "SIMPLE_INVOICE_PREPARE_PDF_ACTION_KIND",
     "build_contract_payload",
     "default_workflow_action_registrations",
     "event_scope_key",
@@ -1189,6 +1314,8 @@ __all__ = [
     "make_event_envelope",
     "make_live_arts_pdf_candidate_result_event",
     "make_live_arts_prepare_pdf_event",
+    "make_simple_invoice_pdf_candidate_result_event",
+    "make_simple_invoice_prepare_pdf_event",
     "no_authority_boundary",
     "route_event",
     "safety_flags",

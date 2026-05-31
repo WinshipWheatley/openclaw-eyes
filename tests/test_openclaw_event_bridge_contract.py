@@ -40,6 +40,33 @@ def test_mac_ui_button_event_routes_to_workflow_action():
     assert payload["required_receipts"] == ("selected_invoice_pdf_export_requested_receipt",)
 
 
+def test_simple_invoice_prepare_pdf_event_routes_for_st_annes_scope():
+    event = contract.make_simple_invoice_prepare_pdf_event(
+        client_ref="st_annes",
+        workflow_ref="st_annes_invoice_workflow",
+        thread_ref="st_annes_invoice_workflow:fixture_invoice",
+        invoice_id="fixture_invoice",
+        selected_invoice_summary="fixture_invoice - operator scoped invoice - UNKNOWN",
+        selected_sheet_label="Operator Scoped Invoice",
+        selected_page_label="page 1",
+        selected_print_areas=("Operator Scoped Invoice!A1:H42",),
+        source_workbook_mac_path="/Users/hwinshipwheatley/Documents/Invoices/Placeholder/Invoice ST Anne's Running.xlsx",
+        output_bridge_path="/mnt/e/openclaw/artifacts/invoice_workbooks/st_annes/fixture_invoice/fixture_invoice.pdf",
+        output_mac_path="scoped_st_annes_export/Operator_Scoped_Invoice/fixture_invoice.pdf",
+        client_display_name="St. Anne's",
+        created_at="2026-05-31T14:00:00+00:00",
+        expires_at="2026-05-31T14:05:00+00:00",
+    )
+    response = _route(event)
+    action = response["structured_actions"][0]
+
+    assert response["route_status"] == "ROUTE_MATCHED"
+    assert response["workflow_status"] == "WORKFLOW_ACTION_ROUTED"
+    assert action["handler_id"] == "invoice_review_action_request.st_annes"
+    assert action["workflow_payload"]["client_ref"] == "st_annes"
+    assert action["workflow_payload"]["payload"]["rail_ref"] == "simple_invoice_event_bridge_pdf_artifact_rail_v0"
+
+
 def test_telegram_command_event_uses_same_workflow_payload_shape():
     mac_event = contract.make_live_arts_prepare_pdf_event(source_channel="MAC_APP", event_kind="UI_BUTTON_CLICK")
     telegram_event = contract.make_live_arts_prepare_pdf_event(

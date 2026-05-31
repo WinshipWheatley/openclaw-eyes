@@ -127,6 +127,8 @@
 !openclaw_external_registry_materializer.py
 !openclaw_event_bridge_contract.py
 !openclaw_event_bridge_adapter.py
+!simple_invoice_workflow_fixtures.py
+!simple_invoice_event_bridge_rail_registry.py
 !AGENTS.md
 !OPENCLAW_RUNTIME.md
 !USER.md
@@ -783,6 +785,7 @@
 !scripts/export_operator_actions_read_model.py
 !scripts/export_operator_action_event_journal.py
 !scripts/export_openclaw_event_bridge_contract.py
+!scripts/export_simple_invoice_event_bridge_rail_registry.py
 !scripts/import_operator_action_request.py
 !scripts/query_operator_action_inbox.py
 !tests/test_corpus_atlas.py
@@ -1002,6 +1005,7 @@
 !tests/test_guided_capture_protected_evidence_path_contract.py
 !tests/test_openclaw_event_bridge_contract.py
 !tests/test_openclaw_event_bridge_adapter.py
+!tests/test_simple_invoice_event_bridge_rail_registry.py
 !tests/test_chief_offline_worker_adapter.py
 !tests/test_cassandra_clara_offline_worker_adapter.py
 !tests/test_reality_bounce_harness.py

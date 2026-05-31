@@ -18,6 +18,8 @@
 ## Registered Hot-Path Actions
 - invoice_review_action_request.live_arts_md: prepare_selected_invoice_pdf_artifact -> ROUTE_TO_WORKFLOW_ACTION
 - selected_invoice_pdf_export_completed_candidate.live_arts_md: selected_invoice_pdf_export_completed_candidate -> REPORT_RESULT_CANDIDATE
+- invoice_review_action_request.st_annes: prepare_selected_invoice_pdf_artifact -> ROUTE_TO_WORKFLOW_ACTION
+- selected_invoice_pdf_export_completed_candidate.st_annes: selected_invoice_pdf_export_completed_candidate -> REPORT_RESULT_CANDIDATE
 - invoice_review_action_request.capital_hilton: start_invoice_record_selection -> ROUTE_TO_WORKFLOW_ACTION
 
 ## Readiness

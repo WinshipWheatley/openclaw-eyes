@@ -13,6 +13,8 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Mapping
 
+import simple_invoice_workflow_fixtures
+
 
 SCHEMA_VERSION = "openclaw_request_router_v0"
 READ_MODEL_ID = "openclaw_request_router"
@@ -41,6 +43,15 @@ AUTHORITY_BOUNDARY = {
     "credential_handling_allowed": False,
     "response_publication_allowed": False,
 }
+
+SIMPLE_INVOICE_ACTION_INTENDED_USES = (
+    "replace_source_workbook_reference",
+    "start_invoice_record_selection",
+    "prepare_selected_invoice_pdf_artifact",
+    "review_and_confirm_recipients",
+    "show_approval_prerequisites",
+    "explain_invoice_review",
+)
 
 
 @dataclass(frozen=True)
@@ -197,7 +208,7 @@ def invoice_review_action_handlers() -> tuple[RequestHandlerRegistration, ...]:
         "adapter_available": True,
         "next_safe_move": "Start the guided invoice review fix path without external action authority.",
     }
-    return tuple(
+    capital_hilton_handlers = tuple(
         RequestHandlerRegistration(intended_use=intended_use, **common)
         for intended_use in (
             "confirm_source_workbook_reference",
@@ -216,28 +227,28 @@ def invoice_review_action_handlers() -> tuple[RequestHandlerRegistration, ...]:
             "confirm_invoice_review_candidate",
             "open_invoice_workbook_candidate",
         )
-    ) + tuple(
-        RequestHandlerRegistration(
-            request_kind="INVOICE_REVIEW_ACTION_REQUEST",
-            handler_id="invoice_review_action_request.live_arts_md",
-            handler_label="Live Arts MD invoice review guided action",
-            intended_use=intended_use,
-            world_refs=("finance",),
-            workflow_refs=("live_arts_md_invoice_workflow",),
-            client_refs=("live_arts_md",),
-            project_refs=(),
-            adapter_available=True,
-            next_safe_move="Start the guided simple invoice review fix path without external action authority.",
-        )
-        for intended_use in (
-            "replace_source_workbook_reference",
-            "start_invoice_record_selection",
-            "prepare_selected_invoice_pdf_artifact",
-            "review_and_confirm_recipients",
-            "show_approval_prerequisites",
-            "explain_invoice_review",
+    )
+    simple_invoice_handlers = tuple(
+        registration
+        for fixture in simple_invoice_workflow_fixtures.SIMPLE_INVOICE_WORKFLOW_FIXTURES.values()
+        if not fixture.allowed_send_coupa and not fixture.allowed_po
+        for registration in (
+            RequestHandlerRegistration(
+                request_kind="INVOICE_REVIEW_ACTION_REQUEST",
+                handler_id=f"invoice_review_action_request.{fixture.client_ref}",
+                handler_label=f"{fixture.client_display_name} invoice review guided action",
+                intended_use=intended_use,
+                world_refs=("finance",),
+                workflow_refs=(fixture.workflow_ref,),
+                client_refs=(fixture.client_ref,),
+                project_refs=(),
+                adapter_available=True,
+                next_safe_move="Start the guided simple invoice review fix path without external action authority.",
+            )
+            for intended_use in SIMPLE_INVOICE_ACTION_INTENDED_USES
         )
     )
+    return capital_hilton_handlers + simple_invoice_handlers
 
 
 def invoice_record_selection_result_handlers() -> tuple[RequestHandlerRegistration, ...]:
@@ -259,26 +270,25 @@ def invoice_record_selection_result_handlers() -> tuple[RequestHandlerRegistrati
 
 
 def selected_invoice_pdf_export_completed_result_handlers() -> tuple[RequestHandlerRegistration, ...]:
-    common = {
-        "handler_id": "selected_invoice_pdf_export_completed_candidate.live_arts_md",
-        "handler_label": "Live Arts PDF export completion result",
-        "intended_use": "selected_invoice_pdf_export_completed_candidate",
-        "world_refs": ("finance",),
-        "workflow_refs": ("live_arts_md_invoice_workflow",),
-        "client_refs": ("live_arts_md",),
-        "project_refs": (),
-        "adapter_available": True,
-        "next_safe_move": "Record the exported invoice PDF metadata and keep the result candidate-only until operator confirms attachment.",
-    }
-    return (
+    return tuple(
         RequestHandlerRegistration(
-            request_kind="INVOICE_REVIEW_ACTION_RESULT",
-            **common,
-        ),
-        RequestHandlerRegistration(
-            request_kind="LOCAL_SURFACE_RESULT",
-            **common,
-        ),
+            request_kind=request_kind,
+            handler_id=f"selected_invoice_pdf_export_completed_candidate.{fixture.client_ref}",
+            handler_label=f"{fixture.client_display_name} PDF export completion result",
+            intended_use="selected_invoice_pdf_export_completed_candidate",
+            world_refs=("finance",),
+            workflow_refs=(fixture.workflow_ref,),
+            client_refs=(fixture.client_ref,),
+            project_refs=(),
+            adapter_available=True,
+            next_safe_move=(
+                "Record the exported invoice PDF metadata and keep the result candidate-only "
+                "until operator confirms attachment."
+            ),
+        )
+        for fixture in simple_invoice_workflow_fixtures.SIMPLE_INVOICE_WORKFLOW_FIXTURES.values()
+        if not fixture.allowed_send_coupa and not fixture.allowed_po
+        for request_kind in ("INVOICE_REVIEW_ACTION_RESULT", "LOCAL_SURFACE_RESULT")
     )
 
 
