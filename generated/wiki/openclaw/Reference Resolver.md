@@ -6,11 +6,13 @@ Status: PARTIAL
 The resolver separates stable references from volatile resolved values and records drift, unreachable paths, dirty working copies, and mirror status.
 
 ## Confirmed facts
-- Reference targets: 2; resolutions: 2; drift_count: 0.
+- Reference targets: 3; resolutions: 3; drift_count: 0.
 - Stable refs live in canonical inputs; resolved volatile values live in generated read-models.
 - openclaw_eyes_registry_review_branch: branch=codex/system-knowledge-registry-v0-local, head=1a6b7b0b463968f3161e048bd7936dc06505a3bb, remote=RESOLVED_REMOTE, local=UNREACHABLE, dirty=DIRTY, Mac mirror=LOCAL_PATH_UNREACHABLE.
+- openclaw_eyes_main_branch: branch=main, head=1a6b7b0b463968f3161e048bd7936dc06505a3bb, remote=RESOLVED_REMOTE, local=UNKNOWN, dirty=UNKNOWN, Mac mirror=UNKNOWN.
 - Resolution openclaw_eyes_registry_review_branch: status=RESOLVED_REMOTE, value=1a6b7b0b463968f3161e048bd7936dc06505a3bb.
-- Resolution estate_topology_registry_read_model_mirror: status=MISSING, value=sha256:8b3e48e23dd812e3f2fe8178bee322c9e0557192aa7e48bb55734f1a811258c1.
+- Resolution estate_topology_registry_read_model_mirror: status=MISSING, value=sha256:1d1a95fb7e61b38703ce26c45895ed031f7b9aef329a8e3e4306d7e71711b8df.
+- Resolution openclaw_eyes_main_branch: status=RESOLVED_REMOTE, value=1a6b7b0b463968f3161e048bd7936dc06505a3bb.
 - Rule: Canonical sources store stable refs.
 - Rule: Generated read-models store resolved values.
 - Rule: Do not manually hardcode branch commit hashes as source truth.
@@ -26,6 +28,7 @@ The resolver separates stable references from volatile resolved values and recor
 - Reference target unavailable: estate_topology_registry_read_model_mirror resolved as MISSING.
 - Mac local path unreachable from PC: /Users/hwinshipwheatley/Eyes is marked LOCAL_PATH_UNREACHABLE.
 - Mac bridge unavailable: openclaw_eyes_registry_review_branch has mac_bridge_status=MAC_BRIDGE_UNAVAILABLE.
+- Mac bridge unavailable: openclaw_eyes_main_branch has mac_bridge_status=MAC_BRIDGE_UNAVAILABLE.
 
 ## Next useful actions
 - Resolve Mac bridge/mirror availability before trusting mirrored read-model state.
@@ -42,6 +45,6 @@ The resolver separates stable references from volatile resolved values and recor
 - generated/read_models/openclaw_reference_resolver.json (reference_resolver)
 - generated/read_models/openclaw_estate_topology_registry.json (estate_topology_registry)
 
-Last generated timestamp: 2026-05-31T03:40:20+00:00
+Last generated timestamp: 2026-05-31T04:09:25+00:00
 
 Generated understanding view. Registry/read-models/receipts remain source of truth.

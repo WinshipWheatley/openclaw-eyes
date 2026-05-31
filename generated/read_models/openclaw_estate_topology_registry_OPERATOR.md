@@ -4,8 +4,8 @@ Plain Summary:
 - Machines: 2 (`PC`, `Mac`).
 - Working copies: 5.
 - Actual repos: 3 (openclaw-eyes, openclaw-mission-control, openclaw-runtime).
-- Known unknowns: 7.
-- System knowledge registry review branch resolves from the Git remote; Mac local path is optional mirror state.
+- Known unknowns: 6.
+- System knowledge registry is canonical on openclaw-eyes main; the review branch remains historical evidence.
 - Older unreachable Codex Web commits remain recorded as artifacts, not source truth.
 
 Working Copies:
@@ -24,12 +24,11 @@ Ownership Boundaries:
 - Request/Response service: `PC_BACKEND` / `CONFIRMED`. The request/response backend service code belongs in /home/openclaw.
 - Hermes: `PC_BACKEND` / `PARTIAL`. Hermes reads /home/openclaw first for estate-wide task planning unless runtime evidence says otherwise.
 - Chief/Guardian/Cassandra/Clara runtime: `RUNTIME_ACTORS` / `PARTIAL`. Runtime actor implementation is mapped to openclaw-runtime pending canonical-home decision.
-- Evidence-Grounded Context Registry: `PC_BACKEND_REVIEW_BRANCH` / `PRESENT_ON_REVIEW_BRANCH`. Git remote branch is canonical and resolved by read-only remote inspection; Mac path is optional mirror.
+- Evidence-Grounded Context Registry: `PC_BACKEND_CANONICAL_MAIN` / `CANONICAL_ON_MAIN`. openclaw-eyes main is canonical for the system knowledge registry; review branch remains historical.
 - openclaw-eyes Mac repo: `EYES_CONTEXT_REPO` / `CONFIRMED`. Mac Eyes is context/mirror, not live backend unless later proven.
 - bridge/mirror transport: `BRIDGE_TRANSPORT` / `PARTIAL`. /mnt/e/openclaw <-> /Volumes/openclaw_e is transport, not source truth.
 
 Known Unknowns:
-- Where should the canonical system knowledge registry live?
 - Why Codex Web commits were not reachable from GitHub remotes.
 - Whether Mac app should get a GitHub remote and backup/PR flow.
 - Whether PC /home/openclaw and Mac /Users/.../Eyes should both track openclaw-eyes long-term.
@@ -41,7 +40,7 @@ Recommended Actions:
 - 1. Install estate topology registry in /home/openclaw.
 - 2. Mirror registry read-model to Mac.
 - 3. Add Mission Control app remote/back-up strategy.
-- 4. Keep system knowledge registry pending review until merged to main.
+- 4. Record system knowledge registry as canonical on openclaw-eyes main.
 - 5. Build cross-registry merge only after each repo's registry is reachable locally.
 - 6. Stabilize Mac app dirty state before further PDF trials.
 - 7. Keep Live Arts PDF export blocked until Mac permission/helper architecture is resolved.

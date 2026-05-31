@@ -760,6 +760,22 @@ def _change_row(
     }
 
 
+def _ignore_non_material_fingerprint_change(
+    current: dict[str, Any],
+    previous: dict[str, Any],
+) -> bool:
+    target_type = current.get("target_type", "")
+    if target_type == "SERVICE" and current.get("observation_status") == "UNKNOWN":
+        return True
+    if (
+        target_type == "MAC_HEARTBEAT"
+        and current.get("observed_value") == previous.get("observed_value")
+        and current.get("observation_status") == previous.get("observation_status")
+    ):
+        return True
+    return False
+
+
 def compare_observations(
     current_targets: list[dict[str, Any]],
     previous_snapshot: dict[str, Any] | None,
@@ -775,6 +791,8 @@ def compare_observations(
         if previous is None:
             continue
         if previous.get("fingerprint") != current.get("fingerprint"):
+            if _ignore_non_material_fingerprint_change(current, previous):
+                continue
             changes.append(_change_row(current=current, previous=previous, detected_at=detected_at))
     return changes
 

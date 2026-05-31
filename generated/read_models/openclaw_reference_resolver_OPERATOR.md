@@ -5,7 +5,8 @@ Purpose:
 
 Targets:
 - `openclaw_eyes_registry_review_branch` `GIT_BRANCH` -> `RESOLVED_REMOTE` `1a6b7b0b463968f3161e048bd7936dc06505a3bb`.
-- `estate_topology_registry_read_model_mirror` `READ_MODEL_MIRROR` -> `MISSING` `sha256:8b3e48e23dd812e3f2fe8178bee322c9e0557192aa7e48bb55734f1a811258c1`.
+- `estate_topology_registry_read_model_mirror` `READ_MODEL_MIRROR` -> `MISSING` `sha256:1d1a95fb7e61b38703ce26c45895ed031f7b9aef329a8e3e4306d7e71711b8df`.
+- `openclaw_eyes_main_branch` `GIT_BRANCH` -> `RESOLVED_REMOTE` `1a6b7b0b463968f3161e048bd7936dc06505a3bb`.
 
 Boundary:
 - Read-only Git inspection and file hashing only.

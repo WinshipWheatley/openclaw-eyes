@@ -20,38 +20,72 @@ def _reference_payload(
     commit: str = FIXED_REVIEW_COMMIT,
     *,
     resolution_status: str = "RESOLVED_REMOTE",
+    main_commit: str = "",
+    main_resolution_status: str = "UNREACHABLE",
 ) -> dict:
     reachable = resolution_status in {
         "RESOLVED_LOCAL",
         "RESOLVED_REMOTE",
         "RESOLVED_MAC_BRIDGE",
     }
-    return {
-        "schema_version": "openclaw_reference_resolver_read_model_v0",
-        "generated_at": FIXED_NOW,
-        "git_branch_refs": [
+    main_reachable = main_resolution_status in {
+        "RESOLVED_LOCAL",
+        "RESOLVED_REMOTE",
+        "RESOLVED_MAC_BRIDGE",
+    }
+    git_branch_refs = [
+        {
+            "target_ref": registry.OPENCLAW_EYES_SYSTEM_KNOWLEDGE_REVIEW_BRANCH_REF,
+            "repo_ref": registry.OPENCLAW_EYES_SYSTEM_KNOWLEDGE_REVIEW_BRANCH_REF,
+            "local_path": "/home/openclaw",
+            "remote_url": "https://github.com/WinshipWheatley/openclaw-eyes.git",
+            "branch": registry.OPENCLAW_EYES_SYSTEM_KNOWLEDGE_REVIEW_BRANCH,
+            "current_head_commit": commit if reachable else "",
+            "reachable": reachable,
+            "resolution_status": resolution_status,
+            "resolution_source": "configured_remote" if resolution_status == "RESOLVED_REMOTE" else "",
+            "local_status": "LOCAL_PATH_UNREACHABLE",
+            "remote_status": "RESOLVED_REMOTE"
+            if resolution_status == "RESOLVED_REMOTE"
+            else "REMOTE_UNAVAILABLE",
+            "mac_mirror_path": "/Users/hwinshipwheatley/Eyes",
+            "mac_mirror_status": "LOCAL_PATH_UNREACHABLE",
+            "mac_bridge_status": "MAC_BRIDGE_UNAVAILABLE",
+            "dirty_status": "CLEAN",
+            "dirty": False,
+            "last_resolved_at": FIXED_NOW,
+        }
+    ]
+    if main_resolution_status != "UNREACHABLE" or main_commit:
+        git_branch_refs.append(
             {
-                "target_ref": registry.OPENCLAW_EYES_SYSTEM_KNOWLEDGE_REVIEW_BRANCH_REF,
-                "repo_ref": registry.OPENCLAW_EYES_SYSTEM_KNOWLEDGE_REVIEW_BRANCH_REF,
-                "local_path": "/home/openclaw",
+                "target_ref": registry.OPENCLAW_EYES_MAIN_BRANCH_TARGET_REF,
+                "repo_ref": "openclaw-eyes-main",
+                "local_path": "",
                 "remote_url": "https://github.com/WinshipWheatley/openclaw-eyes.git",
-                "branch": registry.OPENCLAW_EYES_SYSTEM_KNOWLEDGE_REVIEW_BRANCH,
-                "current_head_commit": commit if reachable else "",
-                "reachable": reachable,
-                "resolution_status": resolution_status,
-                "resolution_source": "configured_remote" if resolution_status == "RESOLVED_REMOTE" else "",
+                "branch": registry.OPENCLAW_EYES_MAIN_BRANCH,
+                "current_head_commit": main_commit if main_reachable else "",
+                "reachable": main_reachable,
+                "resolution_status": main_resolution_status,
+                "resolution_source": "configured_remote"
+                if main_resolution_status == "RESOLVED_REMOTE"
+                else "",
                 "local_status": "LOCAL_PATH_UNREACHABLE",
                 "remote_status": "RESOLVED_REMOTE"
-                if resolution_status == "RESOLVED_REMOTE"
+                if main_resolution_status == "RESOLVED_REMOTE"
                 else "REMOTE_UNAVAILABLE",
-                "mac_mirror_path": "/Users/hwinshipwheatley/Eyes",
-                "mac_mirror_status": "LOCAL_PATH_UNREACHABLE",
-                "mac_bridge_status": "MAC_BRIDGE_UNAVAILABLE",
+                "mac_mirror_path": "",
+                "mac_mirror_status": "",
+                "mac_bridge_status": "",
                 "dirty_status": "CLEAN",
                 "dirty": False,
                 "last_resolved_at": FIXED_NOW,
             }
-        ],
+        )
+    return {
+        "schema_version": "openclaw_reference_resolver_read_model_v0",
+        "generated_at": FIXED_NOW,
+        "git_branch_refs": git_branch_refs,
     }
 
 
@@ -162,6 +196,52 @@ def test_known_unknowns_and_recommended_actions_are_complete():
     assert "mac_bridge_permission_model" in unknown_ids
     assert actions["install_estate_topology_registry"]["status"] == "CONFIRMED"
     assert actions["keep_live_arts_pdf_blocked_until_mac_architecture_resolved"]["status"] == "PLANNED"
+
+
+def test_matching_main_head_marks_system_knowledge_registry_canonical():
+    payload = registry.build_openclaw_estate_topology_registry(
+        generated_at=FIXED_NOW,
+        reference_resolver_payload=_reference_payload(
+            FIXED_REVIEW_COMMIT,
+            main_commit=FIXED_REVIEW_COMMIT,
+            main_resolution_status="RESOLVED_REMOTE",
+        ),
+    )
+    areas = _areas_by_id(payload)
+    registries = {row["registry_id"]: row for row in payload["registry_presence"]}
+    artifacts = {row["artifact_id"]: row for row in payload["codex_web_artifacts"]}
+    unknown_ids = {item["unknown_id"] for item in payload["known_unknowns"]}
+    actions = {item["action_id"]: item for item in payload["recommended_actions"]}
+    area = areas["evidence_grounded_context_registry"]
+    registry_row = registries["evidence_grounded_context_registry"]
+    artifact = artifacts["openclaw_eyes_system_knowledge_registry_review_branch"]
+    summary = payload["reference_resolver_summary"]
+
+    assert area["status"] == "CANONICAL_ON_MAIN"
+    assert area["current_state"] == "CANONICAL_ON_MAIN"
+    assert area["canonical_status"] == "CANONICAL"
+    assert area["owner_classification"] == "PC_BACKEND_CANONICAL_MAIN"
+    assert area["review_branch"] == "main"
+    assert area["review_commit"] == FIXED_REVIEW_COMMIT
+    assert "main is canonical" in area["ownership_rule"]
+    assert registry_row["status"] == "CANONICAL_ON_MAIN"
+    assert registry_row["canonical_status"] == "CANONICAL"
+    assert registry_row["branch_name"] == "main"
+    assert registry_row["commit_ref"] == FIXED_REVIEW_COMMIT
+    assert artifact["status"] == "CANONICAL_ON_MAIN"
+    assert artifact["canonical_status"] == "CANONICAL"
+    assert artifact["source_truth"] is True
+    assert artifact["branch_name"] == "main"
+    assert payload["known_unknown_count"] == 6
+    assert "canonical_system_knowledge_registry_home" not in unknown_ids
+    assert actions["record_system_knowledge_registry_canonical_main"]["status"] == "CONFIRMED"
+    assert summary["system_knowledge_registry_branch"] == "main"
+    assert summary["system_knowledge_registry_current_head_commit"] == FIXED_REVIEW_COMMIT
+    assert summary["system_knowledge_registry_current_state"] == "CANONICAL_ON_MAIN"
+    assert summary["system_knowledge_registry_canonical_status"] == "CANONICAL"
+    assert summary["system_knowledge_registry_main_contains_review_commit"] is True
+    assert summary["system_knowledge_registry_review_commit"] == FIXED_REVIEW_COMMIT
+    assert summary["system_knowledge_registry_main_commit"] == FIXED_REVIEW_COMMIT
 
 
 def test_export_writes_json_operator_sqlite_schema_and_seed(tmp_path, capsys):

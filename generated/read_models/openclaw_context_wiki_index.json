@@ -17,7 +17,7 @@
     "workbook_body_read": false,
     "workbook_cells_read": false
   },
-  "contradiction_count": 13,
+  "contradiction_count": 11,
   "contradictions": [
     {
       "detail": "Expected generated wiki input is missing: generated/system_knowledge/openclaw_system_knowledge_registry.*.",
@@ -48,6 +48,13 @@
       "title": "Mac bridge unavailable"
     },
     {
+      "detail": "openclaw_eyes_main_branch has mac_bridge_status=MAC_BRIDGE_UNAVAILABLE.",
+      "source_refs": [
+        "generated/read_models/openclaw_reference_resolver.json (reference_resolver)"
+      ],
+      "title": "Mac bridge unavailable"
+    },
+    {
       "detail": "openclaw-eyes commit 33e00a6 is recorded as unreachable.",
       "source_refs": [
         "generated/read_models/openclaw_estate_topology_registry.json (estate_topology_registry)"
@@ -60,27 +67,6 @@
         "generated/read_models/openclaw_estate_topology_registry.json (estate_topology_registry)"
       ],
       "title": "Codex Web commit unreachable"
-    },
-    {
-      "detail": "codex_web_artifacts.2 has mixed status fields: {'status': 'PRESENT_ON_REVIEW_BRANCH', 'canonical_status': 'PENDING_REVIEW'}.",
-      "source_refs": [
-        "generated/read_models/openclaw_estate_topology_registry.json (estate_topology_registry)"
-      ],
-      "title": "Status conflict in source fields"
-    },
-    {
-      "detail": "registry_presence.2 has mixed status fields: {'status': 'PRESENT_ON_REVIEW_BRANCH', 'canonical_status': 'PENDING_REVIEW', 'current_state': 'PRESENT_ON_REVIEW_BRANCH'}.",
-      "source_refs": [
-        "generated/read_models/openclaw_estate_topology_registry.json (estate_topology_registry)"
-      ],
-      "title": "Status conflict in source fields"
-    },
-    {
-      "detail": "source_of_truth_areas.8 has mixed status fields: {'status': 'PRESENT_ON_REVIEW_BRANCH', 'canonical_status': 'PENDING_REVIEW', 'current_state': 'PRESENT_ON_REVIEW_BRANCH'}.",
-      "source_refs": [
-        "generated/read_models/openclaw_estate_topology_registry.json (estate_topology_registry)"
-      ],
-      "title": "Status conflict in source fields"
     },
     {
       "detail": "live_arts_md_bundle says ready but attachment_ready or approval_ready is false/missing.",
@@ -112,10 +98,9 @@
     }
   ],
   "footer": "Generated understanding view. Registry/read-models/receipts remain source of truth.",
-  "generated_at": "2026-05-31T03:40:20+00:00",
-  "known_unknown_count": 15,
+  "generated_at": "2026-05-31T04:09:25+00:00",
+  "known_unknown_count": 14,
   "known_unknowns": [
-    "Where should the canonical system knowledge registry live? [generated/read_models/openclaw_estate_topology_registry.json]",
     "Why Codex Web commits were not reachable from GitHub remotes. [generated/read_models/openclaw_estate_topology_registry.json]",
     "Whether Mac app should get a GitHub remote and backup/PR flow. [generated/read_models/openclaw_estate_topology_registry.json]",
     "Whether PC /home/openclaw and Mac /Users/.../Eyes should both track openclaw-eyes long-term. [generated/read_models/openclaw_estate_topology_registry.json]",
@@ -168,7 +153,7 @@
         "generated/read_models/work_terrain_build_cue_reconciliation_queue.json (work_terrain_build_cue_reconciliation_queue)"
       ],
       "status": "CONFIRMED",
-      "tension_count": 12,
+      "tension_count": 11,
       "title": "OpenClaw Context Wiki"
     },
     {
@@ -177,7 +162,7 @@
         "Install estate topology registry in /home/openclaw. (CONFIRMED; owner PC_BACKEND)",
         "Mirror registry read-model to Mac. (PLANNED; owner BRIDGE_TRANSPORT)",
         "Add Mission Control app remote/back-up strategy. (PLANNED; owner MAC_APP)",
-        "Keep system knowledge registry pending review until merged to main. (PENDING_REVIEW; owner PC_BACKEND)",
+        "Record system knowledge registry as canonical on openclaw-eyes main. (CONFIRMED; owner PC_BACKEND)",
         "Build cross-registry merge only after each repo's registry is reachable locally. (PLANNED; owner PC_BACKEND)"
       ],
       "path": "generated/wiki/openclaw/System Overview.md",
@@ -188,11 +173,11 @@
         "generated/read_models/openclaw_estate_node_registry.json (openclaw_estate_node_registry)"
       ],
       "status": "PARTIAL",
-      "tension_count": 8,
+      "tension_count": 6,
       "title": "System Overview"
     },
     {
-      "known_unknown_count": 7,
+      "known_unknown_count": 6,
       "next_actions": [
         "Keep registry commits pending review until reachable and merged.",
         "Record new facts upstream in registries/read-models/receipts, then regenerate the wiki."
@@ -204,16 +189,16 @@
         "generated/system_knowledge/openclaw_system_knowledge_registry.* (openclaw_system_knowledge_registry_files, missing)"
       ],
       "status": "PARTIAL",
-      "tension_count": 6,
+      "tension_count": 3,
       "title": "Evidence-Grounded Context Registry"
     },
     {
-      "known_unknown_count": 7,
+      "known_unknown_count": 6,
       "next_actions": [
         "Install estate topology registry in /home/openclaw. (CONFIRMED; owner PC_BACKEND)",
         "Mirror registry read-model to Mac. (PLANNED; owner BRIDGE_TRANSPORT)",
         "Add Mission Control app remote/back-up strategy. (PLANNED; owner MAC_APP)",
-        "Keep system knowledge registry pending review until merged to main. (PENDING_REVIEW; owner PC_BACKEND)",
+        "Record system knowledge registry as canonical on openclaw-eyes main. (CONFIRMED; owner PC_BACKEND)",
         "Build cross-registry merge only after each repo's registry is reachable locally. (PLANNED; owner PC_BACKEND)"
       ],
       "path": "generated/wiki/openclaw/Estate Topology.md",
@@ -224,7 +209,7 @@
         "generated/read_models/openclaw_estate_node_registry.json (openclaw_estate_node_registry)"
       ],
       "status": "PARTIAL",
-      "tension_count": 5,
+      "tension_count": 2,
       "title": "Estate Topology"
     },
     {
@@ -241,7 +226,7 @@
         "generated/read_models/openclaw_estate_topology_registry.json (estate_topology_registry)"
       ],
       "status": "PARTIAL",
-      "tension_count": 3,
+      "tension_count": 4,
       "title": "Reference Resolver"
     },
     {
@@ -311,11 +296,11 @@
         "generated/read_models/live_arts_md_invoice_review_bundle.json (live_arts_md_invoice_review_bundle)"
       ],
       "status": "PARTIAL",
-      "tension_count": 12,
+      "tension_count": 10,
       "title": "Mac Edge Workers"
     },
     {
-      "known_unknown_count": 15,
+      "known_unknown_count": 14,
       "next_actions": [
         "Resolve unknowns in the owning registry/read-model or receipt source.",
         "Prefer operator confirmation only when repo evidence says operator memory/review is required.",
@@ -340,7 +325,7 @@
         "generated/read_models/work_terrain_build_cue_reconciliation_queue.json (work_terrain_build_cue_reconciliation_queue)"
       ],
       "status": "UNKNOWN",
-      "tension_count": 12,
+      "tension_count": 11,
       "title": "Known Unknowns"
     },
     {
@@ -361,7 +346,7 @@
         "generated/read_models/work_terrain_build_cue_reconciliation_queue.json (work_terrain_build_cue_reconciliation_queue)"
       ],
       "status": "PLANNED",
-      "tension_count": 5,
+      "tension_count": 2,
       "title": "Build Order"
     }
   ],
@@ -371,7 +356,7 @@
       "exists": true,
       "label": "Estate topology SQLite registry",
       "path": "generated/system_knowledge/openclaw_estate_topology_registry.sqlite",
-      "sha256": "sha256:3a50b22bb2dff5aa039afc2360c1e8f8090b3bc25c5ef0fbb25beeb1910e36d0",
+      "sha256": "sha256:3f31d17f3d5914571521c4565744ee5e6bac7b3d9467b31e81fe7e0000efd79f",
       "source_id": "estate_topology_registry_sqlite",
       "source_type": "sqlite_registry",
       "sqlite_summary": {
@@ -387,7 +372,7 @@
             "table": "codex_web_artifact"
           },
           {
-            "row_count": 7,
+            "row_count": 6,
             "table": "known_unknown"
           },
           {
@@ -421,7 +406,7 @@
       "exists": true,
       "label": "Estate topology read-model",
       "path": "generated/read_models/openclaw_estate_topology_registry.json",
-      "sha256": "sha256:8b3e48e23dd812e3f2fe8178bee322c9e0557192aa7e48bb55734f1a811258c1",
+      "sha256": "sha256:8a45278637ec950564daeba1f2ebadf6cb25853a331e24512eaf783ee948e034",
       "source_id": "estate_topology_registry",
       "source_type": "json_read_model"
     },
@@ -429,7 +414,7 @@
       "exists": true,
       "label": "Reference resolver SQLite registry",
       "path": "generated/system_knowledge/openclaw_reference_resolver.sqlite",
-      "sha256": "sha256:1113f6cc261f3afdde44834d37fedc7a957bf258427aba1d05c12741c515d6cb",
+      "sha256": "sha256:ed37856564e7d1bd913727d51f3e629f629f528fb7f60b2d602ddf472e2887ff",
       "source_id": "reference_resolver_sqlite",
       "source_type": "sqlite_registry",
       "sqlite_summary": {
@@ -441,15 +426,15 @@
             "table": "drift_event"
           },
           {
-            "row_count": 1,
+            "row_count": 2,
             "table": "reference_dependency"
           },
           {
-            "row_count": 2,
+            "row_count": 3,
             "table": "reference_resolution"
           },
           {
-            "row_count": 2,
+            "row_count": 3,
             "table": "reference_target"
           },
           {
@@ -463,7 +448,7 @@
       "exists": true,
       "label": "Reference resolver read-model",
       "path": "generated/read_models/openclaw_reference_resolver.json",
-      "sha256": "sha256:4e8218bde499f7f4635ce073885890c9dd77a7c674cf0a1342830372f8d35b1e",
+      "sha256": "sha256:ca025f59ab8060942c7a75f1b1e4a8d562d9c50e807d7c96fa5c1312f009adba",
       "source_id": "reference_resolver",
       "source_type": "json_read_model"
     },
@@ -561,7 +546,7 @@
     "Install estate topology registry in /home/openclaw. (CONFIRMED; owner PC_BACKEND)",
     "Mirror registry read-model to Mac. (PLANNED; owner BRIDGE_TRANSPORT)",
     "Add Mission Control app remote/back-up strategy. (PLANNED; owner MAC_APP)",
-    "Keep system knowledge registry pending review until merged to main. (PENDING_REVIEW; owner PC_BACKEND)",
+    "Record system knowledge registry as canonical on openclaw-eyes main. (CONFIRMED; owner PC_BACKEND)",
     "Build cross-registry merge only after each repo's registry is reachable locally. (PLANNED; owner PC_BACKEND)",
     "Stabilize Mac app dirty state before further PDF trials. (PLANNED; owner MAC_APP)",
     "Keep Live Arts PDF export blocked until Mac permission/helper architecture is resolved. (PLANNED; owner MAC_APP)",

@@ -16,14 +16,13 @@ The estate topology page summarizes machines, working copies, ownership areas, b
 - Request/Response service: owner=openclaw-eyes / PC_BACKEND; status=CONFIRMED; rule=The request/response backend service code belongs in /home/openclaw.
 - Hermes: owner=openclaw-eyes / PC_BACKEND; status=PARTIAL; rule=Hermes reads /home/openclaw first for estate-wide task planning unless runtime evidence says otherwise.
 - Chief/Guardian/Cassandra/Clara runtime: owner=openclaw-runtime / RUNTIME_ACTORS; status=PARTIAL; rule=Runtime actor implementation is mapped to openclaw-runtime pending canonical-home decision.
-- Evidence-Grounded Context Registry: owner=openclaw-eyes / PC_BACKEND_REVIEW_BRANCH; status=PRESENT_ON_REVIEW_BRANCH; rule=Git remote branch is canonical and resolved by read-only remote inspection; Mac path is optional mirror.
+- Evidence-Grounded Context Registry: owner=openclaw-eyes / PC_BACKEND_CANONICAL_MAIN; status=CANONICAL_ON_MAIN; rule=openclaw-eyes main is canonical for the system knowledge registry; review branch remains historical.
 - openclaw-eyes Mac repo: owner=openclaw-eyes / EYES_CONTEXT_REPO; status=CONFIRMED; rule=Mac Eyes is context/mirror, not live backend unless later proven.
 - bridge/mirror transport: owner=transport / BRIDGE_TRANSPORT; status=PARTIAL; rule=/mnt/e/openclaw <-> /Volumes/openclaw_e is transport, not source truth.
 - Bridge pc_e_drive_bridge: /mnt/e/openclaw on pc status PARTIAL.
 - Bridge mac_openclaw_e_bridge: /Volumes/openclaw_e on mac status PARTIAL.
 
 ## Known unknowns
-- Where should the canonical system knowledge registry live? [generated/read_models/openclaw_estate_topology_registry.json]
 - Why Codex Web commits were not reachable from GitHub remotes. [generated/read_models/openclaw_estate_topology_registry.json]
 - Whether Mac app should get a GitHub remote and backup/PR flow. [generated/read_models/openclaw_estate_topology_registry.json]
 - Whether PC /home/openclaw and Mac /Users/.../Eyes should both track openclaw-eyes long-term. [generated/read_models/openclaw_estate_topology_registry.json]
@@ -34,15 +33,12 @@ The estate topology page summarizes machines, working copies, ownership areas, b
 ## Tension / contradiction signals
 - Codex Web commit unreachable: openclaw-eyes commit 33e00a6 is recorded as unreachable.
 - Codex Web commit unreachable: openclaw-eyes commit 4ca4ed42171c23d60ef89493559808ef2789a19e is recorded as unreachable.
-- Status conflict in source fields: codex_web_artifacts.2 has mixed status fields: {'status': 'PRESENT_ON_REVIEW_BRANCH', 'canonical_status': 'PENDING_REVIEW'}.
-- Status conflict in source fields: registry_presence.2 has mixed status fields: {'status': 'PRESENT_ON_REVIEW_BRANCH', 'canonical_status': 'PENDING_REVIEW', 'current_state': 'PRESENT_ON_REVIEW_BRANCH'}.
-- Status conflict in source fields: source_of_truth_areas.8 has mixed status fields: {'status': 'PRESENT_ON_REVIEW_BRANCH', 'canonical_status': 'PENDING_REVIEW', 'current_state': 'PRESENT_ON_REVIEW_BRANCH'}.
 
 ## Next useful actions
 - Install estate topology registry in /home/openclaw. (CONFIRMED; owner PC_BACKEND)
 - Mirror registry read-model to Mac. (PLANNED; owner BRIDGE_TRANSPORT)
 - Add Mission Control app remote/back-up strategy. (PLANNED; owner MAC_APP)
-- Keep system knowledge registry pending review until merged to main. (PENDING_REVIEW; owner PC_BACKEND)
+- Record system knowledge registry as canonical on openclaw-eyes main. (CONFIRMED; owner PC_BACKEND)
 - Build cross-registry merge only after each repo's registry is reachable locally. (PLANNED; owner PC_BACKEND)
 - Stabilize Mac app dirty state before further PDF trials. (PLANNED; owner MAC_APP)
 
@@ -57,6 +53,6 @@ The estate topology page summarizes machines, working copies, ownership areas, b
 - generated/read_models/estate_topology.json (estate_topology)
 - generated/read_models/openclaw_estate_node_registry.json (openclaw_estate_node_registry)
 
-Last generated timestamp: 2026-05-31T03:40:20+00:00
+Last generated timestamp: 2026-05-31T04:09:25+00:00
 
 Generated understanding view. Registry/read-models/receipts remain source of truth.

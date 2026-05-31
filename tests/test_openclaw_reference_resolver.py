@@ -103,6 +103,30 @@ def test_seed_target_records_openclaw_eyes_branch_as_canonical_ref():
     }
 
 
+def test_seed_target_records_openclaw_eyes_main_as_remote_only_canonical_probe():
+    targets = {target.target_ref: target for target in resolver.DEFAULT_REFERENCE_TARGETS}
+    target = resolver.reference_target_record(
+        targets[resolver.OPENCLAW_EYES_MAIN_BRANCH_TARGET_REF]
+    )
+    canonical = json.loads(target["canonical_input_json"])
+    dependency_targets = {
+        dependency.target_ref for dependency in resolver.DEFAULT_REFERENCE_DEPENDENCIES
+    }
+
+    assert target["target_ref"] == "openclaw_eyes_main_branch"
+    assert target["target_type"] == "GIT_BRANCH"
+    assert target["repo_ref"] == "openclaw-eyes-main"
+    assert target["local_path"] == ""
+    assert target["remote_url"] == "git@github.com:WinshipWheatley/openclaw-eyes.git"
+    assert target["branch"] == "main"
+    assert canonical == {
+        "branch": "main",
+        "repo_ref": "openclaw-eyes",
+        "remote_url": "git@github.com:WinshipWheatley/openclaw-eyes.git",
+    }
+    assert resolver.OPENCLAW_EYES_MAIN_BRANCH_TARGET_REF in dependency_targets
+
+
 def test_generated_output_contains_resolved_current_head_commit(tmp_path):
     repo = _init_repo(tmp_path / "repo", branch="codex/system-knowledge-registry-v0-local")
     expected = _git(repo, "rev-parse", "codex/system-knowledge-registry-v0-local")

@@ -18,6 +18,8 @@ from pathlib import Path
 from typing import Any
 
 from openclaw_reference_resolver import (
+    OPENCLAW_EYES_MAIN_BRANCH,
+    OPENCLAW_EYES_MAIN_BRANCH_TARGET_REF,
     OPENCLAW_EYES_SYSTEM_KNOWLEDGE_REVIEW_BRANCH,
     OPENCLAW_EYES_SYSTEM_KNOWLEDGE_REVIEW_BRANCH_REF,
     build_openclaw_reference_resolver,
@@ -51,6 +53,8 @@ STATUS_VALUES = (
     "MAC_BRIDGE_UNAVAILABLE",
     "PRESENT_ON_REVIEW_BRANCH",
     "PENDING_REVIEW",
+    "CANONICAL_ON_MAIN",
+    "CANONICAL",
     "PLANNED",
     "STALE",
     "DIRTY",
@@ -439,6 +443,13 @@ def _system_knowledge_registry_branch_resolution(reference_resolver_payload: dic
     )
 
 
+def _system_knowledge_registry_main_resolution(reference_resolver_payload: dict[str, Any]) -> dict[str, Any]:
+    return git_branch_ref_by_repo_ref(
+        reference_resolver_payload,
+        OPENCLAW_EYES_MAIN_BRANCH_TARGET_REF,
+    )
+
+
 def _review_branch_status(branch_resolution: dict[str, Any]) -> str:
     if (
         branch_resolution.get("dirty_status") == "DIRTY"
@@ -467,12 +478,77 @@ def _review_branch_canonical_status(branch_resolution: dict[str, Any]) -> str:
     } else _review_branch_status(branch_resolution)
 
 
-def source_of_truth_areas(reference_resolver_payload: dict[str, Any]) -> tuple[dict[str, Any], ...]:
+def _main_contains_registry_commit(
+    branch_resolution: dict[str, Any],
+    main_resolution: dict[str, Any],
+) -> bool:
+    review_commit = branch_resolution.get("current_head_commit", "")
+    main_commit = main_resolution.get("current_head_commit", "")
+    return bool(
+        review_commit
+        and main_commit
+        and review_commit == main_commit
+        and branch_resolution.get("resolution_status")
+        in {"RESOLVED_LOCAL", "RESOLVED_REMOTE", "RESOLVED_MAC_BRIDGE"}
+        and main_resolution.get("resolution_status")
+        in {"RESOLVED_LOCAL", "RESOLVED_REMOTE", "RESOLVED_MAC_BRIDGE"}
+    )
+
+
+def _system_knowledge_registry_posture(reference_resolver_payload: dict[str, Any]) -> dict[str, Any]:
     branch_resolution = _system_knowledge_registry_branch_resolution(reference_resolver_payload)
+    main_resolution = _system_knowledge_registry_main_resolution(reference_resolver_payload)
     branch_status = _review_branch_status(branch_resolution)
     canonical_status = _review_branch_canonical_status(branch_resolution)
+    current_state = branch_status
+    effective_branch = branch_resolution.get("branch") or OPENCLAW_EYES_SYSTEM_KNOWLEDGE_REVIEW_BRANCH
+    effective_commit = branch_resolution.get("current_head_commit", "")
+    owner_classification = "PC_BACKEND_REVIEW_BRANCH"
+    source_truth = False
+    notes = "Branch name is the source input; current commit is resolved by openclaw_reference_resolver during export."
+    if _main_contains_registry_commit(branch_resolution, main_resolution):
+        current_state = "CANONICAL_ON_MAIN"
+        canonical_status = "CANONICAL"
+        effective_branch = OPENCLAW_EYES_MAIN_BRANCH
+        effective_commit = main_resolution.get("current_head_commit", "")
+        owner_classification = "PC_BACKEND_CANONICAL_MAIN"
+        source_truth = True
+        notes = (
+            "openclaw-eyes main resolves to the registry commit; review branch remains historical evidence."
+        )
+    return {
+        "branch_resolution": branch_resolution,
+        "main_resolution": main_resolution,
+        "branch_status": branch_status,
+        "current_state": current_state,
+        "canonical_status": canonical_status,
+        "effective_branch": effective_branch,
+        "effective_commit": effective_commit,
+        "owner_classification": owner_classification,
+        "source_truth": source_truth,
+        "notes": notes,
+        "review_branch": branch_resolution.get("branch") or OPENCLAW_EYES_SYSTEM_KNOWLEDGE_REVIEW_BRANCH,
+        "review_commit": branch_resolution.get("current_head_commit", ""),
+        "main_branch": main_resolution.get("branch") or OPENCLAW_EYES_MAIN_BRANCH,
+        "main_commit": main_resolution.get("current_head_commit", ""),
+        "main_contains_review_commit": _main_contains_registry_commit(
+            branch_resolution,
+            main_resolution,
+        ),
+    }
+
+
+def source_of_truth_areas(reference_resolver_payload: dict[str, Any]) -> tuple[dict[str, Any], ...]:
+    posture = _system_knowledge_registry_posture(reference_resolver_payload)
+    branch_resolution = posture["branch_resolution"]
+    branch_status = posture["current_state"]
+    canonical_status = posture["canonical_status"]
     resolution_status = branch_resolution.get("resolution_status", "UNREACHABLE")
-    if branch_status == "UNREACHABLE":
+    if branch_status == "CANONICAL_ON_MAIN":
+        branch_ownership_rule = (
+            "openclaw-eyes main is canonical for the system knowledge registry; review branch remains historical."
+        )
+    elif branch_status == "UNREACHABLE":
         branch_ownership_rule = (
             "Review branch ref is configured, but the resolver cannot reach the branch from this machine."
         )
@@ -595,15 +671,15 @@ def source_of_truth_areas(reference_resolver_payload: dict[str, Any]) -> tuple[d
             owner_repo_key="openclaw-eyes",
             primary_working_copy_id="pc_openclaw_eyes_backend",
             secondary_working_copy_id="",
-            owner_classification="PC_BACKEND_REVIEW_BRANCH",
+            owner_classification=posture["owner_classification"],
             status=branch_status,
             current_state=branch_status,
             canonical_status=canonical_status,
             review_repo="openclaw-eyes",
-            review_branch=branch_resolution.get("branch") or OPENCLAW_EYES_SYSTEM_KNOWLEDGE_REVIEW_BRANCH,
-            review_commit=branch_resolution.get("current_head_commit", ""),
+            review_branch=posture["effective_branch"],
+            review_commit=posture["effective_commit"],
             ownership_rule=branch_ownership_rule,
-            notes="Branch name is the source input; current commit is resolved by openclaw_reference_resolver during export.",
+            notes=posture["notes"],
         ),
         _source_area(
             area_id="mac_openclaw_eyes_context_repo",
@@ -661,9 +737,14 @@ def _registry_presence(
 
 
 def registry_presence(reference_resolver_payload: dict[str, Any]) -> tuple[dict[str, Any], ...]:
-    branch_resolution = _system_knowledge_registry_branch_resolution(reference_resolver_payload)
-    branch_status = _review_branch_status(branch_resolution)
-    canonical_status = _review_branch_canonical_status(branch_resolution)
+    posture = _system_knowledge_registry_posture(reference_resolver_payload)
+    registry_status = posture["current_state"]
+    canonical_status = posture["canonical_status"]
+    registry_notes = "Resolved from openclaw-eyes branch ref; not canonical or merged to main."
+    if registry_status == "CANONICAL_ON_MAIN":
+        registry_notes = (
+            "Resolved from openclaw-eyes main; review branch remains historical evidence."
+        )
     return (
         _registry_presence(
             "openclaw_estate_topology_registry",
@@ -686,13 +767,13 @@ def registry_presence(reference_resolver_payload: dict[str, Any]) -> tuple[dict[
             "Evidence-Grounded Context Registry",
             "generated/system_knowledge/openclaw_system_knowledge_registry.sqlite",
             "pc_openclaw_eyes_backend",
-            branch_status,
-            "Resolved from openclaw-eyes branch ref; not canonical or merged to main.",
-            current_state=branch_status,
+            registry_status,
+            registry_notes,
+            current_state=registry_status,
             canonical_status=canonical_status,
             repo_name="openclaw-eyes",
-            branch_name=branch_resolution.get("branch") or OPENCLAW_EYES_SYSTEM_KNOWLEDGE_REVIEW_BRANCH,
-            commit_ref=branch_resolution.get("current_head_commit", ""),
+            branch_name=posture["effective_branch"],
+            commit_ref=posture["effective_commit"],
         ),
         _registry_presence(
             "codex_web_registry_commits",
@@ -739,9 +820,15 @@ def _codex_web_artifact(
 
 
 def codex_web_artifacts(reference_resolver_payload: dict[str, Any]) -> tuple[dict[str, Any], ...]:
-    branch_resolution = _system_knowledge_registry_branch_resolution(reference_resolver_payload)
-    branch_status = _review_branch_status(branch_resolution)
-    canonical_status = _review_branch_canonical_status(branch_resolution)
+    posture = _system_knowledge_registry_posture(reference_resolver_payload)
+    artifact_status = posture["current_state"]
+    canonical_status = posture["canonical_status"]
+    source_truth = posture["source_truth"]
+    artifact_notes = "Canonical status remains PENDING_REVIEW until the branch is reviewed and merged."
+    if artifact_status == "CANONICAL_ON_MAIN":
+        artifact_notes = (
+            "openclaw-eyes main resolves to this registry commit; review branch remains historical evidence."
+        )
     reason = "Commit was reported by Codex Web but was not reachable from local repos/remotes during audit."
     return (
         _codex_web_artifact(
@@ -766,13 +853,13 @@ def codex_web_artifacts(reference_resolver_payload: dict[str, Any]) -> tuple[dic
         ),
         _codex_web_artifact(
             "openclaw_eyes_system_knowledge_registry_review_branch",
-            branch_resolution.get("current_head_commit", ""),
-            branch_status,
-            False,
+            posture["effective_commit"],
+            artifact_status,
+            source_truth,
             "System knowledge registry commit is resolved from openclaw-eyes branch ref during export.",
-            "Canonical status remains PENDING_REVIEW until the branch is reviewed and merged.",
+            artifact_notes,
             repo_name="openclaw-eyes",
-            branch_name=branch_resolution.get("branch") or OPENCLAW_EYES_SYSTEM_KNOWLEDGE_REVIEW_BRANCH,
+            branch_name=posture["effective_branch"],
             canonical_status=canonical_status,
         ),
     )
@@ -792,51 +879,66 @@ def _known_unknown(
     }
 
 
-def known_unknowns() -> tuple[dict[str, Any], ...]:
-    return (
-        _known_unknown(
-            "canonical_system_knowledge_registry_home",
-            "Where should the canonical system knowledge registry live?",
-            "UNKNOWN",
-            "Decide canonical repo only after reachable registry code exists locally.",
-        ),
-        _known_unknown(
-            "codex_web_commits_unreachable",
-            "Why Codex Web commits were not reachable from GitHub remotes.",
-            "UNKNOWN",
-            "Trace branch/PR/export path for Codex Web artifacts before trusting them.",
-        ),
-        _known_unknown(
-            "mac_app_remote_backup_strategy",
-            "Whether Mac app should get a GitHub remote and backup/PR flow.",
-            "UNKNOWN",
-            "Choose remote/back-up strategy before more Mac app mutation lanes.",
-        ),
-        _known_unknown(
-            "dual_openclaw_eyes_long_term",
-            "Whether PC /home/openclaw and Mac /Users/.../Eyes should both track openclaw-eyes long-term.",
-            "UNKNOWN",
-            "Define canonical writer, mirror role, and reconciliation rule.",
-        ),
-        _known_unknown(
-            "runtime_actor_canonical_home",
-            "Whether openclaw-runtime should be the canonical home for Chief/Cassandra/Guardian runtime.",
-            "UNKNOWN",
-            "Inspect runtime repos and actor entrypoints in a dedicated lane.",
-        ),
-        _known_unknown(
-            "hermes_first_read_repo",
-            "Which repo Hermes should read first for estate-wide task planning.",
-            "UNKNOWN",
-            "Keep /home/openclaw as default until runtime evidence establishes another first-read source.",
-        ),
-        _known_unknown(
-            "mac_bridge_permission_model",
-            "How Mac bridge permission failures should be represented.",
-            "UNKNOWN",
-            "Model permission failures as partial bridge access until Mac helper architecture is resolved.",
-        ),
+def known_unknowns(
+    reference_resolver_payload: dict[str, Any] | None = None,
+) -> tuple[dict[str, Any], ...]:
+    rows: list[dict[str, Any]] = []
+    registry_is_canonical = False
+    if reference_resolver_payload is not None:
+        registry_is_canonical = (
+            _system_knowledge_registry_posture(reference_resolver_payload)["canonical_status"]
+            == "CANONICAL"
+        )
+    if not registry_is_canonical:
+        rows.append(
+            _known_unknown(
+                "canonical_system_knowledge_registry_home",
+                "Where should the canonical system knowledge registry live?",
+                "UNKNOWN",
+                "Decide canonical repo only after reachable registry code exists locally.",
+            )
+        )
+    rows.extend(
+        [
+            _known_unknown(
+                "codex_web_commits_unreachable",
+                "Why Codex Web commits were not reachable from GitHub remotes.",
+                "UNKNOWN",
+                "Trace branch/PR/export path for Codex Web artifacts before trusting them.",
+            ),
+            _known_unknown(
+                "mac_app_remote_backup_strategy",
+                "Whether Mac app should get a GitHub remote and backup/PR flow.",
+                "UNKNOWN",
+                "Choose remote/back-up strategy before more Mac app mutation lanes.",
+            ),
+            _known_unknown(
+                "dual_openclaw_eyes_long_term",
+                "Whether PC /home/openclaw and Mac /Users/.../Eyes should both track openclaw-eyes long-term.",
+                "UNKNOWN",
+                "Define canonical writer, mirror role, and reconciliation rule.",
+            ),
+            _known_unknown(
+                "runtime_actor_canonical_home",
+                "Whether openclaw-runtime should be the canonical home for Chief/Cassandra/Guardian runtime.",
+                "UNKNOWN",
+                "Inspect runtime repos and actor entrypoints in a dedicated lane.",
+            ),
+            _known_unknown(
+                "hermes_first_read_repo",
+                "Which repo Hermes should read first for estate-wide task planning.",
+                "UNKNOWN",
+                "Keep /home/openclaw as default until runtime evidence establishes another first-read source.",
+            ),
+            _known_unknown(
+                "mac_bridge_permission_model",
+                "How Mac bridge permission failures should be represented.",
+                "UNKNOWN",
+                "Model permission failures as partial bridge access until Mac helper architecture is resolved.",
+            ),
+        ]
     )
+    return tuple(rows)
 
 
 def _recommended_action(
@@ -857,7 +959,28 @@ def _recommended_action(
     }
 
 
-def recommended_actions() -> tuple[dict[str, Any], ...]:
+def recommended_actions(
+    reference_resolver_payload: dict[str, Any] | None = None,
+) -> tuple[dict[str, Any], ...]:
+    registry_action = _recommended_action(
+        "keep_system_knowledge_registry_pending_review",
+        4,
+        "Keep system knowledge registry pending review until merged to main.",
+        "PENDING_REVIEW",
+        "PC_BACKEND",
+        "The review branch is present, but it is not canonical mainline state.",
+    )
+    if reference_resolver_payload is not None:
+        posture = _system_knowledge_registry_posture(reference_resolver_payload)
+        if posture["canonical_status"] == "CANONICAL":
+            registry_action = _recommended_action(
+                "record_system_knowledge_registry_canonical_main",
+                4,
+                "Record system knowledge registry as canonical on openclaw-eyes main.",
+                "CONFIRMED",
+                "PC_BACKEND",
+                "Remote main resolves to the same registry commit as the review branch.",
+            )
     return (
         _recommended_action(
             "install_estate_topology_registry",
@@ -883,14 +1006,7 @@ def recommended_actions() -> tuple[dict[str, Any], ...]:
             "MAC_APP",
             "Mac app is dirty and local-only by audit.",
         ),
-        _recommended_action(
-            "keep_system_knowledge_registry_pending_review",
-            4,
-            "Keep system knowledge registry pending review until merged to main.",
-            "PENDING_REVIEW",
-            "PC_BACKEND",
-            "The review branch is present, but it is not canonical mainline state.",
-        ),
+        registry_action,
         _recommended_action(
             "defer_cross_registry_merge",
             5,
@@ -930,13 +1046,17 @@ def build_openclaw_estate_topology_registry(
     machine_rows = machines()
     working_copy_rows = repo_working_copies()
     repo_keys = _actual_repo_keys(working_copy_rows)
-    unknown_rows = known_unknowns()
     reference_payload = reference_resolver_payload or build_estate_reference_resolver_payload(
         generated_at=generated_at
     )
-    branch_resolution = _system_knowledge_registry_branch_resolution(reference_payload)
-    branch_status = _review_branch_status(branch_resolution)
-    canonical_status = _review_branch_canonical_status(branch_resolution)
+    posture = _system_knowledge_registry_posture(reference_payload)
+    branch_resolution = posture["branch_resolution"]
+    main_resolution = posture["main_resolution"]
+    effective_resolution = (
+        main_resolution if posture["current_state"] == "CANONICAL_ON_MAIN" else branch_resolution
+    )
+    unknown_rows = known_unknowns(reference_payload)
+    action_rows = recommended_actions(reference_payload)
     return {
         "schema_version": READ_MODEL_VERSION,
         "contract_schema_version": SCHEMA_VERSION,
@@ -965,21 +1085,42 @@ def build_openclaw_estate_topology_registry(
         "codex_web_artifacts": list(codex_web_artifacts(reference_payload)),
         "known_unknown_count": len(unknown_rows),
         "known_unknowns": list(unknown_rows),
-        "recommended_actions": list(recommended_actions()),
+        "recommended_actions": list(action_rows),
         "reference_resolver_summary": {
             "resolver_schema_version": reference_payload.get("schema_version", ""),
-            "system_knowledge_registry_repo_ref": OPENCLAW_EYES_SYSTEM_KNOWLEDGE_REVIEW_BRANCH_REF,
-            "system_knowledge_registry_branch": branch_resolution.get("branch")
-            or OPENCLAW_EYES_SYSTEM_KNOWLEDGE_REVIEW_BRANCH,
-            "system_knowledge_registry_current_head_commit": branch_resolution.get(
-                "current_head_commit", ""
-            ),
-            "system_knowledge_registry_resolution_status": branch_resolution.get(
+            "system_knowledge_registry_repo_ref": "openclaw-eyes",
+            "system_knowledge_registry_target_ref": OPENCLAW_EYES_SYSTEM_KNOWLEDGE_REVIEW_BRANCH_REF,
+            "system_knowledge_registry_branch": posture["effective_branch"],
+            "system_knowledge_registry_current_head_commit": posture["effective_commit"],
+            "system_knowledge_registry_resolution_status": effective_resolution.get(
                 "resolution_status", "UNREACHABLE"
             ),
-            "system_knowledge_registry_resolution_source": branch_resolution.get(
+            "system_knowledge_registry_resolution_source": effective_resolution.get(
                 "resolution_source", ""
             ),
+            "system_knowledge_registry_current_state": posture["current_state"],
+            "system_knowledge_registry_canonical_status": posture["canonical_status"],
+            "system_knowledge_registry_review_target_ref": OPENCLAW_EYES_SYSTEM_KNOWLEDGE_REVIEW_BRANCH_REF,
+            "system_knowledge_registry_review_branch": posture["review_branch"],
+            "system_knowledge_registry_review_commit": posture["review_commit"],
+            "system_knowledge_registry_review_resolution_status": branch_resolution.get(
+                "resolution_status", "UNREACHABLE"
+            ),
+            "system_knowledge_registry_review_resolution_source": branch_resolution.get(
+                "resolution_source", ""
+            ),
+            "system_knowledge_registry_main_target_ref": OPENCLAW_EYES_MAIN_BRANCH_TARGET_REF,
+            "system_knowledge_registry_main_branch": posture["main_branch"],
+            "system_knowledge_registry_main_commit": posture["main_commit"],
+            "system_knowledge_registry_main_resolution_status": main_resolution.get(
+                "resolution_status", "UNREACHABLE"
+            ),
+            "system_knowledge_registry_main_resolution_source": main_resolution.get(
+                "resolution_source", ""
+            ),
+            "system_knowledge_registry_main_contains_review_commit": posture[
+                "main_contains_review_commit"
+            ],
             "system_knowledge_registry_local_status": branch_resolution.get("local_status", ""),
             "system_knowledge_registry_remote_status": branch_resolution.get("remote_status", ""),
             "system_knowledge_registry_mac_mirror_path": branch_resolution.get(
@@ -1003,8 +1144,8 @@ def build_openclaw_estate_topology_registry(
             "mac_app_working_copy": "mac_mission_control_app",
             "bridge_transport": "/mnt/e/openclaw <-> /Volumes/openclaw_e",
             "codex_web_artifacts_are_source_truth": False,
-            "system_knowledge_registry_current_state": branch_status,
-            "system_knowledge_registry_canonical_status": canonical_status,
+            "system_knowledge_registry_current_state": posture["current_state"],
+            "system_knowledge_registry_canonical_status": posture["canonical_status"],
         },
         "no_authority_flags": dict(NO_AUTHORITY_FLAGS),
         **NO_AUTHORITY_FLAGS,
@@ -1206,7 +1347,11 @@ def format_operator_read_model(read_model: dict[str, Any]) -> str:
     branch_line = (
         "- System knowledge registry branch is present for review and remains pending, not canonical."
     )
-    if summary.get("system_knowledge_registry_resolution_status") == "RESOLVED_REMOTE":
+    if summary.get("system_knowledge_registry_current_state") == "CANONICAL_ON_MAIN":
+        branch_line = (
+            "- System knowledge registry is canonical on openclaw-eyes main; the review branch remains historical evidence."
+        )
+    elif summary.get("system_knowledge_registry_resolution_status") == "RESOLVED_REMOTE":
         branch_line = (
             "- System knowledge registry review branch resolves from the Git remote; Mac local path is optional mirror state."
         )

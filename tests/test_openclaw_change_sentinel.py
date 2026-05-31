@@ -277,6 +277,55 @@ def test_service_restart_count_increase_emits_service_unstable(tmp_path):
     assert "SERVICE_UNSTABLE" in _status_set(changed)
 
 
+def test_unavailable_service_snapshot_does_not_emit_false_material_change(tmp_path):
+    read_root = tmp_path / "read_models"
+    _write_fixture_read_models(read_root)
+    baseline = _build(read_root, n_restarts=10)
+    unavailable_service = {
+        "service_name": sentinel.SERVICE_NAME,
+        "available": False,
+        "error": "Failed to connect to bus: Operation not permitted",
+    }
+
+    changed = sentinel.build_openclaw_change_sentinel(
+        read_model_root=read_root,
+        generated_at=FIXED_NOW,
+        previous_snapshot=baseline,
+        systemd_snapshot=unavailable_service,
+    )
+
+    assert changed["run_status"] == "NO_MATERIAL_CHANGE"
+    assert all(
+        not row["material_ref"].startswith("material:service_")
+        for row in changed["material_changes"]
+    )
+
+
+def test_same_mac_heartbeat_status_does_not_emit_false_bridge_stale(tmp_path):
+    read_root = tmp_path / "read_models"
+    _write_fixture_read_models(read_root)
+    stale_sync_health = _sync_health_payload()
+    stale_sync_health.update(
+        {
+            "last_mac_heartbeat": "2026-05-31T03:00:00+00:00",
+            "mirror_status": "needs_mac_sync",
+            "trust_status": "stale_needs_mac_sync",
+            "sync_lifecycle_state": "actionable_sync_failure",
+            "missing_expected": 259,
+            "hash_mismatch": 7,
+        }
+    )
+    _write_json(read_root / "sync_health.json", stale_sync_health)
+    baseline = _build(read_root)
+    stale_sync_health["last_mac_heartbeat"] = "2026-05-31T03:10:00+00:00"
+    _write_json(read_root / "sync_health.json", stale_sync_health)
+
+    changed = _build(read_root, previous=baseline)
+
+    assert changed["run_status"] == "NO_MATERIAL_CHANGE"
+    assert "BRIDGE_STALE" not in _status_set(changed)
+
+
 def test_unreachable_mac_path_is_recorded_without_guessing(tmp_path):
     read_root = tmp_path / "read_models"
     _write_fixture_read_models(read_root)

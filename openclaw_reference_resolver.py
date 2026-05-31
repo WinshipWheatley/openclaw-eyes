@@ -38,6 +38,8 @@ SEED_EXPORT_NAME = "openclaw_reference_resolver_SEED.sql"
 OPENCLAW_EYES_REGISTRY_REVIEW_BRANCH_TARGET_REF = "openclaw_eyes_registry_review_branch"
 OPENCLAW_EYES_SYSTEM_KNOWLEDGE_REVIEW_BRANCH_REF = OPENCLAW_EYES_REGISTRY_REVIEW_BRANCH_TARGET_REF
 OPENCLAW_EYES_SYSTEM_KNOWLEDGE_REVIEW_BRANCH = "codex/system-knowledge-registry-v0-local"
+OPENCLAW_EYES_MAIN_BRANCH_TARGET_REF = "openclaw_eyes_main_branch"
+OPENCLAW_EYES_MAIN_BRANCH = "main"
 
 TARGET_TYPES = (
     "GIT_BRANCH",
@@ -162,6 +164,22 @@ DEFAULT_REFERENCE_TARGETS = (
         owner_component="openclaw_estate_topology_registry",
         status="ACTIVE",
     ),
+    ReferenceTargetSpec(
+        target_ref=OPENCLAW_EYES_MAIN_BRANCH_TARGET_REF,
+        target_type="GIT_BRANCH",
+        repo_ref="openclaw-eyes-main",
+        local_path="",
+        remote_url="git@github.com:WinshipWheatley/openclaw-eyes.git",
+        branch=OPENCLAW_EYES_MAIN_BRANCH,
+        canonical_input={
+            "repo_ref": "openclaw-eyes",
+            "remote_url": "git@github.com:WinshipWheatley/openclaw-eyes.git",
+            "branch": OPENCLAW_EYES_MAIN_BRANCH,
+        },
+        refresh_policy="ON_EXPORT",
+        owner_component="openclaw_estate_topology_registry",
+        status="ACTIVE",
+    ),
 )
 
 DEFAULT_REFERENCE_DEPENDENCIES = (
@@ -171,6 +189,13 @@ DEFAULT_REFERENCE_DEPENDENCIES = (
         consumer_component="openclaw_estate_topology_registry",
         generated_model_path="generated/read_models/openclaw_estate_topology_registry.json",
         reason="Estate topology stores the branch ref as canonical input and resolves current_head_commit during export.",
+    ),
+    ReferenceDependencySpec(
+        dependency_ref="estate_topology_checks_openclaw_eyes_main_for_canonical_registry",
+        target_ref=OPENCLAW_EYES_MAIN_BRANCH_TARGET_REF,
+        consumer_component="openclaw_estate_topology_registry",
+        generated_model_path="generated/read_models/openclaw_estate_topology_registry.json",
+        reason="Estate topology marks the system knowledge registry canonical only when main resolves to the registry commit.",
     ),
 )
 
