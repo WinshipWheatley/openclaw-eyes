@@ -62,6 +62,15 @@ MISSION_CONTROL_CAPTURE_INTAKE_READ_MODEL_FILES = (
     "mission_control_capture_request_intake_OPERATOR.md",
 )
 
+EVENT_BRIDGE_DESCRIPTOR_READ_MODEL_FILES = (
+    "openclaw_event_bridge_contract.json",
+    "openclaw_event_bridge_contract_OPERATOR.md",
+    "openclaw_authority_semantics_registry.json",
+    "openclaw_authority_semantics_registry_OPERATOR.md",
+    "simple_invoice_event_bridge_rail_registry.json",
+    "simple_invoice_event_bridge_rail_registry_OPERATOR.md",
+)
+
 VOLATILE_SELF_REPORT_READ_MODEL_FILES = (
     "operator_threshold_map_contract.json",
     "operator_threshold_map_contract_OPERATOR.md",
@@ -101,6 +110,7 @@ CRITICAL_GENERATED_READ_MODEL_FILES = (
     "world_status.json",
     *MISSION_CONTROL_REVIEW_PACKET_READ_MODEL_FILES,
     *MISSION_CONTROL_CAPTURE_INTAKE_READ_MODEL_FILES,
+    *EVENT_BRIDGE_DESCRIPTOR_READ_MODEL_FILES,
 )
 
 
@@ -207,6 +217,7 @@ def canonical_generated_read_model_expected_files(
 
 __all__ = [
     "CRITICAL_GENERATED_READ_MODEL_FILES",
+    "EVENT_BRIDGE_DESCRIPTOR_READ_MODEL_FILES",
     "DEFAULT_GENERATED_READ_MODEL_ROOT",
     "MISSION_CONTROL_REVIEW_PACKET_READ_MODEL_FILES",
     "MISSION_CONTROL_CAPTURE_INTAKE_READ_MODEL_FILES",

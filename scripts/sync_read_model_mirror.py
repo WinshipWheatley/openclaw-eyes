@@ -23,6 +23,7 @@ if str(ROOT) not in sys.path:
 
 from corpus_atlas import stable_json
 from generated_read_model_files import (
+    EVENT_BRIDGE_DESCRIPTOR_READ_MODEL_FILES,
     HELM_DECLUTTER_BRIDGE_READ_MODEL_FILES,
     MISSION_CONTROL_REVIEW_PACKET_READ_MODEL_FILES,
     is_safe_generated_read_model_file,
@@ -73,6 +74,7 @@ DIRECT_BRIDGE_READ_MODEL_FILES = tuple(
         (
             *HELM_DECLUTTER_BRIDGE_READ_MODEL_FILES,
             *MISSION_CONTROL_REVIEW_PACKET_READ_MODEL_FILES,
+            *EVENT_BRIDGE_DESCRIPTOR_READ_MODEL_FILES,
         )
     )
 )

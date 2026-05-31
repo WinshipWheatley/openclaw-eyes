@@ -5,6 +5,7 @@ import pytest
 
 from corpus_atlas import run_corpus_atlas
 from generated_read_model_files import (
+    EVENT_BRIDGE_DESCRIPTOR_READ_MODEL_FILES,
     HELM_DECLUTTER_BRIDGE_READ_MODEL_FILES,
     MISSION_CONTROL_CAPTURE_INTAKE_READ_MODEL_FILES,
     MISSION_CONTROL_REVIEW_PACKET_READ_MODEL_FILES,
@@ -51,6 +52,7 @@ def _repo_fixture(tmp_path: Path) -> Path:
         *HELM_DECLUTTER_BRIDGE_READ_MODEL_FILES,
         *MISSION_CONTROL_REVIEW_PACKET_READ_MODEL_FILES,
         *MISSION_CONTROL_CAPTURE_INTAKE_READ_MODEL_FILES,
+        *EVENT_BRIDGE_DESCRIPTOR_READ_MODEL_FILES,
     ):
         _write(read_models / name, f"{name}\n")
     _write(read_models / "mac_generated_read_models_manifest.json", "{}\n")
@@ -139,6 +141,21 @@ def test_pc_direct_bridge_includes_invoice_review_bundle(tmp_path):
     copied = {item["relative_path"] for item in report["copied_files"]}
     assert "invoice_review_bundle.json" in copied
     assert (destination / "invoice_review_bundle.json").is_file()
+
+
+def test_pc_direct_bridge_includes_event_bridge_descriptor_contracts(tmp_path):
+    repo = _repo_fixture(tmp_path)
+    destination = tmp_path / "e" / "openclaw" / "generated" / "read_models"
+
+    report = publish_pc_bridge_read_models(
+        source_root=repo / "generated" / "read_models",
+        destination_root=destination,
+    )
+
+    copied = {item["relative_path"] for item in report["copied_files"]}
+    for name in EVENT_BRIDGE_DESCRIPTOR_READ_MODEL_FILES:
+        assert name in copied
+        assert (destination / name).is_file()
 
 
 def test_pc_direct_bridge_publishes_invoice_review_candidate_artifact(tmp_path):

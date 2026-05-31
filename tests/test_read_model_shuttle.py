@@ -5,6 +5,7 @@ from pathlib import Path
 from corpus_atlas import run_corpus_atlas
 from generated_read_model_files import (
     CRITICAL_GENERATED_READ_MODEL_FILES,
+    EVENT_BRIDGE_DESCRIPTOR_READ_MODEL_FILES,
     MISSION_CONTROL_CAPTURE_INTAKE_READ_MODEL_FILES,
     MISSION_CONTROL_REVIEW_PACKET_READ_MODEL_FILES,
     canonical_generated_read_model_expected_files,
@@ -207,6 +208,20 @@ def test_capital_hilton_review_packet_files_are_mirror_expected_and_keyed():
         assert name in CRITICAL_READ_MODEL_FILES
 
     assert "invoice_review_bundle.json" in MISSION_CONTROL_REVIEW_PACKET_READ_MODEL_FILES
+
+
+def test_event_bridge_descriptor_files_are_mirror_expected_and_keyed():
+    expected = set(canonical_generated_read_model_expected_files())
+
+    for name in EVENT_BRIDGE_DESCRIPTOR_READ_MODEL_FILES:
+        assert name in expected
+        assert name in CRITICAL_GENERATED_READ_MODEL_FILES
+        assert name in KEY_READ_MODEL_FILES
+        assert name in CRITICAL_READ_MODEL_FILES
+
+    assert "openclaw_event_bridge_contract.json" in EVENT_BRIDGE_DESCRIPTOR_READ_MODEL_FILES
+    assert "openclaw_authority_semantics_registry.json" in EVENT_BRIDGE_DESCRIPTOR_READ_MODEL_FILES
+    assert "simple_invoice_event_bridge_rail_registry.json" in EVENT_BRIDGE_DESCRIPTOR_READ_MODEL_FILES
 
 
 def test_mission_control_capture_intake_files_are_mirror_expected_and_keyed():
