@@ -8,7 +8,7 @@ ConditionPathIsDirectory=/mnt/e/openclaw/mission_control_responses/to_mac
 Type=simple
 WorkingDirectory=@REPO_ROOT@
 Environment=PYTHONDONTWRITEBYTECODE=1
-ExecStart=/usr/bin/env python3 @REPO_ROOT@/scripts/run_openclaw_request_response_service.py --watch-seconds 300 --poll-interval 1 --active-poll-interval 0.05 --active-window-seconds 180 --max-requests 100 --format summary
+ExecStart=/usr/bin/env python3 @REPO_ROOT@/scripts/run_openclaw_request_response_service.py --watch-seconds 21600 --poll-interval 1 --active-poll-interval 0.05 --active-window-seconds 180 --max-requests 100 --format summary
 Restart=always
 RestartSec=1
 NoNewPrivileges=true
