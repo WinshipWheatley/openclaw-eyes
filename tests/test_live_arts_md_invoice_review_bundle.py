@@ -74,6 +74,25 @@ def _selected_2026_1001_receipt():
     }
 
 
+def _failed_pdf_export_receipt(**overrides):
+    receipt = {
+        "receipt_id": "pdf_export_candidate_receipt:test_failure",
+        "receipt_type": "selected_invoice_pdf_export_completed_candidate_receipt",
+        "receipt_name": "selected_invoice_pdf_export_completed_candidate_receipt",
+        "client_ref": "live_arts_md",
+        "workflow_ref": "live_arts_md_invoice_workflow",
+        "invoice_id": "2026-1001",
+        "export_attempted": True,
+        "export_success": False,
+        "failure_code": "EXCEL_APPLESCRIPT_FAILED",
+        "failure_message": "Microsoft Excel got an error: The object you are trying to access does not exist",
+        "failed_stage": "apple_script_export",
+        "validation_errors": [],
+    }
+    receipt.update(overrides)
+    return receipt
+
+
 def _manual_send_payload(**overrides):
     payload = {
         "execution_context": {
@@ -798,6 +817,117 @@ def test_pdf_export_package_scoped_to_selected_candidate():
     assert placement["output_pc_reference_path"] == EXPECTED_OUTPUT_BRIDGE_PATH
     assert placement["local_role"] == "MAC_HELPER_WRITE_DESTINATION"
     assert placement["bridge_role"] == "PC_READ_MODEL_REFERENCE_AND_MIRROR_DESTINATION"
+
+
+def test_dedicated_selection_receipt_survives_generic_action_receipt_overwrite(tmp_path, monkeypatch):
+    source_root = tmp_path / "read_models"
+    bridge_root = tmp_path / "bridge"
+    source_root.mkdir()
+    bridge_root.mkdir()
+    monkeypatch.setattr(bundle, "DEFAULT_EXPORT_ROOT", source_root)
+    monkeypatch.setattr(bundle, "DEFAULT_BRIDGE_EXPORT_ROOT", bridge_root)
+    (source_root / bundle.SELECTION_RECEIPT_EXPORT_NAME).write_text(
+        bundle.stable_json(_selected_2026_1001_receipt()),
+        encoding="utf-8",
+    )
+    (source_root / bundle.LEGACY_ACTION_RECEIPT_EXPORT_NAME).write_text(
+        bundle.stable_json(
+            {
+                "status": "GUIDED_FAILURE_RECORDED",
+                "action_kind": "selected_invoice_pdf_export_completed_candidate",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    live = bundle.build_live_arts_md_bundle(
+        workbook_registry_payload=_confirmed_workbook_payload_with_mac_path(),
+        generated_at=FIXED_NOW,
+    )
+    package = live["invoice_artifact"]["pdf_export_package"]
+
+    assert live["invoice_selection"]["status"] == "OPERATOR_CONFIRMED"
+    assert package["status"] == bundle.PDF_EXPORT_PACKAGE_READY_FOR_MAC
+    assert package["invoice_id"] == "2026-1001"
+    assert package["selected_sheet_label"] == "June 2026 Speaker Rental"
+    assert package["selected_print_areas"]
+    assert package["output_pdf_mac_path"] == EXPECTED_OUTPUT_PDF_MAC_PATH
+    assert "/selected-invoice/" not in package["output_pdf_mac_path"]
+
+
+def test_pdf_export_result_receipt_restores_scope_for_retry_regeneration(tmp_path, monkeypatch):
+    source_root = tmp_path / "read_models"
+    bridge_root = tmp_path / "bridge"
+    source_root.mkdir()
+    bridge_root.mkdir()
+    monkeypatch.setattr(bundle, "DEFAULT_EXPORT_ROOT", source_root)
+    monkeypatch.setattr(bundle, "DEFAULT_BRIDGE_EXPORT_ROOT", bridge_root)
+    (source_root / bundle.PDF_EXPORT_RESULT_RECEIPT_EXPORT_NAME).write_text(
+        bundle.stable_json(_failed_pdf_export_receipt()),
+        encoding="utf-8",
+    )
+
+    live = bundle.build_live_arts_md_bundle(
+        workbook_registry_payload=_confirmed_workbook_payload_with_mac_path(),
+        generated_at=FIXED_NOW,
+    )
+    package = live["invoice_artifact"]["pdf_export_package"]
+
+    assert live["invoice_selection"]["status"] == "OPERATOR_CONFIRMED"
+    assert package["status"] == bundle.PDF_EXPORT_PACKAGE_READY_FOR_MAC
+    assert package["invoice_id"] == "2026-1001"
+    assert package["selected_invoice_summary"] == "2026-1001 — June 2026 Speaker Rental — $900"
+    assert package["selected_sheet_label"] == "June 2026 Speaker Rental"
+    assert package["selected_page_label"] == "page 1"
+    assert package["selected_print_areas"] == (
+        "June 2026 Speaker Rental!G2:G5",
+        "June 2026 Speaker Rental!F40:G43",
+        "June 2026 Speaker Rental!B49:G53",
+    )
+    assert package["output_pdf_mac_path"] == EXPECTED_OUTPUT_PDF_MAC_PATH
+    assert package["output_bridge_path"] == EXPECTED_OUTPUT_BRIDGE_PATH
+    assert package["output_pdf_mac_path"].replace("/Volumes/openclaw_e", "/mnt/e/openclaw") == package[
+        "output_bridge_path"
+    ]
+    assert "/selected-invoice/" not in package["output_pdf_mac_path"]
+
+
+def test_explicit_failed_pdf_export_receipt_keeps_scoped_failure_state():
+    live = bundle.build_live_arts_md_bundle(
+        workbook_registry_payload=_confirmed_workbook_payload_with_mac_path(),
+        export_receipt_payload=_failed_pdf_export_receipt(),
+        consume_existing_selection_receipt=False,
+        generated_at=FIXED_NOW,
+    )
+    package = live["invoice_artifact"]["pdf_export_package"]
+
+    assert package["status"] == "EXPORT_FAILED"
+    assert package["invoice_id"] == "2026-1001"
+    assert package["selected_sheet_label"] == "June 2026 Speaker Rental"
+    assert package["selected_print_areas"]
+    assert package["output_pdf_mac_path"] == EXPECTED_OUTPUT_PDF_MAC_PATH
+    assert package["output_bridge_path"] == EXPECTED_OUTPUT_BRIDGE_PATH
+    assert package["failure_code"] == "EXCEL_APPLESCRIPT_FAILED"
+    assert live["invoice_artifact"]["artifact_review_status"] == "EXPORT_FAILED"
+    assert live["clara_email_draft"]["attachment_ready"] is False
+    assert live["approval_footer"]["approval_ready"] is False
+    assert live["payment_watch"]["ledger_posting_allowed"] is False
+
+
+def test_absent_selection_blocks_pdf_export_instead_of_ready_placeholder():
+    live = bundle.build_live_arts_md_bundle(
+        workbook_registry_payload=_confirmed_workbook_payload_with_mac_path(),
+        consume_existing_selection_receipt=False,
+        generated_at=FIXED_NOW,
+    )
+    package = live["invoice_artifact"]["pdf_export_package"]
+
+    assert package["status"] == bundle.PDF_EXPORT_BLOCKED_MISSING_SELECTION
+    assert package["status"] != bundle.PDF_EXPORT_PACKAGE_READY_FOR_MAC
+    assert package["invoice_id"] == ""
+    assert package["selected_sheet_label"] == ""
+    assert package["selected_print_areas"] == ()
+    assert "/selected-invoice/" in package["output_pdf_mac_path"]
 
 
 def test_pdf_export_package_restricts_external_actions():

@@ -134,6 +134,19 @@ def _selected_invoice_candidate_from_payload(payload: Mapping[str, Any]) -> dict
     return candidate
 
 
+def _live_arts_candidate_from_invoice_id(invoice_id: str) -> dict[str, Any] | None:
+    target = str(invoice_id or "").strip()
+    if not target:
+        return None
+    for candidate in live_arts_md_workbook_handoff.invoice_candidates():
+        if str(candidate.get("invoice_id") or "") == target:
+            selected = dict(candidate)
+            selected["selection_status"] = "OPERATOR_CONFIRMED"
+            selected["selection_source"] = "selected_invoice_pdf_export_completed_candidate_receipt"
+            return selected
+    return None
+
+
 def _action_payload(raw_request: Mapping[str, Any]) -> Mapping[str, Any]:
     nested = raw_request.get("hidden_request_payload")
     if isinstance(nested, Mapping):
@@ -708,6 +721,16 @@ def process_action_request(
             bridge_json is not None,
         )
         receipt = live_arts_selection_result["receipt"]
+        if not receipt["validation_errors"]:
+            export_root.mkdir(parents=True, exist_ok=True)
+            selection_receipt_path = export_root / live_arts_md_invoice_review_bundle.SELECTION_RECEIPT_EXPORT_NAME
+            selection_receipt_path.write_text(stable_json(receipt), encoding="utf-8")
+            if bridge_export_root:
+                bridge_export_root.mkdir(parents=True, exist_ok=True)
+                bridge_selection_receipt_path = (
+                    bridge_export_root / live_arts_md_invoice_review_bundle.SELECTION_RECEIPT_EXPORT_NAME
+                )
+                bridge_selection_receipt_path.write_text(stable_json(receipt), encoding="utf-8")
         headline = "Live Arts MD invoice selected" if not receipt["validation_errors"] else "Invoice selection blocked"
         body = (
             "Live Arts MD invoice candidate recorded. Next: prepare the selected invoice PDF package through the governed scope before attaching or sending. "
@@ -1260,7 +1283,9 @@ def process_selected_invoice_pdf_export_completed_candidate_result_request(
     source_bundle_path = None
     bridge_bundle_path = None
     if result_accepted:
+        selected_candidate = _live_arts_candidate_from_invoice_id(str(action_receipt.get("invoice_id") or ""))
         bundle = live_arts_md_invoice_review_bundle.build_live_arts_md_bundle(
+            selected_invoice_candidate=selected_candidate,
             export_receipt_payload=action_receipt if failure_result else None,
             present_receipts=(live_arts_md_invoice_review_bundle.PDF_EXPORT_COMPLETION_RECEIPT,) if success_result else (),
         )

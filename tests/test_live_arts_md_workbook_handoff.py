@@ -158,6 +158,8 @@ def test_invoice_action_handler_accepts_live_arts_candidate_selection(tmp_path):
     )
 
     receipt = result["action_start_receipt"]
+    source_selection_receipt = tmp_path / "read_models" / bundle.SELECTION_RECEIPT_EXPORT_NAME
+    bridge_selection_receipt = tmp_path / "bridge" / bundle.SELECTION_RECEIPT_EXPORT_NAME
     assert result["status"] == "GUIDED_ACTION_STARTED"
     assert receipt["receipt_name"] == "live_arts_md_invoice_candidate_selected_receipt"
     assert receipt["invoice_id"] == "2026-1001"
@@ -165,6 +167,9 @@ def test_invoice_action_handler_accepts_live_arts_candidate_selection(tmp_path):
     assert receipt["paid"] is False
     assert receipt["ledger_posted"] is False
     assert result["state_machine_progress"]["bridge_mirror_written"] is True
+    assert source_selection_receipt.is_file()
+    assert bridge_selection_receipt.is_file()
+    assert json.loads(source_selection_receipt.read_text(encoding="utf-8"))["invoice_id"] == "2026-1001"
 
 
 def test_prepare_selected_invoice_pdf_action_starts_scoped_package_request(tmp_path):

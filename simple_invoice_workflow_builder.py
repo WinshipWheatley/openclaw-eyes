@@ -22,6 +22,7 @@ MANUAL_SEND_PROOF_CONFIRMED_RECEIPT = "manual_send_proof_confirmed_receipt"
 
 PDF_EXPORT_PACKAGE_READY_FOR_MAC = "PDF_EXPORT_PACKAGE_READY_FOR_MAC"
 PDF_EXPORT_BLOCKED_MISSING_MAC_CAPABILITY = "PDF_EXPORT_BLOCKED_MISSING_MAC_CAPABILITY"
+PDF_EXPORT_BLOCKED_MISSING_SELECTION = "BLOCKED_MISSING_SELECTION"
 PDF_EXPORT_BLOCKED_MISSING_PRINT_SCOPE = "BLOCKED_MISSING_EXPORT_SCOPE"
 PDF_EXPORT_BLOCKED_OUTPUT_PATH_CONTRACT = "BLOCKED_OUTPUT_PATH_CONTRACT"
 PDF_EXPORT_COMPLETED_CANDIDATE = "PDF_EXPORT_COMPLETED_CANDIDATE"
@@ -189,6 +190,20 @@ def _pdf_output_path_contract_errors(package: Mapping[str, Any]) -> tuple[str, .
     return tuple(errors)
 
 
+def _pdf_export_ready_scope_errors(package: Mapping[str, Any]) -> tuple[str, ...]:
+    errors: list[str] = []
+    if not str(package.get("invoice_id") or "").strip():
+        errors.append("invoice_id")
+    if not str(package.get("selected_sheet_label") or "").strip():
+        errors.append("selected_sheet_label")
+    if not _as_sequence(package.get("selected_print_areas")):
+        errors.append("selected_print_areas")
+    for field in ("output_pdf_mac_path", "output_bridge_path", "output_mac_path", "output_path_policy"):
+        if "/selected-invoice/" in str(package.get(field) or ""):
+            errors.append(f"{field}_placeholder")
+    return tuple(errors)
+
+
 def build_selected_invoice_pdf_export_package(
     *,
     fixture: Mapping[str, Any],
@@ -309,7 +324,7 @@ def build_selected_invoice_pdf_export_package(
     if not selected_candidate:
         package.update(
             {
-                "status": PDF_EXPORT_REQUIRES_OPERATOR_REVIEW,
+                "status": PDF_EXPORT_BLOCKED_MISSING_SELECTION,
                 "missing_requirements": ("selected_invoice_candidate",),
                 "operator_review_prompt": fixture.get("pdf_scope_review_template", "Confirm the selected invoice scope").format(
                     invoice_id="selected invoice"
@@ -359,6 +374,18 @@ def build_selected_invoice_pdf_export_package(
                 "missing_requirements": path_contract_errors,
                 "operator_review_prompt": "Fix the explicit Mac/bridge output paths before preparing invoice PDF.",
                 "prompt_invoice_id": invoice_id,
+                "request_payload_ready": False,
+            }
+        )
+        return package, completion_receipt
+    ready_scope_errors = _pdf_export_ready_scope_errors(package)
+    if ready_scope_errors:
+        package.update(
+            {
+                "status": PDF_EXPORT_BLOCKED_MISSING_PRINT_SCOPE,
+                "missing_requirements": ready_scope_errors,
+                "operator_review_prompt": "Confirm the selected invoice scope before preparing invoice PDF.",
+                "prompt_invoice_id": invoice_id or "selected invoice",
                 "request_payload_ready": False,
             }
         )

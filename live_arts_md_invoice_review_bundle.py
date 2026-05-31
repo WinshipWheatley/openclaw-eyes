@@ -32,7 +32,9 @@ OPERATOR_EXPORT_NAME = f"{READ_MODEL_ID}_OPERATOR.md"
 DEFAULT_EXPORT_ROOT = Path("generated/read_models")
 DEFAULT_BRIDGE_EXPORT_ROOT = Path("/mnt/e/openclaw/generated/read_models")
 DEFAULT_GENERATED_AT = "2026-05-28T00:00:00+00:00"
-SELECTION_RECEIPT_EXPORT_NAME = "invoice_review_action_request_receipt.json"
+LEGACY_ACTION_RECEIPT_EXPORT_NAME = "invoice_review_action_request_receipt.json"
+SELECTION_RECEIPT_EXPORT_NAME = "live_arts_md_invoice_candidate_selected_receipt.json"
+PDF_EXPORT_RESULT_RECEIPT_EXPORT_NAME = "selected_invoice_pdf_export_completed_candidate_receipt.json"
 KNOWN_UNTRUSTED_DESKTOP_PDF_PATH = "/Users/hwinshipwheatley/Desktop/Live_Arts_MD_Speaker_Rental_Invoice_September_May_2026.pdf"
 KNOWN_INVALID_BRIDGE_PDF_MAC_PATH = "/Volumes/openclaw_e/artifacts/invoice_workbooks/live_arts_md_invoice_2026-1001.pdf"
 KNOWN_INVALID_BRIDGE_PDF_PC_PATH = "/mnt/e/openclaw/artifacts/invoice_workbooks/live_arts_md_invoice_2026-1001.pdf"
@@ -99,6 +101,7 @@ PROOF_STRENGTH_OPERATOR_ATTESTED_REFERENCE = simple_builder.PROOF_STRENGTH_OPERA
 PROOF_STRENGTH_FILE_VERIFIED = simple_builder.PROOF_STRENGTH_FILE_VERIFIED
 PDF_EXPORT_PACKAGE_READY_FOR_MAC = simple_builder.PDF_EXPORT_PACKAGE_READY_FOR_MAC
 PDF_EXPORT_BLOCKED_MISSING_MAC_CAPABILITY = simple_builder.PDF_EXPORT_BLOCKED_MISSING_MAC_CAPABILITY
+PDF_EXPORT_BLOCKED_MISSING_SELECTION = simple_builder.PDF_EXPORT_BLOCKED_MISSING_SELECTION
 PDF_EXPORT_BLOCKED_MISSING_PRINT_SCOPE = simple_builder.PDF_EXPORT_BLOCKED_MISSING_PRINT_SCOPE
 PDF_EXPORT_BLOCKED_OUTPUT_PATH_CONTRACT = simple_builder.PDF_EXPORT_BLOCKED_OUTPUT_PATH_CONTRACT
 PDF_EXPORT_COMPLETED_CANDIDATE = simple_builder.PDF_EXPORT_COMPLETED_CANDIDATE
@@ -296,15 +299,33 @@ def _invoice_candidate_lookup(invoice_id: str) -> Mapping[str, Any] | None:
 
 
 def _load_existing_selection_receipt() -> Mapping[str, Any] | None:
+    receipt_names = (
+        SELECTION_RECEIPT_EXPORT_NAME,
+        LEGACY_ACTION_RECEIPT_EXPORT_NAME,
+    )
+    for root in (DEFAULT_EXPORT_ROOT, DEFAULT_BRIDGE_EXPORT_ROOT):
+        for receipt_name in receipt_names:
+            path = root / receipt_name
+            try:
+                payload = json.loads(path.read_text(encoding="utf-8"))
+            except (FileNotFoundError, json.JSONDecodeError, OSError):
+                continue
+            receipt = _selection_receipt_from_payload(payload)
+            if receipt is not None:
+                return receipt
+    return None
+
+
+def _load_existing_pdf_export_result_receipt() -> Mapping[str, Any] | None:
     for path in (
-        DEFAULT_EXPORT_ROOT / SELECTION_RECEIPT_EXPORT_NAME,
-        DEFAULT_BRIDGE_EXPORT_ROOT / SELECTION_RECEIPT_EXPORT_NAME,
+        DEFAULT_EXPORT_ROOT / PDF_EXPORT_RESULT_RECEIPT_EXPORT_NAME,
+        DEFAULT_BRIDGE_EXPORT_ROOT / PDF_EXPORT_RESULT_RECEIPT_EXPORT_NAME,
     ):
         try:
             payload = json.loads(path.read_text(encoding="utf-8"))
         except (FileNotFoundError, json.JSONDecodeError, OSError):
             continue
-        receipt = _selection_receipt_from_payload(payload)
+        receipt = _pdf_export_result_receipt_from_payload(payload)
         if receipt is not None:
             return receipt
     return None
@@ -319,6 +340,25 @@ def _selection_receipt_from_payload(payload: Mapping[str, Any] | None) -> Mappin
     else:
         candidate = payload
     if candidate.get("receipt_event") != INVOICE_CANDIDATE_SELECTED_RECEIPT:
+        return None
+    if candidate.get("client_ref") != CLIENT_REF or candidate.get("workflow_ref") != WORKFLOW_REF:
+        return None
+    if candidate.get("validation_errors"):
+        return None
+    if not str(candidate.get("invoice_id") or "").strip():
+        return None
+    return candidate
+
+
+def _pdf_export_result_receipt_from_payload(payload: Mapping[str, Any] | None) -> Mapping[str, Any] | None:
+    if not isinstance(payload, Mapping):
+        return None
+    receipt = payload.get("action_start_receipt")
+    if isinstance(receipt, Mapping):
+        candidate = receipt
+    else:
+        candidate = payload
+    if candidate.get("receipt_name") != "selected_invoice_pdf_export_completed_candidate_receipt":
         return None
     if candidate.get("client_ref") != CLIENT_REF or candidate.get("workflow_ref") != WORKFLOW_REF:
         return None
@@ -344,6 +384,22 @@ def _selected_candidate_from_receipt(receipt: Mapping[str, Any] | None) -> dict[
     candidate["selection_source"] = "live_arts_md_invoice_candidate_selected_receipt"
     candidate["selection_receipt_id"] = valid_receipt.get("receipt_id")
     candidate["selection_receipt_name"] = valid_receipt.get("receipt_event")
+    return candidate
+
+
+def _selected_candidate_from_pdf_export_receipt(receipt: Mapping[str, Any] | None) -> dict[str, Any] | None:
+    valid_receipt = _pdf_export_result_receipt_from_payload(receipt)
+    if valid_receipt is None:
+        return None
+    invoice_id = str(valid_receipt.get("invoice_id") or "").strip()
+    candidate = dict(_invoice_candidate_lookup(invoice_id) or {})
+    if not candidate:
+        return None
+    candidate["invoice_id"] = invoice_id
+    candidate["selection_status"] = "OPERATOR_CONFIRMED"
+    candidate["selection_source"] = "selected_invoice_pdf_export_completed_candidate_receipt"
+    candidate["selection_receipt_id"] = valid_receipt.get("receipt_id")
+    candidate["selection_receipt_name"] = valid_receipt.get("receipt_name")
     return candidate
 
 
@@ -655,10 +711,22 @@ def build_live_arts_md_bundle(
         if consume_existing_selection_receipt
         else None
     )
+    pdf_export_result_receipt = (
+        _pdf_export_result_receipt_from_payload(export_receipt_payload)
+        if export_receipt_payload is not None
+        else _load_existing_pdf_export_result_receipt()
+        if consume_existing_selection_receipt
+        else None
+    )
     if not candidates_list:
         receipt_candidate = _selected_candidate_from_receipt(selection_receipt)
         if receipt_candidate is not None:
             candidates_list = [receipt_candidate]
+            receipts.add(INVOICE_CANDIDATE_SELECTED_RECEIPT)
+    if not candidates_list:
+        result_candidate = _selected_candidate_from_pdf_export_receipt(pdf_export_result_receipt)
+        if result_candidate is not None:
+            candidates_list = [result_candidate]
             receipts.add(INVOICE_CANDIDATE_SELECTED_RECEIPT)
 
     selected_invoice_summary = dict(candidates_list[0]) if len(candidates_list) == 1 else None
@@ -853,7 +921,7 @@ def build_live_arts_md_bundle(
             )
         elif pdf_export_package["status"] == PDF_EXPORT_BLOCKED_MISSING_MAC_CAPABILITY:
             blockers.append("Prepare the selected invoice PDF requires a supported Mac workbook path.")
-        elif pdf_export_package["status"] == PDF_EXPORT_REQUIRES_OPERATOR_REVIEW:
+        elif pdf_export_package["status"] in {PDF_EXPORT_BLOCKED_MISSING_SELECTION, PDF_EXPORT_REQUIRES_OPERATOR_REVIEW}:
             blockers.append(
                 str(pdf_export_package.get("operator_review_prompt") or "Confirm the selected invoice scope for PDF export.")
             )

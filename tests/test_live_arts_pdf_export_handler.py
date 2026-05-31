@@ -83,7 +83,21 @@ def test_failed_helper_receipt_records_structured_failure_without_attachment_rea
     assert local_result["paid"] is False
     assert local_result["final"] is False
     assert bundle["invoice_artifact"]["artifact_review_status"] == "EXPORT_FAILED"
-    assert bundle["invoice_artifact"]["pdf_export_package"]["status"] == "EXPORT_FAILED"
+    package = bundle["invoice_artifact"]["pdf_export_package"]
+    assert package["status"] == "EXPORT_FAILED"
+    assert package["invoice_id"] == "2026-1001"
+    assert package["selected_sheet_label"] == "June 2026 Speaker Rental"
+    assert package["selected_page_label"] == "page 1"
+    assert package["selected_print_areas"] == [
+        "June 2026 Speaker Rental!G2:G5",
+        "June 2026 Speaker Rental!F40:G43",
+        "June 2026 Speaker Rental!B49:G53",
+    ]
+    assert package["output_pdf_mac_path"] == (
+        "/Volumes/openclaw_e/artifacts/invoice_workbooks/live_arts_md/2026-1001/"
+        "Invoice_2026-1001_Live_Arts_MD_June_2026_Speaker_Rental.pdf"
+    )
+    assert "/selected-invoice/" not in package["output_pdf_mac_path"]
     assert bundle["clara_email_draft"]["attachment_ready"] is False
     assert bundle["approval_footer"]["approval_ready"] is False
     assert bundle["payment_watch"]["ledger_posting_allowed"] is False
