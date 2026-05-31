@@ -62,6 +62,7 @@ GROWTH_STAGES = (
 SEVERITIES = ("INFO", "WARNING", "BLOCKER", "CRITICAL")
 
 DRIFT_TYPES = (
+    "AMBIGUOUS_AUTHORITY_FIELD",
     "WRONG_BOOLEAN_POLARITY",
     "WRONG_LOCATION",
     "MISSING_REQUIRED_FIELD",
@@ -71,6 +72,21 @@ DRIFT_TYPES = (
     "UNKNOWN_AUTHORITY_FIELD",
     "STALE_GENERATED_VIEW",
     "DUPLICATED_AUTHORITY_SEMANTICS",
+    "MISSING_POSITIVE_TEMPLATE",
+    "POSITIVE_STRUCTURE_ABSENT",
+)
+
+DETERMINISTIC_DRIFT_OUTPUTS = (
+    "AUTHORITY_SEMANTICS_DRIFT",
+    "AMBIGUOUS_AUTHORITY_FIELD",
+    "WRONG_BOOLEAN_POLARITY",
+    "WRONG_LOCATION",
+    "UNSAFE_TRUE_GRANT",
+    "LEGACY_CHAT_ACTION_ALLOWED",
+    "MUTATION_WITHOUT_RECEIPT",
+    "UNKNOWN_AUTHORITY_FIELD",
+    "ENTRENCHED_DRIFT",
+    "MATURE_WEED",
     "MISSING_POSITIVE_TEMPLATE",
     "POSITIVE_STRUCTURE_ABSENT",
 )
@@ -497,8 +513,8 @@ def _field_semantics_rows() -> tuple[dict[str, Any], ...]:
     rows: list[dict[str, Any]] = []
     for field_name, replacement in PROHIBITION_TO_GRANT.items():
         rows.append(
-            {
-                "field_ref": f"field:{field_name}",
+        {
+            "field_ref": f"field:{field_name}",
                 "field_name": field_name,
                 "field_family": "PROHIBITION_FLAG",
                 "true_meaning": "The action is prohibited and must not happen.",
@@ -1337,6 +1353,15 @@ def build_registry_payload(*, generated_at: str | None = None) -> dict[str, Any]
         },
         "growth_stages": GROWTH_STAGES,
         "drift_types": DRIFT_TYPES,
+        "deterministic_drift_outputs": DETERMINISTIC_DRIFT_OUTPUTS,
+        "source_code_remediation_policy": {
+            "default_response": "PROPOSE_FIX",
+            "auto_fix_allowed": False,
+            "auto_remove_allowed": False,
+            "requires_tests": True,
+            "requires_bounded_commit": True,
+            "safe_remediation_path": "Propose bounded source-code fixes with tests and commits; do not silently rewrite source truth.",
+        },
         "field_semantics_summary": {
             "no_browser_family": no_browser["field_family"],
             "no_browser_true_meaning": no_browser["true_meaning"],
@@ -1627,6 +1652,7 @@ __all__ = [
     "AUTHORITY_SEMANTICS_VERSION",
     "CONTRACT_STATUS",
     "DANGEROUS_AUTHORITY_GRANTS",
+    "DETERMINISTIC_DRIFT_OUTPUTS",
     "DEFAULT_READ_MODEL_ROOT",
     "DEFAULT_SYSTEM_KNOWLEDGE_ROOT",
     "EVENT_BRIDGE_FINANCE_PROFILE_REF",

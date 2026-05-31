@@ -1249,6 +1249,20 @@
     }
   ],
   "contract_status": "DETERMINISTIC_AUTHORITY_SEMANTICS_REGISTRY_NO_EXECUTION",
+  "deterministic_drift_outputs": [
+    "AUTHORITY_SEMANTICS_DRIFT",
+    "AMBIGUOUS_AUTHORITY_FIELD",
+    "WRONG_BOOLEAN_POLARITY",
+    "WRONG_LOCATION",
+    "UNSAFE_TRUE_GRANT",
+    "LEGACY_CHAT_ACTION_ALLOWED",
+    "MUTATION_WITHOUT_RECEIPT",
+    "UNKNOWN_AUTHORITY_FIELD",
+    "ENTRENCHED_DRIFT",
+    "MATURE_WEED",
+    "MISSING_POSITIVE_TEMPLATE",
+    "POSITIVE_STRUCTURE_ABSENT"
+  ],
   "device_authority_shards": [
     {
       "authority_profiles": [
@@ -1361,6 +1375,7 @@
     }
   ],
   "drift_types": [
+    "AMBIGUOUS_AUTHORITY_FIELD",
     "WRONG_BOOLEAN_POLARITY",
     "WRONG_LOCATION",
     "MISSING_REQUIRED_FIELD",
@@ -2547,5 +2562,13 @@
     "quarantine": "Preserve unsafe payload evidence where policy allows.",
     "remove": "Deletion or deprecation requires explicit approval or migration contract."
   },
-  "schema_version": "openclaw_authority_semantics_registry_v0"
+  "schema_version": "openclaw_authority_semantics_registry_v0",
+  "source_code_remediation_policy": {
+    "auto_fix_allowed": false,
+    "auto_remove_allowed": false,
+    "default_response": "PROPOSE_FIX",
+    "requires_bounded_commit": true,
+    "requires_tests": true,
+    "safe_remediation_path": "Propose bounded source-code fixes with tests and commits; do not silently rewrite source truth."
+  }
 }

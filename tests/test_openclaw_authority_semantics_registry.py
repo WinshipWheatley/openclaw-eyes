@@ -125,6 +125,25 @@ def test_dangerous_ledger_grant_and_missing_mutation_guard_emit_drift():
     assert "MISSING_REQUIRED_FIELD" in drift_types
 
 
+def test_registry_exposes_full_deterministic_drift_output_vocabulary():
+    payload = _payload()
+
+    assert {
+        "AUTHORITY_SEMANTICS_DRIFT",
+        "AMBIGUOUS_AUTHORITY_FIELD",
+        "WRONG_BOOLEAN_POLARITY",
+        "WRONG_LOCATION",
+        "UNSAFE_TRUE_GRANT",
+        "LEGACY_CHAT_ACTION_ALLOWED",
+        "MUTATION_WITHOUT_RECEIPT",
+        "UNKNOWN_AUTHORITY_FIELD",
+        "ENTRENCHED_DRIFT",
+        "MATURE_WEED",
+        "MISSING_POSITIVE_TEMPLATE",
+        "POSITIVE_STRUCTURE_ABSENT",
+    }.issubset(set(payload["deterministic_drift_outputs"]))
+
+
 def test_legacy_chat_and_business_mutation_without_receipt_emit_blocking_drift():
     envelope = registry.build_registry_payload(generated_at=FIXED_NOW)["golden_path_fixtures"][0]["payload_json"]
     envelope = {**envelope, "safety_flags": dict(envelope["safety_flags"])}
@@ -146,6 +165,8 @@ def test_remediation_policies_do_not_silently_delete_or_mutate_without_receipts(
     assert all(policy["auto_remove_allowed"] is False for policy in policies)
     assert payload["machine_proof"]["no_policy_allows_silent_deletion"] is True
     assert payload["machine_proof"]["no_policy_allows_business_mutation_without_receipt"] is True
+    assert payload["source_code_remediation_policy"]["default_response"] == "PROPOSE_FIX"
+    assert payload["source_code_remediation_policy"]["auto_fix_allowed"] is False
     assert {
         "AUTO_REGENERATE_DERIVED_VIEW",
         "PROPOSE_FIX",
