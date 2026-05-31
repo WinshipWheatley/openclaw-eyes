@@ -18,6 +18,7 @@ import client_invoice_workbook_registry as workbook_registry
 import invoice_review_bundle
 import local_artifact_reference
 import mac_worker_handoff_package as mac_handoff
+import openclaw_event_bridge_contract as event_contract
 import openclaw_request_processor as processor
 import openclaw_request_response_service as service
 import operator_file_metadata_intake as file_intake
@@ -25,6 +26,32 @@ from scripts.run_openclaw_request_response_service import main as service_main
 
 
 FIXED_NOW = "2026-05-25T18:30:00+00:00"
+EVENT_BRIDGE_NOW = "2026-05-31T14:00:30+00:00"
+
+
+def _write_event_bridge_prepare_pdf(path: Path, **overrides) -> dict:
+    event = event_contract.make_live_arts_prepare_pdf_event(
+        event_kind=overrides.pop("event_kind", "WORKFLOW_ACTION_REQUEST"),
+        source_channel=overrides.pop("source_channel", "MAC_APP"),
+        event_id=overrides.pop("event_id", "event_bridge_live_arts_prepare_pdf_fixture"),
+        created_at=overrides.pop("created_at", "2026-05-31T14:00:00+00:00"),
+        expires_at=overrides.pop("expires_at", "2026-05-31T14:05:00+00:00"),
+    )
+    event.update(overrides)
+    path.write_text(event_contract.stable_json(event), encoding="utf-8")
+    return event
+
+
+def _write_event_bridge_pdf_candidate(path: Path, **overrides) -> dict:
+    event = event_contract.make_live_arts_pdf_candidate_result_event(
+        source_channel=overrides.pop("source_channel", "MAC_APP"),
+        event_id=overrides.pop("event_id", "event_bridge_live_arts_pdf_candidate_fixture"),
+        created_at=overrides.pop("created_at", "2026-05-31T14:02:00+00:00"),
+        expires_at=overrides.pop("expires_at", "2026-05-31T14:07:00+00:00"),
+    )
+    event.update(overrides)
+    path.write_text(event_contract.stable_json(event), encoding="utf-8")
+    return event
 
 
 def _write_chat_request(path: Path) -> dict:
@@ -603,6 +630,191 @@ def test_service_processes_invoice_review_action_and_writes_scoped_response(tmp_
     assert receipt["status"] == "GUIDED_ACTION_STARTED"
     assert receipt["machine_proof"]["completion_receipt_written"] is False
     assert response["machine_proof"]["external_action_performed"] is False
+
+
+def test_service_accepts_event_bridge_prepare_pdf_envelope_and_routes_adapter_only(tmp_path, capsys):
+    inbox = tmp_path / "inbox"
+    response_dir = tmp_path / "responses"
+    export_root = tmp_path / "read_models"
+    inbox.mkdir()
+    request_path = inbox / "openclaw_event_bridge_live_arts_prepare_pdf.json"
+    event = _write_event_bridge_prepare_pdf(request_path)
+
+    assert service_main(
+        [
+            "--once",
+            "--inbox",
+            str(inbox),
+            "--response-dir",
+            str(response_dir),
+            "--export-root",
+            str(export_root),
+            "--generated-at",
+            EVENT_BRIDGE_NOW,
+            "--format",
+            "json",
+        ]
+    ) == 0
+    payload = json.loads(capsys.readouterr().out)
+    response = json.loads(_safe_response_path(response_dir, event["event_id"]).read_text(encoding="utf-8"))
+    heartbeat = json.loads(_safe_heartbeat_path(response_dir, event["event_id"]).read_text(encoding="utf-8"))
+
+    assert payload["service_status"]["service_status"] == "REQUEST_PROCESSED"
+    assert payload["service_status"]["last_routing_status"] == "PROCESSING_ON_PC"
+    assert payload["service_status"]["selected_worker_target"] == "OPENCLAW_SYSTEM"
+    assert heartbeat["request_type"] == "EVENT_BRIDGE"
+    assert heartbeat["processing_status"] == "CHECKING_EVENT_BRIDGE_ADAPTER"
+    assert response["response_kind"] == "EVENT_BRIDGE_ADAPTER_RESPONSE"
+    assert response["source_request_id"] == event["event_id"]
+    assert response["correlation_id"] == event["correlation_id"]
+    assert response["route_status"] == "ROUTE_MATCHED"
+    assert response["workflow_status"] == "WORKFLOW_ACTION_ROUTED"
+    assert response["selected_handler_id"] == "invoice_review_action_request.live_arts_md"
+    assert response["detail_disclosure"]["event_bridge_adapter_response"]["processor_request"]["thread_ref"] == event["thread_ref"]
+    assert not (export_root / "invoice_review_action_request_receipt.json").exists()
+    assert response["machine_proof"]["handler_execution_performed"] is False
+    assert response["machine_proof"]["pdf_export_performed"] is False
+    assert response["machine_proof"]["production_state_mutation_performed"] is False
+
+
+def test_service_rejects_event_bridge_missing_idempotency(tmp_path, capsys):
+    inbox = tmp_path / "inbox"
+    response_dir = tmp_path / "responses"
+    export_root = tmp_path / "read_models"
+    inbox.mkdir()
+    request_path = inbox / "openclaw_event_bridge_missing_idempotency.json"
+    event = _write_event_bridge_prepare_pdf(request_path, event_id="event_bridge_missing_idempotency_fixture")
+    event["idempotency_key"] = ""
+    request_path.write_text(event_contract.stable_json(event), encoding="utf-8")
+
+    assert service_main(
+        [
+            "--once",
+            "--inbox",
+            str(inbox),
+            "--response-dir",
+            str(response_dir),
+            "--export-root",
+            str(export_root),
+            "--generated-at",
+            EVENT_BRIDGE_NOW,
+            "--format",
+            "json",
+        ]
+    ) == 0
+    capsys.readouterr()
+    response = json.loads(_safe_response_path(response_dir, event["event_id"]).read_text(encoding="utf-8"))
+
+    assert response["internal_status"] == "BLOCKED_WITH_REASON"
+    assert response["route_status"] == "ROUTE_REJECTED_VALIDATION"
+    assert response["detail_disclosure"]["event_bridge_adapter_response"]["error_code"] == "MISSING_IDEMPOTENCY_KEY"
+    assert response["detail_disclosure"]["event_bridge_adapter_response"]["processor_request"] == {}
+    assert response["machine_proof"]["handler_execution_performed"] is False
+
+
+def test_service_rejects_event_bridge_stale_event(tmp_path, capsys):
+    inbox = tmp_path / "inbox"
+    response_dir = tmp_path / "responses"
+    export_root = tmp_path / "read_models"
+    inbox.mkdir()
+    request_path = inbox / "openclaw_event_bridge_stale_prepare_pdf.json"
+    event = _write_event_bridge_prepare_pdf(
+        request_path,
+        event_id="event_bridge_stale_prepare_pdf_fixture",
+        created_at="2026-05-31T13:50:00+00:00",
+        expires_at="2026-05-31T13:55:00+00:00",
+    )
+
+    assert service_main(
+        [
+            "--once",
+            "--inbox",
+            str(inbox),
+            "--response-dir",
+            str(response_dir),
+            "--export-root",
+            str(export_root),
+            "--generated-at",
+            EVENT_BRIDGE_NOW,
+            "--format",
+            "json",
+        ]
+    ) == 0
+    capsys.readouterr()
+    response = json.loads(_safe_response_path(response_dir, event["event_id"]).read_text(encoding="utf-8"))
+
+    assert response["internal_status"] == "BLOCKED_WITH_REASON"
+    assert response["route_status"] == "ROUTE_REJECTED_STALE_EVENT"
+    assert response["stale_event"] is True
+    assert response["detail_disclosure"]["event_bridge_adapter_response"]["processor_request"] == {}
+    assert response["machine_proof"]["handler_execution_performed"] is False
+
+
+def test_service_rejects_event_bridge_false_guard(tmp_path, capsys):
+    inbox = tmp_path / "inbox"
+    response_dir = tmp_path / "responses"
+    export_root = tmp_path / "read_models"
+    inbox.mkdir()
+    request_path = inbox / "openclaw_event_bridge_false_guard.json"
+    event = _write_event_bridge_prepare_pdf(request_path, event_id="event_bridge_false_guard_fixture")
+    event["no_ledger_post"] = False
+    request_path.write_text(event_contract.stable_json(event), encoding="utf-8")
+
+    assert service_main(
+        [
+            "--once",
+            "--inbox",
+            str(inbox),
+            "--response-dir",
+            str(response_dir),
+            "--export-root",
+            str(export_root),
+            "--generated-at",
+            EVENT_BRIDGE_NOW,
+            "--format",
+            "json",
+        ]
+    ) == 0
+    capsys.readouterr()
+    response = json.loads(_safe_response_path(response_dir, event["event_id"]).read_text(encoding="utf-8"))
+
+    assert response["route_status"] == "ROUTE_REJECTED_VALIDATION"
+    assert response["detail_disclosure"]["event_bridge_adapter_response"]["error_code"] == "GUARD_NOT_TRUE:no_ledger_post"
+    assert response["machine_proof"]["ledger_post_performed"] is False
+
+
+def test_service_event_bridge_local_surface_pdf_candidate_routes_adapter_only(tmp_path, capsys):
+    inbox = tmp_path / "inbox"
+    response_dir = tmp_path / "responses"
+    export_root = tmp_path / "read_models"
+    inbox.mkdir()
+    request_path = inbox / "openclaw_event_bridge_live_arts_pdf_candidate.json"
+    event = _write_event_bridge_pdf_candidate(request_path)
+
+    assert service_main(
+        [
+            "--once",
+            "--inbox",
+            str(inbox),
+            "--response-dir",
+            str(response_dir),
+            "--export-root",
+            str(export_root),
+            "--generated-at",
+            EVENT_BRIDGE_NOW,
+            "--format",
+            "json",
+        ]
+    ) == 0
+    capsys.readouterr()
+    response = json.loads(_safe_response_path(response_dir, event["event_id"]).read_text(encoding="utf-8"))
+
+    assert response["route_status"] == "ROUTE_MATCHED"
+    assert response["workflow_status"] == "WORKFLOW_RESULT_ROUTE_MATCHED"
+    assert response["selected_handler_id"] == "selected_invoice_pdf_export_completed_candidate.live_arts_md"
+    assert response["detail_disclosure"]["event_bridge_adapter_response"]["processor_request"]["request_type"] == "LOCAL_SURFACE_RESULT"
+    assert response["machine_proof"]["handler_execution_performed"] is False
+    assert not (export_root / "selected_invoice_pdf_export_completed_candidate_receipt.json").exists()
 
 
 def test_service_routes_freeform_workbook_selection_to_processor_not_worker_fallback(tmp_path, capsys):

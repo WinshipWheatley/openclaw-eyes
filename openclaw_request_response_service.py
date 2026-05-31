@@ -13,6 +13,7 @@ path, raw transcript ingestion path, Mac sync/import path, or Swift change.
 from __future__ import annotations
 
 import argparse
+import fnmatch
 import hashlib
 import json
 import os
@@ -30,6 +31,7 @@ import client_invoice_sheet_audit
 import deterministic_intent_interpreter
 import lm_intent_proposal_contract
 import mac_worker_handoff_package
+import openclaw_event_bridge_adapter
 import reality_bounce_harness
 import worker_routing_intelligence
 
@@ -75,11 +77,19 @@ ROUTING_STATUSES = (
 )
 
 SERVICE_SUPPORTED_REQUEST_FAMILIES = (
+    "EVENT_BRIDGE",
     "CHAT",
     "FILE_METADATA",
     "LOCAL_SURFACE_RESULT",
     "ARTIFACT_REFERENCE_APPROVAL",
     "ARTIFACT_INTAKE_REQUEST",
+)
+
+EVENT_BRIDGE_REQUEST_PATTERNS = (
+    "openclaw_event_bridge_*.json",
+    "event_bridge_*.json",
+    "mission_control_event_bridge_*.json",
+    "mission_control_capture_request_*event_bridge*.json",
 )
 
 WORKER_TARGETS = (
@@ -407,7 +417,36 @@ def _processed_identity_keys(existing_status: Mapping[str, Any] | None) -> set[s
 
 
 def classify_request_path(path: Path) -> str:
-    return processor.classify_request_filename(path.name).request_family
+    processor_family = processor.classify_request_filename(path.name).request_family
+    if processor_family != "UNKNOWN_FAIL_CLOSED":
+        return processor_family
+    if any(fnmatch.fnmatch(path.name, pattern) for pattern in EVENT_BRIDGE_REQUEST_PATTERNS):
+        return "EVENT_BRIDGE"
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return processor_family
+    if is_event_bridge_envelope(raw):
+        return "EVENT_BRIDGE"
+    return processor_family
+
+
+def is_event_bridge_envelope(raw: Any) -> bool:
+    if not isinstance(raw, Mapping):
+        return False
+    required_markers = (
+        "event_kind",
+        "source_channel",
+        "correlation_id",
+        "idempotency_key",
+        "client_ref",
+        "workflow_ref",
+        "payload",
+        "safety_flags",
+    )
+    return any(key in raw for key in ("event_id", "event_kind", "correlation_id")) and all(
+        key in raw for key in required_markers
+    )
 
 
 def list_candidate_requests(inbox: Path = APPROVED_INBOX) -> tuple[Path, ...]:
@@ -464,9 +503,12 @@ def read_request_identity(path: Path) -> RequestIdentity:
             request_key=f"file:{path.name}",
             parse_status="INVALID_JSON_OBJECT",
         )
-    source_request_id = str(raw.get("request_id") or f"missing_request_id_{path.stem}")
+    if request_type == "EVENT_BRIDGE":
+        source_request_id = str(raw.get("event_id") or raw.get("request_id") or f"missing_event_id_{path.stem}")
+    else:
+        source_request_id = str(raw.get("request_id") or f"missing_request_id_{path.stem}")
     idempotency_key = str(raw.get("idempotency_key")) if raw.get("idempotency_key") else None
-    payload_hash = str(raw.get("payload_hash")) if raw.get("payload_hash") else None
+    payload_hash = str(raw.get("payload_hash")) if raw.get("payload_hash") else _content_hash(dict(raw)) if request_type == "EVENT_BRIDGE" else None
     workflow_ref = str(raw.get("workflow_ref") or "unknown")
     if source_request_id and not source_request_id.startswith("missing_request_id_"):
         request_key = f"request_id:{source_request_id}"
@@ -683,6 +725,20 @@ def _route_for_request(request_path: Path, identity: RequestIdentity, raw_reques
     request_type = identity.request_type
     text = _request_text(raw_request)
     lowered = text.lower()
+    if request_type == "EVENT_BRIDGE":
+        return RouteDecision(
+            routing_status="PROCESSING_ON_PC",
+            selected_worker_target="OPENCLAW_SYSTEM",
+            selected_machine="PC_WSL",
+            processing_status="CHECKING_EVENT_BRIDGE_ADAPTER",
+            operator_headline="OpenClaw is checking this Event Bridge action",
+            operator_message="OpenClaw picked this up and is validating the hot-path Event Bridge envelope.",
+            next_safe_move="Wait for the Event Bridge route readback.",
+            route_reason="Event Bridge envelopes are validated and mapped through the deterministic adapter before existing request-router selection.",
+            pc_handled=False,
+            mac_handoff_required=False,
+            future_worker_blocked=False,
+        )
     if request_type == "FILE_METADATA":
         return RouteDecision(
             routing_status="PROCESSING_ON_PC",
@@ -1612,6 +1668,159 @@ def _route_blocked_processor_payload(
     return response_payload
 
 
+def _event_bridge_adapter_processor_payload(
+    *,
+    request_path: Path,
+    identity: RequestIdentity,
+    route: RouteDecision,
+    raw_event: Mapping[str, Any],
+    created_at: str,
+) -> dict[str, Any]:
+    adapter_response = openclaw_event_bridge_adapter.route_event_bridge_envelope(
+        raw_event,
+        now=created_at,
+    )
+    route_status = str(adapter_response.get("route_status") or "UNKNOWN_FAIL_CLOSED")
+    workflow_status = str(adapter_response.get("workflow_status") or "WORKFLOW_BLOCKED")
+    matched = route_status == "ROUTE_MATCHED"
+    internal_status = "RESPONSE_READY" if matched else "BLOCKED_WITH_REASON"
+    selected_handler = str((adapter_response.get("router_decision") or {}).get("selected_handler_id") or "")
+    correlation_id = str(adapter_response.get("correlation_id") or raw_event.get("correlation_id") or "")
+    operator_copy = str(adapter_response.get("operator_copy") or "")
+    headline = "Event Bridge route selected" if matched else "Event Bridge envelope rejected"
+    next_safe_move = (
+        "Wait for the selected deterministic workflow route readback."
+        if matched
+        else "Fix the Event Bridge envelope and resend it with the current action source."
+    )
+    if matched and selected_handler:
+        message = f"{operator_copy} Selected route: {selected_handler}."
+    else:
+        message = operator_copy or "The Event Bridge envelope was rejected before routing."
+    response = processor.OpenClawResponseForMac(
+        source_request_id=identity.source_request_id,
+        source_request_filename=request_path.name,
+        workflow_ref=identity.workflow_ref,
+        request_type=identity.request_type,
+        internal_status=internal_status,
+        operator_headline=headline,
+        operator_message=message,
+        what_happened=(
+            "The service recognized an Event Bridge envelope in the approved capture inbox.",
+            "The service validated the envelope and safety guards through the Event Bridge adapter.",
+            "The adapter mapped the event into the existing request-router shape.",
+            "No handler execution, PDF export, workbook cell read, email/Gmail/browser/Coupa action, ledger mutation, Chief run, or model call occurred.",
+        ),
+        why_it_happened=(
+            f"Adapter route_status={route_status}; workflow_status={workflow_status}."
+            if route_status
+            else "Adapter returned no route status."
+        ),
+        how_to_fix=next_safe_move,
+        visible_cards=(
+            {
+                "title": headline,
+                "bullets": (
+                    f"Route status: {route_status}",
+                    f"Workflow status: {workflow_status}",
+                    f"Correlation: {correlation_id}" if correlation_id else "Correlation id missing",
+                    "Adapter only; no business action executed.",
+                ),
+                "status_tone": "ready" if matched else "blocked",
+            },
+        ),
+        cards_available=True,
+        card_mirror_refs=(),
+        file_readback_refs=(),
+        worker_route_refs=(
+            {
+                "selected_worker_target": route.selected_worker_target,
+                "selected_machine": route.selected_machine,
+                "routing_status": route.routing_status,
+                "route_reason": route.route_reason,
+                "event_bridge_route_status": route_status,
+                "event_bridge_workflow_status": workflow_status,
+                "selected_handler_id": selected_handler,
+                "correlation_id": correlation_id,
+            },
+        ),
+        context_package_refs=(),
+        blocked_reason=None if matched else str(adapter_response.get("error_code") or route_status),
+        detail_disclosure={
+            "selected_rail": "openclaw_event_bridge_adapter",
+            "routing_status": route.routing_status,
+            "processing_status": route.processing_status,
+            "event_bridge_adapter_response": adapter_response,
+            "route_status": route_status,
+            "workflow_status": workflow_status,
+            "operator_copy": operator_copy,
+            "correlation_id": correlation_id,
+            "selected_handler_id": selected_handler,
+            "handler_execution_performed": False,
+            "processor_execution_performed": False,
+            "pdf_export_performed": False,
+            "workbook_body_read_performed": False,
+            "spreadsheet_cell_read_performed": False,
+            "email_send_performed": False,
+            "gmail_access_performed": False,
+            "browser_access_performed": False,
+            "coupa_access_performed": False,
+            "ledger_post_performed": False,
+            "production_state_mutation_performed": False,
+            "service_restart_required": False,
+        },
+        readback_files=(),
+        next_safe_move=next_safe_move,
+    )
+    response_payload, _status_payload = processor.build_payloads(response, generated_at=created_at)
+    response_payload.update(
+        {
+            "response_kind": "EVENT_BRIDGE_ADAPTER_RESPONSE",
+            "headline": headline,
+            "one_line_answer": message,
+            "eliwinship": message,
+            "primary_status": route_status,
+            "primary_blocker": "None" if matched else str(adapter_response.get("error_code") or route_status),
+            "next_action": f"Next: {next_safe_move}",
+            "missing_items_short": (),
+            "detail_summary": f"Event Bridge adapter returned {route_status}.",
+            "mac_render_hint": "COMPACT_WITH_DISCLOSURE",
+            "event_id": str(adapter_response.get("event_id") or raw_event.get("event_id") or identity.source_request_id),
+            "event_kind": str(raw_event.get("event_kind") or ""),
+            "source_channel": str(raw_event.get("source_channel") or ""),
+            "correlation_id": correlation_id,
+            "route_status": route_status,
+            "workflow_status": workflow_status,
+            "operator_copy": operator_copy,
+            "stale_event": bool(adapter_response.get("stale_event")),
+            "superseded_by_event_id": str(adapter_response.get("superseded_by_event_id") or ""),
+            "selected_handler_id": selected_handler,
+            "event_bridge_adapter_response": adapter_response,
+        }
+    )
+    machine_proof = response_payload.get("machine_proof")
+    if isinstance(machine_proof, dict):
+        machine_proof.update(
+            {
+                "event_bridge_envelope_recognized": True,
+                "event_bridge_adapter_used": True,
+                "event_bridge_adapter_route_status": route_status,
+                "event_bridge_adapter_selected_handler_id": selected_handler,
+                "handler_execution_performed": False,
+                "processor_execution_performed": False,
+                "pdf_export_performed": False,
+                "email_send_performed": False,
+                "gmail_access_performed": False,
+                "browser_access_performed": False,
+                "coupa_access_performed": False,
+                "ledger_post_performed": False,
+                "workbook_cell_read_performed": False,
+                "production_state_mutation_performed": False,
+            }
+        )
+    return response_payload
+
+
 def _record_from_response(
     request_path: Path,
     identity: RequestIdentity,
@@ -1846,6 +2055,15 @@ def process_one_pending_request(
                 identity=identity,
                 route=route,
                 raw_request=raw_request_for_route,
+                created_at=created_at,
+            )
+            errors = ()
+        elif identity.request_type == "EVENT_BRIDGE":
+            response_payload = _event_bridge_adapter_processor_payload(
+                request_path=request_path,
+                identity=identity,
+                route=route,
+                raw_event=raw_request_for_route,
                 created_at=created_at,
             )
             errors = ()
