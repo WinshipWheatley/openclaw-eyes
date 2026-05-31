@@ -1,0 +1,12 @@
+[Unit]
+Description=OpenClaw allowlisted service keeper
+Documentation=file://@REPO_ROOT@/OPENCLAW_RUNTIME.md
+
+[Service]
+Type=oneshot
+WorkingDirectory=@REPO_ROOT@
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/usr/bin/env python3 @REPO_ROOT@/scripts/openclaw_service_keeper.py --format summary
+StandardOutput=append:%h/.local/state/openclaw/logs/openclaw-service-keeper.log
+StandardError=append:%h/.local/state/openclaw/logs/openclaw-service-keeper.log
+NoNewPrivileges=true

@@ -1,0 +1,72 @@
+{
+  "action_count": 0,
+  "allowed_units": [
+    "openclaw-request-response.service",
+    "openclaw-change-sentinel.timer"
+  ],
+  "allowlisted_service_keeper_only": true,
+  "browser_accessed": false,
+  "business_workflow_state_mutated": false,
+  "checked_units": [
+    "openclaw-request-response.service",
+    "openclaw-change-sentinel.timer"
+  ],
+  "chief_launched": false,
+  "coupa_accessed": false,
+  "email_accessed": false,
+  "generated_at": "2026-05-31T03:51:17+00:00",
+  "generated_by": "codex",
+  "gmail_accessed": false,
+  "ledger_mutated": false,
+  "lm_called": false,
+  "no_authority_flags": {
+    "allowlisted_service_keeper_only": true,
+    "browser_accessed": false,
+    "business_workflow_state_mutated": false,
+    "chief_launched": false,
+    "coupa_accessed": false,
+    "email_accessed": false,
+    "gmail_accessed": false,
+    "ledger_mutated": false,
+    "lm_called": false,
+    "pdf_generated_or_exported": false,
+    "production_state_mutated": false,
+    "queue_files_processed_directly": false,
+    "restarts_active_services": false,
+    "starts_arbitrary_services": false,
+    "workbook_cells_read": false
+  },
+  "pdf_generated_or_exported": false,
+  "production_state_mutated": false,
+  "purpose": "Start only inactive allowlisted OpenClaw core user units.",
+  "queue_files_processed_directly": false,
+  "restarts_active_services": false,
+  "run_status": "NO_ACTION_REQUIRED",
+  "schema_version": "openclaw_service_keeper_status_v0",
+  "starts_arbitrary_services": false,
+  "unit_results": [
+    {
+      "active_state_after": "active",
+      "active_state_before": "active",
+      "error_message": "",
+      "observed_at": "2026-05-31T03:51:17+00:00",
+      "started": false,
+      "status": "NO_ACTION_REQUIRED",
+      "sub_state_after": "running",
+      "sub_state_before": "running",
+      "unit_name": "openclaw-request-response.service"
+    },
+    {
+      "active_state_after": "active",
+      "active_state_before": "active",
+      "error_message": "",
+      "observed_at": "2026-05-31T03:51:17+00:00",
+      "started": false,
+      "status": "NO_ACTION_REQUIRED",
+      "sub_state_after": "waiting",
+      "sub_state_before": "waiting",
+      "unit_name": "openclaw-change-sentinel.timer"
+    }
+  ],
+  "workbook_cells_read": false
+}

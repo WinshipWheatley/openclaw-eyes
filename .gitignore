@@ -122,6 +122,7 @@
 !operator_question_response.py
 !compiled_knowledge_substrate.py
 !openclaw_sensitive_policy.py
+!openclaw_service_supervision.py
 !AGENTS.md
 !OPENCLAW_RUNTIME.md
 !USER.md
@@ -956,6 +957,8 @@
 !scripts/export_openclaw_work_terrain_reconciliation_batch_manifest.py
 !scripts/export_work_terrain_surface_map_build_cue_scout.py
 !scripts/export_work_terrain_build_cue_reconciliation_queue.py
+!scripts/export_openclaw_service_supervision.py
+!scripts/openclaw_service_keeper.py
 !tests/test_external_ai_context_packager.py
 !tests/test_work_board.py
 !tests/test_steel_thread_radar.py
@@ -1013,6 +1016,8 @@
 !tests/test_openclaw_work_terrain_reconciliation_batch_manifest.py
 !tests/test_work_terrain_surface_map_build_cue_scout.py
 !tests/test_work_terrain_build_cue_reconciliation_queue.py
+!tests/test_openclaw_service_supervision.py
+!tests/test_openclaw_service_keeper.py
 !tests/test_openclaw_context_wiki_compiler.py
 !docs/operations/OPENCLAW_EXTERNAL_AI_CONTEXT_PACKAGER_V0.md
 !docs/operations/OPENCLAW_WORK_BOARD_V0.md
@@ -1022,6 +1027,10 @@
 !generated/read_models/*.json
 !generated/read_models/*.txt
 !generated/read_models/*.md
+!generated/system_knowledge/
+!generated/system_knowledge/openclaw_service_supervision.sqlite
+!generated/system_knowledge/openclaw_service_supervision_SCHEMA.sql
+!generated/system_knowledge/openclaw_service_supervision_SEED.sql
 !generated/wiki/
 !generated/wiki/openclaw/
 !generated/wiki/openclaw/*.md
