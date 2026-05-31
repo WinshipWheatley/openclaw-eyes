@@ -125,6 +125,7 @@
 !openclaw_service_supervision.py
 !openclaw_business_object_layer_audit.py
 !openclaw_lm_child_package_gate.py
+!openclaw_hermes_sidecar.py
 !openclaw_external_registry_materializer.py
 !openclaw_event_bridge_contract.py
 !openclaw_event_bridge_adapter.py
@@ -970,6 +971,7 @@
 !scripts/openclaw_service_keeper.py
 !scripts/export_openclaw_business_object_layer_audit.py
 !scripts/export_openclaw_lm_child_package_gate.py
+!scripts/export_openclaw_hermes_sidecar.py
 !scripts/import_external_system_knowledge_registry.py
 !tests/test_external_ai_context_packager.py
 !tests/test_work_board.py
@@ -1035,6 +1037,7 @@
 !tests/test_openclaw_service_keeper.py
 !tests/test_openclaw_business_object_layer_audit.py
 !tests/test_openclaw_lm_child_package_gate.py
+!tests/test_openclaw_hermes_sidecar.py
 !tests/test_external_system_knowledge_registry_materializer.py
 !tests/test_openclaw_context_wiki_compiler.py
 !docs/operations/OPENCLAW_EXTERNAL_AI_CONTEXT_PACKAGER_V0.md
@@ -1053,6 +1056,9 @@
 !generated/system_knowledge/openclaw_lm_child_package_gate.sqlite
 !generated/system_knowledge/openclaw_lm_child_package_gate_SCHEMA.sql
 !generated/system_knowledge/openclaw_lm_child_package_gate_SEED.sql
+!generated/system_knowledge/openclaw_hermes_sidecar.sqlite
+!generated/system_knowledge/openclaw_hermes_sidecar_SCHEMA.sql
+!generated/system_knowledge/openclaw_hermes_sidecar_SEED.sql
 !generated/external_registries/
 !generated/external_registries/openclaw-eyes/
 !generated/external_registries/openclaw-eyes/openclaw_system_knowledge_registry.json
