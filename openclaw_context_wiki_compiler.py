@@ -39,6 +39,7 @@ PAGE_OUTPUTS = (
     "README.md",
     "System Overview.md",
     "Evidence-Grounded Context Registry.md",
+    "Authority Semantics.md",
     "Estate Topology.md",
     "Reference Resolver.md",
     "Live Arts MD Invoice Automation.md",
@@ -55,6 +56,7 @@ EXPECTED_SOURCE_SPECS = (
     ("reference_resolver_sqlite", "Reference resolver SQLite registry", "generated/system_knowledge/openclaw_reference_resolver.sqlite", "sqlite_registry"),
     ("reference_resolver", "Reference resolver read-model", "generated/read_models/openclaw_reference_resolver.json", "json_read_model"),
     ("external_system_knowledge_registry_index", "External system knowledge registry index", "generated/read_models/external_system_knowledge_registry_index.json", "json_read_model"),
+    ("authority_semantics_registry", "Authority Semantics Registry", "generated/read_models/openclaw_authority_semantics_registry.json", "json_read_model"),
     ("business_object_layer_audit", "Business-object implementation layer audit", "generated/read_models/openclaw_business_object_layer_audit.json", "json_read_model"),
     ("live_arts_md_invoice_review_bundle", "Live Arts MD invoice bundle", "generated/read_models/live_arts_md_invoice_review_bundle.json", "json_read_model"),
     ("invoice_review_bundle", "Capital Hilton invoice bundle", "generated/read_models/invoice_review_bundle.json", "json_read_model"),
@@ -884,6 +886,8 @@ def build_pages(
     resolver_payload = resolver.payload if resolver else None
     external_registry = sources.get("external_system_knowledge_registry_index")
     external_registry_payload = external_registry.payload if external_registry else None
+    authority_source = sources.get("authority_semantics_registry")
+    authority_payload = authority_source.payload if authority_source else None
     live_source = sources.get("live_arts_md_invoice_review_bundle")
     live_payload = live_source.payload if live_source else None
     live_bundle = live_payload.get("live_arts_md_bundle", live_payload) if isinstance(live_payload, dict) else {}
@@ -1032,6 +1036,55 @@ def build_pages(
                 "Do not smooth over contradictory source statuses.",
             ),
             source_refs=registry_source_refs,
+        )
+    )
+
+    authority_facts: list[str] = [
+        "Authority Semantics Registry is the canonical source for prohibition flag and authority grant polarity.",
+        "`no_*` fields are prohibition flags; true means the action is prohibited.",
+        "`*_allowed` fields are authority grants; true means the action is allowed only by the active profile.",
+        "`no_browser=true` belongs in safety_flags or a top-level compatibility guard, not authority_boundary.",
+        "If unsafe authority drift is detected, Event Bridge blocks the envelope and returns positive replacement guidance.",
+    ]
+    authority_next_actions = (
+        "Use `event_bridge_finance_workflow_action_template` for finance hot-path envelopes.",
+        "Use `guardian_receipt_required_mutation_template` before adding any future business mutation authority.",
+        "Regenerate authority registry read-models after source registry changes.",
+    )
+    if isinstance(authority_payload, dict):
+        summary = authority_payload.get("field_semantics_summary", {})
+        authority_facts.extend(
+            [
+                f"Registry status: {authority_payload.get('contract_status')}.",
+                f"Authority semantics version: {authority_payload.get('authority_semantics_version')}.",
+                f"no_browser family: {summary.get('no_browser_family')}.",
+                f"browser_access_allowed family: {summary.get('browser_access_allowed_family')}.",
+                f"Positive templates: {len(authority_payload.get('positive_occupation_templates') or [])}.",
+                f"Golden fixtures: {len(authority_payload.get('golden_path_fixtures') or [])}.",
+            ]
+        )
+        authority_next_actions = tuple(
+            template.get("template_ref", "")
+            for template in as_list(authority_payload.get("positive_occupation_templates"))
+            if isinstance(template, dict)
+        )[:7] or authority_next_actions
+    pages.append(
+        WikiPage(
+            title="Authority Semantics",
+            filename="Authority Semantics.md",
+            status=page_status_from_sources([sources["authority_semantics_registry"]], fallback="UNKNOWN"),
+            summary="This page explains the deterministic authority field semantics used by Event Bridge and related finance workflow guards.",
+            confirmed_facts=tuple(authority_facts),
+            known_unknowns=source_missing_unknowns(sources, ("authority_semantics_registry",)),
+            tensions=tension_texts(tensions, ("authority_semantics_registry",)),
+            next_actions=authority_next_actions,
+            what_not_to_do=(
+                "Do not put no_* prohibition flags inside authority_boundary.",
+                "Do not silently rewrite unsafe live envelopes into safe envelopes.",
+                "Do not grant dangerous *_allowed authority without an explicit receipt-gated profile.",
+                "Do not use legacy chat cards as live finance action sources.",
+            ),
+            source_refs=source_refs(sources, ("authority_semantics_registry", "business_object_layer_audit")),
         )
     )
 

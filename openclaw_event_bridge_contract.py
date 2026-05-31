@@ -16,6 +16,8 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Mapping
 
+import openclaw_authority_semantics_registry as authority_registry
+
 
 DEFAULT_EXPORT_ROOT = Path("generated/read_models")
 
@@ -28,6 +30,9 @@ CONTRACT_STATUS = "DETERMINISTIC_HOT_PATH_EVENT_BRIDGE_CONTRACT_NO_EXECUTION"
 APPROVED_INBOX = "/mnt/e/openclaw/mission_control_capture_requests/inbox"
 APPROVED_RESPONSE_DIR = "/mnt/e/openclaw/mission_control_responses/to_mac"
 REQUEST_RESPONSE_SERVICE_REF = "openclaw-request-response.service"
+AUTHORITY_SEMANTICS_VERSION = authority_registry.AUTHORITY_SEMANTICS_VERSION
+DEFAULT_AUTHORITY_PROFILE_REF = authority_registry.EVENT_BRIDGE_FINANCE_PROFILE_REF
+DEFAULT_POSITIVE_OCCUPATION_TEMPLATE_REF = authority_registry.EVENT_BRIDGE_FINANCE_TEMPLATE_REF
 
 EVENT_KINDS = (
     "OPERATOR_MESSAGE",
@@ -48,6 +53,9 @@ SOURCE_CHANNELS = (
 )
 
 EVENT_ENVELOPE_FIELDS = (
+    "authority_semantics_version",
+    "authority_profile_ref",
+    "positive_occupation_template_ref",
     "event_id",
     "event_kind",
     "source_channel",
@@ -138,6 +146,9 @@ WORKFLOW_STATUSES = (
 WORKFLOW_PAYLOAD_SHAPE_REF = "openclaw_event_bridge.workflow_action_payload.v0"
 WORKFLOW_PAYLOAD_FIELDS = (
     "payload_shape_ref",
+    "authority_semantics_version",
+    "authority_profile_ref",
+    "positive_occupation_template_ref",
     "request_type",
     "kind",
     "intended_use",
@@ -175,6 +186,7 @@ AUTHORITY_BOUNDARY = {
     "response_publication_allowed": False,
     "email_send_allowed": False,
     "gmail_access_allowed": False,
+    "browser_access_allowed": False,
     "browser_automation_allowed": False,
     "coupa_access_allowed": False,
     "coupa_submit_allowed": False,
@@ -188,6 +200,7 @@ AUTHORITY_BOUNDARY = {
     "network_operation_allowed": False,
     "external_action_allowed": False,
     "production_state_mutation_allowed": False,
+    "source_workbook_mutation_allowed": False,
 }
 
 DEFAULT_SAFETY_FLAGS = {
@@ -195,14 +208,18 @@ DEFAULT_SAFETY_FLAGS = {
     "change_sentinel_cold_path": False,
     "telegram_compact_surface": False,
     "old_chat_card_live_action_source_allowed": False,
+    "legacy_chat_card_live_action_source_allowed": False,
     "business_mutation_without_receipt_allowed": False,
     "structured_action_required": True,
     "operator_receipt_required_before_mutation": True,
+    "result_receipt_required": True,
+    **{field: True for field in authority_registry.PROHIBITION_FIELDS},
 }
 
 PAYLOAD_FORBIDDEN_TRUE_KEYS = {
     "email_send_allowed",
     "gmail_access_allowed",
+    "browser_access_allowed",
     "browser_automation_allowed",
     "browser_allowed",
     "coupa_access_allowed",
@@ -227,6 +244,9 @@ TELEGRAM_COMMAND_ACTIONS = {
 
 @dataclass(frozen=True)
 class EventEnvelope:
+    authority_semantics_version: str
+    authority_profile_ref: str
+    positive_occupation_template_ref: str
     event_id: str
     event_kind: str
     source_channel: str
@@ -382,6 +402,9 @@ def make_event_envelope(
     thread_ref: str,
     actor_ref: str,
     payload: Mapping[str, Any],
+    authority_semantics_version: str = AUTHORITY_SEMANTICS_VERSION,
+    authority_profile_ref: str = DEFAULT_AUTHORITY_PROFILE_REF,
+    positive_occupation_template_ref: str = DEFAULT_POSITIVE_OCCUPATION_TEMPLATE_REF,
     event_id: str | None = None,
     idempotency_key: str | None = None,
     correlation_id: str | None = None,
@@ -405,6 +428,9 @@ def make_event_envelope(
     event_payload = dict(payload)
     computed_event_id = event_id or f"event:{_short_hash(event_kind, source_channel, client_ref, workflow_ref, thread_ref, actor_ref, event_payload, created)}"
     envelope = EventEnvelope(
+        authority_semantics_version=authority_semantics_version,
+        authority_profile_ref=authority_profile_ref,
+        positive_occupation_template_ref=positive_occupation_template_ref,
         event_id=computed_event_id,
         event_kind=event_kind,
         source_channel=source_channel,
@@ -671,22 +697,27 @@ def validate_event(
     if not isinstance(authority, Mapping):
         errors.append("INVALID_AUTHORITY_BOUNDARY")
         authority = {}
-    for key, value in authority.items():
-        if value is True:
-            errors.append(f"AUTHORITY_NOT_GRANTED:{key}")
+    authority_validation = authority_registry.validate_authority_semantics(
+        raw_event,
+        profile_ref=str(raw_event.get("authority_profile_ref") or DEFAULT_AUTHORITY_PROFILE_REF),
+    )
+    errors.extend(authority_validation.errors)
     for field in NO_AUTHORITY_GUARD_FIELDS:
         if raw_event.get(field) is not True:
             errors.append(f"GUARD_NOT_TRUE:{field}")
     for key in (
         "old_chat_card_live_action_source_allowed",
+        "legacy_chat_card_live_action_source_allowed",
         "business_mutation_without_receipt_allowed",
         "email_send_allowed",
         "gmail_access_allowed",
+        "browser_access_allowed",
         "browser_automation_allowed",
         "coupa_access_allowed",
         "ledger_post_allowed",
         "workbook_cell_read_allowed",
         "physical_printing_allowed",
+        "business_mutation_allowed",
     ):
         if safety.get(key) is True:
             errors.append(f"SAFETY_AUTHORITY_NOT_GRANTED:{key}")
@@ -741,6 +772,11 @@ def workflow_payload_from_event(
     result_receipt_required = bool(raw_event.get("result_receipt_required")) or registration.result_receipt_required
     workflow_payload = {
         "payload_shape_ref": WORKFLOW_PAYLOAD_SHAPE_REF,
+        "authority_semantics_version": str(raw_event.get("authority_semantics_version") or AUTHORITY_SEMANTICS_VERSION),
+        "authority_profile_ref": str(raw_event.get("authority_profile_ref") or DEFAULT_AUTHORITY_PROFILE_REF),
+        "positive_occupation_template_ref": str(
+            raw_event.get("positive_occupation_template_ref") or DEFAULT_POSITIVE_OCCUPATION_TEMPLATE_REF
+        ),
         "request_type": registration.request_type,
         "kind": registration.request_type,
         "intended_use": registration.action_kind,
@@ -957,6 +993,9 @@ def build_contract_payload(*, generated_at: str | None = None) -> dict[str, Any]
         "read_model_id": READ_MODEL_ID,
         "contract_status": CONTRACT_STATUS,
         "generated_at": generated,
+        "authority_semantics_version": AUTHORITY_SEMANTICS_VERSION,
+        "authority_profile_ref": DEFAULT_AUTHORITY_PROFILE_REF,
+        "positive_occupation_template_ref": DEFAULT_POSITIVE_OCCUPATION_TEMPLATE_REF,
         "bridge_paths": {
             "approved_inbox": APPROVED_INBOX,
             "approved_response_dir": APPROVED_RESPONSE_DIR,
@@ -988,6 +1027,25 @@ def build_contract_payload(*, generated_at: str | None = None) -> dict[str, Any]
         },
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
         "safety_flags": dict(DEFAULT_SAFETY_FLAGS),
+        "authority_semantics": {
+            "prohibition_flag_rule": "no_* true means prohibited and belongs in safety_flags or top-level compatibility fields.",
+            "authority_grant_rule": "*_allowed true means granted authority and belongs in authority_boundary.",
+            "incorrect_authority_boundary_no_browser_true_rejected": {
+                "authority_boundary": {"no_browser": True},
+                "rejection": "AUTHORITY_SEMANTICS_DRIFT:WRONG_BOOLEAN_POLARITY:authority_boundary.no_browser",
+            },
+            "correct_safety_flags": {
+                "no_browser": True,
+                "no_email_send": True,
+                "no_ledger_post": True,
+            },
+            "correct_authority_boundary": {
+                "browser_access_allowed": False,
+                "email_send_allowed": False,
+                "ledger_post_allowed": False,
+            },
+            "positive_replacement_guidance": authority_registry.positive_replacement_guidance(),
+        },
         "registered_workflow_actions": tuple(asdict(registration) for registration in registrations),
         "examples": {
             "mac_prepare_pdf_event": mac_event,
@@ -996,6 +1054,25 @@ def build_contract_payload(*, generated_at: str | None = None) -> dict[str, Any]
             "telegram_prepare_pdf_response": telegram_response,
             "local_surface_pdf_candidate_event": pdf_candidate_event,
             "local_surface_pdf_candidate_response": candidate_response,
+            "incorrect_authority_boundary_no_browser_true": {
+                **mac_event,
+                "authority_boundary": {"no_browser": True},
+            },
+            "corrected_replacement_envelope": {
+                **mac_event,
+                "safety_flags": {
+                    **dict(mac_event["safety_flags"]),
+                    "no_browser": True,
+                    "no_email_send": True,
+                    "no_ledger_post": True,
+                },
+                "authority_boundary": {
+                    **dict(mac_event["authority_boundary"]),
+                    "browser_access_allowed": False,
+                    "email_send_allowed": False,
+                    "ledger_post_allowed": False,
+                },
+            },
         },
         "machine_proof": {
             "mac_and_telegram_use_same_event_fields": tuple(mac_event.keys()) == tuple(telegram_event.keys()),
@@ -1033,7 +1110,9 @@ def format_operator_readback(payload: Mapping[str, Any]) -> str:
         "- Cold path: Change Sentinel observes bridge health/drift; it is not in the event routing loop.",
         "- Telegram: compact surface only; it emits the same structured workflow payload shape.",
         "- Stale cards: expired or superseded events are rejected and point to the current action.",
-        "- Authority: no email, Gmail, browser, Coupa, ledger, workbook cell read, PDF export, printing, model call, or production mutation authority is granted.",
+        "- Authority: `no_*` fields are prohibition flags; `*_allowed` fields are authority grants.",
+        "- Authority boundary: no email, Gmail, browser, Coupa, ledger, workbook cell read, PDF export, printing, model call, or production mutation authority is granted.",
+        f"- Authority profile: {payload.get('authority_profile_ref', DEFAULT_AUTHORITY_PROFILE_REF)}.",
         "",
         "## Contract Shape",
         "",
@@ -1083,7 +1162,10 @@ def export_openclaw_event_bridge_contract(
 
 __all__ = [
     "AUTHORITY_BOUNDARY",
+    "AUTHORITY_SEMANTICS_VERSION",
     "CONTRACT_STATUS",
+    "DEFAULT_AUTHORITY_PROFILE_REF",
+    "DEFAULT_POSITIVE_OCCUPATION_TEMPLATE_REF",
     "EVENT_ENVELOPE_FIELDS",
     "EVENT_KINDS",
     "EXPECTED_RESPONSE_KINDS",

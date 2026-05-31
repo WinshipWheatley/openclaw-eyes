@@ -8,6 +8,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import openclaw_business_object_layer_audit as audit
+import openclaw_authority_semantics_registry as authority_registry
 from scripts.export_openclaw_business_object_layer_audit import main as export_main
 
 
@@ -106,6 +107,10 @@ def _fixtures(read_root: Path, wiki_root: Path) -> None:
             "run_status": "NO_MATERIAL_CHANGE",
             "material_change_count": 0,
         },
+    )
+    _write_json(
+        read_root / "openclaw_authority_semantics_registry.json",
+        authority_registry.build_registry_payload(generated_at=FIXED_NOW),
     )
     _write_json(
         read_root / "openclaw_context_wiki_index.json",
@@ -353,6 +358,37 @@ def test_present_registry_objects_are_not_marked_missing(tmp_path):
         "context wiki",
     ):
         assert objects[object_name]["implementation_status"] not in {"MISSING", "UNKNOWN"}
+
+
+def test_authority_score_cites_registry_and_missing_registry_reduces_confidence(tmp_path):
+    read_root = tmp_path / "generated" / "read_models"
+    wiki_root = tmp_path / "generated" / "wiki" / "openclaw"
+    _fixtures(read_root, wiki_root)
+
+    payload = audit.build_openclaw_business_object_layer_audit(
+        read_model_root=read_root,
+        wiki_root=wiki_root,
+        generated_at=FIXED_NOW,
+    )
+    authority_score = {row["category"]: row for row in payload["scorecard"]}["Authority"]
+
+    assert authority_score["status"] == "STRONG_DEFAULT_DENY_WITH_REGISTRY"
+    assert any(
+        ref["path"] == "generated/read_models/openclaw_authority_semantics_registry.json"
+        for ref in authority_score["source_refs"]
+    )
+
+    (read_root / "openclaw_authority_semantics_registry.json").unlink()
+    stale_payload = audit.build_openclaw_business_object_layer_audit(
+        read_model_root=read_root,
+        wiki_root=wiki_root,
+        generated_at=FIXED_NOW,
+    )
+    stale_authority = {row["category"]: row for row in stale_payload["scorecard"]}["Authority"]
+
+    assert stale_payload["freshness_status"] == "STALE_MISSING_INPUT"
+    assert stale_authority["confidence"] == "LOW"
+    assert stale_authority["status"] == "REGISTRY_MISSING"
 
 
 def test_export_writes_json_operator_and_sqlite(tmp_path, capsys):

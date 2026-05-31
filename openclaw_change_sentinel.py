@@ -49,6 +49,7 @@ INPUT_READ_MODELS = {
     "sync_health": "sync_health.json",
     "request_response_service_status": "openclaw_request_response_service_status.json",
     "business_object_audit": "openclaw_business_object_layer_audit.json",
+    "authority_semantics_registry": "openclaw_authority_semantics_registry.json",
 }
 
 STATUS_VALUES = (
@@ -61,6 +62,7 @@ STATUS_VALUES = (
     "REMOTE_REF_MOVED",
     "WORKFLOW_STATE_CHANGED",
     "BUSINESS_OBJECT_AUDIT_STALE",
+    "AUTHORITY_SEMANTICS_DRIFT",
     "ACTION_REQUIRED",
     "UNKNOWN",
 )
@@ -106,6 +108,7 @@ CHANGE_STATUS_PRIORITY = (
     "REPO_DIRTY",
     "WORKFLOW_STATE_CHANGED",
     "BUSINESS_OBJECT_AUDIT_STALE",
+    "AUTHORITY_SEMANTICS_DRIFT",
     "ACTION_REQUIRED",
     "MATERIAL_CHANGE_DETECTED",
 )
@@ -644,6 +647,47 @@ def _business_object_audit_targets(
     ]
 
 
+def _authority_semantics_targets(
+    payload: dict[str, Any],
+    *,
+    source_path: str,
+    observed_at: str,
+) -> list[dict[str, Any]]:
+    if not payload:
+        return []
+    active_signals = payload.get("active_drift_signals")
+    if not isinstance(active_signals, list):
+        active_signals = []
+    template_count = len(payload.get("positive_occupation_templates") or [])
+    fixture_count = len(payload.get("golden_path_fixtures") or [])
+    profile_ref = str(payload.get("authority_profile_ref") or "event_bridge_finance_workflow_action_v0")
+    status = "AUTHORITY_SEMANTICS_DRIFT" if active_signals else "NO_MATERIAL_CHANGE"
+    observed_payload = {
+        "schema_version": payload.get("schema_version", ""),
+        "authority_semantics_version": payload.get("authority_semantics_version", ""),
+        "authority_profile_ref": profile_ref,
+        "positive_template_count": template_count,
+        "golden_fixture_count": fixture_count,
+        "active_drift_signal_count": len(active_signals),
+        "active_drift_signals": active_signals,
+        "recommended_command": "python3 scripts/export_openclaw_authority_semantics_registry.py",
+        "lm_called": False,
+        "chief_launched": False,
+    }
+    return [
+        _target_row(
+            target_ref="authority_semantics_registry:fingerprint",
+            target_type="AUTHORITY_SEMANTICS_REGISTRY",
+            source_path=source_path,
+            observation_status=status,
+            observed_value=str(payload.get("authority_semantics_version", "")),
+            observed_payload=observed_payload,
+            observed_at=observed_at,
+            unreachable_reason="active authority drift signals present" if active_signals else "",
+        )
+    ]
+
+
 def read_systemd_service_snapshot(
     *,
     service_name: str = SERVICE_NAME,
@@ -796,6 +840,13 @@ def collect_observed_targets(
             observed_at=observed_at,
         )
     )
+    rows.extend(
+        _authority_semantics_targets(
+            payloads["authority_semantics_registry"],
+            source_path=_display_path(read_root / INPUT_READ_MODELS["authority_semantics_registry"]),
+            observed_at=observed_at,
+        )
+    )
     if include_systemd:
         snapshot = systemd_snapshot if systemd_snapshot is not None else read_systemd_service_snapshot()
         rows.extend(_service_targets(snapshot, observed_at=observed_at))
@@ -845,6 +896,8 @@ def _change_status(current: dict[str, Any], previous: dict[str, Any]) -> str:
         return "BRIDGE_STALE"
     if target_type == "BUSINESS_OBJECT_AUDIT":
         return "BUSINESS_OBJECT_AUDIT_STALE"
+    if target_type == "AUTHORITY_SEMANTICS_REGISTRY":
+        return "AUTHORITY_SEMANTICS_DRIFT"
     return "MATERIAL_CHANGE_DETECTED"
 
 
@@ -929,6 +982,7 @@ def _material_change_rows(changes: list[dict[str, Any]]) -> list[dict[str, Any]]
         severity = (
             "HIGH"
             if status in {"SERVICE_UNSTABLE", "DRIFT_DETECTED", "BUSINESS_OBJECT_AUDIT_STALE"}
+            or status == "AUTHORITY_SEMANTICS_DRIFT"
             else "MEDIUM"
         )
         rows.append(
@@ -946,10 +1000,16 @@ def _material_change_rows(changes: list[dict[str, Any]]) -> list[dict[str, Any]]
                     "REPO_DIRTY",
                     "REMOTE_REF_MOVED",
                     "BUSINESS_OBJECT_AUDIT_STALE",
+                    "AUTHORITY_SEMANTICS_DRIFT",
                     "ACTION_REQUIRED",
                 },
                 "can_wait": status
-                not in {"SERVICE_UNSTABLE", "DRIFT_DETECTED", "BUSINESS_OBJECT_AUDIT_STALE"},
+                not in {
+                    "SERVICE_UNSTABLE",
+                    "DRIFT_DETECTED",
+                    "BUSINESS_OBJECT_AUDIT_STALE",
+                    "AUTHORITY_SEMANTICS_DRIFT",
+                },
             }
         )
     return rows
@@ -972,6 +1032,9 @@ def _recommended_action_for_material(material: dict[str, Any]) -> dict[str, Any]
     elif status == "BUSINESS_OBJECT_AUDIT_STALE":
         title = "Regenerate business-object layer audit from current inputs"
         validation = "python3 scripts/export_openclaw_business_object_layer_audit.py"
+    elif status == "AUTHORITY_SEMANTICS_DRIFT":
+        title = "Review authority semantics registry drift"
+        validation = "python3 scripts/export_openclaw_authority_semantics_registry.py"
     elif status == "WORKFLOW_STATE_CHANGED":
         title = "Review workflow read-model change"
         validation = "python3 scripts/export_openclaw_change_sentinel.py --format operator"

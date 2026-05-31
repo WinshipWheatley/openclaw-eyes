@@ -15,6 +15,7 @@ from openclaw_context_wiki_compiler import (
     SOURCE_OF_TRUTH_WARNING,
     compile_openclaw_context_wiki,
 )
+import openclaw_authority_semantics_registry as authority_registry
 
 
 def _write_json(root: Path, relative_path: str, payload: dict) -> None:
@@ -162,6 +163,11 @@ def _base_sources(root: Path) -> None:
             "rules": ["Canonical sources store stable refs."],
             "target_count": 1,
         },
+    )
+    _write_json(
+        root,
+        "generated/read_models/openclaw_authority_semantics_registry.json",
+        authority_registry.build_registry_payload(generated_at="2026-05-31T04:00:00+00:00"),
     )
     _write_json(
         root,
@@ -391,6 +397,19 @@ def test_fresh_business_object_audit_renders_fresh_line(tmp_path):
     ):
         text = (tmp_path / "generated/wiki/openclaw" / filename).read_text(encoding="utf-8")
         assert "Business-object audit freshness: FRESH." in text
+
+
+def test_authority_semantics_page_explains_prohibitions_grants_and_drift_response(tmp_path):
+    summary = _compile(tmp_path)
+
+    assert "Authority Semantics.md" in summary["pages"]
+    page = (tmp_path / "generated/wiki/openclaw/Authority Semantics.md").read_text(encoding="utf-8")
+
+    assert "`no_*` fields are prohibition flags" in page
+    assert "`*_allowed` fields are authority grants" in page
+    assert "`no_browser=true` belongs in safety_flags" in page
+    assert "Event Bridge blocks the envelope" in page
+    assert "event_bridge_finance_workflow_action_template" in page
 
 
 def test_stale_business_object_audit_renders_warning(tmp_path):

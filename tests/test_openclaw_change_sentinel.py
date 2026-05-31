@@ -4,6 +4,7 @@ import sqlite3
 from pathlib import Path
 
 import openclaw_change_sentinel as sentinel
+import openclaw_authority_semantics_registry as authority_registry
 from scripts.export_openclaw_change_sentinel import main as export_main
 
 
@@ -192,6 +193,10 @@ def _write_fixture_read_models(
     _write_json(root / "invoice_review_bundle.json", _capital_hilton_payload(workflow_status=capital_status))
     _write_json(root / "sync_health.json", _sync_health_payload())
     _write_json(root / "openclaw_request_response_service_status.json", _service_status_payload())
+    _write_json(
+        root / "openclaw_authority_semantics_registry.json",
+        authority_registry.build_registry_payload(generated_at="2026-05-31T03:00:00+00:00"),
+    )
 
 
 def _business_object_audit_payload(root: Path) -> dict:
@@ -283,6 +288,31 @@ def test_bridge_hash_mismatch_emits_drift_detected(tmp_path):
     changed = _build(read_root, previous=baseline)
 
     assert "DRIFT_DETECTED" in _status_set(changed)
+
+
+def test_authority_semantics_registry_change_emits_authority_drift_without_lm(tmp_path):
+    read_root = tmp_path / "read_models"
+    _write_fixture_read_models(read_root)
+    baseline = _build(read_root)
+    registry_payload = authority_registry.build_registry_payload(generated_at="2026-05-31T03:10:00+00:00")
+    registry_payload["active_drift_signals"] = [
+        {
+            "drift_type": "WRONG_BOOLEAN_POLARITY",
+            "severity": "BLOCKER",
+            "field_name": "authority_boundary.no_browser",
+        }
+    ]
+    _write_json(read_root / "openclaw_authority_semantics_registry.json", registry_payload)
+
+    changed = _build(read_root, previous=baseline)
+
+    assert "AUTHORITY_SEMANTICS_DRIFT" in _status_set(changed)
+    assert changed["lm_called"] is False
+    assert changed["chief_launched"] is False
+    target = {
+        row["target_ref"]: row for row in changed["observed_targets"]
+    }["authority_semantics_registry:fingerprint"]
+    assert target["observation_status"] == "AUTHORITY_SEMANTICS_DRIFT"
 
 
 def test_dirty_repo_change_emits_repo_dirty(tmp_path):

@@ -5,11 +5,13 @@
 - Cold path: Change Sentinel observes bridge health/drift; it is not in the event routing loop.
 - Telegram: compact surface only; it emits the same structured workflow payload shape.
 - Stale cards: expired or superseded events are rejected and point to the current action.
-- Authority: no email, Gmail, browser, Coupa, ledger, workbook cell read, PDF export, printing, model call, or production mutation authority is granted.
+- Authority: `no_*` fields are prohibition flags; `*_allowed` fields are authority grants.
+- Authority boundary: no email, Gmail, browser, Coupa, ledger, workbook cell read, PDF export, printing, model call, or production mutation authority is granted.
+- Authority profile: event_bridge_finance_workflow_action_v0.
 
 ## Contract Shape
 
-- Event fields: event_id, event_kind, source_channel, client_ref, workflow_ref, world_ref, thread_ref, actor_ref, idempotency_key, created_at, expires_at, correlation_id, parent_event_id, payload, safety_flags, authority_boundary, expected_response_kind, result_receipt_required, no_email_send, no_gmail, no_browser, no_ledger_post, no_coupa, no_workbook_cell_read, no_physical_printing
+- Event fields: authority_semantics_version, authority_profile_ref, positive_occupation_template_ref, event_id, event_kind, source_channel, client_ref, workflow_ref, world_ref, thread_ref, actor_ref, idempotency_key, created_at, expires_at, correlation_id, parent_event_id, payload, safety_flags, authority_boundary, expected_response_kind, result_receipt_required, no_email_send, no_gmail, no_browser, no_ledger_post, no_coupa, no_workbook_cell_read, no_physical_printing
 - Response fields: response_id, event_id, correlation_id, route_status, workflow_status, operator_copy, structured_actions, receipt_refs, next_expected_event, error_code, error_message, retry_allowed, stale_event, superseded_by_event_id
 - Response scope fields: client_ref, workflow_ref, world_ref, thread_ref, source_channel, actor_ref
 

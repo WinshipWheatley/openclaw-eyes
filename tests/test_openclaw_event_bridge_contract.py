@@ -111,6 +111,10 @@ def test_live_arts_prepare_pdf_request_preserves_no_email_no_ledger_no_cell_read
     assert event["no_email_send"] is True
     assert event["no_gmail"] is True
     assert event["no_browser"] is True
+    assert event["safety_flags"]["no_browser"] is True
+    assert event["authority_boundary"]["browser_access_allowed"] is False
+    assert event["authority_profile_ref"] == "event_bridge_finance_workflow_action_v0"
+    assert event["positive_occupation_template_ref"] == "event_bridge_finance_workflow_action_template"
     assert event["no_ledger_post"] is True
     assert event["no_coupa"] is True
     assert event["no_workbook_cell_read"] is True
@@ -118,6 +122,7 @@ def test_live_arts_prepare_pdf_request_preserves_no_email_no_ledger_no_cell_read
     assert payload["no_ledger_post"] is True
     assert payload["no_workbook_cell_read"] is True
     assert payload["authority_boundary"]["email_send_allowed"] is False
+    assert payload["authority_boundary"]["browser_access_allowed"] is False
     assert payload["authority_boundary"]["ledger_post_allowed"] is False
     assert payload["authority_boundary"]["workbook_cell_read_allowed"] is False
     assert response["structured_actions"][0]["requires_receipt_before_business_mutation"] is True
@@ -160,11 +165,46 @@ def test_no_gmail_browser_ledger_coupa_authority_exists():
     assert payload["machine_proof"]["all_live_authority_false"] is True
     assert payload["machine_proof"]["no_gmail_browser_ledger_coupa_authority"] is True
     assert payload["authority_boundary"]["gmail_access_allowed"] is False
+    assert payload["authority_boundary"]["browser_access_allowed"] is False
     assert payload["authority_boundary"]["browser_automation_allowed"] is False
     assert payload["authority_boundary"]["ledger_post_allowed"] is False
     assert payload["authority_boundary"]["coupa_access_allowed"] is False
     assert payload["authority_boundary"]["coupa_submit_allowed"] is False
     assert all(value is False for value in payload["authority_boundary"].values())
+
+
+def test_authority_boundary_no_browser_true_is_rejected_with_positive_replacement():
+    event = contract.make_live_arts_prepare_pdf_event()
+    event["authority_boundary"] = {"no_browser": True}
+
+    response = _route(event)
+
+    assert response["route_status"] == "ROUTE_REJECTED_VALIDATION"
+    assert response["error_code"] == "AUTHORITY_SEMANTICS_DRIFT:WRONG_BOOLEAN_POLARITY:authority_boundary.no_browser"
+    assert "event_bridge_finance_workflow_action_template" in response["error_message"] or response["error_message"]
+
+
+def test_dangerous_ledger_post_allowed_true_is_rejected():
+    event = contract.make_live_arts_prepare_pdf_event()
+    event["authority_boundary"]["ledger_post_allowed"] = True
+
+    response = _route(event)
+
+    assert response["route_status"] == "ROUTE_REJECTED_VALIDATION"
+    assert response["error_code"] == "AUTHORITY_SEMANTICS_DRIFT:UNSAFE_TRUE_GRANT:authority_boundary.ledger_post_allowed"
+
+
+def test_missing_operator_receipt_guard_is_rejected():
+    event = contract.make_live_arts_prepare_pdf_event()
+    event["safety_flags"].pop("operator_receipt_required_before_mutation")
+
+    response = _route(event)
+
+    assert response["route_status"] == "ROUTE_REJECTED_VALIDATION"
+    assert response["error_code"] == (
+        "AUTHORITY_SEMANTICS_DRIFT:MISSING_REQUIRED_FIELD:"
+        "safety_flags.operator_receipt_required_before_mutation"
+    )
 
 
 def test_export_script_writes_json_and_operator_readback(tmp_path, monkeypatch):

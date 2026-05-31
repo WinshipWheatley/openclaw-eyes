@@ -14,6 +14,7 @@ import json
 from dataclasses import asdict
 from typing import Any, Mapping
 
+import openclaw_authority_semantics_registry as authority_registry
 import openclaw_event_bridge_contract as contract
 import openclaw_request_router
 
@@ -137,6 +138,8 @@ def _base_response(
     processor_request: Mapping[str, Any] | None = None,
     router_envelope: Mapping[str, Any] | None = None,
     router_decision: Mapping[str, Any] | None = None,
+    authority_drift_signals: tuple[dict[str, Any], ...] = (),
+    positive_replacement_guidance: Mapping[str, Any] | None = None,
     error_code: str = "",
     error_message: str = "",
     retry_allowed: bool = False,
@@ -167,6 +170,19 @@ def _base_response(
         "stale_event": stale_event,
         "superseded_by_event_id": superseded_by_event_id,
         "scope": _scope(raw_event),
+        "authority_semantics_version": str(
+            raw_event.get("authority_semantics_version") or contract.AUTHORITY_SEMANTICS_VERSION
+        ),
+        "authority_profile_ref": str(
+            raw_event.get("authority_profile_ref") or contract.DEFAULT_AUTHORITY_PROFILE_REF
+        ),
+        "positive_occupation_template_ref": str(
+            raw_event.get("positive_occupation_template_ref") or contract.DEFAULT_POSITIVE_OCCUPATION_TEMPLATE_REF
+        ),
+        "authority_drift_signals": authority_drift_signals,
+        "positive_replacement_guidance": dict(
+            positive_replacement_guidance or authority_registry.positive_replacement_guidance()
+        ),
         "authority_boundary": dict(ADAPTER_AUTHORITY_BOUNDARY),
         "machine_proof": {
             "event_validated": not error_code,
@@ -221,12 +237,18 @@ def validate_event_for_adapter(
     now: str | None = None,
     current_action_index: Mapping[tuple[str, str, str], Mapping[str, Any]] | None = None,
 ) -> dict[str, Any]:
+    authority_validation = authority_registry.validate_authority_semantics(
+        raw_event,
+        profile_ref=str(raw_event.get("authority_profile_ref") or contract.DEFAULT_AUTHORITY_PROFILE_REF),
+        component_ref="openclaw_event_bridge_adapter",
+    )
     validation = contract.validate_event(
         raw_event,
         now=now,
         current_action_index=current_action_index,
     )
-    errors = list(validation.errors)
+    errors = list(authority_validation.errors)
+    errors.extend(validation.errors)
     errors.extend(_scope_errors(raw_event))
     errors.extend(_guard_errors(raw_event))
     event_kind = str(raw_event.get("event_kind") or "")
@@ -235,6 +257,9 @@ def validate_event_for_adapter(
     return {
         "valid": not errors,
         "errors": tuple(dict.fromkeys(errors)),
+        "warnings": authority_validation.warnings,
+        "authority_drift_signals": authority_validation.drift_signals,
+        "positive_replacement_guidance": authority_validation.positive_replacement_guidance,
         "stale_event": validation.stale_event,
         "stale_reason": validation.stale_reason,
         "superseded_by_event_id": validation.superseded_by_event_id,
@@ -262,6 +287,11 @@ def processor_request_from_event(raw_event: Mapping[str, Any]) -> dict[str, Any]
         "actor_ref": str(raw_event.get("actor_ref") or ""),
         "source_channel": str(raw_event.get("source_channel") or ""),
         "parent_event_id": str(raw_event.get("parent_event_id") or ""),
+        "authority_semantics_version": str(raw_event.get("authority_semantics_version") or contract.AUTHORITY_SEMANTICS_VERSION),
+        "authority_profile_ref": str(raw_event.get("authority_profile_ref") or contract.DEFAULT_AUTHORITY_PROFILE_REF),
+        "positive_occupation_template_ref": str(
+            raw_event.get("positive_occupation_template_ref") or contract.DEFAULT_POSITIVE_OCCUPATION_TEMPLATE_REF
+        ),
         "request_type": request_type,
         "kind": request_type,
         "type": request_type,
@@ -300,6 +330,11 @@ def processor_request_from_event(raw_event: Mapping[str, Any]) -> dict[str, Any]
         "thread_ref": str(raw_event.get("thread_ref") or ""),
         "actor_ref": str(raw_event.get("actor_ref") or ""),
         "parent_event_id": str(raw_event.get("parent_event_id") or ""),
+        "authority_semantics_version": str(raw_event.get("authority_semantics_version") or contract.AUTHORITY_SEMANTICS_VERSION),
+        "authority_profile_ref": str(raw_event.get("authority_profile_ref") or contract.DEFAULT_AUTHORITY_PROFILE_REF),
+        "positive_occupation_template_ref": str(
+            raw_event.get("positive_occupation_template_ref") or contract.DEFAULT_POSITIVE_OCCUPATION_TEMPLATE_REF
+        ),
         "idempotency_key": str(raw_event.get("idempotency_key") or ""),
         "correlation_id": str(raw_event.get("correlation_id") or ""),
         "created_at": str(raw_event.get("created_at") or ""),
@@ -347,6 +382,8 @@ def route_event_bridge_envelope(
             stale_event=True,
             superseded_by_event_id=str(validation["superseded_by_event_id"] or ""),
             next_expected_event=validation["current_action"] or {},
+            authority_drift_signals=validation["authority_drift_signals"],
+            positive_replacement_guidance=validation["positive_replacement_guidance"],
         )
     if not validation["valid"]:
         errors = tuple(validation["errors"])
@@ -358,6 +395,8 @@ def route_event_bridge_envelope(
             error_code=errors[0] if errors else "VALIDATION_FAILED",
             error_message="; ".join(errors),
             retry_allowed=True,
+            authority_drift_signals=validation["authority_drift_signals"],
+            positive_replacement_guidance=validation["positive_replacement_guidance"],
         )
 
     processor_request = processor_request_from_event(raw_event)
@@ -415,6 +454,8 @@ def route_event_bridge_envelope(
             "request_type": request_type,
             "intended_use": str(processor_request.get("intended_use") or ""),
         },
+        authority_drift_signals=validation["authority_drift_signals"],
+        positive_replacement_guidance=validation["positive_replacement_guidance"],
     )
 
 

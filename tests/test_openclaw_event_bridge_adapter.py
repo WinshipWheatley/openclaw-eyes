@@ -38,6 +38,9 @@ def test_valid_mac_prepare_pdf_event_routes_into_existing_handler_selection():
     assert request["client_ref"] == "live_arts_md"
     assert request["workflow_ref"] == "live_arts_md_invoice_workflow"
     assert request["thread_ref"] == event["thread_ref"]
+    assert request["authority_semantics_version"] == event["authority_semantics_version"]
+    assert request["authority_profile_ref"] == "event_bridge_finance_workflow_action_v0"
+    assert request["positive_occupation_template_ref"] == "event_bridge_finance_workflow_action_template"
     assert request["request_type"] == "INVOICE_REVIEW_ACTION_REQUEST"
     assert request["intended_use"] == "prepare_selected_invoice_pdf_artifact"
     assert request["hidden_request_payload"]["no_external_action"] is True
@@ -160,6 +163,7 @@ def test_no_gmail_browser_ledger_coupa_authority_is_introduced():
         response["structured_actions"][0]["authority_boundary"],
     ):
         assert boundary["gmail_access_allowed"] is False
+        assert boundary["browser_access_allowed"] is False
         assert boundary["browser_automation_allowed"] is False
         assert boundary["ledger_post_allowed"] is False
         assert boundary["coupa_access_allowed"] is False
@@ -169,3 +173,70 @@ def test_no_gmail_browser_ledger_coupa_authority_is_introduced():
     assert response["machine_proof"]["browser_access_performed"] is False
     assert response["machine_proof"]["coupa_access_performed"] is False
     assert response["machine_proof"]["ledger_post_performed"] is False
+
+
+def test_authority_boundary_no_browser_true_fails_with_positive_replacement_guidance():
+    event = contract.make_live_arts_prepare_pdf_event()
+    event["authority_boundary"] = {"no_browser": True}
+
+    response = _route(event)
+
+    assert response["route_status"] == "ROUTE_REJECTED_VALIDATION"
+    assert response["error_code"] == "AUTHORITY_SEMANTICS_DRIFT:WRONG_BOOLEAN_POLARITY:authority_boundary.no_browser"
+    assert response["positive_replacement_guidance"]["positive_replacement"] == "event_bridge_finance_workflow_action_template"
+    assert response["positive_replacement_guidance"]["correct_safety_flags"]["no_browser"] is True
+    assert response["positive_replacement_guidance"]["correct_authority_boundary"]["browser_access_allowed"] is False
+    assert response["machine_proof"]["router_called"] is False
+
+
+def test_dangerous_ledger_post_allowed_true_fails_for_prepare_pdf_without_receipt():
+    event = contract.make_live_arts_prepare_pdf_event()
+    event["authority_boundary"]["ledger_post_allowed"] = True
+
+    response = _route(event)
+
+    assert response["route_status"] == "ROUTE_REJECTED_VALIDATION"
+    assert response["error_code"] == "AUTHORITY_SEMANTICS_DRIFT:UNSAFE_TRUE_GRANT:authority_boundary.ledger_post_allowed"
+    assert response["machine_proof"]["handler_selected"] is False
+
+
+def test_missing_operator_receipt_guard_fails_authority_semantics():
+    event = contract.make_live_arts_prepare_pdf_event()
+    event["safety_flags"].pop("operator_receipt_required_before_mutation")
+
+    response = _route(event)
+
+    assert response["route_status"] == "ROUTE_REJECTED_VALIDATION"
+    assert response["error_code"] == (
+        "AUTHORITY_SEMANTICS_DRIFT:MISSING_REQUIRED_FIELD:"
+        "safety_flags.operator_receipt_required_before_mutation"
+    )
+
+
+def test_legacy_chat_card_live_action_allowed_emits_drift_signal():
+    event = contract.make_live_arts_prepare_pdf_event()
+    event["safety_flags"]["legacy_chat_card_live_action_source_allowed"] = True
+
+    response = _route(event)
+
+    assert response["route_status"] == "ROUTE_REJECTED_VALIDATION"
+    assert response["error_code"] == (
+        "AUTHORITY_SEMANTICS_DRIFT:LEGACY_CHAT_ACTION_ALLOWED:"
+        "safety_flags.legacy_chat_card_live_action_source_allowed"
+    )
+    assert response["authority_drift_signals"][0]["positive_replacement"] == "event_bridge_finance_workflow_action_template"
+
+
+def test_business_mutation_without_receipt_allowed_emits_critical_drift_signal():
+    event = contract.make_live_arts_prepare_pdf_event()
+    event["safety_flags"]["business_mutation_without_receipt_allowed"] = True
+
+    response = _route(event)
+
+    assert response["route_status"] == "ROUTE_REJECTED_VALIDATION"
+    assert response["error_code"] == (
+        "AUTHORITY_SEMANTICS_DRIFT:MUTATION_WITHOUT_RECEIPT:"
+        "safety_flags.business_mutation_without_receipt_allowed"
+    )
+    assert response["authority_drift_signals"][0]["severity"] == "CRITICAL"
+    assert response["authority_drift_signals"][0]["positive_replacement"] == "guardian_receipt_required_mutation_template"

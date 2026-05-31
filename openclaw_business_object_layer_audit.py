@@ -59,6 +59,7 @@ AUDIT_INPUT_SPECS = (
     ("estate_topology", "generated/read_models/openclaw_estate_topology_registry.json", True),
     ("reference_resolver", "generated/read_models/openclaw_reference_resolver.json", True),
     ("change_sentinel", "generated/read_models/openclaw_change_sentinel.json", True),
+    ("authority_semantics_registry", "generated/read_models/openclaw_authority_semantics_registry.json", True),
     ("context_wiki_index", "generated/read_models/openclaw_context_wiki_index.json", True),
     ("external_system_knowledge_registry_index", "generated/read_models/external_system_knowledge_registry_index.json", False),
     ("live_arts_bundle", "generated/read_models/live_arts_md_invoice_review_bundle.json", True),
@@ -348,6 +349,7 @@ def collect_inputs(
         "request_response_service_template": _existing("systemd/user/openclaw-request-response.service.in"),
         "reference_resolver_source": _existing("openclaw_reference_resolver.py"),
         "change_sentinel_source": _existing("openclaw_change_sentinel.py"),
+        "authority_semantics_registry_source": _existing("openclaw_authority_semantics_registry.py"),
         "estate_topology_source": _existing("openclaw_estate_topology_registry.py"),
     }
     return {
@@ -356,6 +358,7 @@ def collect_inputs(
         "estate": _read_json(read_root / "openclaw_estate_topology_registry.json"),
         "resolver": _read_json(read_root / "openclaw_reference_resolver.json"),
         "sentinel": _read_json(read_root / "openclaw_change_sentinel.json"),
+        "authority_registry": _read_json(read_root / "openclaw_authority_semantics_registry.json"),
         "wiki_index": _read_json(read_root / "openclaw_context_wiki_index.json"),
         "external_registry_index": _read_json(read_root / "external_system_knowledge_registry_index.json"),
         "live_arts": _read_json(read_root / "live_arts_md_invoice_review_bundle.json"),
@@ -470,9 +473,23 @@ def build_scorecard(inputs: dict[str, Any]) -> list[dict[str, Any]]:
     service = inputs["service_supervision"]
     resolver = inputs["resolver"]
     sentinel = inputs["sentinel"]
+    authority_registry = inputs["authority_registry"]
     wiki = inputs["wiki_index"]
     missing_required = _required_missing_inputs(inputs.get("input_manifest", []))
     default_confidence = "LOW" if missing_required else "MEDIUM_HIGH"
+    authority_registry_present = bool(authority_registry)
+    authority_confidence = default_confidence if authority_registry_present else "LOW"
+    authority_status = "STRONG_DEFAULT_DENY_WITH_REGISTRY" if authority_registry_present else "REGISTRY_MISSING"
+    authority_evidence = (
+        "Authority Semantics Registry is present and defines prohibition flags, authority grants, positive templates, and golden fixtures."
+        if authority_registry_present
+        else "Authority Semantics Registry read-model is missing."
+    )
+    authority_gap = (
+        "Mac helper permission architecture remains unresolved and must preserve the same boundary."
+        if authority_registry_present
+        else "Generate the Authority Semantics Registry before relying on authority score."
+    )
 
     scores = [
         {
@@ -510,19 +527,20 @@ def build_scorecard(inputs: dict[str, Any]) -> list[dict[str, Any]]:
         },
         {
             "category": "Authority",
-            "score": 4.5,
+            "score": 4.5 if authority_registry_present else 2.0,
             "max_score": 5.0,
-            "confidence": default_confidence,
-            "status": "STRONG_DEFAULT_DENY",
-            "rationale": "Business read-models and supervision carry no-live-action flags; Mac export package is scoped and no ledger/email/browser/workbook-cell authority is granted.",
-            "strongest_evidence": "Mac PDF package denies email, Gmail, browser, Coupa, ledger, and workbook cell reads.",
-            "biggest_gap": "Mac helper permission architecture remains unresolved and must preserve the same boundary.",
-            "fastest_improvement": "Add helper contract tests that prove scoped export only.",
+            "confidence": authority_confidence,
+            "status": authority_status,
+            "rationale": "Business read-models, supervision, and the Authority Semantics Registry carry default-deny flags; Mac export package is scoped and no ledger/email/browser/workbook-cell authority is granted.",
+            "strongest_evidence": authority_evidence,
+            "biggest_gap": authority_gap,
+            "fastest_improvement": "Keep Event Bridge and future Mac helper payloads validating against the authority semantics registry.",
             "source_refs": [
+                _source_ref("generated/read_models/openclaw_authority_semantics_registry.json", f"Authority registry schema={authority_registry.get('schema_version', 'missing')}."),
                 _source_ref("generated/read_models/live_arts_md_invoice_review_bundle.json", f"Mac package no_email={pdf.get('no_email_send')} no_ledger={pdf.get('no_ledger_post')}."),
                 _source_ref("generated/read_models/openclaw_service_supervision.json", f"Startup readiness={service.get('startup_readiness')}."),
             ],
-            "freshness_notes": "Authority score should be rechecked whenever Live Arts package or service supervision hashes change.",
+            "freshness_notes": "Authority score should be rechecked whenever the Authority Semantics Registry, Live Arts package, or service supervision hashes change.",
         },
         {
             "category": "Evals",
