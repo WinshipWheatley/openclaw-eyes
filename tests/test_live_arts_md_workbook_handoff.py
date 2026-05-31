@@ -7,6 +7,15 @@ from scripts.export_live_arts_md_invoice_candidate_register import main as expor
 
 
 FIXED_NOW = "2026-05-28T18:00:00+00:00"
+EXPECTED_OUTPUT_FILENAME = "Invoice_2026-1001_Live_Arts_MD_June_2026_Speaker_Rental.pdf"
+EXPECTED_OUTPUT_PDF_MAC_PATH = (
+    "/Volumes/openclaw_e/artifacts/invoice_workbooks/live_arts_md/2026-1001/"
+    f"{EXPECTED_OUTPUT_FILENAME}"
+)
+EXPECTED_OUTPUT_BRIDGE_PATH = (
+    "/mnt/e/openclaw/artifacts/invoice_workbooks/live_arts_md/2026-1001/"
+    f"{EXPECTED_OUTPUT_FILENAME}"
+)
 
 
 def _prepare_pdf_action_payload(invoice_id: str = "2026-1001", with_print_scope: bool = True) -> dict[str, object]:
@@ -184,6 +193,11 @@ def test_prepare_selected_invoice_pdf_action_starts_scoped_package_request(tmp_p
     assert package["execution_venue"] == bundle.PDF_EXPORT_EXECUTION_VENUE
     assert package["required_capability"] == bundle.PDF_EXPORT_REQUIRED_CAPABILITY
     assert package["source_workbook_path"] == handoff.SOURCE_WORKBOOK_MAC_PATH
+    assert package["output_pdf_mac_path"] == EXPECTED_OUTPUT_PDF_MAC_PATH
+    assert package["output_bridge_path"] == EXPECTED_OUTPUT_BRIDGE_PATH
+    assert package["output_pdf_mac_path"].replace("/Volumes/openclaw_e", "/mnt/e/openclaw") == package[
+        "output_bridge_path"
+    ]
 
 
 def test_prepare_selected_invoice_pdf_action_blocks_when_print_scope_missing(tmp_path):

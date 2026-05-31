@@ -476,6 +476,7 @@ def make_simple_invoice_prepare_pdf_event(
     selected_print_areas: tuple[str, ...] = (),
     source_workbook_mac_path: str = "",
     output_bridge_path: str = "",
+    output_pdf_mac_path: str = "",
     output_mac_path: str = "",
     client_display_name: str = "",
     source_channel: str = "MAC_APP",
@@ -502,6 +503,7 @@ def make_simple_invoice_prepare_pdf_event(
         "selected_print_areas": selected_print_areas,
         "source_workbook_mac_path": source_workbook_mac_path,
         "output_bridge_path": output_bridge_path,
+        "output_pdf_mac_path": output_pdf_mac_path,
         "output_mac_path": output_mac_path,
         "operator_copy": f"Prepare the scoped {display_name} invoice PDF package.",
         "no_email_send": True,
@@ -608,6 +610,14 @@ def make_live_arts_prepare_pdf_event(
         invoice_id="2026-1001",
         selected_sheet_label="June 2026 Speaker Rental",
         selected_print_areas=("A1:H42",),
+        output_bridge_path=(
+            "/mnt/e/openclaw/artifacts/invoice_workbooks/live_arts_md/2026-1001/"
+            "Invoice_2026-1001_Live_Arts_MD_June_2026_Speaker_Rental.pdf"
+        ),
+        output_pdf_mac_path=(
+            "/Volumes/openclaw_e/artifacts/invoice_workbooks/live_arts_md/2026-1001/"
+            "Invoice_2026-1001_Live_Arts_MD_June_2026_Speaker_Rental.pdf"
+        ),
         client_display_name="Live Arts MD",
         parent_event_id=parent_event_id,
         created_at=created_at,

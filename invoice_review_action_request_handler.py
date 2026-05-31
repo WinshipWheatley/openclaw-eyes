@@ -722,6 +722,7 @@ def process_action_request(
             if package["status"] in {
                 live_arts_md_invoice_review_bundle.PDF_EXPORT_BLOCKED_MISSING_PRINT_SCOPE,
                 live_arts_md_invoice_review_bundle.PDF_EXPORT_BLOCKED_MISSING_MAC_CAPABILITY,
+                live_arts_md_invoice_review_bundle.PDF_EXPORT_BLOCKED_OUTPUT_PATH_CONTRACT,
                 live_arts_md_invoice_review_bundle.PDF_EXPORT_REQUIRES_OPERATOR_REVIEW,
             }:
                 headline = "Prepare selected invoice PDF package is blocked"

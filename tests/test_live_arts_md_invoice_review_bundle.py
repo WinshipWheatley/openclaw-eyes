@@ -10,6 +10,20 @@ from scripts.export_live_arts_md_invoice_review_bundle import main as export_mai
 
 
 FIXED_NOW = "2026-05-28T15:00:00+00:00"
+MAC_ARTIFACT_ROOT = "/Volumes/openclaw_e/artifacts/invoice_workbooks"
+BRIDGE_ARTIFACT_ROOT = "/mnt/e/openclaw/artifacts/invoice_workbooks"
+EXPECTED_OUTPUT_FILENAME = "Invoice_2026-1001_Live_Arts_MD_June_2026_Speaker_Rental.pdf"
+EXPECTED_OUTPUT_PDF_MAC_PATH = (
+    f"{MAC_ARTIFACT_ROOT}/live_arts_md/2026-1001/{EXPECTED_OUTPUT_FILENAME}"
+)
+EXPECTED_OUTPUT_BRIDGE_PATH = (
+    f"{BRIDGE_ARTIFACT_ROOT}/live_arts_md/2026-1001/{EXPECTED_OUTPUT_FILENAME}"
+)
+
+
+def _artifact_relative_path(path: str, root: str) -> str:
+    assert path.startswith(f"{root}/")
+    return path[len(root):]
 
 
 def _confirmed_workbook_payload():
@@ -764,11 +778,26 @@ def test_pdf_export_package_scoped_to_selected_candidate():
         "June 2026 Speaker Rental!F40:G43",
         "June 2026 Speaker Rental!B49:G53",
     )
-    assert package["output_filename"] == "Invoice_2026-1001_Live_Arts_MD_June_2026_Speaker_Rental.pdf"
+    assert package["output_filename"] == EXPECTED_OUTPUT_FILENAME
+    assert package["output_pdf_mac_path"] == EXPECTED_OUTPUT_PDF_MAC_PATH
+    assert package["output_pdf_mac_path"].startswith(f"{MAC_ARTIFACT_ROOT}/")
+    assert package["output_bridge_path"] == EXPECTED_OUTPUT_BRIDGE_PATH
+    assert package["output_bridge_path"].startswith(f"{BRIDGE_ARTIFACT_ROOT}/")
+    assert _artifact_relative_path(package["output_pdf_mac_path"], MAC_ARTIFACT_ROOT) == _artifact_relative_path(
+        package["output_bridge_path"],
+        BRIDGE_ARTIFACT_ROOT,
+    )
     assert package["source_workbook_path"] == live_arts_md_workbook_handoff.SOURCE_WORKBOOK_MAC_PATH
     assert "scoped_live_arts_md_export/June_2026_Speaker_Rental/2026-1001.pdf" in package["output_path_policy"]
     assert package["workbook_cell_read_required"] is False
     assert package["operator_review_required_after_export"] is True
+    placement = live["invoice_artifact"]["artifact_placement_policy"]
+    assert placement["canonical_artifact_ref"] == "live_arts_md_invoice_pdf_2026-1001"
+    assert placement["output_pdf_mac_path"] == EXPECTED_OUTPUT_PDF_MAC_PATH
+    assert placement["output_bridge_path"] == EXPECTED_OUTPUT_BRIDGE_PATH
+    assert placement["output_pc_reference_path"] == EXPECTED_OUTPUT_BRIDGE_PATH
+    assert placement["local_role"] == "MAC_HELPER_WRITE_DESTINATION"
+    assert placement["bridge_role"] == "PC_READ_MODEL_REFERENCE_AND_MIRROR_DESTINATION"
 
 
 def test_pdf_export_package_restricts_external_actions():
@@ -787,6 +816,23 @@ def test_pdf_export_package_restricts_external_actions():
     assert package["no_coupa"] is True
     assert package["no_source_workbook_mutation"] is True
     assert package["required_receipts"] == (bundle.PDF_EXPORT_COMPLETION_RECEIPT,)
+
+
+def test_missing_output_pdf_mac_path_blocks_ready_for_mac(monkeypatch):
+    selected_candidate = _selected_live_arts_candidate("2026-1001")
+    monkeypatch.setattr(bundle.simple_builder, "_pdf_output_mac_path", lambda **_kwargs: "")
+
+    live = bundle.build_live_arts_md_bundle(
+        workbook_registry_payload=_confirmed_workbook_payload_with_mac_path(),
+        selected_invoice_candidate=selected_candidate,
+        generated_at=FIXED_NOW,
+    )
+    package = live["invoice_artifact"]["pdf_export_package"]
+
+    assert package["status"] == bundle.PDF_EXPORT_BLOCKED_OUTPUT_PATH_CONTRACT
+    assert "output_pdf_mac_path" in package["missing_requirements"]
+    assert package["request_payload_ready"] is False
+    assert package["status"] != bundle.PDF_EXPORT_PACKAGE_READY_FOR_MAC
 
 
 def test_pdf_export_does_not_claim_attachment_ready_until_completion_receipt():

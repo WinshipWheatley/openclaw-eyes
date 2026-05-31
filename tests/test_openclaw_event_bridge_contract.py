@@ -36,6 +36,15 @@ def test_mac_ui_button_event_routes_to_workflow_action():
     assert payload["action_kind"] == "prepare_selected_invoice_pdf_artifact"
     assert payload["client_ref"] == "live_arts_md"
     assert payload["workflow_ref"] == "live_arts_md_invoice_workflow"
+    assert payload["payload"]["output_pdf_mac_path"].startswith(
+        "/Volumes/openclaw_e/artifacts/invoice_workbooks/live_arts_md/"
+    )
+    assert payload["payload"]["output_bridge_path"].startswith(
+        "/mnt/e/openclaw/artifacts/invoice_workbooks/live_arts_md/"
+    )
+    assert payload["payload"]["output_pdf_mac_path"].replace("/Volumes/openclaw_e", "/mnt/e/openclaw") == payload[
+        "payload"
+    ]["output_bridge_path"]
     assert payload["result_receipt_required"] is True
     assert payload["required_receipts"] == ("selected_invoice_pdf_export_requested_receipt",)
 
@@ -52,6 +61,7 @@ def test_simple_invoice_prepare_pdf_event_routes_for_st_annes_scope():
         selected_print_areas=("Operator Scoped Invoice!A1:H42",),
         source_workbook_mac_path="/Users/hwinshipwheatley/Documents/Invoices/Placeholder/Invoice ST Anne's Running.xlsx",
         output_bridge_path="/mnt/e/openclaw/artifacts/invoice_workbooks/st_annes/fixture_invoice/fixture_invoice.pdf",
+        output_pdf_mac_path="/Volumes/openclaw_e/artifacts/invoice_workbooks/st_annes/fixture_invoice/fixture_invoice.pdf",
         output_mac_path="scoped_st_annes_export/Operator_Scoped_Invoice/fixture_invoice.pdf",
         client_display_name="St. Anne's",
         created_at="2026-05-31T14:00:00+00:00",

@@ -100,6 +100,7 @@ PROOF_STRENGTH_FILE_VERIFIED = simple_builder.PROOF_STRENGTH_FILE_VERIFIED
 PDF_EXPORT_PACKAGE_READY_FOR_MAC = simple_builder.PDF_EXPORT_PACKAGE_READY_FOR_MAC
 PDF_EXPORT_BLOCKED_MISSING_MAC_CAPABILITY = simple_builder.PDF_EXPORT_BLOCKED_MISSING_MAC_CAPABILITY
 PDF_EXPORT_BLOCKED_MISSING_PRINT_SCOPE = simple_builder.PDF_EXPORT_BLOCKED_MISSING_PRINT_SCOPE
+PDF_EXPORT_BLOCKED_OUTPUT_PATH_CONTRACT = simple_builder.PDF_EXPORT_BLOCKED_OUTPUT_PATH_CONTRACT
 PDF_EXPORT_COMPLETED_CANDIDATE = simple_builder.PDF_EXPORT_COMPLETED_CANDIDATE
 PDF_EXPORT_REQUIRES_OPERATOR_REVIEW = simple_builder.PDF_EXPORT_REQUIRES_OPERATOR_REVIEW
 PDF_EXPORT_REQUIRED_CAPABILITY = simple_builder.PDF_EXPORT_REQUIRED_CAPABILITY
@@ -726,13 +727,18 @@ def build_live_arts_md_bundle(
 
     if invoice_selected and selected_invoice_summary:
         invoice_id = str(selected_invoice_summary.get("invoice_id") or "unknown_invoice")
-        filename_policy = f"Invoice_{invoice_id}_{CLIENT_DISPLAY_NAME.replace(' ', '_')}.pdf"
+        filename_policy = str(pdf_export_package["output_filename"])
         artifact_placement_policy = {
             "canonical_artifact_ref": f"{CLIENT_REF}_invoice_pdf_{invoice_id}",
             "canonical_storage_venue": "MAC_LOCAL",
             "preferred_mac_output_dir": f"/Volumes/openclaw_e/artifacts/invoice_workbooks/{CLIENT_REF}/{invoice_id}",
             "preferred_bridge_output_dir": f"/mnt/e/openclaw/artifacts/invoice_workbooks/{CLIENT_REF}/{invoice_id}",
             "filename_policy": filename_policy,
+            "output_pdf_mac_path": pdf_export_package["output_pdf_mac_path"],
+            "output_bridge_path": pdf_export_package["output_bridge_path"],
+            "output_pc_reference_path": pdf_export_package["output_pc_reference_path"],
+            "local_role": "MAC_HELPER_WRITE_DESTINATION",
+            "bridge_role": "PC_READ_MODEL_REFERENCE_AND_MIRROR_DESTINATION",
             "client_ref": CLIENT_REF,
             "workflow_ref": WORKFLOW_REF,
             "invoice_id": invoice_id,
@@ -741,7 +747,8 @@ def build_live_arts_md_bundle(
             "retrieval_paths": {
                 "open_in_app": True,
                 "show_in_finder": True,
-                "bridge_path": f"/mnt/e/openclaw/artifacts/invoice_workbooks/{CLIENT_REF}/{invoice_id}/{filename_policy}",
+                "mac_path": pdf_export_package["output_pdf_mac_path"],
+                "bridge_path": pdf_export_package["output_bridge_path"],
                 "telegram_available": False,
             },
             "access_required": ("WORKBOOK_ACCESS", "OUTPUT_FOLDER_PERMISSION", "APPLE_EVENTS"),
@@ -915,6 +922,7 @@ def build_live_arts_md_bundle(
             "invoice_id": pdf_export_package["invoice_id"],
             "output_artifact_kind": PDF_EXPORT_OUTPUT_ARTIFACT_KIND,
             "output_filename": pdf_export_package["output_filename"],
+            "output_pdf_mac_path": pdf_export_package["output_pdf_mac_path"],
             "output_mac_path": pdf_export_package["output_mac_path"],
             "output_bridge_path": pdf_export_package["output_bridge_path"],
             "output_pc_reference_path": pdf_export_package["output_pc_reference_path"],
@@ -1337,6 +1345,7 @@ def build_payload(
 
 def format_operator(payload: Mapping[str, Any]) -> str:
     bundle = payload["live_arts_md_bundle"]
+    pdf_package = bundle["invoice_artifact"]["pdf_export_package"]
     lines = [
         "# Live Arts MD Invoice Review Bundle",
         "",
@@ -1350,6 +1359,8 @@ def format_operator(payload: Mapping[str, Any]) -> str:
         f"- Manual send package: `{bundle['send_readiness']['manual_send_package_status']}`",
         f"- Manual send proof: `{bundle['manual_send_proof']['proof_status']}`",
         f"- Payment watch: `{bundle['payment_watch']['payment_watch_status']}`",
+        f"- PDF output Mac path: `{pdf_package.get('output_pdf_mac_path')}`",
+        f"- PDF output bridge path: `{pdf_package.get('output_bridge_path')}`",
         *(
             (f"- {bundle['manual_send_proof']['proof_capture_request']}",)
             if bundle["manual_send_proof"].get("proof_capture_request")

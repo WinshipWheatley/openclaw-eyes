@@ -76,7 +76,11 @@ def test_prepare_pdf_action_descriptor_is_generated_from_fixture_config():
     assert descriptor["client_ref"] == fixture.client_ref
     assert descriptor["workflow_ref"] == fixture.workflow_ref
     assert descriptor["source_workbook_mac_path"] == fixture.expected_workbook_path
+    assert descriptor["output_pdf_mac_path"].startswith("/Volumes/openclaw_e/artifacts/invoice_workbooks/")
     assert descriptor["output_bridge_path"].startswith("/mnt/e/openclaw/artifacts/invoice_workbooks/")
+    assert descriptor["output_pdf_mac_path"].replace("/Volumes/openclaw_e", "/mnt/e/openclaw") == descriptor[
+        "output_bridge_path"
+    ]
     assert descriptor["event_envelope_fields"] == contract.EVENT_ENVELOPE_FIELDS
     assert descriptor["request_payload_ready"] is True
 
@@ -112,6 +116,7 @@ def test_st_annes_can_instantiate_same_event_bridge_action_shape_when_scoped():
     assert event["client_ref"] == "st_annes"
     assert event["payload"]["action_kind"] == "prepare_selected_invoice_pdf_artifact"
     assert event["payload"]["rail_ref"] == registry.RAIL_REF
+    assert event["payload"]["output_pdf_mac_path"] == descriptor["output_pdf_mac_path"]
     assert event["safety_flags"]["no_browser"] is True
     assert all(value is False for value in event["authority_boundary"].values())
     assert response["route_status"] == "ROUTE_MATCHED"

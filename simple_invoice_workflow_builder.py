@@ -23,6 +23,7 @@ MANUAL_SEND_PROOF_CONFIRMED_RECEIPT = "manual_send_proof_confirmed_receipt"
 PDF_EXPORT_PACKAGE_READY_FOR_MAC = "PDF_EXPORT_PACKAGE_READY_FOR_MAC"
 PDF_EXPORT_BLOCKED_MISSING_MAC_CAPABILITY = "PDF_EXPORT_BLOCKED_MISSING_MAC_CAPABILITY"
 PDF_EXPORT_BLOCKED_MISSING_PRINT_SCOPE = "BLOCKED_MISSING_EXPORT_SCOPE"
+PDF_EXPORT_BLOCKED_OUTPUT_PATH_CONTRACT = "BLOCKED_OUTPUT_PATH_CONTRACT"
 PDF_EXPORT_COMPLETED_CANDIDATE = "PDF_EXPORT_COMPLETED_CANDIDATE"
 PDF_EXPORT_REQUIRES_OPERATOR_REVIEW = "PDF_EXPORT_REQUIRES_OPERATOR_REVIEW"
 PDF_EXPORT_REQUIRED_CAPABILITY = "MAC_EXCEL_PDF_EXPORT"
@@ -30,6 +31,8 @@ PDF_EXPORT_EXECUTION_VENUE = "MAC_LOCAL"
 PDF_EXPORT_OUTPUT_ARTIFACT_KIND = "PDF"
 PDF_EXPORT_PACKAGE_REQUESTED_RECEIPT = "selected_invoice_pdf_export_requested_receipt"
 PDF_EXPORT_COMPLETION_RECEIPT = "selected_invoice_pdf_export_completed_candidate"
+MAC_OPENCLAW_INVOICE_ARTIFACT_ROOT = "/Volumes/openclaw_e/artifacts/invoice_workbooks"
+BRIDGE_OPENCLAW_INVOICE_ARTIFACT_ROOT = "/mnt/e/openclaw/artifacts/invoice_workbooks"
 
 PAYMENT_WATCH_STATUS_READY_TO_CONFIGURE = "READY_TO_CONFIGURE"
 PAYMENT_WATCH_STATUS_ACTIVE_PENDING_PAYMENT = "ACTIVE_PENDING_PAYMENT"
@@ -156,6 +159,36 @@ def build_artifact_transport_policy(
     }
 
 
+def _pdf_output_mac_path(*, client_ref: str, invoice_id: str, output_filename: str) -> str:
+    artifact_invoice_id = invoice_id or "selected-invoice"
+    return f"{MAC_OPENCLAW_INVOICE_ARTIFACT_ROOT}/{client_ref}/{artifact_invoice_id}/{output_filename}"
+
+
+def _pdf_output_bridge_path(*, client_ref: str, invoice_id: str, output_filename: str) -> str:
+    artifact_invoice_id = invoice_id or "selected-invoice"
+    return f"{BRIDGE_OPENCLAW_INVOICE_ARTIFACT_ROOT}/{client_ref}/{artifact_invoice_id}/{output_filename}"
+
+
+def _pdf_output_path_contract_errors(package: Mapping[str, Any]) -> tuple[str, ...]:
+    output_pdf_mac_path = str(package.get("output_pdf_mac_path") or "")
+    output_bridge_path = str(package.get("output_bridge_path") or "")
+    errors: list[str] = []
+    if not output_pdf_mac_path:
+        errors.append("output_pdf_mac_path")
+    elif not output_pdf_mac_path.startswith(f"{MAC_OPENCLAW_INVOICE_ARTIFACT_ROOT}/"):
+        errors.append("output_pdf_mac_path_allowed_root")
+    if not output_bridge_path:
+        errors.append("output_bridge_path")
+    elif not output_bridge_path.startswith(f"{BRIDGE_OPENCLAW_INVOICE_ARTIFACT_ROOT}/"):
+        errors.append("output_bridge_path_allowed_root")
+    if output_pdf_mac_path and output_bridge_path:
+        mac_relative = output_pdf_mac_path.removeprefix(MAC_OPENCLAW_INVOICE_ARTIFACT_ROOT)
+        bridge_relative = output_bridge_path.removeprefix(BRIDGE_OPENCLAW_INVOICE_ARTIFACT_ROOT)
+        if mac_relative != bridge_relative:
+            errors.append("mac_bridge_output_path_mismatch")
+    return tuple(errors)
+
+
 def build_selected_invoice_pdf_export_package(
     *,
     fixture: Mapping[str, Any],
@@ -192,7 +225,16 @@ def build_selected_invoice_pdf_export_package(
     if selected_sheet_slug:
         output_filename_parts.append(selected_sheet_slug)
     output_filename = "_".join(part for part in output_filename_parts if part) + ".pdf"
-    output_bridge_path = f"/mnt/e/openclaw/artifacts/invoice_workbooks/{client_ref}/{invoice_id}/{output_filename}"
+    output_pdf_mac_path = _pdf_output_mac_path(
+        client_ref=str(client_ref),
+        invoice_id=invoice_id,
+        output_filename=output_filename,
+    )
+    output_bridge_path = _pdf_output_bridge_path(
+        client_ref=str(client_ref),
+        invoice_id=invoice_id,
+        output_filename=output_filename,
+    )
     selected_invoice_summary = None
     if selected_candidate:
         work_or_period = (
@@ -229,6 +271,7 @@ def build_selected_invoice_pdf_export_package(
         "selected_invoice_summary": selected_invoice_summary,
         "output_artifact_kind": PDF_EXPORT_OUTPUT_ARTIFACT_KIND,
         "output_filename": output_filename,
+        "output_pdf_mac_path": output_pdf_mac_path,
         "output_mac_path": output_path_policy,
         "output_bridge_path": output_bridge_path,
         "output_pc_reference_path": output_bridge_path,
@@ -305,6 +348,18 @@ def build_selected_invoice_pdf_export_package(
                 "missing_requirements": tuple(missing_scope),
                 "operator_review_prompt": operator_review_prompt,
                 "prompt_invoice_id": invoice_id,
+            }
+        )
+        return package, completion_receipt
+    path_contract_errors = _pdf_output_path_contract_errors(package)
+    if path_contract_errors:
+        package.update(
+            {
+                "status": PDF_EXPORT_BLOCKED_OUTPUT_PATH_CONTRACT,
+                "missing_requirements": path_contract_errors,
+                "operator_review_prompt": "Fix the explicit Mac/bridge output paths before preparing invoice PDF.",
+                "prompt_invoice_id": invoice_id,
+                "request_payload_ready": False,
             }
         )
         return package, completion_receipt
