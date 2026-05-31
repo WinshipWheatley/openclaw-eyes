@@ -1,5 +1,10 @@
 import json
+import sys
 from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 from openclaw_context_wiki_compiler import (
     AUTHORITY_BOUNDARY_FLAGS,
@@ -16,6 +21,28 @@ def _write_json(root: Path, relative_path: str, payload: dict) -> None:
     path = root / relative_path
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def _business_object_audit_payload(
+    *,
+    freshness_status: str = "FRESH",
+    stale_reasons: list[str] | None = None,
+    missing_inputs: list[str] | None = None,
+) -> dict:
+    return {
+        "schema_version": "openclaw_business_object_layer_audit_read_model_v0",
+        "freshness_status": freshness_status,
+        "generated_at": "2026-05-31T04:30:00+00:00",
+        "fresh_for_minutes": 60,
+        "input_manifest": [
+            {"input_ref": "estate_topology", "status": "PRESENT"},
+            {"input_ref": "reference_resolver", "status": "PRESENT"},
+            {"input_ref": "change_sentinel", "status": "PRESENT"},
+            {"input_ref": "live_arts_bundle", "status": "PRESENT"},
+        ],
+        "missing_inputs": missing_inputs or [],
+        "stale_reasons": stale_reasons or [],
+    }
 
 
 def _base_sources(root: Path) -> None:
@@ -135,6 +162,11 @@ def _base_sources(root: Path) -> None:
             "rules": ["Canonical sources store stable refs."],
             "target_count": 1,
         },
+    )
+    _write_json(
+        root,
+        "generated/read_models/openclaw_business_object_layer_audit.json",
+        _business_object_audit_payload(),
     )
     _write_json(
         root,
@@ -335,6 +367,64 @@ def test_readme_contains_source_of_truth_warning(tmp_path):
     readme = (tmp_path / "generated/wiki/openclaw/README.md").read_text(encoding="utf-8")
     assert SOURCE_OF_TRUTH_WARNING in readme
     assert FOOTER in readme
+
+
+def test_wiki_index_includes_business_object_audit_freshness(tmp_path):
+    summary = _compile(tmp_path)
+    index = summary["index"]
+
+    assert index["business_object_audit_freshness_status"] == "FRESH"
+    assert index["business_object_audit_generated_at"] == "2026-05-31T04:30:00+00:00"
+    assert index["business_object_audit_inputs_tracked"] == 4
+    assert index["business_object_audit_missing_inputs"] == []
+    assert index["business_object_audit_stale_reasons"] == []
+
+
+def test_fresh_business_object_audit_renders_fresh_line(tmp_path):
+    _compile(tmp_path)
+
+    for filename in (
+        "System Overview.md",
+        "Evidence-Grounded Context Registry.md",
+        "Hermes and Chief.md",
+        "Build Order.md",
+    ):
+        text = (tmp_path / "generated/wiki/openclaw" / filename).read_text(encoding="utf-8")
+        assert "Business-object audit freshness: FRESH." in text
+
+
+def test_stale_business_object_audit_renders_warning(tmp_path):
+    _base_sources(tmp_path)
+    _write_json(
+        tmp_path,
+        "generated/read_models/openclaw_business_object_layer_audit.json",
+        _business_object_audit_payload(
+            freshness_status="STALE_INPUT_CHANGED",
+            stale_reasons=["Audit input hashes changed: reference_resolver"],
+            missing_inputs=["reference_resolver"],
+        ),
+    )
+    summary = compile_openclaw_context_wiki(
+        repo_root=tmp_path,
+        generated_at="2026-05-31T00:00:00+00:00",
+    )
+
+    assert summary["index"]["business_object_audit_freshness_status"] == "STALE_INPUT_CHANGED"
+    assert any(
+        item["title"] == "Business-object audit stale"
+        for item in summary["index"]["contradictions"]
+    )
+    for filename in (
+        "System Overview.md",
+        "Evidence-Grounded Context Registry.md",
+        "Hermes and Chief.md",
+        "Build Order.md",
+    ):
+        text = (tmp_path / "generated/wiki/openclaw" / filename).read_text(encoding="utf-8")
+        assert (
+            "This page is based on a stale business-object audit. Regenerate before using as planning source."
+            in text
+        )
 
 
 def test_wiki_pages_include_source_refs(tmp_path):

@@ -45,6 +45,6 @@ The resolver separates stable references from volatile resolved values and recor
 - generated/read_models/openclaw_reference_resolver.json (reference_resolver)
 - generated/read_models/openclaw_estate_topology_registry.json (estate_topology_registry)
 
-Last generated timestamp: 2026-05-31T04:30:01+00:00
+Last generated timestamp: 2026-05-31T04:32:51+00:00
 
 Generated understanding view. Registry/read-models/receipts remain source of truth.

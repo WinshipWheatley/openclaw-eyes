@@ -43,6 +43,6 @@ Capital Hilton remains a complex, proof-gated invoice workflow: Coupa/supplier p
 ## Source refs / input read-model refs
 - generated/read_models/invoice_review_bundle.json (invoice_review_bundle)
 
-Last generated timestamp: 2026-05-31T04:30:01+00:00
+Last generated timestamp: 2026-05-31T04:32:51+00:00
 
 Generated understanding view. Registry/read-models/receipts remain source of truth.

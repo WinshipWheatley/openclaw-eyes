@@ -1,6 +1,6 @@
 # OpenClaw Context Wiki Index
 
-Generated at: 2026-05-31T04:30:01+00:00
+Generated at: 2026-05-31T04:32:51+00:00
 
 Warning:
 - SQLite/read-models/receipts are source of truth; generated wiki pages are views.
@@ -19,6 +19,7 @@ Pages generated:
 - Build Order (PLANNED) - generated/wiki/openclaw/Build Order.md
 
 Key findings:
+- Business-object audit freshness: FRESH.
 - 10 tension/contradiction signals detected.
 - 14 known unknowns detected.
 - 0 expected inputs are missing.

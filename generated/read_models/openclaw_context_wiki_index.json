@@ -17,6 +17,21 @@
     "workbook_body_read": false,
     "workbook_cells_read": false
   },
+  "business_object_audit_freshness": {
+    "freshness_status": "FRESH",
+    "generated_at": "2026-05-31T04:24:07+00:00",
+    "inputs_tracked": 11,
+    "is_fresh": true,
+    "missing_inputs": [],
+    "operator_line": "Business-object audit freshness: FRESH.",
+    "source_ref": "generated/read_models/openclaw_business_object_layer_audit.json (business_object_layer_audit)",
+    "stale_reasons": []
+  },
+  "business_object_audit_freshness_status": "FRESH",
+  "business_object_audit_generated_at": "2026-05-31T04:24:07+00:00",
+  "business_object_audit_inputs_tracked": 11,
+  "business_object_audit_missing_inputs": [],
+  "business_object_audit_stale_reasons": [],
   "contradiction_count": 10,
   "contradictions": [
     {
@@ -91,7 +106,7 @@
     }
   ],
   "footer": "Generated understanding view. Registry/read-models/receipts remain source of truth.",
-  "generated_at": "2026-05-31T04:30:01+00:00",
+  "generated_at": "2026-05-31T04:32:51+00:00",
   "known_unknown_count": 14,
   "known_unknowns": [
     "Why Codex Web commits were not reachable from GitHub remotes. [generated/read_models/openclaw_estate_topology_registry.json]",
@@ -125,6 +140,7 @@
         "generated/system_knowledge/openclaw_reference_resolver.sqlite (reference_resolver_sqlite)",
         "generated/read_models/openclaw_reference_resolver.json (reference_resolver)",
         "generated/read_models/external_system_knowledge_registry_index.json (external_system_knowledge_registry_index)",
+        "generated/read_models/openclaw_business_object_layer_audit.json (business_object_layer_audit)",
         "generated/read_models/live_arts_md_invoice_review_bundle.json (live_arts_md_invoice_review_bundle)",
         "generated/read_models/invoice_review_bundle.json (invoice_review_bundle)",
         "generated/read_models/hermes_mission_sentinel.json (hermes_mission_sentinel)",
@@ -160,7 +176,8 @@
         "generated/read_models/openclaw_estate_topology_registry.json (estate_topology_registry)",
         "generated/read_models/openclaw_reference_resolver.json (reference_resolver)",
         "generated/read_models/estate_topology.json (estate_topology)",
-        "generated/read_models/openclaw_estate_node_registry.json (openclaw_estate_node_registry)"
+        "generated/read_models/openclaw_estate_node_registry.json (openclaw_estate_node_registry)",
+        "generated/read_models/openclaw_business_object_layer_audit.json (business_object_layer_audit)"
       ],
       "status": "PARTIAL",
       "tension_count": 6,
@@ -177,6 +194,7 @@
         "generated/read_models/openclaw_estate_topology_registry.json (estate_topology_registry)",
         "generated/read_models/openclaw_reference_resolver.json (reference_resolver)",
         "generated/read_models/external_system_knowledge_registry_index.json (external_system_knowledge_registry_index)",
+        "generated/read_models/openclaw_business_object_layer_audit.json (business_object_layer_audit)",
         "generated/external_registries/openclaw-eyes/openclaw_system_knowledge_registry.json (openclaw_system_knowledge_registry_ff49c5bc4e)",
         "generated/external_registries/openclaw-eyes/openclaw_system_knowledge_registry.sqlite (openclaw_system_knowledge_registry_61df5235c0)",
         "generated/external_registries/openclaw-eyes/openclaw_system_knowledge_registry_OPERATOR.md (openclaw_system_knowledge_registry_fc9549f5cc)",
@@ -271,7 +289,8 @@
         "generated/read_models/hermes_chief_build_handoff.json (hermes_chief_build_handoff)",
         "generated/read_models/purpose_bound_automation_charter.json (purpose_bound_automation_charter)",
         "generated/read_models/hermes_gravity_controller.json (hermes_gravity_controller)",
-        "generated/read_models/chief_dynamic_workflow_deferred_build.json (chief_dynamic_workflow_deferred_build)"
+        "generated/read_models/chief_dynamic_workflow_deferred_build.json (chief_dynamic_workflow_deferred_build)",
+        "generated/read_models/openclaw_business_object_layer_audit.json (business_object_layer_audit)"
       ],
       "status": "PARTIAL",
       "tension_count": 0,
@@ -308,6 +327,7 @@
         "generated/system_knowledge/openclaw_reference_resolver.sqlite (reference_resolver_sqlite)",
         "generated/read_models/openclaw_reference_resolver.json (reference_resolver)",
         "generated/read_models/external_system_knowledge_registry_index.json (external_system_knowledge_registry_index)",
+        "generated/read_models/openclaw_business_object_layer_audit.json (business_object_layer_audit)",
         "generated/read_models/live_arts_md_invoice_review_bundle.json (live_arts_md_invoice_review_bundle)",
         "generated/read_models/invoice_review_bundle.json (invoice_review_bundle)",
         "generated/read_models/hermes_mission_sentinel.json (hermes_mission_sentinel)",
@@ -343,6 +363,7 @@
         "generated/read_models/openclaw_estate_topology_registry.json (estate_topology_registry)",
         "generated/read_models/hermes_mission_sentinel.json (hermes_mission_sentinel)",
         "generated/read_models/hermes_chief_build_handoff.json (hermes_chief_build_handoff)",
+        "generated/read_models/openclaw_business_object_layer_audit.json (business_object_layer_audit)",
         "generated/read_models/build_now_vs_hold_queue_posture.json (build_now_vs_hold_queue_posture)",
         "generated/read_models/work_terrain_build_cue_reconciliation_queue.json (work_terrain_build_cue_reconciliation_queue)"
       ],
@@ -463,6 +484,14 @@
       "path": "generated/read_models/external_system_knowledge_registry_index.json",
       "sha256": "sha256:5665a7b3bfbfec9a9c9a6df1a99a13f93194dd04fb46958176c2cd1f30769c50",
       "source_id": "external_system_knowledge_registry_index",
+      "source_type": "json_read_model"
+    },
+    {
+      "exists": true,
+      "label": "Business-object implementation layer audit",
+      "path": "generated/read_models/openclaw_business_object_layer_audit.json",
+      "sha256": "sha256:8bb5d269144099948e39daf778de3ed948af04c6aa442ca820fbc32e713c77da",
+      "source_id": "business_object_layer_audit",
       "source_type": "json_read_model"
     },
     {

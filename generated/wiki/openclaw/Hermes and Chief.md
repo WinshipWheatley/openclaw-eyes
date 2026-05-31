@@ -22,6 +22,11 @@ Hermes and Chief read-models currently describe deterministic mission focus, pur
 - Purpose-bound charter rows: 6.
 - Hermes gravity controller: DETERMINISTIC_NON_EXECUTING_PURPOSE_BOUND_GRAVITY_CONTROLLER; charter_count=6.
 - Deferred Chief dynamic workflow: DEFERRED_WAITING_FOR_CODEX_5_5_CAPACITY; preferred_model=GPT-5.5 Codex.
+- Business-object audit freshness: FRESH.
+- Business-object audit generated_at: 2026-05-31T04:24:07+00:00.
+- Business-object audit inputs tracked: 11.
+- Business-object audit missing inputs: none.
+- Business-object audit stale reasons: none.
 
 ## Known unknowns
 - Hermes blocker: invoice candidate not selected
@@ -54,7 +59,8 @@ Hermes and Chief read-models currently describe deterministic mission focus, pur
 - generated/read_models/purpose_bound_automation_charter.json (purpose_bound_automation_charter)
 - generated/read_models/hermes_gravity_controller.json (hermes_gravity_controller)
 - generated/read_models/chief_dynamic_workflow_deferred_build.json (chief_dynamic_workflow_deferred_build)
+- generated/read_models/openclaw_business_object_layer_audit.json (business_object_layer_audit)
 
-Last generated timestamp: 2026-05-31T04:30:01+00:00
+Last generated timestamp: 2026-05-31T04:32:51+00:00
 
 Generated understanding view. Registry/read-models/receipts remain source of truth.

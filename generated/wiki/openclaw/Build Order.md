@@ -6,6 +6,11 @@ Status: PLANNED
 Ranked next work is derived from registry recommended actions, Hermes/Chief handoff tasks, work terrain build cues, and build-now/hold posture read-models.
 
 ## Confirmed facts
+- Business-object audit freshness: FRESH.
+- Business-object audit generated_at: 2026-05-31T04:24:07+00:00.
+- Business-object audit inputs tracked: 11.
+- Business-object audit missing inputs: none.
+- Business-object audit stale reasons: none.
 - Urgent: CRITICAL: Build/verify Live Arts invoice candidate selection path - Today's invoice cannot become send-ready until the operator selects 2026-1001 or 2026-1002. | CRITICAL: Build/verify manual artifact attach/link rail - The invoice attachment is the...
 - Soon: HIGH: Build/verify Clara send-ready draft transition - The current Clara package is a target blueprint; it must become exact approval-ready copy only after prerequisites. | P3: Add Mission Control app remote/back-up strategy. - Mac app is dirty and lo...
 - Later: MEDIUM: Build/verify payment watch readiness after send proof - Payment watch is needed after send proof, but it must not delay today's send. | P6: Stabilize Mac app dirty state before further PDF trials. - Dirty app/helper state makes Mac-side trial...
@@ -54,9 +59,10 @@ Ranked next work is derived from registry recommended actions, Hermes/Chief hand
 - generated/read_models/openclaw_estate_topology_registry.json (estate_topology_registry)
 - generated/read_models/hermes_mission_sentinel.json (hermes_mission_sentinel)
 - generated/read_models/hermes_chief_build_handoff.json (hermes_chief_build_handoff)
+- generated/read_models/openclaw_business_object_layer_audit.json (business_object_layer_audit)
 - generated/read_models/build_now_vs_hold_queue_posture.json (build_now_vs_hold_queue_posture)
 - generated/read_models/work_terrain_build_cue_reconciliation_queue.json (work_terrain_build_cue_reconciliation_queue)
 
-Last generated timestamp: 2026-05-31T04:30:01+00:00
+Last generated timestamp: 2026-05-31T04:32:51+00:00
 
 Generated understanding view. Registry/read-models/receipts remain source of truth.

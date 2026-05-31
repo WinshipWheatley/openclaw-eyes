@@ -8,6 +8,11 @@ The context layer is intended to stay deterministic: stable registries, SQLite/r
 ## Confirmed facts
 - OpenClaw context v0 is deterministic registry/read-model/receipt work, not generic vector RAG.
 - The generated wiki is a compiled view over those structures and does not become source truth.
+- Business-object audit freshness: FRESH.
+- Business-object audit generated_at: 2026-05-31T04:24:07+00:00.
+- Business-object audit inputs tracked: 11.
+- Business-object audit missing inputs: none.
+- Business-object audit stale reasons: none.
 - Evidence-Grounded Context Registry status: CANONICAL_ON_MAIN on main at 1a6b7b0b463968f3161e048bd7936dc06505a3bb.
 - Registry notes: Resolved from openclaw-eyes main; review branch remains historical evidence.
 - openclaw-eyes system knowledge registry imported as read-only external input.
@@ -38,12 +43,13 @@ The context layer is intended to stay deterministic: stable registries, SQLite/r
 - generated/read_models/openclaw_estate_topology_registry.json (estate_topology_registry)
 - generated/read_models/openclaw_reference_resolver.json (reference_resolver)
 - generated/read_models/external_system_knowledge_registry_index.json (external_system_knowledge_registry_index)
+- generated/read_models/openclaw_business_object_layer_audit.json (business_object_layer_audit)
 - generated/external_registries/openclaw-eyes/openclaw_system_knowledge_registry.json (openclaw_system_knowledge_registry_ff49c5bc4e)
 - generated/external_registries/openclaw-eyes/openclaw_system_knowledge_registry.sqlite (openclaw_system_knowledge_registry_61df5235c0)
 - generated/external_registries/openclaw-eyes/openclaw_system_knowledge_registry_OPERATOR.md (openclaw_system_knowledge_registry_fc9549f5cc)
 - generated/external_registries/openclaw-eyes/openclaw_system_knowledge_registry_SCHEMA.sql (openclaw_system_knowledge_registry_d500da978d)
 - generated/external_registries/openclaw-eyes/openclaw_system_knowledge_registry_SEED.sql (openclaw_system_knowledge_registry_b7961063f8)
 
-Last generated timestamp: 2026-05-31T04:30:01+00:00
+Last generated timestamp: 2026-05-31T04:32:51+00:00
 
 Generated understanding view. Registry/read-models/receipts remain source of truth.

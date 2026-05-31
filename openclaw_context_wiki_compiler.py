@@ -31,6 +31,9 @@ FOOTER = "Generated understanding view. Registry/read-models/receipts remain sou
 SOURCE_OF_TRUTH_WARNING = (
     "SQLite/read-models/receipts are source of truth; generated wiki pages are views."
 )
+BUSINESS_OBJECT_AUDIT_STALE_WARNING = (
+    "This page is based on a stale business-object audit. Regenerate before using as planning source."
+)
 
 PAGE_OUTPUTS = (
     "README.md",
@@ -52,6 +55,7 @@ EXPECTED_SOURCE_SPECS = (
     ("reference_resolver_sqlite", "Reference resolver SQLite registry", "generated/system_knowledge/openclaw_reference_resolver.sqlite", "sqlite_registry"),
     ("reference_resolver", "Reference resolver read-model", "generated/read_models/openclaw_reference_resolver.json", "json_read_model"),
     ("external_system_knowledge_registry_index", "External system knowledge registry index", "generated/read_models/external_system_knowledge_registry_index.json", "json_read_model"),
+    ("business_object_layer_audit", "Business-object implementation layer audit", "generated/read_models/openclaw_business_object_layer_audit.json", "json_read_model"),
     ("live_arts_md_invoice_review_bundle", "Live Arts MD invoice bundle", "generated/read_models/live_arts_md_invoice_review_bundle.json", "json_read_model"),
     ("invoice_review_bundle", "Capital Hilton invoice bundle", "generated/read_models/invoice_review_bundle.json", "json_read_model"),
     ("hermes_mission_sentinel", "Hermes mission sentinel", "generated/read_models/hermes_mission_sentinel.json", "json_read_model"),
@@ -269,6 +273,67 @@ def source_refs_with_prefixes(
         for source_id, source in sources.items()
         if any(source_id.startswith(prefix) for prefix in prefix_values)
     )
+
+
+def business_object_audit_freshness(sources: dict[str, SourceInput]) -> dict[str, Any]:
+    source = sources.get("business_object_layer_audit")
+    payload = source.payload if source else None
+    if not source or not source.exists:
+        return {
+            "freshness_status": "MISSING",
+            "generated_at": "",
+            "inputs_tracked": 0,
+            "missing_inputs": ["generated/read_models/openclaw_business_object_layer_audit.json"],
+            "stale_reasons": ["Business-object audit read-model is missing."],
+            "source_ref": "generated/read_models/openclaw_business_object_layer_audit.json (business_object_layer_audit, missing)",
+            "is_fresh": False,
+            "operator_line": BUSINESS_OBJECT_AUDIT_STALE_WARNING,
+        }
+    if not isinstance(payload, dict):
+        return {
+            "freshness_status": "UNKNOWN",
+            "generated_at": "",
+            "inputs_tracked": 0,
+            "missing_inputs": [],
+            "stale_reasons": ["Business-object audit read-model is not a JSON object."],
+            "source_ref": source_ref(source),
+            "is_fresh": False,
+            "operator_line": BUSINESS_OBJECT_AUDIT_STALE_WARNING,
+        }
+    status = clean_text(payload.get("freshness_status") or "UNKNOWN").upper()
+    missing_inputs = [clean_text(item) for item in as_list(payload.get("missing_inputs"))]
+    stale_reasons = [clean_text(item, limit=360) for item in as_list(payload.get("stale_reasons"))]
+    inputs_tracked = len(as_list(payload.get("input_manifest")))
+    is_fresh = status == "FRESH"
+    return {
+        "freshness_status": status,
+        "generated_at": clean_text(payload.get("generated_at")),
+        "inputs_tracked": inputs_tracked,
+        "missing_inputs": [item for item in missing_inputs if item and item != "unknown"],
+        "stale_reasons": [item for item in stale_reasons if item and item != "unknown"],
+        "source_ref": source_ref(source),
+        "is_fresh": is_fresh,
+        "operator_line": "Business-object audit freshness: FRESH."
+        if is_fresh
+        else BUSINESS_OBJECT_AUDIT_STALE_WARNING,
+    }
+
+
+def audit_freshness_facts(audit_freshness: dict[str, Any]) -> tuple[str, ...]:
+    missing_inputs = audit_freshness.get("missing_inputs") or []
+    stale_reasons = audit_freshness.get("stale_reasons") or []
+    facts = [
+        audit_freshness["operator_line"],
+        f"Business-object audit generated_at: {audit_freshness.get('generated_at') or 'unknown'}.",
+        f"Business-object audit inputs tracked: {audit_freshness.get('inputs_tracked', 0)}.",
+        "Business-object audit missing inputs: "
+        + (", ".join(missing_inputs) if missing_inputs else "none")
+        + ".",
+        "Business-object audit stale reasons: "
+        + ("; ".join(stale_reasons) if stale_reasons else "none")
+        + ".",
+    ]
+    return tuple(facts)
 
 
 def load_json_payload(path: Path) -> tuple[Any, str]:
@@ -551,6 +616,15 @@ def detect_tensions(sources: dict[str, SourceInput]) -> tuple[TensionSignal, ...
                     source_refs_value=[topology_ref],
                 )
 
+    audit_summary = business_object_audit_freshness(sources)
+    if not audit_summary["is_fresh"]:
+        add_tension(
+            tensions,
+            title="Business-object audit stale",
+            detail=BUSINESS_OBJECT_AUDIT_STALE_WARNING,
+            source_refs_value=[str(audit_summary["source_ref"])],
+        )
+
     live_arts_source = sources.get("live_arts_md_invoice_review_bundle")
     live_arts = live_arts_source.payload if live_arts_source else None
     live_arts_ref = source_ref(live_arts_source) if live_arts_source else "live arts missing"
@@ -823,6 +897,8 @@ def build_pages(
     charter = sources.get("purpose_bound_automation_charter")
     gravity = sources.get("hermes_gravity_controller")
     deferred = sources.get("chief_dynamic_workflow_deferred_build")
+    audit_freshness = business_object_audit_freshness(sources)
+    audit_facts = audit_freshness_facts(audit_freshness)
 
     all_source_refs = tuple(source_ref(source) for source in sources.values() if source.exists)
     missing_source_unknowns = tuple(f"{source.relative_path} is missing" for source in sources.values() if not source.exists)
@@ -843,6 +919,7 @@ def build_pages(
                 "The compiler writes generated wiki pages plus generated/read_models/openclaw_context_wiki_index.json and generated/read_models/openclaw_context_wiki_index_OPERATOR.md.",
                 "The compiler boundary flags explicitly deny service starts, email, browser, Coupa, workbook reads, PDF export, ledger mutation, production mutation, and git publication.",
                 f"Pages generated: {len(PAGE_OUTPUTS)}.",
+                *audit_facts,
             ),
             known_unknowns=missing_source_unknowns,
             tensions=tension_texts(tensions),
@@ -889,7 +966,7 @@ def build_pages(
             filename="System Overview.md",
             status=page_status_from_sources([sources["estate_topology_registry"]], fallback="PARTIAL"),
             summary="OpenClaw is currently described as a PC backend/read-model workspace plus Mac app, Mac edge/helper responsibilities, openclaw-eyes context, openclaw-runtime actor work, and a bridge transport layer.",
-            confirmed_facts=tuple(overview_facts),
+            confirmed_facts=tuple(overview_facts) + audit_facts,
             known_unknowns=tuple(item for item in known_unknowns if any(marker in item.lower() for marker in ("runtime", "mac", "codex", "repo", "bridge"))) + source_missing_unknowns(sources, ("estate_topology_registry",)),
             tensions=tension_texts(tensions, ("estate_topology_registry", "reference_resolver")),
             next_actions=top_actions[:5],
@@ -898,13 +975,14 @@ def build_pages(
                 "Do not route Swift app ownership into the PC backend by convenience.",
                 "Do not collapse bridge transport into source truth.",
             ),
-            source_refs=source_refs(sources, ("estate_topology_registry", "reference_resolver", "estate_topology", "openclaw_estate_node_registry")),
+            source_refs=source_refs(sources, ("estate_topology_registry", "reference_resolver", "estate_topology", "openclaw_estate_node_registry", "business_object_layer_audit")),
         )
     )
 
     registry_facts = [
         "OpenClaw context v0 is deterministic registry/read-model/receipt work, not generic vector RAG.",
         "The generated wiki is a compiled view over those structures and does not become source truth.",
+        *audit_facts,
     ]
     if isinstance(topology_payload, dict):
         for item in as_list(topology_payload.get("registry_presence")):
@@ -931,6 +1009,7 @@ def build_pages(
             "estate_topology_registry",
             "reference_resolver",
             "external_system_knowledge_registry_index",
+            "business_object_layer_audit",
             "openclaw_system_knowledge_registry_files",
         ),
     ) + source_refs_with_prefixes(sources, ("openclaw_system_knowledge_registry_",))
@@ -1200,7 +1279,7 @@ def build_pages(
             filename="Hermes and Chief.md",
             status="PARTIAL" if any(source.exists for source in (hermes or [], handoff or [])) else "UNKNOWN",
             summary="Hermes and Chief read-models currently describe deterministic mission focus, purpose-bound gravity, build handoff, and deferred workflow work without production authority.",
-            confirmed_facts=tuple(hermes_facts),
+            confirmed_facts=tuple(hermes_facts) + audit_facts,
             known_unknowns=tuple(hermes_unknowns),
             tensions=tension_texts(tensions, ("hermes", "chief", "purpose_bound", "gravity")),
             next_actions=(
@@ -1221,6 +1300,7 @@ def build_pages(
                     "purpose_bound_automation_charter",
                     "hermes_gravity_controller",
                     "chief_dynamic_workflow_deferred_build",
+                    "business_object_layer_audit",
                 ),
             ),
         )
@@ -1351,6 +1431,7 @@ def build_pages(
             do_not.append(f"Hermes says do not spend time now: {item}")
 
     build_order_facts = [
+        *audit_facts,
         "Urgent: " + " | ".join(unique(urgent, limit=6)),
         "Soon: " + " | ".join(unique(soon, limit=8)),
         "Later: " + " | ".join(unique(later, limit=8)),
@@ -1377,6 +1458,7 @@ def build_pages(
                     "estate_topology_registry",
                     "hermes_mission_sentinel",
                     "hermes_chief_build_handoff",
+                    "business_object_layer_audit",
                     "build_now_vs_hold_queue_posture",
                     "work_terrain_build_cue_reconciliation_queue",
                 ),
@@ -1428,9 +1510,16 @@ def build_index(
     generated_at: str,
 ) -> dict[str, Any]:
     top_actions = collect_top_actions(sources)
+    audit_freshness = business_object_audit_freshness(sources)
     return {
         "schema_version": SCHEMA_VERSION,
         "generated_at": generated_at,
+        "business_object_audit_freshness_status": audit_freshness["freshness_status"],
+        "business_object_audit_generated_at": audit_freshness["generated_at"],
+        "business_object_audit_inputs_tracked": audit_freshness["inputs_tracked"],
+        "business_object_audit_missing_inputs": audit_freshness["missing_inputs"],
+        "business_object_audit_stale_reasons": audit_freshness["stale_reasons"],
+        "business_object_audit_freshness": audit_freshness,
         "pages": [page_index_entry(page, tensions) for page in pages],
         "source_inputs": [source_input_record(source) for source in sources.values() if source.exists],
         "missing_inputs": [source_input_record(source) for source in sources.values() if not source.exists],
@@ -1472,6 +1561,7 @@ def format_operator_index(index: dict[str, Any]) -> str:
     lines.extend(
         bullet_lines(
             [
+                f"Business-object audit freshness: {index.get('business_object_audit_freshness_status')}.",
                 f"{index.get('contradiction_count')} tension/contradiction signals detected.",
                 f"{index.get('known_unknown_count')} known unknowns detected.",
                 f"{len(index.get('missing_inputs', []))} expected inputs are missing.",

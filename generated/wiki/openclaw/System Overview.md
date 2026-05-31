@@ -18,6 +18,11 @@ OpenClaw is currently described as a PC backend/read-model workspace plus Mac ap
 - mac_openclaw_runtime: openclaw-runtime on mac as RUNTIME_ACTORS (CLEAN, remote UNKNOWN).
 - Codex Web commit 33e00a6 for openclaw-eyes is UNREACHABLE and not installed source truth.
 - Codex Web commit 4ca4ed42171c23d60ef89493559808ef2789a19e for openclaw-eyes is UNREACHABLE and not installed source truth.
+- Business-object audit freshness: FRESH.
+- Business-object audit generated_at: 2026-05-31T04:24:07+00:00.
+- Business-object audit inputs tracked: 11.
+- Business-object audit missing inputs: none.
+- Business-object audit stale reasons: none.
 
 ## Known unknowns
 - Why Codex Web commits were not reachable from GitHub remotes. [generated/read_models/openclaw_estate_topology_registry.json]
@@ -52,7 +57,8 @@ OpenClaw is currently described as a PC backend/read-model workspace plus Mac ap
 - generated/read_models/openclaw_reference_resolver.json (reference_resolver)
 - generated/read_models/estate_topology.json (estate_topology)
 - generated/read_models/openclaw_estate_node_registry.json (openclaw_estate_node_registry)
+- generated/read_models/openclaw_business_object_layer_audit.json (business_object_layer_audit)
 
-Last generated timestamp: 2026-05-31T04:30:01+00:00
+Last generated timestamp: 2026-05-31T04:32:51+00:00
 
 Generated understanding view. Registry/read-models/receipts remain source of truth.
