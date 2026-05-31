@@ -1,0 +1,91 @@
+CREATE TABLE machine (
+    machine_id TEXT PRIMARY KEY,
+    display_name TEXT NOT NULL,
+    machine_role TEXT NOT NULL,
+    operating_system TEXT NOT NULL,
+    evidence_status TEXT NOT NULL CHECK(evidence_status IN ('CONFIRMED', 'PARTIAL', 'UNKNOWN', 'MISSING', 'UNREACHABLE', 'PLANNED', 'STALE', 'DIRTY', 'CLEAN')),
+    notes TEXT NOT NULL
+);
+
+CREATE TABLE repo_working_copy (
+    working_copy_id TEXT PRIMARY KEY,
+    machine_id TEXT NOT NULL REFERENCES machine(machine_id),
+    repo_name TEXT NOT NULL,
+    repo_key TEXT NOT NULL,
+    local_path TEXT NOT NULL,
+    classification TEXT NOT NULL,
+    worktree_status TEXT NOT NULL CHECK(worktree_status IN ('CONFIRMED', 'PARTIAL', 'UNKNOWN', 'MISSING', 'UNREACHABLE', 'PLANNED', 'STALE', 'DIRTY', 'CLEAN')),
+    clean INTEGER NOT NULL CHECK(clean IN (0, 1)),
+    generated_models INTEGER NOT NULL CHECK(generated_models IN (0, 1)),
+    python INTEGER NOT NULL CHECK(python IN (0, 1)),
+    swift INTEGER NOT NULL CHECK(swift IN (0, 1)),
+    remote TEXT NOT NULL,
+    remote_status TEXT NOT NULL CHECK(remote_status IN ('CONFIRMED', 'PARTIAL', 'UNKNOWN', 'MISSING', 'UNREACHABLE', 'PLANNED', 'STALE', 'DIRTY', 'CLEAN')),
+    evidence_status TEXT NOT NULL CHECK(evidence_status IN ('CONFIRMED', 'PARTIAL', 'UNKNOWN', 'MISSING', 'UNREACHABLE', 'PLANNED', 'STALE', 'DIRTY', 'CLEAN')),
+    source_note TEXT NOT NULL
+);
+
+CREATE TABLE repo_relationship (
+    relationship_id TEXT PRIMARY KEY,
+    relationship_type TEXT NOT NULL,
+    left_working_copy_id TEXT NOT NULL REFERENCES repo_working_copy(working_copy_id),
+    right_working_copy_id TEXT NOT NULL REFERENCES repo_working_copy(working_copy_id),
+    status TEXT NOT NULL CHECK(status IN ('CONFIRMED', 'PARTIAL', 'UNKNOWN', 'MISSING', 'UNREACHABLE', 'PLANNED', 'STALE', 'DIRTY', 'CLEAN')),
+    notes TEXT NOT NULL
+);
+
+CREATE TABLE bridge_path (
+    bridge_id TEXT PRIMARY KEY,
+    machine_id TEXT NOT NULL REFERENCES machine(machine_id),
+    local_path TEXT NOT NULL,
+    counterpart_bridge_id TEXT NOT NULL,
+    access_status TEXT NOT NULL CHECK(access_status IN ('CONFIRMED', 'PARTIAL', 'UNKNOWN', 'MISSING', 'UNREACHABLE', 'PLANNED', 'STALE', 'DIRTY', 'CLEAN')),
+    evidence_status TEXT NOT NULL CHECK(evidence_status IN ('CONFIRMED', 'PARTIAL', 'UNKNOWN', 'MISSING', 'UNREACHABLE', 'PLANNED', 'STALE', 'DIRTY', 'CLEAN')),
+    notes TEXT NOT NULL
+);
+
+CREATE TABLE source_of_truth_area (
+    area_id TEXT PRIMARY KEY,
+    display_name TEXT NOT NULL,
+    owner_repo_key TEXT NOT NULL,
+    primary_working_copy_id TEXT NOT NULL,
+    secondary_working_copy_id TEXT NOT NULL,
+    owner_classification TEXT NOT NULL,
+    status TEXT NOT NULL CHECK(status IN ('CONFIRMED', 'PARTIAL', 'UNKNOWN', 'MISSING', 'UNREACHABLE', 'PLANNED', 'STALE', 'DIRTY', 'CLEAN')),
+    ownership_rule TEXT NOT NULL,
+    notes TEXT NOT NULL
+);
+
+CREATE TABLE registry_presence (
+    registry_id TEXT PRIMARY KEY,
+    display_name TEXT NOT NULL,
+    expected_path TEXT NOT NULL,
+    owning_working_copy_id TEXT NOT NULL,
+    status TEXT NOT NULL CHECK(status IN ('CONFIRMED', 'PARTIAL', 'UNKNOWN', 'MISSING', 'UNREACHABLE', 'PLANNED', 'STALE', 'DIRTY', 'CLEAN')),
+    notes TEXT NOT NULL
+);
+
+CREATE TABLE codex_web_artifact (
+    artifact_id TEXT PRIMARY KEY,
+    commit_ref TEXT NOT NULL,
+    status TEXT NOT NULL CHECK(status IN ('CONFIRMED', 'PARTIAL', 'UNKNOWN', 'MISSING', 'UNREACHABLE', 'PLANNED', 'STALE', 'DIRTY', 'CLEAN')),
+    source_truth INTEGER NOT NULL CHECK(source_truth IN (0, 1)),
+    reason TEXT NOT NULL,
+    notes TEXT NOT NULL
+);
+
+CREATE TABLE known_unknown (
+    unknown_id TEXT PRIMARY KEY,
+    question TEXT NOT NULL,
+    status TEXT NOT NULL CHECK(status IN ('CONFIRMED', 'PARTIAL', 'UNKNOWN', 'MISSING', 'UNREACHABLE', 'PLANNED', 'STALE', 'DIRTY', 'CLEAN')),
+    recommended_next_step TEXT NOT NULL
+);
+
+CREATE TABLE recommended_action (
+    action_id TEXT PRIMARY KEY,
+    priority INTEGER NOT NULL,
+    action TEXT NOT NULL,
+    status TEXT NOT NULL CHECK(status IN ('CONFIRMED', 'PARTIAL', 'UNKNOWN', 'MISSING', 'UNREACHABLE', 'PLANNED', 'STALE', 'DIRTY', 'CLEAN')),
+    owner_hint TEXT NOT NULL,
+    reason TEXT NOT NULL
+);
