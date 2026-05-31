@@ -17,15 +17,8 @@
     "workbook_body_read": false,
     "workbook_cells_read": false
   },
-  "contradiction_count": 11,
+  "contradiction_count": 10,
   "contradictions": [
-    {
-      "detail": "Expected generated wiki input is missing: generated/system_knowledge/openclaw_system_knowledge_registry.*.",
-      "source_refs": [
-        "generated/system_knowledge/openclaw_system_knowledge_registry.* (openclaw_system_knowledge_registry_files, missing)"
-      ],
-      "title": "Input source missing"
-    },
     {
       "detail": "estate_topology_registry_read_model_mirror resolved as MISSING.",
       "source_refs": [
@@ -98,7 +91,7 @@
     }
   ],
   "footer": "Generated understanding view. Registry/read-models/receipts remain source of truth.",
-  "generated_at": "2026-05-31T04:09:25+00:00",
+  "generated_at": "2026-05-31T04:30:01+00:00",
   "known_unknown_count": 14,
   "known_unknowns": [
     "Why Codex Web commits were not reachable from GitHub remotes. [generated/read_models/openclaw_estate_topology_registry.json]",
@@ -116,19 +109,10 @@
     "Intent: Hermes, synthesize current posture. [generated/read_models/build_now_vs_hold_queue_posture.json]",
     "Mission Control read-model refresh [generated/read_models/build_now_vs_hold_queue_posture.json]"
   ],
-  "missing_inputs": [
-    {
-      "exists": false,
-      "label": "OpenClaw system knowledge registry files",
-      "path": "generated/system_knowledge/openclaw_system_knowledge_registry.*",
-      "sha256": "",
-      "source_id": "openclaw_system_knowledge_registry_files",
-      "source_type": "registry_file"
-    }
-  ],
+  "missing_inputs": [],
   "pages": [
     {
-      "known_unknown_count": 1,
+      "known_unknown_count": 0,
       "next_actions": [
         "Regenerate after upstream registries/read-models change.",
         "Fix upstream registries or read-models when the wiki disagrees with evidence.",
@@ -140,6 +124,7 @@
         "generated/read_models/openclaw_estate_topology_registry.json (estate_topology_registry)",
         "generated/system_knowledge/openclaw_reference_resolver.sqlite (reference_resolver_sqlite)",
         "generated/read_models/openclaw_reference_resolver.json (reference_resolver)",
+        "generated/read_models/external_system_knowledge_registry_index.json (external_system_knowledge_registry_index)",
         "generated/read_models/live_arts_md_invoice_review_bundle.json (live_arts_md_invoice_review_bundle)",
         "generated/read_models/invoice_review_bundle.json (invoice_review_bundle)",
         "generated/read_models/hermes_mission_sentinel.json (hermes_mission_sentinel)",
@@ -150,10 +135,15 @@
         "generated/read_models/openclaw_estate_node_registry.json (openclaw_estate_node_registry)",
         "generated/read_models/estate_topology.json (estate_topology)",
         "generated/read_models/build_now_vs_hold_queue_posture.json (build_now_vs_hold_queue_posture)",
-        "generated/read_models/work_terrain_build_cue_reconciliation_queue.json (work_terrain_build_cue_reconciliation_queue)"
+        "generated/read_models/work_terrain_build_cue_reconciliation_queue.json (work_terrain_build_cue_reconciliation_queue)",
+        "generated/external_registries/openclaw-eyes/openclaw_system_knowledge_registry.json (openclaw_system_knowledge_registry_ff49c5bc4e)",
+        "generated/external_registries/openclaw-eyes/openclaw_system_knowledge_registry.sqlite (openclaw_system_knowledge_registry_61df5235c0)",
+        "generated/external_registries/openclaw-eyes/openclaw_system_knowledge_registry_OPERATOR.md (openclaw_system_knowledge_registry_fc9549f5cc)",
+        "generated/external_registries/openclaw-eyes/openclaw_system_knowledge_registry_SCHEMA.sql (openclaw_system_knowledge_registry_d500da978d)",
+        "generated/external_registries/openclaw-eyes/openclaw_system_knowledge_registry_SEED.sql (openclaw_system_knowledge_registry_b7961063f8)"
       ],
       "status": "CONFIRMED",
-      "tension_count": 11,
+      "tension_count": 10,
       "title": "OpenClaw Context Wiki"
     },
     {
@@ -179,17 +169,22 @@
     {
       "known_unknown_count": 6,
       "next_actions": [
-        "Keep registry commits pending review until reachable and merged.",
+        "Keep external registry imports read-only and regenerate after canonical source changes.",
         "Record new facts upstream in registries/read-models/receipts, then regenerate the wiki."
       ],
       "path": "generated/wiki/openclaw/Evidence-Grounded Context Registry.md",
       "source_refs": [
         "generated/read_models/openclaw_estate_topology_registry.json (estate_topology_registry)",
         "generated/read_models/openclaw_reference_resolver.json (reference_resolver)",
-        "generated/system_knowledge/openclaw_system_knowledge_registry.* (openclaw_system_knowledge_registry_files, missing)"
+        "generated/read_models/external_system_knowledge_registry_index.json (external_system_knowledge_registry_index)",
+        "generated/external_registries/openclaw-eyes/openclaw_system_knowledge_registry.json (openclaw_system_knowledge_registry_ff49c5bc4e)",
+        "generated/external_registries/openclaw-eyes/openclaw_system_knowledge_registry.sqlite (openclaw_system_knowledge_registry_61df5235c0)",
+        "generated/external_registries/openclaw-eyes/openclaw_system_knowledge_registry_OPERATOR.md (openclaw_system_knowledge_registry_fc9549f5cc)",
+        "generated/external_registries/openclaw-eyes/openclaw_system_knowledge_registry_SCHEMA.sql (openclaw_system_knowledge_registry_d500da978d)",
+        "generated/external_registries/openclaw-eyes/openclaw_system_knowledge_registry_SEED.sql (openclaw_system_knowledge_registry_b7961063f8)"
       ],
       "status": "PARTIAL",
-      "tension_count": 3,
+      "tension_count": 2,
       "title": "Evidence-Grounded Context Registry"
     },
     {
@@ -312,6 +307,7 @@
         "generated/read_models/openclaw_estate_topology_registry.json (estate_topology_registry)",
         "generated/system_knowledge/openclaw_reference_resolver.sqlite (reference_resolver_sqlite)",
         "generated/read_models/openclaw_reference_resolver.json (reference_resolver)",
+        "generated/read_models/external_system_knowledge_registry_index.json (external_system_knowledge_registry_index)",
         "generated/read_models/live_arts_md_invoice_review_bundle.json (live_arts_md_invoice_review_bundle)",
         "generated/read_models/invoice_review_bundle.json (invoice_review_bundle)",
         "generated/read_models/hermes_mission_sentinel.json (hermes_mission_sentinel)",
@@ -322,10 +318,15 @@
         "generated/read_models/openclaw_estate_node_registry.json (openclaw_estate_node_registry)",
         "generated/read_models/estate_topology.json (estate_topology)",
         "generated/read_models/build_now_vs_hold_queue_posture.json (build_now_vs_hold_queue_posture)",
-        "generated/read_models/work_terrain_build_cue_reconciliation_queue.json (work_terrain_build_cue_reconciliation_queue)"
+        "generated/read_models/work_terrain_build_cue_reconciliation_queue.json (work_terrain_build_cue_reconciliation_queue)",
+        "generated/external_registries/openclaw-eyes/openclaw_system_knowledge_registry.json (openclaw_system_knowledge_registry_ff49c5bc4e)",
+        "generated/external_registries/openclaw-eyes/openclaw_system_knowledge_registry.sqlite (openclaw_system_knowledge_registry_61df5235c0)",
+        "generated/external_registries/openclaw-eyes/openclaw_system_knowledge_registry_OPERATOR.md (openclaw_system_knowledge_registry_fc9549f5cc)",
+        "generated/external_registries/openclaw-eyes/openclaw_system_knowledge_registry_SCHEMA.sql (openclaw_system_knowledge_registry_d500da978d)",
+        "generated/external_registries/openclaw-eyes/openclaw_system_knowledge_registry_SEED.sql (openclaw_system_knowledge_registry_b7961063f8)"
       ],
       "status": "UNKNOWN",
-      "tension_count": 11,
+      "tension_count": 10,
       "title": "Known Unknowns"
     },
     {
@@ -356,12 +357,12 @@
       "exists": true,
       "label": "Estate topology SQLite registry",
       "path": "generated/system_knowledge/openclaw_estate_topology_registry.sqlite",
-      "sha256": "sha256:3f31d17f3d5914571521c4565744ee5e6bac7b3d9467b31e81fe7e0000efd79f",
+      "sha256": "sha256:bcc2b8f2b8669fed40073b5fdd713781ad7ecc7fe6e14a8bb21663a269a3f91a",
       "source_id": "estate_topology_registry_sqlite",
       "source_type": "sqlite_registry",
       "sqlite_summary": {
         "status": "READ_ONLY_METADATA",
-        "table_count": 9,
+        "table_count": 10,
         "tables": [
           {
             "row_count": 2,
@@ -370,6 +371,10 @@
           {
             "row_count": 3,
             "table": "codex_web_artifact"
+          },
+          {
+            "row_count": 1,
+            "table": "external_registry_materialization"
           },
           {
             "row_count": 6,
@@ -384,7 +389,7 @@
             "table": "recommended_action"
           },
           {
-            "row_count": 5,
+            "row_count": 6,
             "table": "registry_presence"
           },
           {
@@ -406,7 +411,7 @@
       "exists": true,
       "label": "Estate topology read-model",
       "path": "generated/read_models/openclaw_estate_topology_registry.json",
-      "sha256": "sha256:8a45278637ec950564daeba1f2ebadf6cb25853a331e24512eaf783ee948e034",
+      "sha256": "sha256:e32c278f0bb6c52fd2c3e514406f93e9b2c8dd9724825164ec4158d21c7fb2ae",
       "source_id": "estate_topology_registry",
       "source_type": "json_read_model"
     },
@@ -450,6 +455,14 @@
       "path": "generated/read_models/openclaw_reference_resolver.json",
       "sha256": "sha256:ca025f59ab8060942c7a75f1b1e4a8d562d9c50e807d7c96fa5c1312f009adba",
       "source_id": "reference_resolver",
+      "source_type": "json_read_model"
+    },
+    {
+      "exists": true,
+      "label": "External system knowledge registry index",
+      "path": "generated/read_models/external_system_knowledge_registry_index.json",
+      "sha256": "sha256:5665a7b3bfbfec9a9c9a6df1a99a13f93194dd04fb46958176c2cd1f30769c50",
+      "source_id": "external_system_knowledge_registry_index",
       "source_type": "json_read_model"
     },
     {
@@ -539,6 +552,92 @@
       "sha256": "sha256:6fee3a424ef94b8e4684abb7f541096498c5f676537ffe8f11ffa7ec99152a91",
       "source_id": "work_terrain_build_cue_reconciliation_queue",
       "source_type": "json_read_model"
+    },
+    {
+      "exists": true,
+      "label": "OpenClaw system knowledge registry external input",
+      "path": "generated/external_registries/openclaw-eyes/openclaw_system_knowledge_registry.json",
+      "sha256": "sha256:b3190e6a519ab661aa407c29e5874d3640c74955e95c08fbbbef9cc4cbbee286",
+      "source_id": "openclaw_system_knowledge_registry_ff49c5bc4e",
+      "source_type": "registry_file"
+    },
+    {
+      "exists": true,
+      "label": "OpenClaw system knowledge registry external input",
+      "path": "generated/external_registries/openclaw-eyes/openclaw_system_knowledge_registry.sqlite",
+      "sha256": "sha256:fbace7adfb416065000d3a738933b362b34fb7876c0cff0659b195ecc4ef112e",
+      "source_id": "openclaw_system_knowledge_registry_61df5235c0",
+      "source_type": "sqlite_registry",
+      "sqlite_summary": {
+        "status": "READ_ONLY_METADATA",
+        "table_count": 10,
+        "tables": [
+          {
+            "row_count": 6,
+            "table": "agent_role"
+          },
+          {
+            "row_count": 6,
+            "table": "artifact_policy"
+          },
+          {
+            "row_count": 10,
+            "table": "build_task"
+          },
+          {
+            "row_count": 8,
+            "table": "capability"
+          },
+          {
+            "row_count": 5,
+            "table": "knowledge_claim"
+          },
+          {
+            "row_count": 7,
+            "table": "known_unknown"
+          },
+          {
+            "row_count": 10,
+            "table": "registry_sqlite_display_surface"
+          },
+          {
+            "row_count": 5,
+            "table": "repo_relationship_analysis"
+          },
+          {
+            "row_count": 14,
+            "table": "system_component"
+          },
+          {
+            "row_count": 6,
+            "table": "workflow_rail"
+          }
+        ]
+      }
+    },
+    {
+      "exists": true,
+      "label": "OpenClaw system knowledge registry external input",
+      "path": "generated/external_registries/openclaw-eyes/openclaw_system_knowledge_registry_OPERATOR.md",
+      "sha256": "sha256:46f93b19532eeb10ea8c15b27b8515c8451cdbc05f140c3cc3aae18876f24988",
+      "source_id": "openclaw_system_knowledge_registry_fc9549f5cc",
+      "source_type": "registry_file"
+    },
+    {
+      "exists": true,
+      "label": "OpenClaw system knowledge registry external input",
+      "path": "generated/external_registries/openclaw-eyes/openclaw_system_knowledge_registry_SCHEMA.sql",
+      "sha256": "sha256:0cfe8823e8caf995a606ab2fc4211292273de0a1f906258bd10e7987ba7b0c20",
+      "source_id": "openclaw_system_knowledge_registry_d500da978d",
+      "source_type": "registry_file"
+    },
+    {
+      "exists": true,
+      "label": "OpenClaw system knowledge registry external input",
+      "path": "generated/external_registries/openclaw-eyes/openclaw_system_knowledge_registry_SEED.sql",
+      "sha256": "sha256:2e03f981b560ced0ebfbe40cf48da3c839bd59a7437d073fcdbf66520f29cf3d",
+      "source_id": "openclaw_system_knowledge_registry_b7961063f8",
+      "source_type": "registry_file"
     }
   ],
   "source_of_truth_warning": "SQLite/read-models/receipts are source of truth; generated wiki pages are views.",

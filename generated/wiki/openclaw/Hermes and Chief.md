@@ -55,6 +55,6 @@ Hermes and Chief read-models currently describe deterministic mission focus, pur
 - generated/read_models/hermes_gravity_controller.json (hermes_gravity_controller)
 - generated/read_models/chief_dynamic_workflow_deferred_build.json (chief_dynamic_workflow_deferred_build)
 
-Last generated timestamp: 2026-05-31T04:09:25+00:00
+Last generated timestamp: 2026-05-31T04:30:01+00:00
 
 Generated understanding view. Registry/read-models/receipts remain source of truth.

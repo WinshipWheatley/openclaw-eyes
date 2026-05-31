@@ -114,6 +114,7 @@ def test_registry_is_deterministic_and_counts_estate_topology():
         "bridge_path",
         "source_of_truth_area",
         "registry_presence",
+        "external_registry_materialization",
         "codex_web_artifact",
         "known_unknown",
         "recommended_action",
@@ -242,6 +243,48 @@ def test_matching_main_head_marks_system_knowledge_registry_canonical():
     assert summary["system_knowledge_registry_main_contains_review_commit"] is True
     assert summary["system_knowledge_registry_review_commit"] == FIXED_REVIEW_COMMIT
     assert summary["system_knowledge_registry_main_commit"] == FIXED_REVIEW_COMMIT
+
+
+def test_external_registry_materialization_keeps_openclaw_eyes_canonical_owner():
+    external_index = {
+        "import_status": "IMPORTED",
+        "canonical_owner": "openclaw-eyes",
+        "local_role": "READ_ONLY_EXTERNAL_INPUT",
+        "commit_match": True,
+        "source_repo": "openclaw-eyes",
+        "source_branch": "main",
+        "source_commit": FIXED_REVIEW_COMMIT,
+        "artifact_count": 2,
+        "artifacts": [
+            {
+                "cache_path": "generated/external_registries/openclaw-eyes/openclaw_system_knowledge_registry.json",
+                "sha256": "sha256:json",
+            },
+            {
+                "cache_path": "generated/external_registries/openclaw-eyes/openclaw_system_knowledge_registry.sqlite",
+                "sha256": "sha256:sqlite",
+            },
+        ],
+    }
+    payload = registry.build_openclaw_estate_topology_registry(
+        generated_at=FIXED_NOW,
+        reference_resolver_payload=_reference_payload(
+            FIXED_REVIEW_COMMIT,
+            main_commit=FIXED_REVIEW_COMMIT,
+            main_resolution_status="RESOLVED_REMOTE",
+        ),
+        external_registry_index_payload=external_index,
+    )
+    registries = {row["registry_id"]: row for row in payload["registry_presence"]}
+    materialized = payload["external_registry_materialization"][0]
+
+    assert registries["openclaw_eyes_system_knowledge_registry_external_input"]["status"] == "EXTERNAL_REGISTRY_MATERIALIZED"
+    assert registries["openclaw_eyes_system_knowledge_registry_external_input"]["canonical_status"] == "CANONICAL"
+    assert materialized["local_status"] == "EXTERNAL_REGISTRY_MATERIALIZED"
+    assert materialized["canonical_owner"] == "openclaw-eyes"
+    assert materialized["local_role"] == "READ_ONLY_EXTERNAL_INPUT"
+    assert materialized["source_commit"] == FIXED_REVIEW_COMMIT
+    assert "sha256:sqlite" in materialized["artifact_hashes_json"]
 
 
 def test_export_writes_json_operator_sqlite_schema_and_seed(tmp_path, capsys):

@@ -28,6 +28,9 @@ Ownership Boundaries:
 - openclaw-eyes Mac repo: `EYES_CONTEXT_REPO` / `CONFIRMED`. Mac Eyes is context/mirror, not live backend unless later proven.
 - bridge/mirror transport: `BRIDGE_TRANSPORT` / `PARTIAL`. /mnt/e/openclaw <-> /Volumes/openclaw_e is transport, not source truth.
 
+External Registry Materialization:
+- `openclaw_eyes_system_knowledge_registry_external_input`: `EXTERNAL_REGISTRY_MATERIALIZED` from `openclaw-eyes` `main` at `1a6b7b0b463968f3161e048bd7936dc06505a3bb`.
+
 Known Unknowns:
 - Why Codex Web commits were not reachable from GitHub remotes.
 - Whether Mac app should get a GitHub remote and backup/PR flow.

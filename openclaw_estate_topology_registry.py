@@ -30,6 +30,7 @@ from openclaw_reference_resolver import (
 ROOT = Path(__file__).resolve().parent
 DEFAULT_READ_MODEL_ROOT = Path("generated/read_models")
 DEFAULT_SYSTEM_KNOWLEDGE_ROOT = Path("generated/system_knowledge")
+EXTERNAL_REGISTRY_INDEX_NAME = "external_system_knowledge_registry_index.json"
 
 SCHEMA_VERSION = "openclaw_estate_topology_registry_v0"
 READ_MODEL_VERSION = "openclaw_estate_topology_registry_read_model_v0"
@@ -55,6 +56,7 @@ STATUS_VALUES = (
     "PENDING_REVIEW",
     "CANONICAL_ON_MAIN",
     "CANONICAL",
+    "EXTERNAL_REGISTRY_MATERIALIZED",
     "PLANNED",
     "STALE",
     "DIRTY",
@@ -68,6 +70,7 @@ REQUIRED_SQLITE_TABLES = (
     "bridge_path",
     "source_of_truth_area",
     "registry_presence",
+    "external_registry_materialization",
     "codex_web_artifact",
     "known_unknown",
     "recommended_action",
@@ -538,6 +541,69 @@ def _system_knowledge_registry_posture(reference_resolver_payload: dict[str, Any
     }
 
 
+def _load_external_registry_index(
+    *,
+    read_model_root: str | Path = DEFAULT_READ_MODEL_ROOT,
+) -> dict[str, Any]:
+    path = _rooted(Path(read_model_root) / EXTERNAL_REGISTRY_INDEX_NAME)
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return payload if isinstance(payload, dict) else {}
+
+
+def _external_registry_materialized(index_payload: dict[str, Any] | None) -> bool:
+    return bool(
+        isinstance(index_payload, dict)
+        and index_payload.get("import_status") == "IMPORTED"
+        and index_payload.get("canonical_owner") == "openclaw-eyes"
+        and index_payload.get("local_role") == "READ_ONLY_EXTERNAL_INPUT"
+        and index_payload.get("commit_match") is True
+    )
+
+
+def _artifact_hashes(index_payload: dict[str, Any] | None) -> dict[str, str]:
+    if not isinstance(index_payload, dict):
+        return {}
+    hashes: dict[str, str] = {}
+    for artifact in index_payload.get("artifacts", []):
+        if isinstance(artifact, dict):
+            cache_path = str(artifact.get("cache_path") or artifact.get("artifact_type") or "")
+            digest = str(artifact.get("sha256") or "")
+            if cache_path and digest:
+                hashes[cache_path] = digest
+    return hashes
+
+
+def external_registry_materialization_rows(
+    external_registry_index_payload: dict[str, Any] | None,
+) -> tuple[dict[str, Any], ...]:
+    if not isinstance(external_registry_index_payload, dict) or not external_registry_index_payload:
+        return ()
+    materialized = _external_registry_materialized(external_registry_index_payload)
+    local_status = "EXTERNAL_REGISTRY_MATERIALIZED" if materialized else "MISSING"
+    return (
+        {
+            "registry_ref": "openclaw_eyes_system_knowledge_registry_external_input",
+            "canonical_owner": str(external_registry_index_payload.get("canonical_owner", "")),
+            "local_role": str(external_registry_index_payload.get("local_role", "")),
+            "local_status": _require_status(local_status),
+            "source_repo": str(external_registry_index_payload.get("source_repo", "")),
+            "source_branch": str(external_registry_index_payload.get("source_branch", "")),
+            "source_commit": str(external_registry_index_payload.get("source_commit", "")),
+            "artifact_count": int(external_registry_index_payload.get("artifact_count", 0)),
+            "artifact_hashes_json": stable_json(_artifact_hashes(external_registry_index_payload)).strip(),
+            "index_path": f"generated/read_models/{EXTERNAL_REGISTRY_INDEX_NAME}",
+            "notes": (
+                "openclaw-eyes system knowledge registry imported as read-only external input."
+                if materialized
+                else str(external_registry_index_payload.get("reason", "external registry import not materialized"))
+            ),
+        },
+    )
+
+
 def source_of_truth_areas(reference_resolver_payload: dict[str, Any]) -> tuple[dict[str, Any], ...]:
     posture = _system_knowledge_registry_posture(reference_resolver_payload)
     branch_resolution = posture["branch_resolution"]
@@ -736,7 +802,10 @@ def _registry_presence(
     }
 
 
-def registry_presence(reference_resolver_payload: dict[str, Any]) -> tuple[dict[str, Any], ...]:
+def registry_presence(
+    reference_resolver_payload: dict[str, Any],
+    external_registry_index_payload: dict[str, Any] | None = None,
+) -> tuple[dict[str, Any], ...]:
     posture = _system_knowledge_registry_posture(reference_resolver_payload)
     registry_status = posture["current_state"]
     canonical_status = posture["canonical_status"]
@@ -745,7 +814,7 @@ def registry_presence(reference_resolver_payload: dict[str, Any]) -> tuple[dict[
         registry_notes = (
             "Resolved from openclaw-eyes main; review branch remains historical evidence."
         )
-    return (
+    rows = [
         _registry_presence(
             "openclaw_estate_topology_registry",
             "OpenClaw Estate Topology Registry",
@@ -775,23 +844,49 @@ def registry_presence(reference_resolver_payload: dict[str, Any]) -> tuple[dict[
             branch_name=posture["effective_branch"],
             commit_ref=posture["effective_commit"],
         ),
-        _registry_presence(
-            "codex_web_registry_commits",
-            "Codex Web registry commits",
-            "33e00a6 and 4ca4ed42171c23d60ef89493559808ef2789a19e",
-            "",
-            "UNREACHABLE",
-            "Recorded as unreachable artifacts, not source truth.",
-        ),
-        _registry_presence(
-            "bridge_mirror_read_models",
-            "Bridge/mirror generated read-model transport",
-            "/mnt/e/openclaw and /Volumes/openclaw_e",
-            "pc_openclaw_eyes_backend",
-            "PARTIAL",
-            "Transport exists, but Mac bridge access can fail in some contexts.",
-        ),
+    ]
+    if _external_registry_materialized(external_registry_index_payload):
+        artifact_hashes = _artifact_hashes(external_registry_index_payload)
+        rows.append(
+            _registry_presence(
+                "openclaw_eyes_system_knowledge_registry_external_input",
+                "openclaw-eyes System Knowledge Registry external input",
+                "generated/external_registries/openclaw-eyes/openclaw_system_knowledge_registry.sqlite",
+                "pc_openclaw_eyes_backend",
+                "EXTERNAL_REGISTRY_MATERIALIZED",
+                (
+                    "canonical_owner=openclaw-eyes; local_role=READ_ONLY_EXTERNAL_INPUT; "
+                    f"source_commit={external_registry_index_payload.get('source_commit')}; "
+                    f"artifact_hashes={stable_json(artifact_hashes).strip()}"
+                ),
+                current_state="EXTERNAL_REGISTRY_MATERIALIZED",
+                canonical_status="CANONICAL",
+                repo_name="openclaw-eyes",
+                branch_name=str(external_registry_index_payload.get("source_branch", "main")),
+                commit_ref=str(external_registry_index_payload.get("source_commit", "")),
+            )
+        )
+    rows.extend(
+        [
+            _registry_presence(
+                "codex_web_registry_commits",
+                "Codex Web registry commits",
+                "33e00a6 and 4ca4ed42171c23d60ef89493559808ef2789a19e",
+                "",
+                "UNREACHABLE",
+                "Recorded as unreachable artifacts, not source truth.",
+            ),
+            _registry_presence(
+                "bridge_mirror_read_models",
+                "Bridge/mirror generated read-model transport",
+                "/mnt/e/openclaw and /Volumes/openclaw_e",
+                "pc_openclaw_eyes_backend",
+                "PARTIAL",
+                "Transport exists, but Mac bridge access can fail in some contexts.",
+            ),
+        ]
     )
+    return tuple(rows)
 
 
 def _codex_web_artifact(
@@ -1042,6 +1137,7 @@ def build_openclaw_estate_topology_registry(
     *,
     generated_at: str | None = None,
     reference_resolver_payload: dict[str, Any] | None = None,
+    external_registry_index_payload: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     machine_rows = machines()
     working_copy_rows = repo_working_copies()
@@ -1049,6 +1145,7 @@ def build_openclaw_estate_topology_registry(
     reference_payload = reference_resolver_payload or build_estate_reference_resolver_payload(
         generated_at=generated_at
     )
+    external_index_payload = external_registry_index_payload or {}
     posture = _system_knowledge_registry_posture(reference_payload)
     branch_resolution = posture["branch_resolution"]
     main_resolution = posture["main_resolution"]
@@ -1057,6 +1154,7 @@ def build_openclaw_estate_topology_registry(
     )
     unknown_rows = known_unknowns(reference_payload)
     action_rows = recommended_actions(reference_payload)
+    external_materialization_rows = external_registry_materialization_rows(external_index_payload)
     return {
         "schema_version": READ_MODEL_VERSION,
         "contract_schema_version": SCHEMA_VERSION,
@@ -1081,7 +1179,8 @@ def build_openclaw_estate_topology_registry(
         "repo_relationships": list(repo_relationships()),
         "bridge_paths": list(bridge_paths()),
         "source_of_truth_areas": list(source_of_truth_areas(reference_payload)),
-        "registry_presence": list(registry_presence(reference_payload)),
+        "registry_presence": list(registry_presence(reference_payload, external_index_payload)),
+        "external_registry_materialization": list(external_materialization_rows),
         "codex_web_artifacts": list(codex_web_artifacts(reference_payload)),
         "known_unknown_count": len(unknown_rows),
         "known_unknowns": list(unknown_rows),
@@ -1135,6 +1234,7 @@ def build_openclaw_estate_topology_registry(
             "system_knowledge_registry_dirty_status": branch_resolution.get(
                 "dirty_status", "UNKNOWN"
             ),
+            "external_registry_materialized": bool(external_materialization_rows),
         },
         "topology_summary": {
             "actual_machines": ["pc", "mac"],
@@ -1159,6 +1259,7 @@ def _sqlite_status_check() -> str:
 
 def sqlite_schema_sql() -> str:
     status_check = _sqlite_status_check()
+    local_status_check = f"CHECK(local_status IN ({', '.join(f"'{status}'" for status in STATUS_VALUES)}))"
     evidence_check = f"CHECK(evidence_status IN ({', '.join(f"'{status}'" for status in STATUS_VALUES)}))"
     remote_check = f"CHECK(remote_status IN ({', '.join(f"'{status}'" for status in STATUS_VALUES)}))"
     worktree_check = f"CHECK(worktree_status IN ({', '.join(f"'{status}'" for status in STATUS_VALUES)}))"
@@ -1240,6 +1341,20 @@ CREATE TABLE registry_presence (
     notes TEXT NOT NULL
 );
 
+CREATE TABLE external_registry_materialization (
+    registry_ref TEXT PRIMARY KEY,
+    canonical_owner TEXT NOT NULL,
+    local_role TEXT NOT NULL,
+    local_status TEXT NOT NULL {local_status_check},
+    source_repo TEXT NOT NULL,
+    source_branch TEXT NOT NULL,
+    source_commit TEXT NOT NULL,
+    artifact_count INTEGER NOT NULL,
+    artifact_hashes_json TEXT NOT NULL,
+    index_path TEXT NOT NULL,
+    notes TEXT NOT NULL
+);
+
 CREATE TABLE codex_web_artifact (
     artifact_id TEXT PRIMARY KEY,
     commit_ref TEXT NOT NULL,
@@ -1287,6 +1402,7 @@ def _rows_for_sqlite(read_model: dict[str, Any]) -> dict[str, list[dict[str, Any
         "bridge_path": read_model["bridge_paths"],
         "source_of_truth_area": read_model["source_of_truth_areas"],
         "registry_presence": read_model["registry_presence"],
+        "external_registry_materialization": read_model["external_registry_materialization"],
         "codex_web_artifact": [
             {**artifact, "source_truth": _bool(artifact["source_truth"])}
             for artifact in read_model["codex_web_artifacts"]
@@ -1380,6 +1496,12 @@ def format_operator_read_model(read_model: dict[str, Any]) -> str:
         lines.append(
             f"- {area['display_name']}: `{area['owner_classification']}` / `{area['status']}`. {area['ownership_rule']}"
         )
+    if read_model.get("external_registry_materialization"):
+        lines.extend(["", "External Registry Materialization:"])
+        for row in read_model["external_registry_materialization"]:
+            lines.append(
+                f"- `{row['registry_ref']}`: `{row['local_status']}` from `{row['source_repo']}` `{row['source_branch']}` at `{row['source_commit']}`."
+            )
     lines.extend(["", "Known Unknowns:"])
     for item in read_model["known_unknowns"]:
         lines.append(f"- {item['question']}")
@@ -1413,6 +1535,7 @@ def export_openclaw_estate_topology_registry(
     read_model = build_openclaw_estate_topology_registry(
         generated_at=generated_at,
         reference_resolver_payload=reference_resolver_payload,
+        external_registry_index_payload=_load_external_registry_index(read_model_root=read_root),
     )
     json_path = read_root / JSON_EXPORT_NAME
     operator_path = read_root / OPERATOR_EXPORT_NAME

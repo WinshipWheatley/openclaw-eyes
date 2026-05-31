@@ -53,6 +53,6 @@ The estate topology page summarizes machines, working copies, ownership areas, b
 - generated/read_models/estate_topology.json (estate_topology)
 - generated/read_models/openclaw_estate_node_registry.json (openclaw_estate_node_registry)
 
-Last generated timestamp: 2026-05-31T04:09:25+00:00
+Last generated timestamp: 2026-05-31T04:30:01+00:00
 
 Generated understanding view. Registry/read-models/receipts remain source of truth.

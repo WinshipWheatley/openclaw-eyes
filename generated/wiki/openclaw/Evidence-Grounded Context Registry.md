@@ -10,6 +10,8 @@ The context layer is intended to stay deterministic: stable registries, SQLite/r
 - The generated wiki is a compiled view over those structures and does not become source truth.
 - Evidence-Grounded Context Registry status: CANONICAL_ON_MAIN on main at 1a6b7b0b463968f3161e048bd7936dc06505a3bb.
 - Registry notes: Resolved from openclaw-eyes main; review branch remains historical evidence.
+- openclaw-eyes system knowledge registry imported as read-only external input.
+- External registry source: openclaw-eyes main at 1a6b7b0b463968f3161e048bd7936dc06505a3bb.
 
 ## Known unknowns
 - Why Codex Web commits were not reachable from GitHub remotes. [generated/read_models/openclaw_estate_topology_registry.json]
@@ -20,12 +22,11 @@ The context layer is intended to stay deterministic: stable registries, SQLite/r
 - How Mac bridge permission failures should be represented. [generated/read_models/openclaw_estate_topology_registry.json]
 
 ## Tension / contradiction signals
-- Input source missing: Expected generated wiki input is missing: generated/system_knowledge/openclaw_system_knowledge_registry.*.
 - Codex Web commit unreachable: openclaw-eyes commit 33e00a6 is recorded as unreachable.
 - Codex Web commit unreachable: openclaw-eyes commit 4ca4ed42171c23d60ef89493559808ef2789a19e is recorded as unreachable.
 
 ## Next useful actions
-- Keep registry commits pending review until reachable and merged.
+- Keep external registry imports read-only and regenerate after canonical source changes.
 - Record new facts upstream in registries/read-models/receipts, then regenerate the wiki.
 
 ## What not to do
@@ -36,8 +37,13 @@ The context layer is intended to stay deterministic: stable registries, SQLite/r
 ## Source refs / input read-model refs
 - generated/read_models/openclaw_estate_topology_registry.json (estate_topology_registry)
 - generated/read_models/openclaw_reference_resolver.json (reference_resolver)
-- generated/system_knowledge/openclaw_system_knowledge_registry.* (openclaw_system_knowledge_registry_files, missing)
+- generated/read_models/external_system_knowledge_registry_index.json (external_system_knowledge_registry_index)
+- generated/external_registries/openclaw-eyes/openclaw_system_knowledge_registry.json (openclaw_system_knowledge_registry_ff49c5bc4e)
+- generated/external_registries/openclaw-eyes/openclaw_system_knowledge_registry.sqlite (openclaw_system_knowledge_registry_61df5235c0)
+- generated/external_registries/openclaw-eyes/openclaw_system_knowledge_registry_OPERATOR.md (openclaw_system_knowledge_registry_fc9549f5cc)
+- generated/external_registries/openclaw-eyes/openclaw_system_knowledge_registry_SCHEMA.sql (openclaw_system_knowledge_registry_d500da978d)
+- generated/external_registries/openclaw-eyes/openclaw_system_knowledge_registry_SEED.sql (openclaw_system_knowledge_registry_b7961063f8)
 
-Last generated timestamp: 2026-05-31T04:09:25+00:00
+Last generated timestamp: 2026-05-31T04:30:01+00:00
 
 Generated understanding view. Registry/read-models/receipts remain source of truth.

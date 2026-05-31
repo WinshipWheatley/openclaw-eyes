@@ -65,7 +65,22 @@
   "coupa_accessed": false,
   "email_accessed": false,
   "external_lm_or_live_tool_action_run": false,
-  "generated_at": "2026-05-31T04:09:23+00:00",
+  "external_registry_materialization": [
+    {
+      "artifact_count": 5,
+      "artifact_hashes_json": "{\n  \"generated/external_registries/openclaw-eyes/openclaw_system_knowledge_registry.json\": \"sha256:b3190e6a519ab661aa407c29e5874d3640c74955e95c08fbbbef9cc4cbbee286\",\n  \"generated/external_registries/openclaw-eyes/openclaw_system_knowledge_registry.sqlite\": \"sha256:fbace7adfb416065000d3a738933b362b34fb7876c0cff0659b195ecc4ef112e\",\n  \"generated/external_registries/openclaw-eyes/openclaw_system_knowledge_registry_OPERATOR.md\": \"sha256:46f93b19532eeb10ea8c15b27b8515c8451cdbc05f140c3cc3aae18876f24988\",\n  \"generated/external_registries/openclaw-eyes/openclaw_system_knowledge_registry_SCHEMA.sql\": \"sha256:0cfe8823e8caf995a606ab2fc4211292273de0a1f906258bd10e7987ba7b0c20\",\n  \"generated/external_registries/openclaw-eyes/openclaw_system_knowledge_registry_SEED.sql\": \"sha256:2e03f981b560ced0ebfbe40cf48da3c839bd59a7437d073fcdbf66520f29cf3d\"\n}",
+      "canonical_owner": "openclaw-eyes",
+      "index_path": "generated/read_models/external_system_knowledge_registry_index.json",
+      "local_role": "READ_ONLY_EXTERNAL_INPUT",
+      "local_status": "EXTERNAL_REGISTRY_MATERIALIZED",
+      "notes": "openclaw-eyes system knowledge registry imported as read-only external input.",
+      "registry_ref": "openclaw_eyes_system_knowledge_registry_external_input",
+      "source_branch": "main",
+      "source_commit": "1a6b7b0b463968f3161e048bd7936dc06505a3bb",
+      "source_repo": "openclaw-eyes"
+    }
+  ],
+  "generated_at": "2026-05-31T04:28:39+00:00",
   "generated_by": "codex",
   "git_push_performed": false,
   "gmail_accessed": false,
@@ -209,6 +224,7 @@
     }
   ],
   "reference_resolver_summary": {
+    "external_registry_materialized": true,
     "resolver_schema_version": "openclaw_reference_resolver_read_model_v0",
     "system_knowledge_registry_branch": "main",
     "system_knowledge_registry_canonical_status": "CANONICAL",
@@ -275,6 +291,19 @@
       "registry_id": "evidence_grounded_context_registry",
       "repo_name": "openclaw-eyes",
       "status": "CANONICAL_ON_MAIN"
+    },
+    {
+      "branch_name": "main",
+      "canonical_status": "CANONICAL",
+      "commit_ref": "1a6b7b0b463968f3161e048bd7936dc06505a3bb",
+      "current_state": "EXTERNAL_REGISTRY_MATERIALIZED",
+      "display_name": "openclaw-eyes System Knowledge Registry external input",
+      "expected_path": "generated/external_registries/openclaw-eyes/openclaw_system_knowledge_registry.sqlite",
+      "notes": "canonical_owner=openclaw-eyes; local_role=READ_ONLY_EXTERNAL_INPUT; source_commit=1a6b7b0b463968f3161e048bd7936dc06505a3bb; artifact_hashes={\n  \"generated/external_registries/openclaw-eyes/openclaw_system_knowledge_registry.json\": \"sha256:b3190e6a519ab661aa407c29e5874d3640c74955e95c08fbbbef9cc4cbbee286\",\n  \"generated/external_registries/openclaw-eyes/openclaw_system_knowledge_registry.sqlite\": \"sha256:fbace7adfb416065000d3a738933b362b34fb7876c0cff0659b195ecc4ef112e\",\n  \"generated/external_registries/openclaw-eyes/openclaw_system_knowledge_registry_OPERATOR.md\": \"sha256:46f93b19532eeb10ea8c15b27b8515c8451cdbc05f140c3cc3aae18876f24988\",\n  \"generated/external_registries/openclaw-eyes/openclaw_system_knowledge_registry_SCHEMA.sql\": \"sha256:0cfe8823e8caf995a606ab2fc4211292273de0a1f906258bd10e7987ba7b0c20\",\n  \"generated/external_registries/openclaw-eyes/openclaw_system_knowledge_registry_SEED.sql\": \"sha256:2e03f981b560ced0ebfbe40cf48da3c839bd59a7437d073fcdbf66520f29cf3d\"\n}",
+      "owning_working_copy_id": "pc_openclaw_eyes_backend",
+      "registry_id": "openclaw_eyes_system_knowledge_registry_external_input",
+      "repo_name": "openclaw-eyes",
+      "status": "EXTERNAL_REGISTRY_MATERIALIZED"
     },
     {
       "branch_name": "",
@@ -424,6 +453,7 @@
     "bridge_path",
     "source_of_truth_area",
     "registry_presence",
+    "external_registry_materialization",
     "codex_web_artifact",
     "known_unknown",
     "recommended_action"
@@ -633,6 +663,7 @@
     "PENDING_REVIEW",
     "CANONICAL_ON_MAIN",
     "CANONICAL",
+    "EXTERNAL_REGISTRY_MATERIALIZED",
     "PLANNED",
     "STALE",
     "DIRTY",

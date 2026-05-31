@@ -20,6 +20,7 @@ from typing import Any, Iterable
 ROOT = Path(__file__).resolve().parent
 DEFAULT_READ_MODEL_ROOT = Path("generated/read_models")
 DEFAULT_SYSTEM_KNOWLEDGE_ROOT = Path("generated/system_knowledge")
+DEFAULT_EXTERNAL_REGISTRY_ROOT = Path("generated/external_registries")
 DEFAULT_WIKI_ROOT = Path("generated/wiki/openclaw")
 
 INDEX_JSON_NAME = "openclaw_context_wiki_index.json"
@@ -50,6 +51,7 @@ EXPECTED_SOURCE_SPECS = (
     ("estate_topology_registry", "Estate topology read-model", "generated/read_models/openclaw_estate_topology_registry.json", "json_read_model"),
     ("reference_resolver_sqlite", "Reference resolver SQLite registry", "generated/system_knowledge/openclaw_reference_resolver.sqlite", "sqlite_registry"),
     ("reference_resolver", "Reference resolver read-model", "generated/read_models/openclaw_reference_resolver.json", "json_read_model"),
+    ("external_system_knowledge_registry_index", "External system knowledge registry index", "generated/read_models/external_system_knowledge_registry_index.json", "json_read_model"),
     ("live_arts_md_invoice_review_bundle", "Live Arts MD invoice bundle", "generated/read_models/live_arts_md_invoice_review_bundle.json", "json_read_model"),
     ("invoice_review_bundle", "Capital Hilton invoice bundle", "generated/read_models/invoice_review_bundle.json", "json_read_model"),
     ("hermes_mission_sentinel", "Hermes mission sentinel", "generated/read_models/hermes_mission_sentinel.json", "json_read_model"),
@@ -257,6 +259,18 @@ def source_refs(sources: dict[str, SourceInput], source_ids: Iterable[str]) -> t
     return tuple(source_ref(sources[source_id]) for source_id in source_ids if source_id in sources)
 
 
+def source_refs_with_prefixes(
+    sources: dict[str, SourceInput],
+    prefixes: Iterable[str],
+) -> tuple[str, ...]:
+    prefix_values = tuple(prefixes)
+    return tuple(
+        source_ref(source)
+        for source_id, source in sources.items()
+        if any(source_id.startswith(prefix) for prefix in prefix_values)
+    )
+
+
 def load_json_payload(path: Path) -> tuple[Any, str]:
     try:
         with path.open("r", encoding="utf-8") as handle:
@@ -291,6 +305,7 @@ def discover_system_knowledge_registry_files(
     repo_root: Path,
     system_knowledge_root: Path,
     read_model_root: Path,
+    external_registry_root: Path,
 ) -> list[tuple[str, str, str, str]]:
     discovered: list[tuple[str, str, str, str]] = []
     search_roots = [repo_root, system_knowledge_root, read_model_root]
@@ -306,6 +321,15 @@ def discover_system_knowledge_registry_files(
             source_id = "openclaw_system_knowledge_registry_" + hashlib.sha1(rel.encode("utf-8")).hexdigest()[:10]
             source_type = "sqlite_registry" if path.suffix == ".sqlite" else "registry_file"
             discovered.append((source_id, "OpenClaw system knowledge registry file", rel, source_type))
+    if external_registry_root.exists() and external_registry_root.is_dir():
+        for path in sorted(external_registry_root.rglob("*openclaw_system_knowledge_registry*")):
+            if not path.is_file() or path in seen:
+                continue
+            seen.add(path)
+            rel = display_path(path, repo_root=repo_root)
+            source_id = "openclaw_system_knowledge_registry_" + hashlib.sha1(rel.encode("utf-8")).hexdigest()[:10]
+            source_type = "sqlite_registry" if path.suffix == ".sqlite" else "registry_file"
+            discovered.append((source_id, "OpenClaw system knowledge registry external input", rel, source_type))
     return discovered
 
 
@@ -314,16 +338,19 @@ def load_sources(
     repo_root: str | Path = ROOT,
     read_model_root: str | Path = DEFAULT_READ_MODEL_ROOT,
     system_knowledge_root: str | Path = DEFAULT_SYSTEM_KNOWLEDGE_ROOT,
+    external_registry_root: str | Path = DEFAULT_EXTERNAL_REGISTRY_ROOT,
 ) -> dict[str, SourceInput]:
     repo = Path(repo_root)
     read_root = rooted(read_model_root, repo_root=repo)
     system_root = rooted(system_knowledge_root, repo_root=repo)
+    external_root = rooted(external_registry_root, repo_root=repo)
     specs = list(EXPECTED_SOURCE_SPECS)
     specs.extend(
         discover_system_knowledge_registry_files(
             repo_root=repo,
             system_knowledge_root=system_root,
             read_model_root=read_root,
+            external_registry_root=external_root,
         )
     )
     if not any(spec[0].startswith("openclaw_system_knowledge_registry_") for spec in specs):
@@ -781,6 +808,8 @@ def build_pages(
     topology_payload = topology.payload if topology else None
     resolver = sources.get("reference_resolver")
     resolver_payload = resolver.payload if resolver else None
+    external_registry = sources.get("external_system_knowledge_registry_index")
+    external_registry_payload = external_registry.payload if external_registry else None
     live_source = sources.get("live_arts_md_invoice_review_bundle")
     live_payload = live_source.payload if live_source else None
     live_bundle = live_payload.get("live_arts_md_bundle", live_payload) if isinstance(live_payload, dict) else {}
@@ -812,7 +841,7 @@ def build_pages(
                 "Regenerate with `python3 scripts/export_openclaw_context_wiki.py`.",
                 "Compiler v0 does not use an LM and does not synthesize unsupported claims.",
                 "The compiler writes generated wiki pages plus generated/read_models/openclaw_context_wiki_index.json and generated/read_models/openclaw_context_wiki_index_OPERATOR.md.",
-                "The compiler boundary flags explicitly deny service starts, email, browser, Coupa, workbook reads, PDF export, ledger mutation, production mutation, and git push.",
+                "The compiler boundary flags explicitly deny service starts, email, browser, Coupa, workbook reads, PDF export, ledger mutation, production mutation, and git publication.",
                 f"Pages generated: {len(PAGE_OUTPUTS)}.",
             ),
             known_unknowns=missing_source_unknowns,
@@ -884,6 +913,27 @@ def build_pages(
                     f"Evidence-Grounded Context Registry status: {item.get('status')} on {item.get('branch_name')} at {item.get('commit_ref')}."
                 )
                 registry_facts.append(f"Registry notes: {item.get('notes')}")
+    if isinstance(external_registry_payload, dict):
+        if clean_text(external_registry_payload.get("import_status")).upper() == "IMPORTED":
+            registry_facts.append(
+                "openclaw-eyes system knowledge registry imported as read-only external input."
+            )
+            registry_facts.append(
+                f"External registry source: {external_registry_payload.get('source_repo')} main at {external_registry_payload.get('source_commit')}."
+            )
+        elif external_registry_payload.get("reason"):
+            registry_facts.append(
+                f"External registry import status: {external_registry_payload.get('import_status')} ({external_registry_payload.get('reason')})."
+            )
+    registry_source_refs = source_refs(
+        sources,
+        (
+            "estate_topology_registry",
+            "reference_resolver",
+            "external_system_knowledge_registry_index",
+            "openclaw_system_knowledge_registry_files",
+        ),
+    ) + source_refs_with_prefixes(sources, ("openclaw_system_knowledge_registry_",))
     pages.append(
         WikiPage(
             title="Evidence-Grounded Context Registry",
@@ -894,7 +944,7 @@ def build_pages(
             known_unknowns=tuple(item for item in known_unknowns if any(marker in item.lower() for marker in ("registry", "context", "canonical", "codex"))),
             tensions=tension_texts(tensions, ("estate_topology_registry", "openclaw_system_knowledge_registry")),
             next_actions=(
-                "Keep registry commits pending review until reachable and merged.",
+                "Keep external registry imports read-only and regenerate after canonical source changes.",
                 "Record new facts upstream in registries/read-models/receipts, then regenerate the wiki.",
             ),
             what_not_to_do=(
@@ -902,7 +952,7 @@ def build_pages(
                 "Do not hardcode volatile branch commits as source truth.",
                 "Do not smooth over contradictory source statuses.",
             ),
-            source_refs=source_refs(sources, ("estate_topology_registry", "reference_resolver", "openclaw_system_knowledge_registry_files")),
+            source_refs=registry_source_refs,
         )
     )
 
@@ -1453,6 +1503,7 @@ def compile_openclaw_context_wiki(
     repo_root: str | Path = ROOT,
     read_model_root: str | Path = DEFAULT_READ_MODEL_ROOT,
     system_knowledge_root: str | Path = DEFAULT_SYSTEM_KNOWLEDGE_ROOT,
+    external_registry_root: str | Path = DEFAULT_EXTERNAL_REGISTRY_ROOT,
     wiki_root: str | Path = DEFAULT_WIKI_ROOT,
     generated_at: str | None = None,
     write: bool = True,
@@ -1463,6 +1514,7 @@ def compile_openclaw_context_wiki(
         repo_root=repo,
         read_model_root=read_model_root,
         system_knowledge_root=system_knowledge_root,
+        external_registry_root=external_registry_root,
     )
     tensions = detect_tensions(sources)
     known_unknowns = collect_known_unknowns(sources)
@@ -1509,6 +1561,7 @@ def compile_openclaw_context_wiki(
 
 __all__ = [
     "AUTHORITY_BOUNDARY_FLAGS",
+    "DEFAULT_EXTERNAL_REGISTRY_ROOT",
     "FOOTER",
     "INDEX_JSON_NAME",
     "OPERATOR_INDEX_NAME",

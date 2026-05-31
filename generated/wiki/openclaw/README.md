@@ -10,14 +10,13 @@ This is a generated, evidence-grounded Markdown view over local OpenClaw registr
 - Regenerate with `python3 scripts/export_openclaw_context_wiki.py`.
 - Compiler v0 does not use an LM and does not synthesize unsupported claims.
 - The compiler writes generated wiki pages plus generated/read_models/openclaw_context_wiki_index.json and generated/read_models/openclaw_context_wiki_index_OPERATOR.md.
-- The compiler boundary flags explicitly deny service starts, email, browser, Coupa, workbook reads, PDF export, ledger mutation, production mutation, and git push.
+- The compiler boundary flags explicitly deny service starts, email, browser, Coupa, workbook reads, PDF export, ledger mutation, production mutation, and git publication.
 - Pages generated: 11.
 
 ## Known unknowns
-- generated/system_knowledge/openclaw_system_knowledge_registry.* is missing
+- none
 
 ## Tension / contradiction signals
-- Input source missing: Expected generated wiki input is missing: generated/system_knowledge/openclaw_system_knowledge_registry.*.
 - Reference target unavailable: estate_topology_registry_read_model_mirror resolved as MISSING.
 - Mac local path unreachable from PC: /Users/hwinshipwheatley/Eyes is marked LOCAL_PATH_UNREACHABLE.
 - Mac bridge unavailable: openclaw_eyes_registry_review_branch has mac_bridge_status=MAC_BRIDGE_UNAVAILABLE.
@@ -45,6 +44,7 @@ This is a generated, evidence-grounded Markdown view over local OpenClaw registr
 - generated/read_models/openclaw_estate_topology_registry.json (estate_topology_registry)
 - generated/system_knowledge/openclaw_reference_resolver.sqlite (reference_resolver_sqlite)
 - generated/read_models/openclaw_reference_resolver.json (reference_resolver)
+- generated/read_models/external_system_knowledge_registry_index.json (external_system_knowledge_registry_index)
 - generated/read_models/live_arts_md_invoice_review_bundle.json (live_arts_md_invoice_review_bundle)
 - generated/read_models/invoice_review_bundle.json (invoice_review_bundle)
 - generated/read_models/hermes_mission_sentinel.json (hermes_mission_sentinel)
@@ -56,7 +56,12 @@ This is a generated, evidence-grounded Markdown view over local OpenClaw registr
 - generated/read_models/estate_topology.json (estate_topology)
 - generated/read_models/build_now_vs_hold_queue_posture.json (build_now_vs_hold_queue_posture)
 - generated/read_models/work_terrain_build_cue_reconciliation_queue.json (work_terrain_build_cue_reconciliation_queue)
+- generated/external_registries/openclaw-eyes/openclaw_system_knowledge_registry.json (openclaw_system_knowledge_registry_ff49c5bc4e)
+- generated/external_registries/openclaw-eyes/openclaw_system_knowledge_registry.sqlite (openclaw_system_knowledge_registry_61df5235c0)
+- generated/external_registries/openclaw-eyes/openclaw_system_knowledge_registry_OPERATOR.md (openclaw_system_knowledge_registry_fc9549f5cc)
+- generated/external_registries/openclaw-eyes/openclaw_system_knowledge_registry_SCHEMA.sql (openclaw_system_knowledge_registry_d500da978d)
+- generated/external_registries/openclaw-eyes/openclaw_system_knowledge_registry_SEED.sql (openclaw_system_knowledge_registry_b7961063f8)
 
-Last generated timestamp: 2026-05-31T04:09:25+00:00
+Last generated timestamp: 2026-05-31T04:30:01+00:00
 
 Generated understanding view. Registry/read-models/receipts remain source of truth.

@@ -57,6 +57,6 @@ Ranked next work is derived from registry recommended actions, Hermes/Chief hand
 - generated/read_models/build_now_vs_hold_queue_posture.json (build_now_vs_hold_queue_posture)
 - generated/read_models/work_terrain_build_cue_reconciliation_queue.json (work_terrain_build_cue_reconciliation_queue)
 
-Last generated timestamp: 2026-05-31T04:09:25+00:00
+Last generated timestamp: 2026-05-31T04:30:01+00:00
 
 Generated understanding view. Registry/read-models/receipts remain source of truth.
