@@ -1,5 +1,6 @@
 import ast
 import json
+import re
 import sqlite3
 from pathlib import Path
 
@@ -8,15 +9,45 @@ from scripts.export_openclaw_estate_topology_registry import main as export_main
 
 
 FIXED_NOW = "2026-05-30T18:30:00+00:00"
+FIXED_REVIEW_COMMIT = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 
 
 def _areas_by_id(payload: dict) -> dict[str, dict]:
     return {area["area_id"]: area for area in payload["source_of_truth_areas"]}
 
 
+def _reference_payload(commit: str = FIXED_REVIEW_COMMIT, *, reachable: bool = True) -> dict:
+    status = "RESOLVED" if reachable else "UNREACHABLE"
+    return {
+        "schema_version": "openclaw_reference_resolver_read_model_v0",
+        "generated_at": FIXED_NOW,
+        "git_branch_refs": [
+            {
+                "repo_ref": registry.OPENCLAW_EYES_SYSTEM_KNOWLEDGE_REVIEW_BRANCH_REF,
+                "local_path": "/home/openclaw",
+                "remote_url": "https://github.com/WinshipWheatley/openclaw-eyes.git",
+                "branch": registry.OPENCLAW_EYES_SYSTEM_KNOWLEDGE_REVIEW_BRANCH,
+                "current_head_commit": commit if reachable else "",
+                "reachable": reachable,
+                "resolution_status": status,
+                "dirty_status": "CLEAN",
+                "dirty": False,
+                "last_resolved_at": FIXED_NOW,
+            }
+        ],
+    }
+
+
+def _build_payload(commit: str = FIXED_REVIEW_COMMIT) -> dict:
+    return registry.build_openclaw_estate_topology_registry(
+        generated_at=FIXED_NOW,
+        reference_resolver_payload=_reference_payload(commit),
+    )
+
+
 def test_registry_is_deterministic_and_counts_estate_topology():
-    first = registry.build_openclaw_estate_topology_registry(generated_at=FIXED_NOW)
-    second = registry.build_openclaw_estate_topology_registry(generated_at=FIXED_NOW)
+    first = _build_payload()
+    second = _build_payload()
 
     assert registry.stable_json(first) == registry.stable_json(second)
     assert first["schema_version"] == registry.READ_MODEL_VERSION
@@ -39,7 +70,7 @@ def test_registry_is_deterministic_and_counts_estate_topology():
 
 
 def test_five_working_copies_preserve_machine_repo_roles():
-    payload = registry.build_openclaw_estate_topology_registry(generated_at=FIXED_NOW)
+    payload = _build_payload()
     copies = {copy["working_copy_id"]: copy for copy in payload["repo_working_copies"]}
 
     assert copies["pc_openclaw_eyes_backend"]["local_path"] == "/home/openclaw"
@@ -57,23 +88,24 @@ def test_five_working_copies_preserve_machine_repo_roles():
 
 
 def test_codex_web_commits_are_unreachable_artifacts_not_source_truth():
-    payload = registry.build_openclaw_estate_topology_registry(generated_at=FIXED_NOW)
-    artifacts = {artifact["commit_ref"]: artifact for artifact in payload["codex_web_artifacts"]}
+    payload = _build_payload()
+    artifacts = {artifact["artifact_id"]: artifact for artifact in payload["codex_web_artifacts"]}
 
-    assert artifacts["33e00a6"]["status"] == "UNREACHABLE"
-    assert artifacts["33e00a6"]["source_truth"] is False
-    assert artifacts["4ca4ed42171c23d60ef89493559808ef2789a19e"]["status"] == "UNREACHABLE"
-    assert artifacts["4ca4ed42171c23d60ef89493559808ef2789a19e"]["source_truth"] is False
-    review_artifact = artifacts["1a6b7b0b463968f3161e048bd7936dc06505a3bb"]
+    assert artifacts["codex_web_registry_commit_33e00a6"]["status"] == "UNREACHABLE"
+    assert artifacts["codex_web_registry_commit_33e00a6"]["source_truth"] is False
+    assert artifacts["codex_web_registry_commit_4ca4ed42171c23d60ef89493559808ef2789a19e"]["status"] == "UNREACHABLE"
+    assert artifacts["codex_web_registry_commit_4ca4ed42171c23d60ef89493559808ef2789a19e"]["source_truth"] is False
+    review_artifact = artifacts["openclaw_eyes_system_knowledge_registry_review_branch"]
     assert review_artifact["status"] == "PRESENT_ON_REVIEW_BRANCH"
     assert review_artifact["canonical_status"] == "PENDING_REVIEW"
     assert review_artifact["repo_name"] == "openclaw-eyes"
     assert review_artifact["branch_name"] == "codex/system-knowledge-registry-v0-local"
+    assert review_artifact["commit_ref"] == FIXED_REVIEW_COMMIT
     assert review_artifact["source_truth"] is False
 
 
 def test_source_of_truth_map_includes_required_ownership_boundaries():
-    payload = registry.build_openclaw_estate_topology_registry(generated_at=FIXED_NOW)
+    payload = _build_payload()
     areas = _areas_by_id(payload)
 
     assert areas["mission_control_app"]["owner_classification"] == "MAC_APP"
@@ -92,14 +124,14 @@ def test_source_of_truth_map_includes_required_ownership_boundaries():
     assert areas["evidence_grounded_context_registry"]["review_branch"] == "codex/system-knowledge-registry-v0-local"
     assert (
         areas["evidence_grounded_context_registry"]["review_commit"]
-        == "1a6b7b0b463968f3161e048bd7936dc06505a3bb"
+        == FIXED_REVIEW_COMMIT
     )
     assert areas["mac_openclaw_eyes_context_repo"]["owner_classification"] == "EYES_CONTEXT_REPO"
     assert areas["bridge_mirror_transport"]["ownership_rule"] == "/mnt/e/openclaw <-> /Volumes/openclaw_e is transport, not source truth."
 
 
 def test_known_unknowns_and_recommended_actions_are_complete():
-    payload = registry.build_openclaw_estate_topology_registry(generated_at=FIXED_NOW)
+    payload = _build_payload()
     unknown_ids = {item["unknown_id"] for item in payload["known_unknowns"]}
     actions = {item["action_id"]: item for item in payload["recommended_actions"]}
 
@@ -123,6 +155,7 @@ def test_export_writes_json_operator_sqlite_schema_and_seed(tmp_path, capsys):
         read_model_root=read_root,
         system_knowledge_root=system_root,
         generated_at=FIXED_NOW,
+        reference_resolver_payload=_reference_payload(),
     )
 
     json_path = read_root / registry.JSON_EXPORT_NAME
@@ -161,6 +194,7 @@ def test_sqlite_required_tables_queries_and_integrity(tmp_path):
         read_model_root=read_root,
         system_knowledge_root=system_root,
         generated_at=FIXED_NOW,
+        reference_resolver_payload=_reference_payload(),
     )
 
     db_path = system_root / registry.SQLITE_EXPORT_NAME
@@ -186,7 +220,7 @@ def test_sqlite_required_tables_queries_and_integrity(tmp_path):
             "SELECT source_truth FROM codex_web_artifact WHERE commit_ref = '4ca4ed42171c23d60ef89493559808ef2789a19e'"
         ).fetchone()[0] == 0
         assert connection.execute(
-            "SELECT canonical_status FROM codex_web_artifact WHERE commit_ref = '1a6b7b0b463968f3161e048bd7936dc06505a3bb'"
+            f"SELECT canonical_status FROM codex_web_artifact WHERE commit_ref = '{FIXED_REVIEW_COMMIT}'"
         ).fetchone()[0] == "PENDING_REVIEW"
         assert connection.execute(
             "SELECT branch_name FROM registry_presence WHERE registry_id = 'evidence_grounded_context_registry'"
@@ -195,8 +229,39 @@ def test_sqlite_required_tables_queries_and_integrity(tmp_path):
         connection.close()
 
 
+def test_estate_registry_uses_branch_ref_as_canonical_and_generated_commit_field(tmp_path):
+    source_text = Path("openclaw_estate_topology_registry.py").read_text(encoding="utf-8")
+    assert re.search(r"(review_commit|commit_ref)=\"[a-f0-9]{40}\"", source_text) is None
+
+    read_root = tmp_path / "generated" / "read_models"
+    system_root = tmp_path / "generated" / "system_knowledge"
+    first_commit = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    second_commit = "cccccccccccccccccccccccccccccccccccccccc"
+    registry.export_openclaw_estate_topology_registry(
+        read_model_root=read_root,
+        system_knowledge_root=system_root,
+        generated_at=FIXED_NOW,
+        reference_resolver_payload=_reference_payload(first_commit),
+    )
+    first = json.loads((read_root / registry.JSON_EXPORT_NAME).read_text(encoding="utf-8"))
+    registry.export_openclaw_estate_topology_registry(
+        read_model_root=read_root,
+        system_knowledge_root=system_root,
+        generated_at=FIXED_NOW,
+        reference_resolver_payload=_reference_payload(second_commit),
+    )
+    second = json.loads((read_root / registry.JSON_EXPORT_NAME).read_text(encoding="utf-8"))
+
+    first_area = _areas_by_id(first)["evidence_grounded_context_registry"]
+    second_area = _areas_by_id(second)["evidence_grounded_context_registry"]
+    assert first_area["review_branch"] == registry.OPENCLAW_EYES_SYSTEM_KNOWLEDGE_REVIEW_BRANCH
+    assert first_area["review_commit"] == first_commit
+    assert second_area["review_commit"] == second_commit
+    assert first_area["review_commit"] != second_area["review_commit"]
+
+
 def test_registry_adds_no_runtime_or_external_authority():
-    payload = registry.build_openclaw_estate_topology_registry(generated_at=FIXED_NOW)
+    payload = _build_payload()
 
     for key, expected in registry.NO_AUTHORITY_FLAGS.items():
         assert payload[key] is expected

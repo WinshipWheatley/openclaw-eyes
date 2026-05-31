@@ -24,7 +24,7 @@ Ownership Boundaries:
 - Request/Response service: `PC_BACKEND` / `CONFIRMED`. The request/response backend service code belongs in /home/openclaw.
 - Hermes: `PC_BACKEND` / `PARTIAL`. Hermes reads /home/openclaw first for estate-wide task planning unless runtime evidence says otherwise.
 - Chief/Guardian/Cassandra/Clara runtime: `RUNTIME_ACTORS` / `PARTIAL`. Runtime actor implementation is mapped to openclaw-runtime pending canonical-home decision.
-- Evidence-Grounded Context Registry: `PC_BACKEND_REVIEW_BRANCH` / `PRESENT_ON_REVIEW_BRANCH`. Present on openclaw-eyes review branch; not canonical or merged to main until review completes.
+- Evidence-Grounded Context Registry: `PC_BACKEND_REVIEW_BRANCH` / `UNREACHABLE`. Review branch ref is configured, but the resolver cannot reach the branch from this machine.
 - openclaw-eyes Mac repo: `EYES_CONTEXT_REPO` / `CONFIRMED`. Mac Eyes is context/mirror, not live backend unless later proven.
 - bridge/mirror transport: `BRIDGE_TRANSPORT` / `PARTIAL`. /mnt/e/openclaw <-> /Volumes/openclaw_e is transport, not source truth.
 

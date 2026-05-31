@@ -52,20 +52,20 @@
     {
       "artifact_id": "openclaw_eyes_system_knowledge_registry_review_branch",
       "branch_name": "codex/system-knowledge-registry-v0-local",
-      "canonical_status": "PENDING_REVIEW",
-      "commit_ref": "1a6b7b0b463968f3161e048bd7936dc06505a3bb",
+      "canonical_status": "UNREACHABLE",
+      "commit_ref": "",
       "notes": "Canonical status remains PENDING_REVIEW until the branch is reviewed and merged.",
-      "reason": "System knowledge registry is available on openclaw-eyes review branch but is not merged to main.",
+      "reason": "System knowledge registry commit is resolved from openclaw-eyes branch ref during export.",
       "repo_name": "openclaw-eyes",
       "source_truth": false,
-      "status": "PRESENT_ON_REVIEW_BRANCH"
+      "status": "UNREACHABLE"
     }
   ],
   "contract_schema_version": "openclaw_estate_topology_registry_v0",
   "coupa_accessed": false,
   "email_accessed": false,
   "external_lm_or_live_tool_action_run": false,
-  "generated_at": "2026-05-31T02:36:19+00:00",
+  "generated_at": "2026-05-31T02:49:21+00:00",
   "generated_by": "codex",
   "git_push_performed": false,
   "gmail_accessed": false,
@@ -214,6 +214,14 @@
       "status": "PLANNED"
     }
   ],
+  "reference_resolver_summary": {
+    "resolver_schema_version": "openclaw_reference_resolver_read_model_v0",
+    "system_knowledge_registry_branch": "codex/system-knowledge-registry-v0-local",
+    "system_knowledge_registry_current_head_commit": "",
+    "system_knowledge_registry_dirty_status": "UNKNOWN",
+    "system_knowledge_registry_repo_ref": "openclaw_eyes_registry_review_branch",
+    "system_knowledge_registry_resolution_status": "UNREACHABLE"
+  },
   "registry_presence": [
     {
       "branch_name": "",
@@ -243,16 +251,16 @@
     },
     {
       "branch_name": "codex/system-knowledge-registry-v0-local",
-      "canonical_status": "PENDING_REVIEW",
-      "commit_ref": "1a6b7b0b463968f3161e048bd7936dc06505a3bb",
-      "current_state": "PRESENT_ON_REVIEW_BRANCH",
+      "canonical_status": "UNREACHABLE",
+      "commit_ref": "",
+      "current_state": "UNREACHABLE",
       "display_name": "Evidence-Grounded Context Registry",
       "expected_path": "generated/system_knowledge/openclaw_system_knowledge_registry.sqlite",
-      "notes": "Available for review on openclaw-eyes branch; not canonical or merged to main.",
+      "notes": "Resolved from openclaw-eyes branch ref; not canonical or merged to main.",
       "owning_working_copy_id": "pc_openclaw_eyes_backend",
       "registry_id": "evidence_grounded_context_registry",
       "repo_name": "openclaw-eyes",
-      "status": "PRESENT_ON_REVIEW_BRANCH"
+      "status": "UNREACHABLE"
     },
     {
       "branch_name": "",
@@ -547,19 +555,19 @@
     },
     {
       "area_id": "evidence_grounded_context_registry",
-      "canonical_status": "PENDING_REVIEW",
-      "current_state": "PRESENT_ON_REVIEW_BRANCH",
+      "canonical_status": "UNREACHABLE",
+      "current_state": "UNREACHABLE",
       "display_name": "Evidence-Grounded Context Registry",
-      "notes": "Registry branch is available for review and remains pending review rather than source truth on main.",
+      "notes": "Branch name is the source input; current commit is resolved by openclaw_reference_resolver during export.",
       "owner_classification": "PC_BACKEND_REVIEW_BRANCH",
       "owner_repo_key": "openclaw-eyes",
-      "ownership_rule": "Present on openclaw-eyes review branch; not canonical or merged to main until review completes.",
+      "ownership_rule": "Review branch ref is configured, but the resolver cannot reach the branch from this machine.",
       "primary_working_copy_id": "pc_openclaw_eyes_backend",
       "review_branch": "codex/system-knowledge-registry-v0-local",
-      "review_commit": "1a6b7b0b463968f3161e048bd7936dc06505a3bb",
+      "review_commit": "",
       "review_repo": "openclaw-eyes",
       "secondary_working_copy_id": "",
-      "status": "PRESENT_ON_REVIEW_BRANCH"
+      "status": "UNREACHABLE"
     },
     {
       "area_id": "mac_openclaw_eyes_context_repo",
@@ -629,8 +637,8 @@
     "codex_web_artifacts_are_source_truth": false,
     "mac_app_working_copy": "mac_mission_control_app",
     "pc_backend_working_copy": "pc_openclaw_eyes_backend",
-    "system_knowledge_registry_canonical_status": "PENDING_REVIEW",
-    "system_knowledge_registry_current_state": "PRESENT_ON_REVIEW_BRANCH"
+    "system_knowledge_registry_canonical_status": "UNREACHABLE",
+    "system_knowledge_registry_current_state": "UNREACHABLE"
   },
   "workbook_cells_read": false
 }

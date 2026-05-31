@@ -1,0 +1,181 @@
+{
+  "browser_accessed": false,
+  "contract_schema_version": "openclaw_reference_resolver_v0",
+  "coupa_accessed": false,
+  "dependency_count": 1,
+  "drift_count": 0,
+  "drift_events": [],
+  "email_accessed": false,
+  "generated_at": "2026-05-31T02:47:16+00:00",
+  "generated_by": "codex",
+  "git_branch_refs": [
+    {
+      "branch": "codex/system-knowledge-registry-v0-local",
+      "current_head_commit": "",
+      "dirty": false,
+      "dirty_status": "UNKNOWN",
+      "last_resolved_at": "2026-05-31T02:47:16+00:00",
+      "local_path": "/Users/hwinshipwheatley/Eyes",
+      "reachable": false,
+      "remote_url": "git@github.com:WinshipWheatley/openclaw-eyes.git",
+      "repo_name": "openclaw-eyes",
+      "repo_ref": "openclaw_eyes_registry_review_branch",
+      "resolution_status": "UNREACHABLE",
+      "resolved_json": {
+        "branch": "codex/system-knowledge-registry-v0-local",
+        "current_head_commit": "",
+        "dirty_status": "UNKNOWN",
+        "local_path": "/Users/hwinshipwheatley/Eyes",
+        "reachable": false,
+        "remote_url": "git@github.com:WinshipWheatley/openclaw-eyes.git",
+        "repo_ref": "openclaw-eyes",
+        "resolved_at": "2026-05-31T02:47:16+00:00",
+        "resolved_status": "UNREACHABLE",
+        "target_ref": "openclaw_eyes_registry_review_branch",
+        "target_type": "GIT_BRANCH"
+      },
+      "target_ref": "openclaw_eyes_registry_review_branch"
+    }
+  ],
+  "git_fetch_pull_push_performed": false,
+  "gmail_accessed": false,
+  "ledger_mutated": false,
+  "metadata_only": true,
+  "no_authority_flags": {
+    "browser_accessed": false,
+    "coupa_accessed": false,
+    "email_accessed": false,
+    "git_fetch_pull_push_performed": false,
+    "gmail_accessed": false,
+    "ledger_mutated": false,
+    "metadata_only": true,
+    "pdf_generated_or_exported": false,
+    "production_state_mutated": false,
+    "read_model_only": true,
+    "read_only_git_inspection_only": true,
+    "services_modified": false,
+    "services_started": false,
+    "sqlite_registry_only": true,
+    "workbook_cells_read": false
+  },
+  "pdf_generated_or_exported": false,
+  "production_state_mutated": false,
+  "purpose": "Persist stable reference targets and resolve volatile values at export time.",
+  "read_model_only": true,
+  "read_only_git_inspection_only": true,
+  "reference_dependencies": [
+    {
+      "consumer_component": "openclaw_estate_topology_registry",
+      "dependency_ref": "estate_topology_uses_openclaw_eyes_registry_review_branch",
+      "generated_model_path": "generated/read_models/openclaw_estate_topology_registry.json",
+      "reason": "Estate topology stores the branch ref as canonical input and resolves current_head_commit during export.",
+      "target_ref": "openclaw_eyes_registry_review_branch"
+    }
+  ],
+  "reference_resolutions": [
+    {
+      "dirty_status": "UNKNOWN",
+      "error_message": "local path does not exist",
+      "resolution_ref": "openclaw_eyes_registry_review_branch_resolution",
+      "resolved_at": "2026-05-31T02:47:16+00:00",
+      "resolved_json": "{\n  \"branch\": \"codex/system-knowledge-registry-v0-local\",\n  \"current_head_commit\": \"\",\n  \"dirty_status\": \"UNKNOWN\",\n  \"local_path\": \"/Users/hwinshipwheatley/Eyes\",\n  \"reachable\": false,\n  \"remote_url\": \"git@github.com:WinshipWheatley/openclaw-eyes.git\",\n  \"repo_ref\": \"openclaw-eyes\",\n  \"resolved_at\": \"2026-05-31T02:47:16+00:00\",\n  \"resolved_status\": \"UNREACHABLE\",\n  \"target_ref\": \"openclaw_eyes_registry_review_branch\",\n  \"target_type\": \"GIT_BRANCH\"\n}",
+      "resolved_status": "UNREACHABLE",
+      "resolved_value": "",
+      "target_ref": "openclaw_eyes_registry_review_branch"
+    },
+    {
+      "dirty_status": "",
+      "error_message": "source or bridge counterpart missing",
+      "resolution_ref": "estate_topology_registry_read_model_mirror_resolution",
+      "resolved_at": "2026-05-31T02:47:16+00:00",
+      "resolved_json": "{\n  \"bridge_exists\": false,\n  \"bridge_path\": \"/mnt/e/openclaw/generated/read_models/openclaw_estate_topology_registry.json\",\n  \"hash_match\": false,\n  \"resolved_at\": \"2026-05-31T02:47:16+00:00\",\n  \"resolved_status\": \"MISSING\",\n  \"sha256_bridge\": \"\",\n  \"sha256_source\": \"sha256:5bd68b9e9cccbef34eddc9df87c861f861559d5a8a13cb2627aff648dd6eed62\",\n  \"source_exists\": true,\n  \"source_path\": \"generated/read_models/openclaw_estate_topology_registry.json\",\n  \"target_ref\": \"estate_topology_registry_read_model_mirror\",\n  \"target_type\": \"READ_MODEL_MIRROR\"\n}",
+      "resolved_status": "MISSING",
+      "resolved_value": "sha256:5bd68b9e9cccbef34eddc9df87c861f861559d5a8a13cb2627aff648dd6eed62",
+      "target_ref": "estate_topology_registry_read_model_mirror"
+    }
+  ],
+  "reference_targets": [
+    {
+      "artifact_ref": "",
+      "branch": "codex/system-knowledge-registry-v0-local",
+      "bridge_path": "",
+      "canonical_input_json": "{\n  \"branch\": \"codex/system-knowledge-registry-v0-local\",\n  \"repo_ref\": \"openclaw-eyes\"\n}",
+      "local_path": "/Users/hwinshipwheatley/Eyes",
+      "owner_component": "openclaw_estate_topology_registry",
+      "receipt_type": "",
+      "refresh_policy": "ON_EXPORT",
+      "remote_url": "git@github.com:WinshipWheatley/openclaw-eyes.git",
+      "repo_ref": "openclaw-eyes",
+      "source_path": "",
+      "status": "ACTIVE",
+      "target_ref": "openclaw_eyes_registry_review_branch",
+      "target_type": "GIT_BRANCH"
+    },
+    {
+      "artifact_ref": "",
+      "branch": "",
+      "bridge_path": "/mnt/e/openclaw/generated/read_models/openclaw_estate_topology_registry.json",
+      "canonical_input_json": "{\n  \"bridge_path\": \"/mnt/e/openclaw/generated/read_models/openclaw_estate_topology_registry.json\",\n  \"source_path\": \"generated/read_models/openclaw_estate_topology_registry.json\"\n}",
+      "local_path": "",
+      "owner_component": "openclaw_estate_topology_registry",
+      "receipt_type": "",
+      "refresh_policy": "ON_EXPORT",
+      "remote_url": "",
+      "repo_ref": "",
+      "source_path": "generated/read_models/openclaw_estate_topology_registry.json",
+      "status": "ACTIVE",
+      "target_ref": "estate_topology_registry_read_model_mirror",
+      "target_type": "READ_MODEL_MIRROR"
+    }
+  ],
+  "required_sqlite_tables": [
+    "reference_target",
+    "reference_resolution",
+    "reference_dependency",
+    "drift_event",
+    "resolution_run"
+  ],
+  "resolution_count": 2,
+  "resolution_runs": [
+    {
+      "completed_at": "2026-05-31T02:47:16+00:00",
+      "drift_count": 0,
+      "run_ref": "openclaw_reference_resolver_run",
+      "started_at": "2026-05-31T02:47:16+00:00",
+      "status": "RESOLVED",
+      "targets_checked": 2
+    }
+  ],
+  "resolved_status_values": [
+    "RESOLVED",
+    "UNREACHABLE",
+    "DIRTY",
+    "DRIFT",
+    "MISSING",
+    "UNKNOWN"
+  ],
+  "rules": [
+    "Canonical sources store stable refs.",
+    "Generated read-models store resolved values.",
+    "Do not manually hardcode branch commit hashes as source truth.",
+    "If a repo or branch cannot be reached, mark UNREACHABLE and leave the resolved value blank.",
+    "If a working copy is dirty, mark DIRTY.",
+    "If source and bridge hashes differ, mark DRIFT."
+  ],
+  "run_count": 1,
+  "schema_version": "openclaw_reference_resolver_read_model_v0",
+  "services_modified": false,
+  "services_started": false,
+  "sqlite_registry_only": true,
+  "target_count": 2,
+  "target_type_values": [
+    "GIT_BRANCH",
+    "READ_MODEL_MIRROR",
+    "WORKFLOW_RECEIPT",
+    "ARTIFACT",
+    "SERVICE",
+    "FILE_PATH",
+    "UNKNOWN"
+  ],
+  "workbook_cells_read": false
+}
