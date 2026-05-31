@@ -5,7 +5,8 @@ Plain Summary:
 - Working copies: 5.
 - Actual repos: 3 (openclaw-eyes, openclaw-mission-control, openclaw-runtime).
 - Known unknowns: 7.
-- Codex Web commits are recorded as unreachable artifacts, not source truth.
+- System knowledge registry branch is present for review and remains pending, not canonical.
+- Older unreachable Codex Web commits remain recorded as artifacts, not source truth.
 
 Working Copies:
 - `pc_openclaw_eyes_backend`: `PC_BACKEND` on `pc` at `/home/openclaw` (dirty).
@@ -23,7 +24,7 @@ Ownership Boundaries:
 - Request/Response service: `PC_BACKEND` / `CONFIRMED`. The request/response backend service code belongs in /home/openclaw.
 - Hermes: `PC_BACKEND` / `PARTIAL`. Hermes reads /home/openclaw first for estate-wide task planning unless runtime evidence says otherwise.
 - Chief/Guardian/Cassandra/Clara runtime: `RUNTIME_ACTORS` / `PARTIAL`. Runtime actor implementation is mapped to openclaw-runtime pending canonical-home decision.
-- Evidence-Grounded Context Registry: `MISSING_PLANNED` / `MISSING`. Missing locally; planned until installed from a reachable branch or local source.
+- Evidence-Grounded Context Registry: `PC_BACKEND_REVIEW_BRANCH` / `PRESENT_ON_REVIEW_BRANCH`. Present on openclaw-eyes review branch; not canonical or merged to main until review completes.
 - openclaw-eyes Mac repo: `EYES_CONTEXT_REPO` / `CONFIRMED`. Mac Eyes is context/mirror, not live backend unless later proven.
 - bridge/mirror transport: `BRIDGE_TRANSPORT` / `PARTIAL`. /mnt/e/openclaw <-> /Volumes/openclaw_e is transport, not source truth.
 
@@ -40,7 +41,7 @@ Recommended Actions:
 - 1. Install estate topology registry in /home/openclaw.
 - 2. Mirror registry read-model to Mac.
 - 3. Add Mission Control app remote/back-up strategy.
-- 4. Do not trust Codex Web commits until branch/PR is reachable.
+- 4. Keep system knowledge registry pending review until merged to main.
 - 5. Build cross-registry merge only after each repo's registry is reachable locally.
 - 6. Stabilize Mac app dirty state before further PDF trials.
 - 7. Keep Live Arts PDF export blocked until Mac permission/helper architecture is resolved.

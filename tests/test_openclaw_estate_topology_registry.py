@@ -64,6 +64,12 @@ def test_codex_web_commits_are_unreachable_artifacts_not_source_truth():
     assert artifacts["33e00a6"]["source_truth"] is False
     assert artifacts["4ca4ed42171c23d60ef89493559808ef2789a19e"]["status"] == "UNREACHABLE"
     assert artifacts["4ca4ed42171c23d60ef89493559808ef2789a19e"]["source_truth"] is False
+    review_artifact = artifacts["5bbd07df65c83bc7c5ef3f75198f29ff8c3fed37"]
+    assert review_artifact["status"] == "PRESENT_ON_REVIEW_BRANCH"
+    assert review_artifact["canonical_status"] == "PENDING_REVIEW"
+    assert review_artifact["repo_name"] == "openclaw-eyes"
+    assert review_artifact["branch_name"] == "codex/system-knowledge-registry-v0-local"
+    assert review_artifact["source_truth"] is False
 
 
 def test_source_of_truth_map_includes_required_ownership_boundaries():
@@ -78,7 +84,16 @@ def test_source_of_truth_map_includes_required_ownership_boundaries():
     assert areas["request_response_service"]["primary_working_copy_id"] == "pc_openclaw_eyes_backend"
     assert areas["hermes"]["primary_working_copy_id"] == "pc_openclaw_eyes_backend"
     assert areas["chief_guardian_cassandra_clara_runtime"]["owner_repo_key"] == "openclaw-runtime"
-    assert areas["evidence_grounded_context_registry"]["status"] == "MISSING"
+    assert areas["evidence_grounded_context_registry"]["status"] == "PRESENT_ON_REVIEW_BRANCH"
+    assert areas["evidence_grounded_context_registry"]["current_state"] == "PRESENT_ON_REVIEW_BRANCH"
+    assert areas["evidence_grounded_context_registry"]["canonical_status"] == "PENDING_REVIEW"
+    assert areas["evidence_grounded_context_registry"]["owner_repo_key"] == "openclaw-eyes"
+    assert areas["evidence_grounded_context_registry"]["primary_working_copy_id"] == "pc_openclaw_eyes_backend"
+    assert areas["evidence_grounded_context_registry"]["review_branch"] == "codex/system-knowledge-registry-v0-local"
+    assert (
+        areas["evidence_grounded_context_registry"]["review_commit"]
+        == "5bbd07df65c83bc7c5ef3f75198f29ff8c3fed37"
+    )
     assert areas["mac_openclaw_eyes_context_repo"]["owner_classification"] == "EYES_CONTEXT_REPO"
     assert areas["bridge_mirror_transport"]["ownership_rule"] == "/mnt/e/openclaw <-> /Volumes/openclaw_e is transport, not source truth."
 
@@ -170,6 +185,12 @@ def test_sqlite_required_tables_queries_and_integrity(tmp_path):
         assert connection.execute(
             "SELECT source_truth FROM codex_web_artifact WHERE commit_ref = '4ca4ed42171c23d60ef89493559808ef2789a19e'"
         ).fetchone()[0] == 0
+        assert connection.execute(
+            "SELECT canonical_status FROM codex_web_artifact WHERE commit_ref = '5bbd07df65c83bc7c5ef3f75198f29ff8c3fed37'"
+        ).fetchone()[0] == "PENDING_REVIEW"
+        assert connection.execute(
+            "SELECT branch_name FROM registry_presence WHERE registry_id = 'evidence_grounded_context_registry'"
+        ).fetchone()[0] == "codex/system-knowledge-registry-v0-local"
     finally:
         connection.close()
 

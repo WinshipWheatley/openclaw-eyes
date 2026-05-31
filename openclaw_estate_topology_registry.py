@@ -36,6 +36,8 @@ STATUS_VALUES = (
     "UNKNOWN",
     "MISSING",
     "UNREACHABLE",
+    "PRESENT_ON_REVIEW_BRANCH",
+    "PENDING_REVIEW",
     "PLANNED",
     "STALE",
     "DIRTY",
@@ -387,7 +389,14 @@ def _source_area(
     status: str,
     ownership_rule: str,
     notes: str,
+    current_state: str | None = None,
+    canonical_status: str | None = None,
+    review_repo: str = "",
+    review_branch: str = "",
+    review_commit: str = "",
 ) -> dict[str, Any]:
+    resolved_current_state = current_state or status
+    resolved_canonical_status = canonical_status or status
     return {
         "area_id": area_id,
         "display_name": display_name,
@@ -396,6 +405,11 @@ def _source_area(
         "secondary_working_copy_id": secondary_working_copy_id,
         "owner_classification": owner_classification,
         "status": _require_status(status),
+        "current_state": _require_status(resolved_current_state),
+        "canonical_status": _require_status(resolved_canonical_status),
+        "review_repo": review_repo,
+        "review_branch": review_branch,
+        "review_commit": review_commit,
         "ownership_rule": ownership_rule,
         "notes": notes,
     }
@@ -494,13 +508,18 @@ def source_of_truth_areas() -> tuple[dict[str, Any], ...]:
         _source_area(
             area_id="evidence_grounded_context_registry",
             display_name="Evidence-Grounded Context Registry",
-            owner_repo_key="missing_planned",
-            primary_working_copy_id="",
+            owner_repo_key="openclaw-eyes",
+            primary_working_copy_id="pc_openclaw_eyes_backend",
             secondary_working_copy_id="",
-            owner_classification="MISSING_PLANNED",
-            status="MISSING",
-            ownership_rule="Missing locally; planned until installed from a reachable branch or local source.",
-            notes="Codex Web commits are not source truth while unreachable.",
+            owner_classification="PC_BACKEND_REVIEW_BRANCH",
+            status="PRESENT_ON_REVIEW_BRANCH",
+            current_state="PRESENT_ON_REVIEW_BRANCH",
+            canonical_status="PENDING_REVIEW",
+            review_repo="openclaw-eyes",
+            review_branch="codex/system-knowledge-registry-v0-local",
+            review_commit="5bbd07df65c83bc7c5ef3f75198f29ff8c3fed37",
+            ownership_rule="Present on openclaw-eyes review branch; not canonical or merged to main until review completes.",
+            notes="Registry branch is available for review and remains pending review rather than source truth on main.",
         ),
         _source_area(
             area_id="mac_openclaw_eyes_context_repo",
@@ -534,13 +553,25 @@ def _registry_presence(
     owning_working_copy_id: str,
     status: str,
     notes: str,
+    current_state: str | None = None,
+    canonical_status: str | None = None,
+    repo_name: str = "",
+    branch_name: str = "",
+    commit_ref: str = "",
 ) -> dict[str, Any]:
+    resolved_current_state = current_state or status
+    resolved_canonical_status = canonical_status or status
     return {
         "registry_id": registry_id,
         "display_name": display_name,
         "expected_path": expected_path,
         "owning_working_copy_id": owning_working_copy_id,
         "status": _require_status(status),
+        "current_state": _require_status(resolved_current_state),
+        "canonical_status": _require_status(resolved_canonical_status),
+        "repo_name": repo_name,
+        "branch_name": branch_name,
+        "commit_ref": commit_ref,
         "notes": notes,
     }
 
@@ -567,9 +598,14 @@ def registry_presence() -> tuple[dict[str, Any], ...]:
             "evidence_grounded_context_registry",
             "Evidence-Grounded Context Registry",
             "generated/system_knowledge/openclaw_system_knowledge_registry.sqlite",
-            "",
-            "MISSING",
-            "Not installed locally; keep planned until reachable code is merged.",
+            "pc_openclaw_eyes_backend",
+            "PRESENT_ON_REVIEW_BRANCH",
+            "Available for review on openclaw-eyes branch; not canonical or merged to main.",
+            current_state="PRESENT_ON_REVIEW_BRANCH",
+            canonical_status="PENDING_REVIEW",
+            repo_name="openclaw-eyes",
+            branch_name="codex/system-knowledge-registry-v0-local",
+            commit_ref="5bbd07df65c83bc7c5ef3f75198f29ff8c3fed37",
         ),
         _registry_presence(
             "codex_web_registry_commits",
@@ -597,11 +633,18 @@ def _codex_web_artifact(
     source_truth: bool,
     reason: str,
     notes: str,
+    repo_name: str = "",
+    branch_name: str = "",
+    canonical_status: str | None = None,
 ) -> dict[str, Any]:
+    resolved_canonical_status = canonical_status or status
     return {
         "artifact_id": artifact_id,
         "commit_ref": commit_ref,
         "status": _require_status(status),
+        "canonical_status": _require_status(resolved_canonical_status),
+        "repo_name": repo_name,
+        "branch_name": branch_name,
         "source_truth": source_truth,
         "reason": reason,
         "notes": notes,
@@ -618,6 +661,8 @@ def codex_web_artifacts() -> tuple[dict[str, Any], ...]:
             False,
             reason,
             "Do not treat as installed code until a branch, PR, or patch is reachable locally.",
+            repo_name="openclaw-eyes",
+            canonical_status="UNREACHABLE",
         ),
         _codex_web_artifact(
             "codex_web_registry_commit_4ca4ed42171c23d60ef89493559808ef2789a19e",
@@ -626,6 +671,19 @@ def codex_web_artifacts() -> tuple[dict[str, Any], ...]:
             False,
             reason,
             "Do not treat as installed code until a branch, PR, or patch is reachable locally.",
+            repo_name="openclaw-eyes",
+            canonical_status="UNREACHABLE",
+        ),
+        _codex_web_artifact(
+            "openclaw_eyes_system_knowledge_registry_review_branch",
+            "5bbd07df65c83bc7c5ef3f75198f29ff8c3fed37",
+            "PRESENT_ON_REVIEW_BRANCH",
+            False,
+            "System knowledge registry is available on openclaw-eyes review branch but is not merged to main.",
+            "Canonical status remains PENDING_REVIEW until the branch is reviewed and merged.",
+            repo_name="openclaw-eyes",
+            branch_name="codex/system-knowledge-registry-v0-local",
+            canonical_status="PENDING_REVIEW",
         ),
     )
 
@@ -736,12 +794,12 @@ def recommended_actions() -> tuple[dict[str, Any], ...]:
             "Mac app is dirty and local-only by audit.",
         ),
         _recommended_action(
-            "do_not_trust_unreachable_codex_web_commits",
+            "keep_system_knowledge_registry_pending_review",
             4,
-            "Do not trust Codex Web commits until branch/PR is reachable.",
-            "CONFIRMED",
+            "Keep system knowledge registry pending review until merged to main.",
+            "PENDING_REVIEW",
             "PC_BACKEND",
-            "Unreachable artifacts are not source truth.",
+            "The review branch is present, but it is not canonical mainline state.",
         ),
         _recommended_action(
             "defer_cross_registry_merge",
@@ -816,6 +874,8 @@ def build_openclaw_estate_topology_registry(*, generated_at: str | None = None) 
             "mac_app_working_copy": "mac_mission_control_app",
             "bridge_transport": "/mnt/e/openclaw <-> /Volumes/openclaw_e",
             "codex_web_artifacts_are_source_truth": False,
+            "system_knowledge_registry_current_state": "PRESENT_ON_REVIEW_BRANCH",
+            "system_knowledge_registry_canonical_status": "PENDING_REVIEW",
         },
         "no_authority_flags": dict(NO_AUTHORITY_FLAGS),
         **NO_AUTHORITY_FLAGS,
@@ -887,6 +947,11 @@ CREATE TABLE source_of_truth_area (
     secondary_working_copy_id TEXT NOT NULL,
     owner_classification TEXT NOT NULL,
     status TEXT NOT NULL {status_check},
+    current_state TEXT NOT NULL {status_check},
+    canonical_status TEXT NOT NULL {status_check},
+    review_repo TEXT NOT NULL,
+    review_branch TEXT NOT NULL,
+    review_commit TEXT NOT NULL,
     ownership_rule TEXT NOT NULL,
     notes TEXT NOT NULL
 );
@@ -897,6 +962,11 @@ CREATE TABLE registry_presence (
     expected_path TEXT NOT NULL,
     owning_working_copy_id TEXT NOT NULL,
     status TEXT NOT NULL {status_check},
+    current_state TEXT NOT NULL {status_check},
+    canonical_status TEXT NOT NULL {status_check},
+    repo_name TEXT NOT NULL,
+    branch_name TEXT NOT NULL,
+    commit_ref TEXT NOT NULL,
     notes TEXT NOT NULL
 );
 
@@ -904,6 +974,9 @@ CREATE TABLE codex_web_artifact (
     artifact_id TEXT PRIMARY KEY,
     commit_ref TEXT NOT NULL,
     status TEXT NOT NULL {status_check},
+    canonical_status TEXT NOT NULL {status_check},
+    repo_name TEXT NOT NULL,
+    branch_name TEXT NOT NULL,
     source_truth INTEGER NOT NULL CHECK(source_truth IN (0, 1)),
     reason TEXT NOT NULL,
     notes TEXT NOT NULL
@@ -1008,7 +1081,8 @@ def format_operator_read_model(read_model: dict[str, Any]) -> str:
         f"- Working copies: {read_model['repo_working_copy_count']}.",
         f"- Actual repos: {read_model['actual_repo_count']} ({', '.join(read_model['actual_repos'])}).",
         f"- Known unknowns: {read_model['known_unknown_count']}.",
-        "- Codex Web commits are recorded as unreachable artifacts, not source truth.",
+        "- System knowledge registry branch is present for review and remains pending, not canonical.",
+        "- Older unreachable Codex Web commits remain recorded as artifacts, not source truth.",
         "",
         "Working Copies:",
     ]
