@@ -1,8 +1,9 @@
-INSERT INTO audit_run (run_ref, generated_at, freshness_status, fresh_for_minutes, readiness, overall_score, business_object_count, gap_count, missing_eval_count, stale_reasons_json) VALUES ('openclaw_business_object_layer_audit_run', '2026-05-31T04:24:07+00:00', 'FRESH', 60, 'READY_FOR_BUILD_PLANNING_NOT_EXECUTION', 3.67, 16, 15, 10, '[]');
-INSERT INTO audit_input (input_ref, path, required, status, sha256, schema_version, generated_at, source_ref) VALUES ('estate_topology', 'generated/read_models/openclaw_estate_topology_registry.json', 1, 'PRESENT', 'sha256:8a45278637ec950564daeba1f2ebadf6cb25853a331e24512eaf783ee948e034', 'openclaw_estate_topology_registry_read_model_v0', '2026-05-31T04:09:23+00:00', 'generated/read_models/openclaw_estate_topology_registry.json');
+INSERT INTO audit_run (run_ref, generated_at, freshness_status, fresh_for_minutes, readiness, overall_score, business_object_count, gap_count, missing_eval_count, stale_reasons_json) VALUES ('openclaw_business_object_layer_audit_run', '2026-05-31T04:42:19+00:00', 'FRESH', 60, 'READY_FOR_BUILD_PLANNING_NOT_EXECUTION', 3.67, 16, 13, 10, '[]');
+INSERT INTO audit_input (input_ref, path, required, status, sha256, schema_version, generated_at, source_ref) VALUES ('estate_topology', 'generated/read_models/openclaw_estate_topology_registry.json', 1, 'PRESENT', 'sha256:e32c278f0bb6c52fd2c3e514406f93e9b2c8dd9724825164ec4158d21c7fb2ae', 'openclaw_estate_topology_registry_read_model_v0', '2026-05-31T04:28:39+00:00', 'generated/read_models/openclaw_estate_topology_registry.json');
 INSERT INTO audit_input (input_ref, path, required, status, sha256, schema_version, generated_at, source_ref) VALUES ('reference_resolver', 'generated/read_models/openclaw_reference_resolver.json', 1, 'PRESENT', 'sha256:ca025f59ab8060942c7a75f1b1e4a8d562d9c50e807d7c96fa5c1312f009adba', 'openclaw_reference_resolver_read_model_v0', '2026-05-31T04:09:09+00:00', 'generated/read_models/openclaw_reference_resolver.json');
-INSERT INTO audit_input (input_ref, path, required, status, sha256, schema_version, generated_at, source_ref) VALUES ('change_sentinel', 'generated/read_models/openclaw_change_sentinel.json', 1, 'PRESENT', 'sha256:748bc3051056abaca988b4e0890d5cc67c027509ca5181808504533be77c654a', 'openclaw_change_sentinel_read_model_v0', '2026-05-31T04:24:04+00:00', 'generated/read_models/openclaw_change_sentinel.json');
-INSERT INTO audit_input (input_ref, path, required, status, sha256, schema_version, generated_at, source_ref) VALUES ('context_wiki_index', 'generated/read_models/openclaw_context_wiki_index.json', 1, 'PRESENT', 'sha256:984fac4a184ac3c099eb0d00e090687f2ffdbe9a701063f0a8ad658ccd1aa787', 'openclaw_context_wiki_compiler_v0', '2026-05-31T04:09:25+00:00', 'generated/read_models/openclaw_context_wiki_index.json');
+INSERT INTO audit_input (input_ref, path, required, status, sha256, schema_version, generated_at, source_ref) VALUES ('change_sentinel', 'generated/read_models/openclaw_change_sentinel.json', 1, 'PRESENT', 'sha256:8b8e587cb645b82e8600e4b408999b1c8f3bccff23bcaa165bfb9179863f6d83', 'openclaw_change_sentinel_read_model_v0', '2026-05-31T04:41:59+00:00', 'generated/read_models/openclaw_change_sentinel.json');
+INSERT INTO audit_input (input_ref, path, required, status, sha256, schema_version, generated_at, source_ref) VALUES ('context_wiki_index', 'generated/read_models/openclaw_context_wiki_index.json', 1, 'PRESENT', 'sha256:ed4b535363c9ae0befdcf2356dcab59a9adfe20e8ee14c6c1f1dc6566c848c1b', 'openclaw_context_wiki_compiler_v0', '2026-05-31T04:32:51+00:00', 'generated/read_models/openclaw_context_wiki_index.json');
+INSERT INTO audit_input (input_ref, path, required, status, sha256, schema_version, generated_at, source_ref) VALUES ('external_system_knowledge_registry_index', 'generated/read_models/external_system_knowledge_registry_index.json', 0, 'PRESENT', 'sha256:5665a7b3bfbfec9a9c9a6df1a99a13f93194dd04fb46958176c2cd1f30769c50', 'external_system_knowledge_registry_index_v0', '', 'generated/read_models/external_system_knowledge_registry_index.json');
 INSERT INTO audit_input (input_ref, path, required, status, sha256, schema_version, generated_at, source_ref) VALUES ('live_arts_bundle', 'generated/read_models/live_arts_md_invoice_review_bundle.json', 1, 'PRESENT', 'sha256:32aed1bf62bceab78634e1feeb02651b41155f27827aae8433e5df18db1d352b', 'live_arts_md_invoice_review_bundle_v0', '2026-05-28T00:00:00+00:00', 'generated/read_models/live_arts_md_invoice_review_bundle.json');
 INSERT INTO audit_input (input_ref, path, required, status, sha256, schema_version, generated_at, source_ref) VALUES ('capital_hilton_bundle', 'generated/read_models/invoice_review_bundle.json', 1, 'PRESENT', 'sha256:f384551a2558a0f8c8ef8bbfeea37f4d9d3fdd08f422a543e4385cd09964ed71', 'invoice_review_bundle_v0', '2026-05-29T18:53:14+00:00', 'generated/read_models/invoice_review_bundle.json');
 INSERT INTO audit_input (input_ref, path, required, status, sha256, schema_version, generated_at, source_ref) VALUES ('hermes_mission_sentinel', 'generated/read_models/hermes_mission_sentinel.json', 0, 'PRESENT', 'sha256:5fb7f99839fd0763bb60eddcbaf7167a301c7ef6a90880d0888a8233435b0a47', 'hermes_mission_sentinel_v0', '2026-05-28T15:01:54-04:00', 'generated/read_models/hermes_mission_sentinel.json');
@@ -210,25 +211,15 @@ INSERT INTO business_object_inventory (object_name, implementation_status, busin
     "path": "generated/read_models/openclaw_service_supervision.json"
   }
 ]');
-INSERT INTO business_object_inventory (object_name, implementation_status, business_object_proximity, current_fact, blockers_json, next_safe_action, source_refs_json) VALUES ('estate topology registry', 'PRESENT_WITH_CANONICALITY_CONFLICT', 'INFRA_HIGH', 'machines=2; working_copies=5; context_registry_area=CANONICAL_ON_MAIN', '[
-  "openclaw-eyes registry branch canonicality must be corrected to pending review unless merge evidence is explicit",
+INSERT INTO business_object_inventory (object_name, implementation_status, business_object_proximity, current_fact, blockers_json, next_safe_action, source_refs_json) VALUES ('estate topology registry', 'PRESENT_EXTERNAL_REGISTRY_MATERIALIZED', 'INFRA_HIGH', 'machines=2; working_copies=5; context_registry_area=CANONICAL_ON_MAIN; external_registry=EXTERNAL_REGISTRY_MATERIALIZED', '[
   "bridge mirror missing"
-]', 'Refresh topology to keep review branch as PENDING_REVIEW until canonical merge is proven.', '[
+]', 'Keep openclaw-eyes as canonical owner and consume imported registry artifacts as read-only external inputs.', '[
   {
     "note": "",
     "path": "generated/read_models/openclaw_estate_topology_registry.json"
   }
 ]');
-INSERT INTO business_object_inventory (object_name, implementation_status, business_object_proximity, current_fact, blockers_json, next_safe_action, source_refs_json) VALUES ('context wiki', 'PRESENT_GENERATED_VIEW', 'INFRA_MEDIUM', 'pages=11; contradictions=11', '[
-  {
-    "exists": false,
-    "label": "OpenClaw system knowledge registry files",
-    "path": "generated/system_knowledge/openclaw_system_knowledge_registry.*",
-    "sha256": "",
-    "source_id": "openclaw_system_knowledge_registry_files",
-    "source_type": "registry_file"
-  }
-]', 'Fix upstream registries/read-models, then regenerate; do not edit wiki as source truth.', '[
+INSERT INTO business_object_inventory (object_name, implementation_status, business_object_proximity, current_fact, blockers_json, next_safe_action, source_refs_json) VALUES ('context wiki', 'PRESENT_GENERATED_VIEW', 'INFRA_MEDIUM', 'pages=11; contradictions=10', '[]', 'Fix upstream registries/read-models, then regenerate; do not edit wiki as source truth.', '[
   {
     "note": "",
     "path": "generated/read_models/openclaw_context_wiki_index.json"
@@ -238,9 +229,7 @@ INSERT INTO business_object_inventory (object_name, implementation_status, busin
     "path": "generated/wiki/openclaw/"
   }
 ]');
-INSERT INTO business_object_inventory (object_name, implementation_status, business_object_proximity, current_fact, blockers_json, next_safe_action, source_refs_json) VALUES ('openclaw-eyes registry branch', 'PRESENT_ON_REVIEW_BRANCH_PENDING_REVIEW', 'INFRA_HIGH', 'branch=codex/system-knowledge-registry-v0-local; remote_status=RESOLVED_REMOTE; head=1a6b7b0b463968f3161e048bd7936dc06505a3bb', '[
-  "current estate/wiki generated state also claims CANONICAL_ON_MAIN; audit treats that as stale/conflicting until canonical merge is confirmed"
-]', 'Keep source truth as repo/branch ref and generated current_head_commit only.', '[
+INSERT INTO business_object_inventory (object_name, implementation_status, business_object_proximity, current_fact, blockers_json, next_safe_action, source_refs_json) VALUES ('openclaw-eyes registry branch', 'EXTERNAL_REGISTRY_MATERIALIZED', 'INFRA_HIGH', 'canonical_owner=openclaw-eyes; main_head=1a6b7b0b463968f3161e048bd7936dc06505a3bb; review_head=1a6b7b0b463968f3161e048bd7936dc06505a3bb; local_role=READ_ONLY_EXTERNAL_INPUT', '[]', 'Use the materialized cache as READ_ONLY_EXTERNAL_INPUT; do not make /home/openclaw the canonical owner.', '[
   {
     "note": "",
     "path": "generated/read_models/openclaw_reference_resolver.json"
@@ -248,6 +237,10 @@ INSERT INTO business_object_inventory (object_name, implementation_status, busin
   {
     "note": "",
     "path": "generated/read_models/openclaw_estate_topology_registry.json"
+  },
+  {
+    "note": "",
+    "path": "generated/read_models/external_system_knowledge_registry_index.json"
   }
 ]');
 INSERT INTO audit_gap (rank, gap_ref, gap, severity, owner_hint, build_bucket) VALUES (1, 'mac_helper_permission_architecture', 'Mac Excel helper / Access Broker permission path is unresolved; in-app Excel automation is blocked.', 'HIGH', 'MAC_APP', 'Now');
@@ -260,23 +253,19 @@ INSERT INTO audit_gap (rank, gap_ref, gap, severity, owner_hint, build_bucket) V
 INSERT INTO audit_gap (rank, gap_ref, gap, severity, owner_hint, build_bucket) VALUES (8, 'payment_watch_readiness_only', 'Payment watch is readiness-only until send/manual-send proof exists; no bank read or ledger match has run.', 'MEDIUM', 'PC_BACKEND', 'Next');
 INSERT INTO audit_gap (rank, gap_ref, gap, severity, owner_hint, build_bucket) VALUES (9, 'ledger_posting_blocked', 'Ledger posting remains explicitly disallowed and must stay parked until proof chain exists.', 'HIGH', 'LEDGER', 'Parked');
 INSERT INTO audit_gap (rank, gap_ref, gap, severity, owner_hint, build_bucket) VALUES (10, 'hermes_handoff_stale', 'Hermes/Chief still list invoice candidate selection as blocking despite Live Arts confirmed selection.', 'MEDIUM', 'PC_BACKEND', 'Now');
-INSERT INTO audit_gap (rank, gap_ref, gap, severity, owner_hint, build_bucket) VALUES (11, 'openclaw_eyes_registry_branch_conflict', 'Topology/wiki claim canonical-on-main while current target posture is review branch pending review.', 'MEDIUM', 'PC_BACKEND', 'Now');
-INSERT INTO audit_gap (rank, gap_ref, gap, severity, owner_hint, build_bucket) VALUES (12, 'estate_bridge_mirror_missing', 'Reference resolver marks estate topology read-model bridge mirror as MISSING.', 'MEDIUM', 'BRIDGE_TRANSPORT', 'Next');
-INSERT INTO audit_gap (rank, gap_ref, gap, severity, owner_hint, build_bucket) VALUES (13, 'context_wiki_missing_system_registry', 'Context wiki reports missing generated/system_knowledge/openclaw_system_knowledge_registry.* input.', 'MEDIUM', 'PC_BACKEND', 'Later');
-INSERT INTO audit_gap (rank, gap_ref, gap, severity, owner_hint, build_bucket) VALUES (14, 'capital_hilton_selection_and_coupa', 'Capital Hilton still needs invoice record/period selection, Coupa proof, recipients, and artifact linkage.', 'MEDIUM', 'PC_BACKEND', 'Later');
-INSERT INTO audit_gap (rank, gap_ref, gap, severity, owner_hint, build_bucket) VALUES (15, 'business_object_evals_missing', 'End-to-end business-object evals are missing for Mac helper, result intake, attachment promotion, proof, payment, and Capital Hilton.', 'HIGH', 'PC_BACKEND', 'Now');
+INSERT INTO audit_gap (rank, gap_ref, gap, severity, owner_hint, build_bucket) VALUES (11, 'estate_bridge_mirror_missing', 'Reference resolver marks estate topology read-model bridge mirror as MISSING.', 'MEDIUM', 'BRIDGE_TRANSPORT', 'Next');
+INSERT INTO audit_gap (rank, gap_ref, gap, severity, owner_hint, build_bucket) VALUES (12, 'capital_hilton_selection_and_coupa', 'Capital Hilton still needs invoice record/period selection, Coupa proof, recipients, and artifact linkage.', 'MEDIUM', 'PC_BACKEND', 'Later');
+INSERT INTO audit_gap (rank, gap_ref, gap, severity, owner_hint, build_bucket) VALUES (13, 'business_object_evals_missing', 'End-to-end business-object evals are missing for Mac helper, result intake, attachment promotion, proof, payment, and Capital Hilton.', 'HIGH', 'PC_BACKEND', 'Now');
 INSERT INTO audit_recommended_action (action_ref, bucket, rank, task, reason) VALUES ('now:1', 'now', 1, 'Reconcile stale Hermes/Chief Live Arts blockers against the confirmed 2026-1001 bundle state.', 'Avoid sending Chief after already-solved candidate selection work.');
-INSERT INTO audit_recommended_action (action_ref, bucket, rank, task, reason) VALUES ('now:2', 'now', 2, 'Correct openclaw-eyes registry branch canonicality back to review-branch pending review unless merge evidence is explicit.', 'Stop source-truth drift in topology/wiki outputs.');
-INSERT INTO audit_recommended_action (action_ref, bucket, rank, task, reason) VALUES ('now:3', 'now', 3, 'Build or verify Mac helper/Access Broker permission path for scoped Excel PDF export.', 'This is the current blocker before Live Arts PDF export retry.');
-INSERT INTO audit_recommended_action (action_ref, bucket, rank, task, reason) VALUES ('now:4', 'now', 4, 'Add end-to-end evals for Mac result intake and attachment promotion without executing Excel/PDF.', 'The backend needs proof that selected_invoice_pdf_export_completed_candidate promotes safely.');
+INSERT INTO audit_recommended_action (action_ref, bucket, rank, task, reason) VALUES ('now:2', 'now', 2, 'Build or verify Mac helper/Access Broker permission path for scoped Excel PDF export.', 'This is the current blocker before Live Arts PDF export retry.');
+INSERT INTO audit_recommended_action (action_ref, bucket, rank, task, reason) VALUES ('now:3', 'now', 3, 'Add end-to-end evals for Mac result intake and attachment promotion without executing Excel/PDF.', 'The backend needs proof that selected_invoice_pdf_export_completed_candidate promotes safely.');
 INSERT INTO audit_recommended_action (action_ref, bucket, rank, task, reason) VALUES ('next:1', 'next', 1, 'After Mac export succeeds, ingest result candidate and keep artifact OPERATOR_REVIEW_REQUIRED until reviewed.', 'Attachment readiness must remain receipt-gated.');
 INSERT INTO audit_recommended_action (action_ref, bucket, rank, task, reason) VALUES ('next:2', 'next', 2, 'Confirm Live Arts recipients and Guardian/operator approval gates.', 'Clara/send readiness is blocked by recipient and approval receipts.');
 INSERT INTO audit_recommended_action (action_ref, bucket, rank, task, reason) VALUES ('next:3', 'next', 3, 'Capture manual-send proof if manual send already happened, then activate payment watch readiness only.', 'Payment watch cannot become real until send proof exists.');
 INSERT INTO audit_recommended_action (action_ref, bucket, rank, task, reason) VALUES ('next:4', 'next', 4, 'Repair estate topology bridge mirror and Mac bridge permission representation.', 'Resolver reports missing bridge mirror and Mac bridge unavailable.');
-INSERT INTO audit_recommended_action (action_ref, bucket, rank, task, reason) VALUES ('later:1', 'later', 1, 'Refresh/install canonical system knowledge registry inputs for the context wiki.', 'Wiki reports the system knowledge registry input missing.');
-INSERT INTO audit_recommended_action (action_ref, bucket, rank, task, reason) VALUES ('later:2', 'later', 2, 'Advance Capital Hilton invoice selection/Coupa proof/artifact linkage rails.', 'Capital Hilton remains farther from business-object execution than Live Arts.');
-INSERT INTO audit_recommended_action (action_ref, bucket, rank, task, reason) VALUES ('later:3', 'later', 3, 'Decide Mac app remote/backup strategy and runtime actor canonical home.', 'Topology known unknowns still affect repo ownership.');
+INSERT INTO audit_recommended_action (action_ref, bucket, rank, task, reason) VALUES ('later:1', 'later', 1, 'Advance Capital Hilton invoice selection/Coupa proof/artifact linkage rails.', 'Capital Hilton remains farther from business-object execution than Live Arts.');
+INSERT INTO audit_recommended_action (action_ref, bucket, rank, task, reason) VALUES ('later:2', 'later', 2, 'Decide Mac app remote/backup strategy and runtime actor canonical home.', 'Topology known unknowns still affect repo ownership.');
 INSERT INTO audit_recommended_action (action_ref, bucket, rank, task, reason) VALUES ('parked:1', 'parked', 1, 'Ledger posting automation.', 'Explicitly blocked until sent/payment/ledger receipts exist.');
 INSERT INTO audit_recommended_action (action_ref, bucket, rank, task, reason) VALUES ('parked:2', 'parked', 2, 'Live email/Gmail/browser/Coupa execution.', 'Outside this audit and still receipt/authority gated.');
 INSERT INTO audit_recommended_action (action_ref, bucket, rank, task, reason) VALUES ('parked:3', 'parked', 3, 'Broad LM summarization or Chief launch.', 'This audit is deterministic and read-only.');
-INSERT INTO audit_freshness_signal (signal_ref, status, input_ref, reason, source_ref, observed_at) VALUES ('freshness:current', 'FRESH', '', 'Audit generated from current input manifest.', 'openclaw_business_object_layer_audit.py', '2026-05-31T04:24:07+00:00');
+INSERT INTO audit_freshness_signal (signal_ref, status, input_ref, reason, source_ref, observed_at) VALUES ('freshness:current', 'FRESH', '', 'Audit generated from current input manifest.', 'openclaw_business_object_layer_audit.py', '2026-05-31T04:42:19+00:00');

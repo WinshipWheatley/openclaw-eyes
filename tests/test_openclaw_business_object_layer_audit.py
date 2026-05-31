@@ -26,6 +26,27 @@ def _fixtures(read_root: Path, wiki_root: Path) -> None:
             "schema_version": "openclaw_estate_topology_registry_read_model_v0",
             "machine_count": 2,
             "repo_working_copy_count": 5,
+            "external_registry_materialization": [
+                {
+                    "registry_ref": "openclaw_eyes_system_knowledge_registry_external_input",
+                    "source_repo": "openclaw-eyes",
+                    "source_branch": "main",
+                    "source_commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                    "canonical_owner": "openclaw-eyes",
+                    "local_role": "READ_ONLY_EXTERNAL_INPUT",
+                    "local_status": "EXTERNAL_REGISTRY_MATERIALIZED",
+                    "artifact_count": 5,
+                    "notes": "openclaw-eyes system knowledge registry imported as read-only external input.",
+                }
+            ],
+            "registry_presence": [
+                {
+                    "registry_id": "evidence_grounded_context_registry",
+                    "current_state": "CANONICAL_ON_MAIN",
+                    "canonical_status": "CANONICAL",
+                    "commit_ref": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                }
+            ],
             "source_of_truth_areas": [
                 {
                     "area_id": "mac_excel_edge_worker",
@@ -41,6 +62,8 @@ def _fixtures(read_root: Path, wiki_root: Path) -> None:
                     "area_id": "evidence_grounded_context_registry",
                     "current_state": "CANONICAL_ON_MAIN",
                     "status": "CANONICAL_ON_MAIN",
+                    "canonical_status": "CANONICAL",
+                    "review_commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
                 },
             ],
         },
@@ -51,6 +74,13 @@ def _fixtures(read_root: Path, wiki_root: Path) -> None:
             "schema_version": "openclaw_reference_resolver_read_model_v0",
             "drift_count": 0,
             "git_branch_refs": [
+                {
+                    "target_ref": "openclaw_eyes_main_branch",
+                    "branch": "main",
+                    "current_head_commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                    "remote_status": "RESOLVED_REMOTE",
+                    "resolution_status": "RESOLVED_REMOTE",
+                },
                 {
                     "target_ref": "openclaw_eyes_registry_review_branch",
                     "branch": "codex/system-knowledge-registry-v0-local",
@@ -83,8 +113,21 @@ def _fixtures(read_root: Path, wiki_root: Path) -> None:
             "schema_version": "openclaw_context_wiki_compiler_v0",
             "pages": [{"page_ref": "live_arts"}],
             "contradiction_count": 2,
-            "missing_inputs": ["generated/system_knowledge/openclaw_system_knowledge_registry.*"],
+            "missing_inputs": [],
             "top_next_actions": ["Live Arts MD: Prepare invoice PDF"],
+        },
+    )
+    _write_json(
+        read_root / "external_system_knowledge_registry_index.json",
+        {
+            "schema_version": "external_system_knowledge_registry_index_v0",
+            "source_repo": "openclaw-eyes",
+            "source_branch": "main",
+            "source_commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "canonical_owner": "openclaw-eyes",
+            "local_role": "READ_ONLY_EXTERNAL_INPUT",
+            "import_status": "IMPORTED",
+            "artifact_count": 5,
         },
     )
     _write_json(
@@ -179,6 +222,20 @@ def _fixtures(read_root: Path, wiki_root: Path) -> None:
             "current_blockers": ["invoice candidate not selected"],
         },
     )
+    _write_json(
+        read_root / "hermes_chief_build_handoff.json",
+        {
+            "schema_version": "hermes_chief_build_handoff_v0",
+            "handoff_status": "PRESENT",
+        },
+    )
+    _write_json(
+        read_root / "hermes_gravity_controller.json",
+        {
+            "schema_version": "hermes_gravity_controller_v0",
+            "controller_status": "PRESENT",
+        },
+    )
     wiki_root.mkdir(parents=True, exist_ok=True)
     (wiki_root / "README.md").write_text("# Wiki\n", encoding="utf-8")
 
@@ -209,7 +266,7 @@ def test_audit_has_required_scorecard_and_inventory(tmp_path):
         assert row["freshness_notes"]
 
 
-def test_audit_corrects_stale_live_arts_and_registry_claims(tmp_path):
+def test_audit_reflects_live_arts_and_external_registry_claims(tmp_path):
     read_root = tmp_path / "generated" / "read_models"
     wiki_root = tmp_path / "generated" / "wiki" / "openclaw"
     _fixtures(read_root, wiki_root)
@@ -225,9 +282,11 @@ def test_audit_corrects_stale_live_arts_and_registry_claims(tmp_path):
     }["openclaw-eyes registry branch"]
 
     assert "2026-1001" in corrections["live_arts_candidate_unselected"]["corrected_current_claim"]
-    assert corrections["openclaw_eyes_registry_canonical_main"]["correction_status"] == "CONFLICT_RECORDED_UPSTREAM_REFRESH_REQUIRED"
-    assert branch_object["implementation_status"] == "PRESENT_ON_REVIEW_BRANCH_PENDING_REVIEW"
-    assert "CANONICAL" not in branch_object["implementation_status"]
+    assert corrections["openclaw_eyes_registry_external_input"]["correction_status"] == "CORRECTED"
+    assert branch_object["implementation_status"] == "EXTERNAL_REGISTRY_MATERIALIZED"
+    assert branch_object["blockers"] == []
+    assert payload["external_registry_materialization"]["local_role"] == "READ_ONLY_EXTERNAL_INPUT"
+    assert payload["missing_inputs"] == []
 
 
 def test_missing_required_input_marks_audit_stale(tmp_path):

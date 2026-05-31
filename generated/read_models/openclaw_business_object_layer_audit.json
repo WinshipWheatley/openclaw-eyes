@@ -2,7 +2,7 @@
   "audit_freshness_signals": [
     {
       "input_ref": "",
-      "observed_at": "2026-05-31T04:24:07+00:00",
+      "observed_at": "2026-05-31T04:42:19+00:00",
       "reason": "Audit generated from current input manifest.",
       "signal_ref": "freshness:current",
       "source_ref": "openclaw_business_object_layer_audit.py",
@@ -12,10 +12,6 @@
   "browser_accessed": false,
   "build_order": {
     "later": [
-      {
-        "reason": "Wiki reports the system knowledge registry input missing.",
-        "task": "Refresh/install canonical system knowledge registry inputs for the context wiki."
-      },
       {
         "reason": "Capital Hilton remains farther from business-object execution than Live Arts.",
         "task": "Advance Capital Hilton invoice selection/Coupa proof/artifact linkage rails."
@@ -47,10 +43,6 @@
       {
         "reason": "Avoid sending Chief after already-solved candidate selection work.",
         "task": "Reconcile stale Hermes/Chief Live Arts blockers against the confirmed 2026-1001 bundle state."
-      },
-      {
-        "reason": "Stop source-truth drift in topology/wiki outputs.",
-        "task": "Correct openclaw-eyes registry branch canonicality back to review-branch pending review unless merge evidence is explicit."
       },
       {
         "reason": "This is the current blocker before Live Arts PDF export retry.",
@@ -337,13 +329,12 @@
     },
     {
       "blockers": [
-        "openclaw-eyes registry branch canonicality must be corrected to pending review unless merge evidence is explicit",
         "bridge mirror missing"
       ],
       "business_object_proximity": "INFRA_HIGH",
-      "current_fact": "machines=2; working_copies=5; context_registry_area=CANONICAL_ON_MAIN",
-      "implementation_status": "PRESENT_WITH_CANONICALITY_CONFLICT",
-      "next_safe_action": "Refresh topology to keep review branch as PENDING_REVIEW until canonical merge is proven.",
+      "current_fact": "machines=2; working_copies=5; context_registry_area=CANONICAL_ON_MAIN; external_registry=EXTERNAL_REGISTRY_MATERIALIZED",
+      "implementation_status": "PRESENT_EXTERNAL_REGISTRY_MATERIALIZED",
+      "next_safe_action": "Keep openclaw-eyes as canonical owner and consume imported registry artifacts as read-only external inputs.",
       "object_name": "estate topology registry",
       "source_refs": [
         {
@@ -353,18 +344,9 @@
       ]
     },
     {
-      "blockers": [
-        {
-          "exists": false,
-          "label": "OpenClaw system knowledge registry files",
-          "path": "generated/system_knowledge/openclaw_system_knowledge_registry.*",
-          "sha256": "",
-          "source_id": "openclaw_system_knowledge_registry_files",
-          "source_type": "registry_file"
-        }
-      ],
+      "blockers": [],
       "business_object_proximity": "INFRA_MEDIUM",
-      "current_fact": "pages=11; contradictions=11",
+      "current_fact": "pages=11; contradictions=10",
       "implementation_status": "PRESENT_GENERATED_VIEW",
       "next_safe_action": "Fix upstream registries/read-models, then regenerate; do not edit wiki as source truth.",
       "object_name": "context wiki",
@@ -380,13 +362,11 @@
       ]
     },
     {
-      "blockers": [
-        "current estate/wiki generated state also claims CANONICAL_ON_MAIN; audit treats that as stale/conflicting until canonical merge is confirmed"
-      ],
+      "blockers": [],
       "business_object_proximity": "INFRA_HIGH",
-      "current_fact": "branch=codex/system-knowledge-registry-v0-local; remote_status=RESOLVED_REMOTE; head=1a6b7b0b463968f3161e048bd7936dc06505a3bb",
-      "implementation_status": "PRESENT_ON_REVIEW_BRANCH_PENDING_REVIEW",
-      "next_safe_action": "Keep source truth as repo/branch ref and generated current_head_commit only.",
+      "current_fact": "canonical_owner=openclaw-eyes; main_head=1a6b7b0b463968f3161e048bd7936dc06505a3bb; review_head=1a6b7b0b463968f3161e048bd7936dc06505a3bb; local_role=READ_ONLY_EXTERNAL_INPUT",
+      "implementation_status": "EXTERNAL_REGISTRY_MATERIALIZED",
+      "next_safe_action": "Use the materialized cache as READ_ONLY_EXTERNAL_INPUT; do not make /home/openclaw the canonical owner.",
       "object_name": "openclaw-eyes registry branch",
       "source_refs": [
         {
@@ -396,6 +376,10 @@
         {
           "note": "",
           "path": "generated/read_models/openclaw_estate_topology_registry.json"
+        },
+        {
+          "note": "",
+          "path": "generated/read_models/external_system_knowledge_registry_index.json"
         }
       ]
     }
@@ -404,6 +388,19 @@
   "contract_schema_version": "openclaw_business_object_layer_audit_v0",
   "coupa_accessed": false,
   "email_accessed": false,
+  "external_registry_materialization": {
+    "artifact_count": 5,
+    "artifact_hashes_json": "{\n  \"generated/external_registries/openclaw-eyes/openclaw_system_knowledge_registry.json\": \"sha256:b3190e6a519ab661aa407c29e5874d3640c74955e95c08fbbbef9cc4cbbee286\",\n  \"generated/external_registries/openclaw-eyes/openclaw_system_knowledge_registry.sqlite\": \"sha256:fbace7adfb416065000d3a738933b362b34fb7876c0cff0659b195ecc4ef112e\",\n  \"generated/external_registries/openclaw-eyes/openclaw_system_knowledge_registry_OPERATOR.md\": \"sha256:46f93b19532eeb10ea8c15b27b8515c8451cdbc05f140c3cc3aae18876f24988\",\n  \"generated/external_registries/openclaw-eyes/openclaw_system_knowledge_registry_SCHEMA.sql\": \"sha256:0cfe8823e8caf995a606ab2fc4211292273de0a1f906258bd10e7987ba7b0c20\",\n  \"generated/external_registries/openclaw-eyes/openclaw_system_knowledge_registry_SEED.sql\": \"sha256:2e03f981b560ced0ebfbe40cf48da3c839bd59a7437d073fcdbf66520f29cf3d\"\n}",
+    "canonical_owner": "openclaw-eyes",
+    "index_path": "generated/read_models/external_system_knowledge_registry_index.json",
+    "local_role": "READ_ONLY_EXTERNAL_INPUT",
+    "local_status": "EXTERNAL_REGISTRY_MATERIALIZED",
+    "notes": "openclaw-eyes system knowledge registry imported as read-only external input.",
+    "registry_ref": "openclaw_eyes_system_knowledge_registry_external_input",
+    "source_branch": "main",
+    "source_commit": "1a6b7b0b463968f3161e048bd7936dc06505a3bb",
+    "source_repo": "openclaw-eyes"
+  },
   "fresh_for_minutes": 60,
   "freshness_model": {
     "canonical_sources_store_stable_refs": true,
@@ -415,7 +412,7 @@
     "required_missing_input_stales_audit": true
   },
   "freshness_status": "FRESH",
-  "generated_at": "2026-05-31T04:24:07+00:00",
+  "generated_at": "2026-05-31T04:42:19+00:00",
   "generated_by": "codex",
   "git_push_performed": false,
   "gmail_accessed": false,
@@ -443,9 +440,10 @@
   ],
   "input_hashes": {
     "capital_hilton_bundle": "sha256:f384551a2558a0f8c8ef8bbfeea37f4d9d3fdd08f422a543e4385cd09964ed71",
-    "change_sentinel": "sha256:748bc3051056abaca988b4e0890d5cc67c027509ca5181808504533be77c654a",
-    "context_wiki_index": "sha256:984fac4a184ac3c099eb0d00e090687f2ffdbe9a701063f0a8ad658ccd1aa787",
-    "estate_topology": "sha256:8a45278637ec950564daeba1f2ebadf6cb25853a331e24512eaf783ee948e034",
+    "change_sentinel": "sha256:8b8e587cb645b82e8600e4b408999b1c8f3bccff23bcaa165bfb9179863f6d83",
+    "context_wiki_index": "sha256:ed4b535363c9ae0befdcf2356dcab59a9adfe20e8ee14c6c1f1dc6566c848c1b",
+    "estate_topology": "sha256:e32c278f0bb6c52fd2c3e514406f93e9b2c8dd9724825164ec4158d21c7fb2ae",
+    "external_system_knowledge_registry_index": "sha256:5665a7b3bfbfec9a9c9a6df1a99a13f93194dd04fb46958176c2cd1f30769c50",
     "hermes_chief_build_handoff": "sha256:3fc1448b7a8236a3142814315790c427797c646295276429c6ceee42b005388a",
     "hermes_gravity_controller": "sha256:51d57984bea39a6769fcaba0129e69a26e7761bfefc0a18b0d9ff77ffe628bec",
     "hermes_mission_sentinel": "sha256:5fb7f99839fd0763bb60eddcbaf7167a301c7ef6a90880d0888a8233435b0a47",
@@ -456,12 +454,12 @@
   },
   "input_manifest": [
     {
-      "generated_at": "2026-05-31T04:09:23+00:00",
+      "generated_at": "2026-05-31T04:28:39+00:00",
       "input_ref": "estate_topology",
       "path": "generated/read_models/openclaw_estate_topology_registry.json",
       "required": true,
       "schema_version": "openclaw_estate_topology_registry_read_model_v0",
-      "sha256": "sha256:8a45278637ec950564daeba1f2ebadf6cb25853a331e24512eaf783ee948e034",
+      "sha256": "sha256:e32c278f0bb6c52fd2c3e514406f93e9b2c8dd9724825164ec4158d21c7fb2ae",
       "source_ref": "generated/read_models/openclaw_estate_topology_registry.json",
       "status": "PRESENT"
     },
@@ -476,23 +474,33 @@
       "status": "PRESENT"
     },
     {
-      "generated_at": "2026-05-31T04:24:04+00:00",
+      "generated_at": "2026-05-31T04:41:59+00:00",
       "input_ref": "change_sentinel",
       "path": "generated/read_models/openclaw_change_sentinel.json",
       "required": true,
       "schema_version": "openclaw_change_sentinel_read_model_v0",
-      "sha256": "sha256:748bc3051056abaca988b4e0890d5cc67c027509ca5181808504533be77c654a",
+      "sha256": "sha256:8b8e587cb645b82e8600e4b408999b1c8f3bccff23bcaa165bfb9179863f6d83",
       "source_ref": "generated/read_models/openclaw_change_sentinel.json",
       "status": "PRESENT"
     },
     {
-      "generated_at": "2026-05-31T04:09:25+00:00",
+      "generated_at": "2026-05-31T04:32:51+00:00",
       "input_ref": "context_wiki_index",
       "path": "generated/read_models/openclaw_context_wiki_index.json",
       "required": true,
       "schema_version": "openclaw_context_wiki_compiler_v0",
-      "sha256": "sha256:984fac4a184ac3c099eb0d00e090687f2ffdbe9a701063f0a8ad658ccd1aa787",
+      "sha256": "sha256:ed4b535363c9ae0befdcf2356dcab59a9adfe20e8ee14c6c1f1dc6566c848c1b",
       "source_ref": "generated/read_models/openclaw_context_wiki_index.json",
+      "status": "PRESENT"
+    },
+    {
+      "generated_at": "",
+      "input_ref": "external_system_knowledge_registry_index",
+      "path": "generated/read_models/external_system_knowledge_registry_index.json",
+      "required": false,
+      "schema_version": "external_system_knowledge_registry_index_v0",
+      "sha256": "sha256:5665a7b3bfbfec9a9c9a6df1a99a13f93194dd04fb46958176c2cd1f30769c50",
+      "source_ref": "generated/read_models/external_system_knowledge_registry_index.json",
       "status": "PRESENT"
     },
     {
@@ -852,6 +860,10 @@
       "path": "generated/read_models/openclaw_context_wiki_index.json"
     },
     {
+      "note": "external_system_knowledge_registry_index",
+      "path": "generated/read_models/external_system_knowledge_registry_index.json"
+    },
+    {
       "note": "live_arts_bundle",
       "path": "generated/read_models/live_arts_md_invoice_review_bundle.json"
     },
@@ -918,9 +930,9 @@
       "stale_or_conflicting_claim": "Wiki contradiction says the PDF export package is missing invoice_id, selected_sheet_label, and output_bridge_path."
     },
     {
-      "claim_ref": "openclaw_eyes_registry_canonical_main",
-      "corrected_current_claim": "Treat openclaw-eyes system knowledge registry as PRESENT_ON_REVIEW_BRANCH / PENDING_REVIEW until merge/canonical evidence is deliberately recorded.",
-      "correction_status": "CONFLICT_RECORDED_UPSTREAM_REFRESH_REQUIRED",
+      "claim_ref": "openclaw_eyes_registry_external_input",
+      "corrected_current_claim": "openclaw-eyes system knowledge registry is canonical on main and imported as READ_ONLY_EXTERNAL_INPUT from commit 1a6b7b0b463968f3161e048bd7936dc06505a3bb.",
+      "correction_status": "CORRECTED",
       "source_refs": [
         {
           "note": "",
@@ -929,9 +941,13 @@
         {
           "note": "",
           "path": "generated/read_models/openclaw_reference_resolver.json"
+        },
+        {
+          "note": "",
+          "path": "generated/read_models/external_system_knowledge_registry_index.json"
         }
       ],
-      "stale_or_conflicting_claim": "Current estate/wiki generated state claims the system knowledge registry is canonical on openclaw-eyes main."
+      "stale_or_conflicting_claim": "PC context/wiki inputs lack a materialized openclaw-eyes system knowledge registry."
     },
     {
       "claim_ref": "request_response_unstable",
@@ -1053,27 +1069,11 @@
       "severity": "MEDIUM"
     },
     {
-      "build_bucket": "Now",
-      "gap": "Topology/wiki claim canonical-on-main while current target posture is review branch pending review.",
-      "gap_ref": "openclaw_eyes_registry_branch_conflict",
-      "owner_hint": "PC_BACKEND",
-      "rank": 11,
-      "severity": "MEDIUM"
-    },
-    {
       "build_bucket": "Next",
       "gap": "Reference resolver marks estate topology read-model bridge mirror as MISSING.",
       "gap_ref": "estate_bridge_mirror_missing",
       "owner_hint": "BRIDGE_TRANSPORT",
-      "rank": 12,
-      "severity": "MEDIUM"
-    },
-    {
-      "build_bucket": "Later",
-      "gap": "Context wiki reports missing generated/system_knowledge/openclaw_system_knowledge_registry.* input.",
-      "gap_ref": "context_wiki_missing_system_registry",
-      "owner_hint": "PC_BACKEND",
-      "rank": 13,
+      "rank": 11,
       "severity": "MEDIUM"
     },
     {
@@ -1081,7 +1081,7 @@
       "gap": "Capital Hilton still needs invoice record/period selection, Coupa proof, recipients, and artifact linkage.",
       "gap_ref": "capital_hilton_selection_and_coupa",
       "owner_hint": "PC_BACKEND",
-      "rank": 14,
+      "rank": 12,
       "severity": "MEDIUM"
     },
     {
@@ -1089,7 +1089,7 @@
       "gap": "End-to-end business-object evals are missing for Mac helper, result intake, attachment promotion, proof, payment, and Capital Hilton.",
       "gap_ref": "business_object_evals_missing",
       "owner_hint": "PC_BACKEND",
-      "rank": 15,
+      "rank": 13,
       "severity": "HIGH"
     }
   ],

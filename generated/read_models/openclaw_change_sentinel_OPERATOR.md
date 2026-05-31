@@ -36,8 +36,8 @@ Observed Targets:
 - `payment_watch:capital_hilton_invoice_workflow` `PAYMENT_WATCH` -> `NO_MATERIAL_CHANGE` `NOT_READY`.
 - `mac_heartbeat:sync_health` `MAC_HEARTBEAT` -> `BRIDGE_STALE` `stale_needs_mac_sync`.
 - `business_object_audit:freshness` `BUSINESS_OBJECT_AUDIT` -> `NO_MATERIAL_CHANGE` `FRESH`.
-- `service_status:openclaw-request-response.service` `SERVICE` -> `NO_MATERIAL_CHANGE` `active`.
-- `service_restart_count:openclaw-request-response.service` `SERVICE` -> `NO_MATERIAL_CHANGE` `0`.
+- `service_status:openclaw-request-response.service` `SERVICE` -> `UNKNOWN` ``.
+- `service_restart_count:openclaw-request-response.service` `SERVICE` -> `UNKNOWN` ``.
 
 Timer Proposal:
 - Proposed timer path: `~/.config/systemd/user/openclaw-change-sentinel.timer`.

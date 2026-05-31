@@ -882,6 +882,12 @@ def _ignore_non_material_fingerprint_change(
         and current.get("observation_status") == previous.get("observation_status")
     ):
         return True
+    if (
+        target_type == "BUSINESS_OBJECT_AUDIT"
+        and current.get("observation_status") == "NO_MATERIAL_CHANGE"
+        and current.get("observed_value") == "FRESH"
+    ):
+        return True
     return False
 
 

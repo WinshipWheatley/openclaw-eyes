@@ -4,7 +4,12 @@
 - Freshness: FRESH for 60 minutes
 - Overall score: 3.67 / 5.0
 - Business objects: 16
-- Top gaps: 15
+- Top gaps: 13
+
+## External Registry Input
+- Status: EXTERNAL_REGISTRY_MATERIALIZED
+- Source: openclaw-eyes main 1a6b7b0b463968f3161e048bd7936dc06505a3bb
+- Role: canonical_owner=openclaw-eyes; local_role=READ_ONLY_EXTERNAL_INPUT
 
 ## Freshness
 - Required input hashes are recorded and currently matched at export time.
@@ -19,7 +24,7 @@
 ## Stale Claims Corrected
 - live_arts_candidate_unselected: 2026-1001 — June 2026 Speaker Rental — $900
 - pdf_package_missing_fields: pdf_export_package has invoice_id=2026-1001, selected_sheet_label=June 2026 Speaker Rental, output_bridge_path=/mnt/e/openclaw/artifacts/invoice_workbooks/live_arts_md/2026-1001/Invoice_2026-1001_Live_Arts_MD_June_2026_Speaker_Rental.pdf.
-- openclaw_eyes_registry_canonical_main: Treat openclaw-eyes system knowledge registry as PRESENT_ON_REVIEW_BRANCH / PENDING_REVIEW until merge/canonical evidence is deliberately recorded.
+- openclaw_eyes_registry_external_input: openclaw-eyes system knowledge registry is canonical on main and imported as READ_ONLY_EXTERNAL_INPUT from commit 1a6b7b0b463968f3161e048bd7936dc06505a3bb.
 - request_response_unstable: Service supervision reports READY and request-response ExecStart includes --watch-seconds 21600; core status={'last_keeper_action': 'NO_ACTION_REQUIRED', 'request_response_active': True, 'request_response_sub_state': 'running', 'sentinel_timer_active': True, 'sentinel_timer_sub_state': 'waiting', 'service_keeper_timer_active': True, 'service_keeper_timer_sub_state': 'waiting', 'unresolved_supervision_risks': []}.
 - mac_export_completed: Live Arts backend PDF package is ready, but actual Mac export completion and selected artifact attachment are not confirmed.
 - ledger_ready: Ledger posting remains blocked/disallowed until send proof, payment confirmation, and explicit ledger receipts exist.
@@ -35,16 +40,13 @@
 - 8. payment_watch_readiness_only: Payment watch is readiness-only until send/manual-send proof exists; no bank read or ledger match has run.
 - 9. ledger_posting_blocked: Ledger posting remains explicitly disallowed and must stay parked until proof chain exists.
 - 10. hermes_handoff_stale: Hermes/Chief still list invoice candidate selection as blocking despite Live Arts confirmed selection.
-- 11. openclaw_eyes_registry_branch_conflict: Topology/wiki claim canonical-on-main while current target posture is review branch pending review.
-- 12. estate_bridge_mirror_missing: Reference resolver marks estate topology read-model bridge mirror as MISSING.
-- 13. context_wiki_missing_system_registry: Context wiki reports missing generated/system_knowledge/openclaw_system_knowledge_registry.* input.
-- 14. capital_hilton_selection_and_coupa: Capital Hilton still needs invoice record/period selection, Coupa proof, recipients, and artifact linkage.
-- 15. business_object_evals_missing: End-to-end business-object evals are missing for Mac helper, result intake, attachment promotion, proof, payment, and Capital Hilton.
+- 11. estate_bridge_mirror_missing: Reference resolver marks estate topology read-model bridge mirror as MISSING.
+- 12. capital_hilton_selection_and_coupa: Capital Hilton still needs invoice record/period selection, Coupa proof, recipients, and artifact linkage.
+- 13. business_object_evals_missing: End-to-end business-object evals are missing for Mac helper, result intake, attachment promotion, proof, payment, and Capital Hilton.
 
 ## Build Order
 ### now
 - Reconcile stale Hermes/Chief Live Arts blockers against the confirmed 2026-1001 bundle state.
-- Correct openclaw-eyes registry branch canonicality back to review-branch pending review unless merge evidence is explicit.
 - Build or verify Mac helper/Access Broker permission path for scoped Excel PDF export.
 - Add end-to-end evals for Mac result intake and attachment promotion without executing Excel/PDF.
 ### next
@@ -53,7 +55,6 @@
 - Capture manual-send proof if manual send already happened, then activate payment watch readiness only.
 - Repair estate topology bridge mirror and Mac bridge permission representation.
 ### later
-- Refresh/install canonical system knowledge registry inputs for the context wiki.
 - Advance Capital Hilton invoice selection/Coupa proof/artifact linkage rails.
 - Decide Mac app remote/backup strategy and runtime actor canonical home.
 ### parked

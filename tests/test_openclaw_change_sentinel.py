@@ -414,6 +414,25 @@ def test_business_object_audit_input_hash_change_emits_stale(tmp_path):
     )
 
 
+def test_business_object_audit_refresh_to_fresh_clears_stale_alert(tmp_path):
+    read_root = tmp_path / "read_models"
+    _write_fixture_read_models(read_root)
+    stale_payload = _business_object_audit_payload(read_root)
+    stale_payload["freshness_status"] = "STALE_INPUT_CHANGED"
+    stale_payload["stale_reasons"] = ["Audit input hashes changed: live_arts_bundle"]
+    _write_json(read_root / "openclaw_business_object_layer_audit.json", stale_payload)
+    baseline = _build(read_root)
+
+    _write_json(
+        read_root / "openclaw_business_object_layer_audit.json",
+        _business_object_audit_payload(read_root),
+    )
+    changed = _build(read_root, previous=baseline)
+
+    assert changed["run_status"] == "NO_MATERIAL_CHANGE"
+    assert "BUSINESS_OBJECT_AUDIT_STALE" not in _status_set(changed)
+
+
 def test_no_lm_call_occurs(tmp_path):
     read_root = tmp_path / "read_models"
     _write_fixture_read_models(read_root)

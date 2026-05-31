@@ -60,6 +60,7 @@ AUDIT_INPUT_SPECS = (
     ("reference_resolver", "generated/read_models/openclaw_reference_resolver.json", True),
     ("change_sentinel", "generated/read_models/openclaw_change_sentinel.json", True),
     ("context_wiki_index", "generated/read_models/openclaw_context_wiki_index.json", True),
+    ("external_system_knowledge_registry_index", "generated/read_models/external_system_knowledge_registry_index.json", False),
     ("live_arts_bundle", "generated/read_models/live_arts_md_invoice_review_bundle.json", True),
     ("capital_hilton_bundle", "generated/read_models/invoice_review_bundle.json", True),
     ("hermes_mission_sentinel", "generated/read_models/hermes_mission_sentinel.json", False),
@@ -356,6 +357,7 @@ def collect_inputs(
         "resolver": _read_json(read_root / "openclaw_reference_resolver.json"),
         "sentinel": _read_json(read_root / "openclaw_change_sentinel.json"),
         "wiki_index": _read_json(read_root / "openclaw_context_wiki_index.json"),
+        "external_registry_index": _read_json(read_root / "external_system_knowledge_registry_index.json"),
         "live_arts": _read_json(read_root / "live_arts_md_invoice_review_bundle.json"),
         "capital_hilton": _read_json(read_root / "invoice_review_bundle.json"),
         "purpose_charter": _read_json(read_root / "purpose_bound_automation_charter.json"),
@@ -384,6 +386,62 @@ def _truth_area(inputs: dict[str, Any], area_id: str) -> dict[str, Any]:
         if area.get("area_id") == area_id:
             return area
     return {}
+
+
+def _registry_presence(inputs: dict[str, Any], registry_id: str) -> dict[str, Any]:
+    for row in inputs["estate"].get("registry_presence", []):
+        if row.get("registry_id") == registry_id:
+            return row
+    return {}
+
+
+def _external_registry_materialization(inputs: dict[str, Any]) -> dict[str, Any]:
+    for row in inputs["estate"].get("external_registry_materialization", []):
+        if row.get("registry_ref") == "openclaw_eyes_system_knowledge_registry_external_input":
+            return row
+    index = inputs.get("external_registry_index", {})
+    if index.get("import_status") == "IMPORTED":
+        return {
+            "registry_ref": "openclaw_eyes_system_knowledge_registry_external_input",
+            "source_repo": index.get("source_repo", ""),
+            "source_branch": index.get("source_branch", ""),
+            "source_commit": index.get("source_commit", ""),
+            "canonical_owner": index.get("canonical_owner", ""),
+            "local_role": index.get("local_role", ""),
+            "local_status": "EXTERNAL_REGISTRY_MATERIALIZED",
+            "artifact_count": index.get("artifact_count", 0),
+            "notes": "openclaw-eyes system knowledge registry imported as read-only external input.",
+        }
+    return {}
+
+
+def _external_registry_materialized(inputs: dict[str, Any]) -> bool:
+    materialization = _external_registry_materialization(inputs)
+    return (
+        materialization.get("local_status") == "EXTERNAL_REGISTRY_MATERIALIZED"
+        and materialization.get("local_role") == "READ_ONLY_EXTERNAL_INPUT"
+        and materialization.get("canonical_owner") == "openclaw-eyes"
+    )
+
+
+def _context_registry_canonical(inputs: dict[str, Any]) -> bool:
+    area = _truth_area(inputs, "evidence_grounded_context_registry")
+    presence = _registry_presence(inputs, "evidence_grounded_context_registry")
+    main = _branch_ref(inputs, "openclaw_eyes_main_branch")
+    commit = area.get("review_commit") or presence.get("commit_ref")
+    main_commit = main.get("current_head_commit")
+    return (
+        area.get("canonical_status") == "CANONICAL"
+        and area.get("current_state") == "CANONICAL_ON_MAIN"
+        and presence.get("canonical_status") == "CANONICAL"
+        and bool(commit)
+        and (not main_commit or main_commit == commit)
+    )
+
+
+def _wiki_system_registry_missing(inputs: dict[str, Any]) -> bool:
+    missing = inputs["wiki_index"].get("missing_inputs", [])
+    return any("openclaw_system_knowledge_registry" in str(item) for item in missing)
 
 
 def _branch_ref(inputs: dict[str, Any], target_ref: str) -> dict[str, Any]:
@@ -525,8 +583,12 @@ def build_business_object_inventory(inputs: dict[str, Any]) -> list[dict[str, An
     guardrails = _nested(live, "invoice_artifact", "known_artifact_guardrails", default={}) or {}
     service = inputs["service_supervision"]
     review_branch = _branch_ref(inputs, "openclaw_eyes_registry_review_branch")
+    main_branch = _branch_ref(inputs, "openclaw_eyes_main_branch")
     estate_mirror = _resolution(inputs, "estate_topology_registry_read_model_mirror")
     context_area = _truth_area(inputs, "evidence_grounded_context_registry")
+    context_registry = _registry_presence(inputs, "evidence_grounded_context_registry")
+    external_registry = _external_registry_materialization(inputs)
+    external_materialized = _external_registry_materialized(inputs)
     mac_edge = _truth_area(inputs, "mac_excel_edge_worker")
     access_broker = _truth_area(inputs, "access_broker")
     request_response = next(
@@ -676,11 +738,15 @@ def build_business_object_inventory(inputs: dict[str, Any]) -> list[dict[str, An
         },
         {
             "object_name": "estate topology registry",
-            "implementation_status": "PRESENT_WITH_CANONICALITY_CONFLICT",
+            "implementation_status": "PRESENT_EXTERNAL_REGISTRY_MATERIALIZED"
+            if external_materialized
+            else "PRESENT",
             "business_object_proximity": "INFRA_HIGH",
-            "current_fact": f"machines={inputs['estate'].get('machine_count')}; working_copies={inputs['estate'].get('repo_working_copy_count')}; context_registry_area={context_area.get('current_state', '')}",
-            "blockers": ["openclaw-eyes registry branch canonicality must be corrected to pending review unless merge evidence is explicit", "bridge mirror missing"],
-            "next_safe_action": "Refresh topology to keep review branch as PENDING_REVIEW until canonical merge is proven.",
+            "current_fact": f"machines={inputs['estate'].get('machine_count')}; working_copies={inputs['estate'].get('repo_working_copy_count')}; context_registry_area={context_area.get('current_state', '')}; external_registry={external_registry.get('local_status', 'UNKNOWN')}",
+            "blockers": ["bridge mirror missing"]
+            if estate_mirror.get("resolved_status") == "MISSING"
+            else [],
+            "next_safe_action": "Keep openclaw-eyes as canonical owner and consume imported registry artifacts as read-only external inputs.",
             "source_refs": [_source_ref("generated/read_models/openclaw_estate_topology_registry.json")],
         },
         {
@@ -697,14 +763,22 @@ def build_business_object_inventory(inputs: dict[str, Any]) -> list[dict[str, An
         },
         {
             "object_name": "openclaw-eyes registry branch",
-            "implementation_status": "PRESENT_ON_REVIEW_BRANCH_PENDING_REVIEW",
+            "implementation_status": external_registry.get(
+                "local_status",
+                context_registry.get("current_state")
+                or context_area.get("current_state")
+                or review_branch.get("resolution_status", "UNKNOWN"),
+            ),
             "business_object_proximity": "INFRA_HIGH",
-            "current_fact": f"branch={review_branch.get('branch')}; remote_status={review_branch.get('remote_status')}; head={review_branch.get('current_head_commit')}",
-            "blockers": ["current estate/wiki generated state also claims CANONICAL_ON_MAIN; audit treats that as stale/conflicting until canonical merge is confirmed"],
-            "next_safe_action": "Keep source truth as repo/branch ref and generated current_head_commit only.",
+            "current_fact": f"canonical_owner={external_registry.get('canonical_owner', 'openclaw-eyes')}; main_head={main_branch.get('current_head_commit')}; review_head={review_branch.get('current_head_commit')}; local_role={external_registry.get('local_role', 'UNKNOWN')}",
+            "blockers": []
+            if external_materialized and _context_registry_canonical(inputs)
+            else ["external registry cache or canonical main evidence missing"],
+            "next_safe_action": "Use the materialized cache as READ_ONLY_EXTERNAL_INPUT; do not make /home/openclaw the canonical owner.",
             "source_refs": [
                 _source_ref("generated/read_models/openclaw_reference_resolver.json"),
                 _source_ref("generated/read_models/openclaw_estate_topology_registry.json"),
+                _source_ref("generated/read_models/external_system_knowledge_registry_index.json"),
             ],
         },
     ]
@@ -716,6 +790,7 @@ def build_stale_claim_corrections(inputs: dict[str, Any]) -> list[dict[str, Any]
     pdf = _nested(live, "invoice_artifact", "pdf_export_package", default={}) or {}
     service = inputs["service_supervision"]
     hermes = inputs["hermes"].get("hermes_mission_sentinel.json", {})
+    external_registry = _external_registry_materialization(inputs)
     corrections = [
         {
             "claim_ref": "live_arts_candidate_unselected",
@@ -735,13 +810,20 @@ def build_stale_claim_corrections(inputs: dict[str, Any]) -> list[dict[str, Any]
             "source_refs": [_source_ref("generated/read_models/live_arts_md_invoice_review_bundle.json", "invoice_artifact.pdf_export_package")],
         },
         {
-            "claim_ref": "openclaw_eyes_registry_canonical_main",
-            "stale_or_conflicting_claim": "Current estate/wiki generated state claims the system knowledge registry is canonical on openclaw-eyes main.",
-            "corrected_current_claim": "Treat openclaw-eyes system knowledge registry as PRESENT_ON_REVIEW_BRANCH / PENDING_REVIEW until merge/canonical evidence is deliberately recorded.",
-            "correction_status": "CONFLICT_RECORDED_UPSTREAM_REFRESH_REQUIRED",
+            "claim_ref": "openclaw_eyes_registry_external_input",
+            "stale_or_conflicting_claim": "PC context/wiki inputs lack a materialized openclaw-eyes system knowledge registry.",
+            "corrected_current_claim": (
+                "openclaw-eyes system knowledge registry is canonical on main and imported "
+                f"as {external_registry.get('local_role', 'UNKNOWN')} from commit "
+                f"{external_registry.get('source_commit', '')}."
+            ),
+            "correction_status": "CORRECTED"
+            if _external_registry_materialized(inputs)
+            else "UPSTREAM_REFRESH_REQUIRED",
             "source_refs": [
                 _source_ref("generated/read_models/openclaw_estate_topology_registry.json"),
                 _source_ref("generated/read_models/openclaw_reference_resolver.json"),
+                _source_ref("generated/read_models/external_system_knowledge_registry_index.json"),
             ],
         },
         {
@@ -781,12 +863,40 @@ def build_top_gaps(inputs: dict[str, Any]) -> list[dict[str, Any]]:
         ("payment_watch_readiness_only", "Payment watch is readiness-only until send/manual-send proof exists; no bank read or ledger match has run.", "MEDIUM", "PC_BACKEND", "Next"),
         ("ledger_posting_blocked", "Ledger posting remains explicitly disallowed and must stay parked until proof chain exists.", "HIGH", "LEDGER", "Parked"),
         ("hermes_handoff_stale", "Hermes/Chief still list invoice candidate selection as blocking despite Live Arts confirmed selection.", "MEDIUM", "PC_BACKEND", "Now"),
-        ("openclaw_eyes_registry_branch_conflict", "Topology/wiki claim canonical-on-main while current target posture is review branch pending review.", "MEDIUM", "PC_BACKEND", "Now"),
         ("estate_bridge_mirror_missing", "Reference resolver marks estate topology read-model bridge mirror as MISSING.", "MEDIUM", "BRIDGE_TRANSPORT", "Next"),
-        ("context_wiki_missing_system_registry", "Context wiki reports missing generated/system_knowledge/openclaw_system_knowledge_registry.* input.", "MEDIUM", "PC_BACKEND", "Later"),
         ("capital_hilton_selection_and_coupa", "Capital Hilton still needs invoice record/period selection, Coupa proof, recipients, and artifact linkage.", "MEDIUM", "PC_BACKEND", "Later"),
         ("business_object_evals_missing", "End-to-end business-object evals are missing for Mac helper, result intake, attachment promotion, proof, payment, and Capital Hilton.", "HIGH", "PC_BACKEND", "Now"),
     ]
+    if not _context_registry_canonical(inputs):
+        gaps.append(
+            (
+                "openclaw_eyes_registry_canonicality_unproven",
+                "openclaw-eyes system knowledge registry canonical-on-main evidence is missing or does not match resolver output.",
+                "MEDIUM",
+                "PC_BACKEND",
+                "Now",
+            )
+        )
+    if _wiki_system_registry_missing(inputs):
+        gaps.append(
+            (
+                "context_wiki_missing_system_registry",
+                "Context wiki reports missing generated/system_knowledge/openclaw_system_knowledge_registry.* input.",
+                "MEDIUM",
+                "PC_BACKEND",
+                "Later",
+            )
+        )
+    elif not _external_registry_materialized(inputs):
+        gaps.append(
+            (
+                "external_registry_not_materialized",
+                "openclaw-eyes system knowledge registry is not materialized as a read-only external input.",
+                "MEDIUM",
+                "PC_BACKEND",
+                "Later",
+            )
+        )
     return [
         {
             "rank": index,
@@ -801,24 +911,41 @@ def build_top_gaps(inputs: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 def build_build_order(inputs: dict[str, Any], gaps: list[dict[str, Any]]) -> dict[str, list[dict[str, str]]]:
+    now = [
+        {"task": "Reconcile stale Hermes/Chief Live Arts blockers against the confirmed 2026-1001 bundle state.", "reason": "Avoid sending Chief after already-solved candidate selection work."},
+        {"task": "Build or verify Mac helper/Access Broker permission path for scoped Excel PDF export.", "reason": "This is the current blocker before Live Arts PDF export retry."},
+        {"task": "Add end-to-end evals for Mac result intake and attachment promotion without executing Excel/PDF.", "reason": "The backend needs proof that selected_invoice_pdf_export_completed_candidate promotes safely."},
+    ]
+    if not _context_registry_canonical(inputs):
+        now.insert(
+            1,
+            {
+                "task": "Reconcile openclaw-eyes registry canonicality against resolver and estate topology evidence.",
+                "reason": "Do not claim canonical-on-main unless resolver and topology agree on the commit.",
+            },
+        )
+    next_tasks = [
+        {"task": "After Mac export succeeds, ingest result candidate and keep artifact OPERATOR_REVIEW_REQUIRED until reviewed.", "reason": "Attachment readiness must remain receipt-gated."},
+        {"task": "Confirm Live Arts recipients and Guardian/operator approval gates.", "reason": "Clara/send readiness is blocked by recipient and approval receipts."},
+        {"task": "Capture manual-send proof if manual send already happened, then activate payment watch readiness only.", "reason": "Payment watch cannot become real until send proof exists."},
+        {"task": "Repair estate topology bridge mirror and Mac bridge permission representation.", "reason": "Resolver reports missing bridge mirror and Mac bridge unavailable."},
+    ]
+    later = [
+        {"task": "Advance Capital Hilton invoice selection/Coupa proof/artifact linkage rails.", "reason": "Capital Hilton remains farther from business-object execution than Live Arts."},
+        {"task": "Decide Mac app remote/backup strategy and runtime actor canonical home.", "reason": "Topology known unknowns still affect repo ownership."},
+    ]
+    if _wiki_system_registry_missing(inputs) or not _external_registry_materialized(inputs):
+        later.insert(
+            0,
+            {
+                "task": "Refresh/install canonical system knowledge registry inputs for the context wiki.",
+                "reason": "The system knowledge registry external input is not yet materialized.",
+            },
+        )
     return {
-        "now": [
-            {"task": "Reconcile stale Hermes/Chief Live Arts blockers against the confirmed 2026-1001 bundle state.", "reason": "Avoid sending Chief after already-solved candidate selection work."},
-            {"task": "Correct openclaw-eyes registry branch canonicality back to review-branch pending review unless merge evidence is explicit.", "reason": "Stop source-truth drift in topology/wiki outputs."},
-            {"task": "Build or verify Mac helper/Access Broker permission path for scoped Excel PDF export.", "reason": "This is the current blocker before Live Arts PDF export retry."},
-            {"task": "Add end-to-end evals for Mac result intake and attachment promotion without executing Excel/PDF.", "reason": "The backend needs proof that selected_invoice_pdf_export_completed_candidate promotes safely."},
-        ],
-        "next": [
-            {"task": "After Mac export succeeds, ingest result candidate and keep artifact OPERATOR_REVIEW_REQUIRED until reviewed.", "reason": "Attachment readiness must remain receipt-gated."},
-            {"task": "Confirm Live Arts recipients and Guardian/operator approval gates.", "reason": "Clara/send readiness is blocked by recipient and approval receipts."},
-            {"task": "Capture manual-send proof if manual send already happened, then activate payment watch readiness only.", "reason": "Payment watch cannot become real until send proof exists."},
-            {"task": "Repair estate topology bridge mirror and Mac bridge permission representation.", "reason": "Resolver reports missing bridge mirror and Mac bridge unavailable."},
-        ],
-        "later": [
-            {"task": "Refresh/install canonical system knowledge registry inputs for the context wiki.", "reason": "Wiki reports the system knowledge registry input missing."},
-            {"task": "Advance Capital Hilton invoice selection/Coupa proof/artifact linkage rails.", "reason": "Capital Hilton remains farther from business-object execution than Live Arts."},
-            {"task": "Decide Mac app remote/backup strategy and runtime actor canonical home.", "reason": "Topology known unknowns still affect repo ownership."},
-        ],
+        "now": now,
+        "next": next_tasks,
+        "later": later,
         "parked": [
             {"task": "Ledger posting automation.", "reason": "Explicitly blocked until sent/payment/ledger receipts exist."},
             {"task": "Live email/Gmail/browser/Coupa execution.", "reason": "Outside this audit and still receipt/authority gated."},
@@ -972,6 +1099,7 @@ def build_openclaw_business_object_layer_audit(
     build_order = build_build_order(inputs, gaps)
     missing_evals = build_missing_evals()
     hermes_implications = build_hermes_chief_implications(inputs)
+    external_registry = _external_registry_materialization(inputs)
     overall = round(sum(row["score"] for row in scorecard) / len(scorecard), 2)
     readiness = (
         "READY_FOR_BUILD_PLANNING_NOT_EXECUTION"
@@ -989,6 +1117,7 @@ def build_openclaw_business_object_layer_audit(
         "input_hashes": input_hashes,
         "missing_inputs": missing_inputs,
         "stale_reasons": stale_reasons,
+        "external_registry_materialization": external_registry,
         "audit_freshness_signals": freshness_signals,
         "source_refs": [
             _source_ref(str(row["path"]), str(row["input_ref"]))
@@ -1250,9 +1379,19 @@ def render_operator_summary(payload: dict[str, Any]) -> str:
         f"- Overall score: {payload['overall_score']} / 5.0",
         f"- Business objects: {len(payload['business_objects'])}",
         f"- Top gaps: {len(payload['top_gaps'])}",
-        "",
-        "## Freshness",
     ]
+    external = payload.get("external_registry_materialization") or {}
+    if external:
+        lines.extend(
+            [
+                "",
+                "## External Registry Input",
+                f"- Status: {external.get('local_status', 'UNKNOWN')}",
+                f"- Source: {external.get('source_repo', 'UNKNOWN')} {external.get('source_branch', '')} {external.get('source_commit', '')}",
+                f"- Role: canonical_owner={external.get('canonical_owner', 'UNKNOWN')}; local_role={external.get('local_role', 'UNKNOWN')}",
+            ]
+        )
+    lines.extend(["", "## Freshness"])
     if payload["stale_reasons"]:
         for reason in payload["stale_reasons"]:
             lines.append(f"- {reason}")
