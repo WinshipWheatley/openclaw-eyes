@@ -517,7 +517,7 @@ def source_of_truth_areas() -> tuple[dict[str, Any], ...]:
             canonical_status="PENDING_REVIEW",
             review_repo="openclaw-eyes",
             review_branch="codex/system-knowledge-registry-v0-local",
-            review_commit="5bbd07df65c83bc7c5ef3f75198f29ff8c3fed37",
+            review_commit="1a6b7b0b463968f3161e048bd7936dc06505a3bb",
             ownership_rule="Present on openclaw-eyes review branch; not canonical or merged to main until review completes.",
             notes="Registry branch is available for review and remains pending review rather than source truth on main.",
         ),
@@ -605,7 +605,7 @@ def registry_presence() -> tuple[dict[str, Any], ...]:
             canonical_status="PENDING_REVIEW",
             repo_name="openclaw-eyes",
             branch_name="codex/system-knowledge-registry-v0-local",
-            commit_ref="5bbd07df65c83bc7c5ef3f75198f29ff8c3fed37",
+            commit_ref="1a6b7b0b463968f3161e048bd7936dc06505a3bb",
         ),
         _registry_presence(
             "codex_web_registry_commits",
@@ -676,7 +676,7 @@ def codex_web_artifacts() -> tuple[dict[str, Any], ...]:
         ),
         _codex_web_artifact(
             "openclaw_eyes_system_knowledge_registry_review_branch",
-            "5bbd07df65c83bc7c5ef3f75198f29ff8c3fed37",
+            "1a6b7b0b463968f3161e048bd7936dc06505a3bb",
             "PRESENT_ON_REVIEW_BRANCH",
             False,
             "System knowledge registry is available on openclaw-eyes review branch but is not merged to main.",
