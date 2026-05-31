@@ -54,6 +54,41 @@ def _write_event_bridge_pdf_candidate(path: Path, **overrides) -> dict:
     return event
 
 
+def _write_live_arts_pdf_export_failure(path: Path, **overrides) -> dict:
+    request = {
+        "request_id": "live_arts_md_pdf_export_failed_service_fixture",
+        "request_type": "INVOICE_REVIEW_ACTION_RESULT",
+        "type": "INVOICE_REVIEW_ACTION_RESULT",
+        "kind": "INVOICE_REVIEW_ACTION_RESULT",
+        "world_ref": "finance",
+        "workflow_ref": "live_arts_md_invoice_workflow",
+        "client_ref": "live_arts_md",
+        "intended_use": "selected_invoice_pdf_export_completed_candidate",
+        "action_kind": "selected_invoice_pdf_export_completed_candidate",
+        "invoice_id": "2026-1001",
+        "export_attempted": True,
+        "export_success": False,
+        "failure_code": "EXCEL_APPLESCRIPT_FAILED",
+        "failure_message": "Microsoft Excel got an error: The object you are trying to access does not exist",
+        "failed_stage": "apple_script_export",
+        "no_email_send": True,
+        "no_gmail": True,
+        "no_browser": True,
+        "no_ledger_post": True,
+        "no_coupa": True,
+        "no_workbook_cell_read": True,
+        "no_physical_printing": True,
+        "no_source_workbook_mutation": True,
+        "idempotency_key": "live_arts_md_pdf_export_failed_service_fixture_idempotency",
+        "created_at": EVENT_BRIDGE_NOW,
+        "authority_boundary": dict(processor.AUTHORITY_BOUNDARY),
+    }
+    request.update(overrides)
+    request["payload_hash"] = processor._content_hash(request)
+    path.write_text(processor.stable_json(request), encoding="utf-8")
+    return request
+
+
 def _write_chat_request(path: Path) -> dict:
     request = chat_intake.make_capital_hilton_fixture_request(created_at=FIXED_NOW)
     path.write_text(chat_intake.stable_json(request), encoding="utf-8")
@@ -815,6 +850,55 @@ def test_service_event_bridge_local_surface_pdf_candidate_routes_adapter_only(tm
     assert response["detail_disclosure"]["event_bridge_adapter_response"]["processor_request"]["request_type"] == "LOCAL_SURFACE_RESULT"
     assert response["machine_proof"]["handler_execution_performed"] is False
     assert not (export_root / "selected_invoice_pdf_export_completed_candidate_receipt.json").exists()
+
+
+def test_service_ingests_live_arts_pdf_export_failure_without_service_failure(tmp_path, capsys):
+    inbox = tmp_path / "inbox"
+    response_dir = tmp_path / "responses"
+    export_root = tmp_path / "read_models"
+    inbox.mkdir()
+    request_path = inbox / "mission_control_invoice_review_action_request_pdf_export_failure.json"
+    request = _write_live_arts_pdf_export_failure(request_path)
+
+    assert service_main(
+        [
+            "--once",
+            "--inbox",
+            str(inbox),
+            "--response-dir",
+            str(response_dir),
+            "--export-root",
+            str(export_root),
+            "--generated-at",
+            EVENT_BRIDGE_NOW,
+            "--format",
+            "json",
+        ]
+    ) == 0
+    service_payload = json.loads(capsys.readouterr().out)
+    response = json.loads(_safe_response_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
+    detail = response["detail_disclosure"]["pdf_export_completed_result"]
+    local_result = detail["local_surface_result"]
+
+    assert service_payload["service_status"]["service_status"] == "REQUEST_PROCESSED"
+    assert service_payload["service_status"]["errors_or_blockers"] == []
+    assert response["internal_status"] == "BLOCKED_WITH_REASON"
+    assert response["operator_headline"] == "PDF Export Failed"
+    assert "PosixPath" not in json.dumps(response)
+    assert detail["receipt"]["failure_code"] == "EXCEL_APPLESCRIPT_FAILED"
+    assert detail["receipt"]["failure_message"].startswith("Microsoft Excel got an error")
+    assert local_result["artifact_review_status"] == "EXPORT_FAILED"
+    assert local_result["attachment_ready"] is False
+    assert local_result["approval_ready"] is False
+    assert local_result["ledger_posting_allowed"] is False
+    assert local_result["sent"] is False
+    assert local_result["paid"] is False
+    assert local_result["final"] is False
+    assert response["machine_proof"]["email_send_performed"] is False
+    assert response["machine_proof"]["gmail_send_performed"] is False
+    assert response["machine_proof"]["browser_access_performed"] is False
+    assert response["machine_proof"]["coupa_access_or_submit_performed"] is False
+    assert response["machine_proof"]["payment_tracking_write_performed"] is False
 
 
 def test_service_routes_freeform_workbook_selection_to_processor_not_worker_fallback(tmp_path, capsys):

@@ -570,8 +570,24 @@ def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
+def json_safe(value: Any) -> Any:
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return value
+    if isinstance(value, Path):
+        return value.as_posix()
+    if isinstance(value, datetime):
+        return value.isoformat()
+    if isinstance(value, Mapping):
+        return {str(key): json_safe(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [json_safe(item) for item in value]
+    if isinstance(value, set):
+        return sorted((json_safe(item) for item in value), key=lambda item: json.dumps(item, sort_keys=True))
+    return str(value)
+
+
 def stable_json(payload: Any) -> str:
-    return json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
+    return json.dumps(json_safe(payload), indent=2, sort_keys=True, ensure_ascii=False) + "\n"
 
 
 def _atomic_write_text(path: Path, text: str) -> None:
@@ -3110,9 +3126,11 @@ def _process_selected_invoice_pdf_export_completed_result_request(
     )
     action_json, action_operator = invoice_review_action_request_handler.write_exports(payload, export_root)
     status = str(payload["status"])
-    response_ready = status == "GUIDED_RESULT_RECORDED"
+    result_recorded = status in {"GUIDED_RESULT_RECORDED", "GUIDED_FAILURE_RECORDED"}
+    failure_recorded = status == "GUIDED_FAILURE_RECORDED"
     receipt = payload["action_start_receipt"]
     state_progress = payload.get("state_machine_progress") or {}
+    local_surface_result = payload.get("local_surface_result") if isinstance(payload.get("local_surface_result"), Mapping) else {}
     
     detail = {
         "pdf_export_completed_result": {
@@ -3120,6 +3138,11 @@ def _process_selected_invoice_pdf_export_completed_result_request(
             "operator_readback_ref": action_operator.as_posix(),
             "status": status,
             "receipt": receipt,
+            "state_machine_progress": state_progress,
+            "local_surface_result": dict(local_surface_result),
+            "attachment_ready": False,
+            "approval_ready": False,
+            "ledger_posting_allowed": False,
         }
     }
     
@@ -3128,21 +3151,38 @@ def _process_selected_invoice_pdf_export_completed_result_request(
         source_request_filename=request_path.name,
         workflow_ref="live_arts_md_invoice_workflow",
         request_type="LOCAL_SURFACE_RESULT",
-        internal_status="RESPONSE_READY" if response_ready else "BLOCKED_WITH_REASON",
-        operator_headline="PDF Export Candidate Recorded" if response_ready else "PDF Export Blocked",
+        internal_status="RESPONSE_READY" if result_recorded and not failure_recorded else "BLOCKED_WITH_REASON",
+        operator_headline=(
+            "PDF Export Candidate Recorded"
+            if result_recorded and not failure_recorded
+            else "PDF Export Failed"
+            if failure_recorded
+            else "PDF Export Blocked"
+        ),
         operator_message=payload["body"],
-        what_happened=("Validated PDF result",),
-        why_it_happened="Valid" if response_ready else "Invalid",
-        how_to_fix="Provide valid PDF." if not response_ready else "Proceed to operator review.",
+        what_happened=(
+            "Validated PDF result",
+            "Recorded the Mac helper failure receipt without promoting the artifact.",
+        )
+        if failure_recorded
+        else ("Validated PDF result",),
+        why_it_happened=(
+            str(receipt.get("failure_message") or receipt.get("failure_code") or "Mac helper reported export failure.")
+            if failure_recorded
+            else "Valid"
+            if result_recorded
+            else "Invalid"
+        ),
+        how_to_fix=payload["next_action"] if failure_recorded else "Provide valid PDF." if not result_recorded else "Proceed to operator review.",
         visible_cards=(),
         cards_available=False,
         card_mirror_refs=(),
         file_readback_refs=(action_json.as_posix(),),
         worker_route_refs=(),
         context_package_refs=(),
-        blocked_reason=None if response_ready else "Invalid pdf export",
+        blocked_reason=None if result_recorded and not failure_recorded else str(receipt.get("failure_code") or "Invalid pdf export"),
         detail_disclosure=detail,
-        readback_files=(action_json,),
+        readback_files=(action_json.as_posix(),),
         next_safe_move=payload["next_action"],
     )
 

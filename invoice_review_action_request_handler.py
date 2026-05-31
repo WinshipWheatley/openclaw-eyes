@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -84,7 +85,23 @@ AUTHORITY_BOUNDARY = {
 
 
 def stable_json(payload: Any) -> str:
-    return json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=True) + "\n"
+    return json.dumps(json_safe(payload), indent=2, sort_keys=True, ensure_ascii=True) + "\n"
+
+
+def json_safe(value: Any) -> Any:
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return value
+    if isinstance(value, Path):
+        return value.as_posix()
+    if isinstance(value, datetime):
+        return value.isoformat()
+    if isinstance(value, Mapping):
+        return {str(key): json_safe(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [json_safe(item) for item in value]
+    if isinstance(value, set):
+        return sorted((json_safe(item) for item in value), key=lambda item: json.dumps(item, sort_keys=True))
+    return str(value)
 
 
 def _short_hash(*parts: object) -> str:
@@ -1169,6 +1186,12 @@ def process_selected_invoice_pdf_export_completed_candidate_result_request(
 ) -> dict[str, Any]:
     payload = _action_payload(raw_request)
     context = _client_context(payload, raw_request)
+    export_attempted = payload.get("export_attempted") is True or bool(payload.get("failure_code"))
+    export_success = payload.get("export_success")
+    failure_receipt = export_attempted and export_success is False
+    failure_code = str(payload.get("failure_code") or "").strip()
+    failure_message = str(payload.get("failure_message") or "").strip()
+    artifact_review_status = "EXPORT_FAILED" if failure_receipt else str(payload.get("artifact_review_status") or "").strip()
     
     validation_errors = []
     if str(context["client_ref"]) != "live_arts_md":
@@ -1179,15 +1202,21 @@ def process_selected_invoice_pdf_export_completed_candidate_result_request(
         validation_errors.append("WRONG_INVOICE_ID")
         
     pdf_path = str(payload.get("exported_pdf_mac_path") or "")
-    if not pdf_path:
+    if failure_receipt:
+        if not failure_code:
+            validation_errors.append("MISSING_FAILURE_CODE")
+    elif not pdf_path:
         validation_errors.append("MISSING_PDF_PATH")
     elif not pdf_path.lower().endswith(".pdf"):
         validation_errors.append("INVALID_FILE_EXTENSION")
         
-    response_ready = len(validation_errors) == 0
+    result_accepted = len(validation_errors) == 0
+    success_result = result_accepted and not failure_receipt
+    failure_result = result_accepted and failure_receipt
+    result_status = "EXPORT_FAILED" if failure_result else "PDF_EXPORT_COMPLETED_CANDIDATE" if success_result else "BLOCKED_INVALID_RESULT"
     
     action_receipt = {
-        "receipt_id": f"pdf_export_candidate_receipt:{_short_hash(pdf_path, generated_at)}",
+        "receipt_id": f"pdf_export_candidate_receipt:{_short_hash(pdf_path or failure_code, generated_at)}",
         "receipt_type": "selected_invoice_pdf_export_completed_candidate_receipt",
         "receipt_name": "selected_invoice_pdf_export_completed_candidate_receipt",
         "client_ref": "live_arts_md",
@@ -1199,26 +1228,50 @@ def process_selected_invoice_pdf_export_completed_candidate_result_request(
         "sha256": payload.get("sha256"),
         "exported_by": "MAC_EXCEL",
         "execution_venue": "MAC_LOCAL",
+        "export_attempted": export_attempted,
+        "export_success": bool(success_result),
+        "failure_code": failure_code or None,
+        "failure_message": failure_message or None,
+        "failed_stage": payload.get("failed_stage"),
+        "result_status": result_status,
+        "artifact_review_status": "EXPORT_FAILED" if failure_result else "OPERATOR_REVIEW_REQUIRED" if success_result else "NOT_READY",
+        "attachment_ready": False,
+        "approval_ready": False,
+        "ledger_posting_allowed": False,
+        "sent": False,
+        "paid": False,
+        "final": False,
         "validation_errors": validation_errors,
-        "underlying_blocker_completed": True if response_ready else False,
-        "completion_receipt_written": True if response_ready else False,
+        "underlying_blocker_completed": True if success_result else False,
+        "completion_receipt_written": True if success_result else False,
+        "failure_receipt_written": True if failure_result else False,
+        "result_receipt_written": True if result_accepted else False,
     }
     
-    if response_ready:
+    if result_accepted:
+        export_root.mkdir(parents=True, exist_ok=True)
         receipts_path = export_root / "selected_invoice_pdf_export_completed_candidate_receipt.json"
         receipts_path.write_text(stable_json(action_receipt))
         if bridge_export_root:
+            bridge_export_root.mkdir(parents=True, exist_ok=True)
             bridge_receipts_path = bridge_export_root / "selected_invoice_pdf_export_completed_candidate_receipt.json"
             bridge_receipts_path.write_text(stable_json(action_receipt))
             
     source_bundle_path = None
     bridge_bundle_path = None
-    if response_ready:
-        bundle = live_arts_md_invoice_review_bundle.build_live_arts_md_bundle()
-        # Ensure it reflects the receipt
-        if bundle["invoice_artifact"]["pdf_export_package"]["status"] != "PDF_EXPORT_COMPLETED_CANDIDATE":
-             bundle["invoice_artifact"]["pdf_export_package"]["status"] = "PDF_EXPORT_COMPLETED_CANDIDATE"
-        bundle["invoice_artifact"]["artifact_review_status"] = "OPERATOR_REVIEW_REQUIRED"
+    if result_accepted:
+        bundle = live_arts_md_invoice_review_bundle.build_live_arts_md_bundle(
+            export_receipt_payload=action_receipt if failure_result else None,
+            present_receipts=(live_arts_md_invoice_review_bundle.PDF_EXPORT_COMPLETION_RECEIPT,) if success_result else (),
+        )
+        if success_result:
+            bundle["invoice_artifact"]["pdf_export_package"]["status"] = "PDF_EXPORT_COMPLETED_CANDIDATE"
+            bundle["invoice_artifact"]["artifact_review_status"] = "OPERATOR_REVIEW_REQUIRED"
+        if failure_result:
+            bundle["invoice_artifact"]["pdf_export_package"]["status"] = "EXPORT_FAILED"
+            bundle["invoice_artifact"]["pdf_export_package"]["failure_code"] = failure_code
+            bundle["invoice_artifact"]["pdf_export_package"]["failure_message"] = failure_message
+            bundle["invoice_artifact"]["artifact_review_status"] = "EXPORT_FAILED"
         bundle["clara_email_draft"]["attachment_ready"] = False
         bundle["send_readiness"]["approval_ready"] = False
         bundle["payment_watch"]["ledger_posting_allowed"] = False
@@ -1234,15 +1287,23 @@ def process_selected_invoice_pdf_export_completed_candidate_result_request(
         "read_model_id": READ_MODEL_ID,
         "source_request_id": str(raw_request.get("request_id") or "unknown"),
         "action_kind": "selected_invoice_pdf_export_completed_candidate",
-        "status": "GUIDED_RESULT_RECORDED" if response_ready else "BLOCKED_INVALID_RESULT",
-        "headline": "PDF Export Candidate Recorded" if response_ready else "PDF Export Blocked",
-        "body": "Recorded" if response_ready else "Blocked",
-        "detail": {},
-        "next_action": "Operator review",
+        "status": "GUIDED_FAILURE_RECORDED" if failure_result else "GUIDED_RESULT_RECORDED" if success_result else "BLOCKED_INVALID_RESULT",
+        "headline": "PDF Export Failed" if failure_result else "PDF Export Candidate Recorded" if success_result else "PDF Export Blocked",
+        "body": failure_message or "Mac helper reported PDF export failure." if failure_result else "Recorded" if success_result else "Blocked",
+        "detail": {
+            "failure_code": failure_code or None,
+            "failure_message": failure_message or None,
+            "artifact_review_status": "EXPORT_FAILED" if failure_result else artifact_review_status or None,
+        },
+        "next_action": (
+            "Review the Mac helper failure, fix the Excel/print-scope issue, then rerun the scoped export package."
+            if failure_result
+            else "Operator review"
+        ),
         "action_start_receipt": action_receipt,
         "state_machine_progress": {
             "used": True,
-            "progress_status": "COMPLETED" if response_ready else "BLOCKED",
+            "progress_status": "FAILED_RECORDED" if failure_result else "COMPLETED" if success_result else "BLOCKED",
             "state_snapshot": {},
             "action_progress_receipt": action_receipt,
             "source_bundle_path": source_bundle_path.as_posix() if source_bundle_path else None,
@@ -1251,30 +1312,42 @@ def process_selected_invoice_pdf_export_completed_candidate_result_request(
         },
         "local_surface_result": {
             "intended_use": "selected_invoice_pdf_export_completed_candidate",
-            "result_recorded": response_ready,
+            "result_recorded": result_accepted,
+            "result_status": result_status,
+            "failure_code": failure_code or None,
+            "failure_message": failure_message or None,
+            "artifact_review_status": "EXPORT_FAILED" if failure_result else "OPERATOR_REVIEW_REQUIRED" if success_result else "NOT_READY",
             "validation_errors": validation_errors,
             "no_workbook_body_read": True,
             "no_cell_read": True,
             "no_external_action": True,
             "invoice_generation_performed": False,
-            "artifact_linked": True if response_ready else False,
+            "artifact_linked": True if success_result else False,
             "attachment_ready": False,
             "approval_ready": False,
+            "ledger_posting_allowed": False,
+            "sent": False,
+            "paid": False,
+            "final": False,
         },
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
         "machine_proof": {
-            "bundle_scope_valid": response_ready,
+            "bundle_scope_valid": result_accepted,
             "supported_action": True,
             "no_external_action": True,
-            "guided_path_started": response_ready,
-            "completion_receipt_written": response_ready,
-            "underlying_blocker_completed": response_ready,
-            "bundle_refreshed": response_ready,
+            "guided_path_started": result_accepted,
+            "completion_receipt_written": success_result,
+            "failure_receipt_written": failure_result,
+            "result_receipt_written": result_accepted,
+            "underlying_blocker_completed": success_result,
+            "bundle_refreshed": result_accepted,
             "bridge_bundle_mirrored": bool(bridge_bundle_path),
             "workbook_body_read_performed": False,
             "spreadsheet_cell_read_performed": False,
             "invoice_generation_performed": False,
             "email_send_performed": False,
+            "gmail_access_performed": False,
+            "browser_access_performed": False,
             "coupa_browser_automation_performed": False,
             "ledger_posting_performed": False,
             "production_mutation_performed": False,

@@ -138,6 +138,41 @@ def _invoice_record_selection_result_request(path: Path, **overrides) -> dict:
     return request
 
 
+def _live_arts_pdf_export_failure_request(path: Path, **overrides) -> dict:
+    request = {
+        "request_id": "live_arts_md_pdf_export_failed_fixture",
+        "request_type": "INVOICE_REVIEW_ACTION_RESULT",
+        "type": "INVOICE_REVIEW_ACTION_RESULT",
+        "kind": "INVOICE_REVIEW_ACTION_RESULT",
+        "world_ref": "finance",
+        "workflow_ref": "live_arts_md_invoice_workflow",
+        "client_ref": "live_arts_md",
+        "intended_use": "selected_invoice_pdf_export_completed_candidate",
+        "action_kind": "selected_invoice_pdf_export_completed_candidate",
+        "invoice_id": "2026-1001",
+        "export_attempted": True,
+        "export_success": False,
+        "failure_code": "EXCEL_APPLESCRIPT_FAILED",
+        "failure_message": "Microsoft Excel got an error: The object you are trying to access does not exist",
+        "failed_stage": "apple_script_export",
+        "no_email_send": True,
+        "no_gmail": True,
+        "no_browser": True,
+        "no_ledger_post": True,
+        "no_coupa": True,
+        "no_workbook_cell_read": True,
+        "no_physical_printing": True,
+        "no_source_workbook_mutation": True,
+        "idempotency_key": "live_arts_md_pdf_export_failed_fixture_idempotency",
+        "created_at": FIXED_NOW,
+        "authority_boundary": dict(processor.AUTHORITY_BOUNDARY),
+    }
+    request.update(overrides)
+    request["payload_hash"] = processor._content_hash(request)
+    path.write_text(processor.stable_json(request), encoding="utf-8")
+    return request
+
+
 def _source_workbook_selection_result_request(path: Path, *, workbook_path: Path | None = None, **overrides) -> dict:
     if workbook_path is None:
         workbook_path = path.parent / "Invoice_Capitol_Hilton_Running.xlsx"
@@ -2003,6 +2038,48 @@ def test_invoice_review_select_page_action_publishes_guided_response(tmp_path, c
     assert receipt["machine_proof"]["local_surface_request_present"] is True
     assert receipt["machine_proof"]["completion_receipt_written"] is False
     assert scoped["machine_proof"]["external_action_performed"] is False
+
+
+def test_live_arts_pdf_export_failure_result_records_structured_block_without_serialization_crash(tmp_path):
+    inbox = tmp_path / "approved_inbox"
+    inbox.mkdir()
+    request_path = inbox / "mission_control_invoice_review_action_request_pdf_export_failure.json"
+    request = _live_arts_pdf_export_failure_request(request_path)
+    export_root = tmp_path / "read_models"
+
+    response_payload, _status_payload, paths, quality_errors = processor.run_and_write(
+        inbox=inbox,
+        request_file=request_path,
+        request_id=None,
+        export_root=export_root,
+        generated_at=FIXED_NOW,
+    )
+    response_from_disk = json.loads(paths[0].read_text(encoding="utf-8"))
+    detail = response_from_disk["detail_disclosure"]["pdf_export_completed_result"]
+    local_result = detail["local_surface_result"]
+    bundle = json.loads((export_root / "live_arts_md_invoice_review_bundle.json").read_text(encoding="utf-8"))
+
+    assert quality_errors == ()
+    assert response_payload["source_request_id"] == request["request_id"]
+    assert response_from_disk["internal_status"] == "BLOCKED_WITH_REASON"
+    assert response_from_disk["operator_headline"] == "PDF Export Failed"
+    assert detail["receipt"]["failure_code"] == "EXCEL_APPLESCRIPT_FAILED"
+    assert detail["receipt"]["failure_message"].startswith("Microsoft Excel got an error")
+    assert local_result["artifact_review_status"] == "EXPORT_FAILED"
+    assert local_result["attachment_ready"] is False
+    assert local_result["approval_ready"] is False
+    assert local_result["ledger_posting_allowed"] is False
+    assert local_result["sent"] is False
+    assert local_result["paid"] is False
+    assert local_result["final"] is False
+    assert all(isinstance(item, str) for item in response_from_disk["readback_files"])
+    assert bundle["invoice_artifact"]["artifact_review_status"] == "EXPORT_FAILED"
+    assert bundle["invoice_artifact"]["pdf_export_package"]["failure_code"] == "EXCEL_APPLESCRIPT_FAILED"
+    assert response_from_disk["machine_proof"]["email_send_performed"] is False
+    assert response_from_disk["machine_proof"]["gmail_send_performed"] is False
+    assert response_from_disk["machine_proof"]["browser_access_performed"] is False
+    assert response_from_disk["machine_proof"]["coupa_access_or_submit_performed"] is False
+    assert response_from_disk["machine_proof"]["payment_tracking_write_performed"] is False
 
 
 def test_invoice_record_selection_result_publishes_scoped_response_and_refreshes_bundle(tmp_path, capsys, monkeypatch):

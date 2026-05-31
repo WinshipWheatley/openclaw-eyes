@@ -1118,7 +1118,9 @@ def build_live_arts_md_bundle(
             **artifact,
             "pdf_export_package": pdf_export_package,
             "artifact_placement_policy": artifact_placement_policy,
-            "artifact_review_status": "OPERATOR_REVIEW_REQUIRED"
+            "artifact_review_status": "EXPORT_FAILED"
+            if pdf_export_package["status"] == "EXPORT_FAILED"
+            else "OPERATOR_REVIEW_REQUIRED"
             if pdf_export_completion_receipt in receipts
             else "NOT_READY",
             "known_artifact_guardrails": _known_artifact_guardrails(),

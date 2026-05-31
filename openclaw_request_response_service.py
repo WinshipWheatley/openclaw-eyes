@@ -239,8 +239,24 @@ def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
+def json_safe(value: Any) -> Any:
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return value
+    if isinstance(value, Path):
+        return value.as_posix()
+    if isinstance(value, datetime):
+        return value.isoformat()
+    if isinstance(value, Mapping):
+        return {str(key): json_safe(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [json_safe(item) for item in value]
+    if isinstance(value, set):
+        return sorted((json_safe(item) for item in value), key=lambda item: json.dumps(item, sort_keys=True))
+    return str(value)
+
+
 def stable_json(payload: Any) -> str:
-    return json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
+    return json.dumps(json_safe(payload), indent=2, sort_keys=True, ensure_ascii=False) + "\n"
 
 
 class ReadModelMemoryCache:
