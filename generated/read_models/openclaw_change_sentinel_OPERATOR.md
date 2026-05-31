@@ -2,7 +2,7 @@
 
 Summary:
 - Status: `NO_MATERIAL_CHANGE`.
-- Observed targets: 23.
+- Observed targets: 25.
 - Material changes: 0.
 - Chief queue candidates: 0 (not launched).
 - LM called: `False`.
@@ -19,6 +19,7 @@ Observed Targets:
 - `input_read_model:capital_hilton_bundle` `INPUT_READ_MODEL` -> `NO_MATERIAL_CHANGE` `present`.
 - `input_read_model:sync_health` `INPUT_READ_MODEL` -> `NO_MATERIAL_CHANGE` `present`.
 - `input_read_model:request_response_service_status` `INPUT_READ_MODEL` -> `NO_MATERIAL_CHANGE` `present`.
+- `input_read_model:business_object_audit` `INPUT_READ_MODEL` -> `NO_MATERIAL_CHANGE` `present`.
 - `git_branch:openclaw_eyes_registry_review_branch` `GIT_BRANCH` -> `NO_MATERIAL_CHANGE` `1a6b7b0b463968f3161e048bd7936dc06505a3bb`.
 - `repo_dirty:openclaw_eyes_registry_review_branch` `REPO_STATE` -> `REPO_DIRTY` `DIRTY`.
 - `mac_mirror:openclaw_eyes_registry_review_branch` `MAC_HEARTBEAT` -> `UNKNOWN` `LOCAL_PATH_UNREACHABLE`.
@@ -34,8 +35,9 @@ Observed Targets:
 - `workflow_state:capital_hilton_invoice_workflow` `WORKFLOW_STATE` -> `NO_MATERIAL_CHANGE` `sha256:fb5d4a9bfdee073cb7527be0affbe86ad0214a9a6e9d7510a187822a81027223`.
 - `payment_watch:capital_hilton_invoice_workflow` `PAYMENT_WATCH` -> `NO_MATERIAL_CHANGE` `NOT_READY`.
 - `mac_heartbeat:sync_health` `MAC_HEARTBEAT` -> `BRIDGE_STALE` `stale_needs_mac_sync`.
-- `service_status:openclaw-request-response.service` `SERVICE` -> `UNKNOWN` ``.
-- `service_restart_count:openclaw-request-response.service` `SERVICE` -> `UNKNOWN` ``.
+- `business_object_audit:freshness` `BUSINESS_OBJECT_AUDIT` -> `NO_MATERIAL_CHANGE` `FRESH`.
+- `service_status:openclaw-request-response.service` `SERVICE` -> `NO_MATERIAL_CHANGE` `active`.
+- `service_restart_count:openclaw-request-response.service` `SERVICE` -> `NO_MATERIAL_CHANGE` `0`.
 
 Timer Proposal:
 - Proposed timer path: `~/.config/systemd/user/openclaw-change-sentinel.timer`.

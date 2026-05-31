@@ -1,3 +1,4 @@
+import hashlib
 import json
 import sqlite3
 from pathlib import Path
@@ -12,6 +13,10 @@ FIXED_NOW = "2026-05-31T03:20:00+00:00"
 def _write_json(path: Path, payload: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def _file_hash(path: Path) -> str:
+    return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def _reference_resolver_payload(
@@ -189,6 +194,38 @@ def _write_fixture_read_models(
     _write_json(root / "openclaw_request_response_service_status.json", _service_status_payload())
 
 
+def _business_object_audit_payload(root: Path) -> dict:
+    return {
+        "schema_version": "openclaw_business_object_layer_audit_read_model_v0",
+        "freshness_status": "FRESH",
+        "fresh_for_minutes": 60,
+        "input_manifest": [
+            {
+                "input_ref": "live_arts_bundle",
+                "path": "generated/read_models/live_arts_md_invoice_review_bundle.json",
+                "required": True,
+                "status": "PRESENT",
+                "sha256": _file_hash(root / "live_arts_md_invoice_review_bundle.json"),
+                "schema_version": "live_arts_md_invoice_review_bundle_v0",
+                "generated_at": "",
+                "source_ref": "generated/read_models/live_arts_md_invoice_review_bundle.json",
+            },
+            {
+                "input_ref": "change_sentinel",
+                "path": "generated/read_models/openclaw_change_sentinel.json",
+                "required": True,
+                "status": "PRESENT",
+                "sha256": "sha256:self-referential-skip",
+                "schema_version": "openclaw_change_sentinel_read_model_v0",
+                "generated_at": "",
+                "source_ref": "generated/read_models/openclaw_change_sentinel.json",
+            },
+        ],
+        "input_hashes": {},
+        "stale_reasons": [],
+    }
+
+
 def _service_snapshot(n_restarts: int = 1) -> dict:
     return {
         "service_name": sentinel.SERVICE_NAME,
@@ -350,6 +387,31 @@ def test_chief_queue_candidate_only_for_material_changes(tmp_path):
     assert unchanged["chief_queue_candidates"] == []
     assert changed["chief_queue_candidates"]
     assert all(candidate["launch_chief"] is False for candidate in changed["chief_queue_candidates"])
+
+
+def test_business_object_audit_input_hash_change_emits_stale(tmp_path):
+    read_root = tmp_path / "read_models"
+    _write_fixture_read_models(read_root)
+    _write_json(
+        read_root / "openclaw_business_object_layer_audit.json",
+        _business_object_audit_payload(read_root),
+    )
+    baseline = _build(read_root)
+    live_payload = json.loads(
+        (read_root / "live_arts_md_invoice_review_bundle.json").read_text(encoding="utf-8")
+    )
+    live_payload["ignored_test_marker"] = "hash-only-change"
+    _write_json(read_root / "live_arts_md_invoice_review_bundle.json", live_payload)
+
+    changed = _build(read_root, previous=baseline)
+    actions = {row["material_status"]: row for row in changed["material_changes"]}
+
+    assert "BUSINESS_OBJECT_AUDIT_STALE" in _status_set(changed)
+    assert actions["BUSINESS_OBJECT_AUDIT_STALE"]["action_required"] is True
+    assert any(
+        row["validation_command"] == "python3 scripts/export_openclaw_business_object_layer_audit.py"
+        for row in changed["recommended_actions"]
+    )
 
 
 def test_no_lm_call_occurs(tmp_path):

@@ -1,10 +1,13 @@
 # OpenClaw Business-Object Layer Audit
 
 - Readiness: READY_FOR_BUILD_PLANNING_NOT_EXECUTION
+- Freshness: FRESH for 60 minutes
 - Overall score: 3.67 / 5.0
 - Business objects: 16
 - Top gaps: 15
 
+## Freshness
+- Required input hashes are recorded and currently matched at export time.
 ## Scores
 - Workflow Design: 4.0 / 5.0 (STRONG_WITH_STALE_HANDOFFS)
 - Data Access: 3.5 / 5.0 (GOOD_LOCAL_READ_MODELS_BRIDGE_PARTIAL)

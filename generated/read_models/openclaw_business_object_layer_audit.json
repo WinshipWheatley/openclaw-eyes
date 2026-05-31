@@ -1,4 +1,14 @@
 {
+  "audit_freshness_signals": [
+    {
+      "input_ref": "",
+      "observed_at": "2026-05-31T04:24:07+00:00",
+      "reason": "Audit generated from current input manifest.",
+      "signal_ref": "freshness:current",
+      "source_ref": "openclaw_business_object_layer_audit.py",
+      "status": "FRESH"
+    }
+  ],
   "browser_accessed": false,
   "build_order": {
     "later": [
@@ -310,8 +320,8 @@
     {
       "blockers": [],
       "business_object_proximity": "INFRA_MEDIUM",
-      "current_fact": "material_changes=2; timer observed=True",
-      "implementation_status": "MATERIAL_CHANGE_DETECTED",
+      "current_fact": "material_changes=0; timer observed=True",
+      "implementation_status": "NO_MATERIAL_CHANGE",
       "next_safe_action": "Observe only; do not make sentinel start services directly.",
       "object_name": "change sentinel",
       "source_refs": [
@@ -394,7 +404,18 @@
   "contract_schema_version": "openclaw_business_object_layer_audit_v0",
   "coupa_accessed": false,
   "email_accessed": false,
-  "generated_at": "2026-05-31T04:15:18+00:00",
+  "fresh_for_minutes": 60,
+  "freshness_model": {
+    "canonical_sources_store_stable_refs": true,
+    "change_sentinel_material_change_after_generated_at_stales_audit": true,
+    "generated_read_models_store_resolved_values": true,
+    "hash_change_stales_prior_audit": true,
+    "manual_edit_source_truth_allowed": false,
+    "reference_resolver_drift_stales_audit": true,
+    "required_missing_input_stales_audit": true
+  },
+  "freshness_status": "FRESH",
+  "generated_at": "2026-05-31T04:24:07+00:00",
   "generated_by": "codex",
   "git_push_performed": false,
   "gmail_accessed": false,
@@ -418,6 +439,131 @@
       "implication_ref": "keep_business_execution_blocked",
       "source_ref": "generated/read_models/purpose_bound_automation_charter.json",
       "summary": "Hermes may summarize and Chief may build tests/code, but no email, PDF export, Coupa, workbook, ledger, or production action is authorized here."
+    }
+  ],
+  "input_hashes": {
+    "capital_hilton_bundle": "sha256:f384551a2558a0f8c8ef8bbfeea37f4d9d3fdd08f422a543e4385cd09964ed71",
+    "change_sentinel": "sha256:748bc3051056abaca988b4e0890d5cc67c027509ca5181808504533be77c654a",
+    "context_wiki_index": "sha256:984fac4a184ac3c099eb0d00e090687f2ffdbe9a701063f0a8ad658ccd1aa787",
+    "estate_topology": "sha256:8a45278637ec950564daeba1f2ebadf6cb25853a331e24512eaf783ee948e034",
+    "hermes_chief_build_handoff": "sha256:3fc1448b7a8236a3142814315790c427797c646295276429c6ceee42b005388a",
+    "hermes_gravity_controller": "sha256:51d57984bea39a6769fcaba0129e69a26e7761bfefc0a18b0d9ff77ffe628bec",
+    "hermes_mission_sentinel": "sha256:5fb7f99839fd0763bb60eddcbaf7167a301c7ef6a90880d0888a8233435b0a47",
+    "live_arts_bundle": "sha256:32aed1bf62bceab78634e1feeb02651b41155f27827aae8433e5df18db1d352b",
+    "purpose_bound_automation_charter": "sha256:3460326c5e60000944ec87e8ab2361ed024df50ac7d736c33ce154ed6cb5d750",
+    "reference_resolver": "sha256:ca025f59ab8060942c7a75f1b1e4a8d562d9c50e807d7c96fa5c1312f009adba",
+    "service_supervision": "sha256:b92e768756c9a0d4302569f350e78db6c978d21871a9529fe9dcc324c565728d"
+  },
+  "input_manifest": [
+    {
+      "generated_at": "2026-05-31T04:09:23+00:00",
+      "input_ref": "estate_topology",
+      "path": "generated/read_models/openclaw_estate_topology_registry.json",
+      "required": true,
+      "schema_version": "openclaw_estate_topology_registry_read_model_v0",
+      "sha256": "sha256:8a45278637ec950564daeba1f2ebadf6cb25853a331e24512eaf783ee948e034",
+      "source_ref": "generated/read_models/openclaw_estate_topology_registry.json",
+      "status": "PRESENT"
+    },
+    {
+      "generated_at": "2026-05-31T04:09:09+00:00",
+      "input_ref": "reference_resolver",
+      "path": "generated/read_models/openclaw_reference_resolver.json",
+      "required": true,
+      "schema_version": "openclaw_reference_resolver_read_model_v0",
+      "sha256": "sha256:ca025f59ab8060942c7a75f1b1e4a8d562d9c50e807d7c96fa5c1312f009adba",
+      "source_ref": "generated/read_models/openclaw_reference_resolver.json",
+      "status": "PRESENT"
+    },
+    {
+      "generated_at": "2026-05-31T04:24:04+00:00",
+      "input_ref": "change_sentinel",
+      "path": "generated/read_models/openclaw_change_sentinel.json",
+      "required": true,
+      "schema_version": "openclaw_change_sentinel_read_model_v0",
+      "sha256": "sha256:748bc3051056abaca988b4e0890d5cc67c027509ca5181808504533be77c654a",
+      "source_ref": "generated/read_models/openclaw_change_sentinel.json",
+      "status": "PRESENT"
+    },
+    {
+      "generated_at": "2026-05-31T04:09:25+00:00",
+      "input_ref": "context_wiki_index",
+      "path": "generated/read_models/openclaw_context_wiki_index.json",
+      "required": true,
+      "schema_version": "openclaw_context_wiki_compiler_v0",
+      "sha256": "sha256:984fac4a184ac3c099eb0d00e090687f2ffdbe9a701063f0a8ad658ccd1aa787",
+      "source_ref": "generated/read_models/openclaw_context_wiki_index.json",
+      "status": "PRESENT"
+    },
+    {
+      "generated_at": "2026-05-28T00:00:00+00:00",
+      "input_ref": "live_arts_bundle",
+      "path": "generated/read_models/live_arts_md_invoice_review_bundle.json",
+      "required": true,
+      "schema_version": "live_arts_md_invoice_review_bundle_v0",
+      "sha256": "sha256:32aed1bf62bceab78634e1feeb02651b41155f27827aae8433e5df18db1d352b",
+      "source_ref": "generated/read_models/live_arts_md_invoice_review_bundle.json",
+      "status": "PRESENT"
+    },
+    {
+      "generated_at": "2026-05-29T18:53:14+00:00",
+      "input_ref": "capital_hilton_bundle",
+      "path": "generated/read_models/invoice_review_bundle.json",
+      "required": true,
+      "schema_version": "invoice_review_bundle_v0",
+      "sha256": "sha256:f384551a2558a0f8c8ef8bbfeea37f4d9d3fdd08f422a543e4385cd09964ed71",
+      "source_ref": "generated/read_models/invoice_review_bundle.json",
+      "status": "PRESENT"
+    },
+    {
+      "generated_at": "2026-05-28T15:01:54-04:00",
+      "input_ref": "hermes_mission_sentinel",
+      "path": "generated/read_models/hermes_mission_sentinel.json",
+      "required": false,
+      "schema_version": "hermes_mission_sentinel_v0",
+      "sha256": "sha256:5fb7f99839fd0763bb60eddcbaf7167a301c7ef6a90880d0888a8233435b0a47",
+      "source_ref": "generated/read_models/hermes_mission_sentinel.json",
+      "status": "PRESENT"
+    },
+    {
+      "generated_at": "2026-05-28T15:01:54-04:00",
+      "input_ref": "hermes_chief_build_handoff",
+      "path": "generated/read_models/hermes_chief_build_handoff.json",
+      "required": false,
+      "schema_version": "hermes_chief_build_handoff_v0",
+      "sha256": "sha256:3fc1448b7a8236a3142814315790c427797c646295276429c6ceee42b005388a",
+      "source_ref": "generated/read_models/hermes_chief_build_handoff.json",
+      "status": "PRESENT"
+    },
+    {
+      "generated_at": "2026-05-28T21:43:08+00:00",
+      "input_ref": "purpose_bound_automation_charter",
+      "path": "generated/read_models/purpose_bound_automation_charter.json",
+      "required": false,
+      "schema_version": "purpose_bound_automation_charter_v0",
+      "sha256": "sha256:3460326c5e60000944ec87e8ab2361ed024df50ac7d736c33ce154ed6cb5d750",
+      "source_ref": "generated/read_models/purpose_bound_automation_charter.json",
+      "status": "PRESENT"
+    },
+    {
+      "generated_at": "2026-05-28T12:00:00+00:00",
+      "input_ref": "hermes_gravity_controller",
+      "path": "generated/read_models/hermes_gravity_controller.json",
+      "required": false,
+      "schema_version": "hermes_gravity_controller_v0",
+      "sha256": "sha256:51d57984bea39a6769fcaba0129e69a26e7761bfefc0a18b0d9ff77ffe628bec",
+      "source_ref": "generated/read_models/hermes_gravity_controller.json",
+      "status": "PRESENT"
+    },
+    {
+      "generated_at": "2026-05-31T03:52:22+00:00",
+      "input_ref": "service_supervision",
+      "path": "generated/read_models/openclaw_service_supervision.json",
+      "required": false,
+      "schema_version": "openclaw_service_supervision_read_model_v0",
+      "sha256": "sha256:b92e768756c9a0d4302569f350e78db6c978d21871a9529fe9dcc324c565728d",
+      "source_ref": "generated/read_models/openclaw_service_supervision.json",
+      "status": "PRESENT"
     }
   ],
   "input_sources": {
@@ -513,6 +659,7 @@
       "status": "MISSING"
     }
   ],
+  "missing_inputs": [],
   "no_authority_flags": {
     "browser_accessed": false,
     "chief_launched": false,
@@ -537,10 +684,23 @@
   "purpose": "Refresh the business-object implementation layer audit from current registries/read-models without live actions.",
   "read_model_only": true,
   "readiness": "READY_FOR_BUILD_PLANNING_NOT_EXECUTION",
+  "required_sqlite_tables": [
+    "audit_run",
+    "audit_input",
+    "audit_category_score",
+    "business_object_inventory",
+    "audit_gap",
+    "audit_recommended_action",
+    "audit_freshness_signal"
+  ],
   "schema_version": "openclaw_business_object_layer_audit_read_model_v0",
   "scorecard": [
     {
+      "biggest_gap": "Hermes/Chief handoff still carries stale Live Arts candidate-selection blockers.",
       "category": "Workflow Design",
+      "confidence": "MEDIUM_HIGH",
+      "fastest_improvement": "Regenerate Hermes/Chief posture from the confirmed 2026-1001 bundle state.",
+      "freshness_notes": "Score confidence drops if any required audit input is missing; workflow score depends on current bundle and Hermes hashes.",
       "max_score": 5.0,
       "rationale": "Live Arts and Capital Hilton have explicit rails, blockers, receipts, and safe actions, but Hermes/Chief still contains stale Live Arts candidate-selection blockers.",
       "score": 4.0,
@@ -558,10 +718,15 @@
           "path": "generated/read_models/hermes_mission_sentinel.json"
         }
       ],
-      "status": "STRONG_WITH_STALE_HANDOFFS"
+      "status": "STRONG_WITH_STALE_HANDOFFS",
+      "strongest_evidence": "Live Arts and Capital Hilton bundles expose explicit receipt gates, blocker lists, and safe action payloads."
     },
     {
+      "biggest_gap": "Bridge mirror/Mac-local availability remains partial or unavailable.",
       "category": "Data Access",
+      "confidence": "MEDIUM_HIGH",
+      "fastest_improvement": "Repair bridge mirror and refresh resolver output.",
+      "freshness_notes": "Data-access score is valid only while input_manifest hashes match current files.",
       "max_score": 5.0,
       "rationale": "Registries, resolver, wiki, invoice bundles, and supervision read-models exist; bridge mirror and Mac-local paths remain unavailable or partial.",
       "score": 3.5,
@@ -575,10 +740,15 @@
           "path": "generated/read_models/openclaw_context_wiki_index.json"
         }
       ],
-      "status": "GOOD_LOCAL_READ_MODELS_BRIDGE_PARTIAL"
+      "status": "GOOD_LOCAL_READ_MODELS_BRIDGE_PARTIAL",
+      "strongest_evidence": "Estate topology, Reference Resolver, Change Sentinel, Context Wiki, and Service Supervision read-models are present."
     },
     {
+      "biggest_gap": "Mac helper permission architecture remains unresolved and must preserve the same boundary.",
       "category": "Authority",
+      "confidence": "MEDIUM_HIGH",
+      "fastest_improvement": "Add helper contract tests that prove scoped export only.",
+      "freshness_notes": "Authority score should be rechecked whenever Live Arts package or service supervision hashes change.",
       "max_score": 5.0,
       "rationale": "Business read-models and supervision carry no-live-action flags; Mac export package is scoped and no ledger/email/browser/workbook-cell authority is granted.",
       "score": 4.5,
@@ -592,10 +762,15 @@
           "path": "generated/read_models/openclaw_service_supervision.json"
         }
       ],
-      "status": "STRONG_DEFAULT_DENY"
+      "status": "STRONG_DEFAULT_DENY",
+      "strongest_evidence": "Mac PDF package denies email, Gmail, browser, Coupa, ledger, and workbook cell reads."
     },
     {
+      "biggest_gap": "Business-object end-to-end evals are still missing.",
       "category": "Evals",
+      "confidence": "MEDIUM_HIGH",
+      "fastest_improvement": "Add synthetic result-intake and attachment-promotion tests without executing PDF export.",
+      "freshness_notes": "Eval score is less volatile than workflow state, but should be refreshed when source/test files change.",
       "max_score": 5.0,
       "rationale": "Registry and monitor tests exist, but business-object end-to-end evals for Mac helper, PDF result intake, attachment promotion, manual proof, payment watch, and Capital Hilton proof are still missing.",
       "score": 2.5,
@@ -609,16 +784,21 @@
           "path": "tests/test_openclaw_service_supervision.py"
         }
       ],
-      "status": "FOCUSED_TESTS_PRESENT_END_TO_END_GAPS"
+      "status": "FOCUSED_TESTS_PRESENT_END_TO_END_GAPS",
+      "strongest_evidence": "Focused tests exist for wiki, resolver, sentinel, service supervision, and this audit."
     },
     {
+      "biggest_gap": "Stale generated views can persist unless their input hashes are checked.",
       "category": "Audit Trails & Recovery",
+      "confidence": "MEDIUM_HIGH",
+      "fastest_improvement": "Use this audit freshness contract and sentinel stale-audit detection.",
+      "freshness_notes": "Audit-trail score depends directly on sentinel/reference resolver freshness signals.",
       "max_score": 5.0,
       "rationale": "Reference resolver, sentinel, service supervision, receipts, and invalid artifact guardrails are strong; stale Hermes/wiki claims and missing bridge mirror still need recovery paths.",
       "score": 4.0,
       "source_refs": [
         {
-          "note": "Sentinel run_status=MATERIAL_CHANGE_DETECTED.",
+          "note": "Sentinel run_status=NO_MATERIAL_CHANGE.",
           "path": "generated/read_models/openclaw_change_sentinel.json"
         },
         {
@@ -626,10 +806,15 @@
           "path": "generated/read_models/live_arts_md_invoice_review_bundle.json"
         }
       ],
-      "status": "GOOD_RECEIPTS_AND_MONITORS_STALE_VIEWS"
+      "status": "GOOD_RECEIPTS_AND_MONITORS_STALE_VIEWS",
+      "strongest_evidence": "Change Sentinel and Service Supervision are active read-model sources; invalid artifact guardrails are explicit."
     },
     {
+      "biggest_gap": "Actual Mac export result and attachment promotion are still missing.",
       "category": "Business Object Proximity",
+      "confidence": "MEDIUM_HIGH",
+      "fastest_improvement": "Complete safe Mac helper export trial and result-intake evals.",
+      "freshness_notes": "Business proximity can change quickly as workflow receipts arrive; stale input hashes invalidate this score.",
       "max_score": 5.0,
       "rationale": "Live Arts has selected invoice and a scoped Mac PDF package ready, but attachment, recipient, approval, proof, payment, and ledger states remain gated; Capital Hilton is still selection/proof blocked.",
       "score": 3.5,
@@ -643,14 +828,62 @@
           "path": "generated/read_models/invoice_review_bundle.json"
         }
       ],
-      "status": "LIVE_ARTS_CLOSE_CAPITAL_HILTON_FARTHER"
+      "status": "LIVE_ARTS_CLOSE_CAPITAL_HILTON_FARTHER",
+      "strongest_evidence": "Live Arts selected invoice and scoped PDF package are present in the current bundle."
     }
   ],
   "services_restarted": false,
   "services_started": false,
+  "source_refs": [
+    {
+      "note": "estate_topology",
+      "path": "generated/read_models/openclaw_estate_topology_registry.json"
+    },
+    {
+      "note": "reference_resolver",
+      "path": "generated/read_models/openclaw_reference_resolver.json"
+    },
+    {
+      "note": "change_sentinel",
+      "path": "generated/read_models/openclaw_change_sentinel.json"
+    },
+    {
+      "note": "context_wiki_index",
+      "path": "generated/read_models/openclaw_context_wiki_index.json"
+    },
+    {
+      "note": "live_arts_bundle",
+      "path": "generated/read_models/live_arts_md_invoice_review_bundle.json"
+    },
+    {
+      "note": "capital_hilton_bundle",
+      "path": "generated/read_models/invoice_review_bundle.json"
+    },
+    {
+      "note": "hermes_mission_sentinel",
+      "path": "generated/read_models/hermes_mission_sentinel.json"
+    },
+    {
+      "note": "hermes_chief_build_handoff",
+      "path": "generated/read_models/hermes_chief_build_handoff.json"
+    },
+    {
+      "note": "purpose_bound_automation_charter",
+      "path": "generated/read_models/purpose_bound_automation_charter.json"
+    },
+    {
+      "note": "hermes_gravity_controller",
+      "path": "generated/read_models/hermes_gravity_controller.json"
+    },
+    {
+      "note": "service_supervision",
+      "path": "generated/read_models/openclaw_service_supervision.json"
+    }
+  ],
   "source_truth_policy": {
     "current_registries_and_read_models_are_inputs": true,
     "generated_wiki_is_view_only": true,
+    "manual_edit_source_truth_allowed": false,
     "prior_audit_paths_compared": [],
     "prior_audit_used_as_source_truth": false
   },
@@ -737,6 +970,7 @@
       "stale_or_conflicting_claim": "Ledger posting can proceed after invoice package readiness."
     }
   ],
+  "stale_reasons": [],
   "top_gaps": [
     {
       "build_bucket": "Now",

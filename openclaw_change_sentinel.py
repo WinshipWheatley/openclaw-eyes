@@ -48,6 +48,7 @@ INPUT_READ_MODELS = {
     "capital_hilton_bundle": "invoice_review_bundle.json",
     "sync_health": "sync_health.json",
     "request_response_service_status": "openclaw_request_response_service_status.json",
+    "business_object_audit": "openclaw_business_object_layer_audit.json",
 }
 
 STATUS_VALUES = (
@@ -59,6 +60,7 @@ STATUS_VALUES = (
     "REPO_DIRTY",
     "REMOTE_REF_MOVED",
     "WORKFLOW_STATE_CHANGED",
+    "BUSINESS_OBJECT_AUDIT_STALE",
     "ACTION_REQUIRED",
     "UNKNOWN",
 )
@@ -103,6 +105,7 @@ CHANGE_STATUS_PRIORITY = (
     "REMOTE_REF_MOVED",
     "REPO_DIRTY",
     "WORKFLOW_STATE_CHANGED",
+    "BUSINESS_OBJECT_AUDIT_STALE",
     "ACTION_REQUIRED",
     "MATERIAL_CHANGE_DETECTED",
 )
@@ -158,6 +161,14 @@ def _require_status(status: str) -> str:
 def _fingerprint(payload: Any) -> str:
     digest = hashlib.sha256(stable_json(payload).encode("utf-8")).hexdigest()
     return "sha256:" + digest
+
+
+def _sha256_file(path: str | Path) -> str:
+    digest = hashlib.sha256()
+    with Path(path).open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return "sha256:" + digest.hexdigest()
 
 
 def _read_json_object(path: str | Path) -> dict[str, Any]:
@@ -545,6 +556,94 @@ def _sync_health_targets(
     ]
 
 
+def _audit_manifest_path(path_value: str, *, read_model_root: str | Path) -> Path:
+    candidate = Path(path_value)
+    if candidate.is_absolute():
+        return candidate
+    root = _rooted(read_model_root)
+    prefix = "generated/read_models/"
+    if path_value.startswith(prefix):
+        return root / path_value[len(prefix):]
+    return _rooted(path_value)
+
+
+def _business_object_audit_targets(
+    payload: dict[str, Any],
+    *,
+    read_model_root: str | Path,
+    source_path: str,
+    observed_at: str,
+) -> list[dict[str, Any]]:
+    if not payload:
+        return []
+    manifest = payload.get("input_manifest", [])
+    if not isinstance(manifest, list):
+        manifest = []
+    mismatched_inputs: list[str] = []
+    missing_required_inputs: list[str] = []
+    recorded_hashes: dict[str, str] = {}
+    current_hashes: dict[str, str] = {}
+    skipped_inputs: list[str] = []
+    for row in manifest:
+        if not isinstance(row, dict):
+            continue
+        input_ref = str(row.get("input_ref", ""))
+        # Avoid a self-observation loop: the sentinel file is an audit input,
+        # and this sentinel also watches the audit.
+        if input_ref == "change_sentinel":
+            skipped_inputs.append(input_ref)
+            continue
+        path_value = str(row.get("path", ""))
+        path = _audit_manifest_path(path_value, read_model_root=read_model_root)
+        recorded = str(row.get("sha256", ""))
+        current = _sha256_file(path) if path.is_file() else ""
+        recorded_hashes[input_ref] = recorded
+        current_hashes[input_ref] = current
+        if row.get("required") and not path.is_file():
+            missing_required_inputs.append(input_ref)
+        elif recorded and current and recorded != current:
+            mismatched_inputs.append(input_ref)
+    freshness_status = str(payload.get("freshness_status", "UNKNOWN"))
+    stale = (
+        freshness_status != "FRESH"
+        or bool(mismatched_inputs)
+        or bool(missing_required_inputs)
+    )
+    observation_status = "BUSINESS_OBJECT_AUDIT_STALE" if stale else "NO_MATERIAL_CHANGE"
+    reason = ""
+    if stale:
+        reasons = []
+        if freshness_status != "FRESH":
+            reasons.append(f"audit freshness_status={freshness_status}")
+        if mismatched_inputs:
+            reasons.append("input hash mismatch: " + ", ".join(mismatched_inputs))
+        if missing_required_inputs:
+            reasons.append("required input missing: " + ", ".join(missing_required_inputs))
+        reason = "; ".join(reasons)
+    observed_payload = {
+        "freshness_status": freshness_status,
+        "fresh_for_minutes": payload.get("fresh_for_minutes", ""),
+        "mismatched_inputs": mismatched_inputs,
+        "missing_required_inputs": missing_required_inputs,
+        "recorded_hashes": recorded_hashes,
+        "current_hashes": current_hashes,
+        "skipped_self_referential_inputs": skipped_inputs,
+        "recommended_command": "python3 scripts/export_openclaw_business_object_layer_audit.py",
+    }
+    return [
+        _target_row(
+            target_ref="business_object_audit:freshness",
+            target_type="BUSINESS_OBJECT_AUDIT",
+            source_path=source_path,
+            observation_status=observation_status,
+            observed_value=freshness_status if not stale else "STALE",
+            observed_payload=observed_payload,
+            observed_at=observed_at,
+            unreachable_reason=reason,
+        )
+    ]
+
+
 def read_systemd_service_snapshot(
     *,
     service_name: str = SERVICE_NAME,
@@ -689,6 +788,14 @@ def collect_observed_targets(
                 observed_at=observed_at,
             )
         )
+    rows.extend(
+        _business_object_audit_targets(
+            payloads["business_object_audit"],
+            read_model_root=read_root,
+            source_path=_display_path(read_root / INPUT_READ_MODELS["business_object_audit"]),
+            observed_at=observed_at,
+        )
+    )
     if include_systemd:
         snapshot = systemd_snapshot if systemd_snapshot is not None else read_systemd_service_snapshot()
         rows.extend(_service_targets(snapshot, observed_at=observed_at))
@@ -736,6 +843,8 @@ def _change_status(current: dict[str, Any], previous: dict[str, Any]) -> str:
         return "ACTION_REQUIRED" if after > before else "MATERIAL_CHANGE_DETECTED"
     if target_type == "MAC_HEARTBEAT":
         return "BRIDGE_STALE"
+    if target_type == "BUSINESS_OBJECT_AUDIT":
+        return "BUSINESS_OBJECT_AUDIT_STALE"
     return "MATERIAL_CHANGE_DETECTED"
 
 
@@ -811,7 +920,11 @@ def _material_change_rows(changes: list[dict[str, Any]]) -> list[dict[str, Any]]
     rows: list[dict[str, Any]] = []
     for change in changes:
         status = change["change_status"]
-        severity = "HIGH" if status in {"SERVICE_UNSTABLE", "DRIFT_DETECTED"} else "MEDIUM"
+        severity = (
+            "HIGH"
+            if status in {"SERVICE_UNSTABLE", "DRIFT_DETECTED", "BUSINESS_OBJECT_AUDIT_STALE"}
+            else "MEDIUM"
+        )
         rows.append(
             {
                 "material_ref": f"material:{change['target_ref']}",
@@ -826,9 +939,11 @@ def _material_change_rows(changes: list[dict[str, Any]]) -> list[dict[str, Any]]
                     "BRIDGE_STALE",
                     "REPO_DIRTY",
                     "REMOTE_REF_MOVED",
+                    "BUSINESS_OBJECT_AUDIT_STALE",
                     "ACTION_REQUIRED",
                 },
-                "can_wait": status not in {"SERVICE_UNSTABLE", "DRIFT_DETECTED"},
+                "can_wait": status
+                not in {"SERVICE_UNSTABLE", "DRIFT_DETECTED", "BUSINESS_OBJECT_AUDIT_STALE"},
             }
         )
     return rows
@@ -848,6 +963,9 @@ def _recommended_action_for_material(material: dict[str, Any]) -> dict[str, Any]
     elif status in {"DRIFT_DETECTED", "BRIDGE_STALE"}:
         title = "Review source/bridge read-model drift"
         validation = "python3 scripts/export_openclaw_reference_resolver.py --format summary"
+    elif status == "BUSINESS_OBJECT_AUDIT_STALE":
+        title = "Regenerate business-object layer audit from current inputs"
+        validation = "python3 scripts/export_openclaw_business_object_layer_audit.py"
     elif status == "WORKFLOW_STATE_CHANGED":
         title = "Review workflow read-model change"
         validation = "python3 scripts/export_openclaw_change_sentinel.py --format operator"

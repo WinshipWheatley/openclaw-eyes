@@ -196,7 +196,17 @@ def test_audit_has_required_scorecard_and_inventory(tmp_path):
 
     assert {row["category"] for row in payload["scorecard"]} == set(audit.SCORE_CATEGORIES)
     assert {row["object_name"] for row in payload["business_objects"]} == set(audit.BUSINESS_OBJECT_NAMES)
+    assert payload["freshness_status"] == "FRESH"
+    assert payload["fresh_for_minutes"] == audit.DEFAULT_FRESH_FOR_MINUTES
+    assert set(payload["input_hashes"]) == {row[0] for row in audit.AUDIT_INPUT_SPECS}
     assert payload["readiness"] == "READY_FOR_BUILD_PLANNING_NOT_EXECUTION"
+    for row in payload["scorecard"]:
+        assert row["confidence"]
+        assert row["strongest_evidence"]
+        assert row["biggest_gap"]
+        assert row["fastest_improvement"]
+        assert row["source_refs"]
+        assert row["freshness_notes"]
 
 
 def test_audit_corrects_stale_live_arts_and_registry_claims(tmp_path):
@@ -217,6 +227,73 @@ def test_audit_corrects_stale_live_arts_and_registry_claims(tmp_path):
     assert "2026-1001" in corrections["live_arts_candidate_unselected"]["corrected_current_claim"]
     assert corrections["openclaw_eyes_registry_canonical_main"]["correction_status"] == "CONFLICT_RECORDED_UPSTREAM_REFRESH_REQUIRED"
     assert branch_object["implementation_status"] == "PRESENT_ON_REVIEW_BRANCH_PENDING_REVIEW"
+    assert "CANONICAL" not in branch_object["implementation_status"]
+
+
+def test_missing_required_input_marks_audit_stale(tmp_path):
+    read_root = tmp_path / "generated" / "read_models"
+    wiki_root = tmp_path / "generated" / "wiki" / "openclaw"
+    _fixtures(read_root, wiki_root)
+    (read_root / "openclaw_context_wiki_index.json").unlink()
+
+    payload = audit.build_openclaw_business_object_layer_audit(
+        read_model_root=read_root,
+        wiki_root=wiki_root,
+        generated_at=FIXED_NOW,
+    )
+
+    manifest = {row["input_ref"]: row for row in payload["input_manifest"]}
+    assert payload["freshness_status"] == "STALE_MISSING_INPUT"
+    assert payload["readiness"] == "STALE_INPUTS_REGENERATION_REQUIRED"
+    assert manifest["context_wiki_index"]["status"] == "MISSING"
+    assert "context_wiki_index" in payload["missing_inputs"]
+    assert {row["confidence"] for row in payload["scorecard"]} == {"LOW"}
+
+
+def test_changed_input_hash_marks_prior_audit_stale(tmp_path):
+    read_root = tmp_path / "generated" / "read_models"
+    wiki_root = tmp_path / "generated" / "wiki" / "openclaw"
+    _fixtures(read_root, wiki_root)
+    payload = audit.build_openclaw_business_object_layer_audit(
+        read_model_root=read_root,
+        wiki_root=wiki_root,
+        generated_at=FIXED_NOW,
+    )
+    live_path = read_root / "live_arts_md_invoice_review_bundle.json"
+    live_payload = json.loads(live_path.read_text(encoding="utf-8"))
+    live_payload["live_arts_md_bundle"]["candidate_selection_rail"][
+        "selected_invoice_summary"
+    ] = "2026-1001 - updated summary"
+    _write_json(live_path, live_payload)
+
+    freshness = audit.assess_audit_freshness(
+        payload,
+        read_model_root=read_root,
+        now=FIXED_NOW,
+    )
+
+    assert freshness["freshness_status"] == "STALE_INPUT_CHANGED"
+    assert "live_arts_bundle" in freshness["changed_inputs"]
+
+
+def test_present_registry_objects_are_not_marked_missing(tmp_path):
+    read_root = tmp_path / "generated" / "read_models"
+    wiki_root = tmp_path / "generated" / "wiki" / "openclaw"
+    _fixtures(read_root, wiki_root)
+
+    payload = audit.build_openclaw_business_object_layer_audit(
+        read_model_root=read_root,
+        wiki_root=wiki_root,
+        generated_at=FIXED_NOW,
+    )
+    objects = {row["object_name"]: row for row in payload["business_objects"]}
+    for object_name in (
+        "reference resolver",
+        "change sentinel",
+        "estate topology registry",
+        "context wiki",
+    ):
+        assert objects[object_name]["implementation_status"] not in {"MISSING", "UNKNOWN"}
 
 
 def test_export_writes_json_operator_and_sqlite(tmp_path, capsys):
@@ -235,13 +312,23 @@ def test_export_writes_json_operator_and_sqlite(tmp_path, capsys):
     json_path = read_root / audit.JSON_EXPORT_NAME
     sqlite_path = system_root / audit.SQLITE_EXPORT_NAME
     assert result.business_object_count == len(audit.BUSINESS_OBJECT_NAMES)
+    assert result.freshness_status == "FRESH"
     assert json.loads(json_path.read_text(encoding="utf-8"))["schema_version"] == audit.READ_MODEL_VERSION
     assert (read_root / audit.OPERATOR_EXPORT_NAME).exists()
+    assert (system_root / audit.SCHEMA_EXPORT_NAME).exists()
+    assert (system_root / audit.SEED_EXPORT_NAME).exists()
 
     connection = sqlite3.connect(sqlite_path)
     try:
         assert connection.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
-        assert connection.execute("SELECT COUNT(*) FROM business_object").fetchone()[0] == len(audit.BUSINESS_OBJECT_NAMES)
+        tables = {
+            row[0]
+            for row in connection.execute("SELECT name FROM sqlite_master WHERE type = 'table'")
+        }
+        assert set(audit.REQUIRED_SQLITE_TABLES).issubset(tables)
+        assert connection.execute(
+            "SELECT COUNT(*) FROM business_object_inventory"
+        ).fetchone()[0] == len(audit.BUSINESS_OBJECT_NAMES)
     finally:
         connection.close()
 

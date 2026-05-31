@@ -11,11 +11,12 @@ from __future__ import annotations
 
 import argparse
 import glob
+import hashlib
 import json
 import sqlite3
 import sys
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -30,6 +31,43 @@ READ_MODEL_VERSION = "openclaw_business_object_layer_audit_read_model_v0"
 JSON_EXPORT_NAME = "openclaw_business_object_layer_audit.json"
 OPERATOR_EXPORT_NAME = "openclaw_business_object_layer_audit_OPERATOR.md"
 SQLITE_EXPORT_NAME = "openclaw_business_object_layer_audit.sqlite"
+SCHEMA_EXPORT_NAME = "openclaw_business_object_layer_audit_SCHEMA.sql"
+SEED_EXPORT_NAME = "openclaw_business_object_layer_audit_SEED.sql"
+
+DEFAULT_FRESH_FOR_MINUTES = 60
+
+FRESHNESS_STATUSES = (
+    "FRESH",
+    "STALE_INPUT_CHANGED",
+    "STALE_TTL_EXPIRED",
+    "STALE_MISSING_INPUT",
+    "STALE_DEPENDENCY_DRIFT",
+    "UNKNOWN",
+)
+
+REQUIRED_SQLITE_TABLES = (
+    "audit_run",
+    "audit_input",
+    "audit_category_score",
+    "business_object_inventory",
+    "audit_gap",
+    "audit_recommended_action",
+    "audit_freshness_signal",
+)
+
+AUDIT_INPUT_SPECS = (
+    ("estate_topology", "generated/read_models/openclaw_estate_topology_registry.json", True),
+    ("reference_resolver", "generated/read_models/openclaw_reference_resolver.json", True),
+    ("change_sentinel", "generated/read_models/openclaw_change_sentinel.json", True),
+    ("context_wiki_index", "generated/read_models/openclaw_context_wiki_index.json", True),
+    ("live_arts_bundle", "generated/read_models/live_arts_md_invoice_review_bundle.json", True),
+    ("capital_hilton_bundle", "generated/read_models/invoice_review_bundle.json", True),
+    ("hermes_mission_sentinel", "generated/read_models/hermes_mission_sentinel.json", False),
+    ("hermes_chief_build_handoff", "generated/read_models/hermes_chief_build_handoff.json", False),
+    ("purpose_bound_automation_charter", "generated/read_models/purpose_bound_automation_charter.json", False),
+    ("hermes_gravity_controller", "generated/read_models/hermes_gravity_controller.json", False),
+    ("service_supervision", "generated/read_models/openclaw_service_supervision.json", False),
+)
 
 SCORE_CATEGORIES = (
     "Workflow Design",
@@ -85,10 +123,13 @@ class BusinessObjectLayerAuditExportResult:
     json_path: str
     operator_path: str
     sqlite_path: str
+    schema_sql_path: str
+    seed_sql_path: str
     score_count: int
     business_object_count: int
     gap_count: int
     missing_eval_count: int
+    freshness_status: str
     readiness: str
 
 
@@ -98,6 +139,12 @@ def utc_now() -> str:
 
 def stable_json(payload: Any) -> str:
     return json.dumps(payload, indent=2, sort_keys=True) + "\n"
+
+
+def _require_freshness_status(status: str) -> str:
+    if status not in FRESHNESS_STATUSES:
+        raise ValueError(f"unknown audit freshness status: {status}")
+    return status
 
 
 def _rooted(path: str | Path, *, root: str | Path = ROOT) -> Path:
@@ -123,6 +170,27 @@ def _read_json(path: Path) -> dict[str, Any]:
     return payload if isinstance(payload, dict) else {}
 
 
+def sha256_file(path: str | Path) -> str:
+    digest = hashlib.sha256()
+    with Path(path).open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return "sha256:" + digest.hexdigest()
+
+
+def parse_timestamp(value: str) -> datetime | None:
+    if not value:
+        return None
+    try:
+        normalized = value.replace("Z", "+00:00")
+        parsed = datetime.fromisoformat(normalized)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
 def _nested(payload: dict[str, Any], *keys: str, default: Any = None) -> Any:
     current: Any = payload
     for key in keys:
@@ -138,6 +206,129 @@ def _existing(path: str | Path) -> bool:
     return _rooted(path).exists()
 
 
+def _manifest_path(path_value: str, *, read_model_root: str | Path) -> Path:
+    candidate = Path(path_value)
+    if candidate.is_absolute():
+        return candidate
+    read_root = _rooted(read_model_root)
+    prefix = "generated/read_models/"
+    if path_value.startswith(prefix):
+        return read_root / path_value[len(prefix):]
+    return _rooted(path_value)
+
+
+def build_input_manifest(
+    *,
+    read_model_root: str | Path = DEFAULT_READ_MODEL_ROOT,
+) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for input_ref, path_value, required in AUDIT_INPUT_SPECS:
+        path = _manifest_path(path_value, read_model_root=read_model_root)
+        exists = path.is_file()
+        payload = _read_json(path) if exists else {}
+        rows.append(
+            {
+                "input_ref": input_ref,
+                "path": path_value,
+                "required": required,
+                "status": "PRESENT" if exists else "MISSING",
+                "sha256": sha256_file(path) if exists else "",
+                "schema_version": str(payload.get("schema_version", "")),
+                "generated_at": str(payload.get("generated_at", "")),
+                "source_ref": path_value,
+            }
+        )
+    return rows
+
+
+def _input_hashes(input_manifest: list[dict[str, Any]]) -> dict[str, str]:
+    return {row["input_ref"]: row.get("sha256", "") for row in input_manifest}
+
+
+def _missing_inputs(input_manifest: list[dict[str, Any]]) -> list[str]:
+    return [row["input_ref"] for row in input_manifest if row.get("status") == "MISSING"]
+
+
+def _required_missing_inputs(input_manifest: list[dict[str, Any]]) -> list[str]:
+    return [
+        row["input_ref"]
+        for row in input_manifest
+        if row.get("required") and row.get("status") == "MISSING"
+    ]
+
+
+def assess_audit_freshness(
+    audit_payload: dict[str, Any],
+    *,
+    read_model_root: str | Path = DEFAULT_READ_MODEL_ROOT,
+    now: str | None = None,
+) -> dict[str, Any]:
+    generated_at = str(audit_payload.get("generated_at", ""))
+    fresh_for_minutes = int(audit_payload.get("fresh_for_minutes") or DEFAULT_FRESH_FOR_MINUTES)
+    current_manifest = build_input_manifest(read_model_root=read_model_root)
+    recorded_hashes = audit_payload.get("input_hashes", {})
+    stale_reasons: list[str] = []
+    changed_inputs: list[str] = []
+    missing_required = _required_missing_inputs(current_manifest)
+    if missing_required:
+        stale_reasons.append("Required audit inputs are missing: " + ", ".join(missing_required))
+    for row in current_manifest:
+        input_ref = row["input_ref"]
+        recorded = recorded_hashes.get(input_ref, "")
+        current = row.get("sha256", "")
+        if row.get("status") == "PRESENT" and recorded and current and recorded != current:
+            changed_inputs.append(input_ref)
+    if changed_inputs:
+        stale_reasons.append("Audit input hashes changed: " + ", ".join(changed_inputs))
+    generated_dt = parse_timestamp(generated_at)
+    now_dt = parse_timestamp(now or utc_now())
+    ttl_expired = False
+    if generated_dt is None or now_dt is None:
+        stale_reasons.append("Audit timestamp could not be parsed.")
+        freshness_status = "UNKNOWN"
+    else:
+        ttl_expired = now_dt > generated_dt + timedelta(minutes=fresh_for_minutes)
+        freshness_status = "FRESH"
+    if missing_required:
+        freshness_status = "STALE_MISSING_INPUT"
+    elif changed_inputs:
+        freshness_status = "STALE_INPUT_CHANGED"
+    elif ttl_expired:
+        freshness_status = "STALE_TTL_EXPIRED"
+        stale_reasons.append(f"Audit TTL expired after {fresh_for_minutes} minutes.")
+    return {
+        "freshness_status": _require_freshness_status(freshness_status),
+        "generated_at": generated_at,
+        "fresh_for_minutes": fresh_for_minutes,
+        "input_manifest": current_manifest,
+        "input_hashes": _input_hashes(current_manifest),
+        "missing_inputs": _missing_inputs(current_manifest),
+        "changed_inputs": changed_inputs,
+        "stale_reasons": stale_reasons,
+    }
+
+
+def dependency_drift_signals(inputs: dict[str, Any], generated_at: str) -> list[str]:
+    reasons: list[str] = []
+    resolver = inputs["resolver"]
+    if int(resolver.get("drift_count") or 0) > 0:
+        reasons.append("Reference Resolver reports drift_count > 0.")
+    for resolution in resolver.get("reference_resolutions", []):
+        if resolution.get("resolved_status") == "DRIFT":
+            reasons.append(f"Reference Resolver reports DRIFT for {resolution.get('target_ref')}.")
+    sentinel = inputs["sentinel"]
+    sentinel_generated = parse_timestamp(str(sentinel.get("generated_at", "")))
+    audit_generated = parse_timestamp(generated_at)
+    if (
+        sentinel_generated is not None
+        and audit_generated is not None
+        and sentinel_generated > audit_generated
+        and int(sentinel.get("material_change_count") or 0) > 0
+    ):
+        reasons.append("Change Sentinel reports material changes after this audit timestamp.")
+    return reasons
+
+
 def collect_inputs(
     *,
     read_model_root: str | Path = DEFAULT_READ_MODEL_ROOT,
@@ -145,6 +336,7 @@ def collect_inputs(
 ) -> dict[str, Any]:
     read_root = _rooted(read_model_root)
     wiki = _rooted(wiki_root)
+    input_manifest = build_input_manifest(read_model_root=read_root)
     hermes_paths = sorted(read_root.glob("hermes_*.json"))
     wiki_paths = sorted(wiki.glob("*.md")) if wiki.exists() else []
     source_evidence = {
@@ -171,6 +363,7 @@ def collect_inputs(
         "hermes": {path.name: _read_json(path) for path in hermes_paths},
         "wiki_pages": [_display_path(path) for path in wiki_paths],
         "source_evidence": source_evidence,
+        "input_manifest": input_manifest,
     }
 
 
@@ -220,74 +413,106 @@ def build_scorecard(inputs: dict[str, Any]) -> list[dict[str, Any]]:
     resolver = inputs["resolver"]
     sentinel = inputs["sentinel"]
     wiki = inputs["wiki_index"]
+    missing_required = _required_missing_inputs(inputs.get("input_manifest", []))
+    default_confidence = "LOW" if missing_required else "MEDIUM_HIGH"
 
     scores = [
         {
             "category": "Workflow Design",
             "score": 4.0,
             "max_score": 5.0,
+            "confidence": default_confidence,
             "status": "STRONG_WITH_STALE_HANDOFFS",
             "rationale": "Live Arts and Capital Hilton have explicit rails, blockers, receipts, and safe actions, but Hermes/Chief still contains stale Live Arts candidate-selection blockers.",
+            "strongest_evidence": "Live Arts and Capital Hilton bundles expose explicit receipt gates, blocker lists, and safe action payloads.",
+            "biggest_gap": "Hermes/Chief handoff still carries stale Live Arts candidate-selection blockers.",
+            "fastest_improvement": "Regenerate Hermes/Chief posture from the confirmed 2026-1001 bundle state.",
             "source_refs": [
                 _source_ref("generated/read_models/live_arts_md_invoice_review_bundle.json", "Selected invoice and PDF package rails."),
                 _source_ref("generated/read_models/invoice_review_bundle.json", "Capital Hilton blocker and receipt rails."),
                 _source_ref("generated/read_models/hermes_mission_sentinel.json", "Stale candidate blocker still present."),
             ],
+            "freshness_notes": "Score confidence drops if any required audit input is missing; workflow score depends on current bundle and Hermes hashes.",
         },
         {
             "category": "Data Access",
             "score": 3.5,
             "max_score": 5.0,
+            "confidence": default_confidence,
             "status": "GOOD_LOCAL_READ_MODELS_BRIDGE_PARTIAL",
             "rationale": "Registries, resolver, wiki, invoice bundles, and supervision read-models exist; bridge mirror and Mac-local paths remain unavailable or partial.",
+            "strongest_evidence": "Estate topology, Reference Resolver, Change Sentinel, Context Wiki, and Service Supervision read-models are present.",
+            "biggest_gap": "Bridge mirror/Mac-local availability remains partial or unavailable.",
+            "fastest_improvement": "Repair bridge mirror and refresh resolver output.",
             "source_refs": [
                 _source_ref("generated/read_models/openclaw_reference_resolver.json", f"Resolver drift_count={resolver.get('drift_count', 'unknown')}."),
                 _source_ref("generated/read_models/openclaw_context_wiki_index.json", f"Wiki pages={len(wiki.get('pages', []))}."),
             ],
+            "freshness_notes": "Data-access score is valid only while input_manifest hashes match current files.",
         },
         {
             "category": "Authority",
             "score": 4.5,
             "max_score": 5.0,
+            "confidence": default_confidence,
             "status": "STRONG_DEFAULT_DENY",
             "rationale": "Business read-models and supervision carry no-live-action flags; Mac export package is scoped and no ledger/email/browser/workbook-cell authority is granted.",
+            "strongest_evidence": "Mac PDF package denies email, Gmail, browser, Coupa, ledger, and workbook cell reads.",
+            "biggest_gap": "Mac helper permission architecture remains unresolved and must preserve the same boundary.",
+            "fastest_improvement": "Add helper contract tests that prove scoped export only.",
             "source_refs": [
                 _source_ref("generated/read_models/live_arts_md_invoice_review_bundle.json", f"Mac package no_email={pdf.get('no_email_send')} no_ledger={pdf.get('no_ledger_post')}."),
                 _source_ref("generated/read_models/openclaw_service_supervision.json", f"Startup readiness={service.get('startup_readiness')}."),
             ],
+            "freshness_notes": "Authority score should be rechecked whenever Live Arts package or service supervision hashes change.",
         },
         {
             "category": "Evals",
             "score": 2.5,
             "max_score": 5.0,
+            "confidence": default_confidence,
             "status": "FOCUSED_TESTS_PRESENT_END_TO_END_GAPS",
             "rationale": "Registry and monitor tests exist, but business-object end-to-end evals for Mac helper, PDF result intake, attachment promotion, manual proof, payment watch, and Capital Hilton proof are still missing.",
+            "strongest_evidence": "Focused tests exist for wiki, resolver, sentinel, service supervision, and this audit.",
+            "biggest_gap": "Business-object end-to-end evals are still missing.",
+            "fastest_improvement": "Add synthetic result-intake and attachment-promotion tests without executing PDF export.",
             "source_refs": [
                 _source_ref("tests/test_openclaw_context_wiki_compiler.py", "Wiki compiler tests exist."),
                 _source_ref("tests/test_openclaw_service_supervision.py", "Service supervision tests exist."),
             ],
+            "freshness_notes": "Eval score is less volatile than workflow state, but should be refreshed when source/test files change.",
         },
         {
             "category": "Audit Trails & Recovery",
             "score": 4.0,
             "max_score": 5.0,
+            "confidence": default_confidence,
             "status": "GOOD_RECEIPTS_AND_MONITORS_STALE_VIEWS",
             "rationale": "Reference resolver, sentinel, service supervision, receipts, and invalid artifact guardrails are strong; stale Hermes/wiki claims and missing bridge mirror still need recovery paths.",
+            "strongest_evidence": "Change Sentinel and Service Supervision are active read-model sources; invalid artifact guardrails are explicit.",
+            "biggest_gap": "Stale generated views can persist unless their input hashes are checked.",
+            "fastest_improvement": "Use this audit freshness contract and sentinel stale-audit detection.",
             "source_refs": [
                 _source_ref("generated/read_models/openclaw_change_sentinel.json", f"Sentinel run_status={sentinel.get('run_status')}."),
                 _source_ref("generated/read_models/live_arts_md_invoice_review_bundle.json", "Invalid PDF placeholders are explicitly not trusted."),
             ],
+            "freshness_notes": "Audit-trail score depends directly on sentinel/reference resolver freshness signals.",
         },
         {
             "category": "Business Object Proximity",
             "score": 3.5,
             "max_score": 5.0,
+            "confidence": default_confidence,
             "status": "LIVE_ARTS_CLOSE_CAPITAL_HILTON_FARTHER",
             "rationale": "Live Arts has selected invoice and a scoped Mac PDF package ready, but attachment, recipient, approval, proof, payment, and ledger states remain gated; Capital Hilton is still selection/proof blocked.",
+            "strongest_evidence": "Live Arts selected invoice and scoped PDF package are present in the current bundle.",
+            "biggest_gap": "Actual Mac export result and attachment promotion are still missing.",
+            "fastest_improvement": "Complete safe Mac helper export trial and result-intake evals.",
             "source_refs": [
                 _source_ref("generated/read_models/live_arts_md_invoice_review_bundle.json", f"PDF package status={pdf.get('status')}."),
                 _source_ref("generated/read_models/invoice_review_bundle.json", f"Capital Hilton status={capital.get('status')}."),
             ],
+            "freshness_notes": "Business proximity can change quickly as workflow receipts arrive; stale input hashes invalidate this score.",
         },
     ]
     return scores
@@ -646,6 +871,63 @@ def build_hermes_chief_implications(inputs: dict[str, Any]) -> list[dict[str, st
     ]
 
 
+def build_audit_freshness_signals(
+    *,
+    input_manifest: list[dict[str, Any]],
+    freshness_status: str,
+    stale_reasons: list[str],
+    generated_at: str,
+) -> list[dict[str, str]]:
+    rows: list[dict[str, str]] = [
+        {
+            "signal_ref": "freshness:current",
+            "status": freshness_status,
+            "input_ref": "",
+            "reason": "Audit generated from current input manifest."
+            if freshness_status == "FRESH"
+            else "; ".join(stale_reasons),
+            "source_ref": "openclaw_business_object_layer_audit.py",
+            "observed_at": generated_at,
+        }
+    ]
+    for row in input_manifest:
+        if row.get("status") != "MISSING":
+            continue
+        reason = (
+            f"Required audit input {row['input_ref']} is missing."
+            if row.get("required")
+            else f"Optional audit input {row['input_ref']} is missing."
+        )
+        rows.append(
+            {
+                "signal_ref": f"missing_input:{row['input_ref']}",
+                "status": "STALE_MISSING_INPUT" if row.get("required") else "UNKNOWN",
+                "input_ref": str(row["input_ref"]),
+                "reason": reason,
+                "source_ref": str(row.get("path", "")),
+                "observed_at": generated_at,
+            }
+        )
+    for index, reason in enumerate(stale_reasons, start=1):
+        if "Reference Resolver" not in reason and "Change Sentinel" not in reason:
+            continue
+        rows.append(
+            {
+                "signal_ref": f"dependency_drift:{index}",
+                "status": "STALE_DEPENDENCY_DRIFT",
+                "input_ref": "reference_resolver"
+                if "Reference Resolver" in reason
+                else "change_sentinel",
+                "reason": reason,
+                "source_ref": "generated/read_models/openclaw_reference_resolver.json"
+                if "Reference Resolver" in reason
+                else "generated/read_models/openclaw_change_sentinel.json",
+                "observed_at": generated_at,
+            }
+        )
+    return rows
+
+
 def _prior_audit_paths(read_model_root: str | Path) -> list[str]:
     root = _rooted(read_model_root)
     paths = sorted(glob.glob(str(root / "*business*object*audit*.json")))
@@ -660,6 +942,29 @@ def build_openclaw_business_object_layer_audit(
 ) -> dict[str, Any]:
     generated = generated_at or utc_now()
     inputs = collect_inputs(read_model_root=read_model_root, wiki_root=wiki_root)
+    input_manifest = inputs["input_manifest"]
+    input_hashes = _input_hashes(input_manifest)
+    missing_inputs = _missing_inputs(input_manifest)
+    required_missing_inputs = _required_missing_inputs(input_manifest)
+    stale_reasons: list[str] = []
+    if required_missing_inputs:
+        stale_reasons.append(
+            "Required audit inputs are missing: " + ", ".join(required_missing_inputs)
+        )
+    stale_reasons.extend(dependency_drift_signals(inputs, generated))
+    if required_missing_inputs:
+        freshness_status = "STALE_MISSING_INPUT"
+    elif stale_reasons:
+        freshness_status = "STALE_DEPENDENCY_DRIFT"
+    else:
+        freshness_status = "FRESH"
+    freshness_status = _require_freshness_status(freshness_status)
+    freshness_signals = build_audit_freshness_signals(
+        input_manifest=input_manifest,
+        freshness_status=freshness_status,
+        stale_reasons=stale_reasons,
+        generated_at=generated,
+    )
     scorecard = build_scorecard(inputs)
     inventory = build_business_object_inventory(inputs)
     corrections = build_stale_claim_corrections(inputs)
@@ -668,18 +973,44 @@ def build_openclaw_business_object_layer_audit(
     missing_evals = build_missing_evals()
     hermes_implications = build_hermes_chief_implications(inputs)
     overall = round(sum(row["score"] for row in scorecard) / len(scorecard), 2)
-    readiness = "READY_FOR_BUILD_PLANNING_NOT_EXECUTION"
+    readiness = (
+        "READY_FOR_BUILD_PLANNING_NOT_EXECUTION"
+        if freshness_status == "FRESH"
+        else "STALE_INPUTS_REGENERATION_REQUIRED"
+    )
     return {
         "schema_version": READ_MODEL_VERSION,
         "contract_schema_version": SCHEMA_VERSION,
         "generated_by": "codex",
         "generated_at": generated,
+        "freshness_status": freshness_status,
+        "fresh_for_minutes": DEFAULT_FRESH_FOR_MINUTES,
+        "input_manifest": input_manifest,
+        "input_hashes": input_hashes,
+        "missing_inputs": missing_inputs,
+        "stale_reasons": stale_reasons,
+        "audit_freshness_signals": freshness_signals,
+        "source_refs": [
+            _source_ref(str(row["path"]), str(row["input_ref"]))
+            for row in input_manifest
+        ],
+        "freshness_model": {
+            "canonical_sources_store_stable_refs": True,
+            "generated_read_models_store_resolved_values": True,
+            "manual_edit_source_truth_allowed": False,
+            "hash_change_stales_prior_audit": True,
+            "required_missing_input_stales_audit": True,
+            "change_sentinel_material_change_after_generated_at_stales_audit": True,
+            "reference_resolver_drift_stales_audit": True,
+        },
+        "required_sqlite_tables": list(REQUIRED_SQLITE_TABLES),
         "purpose": "Refresh the business-object implementation layer audit from current registries/read-models without live actions.",
         "source_truth_policy": {
             "prior_audit_used_as_source_truth": False,
             "prior_audit_paths_compared": _prior_audit_paths(read_model_root),
             "current_registries_and_read_models_are_inputs": True,
             "generated_wiki_is_view_only": True,
+            "manual_edit_source_truth_allowed": False,
         },
         "readiness": readiness,
         "overall_score": overall,
@@ -712,26 +1043,48 @@ def build_openclaw_business_object_layer_audit(
 
 
 def sqlite_schema_sql() -> str:
-    return """CREATE TABLE audit_run (
+    statuses = ", ".join(f"'{status}'" for status in FRESHNESS_STATUSES)
+    freshness_check = f"CHECK(freshness_status IN ({statuses}))"
+    signal_status_check = f"CHECK(status IN ({statuses}))"
+    return f"""CREATE TABLE audit_run (
     run_ref TEXT PRIMARY KEY,
     generated_at TEXT NOT NULL,
+    freshness_status TEXT NOT NULL {freshness_check},
+    fresh_for_minutes INTEGER NOT NULL,
     readiness TEXT NOT NULL,
     overall_score REAL NOT NULL,
     business_object_count INTEGER NOT NULL,
     gap_count INTEGER NOT NULL,
-    missing_eval_count INTEGER NOT NULL
+    missing_eval_count INTEGER NOT NULL,
+    stale_reasons_json TEXT NOT NULL
 );
 
-CREATE TABLE scorecard (
+CREATE TABLE audit_input (
+    input_ref TEXT PRIMARY KEY,
+    path TEXT NOT NULL,
+    required INTEGER NOT NULL CHECK(required IN (0, 1)),
+    status TEXT NOT NULL,
+    sha256 TEXT NOT NULL,
+    schema_version TEXT NOT NULL,
+    generated_at TEXT NOT NULL,
+    source_ref TEXT NOT NULL
+);
+
+CREATE TABLE audit_category_score (
     category TEXT PRIMARY KEY,
     score REAL NOT NULL,
     max_score REAL NOT NULL,
+    confidence TEXT NOT NULL,
     status TEXT NOT NULL,
+    strongest_evidence TEXT NOT NULL,
+    biggest_gap TEXT NOT NULL,
+    fastest_improvement TEXT NOT NULL,
     rationale TEXT NOT NULL,
-    source_refs_json TEXT NOT NULL
+    source_refs_json TEXT NOT NULL,
+    freshness_notes TEXT NOT NULL
 );
 
-CREATE TABLE business_object (
+CREATE TABLE business_object_inventory (
     object_name TEXT PRIMARY KEY,
     implementation_status TEXT NOT NULL,
     business_object_proximity TEXT NOT NULL,
@@ -741,15 +1094,7 @@ CREATE TABLE business_object (
     source_refs_json TEXT NOT NULL
 );
 
-CREATE TABLE stale_claim_correction (
-    claim_ref TEXT PRIMARY KEY,
-    stale_or_conflicting_claim TEXT NOT NULL,
-    corrected_current_claim TEXT NOT NULL,
-    correction_status TEXT NOT NULL,
-    source_refs_json TEXT NOT NULL
-);
-
-CREATE TABLE top_gap (
+CREATE TABLE audit_gap (
     rank INTEGER PRIMARY KEY,
     gap_ref TEXT NOT NULL,
     gap TEXT NOT NULL,
@@ -758,26 +1103,120 @@ CREATE TABLE top_gap (
     build_bucket TEXT NOT NULL
 );
 
-CREATE TABLE build_order (
+CREATE TABLE audit_recommended_action (
+    action_ref TEXT PRIMARY KEY,
     bucket TEXT NOT NULL,
     rank INTEGER NOT NULL,
     task TEXT NOT NULL,
+    reason TEXT NOT NULL
+);
+
+CREATE TABLE audit_freshness_signal (
+    signal_ref TEXT PRIMARY KEY,
+    status TEXT NOT NULL {signal_status_check},
+    input_ref TEXT NOT NULL,
     reason TEXT NOT NULL,
-    PRIMARY KEY (bucket, rank)
-);
-
-CREATE TABLE missing_eval (
-    eval_ref TEXT PRIMARY KEY,
-    missing_eval TEXT NOT NULL,
-    status TEXT NOT NULL
-);
-
-CREATE TABLE hermes_chief_implication (
-    implication_ref TEXT PRIMARY KEY,
-    summary TEXT NOT NULL,
-    source_ref TEXT NOT NULL
+    source_ref TEXT NOT NULL,
+    observed_at TEXT NOT NULL
 );
 """
+
+
+def _bool(value: bool) -> int:
+    return 1 if value else 0
+
+
+def _rows_for_sqlite(payload: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
+    recommended_actions: list[dict[str, Any]] = []
+    for bucket, rows in payload["build_order"].items():
+        for rank, row in enumerate(rows, start=1):
+            recommended_actions.append(
+                {
+                    "action_ref": f"{bucket}:{rank}",
+                    "bucket": bucket,
+                    "rank": rank,
+                    "task": row["task"],
+                    "reason": row["reason"],
+                }
+            )
+    return {
+        "audit_run": [
+            {
+                "run_ref": "openclaw_business_object_layer_audit_run",
+                "generated_at": payload["generated_at"],
+                "freshness_status": payload["freshness_status"],
+                "fresh_for_minutes": payload["fresh_for_minutes"],
+                "readiness": payload["readiness"],
+                "overall_score": payload["overall_score"],
+                "business_object_count": len(payload["business_objects"]),
+                "gap_count": len(payload["top_gaps"]),
+                "missing_eval_count": len(payload["missing_evals"]),
+                "stale_reasons_json": stable_json(payload["stale_reasons"]).strip(),
+            }
+        ],
+        "audit_input": [
+            {
+                **row,
+                "required": _bool(bool(row["required"])),
+            }
+            for row in payload["input_manifest"]
+        ],
+        "audit_category_score": [
+            {
+                "category": row["category"],
+                "score": row["score"],
+                "max_score": row["max_score"],
+                "confidence": row["confidence"],
+                "status": row["status"],
+                "strongest_evidence": row["strongest_evidence"],
+                "biggest_gap": row["biggest_gap"],
+                "fastest_improvement": row["fastest_improvement"],
+                "rationale": row["rationale"],
+                "source_refs_json": stable_json(row["source_refs"]).strip(),
+                "freshness_notes": row["freshness_notes"],
+            }
+            for row in payload["scorecard"]
+        ],
+        "business_object_inventory": [
+            {
+                "object_name": row["object_name"],
+                "implementation_status": row["implementation_status"],
+                "business_object_proximity": row["business_object_proximity"],
+                "current_fact": str(row["current_fact"]),
+                "blockers_json": stable_json(row["blockers"]).strip(),
+                "next_safe_action": row["next_safe_action"],
+                "source_refs_json": stable_json(row["source_refs"]).strip(),
+            }
+            for row in payload["business_objects"]
+        ],
+        "audit_gap": payload["top_gaps"],
+        "audit_recommended_action": recommended_actions,
+        "audit_freshness_signal": payload["audit_freshness_signals"],
+    }
+
+
+def _sql_literal(value: Any) -> str:
+    if value is None:
+        return "NULL"
+    if isinstance(value, bool):
+        return "1" if value else "0"
+    if isinstance(value, (int, float)):
+        return str(value)
+    text = str(value).replace("'", "''")
+    return f"'{text}'"
+
+
+def sqlite_seed_sql(payload: dict[str, Any]) -> str:
+    rows_by_table = _rows_for_sqlite(payload)
+    statements: list[str] = []
+    for table in REQUIRED_SQLITE_TABLES:
+        for row in rows_by_table[table]:
+            columns = list(row)
+            statements.append(
+                f"INSERT INTO {table} ({', '.join(columns)}) "
+                f"VALUES ({', '.join(_sql_literal(row[column]) for column in columns)});"
+            )
+    return "\n".join(statements) + "\n"
 
 
 def _write_sqlite(path: str | Path, payload: dict[str, Any]) -> None:
@@ -785,85 +1224,18 @@ def _write_sqlite(path: str | Path, payload: dict[str, Any]) -> None:
     sqlite_path.parent.mkdir(parents=True, exist_ok=True)
     if sqlite_path.exists():
         sqlite_path.unlink()
+    rows_by_table = _rows_for_sqlite(payload)
     connection = sqlite3.connect(sqlite_path)
     try:
         connection.executescript(sqlite_schema_sql())
-        connection.execute(
-            "INSERT INTO audit_run VALUES (?, ?, ?, ?, ?, ?, ?)",
-            (
-                "openclaw_business_object_layer_audit_run",
-                payload["generated_at"],
-                payload["readiness"],
-                payload["overall_score"],
-                len(payload["business_objects"]),
-                len(payload["top_gaps"]),
-                len(payload["missing_evals"]),
-            ),
-        )
-        for row in payload["scorecard"]:
-            connection.execute(
-                "INSERT INTO scorecard VALUES (?, ?, ?, ?, ?, ?)",
-                (
-                    row["category"],
-                    row["score"],
-                    row["max_score"],
-                    row["status"],
-                    row["rationale"],
-                    stable_json(row["source_refs"]).strip(),
-                ),
-            )
-        for row in payload["business_objects"]:
-            connection.execute(
-                "INSERT INTO business_object VALUES (?, ?, ?, ?, ?, ?, ?)",
-                (
-                    row["object_name"],
-                    row["implementation_status"],
-                    row["business_object_proximity"],
-                    str(row["current_fact"]),
-                    stable_json(row["blockers"]).strip(),
-                    row["next_safe_action"],
-                    stable_json(row["source_refs"]).strip(),
-                ),
-            )
-        for row in payload["stale_claims_corrected"]:
-            connection.execute(
-                "INSERT INTO stale_claim_correction VALUES (?, ?, ?, ?, ?)",
-                (
-                    row["claim_ref"],
-                    row["stale_or_conflicting_claim"],
-                    row["corrected_current_claim"],
-                    row["correction_status"],
-                    stable_json(row["source_refs"]).strip(),
-                ),
-            )
-        for row in payload["top_gaps"]:
-            connection.execute(
-                "INSERT INTO top_gap VALUES (?, ?, ?, ?, ?, ?)",
-                (
-                    row["rank"],
-                    row["gap_ref"],
-                    row["gap"],
-                    row["severity"],
-                    row["owner_hint"],
-                    row["build_bucket"],
-                ),
-            )
-        for bucket, rows in payload["build_order"].items():
-            for rank, row in enumerate(rows, start=1):
+        for table in REQUIRED_SQLITE_TABLES:
+            for row in rows_by_table[table]:
+                columns = list(row)
+                placeholders = ", ".join("?" for _ in columns)
                 connection.execute(
-                    "INSERT INTO build_order VALUES (?, ?, ?, ?)",
-                    (bucket, rank, row["task"], row["reason"]),
+                    f"INSERT INTO {table} ({', '.join(columns)}) VALUES ({placeholders})",
+                    [row[column] for column in columns],
                 )
-        for row in payload["missing_evals"]:
-            connection.execute(
-                "INSERT INTO missing_eval VALUES (?, ?, ?)",
-                (row["eval_ref"], row["missing_eval"], row["status"]),
-            )
-        for row in payload["hermes_chief_implications"]:
-            connection.execute(
-                "INSERT INTO hermes_chief_implication VALUES (?, ?, ?)",
-                (row["implication_ref"], row["summary"], row["source_ref"]),
-            )
         connection.commit()
     finally:
         connection.close()
@@ -874,12 +1246,28 @@ def render_operator_summary(payload: dict[str, Any]) -> str:
         "# OpenClaw Business-Object Layer Audit",
         "",
         f"- Readiness: {payload['readiness']}",
+        f"- Freshness: {payload['freshness_status']} for {payload['fresh_for_minutes']} minutes",
         f"- Overall score: {payload['overall_score']} / 5.0",
         f"- Business objects: {len(payload['business_objects'])}",
         f"- Top gaps: {len(payload['top_gaps'])}",
         "",
-        "## Scores",
+        "## Freshness",
     ]
+    if payload["stale_reasons"]:
+        for reason in payload["stale_reasons"]:
+            lines.append(f"- {reason}")
+    else:
+        lines.append("- Required input hashes are recorded and currently matched at export time.")
+    missing_required = [
+        row["input_ref"]
+        for row in payload["input_manifest"]
+        if row.get("required") and row.get("status") == "MISSING"
+    ]
+    if missing_required:
+        lines.append(f"- Missing required inputs: {', '.join(missing_required)}")
+    lines.extend([
+        "## Scores",
+    ])
     for row in payload["scorecard"]:
         lines.append(f"- {row['category']}: {row['score']} / {row['max_score']} ({row['status']})")
     lines.extend(["", "## Stale Claims Corrected"])
@@ -916,18 +1304,25 @@ def export_openclaw_business_object_layer_audit(
     json_path = read_root / JSON_EXPORT_NAME
     operator_path = read_root / OPERATOR_EXPORT_NAME
     sqlite_path = system_root / SQLITE_EXPORT_NAME
+    schema_path = system_root / SCHEMA_EXPORT_NAME
+    seed_path = system_root / SEED_EXPORT_NAME
     json_path.write_text(stable_json(payload), encoding="utf-8")
     operator_path.write_text(render_operator_summary(payload), encoding="utf-8")
+    schema_path.write_text(sqlite_schema_sql(), encoding="utf-8")
+    seed_path.write_text(sqlite_seed_sql(payload), encoding="utf-8")
     _write_sqlite(sqlite_path, payload)
     return BusinessObjectLayerAuditExportResult(
         schema_version=READ_MODEL_VERSION,
         json_path=_display_path(json_path),
         operator_path=_display_path(operator_path),
         sqlite_path=_display_path(sqlite_path),
+        schema_sql_path=_display_path(schema_path),
+        seed_sql_path=_display_path(seed_path),
         score_count=len(payload["scorecard"]),
         business_object_count=len(payload["business_objects"]),
         gap_count=len(payload["top_gaps"]),
         missing_eval_count=len(payload["missing_evals"]),
+        freshness_status=payload["freshness_status"],
         readiness=payload["readiness"],
     )
 
@@ -941,7 +1336,7 @@ def _print_result(result: BusinessObjectLayerAuditExportResult, fmt: str, read_m
     else:
         print(
             "OpenClaw business-object layer audit: "
-            f"{result.readiness}; score_count={result.score_count}; "
+            f"{result.readiness}; freshness={result.freshness_status}; score_count={result.score_count}; "
             f"objects={result.business_object_count}; gaps={result.gap_count}"
         )
 
