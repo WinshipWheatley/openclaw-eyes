@@ -126,6 +126,7 @@
 !openclaw_business_object_layer_audit.py
 !openclaw_external_registry_materializer.py
 !openclaw_event_bridge_contract.py
+!openclaw_event_bridge_adapter.py
 !AGENTS.md
 !OPENCLAW_RUNTIME.md
 !USER.md
@@ -1000,6 +1001,7 @@
 !tests/test_operator_solve_path_decision_node_contract.py
 !tests/test_guided_capture_protected_evidence_path_contract.py
 !tests/test_openclaw_event_bridge_contract.py
+!tests/test_openclaw_event_bridge_adapter.py
 !tests/test_chief_offline_worker_adapter.py
 !tests/test_cassandra_clara_offline_worker_adapter.py
 !tests/test_reality_bounce_harness.py
