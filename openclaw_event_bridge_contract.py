@@ -148,6 +148,12 @@ WORKFLOW_PAYLOAD_SHAPE_REF = "openclaw_event_bridge.workflow_action_payload.v0"
 SIMPLE_INVOICE_EVENT_BRIDGE_PDF_ARTIFACT_RAIL_REF = "simple_invoice_event_bridge_pdf_artifact_rail_v0"
 SIMPLE_INVOICE_PREPARE_PDF_ACTION_KIND = "prepare_selected_invoice_pdf_artifact"
 SIMPLE_INVOICE_PDF_RESULT_ACTION_KIND = "selected_invoice_pdf_export_completed_candidate"
+SIMPLE_INVOICE_APPROVE_PDF_CANDIDATE_ACTION_KIND = "approve_pdf_candidate"
+SIMPLE_INVOICE_REJECT_PDF_CANDIDATE_ACTION_KIND = "reject_pdf_candidate"
+SIMPLE_INVOICE_PDF_CANDIDATE_DECISION_ACTION_KINDS = (
+    SIMPLE_INVOICE_APPROVE_PDF_CANDIDATE_ACTION_KIND,
+    SIMPLE_INVOICE_REJECT_PDF_CANDIDATE_ACTION_KIND,
+)
 WORKFLOW_PAYLOAD_FIELDS = (
     "payload_shape_ref",
     "authority_semantics_version",
@@ -195,6 +201,8 @@ AUTHORITY_BOUNDARY = {
     "coupa_access_allowed": False,
     "coupa_submit_allowed": False,
     "ledger_post_allowed": False,
+    "ledger_posting_allowed": False,
+    "portal_access_allowed": False,
     "workbook_body_read_allowed": False,
     "workbook_cell_read_allowed": False,
     "pdf_export_allowed": False,
@@ -228,6 +236,7 @@ PAYLOAD_FORBIDDEN_TRUE_KEYS = {
     "browser_allowed",
     "coupa_access_allowed",
     "coupa_submit_allowed",
+    "portal_access_allowed",
     "ledger_post_allowed",
     "ledger_posting_allowed",
     "workbook_cell_read_allowed",
@@ -591,6 +600,183 @@ def make_simple_invoice_pdf_candidate_result_event(
     )
 
 
+def make_simple_invoice_pdf_candidate_decision_event(
+    *,
+    action_kind: str,
+    client_ref: str,
+    workflow_ref: str,
+    thread_ref: str,
+    invoice_id: str,
+    candidate_ref: str,
+    candidate_sha256: str | None = None,
+    observed_page_count: int,
+    expected_page_count: int,
+    operator_visual_review: bool = True,
+    reason_code: str = "",
+    desired_page_known: bool | None = None,
+    observed_desired_pdf_page: int | None = None,
+    selected_sheet_label: str = "",
+    selected_invoice_amount: str | int = "",
+    client_display_name: str = "",
+    source_channel: str = "MAC_APP",
+    event_id: str | None = None,
+    parent_event_id: str = "",
+    actor_ref: str = "operator:winship",
+    created_at: str | None = None,
+    expires_at: str | None = None,
+) -> dict[str, Any]:
+    display_name = client_display_name or client_ref.replace("_", " ").title()
+    payload: dict[str, Any] = {
+        "rail_ref": SIMPLE_INVOICE_EVENT_BRIDGE_PDF_ARTIFACT_RAIL_REF,
+        "request_type": "INVOICE_REVIEW_ACTION_REQUEST",
+        "action_kind": action_kind,
+        "intended_use": action_kind,
+        "button_ref": f"{client_ref}.{action_kind}",
+        "workflow_payload_shape_ref": WORKFLOW_PAYLOAD_SHAPE_REF,
+        "invoice_id": invoice_id,
+        "candidate_ref": candidate_ref,
+        "observed_page_count": observed_page_count,
+        "expected_page_count": expected_page_count,
+        "operator_visual_review": operator_visual_review,
+        "client_display_name": display_name,
+        "decision_scope": "OPERATOR_DECISION_ONLY",
+        "preview_is_approval": False,
+        "approval_records_operator_decision_only": True,
+        "reject_records_operator_decision_only": True,
+        "approval_backend_package_generation_requires_backend_acceptance": True,
+        "reject_deletes_pdf": False,
+        "approve_sends_email": False,
+        "ledger_mutation_allowed": False,
+        "no_email_send": True,
+        "no_gmail": True,
+        "no_browser": True,
+        "no_ledger_post": True,
+        "no_coupa": True,
+        "no_workbook_cell_read": True,
+        "no_physical_printing": True,
+    }
+    if candidate_sha256 is not None:
+        payload["candidate_sha256"] = candidate_sha256
+    if reason_code:
+        payload["reason_code"] = reason_code
+    if desired_page_known is not None:
+        payload["desired_page_known"] = desired_page_known
+    if observed_desired_pdf_page is not None:
+        payload["observed_desired_pdf_page"] = observed_desired_pdf_page
+    if selected_sheet_label:
+        payload["selected_sheet_label"] = selected_sheet_label
+    if selected_invoice_amount:
+        payload["selected_invoice_amount"] = selected_invoice_amount
+    return make_event_envelope(
+        event_id=event_id,
+        event_kind="WORKFLOW_ACTION_REQUEST",
+        source_channel=source_channel,
+        client_ref=client_ref,
+        workflow_ref=workflow_ref,
+        world_ref="finance",
+        thread_ref=thread_ref,
+        actor_ref=actor_ref,
+        payload=payload,
+        parent_event_id=parent_event_id or f"current_{client_ref}_pdf_candidate_decision_action",
+        created_at=created_at,
+        expires_at=expires_at,
+        expected_response_kind="WORKFLOW_ACTION_RESPONSE",
+        result_receipt_required=True,
+    )
+
+
+def make_simple_invoice_approve_pdf_candidate_event(
+    *,
+    client_ref: str,
+    workflow_ref: str,
+    thread_ref: str,
+    invoice_id: str,
+    candidate_ref: str,
+    candidate_sha256: str,
+    observed_page_count: int,
+    expected_page_count: int,
+    selected_sheet_label: str = "",
+    selected_invoice_amount: str | int = "",
+    client_display_name: str = "",
+    source_channel: str = "MAC_APP",
+    event_id: str | None = None,
+    parent_event_id: str = "",
+    actor_ref: str = "operator:winship",
+    created_at: str | None = None,
+    expires_at: str | None = None,
+) -> dict[str, Any]:
+    return make_simple_invoice_pdf_candidate_decision_event(
+        action_kind=SIMPLE_INVOICE_APPROVE_PDF_CANDIDATE_ACTION_KIND,
+        client_ref=client_ref,
+        workflow_ref=workflow_ref,
+        thread_ref=thread_ref,
+        invoice_id=invoice_id,
+        candidate_ref=candidate_ref,
+        candidate_sha256=candidate_sha256,
+        observed_page_count=observed_page_count,
+        expected_page_count=expected_page_count,
+        operator_visual_review=True,
+        selected_sheet_label=selected_sheet_label,
+        selected_invoice_amount=selected_invoice_amount,
+        client_display_name=client_display_name,
+        source_channel=source_channel,
+        event_id=event_id,
+        parent_event_id=parent_event_id,
+        actor_ref=actor_ref,
+        created_at=created_at,
+        expires_at=expires_at,
+    )
+
+
+def make_simple_invoice_reject_pdf_candidate_event(
+    *,
+    client_ref: str,
+    workflow_ref: str,
+    thread_ref: str,
+    invoice_id: str,
+    candidate_ref: str,
+    candidate_sha256: str | None = None,
+    observed_page_count: int,
+    expected_page_count: int,
+    reason_code: str,
+    desired_page_known: bool | None = False,
+    observed_desired_pdf_page: int | None = None,
+    selected_sheet_label: str = "",
+    selected_invoice_amount: str | int = "",
+    client_display_name: str = "",
+    source_channel: str = "MAC_APP",
+    event_id: str | None = None,
+    parent_event_id: str = "",
+    actor_ref: str = "operator:winship",
+    created_at: str | None = None,
+    expires_at: str | None = None,
+) -> dict[str, Any]:
+    return make_simple_invoice_pdf_candidate_decision_event(
+        action_kind=SIMPLE_INVOICE_REJECT_PDF_CANDIDATE_ACTION_KIND,
+        client_ref=client_ref,
+        workflow_ref=workflow_ref,
+        thread_ref=thread_ref,
+        invoice_id=invoice_id,
+        candidate_ref=candidate_ref,
+        candidate_sha256=candidate_sha256,
+        observed_page_count=observed_page_count,
+        expected_page_count=expected_page_count,
+        operator_visual_review=True,
+        reason_code=reason_code,
+        desired_page_known=desired_page_known,
+        observed_desired_pdf_page=observed_desired_pdf_page,
+        selected_sheet_label=selected_sheet_label,
+        selected_invoice_amount=selected_invoice_amount,
+        client_display_name=client_display_name,
+        source_channel=source_channel,
+        event_id=event_id,
+        parent_event_id=parent_event_id,
+        actor_ref=actor_ref,
+        created_at=created_at,
+        expires_at=expires_at,
+    )
+
+
 def make_live_arts_prepare_pdf_event(
     *,
     source_channel: str = "MAC_APP",
@@ -645,6 +831,78 @@ def make_live_arts_pdf_candidate_result_event(
         receipt_ref="pdf_export_candidate_receipt:live_arts_md:2026-1001",
         client_display_name="Live Arts MD",
         parent_event_id="current_live_arts_md_prepare_pdf_action",
+        created_at=created_at,
+        expires_at=expires_at,
+    )
+
+
+def _live_arts_candidate_sha256() -> str:
+    return hashlib.sha256(b"live_arts_md:2026-1001:pdf_candidate:v0").hexdigest()
+
+
+def make_live_arts_approve_pdf_candidate_event(
+    *,
+    candidate_ref: str = "pdf_candidate:live_arts_md:2026-1001:operator_review",
+    candidate_sha256: str | None = None,
+    observed_page_count: int = 1,
+    expected_page_count: int = 1,
+    source_channel: str = "MAC_APP",
+    event_id: str | None = None,
+    created_at: str = "2026-05-31T14:03:00+00:00",
+    expires_at: str = "2026-05-31T14:08:00+00:00",
+) -> dict[str, Any]:
+    return make_simple_invoice_approve_pdf_candidate_event(
+        event_id=event_id,
+        source_channel=source_channel,
+        client_ref="live_arts_md",
+        workflow_ref="live_arts_md_invoice_workflow",
+        thread_ref="live_arts_md_invoice_workflow:2026-1001",
+        invoice_id="2026-1001",
+        candidate_ref=candidate_ref,
+        candidate_sha256=candidate_sha256 or _live_arts_candidate_sha256(),
+        observed_page_count=observed_page_count,
+        expected_page_count=expected_page_count,
+        selected_sheet_label="June 2026 Speaker Rental",
+        selected_invoice_amount=900,
+        client_display_name="Live Arts MD",
+        parent_event_id="current_live_arts_md_pdf_candidate_decision_action",
+        created_at=created_at,
+        expires_at=expires_at,
+    )
+
+
+def make_live_arts_reject_pdf_candidate_event(
+    *,
+    candidate_ref: str = "pdf_export_candidate_receipt:e4d6fc03cd5ca9fb",
+    candidate_sha256: str | None = None,
+    observed_page_count: int = 7,
+    expected_page_count: int = 1,
+    reason_code: str = "WRONG_EXPORT_SCOPE_WORKBOOK_INSTEAD_OF_SELECTED_INVOICE_PAGE",
+    desired_page_known: bool | None = False,
+    observed_desired_pdf_page: int | None = None,
+    source_channel: str = "MAC_APP",
+    event_id: str | None = None,
+    created_at: str = "2026-05-31T14:03:00+00:00",
+    expires_at: str = "2026-05-31T14:08:00+00:00",
+) -> dict[str, Any]:
+    return make_simple_invoice_reject_pdf_candidate_event(
+        event_id=event_id,
+        source_channel=source_channel,
+        client_ref="live_arts_md",
+        workflow_ref="live_arts_md_invoice_workflow",
+        thread_ref="live_arts_md_invoice_workflow:2026-1001",
+        invoice_id="2026-1001",
+        candidate_ref=candidate_ref,
+        candidate_sha256=candidate_sha256 or _live_arts_candidate_sha256(),
+        observed_page_count=observed_page_count,
+        expected_page_count=expected_page_count,
+        reason_code=reason_code,
+        desired_page_known=desired_page_known,
+        observed_desired_pdf_page=observed_desired_pdf_page,
+        selected_sheet_label="June 2026 Speaker Rental",
+        selected_invoice_amount=900,
+        client_display_name="Live Arts MD",
+        parent_event_id="current_live_arts_md_pdf_candidate_decision_action",
         created_at=created_at,
         expires_at=expires_at,
     )
@@ -712,6 +970,44 @@ def _simple_invoice_pdf_result_registration(
     )
 
 
+def _simple_invoice_pdf_candidate_decision_registration(
+    fixture: simple_invoice_workflow_fixtures.SimpleInvoiceClientFixture,
+    action_kind: str,
+) -> WorkflowActionRegistration:
+    approving = action_kind == SIMPLE_INVOICE_APPROVE_PDF_CANDIDATE_ACTION_KIND
+    decision_label = "approval" if approving else "rejection"
+    return WorkflowActionRegistration(
+        handler_id=f"invoice_review_action_request.{fixture.client_ref}",
+        handler_label=f"{fixture.client_display_name} PDF candidate {decision_label}",
+        action_kind=action_kind,
+        request_type="INVOICE_REVIEW_ACTION_REQUEST",
+        event_kinds=("WORKFLOW_ACTION_REQUEST",),
+        source_channels=("MAC_APP", "TELEGRAM"),
+        world_refs=("finance",),
+        workflow_refs=(fixture.workflow_ref,),
+        client_refs=(fixture.client_ref,),
+        structured_action_kind="RECORD_OPERATOR_PDF_CANDIDATE_DECISION",
+        expected_response_kind="WORKFLOW_ACTION_RESPONSE",
+        workflow_status="WORKFLOW_ACTION_ROUTED",
+        result_receipt_required=True,
+        required_receipts=("operator_pdf_candidate_decision_receipt",),
+        result_intended_use=(
+            "backend_accept_pdf_candidate_approval_before_package_generation"
+            if approving
+            else "backend_record_pdf_candidate_rejection_without_deleting_artifact"
+        ),
+        operator_copy=(
+            f"Routed {fixture.client_display_name} PDF candidate {decision_label} as an operator decision only. "
+            "Preview is not approval; no email, Gmail, browser, Coupa, ledger, PDF deletion, or send authority is present."
+        ),
+        next_safe_move=(
+            "Record the operator approval receipt; backend package generation remains locked until the backend accepts it."
+            if approving
+            else "Record the operator rejection receipt and keep the PDF artifact intact for audit/retry."
+        ),
+    )
+
+
 def default_workflow_action_registrations() -> tuple[WorkflowActionRegistration, ...]:
     simple_invoice_registrations = tuple(
         registration
@@ -721,8 +1017,24 @@ def default_workflow_action_registrations() -> tuple[WorkflowActionRegistration,
             _simple_invoice_pdf_result_registration(fixture),
         )
     )
+    live_arts_decision_registrations = tuple(
+        registration
+        for fixture in _simple_invoice_fixtures()
+        if fixture.client_ref == "live_arts_md"
+        for registration in (
+            _simple_invoice_pdf_candidate_decision_registration(
+                fixture,
+                SIMPLE_INVOICE_APPROVE_PDF_CANDIDATE_ACTION_KIND,
+            ),
+            _simple_invoice_pdf_candidate_decision_registration(
+                fixture,
+                SIMPLE_INVOICE_REJECT_PDF_CANDIDATE_ACTION_KIND,
+            ),
+        )
+    )
     return (
         *simple_invoice_registrations,
+        *live_arts_decision_registrations,
         WorkflowActionRegistration(
             handler_id="invoice_review_action_request.capital_hilton",
             handler_label="Capital Hilton invoice review guided action",
@@ -766,6 +1078,66 @@ def _action_kind(raw_event: Mapping[str, Any]) -> str:
             return value
     command = str(payload.get("command") or "").strip()
     return TELEGRAM_COMMAND_ACTIONS.get(command, "")
+
+
+def _positive_int(value: Any) -> int | None:
+    if isinstance(value, bool):
+        return None
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return None
+    return parsed if parsed > 0 else None
+
+
+def _pdf_candidate_decision_payload_errors(raw_event: Mapping[str, Any]) -> tuple[str, ...]:
+    action_kind = _action_kind(raw_event)
+    if action_kind not in SIMPLE_INVOICE_PDF_CANDIDATE_DECISION_ACTION_KINDS:
+        return ()
+    payload = raw_event.get("payload") if isinstance(raw_event.get("payload"), Mapping) else {}
+    authority = raw_event.get("authority_boundary") if isinstance(raw_event.get("authority_boundary"), Mapping) else {}
+    errors: list[str] = []
+    if str(raw_event.get("event_kind") or "") != "WORKFLOW_ACTION_REQUEST":
+        errors.append("PDF_CANDIDATE_DECISION_REQUIRES_WORKFLOW_ACTION_REQUEST")
+    for field in ("invoice_id", "candidate_ref"):
+        if not str(payload.get(field) or "").strip():
+            errors.append(f"MISSING_REQUIRED_ACTION_FIELD:{field}")
+    observed = _positive_int(payload.get("observed_page_count"))
+    expected = _positive_int(payload.get("expected_page_count"))
+    if observed is None:
+        errors.append("MISSING_REQUIRED_ACTION_FIELD:observed_page_count")
+    if expected is None:
+        errors.append("MISSING_REQUIRED_ACTION_FIELD:expected_page_count")
+    if payload.get("operator_visual_review") is not True:
+        errors.append("OPERATOR_VISUAL_REVIEW_REQUIRED")
+    for field in (
+        "email_send_allowed",
+        "ledger_posting_allowed",
+        "browser_access_allowed",
+        "portal_access_allowed",
+    ):
+        if authority.get(field) is not False:
+            errors.append(f"AUTHORITY_BOUNDARY_FIELD_NOT_FALSE:{field}")
+    if action_kind == SIMPLE_INVOICE_APPROVE_PDF_CANDIDATE_ACTION_KIND:
+        if not str(payload.get("candidate_sha256") or "").strip():
+            errors.append("MISSING_REQUIRED_ACTION_FIELD:candidate_sha256")
+        if observed is not None and expected is not None and observed != expected:
+            errors.append("PDF_CANDIDATE_PAGE_COUNT_MISMATCH")
+    if action_kind == SIMPLE_INVOICE_REJECT_PDF_CANDIDATE_ACTION_KIND:
+        if not str(payload.get("reason_code") or "").strip():
+            errors.append("MISSING_REQUIRED_ACTION_FIELD:reason_code")
+        desired_page_known = payload.get("desired_page_known")
+        observed_desired_page_present = "observed_desired_pdf_page" in payload
+        observed_desired_page = _positive_int(payload.get("observed_desired_pdf_page"))
+        if desired_page_known not in (None, True, False):
+            errors.append("INVALID_ACTION_FIELD:desired_page_known")
+        if desired_page_known is True and observed_desired_page is None:
+            errors.append("MISSING_REQUIRED_ACTION_FIELD:observed_desired_pdf_page")
+        if observed_desired_page_present and observed_desired_page is None:
+            errors.append("INVALID_ACTION_FIELD:observed_desired_pdf_page")
+        if desired_page_known is False and observed_desired_page_present:
+            errors.append("DESIRED_PAGE_UNKNOWN_BUT_OBSERVED_DESIRED_PDF_PAGE_PRESENT")
+    return tuple(errors)
 
 
 def _matches_scope(allowed: tuple[str, ...], actual: str) -> bool:
@@ -857,6 +1229,7 @@ def validate_event(
         key = path.rsplit(".", 1)[-1]
         if key in PAYLOAD_FORBIDDEN_TRUE_KEYS and value is True:
             errors.append(f"PAYLOAD_AUTHORITY_NOT_GRANTED:{path}")
+    errors.extend(_pdf_candidate_decision_payload_errors(raw_event))
 
     created_at = _parse_datetime(raw_event.get("created_at"))
     expires_at = _parse_datetime(raw_event.get("expires_at"))
@@ -1105,9 +1478,26 @@ def build_contract_payload(*, generated_at: str | None = None) -> dict[str, Any]
         expires_at=_default_expires_at(generated),
     )
     pdf_candidate_event = make_live_arts_pdf_candidate_result_event(created_at=generated, expires_at=_default_expires_at(generated))
+    approve_pdf_candidate_event = make_live_arts_approve_pdf_candidate_event(
+        created_at=generated,
+        expires_at=_default_expires_at(generated),
+    )
+    reject_pdf_candidate_event = make_live_arts_reject_pdf_candidate_event(
+        created_at=generated,
+        expires_at=_default_expires_at(generated),
+    )
+    mismatched_approval_event = make_live_arts_approve_pdf_candidate_event(
+        observed_page_count=1,
+        expected_page_count=2,
+        created_at=generated,
+        expires_at=_default_expires_at(generated),
+    )
     mac_response = route_event(mac_event, now=generated, registrations=registrations)
     telegram_response = route_event(telegram_event, now=generated, registrations=registrations)
     candidate_response = route_event(pdf_candidate_event, now=generated, registrations=registrations)
+    approve_pdf_candidate_response = route_event(approve_pdf_candidate_event, now=generated, registrations=registrations)
+    reject_pdf_candidate_response = route_event(reject_pdf_candidate_event, now=generated, registrations=registrations)
+    mismatched_approval_response = route_event(mismatched_approval_event, now=generated, registrations=registrations)
     mac_payload = mac_response["structured_actions"][0]["workflow_payload"]
     telegram_payload = telegram_response["structured_actions"][0]["workflow_payload"]
     no_gmail_browser_ledger_coupa = all(
@@ -1139,6 +1529,14 @@ def build_contract_payload(*, generated_at: str | None = None) -> dict[str, Any]
             "telegram_rule": "Telegram is a compact surface that emits the same event contract, not a workflow brain.",
             "receipt_rule": "No business mutation is valid until the workflow-required result receipt is present.",
             "stale_card_rule": "Old chat cards and expired events are rejected or superseded by current action refs.",
+            "pdf_candidate_preview_rule": "Preview is not approval.",
+            "pdf_candidate_approval_rule": "Approval records the operator decision only; it does not send email.",
+            "pdf_candidate_rejection_rule": "Rejection records the operator decision only; it does not delete the PDF.",
+            "pdf_candidate_ledger_rule": "PDF candidate decisions do not mutate ledgers.",
+            "pdf_candidate_backend_unlock_rule": (
+                "Approval may unlock backend package generation only after backend receipt/state machine acceptance."
+            ),
+            "pdf_candidate_page_count_rule": "Approval is invalid when observed_page_count differs from expected_page_count.",
         },
         "event_envelope_schema": {
             "required_fields": EVENT_ENVELOPE_FIELDS,
@@ -1186,6 +1584,11 @@ def build_contract_payload(*, generated_at: str | None = None) -> dict[str, Any]
             "telegram_prepare_pdf_response": telegram_response,
             "local_surface_pdf_candidate_event": pdf_candidate_event,
             "local_surface_pdf_candidate_response": candidate_response,
+            "approve_pdf_candidate_event": approve_pdf_candidate_event,
+            "approve_pdf_candidate_response": approve_pdf_candidate_response,
+            "reject_pdf_candidate_event": reject_pdf_candidate_event,
+            "reject_pdf_candidate_response": reject_pdf_candidate_response,
+            "mismatched_approval_response": mismatched_approval_response,
             "incorrect_authority_boundary_no_browser_true": {
                 **mac_event,
                 "authority_boundary": {"no_browser": True},
@@ -1216,6 +1619,23 @@ def build_contract_payload(*, generated_at: str | None = None) -> dict[str, Any]
             "change_sentinel_not_in_hot_path": True,
             "service_keeper_may_keep_alive_but_not_required_by_contract": True,
             "result_receipt_required_before_business_mutation": True,
+            "approve_pdf_candidate_routes_to_live_arts_action_request": approve_pdf_candidate_response[
+                "structured_actions"
+            ][0]["handler_id"]
+            == "invoice_review_action_request.live_arts_md",
+            "reject_pdf_candidate_routes_to_live_arts_action_request": reject_pdf_candidate_response[
+                "structured_actions"
+            ][0]["handler_id"]
+            == "invoice_review_action_request.live_arts_md",
+            "preview_is_not_approval": True,
+            "approve_records_operator_decision_only": True,
+            "reject_records_operator_decision_only": True,
+            "approve_does_not_send_email": True,
+            "reject_does_not_delete_pdf": True,
+            "pdf_candidate_decisions_do_not_mutate_ledger": True,
+            "pdf_candidate_approval_page_count_mismatch_invalid": (
+                mismatched_approval_response["route_status"] == "ROUTE_REJECTED_VALIDATION"
+            ),
             "old_chat_cards_rejected_policy_present": True,
             "response_scoped_to_client_workflow_thread": True,
             "no_live_service_change_required": True,
@@ -1242,6 +1662,7 @@ def format_operator_readback(payload: Mapping[str, Any]) -> str:
         "- Cold path: Change Sentinel observes bridge health/drift; it is not in the event routing loop.",
         "- Telegram: compact surface only; it emits the same structured workflow payload shape.",
         "- Stale cards: expired or superseded events are rejected and point to the current action.",
+        "- PDF candidate decisions: preview is not approval; approve/reject only records the operator decision.",
         "- Authority: `no_*` fields are prohibition flags; `*_allowed` fields are authority grants.",
         "- Authority boundary: no email, Gmail, browser, Coupa, ledger, workbook cell read, PDF export, printing, model call, or production mutation authority is granted.",
         f"- Authority profile: {payload.get('authority_profile_ref', DEFAULT_AUTHORITY_PROFILE_REF)}.",
@@ -1313,19 +1734,27 @@ __all__ = [
     "WORKFLOW_PAYLOAD_FIELDS",
     "WORKFLOW_PAYLOAD_SHAPE_REF",
     "WORKFLOW_STATUSES",
+    "SIMPLE_INVOICE_APPROVE_PDF_CANDIDATE_ACTION_KIND",
     "SIMPLE_INVOICE_EVENT_BRIDGE_PDF_ARTIFACT_RAIL_REF",
+    "SIMPLE_INVOICE_PDF_CANDIDATE_DECISION_ACTION_KINDS",
     "SIMPLE_INVOICE_PDF_RESULT_ACTION_KIND",
     "SIMPLE_INVOICE_PREPARE_PDF_ACTION_KIND",
+    "SIMPLE_INVOICE_REJECT_PDF_CANDIDATE_ACTION_KIND",
     "build_contract_payload",
     "default_workflow_action_registrations",
     "event_scope_key",
     "export_openclaw_event_bridge_contract",
     "format_operator_readback",
     "make_event_envelope",
+    "make_live_arts_approve_pdf_candidate_event",
     "make_live_arts_pdf_candidate_result_event",
     "make_live_arts_prepare_pdf_event",
+    "make_live_arts_reject_pdf_candidate_event",
+    "make_simple_invoice_approve_pdf_candidate_event",
+    "make_simple_invoice_pdf_candidate_decision_event",
     "make_simple_invoice_pdf_candidate_result_event",
     "make_simple_invoice_prepare_pdf_event",
+    "make_simple_invoice_reject_pdf_candidate_event",
     "no_authority_boundary",
     "route_event",
     "safety_flags",

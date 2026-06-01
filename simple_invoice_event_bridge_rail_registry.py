@@ -31,6 +31,9 @@ OPERATOR_EXPORT_NAME = f"{READ_MODEL_ID}_OPERATOR.md"
 RAIL_REF = event_contract.SIMPLE_INVOICE_EVENT_BRIDGE_PDF_ARTIFACT_RAIL_REF
 PREPARE_ACTION_KIND = event_contract.SIMPLE_INVOICE_PREPARE_PDF_ACTION_KIND
 RESULT_ACTION_KIND = event_contract.SIMPLE_INVOICE_PDF_RESULT_ACTION_KIND
+APPROVE_PDF_CANDIDATE_ACTION_KIND = event_contract.SIMPLE_INVOICE_APPROVE_PDF_CANDIDATE_ACTION_KIND
+REJECT_PDF_CANDIDATE_ACTION_KIND = event_contract.SIMPLE_INVOICE_REJECT_PDF_CANDIDATE_ACTION_KIND
+PDF_CANDIDATE_DECISION_ACTION_KINDS = event_contract.SIMPLE_INVOICE_PDF_CANDIDATE_DECISION_ACTION_KINDS
 
 NO_LIVE_ACTION_CLAIMS = {
     "handler_execution_performed": False,
@@ -274,6 +277,82 @@ def build_result_candidate_shape(descriptor: Mapping[str, Any]) -> dict[str, Any
     }
 
 
+def build_pdf_candidate_decision_action_shapes(descriptor: Mapping[str, Any]) -> dict[str, Any]:
+    client_ref = str(descriptor["client_ref"])
+    registered_handler_id = f"invoice_review_action_request.{client_ref}" if client_ref == "live_arts_md" else ""
+    route_registration_status = (
+        "REGISTERED_FOR_LIVE_ARTS_MD"
+        if registered_handler_id
+        else "PLANNED_NOT_REGISTERED_FOR_PLACEHOLDER_SCOPE"
+    )
+    common_required = (
+        "action_kind",
+        "invoice_id",
+        "candidate_ref",
+        "observed_page_count",
+        "expected_page_count",
+        "operator_visual_review",
+        "authority_boundary.email_send_allowed=false",
+        "authority_boundary.ledger_posting_allowed=false",
+        "authority_boundary.browser_access_allowed=false",
+        "authority_boundary.portal_access_allowed=false",
+    )
+    return {
+        APPROVE_PDF_CANDIDATE_ACTION_KIND: {
+            "rail_ref": RAIL_REF,
+            "handler_id": registered_handler_id,
+            "route_registration_status": route_registration_status,
+            "action_kind": APPROVE_PDF_CANDIDATE_ACTION_KIND,
+            "request_type": "INVOICE_REVIEW_ACTION_REQUEST",
+            "event_kind": "WORKFLOW_ACTION_REQUEST",
+            "client_ref": descriptor["client_ref"],
+            "workflow_ref": descriptor["workflow_ref"],
+            "thread_ref": descriptor["thread_ref"],
+            "invoice_id": descriptor.get("invoice_id"),
+            "required_fields": common_required + ("candidate_sha256",),
+            "operator_decision_only": True,
+            "preview_is_approval": False,
+            "does_not_send_email": True,
+            "does_not_mutate_ledger": True,
+            "backend_package_generation_requires_backend_acceptance": True,
+            "page_count_mismatch_invalid": True,
+            "authority_boundary": dict(event_contract.AUTHORITY_BOUNDARY),
+            **NO_LIVE_ACTION_CLAIMS,
+        },
+        REJECT_PDF_CANDIDATE_ACTION_KIND: {
+            "rail_ref": RAIL_REF,
+            "handler_id": registered_handler_id,
+            "route_registration_status": route_registration_status,
+            "action_kind": REJECT_PDF_CANDIDATE_ACTION_KIND,
+            "request_type": "INVOICE_REVIEW_ACTION_REQUEST",
+            "event_kind": "WORKFLOW_ACTION_REQUEST",
+            "client_ref": descriptor["client_ref"],
+            "workflow_ref": descriptor["workflow_ref"],
+            "thread_ref": descriptor["thread_ref"],
+            "invoice_id": descriptor.get("invoice_id"),
+            "required_fields": common_required + (
+                "reason_code",
+            ),
+            "optional_fields_if_available": (
+                "candidate_sha256",
+                "desired_page_known",
+                "observed_desired_pdf_page",
+                "selected_sheet_label",
+                "selected_invoice_amount",
+            ),
+            "unknown_desired_page_representation": "desired_page_known=false",
+            "observed_desired_pdf_page_optional": True,
+            "observed_desired_pdf_page_default": None,
+            "operator_decision_only": True,
+            "preview_is_approval": False,
+            "does_not_delete_pdf": True,
+            "does_not_mutate_ledger": True,
+            "authority_boundary": dict(event_contract.AUTHORITY_BOUNDARY),
+            **NO_LIVE_ACTION_CLAIMS,
+        },
+    }
+
+
 def build_client_profile(
     fixture: simple_invoice_workflow_fixtures.SimpleInvoiceClientFixture,
     *,
@@ -316,6 +395,7 @@ def build_client_profile(
         "prepare_pdf_event_template": event_template,
         "prepare_pdf_event_template_status": "AVAILABLE" if event_template else "PLANNED_REQUIRES_SELECTED_INVOICE_SCOPE",
         "result_candidate_shape": build_result_candidate_shape(descriptor),
+        "pdf_candidate_decision_action_shapes": build_pdf_candidate_decision_action_shapes(descriptor),
         "safety_flags": dict(event_contract.DEFAULT_SAFETY_FLAGS),
         "authority_boundary": dict(event_contract.AUTHORITY_BOUNDARY),
     }
@@ -351,6 +431,15 @@ def build_registry_payload(*, generated_at: str | None = None) -> dict[str, Any]
         if str(handler["handler_id"]).startswith("invoice_review_action_request.")
         and handler["intended_use"] == PREPARE_ACTION_KIND
     )
+    simple_decision_handler_ids = tuple(
+        dict.fromkeys(
+            handler["handler_id"]
+            for handler in router_handlers
+            if str(handler["handler_id"]).startswith("invoice_review_action_request.")
+            and handler["intended_use"] in PDF_CANDIDATE_DECISION_ACTION_KINDS
+            and "capital_hilton" not in tuple(handler["client_refs"])
+        )
+    )
     payload = {
         "schema_version": SCHEMA_VERSION,
         "read_model_id": READ_MODEL_ID,
@@ -361,7 +450,12 @@ def build_registry_payload(*, generated_at: str | None = None) -> dict[str, Any]
         "authority_profile_ref": event_contract.DEFAULT_AUTHORITY_PROFILE_REF,
         "positive_occupation_template_ref": event_contract.DEFAULT_POSITIVE_OCCUPATION_TEMPLATE_REF,
         "supported_event_bridge_fields": event_contract.EVENT_ENVELOPE_FIELDS,
-        "supported_action_kinds": (PREPARE_ACTION_KIND, RESULT_ACTION_KIND),
+        "supported_action_kinds": (
+            PREPARE_ACTION_KIND,
+            RESULT_ACTION_KIND,
+            APPROVE_PDF_CANDIDATE_ACTION_KIND,
+            REJECT_PDF_CANDIDATE_ACTION_KIND,
+        ),
         "supported_result_kinds": ("WORKFLOW_ACTION_RESPONSE", "LOCAL_SURFACE_RESULT_RESPONSE"),
         "source_refs": (
             "simple_invoice_event_bridge_rail_registry.py",
@@ -375,6 +469,7 @@ def build_registry_payload(*, generated_at: str | None = None) -> dict[str, Any]
         "client_profiles": profiles,
         "capital_hilton_separation": _capital_hilton_separation(),
         "registered_simple_invoice_prepare_handlers": simple_handler_ids,
+        "registered_simple_invoice_decision_handlers": simple_decision_handler_ids,
         "authority_boundary": dict(event_contract.AUTHORITY_BOUNDARY),
         "safety_flags": dict(event_contract.DEFAULT_SAFETY_FLAGS),
         "claims_not_made": tuple(NO_LIVE_ACTION_CLAIMS),
@@ -407,6 +502,30 @@ def build_registry_payload(*, generated_at: str | None = None) -> dict[str, Any]
             "selected_invoice_pdf_export_completed_candidate_shape_present": all(
                 profile["result_candidate_shape"]["action_kind"] == RESULT_ACTION_KIND for profile in profiles
             ),
+            "only_live_arts_decision_handler_registered": simple_decision_handler_ids
+            == ("invoice_review_action_request.live_arts_md",),
+            "pdf_candidate_decision_actions_present": all(
+                set(profile["pdf_candidate_decision_action_shapes"]) == set(PDF_CANDIDATE_DECISION_ACTION_KINDS)
+                for profile in profiles
+            ),
+            "pdf_candidate_approval_decision_only": all(
+                profile["pdf_candidate_decision_action_shapes"][APPROVE_PDF_CANDIDATE_ACTION_KIND][
+                    "operator_decision_only"
+                ]
+                is True
+                and profile["pdf_candidate_decision_action_shapes"][APPROVE_PDF_CANDIDATE_ACTION_KIND][
+                    "does_not_send_email"
+                ]
+                is True
+                for profile in profiles
+            ),
+            "pdf_candidate_rejection_keeps_artifact": all(
+                profile["pdf_candidate_decision_action_shapes"][REJECT_PDF_CANDIDATE_ACTION_KIND][
+                    "does_not_delete_pdf"
+                ]
+                is True
+                for profile in profiles
+            ),
             **NO_LIVE_ACTION_CLAIMS,
         },
         "client_profile_proof": {
@@ -431,7 +550,8 @@ def format_operator_readback(payload: Mapping[str, Any]) -> str:
         "",
         f"- Rail: {payload['rail_ref']}",
         "- Status: generated deterministic read-model; no live action authority.",
-        "- Pattern: simple invoice clients use one Event Bridge prepare-PDF action and one candidate-result shape.",
+        "- Pattern: simple invoice clients use one Event Bridge prepare-PDF action, one candidate-result shape, and approve/reject operator decision contracts.",
+        "- Decision contracts: preview is not approval; approval/rejection records the operator decision only.",
         "- Boundary: no email, Gmail, browser, Coupa, ledger, workbook cell read, PDF export, service start, or handler execution.",
         "",
         "## Clients",
@@ -488,15 +608,19 @@ def export_simple_invoice_event_bridge_rail_registry(
 
 __all__ = [
     "DEFAULT_EXPORT_ROOT",
+    "APPROVE_PDF_CANDIDATE_ACTION_KIND",
     "JSON_EXPORT_NAME",
     "NO_LIVE_ACTION_CLAIMS",
     "OPERATOR_EXPORT_NAME",
+    "PDF_CANDIDATE_DECISION_ACTION_KINDS",
     "PREPARE_ACTION_KIND",
     "RAIL_REF",
     "READ_MODEL_ID",
+    "REJECT_PDF_CANDIDATE_ACTION_KIND",
     "RESULT_ACTION_KIND",
     "SCHEMA_VERSION",
     "build_client_profile",
+    "build_pdf_candidate_decision_action_shapes",
     "build_prepare_pdf_action_descriptor",
     "build_registry_payload",
     "export_simple_invoice_event_bridge_rail_registry",

@@ -108,6 +108,13 @@ def _short_hash(*parts: object) -> str:
     return hashlib.sha256("\0".join(str(part) for part in parts).encode("utf-8")).hexdigest()[:16]
 
 
+def _bridge_path_from_mac_path(path_text: str) -> str | None:
+    path_text = str(path_text or "").strip()
+    if path_text.startswith("/Volumes/openclaw_e/"):
+        return path_text.replace("/Volumes/openclaw_e/", "/mnt/e/openclaw/", 1)
+    return None
+
+
 def _selected_invoice_candidate_from_payload(payload: Mapping[str, Any]) -> dict[str, Any] | None:
     invoice_id = str(payload.get("invoice_id") or payload.get("candidate_ref") or "")
     selected_print_areas = payload.get("selected_print_areas")
@@ -1215,6 +1222,31 @@ def process_selected_invoice_pdf_export_completed_candidate_result_request(
     failure_code = str(payload.get("failure_code") or "").strip()
     failure_message = str(payload.get("failure_message") or "").strip()
     artifact_review_status = "EXPORT_FAILED" if failure_receipt else str(payload.get("artifact_review_status") or "").strip()
+    output_bridge_path = str(
+        payload.get("pdf_bridge_path")
+        or payload.get("output_bridge_path")
+        or _bridge_path_from_mac_path(str(payload.get("exported_pdf_mac_path") or ""))
+        or ""
+    )
+    page_count = payload.get("page_count") if payload.get("page_count") not in (None, "") else payload.get("observed_page_count")
+    expected_page_count = (
+        payload.get("expected_page_count")
+        if payload.get("expected_page_count") not in (None, "")
+        else payload.get("expected_output_page_count")
+    )
+    failed_candidate_sha256 = payload.get("failed_candidate_sha256")
+    failed_candidate_status = (
+        payload.get("failed_candidate_artifact_review_status")
+        or "SCOPE_MISMATCH_REJECTED"
+        if failed_candidate_sha256
+        else None
+    )
+    failed_candidate_reason_code = (
+        payload.get("failed_candidate_reason_code")
+        or "WRONG_EXPORT_SCOPE_WORKBOOK_INSTEAD_OF_SELECTED_INVOICE_PAGE"
+        if failed_candidate_sha256
+        else None
+    )
     
     validation_errors = []
     if str(context["client_ref"]) != "live_arts_md":
@@ -1246,9 +1278,25 @@ def process_selected_invoice_pdf_export_completed_candidate_result_request(
         "workflow_ref": "live_arts_md_invoice_workflow",
         "invoice_id": "2026-1001",
         "exported_pdf_mac_path": pdf_path,
+        "pdf_bridge_path": output_bridge_path or None,
+        "output_bridge_path": output_bridge_path or None,
         "artifact_filename": payload.get("artifact_filename"),
         "file_size_bytes": payload.get("file_size_bytes"),
         "sha256": payload.get("sha256"),
+        "page_count": page_count,
+        "expected_page_count": expected_page_count,
+        "selected_sheet_label": payload.get("selected_sheet_label"),
+        "selected_page_label": payload.get("selected_page_label"),
+        "selected_invoice_amount": payload.get("selected_invoice_amount"),
+        "operator_assisted": payload.get("operator_assisted"),
+        "fully_unattended": payload.get("fully_unattended"),
+        "failed_candidate_sha256": failed_candidate_sha256,
+        "failed_candidate_artifact_review_status": failed_candidate_status,
+        "failed_candidate_reason_code": failed_candidate_reason_code,
+        "observed_failed_candidate_page_count": payload.get("observed_failed_candidate_page_count"),
+        "final_candidate_parent_ref": payload.get("final_candidate_parent_ref"),
+        "scope_correction_applied": payload.get("scope_correction_applied"),
+        "source_correction": payload.get("source_correction"),
         "exported_by": "MAC_EXCEL",
         "execution_venue": "MAC_LOCAL",
         "export_attempted": export_attempted,

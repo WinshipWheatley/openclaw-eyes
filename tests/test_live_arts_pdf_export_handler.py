@@ -149,6 +149,63 @@ def test_valid_mac_pdf_export_writes_receipt_and_updates_bundle(temp_export):
     assert bundle["payment_watch"]["ledger_posting_allowed"] is False
     assert bundle["invoice_artifact"]["artifact_review_status"] == "OPERATOR_REVIEW_REQUIRED"
 
+
+def test_corrected_mac_pdf_export_receipt_preserves_scope_and_failed_candidate_lineage(temp_export):
+    raw_request = {
+        "request_id": "test_corrected_pdf_export",
+        "request_type": "INVOICE_REVIEW_ACTION_RESULT",
+        "intended_use": "selected_invoice_pdf_export_completed_candidate",
+        "action_kind": "selected_invoice_pdf_export_completed_candidate",
+        "client_ref": "live_arts_md",
+        "workflow_ref": "live_arts_md_invoice_workflow",
+        "invoice_id": "2026-1001",
+        "export_attempted": True,
+        "export_success": True,
+        "exported_pdf_mac_path": (
+            "/Volumes/openclaw_e/artifacts/invoice_workbooks/live_arts_md/2026-1001/"
+            "Invoice_2026-1001_Live_Arts_MD_June_2026_Speaker_Rental_scope_corrected_live_arts_md_2.pdf"
+        ),
+        "artifact_filename": "Invoice_2026-1001_Live_Arts_MD_June_2026_Speaker_Rental_scope_corrected_live_arts_md_2.pdf",
+        "file_size_bytes": 109494,
+        "sha256": "c4eac79c7b04bb7d3b8650fbf891a72c66c3cc376287a13a12b09ec56ef21bf3",
+        "page_count": 1,
+        "expected_output_page_count": 1,
+        "selected_sheet_label": "June 2026 Speaker Rental",
+        "selected_page_label": "fresh selected worksheet export",
+        "selected_invoice_amount": 900,
+        "operator_assisted": True,
+        "fully_unattended": False,
+        "failed_candidate_sha256": "fc2b9d9448307ddbcaff7d087b05c8b8e1af5c547caf6103dfc3b14162b84640",
+        "observed_failed_candidate_page_count": 7,
+        "final_candidate_parent_ref": "live_arts_md_2026_1001_failed_7_page_candidate",
+        "scope_correction_applied": True,
+    }
+
+    result = invoice_review_action_request_handler.process_selected_invoice_pdf_export_completed_candidate_result_request(
+        raw_request,
+        export_root=temp_export,
+        bridge_export_root=None,
+    )
+    receipt = json.loads(
+        (temp_export / "selected_invoice_pdf_export_completed_candidate_receipt.json").read_text(encoding="utf-8")
+    )
+
+    assert result["status"] == "GUIDED_RESULT_RECORDED"
+    assert receipt["pdf_bridge_path"] == (
+        "/mnt/e/openclaw/artifacts/invoice_workbooks/live_arts_md/2026-1001/"
+        "Invoice_2026-1001_Live_Arts_MD_June_2026_Speaker_Rental_scope_corrected_live_arts_md_2.pdf"
+    )
+    assert receipt["page_count"] == 1
+    assert receipt["expected_page_count"] == 1
+    assert receipt["operator_assisted"] is True
+    assert receipt["fully_unattended"] is False
+    assert receipt["failed_candidate_sha256"] == "fc2b9d9448307ddbcaff7d087b05c8b8e1af5c547caf6103dfc3b14162b84640"
+    assert receipt["failed_candidate_artifact_review_status"] == "SCOPE_MISMATCH_REJECTED"
+    assert receipt["failed_candidate_reason_code"] == "WRONG_EXPORT_SCOPE_WORKBOOK_INSTEAD_OF_SELECTED_INVOICE_PAGE"
+    assert receipt["attachment_ready"] is False
+    assert receipt["approval_ready"] is False
+    assert receipt["ledger_posting_allowed"] is False
+
 def test_missing_pdf_path_is_rejected(temp_export):
     raw_request = {
         "request_id": "test_req_2",

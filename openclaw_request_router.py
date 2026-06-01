@@ -53,6 +53,11 @@ SIMPLE_INVOICE_ACTION_INTENDED_USES = (
     "explain_invoice_review",
 )
 
+LIVE_ARTS_PDF_CANDIDATE_DECISION_INTENDED_USES = (
+    "approve_pdf_candidate",
+    "reject_pdf_candidate",
+)
+
 
 @dataclass(frozen=True)
 class RequestRouteEnvelope:
@@ -248,7 +253,25 @@ def invoice_review_action_handlers() -> tuple[RequestHandlerRegistration, ...]:
             for intended_use in SIMPLE_INVOICE_ACTION_INTENDED_USES
         )
     )
-    return capital_hilton_handlers + simple_invoice_handlers
+    live_arts_pdf_candidate_decision_handlers = tuple(
+        RequestHandlerRegistration(
+            request_kind="INVOICE_REVIEW_ACTION_REQUEST",
+            handler_id="invoice_review_action_request.live_arts_md",
+            handler_label="Live Arts MD PDF candidate operator decision",
+            intended_use=intended_use,
+            world_refs=("finance",),
+            workflow_refs=("live_arts_md_invoice_workflow",),
+            client_refs=("live_arts_md",),
+            project_refs=(),
+            adapter_available=True,
+            next_safe_move=(
+                "Record the Live Arts MD PDF candidate operator decision only; no send, ledger, browser, "
+                "Gmail, Coupa, or portal authority is granted."
+            ),
+        )
+        for intended_use in LIVE_ARTS_PDF_CANDIDATE_DECISION_INTENDED_USES
+    )
+    return capital_hilton_handlers + simple_invoice_handlers + live_arts_pdf_candidate_decision_handlers
 
 
 def invoice_record_selection_result_handlers() -> tuple[RequestHandlerRegistration, ...]:
