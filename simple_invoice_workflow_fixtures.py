@@ -41,6 +41,8 @@ class SimpleInvoiceClientFixture:
     allowed_po: bool = False
     supplier_portal_provider: str | None = None
     has_clara_voice: str = "CLARA"
+    selected_invoice_expected_page_count: int = 1
+    selected_invoice_export_scope: str = "selected_invoice_page"
 
     def known_manual_send_value(self, key: str, fallback: Any) -> Any:
         return self.known_manual_send_defaults.get(key, fallback)
