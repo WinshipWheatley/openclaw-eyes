@@ -1129,6 +1129,11 @@ def test_one_page_pdf_candidate_becomes_operator_review_required_not_attachment_
         sha256=sha256,
         page_count=1,
         expected_page_count=1,
+        failed_candidate_sha256="fc2b9d9448307ddbcaff7d087b05c8b8e1af5c547caf6103dfc3b14162b84640",
+        failed_candidate_artifact_review_status="SCOPE_MISMATCH_REJECTED",
+        failed_candidate_reason_code="WRONG_EXPORT_SCOPE_WORKBOOK_INSTEAD_OF_SELECTED_INVOICE_PAGE",
+        observed_failed_candidate_page_count=7,
+        final_candidate_parent_ref="live_arts_md_2026_1001_failed_7_page_candidate",
     )
     annotation = assistance_annotation.build_annotation(
         candidate_receipt_payload=candidate_receipt,
@@ -1153,6 +1158,16 @@ def test_one_page_pdf_candidate_becomes_operator_review_required_not_attachment_
     assert review["reason_code"] is None
     assert review["page_count"] == 1
     assert review["expected_page_count"] == 1
+    assert review["failed_candidate_preserved"] is True
+    assert review["replaced_failed_candidate"] == {
+        "candidate_ref": "live_arts_md_2026_1001_failed_7_page_candidate",
+        "sha256": "fc2b9d9448307ddbcaff7d087b05c8b8e1af5c547caf6103dfc3b14162b84640",
+        "artifact_review_status": "SCOPE_MISMATCH_REJECTED",
+        "reason_code": "WRONG_EXPORT_SCOPE_WORKBOOK_INSTEAD_OF_SELECTED_INVOICE_PAGE",
+        "observed_page_count": 7,
+        "expected_page_count": 1,
+        "preserved_as": "rejected_candidate_lineage",
+    }
     assert review["allowed_actions"] == (
         "preview_pdf_candidate",
         "approve_pdf_candidate_for_draft_attachment",

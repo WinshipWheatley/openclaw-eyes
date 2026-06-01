@@ -529,6 +529,29 @@ def _candidate_review_artifact_metadata(path_text: str, expected_sha256: str | N
     }
 
 
+def _replaced_failed_candidate_from_receipt(receipt: Mapping[str, Any]) -> dict[str, Any] | None:
+    failed_sha = str(receipt.get("failed_candidate_sha256") or "").removeprefix("sha256:").strip()
+    failed_page_count = _int_or_none(receipt.get("observed_failed_candidate_page_count"))
+    failed_ref = str(receipt.get("final_candidate_parent_ref") or "").strip()
+    if not failed_sha and failed_page_count is None and not failed_ref:
+        return None
+    return {
+        "candidate_ref": failed_ref or None,
+        "sha256": failed_sha or None,
+        "artifact_review_status": str(
+            receipt.get("failed_candidate_artifact_review_status")
+            or ARTIFACT_REVIEW_STATUS_SCOPE_MISMATCH_REJECTED
+        ),
+        "reason_code": str(
+            receipt.get("failed_candidate_reason_code")
+            or ARTIFACT_REVIEW_REASON_WRONG_EXPORT_SCOPE
+        ),
+        "observed_page_count": failed_page_count,
+        "expected_page_count": EXPECTED_SELECTED_INVOICE_PAGE_COUNT,
+        "preserved_as": "rejected_candidate_lineage",
+    }
+
+
 def _artifact_candidate_review_card(
     *,
     selected_invoice_summary_text: str | None,
@@ -583,6 +606,7 @@ def _artifact_candidate_review_card(
     )
     selected_invoice_amount = (selected_invoice_candidate or {}).get("amount")
     observed_metadata = _candidate_review_artifact_metadata(pdf_bridge_path, expected_sha256)
+    replaced_failed_candidate = _replaced_failed_candidate_from_receipt(pdf_export_result_receipt)
     warnings = []
     if page_count and page_count > 1:
         if page_count == 7:
@@ -676,6 +700,8 @@ def _artifact_candidate_review_card(
         ),
         "source_candidate_receipt_id": pdf_export_result_receipt.get("receipt_id"),
         "operator_assistance_annotation_ref": (export_candidate_provenance or {}).get("annotation_ref"),
+        "replaced_failed_candidate": replaced_failed_candidate,
+        "failed_candidate_preserved": replaced_failed_candidate is not None,
         "metadata_proof": {
             "candidate_file_exists": observed_metadata["exists"],
             "candidate_file_is_pdf": observed_metadata["extension"] == ".pdf",
