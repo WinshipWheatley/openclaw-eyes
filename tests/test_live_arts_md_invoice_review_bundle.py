@@ -175,6 +175,7 @@ def test_supplier_portal_not_required_is_not_an_action_blocker():
     live = bundle.build_live_arts_md_bundle(
         workbook_registry_payload=_confirmed_workbook_payload_with_mac_path(),
         selection_receipt_payload=_selected_2026_1001_receipt(),
+        consume_existing_selection_receipt=False,
         generated_at=FIXED_NOW,
     )
 
@@ -245,6 +246,7 @@ def test_confirmed_2026_1001_selection_receipt_promotes_current_bundle_state():
     live = bundle.build_live_arts_md_bundle(
         workbook_registry_payload=_confirmed_workbook_payload_with_mac_path(),
         selection_receipt_payload=_selected_2026_1001_receipt(),
+        consume_existing_selection_receipt=False,
         generated_at=FIXED_NOW,
     )
 
@@ -263,6 +265,7 @@ def test_confirmed_selection_enables_scoped_prepare_pdf_primary_action():
     live = bundle.build_live_arts_md_bundle(
         workbook_registry_payload=_confirmed_workbook_payload_with_mac_path(),
         selection_receipt_payload=_selected_2026_1001_receipt(),
+        consume_existing_selection_receipt=False,
         generated_at=FIXED_NOW,
     )
     action = live["actionable_blockers"][0]["primary_action"]

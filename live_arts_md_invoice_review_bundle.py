@@ -713,6 +713,7 @@ def _artifact_candidate_review_card(
         },
         "attachment_ready": False,
         "approval_ready": False,
+        "email_send_allowed": False,
         "ledger_posting_allowed": False,
         "no_email_send": True,
         "no_gmail": True,
@@ -783,6 +784,7 @@ def _artifact_candidate_surface_fields(
                 "fully_unattended": artifact_candidate_review.get("fully_unattended"),
                 "attachment_ready": False,
                 "approval_ready": False,
+                "email_send_allowed": False,
                 "ledger_posting_allowed": False,
             }
         )
