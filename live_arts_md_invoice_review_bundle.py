@@ -648,6 +648,7 @@ def _artifact_candidate_review_card(
     return {
         "status": status,
         "artifact_review_status": status,
+        "candidate_valid_for_operator_review": review_ready,
         "reason_code": reason_code,
         "candidate_ref": candidate_ref,
         "client_ref": CLIENT_REF,

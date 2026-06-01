@@ -1062,6 +1062,7 @@ def test_seven_page_pdf_candidate_review_card_is_scope_mismatch_rejected(tmp_pat
 
     assert review["status"] == "SCOPE_MISMATCH_REJECTED"
     assert review["artifact_review_status"] == "SCOPE_MISMATCH_REJECTED"
+    assert review["candidate_valid_for_operator_review"] is False
     assert review["reason_code"] == "WRONG_EXPORT_SCOPE_WORKBOOK_INSTEAD_OF_SELECTED_INVOICE_PAGE"
     assert review["candidate_ref"] == "pdf_export_candidate_receipt:test_success"
     assert review["client_ref"] == "live_arts_md"
@@ -1158,6 +1159,7 @@ def test_one_page_pdf_candidate_becomes_operator_review_required_not_attachment_
     review = live["invoice_artifact"]["artifact_candidate_review"]
 
     assert review["status"] == "OPERATOR_REVIEW_REQUIRED"
+    assert review["candidate_valid_for_operator_review"] is True
     assert review["reason_code"] is None
     assert review["page_count"] == 1
     assert review["expected_page_count"] == 1
@@ -1245,6 +1247,7 @@ def test_pdf_candidate_review_card_missing_file_blocks_review_readiness(tmp_path
     review = live["invoice_artifact"]["artifact_candidate_review"]
 
     assert review["status"] == "CANDIDATE_FILE_MISSING"
+    assert review["candidate_valid_for_operator_review"] is False
     assert review["preview_available_expected"] is False
     assert review["metadata_proof"]["candidate_file_exists"] is False
     assert review["allowed_actions"] == ("reject_pdf_candidate",)
