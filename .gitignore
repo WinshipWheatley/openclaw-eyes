@@ -101,6 +101,7 @@
 !bridge_manual_mount_recovery_packet.py
 !system_health_lights_taxonomy.py
 !helm_operator_attention_package.py
+!helm_calm_surface.py
 !delegated_package_graph.py
 !operator_map_bundle_contract.py
 !agent_platform_alignment.py
@@ -1038,6 +1039,7 @@
 !tests/test_openclaw_business_object_layer_audit.py
 !tests/test_openclaw_lm_child_package_gate.py
 !tests/test_openclaw_hermes_sidecar.py
+!tests/test_helm_calm_surface.py
 !tests/test_external_system_knowledge_registry_materializer.py
 !tests/test_openclaw_context_wiki_compiler.py
 !docs/operations/OPENCLAW_EXTERNAL_AI_CONTEXT_PACKAGER_V0.md
