@@ -154,6 +154,34 @@ def test_live_arts_invoice_review_action_request_routes_explicit_pdf_export_pref
     assert decision.matched_by == ("request_kind", "intended_use", "world_ref", "workflow_ref", "client_ref")
 
 
+def test_live_arts_pdf_candidate_review_decision_result_routes_to_decision_handler():
+    payload = _request(
+        request_type="INVOICE_REVIEW_ACTION_RESULT",
+        intended_use="selected_invoice_pdf_candidate_review_decision",
+        world_ref="finance",
+        workflow_ref="live_arts_md_invoice_workflow",
+        client_ref="live_arts_md",
+        action_kind="approve_pdf_candidate",
+        invoice_id="2026-1001",
+        candidate_sha256="c4eac79c7b04bb7d3b8650fbf891a72c66c3cc376287a13a12b09ec56ef21bf3",
+        observed_page_count=1,
+        expected_page_count=1,
+        operator_visual_review=True,
+        email_send_allowed=False,
+        ledger_posting_allowed=False,
+        attachment_ready=False,
+        approval_ready=False,
+    )
+
+    envelope, decision = router.route_request(payload, filename_request_family="INVOICE_REVIEW_ACTION_RESULT")
+
+    assert envelope.request_kind == "INVOICE_REVIEW_ACTION_RESULT"
+    assert decision.route_status == "ROUTE_MATCHED"
+    assert decision.selected_handler_id == "invoice_review_action_request.live_arts_md"
+    assert decision.selected_handler_label == "Live Arts MD PDF candidate operator decision result"
+    assert decision.matched_by == ("request_kind", "intended_use", "world_ref", "workflow_ref", "client_ref")
+
+
 def test_st_annes_invoice_review_action_request_routes_through_simple_invoice_handler():
     payload = _request(
         request_type="INVOICE_REVIEW_ACTION_REQUEST",

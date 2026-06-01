@@ -3227,7 +3227,7 @@ def _process_invoice_review_action_request(
     )
     action_json, action_operator = invoice_review_action_request_handler.write_exports(payload, export_root)
     status = str(payload["status"])
-    response_ready = status == "GUIDED_ACTION_STARTED"
+    response_ready = status in {"GUIDED_ACTION_STARTED", "GUIDED_RESULT_RECORDED"}
     headline = str(payload["headline"])
     body = str(payload["body"])
     detail_text = str(payload["detail"])

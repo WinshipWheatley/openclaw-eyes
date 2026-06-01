@@ -89,6 +89,88 @@ def _write_live_arts_pdf_export_failure(path: Path, **overrides) -> dict:
     return request
 
 
+def _seed_live_arts_pdf_candidate_review(export_root: Path) -> None:
+    export_root.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "read_model_id": "live_arts_md_invoice_review_bundle",
+        "live_arts_md_bundle": {
+            "invoice_artifact": {
+                "artifact_candidate_review": {
+                    "status": "OPERATOR_REVIEW_REQUIRED",
+                    "artifact_review_status": "OPERATOR_REVIEW_REQUIRED",
+                    "candidate_valid_for_operator_review": True,
+                    "candidate_ref": "pdf_export_candidate_receipt:95913871095d32dd",
+                    "client_ref": "live_arts_md",
+                    "workflow_ref": "live_arts_md_invoice_workflow",
+                    "invoice_id": "2026-1001",
+                    "selected_invoice_id": "2026-1001",
+                    "selected_sheet_label": "June 2026 Speaker Rental",
+                    "selected_invoice_amount": 900,
+                    "pdf_bridge_path": (
+                        "/mnt/e/openclaw/artifacts/invoice_workbooks/live_arts_md/2026-1001/"
+                        "Invoice_2026-1001_Live_Arts_MD_June_2026_Speaker_Rental_scope_corrected_live_arts_md_2.pdf"
+                    ),
+                    "pdf_mac_path": (
+                        "/Volumes/openclaw_e/artifacts/invoice_workbooks/live_arts_md/2026-1001/"
+                        "Invoice_2026-1001_Live_Arts_MD_June_2026_Speaker_Rental_scope_corrected_live_arts_md_2.pdf"
+                    ),
+                    "sha256": "c4eac79c7b04bb7d3b8650fbf891a72c66c3cc376287a13a12b09ec56ef21bf3",
+                    "page_count": 1,
+                    "observed_page_count": 1,
+                    "expected_page_count": 1,
+                    "attachment_ready": False,
+                    "approval_ready": False,
+                    "ledger_posting_allowed": False,
+                    "sent": False,
+                    "paid": False,
+                }
+            }
+        },
+    }
+    (export_root / "live_arts_md_invoice_review_bundle.json").write_text(
+        json.dumps(payload, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+
+def _write_live_arts_pdf_candidate_decision(path: Path, **overrides) -> dict:
+    request = {
+        "request_id": "live_arts_md_pdf_candidate_decision_service_fixture",
+        "request_type": "INVOICE_REVIEW_ACTION_RESULT",
+        "type": "INVOICE_REVIEW_ACTION_RESULT",
+        "kind": "INVOICE_REVIEW_ACTION_RESULT",
+        "world_ref": "finance",
+        "workflow_ref": "live_arts_md_invoice_workflow",
+        "client_ref": "live_arts_md",
+        "intended_use": "selected_invoice_pdf_candidate_review_decision",
+        "action_kind": "approve_pdf_candidate",
+        "invoice_id": "2026-1001",
+        "candidate_ref": "pdf_export_candidate_receipt:95913871095d32dd",
+        "candidate_sha256": "c4eac79c7b04bb7d3b8650fbf891a72c66c3cc376287a13a12b09ec56ef21bf3",
+        "observed_page_count": 1,
+        "expected_page_count": 1,
+        "operator_visual_review": True,
+        "email_send_allowed": False,
+        "ledger_posting_allowed": False,
+        "browser_access_allowed": False,
+        "portal_access_allowed": False,
+        "attachment_ready": False,
+        "approval_ready": False,
+        "no_email_send": True,
+        "no_gmail": True,
+        "no_browser": True,
+        "no_ledger_post": True,
+        "no_coupa": True,
+        "idempotency_key": "live_arts_md_pdf_candidate_decision_service_fixture_idempotency",
+        "created_at": EVENT_BRIDGE_NOW,
+        "authority_boundary": dict(processor.AUTHORITY_BOUNDARY),
+    }
+    request.update(overrides)
+    request["payload_hash"] = processor._content_hash(request)
+    path.write_text(processor.stable_json(request), encoding="utf-8")
+    return request
+
+
 def _write_chat_request(path: Path) -> dict:
     request = chat_intake.make_capital_hilton_fixture_request(created_at=FIXED_NOW)
     path.write_text(chat_intake.stable_json(request), encoding="utf-8")
@@ -894,6 +976,55 @@ def test_service_ingests_live_arts_pdf_export_failure_without_service_failure(tm
     assert local_result["sent"] is False
     assert local_result["paid"] is False
     assert local_result["final"] is False
+    assert response["machine_proof"]["email_send_performed"] is False
+    assert response["machine_proof"]["gmail_send_performed"] is False
+    assert response["machine_proof"]["browser_access_performed"] is False
+    assert response["machine_proof"]["coupa_access_or_submit_performed"] is False
+    assert response["machine_proof"]["payment_tracking_write_performed"] is False
+
+
+def test_service_accepts_live_arts_pdf_candidate_decision_only_approval(tmp_path, capsys):
+    inbox = tmp_path / "inbox"
+    response_dir = tmp_path / "responses"
+    export_root = tmp_path / "read_models"
+    inbox.mkdir()
+    _seed_live_arts_pdf_candidate_review(export_root)
+    request_path = inbox / "mission_control_invoice_review_action_request_pdf_candidate_decision.json"
+    request = _write_live_arts_pdf_candidate_decision(request_path)
+
+    assert service_main(
+        [
+            "--once",
+            "--inbox",
+            str(inbox),
+            "--response-dir",
+            str(response_dir),
+            "--export-root",
+            str(export_root),
+            "--generated-at",
+            EVENT_BRIDGE_NOW,
+            "--format",
+            "json",
+        ]
+    ) == 0
+    service_payload = json.loads(capsys.readouterr().out)
+    response = json.loads(_safe_response_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
+    detail = response["detail_disclosure"]["invoice_review_action_request"]
+    receipt = detail["action_start_receipt"]
+
+    assert service_payload["service_status"]["service_status"] == "REQUEST_PROCESSED"
+    assert response["internal_status"] == "RESPONSE_READY"
+    assert response["blocked_reason"] is None
+    assert response["detail_disclosure"]["request_router_decision"]["route_status"] == "ROUTE_MATCHED"
+    assert response["detail_disclosure"]["request_router_decision"]["selected_handler_id"] == "invoice_review_action_request.live_arts_md"
+    assert detail["status"] == "GUIDED_RESULT_RECORDED"
+    assert receipt["receipt_name"] == "selected_invoice_pdf_candidate_review_decision_receipt"
+    assert receipt["decision_status"] == "APPROVED_FOR_DRAFT_ATTACHMENT_PACKAGE"
+    assert receipt["attachment_ready"] is False
+    assert receipt["approval_ready"] is False
+    assert receipt["ledger_posting_allowed"] is False
+    assert receipt["sent"] is False
+    assert receipt["paid"] is False
     assert response["machine_proof"]["email_send_performed"] is False
     assert response["machine_proof"]["gmail_send_performed"] is False
     assert response["machine_proof"]["browser_access_performed"] is False

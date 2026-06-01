@@ -38,6 +38,215 @@ def _failed_export_request(**overrides):
     return request
 
 
+ACTIVE_CANDIDATE_SHA256 = "c4eac79c7b04bb7d3b8650fbf891a72c66c3cc376287a13a12b09ec56ef21bf3"
+
+
+def _seed_active_pdf_candidate_review(export_root: Path, *, sha256: str = ACTIVE_CANDIDATE_SHA256, page_count: int = 1) -> None:
+    export_root.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "read_model_id": "live_arts_md_invoice_review_bundle",
+        "live_arts_md_bundle": {
+            "invoice_artifact": {
+                "artifact_candidate_review": {
+                    "status": "OPERATOR_REVIEW_REQUIRED",
+                    "artifact_review_status": "OPERATOR_REVIEW_REQUIRED",
+                    "candidate_valid_for_operator_review": True,
+                    "candidate_ref": "pdf_export_candidate_receipt:95913871095d32dd",
+                    "client_ref": "live_arts_md",
+                    "workflow_ref": "live_arts_md_invoice_workflow",
+                    "invoice_id": "2026-1001",
+                    "selected_invoice_id": "2026-1001",
+                    "selected_sheet_label": "June 2026 Speaker Rental",
+                    "selected_invoice_amount": 900,
+                    "pdf_bridge_path": (
+                        "/mnt/e/openclaw/artifacts/invoice_workbooks/live_arts_md/2026-1001/"
+                        "Invoice_2026-1001_Live_Arts_MD_June_2026_Speaker_Rental_scope_corrected_live_arts_md_2.pdf"
+                    ),
+                    "pdf_mac_path": (
+                        "/Volumes/openclaw_e/artifacts/invoice_workbooks/live_arts_md/2026-1001/"
+                        "Invoice_2026-1001_Live_Arts_MD_June_2026_Speaker_Rental_scope_corrected_live_arts_md_2.pdf"
+                    ),
+                    "sha256": sha256,
+                    "page_count": page_count,
+                    "observed_page_count": page_count,
+                    "expected_page_count": 1,
+                    "attachment_ready": False,
+                    "approval_ready": False,
+                    "ledger_posting_allowed": False,
+                    "sent": False,
+                    "paid": False,
+                }
+            }
+        },
+    }
+    (export_root / live_arts_md_invoice_review_bundle.JSON_EXPORT_NAME).write_text(
+        json.dumps(payload, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+
+def _pdf_candidate_decision_request(**overrides):
+    request = {
+        "request_id": "live_arts_md_pdf_candidate_decision_fixture",
+        "request_type": "INVOICE_REVIEW_ACTION_RESULT",
+        "type": "INVOICE_REVIEW_ACTION_RESULT",
+        "kind": "INVOICE_REVIEW_ACTION_RESULT",
+        "intended_use": "selected_invoice_pdf_candidate_review_decision",
+        "action_kind": "approve_pdf_candidate",
+        "client_ref": "live_arts_md",
+        "workflow_ref": "live_arts_md_invoice_workflow",
+        "world_ref": "finance",
+        "invoice_id": "2026-1001",
+        "candidate_ref": "pdf_export_candidate_receipt:95913871095d32dd",
+        "candidate_sha256": ACTIVE_CANDIDATE_SHA256,
+        "observed_page_count": 1,
+        "expected_page_count": 1,
+        "operator_visual_review": True,
+        "email_send_allowed": False,
+        "ledger_posting_allowed": False,
+        "browser_access_allowed": False,
+        "portal_access_allowed": False,
+        "attachment_ready": False,
+        "approval_ready": False,
+        "sent": False,
+        "paid": False,
+        "authority_boundary": dict(invoice_review_action_request_handler.AUTHORITY_BOUNDARY),
+    }
+    request.update(overrides)
+    return request
+
+
+def _process_pdf_candidate_decision(export_root: Path, request: dict) -> dict:
+    return invoice_review_action_request_handler.process_action_request(
+        request,
+        export_root=export_root,
+        bridge_export_root=None,
+        db_path=export_root.parent / "invoice_review_state.sqlite",
+        event_db_path=export_root.parent / "operator_action_events.sqlite",
+        event_export_root=export_root,
+    )
+
+
+def test_approve_pdf_candidate_with_false_authority_fields_is_decision_only(temp_export):
+    _seed_active_pdf_candidate_review(temp_export)
+
+    result = _process_pdf_candidate_decision(temp_export, _pdf_candidate_decision_request())
+    receipt = result["action_start_receipt"]
+
+    assert result["status"] == "GUIDED_RESULT_RECORDED"
+    assert receipt["receipt_name"] == "selected_invoice_pdf_candidate_review_decision_receipt"
+    assert receipt["decision_status"] == "APPROVED_FOR_DRAFT_ATTACHMENT_PACKAGE"
+    assert receipt["operator_decision_only"] is True
+    assert receipt["candidate_sha256"] == ACTIVE_CANDIDATE_SHA256
+    assert receipt["observed_page_count"] == receipt["expected_page_count"] == 1
+    assert receipt["attachment_ready"] is False
+    assert receipt["approval_ready"] is False
+    assert receipt["ledger_posting_allowed"] is False
+    assert receipt["sent"] is False
+    assert receipt["paid"] is False
+    assert result["machine_proof"]["email_send_performed"] is False
+    assert result["machine_proof"]["ledger_posting_performed"] is False
+    assert result["machine_proof"]["browser_access_performed"] is False
+    assert (temp_export / "selected_invoice_pdf_candidate_review_decision_receipt.json").exists()
+
+
+def test_approve_pdf_candidate_with_authority_fields_absent_is_decision_only(temp_export):
+    _seed_active_pdf_candidate_review(temp_export)
+    request = _pdf_candidate_decision_request()
+    for key in (
+        "email_send_allowed",
+        "ledger_posting_allowed",
+        "browser_access_allowed",
+        "portal_access_allowed",
+        "attachment_ready",
+        "approval_ready",
+        "sent",
+        "paid",
+        "authority_boundary",
+    ):
+        request.pop(key, None)
+
+    result = _process_pdf_candidate_decision(temp_export, request)
+
+    assert result["status"] == "GUIDED_RESULT_RECORDED"
+    assert result["action_start_receipt"]["decision_status"] == "APPROVED_FOR_DRAFT_ATTACHMENT_PACKAGE"
+    assert result["action_start_receipt"]["email_send_performed"] is False
+
+
+@pytest.mark.parametrize(
+    "field",
+    ("email_send_allowed", "ledger_posting_allowed", "browser_access_allowed", "portal_access_allowed"),
+)
+def test_approve_pdf_candidate_blocks_true_external_authority_grants(temp_export, field):
+    _seed_active_pdf_candidate_review(temp_export)
+    request = _pdf_candidate_decision_request(**{field: True})
+
+    result = _process_pdf_candidate_decision(temp_export, request)
+
+    assert result["status"] == "BLOCKED_EXTERNAL_AUTHORITY"
+    assert result["action_start_receipt"]["completion_receipt_written"] is False
+    assert not (temp_export / "selected_invoice_pdf_candidate_review_decision_receipt.json").exists()
+
+
+@pytest.mark.parametrize("field", ("sent", "paid"))
+def test_approve_pdf_candidate_blocks_sent_or_paid_claims(temp_export, field):
+    _seed_active_pdf_candidate_review(temp_export)
+
+    result = _process_pdf_candidate_decision(temp_export, _pdf_candidate_decision_request(**{field: True}))
+
+    assert result["status"] == "BLOCKED_EXTERNAL_AUTHORITY"
+    assert result["machine_proof"]["email_send_performed"] is False
+    assert result["machine_proof"]["ledger_posting_performed"] is False
+
+
+def test_approve_pdf_candidate_rejects_candidate_sha_mismatch(temp_export):
+    _seed_active_pdf_candidate_review(temp_export)
+
+    result = _process_pdf_candidate_decision(
+        temp_export,
+        _pdf_candidate_decision_request(candidate_sha256="0" * 64),
+    )
+
+    assert result["status"] == "BLOCKED_PREREQUISITES"
+    assert "CANDIDATE_SHA_MISMATCH" in result["action_start_receipt"]["validation_errors"]
+    assert result["action_start_receipt"]["attachment_ready"] is False
+
+
+def test_approve_pdf_candidate_rejects_page_count_mismatch(temp_export):
+    _seed_active_pdf_candidate_review(temp_export)
+
+    result = _process_pdf_candidate_decision(
+        temp_export,
+        _pdf_candidate_decision_request(observed_page_count=7),
+    )
+
+    assert result["status"] == "BLOCKED_PREREQUISITES"
+    assert "CANDIDATE_PAGE_COUNT_MISMATCH" in result["action_start_receipt"]["validation_errors"]
+    assert "PDF_CANDIDATE_PAGE_COUNT_MISMATCH" in result["action_start_receipt"]["validation_errors"]
+
+
+def test_reject_pdf_candidate_accepts_unknown_desired_page_without_external_action(temp_export):
+    _seed_active_pdf_candidate_review(temp_export)
+    request = _pdf_candidate_decision_request(
+        action_kind="reject_pdf_candidate",
+        observed_page_count=1,
+        expected_page_count=1,
+        reason_code="OPERATOR_REJECTED_AFTER_VISUAL_REVIEW",
+        desired_page_known=False,
+    )
+
+    result = _process_pdf_candidate_decision(temp_export, request)
+    receipt = result["action_start_receipt"]
+
+    assert result["status"] == "GUIDED_RESULT_RECORDED"
+    assert receipt["decision_status"] == "REJECTED_BY_OPERATOR"
+    assert receipt["attachment_ready"] is False
+    assert receipt["approval_ready"] is False
+    assert receipt["ledger_posting_allowed"] is False
+    assert receipt["sent"] is False
+    assert receipt["paid"] is False
+
+
 def test_failed_helper_receipt_with_path_values_serializes_cleanly(temp_export):
     raw_request = _failed_export_request()
 
