@@ -2,7 +2,8 @@
 
 - Rail: simple_invoice_event_bridge_pdf_artifact_rail_v0
 - Status: generated deterministic read-model; no live action authority.
-- Pattern: simple invoice clients use one Event Bridge prepare-PDF action and one candidate-result shape.
+- Pattern: simple invoice clients use one Event Bridge prepare-PDF action, one candidate-result shape, and approve/reject operator decision contracts.
+- Decision contracts: preview is not approval; approval/rejection records the operator decision only.
 - Boundary: no email, Gmail, browser, Coupa, ledger, workbook cell read, PDF export, service start, or handler execution.
 
 ## Clients
