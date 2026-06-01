@@ -332,13 +332,17 @@ def build_pdf_candidate_decision_action_shapes(descriptor: Mapping[str, Any]) ->
             "invoice_id": descriptor.get("invoice_id"),
             "required_fields": common_required + (
                 "reason_code",
-                "observed_desired_pdf_page",
             ),
             "optional_fields_if_available": (
                 "candidate_sha256",
+                "desired_page_known",
+                "observed_desired_pdf_page",
                 "selected_sheet_label",
                 "selected_invoice_amount",
             ),
+            "unknown_desired_page_representation": "desired_page_known=false",
+            "observed_desired_pdf_page_optional": True,
+            "observed_desired_pdf_page_default": None,
             "operator_decision_only": True,
             "preview_is_approval": False,
             "does_not_delete_pdf": True,

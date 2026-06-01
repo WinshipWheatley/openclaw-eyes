@@ -55,7 +55,12 @@ def test_reject_pdf_candidate_validates_with_required_fields():
     assert response["workflow_status"] == "WORKFLOW_ACTION_ROUTED"
     assert response["structured_actions"][0]["handler_id"] == "invoice_review_action_request.live_arts_md"
     assert payload["action_kind"] == "reject_pdf_candidate"
-    assert payload["payload"]["reason_code"] == "wrong_page_count"
+    assert payload["payload"]["candidate_ref"] == "pdf_export_candidate_receipt:e4d6fc03cd5ca9fb"
+    assert payload["payload"]["observed_page_count"] == 7
+    assert payload["payload"]["expected_page_count"] == 1
+    assert payload["payload"]["reason_code"] == "WRONG_EXPORT_SCOPE_WORKBOOK_INSTEAD_OF_SELECTED_INVOICE_PAGE"
+    assert payload["payload"]["desired_page_known"] is False
+    assert "observed_desired_pdf_page" not in payload["payload"]
     assert payload["payload"]["operator_visual_review"] is True
     assert payload["authority_boundary"]["email_send_allowed"] is False
     assert payload["authority_boundary"]["ledger_posting_allowed"] is False
@@ -72,14 +77,84 @@ def test_reject_pdf_candidate_requires_reason_code():
     assert "MISSING_REQUIRED_ACTION_FIELD:reason_code" in response["error_message"]
 
 
-def test_reject_pdf_candidate_accepts_observed_desired_pdf_page_two():
-    event = contract.make_live_arts_reject_pdf_candidate_event(observed_desired_pdf_page=2)
+def test_reject_pdf_candidate_validates_without_observed_desired_pdf_page():
+    event = contract.make_live_arts_reject_pdf_candidate_event(desired_page_known=None)
 
     response = _route(event)
     payload = _workflow_payload(response)
 
     assert response["route_status"] == "ROUTE_MATCHED"
-    assert payload["payload"]["observed_desired_pdf_page"] == 2
+    assert "desired_page_known" not in payload["payload"]
+    assert "observed_desired_pdf_page" not in payload["payload"]
+
+
+def test_reject_pdf_candidate_validates_with_desired_page_known_false():
+    event = contract.make_live_arts_reject_pdf_candidate_event(desired_page_known=False)
+
+    response = _route(event)
+    payload = _workflow_payload(response)
+
+    assert response["route_status"] == "ROUTE_MATCHED"
+    assert payload["payload"]["desired_page_known"] is False
+    assert "observed_desired_pdf_page" not in payload["payload"]
+
+
+def test_reject_pdf_candidate_does_not_default_desired_page_to_two():
+    event = contract.make_live_arts_reject_pdf_candidate_event()
+
+    payload = event["payload"]
+
+    assert payload["desired_page_known"] is False
+    assert "observed_desired_pdf_page" not in payload
+    assert 2 not in (
+        payload.get("observed_desired_pdf_page"),
+        payload.get("desired_pdf_page"),
+    )
+
+
+def test_reject_pdf_candidate_accepts_scope_mismatch_page_counts():
+    event = contract.make_live_arts_reject_pdf_candidate_event(
+        observed_page_count=7,
+        expected_page_count=1,
+        reason_code="WRONG_EXPORT_SCOPE_WORKBOOK_INSTEAD_OF_SELECTED_INVOICE_PAGE",
+        desired_page_known=False,
+    )
+
+    response = _route(event)
+    payload = _workflow_payload(response)
+
+    assert response["route_status"] == "ROUTE_MATCHED"
+    assert payload["payload"]["observed_page_count"] == 7
+    assert payload["payload"]["expected_page_count"] == 1
+    assert payload["payload"]["reason_code"] == "WRONG_EXPORT_SCOPE_WORKBOOK_INSTEAD_OF_SELECTED_INVOICE_PAGE"
+    assert payload["payload"]["desired_page_known"] is False
+    assert "observed_desired_pdf_page" not in payload["payload"]
+
+
+def test_reject_pdf_candidate_accepts_known_observed_desired_pdf_page_only_when_marked_known():
+    event = contract.make_live_arts_reject_pdf_candidate_event(
+        desired_page_known=True,
+        observed_desired_pdf_page=3,
+    )
+
+    response = _route(event)
+    payload = _workflow_payload(response)
+
+    assert response["route_status"] == "ROUTE_MATCHED"
+    assert payload["payload"]["desired_page_known"] is True
+    assert payload["payload"]["observed_desired_pdf_page"] == 3
+
+
+def test_reject_pdf_candidate_rejects_page_value_when_desired_page_marked_unknown():
+    event = contract.make_live_arts_reject_pdf_candidate_event(
+        desired_page_known=False,
+        observed_desired_pdf_page=2,
+    )
+
+    response = _route(event)
+
+    assert response["route_status"] == "ROUTE_REJECTED_VALIDATION"
+    assert "DESIRED_PAGE_UNKNOWN_BUT_OBSERVED_DESIRED_PDF_PAGE_PRESENT" in response["error_message"]
 
 
 def test_approve_pdf_candidate_page_count_mismatch_is_invalid():

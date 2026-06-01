@@ -150,6 +150,19 @@ def test_manual_attach_link_is_fallback_only():
         assert fallback["primary_path"] is False
 
 
+def test_reject_pdf_candidate_shape_does_not_require_desired_page():
+    payload = registry.build_registry_payload(generated_at=FIXED_NOW)
+    profile = _profile(payload, "live_arts_md")
+    reject_shape = profile["pdf_candidate_decision_action_shapes"]["reject_pdf_candidate"]
+
+    assert "observed_desired_pdf_page" not in reject_shape["required_fields"]
+    assert "reason_code" in reject_shape["required_fields"]
+    assert "desired_page_known" in reject_shape["optional_fields_if_available"]
+    assert "observed_desired_pdf_page" in reject_shape["optional_fields_if_available"]
+    assert reject_shape["unknown_desired_page_representation"] == "desired_page_known=false"
+    assert reject_shape["observed_desired_pdf_page_default"] is None
+
+
 def test_capital_hilton_supplier_portal_extension_stays_separate():
     payload = registry.build_registry_payload(generated_at=FIXED_NOW)
     separation = payload["capital_hilton_separation"]

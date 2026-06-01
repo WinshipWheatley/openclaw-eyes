@@ -613,9 +613,10 @@ def make_simple_invoice_pdf_candidate_decision_event(
     expected_page_count: int,
     operator_visual_review: bool = True,
     reason_code: str = "",
+    desired_page_known: bool | None = None,
     observed_desired_pdf_page: int | None = None,
     selected_sheet_label: str = "",
-    selected_invoice_amount: str = "",
+    selected_invoice_amount: str | int = "",
     client_display_name: str = "",
     source_channel: str = "MAC_APP",
     event_id: str | None = None,
@@ -658,6 +659,8 @@ def make_simple_invoice_pdf_candidate_decision_event(
         payload["candidate_sha256"] = candidate_sha256
     if reason_code:
         payload["reason_code"] = reason_code
+    if desired_page_known is not None:
+        payload["desired_page_known"] = desired_page_known
     if observed_desired_pdf_page is not None:
         payload["observed_desired_pdf_page"] = observed_desired_pdf_page
     if selected_sheet_label:
@@ -693,7 +696,7 @@ def make_simple_invoice_approve_pdf_candidate_event(
     observed_page_count: int,
     expected_page_count: int,
     selected_sheet_label: str = "",
-    selected_invoice_amount: str = "",
+    selected_invoice_amount: str | int = "",
     client_display_name: str = "",
     source_channel: str = "MAC_APP",
     event_id: str | None = None,
@@ -736,9 +739,10 @@ def make_simple_invoice_reject_pdf_candidate_event(
     observed_page_count: int,
     expected_page_count: int,
     reason_code: str,
-    observed_desired_pdf_page: int,
+    desired_page_known: bool | None = False,
+    observed_desired_pdf_page: int | None = None,
     selected_sheet_label: str = "",
-    selected_invoice_amount: str = "",
+    selected_invoice_amount: str | int = "",
     client_display_name: str = "",
     source_channel: str = "MAC_APP",
     event_id: str | None = None,
@@ -759,6 +763,7 @@ def make_simple_invoice_reject_pdf_candidate_event(
         expected_page_count=expected_page_count,
         operator_visual_review=True,
         reason_code=reason_code,
+        desired_page_known=desired_page_known,
         observed_desired_pdf_page=observed_desired_pdf_page,
         selected_sheet_label=selected_sheet_label,
         selected_invoice_amount=selected_invoice_amount,
@@ -858,7 +863,7 @@ def make_live_arts_approve_pdf_candidate_event(
         observed_page_count=observed_page_count,
         expected_page_count=expected_page_count,
         selected_sheet_label="June 2026 Speaker Rental",
-        selected_invoice_amount="$1,775.00",
+        selected_invoice_amount=900,
         client_display_name="Live Arts MD",
         parent_event_id="current_live_arts_md_pdf_candidate_decision_action",
         created_at=created_at,
@@ -868,12 +873,13 @@ def make_live_arts_approve_pdf_candidate_event(
 
 def make_live_arts_reject_pdf_candidate_event(
     *,
-    candidate_ref: str = "pdf_candidate:live_arts_md:2026-1001:operator_review",
+    candidate_ref: str = "pdf_export_candidate_receipt:e4d6fc03cd5ca9fb",
     candidate_sha256: str | None = None,
-    observed_page_count: int = 2,
+    observed_page_count: int = 7,
     expected_page_count: int = 1,
-    reason_code: str = "wrong_page_count",
-    observed_desired_pdf_page: int = 1,
+    reason_code: str = "WRONG_EXPORT_SCOPE_WORKBOOK_INSTEAD_OF_SELECTED_INVOICE_PAGE",
+    desired_page_known: bool | None = False,
+    observed_desired_pdf_page: int | None = None,
     source_channel: str = "MAC_APP",
     event_id: str | None = None,
     created_at: str = "2026-05-31T14:03:00+00:00",
@@ -891,9 +897,10 @@ def make_live_arts_reject_pdf_candidate_event(
         observed_page_count=observed_page_count,
         expected_page_count=expected_page_count,
         reason_code=reason_code,
+        desired_page_known=desired_page_known,
         observed_desired_pdf_page=observed_desired_pdf_page,
         selected_sheet_label="June 2026 Speaker Rental",
-        selected_invoice_amount="$1,775.00",
+        selected_invoice_amount=900,
         client_display_name="Live Arts MD",
         parent_event_id="current_live_arts_md_pdf_candidate_decision_action",
         created_at=created_at,
@@ -1119,8 +1126,17 @@ def _pdf_candidate_decision_payload_errors(raw_event: Mapping[str, Any]) -> tupl
     if action_kind == SIMPLE_INVOICE_REJECT_PDF_CANDIDATE_ACTION_KIND:
         if not str(payload.get("reason_code") or "").strip():
             errors.append("MISSING_REQUIRED_ACTION_FIELD:reason_code")
-        if _positive_int(payload.get("observed_desired_pdf_page")) is None:
+        desired_page_known = payload.get("desired_page_known")
+        observed_desired_page_present = "observed_desired_pdf_page" in payload
+        observed_desired_page = _positive_int(payload.get("observed_desired_pdf_page"))
+        if desired_page_known not in (None, True, False):
+            errors.append("INVALID_ACTION_FIELD:desired_page_known")
+        if desired_page_known is True and observed_desired_page is None:
             errors.append("MISSING_REQUIRED_ACTION_FIELD:observed_desired_pdf_page")
+        if observed_desired_page_present and observed_desired_page is None:
+            errors.append("INVALID_ACTION_FIELD:observed_desired_pdf_page")
+        if desired_page_known is False and observed_desired_page_present:
+            errors.append("DESIRED_PAGE_UNKNOWN_BUT_OBSERVED_DESIRED_PDF_PAGE_PRESENT")
     return tuple(errors)
 
 

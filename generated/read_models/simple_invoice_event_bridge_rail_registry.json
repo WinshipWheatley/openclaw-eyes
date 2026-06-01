@@ -325,9 +325,13 @@
           "invoice_id": "2026-1001",
           "ledger_post_performed": false,
           "model_call_performed": false,
+          "observed_desired_pdf_page_default": null,
+          "observed_desired_pdf_page_optional": true,
           "operator_decision_only": true,
           "optional_fields_if_available": [
             "candidate_sha256",
+            "desired_page_known",
+            "observed_desired_pdf_page",
             "selected_sheet_label",
             "selected_invoice_amount"
           ],
@@ -348,12 +352,12 @@
             "authority_boundary.ledger_posting_allowed=false",
             "authority_boundary.browser_access_allowed=false",
             "authority_boundary.portal_access_allowed=false",
-            "reason_code",
-            "observed_desired_pdf_page"
+            "reason_code"
           ],
           "route_registration_status": "REGISTERED_FOR_LIVE_ARTS_MD",
           "service_started": false,
           "thread_ref": "live_arts_md_invoice_workflow:2026-1001",
+          "unknown_desired_page_representation": "desired_page_known=false",
           "workbook_cell_read_performed": false,
           "workflow_ref": "live_arts_md_invoice_workflow"
         }
@@ -891,9 +895,13 @@
           "invoice_id": "",
           "ledger_post_performed": false,
           "model_call_performed": false,
+          "observed_desired_pdf_page_default": null,
+          "observed_desired_pdf_page_optional": true,
           "operator_decision_only": true,
           "optional_fields_if_available": [
             "candidate_sha256",
+            "desired_page_known",
+            "observed_desired_pdf_page",
             "selected_sheet_label",
             "selected_invoice_amount"
           ],
@@ -914,12 +922,12 @@
             "authority_boundary.ledger_posting_allowed=false",
             "authority_boundary.browser_access_allowed=false",
             "authority_boundary.portal_access_allowed=false",
-            "reason_code",
-            "observed_desired_pdf_page"
+            "reason_code"
           ],
           "route_registration_status": "PLANNED_NOT_REGISTERED_FOR_PLACEHOLDER_SCOPE",
           "service_started": false,
           "thread_ref": "st_annes_invoice_workflow:selected_invoice",
+          "unknown_desired_page_representation": "desired_page_known=false",
           "workbook_cell_read_performed": false,
           "workflow_ref": "st_annes_invoice_workflow"
         }
@@ -1194,7 +1202,7 @@
     "capital_hilton_purchase_order_extension_separate": true,
     "capital_hilton_supplier_portal_extension_separate": true,
     "client_count": 2,
-    "content_hash": "sha256:480a833f57a7cbfcfae65433ffc7157f29f5948f40ba0bc0a9643b8703624cd5",
+    "content_hash": "sha256:fd0222fad847b34d0e5c75f05d5fab0784489c8d3ea2f955fdf5035cce0656bd",
     "coupa_access_performed": false,
     "dangerous_authority_grants_false": true,
     "email_send_performed": false,
