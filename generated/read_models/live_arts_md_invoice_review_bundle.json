@@ -15,7 +15,7 @@
     "spreadsheet_cell_read_performed": false,
     "workbook_body_read_performed": false
   },
-  "generated_at": "2026-06-01T01:40:00+00:00",
+  "generated_at": "2026-06-01T03:30:00+00:00",
   "live_arts_md_bundle": {
     "actionable_blockers": [
       {
@@ -583,7 +583,7 @@
       "title": "Live Arts invoice automation path",
       "workbook_confirmed": true
     },
-    "generated_at": "2026-06-01T01:40:00+00:00",
+    "generated_at": "2026-06-01T03:30:00+00:00",
     "invoice_artifact": {
       "approval_ready": false,
       "artifact_candidate_review": {
@@ -987,7 +987,7 @@
       "clara_first_contact_intro_required": true,
       "clara_invoice_draft_package_consumed": true,
       "client_comms_thread_rail_consumed": true,
-      "content_hash": "sha256:4bcda1fbf41d9a18b2904b20d42ecc1af91f80e9b1bb3a8582ab054a4a6de14e",
+      "content_hash": "sha256:527b29d6c5bab604704d708df15fc60ad48308041a19f7184c2e4fe93df64132",
       "live_arts_md_does_not_require_coupa": true,
       "live_arts_md_does_not_require_po": true,
       "manual_send_proof_evaluated": true,
@@ -1077,7 +1077,7 @@
         "cell_read": false,
         "client_ref": "live_arts_md",
         "confidence": "operator_handoff",
-        "generated_at": "2026-06-01T01:40:00+00:00",
+        "generated_at": "2026-06-01T03:30:00+00:00",
         "operator_provided": true,
         "proof_refs": [
           "June 2026 Speaker Rental!G2:G5",
@@ -1091,7 +1091,7 @@
           "Invoice Register!A1:K7"
         ],
         "receipt_event": "operator_provided_live_arts_md_workbook_handoff",
-        "receipt_id": "operator_handoff:live_arts_md_workbook:8e891b5df25b3604",
+        "receipt_id": "operator_handoff:live_arts_md_workbook:fc19aa6096c0a684",
         "receipt_type": "operator_provided_workbook_handoff_receipt",
         "source_workbook_mac_path": "/Users/hwinshipwheatley/Documents/Invoices/Invoice Clinets/Invoice Live Arts MD! Running.xlsx",
         "source_workbook_ref": "workbook_ref:client_invoice:live_arts_md:running_operator_confirmed",
@@ -1742,7 +1742,7 @@
       "sent_receipt_confirmed": false,
       "thread_watch_status_after_send": "THREAD_WATCH_READY"
     },
-    "source_commit": "eba3f988834dc64146ad4a787dc60cbde4b8dac5",
+    "source_commit": "b1c75a768b1c6906c5a90390c93c6c4acb436810",
     "source_workbook": {
       "approved_for_cell_read": false,
       "approved_for_metadata_read": true,
@@ -1773,7 +1773,7 @@
   },
   "machine_proof": {
     "bridge_safe": true,
-    "content_hash": "sha256:4bcda1fbf41d9a18b2904b20d42ecc1af91f80e9b1bb3a8582ab054a4a6de14e",
+    "content_hash": "sha256:527b29d6c5bab604704d708df15fc60ad48308041a19f7184c2e4fe93df64132",
     "live_arts_md_bundle_present": true,
     "no_action_authority": true
   },
@@ -1783,6 +1783,6 @@
   "schema_version": "live_arts_md_invoice_review_bundle_v0",
   "scope_consistency_status": "SCOPED",
   "selected_invoice_scope_status": "SELECTED_INVOICE_PRESENT",
-  "source_commit": "eba3f988834dc64146ad4a787dc60cbde4b8dac5",
+  "source_commit": "b1c75a768b1c6906c5a90390c93c6c4acb436810",
   "stale_placeholder_detected": false
 }

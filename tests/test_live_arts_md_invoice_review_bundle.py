@@ -945,7 +945,7 @@ def test_pdf_export_result_receipt_restores_scope_for_retry_regeneration(tmp_pat
 
 
 def test_operator_assistance_annotation_is_source_backed_and_does_not_open_gates(tmp_path):
-    candidate_receipt = _successful_pdf_export_receipt()
+    candidate_receipt = _successful_pdf_export_receipt(page_count=1, expected_page_count=1)
     annotation = assistance_annotation.build_annotation(
         candidate_receipt_payload=candidate_receipt,
         candidate_receipt_path="generated/read_models/selected_invoice_pdf_export_completed_candidate_receipt.json",
@@ -976,7 +976,7 @@ def test_operator_assistance_annotation_is_source_backed_and_does_not_open_gates
     assert parsed["approval_ready"] is False
     assert parsed["ledger_posting_allowed"] is False
     assert parsed["pdf_artifact"]["file_size_bytes"] == 171899
-    assert parsed["pdf_artifact"]["page_count"] == 7
+    assert parsed["pdf_artifact"]["page_count"] == 1
     assert parsed["pdf_artifact"]["sha256"] == candidate_receipt["sha256"]
     assert "Operator assisted: `True`" in operator_text
 
@@ -988,7 +988,7 @@ def test_bundle_consumes_operator_assistance_annotation_as_candidate_provenance(
     bridge_root.mkdir()
     monkeypatch.setattr(bundle, "DEFAULT_EXPORT_ROOT", source_root)
     monkeypatch.setattr(bundle, "DEFAULT_BRIDGE_EXPORT_ROOT", bridge_root)
-    candidate_receipt = _successful_pdf_export_receipt()
+    candidate_receipt = _successful_pdf_export_receipt(page_count=7, expected_page_count=1)
     annotation = assistance_annotation.build_annotation(
         candidate_receipt_payload=candidate_receipt,
         candidate_receipt_path=(source_root / bundle.PDF_EXPORT_RESULT_RECEIPT_EXPORT_NAME).as_posix(),
@@ -1037,6 +1037,8 @@ def test_seven_page_pdf_candidate_review_card_is_scope_mismatch_rejected(tmp_pat
         output_bridge_path=pdf_path.as_posix(),
         file_size_bytes=pdf_path.stat().st_size,
         sha256=sha256,
+        page_count=7,
+        expected_page_count=1,
     )
     annotation = assistance_annotation.build_annotation(
         candidate_receipt_payload=candidate_receipt,

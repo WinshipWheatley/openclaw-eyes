@@ -426,7 +426,11 @@ def _pdf_export_operator_assistance_annotation_from_payload(
         return None
     if payload.get("read_model_id") != "selected_invoice_pdf_export_operator_assistance_annotation":
         return None
-    if payload.get("annotation_status") != "OPERATOR_ASSISTED_ANNOTATED":
+    if payload.get("annotation_status") not in {
+        "OPERATOR_ASSISTED_ANNOTATED",
+        ARTIFACT_REVIEW_STATUS_SCOPE_MISMATCH_REJECTED,
+        "PDF_PAGE_COUNT_UNKNOWN_REJECTED",
+    }:
         return None
     if payload.get("client_ref") != CLIENT_REF or payload.get("workflow_ref") != WORKFLOW_REF:
         return None
