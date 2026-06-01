@@ -426,6 +426,10 @@ def test_known_existing_pdfs_are_not_trusted_as_selected_invoice_artifacts():
     )
     assert guardrails["desktop_pdf"]["known_page_count"] == 7
     assert guardrails["desktop_pdf"]["trusted_as_selected_invoice_artifact"] is False
+    assert guardrails["desktop_pdf"]["legacy_status"] == "NOT_TRUSTED_EXISTING_MULTI_PAGE_PDF"
+    assert guardrails["desktop_pdf"]["artifact_review_status"] == "SCOPE_MISMATCH_REJECTED"
+    assert guardrails["desktop_pdf"]["reason_code"] == "WRONG_EXPORT_SCOPE_WORKBOOK_INSTEAD_OF_SELECTED_INVOICE_PAGE"
+    assert guardrails["desktop_pdf"]["expected_page_count"] == 1
     assert guardrails["bridge_pdf_placeholder"]["expected_placeholder_size_bytes"] == 14
     assert guardrails["bridge_pdf_placeholder"]["trusted_as_selected_invoice_artifact"] is False
     assert guardrails["bridge_pdf_placeholder"]["status"] in {
@@ -1016,14 +1020,17 @@ def test_bundle_consumes_operator_assistance_annotation_as_candidate_provenance(
     assert package["operator_assisted"] is True
     assert package["fully_unattended"] is False
     assert selected["pdf_export_candidate_provenance_status"] == "OPERATOR_ASSISTED"
-    assert live["invoice_artifact"]["artifact_review_status"] == "OPERATOR_REVIEW_REQUIRED"
+    assert live["invoice_artifact"]["artifact_review_status"] == "SCOPE_MISMATCH_REJECTED"
+    assert live["invoice_artifact"]["reason_code"] == "WRONG_EXPORT_SCOPE_WORKBOOK_INSTEAD_OF_SELECTED_INVOICE_PAGE"
+    assert live["invoice_artifact"]["page_count"] == 7
+    assert live["invoice_artifact"]["expected_page_count"] == 1
     assert live["invoice_artifact"]["attachment_ready"] is False
     assert live["approval_footer"]["approval_ready"] is False
     assert live["payment_watch"]["ledger_posting_allowed"] is False
     assert live["clara_email_draft"]["attachment_ready"] is False
 
 
-def test_pdf_candidate_review_card_appears_for_successful_candidate_receipt(tmp_path):
+def test_seven_page_pdf_candidate_review_card_is_scope_mismatch_rejected(tmp_path):
     pdf_path = tmp_path / "artifacts" / EXPECTED_OUTPUT_FILENAME
     sha256 = _write_pdf_candidate(pdf_path)
     candidate_receipt = _successful_pdf_export_receipt(
@@ -1048,11 +1055,16 @@ def test_pdf_candidate_review_card_appears_for_successful_candidate_receipt(tmp_
     )
     review = live["invoice_artifact"]["artifact_candidate_review"]
 
-    assert review["status"] == "OPERATOR_REVIEW_REQUIRED"
-    assert review["candidate_ref"] == "live_arts_md_2026_1001_pdf_export_candidate"
+    assert review["status"] == "SCOPE_MISMATCH_REJECTED"
+    assert review["artifact_review_status"] == "SCOPE_MISMATCH_REJECTED"
+    assert review["reason_code"] == "WRONG_EXPORT_SCOPE_WORKBOOK_INSTEAD_OF_SELECTED_INVOICE_PAGE"
+    assert review["candidate_ref"] == "pdf_export_candidate_receipt:test_success"
     assert review["client_ref"] == "live_arts_md"
     assert review["workflow_ref"] == "live_arts_md_invoice_workflow"
     assert review["invoice_id"] == "2026-1001"
+    assert review["selected_invoice_id"] == "2026-1001"
+    assert review["selected_sheet_label"] == "June 2026 Speaker Rental"
+    assert review["selected_invoice_amount"] == 900
     assert review["selected_invoice_summary"] == "2026-1001 — June 2026 Speaker Rental — $900"
     assert review["artifact_kind"] == "PDF"
     assert review["artifact_filename"] == EXPECTED_OUTPUT_FILENAME
@@ -1063,19 +1075,20 @@ def test_pdf_candidate_review_card_appears_for_successful_candidate_receipt(tmp_
     assert review["sha256"] == sha256
     assert review["observed_sha256"] == sha256
     assert review["page_count"] == 7
+    assert review["observed_page_count"] == 7
+    assert review["expected_page_count"] == 1
     assert review["operator_assisted"] is True
     assert review["fully_unattended"] is False
     assert review["preview_available_expected"] is True
-    assert review["operator_copy"] == (
-        "PDF export candidate recorded. Review this PDF before approving it for draft attachment."
-    )
+    assert "must be a 1-page export" in review["operator_copy"]
     assert "Seven-page PDF requires visual review before approval." in review["warnings"]
+    assert "Expected 1 page; observed 7." in review["warnings"]
     assert review["allowed_actions"] == (
         "preview_pdf_candidate",
-        "approve_pdf_candidate_for_draft_attachment",
         "reject_pdf_candidate",
     )
     assert review["blocked_actions"] == (
+        "approve_pdf_candidate_for_draft_attachment",
         "send_email",
         "mark_paid",
         "post_ledger",
@@ -1090,15 +1103,30 @@ def test_pdf_candidate_review_card_appears_for_successful_candidate_receipt(tmp_
     assert review["no_coupa"] is True
     assert review["no_ledger_post"] is True
     assert review["no_workbook_cell_read"] is True
+    assert live["invoice_artifact"]["artifact_review_status"] == "SCOPE_MISMATCH_REJECTED"
+    assert live["invoice_artifact"]["reason_code"] == "WRONG_EXPORT_SCOPE_WORKBOOK_INSTEAD_OF_SELECTED_INVOICE_PAGE"
+    assert live["invoice_artifact"]["page_count"] == 7
+    assert live["invoice_artifact"]["expected_page_count"] == 1
+    assert live["invoice_artifact"]["operator_assisted"] is True
+    assert live["invoice_artifact"]["fully_unattended"] is False
+    assert live["invoice_artifact"]["approval_ready"] is False
+    assert live["invoice_artifact"]["ledger_posting_allowed"] is False
     assert live["invoice_artifact"]["attachment_ready"] is False
     assert live["approval_footer"]["approval_ready"] is False
     assert live["payment_watch"]["ledger_posting_allowed"] is False
+    assert live["proof_timeline"][2]["status"] == "REJECTED"
+    assert live["proof_timeline"][2]["primary_action"]["enabled"] is True
 
 
-def test_pdf_candidate_review_card_missing_file_blocks_review_readiness(tmp_path):
-    missing_pdf = tmp_path / "missing" / EXPECTED_OUTPUT_FILENAME
+def test_one_page_pdf_candidate_becomes_operator_review_required_not_attachment_ready(tmp_path):
+    pdf_path = tmp_path / "artifacts" / EXPECTED_OUTPUT_FILENAME
+    sha256 = _write_pdf_candidate(pdf_path)
     candidate_receipt = _successful_pdf_export_receipt(
-        output_bridge_path=missing_pdf.as_posix(),
+        output_bridge_path=pdf_path.as_posix(),
+        file_size_bytes=pdf_path.stat().st_size,
+        sha256=sha256,
+        page_count=1,
+        expected_page_count=1,
     )
     annotation = assistance_annotation.build_annotation(
         candidate_receipt_payload=candidate_receipt,
@@ -1107,6 +1135,85 @@ def test_pdf_candidate_review_card_missing_file_blocks_review_readiness(tmp_path
         bridge_export_root=None,
         generated_at=FIXED_NOW,
     )
+    annotation["pdf_artifact"]["page_count"] = 1
+    annotation["pdf_artifact"]["expected_page_count"] = 1
+
+    live = bundle.build_live_arts_md_bundle(
+        workbook_registry_payload=_confirmed_workbook_payload_with_mac_path(),
+        export_receipt_payload=candidate_receipt,
+        operator_assistance_annotation_payload=annotation,
+        consume_existing_selection_receipt=False,
+        generated_at=FIXED_NOW,
+    )
+    review = live["invoice_artifact"]["artifact_candidate_review"]
+
+    assert review["status"] == "OPERATOR_REVIEW_REQUIRED"
+    assert review["reason_code"] is None
+    assert review["page_count"] == 1
+    assert review["expected_page_count"] == 1
+    assert review["allowed_actions"] == (
+        "preview_pdf_candidate",
+        "approve_pdf_candidate_for_draft_attachment",
+        "reject_pdf_candidate",
+    )
+    assert live["invoice_artifact"]["artifact_review_status"] == "OPERATOR_REVIEW_REQUIRED"
+    assert live["invoice_artifact"]["attachment_ready"] is False
+    assert live["invoice_artifact"]["approval_ready"] is False
+    assert live["invoice_artifact"]["ledger_posting_allowed"] is False
+    assert live["approval_footer"]["approval_ready"] is False
+    assert live["payment_watch"]["ledger_posting_allowed"] is False
+
+
+def test_page_count_mismatch_keeps_attachment_gates_closed_even_with_attachment_receipt(tmp_path):
+    pdf_path = tmp_path / "artifacts" / EXPECTED_OUTPUT_FILENAME
+    sha256 = _write_pdf_candidate(pdf_path)
+    candidate_receipt = _successful_pdf_export_receipt(
+        output_bridge_path=pdf_path.as_posix(),
+        file_size_bytes=pdf_path.stat().st_size,
+        sha256=sha256,
+        page_count=7,
+        expected_page_count=1,
+    )
+    annotation = assistance_annotation.build_annotation(
+        candidate_receipt_payload=candidate_receipt,
+        candidate_receipt_path="generated/read_models/selected_invoice_pdf_export_completed_candidate_receipt.json",
+        export_root=tmp_path,
+        bridge_export_root=None,
+        generated_at=FIXED_NOW,
+    )
+
+    live = bundle.build_live_arts_md_bundle(
+        workbook_registry_payload=_confirmed_workbook_payload_with_mac_path(),
+        export_receipt_payload=candidate_receipt,
+        operator_assistance_annotation_payload=annotation,
+        present_receipts=("invoice_attachment_confirmed_receipt",),
+        consume_existing_selection_receipt=False,
+        generated_at=FIXED_NOW,
+    )
+
+    assert live["invoice_artifact"]["artifact_review_status"] == "SCOPE_MISMATCH_REJECTED"
+    assert live["invoice_artifact"]["attachment_ready"] is False
+    assert live["clara_email_draft"]["attachment_ready"] is False
+    assert live["approval_footer"]["approval_ready"] is False
+    assert live["payment_watch"]["ledger_posting_allowed"] is False
+
+
+def test_pdf_candidate_review_card_missing_file_blocks_review_readiness(tmp_path):
+    missing_pdf = tmp_path / "missing" / EXPECTED_OUTPUT_FILENAME
+    candidate_receipt = _successful_pdf_export_receipt(
+        output_bridge_path=missing_pdf.as_posix(),
+        page_count=1,
+        expected_page_count=1,
+    )
+    annotation = assistance_annotation.build_annotation(
+        candidate_receipt_payload=candidate_receipt,
+        candidate_receipt_path="generated/read_models/selected_invoice_pdf_export_completed_candidate_receipt.json",
+        export_root=tmp_path,
+        bridge_export_root=None,
+        generated_at=FIXED_NOW,
+    )
+    annotation["pdf_artifact"]["page_count"] = 1
+    annotation["pdf_artifact"]["expected_page_count"] = 1
 
     live = bundle.build_live_arts_md_bundle(
         workbook_registry_payload=_confirmed_workbook_payload_with_mac_path(),
