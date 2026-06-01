@@ -64,7 +64,7 @@
   "source_candidate_receipt_name": "selected_invoice_pdf_export_completed_candidate_receipt",
   "source_candidate_receipt_path": "generated/read_models/selected_invoice_pdf_export_completed_candidate_receipt.json",
   "source_candidate_result_status": "PDF_EXPORT_COMPLETED_CANDIDATE",
-  "source_commit": "aaafa6581f845cac915b16977305c93aa1cc26f8",
+  "source_commit": "1cadfb3b28db21c471756e04a7b3c24a665ffafd",
   "validation_errors": [],
   "workflow_ref": "live_arts_md_invoice_workflow"
 }

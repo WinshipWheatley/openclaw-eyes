@@ -459,6 +459,178 @@ def _operator_assisted_provenance(annotation: Mapping[str, Any] | None) -> dict[
     }
 
 
+def _int_or_none(value: object) -> int | None:
+    if isinstance(value, bool) or value in (None, ""):
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _candidate_review_artifact_metadata(path_text: str, expected_sha256: str | None) -> dict[str, Any]:
+    path = Path(path_text) if path_text else None
+    if path is None:
+        return {
+            "exists": False,
+            "is_file": False,
+            "file_size_bytes": None,
+            "sha256": None,
+            "extension": None,
+            "metadata_status": "MISSING_PATH",
+        }
+    if not path.exists() or not path.is_file():
+        return {
+            "exists": path.exists(),
+            "is_file": path.is_file() if path.exists() else False,
+            "file_size_bytes": None,
+            "sha256": None,
+            "extension": path.suffix.lower(),
+            "metadata_status": "MISSING_FILE",
+        }
+    data = path.read_bytes()
+    observed_sha256 = hashlib.sha256(data).hexdigest()
+    expected_normalized = str(expected_sha256 or "").removeprefix("sha256:").strip()
+    return {
+        "exists": True,
+        "is_file": True,
+        "file_size_bytes": len(data),
+        "sha256": observed_sha256,
+        "extension": path.suffix.lower(),
+        "metadata_status": "METADATA_MATCH"
+        if not expected_normalized or observed_sha256 == expected_normalized
+        else "SHA256_MISMATCH",
+    }
+
+
+def _artifact_candidate_review_card(
+    *,
+    selected_invoice_summary_text: str | None,
+    pdf_export_package: Mapping[str, Any],
+    pdf_export_result_receipt: Mapping[str, Any] | None,
+    export_candidate_provenance: Mapping[str, Any] | None,
+) -> dict[str, Any] | None:
+    if not pdf_export_result_receipt or pdf_export_result_receipt.get("export_success") is not True:
+        return None
+    invoice_id = str(pdf_export_result_receipt.get("invoice_id") or pdf_export_package.get("invoice_id") or "").strip()
+    pdf_bridge_path = str(
+        pdf_export_result_receipt.get("pdf_bridge_path")
+        or pdf_export_result_receipt.get("output_bridge_path")
+        or pdf_export_package.get("output_bridge_path")
+        or ""
+    )
+    pdf_mac_path = str(
+        pdf_export_result_receipt.get("exported_pdf_mac_path")
+        or pdf_export_result_receipt.get("pdf_mac_path")
+        or pdf_export_package.get("output_pdf_mac_path")
+        or ""
+    )
+    artifact_filename = str(
+        pdf_export_result_receipt.get("artifact_filename")
+        or pdf_export_package.get("output_filename")
+        or Path(pdf_bridge_path).name
+        or ""
+    )
+    expected_size = _int_or_none(pdf_export_result_receipt.get("file_size_bytes"))
+    expected_sha256 = str(
+        pdf_export_result_receipt.get("sha256")
+        or (export_candidate_provenance or {}).get("sha256")
+        or ""
+    ).removeprefix("sha256:")
+    page_count = _int_or_none(
+        pdf_export_result_receipt.get("page_count")
+        if pdf_export_result_receipt.get("page_count") not in (None, "")
+        else (export_candidate_provenance or {}).get("page_count")
+    )
+    observed_metadata = _candidate_review_artifact_metadata(pdf_bridge_path, expected_sha256)
+    warnings = []
+    if page_count and page_count > 1:
+        if page_count == 7:
+            warnings.append("Seven-page PDF requires visual review before approval.")
+        else:
+            warnings.append(f"{page_count}-page PDF requires visual review before approval.")
+
+    if not observed_metadata["exists"]:
+        status = "CANDIDATE_FILE_MISSING"
+        operator_copy = "PDF export candidate file is missing. Re-run the scoped export or provide a replacement candidate."
+    elif (
+        observed_metadata["extension"] != ".pdf"
+        or observed_metadata["file_size_bytes"] in (0, 14)
+        or (expected_size is not None and observed_metadata["file_size_bytes"] != expected_size)
+        or observed_metadata["metadata_status"] == "SHA256_MISMATCH"
+    ):
+        status = "CANDIDATE_INVALID"
+        operator_copy = "PDF export candidate metadata does not match the recorded receipt. Do not approve it for attachment."
+    else:
+        status = "OPERATOR_REVIEW_REQUIRED"
+        operator_copy = "PDF export candidate recorded. Review this PDF before approving it for draft attachment."
+
+    review_ready = status == "OPERATOR_REVIEW_REQUIRED"
+    return {
+        "status": status,
+        "candidate_ref": f"{CLIENT_REF}_{invoice_id.replace('-', '_')}_pdf_export_candidate" if invoice_id else None,
+        "client_ref": CLIENT_REF,
+        "workflow_ref": WORKFLOW_REF,
+        "invoice_id": invoice_id,
+        "selected_invoice_summary": selected_invoice_summary_text,
+        "artifact_kind": "PDF",
+        "artifact_filename": artifact_filename,
+        "pdf_bridge_path": pdf_bridge_path,
+        "pdf_mac_path": pdf_mac_path,
+        "file_size_bytes": expected_size,
+        "observed_file_size_bytes": observed_metadata["file_size_bytes"],
+        "sha256": expected_sha256 or None,
+        "observed_sha256": observed_metadata["sha256"],
+        "page_count": page_count,
+        "operator_assisted": bool((export_candidate_provenance or {}).get("operator_assisted")),
+        "fully_unattended": (export_candidate_provenance or {}).get("fully_unattended")
+        if export_candidate_provenance
+        else None,
+        "operator_intervention_kind": (export_candidate_provenance or {}).get("operator_intervention_kind"),
+        "preview_available_expected": review_ready,
+        "operator_copy": operator_copy,
+        "warnings": tuple(warnings),
+        "allowed_actions": (
+            "preview_pdf_candidate",
+            "approve_pdf_candidate_for_draft_attachment",
+            "reject_pdf_candidate",
+        )
+        if review_ready
+        else ("reject_pdf_candidate",),
+        "blocked_actions": (
+            "send_email",
+            "mark_paid",
+            "post_ledger",
+            "claim_final_approval",
+        ),
+        "source_candidate_receipt_id": pdf_export_result_receipt.get("receipt_id"),
+        "operator_assistance_annotation_ref": (export_candidate_provenance or {}).get("annotation_ref"),
+        "metadata_proof": {
+            "candidate_file_exists": observed_metadata["exists"],
+            "candidate_file_is_pdf": observed_metadata["extension"] == ".pdf",
+            "file_size_matches_receipt": expected_size is None
+            or observed_metadata["file_size_bytes"] == expected_size,
+            "sha256_matches_receipt": not expected_sha256
+            or observed_metadata["sha256"] == expected_sha256,
+            "metadata_status": observed_metadata["metadata_status"],
+        },
+        "attachment_ready": False,
+        "approval_ready": False,
+        "ledger_posting_allowed": False,
+        "no_email_send": True,
+        "no_gmail": True,
+        "no_browser": True,
+        "no_coupa": True,
+        "no_ledger_post": True,
+        "no_workbook_cell_read": True,
+        "sent": False,
+        "paid": False,
+        "final": False,
+        "candidate_only": True,
+        "review_required_before_attachment": True,
+    }
+
+
 def _selected_candidate_from_receipt(receipt: Mapping[str, Any] | None) -> dict[str, Any] | None:
     valid_receipt = _selection_receipt_from_payload(receipt)
     if valid_receipt is None:
@@ -1091,6 +1263,12 @@ def build_live_arts_md_bundle(
     else:
         artifact_placement_policy = None
 
+    artifact_candidate_review = _artifact_candidate_review_card(
+        selected_invoice_summary_text=selected_invoice_summary_text,
+        pdf_export_package=pdf_export_package,
+        pdf_export_result_receipt=pdf_export_result_receipt,
+        export_candidate_provenance=export_candidate_provenance,
+    )
     selected_invoice_pdf_prepared = pdf_export_package["status"] == PDF_EXPORT_COMPLETED_CANDIDATE
     artifact_candidate = artifact["status"] == "OPERATOR_PROVIDED_ARTIFACT_CANDIDATE"
     artifact_candidate_or_exported = artifact_candidate or (pdf_export_completion_receipt in receipts)
@@ -1474,6 +1652,7 @@ def build_live_arts_md_bundle(
             "pdf_export_package": pdf_export_package,
             "artifact_placement_policy": artifact_placement_policy,
             "export_candidate_provenance": export_candidate_provenance,
+            "artifact_candidate_review": artifact_candidate_review,
             "artifact_review_status": "EXPORT_FAILED"
             if pdf_export_package["status"] == "EXPORT_FAILED"
             else "OPERATOR_REVIEW_REQUIRED"
@@ -1654,6 +1833,11 @@ def build_live_arts_md_bundle(
             "operator_assisted_pdf_export_candidate": bool(export_candidate_provenance),
             "operator_assisted_candidate_not_fully_unattended": bool(export_candidate_provenance)
             and export_candidate_provenance.get("fully_unattended") is False,
+            "artifact_candidate_review_surface_present": bool(artifact_candidate_review),
+            "artifact_candidate_review_keeps_gates_closed": bool(artifact_candidate_review)
+            and artifact_candidate_review.get("attachment_ready") is False
+            and artifact_candidate_review.get("approval_ready") is False
+            and artifact_candidate_review.get("ledger_posting_allowed") is False,
         },
     }
     bundle["machine_proof"]["content_hash"] = _content_hash(bundle)
@@ -1716,6 +1900,7 @@ def format_operator(payload: Mapping[str, Any]) -> str:
     bundle = payload["live_arts_md_bundle"]
     pdf_package = bundle["invoice_artifact"]["pdf_export_package"]
     provenance = bundle["invoice_artifact"].get("export_candidate_provenance")
+    review = bundle["invoice_artifact"].get("artifact_candidate_review")
     lines = [
         "# Live Arts MD Invoice Review Bundle",
         "",
@@ -1731,6 +1916,14 @@ def format_operator(payload: Mapping[str, Any]) -> str:
         f"- Payment watch: `{bundle['payment_watch']['payment_watch_status']}`",
         f"- PDF output Mac path: `{pdf_package.get('output_pdf_mac_path')}`",
         f"- PDF output bridge path: `{pdf_package.get('output_bridge_path')}`",
+        *(
+            (
+                f"- PDF candidate review: `{review.get('status')}`",
+                f"- PDF candidate bridge path: `{review.get('pdf_bridge_path')}`",
+            )
+            if isinstance(review, Mapping)
+            else tuple()
+        ),
         *(
             (
                 f"- PDF export provenance: `{provenance.get('status')}`",

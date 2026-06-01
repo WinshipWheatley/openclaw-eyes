@@ -547,6 +547,65 @@
     },
     "generated_at": "2026-06-01T01:40:00+00:00",
     "invoice_artifact": {
+      "artifact_candidate_review": {
+        "allowed_actions": [
+          "preview_pdf_candidate",
+          "approve_pdf_candidate_for_draft_attachment",
+          "reject_pdf_candidate"
+        ],
+        "approval_ready": false,
+        "artifact_filename": "Invoice_2026-1001_Live_Arts_MD_June_2026_Speaker_Rental.pdf",
+        "artifact_kind": "PDF",
+        "attachment_ready": false,
+        "blocked_actions": [
+          "send_email",
+          "mark_paid",
+          "post_ledger",
+          "claim_final_approval"
+        ],
+        "candidate_only": true,
+        "candidate_ref": "live_arts_md_2026_1001_pdf_export_candidate",
+        "client_ref": "live_arts_md",
+        "file_size_bytes": 171899,
+        "final": false,
+        "fully_unattended": false,
+        "invoice_id": "2026-1001",
+        "ledger_posting_allowed": false,
+        "metadata_proof": {
+          "candidate_file_exists": true,
+          "candidate_file_is_pdf": true,
+          "file_size_matches_receipt": true,
+          "metadata_status": "METADATA_MATCH",
+          "sha256_matches_receipt": true
+        },
+        "no_browser": true,
+        "no_coupa": true,
+        "no_email_send": true,
+        "no_gmail": true,
+        "no_ledger_post": true,
+        "no_workbook_cell_read": true,
+        "observed_file_size_bytes": 171899,
+        "observed_sha256": "fc2b9d9448307ddbcaff7d087b05c8b8e1af5c547caf6103dfc3b14162b84640",
+        "operator_assistance_annotation_ref": "selected_invoice_pdf_export_operator_assistance_annotation:420f81089de76a3a",
+        "operator_assisted": true,
+        "operator_copy": "PDF export candidate recorded. Review this PDF before approving it for draft attachment.",
+        "operator_intervention_kind": "UNKNOWN_EXCEL_WORKBOOK_OR_PERMISSION_PROMPT",
+        "page_count": 7,
+        "paid": false,
+        "pdf_bridge_path": "/mnt/e/openclaw/artifacts/invoice_workbooks/live_arts_md/2026-1001/Invoice_2026-1001_Live_Arts_MD_June_2026_Speaker_Rental.pdf",
+        "pdf_mac_path": "/Volumes/openclaw_e/artifacts/invoice_workbooks/live_arts_md/2026-1001/Invoice_2026-1001_Live_Arts_MD_June_2026_Speaker_Rental.pdf",
+        "preview_available_expected": true,
+        "review_required_before_attachment": true,
+        "selected_invoice_summary": "2026-1001 \u2014 June 2026 Speaker Rental \u2014 $900",
+        "sent": false,
+        "sha256": "fc2b9d9448307ddbcaff7d087b05c8b8e1af5c547caf6103dfc3b14162b84640",
+        "source_candidate_receipt_id": "pdf_export_candidate_receipt:e4d6fc03cd5ca9fb",
+        "status": "OPERATOR_REVIEW_REQUIRED",
+        "warnings": [
+          "Seven-page PDF requires visual review before approval."
+        ],
+        "workflow_ref": "live_arts_md_invoice_workflow"
+      },
       "artifact_placement_policy": {
         "access_required": [
           "WORKBOOK_ACCESS",
@@ -837,6 +896,8 @@
     "machine_proof": {
       "approval_send_disabled_without_receipts": true,
       "artifact_candidate_not_attachment_ready": true,
+      "artifact_candidate_review_keeps_gates_closed": true,
+      "artifact_candidate_review_surface_present": true,
       "arts_alive_alias_mapped_to_live_arts_md": true,
       "candidate_register_present": true,
       "clara_client_draft_body_status_free": true,
@@ -844,7 +905,7 @@
       "clara_first_contact_intro_required": true,
       "clara_invoice_draft_package_consumed": true,
       "client_comms_thread_rail_consumed": true,
-      "content_hash": "sha256:bf82d3864b636c1677ce487ee008aae0215419f9fc6ae9d2d4f2ae532c7a7685",
+      "content_hash": "sha256:18a359611dcc2b369a3825432265b1126f50d45e7d19ab8d0c8f75b7ebff03b6",
       "live_arts_md_does_not_require_coupa": true,
       "live_arts_md_does_not_require_po": true,
       "manual_send_proof_evaluated": true,
@@ -1597,7 +1658,7 @@
       "sent_receipt_confirmed": false,
       "thread_watch_status_after_send": "THREAD_WATCH_READY"
     },
-    "source_commit": "aaafa6581f845cac915b16977305c93aa1cc26f8",
+    "source_commit": "1cadfb3b28db21c471756e04a7b3c24a665ffafd",
     "source_workbook": {
       "approved_for_cell_read": false,
       "approved_for_metadata_read": true,
@@ -1628,7 +1689,7 @@
   },
   "machine_proof": {
     "bridge_safe": true,
-    "content_hash": "sha256:bf82d3864b636c1677ce487ee008aae0215419f9fc6ae9d2d4f2ae532c7a7685",
+    "content_hash": "sha256:18a359611dcc2b369a3825432265b1126f50d45e7d19ab8d0c8f75b7ebff03b6",
     "live_arts_md_bundle_present": true,
     "no_action_authority": true
   },
@@ -1638,6 +1699,6 @@
   "schema_version": "live_arts_md_invoice_review_bundle_v0",
   "scope_consistency_status": "SCOPED",
   "selected_invoice_scope_status": "SELECTED_INVOICE_PRESENT",
-  "source_commit": "aaafa6581f845cac915b16977305c93aa1cc26f8",
+  "source_commit": "1cadfb3b28db21c471756e04a7b3c24a665ffafd",
   "stale_placeholder_detected": false
 }

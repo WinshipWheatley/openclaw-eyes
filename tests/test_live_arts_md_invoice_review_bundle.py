@@ -1,3 +1,4 @@
+import hashlib
 import json
 from pathlib import Path
 
@@ -122,6 +123,14 @@ def _successful_pdf_export_receipt(**overrides):
     }
     receipt.update(overrides)
     return receipt
+
+
+def _write_pdf_candidate(path: Path, size: int = 171899) -> str:
+    body = b"%PDF-1.4\n% Live Arts MD test candidate\n"
+    padding = b"0" * max(0, size - len(body))
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(body + padding)
+    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def _manual_send_payload(**overrides):
@@ -1012,6 +1021,116 @@ def test_bundle_consumes_operator_assistance_annotation_as_candidate_provenance(
     assert live["approval_footer"]["approval_ready"] is False
     assert live["payment_watch"]["ledger_posting_allowed"] is False
     assert live["clara_email_draft"]["attachment_ready"] is False
+
+
+def test_pdf_candidate_review_card_appears_for_successful_candidate_receipt(tmp_path):
+    pdf_path = tmp_path / "artifacts" / EXPECTED_OUTPUT_FILENAME
+    sha256 = _write_pdf_candidate(pdf_path)
+    candidate_receipt = _successful_pdf_export_receipt(
+        output_bridge_path=pdf_path.as_posix(),
+        file_size_bytes=pdf_path.stat().st_size,
+        sha256=sha256,
+    )
+    annotation = assistance_annotation.build_annotation(
+        candidate_receipt_payload=candidate_receipt,
+        candidate_receipt_path="generated/read_models/selected_invoice_pdf_export_completed_candidate_receipt.json",
+        export_root=tmp_path,
+        bridge_export_root=None,
+        generated_at=FIXED_NOW,
+    )
+
+    live = bundle.build_live_arts_md_bundle(
+        workbook_registry_payload=_confirmed_workbook_payload_with_mac_path(),
+        export_receipt_payload=candidate_receipt,
+        operator_assistance_annotation_payload=annotation,
+        consume_existing_selection_receipt=False,
+        generated_at=FIXED_NOW,
+    )
+    review = live["invoice_artifact"]["artifact_candidate_review"]
+
+    assert review["status"] == "OPERATOR_REVIEW_REQUIRED"
+    assert review["candidate_ref"] == "live_arts_md_2026_1001_pdf_export_candidate"
+    assert review["client_ref"] == "live_arts_md"
+    assert review["workflow_ref"] == "live_arts_md_invoice_workflow"
+    assert review["invoice_id"] == "2026-1001"
+    assert review["selected_invoice_summary"] == "2026-1001 — June 2026 Speaker Rental — $900"
+    assert review["artifact_kind"] == "PDF"
+    assert review["artifact_filename"] == EXPECTED_OUTPUT_FILENAME
+    assert review["pdf_bridge_path"] == pdf_path.as_posix()
+    assert review["pdf_mac_path"] == EXPECTED_OUTPUT_PDF_MAC_PATH
+    assert review["file_size_bytes"] == 171899
+    assert review["observed_file_size_bytes"] == 171899
+    assert review["sha256"] == sha256
+    assert review["observed_sha256"] == sha256
+    assert review["page_count"] == 7
+    assert review["operator_assisted"] is True
+    assert review["fully_unattended"] is False
+    assert review["preview_available_expected"] is True
+    assert review["operator_copy"] == (
+        "PDF export candidate recorded. Review this PDF before approving it for draft attachment."
+    )
+    assert "Seven-page PDF requires visual review before approval." in review["warnings"]
+    assert review["allowed_actions"] == (
+        "preview_pdf_candidate",
+        "approve_pdf_candidate_for_draft_attachment",
+        "reject_pdf_candidate",
+    )
+    assert review["blocked_actions"] == (
+        "send_email",
+        "mark_paid",
+        "post_ledger",
+        "claim_final_approval",
+    )
+    assert review["attachment_ready"] is False
+    assert review["approval_ready"] is False
+    assert review["ledger_posting_allowed"] is False
+    assert review["no_email_send"] is True
+    assert review["no_gmail"] is True
+    assert review["no_browser"] is True
+    assert review["no_coupa"] is True
+    assert review["no_ledger_post"] is True
+    assert review["no_workbook_cell_read"] is True
+    assert live["invoice_artifact"]["attachment_ready"] is False
+    assert live["approval_footer"]["approval_ready"] is False
+    assert live["payment_watch"]["ledger_posting_allowed"] is False
+
+
+def test_pdf_candidate_review_card_missing_file_blocks_review_readiness(tmp_path):
+    missing_pdf = tmp_path / "missing" / EXPECTED_OUTPUT_FILENAME
+    candidate_receipt = _successful_pdf_export_receipt(
+        output_bridge_path=missing_pdf.as_posix(),
+    )
+    annotation = assistance_annotation.build_annotation(
+        candidate_receipt_payload=candidate_receipt,
+        candidate_receipt_path="generated/read_models/selected_invoice_pdf_export_completed_candidate_receipt.json",
+        export_root=tmp_path,
+        bridge_export_root=None,
+        generated_at=FIXED_NOW,
+    )
+
+    live = bundle.build_live_arts_md_bundle(
+        workbook_registry_payload=_confirmed_workbook_payload_with_mac_path(),
+        export_receipt_payload=candidate_receipt,
+        operator_assistance_annotation_payload=annotation,
+        consume_existing_selection_receipt=False,
+        generated_at=FIXED_NOW,
+    )
+    review = live["invoice_artifact"]["artifact_candidate_review"]
+
+    assert review["status"] == "CANDIDATE_FILE_MISSING"
+    assert review["preview_available_expected"] is False
+    assert review["metadata_proof"]["candidate_file_exists"] is False
+    assert review["allowed_actions"] == ("reject_pdf_candidate",)
+    assert review["attachment_ready"] is False
+    assert review["approval_ready"] is False
+    assert review["ledger_posting_allowed"] is False
+    assert review["no_email_send"] is True
+    assert review["no_gmail"] is True
+    assert review["no_browser"] is True
+    assert review["no_coupa"] is True
+    assert review["no_ledger_post"] is True
+    assert "send_email" in review["blocked_actions"]
+    assert "post_ledger" in review["blocked_actions"]
 
 
 def test_explicit_failed_pdf_export_receipt_keeps_scoped_failure_state():
