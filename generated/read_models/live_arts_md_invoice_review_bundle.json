@@ -567,6 +567,7 @@
         ],
         "candidate_only": true,
         "candidate_ref": "pdf_export_candidate_receipt:95913871095d32dd",
+        "candidate_valid_for_operator_review": true,
         "client_ref": "live_arts_md",
         "email_send_allowed": false,
         "expected_page_count": 1,
@@ -959,7 +960,7 @@
       "clara_first_contact_intro_required": true,
       "clara_invoice_draft_package_consumed": true,
       "client_comms_thread_rail_consumed": true,
-      "content_hash": "sha256:bb737bced441018e847882dc8f174a38bb662980c4d6ed663a2cec3b31b5e020",
+      "content_hash": "sha256:fbdf68ea5aba7e32d53ee5474c7e7d3c5435442b806fa266ae6045e9eddcaec4",
       "live_arts_md_does_not_require_coupa": true,
       "live_arts_md_does_not_require_po": true,
       "manual_send_proof_evaluated": true,
@@ -1714,7 +1715,7 @@
       "sent_receipt_confirmed": false,
       "thread_watch_status_after_send": "THREAD_WATCH_READY"
     },
-    "source_commit": "2591df10735523f8927ce5438430ba1d2ea046c5",
+    "source_commit": "eaee98b9c34eb5454ddf20405b834514fbc40047",
     "source_workbook": {
       "approved_for_cell_read": false,
       "approved_for_metadata_read": true,
@@ -1745,7 +1746,7 @@
   },
   "machine_proof": {
     "bridge_safe": true,
-    "content_hash": "sha256:bb737bced441018e847882dc8f174a38bb662980c4d6ed663a2cec3b31b5e020",
+    "content_hash": "sha256:fbdf68ea5aba7e32d53ee5474c7e7d3c5435442b806fa266ae6045e9eddcaec4",
     "live_arts_md_bundle_present": true,
     "no_action_authority": true
   },
@@ -1755,6 +1756,6 @@
   "schema_version": "live_arts_md_invoice_review_bundle_v0",
   "scope_consistency_status": "SCOPED",
   "selected_invoice_scope_status": "SELECTED_INVOICE_PRESENT",
-  "source_commit": "2591df10735523f8927ce5438430ba1d2ea046c5",
+  "source_commit": "eaee98b9c34eb5454ddf20405b834514fbc40047",
   "stale_placeholder_detected": false
 }
