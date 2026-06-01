@@ -6,6 +6,7 @@ import invoice_review_action_request_handler as action_handler
 import invoice_review_state_machine as state_machine
 import live_arts_md_invoice_review_bundle as bundle
 import live_arts_md_workbook_handoff
+import selected_invoice_pdf_export_operator_assistance_annotation as assistance_annotation
 from scripts.export_live_arts_md_invoice_review_bundle import main as export_main
 
 
@@ -87,6 +88,36 @@ def _failed_pdf_export_receipt(**overrides):
         "failure_code": "EXCEL_APPLESCRIPT_FAILED",
         "failure_message": "Microsoft Excel got an error: The object you are trying to access does not exist",
         "failed_stage": "apple_script_export",
+        "validation_errors": [],
+    }
+    receipt.update(overrides)
+    return receipt
+
+
+def _successful_pdf_export_receipt(**overrides):
+    receipt = {
+        "receipt_id": "pdf_export_candidate_receipt:test_success",
+        "receipt_type": "selected_invoice_pdf_export_completed_candidate_receipt",
+        "receipt_name": "selected_invoice_pdf_export_completed_candidate_receipt",
+        "client_ref": "live_arts_md",
+        "workflow_ref": "live_arts_md_invoice_workflow",
+        "invoice_id": "2026-1001",
+        "exported_pdf_mac_path": EXPECTED_OUTPUT_PDF_MAC_PATH,
+        "artifact_filename": EXPECTED_OUTPUT_FILENAME,
+        "file_size_bytes": 171899,
+        "sha256": "fc2b9d9448307ddbcaff7d087b05c8b8e1af5c547caf6103dfc3b14162b84640",
+        "exported_by": "MAC_EXCEL",
+        "execution_venue": "MAC_LOCAL",
+        "export_attempted": True,
+        "export_success": True,
+        "result_status": "PDF_EXPORT_COMPLETED_CANDIDATE",
+        "artifact_review_status": "OPERATOR_REVIEW_REQUIRED",
+        "attachment_ready": False,
+        "approval_ready": False,
+        "ledger_posting_allowed": False,
+        "sent": False,
+        "paid": False,
+        "final": False,
         "validation_errors": [],
     }
     receipt.update(overrides)
@@ -898,6 +929,89 @@ def test_pdf_export_result_receipt_restores_scope_for_retry_regeneration(tmp_pat
         "output_bridge_path"
     ]
     assert "/selected-invoice/" not in package["output_pdf_mac_path"]
+
+
+def test_operator_assistance_annotation_is_source_backed_and_does_not_open_gates(tmp_path):
+    candidate_receipt = _successful_pdf_export_receipt()
+    annotation = assistance_annotation.build_annotation(
+        candidate_receipt_payload=candidate_receipt,
+        candidate_receipt_path="generated/read_models/selected_invoice_pdf_export_completed_candidate_receipt.json",
+        export_root=tmp_path,
+        bridge_export_root=None,
+        generated_at=FIXED_NOW,
+    )
+    json_path, operator_path, bridge_path = assistance_annotation.write_exports(
+        annotation,
+        tmp_path,
+        bridge_export_root=None,
+    )
+
+    parsed = json.loads(json_path.read_text(encoding="utf-8"))
+    operator_text = operator_path.read_text(encoding="utf-8")
+
+    assert bridge_path is None
+    assert parsed["read_model_id"] == "selected_invoice_pdf_export_operator_assistance_annotation"
+    assert parsed["annotation_status"] == "OPERATOR_ASSISTED_ANNOTATED"
+    assert parsed["operator_assisted"] is True
+    assert parsed["fully_unattended"] is False
+    assert parsed["operator_intervention_kind"] == "UNKNOWN_EXCEL_WORKBOOK_OR_PERMISSION_PROMPT"
+    assert parsed["prompt_text_known"] is False
+    assert parsed["permission_or_access_granted_by_operator"] is True
+    assert parsed["export_candidate_remains_review_required"] is True
+    assert parsed["artifact_review_status"] == "OPERATOR_REVIEW_REQUIRED"
+    assert parsed["attachment_ready"] is False
+    assert parsed["approval_ready"] is False
+    assert parsed["ledger_posting_allowed"] is False
+    assert parsed["pdf_artifact"]["file_size_bytes"] == 171899
+    assert parsed["pdf_artifact"]["page_count"] == 7
+    assert parsed["pdf_artifact"]["sha256"] == candidate_receipt["sha256"]
+    assert "Operator assisted: `True`" in operator_text
+
+
+def test_bundle_consumes_operator_assistance_annotation_as_candidate_provenance(tmp_path, monkeypatch):
+    source_root = tmp_path / "read_models"
+    bridge_root = tmp_path / "bridge"
+    source_root.mkdir()
+    bridge_root.mkdir()
+    monkeypatch.setattr(bundle, "DEFAULT_EXPORT_ROOT", source_root)
+    monkeypatch.setattr(bundle, "DEFAULT_BRIDGE_EXPORT_ROOT", bridge_root)
+    candidate_receipt = _successful_pdf_export_receipt()
+    annotation = assistance_annotation.build_annotation(
+        candidate_receipt_payload=candidate_receipt,
+        candidate_receipt_path=(source_root / bundle.PDF_EXPORT_RESULT_RECEIPT_EXPORT_NAME).as_posix(),
+        export_root=source_root,
+        bridge_export_root=bridge_root,
+        generated_at=FIXED_NOW,
+    )
+    (source_root / bundle.PDF_EXPORT_RESULT_RECEIPT_EXPORT_NAME).write_text(
+        bundle.stable_json(candidate_receipt),
+        encoding="utf-8",
+    )
+    (source_root / bundle.PDF_EXPORT_OPERATOR_ASSISTANCE_ANNOTATION_EXPORT_NAME).write_text(
+        assistance_annotation.stable_json(annotation),
+        encoding="utf-8",
+    )
+
+    live = bundle.build_live_arts_md_bundle(
+        workbook_registry_payload=_confirmed_workbook_payload_with_mac_path(),
+        generated_at=FIXED_NOW,
+    )
+    package = live["invoice_artifact"]["pdf_export_package"]
+    provenance = live["invoice_artifact"]["export_candidate_provenance"]
+    selected = live["invoice_selection"]["selected_invoice_candidate"]
+
+    assert provenance["status"] == "OPERATOR_ASSISTED"
+    assert provenance["fully_unattended"] is False
+    assert provenance["operator_intervention_kind"] == "UNKNOWN_EXCEL_WORKBOOK_OR_PERMISSION_PROMPT"
+    assert package["export_candidate_provenance_status"] == "OPERATOR_ASSISTED"
+    assert package["operator_assisted"] is True
+    assert package["fully_unattended"] is False
+    assert selected["pdf_export_candidate_provenance_status"] == "OPERATOR_ASSISTED"
+    assert live["invoice_artifact"]["artifact_review_status"] == "OPERATOR_REVIEW_REQUIRED"
+    assert live["invoice_artifact"]["attachment_ready"] is False
+    assert live["approval_footer"]["approval_ready"] is False
+    assert live["payment_watch"]["ledger_posting_allowed"] is False
+    assert live["clara_email_draft"]["attachment_ready"] is False
 
 
 def test_explicit_failed_pdf_export_receipt_keeps_scoped_failure_state():

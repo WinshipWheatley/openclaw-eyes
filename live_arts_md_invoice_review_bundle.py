@@ -35,6 +35,9 @@ DEFAULT_GENERATED_AT = "2026-05-28T00:00:00+00:00"
 LEGACY_ACTION_RECEIPT_EXPORT_NAME = "invoice_review_action_request_receipt.json"
 SELECTION_RECEIPT_EXPORT_NAME = "live_arts_md_invoice_candidate_selected_receipt.json"
 PDF_EXPORT_RESULT_RECEIPT_EXPORT_NAME = "selected_invoice_pdf_export_completed_candidate_receipt.json"
+PDF_EXPORT_OPERATOR_ASSISTANCE_ANNOTATION_EXPORT_NAME = (
+    "selected_invoice_pdf_export_operator_assistance_annotation.json"
+)
 KNOWN_UNTRUSTED_DESKTOP_PDF_PATH = "/Users/hwinshipwheatley/Desktop/Live_Arts_MD_Speaker_Rental_Invoice_September_May_2026.pdf"
 KNOWN_INVALID_BRIDGE_PDF_MAC_PATH = "/Volumes/openclaw_e/artifacts/invoice_workbooks/live_arts_md_invoice_2026-1001.pdf"
 KNOWN_INVALID_BRIDGE_PDF_PC_PATH = "/mnt/e/openclaw/artifacts/invoice_workbooks/live_arts_md_invoice_2026-1001.pdf"
@@ -345,6 +348,21 @@ def _load_existing_pdf_export_result_receipt() -> Mapping[str, Any] | None:
     return None
 
 
+def _load_existing_pdf_export_operator_assistance_annotation() -> Mapping[str, Any] | None:
+    for path in (
+        DEFAULT_EXPORT_ROOT / PDF_EXPORT_OPERATOR_ASSISTANCE_ANNOTATION_EXPORT_NAME,
+        DEFAULT_BRIDGE_EXPORT_ROOT / PDF_EXPORT_OPERATOR_ASSISTANCE_ANNOTATION_EXPORT_NAME,
+    ):
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except (FileNotFoundError, json.JSONDecodeError, OSError):
+            continue
+        annotation = _pdf_export_operator_assistance_annotation_from_payload(payload)
+        if annotation is not None:
+            return annotation
+    return None
+
+
 def _selection_receipt_from_payload(payload: Mapping[str, Any] | None) -> Mapping[str, Any] | None:
     if not isinstance(payload, Mapping):
         return None
@@ -381,6 +399,64 @@ def _pdf_export_result_receipt_from_payload(payload: Mapping[str, Any] | None) -
     if not str(candidate.get("invoice_id") or "").strip():
         return None
     return candidate
+
+
+def _pdf_export_operator_assistance_annotation_from_payload(
+    payload: Mapping[str, Any] | None,
+) -> Mapping[str, Any] | None:
+    if not isinstance(payload, Mapping):
+        return None
+    if payload.get("read_model_id") != "selected_invoice_pdf_export_operator_assistance_annotation":
+        return None
+    if payload.get("annotation_status") != "OPERATOR_ASSISTED_ANNOTATED":
+        return None
+    if payload.get("client_ref") != CLIENT_REF or payload.get("workflow_ref") != WORKFLOW_REF:
+        return None
+    if payload.get("operator_assisted") is not True or payload.get("fully_unattended") is not False:
+        return None
+    if payload.get("validation_errors"):
+        return None
+    if not str(payload.get("invoice_id") or "").strip():
+        return None
+    return payload
+
+
+def _operator_assisted_candidate_fields(annotation: Mapping[str, Any] | None) -> dict[str, Any]:
+    if not annotation:
+        return {}
+    return {
+        "pdf_export_candidate_provenance_status": "OPERATOR_ASSISTED",
+        "operator_assisted": True,
+        "fully_unattended": False,
+        "operator_intervention_kind": annotation.get("operator_intervention_kind"),
+        "operator_assistance_annotation_ref": annotation.get("annotation_id"),
+    }
+
+
+def _operator_assisted_provenance(annotation: Mapping[str, Any] | None) -> dict[str, Any] | None:
+    if not annotation:
+        return None
+    artifact = annotation.get("pdf_artifact") if isinstance(annotation.get("pdf_artifact"), Mapping) else {}
+    return {
+        "status": "OPERATOR_ASSISTED",
+        "annotation_ref": annotation.get("annotation_id"),
+        "annotation_receipt_type": annotation.get("annotation_receipt_type"),
+        "source_candidate_receipt_id": annotation.get("source_candidate_receipt_id"),
+        "source_candidate_receipt_path": annotation.get("source_candidate_receipt_path"),
+        "operator_assisted": True,
+        "fully_unattended": False,
+        "operator_intervention_kind": annotation.get("operator_intervention_kind"),
+        "prompt_text_known": annotation.get("prompt_text_known"),
+        "permission_or_access_granted_by_operator": annotation.get("permission_or_access_granted_by_operator"),
+        "export_candidate_remains_review_required": annotation.get("export_candidate_remains_review_required"),
+        "artifact_review_status": annotation.get("artifact_review_status"),
+        "attachment_ready": False,
+        "approval_ready": False,
+        "ledger_posting_allowed": False,
+        "pdf_path": artifact.get("path"),
+        "sha256": artifact.get("sha256"),
+        "page_count": artifact.get("page_count"),
+    }
 
 
 def _selected_candidate_from_receipt(receipt: Mapping[str, Any] | None) -> dict[str, Any] | None:
@@ -796,6 +872,7 @@ def build_live_arts_md_bundle(
     selection_receipt_payload: Mapping[str, Any] | None = None,
     consume_existing_selection_receipt: bool = True,
     export_receipt_payload: Mapping[str, Any] | None = None,
+    operator_assistance_annotation_payload: Mapping[str, Any] | None = None,
     present_receipts: tuple[str, ...] | list[str] | set[str] = (),
     generated_at: str | None = None,
 ) -> dict[str, Any]:
@@ -863,6 +940,13 @@ def build_live_arts_md_bundle(
         if consume_existing_selection_receipt
         else None
     )
+    operator_assistance_annotation = (
+        _pdf_export_operator_assistance_annotation_from_payload(operator_assistance_annotation_payload)
+        if operator_assistance_annotation_payload is not None
+        else _load_existing_pdf_export_operator_assistance_annotation()
+        if consume_existing_selection_receipt
+        else None
+    )
     if not candidates_list:
         receipt_candidate = _selected_candidate_from_receipt(selection_receipt)
         if receipt_candidate is not None:
@@ -873,6 +957,20 @@ def build_live_arts_md_bundle(
         if result_candidate is not None:
             candidates_list = [result_candidate]
             receipts.add(INVOICE_CANDIDATE_SELECTED_RECEIPT)
+            if (
+                pdf_export_result_receipt.get("export_success") is True
+                or pdf_export_result_receipt.get("result_status") == PDF_EXPORT_COMPLETED_CANDIDATE
+            ):
+                receipts.add(PDF_EXPORT_COMPLETION_RECEIPT)
+    if operator_assistance_annotation and candidates_list:
+        annotation_invoice_id = str(operator_assistance_annotation.get("invoice_id") or "").strip()
+        assistance_fields = _operator_assisted_candidate_fields(operator_assistance_annotation)
+        candidates_list = [
+            {**dict(candidate), **assistance_fields}
+            if str(candidate.get("invoice_id") or "").strip() == annotation_invoice_id
+            else dict(candidate)
+            for candidate in candidates_list
+        ]
 
     selected_invoice_summary = dict(candidates_list[0]) if len(candidates_list) == 1 else None
 
@@ -926,6 +1024,21 @@ def build_live_arts_md_bundle(
         source_workbook=source,
         present_receipts=receipts,
     )
+    export_candidate_provenance = _operator_assisted_provenance(operator_assistance_annotation)
+    if export_candidate_provenance:
+        pdf_export_package.update(
+            {
+                "export_candidate_provenance_status": "OPERATOR_ASSISTED",
+                "operator_assisted": True,
+                "fully_unattended": False,
+                "operator_intervention_kind": export_candidate_provenance["operator_intervention_kind"],
+                "operator_assistance_annotation_ref": export_candidate_provenance["annotation_ref"],
+                "permission_or_access_granted_by_operator": export_candidate_provenance[
+                    "permission_or_access_granted_by_operator"
+                ],
+                "export_candidate_remains_review_required": True,
+            }
+        )
     if export_receipt_payload and export_receipt_payload.get("export_attempted") and not export_receipt_payload.get("export_success"):
         pdf_export_package["status"] = "EXPORT_FAILED"
         pdf_export_package["export_attempted"] = True
@@ -1360,6 +1473,7 @@ def build_live_arts_md_bundle(
             **artifact,
             "pdf_export_package": pdf_export_package,
             "artifact_placement_policy": artifact_placement_policy,
+            "export_candidate_provenance": export_candidate_provenance,
             "artifact_review_status": "EXPORT_FAILED"
             if pdf_export_package["status"] == "EXPORT_FAILED"
             else "OPERATOR_REVIEW_REQUIRED"
@@ -1537,6 +1651,9 @@ def build_live_arts_md_bundle(
             "manual_send_proof_evaluated": bool(manual_send_proof_state),
             "manual_send_proof_status": manual_send_status,
             "content_hash": "",
+            "operator_assisted_pdf_export_candidate": bool(export_candidate_provenance),
+            "operator_assisted_candidate_not_fully_unattended": bool(export_candidate_provenance)
+            and export_candidate_provenance.get("fully_unattended") is False,
         },
     }
     bundle["machine_proof"]["content_hash"] = _content_hash(bundle)
@@ -1551,6 +1668,7 @@ def build_payload(
     selection_receipt_payload: Mapping[str, Any] | None = None,
     consume_existing_selection_receipt: bool = True,
     export_receipt_payload: Mapping[str, Any] | None = None,
+    operator_assistance_annotation_payload: Mapping[str, Any] | None = None,
     workbook_registry_payload: Mapping[str, Any] | None = None,
     source_workbook_override: Mapping[str, Any] | None = None,
     artifact_reference_payload: Mapping[str, Any] | None = None,
@@ -1565,6 +1683,7 @@ def build_payload(
         selection_receipt_payload=selection_receipt_payload,
         consume_existing_selection_receipt=consume_existing_selection_receipt,
         export_receipt_payload=export_receipt_payload,
+        operator_assistance_annotation_payload=operator_assistance_annotation_payload,
         workbook_registry_payload=workbook_registry_payload,
         source_workbook_override=source_workbook_override,
         artifact_reference_payload=artifact_reference_payload,
@@ -1596,6 +1715,7 @@ def build_payload(
 def format_operator(payload: Mapping[str, Any]) -> str:
     bundle = payload["live_arts_md_bundle"]
     pdf_package = bundle["invoice_artifact"]["pdf_export_package"]
+    provenance = bundle["invoice_artifact"].get("export_candidate_provenance")
     lines = [
         "# Live Arts MD Invoice Review Bundle",
         "",
@@ -1611,6 +1731,14 @@ def format_operator(payload: Mapping[str, Any]) -> str:
         f"- Payment watch: `{bundle['payment_watch']['payment_watch_status']}`",
         f"- PDF output Mac path: `{pdf_package.get('output_pdf_mac_path')}`",
         f"- PDF output bridge path: `{pdf_package.get('output_bridge_path')}`",
+        *(
+            (
+                f"- PDF export provenance: `{provenance.get('status')}`",
+                f"- Fully unattended export: `{provenance.get('fully_unattended')}`",
+            )
+            if isinstance(provenance, Mapping)
+            else tuple()
+        ),
         *(
             (f"- {bundle['manual_send_proof']['proof_capture_request']}",)
             if bundle["manual_send_proof"].get("proof_capture_request")
