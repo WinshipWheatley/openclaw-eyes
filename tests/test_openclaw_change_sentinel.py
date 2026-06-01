@@ -502,6 +502,46 @@ def test_business_object_audit_input_hash_change_emits_stale(tmp_path):
     )
 
 
+def test_live_arts_placeholder_ready_export_emits_scope_drift_signal(tmp_path):
+    read_root = tmp_path / "read_models"
+    _write_fixture_read_models(read_root)
+    live_payload = _live_arts_payload()
+    package = live_payload["live_arts_md_bundle"]["invoice_artifact"]["pdf_export_package"]
+    package["invoice_id"] = ""
+    package["selected_sheet_label"] = ""
+    package["selected_print_areas"] = []
+    package["output_pdf_mac_path"] = (
+        "/Volumes/openclaw_e/artifacts/invoice_workbooks/live_arts_md/selected-invoice/Invoice_Live_Arts_MD.pdf"
+    )
+    package["output_bridge_path"] = (
+        "/mnt/e/openclaw/artifacts/invoice_workbooks/live_arts_md/selected-invoice/Invoice_Live_Arts_MD.pdf"
+    )
+    live_payload["live_arts_md_bundle"]["proof_timeline"] = [
+        {},
+        {},
+        {
+            "primary_action": {
+                "hidden_request_payload": {
+                    "output_pdf_mac_path": package["output_pdf_mac_path"],
+                    "output_bridge_path": package["output_bridge_path"],
+                }
+            }
+        },
+    ]
+    _write_json(read_root / "live_arts_md_invoice_review_bundle.json", live_payload)
+
+    payload = _build(read_root)
+    targets = {row["target_ref"]: row for row in payload["observed_targets"]}
+
+    assert targets["pdf_export_package:live_arts_md_invoice_workflow"]["observation_status"] == "PDF_EXPORT_SCOPE_DRIFT"
+    assert targets["pdf_export_scope:live_arts_md_invoice_workflow"]["observation_status"] in {
+        "PDF_EXPORT_SCOPE_DRIFT",
+        "SPLIT_BRAIN_EXPORT_SCOPE",
+    }
+    scope_payload = json.loads(targets["pdf_export_scope:live_arts_md_invoice_workflow"]["observed_json"])
+    assert "invoice_artifact.pdf_export_package.output_pdf_mac_path" in scope_payload["stale_placeholder_json_paths"]
+
+
 def test_business_object_audit_refresh_to_fresh_clears_stale_alert(tmp_path):
     read_root = tmp_path / "read_models"
     _write_fixture_read_models(read_root)

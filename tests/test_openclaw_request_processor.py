@@ -2057,12 +2057,14 @@ def test_live_arts_pdf_export_failure_result_records_structured_block_without_se
     response_from_disk = json.loads(paths[0].read_text(encoding="utf-8"))
     detail = response_from_disk["detail_disclosure"]["pdf_export_completed_result"]
     local_result = detail["local_surface_result"]
-    bundle = json.loads((export_root / "live_arts_md_invoice_review_bundle.json").read_text(encoding="utf-8"))
+    bundle_payload = json.loads((export_root / "live_arts_md_invoice_review_bundle.json").read_text(encoding="utf-8"))
+    bundle = bundle_payload.get("live_arts_md_bundle", bundle_payload)
 
     assert quality_errors == ()
     assert response_payload["source_request_id"] == request["request_id"]
     assert response_from_disk["internal_status"] == "BLOCKED_WITH_REASON"
     assert response_from_disk["operator_headline"] == "PDF Export Failed"
+    assert bundle_payload["read_model_id"] == "live_arts_md_invoice_review_bundle"
     assert detail["receipt"]["failure_code"] == "EXCEL_APPLESCRIPT_FAILED"
     assert detail["receipt"]["failure_message"].startswith("Microsoft Excel got an error")
     assert local_result["artifact_review_status"] == "EXPORT_FAILED"
@@ -2075,6 +2077,9 @@ def test_live_arts_pdf_export_failure_result_records_structured_block_without_se
     assert all(isinstance(item, str) for item in response_from_disk["readback_files"])
     assert bundle["invoice_artifact"]["artifact_review_status"] == "EXPORT_FAILED"
     assert bundle["invoice_artifact"]["pdf_export_package"]["failure_code"] == "EXCEL_APPLESCRIPT_FAILED"
+    assert bundle["invoice_artifact"]["pdf_export_package"]["invoice_id"] == "2026-1001"
+    assert bundle["invoice_artifact"]["pdf_export_package"]["selected_sheet_label"] == "June 2026 Speaker Rental"
+    assert "/selected-invoice/" not in bundle["invoice_artifact"]["pdf_export_package"]["output_pdf_mac_path"]
     assert response_from_disk["machine_proof"]["email_send_performed"] is False
     assert response_from_disk["machine_proof"]["gmail_send_performed"] is False
     assert response_from_disk["machine_proof"]["browser_access_performed"] is False

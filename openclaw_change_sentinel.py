@@ -62,6 +62,9 @@ STATUS_VALUES = (
     "REPO_DIRTY",
     "REMOTE_REF_MOVED",
     "WORKFLOW_STATE_CHANGED",
+    "PDF_EXPORT_SCOPE_DRIFT",
+    "WORKFLOW_SCOPE_REGRESSION",
+    "SPLIT_BRAIN_EXPORT_SCOPE",
     "BUSINESS_OBJECT_AUDIT_STALE",
     "AUTHORITY_SEMANTICS_DRIFT",
     "LANE_CAPABILITY_HARVEST_STALE",
@@ -418,8 +421,41 @@ def _live_arts_targets(
     source_path: str,
     observed_at: str,
 ) -> list[dict[str, Any]]:
-    bundle = payload.get("live_arts_md_bundle", {})
+    bundle = payload.get("live_arts_md_bundle", payload if isinstance(payload, dict) else {})
     pdf_package = _nested(bundle, "invoice_artifact", "pdf_export_package", default={}) or {}
+    proof_timeline = bundle.get("proof_timeline") if isinstance(bundle.get("proof_timeline"), list) else []
+    prepare_payload = {}
+    if len(proof_timeline) > 2 and isinstance(proof_timeline[2], dict):
+        prepare_payload = _nested(proof_timeline[2], "primary_action", "hidden_request_payload", default={}) or {}
+    scope_consistency = bundle.get("scope_consistency") if isinstance(bundle.get("scope_consistency"), dict) else {}
+    stale_ready_paths = [
+        path
+        for path, value in (
+            ("invoice_artifact.pdf_export_package.output_pdf_mac_path", pdf_package.get("output_pdf_mac_path", "")),
+            ("invoice_artifact.pdf_export_package.output_bridge_path", pdf_package.get("output_bridge_path", "")),
+            (
+                "proof_timeline[2].primary_action.hidden_request_payload.output_pdf_mac_path",
+                prepare_payload.get("output_pdf_mac_path", ""),
+            ),
+            (
+                "proof_timeline[2].primary_action.hidden_request_payload.output_bridge_path",
+                prepare_payload.get("output_bridge_path", ""),
+            ),
+        )
+        if "/selected-invoice/" in str(value or "")
+    ]
+    selected_invoice_exists = bool(_nested(bundle, "invoice_selection", "selected_invoice_ids", default=()))
+    scope_status = str(scope_consistency.get("scope_consistency_status") or bundle.get("scope_consistency_status") or "")
+    if scope_status not in {"PDF_EXPORT_SCOPE_DRIFT", "SCOPED"}:
+        scope_status = (
+            "SPLIT_BRAIN_EXPORT_SCOPE"
+            if selected_invoice_exists and stale_ready_paths
+            else "PDF_EXPORT_SCOPE_DRIFT"
+            if pdf_package.get("status") == "PDF_EXPORT_PACKAGE_READY_FOR_MAC" and stale_ready_paths
+            else "SCOPED"
+            if selected_invoice_exists
+            else "NO_SELECTED_INVOICE"
+        )
     workflow_payload = {
         "client_ref": "live_arts_md",
         "workflow_ref": pdf_package.get("workflow_ref", "live_arts_md_invoice_workflow"),
@@ -440,7 +476,19 @@ def _live_arts_targets(
         "invoice_id": pdf_package.get("invoice_id", ""),
         "selected_sheet_label": pdf_package.get("selected_sheet_label", ""),
         "selected_print_areas": pdf_package.get("selected_print_areas", []),
+        "output_pdf_mac_path": pdf_package.get("output_pdf_mac_path", ""),
+        "output_bridge_path": pdf_package.get("output_bridge_path", ""),
         "result_intended_use": pdf_package.get("result_intended_use", ""),
+    }
+    scope_payload = {
+        "client_ref": "live_arts_md",
+        "workflow_ref": pdf_package.get("workflow_ref", "live_arts_md_invoice_workflow"),
+        "scope_consistency_status": scope_status,
+        "selected_invoice_exists": selected_invoice_exists,
+        "pdf_export_package_status": pdf_package.get("status", ""),
+        "bad_json_paths": scope_consistency.get("bad_json_paths", ()),
+        "stale_placeholder_json_paths": tuple(stale_ready_paths)
+        or tuple(scope_consistency.get("stale_placeholder_json_paths") or ()),
     }
     payment_payload = {
         "client_ref": "live_arts_md",
@@ -466,9 +514,22 @@ def _live_arts_targets(
             target_ref="pdf_export_package:live_arts_md_invoice_workflow",
             target_type="PDF_EXPORT_PACKAGE",
             source_path=source_path,
-            observation_status="NO_MATERIAL_CHANGE",
+            observation_status="PDF_EXPORT_SCOPE_DRIFT"
+            if pdf_package.get("status") == "PDF_EXPORT_PACKAGE_READY_FOR_MAC" and stale_ready_paths
+            else "NO_MATERIAL_CHANGE",
             observed_value=str(pdf_payload.get("status", "")),
             observed_payload=pdf_payload,
+            observed_at=observed_at,
+        ),
+        _target_row(
+            target_ref="pdf_export_scope:live_arts_md_invoice_workflow",
+            target_type="PDF_EXPORT_SCOPE",
+            source_path=source_path,
+            observation_status=scope_status
+            if scope_status in {"PDF_EXPORT_SCOPE_DRIFT", "SPLIT_BRAIN_EXPORT_SCOPE", "WORKFLOW_SCOPE_REGRESSION"}
+            else "NO_MATERIAL_CHANGE",
+            observed_value=scope_status,
+            observed_payload=scope_payload,
             observed_at=observed_at,
         ),
         _target_row(
@@ -948,6 +1009,11 @@ def _change_status(current: dict[str, Any], previous: dict[str, Any]) -> str:
         if after > before:
             return "SERVICE_UNSTABLE"
     if target_type in {"WORKFLOW_STATE", "PDF_EXPORT_PACKAGE", "PAYMENT_WATCH"}:
+        return "WORKFLOW_STATE_CHANGED"
+    if target_type == "PDF_EXPORT_SCOPE":
+        observed = str(current.get("observation_status") or "")
+        if observed in {"PDF_EXPORT_SCOPE_DRIFT", "SPLIT_BRAIN_EXPORT_SCOPE", "WORKFLOW_SCOPE_REGRESSION"}:
+            return observed
         return "WORKFLOW_STATE_CHANGED"
     if target_type in {"KNOWN_UNKNOWN", "CODEX_WEB_ARTIFACT"}:
         try:

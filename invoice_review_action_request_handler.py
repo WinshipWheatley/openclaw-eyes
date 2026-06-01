@@ -1284,11 +1284,13 @@ def process_selected_invoice_pdf_export_completed_candidate_result_request(
     bridge_bundle_path = None
     if result_accepted:
         selected_candidate = _live_arts_candidate_from_invoice_id(str(action_receipt.get("invoice_id") or ""))
-        bundle = live_arts_md_invoice_review_bundle.build_live_arts_md_bundle(
+        bundle_payload = live_arts_md_invoice_review_bundle.build_payload(
+            generated_at=generated_at,
             selected_invoice_candidate=selected_candidate,
             export_receipt_payload=action_receipt if failure_result else None,
             present_receipts=(live_arts_md_invoice_review_bundle.PDF_EXPORT_COMPLETION_RECEIPT,) if success_result else (),
         )
+        bundle = bundle_payload["live_arts_md_bundle"]
         if success_result:
             bundle["invoice_artifact"]["pdf_export_package"]["status"] = "PDF_EXPORT_COMPLETED_CANDIDATE"
             bundle["invoice_artifact"]["artifact_review_status"] = "OPERATOR_REVIEW_REQUIRED"
@@ -1300,12 +1302,14 @@ def process_selected_invoice_pdf_export_completed_candidate_result_request(
         bundle["clara_email_draft"]["attachment_ready"] = False
         bundle["send_readiness"]["approval_ready"] = False
         bundle["payment_watch"]["ledger_posting_allowed"] = False
-        
-        source_bundle_path = export_root / "live_arts_md_invoice_review_bundle.json"
-        source_bundle_path.write_text(stable_json(bundle))
-        if bridge_export_root:
-            bridge_bundle_path = bridge_export_root / "live_arts_md_invoice_review_bundle.json"
-            bridge_bundle_path.write_text(stable_json(bundle))
+        bundle["machine_proof"]["content_hash"] = live_arts_md_invoice_review_bundle._content_hash(bundle)
+        bundle_payload["machine_proof"]["content_hash"] = live_arts_md_invoice_review_bundle._content_hash(bundle)
+
+        source_bundle_path, _source_operator_path, bridge_bundle_path = live_arts_md_invoice_review_bundle.write_exports(
+            bundle_payload,
+            export_root,
+            bridge_export_root=bridge_export_root,
+        )
 
     return {
         "schema_version": SCHEMA_VERSION,

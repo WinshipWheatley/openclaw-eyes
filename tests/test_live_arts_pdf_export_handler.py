@@ -12,6 +12,10 @@ def temp_export(tmp_path):
     return tmp_path
 
 
+def _live_bundle(payload):
+    return payload.get("live_arts_md_bundle", payload)
+
+
 def _failed_export_request(**overrides):
     request = {
         "request_id": "test_failed_pdf_export",
@@ -68,10 +72,12 @@ def test_failed_helper_receipt_records_structured_failure_without_attachment_rea
         export_root=temp_export,
         bridge_export_root=None,
     )
-    bundle = json.loads((temp_export / "live_arts_md_invoice_review_bundle.json").read_text(encoding="utf-8"))
+    bundle_payload = json.loads((temp_export / "live_arts_md_invoice_review_bundle.json").read_text(encoding="utf-8"))
+    bundle = _live_bundle(bundle_payload)
     local_result = result["local_surface_result"]
 
     assert result["status"] == "GUIDED_FAILURE_RECORDED"
+    assert bundle_payload["read_model_id"] == "live_arts_md_invoice_review_bundle"
     assert result["headline"] == "PDF Export Failed"
     assert result["action_start_receipt"]["failure_code"] == "EXCEL_APPLESCRIPT_FAILED"
     assert result["action_start_receipt"]["failure_message"].startswith("Microsoft Excel got an error")
@@ -133,8 +139,10 @@ def test_valid_mac_pdf_export_writes_receipt_and_updates_bundle(temp_export):
     # Check bundle was written and updated
     bundle_path = temp_export / "live_arts_md_invoice_review_bundle.json"
     assert bundle_path.exists()
-    bundle = json.loads(bundle_path.read_text())
+    bundle_payload = json.loads(bundle_path.read_text())
+    bundle = _live_bundle(bundle_payload)
     
+    assert bundle_payload["read_model_id"] == "live_arts_md_invoice_review_bundle"
     assert bundle["invoice_artifact"]["pdf_export_package"]["status"] == "PDF_EXPORT_COMPLETED_CANDIDATE"
     assert bundle["clara_email_draft"]["attachment_ready"] is False
     assert bundle["send_readiness"]["approval_ready"] is False

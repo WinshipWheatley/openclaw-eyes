@@ -786,6 +786,7 @@ def test_pdf_export_package_scoped_to_selected_candidate():
         generated_at=FIXED_NOW,
     )
     package = live["invoice_artifact"]["pdf_export_package"]
+    prepare_payload = live["proof_timeline"][2]["primary_action"]["hidden_request_payload"]
 
     assert package["execution_venue"] == bundle.PDF_EXPORT_EXECUTION_VENUE
     assert package["required_capability"] == bundle.PDF_EXPORT_REQUIRED_CAPABILITY
@@ -806,6 +807,13 @@ def test_pdf_export_package_scoped_to_selected_candidate():
         package["output_bridge_path"],
         BRIDGE_ARTIFACT_ROOT,
     )
+    assert prepare_payload["invoice_id"] == package["invoice_id"]
+    assert prepare_payload["selected_sheet_label"] == package["selected_sheet_label"]
+    assert prepare_payload["selected_print_areas"] == package["selected_print_areas"]
+    assert prepare_payload["output_pdf_mac_path"] == package["output_pdf_mac_path"]
+    assert prepare_payload["output_bridge_path"] == package["output_bridge_path"]
+    assert live["scope_consistency_status"] == "SCOPED"
+    assert live["stale_placeholder_detected"] is False
     assert package["source_workbook_path"] == live_arts_md_workbook_handoff.SOURCE_WORKBOOK_MAC_PATH
     assert "scoped_live_arts_md_export/June_2026_Speaker_Rental/2026-1001.pdf" in package["output_path_policy"]
     assert package["workbook_cell_read_required"] is False
@@ -928,6 +936,47 @@ def test_absent_selection_blocks_pdf_export_instead_of_ready_placeholder():
     assert package["selected_sheet_label"] == ""
     assert package["selected_print_areas"] == ()
     assert "/selected-invoice/" in package["output_pdf_mac_path"]
+
+
+def test_selected_invoice_with_placeholder_export_payload_becomes_scope_drift(monkeypatch):
+    original = bundle.simple_builder.build_selected_invoice_pdf_export_package
+
+    def bad_package(**kwargs):
+        package, receipt = original(**kwargs)
+        package.update(
+            {
+                "status": bundle.PDF_EXPORT_PACKAGE_READY_FOR_MAC,
+                "request_payload_ready": True,
+                "invoice_id": "",
+                "selected_sheet_label": "",
+                "selected_print_areas": (),
+                "output_filename": "Invoice_Live_Arts_MD.pdf",
+                "output_pdf_mac_path": "/Volumes/openclaw_e/artifacts/invoice_workbooks/live_arts_md/selected-invoice/Invoice_Live_Arts_MD.pdf",
+                "output_bridge_path": "/mnt/e/openclaw/artifacts/invoice_workbooks/live_arts_md/selected-invoice/Invoice_Live_Arts_MD.pdf",
+                "output_pc_reference_path": "/mnt/e/openclaw/artifacts/invoice_workbooks/live_arts_md/selected-invoice/Invoice_Live_Arts_MD.pdf",
+                "output_mac_path": "scoped_live_arts_md_export/unknown-sheet/selected-invoice.pdf",
+                "output_path_policy": "scoped_live_arts_md_export/unknown-sheet/selected-invoice.pdf",
+            }
+        )
+        return package, receipt
+
+    monkeypatch.setattr(bundle.simple_builder, "build_selected_invoice_pdf_export_package", bad_package)
+    live = bundle.build_live_arts_md_bundle(
+        workbook_registry_payload=_confirmed_workbook_payload_with_mac_path(),
+        selected_invoice_candidate=_selected_live_arts_candidate("2026-1001"),
+        generated_at=FIXED_NOW,
+    )
+    package = live["invoice_artifact"]["pdf_export_package"]
+    prepare_payload = live["proof_timeline"][2]["primary_action"]["hidden_request_payload"]
+
+    assert package["status"] == bundle.PDF_EXPORT_SCOPE_DRIFT
+    assert package["request_payload_ready"] is False
+    assert live["scope_consistency_status"] == bundle.PDF_EXPORT_SCOPE_DRIFT
+    assert live["stale_placeholder_detected"] is True
+    assert "invoice_artifact.pdf_export_package.invoice_id" in live["scope_consistency"]["bad_json_paths"]
+    assert "invoice_artifact.pdf_export_package.output_pdf_mac_path" in live["scope_consistency"]["bad_json_paths"]
+    assert prepare_payload["invoice_id"] == ""
+    assert live["proof_timeline"][2]["primary_action"]["enabled"] is False
 
 
 def test_pdf_export_package_restricts_external_actions():

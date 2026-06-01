@@ -106,6 +106,8 @@ PDF_EXPORT_BLOCKED_MISSING_PRINT_SCOPE = simple_builder.PDF_EXPORT_BLOCKED_MISSI
 PDF_EXPORT_BLOCKED_OUTPUT_PATH_CONTRACT = simple_builder.PDF_EXPORT_BLOCKED_OUTPUT_PATH_CONTRACT
 PDF_EXPORT_COMPLETED_CANDIDATE = simple_builder.PDF_EXPORT_COMPLETED_CANDIDATE
 PDF_EXPORT_REQUIRES_OPERATOR_REVIEW = simple_builder.PDF_EXPORT_REQUIRES_OPERATOR_REVIEW
+PDF_EXPORT_SCOPE_DRIFT = "PDF_EXPORT_SCOPE_DRIFT"
+PDF_EXPORT_BLOCKED_SCOPE_INCONSISTENCY = "BLOCKED_SCOPE_INCONSISTENCY"
 PDF_EXPORT_REQUIRED_CAPABILITY = simple_builder.PDF_EXPORT_REQUIRED_CAPABILITY
 PDF_EXPORT_EXECUTION_VENUE = simple_builder.PDF_EXPORT_EXECUTION_VENUE
 PDF_EXPORT_OUTPUT_ARTIFACT_KIND = simple_builder.PDF_EXPORT_OUTPUT_ARTIFACT_KIND
@@ -152,6 +154,18 @@ def _content_hash(payload: Mapping[str, Any]) -> str:
     clone = json.loads(stable_json(dict(payload)))
     clone.get("machine_proof", {}).pop("content_hash", None)
     return "sha256:" + hashlib.sha256(stable_json(clone).encode("utf-8")).hexdigest()
+
+
+def _source_commit() -> str | None:
+    git_dir = Path(__file__).resolve().parent / ".git"
+    try:
+        head = (git_dir / "HEAD").read_text(encoding="utf-8").strip()
+        if head.startswith("ref: "):
+            ref_path = git_dir / head.removeprefix("ref: ").strip()
+            return ref_path.read_text(encoding="utf-8").strip()[:40]
+        return head[:40]
+    except OSError:
+        return None
 
 
 def _as_sequence(value: object) -> tuple[str, ...]:
@@ -417,6 +431,137 @@ def _selected_invoice_summary_text(candidate: Mapping[str, Any]) -> str:
         )
         if part
     )
+
+
+def _scope_source_receipt(candidate: Mapping[str, Any] | None) -> dict[str, Any] | None:
+    if not candidate:
+        return None
+    return {
+        "receipt_id": candidate.get("selection_receipt_id"),
+        "receipt_name": candidate.get("selection_receipt_name"),
+        "selection_source": candidate.get("selection_source"),
+        "invoice_id": candidate.get("invoice_id"),
+    }
+
+
+def _contains_stale_placeholder(value: object) -> bool:
+    text = str(value or "")
+    return "/selected-invoice/" in text or "selected-invoice.pdf" in text or "/unknown-sheet/" in text
+
+
+def _payload_scope_errors(
+    payload: Mapping[str, Any] | None,
+    *,
+    base_path: str,
+    selected_candidate: Mapping[str, Any] | None,
+    require_sheet_and_print: bool,
+) -> tuple[str, ...]:
+    if not isinstance(payload, Mapping) or not selected_candidate:
+        return ()
+    expected_invoice_id = str(selected_candidate.get("invoice_id") or "").strip()
+    expected_sheet = str(selected_candidate.get("sheet_label") or "").strip()
+    expected_print_areas = _as_sequence(selected_candidate.get("operator_provided_ranges"))
+    errors: list[str] = []
+
+    observed_invoice_id = str(payload.get("invoice_id") or "").strip()
+    if observed_invoice_id != expected_invoice_id:
+        errors.append(f"{base_path}.invoice_id")
+
+    if require_sheet_and_print:
+        observed_sheet = str(payload.get("selected_sheet_label") or "").strip()
+        if observed_sheet != expected_sheet:
+            errors.append(f"{base_path}.selected_sheet_label")
+        observed_print_areas = _as_sequence(payload.get("selected_print_areas"))
+        if observed_print_areas != expected_print_areas:
+            errors.append(f"{base_path}.selected_print_areas")
+
+    output_pdf_mac_path = str(payload.get("output_pdf_mac_path") or "")
+    output_bridge_path = str(payload.get("output_bridge_path") or "")
+    output_mac_path = str(payload.get("output_mac_path") or payload.get("output_path_policy") or "")
+    if _contains_stale_placeholder(output_pdf_mac_path):
+        errors.append(f"{base_path}.output_pdf_mac_path")
+    if _contains_stale_placeholder(output_bridge_path):
+        errors.append(f"{base_path}.output_bridge_path")
+    if _contains_stale_placeholder(output_mac_path):
+        errors.append(f"{base_path}.output_mac_path")
+    if output_pdf_mac_path and expected_invoice_id and f"/{expected_invoice_id}/" not in output_pdf_mac_path:
+        errors.append(f"{base_path}.output_pdf_mac_path")
+    if output_bridge_path and expected_invoice_id and f"/{expected_invoice_id}/" not in output_bridge_path:
+        errors.append(f"{base_path}.output_bridge_path")
+    if output_pdf_mac_path and output_bridge_path:
+        if output_pdf_mac_path.replace("/Volumes/openclaw_e", "/mnt/e/openclaw") != output_bridge_path:
+            errors.append(f"{base_path}.output_bridge_path")
+    return tuple(dict.fromkeys(errors))
+
+
+def _pdf_export_scope_consistency(
+    *,
+    selected_candidate: Mapping[str, Any] | None,
+    pdf_export_package: Mapping[str, Any],
+    prepare_pdf_payload: Mapping[str, Any] | None = None,
+    artifact_placement_policy: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    selected_invoice_exists = bool(selected_candidate and str(selected_candidate.get("invoice_id") or "").strip())
+    stale_paths: list[str] = []
+    bad_paths: list[str] = []
+    targets: tuple[tuple[str, Mapping[str, Any] | None, bool], ...] = (
+        ("invoice_artifact.pdf_export_package", pdf_export_package, True),
+        ("proof_timeline[2].primary_action.hidden_request_payload", prepare_pdf_payload, True),
+        ("invoice_artifact.artifact_placement_policy", artifact_placement_policy, False),
+    )
+    for base_path, payload, require_sheet_and_print in targets:
+        if not isinstance(payload, Mapping):
+            continue
+        for key, value in payload.items():
+            if key in {"output_pdf_mac_path", "output_bridge_path", "output_mac_path", "output_path_policy"}:
+                if _contains_stale_placeholder(value):
+                    stale_paths.append(f"{base_path}.{key}")
+        bad_paths.extend(
+            _payload_scope_errors(
+                payload,
+                base_path=base_path,
+                selected_candidate=selected_candidate,
+                require_sheet_and_print=require_sheet_and_print,
+            )
+        )
+
+    deduped_bad_paths = tuple(dict.fromkeys(bad_paths))
+    deduped_stale_paths = tuple(dict.fromkeys(stale_paths))
+    status = (
+        PDF_EXPORT_SCOPE_DRIFT
+        if selected_invoice_exists and deduped_bad_paths
+        else "SCOPED"
+        if selected_invoice_exists
+        else "NO_SELECTED_INVOICE"
+    )
+    return {
+        "selected_invoice_scope_status": "SELECTED_INVOICE_PRESENT" if selected_invoice_exists else "NO_SELECTED_INVOICE",
+        "pdf_export_scope_status": status,
+        "scope_consistency_status": status,
+        "stale_placeholder_detected": bool(deduped_stale_paths),
+        "bad_json_paths": deduped_bad_paths,
+        "stale_placeholder_json_paths": deduped_stale_paths,
+        "selected_invoice_id": str((selected_candidate or {}).get("invoice_id") or ""),
+        "selected_sheet_label": str((selected_candidate or {}).get("sheet_label") or ""),
+        "selected_print_areas": _as_sequence((selected_candidate or {}).get("operator_provided_ranges")),
+    }
+
+
+def _apply_scope_drift_block(
+    pdf_export_package: dict[str, Any],
+    scope_consistency: Mapping[str, Any],
+) -> None:
+    bad_paths = tuple(scope_consistency.get("bad_json_paths") or ())
+    if not bad_paths:
+        return
+    pdf_export_package["status"] = PDF_EXPORT_SCOPE_DRIFT
+    pdf_export_package["request_payload_ready"] = False
+    pdf_export_package["missing_requirements"] = tuple(
+        dict.fromkeys(tuple(pdf_export_package.get("missing_requirements") or ()) + bad_paths)
+    )
+    pdf_export_package["operator_review_prompt"] = "Resolve PDF export scope drift before preparing invoice PDF."
+    pdf_export_package["scope_consistency_status"] = PDF_EXPORT_SCOPE_DRIFT
+    pdf_export_package["scope_drift_json_paths"] = bad_paths
 
 
 def _expected_receivable_state(
@@ -793,6 +938,13 @@ def build_live_arts_md_bundle(
         pdf_export_package["no_email_send"] = True
         pdf_export_package["no_ledger_post"] = True
 
+    initial_scope_consistency = _pdf_export_scope_consistency(
+        selected_candidate=selected_invoice_summary,
+        pdf_export_package=pdf_export_package,
+    )
+    if initial_scope_consistency["scope_consistency_status"] == PDF_EXPORT_SCOPE_DRIFT:
+        _apply_scope_drift_block(pdf_export_package, initial_scope_consistency)
+
     if invoice_selected and selected_invoice_summary:
         invoice_id = str(selected_invoice_summary.get("invoice_id") or "unknown_invoice")
         filename_policy = str(pdf_export_package["output_filename"])
@@ -921,6 +1073,10 @@ def build_live_arts_md_bundle(
             )
         elif pdf_export_package["status"] == PDF_EXPORT_BLOCKED_MISSING_MAC_CAPABILITY:
             blockers.append("Prepare the selected invoice PDF requires a supported Mac workbook path.")
+        elif pdf_export_package["status"] in {PDF_EXPORT_SCOPE_DRIFT, PDF_EXPORT_BLOCKED_SCOPE_INCONSISTENCY}:
+            blockers.append(
+                str(pdf_export_package.get("operator_review_prompt") or "Resolve PDF export scope drift before preparing invoice PDF.")
+            )
         elif pdf_export_package["status"] in {PDF_EXPORT_BLOCKED_MISSING_SELECTION, PDF_EXPORT_REQUIRES_OPERATOR_REVIEW}:
             blockers.append(
                 str(pdf_export_package.get("operator_review_prompt") or "Confirm the selected invoice scope for PDF export.")
@@ -1012,6 +1168,16 @@ def build_live_arts_md_bundle(
             "required_receipt_ref": pdf_export_completion_receipt,
         },
     )
+    scope_consistency = _pdf_export_scope_consistency(
+        selected_candidate=selected_invoice_summary,
+        pdf_export_package=pdf_export_package,
+        prepare_pdf_payload=prepare_pdf_action["hidden_request_payload"],
+        artifact_placement_policy=artifact_placement_policy,
+    )
+    pdf_export_package["selected_invoice_scope_status"] = scope_consistency["selected_invoice_scope_status"]
+    pdf_export_package["pdf_export_scope_status"] = scope_consistency["pdf_export_scope_status"]
+    pdf_export_package["scope_consistency_status"] = scope_consistency["scope_consistency_status"]
+    pdf_export_package["stale_placeholder_detected"] = scope_consistency["stale_placeholder_detected"]
     artifact_action = _action(
         "attach_generated_invoice_artifact",
         "Attach existing PDF",
@@ -1129,6 +1295,14 @@ def build_live_arts_md_bundle(
         "client_display_name": CLIENT_DISPLAY_NAME,
         "workflow_ref": WORKFLOW_REF,
         "recipe_ref": recipe["workflow_ref"],
+        "producer_ref": "live_arts_md_invoice_review_bundle.py:build_live_arts_md_bundle",
+        "source_commit": _source_commit(),
+        "scope_source_receipt": _scope_source_receipt(selected_invoice_summary),
+        "selected_invoice_scope_status": scope_consistency["selected_invoice_scope_status"],
+        "pdf_export_scope_status": scope_consistency["pdf_export_scope_status"],
+        "scope_consistency_status": scope_consistency["scope_consistency_status"],
+        "stale_placeholder_detected": scope_consistency["stale_placeholder_detected"],
+        "scope_consistency": scope_consistency,
         "status": "SIMPLE_EMAIL_INVOICE_REVIEW",
         "selected_rails": tuple(item["rail_ref"] for item in recipe["selected_rails"]),
         "rails_not_selected_by_default": ("supplier_portal_rail", "purchase_order_rail"),
@@ -1402,6 +1576,12 @@ def build_payload(
         "schema_version": SCHEMA_VERSION,
         "read_model_id": READ_MODEL_ID,
         "generated_at": generated_at or DEFAULT_GENERATED_AT,
+        "producer_ref": "live_arts_md_invoice_review_bundle.py:build_payload",
+        "source_commit": _source_commit(),
+        "selected_invoice_scope_status": bundle["selected_invoice_scope_status"],
+        "pdf_export_scope_status": bundle["pdf_export_scope_status"],
+        "scope_consistency_status": bundle["scope_consistency_status"],
+        "stale_placeholder_detected": bundle["stale_placeholder_detected"],
         "live_arts_md_bundle": bundle,
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
         "machine_proof": {

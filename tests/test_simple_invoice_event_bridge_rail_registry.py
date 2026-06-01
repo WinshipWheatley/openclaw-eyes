@@ -72,15 +72,29 @@ def test_generic_rail_code_has_no_client_specific_constants():
 def test_prepare_pdf_action_descriptor_is_generated_from_fixture_config():
     fixture = fixtures.LIVE_ARTS_MD_SIMPLE_INVOICE_FIXTURE
     descriptor = registry.build_prepare_pdf_action_descriptor(fixture)
+    event = registry.make_prepare_pdf_event_from_descriptor(descriptor, created_at=FIXED_NOW)
 
     assert descriptor["client_ref"] == fixture.client_ref
     assert descriptor["workflow_ref"] == fixture.workflow_ref
+    assert descriptor["invoice_id"] == "2026-1001"
+    assert descriptor["selected_sheet_label"] == "June 2026 Speaker Rental"
+    assert descriptor["selected_print_areas"] == (
+        "June 2026 Speaker Rental!G2:G5",
+        "June 2026 Speaker Rental!F40:G43",
+        "June 2026 Speaker Rental!B49:G53",
+    )
     assert descriptor["source_workbook_mac_path"] == fixture.expected_workbook_path
     assert descriptor["output_pdf_mac_path"].startswith("/Volumes/openclaw_e/artifacts/invoice_workbooks/")
+    assert "/selected-invoice/" not in descriptor["output_pdf_mac_path"]
     assert descriptor["output_bridge_path"].startswith("/mnt/e/openclaw/artifacts/invoice_workbooks/")
     assert descriptor["output_pdf_mac_path"].replace("/Volumes/openclaw_e", "/mnt/e/openclaw") == descriptor[
         "output_bridge_path"
     ]
+    assert event["payload"]["invoice_id"] == descriptor["invoice_id"]
+    assert event["payload"]["selected_sheet_label"] == descriptor["selected_sheet_label"]
+    assert event["payload"]["selected_print_areas"] == descriptor["selected_print_areas"]
+    assert event["payload"]["output_pdf_mac_path"] == descriptor["output_pdf_mac_path"]
+    assert "/selected-invoice/" not in event["payload"]["output_pdf_mac_path"]
     assert descriptor["event_envelope_fields"] == contract.EVENT_ENVELOPE_FIELDS
     assert descriptor["request_payload_ready"] is True
 
