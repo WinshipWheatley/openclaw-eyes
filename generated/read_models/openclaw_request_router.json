@@ -580,6 +580,78 @@
     {
       "adapter_available": true,
       "client_refs": [
+        "live_arts_md"
+      ],
+      "handler_id": "invoice_review_action_request.live_arts_md",
+      "handler_label": "Live Arts MD PDF candidate operator decision",
+      "intended_use": "approve_pdf_candidate",
+      "next_safe_move": "Record the Live Arts MD PDF candidate operator decision only; no send, ledger, browser, Gmail, Coupa, or portal authority is granted.",
+      "project_refs": [],
+      "request_kind": "INVOICE_REVIEW_ACTION_REQUEST",
+      "workflow_refs": [
+        "live_arts_md_invoice_workflow"
+      ],
+      "world_refs": [
+        "finance"
+      ]
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [
+        "live_arts_md"
+      ],
+      "handler_id": "invoice_review_action_request.live_arts_md",
+      "handler_label": "Live Arts MD PDF candidate operator decision",
+      "intended_use": "reject_pdf_candidate",
+      "next_safe_move": "Record the Live Arts MD PDF candidate operator decision only; no send, ledger, browser, Gmail, Coupa, or portal authority is granted.",
+      "project_refs": [],
+      "request_kind": "INVOICE_REVIEW_ACTION_REQUEST",
+      "workflow_refs": [
+        "live_arts_md_invoice_workflow"
+      ],
+      "world_refs": [
+        "finance"
+      ]
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [
+        "live_arts_md"
+      ],
+      "handler_id": "invoice_review_action_request.live_arts_md",
+      "handler_label": "Live Arts MD PDF candidate operator decision result",
+      "intended_use": "selected_invoice_pdf_candidate_review_decision",
+      "next_safe_move": "Record the Live Arts MD PDF candidate operator decision only; false or absent authority grants remain denied and no send, ledger, browser, Gmail, Coupa, or portal action is authorized.",
+      "project_refs": [],
+      "request_kind": "INVOICE_REVIEW_ACTION_RESULT",
+      "workflow_refs": [
+        "live_arts_md_invoice_workflow"
+      ],
+      "world_refs": [
+        "finance"
+      ]
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [
+        "live_arts_md"
+      ],
+      "handler_id": "invoice_review_action_request.live_arts_md",
+      "handler_label": "Live Arts MD PDF candidate operator decision result",
+      "intended_use": "selected_invoice_pdf_candidate_review_decision",
+      "next_safe_move": "Record the Live Arts MD PDF candidate operator decision only; false or absent authority grants remain denied and no send, ledger, browser, Gmail, Coupa, or portal action is authorized.",
+      "project_refs": [],
+      "request_kind": "LOCAL_SURFACE_RESULT",
+      "workflow_refs": [
+        "live_arts_md_invoice_workflow"
+      ],
+      "world_refs": [
+        "finance"
+      ]
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [
         "capital_hilton"
       ],
       "handler_id": "invoice_record_selection_result.capital_hilton",
@@ -684,6 +756,62 @@
       "world_refs": [
         "finance"
       ]
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [],
+      "handler_id": "workflow_package_queue.operator_instruction",
+      "handler_label": "Workflow Package Queue operator instruction",
+      "intended_use": "",
+      "next_safe_move": "Record the generic operator instruction as a dry-run package queue item; all business action authority remains denied.",
+      "project_refs": [],
+      "request_kind": "OPERATOR_INSTRUCTION_PACKAGE_REQUEST",
+      "workflow_refs": [],
+      "world_refs": []
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [],
+      "handler_id": "workflow_package_queue.operator_instruction",
+      "handler_label": "Workflow Package Queue operator instruction",
+      "intended_use": "",
+      "next_safe_move": "Record the generic operator instruction as a dry-run package queue item; all business action authority remains denied.",
+      "project_refs": [],
+      "request_kind": "WORKFLOW_PACKAGE_REQUEST_V0",
+      "workflow_refs": [],
+      "world_refs": []
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [
+        "st_annes"
+      ],
+      "handler_id": "st_annes_work_log_review.action_consumer",
+      "handler_label": "St. Anne's work-log review action consumer",
+      "intended_use": "",
+      "next_safe_move": "Record the St. Anne's work-log review action locally; no Excel, invoice, PDF, email, Telegram, ledger, paid, or external action authority is granted.",
+      "project_refs": [],
+      "request_kind": "ST_ANNES_WORK_LOG_REVIEW_ACTION_REQUEST",
+      "workflow_refs": [
+        "st_annes_work_log_event"
+      ],
+      "world_refs": []
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [
+        "st_annes"
+      ],
+      "handler_id": "st_annes_work_log_review.action_consumer",
+      "handler_label": "St. Anne's work-log review action consumer",
+      "intended_use": "",
+      "next_safe_move": "Record the St. Anne's work-log review action locally; no Excel, invoice, PDF, email, Telegram, ledger, paid, or external action authority is granted.",
+      "project_refs": [],
+      "request_kind": "ST_ANNES_WORK_LOG_REVIEW_ACTION_REQUEST_V0",
+      "workflow_refs": [
+        "st_annes_work_log_event"
+      ],
+      "world_refs": []
     }
   ],
   "route_statuses": [

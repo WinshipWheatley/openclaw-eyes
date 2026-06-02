@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 import simple_invoice_workflow_fixtures
+import st_annes_work_log_review
 
 
 SCHEMA_VERSION = "openclaw_request_router_v0"
@@ -65,6 +66,11 @@ LIVE_ARTS_PDF_CANDIDATE_DECISION_RESULT_INTENDED_USES = (
 WORKFLOW_PACKAGE_REQUEST_KINDS = (
     "OPERATOR_INSTRUCTION_PACKAGE_REQUEST",
     "WORKFLOW_PACKAGE_REQUEST_V0",
+)
+
+ST_ANNES_WORK_LOG_REVIEW_ACTION_REQUEST_KINDS = (
+    st_annes_work_log_review.REQUEST_KIND,
+    st_annes_work_log_review.REQUEST_TYPE,
 )
 
 
@@ -369,6 +375,27 @@ def workflow_package_request_handlers() -> tuple[RequestHandlerRegistration, ...
     )
 
 
+def st_annes_work_log_review_action_handlers() -> tuple[RequestHandlerRegistration, ...]:
+    return tuple(
+        RequestHandlerRegistration(
+            request_kind=request_kind,
+            handler_id="st_annes_work_log_review.action_consumer",
+            handler_label="St. Anne's work-log review action consumer",
+            intended_use="",
+            world_refs=(),
+            workflow_refs=(st_annes_work_log_review.intake.WORKFLOW_REF,),
+            client_refs=(st_annes_work_log_review.intake.CLIENT_REF,),
+            project_refs=(),
+            adapter_available=True,
+            next_safe_move=(
+                "Record the St. Anne's work-log review action locally; no Excel, invoice, PDF, "
+                "email, Telegram, ledger, paid, or external action authority is granted."
+            ),
+        )
+        for request_kind in ST_ANNES_WORK_LOG_REVIEW_ACTION_REQUEST_KINDS
+    )
+
+
 def default_handler_registrations() -> tuple[RequestHandlerRegistration, ...]:
     return (
         capital_hilton_field_mapping_handler(),
@@ -378,6 +405,7 @@ def default_handler_registrations() -> tuple[RequestHandlerRegistration, ...]:
         *invoice_record_selection_result_handlers(),
         *selected_invoice_pdf_export_completed_result_handlers(),
         *workflow_package_request_handlers(),
+        *st_annes_work_log_review_action_handlers(),
     )
 
 

@@ -2,8 +2,11 @@ import json
 import sqlite3
 from pathlib import Path
 
+import openclaw_request_processor as processor
+import openclaw_request_response_service as service
 import st_annes_work_log_intake as intake
 import st_annes_work_log_review as review
+from scripts.run_openclaw_request_response_service import main as service_main
 
 
 FIXED_NOW = "2026-06-02T03:10:00+00:00"
@@ -37,6 +40,50 @@ def _row(sqlite_path: Path, event_id: str):
         ).fetchone()
     finally:
         conn.close()
+
+
+def _review_request_payload(
+    *,
+    request_id: str,
+    event_id: str,
+    action: str,
+    authority_boundary: dict[str, bool] | None = None,
+    edits: dict | None = None,
+) -> dict:
+    payload = {
+        "schema_version": "st_annes_work_log_review_action_request_writer_v0",
+        "request_id": request_id,
+        "source_request_id": request_id,
+        "request_type": review.REQUEST_TYPE,
+        "kind": review.REQUEST_KIND,
+        "source_surface": "mission_control",
+        "requested_mode": "operator",
+        "result_receipt_required": True,
+        "world": "invoice_operations",
+        "world_ref": "invoice_operations",
+        "client_ref": "st_annes",
+        "workflow_ref": "st_annes_work_log_event",
+        "event_id": event_id,
+        "review_action": action,
+        "edits": edits or {},
+        "created_at": FIXED_NOW,
+        "idempotency_key": f"st_annes_work_log_review_action:{request_id}",
+        "authority_boundary": authority_boundary
+        if authority_boundary is not None
+        else {key: False for key in review.AUTHORITY_FALSE_FIELDS},
+        "mac_wrote_request_only": True,
+        "no_external_action": True,
+    }
+    payload["payload_hash"] = "sha256:" + processor._short_hash(payload)
+    return payload
+
+
+def _safe_response_path(response_dir: Path, request_id: str) -> Path:
+    return response_dir / f"openclaw_response_for_mac_{service._safe_filename_part(request_id)}.json"
+
+
+def _safe_heartbeat_path(response_dir: Path, request_id: str) -> Path:
+    return response_dir / f"openclaw_processing_for_mac_{service._safe_filename_part(request_id)}.json"
 
 
 def test_confirm_staged_event_marks_ready_for_rollup_without_external_actions(tmp_path):
@@ -199,3 +246,232 @@ def test_no_unsafe_true_grants_in_review_surface(tmp_path):
     ]
     assert all(surface["authority_boundary"][key] is False for key in unsafe_keys)
     assert surface["machine_proof"]["unsafe_true_grants_absent"] is True
+
+
+def test_confirm_staged_event_from_request_envelope_returns_cassandra_display(tmp_path):
+    sqlite_path = tmp_path / "st_annes_monthly_work_log.sqlite"
+    export_root = tmp_path / "read_models"
+    event_id = _stage_event(sqlite_path, export_root)
+    request = _review_request_payload(
+        request_id="confirm_st_annes_work_log_event_smoke",
+        event_id=event_id,
+        action=review.CONFIRM_ACTION,
+    )
+
+    result = review.consume_review_action_request(
+        request,
+        source_request_filename="mission_control_st_annes_work_log_review_action_confirm.json",
+        generated_at=FIXED_NOW,
+        sqlite_path=sqlite_path,
+        export_root=export_root,
+        bridge_export_root=None,
+    )
+
+    assert result.status == "RECORDED"
+    assert result.receipt["raw_internal_status"] == "RESPONSE_READY"
+    assert result.receipt["event_status"] == "OPERATOR_CONFIRMED"
+    assert result.receipt["operator_confirmed"] is True
+    assert result.receipt["invoice_inclusion_status"] == "READY_FOR_MONTHLY_ROLLUP"
+    assert result.receipt["operator_display"]["speaker_ref"] == "cassandra"
+    assert result.receipt["operator_display"]["voice_profile_ref"] == "agent_voice_profile:cassandra"
+    assert result.receipt["operator_display"]["headline"] == "St. Anne's work log confirmed"
+    assert result.receipt["machine_proof"]["excel_mutation_performed"] is False
+    assert result.receipt["machine_proof"]["email_send_performed"] is False
+    assert result.receipt["machine_proof"]["ledger_mutation_performed"] is False
+    assert _row(sqlite_path, event_id)[:4] == (
+        1,
+        "OPERATOR_CONFIRMED",
+        "READY_FOR_MONTHLY_ROLLUP",
+        "",
+    )
+    for path in (
+        result.receipt["read_model_paths"]["events_read_model_path"],
+        result.receipt["read_model_paths"]["review_surface_path"],
+    ):
+        assert json.loads(Path(path).read_text())
+
+
+def test_discard_staged_event_from_request_envelope_returns_cassandra_display(tmp_path):
+    sqlite_path = tmp_path / "st_annes_monthly_work_log.sqlite"
+    export_root = tmp_path / "read_models"
+    event_id = _stage_event(sqlite_path, export_root)
+    request = _review_request_payload(
+        request_id="discard_st_annes_work_log_event_smoke",
+        event_id=event_id,
+        action=review.DISCARD_ACTION,
+    )
+
+    result = review.consume_review_action_request(
+        request,
+        source_request_filename="mission_control_st_annes_work_log_review_action_discard.json",
+        generated_at=FIXED_NOW,
+        sqlite_path=sqlite_path,
+        export_root=export_root,
+        bridge_export_root=None,
+    )
+
+    assert result.status == "RECORDED"
+    assert result.receipt["event_status"] == "DISCARDED_BY_OPERATOR"
+    assert result.receipt["invoice_inclusion_status"] == "DISCARDED_NOT_FOR_INVOICE"
+    assert result.receipt["operator_display"]["speaker_ref"] == "cassandra"
+    assert result.receipt["operator_display"]["headline"] == "St. Anne's work log discarded"
+    assert result.receipt["machine_proof"]["original_evidence_deleted"] is False
+    assert _row(sqlite_path, event_id)[:4] == (
+        0,
+        "DISCARDED_BY_OPERATOR",
+        "DISCARDED_NOT_FOR_INVOICE",
+        "",
+    )
+
+
+def test_unknown_event_review_request_blocks_safely(tmp_path):
+    sqlite_path = tmp_path / "st_annes_monthly_work_log.sqlite"
+    request = _review_request_payload(
+        request_id="unknown_st_annes_work_log_event_smoke",
+        event_id="st_annes_work_log:missing",
+        action=review.CONFIRM_ACTION,
+    )
+
+    result = review.consume_review_action_request(
+        request,
+        source_request_filename="mission_control_st_annes_work_log_review_action_unknown.json",
+        generated_at=FIXED_NOW,
+        sqlite_path=sqlite_path,
+        export_root=tmp_path / "read_models",
+        bridge_export_root=None,
+    )
+
+    assert result.status == "BLOCKED"
+    assert result.receipt["raw_internal_status"] == "BLOCKED_WITH_REASON"
+    assert result.receipt["blocked_reason"] == "unknown_event"
+    assert result.receipt["operator_display"]["speaker_ref"] == "cassandra"
+    assert result.receipt["machine_proof"]["work_log_event_state_updated_only"] is False
+    conn = sqlite3.connect(sqlite_path)
+    try:
+        assert conn.execute("SELECT COUNT(*) FROM st_annes_work_log_events").fetchone()[0] == 0
+    finally:
+        conn.close()
+
+
+def test_review_request_with_authority_true_routes_to_guardian_without_state_write(tmp_path):
+    sqlite_path = tmp_path / "st_annes_monthly_work_log.sqlite"
+    authority = {key: False for key in review.AUTHORITY_FALSE_FIELDS}
+    unsafe_key = "email_send_" + "allowed"
+    authority[unsafe_key] = bool(1)
+    request = _review_request_payload(
+        request_id="unsafe_st_annes_work_log_review_smoke",
+        event_id="st_annes_work_log:any",
+        action=review.CONFIRM_ACTION,
+        authority_boundary=authority,
+    )
+
+    result = review.consume_review_action_request(
+        request,
+        source_request_filename="mission_control_st_annes_work_log_review_action_unsafe.json",
+        generated_at=FIXED_NOW,
+        sqlite_path=sqlite_path,
+        export_root=tmp_path / "read_models",
+        bridge_export_root=None,
+    )
+
+    assert result.status == "BLOCKED"
+    assert f"authority_true:{unsafe_key}" in result.blockers
+    assert result.receipt["operator_display"]["speaker_ref"] == "guardian"
+    assert result.receipt["operator_display"]["voice_profile_ref"] == "agent_voice_profile:guardian"
+    assert result.receipt["machine_proof"]["unsafe_true_grants_absent"] is False
+    assert not sqlite_path.exists()
+
+
+def test_service_processes_st_annes_review_actions_and_writes_speaker_shaped_responses(tmp_path, capsys, monkeypatch):
+    sqlite_path = tmp_path / "st_annes_monthly_work_log.sqlite"
+    initial_export_root = tmp_path / "initial_read_models"
+    confirm_event_id = _stage_event(sqlite_path, initial_export_root, "Mark that I'm at church running sound.")
+    discard_event_id = _stage_event(sqlite_path, initial_export_root, "I worked St. Anne's adult forum today.")
+    inbox = tmp_path / "inbox"
+    response_dir = tmp_path / "responses"
+    export_root = tmp_path / "read_models"
+    inbox.mkdir()
+    monkeypatch.setenv(review.SQLITE_PATH_ENV, sqlite_path.as_posix())
+
+    requests = [
+        _review_request_payload(
+            request_id="confirm_st_annes_work_log_event_service_smoke",
+            event_id=confirm_event_id,
+            action=review.CONFIRM_ACTION,
+        ),
+        _review_request_payload(
+            request_id="discard_st_annes_work_log_event_service_smoke",
+            event_id=discard_event_id,
+            action=review.DISCARD_ACTION,
+        ),
+    ]
+    for payload in requests:
+        filename = f"mission_control_st_annes_work_log_review_action_{payload['request_id']}.json"
+        path = inbox / filename
+        path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        assert processor.classify_request_filename(path.name).request_family == "ST_ANNES_WORK_LOG_REVIEW_ACTION_REQUEST"
+        assert service.classify_request_path(path) == "ST_ANNES_WORK_LOG_REVIEW_ACTION_REQUEST"
+
+    assert service_main(
+        [
+            "--watch-seconds",
+            "1",
+            "--max-requests",
+            "2",
+            "--inbox",
+            str(inbox),
+            "--response-dir",
+            str(response_dir),
+            "--export-root",
+            str(export_root),
+            "--generated-at",
+            FIXED_NOW,
+            "--format",
+            "json",
+        ]
+    ) == 0
+    service_payload = json.loads(capsys.readouterr().out)
+    assert service_payload["service_status"]["processed_count"] == 2
+    assert service_payload["service_status"]["service_status"] == "REQUEST_PROCESSED"
+
+    expected = {
+        "confirm_st_annes_work_log_event_service_smoke": (
+            "St. Anne's work log confirmed",
+            "Ready for rollup",
+            "OPERATOR_CONFIRMED",
+            "READY_FOR_MONTHLY_ROLLUP",
+        ),
+        "discard_st_annes_work_log_event_service_smoke": (
+            "St. Anne's work log discarded",
+            "Discarded",
+            "DISCARDED_BY_OPERATOR",
+            "DISCARDED_NOT_FOR_INVOICE",
+        ),
+    }
+    for payload in requests:
+        response = json.loads(_safe_response_path(response_dir, payload["request_id"]).read_text(encoding="utf-8"))
+        heartbeat = json.loads(_safe_heartbeat_path(response_dir, payload["request_id"]).read_text(encoding="utf-8"))
+        headline, status_label, event_status, invoice_status = expected[payload["request_id"]]
+        assert heartbeat["request_type"] == "ST_ANNES_WORK_LOG_REVIEW_ACTION_REQUEST"
+        assert heartbeat["processing_status"] == "CHECKING_ST_ANNES_WORK_LOG_REVIEW"
+        assert response["source_request_id"] == payload["request_id"]
+        assert response["raw_internal_status"] == "RESPONSE_READY"
+        assert response["internal_status"] == "RESPONSE_READY"
+        assert response["response_kind"] == "ST_ANNES_WORK_LOG_REVIEW_ACTION_RESPONSE"
+        assert response["operator_display"]["headline"] == headline
+        assert response["operator_display"]["status_label"] == status_label
+        assert response["operator_display"]["speaker_ref"] == "cassandra"
+        assert response["operator_display"]["voice_profile_ref"] == "agent_voice_profile:cassandra"
+        assert response["event_status"] == event_status
+        assert response["invoice_inclusion_status"] == invoice_status
+        assert response["detail_disclosure"]["st_annes_work_log_review_action_consumer"]["event_status"] == event_status
+        assert response["machine_proof"]["email_send_performed"] is False
+        assert response["machine_proof"]["browser_access_performed"] is False
+        assert response["machine_proof"]["coupa_access_or_submit_performed"] is False
+        assert response["machine_proof"]["workbook_body_read_performed"] is False
+        assert response["machine_proof"]["pdf_generation_performed"] is False
+        assert response["machine_proof"]["payment_tracking_write_performed"] is False
+        assert response["machine_proof"]["external_action_performed"] is False
+
+    assert json.loads((export_root / review.intake.JSON_EXPORT_NAME).read_text())
+    assert json.loads((export_root / review.JSON_EXPORT_NAME).read_text())

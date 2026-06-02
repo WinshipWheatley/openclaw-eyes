@@ -80,6 +80,7 @@ SERVICE_SUPPORTED_REQUEST_FAMILIES = (
     "EVENT_BRIDGE",
     "CHAT",
     "FILE_METADATA",
+    "ST_ANNES_WORK_LOG_REVIEW_ACTION_REQUEST",
     "WORKFLOW_PACKAGE_REQUEST",
     "LOCAL_SURFACE_RESULT",
     "ARTIFACT_REFERENCE_APPROVAL",
@@ -782,6 +783,23 @@ def _route_for_request(request_path: Path, identity: RequestIdentity, raw_reques
             route_reason=(
                 "Mission Control generic operator instructions are handled by the Workflow Package Queue V0 "
                 "consumer with no live business action authority."
+            ),
+            pc_handled=True,
+            mac_handoff_required=False,
+            future_worker_blocked=False,
+        )
+    if request_type == "ST_ANNES_WORK_LOG_REVIEW_ACTION_REQUEST":
+        return RouteDecision(
+            routing_status="PROCESSING_ON_PC",
+            selected_worker_target="PC_CODEX",
+            selected_machine="PC_WSL",
+            processing_status="CHECKING_ST_ANNES_WORK_LOG_REVIEW",
+            operator_headline="OpenClaw is reviewing this work-log action",
+            operator_message="OpenClaw picked this up and is checking the St. Anne's work-log review rail.",
+            next_safe_move="Wait for the work-log review readback.",
+            route_reason=(
+                "Mission Control St. Anne's work-log review actions are handled by a bounded PC consumer "
+                "that can only confirm, discard, or safely edit staged events."
             ),
             pc_handled=True,
             mac_handoff_required=False,

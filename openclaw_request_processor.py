@@ -36,6 +36,7 @@ import operator_file_metadata_intake
 import openclaw_request_router
 import local_artifact_reference
 import scoped_context_package_compiler_contract
+import st_annes_work_log_review
 import worker_routing_intelligence
 import workflow_package_request_consumer
 import workflow_execution_package_compiler
@@ -87,10 +88,12 @@ SECRET_INTAKE_PATTERN = "mission_control_secret_intake_request_*.json"
 VISUAL_WORKSPACE_PATTERN = "mission_control_visual_workspace_request_*.json"
 WORKER_DISPATCH_PATTERN = "mission_control_worker_dispatch_request_*.json"
 WORKFLOW_PACKAGE_REQUEST_PATTERNS = workflow_package_request_consumer.REQUEST_FILENAME_PATTERNS
+ST_ANNES_WORK_LOG_REVIEW_ACTION_REQUEST_PATTERNS = st_annes_work_log_review.REQUEST_FILENAME_PATTERNS
 
 SUPPORTED_REQUEST_PATTERNS = (
     CHAT_PATTERN,
     FILE_METADATA_PATTERN,
+    *ST_ANNES_WORK_LOG_REVIEW_ACTION_REQUEST_PATTERNS,
     *WORKFLOW_PACKAGE_REQUEST_PATTERNS,
     *LOCAL_SURFACE_RESULT_PATTERNS,
     *ARTIFACT_REFERENCE_APPROVAL_PATTERNS,
@@ -109,6 +112,7 @@ FUTURE_REQUEST_PATTERNS = (
 REQUEST_FAMILIES = (
     "CHAT",
     "FILE_METADATA",
+    "ST_ANNES_WORK_LOG_REVIEW_ACTION_REQUEST",
     "WORKFLOW_PACKAGE_REQUEST",
     "LOCAL_SURFACE_RESULT",
     "INVOICE_REVIEW_ACTION_RESULT",
@@ -816,6 +820,11 @@ def classify_request_filename(filename: str | None) -> RequestClassification:
         rail = "operator_file_metadata_intake"
         reason = "Filename matches Mission Control file metadata intake pattern."
         future_supported = False
+    elif filename and any(fnmatch.fnmatch(filename, pattern) for pattern in ST_ANNES_WORK_LOG_REVIEW_ACTION_REQUEST_PATTERNS):
+        family = "ST_ANNES_WORK_LOG_REVIEW_ACTION_REQUEST"
+        rail = "st_annes_work_log_review.action_consumer"
+        reason = "Filename matches Mission Control St. Anne's work-log review action pattern."
+        future_supported = False
     elif filename and any(fnmatch.fnmatch(filename, pattern) for pattern in WORKFLOW_PACKAGE_REQUEST_PATTERNS):
         family = "WORKFLOW_PACKAGE_REQUEST"
         rail = "workflow_package_request_consumer"
@@ -883,6 +892,7 @@ def classify_request_filename(filename: str | None) -> RequestClassification:
             if family in {
                 "CHAT",
                 "FILE_METADATA",
+                "ST_ANNES_WORK_LOG_REVIEW_ACTION_REQUEST",
                 "WORKFLOW_PACKAGE_REQUEST",
                 "LOCAL_SURFACE_RESULT",
                 "ARTIFACT_REFERENCE_APPROVAL",
@@ -1066,6 +1076,19 @@ def _required_fields_for_family(request_family: str) -> tuple[str, ...]:
             "source_text",
             "requested_mode",
             "result_receipt_required",
+        )
+    if request_family == "ST_ANNES_WORK_LOG_REVIEW_ACTION_REQUEST":
+        return (
+            "request_id",
+            "idempotency_key",
+            "payload_hash",
+            "authority_boundary",
+            "created_at",
+            "source_surface",
+            "requested_mode",
+            "result_receipt_required",
+            "event_id",
+            "review_action",
         )
     if request_family in {"LOCAL_SURFACE_RESULT", "ARTIFACT_REFERENCE_APPROVAL", "ARTIFACT_INTAKE_REQUEST"}:
         return ("request_id", "idempotency_key", "payload_hash", "authority_boundary", "created_at", "intended_use")
@@ -2355,6 +2378,166 @@ def _workflow_package_request_classification(classification: RequestClassificati
         classification_reason="Request envelope is a Mission Control WORKFLOW_PACKAGE_REQUEST_V0 operator instruction.",
         future_supported=False,
         next_safe_move="Record the instruction as a dry-run package queue item and return a Mac readback.",
+    )
+
+
+def _st_annes_work_log_review_action_classification(classification: RequestClassification) -> RequestClassification:
+    return RequestClassification(
+        classification_id=f"request_classification_{_short_hash(classification.source_request_filename, 'st_annes_work_log_review_action')}",
+        source_request_filename=classification.source_request_filename,
+        request_family="ST_ANNES_WORK_LOG_REVIEW_ACTION_REQUEST",
+        selected_rail="st_annes_work_log_review.action_consumer",
+        classification_reason="Request envelope is a Mission Control St. Anne's work-log review action.",
+        future_supported=False,
+        next_safe_move="Record the bounded work-log review action and return a Mac readback.",
+    )
+
+
+def _process_st_annes_work_log_review_action_request(
+    request_path: Path,
+    raw_request: Mapping[str, Any],
+    *,
+    export_root: Path,
+    generated_at: str | None,
+    classification: RequestClassification,
+) -> OpenClawResponseForMac:
+    bridge_export_root = (
+        st_annes_work_log_review.DEFAULT_BRIDGE_EXPORT_ROOT
+        if _same_path(export_root, DEFAULT_EXPORT_ROOT)
+        else None
+    )
+    result = st_annes_work_log_review.consume_review_action_request(
+        raw_request,
+        source_request_filename=request_path.name,
+        generated_at=generated_at,
+        export_root=export_root,
+        bridge_export_root=bridge_export_root,
+    )
+    receipt = result.receipt
+    action = str(receipt.get("review_action") or raw_request.get("review_action") or "")
+    event_id = str(receipt.get("event_id") or raw_request.get("event_id") or "")
+    internal_status = str(receipt.get("raw_internal_status") or ("RESPONSE_READY" if result.status == "RECORDED" else "BLOCKED_WITH_REASON"))
+    blocker = str(receipt.get("blocked_reason") or "")
+    operator_display = dict(receipt.get("operator_display") or {})
+    operator_display.setdefault("voice_profile_ref", f"agent_voice_profile:{operator_display.get('speaker_ref') or 'openclaw'}")
+    headline = str(operator_display.get("headline") or "St. Anne's work-log review updated")
+    message = str(operator_display.get("plain_summary") or "I processed the local work-log review action. No external action ran.")
+    status_tone = str(operator_display.get("tone") or ("blocked" if blocker else "calm"))
+    next_safe_action = str(operator_display.get("next_safe_action") or result.next_safe_action)
+    response_classification = _st_annes_work_log_review_action_classification(classification)
+    paths = receipt.get("read_model_paths") if isinstance(receipt.get("read_model_paths"), Mapping) else {}
+    readback_files = tuple(
+        str(path)
+        for path in (
+            paths.get("events_read_model_path"),
+            paths.get("review_surface_path"),
+            paths.get("bridge_events_read_model_path"),
+            paths.get("bridge_review_surface_path"),
+        )
+        if path
+    )
+    layered_fields = {
+        "response_kind": "ST_ANNES_WORK_LOG_REVIEW_ACTION_RESPONSE",
+        "audience_mode": "ELIWINSHIP",
+        "display_mode": "COMPACT_CHAT",
+        "operator_display": operator_display,
+        "speaker_ref": str(operator_display.get("speaker_ref") or "openclaw"),
+        "voice_profile_ref": str(operator_display.get("voice_profile_ref") or "agent_voice_profile:openclaw"),
+        "voice_mode": str(operator_display.get("voice_mode") or "operator_calm"),
+        "audience": str(operator_display.get("audience") or "internal_operator"),
+        "routing_reason": str(operator_display.get("routing_reason") or operator_display.get("voice_routing_reason") or ""),
+        "headline": headline,
+        "one_line_answer": message,
+        "eliwinship": message,
+        "primary_status": str(operator_display.get("status_label") or ("Done" if result.status == "RECORDED" else "Blocked")),
+        "primary_blocker": blocker or "None",
+        "next_action": f"Next: {next_safe_action}",
+        "missing_items_short": (blocker,) if blocker else (),
+        "detail_summary": (
+            f"Review action {action or 'unknown'} for event {event_id or 'unknown'} returned {receipt.get('review_status')}. "
+            "Only St. Anne's work-log SQLite/read-model state was eligible to change."
+        ),
+        "proof_refs": readback_files,
+        "debug_refs": (),
+        "raw_internal_status": internal_status,
+        "mac_render_hint": "COMPACT_WITH_DISCLOSURE",
+        "request_ref": result.request_id,
+        "workflow_ref": st_annes_work_log_review.intake.WORKFLOW_REF,
+        "client_ref": st_annes_work_log_review.intake.CLIENT_REF,
+        "review_action": action,
+        "event_id": event_id,
+        "review_status": str(receipt.get("review_status") or ""),
+        "event_status": str(receipt.get("event_status") or ""),
+        "invoice_inclusion_status": str(receipt.get("invoice_inclusion_status") or ""),
+        "operator_confirmed": bool(receipt.get("operator_confirmed") is True),
+        "blocker": blocker,
+        "no_external_authority_granted": True,
+    }
+    return OpenClawResponseForMac(
+        source_request_id=result.request_id,
+        source_request_filename=request_path.name,
+        workflow_ref=st_annes_work_log_review.intake.WORKFLOW_REF,
+        request_type="ST_ANNES_WORK_LOG_REVIEW_ACTION_REQUEST",
+        internal_status=internal_status,
+        operator_headline=headline,
+        operator_message=message,
+        what_happened=(
+            "PC recognized a Mission Control St. Anne's work-log review action envelope.",
+            "PC validated source surface, operator mode, receipt requirement, event id, review action, and false authority boundaries.",
+            (
+                "PC updated only the St. Anne's work-log event state."
+                if result.status == "RECORDED"
+                else "PC blocked the review action before changing a work-log event."
+            ),
+            "No Telegram live connection, Excel, invoice creation, PDF export, email, Gmail, browser, Coupa, ledger mutation, paid marking, submit, or external business action occurred.",
+        ),
+        why_it_happened=(
+            f"Review action {action} produced {receipt.get('review_status')} for event {event_id}."
+            if result.status == "RECORDED"
+            else f"Review action blockers: {blocker or 'unknown blocker'}."
+        ),
+        how_to_fix=next_safe_action,
+        visible_cards=(
+            {
+                "title": headline,
+                "bullets": (
+                    str(operator_display.get("subheadline") or "Saved for operator review."),
+                    str(operator_display.get("primary_fact") or "No external action ran."),
+                    *tuple(str(item) for item in operator_display.get("secondary_facts") or ()),
+                    f"Next: {next_safe_action}",
+                ),
+                "status_tone": status_tone,
+            },
+        ),
+        cards_available=True,
+        card_mirror_refs=(),
+        file_readback_refs=readback_files,
+        worker_route_refs=(
+            {
+                "selected_worker_target": "PC_CODEX",
+                "selected_machine": "PC_WSL",
+                "routing_status": "PROCESSING_ON_PC",
+                "selected_rail": "st_annes_work_log_review.action_consumer",
+                "workflow_ref": st_annes_work_log_review.intake.WORKFLOW_REF,
+                "client_ref": st_annes_work_log_review.intake.CLIENT_REF,
+                "review_action": action,
+                "event_id": event_id,
+            },
+        ),
+        context_package_refs=(),
+        blocked_reason=blocker or None,
+        detail_disclosure={
+            "request_classification": asdict(response_classification),
+            "st_annes_work_log_review_action_consumer": receipt,
+            "operator_display": operator_display,
+            "review_result": receipt,
+            "live_worker_executed": False,
+            "business_state_mutation_performed": False,
+            "external_actions_locked": True,
+            "layered_response_fields": layered_fields,
+        },
+        readback_files=readback_files,
+        next_safe_move=next_safe_action,
     )
 
 
@@ -5340,6 +5523,14 @@ def process_request_path(
             request_path,
             raw_request,
             classification=classification,
+        )
+    if effective_classification.request_family == "ST_ANNES_WORK_LOG_REVIEW_ACTION_REQUEST":
+        return _process_st_annes_work_log_review_action_request(
+            request_path,
+            raw_request,
+            export_root=export_root,
+            generated_at=generated_at,
+            classification=effective_classification,
         )
     if effective_classification.request_family == "WORKFLOW_PACKAGE_REQUEST":
         return _process_workflow_package_request(
