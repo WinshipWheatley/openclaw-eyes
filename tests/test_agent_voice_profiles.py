@@ -39,6 +39,20 @@ def test_every_speaker_ref_has_complete_profile():
         assert profile["guardrails"]
 
 
+def test_voice_profile_ref_source_map_falls_back_to_openclaw():
+    assert profiles.voice_profile_ref_for_speaker("cassandra") == "agent_voice_profile:cassandra"
+    assert profiles.voice_profile_ref_for_speaker("chief") == "agent_voice_profile:chief"
+    assert profiles.voice_profile_ref_for_speaker("unknown") == "agent_voice_profile:openclaw"
+
+
+def test_read_model_exposes_voice_profile_ref_map():
+    read_model = _read_model()
+
+    assert read_model["voice_profile_ref_map"]["cassandra"] == "agent_voice_profile:cassandra"
+    assert read_model["voice_profile_ref_map"]["chief"] == "agent_voice_profile:chief"
+    assert read_model["voice_profile_ref_map"]["guardian"] == "agent_voice_profile:guardian"
+
+
 def test_every_profile_has_tts_profile_and_plain_text_policy():
     read_model = _read_model()
 

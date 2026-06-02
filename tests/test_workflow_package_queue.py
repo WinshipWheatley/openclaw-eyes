@@ -23,6 +23,7 @@ def test_st_annes_work_log_instruction_stages_record_only_package():
     assert package["status"] == "OPERATOR_REVIEW_REQUIRED"
     assert display["headline"] == "St. Anne's work log captured"
     assert display["speaker_ref"] == "cassandra"
+    assert display["voice_profile_ref"] == "agent_voice_profile:cassandra"
     assert display["voice_mode"] == "operator_intake"
     assert display["audience"] == "internal_operator"
     assert display["routing_reason"] == "work-log intake"
@@ -75,6 +76,7 @@ def test_capital_hilton_proposal_followup_is_business_development_no_invoice_or_
     assert package["status"] == "OPERATOR_REVIEW_REQUIRED"
     assert display["headline"] == "Capital Hilton proposal follow-up staged"
     assert display["speaker_ref"] == "cassandra"
+    assert display["voice_profile_ref"] == "agent_voice_profile:cassandra"
     assert display["voice_mode"] == "operator_calm"
     assert display["audience"] == "internal_operator"
     assert display["routing_reason"] == "human-layer coordination or correspondence prep"
@@ -97,6 +99,7 @@ def test_capital_hilton_invoice_submit_requires_operator_assist_provider_and_sub
     assert package["status"] == "PROVIDER_GATE_REQUIRED"
     assert display["headline"] == "Capital Hilton invoice needs operator assist"
     assert display["speaker_ref"] == "chief"
+    assert display["voice_profile_ref"] == "agent_voice_profile:chief"
     assert display["voice_mode"] == "diagnostic"
     assert display["audience"] == "internal_operator"
     assert display["routing_reason"] == "provider gate required"
@@ -187,6 +190,7 @@ def test_export_writes_contract_read_model_wiki_bridge_and_sqlite(tmp_path):
     assert read_model["supported_package_types"] == list(queue.SUPPORTED_PACKAGE_TYPES)
     assert "operator_display" in read_model["package_field_contract"]
     assert read_model["operator_display_schema"] == list(queue.OPERATOR_DISPLAY_FIELDS)
+    assert "voice_profile_ref" in read_model["operator_display_schema"]
     assert "routing_reason" in read_model["operator_display_schema"]
     assert read_model["agent_voice_routing_contract_ref"] == "generated/read_models/agent_voice_routing_contract.json"
     assert len(read_model["packages"]) == 5

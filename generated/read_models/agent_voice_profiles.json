@@ -8,7 +8,7 @@
     "ledger_posting_allowed": false,
     "paid": false
   },
-  "generated_at": "2026-06-02T03:45:00+00:00",
+  "generated_at": "2026-06-02T04:00:00+00:00",
   "machine_proof": {
     "all_authority_boundaries_forbid_send_ledger_portal": true,
     "all_speaker_refs_present": true,
@@ -719,5 +719,14 @@
       "raw JSON",
       "markdown links"
     ]
+  },
+  "voice_profile_ref_map": {
+    "cassandra": "agent_voice_profile:cassandra",
+    "chief": "agent_voice_profile:chief",
+    "clara": "agent_voice_profile:clara",
+    "guardian": "agent_voice_profile:guardian",
+    "hermes": "agent_voice_profile:hermes",
+    "niles": "agent_voice_profile:niles",
+    "openclaw": "agent_voice_profile:openclaw"
   }
 }

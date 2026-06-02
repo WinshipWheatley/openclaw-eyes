@@ -2398,8 +2398,14 @@ def _process_workflow_package_request(
             "secondary_facts": ("No email will be sent.", "No ledger entry was touched."),
             "proof_caption": "Proof available",
             "show_machine_details_by_default": False,
+            "speaker_ref": "openclaw",
+            "voice_profile_ref": "agent_voice_profile:openclaw",
+            "voice_mode": "operator_calm",
+            "audience": "internal_operator",
+            "routing_reason": "neutral cockpit/system orientation",
         }
     )
+    operator_display.setdefault("voice_profile_ref", f"agent_voice_profile:{operator_display.get('speaker_ref') or 'openclaw'}")
     headline = str(operator_display.get("headline") or "Workflow package staged")
     message = str(operator_display.get("plain_summary") or "I staged this as a dry-run package. No business action ran.")
     status_tone = str(operator_display.get("tone") or ("blocked" if blocker else "calm"))

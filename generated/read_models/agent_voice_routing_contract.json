@@ -14,7 +14,7 @@
     "portal_submit_allowed": false,
     "sent": false
   },
-  "generated_at": "2026-06-02T03:30:00+00:00",
+  "generated_at": "2026-06-02T04:00:00+00:00",
   "machine_proof": {
     "browser_access_performed": false,
     "coupa_access_performed": false,
@@ -30,6 +30,7 @@
   },
   "operator_response_voice_fields": [
     "speaker_ref",
+    "voice_profile_ref",
     "voice_mode",
     "audience",
     "routing_reason",
@@ -50,6 +51,7 @@
       "source_text": "Mark that I'm at church running sound.",
       "speaker_ref": "cassandra",
       "voice_mode": "operator_intake",
+      "voice_profile_ref": "agent_voice_profile:cassandra",
       "voice_routing_reason": "work-log intake",
       "workflow_ref": "st_annes_work_log_event"
     },
@@ -61,6 +63,7 @@
       "source_text": "Follow up on the Capital Hilton proposal.",
       "speaker_ref": "cassandra",
       "voice_mode": "operator_calm",
+      "voice_profile_ref": "agent_voice_profile:cassandra",
       "voice_routing_reason": "human-layer coordination or correspondence prep",
       "workflow_ref": "capital_hilton_proposal_followup"
     },
@@ -72,6 +75,7 @@
       "source_text": "Submit Capital Hilton invoice.",
       "speaker_ref": "chief",
       "voice_mode": "diagnostic",
+      "voice_profile_ref": "agent_voice_profile:chief",
       "voice_routing_reason": "provider gate required",
       "workflow_ref": "capital_hilton_invoice_operator_assist"
     },
@@ -83,6 +87,7 @@
       "source_text": "Check Engine warning",
       "speaker_ref": "chief",
       "voice_mode": "diagnostic",
+      "voice_profile_ref": "agent_voice_profile:chief",
       "voice_routing_reason": "diagnostic, queue, route, or workbench posture",
       "workflow_ref": "diagnostic_package_gate_smoke"
     },
@@ -94,6 +99,7 @@
       "source_text": "What should we build next for reusable lane sequencing?",
       "speaker_ref": "hermes",
       "voice_mode": "recommendation",
+      "voice_profile_ref": "agent_voice_profile:hermes",
       "voice_routing_reason": "architecture, doctrine, or systems recommendation",
       "workflow_ref": "architecture_recommendation"
     },
@@ -105,6 +111,7 @@
       "source_text": "Review the Logic Pro session metadata and art direction.",
       "speaker_ref": "niles",
       "voice_mode": "recommendation",
+      "voice_profile_ref": "agent_voice_profile:niles",
       "voice_routing_reason": "creative, music, art, or studio context",
       "workflow_ref": "creative_project_session"
     },
@@ -117,6 +124,7 @@
       "source_text": "Prepare a client-facing proposal email draft.",
       "speaker_ref": "clara",
       "voice_mode": "client_facing",
+      "voice_profile_ref": "agent_voice_profile:clara",
       "voice_routing_reason": "external client-facing draft copy",
       "workflow_ref": "capital_hilton_proposal_followup"
     },
@@ -131,6 +139,7 @@
       "source_text": "Submit Capital Hilton invoice with authority.",
       "speaker_ref": "guardian",
       "voice_mode": "safety_gate",
+      "voice_profile_ref": "agent_voice_profile:guardian",
       "voice_routing_reason": "protected authority or access boundary",
       "workflow_ref": "capital_hilton_invoice_operator_assist"
     }

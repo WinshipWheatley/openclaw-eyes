@@ -40,6 +40,7 @@ V0 uses dry-run/no-op workers only. It does not connect Telegram live, send emai
 Package responses include `operator_display` for Mission Control cards while retaining machine fields in proof/details.
 
 - `speaker_ref`
+- `voice_profile_ref`
 - `voice_mode`
 - `audience`
 - `routing_reason`

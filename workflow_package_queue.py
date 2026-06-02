@@ -80,6 +80,7 @@ FIXTURE_INSTRUCTIONS = (
 
 OPERATOR_DISPLAY_FIELDS = (
     "speaker_ref",
+    "voice_profile_ref",
     "voice_mode",
     "audience",
     "routing_reason",

@@ -14,6 +14,11 @@ def test_st_annes_work_log_routes_to_cassandra():
     assert route.speaker_ref == "cassandra"
     assert route.voice_mode == "operator_intake"
     assert route.audience == "internal_operator"
+    assert router.route_agent_voice_dict(
+        workflow_ref="st_annes_work_log_event",
+        package_status="OPERATOR_REVIEW_REQUIRED",
+        source_text="Mark that I'm at church running sound.",
+    )["voice_profile_ref"] == "agent_voice_profile:cassandra"
 
 
 def test_capital_hilton_proposal_followup_routes_to_cassandra_internally():
@@ -38,6 +43,11 @@ def test_capital_hilton_provider_gate_routes_to_chief():
     assert route.speaker_ref == "chief"
     assert route.voice_mode == "diagnostic"
     assert route.audience == "internal_operator"
+    assert router.route_agent_voice_dict(
+        workflow_ref="capital_hilton_invoice_operator_assist",
+        package_status="PROVIDER_GATE_REQUIRED",
+        source_text="Submit Capital Hilton invoice.",
+    )["voice_profile_ref"] == "agent_voice_profile:chief"
 
 
 def test_submit_send_ledger_or_coupa_authority_routes_to_guardian():
@@ -51,6 +61,12 @@ def test_submit_send_ledger_or_coupa_authority_routes_to_guardian():
     assert route.speaker_ref == "guardian"
     assert route.voice_mode == "safety_gate"
     assert route.audience == "internal_operator"
+    assert router.route_agent_voice_dict(
+        workflow_ref="capital_hilton_invoice_operator_assist",
+        package_status="OPERATOR_REVIEW_REQUIRED",
+        source_text="Submit Capital Hilton invoice.",
+        authority_boundary={"coupa_submit_allowed": True},
+    )["voice_profile_ref"] == "agent_voice_profile:guardian"
 
 
 def test_architecture_recommendation_routes_to_hermes():
@@ -58,6 +74,7 @@ def test_architecture_recommendation_routes_to_hermes():
 
     assert route.speaker_ref == "hermes"
     assert route.voice_mode == "recommendation"
+    assert router.route_agent_voice_dict(source_text="What should we build next for reusable lane sequencing?")["voice_profile_ref"] == "agent_voice_profile:hermes"
 
 
 def test_music_art_or_studio_context_routes_to_niles():
@@ -65,6 +82,7 @@ def test_music_art_or_studio_context_routes_to_niles():
 
     assert route.speaker_ref == "niles"
     assert route.voice_mode == "recommendation"
+    assert router.route_agent_voice_dict(source_text="Review the Logic Pro session metadata and art direction.")["voice_profile_ref"] == "agent_voice_profile:niles"
 
 
 def test_external_client_facing_draft_routes_to_clara_not_cassandra():
@@ -78,6 +96,20 @@ def test_external_client_facing_draft_routes_to_clara_not_cassandra():
     assert route.speaker_ref == "clara"
     assert route.voice_mode == "client_facing"
     assert route.audience == "external_client"
+    assert router.route_agent_voice_dict(
+        workflow_ref="capital_hilton_proposal_followup",
+        source_text="Prepare a client-facing proposal email draft.",
+        audience="external_client",
+        external_client_facing=True,
+    )["voice_profile_ref"] == "agent_voice_profile:clara"
+
+
+def test_generic_voice_route_falls_back_to_openclaw_profile():
+    routed = router.route_agent_voice_dict(source_text="Show me the general system overview.")
+
+    assert routed["speaker_ref"] == "openclaw"
+    assert routed["voice_mode"] == "operator_calm"
+    assert routed["voice_profile_ref"] == "agent_voice_profile:openclaw"
 
 
 def test_contract_export_writes_json_and_wiki(tmp_path):
@@ -90,6 +122,7 @@ def test_contract_export_writes_json_and_wiki(tmp_path):
     read_model = json.loads(Path(result["read_model_path"]).read_text(encoding="utf-8"))
     assert read_model["status"] == router.CONTRACT_STATUS
     assert read_model["operator_response_voice_fields"] == list(router.OPERATOR_RESPONSE_VOICE_FIELDS)
+    assert "voice_profile_ref" in read_model["operator_response_voice_fields"]
     assert "routing_reason" in read_model["operator_response_voice_fields"]
     assert {item["speaker_ref"] for item in read_model["routed_examples"]} >= {
         "cassandra",

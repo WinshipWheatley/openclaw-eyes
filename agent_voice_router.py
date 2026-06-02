@@ -13,6 +13,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping
 
+import agent_voice_profiles
+
 
 ROOT = Path(__file__).resolve().parent
 DEFAULT_EXPORT_ROOT = Path("generated/read_models")
@@ -51,6 +53,7 @@ AUDIENCES = (
 
 OPERATOR_RESPONSE_VOICE_FIELDS = (
     "speaker_ref",
+    "voice_profile_ref",
     "voice_mode",
     "audience",
     "routing_reason",
@@ -255,6 +258,7 @@ def route_agent_voice_dict(**kwargs: Any) -> dict[str, str]:
     route = route_agent_voice(**kwargs)
     return {
         "speaker_ref": route.speaker_ref,
+        "voice_profile_ref": agent_voice_profiles.voice_profile_ref_for_speaker(route.speaker_ref),
         "voice_mode": route.voice_mode,
         "audience": route.audience,
         "routing_reason": route.routing_reason,

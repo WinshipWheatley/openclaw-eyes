@@ -34,6 +34,11 @@ SPEAKER_REFS = (
     "openclaw",
 )
 
+VOICE_PROFILE_REFS = {
+    speaker_ref: f"agent_voice_profile:{speaker_ref}"
+    for speaker_ref in SPEAKER_REFS
+}
+
 AUTHORITY_BOUNDARY_DEFAULT = {
     "can_execute": False,
     "can_send": False,
@@ -72,6 +77,10 @@ def _authority_boundary(**overrides: bool) -> dict[str, bool]:
     boundary = dict(AUTHORITY_BOUNDARY_DEFAULT)
     boundary.update(overrides)
     return boundary
+
+
+def voice_profile_ref_for_speaker(speaker_ref: str) -> str:
+    return VOICE_PROFILE_REFS.get(speaker_ref, VOICE_PROFILE_REFS["openclaw"])
 
 
 def _tts_profile(
@@ -114,7 +123,7 @@ def build_profiles() -> list[dict[str, Any]]:
     return [
         {
             "speaker_ref": "cassandra",
-            "voice_profile_ref": "agent_voice_profile:cassandra",
+            "voice_profile_ref": voice_profile_ref_for_speaker("cassandra"),
             "role": "Executive assistant and human-layer continuity voice for intake, correspondence prep, work logs, and relationship-aware follow-up.",
             "speaks_when": [
                 "Telegram or Cassandra intake is being captured.",
@@ -171,7 +180,7 @@ def build_profiles() -> list[dict[str, Any]]:
         },
         {
             "speaker_ref": "chief",
-            "voice_profile_ref": "agent_voice_profile:chief",
+            "voice_profile_ref": voice_profile_ref_for_speaker("chief"),
             "role": "Practical foreman and lead system builder for check-engine state, diagnostics, queue posture, provider gates, and route confirmations.",
             "speaks_when": [
                 "Check-engine warnings need operator attention.",
@@ -225,7 +234,7 @@ def build_profiles() -> list[dict[str, Any]]:
         },
         {
             "speaker_ref": "hermes",
-            "voice_profile_ref": "agent_voice_profile:hermes",
+            "voice_profile_ref": voice_profile_ref_for_speaker("hermes"),
             "role": "Angelic systems architect and elegant advisor for architecture, doctrine, tradeoffs, systems coherence, and lane sequencing.",
             "speaks_when": [
                 "Architecture or doctrine is being evaluated.",
@@ -278,7 +287,7 @@ def build_profiles() -> list[dict[str, Any]]:
         },
         {
             "speaker_ref": "guardian",
-            "voice_profile_ref": "agent_voice_profile:guardian",
+            "voice_profile_ref": voice_profile_ref_for_speaker("guardian"),
             "role": "Quiet protective gatekeeper for credentials, protected access, PII, send, submit, ledger, paid, and other authority boundaries.",
             "speaks_when": [
                 "Send, Coupa submit, portal, ledger, paid, browser, Gmail, credential, PII, or protected access authority is requested.",
@@ -332,7 +341,7 @@ def build_profiles() -> list[dict[str, Any]]:
         },
         {
             "speaker_ref": "niles",
-            "voice_profile_ref": "agent_voice_profile:niles",
+            "voice_profile_ref": voice_profile_ref_for_speaker("niles"),
             "role": "Cultured Australian studio and creative operator for music, art, sessions, metadata, and creative direction.",
             "speaks_when": [
                 "Music, art, setlist, studio, Logic Pro, session, album, metadata, or creative direction work is being discussed.",
@@ -385,7 +394,7 @@ def build_profiles() -> list[dict[str, Any]]:
         },
         {
             "speaker_ref": "clara",
-            "voice_profile_ref": "agent_voice_profile:clara",
+            "voice_profile_ref": voice_profile_ref_for_speaker("clara"),
             "role": "External client-facing business voice for proposals, outreach drafts, email drafts, and client-visible summaries.",
             "speaks_when": [
                 "Proposal email draft copy is being prepared.",
@@ -439,7 +448,7 @@ def build_profiles() -> list[dict[str, Any]]:
         },
         {
             "speaker_ref": "openclaw",
-            "voice_profile_ref": "agent_voice_profile:openclaw",
+            "voice_profile_ref": voice_profile_ref_for_speaker("openclaw"),
             "role": "Neutral cockpit and status voice for Helm, system overview, generic state, and objective readbacks.",
             "speaks_when": [
                 "A neutral system overview is needed.",
@@ -524,6 +533,7 @@ def build_read_model(*, generated_at: str | None = None) -> dict[str, Any]:
             "guardrails",
         ],
         "speaker_refs": list(SPEAKER_REFS),
+        "voice_profile_ref_map": dict(VOICE_PROFILE_REFS),
         "profiles": profiles,
         "tts_rules": {
             "all_tts_text_plain_text": True,

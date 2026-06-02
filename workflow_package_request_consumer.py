@@ -315,6 +315,7 @@ def consume_workflow_package_request(
         "blocker": blocker,
         "next_safe_action": next_safe_action,
         "speaker_ref": operator_display["speaker_ref"],
+        "voice_profile_ref": operator_display["voice_profile_ref"],
         "voice_mode": operator_display["voice_mode"],
         "audience": operator_display["audience"],
         "operator_display": operator_display,

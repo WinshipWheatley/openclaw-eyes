@@ -89,9 +89,11 @@ def test_consumer_records_valid_workflow_package_request_in_queue_sqlite(tmp_pat
     assert result.receipt["package_status"] == "OPERATOR_REVIEW_REQUIRED"
     assert result.receipt["operator_display"]["headline"] == "St. Anne's work log captured"
     assert result.receipt["speaker_ref"] == "cassandra"
+    assert result.receipt["voice_profile_ref"] == "agent_voice_profile:cassandra"
     assert result.receipt["voice_mode"] == "operator_intake"
     assert result.receipt["audience"] == "internal_operator"
     assert result.receipt["operator_display"]["speaker_ref"] == "cassandra"
+    assert result.receipt["operator_display"]["voice_profile_ref"] == "agent_voice_profile:cassandra"
     assert result.receipt["operator_display"]["voice_mode"] == "operator_intake"
     assert result.receipt["operator_display"]["routing_reason"] == "work-log intake"
     assert result.receipt["operator_display"]["status_label"] == "Needs confirmation"
@@ -138,8 +140,10 @@ def test_consumer_blocks_unsafe_true_grant_without_queue_write(tmp_path):
     assert result.receipt["raw_internal_status"] == "BLOCKED_WITH_REASON"
     assert f"authority_true:{unsafe_key}" in result.blockers
     assert result.receipt["speaker_ref"] == "guardian"
+    assert result.receipt["voice_profile_ref"] == "agent_voice_profile:guardian"
     assert result.receipt["voice_mode"] == "safety_gate"
     assert result.receipt["operator_display"]["speaker_ref"] == "guardian"
+    assert result.receipt["operator_display"]["voice_profile_ref"] == "agent_voice_profile:guardian"
     assert result.receipt["operator_display"]["routing_reason"] == "protected authority or access boundary"
     assert not sqlite_path.exists()
 
@@ -211,6 +215,7 @@ def test_service_processes_three_workflow_package_requests_and_writes_scoped_res
             "warning",
             "Review and confirm the event.",
             "cassandra",
+            "agent_voice_profile:cassandra",
             "operator_intake",
         ),
         "capital_hilton_business_development_operator_instruction_smoke": (
@@ -222,6 +227,7 @@ def test_service_processes_three_workflow_package_requests_and_writes_scoped_res
             "calm",
             "Review the follow-up plan.",
             "cassandra",
+            "agent_voice_profile:cassandra",
             "operator_calm",
         ),
         "capital_hilton_invoice_workflow_operator_instruction_smoke": (
@@ -233,13 +239,14 @@ def test_service_processes_three_workflow_package_requests_and_writes_scoped_res
             "blocked",
             "Stage an operator-assist packet when you are ready.",
             "chief",
+            "agent_voice_profile:chief",
             "diagnostic",
         ),
     }
     for request in requests:
         response = json.loads(_safe_response_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
         heartbeat = json.loads(_safe_heartbeat_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
-        workflow_ref, client_ref, package_status, headline, status_label, tone, next_safe_action, speaker_ref, voice_mode = expected[request["request_id"]]
+        workflow_ref, client_ref, package_status, headline, status_label, tone, next_safe_action, speaker_ref, voice_profile_ref, voice_mode = expected[request["request_id"]]
 
         assert heartbeat["request_type"] == "WORKFLOW_PACKAGE_REQUEST"
         assert heartbeat["processing_status"] == "CHECKING_WORKFLOW_PACKAGE_QUEUE"
@@ -257,6 +264,7 @@ def test_service_processes_three_workflow_package_requests_and_writes_scoped_res
         assert display["tone"] == tone
         assert display["next_safe_action"] == next_safe_action
         assert display["speaker_ref"] == speaker_ref
+        assert display["voice_profile_ref"] == voice_profile_ref
         assert display["voice_mode"] == voice_mode
         assert display["audience"] == "internal_operator"
         assert display["routing_reason"]

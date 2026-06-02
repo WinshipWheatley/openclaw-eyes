@@ -41,6 +41,7 @@ Workflow package responses keep machine fields in proof/details, but Mission Con
 Package responses include deterministic voice fields:
 
 - `speaker_ref`
+- `voice_profile_ref`
 - `voice_mode`
 - `audience`
 - `routing_reason`
