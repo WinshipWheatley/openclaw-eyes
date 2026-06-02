@@ -41,6 +41,31 @@ def test_pc_operator_copy_layer_resolves_to_display_copy_ready():
     assert _resolve_status("PC_OPERATOR_COPY_LAYER_READY", registry) == "PC_OPERATOR_DISPLAY_COPY_READY"
 
 
+def test_mac_helm_composer_ready_resolves_to_itself():
+    registry = _load_registry()
+
+    assert _resolve_status("MAC_HELM_COMPOSER_READY", registry) == "MAC_HELM_COMPOSER_READY"
+    assert _resolve_status("HELM_COMPOSER_UI_READY", registry) == "MAC_HELM_COMPOSER_READY"
+
+
+def test_system_question_e2e_alias_resolves_to_route_ready():
+    registry = _load_registry()
+
+    assert _resolve_status("SYSTEM_QUESTION_E2E_READY", registry) == "SYSTEM_QUESTION_ROUTE_READY"
+
+
+def test_system_question_route_ready_resolves_to_itself():
+    registry = _load_registry()
+
+    assert _resolve_status("SYSTEM_QUESTION_ROUTE_READY", registry) == "SYSTEM_QUESTION_ROUTE_READY"
+
+
+def test_package_event_index_ready_resolves_to_itself():
+    registry = _load_registry()
+
+    assert _resolve_status("PACKAGE_EVENT_INDEX_READY", registry) == "PACKAGE_EVENT_INDEX_READY"
+
+
 def test_unknown_status_does_not_resolve():
     registry = _load_registry()
 
