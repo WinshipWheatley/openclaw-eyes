@@ -125,6 +125,36 @@ def _successful_pdf_export_receipt(**overrides):
     return receipt
 
 
+def _pdf_candidate_approval_receipt(**overrides):
+    receipt = {
+        "receipt_id": "pdf_candidate_review_decision:test_approval",
+        "receipt_type": "selected_invoice_pdf_candidate_review_decision_receipt",
+        "receipt_name": "selected_invoice_pdf_candidate_review_decision_receipt",
+        "source_request_id": "test_approve_pdf_candidate",
+        "client_ref": "live_arts_md",
+        "workflow_ref": "live_arts_md_invoice_workflow",
+        "invoice_id": "2026-1001",
+        "action_kind": "approve_pdf_candidate",
+        "decision_status": "APPROVED_FOR_DRAFT_ATTACHMENT_PACKAGE",
+        "operator_decision_only": True,
+        "candidate_ref": "pdf_export_candidate_receipt:test_success",
+        "candidate_sha256": "c4eac79c7b04bb7d3b8650fbf891a72c66c3cc376287a13a12b09ec56ef21bf3",
+        "observed_page_count": 1,
+        "expected_page_count": 1,
+        "operator_visual_review": True,
+        "validation_errors": [],
+        "attachment_ready": False,
+        "approval_ready": False,
+        "email_send_allowed": False,
+        "ledger_posting_allowed": False,
+        "sent": False,
+        "paid": False,
+        "final": False,
+    }
+    receipt.update(overrides)
+    return receipt
+
+
 def _write_pdf_candidate(path: Path, size: int = 171899) -> str:
     body = b"%PDF-1.4\n% Live Arts MD test candidate\n"
     padding = b"0" * max(0, size - len(body))
@@ -1184,6 +1214,90 @@ def test_one_page_pdf_candidate_becomes_operator_review_required_not_attachment_
     assert live["invoice_artifact"]["ledger_posting_allowed"] is False
     assert live["approval_footer"]["approval_ready"] is False
     assert live["payment_watch"]["ledger_posting_allowed"] is False
+
+
+def test_approved_pdf_candidate_projects_as_operator_approved_artifact(tmp_path):
+    pdf_path = tmp_path / "artifacts" / EXPECTED_OUTPUT_FILENAME
+    sha256 = _write_pdf_candidate(pdf_path)
+    candidate_receipt = _successful_pdf_export_receipt(
+        output_bridge_path=pdf_path.as_posix(),
+        file_size_bytes=pdf_path.stat().st_size,
+        sha256=sha256,
+        page_count=1,
+        expected_page_count=1,
+        failed_candidate_sha256="fc2b9d9448307ddbcaff7d087b05c8b8e1af5c547caf6103dfc3b14162b84640",
+        failed_candidate_artifact_review_status="SCOPE_MISMATCH_REJECTED",
+        failed_candidate_reason_code="WRONG_EXPORT_SCOPE_WORKBOOK_INSTEAD_OF_SELECTED_INVOICE_PAGE",
+        observed_failed_candidate_page_count=7,
+        final_candidate_parent_ref="live_arts_md_2026_1001_failed_7_page_candidate",
+    )
+    annotation = assistance_annotation.build_annotation(
+        candidate_receipt_payload=candidate_receipt,
+        candidate_receipt_path="generated/read_models/selected_invoice_pdf_export_completed_candidate_receipt.json",
+        export_root=tmp_path,
+        bridge_export_root=None,
+        generated_at=FIXED_NOW,
+    )
+    approval_receipt = _pdf_candidate_approval_receipt(candidate_sha256=sha256)
+
+    live = bundle.build_live_arts_md_bundle(
+        workbook_registry_payload=_confirmed_workbook_payload_with_mac_path(),
+        export_receipt_payload=candidate_receipt,
+        operator_assistance_annotation_payload=annotation,
+        pdf_candidate_decision_receipt_payload=approval_receipt,
+        consume_existing_selection_receipt=False,
+        generated_at=FIXED_NOW,
+    )
+    artifact = live["invoice_artifact"]
+    approved = artifact["approved_pdf_artifact"]
+
+    assert "artifact_candidate_review" not in artifact
+    assert artifact["status"] == "PDF_ARTIFACT_OPERATOR_APPROVED"
+    assert artifact["artifact_review_status"] == "APPROVED_FOR_DRAFT_ATTACHMENT_PACKAGE"
+    assert artifact["candidate_only"] is False
+    assert artifact["operator_approved"] is True
+    assert artifact["operator_visual_review"] is True
+    assert artifact["draft_attachment_package_eligible"] is True
+    assert artifact["attachment_ready"] is False
+    assert artifact["approval_ready"] is False
+    assert artifact["email_send_allowed"] is False
+    assert artifact["ledger_posting_allowed"] is False
+    assert artifact["browser_access_allowed"] is False
+    assert artifact["portal_access_allowed"] is False
+    assert artifact["sent"] is False
+    assert artifact["paid"] is False
+
+    assert approved["status"] == "PDF_ARTIFACT_OPERATOR_APPROVED"
+    assert approved["artifact_review_status"] == "APPROVED_FOR_DRAFT_ATTACHMENT_PACKAGE"
+    assert approved["sha256"] == sha256
+    assert approved["page_count"] == 1
+    assert approved["expected_page_count"] == 1
+    assert approved["pdf_bridge_path"] == pdf_path.as_posix()
+    assert approved["pdf_mac_path"] == EXPECTED_OUTPUT_PDF_MAC_PATH
+    assert approved["source_candidate_ref"] == "pdf_export_candidate_receipt:test_success"
+    assert approved["draft_attachment_package_eligible"] is True
+    assert approved["attachment_ready"] is False
+    assert approved["sent"] is False
+    assert approved["paid"] is False
+    assert approved["email_send_allowed"] is False
+    assert approved["ledger_posting_allowed"] is False
+    assert approved["rejected_candidate_lineage"] == {
+        "candidate_ref": "live_arts_md_2026_1001_failed_7_page_candidate",
+        "sha256": "fc2b9d9448307ddbcaff7d087b05c8b8e1af5c547caf6103dfc3b14162b84640",
+        "artifact_review_status": "SCOPE_MISMATCH_REJECTED",
+        "reason_code": "WRONG_EXPORT_SCOPE_WORKBOOK_INSTEAD_OF_SELECTED_INVOICE_PAGE",
+        "observed_page_count": 7,
+        "expected_page_count": 1,
+        "preserved_as": "rejected_candidate_lineage",
+    }
+    assert artifact["pdf_export_package"]["export_candidate_remains_review_required"] is False
+    assert live["clara_email_draft"]["attachment_ready"] is False
+    assert live["approval_footer"]["approval_ready"] is False
+    assert live["payment_watch"]["ledger_posting_allowed"] is False
+    assert live["proof_timeline"][2]["status"] == "APPROVED_FOR_DRAFT_PACKAGE"
+    assert live["machine_proof"]["approved_pdf_artifact_present"] is True
+    assert live["machine_proof"]["artifact_candidate_review_surface_present"] is False
+    assert live["machine_proof"]["operator_assisted_pdf_export_candidate"] is False
 
 
 def test_page_count_mismatch_keeps_attachment_gates_closed_even_with_attachment_receipt(tmp_path):

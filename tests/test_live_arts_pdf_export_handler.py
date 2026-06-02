@@ -1,4 +1,5 @@
 import json
+import hashlib
 from datetime import datetime
 from pathlib import Path
 import pytest
@@ -6,6 +7,7 @@ import pytest
 import invoice_review_action_request_handler
 import live_arts_md_invoice_review_bundle
 import openclaw_request_processor
+import selected_invoice_pdf_export_operator_assistance_annotation as assistance_annotation
 
 @pytest.fixture
 def temp_export(tmp_path):
@@ -127,6 +129,65 @@ def _process_pdf_candidate_decision(export_root: Path, request: dict) -> dict:
     )
 
 
+def _write_pdf(path: Path) -> str:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(b"%PDF-1.4\n% Live Arts MD test approved artifact\n")
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _seed_completed_pdf_export_candidate(export_root: Path, *, pdf_path: Path, sha256: str) -> None:
+    receipt = {
+        "receipt_id": "pdf_export_candidate_receipt:95913871095d32dd",
+        "receipt_type": "selected_invoice_pdf_export_completed_candidate_receipt",
+        "receipt_name": "selected_invoice_pdf_export_completed_candidate_receipt",
+        "client_ref": "live_arts_md",
+        "workflow_ref": "live_arts_md_invoice_workflow",
+        "invoice_id": "2026-1001",
+        "exported_pdf_mac_path": (
+            "/Volumes/openclaw_e/artifacts/invoice_workbooks/live_arts_md/2026-1001/"
+            "Invoice_2026-1001_Live_Arts_MD_June_2026_Speaker_Rental_scope_corrected_live_arts_md_2.pdf"
+        ),
+        "output_bridge_path": pdf_path.as_posix(),
+        "pdf_bridge_path": pdf_path.as_posix(),
+        "artifact_filename": pdf_path.name,
+        "file_size_bytes": pdf_path.stat().st_size,
+        "sha256": sha256,
+        "export_attempted": True,
+        "export_success": True,
+        "result_status": "PDF_EXPORT_COMPLETED_CANDIDATE",
+        "artifact_review_status": "OPERATOR_REVIEW_REQUIRED",
+        "page_count": 1,
+        "expected_page_count": 1,
+        "failed_candidate_sha256": "fc2b9d9448307ddbcaff7d087b05c8b8e1af5c547caf6103dfc3b14162b84640",
+        "failed_candidate_artifact_review_status": "SCOPE_MISMATCH_REJECTED",
+        "failed_candidate_reason_code": "WRONG_EXPORT_SCOPE_WORKBOOK_INSTEAD_OF_SELECTED_INVOICE_PAGE",
+        "observed_failed_candidate_page_count": 7,
+        "final_candidate_parent_ref": "live_arts_md_2026_1001_failed_7_page_candidate",
+        "attachment_ready": False,
+        "approval_ready": False,
+        "email_send_allowed": False,
+        "ledger_posting_allowed": False,
+        "sent": False,
+        "paid": False,
+        "validation_errors": [],
+    }
+    annotation = assistance_annotation.build_annotation(
+        candidate_receipt_payload=receipt,
+        candidate_receipt_path="generated/read_models/selected_invoice_pdf_export_completed_candidate_receipt.json",
+        export_root=export_root,
+        bridge_export_root=None,
+        generated_at="2026-05-28T15:00:00+00:00",
+    )
+    (export_root / "selected_invoice_pdf_export_completed_candidate_receipt.json").write_text(
+        live_arts_md_invoice_review_bundle.stable_json(receipt),
+        encoding="utf-8",
+    )
+    (export_root / "selected_invoice_pdf_export_operator_assistance_annotation.json").write_text(
+        assistance_annotation.stable_json(annotation),
+        encoding="utf-8",
+    )
+
+
 def test_approve_pdf_candidate_with_false_authority_fields_is_decision_only(temp_export):
     _seed_active_pdf_candidate_review(temp_export)
 
@@ -148,6 +209,34 @@ def test_approve_pdf_candidate_with_false_authority_fields_is_decision_only(temp
     assert result["machine_proof"]["ledger_posting_performed"] is False
     assert result["machine_proof"]["browser_access_performed"] is False
     assert (temp_export / "selected_invoice_pdf_candidate_review_decision_receipt.json").exists()
+
+
+def test_approve_pdf_candidate_refreshes_bundle_to_approved_artifact_when_export_receipt_exists(temp_export):
+    pdf_path = temp_export / "artifacts" / "Invoice_2026-1001_Live_Arts_MD_June_2026_Speaker_Rental_scope_corrected_live_arts_md_2.pdf"
+    sha256 = _write_pdf(pdf_path)
+    _seed_active_pdf_candidate_review(temp_export, sha256=sha256)
+    _seed_completed_pdf_export_candidate(temp_export, pdf_path=pdf_path, sha256=sha256)
+
+    result = _process_pdf_candidate_decision(
+        temp_export,
+        _pdf_candidate_decision_request(candidate_sha256=sha256),
+    )
+    bundle_payload = json.loads((temp_export / "live_arts_md_invoice_review_bundle.json").read_text(encoding="utf-8"))
+    artifact = bundle_payload["live_arts_md_bundle"]["invoice_artifact"]
+
+    assert result["status"] == "GUIDED_RESULT_RECORDED"
+    assert result["state_machine_progress"]["source_bundle_path"].endswith("live_arts_md_invoice_review_bundle.json")
+    assert artifact["status"] == "PDF_ARTIFACT_OPERATOR_APPROVED"
+    assert artifact["artifact_review_status"] == "APPROVED_FOR_DRAFT_ATTACHMENT_PACKAGE"
+    assert "artifact_candidate_review" not in artifact
+    assert artifact["approved_pdf_artifact"]["sha256"] == sha256
+    assert artifact["approved_pdf_artifact"]["source_candidate_ref"] == "pdf_export_candidate_receipt:95913871095d32dd"
+    assert artifact["draft_attachment_package_eligible"] is True
+    assert artifact["attachment_ready"] is False
+    assert artifact["sent"] is False
+    assert artifact["paid"] is False
+    assert artifact["email_send_allowed"] is False
+    assert artifact["ledger_posting_allowed"] is False
 
 
 def test_approve_pdf_candidate_with_authority_fields_absent_is_decision_only(temp_export):

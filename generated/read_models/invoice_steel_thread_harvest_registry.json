@@ -1,0 +1,179 @@
+{
+  "schema_version": "invoice_steel_thread_harvest_registry_v1",
+  "read_model_id": "invoice_steel_thread_harvest_registry",
+  "generated_at": "2026-06-01T22:52:00Z",
+  "status": "INVOICE_STEEL_THREAD_HARVEST_REGISTRY_READY",
+  "purpose": "Master registry for June 1 client-work harvests that should become reusable OpenClaw rails.",
+  "client_work_closeout": {
+    "path": "generated/read_models/client_work_closeout_2026_06_01.json",
+    "bridge_path": "/mnt/e/openclaw/generated/read_models/client_work_closeout_2026_06_01.json",
+    "sha256": "60e5dfe60b324b612f8054c46fe01056160406fc05b1693dcd72d972d711fa7d",
+    "status": "CLIENT_WORK_CLOSEOUT_READY"
+  },
+  "harvests": [
+    {
+      "harvest_id": "live_arts_approved_pdf_artifact_pattern",
+      "client_ref": "live_arts_md",
+      "world": "invoice_operations",
+      "summary": "Live Arts approved PDF artifact pattern records an operator-approved corrected one-page PDF while keeping attachment/send/ledger gates closed.",
+      "source_read_model": {
+        "path": "generated/read_models/live_arts_md_invoice_review_bundle.json",
+        "bridge_path": "/mnt/e/openclaw/generated/read_models/live_arts_md_invoice_review_bundle.json",
+        "sha256": "59d71e4dd9589f98c192a2dfc0f1f86666f7ec54ad1848be02cd7a083f234da0"
+      },
+      "business_truth": {
+        "invoice_id": "2026-1001",
+        "approved_pdf_artifact_status": "APPROVED_FOR_DRAFT_ATTACHMENT_PACKAGE",
+        "approved_pdf_sha256": "c4eac79c7b04bb7d3b8650fbf891a72c66c3cc376287a13a12b09ec56ef21bf3",
+        "failed_candidate_lineage_preserved": true,
+        "attachment_ready": false,
+        "email_send_allowed": false,
+        "ledger_posting_allowed": false,
+        "sent": false,
+        "paid": false
+      },
+      "reusable_pattern": [
+        "operator-approved PDF artifact promotion",
+        "rejected candidate lineage preservation",
+        "no-send draft package eligibility separated from email send authority"
+      ]
+    },
+    {
+      "harvest_id": "st_annes_manual_send_and_work_log",
+      "client_ref": "st_annes",
+      "world": "invoice_operations",
+      "summary": "St. Anne's May invoice manual send was ingested, and a future monthly work-log contract defines Telegram/Cassandra record-only intake.",
+      "source_read_models": [
+        {
+          "path": "generated/read_models/st_annes_invoice_status.json",
+          "bridge_path": "/mnt/e/openclaw/generated/read_models/st_annes_invoice_status.json",
+          "sha256": "0f60800cb0f020e42cd410744b40aa8e20a9e747a2ce1c9b785267674ebf38d7"
+        },
+        {
+          "path": "generated/read_models/st_annes_monthly_work_log_contract.json",
+          "bridge_path": "/mnt/e/openclaw/generated/read_models/st_annes_monthly_work_log_contract.json",
+          "sha256": "63793519f90a18dfee67cb2cb8b20583c3b1d951bbcf8be88aa01730dd401b44"
+        }
+      ],
+      "business_truth": {
+        "invoice_status": "MANUAL_SEND_OUT_OF_BAND_RECORDED",
+        "manual_send_out_of_band_recorded": true,
+        "openclaw_send_performed": false,
+        "may_fixture_events": 4,
+        "may_fixture_total": 500,
+        "ledger_posting_allowed": false,
+        "paid": false
+      },
+      "reusable_pattern": [
+        "manual send receipt ingestion",
+        "monthly work-log event contract",
+        "month-end rollup with operator review before workbook/PDF/send"
+      ]
+    },
+    {
+      "harvest_id": "capital_hilton_invoice_operator_assist_coupa",
+      "client_ref": "capital_hilton",
+      "world": "invoice_operations",
+      "summary": "Capital Hilton invoice run captured operator-assisted Excel correction, print-to-PDF, Coupa submission, and Gmail send without treating them as autonomous OpenClaw actions.",
+      "source_read_models": [
+        {
+          "path": "generated/read_models/capital_hilton_invoice_operator_run_status.json",
+          "bridge_path": "/mnt/e/openclaw/generated/read_models/capital_hilton_invoice_operator_run_status.json",
+          "sha256": "383b0fb5ca5e77daf9298c9b62fdda0911808fa2e4e25619ff605fd67cb1bc59"
+        },
+        {
+          "path": "generated/read_models/capital_hilton_coupa_workflow_harvest.json",
+          "bridge_path": "/mnt/e/openclaw/generated/read_models/capital_hilton_coupa_workflow_harvest.json",
+          "sha256": "032a883ddadaa625ae5f636ff8ad868a152ef8c6bfa2a0f07649532720ae8ea2"
+        },
+        {
+          "path": "generated/read_models/operator_assist_provider_registry.json",
+          "bridge_path": "/mnt/e/openclaw/generated/read_models/operator_assist_provider_registry.json",
+          "sha256": "a11348668cdc7ab59cdbb300d76e8b1071a59556e62641c01119a46575848517"
+        }
+      ],
+      "business_truth": {
+        "coupa_submission_status": "processing",
+        "email_status": "sent_operator_assisted",
+        "autonomous_openclaw_coupa_submit": false,
+        "autonomous_openclaw_email_send": false,
+        "ledger_mutation_performed": false,
+        "ledger_posting_allowed": false,
+        "paid": false
+      },
+      "reusable_pattern": [
+        "operator-assist provider registry",
+        "Coupa PO invoice workflow harvest",
+        "Excel GUI print-to-PDF fallback with artifact proof",
+        "Gmail draft replacement and send gate recording"
+      ]
+    },
+    {
+      "harvest_id": "capital_hilton_business_development_proposal_lane",
+      "client_ref": "capital_hilton",
+      "world": "business_development",
+      "summary": "Capital Hilton fight-weekend proposal was drafted, PDF-attached, sent for client review, and recorded as Business Development state without acceptance or finance handoff.",
+      "source_read_models": [
+        {
+          "path": "generated/read_models/capital_hilton_business_development_proposal.json",
+          "bridge_path": "/mnt/e/openclaw/generated/read_models/capital_hilton_business_development_proposal.json",
+          "sha256": "af09f2d529701bc33c8d8978767581736f581edfa0b10c7dea9d17834f0e7eca"
+        },
+        {
+          "path": "generated/read_models/business_development_proposal_lane_registry.json",
+          "bridge_path": "/mnt/e/openclaw/generated/read_models/business_development_proposal_lane_registry.json",
+          "sha256": "fa50d587da015e3a338bb83c0bed0dc109f4d789d95e9bf77cf304135233dac1"
+        }
+      ],
+      "business_truth": {
+        "proposal_status": "SENT_FOR_CLIENT_REVIEW",
+        "proposal_sent_recorded": true,
+        "sent_by_openclaw": false,
+        "proposal_accepted": false,
+        "finance_handoff_allowed": false,
+        "ledger_posting_allowed": false,
+        "paid": false
+      },
+      "reusable_pattern": [
+        "Business Development proposal lifecycle",
+        "proposal sent does not imply accepted",
+        "finance handoff disabled until acceptance receipt"
+      ]
+    }
+  ],
+  "reusable_components_proven": [
+    "operator-approved PDF artifact promotion",
+    "manual send out-of-band ingestion",
+    "operator-assisted provider registry",
+    "Coupa PO invoice workflow harvest",
+    "Business Development proposal lane",
+    "St. Anne's monthly work-log contract",
+    "client work closeout snapshot",
+    "Helm Calm read model surface"
+  ],
+  "remaining_gaps": [
+    "Telegram/Cassandra intake is contract-only and not live-connected.",
+    "Excel workbook patch and PDF export need a hardened, receipt-driven path before unattended use.",
+    "Coupa remains operator-assisted with login, Remit-To, invoice normalization, and final submit gates.",
+    "Gmail remains operator-assisted with final send gate.",
+    "Proposal acceptance requires a future separate acceptance receipt before finance handoff.",
+    "Ledger and paid state remain separate from invoice/proposal workflow evidence."
+  ],
+  "authority_boundary": {
+    "email_send_allowed": false,
+    "ledger_posting_allowed": false,
+    "coupa_allowed": false,
+    "gmail_allowed": false,
+    "browser_access_allowed": false,
+    "paid_marking_allowed": false,
+    "autonomous_openclaw_email_send": false,
+    "autonomous_openclaw_coupa_submit": false
+  },
+  "machine_proof": {
+    "source_read_models_inspected": true,
+    "client_closeout_present": true,
+    "bridge_publication_required": true,
+    "ledger_and_paid_blocked": true,
+    "unsafe_true_grants_absent": true
+  }
+}

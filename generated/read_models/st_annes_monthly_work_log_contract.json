@@ -1,0 +1,242 @@
+{
+  "schema_version": "st_annes_monthly_work_log_contract_v1",
+  "read_model_id": "st_annes_monthly_work_log_contract",
+  "generated_at": "2026-06-01T22:49:22Z",
+  "status": "ST_ANNES_MONTHLY_WORK_LOG_CONTRACT_READY",
+  "client_ref": "st_annes",
+  "client_display_name": "St. Anne's",
+  "workflow_ref": "st_annes_monthly_work_log_to_invoice_package",
+  "purpose": "Reusable work-log contract for recording St. Anne's service events during the month and rolling them into a month-end invoice package after operator review.",
+  "telegram_live_connected": false,
+  "default_business_rule": {
+    "default_rate_usd": 125,
+    "default_amount_usd": 125,
+    "billing_basis": "per_event",
+    "month_end_invoice_rule": "Month-end invoice should include all recorded St. Anne's events after operator review."
+  },
+  "work_log_event_schema": {
+    "event_id": "string",
+    "client_ref": "st_annes",
+    "service_date": "YYYY-MM-DD",
+    "service_time": "optional HH:MM local",
+    "service_label": "string",
+    "description": "string",
+    "default_rate": 125,
+    "amount": 125,
+    "source": "telegram|mission_control|manual",
+    "operator_confirmed": "boolean",
+    "pii_privacy_status": "minimal_service_metadata",
+    "included_in_invoice_period": "YYYY-MM",
+    "invoice_ref": "optional string"
+  },
+  "month_rollup_schema": {
+    "client_ref": "st_annes",
+    "month": "YYYY-MM",
+    "events": "array of work_log_event",
+    "expected_total": "sum of event amount",
+    "invoice_package_status": "not_started|draft_ready|operator_review_required|approved|manual_send_out_of_band_recorded",
+    "workbook_patch_status": "not_started|staged_patch_ready|operator_approved|blocked",
+    "pdf_artifact_status": "not_started|candidate_ready|operator_approved|rejected",
+    "send_status": "not_sent|operator_approved_send_ready|manual_send_out_of_band_recorded|sent_by_openclaw_recorded"
+  },
+  "rules": [
+    {
+      "rule_id": "telegram_records_work_log_only",
+      "rule": "Telegram intake records work log events only.",
+      "enforced": true
+    },
+    {
+      "rule_id": "telegram_does_not_touch_excel",
+      "rule": "Telegram intake does not touch Excel or mutate invoice workbooks.",
+      "enforced": true
+    },
+    {
+      "rule_id": "telegram_does_not_send_email",
+      "rule": "Telegram intake does not send email.",
+      "enforced": true
+    },
+    {
+      "rule_id": "telegram_does_not_mutate_ledger",
+      "rule": "Telegram intake does not mutate ledger.",
+      "enforced": true
+    },
+    {
+      "rule_id": "month_end_requires_operator_review",
+      "rule": "Month-end rollup requires operator review before invoice package creation.",
+      "enforced": true
+    },
+    {
+      "rule_id": "workbook_write_requires_staged_patch_approval",
+      "rule": "Workbook write requires staged patch approval.",
+      "enforced": true
+    },
+    {
+      "rule_id": "pdf_requires_artifact_approval",
+      "rule": "PDF requires artifact approval.",
+      "enforced": true
+    },
+    {
+      "rule_id": "send_requires_explicit_send_approval",
+      "rule": "Send requires explicit send approval.",
+      "enforced": true
+    }
+  ],
+  "future_telegram_intake_rules": {
+    "example_operator_message": "Mark that I'm at church running sound.",
+    "intake_source": "telegram",
+    "recorded_fields": [
+      "event_id",
+      "client_ref",
+      "service_date",
+      "service_time",
+      "service_label",
+      "description",
+      "default_rate",
+      "amount",
+      "source",
+      "operator_confirmed",
+      "pii_privacy_status",
+      "included_in_invoice_period"
+    ],
+    "default_mapping": {
+      "client_ref": "st_annes",
+      "service_label": "Church sound",
+      "default_rate": 125,
+      "amount": 125,
+      "source": "telegram",
+      "operator_confirmed": false,
+      "pii_privacy_status": "minimal_service_metadata"
+    },
+    "blocked_actions": {
+      "excel_write": false,
+      "pdf_export": false,
+      "email_send": false,
+      "ledger_mutation": false,
+      "paid_marking": false
+    }
+  },
+  "may_2026_fixture": {
+    "client_ref": "st_annes",
+    "month": "2026-05",
+    "events": [
+      {
+        "event_id": "st_annes_2026_05_10_adult_forum",
+        "client_ref": "st_annes",
+        "service_date": "2026-05-10",
+        "service_time": "",
+        "service_label": "Adult Forum",
+        "description": "Adult Forum sound support",
+        "default_rate": 125,
+        "amount": 125,
+        "source": "manual",
+        "operator_confirmed": true,
+        "pii_privacy_status": "minimal_service_metadata",
+        "included_in_invoice_period": "2026-05",
+        "invoice_ref": "st_annes_2026_05_manual_sent"
+      },
+      {
+        "event_id": "st_annes_2026_05_16_wedding",
+        "client_ref": "st_annes",
+        "service_date": "2026-05-16",
+        "service_time": "",
+        "service_label": "Wedding",
+        "description": "Wedding sound support",
+        "default_rate": 125,
+        "amount": 125,
+        "source": "manual",
+        "operator_confirmed": true,
+        "pii_privacy_status": "minimal_service_metadata",
+        "included_in_invoice_period": "2026-05",
+        "invoice_ref": "st_annes_2026_05_manual_sent"
+      },
+      {
+        "event_id": "st_annes_2026_05_25_funeral",
+        "client_ref": "st_annes",
+        "service_date": "2026-05-25",
+        "service_time": "",
+        "service_label": "Funeral",
+        "description": "Funeral sound support",
+        "default_rate": 125,
+        "amount": 125,
+        "source": "manual",
+        "operator_confirmed": true,
+        "pii_privacy_status": "minimal_service_metadata",
+        "included_in_invoice_period": "2026-05",
+        "invoice_ref": "st_annes_2026_05_manual_sent"
+      },
+      {
+        "event_id": "st_annes_2026_05_31_1000_church_service",
+        "client_ref": "st_annes",
+        "service_date": "2026-05-31",
+        "service_time": "10:00",
+        "service_label": "Church Service",
+        "description": "10:00 AM Church Service sound support",
+        "default_rate": 125,
+        "amount": 125,
+        "source": "manual",
+        "operator_confirmed": true,
+        "pii_privacy_status": "minimal_service_metadata",
+        "included_in_invoice_period": "2026-05",
+        "invoice_ref": "st_annes_2026_05_manual_sent"
+      }
+    ],
+    "month_rollup": {
+      "client_ref": "st_annes",
+      "month": "2026-05",
+      "event_count": 4,
+      "expected_total": 500,
+      "invoice_package_status": "manual_send_out_of_band_recorded",
+      "workbook_patch_status": "already_reflected_in_manual_invoice_artifact",
+      "pdf_artifact_status": "operator_provided_pdf_invoice_recorded",
+      "send_status": "manual_send_out_of_band_recorded",
+      "openclaw_send_performed": false,
+      "ledger_posting_allowed": false,
+      "paid": false
+    },
+    "source_invoice_status_read_model": {
+      "path": "/mnt/e/openclaw/generated/read_models/st_annes_invoice_status.json",
+      "sha256": "0f60800cb0f020e42cd410744b40aa8e20a9e747a2ce1c9b785267674ebf38d7",
+      "invoice_status": "MANUAL_SEND_OUT_OF_BAND_RECORDED"
+    },
+    "manual_send_evidence": {
+      "receipt_path": "/mnt/e/openclaw/artifacts/invoice_workbooks/st_annes/2026-05/st_annes_manual_invoice_sent_receipt_20260601T211257Z.json",
+      "receipt_sha256": "0294e892584f9e77d4bf697ecdc10a59b1017f64367498630e005fed6404f486",
+      "pdf_path": "/mnt/e/openclaw/artifacts/invoice_workbooks/st_annes/2026-05/Invoice_St_Annes_May_2026_OPERATOR_SENT.pdf",
+      "pdf_sha256": "1f92fdc0f0d010d680a01824ff4b5db060ab35bc1d80dce516dffc06e740d46b"
+    }
+  },
+  "month_end_rollup_rules": {
+    "include_all_recorded_events_for_client_month": true,
+    "operator_review_required": true,
+    "workbook_write_requires_staged_patch_approval": true,
+    "pdf_artifact_requires_operator_approval": true,
+    "send_requires_explicit_send_approval": true,
+    "ledger_posting_allowed": false,
+    "paid_marking_allowed": false
+  },
+  "authority_boundary": {
+    "telegram_live_connection_allowed": false,
+    "telegram_send_allowed": false,
+    "workbook_write_allowed": false,
+    "pdf_export_allowed": false,
+    "email_send_allowed": false,
+    "ledger_posting_allowed": false,
+    "paid_marking_allowed": false,
+    "browser_access_allowed": false,
+    "gmail_allowed": false,
+    "coupa_allowed": false
+  },
+  "machine_proof": {
+    "may_fixture_included": true,
+    "may_fixture_event_count": 4,
+    "may_fixture_expected_total": 500,
+    "manual_send_out_of_band_recorded": true,
+    "telegram_intake_record_only": true,
+    "workbook_write_blocked_without_staged_patch_approval": true,
+    "pdf_export_blocked_without_artifact_approval": true,
+    "send_blocked_without_explicit_send_approval": true,
+    "ledger_posting_allowed_false": true,
+    "paid_marking_allowed_false": true,
+    "unsafe_true_grants_absent": true
+  }
+}

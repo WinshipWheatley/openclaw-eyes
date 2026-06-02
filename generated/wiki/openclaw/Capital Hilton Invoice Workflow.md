@@ -1,9 +1,38 @@
 # Capital Hilton Invoice Workflow
 
-Status: BLOCKED
+Status: OPERATOR_RUN_RECORDED
 
 ## Short human summary
-Capital Hilton remains a complex, proof-gated invoice workflow: Coupa/supplier portal proof, selected invoice/page evidence, artifact linkage, recipients, and approvals are not complete.
+Capital Hilton now has an operator-assisted run recorded for the May 2026 invoice: the May 29 cell correction, PDF export, Coupa submission, and email to Annette are all represented as evidence. OpenClaw still has no authority from this report to submit Coupa, send email, mutate ledger state, or mark the invoice paid.
+
+## 2026-06-01 operator run update
+- Full automation report: `/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/capital_hilton_invoice_operator_run_full_automation_report_20260601T222036Z.md`
+- Final operator receipt: `/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/capital_hilton_invoice_operator_run_receipt_20260601T221600Z.json`
+- Read model: `generated/read_models/capital_hilton_invoice_operator_run_status.json`
+- SQLite evidence store: `generated/system_knowledge/capital_hilton_invoice_operator_run_status.sqlite`
+
+Recorded final state:
+- Workbook/PDF invoice number: `2026-1006`.
+- Coupa invoice number: `2026 1006`; this is expected because Hilton Coupa disallows special characters in the Invoice # field.
+- Coupa PO: `DCASH00983536`.
+- Coupa status observed: `Processing`.
+- Email to Annette was sent operator-assisted with the corrected PDF attached.
+- Ledger mutation: no.
+- Paid marking: no.
+
+Automation lessons now captured:
+- Direct Excel/AppleScript export could report success without creating the target PDF; future runs must validate the artifact itself.
+- The Excel helper path around `OPEN_WORKBOOK` remains permission/timeout fragile.
+- The macOS/Excel print-to-PDF UI path is the workflow that actually produced the PDF in this run.
+- Future validation must check file existence, size, SHA256, page count, invoice text, total, May 29 completed, and June 5 scheduled.
+- `openpyxl` was missing in the default `python3` environment, so workbook tooling needs an explicit dependency or bundled runtime check.
+- Remit-To selection is a business decision gate; this run selected the mailing/check address, not Bank of America.
+- Coupa may clear fields after Remit-To save, so invoice number, date, currency, Remit-To, quantity, price, and total must be re-read.
+- Browser/Coupa editing hit virtual clipboard and DOM restrictions; field edits need re-read proof after interaction.
+- Gmail attachment drafts were fragile; the sent message came from a replacement reviewed draft with CC and attachment.
+
+## Earlier pre-run snapshot
+The older blocked snapshot below is retained as historical context. It predates the 2026-06-01 operator-run receipt and should not override the newer receipt/read-model evidence.
 
 ## Confirmed facts
 - Bundle id: invoice_review_bundle:capital_hilton:v0; client_ref=capital_hilton.

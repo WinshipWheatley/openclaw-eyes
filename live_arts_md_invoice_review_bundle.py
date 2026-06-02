@@ -35,6 +35,7 @@ DEFAULT_GENERATED_AT = "2026-05-28T00:00:00+00:00"
 LEGACY_ACTION_RECEIPT_EXPORT_NAME = "invoice_review_action_request_receipt.json"
 SELECTION_RECEIPT_EXPORT_NAME = "live_arts_md_invoice_candidate_selected_receipt.json"
 PDF_EXPORT_RESULT_RECEIPT_EXPORT_NAME = "selected_invoice_pdf_export_completed_candidate_receipt.json"
+PDF_CANDIDATE_DECISION_RECEIPT_EXPORT_NAME = "selected_invoice_pdf_candidate_review_decision_receipt.json"
 PDF_EXPORT_OPERATOR_ASSISTANCE_ANNOTATION_EXPORT_NAME = (
     "selected_invoice_pdf_export_operator_assistance_annotation.json"
 )
@@ -118,9 +119,11 @@ PDF_EXPORT_PACKAGE_REQUESTED_RECEIPT = simple_builder.PDF_EXPORT_PACKAGE_REQUEST
 PDF_EXPORT_COMPLETION_RECEIPT = simple_builder.PDF_EXPORT_COMPLETION_RECEIPT
 ARTIFACT_REVIEW_STATUS_OPERATOR_REVIEW_REQUIRED = "OPERATOR_REVIEW_REQUIRED"
 ARTIFACT_REVIEW_STATUS_SCOPE_MISMATCH_REJECTED = "SCOPE_MISMATCH_REJECTED"
+ARTIFACT_REVIEW_STATUS_APPROVED_FOR_DRAFT_ATTACHMENT_PACKAGE = "APPROVED_FOR_DRAFT_ATTACHMENT_PACKAGE"
 ARTIFACT_REVIEW_STATUS_APPROVED_FOR_ATTACHMENT = "APPROVED_FOR_ATTACHMENT"
 ARTIFACT_REVIEW_STATUS_NOT_READY = "NOT_READY"
 ARTIFACT_REVIEW_STATUS_EXPORT_FAILED = "EXPORT_FAILED"
+PDF_ARTIFACT_STATUS_OPERATOR_APPROVED = "PDF_ARTIFACT_OPERATOR_APPROVED"
 ARTIFACT_REVIEW_REASON_WRONG_EXPORT_SCOPE = "WRONG_EXPORT_SCOPE_WORKBOOK_INSTEAD_OF_SELECTED_INVOICE_PAGE"
 LEGACY_GUARDRAIL_NOT_TRUSTED_EXISTING_MULTI_PAGE_PDF = "NOT_TRUSTED_EXISTING_MULTI_PAGE_PDF"
 EXPECTED_SELECTED_INVOICE_PAGE_COUNT = 1
@@ -381,6 +384,21 @@ def _load_existing_pdf_export_operator_assistance_annotation() -> Mapping[str, A
     return None
 
 
+def _load_existing_pdf_candidate_decision_receipt() -> Mapping[str, Any] | None:
+    for path in (
+        DEFAULT_EXPORT_ROOT / PDF_CANDIDATE_DECISION_RECEIPT_EXPORT_NAME,
+        DEFAULT_BRIDGE_EXPORT_ROOT / PDF_CANDIDATE_DECISION_RECEIPT_EXPORT_NAME,
+    ):
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except (FileNotFoundError, json.JSONDecodeError, OSError):
+            continue
+        receipt = _pdf_candidate_decision_receipt_from_payload(payload)
+        if receipt is not None:
+            return receipt
+    return None
+
+
 def _selection_receipt_from_payload(payload: Mapping[str, Any] | None) -> Mapping[str, Any] | None:
     if not isinstance(payload, Mapping):
         return None
@@ -409,6 +427,25 @@ def _pdf_export_result_receipt_from_payload(payload: Mapping[str, Any] | None) -
     else:
         candidate = payload
     if candidate.get("receipt_name") != "selected_invoice_pdf_export_completed_candidate_receipt":
+        return None
+    if candidate.get("client_ref") != CLIENT_REF or candidate.get("workflow_ref") != WORKFLOW_REF:
+        return None
+    if candidate.get("validation_errors"):
+        return None
+    if not str(candidate.get("invoice_id") or "").strip():
+        return None
+    return candidate
+
+
+def _pdf_candidate_decision_receipt_from_payload(payload: Mapping[str, Any] | None) -> Mapping[str, Any] | None:
+    if not isinstance(payload, Mapping):
+        return None
+    receipt = payload.get("action_start_receipt")
+    if isinstance(receipt, Mapping):
+        candidate = receipt
+    else:
+        candidate = payload
+    if candidate.get("receipt_name") != "selected_invoice_pdf_candidate_review_decision_receipt":
         return None
     if candidate.get("client_ref") != CLIENT_REF or candidate.get("workflow_ref") != WORKFLOW_REF:
         return None
@@ -731,13 +768,144 @@ def _artifact_candidate_review_card(
     }
 
 
+def _approved_pdf_artifact_from_decision(
+    *,
+    artifact_candidate_review: Mapping[str, Any] | None,
+    pdf_candidate_decision_receipt: Mapping[str, Any] | None,
+    export_candidate_provenance: Mapping[str, Any] | None,
+) -> dict[str, Any] | None:
+    if not isinstance(artifact_candidate_review, Mapping) or not isinstance(pdf_candidate_decision_receipt, Mapping):
+        return None
+    if pdf_candidate_decision_receipt.get("action_kind") != "approve_pdf_candidate":
+        return None
+    if pdf_candidate_decision_receipt.get("decision_status") != ARTIFACT_REVIEW_STATUS_APPROVED_FOR_DRAFT_ATTACHMENT_PACKAGE:
+        return None
+    if pdf_candidate_decision_receipt.get("operator_visual_review") is not True:
+        return None
+
+    receipt_sha = str(
+        pdf_candidate_decision_receipt.get("candidate_sha256")
+        or pdf_candidate_decision_receipt.get("sha256")
+        or ""
+    ).removeprefix("sha256:").strip()
+    review_sha = str(
+        artifact_candidate_review.get("sha256")
+        or artifact_candidate_review.get("observed_sha256")
+        or ""
+    ).removeprefix("sha256:").strip()
+    if receipt_sha and review_sha and receipt_sha != review_sha:
+        return None
+
+    observed_page_count = _int_or_none(
+        pdf_candidate_decision_receipt.get("observed_page_count")
+        if pdf_candidate_decision_receipt.get("observed_page_count") not in (None, "")
+        else artifact_candidate_review.get("observed_page_count")
+    )
+    expected_page_count = (
+        _int_or_none(
+            pdf_candidate_decision_receipt.get("expected_page_count")
+            if pdf_candidate_decision_receipt.get("expected_page_count") not in (None, "")
+            else artifact_candidate_review.get("expected_page_count")
+        )
+        or EXPECTED_SELECTED_INVOICE_PAGE_COUNT
+    )
+    review_page_count = _int_or_none(
+        artifact_candidate_review.get("page_count")
+        if artifact_candidate_review.get("page_count") not in (None, "")
+        else artifact_candidate_review.get("observed_page_count")
+    )
+    if observed_page_count is not None and observed_page_count != expected_page_count:
+        return None
+    if review_page_count is not None and review_page_count != expected_page_count:
+        return None
+
+    source_candidate_ref = artifact_candidate_review.get("candidate_ref")
+    metadata_proof = artifact_candidate_review.get("metadata_proof")
+    if isinstance(metadata_proof, Mapping):
+        artifact_metadata_proof = {
+            "artifact_file_exists": metadata_proof.get("candidate_file_exists"),
+            "artifact_file_is_pdf": metadata_proof.get("candidate_file_is_pdf"),
+            "file_size_matches_receipt": metadata_proof.get("file_size_matches_receipt"),
+            "sha256_matches_receipt": metadata_proof.get("sha256_matches_receipt"),
+            "metadata_status": metadata_proof.get("metadata_status"),
+        }
+    else:
+        artifact_metadata_proof = {}
+
+    rejected_lineage = artifact_candidate_review.get("replaced_failed_candidate")
+    return {
+        "artifact_ref": (
+            "operator_approved_pdf_artifact:"
+            f"{_short_hash(artifact_candidate_review.get('invoice_id'), review_sha or receipt_sha, pdf_candidate_decision_receipt.get('receipt_id'))}"
+        ),
+        "status": PDF_ARTIFACT_STATUS_OPERATOR_APPROVED,
+        "artifact_review_status": ARTIFACT_REVIEW_STATUS_APPROVED_FOR_DRAFT_ATTACHMENT_PACKAGE,
+        "artifact_kind": "PDF",
+        "artifact_filename": artifact_candidate_review.get("artifact_filename"),
+        "client_ref": CLIENT_REF,
+        "workflow_ref": WORKFLOW_REF,
+        "invoice_id": artifact_candidate_review.get("invoice_id"),
+        "selected_invoice_id": artifact_candidate_review.get("selected_invoice_id"),
+        "selected_sheet_label": artifact_candidate_review.get("selected_sheet_label"),
+        "selected_invoice_amount": artifact_candidate_review.get("selected_invoice_amount"),
+        "selected_invoice_summary": artifact_candidate_review.get("selected_invoice_summary"),
+        "pdf_bridge_path": artifact_candidate_review.get("pdf_bridge_path"),
+        "pdf_mac_path": artifact_candidate_review.get("pdf_mac_path"),
+        "sha256": review_sha or receipt_sha or None,
+        "observed_sha256": artifact_candidate_review.get("observed_sha256"),
+        "page_count": review_page_count or observed_page_count,
+        "observed_page_count": observed_page_count or review_page_count,
+        "expected_page_count": expected_page_count,
+        "file_size_bytes": artifact_candidate_review.get("file_size_bytes"),
+        "observed_file_size_bytes": artifact_candidate_review.get("observed_file_size_bytes"),
+        "operator_approved": True,
+        "operator_visual_review": True,
+        "approval_decision_receipt_id": pdf_candidate_decision_receipt.get("receipt_id"),
+        "approval_decision_receipt_name": pdf_candidate_decision_receipt.get("receipt_name"),
+        "approval_decision_source_request_id": pdf_candidate_decision_receipt.get("source_request_id"),
+        "source_candidate_ref": source_candidate_ref,
+        "source_candidate_receipt_id": artifact_candidate_review.get("source_candidate_receipt_id"),
+        "source_candidate_receipt_path": (export_candidate_provenance or {}).get("source_candidate_receipt_path"),
+        "source_candidate_review_status": artifact_candidate_review.get("artifact_review_status"),
+        "operator_assisted": artifact_candidate_review.get("operator_assisted"),
+        "fully_unattended": artifact_candidate_review.get("fully_unattended"),
+        "metadata_proof": artifact_metadata_proof,
+        "pre_approval_export_lineage": {
+            "source_candidate_ref": source_candidate_ref,
+            "source_candidate_receipt_id": artifact_candidate_review.get("source_candidate_receipt_id"),
+            "source_candidate_receipt_path": (export_candidate_provenance or {}).get("source_candidate_receipt_path"),
+            "source_candidate_review_status": artifact_candidate_review.get("artifact_review_status"),
+            "source_candidate_was_review_required": True,
+        },
+        "rejected_candidate_lineage": rejected_lineage,
+        "failed_candidate_preserved": rejected_lineage is not None,
+        "draft_attachment_package_eligible": True,
+        "attachment_ready": False,
+        "approval_ready": False,
+        "email_send_allowed": False,
+        "ledger_posting_allowed": False,
+        "browser_access_allowed": False,
+        "portal_access_allowed": False,
+        "sent": False,
+        "paid": False,
+        "final": False,
+        "candidate_only": False,
+    }
+
+
 def _resolved_artifact_review_status(
     *,
     pdf_export_package: Mapping[str, Any],
     pdf_export_completion_receipt: str,
     present_receipts: set[str],
     artifact_candidate_review: Mapping[str, Any] | None,
+    approved_pdf_artifact: Mapping[str, Any] | None = None,
 ) -> str:
+    if isinstance(approved_pdf_artifact, Mapping):
+        return str(
+            approved_pdf_artifact.get("artifact_review_status")
+            or ARTIFACT_REVIEW_STATUS_APPROVED_FOR_DRAFT_ATTACHMENT_PACKAGE
+        )
     if isinstance(artifact_candidate_review, Mapping):
         return str(
             artifact_candidate_review.get("artifact_review_status")
@@ -790,6 +958,45 @@ def _artifact_candidate_surface_fields(
             }
         )
     return fields
+
+
+def _approved_pdf_artifact_surface_fields(
+    *,
+    approved_pdf_artifact: Mapping[str, Any],
+) -> dict[str, Any]:
+    return {
+        "status": PDF_ARTIFACT_STATUS_OPERATOR_APPROVED,
+        "artifact_review_status": ARTIFACT_REVIEW_STATUS_APPROVED_FOR_DRAFT_ATTACHMENT_PACKAGE,
+        "artifact_ref": approved_pdf_artifact.get("artifact_ref"),
+        "path_ref": approved_pdf_artifact.get("pdf_bridge_path"),
+        "hash": approved_pdf_artifact.get("sha256"),
+        "sha256": approved_pdf_artifact.get("sha256"),
+        "pdf_bridge_path": approved_pdf_artifact.get("pdf_bridge_path"),
+        "pdf_mac_path": approved_pdf_artifact.get("pdf_mac_path"),
+        "page_count": approved_pdf_artifact.get("page_count"),
+        "observed_page_count": approved_pdf_artifact.get("observed_page_count"),
+        "expected_page_count": approved_pdf_artifact.get("expected_page_count"),
+        "selected_invoice_id": approved_pdf_artifact.get("selected_invoice_id"),
+        "selected_sheet_label": approved_pdf_artifact.get("selected_sheet_label"),
+        "selected_invoice_amount": approved_pdf_artifact.get("selected_invoice_amount"),
+        "operator_assisted": approved_pdf_artifact.get("operator_assisted"),
+        "fully_unattended": approved_pdf_artifact.get("fully_unattended"),
+        "operator_approved": True,
+        "operator_visual_review": True,
+        "source_candidate_ref": approved_pdf_artifact.get("source_candidate_ref"),
+        "draft_attachment_package_eligible": True,
+        "attachment_ready": False,
+        "approval_ready": False,
+        "email_send_allowed": False,
+        "ledger_posting_allowed": False,
+        "browser_access_allowed": False,
+        "portal_access_allowed": False,
+        "sent": False,
+        "paid": False,
+        "final": False,
+        "candidate_only": False,
+        "receipt_required_for_attachment_ready": "draft_attachment_package_generated_receipt",
+    }
 
 
 def _selected_candidate_from_receipt(receipt: Mapping[str, Any] | None) -> dict[str, Any] | None:
@@ -1214,6 +1421,7 @@ def build_live_arts_md_bundle(
     consume_existing_selection_receipt: bool = True,
     export_receipt_payload: Mapping[str, Any] | None = None,
     operator_assistance_annotation_payload: Mapping[str, Any] | None = None,
+    pdf_candidate_decision_receipt_payload: Mapping[str, Any] | None = None,
     present_receipts: tuple[str, ...] | list[str] | set[str] = (),
     generated_at: str | None = None,
 ) -> dict[str, Any]:
@@ -1290,6 +1498,20 @@ def build_live_arts_md_bundle(
         if operator_assistance_annotation_payload is not None
         else _load_existing_pdf_export_operator_assistance_annotation()
         if consume_existing_selection_receipt and not explicit_selected_candidate_supplied
+        else None
+    )
+    pdf_candidate_decision_receipt = (
+        _pdf_candidate_decision_receipt_from_payload(pdf_candidate_decision_receipt_payload)
+        if pdf_candidate_decision_receipt_payload is not None
+        else _load_existing_pdf_candidate_decision_receipt()
+        if (
+            consume_existing_selection_receipt
+            and not explicit_selected_candidate_supplied
+            and workbook_registry_payload is None
+            and source_workbook_override is None
+            and artifact_reference_payload is None
+            and operator_artifact_path is None
+        )
         else None
     )
     if not candidates_list:
@@ -1443,18 +1665,29 @@ def build_live_arts_md_bundle(
         pdf_export_result_receipt=pdf_export_result_receipt,
         export_candidate_provenance=export_candidate_provenance,
     )
+    approved_pdf_artifact = _approved_pdf_artifact_from_decision(
+        artifact_candidate_review=artifact_candidate_review,
+        pdf_candidate_decision_receipt=pdf_candidate_decision_receipt,
+        export_candidate_provenance=export_candidate_provenance,
+    )
     artifact_review_status = _resolved_artifact_review_status(
         pdf_export_package=pdf_export_package,
         pdf_export_completion_receipt=pdf_export_completion_receipt,
         present_receipts=receipts,
         artifact_candidate_review=artifact_candidate_review,
+        approved_pdf_artifact=approved_pdf_artifact,
     )
     if artifact_review_status == ARTIFACT_REVIEW_STATUS_SCOPE_MISMATCH_REJECTED:
         attachment_ready = False
-    artifact_candidate_surface_fields = _artifact_candidate_surface_fields(
-        artifact_candidate_review=artifact_candidate_review,
-        export_candidate_provenance=export_candidate_provenance,
-        artifact_review_status=artifact_review_status,
+    draft_attachment_package_eligible = approved_pdf_artifact is not None
+    artifact_surface_fields = (
+        _approved_pdf_artifact_surface_fields(approved_pdf_artifact=approved_pdf_artifact)
+        if approved_pdf_artifact is not None
+        else _artifact_candidate_surface_fields(
+            artifact_candidate_review=artifact_candidate_review,
+            export_candidate_provenance=export_candidate_provenance,
+            artifact_review_status=artifact_review_status,
+        )
     )
     if artifact_candidate_review:
         pdf_export_package.update(
@@ -1472,13 +1705,31 @@ def build_live_arts_md_bundle(
                 "ledger_posting_allowed": False,
             }
         )
+    if approved_pdf_artifact:
+        pdf_export_package.update(
+            {
+                "artifact_review_status": ARTIFACT_REVIEW_STATUS_APPROVED_FOR_DRAFT_ATTACHMENT_PACKAGE,
+                "operator_approved": True,
+                "operator_visual_review": True,
+                "draft_attachment_package_eligible": True,
+                "export_candidate_remains_review_required": False,
+                "operator_review_required": False,
+                "operator_review_required_after_export": False,
+                "attachment_ready": False,
+                "approval_ready": False,
+                "email_send_allowed": False,
+                "ledger_posting_allowed": False,
+            }
+        )
     selected_invoice_pdf_prepared = (
         pdf_export_package["status"] == PDF_EXPORT_COMPLETED_CANDIDATE
         and artifact_review_status != ARTIFACT_REVIEW_STATUS_SCOPE_MISMATCH_REJECTED
+        and approved_pdf_artifact is None
     )
     artifact_candidate = artifact["status"] == "OPERATOR_PROVIDED_ARTIFACT_CANDIDATE"
     artifact_candidate_or_exported = (
-        artifact_candidate
+        approved_pdf_artifact is not None
+        or artifact_candidate
         or artifact_review_status == ARTIFACT_REVIEW_STATUS_OPERATOR_REVIEW_REQUIRED
         or (pdf_export_completion_receipt in receipts and artifact_candidate_review is None)
     )
@@ -1586,7 +1837,9 @@ def build_live_arts_md_bundle(
             )
         else:
             blockers.append("Prepare invoice PDFs" if len(candidates_list) > 1 else "Prepare invoice PDF")
-    if artifact_candidate_or_exported and not attachment_ready:
+    if draft_attachment_package_eligible and not attachment_ready:
+        blockers.append("Prepare the Clara draft attachment package for operator review.")
+    elif artifact_candidate_or_exported and not attachment_ready:
         blockers.append("Confirm the invoice artifact as the email attachment.")
     if not recipient_confirmed:
         blockers.append(f"Confirm the {CLIENT_DISPLAY_NAME} recipient/contact.")
@@ -1638,6 +1891,8 @@ def build_live_arts_md_bundle(
                 if pdf_export_package.get("operator_review_prompt")
                 else "Rejected PDF candidate has the wrong page count; prepare a one-page selected invoice PDF."
                 if artifact_review_status == ARTIFACT_REVIEW_STATUS_SCOPE_MISMATCH_REJECTED
+                else "PDF artifact is operator-approved for draft attachment package preparation."
+                if draft_attachment_package_eligible
                 else "PDF export candidate is ready for operator review."
                 if pdf_export_package["status"] == PDF_EXPORT_COMPLETED_CANDIDATE
                 else "Prepare the selected invoice PDF requires source/workbook scope inputs."
@@ -1744,6 +1999,7 @@ def build_live_arts_md_bundle(
             "step_ref": f"{INVOICE_STEP_PREFIX}:invoice_artifact",
             "title": "Invoice artifact",
             "status": (
+                "APPROVED_FOR_DRAFT_PACKAGE" if draft_attachment_package_eligible else
                 "REJECTED" if artifact_review_status == ARTIFACT_REVIEW_STATUS_SCOPE_MISMATCH_REJECTED else
                 "READY" if artifact_candidate_or_exported and attachment_ready else
                 "CANDIDATE" if selected_invoice_pdf_prepared else
@@ -1801,6 +2057,21 @@ def build_live_arts_md_bundle(
             "required_receipts": ("manual_send_receipt",),
         },
     )
+
+    invoice_artifact = {
+        **artifact,
+        **artifact_surface_fields,
+        "pdf_export_package": pdf_export_package,
+        "artifact_placement_policy": artifact_placement_policy,
+        "export_candidate_provenance": export_candidate_provenance,
+        "known_artifact_guardrails": _known_artifact_guardrails(),
+    }
+    if approved_pdf_artifact is not None:
+        invoice_artifact["approved_pdf_artifact"] = approved_pdf_artifact
+        invoice_artifact["pre_approval_export_lineage"] = approved_pdf_artifact.get("pre_approval_export_lineage")
+        invoice_artifact["rejected_candidate_lineage"] = approved_pdf_artifact.get("rejected_candidate_lineage")
+    else:
+        invoice_artifact["artifact_candidate_review"] = artifact_candidate_review
 
     bundle = {
         "schema_version": SCHEMA_VERSION,
@@ -1870,15 +2141,7 @@ def build_live_arts_md_bundle(
             "primary_action": selection_action,
             "urgent_actions": visible_urgent_actions,
         },
-        "invoice_artifact": {
-            **artifact,
-            **artifact_candidate_surface_fields,
-            "pdf_export_package": pdf_export_package,
-            "artifact_placement_policy": artifact_placement_policy,
-            "export_candidate_provenance": export_candidate_provenance,
-            "artifact_candidate_review": artifact_candidate_review,
-            "known_artifact_guardrails": _known_artifact_guardrails(),
-        },
+        "invoice_artifact": invoice_artifact,
         "client_comms_thread": {
             "comms_thread_status": "DRAFT_READY" if clara_ready else "NOT_STARTED",
             "thread_ref": comms_draft["thread_ref"],
@@ -1949,6 +2212,8 @@ def build_live_arts_md_bundle(
             "operator_approval_receipt_required": True,
             "email_send_execution_receipt_required": True,
             "sent_receipt_confirmed": email_sent,
+            "manual_send_out_of_band_known": bool(manual_send_proof_state.get("manual_send_receipt_available")),
+            "send_action_performed_by_openclaw": False,
             "thread_watch_status_after_send": "THREAD_WATCH_READY",
             "primary_action": send_action,
         },
@@ -2042,18 +2307,28 @@ def build_live_arts_md_bundle(
             "thread_watch_blocked_until_send_receipt": thread_watch_status == "BLOCKED_UNTIL_SENT_RECEIPT",
             "send_execution_receipt_required": True,
             "no_recipient_email_invented": True,
-            "artifact_candidate_not_attachment_ready": artifact.get("attachment_ready") is False,
+            "approved_pdf_artifact_present": approved_pdf_artifact is not None,
+            "approved_pdf_artifact_not_attachment_ready": bool(approved_pdf_artifact)
+            and invoice_artifact.get("attachment_ready") is False,
+            "draft_attachment_package_eligible": draft_attachment_package_eligible,
+            "artifact_candidate_not_attachment_ready": bool(artifact_candidate_review)
+            and approved_pdf_artifact is None
+            and artifact.get("attachment_ready") is False,
             "payment_watch_readiness_only_no_bank_read": True,
             "approval_send_disabled_without_receipts": approval_ready is False,
             "no_action_authority": all(value is False for value in AUTHORITY_BOUNDARY.values()),
             "manual_send_proof_evaluated": bool(manual_send_proof_state),
             "manual_send_proof_status": manual_send_status,
             "content_hash": "",
-            "operator_assisted_pdf_export_candidate": bool(export_candidate_provenance),
+            "operator_assisted_pdf_export_candidate": bool(export_candidate_provenance)
+            and approved_pdf_artifact is None,
+            "operator_assisted_pdf_export_lineage_preserved": bool(export_candidate_provenance),
             "operator_assisted_candidate_not_fully_unattended": bool(export_candidate_provenance)
             and export_candidate_provenance.get("fully_unattended") is False,
-            "artifact_candidate_review_surface_present": bool(artifact_candidate_review),
+            "artifact_candidate_review_surface_present": bool(artifact_candidate_review)
+            and approved_pdf_artifact is None,
             "artifact_candidate_review_keeps_gates_closed": bool(artifact_candidate_review)
+            and approved_pdf_artifact is None
             and artifact_candidate_review.get("attachment_ready") is False
             and artifact_candidate_review.get("approval_ready") is False
             and artifact_candidate_review.get("ledger_posting_allowed") is False,
@@ -2072,6 +2347,7 @@ def build_payload(
     consume_existing_selection_receipt: bool = True,
     export_receipt_payload: Mapping[str, Any] | None = None,
     operator_assistance_annotation_payload: Mapping[str, Any] | None = None,
+    pdf_candidate_decision_receipt_payload: Mapping[str, Any] | None = None,
     workbook_registry_payload: Mapping[str, Any] | None = None,
     source_workbook_override: Mapping[str, Any] | None = None,
     artifact_reference_payload: Mapping[str, Any] | None = None,
@@ -2087,6 +2363,7 @@ def build_payload(
         consume_existing_selection_receipt=consume_existing_selection_receipt,
         export_receipt_payload=export_receipt_payload,
         operator_assistance_annotation_payload=operator_assistance_annotation_payload,
+        pdf_candidate_decision_receipt_payload=pdf_candidate_decision_receipt_payload,
         workbook_registry_payload=workbook_registry_payload,
         source_workbook_override=source_workbook_override,
         artifact_reference_payload=artifact_reference_payload,
@@ -2120,6 +2397,7 @@ def format_operator(payload: Mapping[str, Any]) -> str:
     pdf_package = bundle["invoice_artifact"]["pdf_export_package"]
     provenance = bundle["invoice_artifact"].get("export_candidate_provenance")
     review = bundle["invoice_artifact"].get("artifact_candidate_review")
+    approved_artifact = bundle["invoice_artifact"].get("approved_pdf_artifact")
     lines = [
         "# Live Arts MD Invoice Review Bundle",
         "",
@@ -2135,6 +2413,16 @@ def format_operator(payload: Mapping[str, Any]) -> str:
         f"- Payment watch: `{bundle['payment_watch']['payment_watch_status']}`",
         f"- PDF output Mac path: `{pdf_package.get('output_pdf_mac_path')}`",
         f"- PDF output bridge path: `{pdf_package.get('output_bridge_path')}`",
+        *(
+            (
+                f"- Approved PDF artifact: `{approved_artifact.get('status')}`",
+                f"- Approved PDF SHA256: `{approved_artifact.get('sha256')}`",
+                f"- Approved PDF pages: `{approved_artifact.get('page_count')}` observed / `{approved_artifact.get('expected_page_count')}` expected",
+                f"- Draft attachment package eligible: `{approved_artifact.get('draft_attachment_package_eligible')}`",
+            )
+            if isinstance(approved_artifact, Mapping)
+            else tuple()
+        ),
         *(
             (
                 f"- PDF candidate review: `{review.get('status')}`",

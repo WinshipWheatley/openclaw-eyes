@@ -84,6 +84,8 @@
 !business_ops_intent.py
 !business_ops_ledger.py
 !client_invoice_workflow_framework.py
+!capital_hilton_business_development_proposal.py
+!capital_hilton_invoice_operator_run_status.py
 !capital_hilton_actionable_review_packet.py
 !capital_hilton_review_packet_approval.py
 !capital_hilton_external_artifact_proof_capture.py
@@ -132,6 +134,7 @@
 !openclaw_event_bridge_adapter.py
 !simple_invoice_workflow_fixtures.py
 !simple_invoice_event_bridge_rail_registry.py
+!st_annes_invoice_status.py
 !AGENTS.md
 !OPENCLAW_RUNTIME.md
 !USER.md
@@ -815,6 +818,7 @@
 !tests/test_operator_action.py
 !tests/test_operator_action_event_journal.py
 !tests/test_operator_action_inbox.py
+!tests/test_capital_hilton_business_development_proposal.py
 !tests/test_capital_hilton_actionable_review_packet.py
 !tests/test_capital_hilton_review_packet_approval.py
 !tests/test_capital_hilton_external_artifact_proof_capture.py
@@ -1011,6 +1015,8 @@
 !tests/test_openclaw_event_bridge_contract.py
 !tests/test_openclaw_event_bridge_adapter.py
 !tests/test_simple_invoice_event_bridge_rail_registry.py
+!tests/test_st_annes_invoice_status.py
+!tests/test_capital_hilton_invoice_operator_run_status.py
 !tests/test_chief_offline_worker_adapter.py
 !tests/test_cassandra_clara_offline_worker_adapter.py
 !tests/test_reality_bounce_harness.py
@@ -1061,6 +1067,14 @@
 !generated/system_knowledge/openclaw_hermes_sidecar.sqlite
 !generated/system_knowledge/openclaw_hermes_sidecar_SCHEMA.sql
 !generated/system_knowledge/openclaw_hermes_sidecar_SEED.sql
+!generated/system_knowledge/capital_hilton_invoice_operator_run_status.sqlite
+!generated/system_knowledge/capital_hilton_invoice_operator_run_status_SCHEMA.sql
+!generated/system_knowledge/capital_hilton_invoice_operator_run_status_SEED.sql
+!generated/system_knowledge/capital_hilton_coupa_workflow_harvest.sqlite
+!generated/system_knowledge/st_annes_invoice_status.sqlite
+!generated/system_knowledge/st_annes_invoice_status_SCHEMA.sql
+!generated/system_knowledge/st_annes_invoice_status_SEED.sql
+!generated/system_knowledge/st_annes_monthly_work_log.sqlite
 !generated/external_registries/
 !generated/external_registries/openclaw-eyes/
 !generated/external_registries/openclaw-eyes/openclaw_system_knowledge_registry.json

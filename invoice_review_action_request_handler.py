@@ -272,6 +272,14 @@ def _mapping_value(payload: Mapping[str, Any], key: str) -> Any:
     return value
 
 
+def _read_json_if_exists(path: Path) -> Mapping[str, Any] | None:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (FileNotFoundError, json.JSONDecodeError, OSError):
+        return None
+    return payload if isinstance(payload, Mapping) else None
+
+
 def _true_decision_authority_paths(payload: Mapping[str, Any]) -> tuple[str, ...]:
     paths: list[str] = []
     for field in DECISION_FORBIDDEN_TRUE_FIELDS:
@@ -973,6 +981,45 @@ def process_action_request(
             )
             receipt["receipt_path"] = receipt_path
             receipt["bridge_receipt_path"] = bridge_receipt_path
+            if action_kind == "approve_pdf_candidate":
+                export_receipt_payload = _read_json_if_exists(
+                    export_root / live_arts_md_invoice_review_bundle.PDF_EXPORT_RESULT_RECEIPT_EXPORT_NAME
+                )
+                if export_receipt_payload is None and bridge_export_root is not None:
+                    export_receipt_payload = _read_json_if_exists(
+                        bridge_export_root / live_arts_md_invoice_review_bundle.PDF_EXPORT_RESULT_RECEIPT_EXPORT_NAME
+                    )
+                operator_assistance_annotation_payload = _read_json_if_exists(
+                    export_root / live_arts_md_invoice_review_bundle.PDF_EXPORT_OPERATOR_ASSISTANCE_ANNOTATION_EXPORT_NAME
+                )
+                if operator_assistance_annotation_payload is None and bridge_export_root is not None:
+                    operator_assistance_annotation_payload = _read_json_if_exists(
+                        bridge_export_root
+                        / live_arts_md_invoice_review_bundle.PDF_EXPORT_OPERATOR_ASSISTANCE_ANNOTATION_EXPORT_NAME
+                    )
+                bundle_payload = live_arts_md_invoice_review_bundle.build_payload(
+                    generated_at=generated_at,
+                    consume_existing_selection_receipt=False,
+                    export_receipt_payload=export_receipt_payload,
+                    operator_assistance_annotation_payload=operator_assistance_annotation_payload,
+                    pdf_candidate_decision_receipt_payload=receipt,
+                )
+                approved_artifact = (
+                    bundle_payload.get("live_arts_md_bundle", {})
+                    .get("invoice_artifact", {})
+                    .get("approved_pdf_artifact")
+                )
+                if isinstance(approved_artifact, Mapping):
+                    source_json, _source_operator, bridge_json = live_arts_md_invoice_review_bundle.write_exports(
+                        bundle_payload,
+                        export_root,
+                        bridge_export_root=bridge_export_root,
+                    )
+                    live_arts_bundle_paths = (
+                        source_json.as_posix(),
+                        bridge_json.as_posix() if bridge_json else None,
+                        bridge_json is not None,
+                    )
         pdf_candidate_decision_receipt = receipt
         headline = (
             "PDF candidate approval recorded"
@@ -1004,7 +1051,8 @@ def process_action_request(
         )
         status = "GUIDED_RESULT_RECORDED" if decision_accepted else "BLOCKED_PREREQUISITES"
         expected = ("selected_invoice_pdf_candidate_review_decision_receipt",) if decision_accepted else ()
-        live_arts_bundle_paths = (active_bundle_path, None, False)
+        if not live_arts_bundle_paths[0]:
+            live_arts_bundle_paths = (active_bundle_path, None, False)
     elif (
         valid_scope
         and supported
