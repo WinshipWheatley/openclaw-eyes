@@ -1,0 +1,185 @@
+import json
+import sqlite3
+from pathlib import Path
+
+import pytest
+
+import workflow_package_queue as queue
+
+
+FIXED_NOW = "2026-06-01T23:10:00+00:00"
+
+
+def _package(text: str, **kwargs):
+    return queue.create_package(text, created_at=FIXED_NOW, **kwargs)
+
+
+def test_st_annes_work_log_instruction_stages_record_only_package():
+    package = _package("Mark that I'm at church running sound.")
+
+    assert package["workflow_ref"] == "st_annes_work_log_event"
+    assert package["client_ref"] == "st_annes"
+    assert package["status"] == "OPERATOR_REVIEW_REQUIRED"
+    assert package["capability_gate_result"]["status"] == "ALLOW_DRY_RUN"
+    assert package["authority_boundary"]["workbook_source_mutation_allowed"] is False
+    assert package["authority_boundary"]["email_send_allowed"] is False
+    assert package["authority_boundary"]["ledger_posting_allowed"] is False
+    assert package["worker_result"]["workbook_mutation_performed"] is False
+    assert package["worker_result"]["email_send_performed"] is False
+    assert package["worker_result"]["ledger_mutation_performed"] is False
+    assert package["source_text_ref"].startswith("protected_text_hash:sha256:")
+    assert package["privacy_impact"]["raw_text_stored"] is False
+
+
+def test_st_annes_invoice_send_blocks_before_permission_or_artifact():
+    package = _package("Send St. Anne's invoice.")
+
+    assert package["workflow_ref"] == "st_annes_monthly_invoice_rollup"
+    assert package["client_ref"] == "st_annes"
+    assert package["status"] == "PERMISSION_REQUIRED"
+    assert package["capability_gate_result"]["status"] == "PERMISSION_REQUIRED"
+    assert package["worker_result"]["result_status"] == "NOOP_BLOCKED_BY_GATE"
+    assert package["business_action_gate_result"]["status"] == "CLOSED"
+    assert package["business_action_gate_result"]["email_send_allowed"] is False
+    assert package["business_action_gate_result"]["sent"] is False
+
+
+def test_st_annes_invoice_send_blocks_for_artifact_when_permission_ready():
+    package = _package(
+        "Send St. Anne's invoice.",
+        config=queue.QueueConfig(st_annes_send_permission_ready=True),
+    )
+
+    assert package["status"] == "ARTIFACT_REQUIRED"
+    assert package["capability_gate_result"]["status"] == "ARTIFACT_REQUIRED"
+    assert "email_send" in package["capability_gate_result"]["blocked_actions"]
+
+
+def test_capital_hilton_proposal_followup_is_business_development_no_invoice_or_send():
+    package = _package("Follow up on Capital Hilton proposal.")
+
+    assert package["workflow_ref"] == "capital_hilton_proposal_followup"
+    assert package["world"] == "business_development"
+    assert package["client_ref"] == "capital_hilton"
+    assert package["status"] == "OPERATOR_REVIEW_REQUIRED"
+    assert package["business_action_gate_result"]["email_send_allowed"] is False
+    assert package["authority_boundary"]["email_send_allowed"] is False
+    assert package["authority_boundary"]["ledger_posting_allowed"] is False
+    assert "invoice_creation" in package["capability_gate_result"]["blocked_actions"]
+
+
+def test_capital_hilton_invoice_submit_requires_operator_assist_provider_and_submit_gate():
+    package = _package("Submit Capital Hilton invoice.")
+
+    assert package["workflow_ref"] == "capital_hilton_invoice_operator_assist"
+    assert package["client_ref"] == "capital_hilton"
+    assert package["status"] == "PROVIDER_GATE_REQUIRED"
+    assert package["capability_gate_result"]["status"] == "PROVIDER_GATE_REQUIRED"
+    assert "coupa_submit" in package["capability_gate_result"]["blocked_actions"]
+    assert package["worker_result"]["coupa_access_performed"] is False
+    assert package["worker_result"]["submit_performed"] is False
+
+
+def test_each_package_carries_privacy_redundancy_evaluator_fields():
+    package = _package("Follow up on Capital Hilton proposal.")
+    evaluator = package["privacy_redundancy_evaluator"]
+
+    assert evaluator["provider_considered"] == "local_noop_worker"
+    assert evaluator["data_exposure_class"] == "local_instruction_metadata"
+    assert evaluator["local_alternative"] == "deterministic_local_classifier_and_sqlite_registry"
+    assert evaluator["final_provider_decision"] == "local_only_noop_worker"
+    assert evaluator["approval_required"] is True
+
+
+def test_sqlite_registry_persists_all_required_gate_rows(tmp_path):
+    sqlite_path = tmp_path / "workflow_package_queue.sqlite"
+    packages = [
+        _package("Mark that I'm at church running sound."),
+        _package("Send St. Anne's invoice."),
+        _package("Follow up on Capital Hilton proposal."),
+        _package("Submit Capital Hilton invoice."),
+    ]
+
+    queue.record_packages(sqlite_path, packages)
+
+    conn = sqlite3.connect(sqlite_path)
+    try:
+        tables = {
+            row[0]
+            for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")
+        }
+        assert {
+            "packages",
+            "package_inputs",
+            "privacy_gate_results",
+            "intent_classification_results",
+            "capability_gate_results",
+            "worker_assignments",
+            "worker_results",
+            "operator_review_receipts",
+            "business_action_gate_results",
+        }.issubset(tables)
+        for table in (
+            "packages",
+            "package_inputs",
+            "privacy_gate_results",
+            "intent_classification_results",
+            "capability_gate_results",
+            "worker_assignments",
+            "worker_results",
+            "operator_review_receipts",
+            "business_action_gate_results",
+        ):
+            assert conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0] == len(packages)
+        rows = conn.execute(
+            "SELECT email_send_allowed, ledger_posting_allowed, coupa_allowed, paid, sent "
+            "FROM business_action_gate_results"
+        ).fetchall()
+        assert rows
+        assert all(row == (0, 0, 0, 0, 0) for row in rows)
+    finally:
+        conn.close()
+
+
+def test_export_writes_contract_read_model_wiki_bridge_and_sqlite(tmp_path):
+    result = queue.export_workflow_package_queue(
+        export_root=tmp_path / "read_models",
+        bridge_export_root=tmp_path / "bridge",
+        wiki_path=tmp_path / "wiki" / "Workflow Package Queue.md",
+        sqlite_path=tmp_path / "system_knowledge" / "workflow_package_queue.sqlite",
+        generated_at=FIXED_NOW,
+    )
+
+    read_model = json.loads(Path(result.read_model_path).read_text(encoding="utf-8"))
+    bridge = json.loads(Path(result.bridge_read_model_path).read_text(encoding="utf-8"))
+    assert read_model == bridge
+    assert read_model["status"] == "WORKFLOW_PACKAGE_QUEUE_V0_READY"
+    assert read_model["supported_package_types"] == list(queue.SUPPORTED_PACKAGE_TYPES)
+    assert len(read_model["packages"]) == 5
+    assert Path(result.wiki_path).exists()
+    assert Path(result.sqlite_path).exists()
+
+    conn = sqlite3.connect(result.sqlite_path)
+    try:
+        assert conn.execute("SELECT COUNT(*) FROM packages").fetchone()[0] == 5
+        statuses = {
+            row[0]
+            for row in conn.execute("SELECT status FROM capability_gate_results")
+        }
+        assert {"ALLOW_DRY_RUN", "PERMISSION_REQUIRED", "PROVIDER_GATE_REQUIRED"}.issubset(statuses)
+    finally:
+        conn.close()
+
+
+@pytest.mark.parametrize(
+    "text,workflow_ref",
+    [
+        ("Mark that I'm at church running sound.", "st_annes_work_log_event"),
+        ("Send St. Anne's invoice.", "st_annes_monthly_invoice_rollup"),
+        ("Follow up on Capital Hilton proposal.", "capital_hilton_proposal_followup"),
+        ("Submit Capital Hilton invoice.", "capital_hilton_invoice_operator_assist"),
+        ("Run diagnostic package gate smoke.", "diagnostic_package_gate_smoke"),
+    ],
+)
+def test_intent_classifier_supported_package_types(text, workflow_ref):
+    assert queue.classify_intent(text)["workflow_ref"] == workflow_ref

@@ -132,6 +132,8 @@
 !openclaw_external_registry_materializer.py
 !openclaw_event_bridge_contract.py
 !openclaw_event_bridge_adapter.py
+!workflow_package_queue.py
+!st_annes_work_log_intake.py
 !simple_invoice_workflow_fixtures.py
 !simple_invoice_event_bridge_rail_registry.py
 !st_annes_invoice_status.py
@@ -1014,6 +1016,8 @@
 !tests/test_guided_capture_protected_evidence_path_contract.py
 !tests/test_openclaw_event_bridge_contract.py
 !tests/test_openclaw_event_bridge_adapter.py
+!tests/test_workflow_package_queue.py
+!tests/test_st_annes_work_log_intake.py
 !tests/test_simple_invoice_event_bridge_rail_registry.py
 !tests/test_st_annes_invoice_status.py
 !tests/test_capital_hilton_invoice_operator_run_status.py
@@ -1067,6 +1071,7 @@
 !generated/system_knowledge/openclaw_hermes_sidecar.sqlite
 !generated/system_knowledge/openclaw_hermes_sidecar_SCHEMA.sql
 !generated/system_knowledge/openclaw_hermes_sidecar_SEED.sql
+!generated/system_knowledge/workflow_package_queue.sqlite
 !generated/system_knowledge/capital_hilton_invoice_operator_run_status.sqlite
 !generated/system_knowledge/capital_hilton_invoice_operator_run_status_SCHEMA.sql
 !generated/system_knowledge/capital_hilton_invoice_operator_run_status_SEED.sql
