@@ -1,0 +1,382 @@
+{
+  "schema_version": "overnight_workboard.v0",
+  "read_model_id": "overnight_workboard",
+  "generated_at": "2026-06-02T04:49:23Z",
+  "status": "READY_FOR_OPERATOR_REVIEW",
+  "mode": "planning_only",
+  "purpose": "Plan the next OpenClaw lanes for operator review. Hermes recommends sequence, Chief packages bounded next tasks, and Guardian marks protected actions.",
+  "source_read_models": [
+    {
+      "path": "generated/read_models/client_work_closeout_2026_06_01.json",
+      "status": "CLIENT_WORK_CLOSEOUT_READY"
+    },
+    {
+      "path": "generated/read_models/invoice_steel_thread_harvest_registry.json",
+      "status": "INVOICE_STEEL_THREAD_HARVEST_REGISTRY_READY"
+    },
+    {
+      "path": "generated/read_models/workflow_package_request_consumer_status.json",
+      "status": "WORKFLOW_PACKAGE_RAIL_STATUS_READY"
+    },
+    {
+      "path": "generated/read_models/automation_permission_registry.json",
+      "status": "AUTOMATION_PERMISSION_REGISTRY_READY"
+    },
+    {
+      "path": "generated/read_models/st_annes_monthly_work_log_contract.json",
+      "status": "ST_ANNES_MONTHLY_WORK_LOG_CONTRACT_READY"
+    },
+    {
+      "path": "generated/read_models/operator_assist_provider_registry.json",
+      "status": "OPERATOR_ASSIST_PROVIDER_REGISTRY_READY"
+    },
+    {
+      "path": "generated/read_models/business_development_proposal_lane_registry.json",
+      "status": "BUSINESS_DEVELOPMENT_PROPOSAL_LANE_READY"
+    },
+    {
+      "path": "generated/read_models/capital_hilton_coupa_workflow_harvest.json",
+      "status": "CAPITAL_HILTON_COUPA_WORKFLOW_HARVEST_READY"
+    },
+    {
+      "path": "generated/read_models/agent_voice_profiles.json",
+      "status": "AGENT_VOICE_PROFILES_V0_READY"
+    },
+    {
+      "path": "generated/read_models/agent_voice_routing_contract.json",
+      "status": "AGENT_VOICE_ROUTING_V0_READY"
+    }
+  ],
+  "hermes_recommendation": {
+    "speaker_ref": "hermes",
+    "voice_profile_ref": "agent_voice_profile:hermes",
+    "voice_mode": "recommendation",
+    "summary": "Sequence the overnight board around record-only work first, then operator-assist follow-ups, then hardening work. Nothing should execute while the operator is asleep.",
+    "recommended_lane_sequence": [
+      {
+        "sequence": 1,
+        "lane_ref": "st_annes_work_log_confirmation",
+        "label": "St. Anne's work-log confirmation path",
+        "reason": "Work-log intake is available without Excel and can be reviewed before any month-end rollup.",
+        "next_safe_move": "Prepare an operator review surface for staged St. Anne's events."
+      },
+      {
+        "sequence": 2,
+        "lane_ref": "st_annes_month_end_rollup_readiness",
+        "label": "St. Anne's month-end rollup path",
+        "reason": "The rollup contract is ready, but workbook/PDF permissions and operator confirmation remain required.",
+        "next_safe_move": "List rollup prerequisites and blockers without writing Excel."
+      },
+      {
+        "sequence": 3,
+        "lane_ref": "capital_hilton_proposal_followup",
+        "label": "Capital Hilton proposal follow-up timing",
+        "reason": "The proposal is sent for client review and must not become finance work until accepted.",
+        "next_safe_move": "Stage a follow-up planning packet only."
+      },
+      {
+        "sequence": 4,
+        "lane_ref": "capital_hilton_coupa_payment_watch",
+        "label": "Capital Hilton Coupa payment watch",
+        "reason": "Coupa was recorded as Processing; paid state and ledger truth remain blocked.",
+        "next_safe_move": "Prepare a watch checklist for later operator review."
+      },
+      {
+        "sequence": 5,
+        "lane_ref": "excel_permission_persistence_hardening",
+        "label": "Excel permission persistence hardening",
+        "reason": "St. Anne's Excel persistence is blocked or unstable, and PDF export needs a receipt-driven path.",
+        "next_safe_move": "Write a bounded hardening plan and safe local probes."
+      },
+      {
+        "sequence": 6,
+        "lane_ref": "telegram_cassandra_non_live_adapter",
+        "label": "Telegram/Cassandra non-live adapter",
+        "reason": "Mission Control instructions route to the package queue; Telegram should enter the same rail later without live credentials.",
+        "next_safe_move": "Draft non-live envelope tests only."
+      },
+      {
+        "sequence": 7,
+        "lane_ref": "tts_voice_profile_usage",
+        "label": "TTS sanitizer and voice profile usage",
+        "reason": "Operator display copy now has speaker/profile routing, and TTS text needs safe profile-specific preparation.",
+        "next_safe_move": "Map display fields to sanitizer output without connecting TTS."
+      }
+    ]
+  },
+  "chief_work_packets": [
+    {
+      "packet_id": "chief_packet:st_annes_work_log_review_surface",
+      "speaker_ref": "chief",
+      "voice_profile_ref": "agent_voice_profile:chief",
+      "mode": "planning_only",
+      "goal": "Prepare the next operator review surface for staged St. Anne's work-log events.",
+      "allowed_actions": [
+        "inspect local St. Anne's work-log read models",
+        "summarize staged and confirmed event states",
+        "prepare a no-action review checklist"
+      ],
+      "blocked_actions": [
+        "mutate Excel",
+        "create invoice",
+        "export PDF",
+        "send email",
+        "mutate ledger",
+        "mark paid"
+      ],
+      "requires_operator": true,
+      "next_safe_move": "Show staged events with confirm/discard/edit actions gated by operator review."
+    },
+    {
+      "packet_id": "chief_packet:st_annes_month_end_rollup_prereqs",
+      "speaker_ref": "chief",
+      "voice_profile_ref": "agent_voice_profile:chief",
+      "mode": "planning_only",
+      "goal": "Package St. Anne's month-end rollup prerequisites without touching the workbook.",
+      "allowed_actions": [
+        "read the monthly work-log contract",
+        "list confirmed event requirements",
+        "identify Excel/PDF permission blockers"
+      ],
+      "blocked_actions": [
+        "write workbook cells",
+        "copy sheets",
+        "export PDF",
+        "send invoice",
+        "post ledger entries",
+        "mark paid"
+      ],
+      "requires_operator": true,
+      "next_safe_move": "Create a rollup readiness checklist that stops before workbook mutation."
+    },
+    {
+      "packet_id": "chief_packet:capital_hilton_proposal_followup_plan",
+      "speaker_ref": "chief",
+      "voice_profile_ref": "agent_voice_profile:chief",
+      "mode": "planning_only",
+      "goal": "Prepare a Capital Hilton proposal follow-up plan that stays in Business Development.",
+      "allowed_actions": [
+        "read proposal lane state",
+        "summarize proposal status",
+        "draft internal follow-up options for operator review"
+      ],
+      "blocked_actions": [
+        "send email",
+        "create invoice",
+        "open finance handoff",
+        "mark accepted",
+        "mutate ledger",
+        "mark paid"
+      ],
+      "requires_operator": true,
+      "next_safe_move": "Stage a follow-up packet that waits for explicit email approval."
+    },
+    {
+      "packet_id": "chief_packet:capital_hilton_coupa_payment_watch",
+      "speaker_ref": "chief",
+      "voice_profile_ref": "agent_voice_profile:chief",
+      "mode": "planning_only",
+      "goal": "Package a Capital Hilton Coupa Processing/payment-watch checklist.",
+      "allowed_actions": [
+        "read operator-run status",
+        "read Coupa workflow harvest",
+        "prepare a later check checklist"
+      ],
+      "blocked_actions": [
+        "open Coupa",
+        "submit portal actions",
+        "send email",
+        "mutate ledger",
+        "mark paid"
+      ],
+      "requires_operator": true,
+      "next_safe_move": "Record that Coupa status is Processing and payment remains unclaimed."
+    },
+    {
+      "packet_id": "chief_packet:excel_permission_hardening_plan",
+      "speaker_ref": "chief",
+      "voice_profile_ref": "agent_voice_profile:chief",
+      "mode": "planning_only",
+      "goal": "Plan Excel permission persistence hardening for workbook/PDF automation.",
+      "allowed_actions": [
+        "inspect local permission registry",
+        "catalog known Excel helper failure modes",
+        "define harmless read-only probes"
+      ],
+      "blocked_actions": [
+        "open Excel GUI",
+        "mutate workbooks",
+        "export PDFs",
+        "delete artifacts",
+        "run broad automation loops"
+      ],
+      "requires_operator": true,
+      "next_safe_move": "Draft a permission-hardening test matrix with no workbook writes."
+    },
+    {
+      "packet_id": "chief_packet:telegram_cassandra_adapter_contract",
+      "speaker_ref": "chief",
+      "voice_profile_ref": "agent_voice_profile:chief",
+      "mode": "planning_only",
+      "goal": "Plan the non-live Telegram/Cassandra adapter into the workflow package queue.",
+      "allowed_actions": [
+        "read package queue contract",
+        "read Cassandra Telegram intake contract if present",
+        "draft non-live envelope fixtures"
+      ],
+      "blocked_actions": [
+        "connect Telegram",
+        "read Telegram credentials",
+        "send Telegram messages",
+        "perform business actions"
+      ],
+      "requires_operator": false,
+      "next_safe_move": "Create or refine local-only tests for Telegram-shaped envelopes."
+    },
+    {
+      "packet_id": "chief_packet:tts_voice_profile_sanitizer_usage",
+      "speaker_ref": "chief",
+      "voice_profile_ref": "agent_voice_profile:chief",
+      "mode": "planning_only",
+      "goal": "Plan how operator_display fields feed TTS-safe text by speaker profile.",
+      "allowed_actions": [
+        "read voice profile and routing contracts",
+        "map visible copy fields to sanitizer input",
+        "prepare local tests"
+      ],
+      "blocked_actions": [
+        "connect TTS live",
+        "send audio or messages",
+        "change authority behavior"
+      ],
+      "requires_operator": false,
+      "next_safe_move": "Keep TTS as local text preparation until a separate approval creates a live provider gate."
+    }
+  ],
+  "guardian_gates": [
+    {
+      "gate_ref": "guardian_gate:email_send",
+      "speaker_ref": "guardian",
+      "voice_profile_ref": "agent_voice_profile:guardian",
+      "reason": "Email send is an external action and must remain blocked until a specific explicit send approval exists.",
+      "explicit_approval_required": true,
+      "authority_field": "email_send_allowed"
+    },
+    {
+      "gate_ref": "guardian_gate:coupa_submit",
+      "speaker_ref": "guardian",
+      "voice_profile_ref": "agent_voice_profile:guardian",
+      "reason": "Coupa submission requires operator-present login/MFA, final Submit confirmation, and receipt preservation.",
+      "explicit_approval_required": true,
+      "authority_field": "coupa_allowed"
+    },
+    {
+      "gate_ref": "guardian_gate:ledger_post",
+      "speaker_ref": "guardian",
+      "voice_profile_ref": "agent_voice_profile:guardian",
+      "reason": "Ledger posting is finance truth and is not granted by planning, proposal, invoice, or operator-assist receipts.",
+      "explicit_approval_required": true,
+      "authority_field": "ledger_posting_allowed"
+    },
+    {
+      "gate_ref": "guardian_gate:paid_marking",
+      "speaker_ref": "guardian",
+      "voice_profile_ref": "agent_voice_profile:guardian",
+      "reason": "Paid state must only change from explicit payment evidence and is never inferred from send, submit, or proposal status.",
+      "explicit_approval_required": true,
+      "authority_field": "paid"
+    },
+    {
+      "gate_ref": "guardian_gate:excel_workbook_mutation",
+      "speaker_ref": "guardian",
+      "voice_profile_ref": "agent_voice_profile:guardian",
+      "reason": "Workbook mutation requires staged patch approval and stable workbook permissions.",
+      "explicit_approval_required": true,
+      "authority_field": "workbook_source_mutation_allowed"
+    },
+    {
+      "gate_ref": "guardian_gate:pdf_export",
+      "speaker_ref": "guardian",
+      "voice_profile_ref": "agent_voice_profile:guardian",
+      "reason": "PDF export must be artifact-backed with page count, hash, and operator review before downstream use.",
+      "explicit_approval_required": true,
+      "authority_field": "pdf_export_allowed"
+    },
+    {
+      "gate_ref": "guardian_gate:live_provider_access",
+      "speaker_ref": "guardian",
+      "voice_profile_ref": "agent_voice_profile:guardian",
+      "reason": "Browser, Gmail, Coupa, Telegram, and TTS providers are not part of this planning-only board.",
+      "explicit_approval_required": true,
+      "authority_field": "live_provider_access_allowed"
+    },
+    {
+      "gate_ref": "guardian_gate:old_agent_loops",
+      "speaker_ref": "guardian",
+      "voice_profile_ref": "agent_voice_profile:guardian",
+      "reason": "Chief, Hermes, Guardian, Cassandra, and legacy loop scripts must not be launched by this workboard.",
+      "explicit_approval_required": true,
+      "authority_field": "agent_loop_launch_allowed"
+    },
+    {
+      "gate_ref": "guardian_gate:push",
+      "speaker_ref": "guardian",
+      "voice_profile_ref": "agent_voice_profile:guardian",
+      "reason": "Remote git push is outside this task and remains blocked.",
+      "explicit_approval_required": true,
+      "authority_field": "git_push_allowed"
+    }
+  ],
+  "do_not_run_while_sleeping": [
+    "email_send",
+    "gmail_send",
+    "coupa_submit",
+    "browser_portal_actions",
+    "telegram_live_connection",
+    "tts_live_connection",
+    "excel_gui_open_or_write",
+    "workbook_mutation",
+    "pdf_export",
+    "ledger_post",
+    "paid_marking",
+    "invoice_creation",
+    "proposal_acceptance_marking",
+    "service_restart",
+    "loop_control.sh",
+    "start_chief.sh",
+    "chief_cassandra_guardian_loops",
+    "git_push"
+  ],
+  "authority_boundary": {
+    "email_send_allowed": false,
+    "ledger_posting_allowed": false,
+    "browser_access_allowed": false,
+    "gmail_allowed": false,
+    "coupa_allowed": false,
+    "telegram_live_allowed": false,
+    "tts_live_allowed": false,
+    "portal_submit_allowed": false,
+    "workbook_source_mutation_allowed": false,
+    "pdf_export_allowed": false,
+    "finance_invoice_allowed": false,
+    "proposal_acceptance_allowed": false,
+    "service_restart_allowed": false,
+    "agent_loop_launch_allowed": false,
+    "git_push_allowed": false,
+    "paid": false,
+    "sent": false
+  },
+  "machine_proof": {
+    "all_packets_planning_only": true,
+    "no_live_provider_actions": true,
+    "no_send": true,
+    "no_coupa": true,
+    "no_excel": true,
+    "no_ledger": true,
+    "no_paid": true,
+    "no_push": true,
+    "no_service_restart": true,
+    "guardian_gates_exist_for_send_submit_ledger_excel": true,
+    "bridge_publish_required": true
+  }
+}
