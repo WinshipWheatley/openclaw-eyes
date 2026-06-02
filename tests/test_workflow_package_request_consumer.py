@@ -93,6 +93,7 @@ def test_consumer_records_valid_workflow_package_request_in_queue_sqlite(tmp_pat
     assert result.receipt["audience"] == "internal_operator"
     assert result.receipt["operator_display"]["speaker_ref"] == "cassandra"
     assert result.receipt["operator_display"]["voice_mode"] == "operator_intake"
+    assert result.receipt["operator_display"]["routing_reason"] == "work-log intake"
     assert result.receipt["operator_display"]["status_label"] == "Needs confirmation"
     assert result.receipt["operator_display"]["tone"] == "warning"
     assert "st_annes_work_log_event" not in result.receipt["operator_display"]["headline"]
@@ -139,6 +140,7 @@ def test_consumer_blocks_unsafe_true_grant_without_queue_write(tmp_path):
     assert result.receipt["speaker_ref"] == "guardian"
     assert result.receipt["voice_mode"] == "safety_gate"
     assert result.receipt["operator_display"]["speaker_ref"] == "guardian"
+    assert result.receipt["operator_display"]["routing_reason"] == "protected authority or access boundary"
     assert not sqlite_path.exists()
 
 
@@ -257,6 +259,7 @@ def test_service_processes_three_workflow_package_requests_and_writes_scoped_res
         assert display["speaker_ref"] == speaker_ref
         assert display["voice_mode"] == voice_mode
         assert display["audience"] == "internal_operator"
+        assert display["routing_reason"]
         assert display["proof_caption"] == "Proof available"
         assert display["show_machine_details_by_default"] is False
         assert workflow_ref not in display["headline"]
@@ -264,6 +267,7 @@ def test_service_processes_three_workflow_package_requests_and_writes_scoped_res
         assert response["speaker_ref"] == speaker_ref
         assert response["voice_mode"] == voice_mode
         assert response["audience"] == "internal_operator"
+        assert response["routing_reason"] == display["routing_reason"]
         assert response["primary_status"] == status_label
         assert response["next_action"] == f"Next: {next_safe_action}"
         assert response["detail_disclosure"]["workflow_package_request_consumer"]["operator_display"] == display

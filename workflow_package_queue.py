@@ -82,6 +82,7 @@ OPERATOR_DISPLAY_FIELDS = (
     "speaker_ref",
     "voice_mode",
     "audience",
+    "routing_reason",
     "headline",
     "subheadline",
     "status_label",

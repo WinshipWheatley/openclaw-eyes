@@ -90,6 +90,7 @@ def test_contract_export_writes_json_and_wiki(tmp_path):
     read_model = json.loads(Path(result["read_model_path"]).read_text(encoding="utf-8"))
     assert read_model["status"] == router.CONTRACT_STATUS
     assert read_model["operator_response_voice_fields"] == list(router.OPERATOR_RESPONSE_VOICE_FIELDS)
+    assert "routing_reason" in read_model["operator_response_voice_fields"]
     assert {item["speaker_ref"] for item in read_model["routed_examples"]} >= {
         "cassandra",
         "chief",

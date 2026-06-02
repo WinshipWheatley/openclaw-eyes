@@ -2413,6 +2413,7 @@ def _process_workflow_package_request(
         "speaker_ref": str(operator_display.get("speaker_ref") or "openclaw"),
         "voice_mode": str(operator_display.get("voice_mode") or "operator_calm"),
         "audience": str(operator_display.get("audience") or "internal_operator"),
+        "routing_reason": str(operator_display.get("routing_reason") or operator_display.get("voice_routing_reason") or ""),
         "headline": headline,
         "one_line_answer": message,
         "eliwinship": message,

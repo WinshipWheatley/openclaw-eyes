@@ -43,6 +43,7 @@ Package responses include deterministic voice fields:
 - `speaker_ref`
 - `voice_mode`
 - `audience`
+- `routing_reason`
 
 External client-facing draft copy should use `clara`; internal agent names are not for client-visible copy.
 

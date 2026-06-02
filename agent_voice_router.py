@@ -53,6 +53,7 @@ OPERATOR_RESPONSE_VOICE_FIELDS = (
     "speaker_ref",
     "voice_mode",
     "audience",
+    "routing_reason",
     "headline",
     "plain_summary",
     "next_safe_action",
@@ -256,6 +257,7 @@ def route_agent_voice_dict(**kwargs: Any) -> dict[str, str]:
         "speaker_ref": route.speaker_ref,
         "voice_mode": route.voice_mode,
         "audience": route.audience,
+        "routing_reason": route.routing_reason,
         "voice_routing_reason": route.routing_reason,
     }
 

@@ -42,6 +42,7 @@ Package responses include `operator_display` for Mission Control cards while ret
 - `speaker_ref`
 - `voice_mode`
 - `audience`
+- `routing_reason`
 - `headline`
 - `subheadline`
 - `status_label`

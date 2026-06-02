@@ -17,7 +17,7 @@
   },
   "bridge_response_dir": "/mnt/e/openclaw/mission_control_responses/to_mac",
   "consumer_status": "READY",
-  "generated_at": "2026-06-02T03:10:00+00:00",
+  "generated_at": "2026-06-02T03:30:00+00:00",
   "known_commits": {
     "workflow_package_queue_and_st_annes_intake": "259682b85f61760e75278b5be510a2bd418246ef",
     "workflow_package_request_consumer": "e9cd69f94db70416ff281bc02059ed658d8c9033"
@@ -26,6 +26,7 @@
     "speaker_ref",
     "voice_mode",
     "audience",
+    "routing_reason",
     "headline",
     "subheadline",
     "status_label",
@@ -54,6 +55,7 @@
           "No email will be sent.",
           "No ledger entry was touched."
         ],
+        "routing_reason": "work-log intake",
         "show_machine_details_by_default": false,
         "speaker_ref": "cassandra",
         "status_label": "Needs confirmation",
@@ -63,6 +65,7 @@
         "why_it_matters": "Confirmed work-log events become the source for the month-end invoice package."
       },
       "audience": "internal_operator",
+      "routing_reason": "work-log intake",
       "speaker_ref": "cassandra",
       "voice_mode": "operator_intake",
       "package_id": "workflow_package:32e611e2996fb30d",
@@ -88,6 +91,7 @@
           "No email will be sent.",
           "No finance handoff was opened."
         ],
+        "routing_reason": "human-layer coordination or correspondence prep",
         "show_machine_details_by_default": false,
         "speaker_ref": "cassandra",
         "status_label": "Needs review",
@@ -97,6 +101,7 @@
         "why_it_matters": "Proposal follow-up stays separate from finance until the client accepts."
       },
       "audience": "internal_operator",
+      "routing_reason": "human-layer coordination or correspondence prep",
       "speaker_ref": "cassandra",
       "voice_mode": "operator_calm",
       "package_id": "workflow_package:ed3ee1f1c7efbceb",
@@ -122,6 +127,7 @@
           "No Coupa action ran.",
           "No email will be sent."
         ],
+        "routing_reason": "provider gate required",
         "show_machine_details_by_default": false,
         "speaker_ref": "chief",
         "status_label": "Provider gate required",
@@ -131,6 +137,7 @@
         "why_it_matters": "Portal submission and email send are external actions that need a human gate."
       },
       "audience": "internal_operator",
+      "routing_reason": "provider gate required",
       "speaker_ref": "chief",
       "voice_mode": "diagnostic",
       "package_id": "workflow_package:e6b4d3d9a4af4c05",
