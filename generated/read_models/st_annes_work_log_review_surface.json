@@ -30,6 +30,7 @@
   "events": [
     {
       "allowed_review_actions": [
+        "mark_as_test_st_annes_work_log_event",
         "discard_st_annes_work_log_event",
         "edit_st_annes_work_log_event"
       ],
@@ -46,7 +47,7 @@
       "staging_status": "SMOKE_OR_TEST_EVENT"
     }
   ],
-  "generated_at": "2026-06-02T05:30:00+00:00",
+  "generated_at": "2026-06-02T17:45:00+00:00",
   "machine_proof": {
     "authority_flags_all_false": true,
     "email_send_performed": false,
@@ -65,6 +66,7 @@
   "review_actions": [
     "confirm_st_annes_work_log_event",
     "discard_st_annes_work_log_event",
+    "mark_as_test_st_annes_work_log_event",
     "edit_st_annes_work_log_event"
   ],
   "rules": {
@@ -76,6 +78,8 @@
     "excel_mutation_allowed": false,
     "invoice_creation_allowed": false,
     "ledger_mutation_allowed": false,
+    "mark_as_test_preserves_original_evidence": true,
+    "mark_as_test_sets_smoke_status": true,
     "paid_marking_allowed": false,
     "pdf_export_allowed": false,
     "smoke_or_test_events_not_invoice_included": true

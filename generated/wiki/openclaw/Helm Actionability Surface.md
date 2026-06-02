@@ -16,7 +16,7 @@ Open Finance / St. Anne's work-log review. The visible church sound entry is sta
 - Can this send email?
 
 ## Action Cards
-- St. Anne's smoke/test work-log event: mark as test, confirm as real work, or open Finance / St. Anne's.
+- St. Anne's smoke/test work-log event: `mark_as_test_st_annes_work_log_event`, confirm as real work, or open Finance / St. Anne's.
 - Safe next: open Finance / St. Anne's work-log review.
 - Capital Hilton payment watch: open Finance / Capital Hilton. No Coupa action.
 - Capital Hilton proposal watch: open Business Development / Capital Hilton. No email send.

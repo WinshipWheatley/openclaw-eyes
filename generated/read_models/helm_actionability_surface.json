@@ -129,6 +129,7 @@
       "target_world_ref": "finance",
       "target_thread_ref": "st_annes",
       "payload_ref": "generated/read_models/st_annes_work_log_review_surface.json#st_annes_work_log:2026-06-01:church_sound:ef129d515f03e14c",
+      "review_action_ref": "mark_as_test_st_annes_work_log_event",
       "safe_to_auto_stage": true,
       "business_action": false,
       "invoice_inclusion_allowed": false,

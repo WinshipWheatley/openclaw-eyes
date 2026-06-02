@@ -1,7 +1,7 @@
 """St. Anne's work-log operator review V0.
 
 This module reviews staged St. Anne's work-log events. It can confirm, discard,
-or apply a narrow safe edit to an event already captured by
+mark an event as test-only, or apply a narrow safe edit to an event already captured by
 ``st_annes_work_log_intake``. It never touches Excel, creates invoices, exports
 PDFs, sends email, mutates ledgers, marks paid, connects Telegram live, or
 submits anything.
@@ -36,9 +36,10 @@ READY_STATUS = "ST_ANNES_WORK_LOG_REVIEW_V0_READY"
 
 CONFIRM_ACTION = "confirm_st_annes_work_log_event"
 DISCARD_ACTION = "discard_st_annes_work_log_event"
+MARK_AS_TEST_ACTION = "mark_as_test_st_annes_work_log_event"
 EDIT_ACTION = "edit_st_annes_work_log_event"
 EXPORT_ACTION = "export_surface"
-REVIEW_ACTIONS = (CONFIRM_ACTION, DISCARD_ACTION, EDIT_ACTION)
+REVIEW_ACTIONS = (CONFIRM_ACTION, DISCARD_ACTION, MARK_AS_TEST_ACTION, EDIT_ACTION)
 REQUEST_TYPE = "ST_ANNES_WORK_LOG_REVIEW_ACTION_REQUEST_V0"
 REQUEST_KIND = "ST_ANNES_WORK_LOG_REVIEW_ACTION_REQUEST"
 REQUEST_FILENAME_PATTERNS = (
@@ -111,6 +112,13 @@ TOP_LEVEL_FALSE_FIELDS = (
     "invoice_created",
     "paid_marking_performed",
     "business_action_performed",
+)
+
+TEST_ONLY_UTTERANCE_PATTERNS = (
+    re.compile(r"\bthat\s+was\s+a\s+test\b", re.IGNORECASE),
+    re.compile(r"\bmark\s+this\s+as\s+a\s+test\b", re.IGNORECASE),
+    re.compile(r"\bdon['’]?t\s+bill\s+that\b", re.IGNORECASE),
+    re.compile(r"\bdiscard\s+that\s+test\s+event\b", re.IGNORECASE),
 )
 
 
@@ -504,6 +512,32 @@ def review_event(
                 """,
                 (DISCARDED_STATUS, DISCARDED_FROM_INVOICE, DISCARDED_BILLING_TRUTH_STATUS, generated_at, event_id),
             )
+        elif action == MARK_AS_TEST_ACTION:
+            notes = list(previous.get("hygiene_notes") or [])
+            if "operator_marked_as_test_only" not in notes:
+                notes.append("operator_marked_as_test_only")
+            changed = {
+                "operator_confirmed": False,
+                "operator_business_confirmed": False,
+                "staging_status": SMOKE_OR_TEST_STATUS,
+                "invoice_inclusion_status": NOT_INCLUDED_SMOKE,
+                "billing_truth_status": SMOKE_OR_TEST_STATUS,
+                "hygiene_notes": notes,
+            }
+            conn.execute(
+                """
+                UPDATE st_annes_work_log_events
+                SET operator_confirmed = 0,
+                    operator_business_confirmed = 0,
+                    staging_status = ?,
+                    invoice_inclusion_status = ?,
+                    billing_truth_status = ?,
+                    hygiene_notes_json = ?,
+                    updated_at = ?
+                WHERE event_id = ?
+                """,
+                (SMOKE_OR_TEST_STATUS, NOT_INCLUDED_SMOKE, SMOKE_OR_TEST_STATUS, stable_json(notes), generated_at, event_id),
+            )
         else:
             clean_edits, blockers = _validate_edits(edits or {})
             if blockers:
@@ -574,8 +608,118 @@ def _review_actions_for_event(event: Mapping[str, Any]) -> tuple[str, ...]:
     if event.get("staging_status") == DISCARDED_STATUS:
         return ()
     if event.get("invoice_inclusion_status") == NOT_INCLUDED_SMOKE:
-        return (DISCARD_ACTION, EDIT_ACTION)
+        return (MARK_AS_TEST_ACTION, DISCARD_ACTION, EDIT_ACTION)
     return REVIEW_ACTIONS
+
+
+def _matches_mark_as_test_utterance(text: str) -> bool:
+    return any(pattern.search(text) for pattern in TEST_ONLY_UTTERANCE_PATTERNS)
+
+
+def _has_st_annes_review_context(
+    *,
+    event_id: str = "",
+    world_ref: str = "",
+    target_world_ref: str = "",
+    target_thread_ref: str = "",
+    client_ref: str = "",
+    workflow_ref: str = "",
+) -> bool:
+    if event_id:
+        return True
+    world = f"{world_ref} {target_world_ref}".lower()
+    thread = target_thread_ref.lower()
+    client = client_ref.lower()
+    workflow = workflow_ref.lower()
+    return (
+        ("finance" in world or "invoice" in world)
+        and (thread == intake.CLIENT_REF or client == intake.CLIENT_REF or workflow == intake.WORKFLOW_REF)
+    )
+
+
+def _recent_reviewable_event(
+    *,
+    sqlite_path: Path,
+    event_id: str = "",
+) -> dict[str, Any] | None:
+    events = intake.read_staged_events(sqlite_path)
+    if event_id:
+        return next((event for event in events if event.get("event_id") == event_id), None)
+    candidates = [
+        event
+        for event in events
+        if event.get("staging_status") != DISCARDED_STATUS
+        and event.get("invoice_inclusion_status") in {NOT_INCLUDED_PENDING, NOT_INCLUDED_SMOKE}
+    ]
+    if not candidates:
+        return None
+    return sorted(
+        candidates,
+        key=lambda event: (
+            str(event.get("updated_at") or ""),
+            str(event.get("created_at") or ""),
+            str(event.get("service_date") or ""),
+            str(event.get("event_id") or ""),
+        ),
+    )[-1]
+
+
+def route_natural_language_review_action(
+    text: str,
+    *,
+    event_id: str = "",
+    world_ref: str = "",
+    target_world_ref: str = "",
+    target_thread_ref: str = "",
+    client_ref: str = "",
+    workflow_ref: str = "",
+    sqlite_path: Path = DEFAULT_SQLITE_PATH,
+) -> dict[str, Any]:
+    if not _matches_mark_as_test_utterance(text):
+        return {
+            "route_status": "ROUTE_NOT_MATCHED",
+            "review_action": "",
+            "event_id": "",
+            "speaker_ref": "openclaw",
+            "blocked_reason": "no_mark_as_test_language",
+            "next_safe_action": "Ask a clearer St. Anne's work-log review question.",
+        }
+    if not _has_st_annes_review_context(
+        event_id=event_id,
+        world_ref=world_ref,
+        target_world_ref=target_world_ref,
+        target_thread_ref=target_thread_ref,
+        client_ref=client_ref,
+        workflow_ref=workflow_ref,
+    ):
+        return {
+            "route_status": "ROUTE_BLOCKED",
+            "review_action": "",
+            "event_id": "",
+            "speaker_ref": "guardian",
+            "blocked_reason": "st_annes_lane_or_event_context_required",
+            "next_safe_action": "Open Finance / St. Anne's and choose the event first.",
+        }
+    event = _recent_reviewable_event(sqlite_path=sqlite_path, event_id=event_id)
+    if event is None:
+        return {
+            "route_status": "ROUTE_BLOCKED",
+            "review_action": "",
+            "event_id": "",
+            "speaker_ref": "cassandra",
+            "blocked_reason": "recent_pending_st_annes_event_missing",
+            "next_safe_action": "Choose a staged St. Anne's work-log event before marking it test-only.",
+        }
+    return {
+        "route_status": "ROUTE_MATCHED",
+        "review_action": MARK_AS_TEST_ACTION,
+        "event_id": str(event.get("event_id") or ""),
+        "speaker_ref": "cassandra",
+        "client_ref": intake.CLIENT_REF,
+        "workflow_ref": intake.WORKFLOW_REF,
+        "blocked_reason": "",
+        "next_safe_action": "Stage a local St. Anne's mark-as-test review action.",
+    }
 
 
 def build_review_surface(
@@ -627,6 +771,8 @@ def build_review_surface(
             "confirm_sets_operator_confirmed": True,
             "confirm_sets_invoice_inclusion_status": READY_FOR_ROLLUP,
             "discard_preserves_original_evidence": True,
+            "mark_as_test_sets_smoke_status": True,
+            "mark_as_test_preserves_original_evidence": True,
             "edit_resets_confirmation": True,
             "excel_mutation_allowed": False,
             "invoice_creation_allowed": False,
@@ -699,6 +845,8 @@ def _next_safe_action(action: str, review_result: ReviewResult | None, blocker: 
         return "Leave the event ready for the monthly rollup; Excel and send gates remain separate."
     if action == DISCARD_ACTION:
         return "Leave the event discarded unless you stage a new work-log event later."
+    if action == MARK_AS_TEST_ACTION:
+        return "No action needed."
     if action == EDIT_ACTION:
         return "Review and confirm the edited event before it can count toward the monthly invoice."
     return "Review the updated St. Anne's work-log state."
@@ -788,6 +936,21 @@ def _operator_display(
             "next_safe_action": next_safe_action,
             "why_it_matters": "Discarding keeps the audit trail without letting the event become invoice truth.",
             "primary_fact": "Event discarded by operator.",
+            "secondary_facts": ["Original evidence preserved.", "No Excel action ran.", "No ledger entry was touched."],
+            "proof_caption": "Proof available",
+            "show_machine_details_by_default": False,
+        }
+    if action == MARK_AS_TEST_ACTION:
+        return {
+            **voice_fields,
+            "headline": "St. Anne's test event cleared",
+            "subheadline": "The event stays out of the monthly invoice.",
+            "status_label": "Test only",
+            "tone": "calm",
+            "plain_summary": "I marked it as test-only. It will not count toward the monthly invoice.",
+            "next_safe_action": next_safe_action,
+            "why_it_matters": "Marking a smoke/test event keeps the audit trail while preventing it from becoming billable truth.",
+            "primary_fact": "Event marked test-only.",
             "secondary_facts": ["Original evidence preserved.", "No Excel action ran.", "No ledger entry was touched."],
             "proof_caption": "Proof available",
             "show_machine_details_by_default": False,
