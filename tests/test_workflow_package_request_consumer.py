@@ -66,6 +66,20 @@ def _safe_heartbeat_path(response_dir: Path, request_id: str) -> Path:
     return response_dir / f"openclaw_processing_for_mac_{service._safe_filename_part(request_id)}.json"
 
 
+def _sentence_count(text: str) -> int:
+    return sum(1 for char in text if char in ".?!")
+
+
+def _assert_compact_display(display):
+    assert len(display["headline"].split()) <= 8
+    assert _sentence_count(display["plain_summary"]) <= 1
+    assert _sentence_count(display["next_safe_action"]) <= 1
+    assert display["proof_caption"] == "Proof available."
+    assert display["show_machine_details_by_default"] is False
+    assert display["why_it_matters"]
+    assert isinstance(display["secondary_facts"], list)
+
+
 def test_consumer_records_valid_workflow_package_request_in_queue_sqlite(tmp_path):
     sqlite_path = tmp_path / "workflow_package_queue.sqlite"
     request = _request_payload(
@@ -100,6 +114,9 @@ def test_consumer_records_valid_workflow_package_request_in_queue_sqlite(tmp_pat
     assert result.receipt["operator_display"]["routing_reason"] == "work-log intake"
     assert result.receipt["operator_display"]["status_label"] == "Needs confirmation"
     assert result.receipt["operator_display"]["tone"] == "warning"
+    assert result.receipt["operator_display"]["plain_summary"] == "Saved as a draft event until you confirm it."
+    assert result.receipt["operator_display"]["next_safe_action"] == "Confirm or discard."
+    _assert_compact_display(result.receipt["operator_display"])
     assert "st_annes_work_log_event" not in result.receipt["operator_display"]["headline"]
     assert result.receipt["operator_display"]["show_machine_details_by_default"] is False
     assert result.receipt["machine_proof"]["queue_noop_worker_only"] is True
@@ -305,7 +322,8 @@ def test_service_processes_three_workflow_package_requests_and_writes_scoped_res
             "St. Anne's work log captured",
             "Needs confirmation",
             "warning",
-            "Review and confirm the event.",
+            "Confirm or discard.",
+            "Saved as a draft event until you confirm it.",
             "cassandra",
             "agent_voice_profile:cassandra",
             "operator_intake",
@@ -320,10 +338,11 @@ def test_service_processes_three_workflow_package_requests_and_writes_scoped_res
             "capital_hilton_proposal_followup",
             "capital_hilton",
             "OPERATOR_REVIEW_REQUIRED",
-            "Capital Hilton proposal follow-up staged",
+            "Proposal follow-up staged",
             "Needs review",
             "calm",
-            "Review the follow-up plan.",
+            "Review the follow-up.",
+            "No email will be sent until approved.",
             "cassandra",
             "agent_voice_profile:cassandra",
             "operator_calm",
@@ -338,10 +357,11 @@ def test_service_processes_three_workflow_package_requests_and_writes_scoped_res
             "capital_hilton_invoice_operator_assist",
             "capital_hilton",
             "PROVIDER_GATE_REQUIRED",
-            "Capital Hilton invoice needs operator assist",
+            "Capital Hilton needs operator assist",
             "Provider gate required",
             "blocked",
-            "Stage an operator-assist packet when you are ready.",
+            "Stage an operator-assist packet.",
+            "Coupa cannot run unattended.",
             "chief",
             "agent_voice_profile:chief",
             "diagnostic",
@@ -364,6 +384,7 @@ def test_service_processes_three_workflow_package_requests_and_writes_scoped_res
             status_label,
             tone,
             next_safe_action,
+            plain_summary,
             speaker_ref,
             voice_profile_ref,
             voice_mode,
@@ -395,13 +416,15 @@ def test_service_processes_three_workflow_package_requests_and_writes_scoped_res
         assert display["headline"] == headline
         assert display["status_label"] == status_label
         assert display["tone"] == tone
+        assert display["plain_summary"] == plain_summary
         assert display["next_safe_action"] == next_safe_action
+        _assert_compact_display(display)
         assert display["speaker_ref"] == speaker_ref
         assert display["voice_profile_ref"] == voice_profile_ref
         assert display["voice_mode"] == voice_mode
         assert display["audience"] == "internal_operator"
         assert display["routing_reason"]
-        assert display["proof_caption"] == "Proof available"
+        assert display["proof_caption"] == "Proof available."
         assert display["show_machine_details_by_default"] is False
         assert workflow_ref not in display["headline"]
         assert response["headline"] == headline
@@ -411,6 +434,7 @@ def test_service_processes_three_workflow_package_requests_and_writes_scoped_res
         assert response["routing_reason"] == display["routing_reason"]
         assert response["primary_status"] == status_label
         assert response["next_action"] == f"Next: {next_safe_action}"
+        assert response["visible_cards"][0]["bullets"] == [plain_summary, f"Next: {next_safe_action}"]
         assert response["detail_disclosure"]["workflow_package_request_consumer"]["operator_display"] == display
         assert response["no_external_authority_granted"] is True
         assert response["detail_disclosure"]["workflow_package_request_consumer"]["package_status"] == package_status
@@ -418,9 +442,11 @@ def test_service_processes_three_workflow_package_requests_and_writes_scoped_res
         assert response["detail_disclosure"]["workflow_package_request_consumer"]["target_thread_ref"] == target_thread_ref
         assert response["detail_disclosure"]["workflow_package_request_consumer"]["cross_lane_routed"] is cross_lane_routed
         assert response["detail_disclosure"]["package"]["workflow_ref"] == workflow_ref
+        assert response["detail_disclosure"]["package"]["operator_display"]["why_it_matters"]
+        assert response["detail_disclosure"]["package"]["operator_display"]["secondary_facts"]
         if package_status == "PROVIDER_GATE_REQUIRED":
             assert "cannot run unattended" in display["plain_summary"]
-            assert "final Submit confirmation" in display["plain_summary"]
+            assert "final Submit gate" in response["detail_disclosure"]["package"]["capability_gate_result"]["reason"]
         assert response["machine_proof"]["email_send_performed"] is False
         assert response["machine_proof"]["browser_access_performed"] is False
         assert response["machine_proof"]["coupa_access_or_submit_performed"] is False

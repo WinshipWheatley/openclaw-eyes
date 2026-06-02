@@ -337,51 +337,51 @@ def operator_display_for_package(
             "subheadline": "Church sound event saved for review.",
             "status_label": "Needs confirmation",
             "tone": "warning",
-            "plain_summary": "I saved this as a draft work event. Confirm it before it counts toward the monthly invoice.",
-            "next_safe_action": "Review and confirm the event.",
+            "plain_summary": "Saved as a draft event until you confirm it.",
+            "next_safe_action": "Confirm or discard.",
             "why_it_matters": "Confirmed work-log events become the source for the month-end invoice package.",
             "primary_fact": "No invoice was changed.",
             "secondary_facts": [
                 "No email will be sent.",
                 "No ledger entry was touched.",
             ],
-            "proof_caption": "Proof available",
+            "proof_caption": "Proof available.",
             "show_machine_details_by_default": False,
         }
     if workflow_ref == "capital_hilton_proposal_followup":
         return {
             **voice_fields,
-            "headline": "Capital Hilton proposal follow-up staged",
+            "headline": "Proposal follow-up staged",
             "subheadline": "Business Development follow-up, no finance action.",
             "status_label": "Needs review",
             "tone": "calm",
-            "plain_summary": "I staged this as a proposal follow-up. No email will be sent until you approve it.",
-            "next_safe_action": "Review the follow-up plan.",
+            "plain_summary": "No email will be sent until approved.",
+            "next_safe_action": "Review the follow-up.",
             "why_it_matters": "Proposal follow-up stays separate from finance until the client accepts.",
             "primary_fact": "No invoice was created.",
             "secondary_facts": [
                 "No email will be sent.",
                 "No finance handoff was opened.",
             ],
-            "proof_caption": "Proof available",
+            "proof_caption": "Proof available.",
             "show_machine_details_by_default": False,
         }
     if workflow_ref == "capital_hilton_invoice_operator_assist":
         return {
             **voice_fields,
-            "headline": "Capital Hilton invoice needs operator assist",
+            "headline": "Capital Hilton needs operator assist",
             "subheadline": "Coupa requires a live submit gate.",
             "status_label": "Provider gate required",
             "tone": "blocked",
-            "plain_summary": "This cannot run unattended. Coupa submission requires an operator-present workflow and a final Submit confirmation.",
-            "next_safe_action": "Stage an operator-assist packet when you are ready.",
+            "plain_summary": "Coupa cannot run unattended.",
+            "next_safe_action": "Stage an operator-assist packet.",
             "why_it_matters": "Portal submission and email send are external actions that need a human gate.",
             "primary_fact": "No invoice was submitted.",
             "secondary_facts": [
                 "No Coupa action ran.",
                 "No email will be sent.",
             ],
-            "proof_caption": "Proof available",
+            "proof_caption": "Proof available.",
             "show_machine_details_by_default": False,
         }
     if workflow_ref == "st_annes_monthly_invoice_rollup":
@@ -398,15 +398,15 @@ def operator_display_for_package(
             "subheadline": "Invoice work stays gated until proof is ready.",
             "status_label": "Missing prerequisite",
             "tone": "blocked",
-            "plain_summary": f"This is blocked because {missing}. No email will be sent.",
-            "next_safe_action": "Resolve the missing gate, then review the package again.",
+            "plain_summary": f"Blocked because {missing}.",
+            "next_safe_action": "Resolve the missing gate.",
             "why_it_matters": "Invoice sending must wait for approved artifacts and explicit operator authority.",
             "primary_fact": "No invoice was sent.",
             "secondary_facts": [
                 "Excel was not touched.",
                 "No ledger entry was touched.",
             ],
-            "proof_caption": "Proof available",
+            "proof_caption": "Proof available.",
             "show_machine_details_by_default": False,
         }
     if package_status in {"PERMISSION_REQUIRED", "ARTIFACT_REQUIRED", "PROVIDER_GATE_REQUIRED"}:
@@ -417,34 +417,34 @@ def operator_display_for_package(
             "subheadline": "A required permission is missing.",
             "status_label": "Blocked",
             "tone": "blocked",
-            "plain_summary": f"This is blocked because {missing}. Nothing ran.",
-            "next_safe_action": "Resolve the missing gate, then review the package again.",
+            "plain_summary": f"Blocked because {missing}.",
+            "next_safe_action": "Resolve the missing gate.",
             "why_it_matters": "OpenClaw keeps external actions closed until the right proof exists.",
             "primary_fact": "No business action ran.",
             "secondary_facts": [
                 "No email will be sent.",
                 "No ledger entry was touched.",
             ],
-            "proof_caption": "Proof available",
+            "proof_caption": "Proof available.",
             "show_machine_details_by_default": False,
         }
     return {
         **voice_fields,
         "headline": "Workflow package staged",
-        "subheadline": "Saved for operator review.",
-        "status_label": "Needs review",
-        "tone": "calm",
-        "plain_summary": "I staged this as a dry-run package. No business action ran.",
-        "next_safe_action": "Review the staged package.",
-        "why_it_matters": "Operator review separates captured intent from live execution.",
-        "primary_fact": "No external action ran.",
-        "secondary_facts": [
-            "No email will be sent.",
-            "No ledger entry was touched.",
-        ],
-        "proof_caption": "Proof available",
-        "show_machine_details_by_default": False,
-    }
+            "subheadline": "Saved for operator review.",
+            "status_label": "Needs review",
+            "tone": "calm",
+            "plain_summary": "Saved for review without running actions.",
+            "next_safe_action": "Review the package.",
+            "why_it_matters": "Operator review separates captured intent from live execution.",
+            "primary_fact": "No external action ran.",
+            "secondary_facts": [
+                "No email will be sent.",
+                "No ledger entry was touched.",
+            ],
+            "proof_caption": "Proof available.",
+            "show_machine_details_by_default": False,
+        }
 
 
 def create_package(

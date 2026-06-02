@@ -14,6 +14,20 @@ def _package(text: str, **kwargs):
     return queue.create_package(text, created_at=FIXED_NOW, **kwargs)
 
 
+def _sentence_count(text: str) -> int:
+    return sum(1 for char in text if char in ".?!")
+
+
+def _assert_compact_display(display):
+    assert len(display["headline"].split()) <= 8
+    assert _sentence_count(display["plain_summary"]) <= 1
+    assert _sentence_count(display["next_safe_action"]) <= 1
+    assert display["proof_caption"] == "Proof available."
+    assert display["show_machine_details_by_default"] is False
+    assert display["why_it_matters"]
+    assert isinstance(display["secondary_facts"], list)
+
+
 def test_st_annes_work_log_instruction_stages_record_only_package():
     package = _package("Mark that I'm at church running sound.")
     display = package["operator_display"]
@@ -29,6 +43,9 @@ def test_st_annes_work_log_instruction_stages_record_only_package():
     assert display["routing_reason"] == "work-log intake"
     assert display["status_label"] == "Needs confirmation"
     assert display["tone"] == "warning"
+    assert display["plain_summary"] == "Saved as a draft event until you confirm it."
+    assert display["next_safe_action"] == "Confirm or discard."
+    _assert_compact_display(display)
     assert "st_annes_work_log_event" not in display["headline"]
     assert display["show_machine_details_by_default"] is False
     assert package["capability_gate_result"]["status"] == "ALLOW_DRY_RUN"
@@ -74,7 +91,7 @@ def test_capital_hilton_proposal_followup_is_business_development_no_invoice_or_
     assert package["world"] == "business_development"
     assert package["client_ref"] == "capital_hilton"
     assert package["status"] == "OPERATOR_REVIEW_REQUIRED"
-    assert display["headline"] == "Capital Hilton proposal follow-up staged"
+    assert display["headline"] == "Proposal follow-up staged"
     assert display["speaker_ref"] == "cassandra"
     assert display["voice_profile_ref"] == "agent_voice_profile:cassandra"
     assert display["voice_mode"] == "operator_calm"
@@ -83,7 +100,9 @@ def test_capital_hilton_proposal_followup_is_business_development_no_invoice_or_
     assert display["status_label"] == "Needs review"
     assert display["tone"] == "calm"
     assert "capital_hilton_proposal_followup" not in display["headline"]
-    assert "No email will be sent" in display["plain_summary"]
+    assert display["plain_summary"] == "No email will be sent until approved."
+    assert display["next_safe_action"] == "Review the follow-up."
+    _assert_compact_display(display)
     assert package["business_action_gate_result"]["email_send_allowed"] is False
     assert package["authority_boundary"]["email_send_allowed"] is False
     assert package["authority_boundary"]["ledger_posting_allowed"] is False
@@ -97,7 +116,7 @@ def test_capital_hilton_invoice_submit_requires_operator_assist_provider_and_sub
     assert package["workflow_ref"] == "capital_hilton_invoice_operator_assist"
     assert package["client_ref"] == "capital_hilton"
     assert package["status"] == "PROVIDER_GATE_REQUIRED"
-    assert display["headline"] == "Capital Hilton invoice needs operator assist"
+    assert display["headline"] == "Capital Hilton needs operator assist"
     assert display["speaker_ref"] == "chief"
     assert display["voice_profile_ref"] == "agent_voice_profile:chief"
     assert display["voice_mode"] == "diagnostic"
@@ -106,7 +125,9 @@ def test_capital_hilton_invoice_submit_requires_operator_assist_provider_and_sub
     assert display["status_label"] == "Provider gate required"
     assert display["tone"] == "blocked"
     assert "capital_hilton_invoice_operator_assist" not in display["headline"]
-    assert "requires an operator-present workflow" in display["plain_summary"]
+    assert display["plain_summary"] == "Coupa cannot run unattended."
+    assert display["next_safe_action"] == "Stage an operator-assist packet."
+    _assert_compact_display(display)
     assert package["capability_gate_result"]["status"] == "PROVIDER_GATE_REQUIRED"
     assert "coupa_submit" in package["capability_gate_result"]["blocked_actions"]
     assert package["worker_result"]["coupa_access_performed"] is False

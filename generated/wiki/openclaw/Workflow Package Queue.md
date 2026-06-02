@@ -58,11 +58,11 @@ Package responses include `operator_display` for Mission Control cards while ret
 
 Example display headlines:
 
-- St. Anne's work log captured: Needs confirmation - Review and confirm the event.
-- St. Anne's invoice is not ready to send: Missing prerequisite - Resolve the missing gate, then review the package again.
-- Capital Hilton proposal follow-up staged: Needs review - Review the follow-up plan.
-- Capital Hilton invoice needs operator assist: Provider gate required - Stage an operator-assist packet when you are ready.
-- Workflow package staged: Needs review - Review the staged package.
+- St. Anne's work log captured: Needs confirmation - Confirm or discard.
+- St. Anne's invoice is not ready to send: Missing prerequisite - Resolve the missing gate.
+- Proposal follow-up staged: Needs review - Review the follow-up.
+- Capital Hilton needs operator assist: Provider gate required - Stage an operator-assist packet.
+- Workflow package staged: Needs review - Review the package.
 
 ## Authority Boundary
 

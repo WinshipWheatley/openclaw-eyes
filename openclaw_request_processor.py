@@ -2663,9 +2663,7 @@ def _process_workflow_package_request(
             {
                 "title": headline,
                 "bullets": (
-                    str(operator_display.get("subheadline") or "Saved for operator review."),
-                    str(operator_display.get("primary_fact") or "No business action ran."),
-                    *tuple(str(item) for item in operator_display.get("secondary_facts") or ()),
+                    message,
                     f"Next: {next_safe_action}",
                 ),
                 "status_tone": status_tone,
