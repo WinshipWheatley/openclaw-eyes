@@ -29,6 +29,10 @@ REQUEST_FILENAME_PATTERNS = (
 )
 DEFAULT_SQLITE_PATH = workflow_package_queue.DEFAULT_SQLITE_PATH
 SQLITE_PATH_ENV = "OPENCLAW_WORKFLOW_PACKAGE_QUEUE_SQLITE_PATH"
+DEFAULT_EXPORT_ROOT = Path("generated/read_models")
+DEFAULT_BRIDGE_EXPORT_ROOT = Path("/mnt/e/openclaw/generated/read_models")
+FINANCE_THREAD_INDEX_READ_MODEL_ID = "finance_thread_index"
+FINANCE_THREAD_INDEX_JSON_EXPORT_NAME = f"{FINANCE_THREAD_INDEX_READ_MODEL_ID}.json"
 
 AUTHORITY_FALSE_FIELDS = (
     "email_send_allowed",
@@ -82,6 +86,44 @@ BLOCKING_PACKAGE_STATUSES = {
     "PROVIDER_GATE_REQUIRED",
 }
 
+THREAD_TARGETS_BY_WORKFLOW_REF = {
+    "st_annes_work_log_event": ("finance", "st_annes"),
+    "st_annes_monthly_invoice_rollup": ("finance", "st_annes"),
+    "capital_hilton_invoice_operator_assist": ("finance", "capital_hilton"),
+    "capital_hilton_proposal_followup": ("business_development", "capital_hilton"),
+}
+
+THREAD_DISPLAY_NAMES = {
+    ("finance", "capital_hilton"): "Finance / Capital Hilton",
+    ("finance", "live_arts_md"): "Finance / Live Arts MD!",
+    ("finance", "st_annes"): "Finance / St. Anne's",
+    ("business_development", "capital_hilton"): "Business Development / Capital Hilton",
+}
+
+THREAD_ALIASES = {
+    "capital_hilton_invoice_workflow": "capital_hilton",
+    "capital_hilton_business_development": "capital_hilton",
+    "capital_hilton_proposal": "capital_hilton",
+    "capital_hilton": "capital_hilton",
+    "live_arts_md_invoice_workflow": "live_arts_md",
+    "live_arts_md": "live_arts_md",
+    "live_arts": "live_arts_md",
+    "st_annes_work_log_event": "st_annes",
+    "st_annes_invoice_workflow": "st_annes",
+    "st_annes": "st_annes",
+    "st_anne": "st_annes",
+    "st_anne's": "st_annes",
+    "church_sound": "st_annes",
+}
+
+WORLD_ALIASES = {
+    "finance": "finance",
+    "invoice_operations": "finance",
+    "business_development": "business_development",
+    "operations": "operations",
+    "diagnostic": "diagnostic",
+}
+
 
 @dataclass(frozen=True)
 class WorkflowPackageRequestResult:
@@ -106,6 +148,10 @@ def utc_now() -> str:
 def default_sqlite_path() -> Path:
     configured = os.environ.get(SQLITE_PATH_ENV)
     return Path(configured) if configured else DEFAULT_SQLITE_PATH
+
+
+def _rooted(path: Path) -> Path:
+    return path if path.is_absolute() else Path(__file__).resolve().parent / path
 
 
 def _sha256_text(text: str) -> str:
@@ -133,6 +179,160 @@ def _source_text(raw_request: Mapping[str, Any]) -> str:
         if value:
             return value
     return ""
+
+
+def _normalize_ref(value: str) -> str:
+    text = str(value or "").strip().lower()
+    text = text.replace("&", "and")
+    text = text.replace("’", "'")
+    text = text.replace("!", "")
+    text = text.replace("/", " ")
+    text = text.replace("-", "_")
+    text = "_".join(part for part in re_split_ref(text) if part)
+    return text
+
+
+def re_split_ref(value: str) -> tuple[str, ...]:
+    return tuple(part for part in value.replace(".", "").replace("'", "").split() for part in part.split("_") if part)
+
+
+def normalize_world_ref(value: str) -> str:
+    normalized = _normalize_ref(value)
+    return WORLD_ALIASES.get(normalized, normalized or "unknown")
+
+
+def normalize_thread_ref(value: str) -> str:
+    normalized = _normalize_ref(value)
+    if normalized in THREAD_ALIASES:
+        return THREAD_ALIASES[normalized]
+    if "capital" in normalized and "hilton" in normalized:
+        return "capital_hilton"
+    if "live" in normalized and "arts" in normalized:
+        return "live_arts_md"
+    if "anne" in normalized or "church" in normalized:
+        return "st_annes"
+    return normalized or "unknown"
+
+
+def target_lane_for_workflow(workflow_ref: str) -> tuple[str, str]:
+    return THREAD_TARGETS_BY_WORKFLOW_REF.get(str(workflow_ref or ""), ("diagnostic", "workflow_package_queue"))
+
+
+def routing_note_for_lane(world_ref: str, thread_ref: str) -> str:
+    display = THREAD_DISPLAY_NAMES.get((world_ref, thread_ref), f"{world_ref.replace('_', ' ').title()} / {thread_ref.replace('_', ' ').title()}")
+    return f"Routed to {display}."
+
+
+def routing_metadata(raw_request: Mapping[str, Any], package: Mapping[str, Any] | None) -> dict[str, Any]:
+    raw_current_world = str(raw_request.get("world_ref") or raw_request.get("world") or "")
+    raw_current_thread = str(raw_request.get("thread_ref") or raw_request.get("thread") or "")
+    current_world = normalize_world_ref(raw_current_world)
+    current_thread = normalize_thread_ref(raw_current_thread)
+    workflow_ref = str((package or {}).get("workflow_ref") or raw_request.get("workflow_ref") or "")
+    target_world, target_thread = target_lane_for_workflow(workflow_ref)
+    cross_lane = package is not None and (current_world != target_world or current_thread != target_thread)
+    return {
+        "current_world_ref": current_world,
+        "current_thread_ref": current_thread,
+        "source_world_ref": raw_current_world,
+        "source_thread_ref": raw_current_thread,
+        "target_world_ref": target_world if package is not None else "",
+        "target_thread_ref": target_thread if package is not None else "",
+        "cross_lane_routed": bool(cross_lane),
+        "routing_note": routing_note_for_lane(target_world, target_thread) if cross_lane else "",
+    }
+
+
+def build_finance_thread_index(*, generated_at: str | None = None) -> dict[str, Any]:
+    generated_at = generated_at or utc_now()
+    threads = [
+        {
+            "world_ref": "finance",
+            "thread_ref": "capital_hilton",
+            "display_name": "Capital Hilton",
+            "client_ref": "capital_hilton",
+            "primary_workflow_refs": ["capital_hilton_invoice_operator_assist"],
+            "aliases": ["capital_hilton_invoice_workflow", "Capital Hilton"],
+        },
+        {
+            "world_ref": "finance",
+            "thread_ref": "live_arts_md",
+            "display_name": "Live Arts MD!",
+            "client_ref": "live_arts_md",
+            "primary_workflow_refs": ["live_arts_md_invoice_workflow"],
+            "aliases": ["Live Arts MD!", "live_arts_md_invoice_workflow"],
+        },
+        {
+            "world_ref": "finance",
+            "thread_ref": "st_annes",
+            "display_name": "St. Anne's",
+            "client_ref": "st_annes",
+            "primary_workflow_refs": ["st_annes_work_log_event", "st_annes_monthly_invoice_rollup"],
+            "aliases": ["St. Anne's", "ST Anne's", "St Annes", "church_sound"],
+        },
+    ]
+    return {
+        "schema_version": "finance_thread_index_v0",
+        "read_model_id": FINANCE_THREAD_INDEX_READ_MODEL_ID,
+        "generated_at": generated_at,
+        "status": "FINANCE_THREAD_INDEX_READY",
+        "world_ref": "finance",
+        "threads": threads,
+        "routing_rules": {
+            "current_context_is_bias_only": True,
+            "router_determines_target_world_thread": True,
+            "st_annes_work_log_events_belong_to": "finance/st_annes",
+            "capital_hilton_invoice_operator_assist_belongs_to": "finance/capital_hilton",
+            "capital_hilton_proposal_followup_belongs_to": "business_development/capital_hilton",
+        },
+        "authority_boundary": {
+            "email_send_allowed": False,
+            "ledger_posting_allowed": False,
+            "browser_access_allowed": False,
+            "gmail_allowed": False,
+            "coupa_allowed": False,
+            "workbook_mutation_allowed": False,
+            "pdf_export_allowed": False,
+            "paid": False,
+            "sent": False,
+        },
+        "machine_proof": {
+            "capital_hilton_thread_present": True,
+            "live_arts_md_thread_present": True,
+            "st_annes_thread_present": True,
+            "business_action_performed": False,
+            "email_send_performed": False,
+            "ledger_mutation_performed": False,
+            "workbook_mutation_performed": False,
+            "pdf_export_performed": False,
+            "paid_marking_performed": False,
+            "unsafe_true_grants_absent": True,
+        },
+    }
+
+
+def export_finance_thread_index(
+    *,
+    export_root: Path = DEFAULT_EXPORT_ROOT,
+    bridge_export_root: Path | None = DEFAULT_BRIDGE_EXPORT_ROOT,
+    generated_at: str | None = None,
+) -> dict[str, str]:
+    read_model = build_finance_thread_index(generated_at=generated_at)
+    export_root = _rooted(export_root)
+    export_root.mkdir(parents=True, exist_ok=True)
+    local_path = export_root / FINANCE_THREAD_INDEX_JSON_EXPORT_NAME
+    local_path.write_text(stable_json(read_model), encoding="utf-8")
+    bridge_path = ""
+    if bridge_export_root is not None:
+        bridge_export_root.mkdir(parents=True, exist_ok=True)
+        bridge = bridge_export_root / FINANCE_THREAD_INDEX_JSON_EXPORT_NAME
+        bridge.write_text(stable_json(read_model), encoding="utf-8")
+        bridge_path = bridge.as_posix()
+    return {
+        "read_model_path": local_path.as_posix(),
+        "bridge_read_model_path": bridge_path,
+        "status": str(read_model["status"]),
+    }
 
 
 def _authority_blockers(raw_request: Mapping[str, Any]) -> tuple[str, ...]:
@@ -283,6 +483,7 @@ def consume_workflow_package_request(
             "idempotency_key": str(raw_request.get("idempotency_key") or ""),
             "payload_hash": str(raw_request.get("payload_hash") or ""),
         }
+        package["routing_metadata"] = routing_metadata(raw_request, package)
         workflow_package_queue.record_package(sqlite_path, package)
 
     primary_status = _primary_status(package, blockers)
@@ -295,6 +496,7 @@ def consume_workflow_package_request(
         next_safe_action=next_safe_action,
         raw_request=raw_request,
     )
+    route = routing_metadata(raw_request, package)
     receipt = {
         "schema_version": "workflow_package_request_consumer_v0",
         "receipt_type": "WORKFLOW_PACKAGE_REQUEST_RESULT_RECEIPT",
@@ -314,6 +516,14 @@ def consume_workflow_package_request(
         ),
         "blocker": blocker,
         "next_safe_action": next_safe_action,
+        "current_world_ref": route["current_world_ref"],
+        "current_thread_ref": route["current_thread_ref"],
+        "source_world_ref": route["source_world_ref"],
+        "source_thread_ref": route["source_thread_ref"],
+        "target_world_ref": route["target_world_ref"],
+        "target_thread_ref": route["target_thread_ref"],
+        "cross_lane_routed": route["cross_lane_routed"],
+        "routing_note": route["routing_note"],
         "speaker_ref": operator_display["speaker_ref"],
         "voice_profile_ref": operator_display["voice_profile_ref"],
         "voice_mode": operator_display["voice_mode"],
@@ -348,6 +558,8 @@ def consume_workflow_package_request(
             "submit_performed": False,
             "business_state_mutation_performed": False,
             "raw_text_stored_in_sqlite": False,
+            "cross_lane_routing_evaluated": True,
+            "cross_lane_routed": route["cross_lane_routed"],
             "unsafe_true_grants_absent": not _authority_blockers(raw_request),
         },
     }

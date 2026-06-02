@@ -2559,6 +2559,12 @@ def _process_workflow_package_request(
     workflow_ref = str(receipt.get("workflow_ref") or raw_request.get("workflow_ref") or "unknown")
     client_ref = receipt.get("client_ref")
     capability_status = str(receipt.get("capability_gate_status") or "NOT_EVALUATED")
+    current_world_ref = str(receipt.get("current_world_ref") or "")
+    current_thread_ref = str(receipt.get("current_thread_ref") or "")
+    target_world_ref = str(receipt.get("target_world_ref") or "")
+    target_thread_ref = str(receipt.get("target_thread_ref") or "")
+    cross_lane_routed = bool(receipt.get("cross_lane_routed") is True)
+    routing_note = str(receipt.get("routing_note") or "")
     package_recorded = result.package is not None
     internal_status = "RESPONSE_READY" if package_recorded else "BLOCKED_WITH_REASON"
     blocker = str(receipt.get("blocker") or "")
@@ -2623,6 +2629,12 @@ def _process_workflow_package_request(
         "workflow_ref": workflow_ref,
         "client_ref": client_ref,
         "package_status": package_status,
+        "current_world_ref": current_world_ref,
+        "current_thread_ref": current_thread_ref,
+        "target_world_ref": target_world_ref,
+        "target_thread_ref": target_thread_ref,
+        "cross_lane_routed": cross_lane_routed,
+        "routing_note": routing_note,
         "blocker": blocker,
         "no_external_authority_granted": True,
     }
@@ -2670,6 +2682,12 @@ def _process_workflow_package_request(
                 "selected_rail": "workflow_package_request_consumer",
                 "package_id": receipt.get("package_id") or "",
                 "workflow_ref": workflow_ref,
+                "current_world_ref": current_world_ref,
+                "current_thread_ref": current_thread_ref,
+                "target_world_ref": target_world_ref,
+                "target_thread_ref": target_thread_ref,
+                "cross_lane_routed": cross_lane_routed,
+                "routing_note": routing_note,
                 "package_status": package_status,
                 "capability_gate_status": capability_status,
                 "noop_worker_only": True,

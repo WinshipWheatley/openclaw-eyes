@@ -87,6 +87,8 @@ def test_consumer_records_valid_workflow_package_request_in_queue_sqlite(tmp_pat
     assert result.receipt["workflow_ref"] == "st_annes_work_log_event"
     assert result.receipt["client_ref"] == "st_annes"
     assert result.receipt["package_status"] == "OPERATOR_REVIEW_REQUIRED"
+    assert result.receipt["target_world_ref"] == "finance"
+    assert result.receipt["target_thread_ref"] == "st_annes"
     assert result.receipt["operator_display"]["headline"] == "St. Anne's work log captured"
     assert result.receipt["speaker_ref"] == "cassandra"
     assert result.receipt["voice_profile_ref"] == "agent_voice_profile:cassandra"
@@ -116,6 +118,96 @@ def test_consumer_records_valid_workflow_package_request_in_queue_sqlite(tmp_pat
             "coupa_allowed, portal_submit_allowed, paid, sent from business_action_gate_results"
         ).fetchall()
         assert gates == [(0, 0, 0, 0, 0, 0, 0, 0)]
+
+
+def test_st_annes_work_log_from_capital_hilton_context_cross_lane_routes_to_finance_st_annes(tmp_path):
+    request = _request_payload(
+        request_id="church_sound_from_capital_hilton_context",
+        source_text="Mark that I'm at church running sound.",
+        world_ref="finance",
+        thread_ref="capital_hilton_invoice_workflow",
+    )
+
+    result = consumer.consume_workflow_package_request(
+        request,
+        source_request_filename="mission_control_operator_instruction_request_church_sound_cross_lane.json",
+        generated_at=FIXED_NOW,
+        sqlite_path=tmp_path / "workflow_package_queue.sqlite",
+    )
+
+    assert result.status == "RECORDED"
+    assert result.receipt["workflow_ref"] == "st_annes_work_log_event"
+    assert result.receipt["current_world_ref"] == "finance"
+    assert result.receipt["current_thread_ref"] == "capital_hilton"
+    assert result.receipt["target_world_ref"] == "finance"
+    assert result.receipt["target_thread_ref"] == "st_annes"
+    assert result.receipt["cross_lane_routed"] is True
+    assert result.receipt["routing_note"] == "Routed to Finance / St. Anne's."
+
+
+def test_capital_hilton_invoice_from_capital_hilton_context_stays_in_finance_capital_hilton(tmp_path):
+    request = _request_payload(
+        request_id="capital_hilton_invoice_same_lane_context",
+        source_text="Submit Capital Hilton invoice.",
+        world_ref="finance",
+        thread_ref="capital_hilton_invoice_workflow",
+    )
+
+    result = consumer.consume_workflow_package_request(
+        request,
+        source_request_filename="mission_control_operator_instruction_request_capital_hilton_invoice_same_lane.json",
+        generated_at=FIXED_NOW,
+        sqlite_path=tmp_path / "workflow_package_queue.sqlite",
+    )
+
+    assert result.receipt["workflow_ref"] == "capital_hilton_invoice_operator_assist"
+    assert result.receipt["current_world_ref"] == "finance"
+    assert result.receipt["current_thread_ref"] == "capital_hilton"
+    assert result.receipt["target_world_ref"] == "finance"
+    assert result.receipt["target_thread_ref"] == "capital_hilton"
+    assert result.receipt["cross_lane_routed"] is False
+    assert result.receipt["routing_note"] == ""
+
+
+def test_capital_hilton_proposal_from_finance_context_routes_to_business_development(tmp_path):
+    request = _request_payload(
+        request_id="capital_hilton_proposal_from_finance_context",
+        source_text="Follow up on the Capital Hilton proposal.",
+        world_ref="finance",
+        thread_ref="capital_hilton_invoice_workflow",
+    )
+
+    result = consumer.consume_workflow_package_request(
+        request,
+        source_request_filename="mission_control_operator_instruction_request_capital_hilton_proposal_cross_lane.json",
+        generated_at=FIXED_NOW,
+        sqlite_path=tmp_path / "workflow_package_queue.sqlite",
+    )
+
+    assert result.receipt["workflow_ref"] == "capital_hilton_proposal_followup"
+    assert result.receipt["current_world_ref"] == "finance"
+    assert result.receipt["current_thread_ref"] == "capital_hilton"
+    assert result.receipt["target_world_ref"] == "business_development"
+    assert result.receipt["target_thread_ref"] == "capital_hilton"
+    assert result.receipt["cross_lane_routed"] is True
+    assert result.receipt["routing_note"] == "Routed to Business Development / Capital Hilton."
+
+
+def test_finance_thread_index_includes_st_annes_and_exports_bridge(tmp_path):
+    result = consumer.export_finance_thread_index(
+        export_root=tmp_path / "read_models",
+        bridge_export_root=tmp_path / "bridge",
+        generated_at=FIXED_NOW,
+    )
+
+    local = json.loads(Path(result["read_model_path"]).read_text(encoding="utf-8"))
+    bridge = json.loads(Path(result["bridge_read_model_path"]).read_text(encoding="utf-8"))
+    assert local == bridge
+    threads = {thread["thread_ref"]: thread for thread in local["threads"]}
+    assert set(threads) >= {"capital_hilton", "live_arts_md", "st_annes"}
+    assert threads["st_annes"]["display_name"] == "St. Anne's"
+    assert "st_annes_work_log_event" in threads["st_annes"]["primary_workflow_refs"]
+    assert all(value is False for value in local["authority_boundary"].values())
 
 
 def test_consumer_blocks_unsafe_true_grant_without_queue_write(tmp_path):
@@ -161,8 +253,8 @@ def test_service_processes_three_workflow_package_requests_and_writes_scoped_res
             inbox / "mission_control_operator_instruction_request_church_sound_operator_instruction_smoke.json",
             request_id="church_sound_operator_instruction_smoke",
             source_text="Mark that I'm at church running sound.",
-            world_ref="operations",
-            thread_ref="church_sound",
+            world_ref="finance",
+            thread_ref="capital_hilton_invoice_workflow",
         ),
         _write_request(
             inbox / "mission_control_operator_instruction_request_capital_hilton_business_development_operator_instruction_smoke.json",
@@ -217,6 +309,12 @@ def test_service_processes_three_workflow_package_requests_and_writes_scoped_res
             "cassandra",
             "agent_voice_profile:cassandra",
             "operator_intake",
+            "finance",
+            "capital_hilton",
+            "finance",
+            "st_annes",
+            True,
+            "Routed to Finance / St. Anne's.",
         ),
         "capital_hilton_business_development_operator_instruction_smoke": (
             "capital_hilton_proposal_followup",
@@ -229,6 +327,12 @@ def test_service_processes_three_workflow_package_requests_and_writes_scoped_res
             "cassandra",
             "agent_voice_profile:cassandra",
             "operator_calm",
+            "business_development",
+            "capital_hilton",
+            "business_development",
+            "capital_hilton",
+            False,
+            "",
         ),
         "capital_hilton_invoice_workflow_operator_instruction_smoke": (
             "capital_hilton_invoice_operator_assist",
@@ -241,12 +345,35 @@ def test_service_processes_three_workflow_package_requests_and_writes_scoped_res
             "chief",
             "agent_voice_profile:chief",
             "diagnostic",
+            "finance",
+            "capital_hilton",
+            "finance",
+            "capital_hilton",
+            False,
+            "",
         ),
     }
     for request in requests:
         response = json.loads(_safe_response_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
         heartbeat = json.loads(_safe_heartbeat_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
-        workflow_ref, client_ref, package_status, headline, status_label, tone, next_safe_action, speaker_ref, voice_profile_ref, voice_mode = expected[request["request_id"]]
+        (
+            workflow_ref,
+            client_ref,
+            package_status,
+            headline,
+            status_label,
+            tone,
+            next_safe_action,
+            speaker_ref,
+            voice_profile_ref,
+            voice_mode,
+            current_world_ref,
+            current_thread_ref,
+            target_world_ref,
+            target_thread_ref,
+            cross_lane_routed,
+            routing_note,
+        ) = expected[request["request_id"]]
 
         assert heartbeat["request_type"] == "WORKFLOW_PACKAGE_REQUEST"
         assert heartbeat["processing_status"] == "CHECKING_WORKFLOW_PACKAGE_QUEUE"
@@ -257,6 +384,12 @@ def test_service_processes_three_workflow_package_requests_and_writes_scoped_res
         assert response["workflow_ref"] == workflow_ref
         assert response["client_ref"] == client_ref
         assert response["package_status"] == package_status
+        assert response["current_world_ref"] == current_world_ref
+        assert response["current_thread_ref"] == current_thread_ref
+        assert response["target_world_ref"] == target_world_ref
+        assert response["target_thread_ref"] == target_thread_ref
+        assert response["cross_lane_routed"] is cross_lane_routed
+        assert response["routing_note"] == routing_note
         assert response["package_id"].startswith("workflow_package:")
         display = response["operator_display"]
         assert display["headline"] == headline
@@ -282,6 +415,8 @@ def test_service_processes_three_workflow_package_requests_and_writes_scoped_res
         assert response["no_external_authority_granted"] is True
         assert response["detail_disclosure"]["workflow_package_request_consumer"]["package_status"] == package_status
         assert response["detail_disclosure"]["workflow_package_request_consumer"]["workflow_ref"] == workflow_ref
+        assert response["detail_disclosure"]["workflow_package_request_consumer"]["target_thread_ref"] == target_thread_ref
+        assert response["detail_disclosure"]["workflow_package_request_consumer"]["cross_lane_routed"] is cross_lane_routed
         assert response["detail_disclosure"]["package"]["workflow_ref"] == workflow_ref
         if package_status == "PROVIDER_GATE_REQUIRED":
             assert "cannot run unattended" in display["plain_summary"]
