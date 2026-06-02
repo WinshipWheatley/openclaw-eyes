@@ -1,0 +1,332 @@
+{
+  "authority_boundary": {
+    "browser_access_allowed": false,
+    "coupa_allowed": false,
+    "email_send_allowed": false,
+    "gmail_allowed": false,
+    "ledger_posting_allowed": false,
+    "paid": false,
+    "paid_marking_allowed": false,
+    "pdf_export_allowed": false,
+    "portal_submit_allowed": false,
+    "sent": false,
+    "workbook_mutation_allowed": false,
+    "workbook_source_mutation_allowed": false
+  },
+  "display_rules": {
+    "machine_refs_primary_visible": false,
+    "next_safe_action_max_sentences": 1,
+    "plain_summary_max_sentences": 1,
+    "primary_card_max_visible_facts": 3,
+    "proof_collapsed_by_default": true
+  },
+  "generated_at": "2026-06-02T07:15:00+00:00",
+  "helm_briefing": {
+    "headline": "Client work is current",
+    "machine_refs_primary_visible": false,
+    "next_safe_action": "Use compact cards first.",
+    "proof_drawer": {
+      "caption": "Proof available.",
+      "collapsed_by_default": true,
+      "source_truth_refs": [
+        "generated/read_models/client_work_closeout_2026_06_01.json",
+        "generated/read_models/operator_conversation_journal.json"
+      ]
+    },
+    "status_label": "Ready",
+    "summary": "Completed sends and submissions are recorded; follow-ups stay gated."
+  },
+  "machine_proof": {
+    "authority_flags_all_false": true,
+    "browser_access_performed": false,
+    "business_state_mutation_performed": false,
+    "compact_primary_view_available": true,
+    "coupa_access_performed": false,
+    "email_send_performed": false,
+    "gmail_access_performed": false,
+    "ledger_mutation_performed": false,
+    "machine_refs_primary_visible": false,
+    "paid_marking_performed": false,
+    "pdf_export_performed": false,
+    "proof_collapsed_by_default": true,
+    "stale_surface_override_count": 3,
+    "submit_performed": false,
+    "thread_card_count": 5,
+    "unsafe_true_grants_absent": true,
+    "workbook_mutation_performed": false
+  },
+  "purpose": "Compact human-readable operator cards for Mission Control, with stale backend surfaces suppressed behind newer business truth.",
+  "read_model_id": "operator_human_readability_surface",
+  "schema_version": "operator_human_readability_surface_v1",
+  "stale_surface_overrides": [
+    {
+      "action": "secondary_or_hidden",
+      "condition": "coupa_submission_recorded=true or coupa_submitted=true",
+      "newer_truth_ref": "generated/read_models/capital_hilton_invoice_operator_run_status.json",
+      "override_id": "capital_hilton_invoice_candidate_after_operator_submission",
+      "reason": "Capital Hilton invoice was submitted through operator assist; legacy invoice candidate panels must not remain primary.",
+      "replacement_card_id": "finance.capital_hilton.invoice_operator_run",
+      "stale_surface_ref": "legacy.capital_hilton.excel_invoice_candidate_not_confirmed"
+    },
+    {
+      "action": "secondary_or_hidden",
+      "condition": "proposal_status=SENT_FOR_CLIENT_REVIEW",
+      "newer_truth_ref": "generated/read_models/capital_hilton_business_development_proposal.json",
+      "override_id": "capital_hilton_proposal_draft_after_send",
+      "reason": "The proposal has been sent for client review; draft-only cards must not look unsent.",
+      "replacement_card_id": "business_development.capital_hilton.fight_weekend_proposal",
+      "stale_surface_ref": "business_development.capital_hilton.proposal_draft_unsent"
+    },
+    {
+      "action": "secondary_or_hidden",
+      "condition": "invoice_status=MANUAL_SEND_OUT_OF_BAND_RECORDED",
+      "newer_truth_ref": "generated/read_models/st_annes_invoice_status.json",
+      "override_id": "st_annes_invoice_draft_after_manual_send",
+      "reason": "St. Anne's May invoice was manually sent and recorded; do not show it as draft or send-needed.",
+      "replacement_card_id": "finance.st_annes.invoice_may_2026",
+      "stale_surface_ref": "finance.st_annes.invoice_draft_or_send_needed"
+    }
+  ],
+  "status": "OPERATOR_HUMAN_READABILITY_SURFACE_READY",
+  "thread_cards": [
+    {
+      "authority_boundary": {
+        "browser_access_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "gmail_allowed": false,
+        "ledger_posting_allowed": false,
+        "paid": false,
+        "paid_marking_allowed": false,
+        "pdf_export_allowed": false,
+        "portal_submit_allowed": false,
+        "sent": false,
+        "workbook_mutation_allowed": false,
+        "workbook_source_mutation_allowed": false
+      },
+      "card_id": "finance.st_annes.invoice_may_2026",
+      "compact_primary_view": {
+        "headline": "St. Anne’s invoice sent",
+        "next_safe_action": "Watch for payment.",
+        "status_label": "Sent outside OpenClaw",
+        "summary": "May invoice was sent manually and recorded."
+      },
+      "headline": "St. Anne’s invoice sent",
+      "machine_refs_primary_visible": false,
+      "next_safe_action": "Watch for payment.",
+      "primary_card_visible_fact_count": 4,
+      "primary_visible": true,
+      "proof_drawer": {
+        "caption": "Proof available.",
+        "collapsed_by_default": true,
+        "proof_refs": [],
+        "source_truth_ref": "generated/read_models/st_annes_invoice_status.json"
+      },
+      "route_note": "",
+      "source_truth_summary": {
+        "invoice_status": "MANUAL_SEND_OUT_OF_BAND_RECORDED",
+        "ledger_posting_allowed": false,
+        "manual_send_out_of_band_known": true,
+        "openclaw_send_performed": false,
+        "paid": false
+      },
+      "status_label": "Sent outside OpenClaw",
+      "summary": "May invoice was sent manually and recorded.",
+      "thread_ref": "st_annes",
+      "world_ref": "finance"
+    },
+    {
+      "authority_boundary": {
+        "browser_access_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "gmail_allowed": false,
+        "ledger_posting_allowed": false,
+        "paid": false,
+        "paid_marking_allowed": false,
+        "pdf_export_allowed": false,
+        "portal_submit_allowed": false,
+        "sent": false,
+        "workbook_mutation_allowed": false,
+        "workbook_source_mutation_allowed": false
+      },
+      "card_id": "finance.capital_hilton.invoice_operator_run",
+      "compact_primary_view": {
+        "headline": "Capital Hilton invoice submitted",
+        "next_safe_action": "Watch Coupa and payment.",
+        "status_label": "Submitted",
+        "summary": "Coupa is processing, and Annette was emailed."
+      },
+      "headline": "Capital Hilton invoice submitted",
+      "machine_refs_primary_visible": false,
+      "next_safe_action": "Watch Coupa and payment.",
+      "primary_card_visible_fact_count": 4,
+      "primary_visible": true,
+      "proof_drawer": {
+        "caption": "Proof available.",
+        "collapsed_by_default": true,
+        "proof_refs": [
+          "/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/capital_hilton_invoice_operator_run_receipt_20260601T221600Z.json",
+          "/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/capital_hilton_invoice_operator_run_report_20260601T221600Z.md",
+          "/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/2026-06-01/Invoice_Capital_Hilton_2026-06-01.pdf",
+          "/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/capital_hilton_invoice_operator_run_full_automation_report_20260601T222036Z.md"
+        ],
+        "source_truth_ref": "generated/read_models/capital_hilton_invoice_operator_run_status.json"
+      },
+      "route_note": "",
+      "source_truth_summary": {
+        "autonomous_openclaw_coupa_submit": false,
+        "autonomous_openclaw_email_send": false,
+        "coupa_status_observed": "Processing",
+        "coupa_submission_recorded": true,
+        "email_to_annette_recorded": true,
+        "ledger_mutation_performed": false,
+        "paid": false
+      },
+      "status_label": "Submitted",
+      "summary": "Coupa is processing, and Annette was emailed.",
+      "thread_ref": "capital_hilton",
+      "world_ref": "finance"
+    },
+    {
+      "authority_boundary": {
+        "browser_access_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "gmail_allowed": false,
+        "ledger_posting_allowed": false,
+        "paid": false,
+        "paid_marking_allowed": false,
+        "pdf_export_allowed": false,
+        "portal_submit_allowed": false,
+        "sent": false,
+        "workbook_mutation_allowed": false,
+        "workbook_source_mutation_allowed": false
+      },
+      "card_id": "business_development.capital_hilton.fight_weekend_proposal",
+      "compact_primary_view": {
+        "headline": "Capital Hilton proposal sent",
+        "next_safe_action": "Wait for response.",
+        "status_label": "Client review",
+        "summary": "Proposal is with Lawrence for review."
+      },
+      "headline": "Capital Hilton proposal sent",
+      "machine_refs_primary_visible": false,
+      "next_safe_action": "Wait for response.",
+      "primary_card_visible_fact_count": 4,
+      "primary_visible": true,
+      "proof_drawer": {
+        "caption": "Proof available.",
+        "collapsed_by_default": true,
+        "proof_refs": [
+          "/mnt/e/openclaw/artifacts/proposals/capital_hilton/fight_weekend_2026/capital_hilton_proposal_email_sent_receipt_20260601T223704Z.json",
+          "/mnt/e/openclaw/artifacts/proposals/capital_hilton/fight_weekend_2026/Capital_Hilton_Fight_Weekend_Entertainment_Proposal_DRAFT.pdf",
+          "/mnt/e/openclaw/artifacts/proposals/capital_hilton/fight_weekend_2026/Capital_Hilton_Fight_Weekend_Entertainment_Proposal_DRAFT.md",
+          "/mnt/e/openclaw/artifacts/proposals/capital_hilton/fight_weekend_2026/capital_hilton_fight_weekend_proposal_packet.json",
+          "/mnt/e/openclaw/artifacts/proposals/capital_hilton/fight_weekend_2026/capital_hilton_fight_weekend_proposal_review_receipt.json"
+        ],
+        "source_truth_ref": "generated/read_models/capital_hilton_business_development_proposal.json"
+      },
+      "route_note": "",
+      "source_truth_summary": {
+        "finance_handoff_allowed": false,
+        "paid": false,
+        "proposal_accepted": false,
+        "proposal_sent_recorded": true,
+        "proposal_status": "SENT_FOR_CLIENT_REVIEW"
+      },
+      "status_label": "Client review",
+      "summary": "Proposal is with Lawrence for review.",
+      "thread_ref": "capital_hilton",
+      "world_ref": "business_development"
+    },
+    {
+      "authority_boundary": {
+        "browser_access_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "gmail_allowed": false,
+        "ledger_posting_allowed": false,
+        "paid": false,
+        "paid_marking_allowed": false,
+        "pdf_export_allowed": false,
+        "portal_submit_allowed": false,
+        "sent": false,
+        "workbook_mutation_allowed": false,
+        "workbook_source_mutation_allowed": false
+      },
+      "card_id": "finance.st_annes.work_log_event_staging",
+      "compact_primary_view": {
+        "headline": "St. Anne’s work log captured",
+        "next_safe_action": "Confirm or discard.",
+        "status_label": "Needs confirmation",
+        "summary": "Saved as a draft event until you confirm it."
+      },
+      "headline": "St. Anne’s work log captured",
+      "machine_refs_primary_visible": false,
+      "next_safe_action": "Confirm or discard.",
+      "primary_card_visible_fact_count": 4,
+      "primary_visible": true,
+      "proof_drawer": {
+        "caption": "Proof available.",
+        "collapsed_by_default": true,
+        "proof_refs": [],
+        "source_truth_ref": "generated/read_models/st_annes_work_log_events.json"
+      },
+      "route_note": "",
+      "source_truth_summary": {
+        "operator_confirmation_required_before_invoice_inclusion": true,
+        "smoke_or_test_events_not_invoice_included": true,
+        "staged_event_count": 1
+      },
+      "status_label": "Needs confirmation",
+      "summary": "Saved as a draft event until you confirm it.",
+      "thread_ref": "st_annes",
+      "world_ref": "finance"
+    },
+    {
+      "authority_boundary": {
+        "browser_access_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "gmail_allowed": false,
+        "ledger_posting_allowed": false,
+        "paid": false,
+        "paid_marking_allowed": false,
+        "pdf_export_allowed": false,
+        "portal_submit_allowed": false,
+        "sent": false,
+        "workbook_mutation_allowed": false,
+        "workbook_source_mutation_allowed": false
+      },
+      "card_id": "finance.capital_hilton.invoice_provider_gate",
+      "compact_primary_view": {
+        "headline": "Capital Hilton needs operator assist",
+        "next_safe_action": "Stage an operator-assist packet.",
+        "status_label": "Provider gate",
+        "summary": "Coupa cannot run unattended."
+      },
+      "headline": "Capital Hilton needs operator assist",
+      "machine_refs_primary_visible": false,
+      "next_safe_action": "Stage an operator-assist packet.",
+      "primary_card_visible_fact_count": 4,
+      "primary_visible": true,
+      "proof_drawer": {
+        "caption": "Proof available.",
+        "collapsed_by_default": true,
+        "proof_refs": [],
+        "source_truth_ref": "generated/read_models/workflow_package_queue_contract.json"
+      },
+      "route_note": "",
+      "source_truth_summary": {
+        "coupa_action_ran": false,
+        "package_status": "PROVIDER_GATE_REQUIRED",
+        "workflow_ref": "capital_hilton_invoice_operator_assist"
+      },
+      "status_label": "Provider gate",
+      "summary": "Coupa cannot run unattended.",
+      "thread_ref": "capital_hilton",
+      "world_ref": "finance"
+    }
+  ]
+}
