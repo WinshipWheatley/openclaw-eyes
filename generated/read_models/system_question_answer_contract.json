@@ -264,23 +264,24 @@
     {
       "answer": {
         "confirmed": [
-          "The system question workflow stayed local-only.",
-          "No external model, provider, agent loop, or business action ran."
+          "This workflow answers from local read models and SQLite metadata only.",
+          "No send, submit, ledger, workbook, PDF, browser, Gmail, Coupa, model, or worker action is authorized here.",
+          "Proof refs stay collapsed by default for operator display."
         ],
-        "headline": "No local answer found",
-        "inferred": [],
-        "next_safe_action": "Ask with a specific package id, gate name, client, or receipt ref.",
-        "plain_summary": "I do not have a deterministic local answer for that question yet.",
+        "headline": "Safe next is review, not action",
+        "inferred": [
+          "Ask for a specific package, gate, client, or receipt when you want the next local proof check."
+        ],
+        "next_safe_action": "Pick one proof ref or package id to inspect locally.",
+        "plain_summary": "The safe next move is to review local proof and keep business-action gates closed.",
         "proof_refs": [
-          "generated/read_models/operator_human_readability_surface.json",
           "generated/read_models/workflow_package_queue_contract.json",
-          "generated/read_models/agent_voice_routing_contract.json"
+          "generated/read_models/operator_conversation_journal.json",
+          "generated/read_models/agent_voice_routing_contract.json",
+          "generated/read_models/workflow_package_request_consumer_status.json"
         ],
         "show_machine_details_by_default": false,
-        "unknown": [
-          "No matching local answer rule was found.",
-          "The requested fact may need a new read model, wiki source, or explicit proof ref."
-        ]
+        "unknown": []
       },
       "authority_boundary": {
         "browser_access_allowed": false,
@@ -309,14 +310,14 @@
         "workbook_mutation_performed": false
       },
       "privacy_impact": "local_only",
-      "question": "What does OpenClaw know about the purple submarine?",
+      "question": "What is safe next?",
       "speaker_ref": "openclaw",
       "voice_mode": "operator_calm",
       "voice_profile_ref": "agent_voice_profile:openclaw",
       "workflow_ref": "system_question_answer"
     }
   ],
-  "generated_at": "2026-06-02T08:00:00+00:00",
+  "generated_at": "2026-06-02T15:15:51+00:00",
   "machine_proof": {
     "authority_flags_all_false": true,
     "browser_access_performed": false,

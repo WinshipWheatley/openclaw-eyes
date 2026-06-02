@@ -71,7 +71,7 @@ EXAMPLE_QUESTIONS = (
     "Why did Submit Capital Hilton invoice block?",
     "Can this send email?",
     "What does SQLite know about St. Anne's work logs?",
-    "What does OpenClaw know about the purple submarine?",
+    "What is safe next?",
 )
 
 
@@ -467,6 +467,33 @@ def _proof_answer(question: str, sources: Mapping[str, Any]) -> dict[str, Any]:
     )
 
 
+def _safe_next_answer(question: str, sources: Mapping[str, Any]) -> dict[str, Any]:
+    proof_refs = _existing_refs(
+        CORE_SOURCE_REFS["workflow_package_queue"],
+        CORE_SOURCE_REFS["operator_conversation_journal"],
+        CORE_SOURCE_REFS["agent_voice_routing"],
+        "generated/read_models/workflow_package_request_consumer_status.json",
+    )
+    return _answer_payload(
+        speaker_ref="openclaw",
+        voice_mode="operator_calm",
+        question=question,
+        headline="Safe next is review, not action",
+        plain_summary="The safe next move is to review local proof and keep business-action gates closed.",
+        confirmed=[
+            "This workflow answers from local read models and SQLite metadata only.",
+            "No send, submit, ledger, workbook, PDF, browser, Gmail, Coupa, model, or worker action is authorized here.",
+            "Proof refs stay collapsed by default for operator display.",
+        ],
+        inferred=[
+            "Ask for a specific package, gate, client, or receipt when you want the next local proof check.",
+        ],
+        unknown=[],
+        next_safe_action="Pick one proof ref or package id to inspect locally.",
+        proof_refs=proof_refs,
+    )
+
+
 def _unknown_answer(question: str, speaker_ref: str, voice_mode: str) -> dict[str, Any]:
     proof_refs = _existing_refs(
         CORE_SOURCE_REFS["operator_human_readability_surface"],
@@ -513,6 +540,8 @@ def answer_system_question(
         return _email_authority_answer(question, sources)
     if "sqlite" in text and ("st. anne" in text or "st anne" in text or "work log" in text or "work logs" in text):
         return _sqlite_work_log_answer(question, sources)
+    if "what is safe next" in text or text.strip() in {"safe next?", "what's safe next?", "whats safe next?"}:
+        return _safe_next_answer(question, sources)
     if "which agent should speak" in text or "speaker" in text or "voice" in text:
         return _voice_route_answer(question, sources)
     if "proof" in text or "receipt" in text:

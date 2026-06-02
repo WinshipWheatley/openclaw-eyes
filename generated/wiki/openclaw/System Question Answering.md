@@ -27,7 +27,7 @@ It is deterministic and local-only. It does not call an external LLM, spawn agen
 - Capital Hilton is blocked by provider gates: The submit package is blocked because Coupa requires operator assist and a final Submit gate. Next: Stage an operator-assist packet with an explicit final Submit gate if the operator wants to continue later.
 - Email send authority is closed: No email can be sent unless a separate explicit send gate is recorded. Next: Keep the business action gate closed until an explicit send approval exists.
 - SQLite has work-log metadata: SQLite can report St. Anne's work-log tables and counts without dumping raw event rows. Next: Open the proof drawer if table names/counts are enough; request a separate whitelisted proof read for row-level details.
-- No local answer found: I do not have a deterministic local answer for that question yet. Next: Ask with a specific package id, gate name, client, or receipt ref.
+- Safe next is review, not action: The safe next move is to review local proof and keep business-action gates closed. Next: Pick one proof ref or package id to inspect locally.
 
 ## Boundary
 

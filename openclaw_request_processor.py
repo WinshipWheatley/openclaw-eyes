@@ -2566,7 +2566,12 @@ def _process_workflow_package_request(
     cross_lane_routed = bool(receipt.get("cross_lane_routed") is True)
     routing_note = str(receipt.get("routing_note") or "")
     package_recorded = result.package is not None
-    internal_status = "RESPONSE_READY" if package_recorded else "BLOCKED_WITH_REASON"
+    system_question_answered = (
+        workflow_ref == "system_question_answer"
+        and str(receipt.get("raw_internal_status") or "") == "RESPONSE_READY"
+    )
+    response_ready = package_recorded or system_question_answered
+    internal_status = "RESPONSE_READY" if response_ready else "BLOCKED_WITH_REASON"
     blocker = str(receipt.get("blocker") or "")
     operator_display = (
         dict(receipt.get("operator_display"))
@@ -2617,10 +2622,14 @@ def _process_workflow_package_request(
         "next_action": f"Next: {next_safe_action}",
         "missing_items_short": (blocker,) if blocker else (),
         "detail_summary": (
-            f"Package status {package_status}; capability gate {capability_status}. "
-            "The queue recorded only a no-op worker result and a closed business action gate."
+            "System question answered from local read models, wiki refs, and SQLite metadata; no package queue row was written."
+            if system_question_answered
+            else (
+                f"Package status {package_status}; capability gate {capability_status}. "
+                "The queue recorded only a no-op worker result and a closed business action gate."
+            )
         ),
-        "proof_refs": (),
+        "proof_refs": tuple(str(ref) for ref in receipt.get("proof_refs", ()) if ref) if system_question_answered else (),
         "debug_refs": (),
         "raw_internal_status": internal_status,
         "mac_render_hint": "COMPACT_WITH_DISCLOSURE",
@@ -2649,14 +2658,26 @@ def _process_workflow_package_request(
         what_happened=(
             "PC recognized a Mission Control WORKFLOW_PACKAGE_REQUEST_V0 envelope.",
             "PC validated source surface, operator mode, receipt requirement, and false authority boundaries.",
-            "PC routed the instruction into the Workflow Package Queue V0 dry-run registry.",
-            "PC returned a scoped Mac response with the package status.",
+            (
+                "PC detected system-question intent and routed it to the local system_question_answer workflow."
+                if system_question_answered
+                else "PC routed the instruction into the Workflow Package Queue V0 dry-run registry."
+            ),
+            (
+                "PC returned a speaker-shaped operator display with proof refs collapsed."
+                if system_question_answered
+                else "PC returned a scoped Mac response with the package status."
+            ),
             "No Telegram live connection, email, Gmail, browser, Coupa, workbook mutation, PDF export, ledger mutation, submit, paid marking, or business-state mutation occurred.",
         ),
         why_it_happened=(
+            "System-question intent matched the local deterministic answer workflow."
+            if system_question_answered
+            else (
             f"Workflow Package Queue classified the instruction as {workflow_ref} with package status {package_status}."
             if package_recorded
             else f"Envelope validation blockers: {blocker}."
+            )
         ),
         how_to_fix=next_safe_action,
         visible_cards=(
@@ -2688,7 +2709,8 @@ def _process_workflow_package_request(
                 "routing_note": routing_note,
                 "package_status": package_status,
                 "capability_gate_status": capability_status,
-                "noop_worker_only": True,
+                "noop_worker_only": not system_question_answered,
+                "system_question_answer_local_only": system_question_answered,
             },
         ),
         context_package_refs=(),
@@ -2697,6 +2719,7 @@ def _process_workflow_package_request(
             "request_classification": asdict(response_classification),
             "workflow_package_request_consumer": receipt,
             "package": package,
+            "system_question_answer": receipt.get("system_question_answer") if system_question_answered else None,
             "operator_display": operator_display,
             "package_queue_sqlite_path": receipt.get("sqlite_path"),
             "source_request_metadata": package.get("source_request_metadata") if isinstance(package, Mapping) else None,

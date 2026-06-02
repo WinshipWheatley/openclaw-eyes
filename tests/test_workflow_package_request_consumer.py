@@ -80,6 +80,180 @@ def _assert_compact_display(display):
     assert isinstance(display["secondary_facts"], list)
 
 
+def _assert_system_question_display(display, *, speaker_ref: str, voice_mode: str):
+    assert display["speaker_ref"] == speaker_ref
+    assert display["voice_profile_ref"] == f"agent_voice_profile:{speaker_ref}"
+    assert display["voice_mode"] == voice_mode
+    assert display["audience"] == "internal_operator"
+    assert display["headline"]
+    assert display["plain_summary"]
+    assert display["next_safe_action"]
+    assert display["proof_caption"] == "Proof available."
+    assert display["show_machine_details_by_default"] is False
+    assert display["proof_refs_collapsed"] is True
+    _assert_compact_display(display)
+
+
+def _assert_no_unsafe_grants(payload):
+    rendered = json.dumps(payload, sort_keys=True)
+    unsafe_true_fragments = [
+        '"email_send_allowed": true',
+        '"gmail_allowed": true',
+        '"coupa_allowed": true',
+        '"coupa_submit_allowed": true',
+        '"ledger_posting_allowed": true',
+        '"paid": true',
+        '"sent": true',
+        '"portal_submit_allowed": true',
+        '"business_action_performed": true',
+    ]
+    assert not any(fragment in rendered for fragment in unsafe_true_fragments)
+
+
+def test_chief_vs_spawned_worker_question_routes_to_system_question_answer(tmp_path):
+    request = _request_payload(
+        request_id="system_question_chief_vs_worker",
+        source_text="What is the difference between Chief and a spawned worker?",
+        world_ref="operations",
+        thread_ref="openclaw",
+    )
+
+    result = consumer.consume_workflow_package_request(
+        request,
+        source_request_filename="mission_control_operator_instruction_request_system_question_chief_vs_worker.json",
+        generated_at=FIXED_NOW,
+        sqlite_path=tmp_path / "workflow_package_queue.sqlite",
+    )
+
+    assert result.status == "RECORDED"
+    assert result.package is None
+    assert result.receipt["workflow_ref"] == "system_question_answer"
+    assert result.receipt["package_status"] == "ANSWER_READY"
+    assert result.receipt["raw_internal_status"] == "RESPONSE_READY"
+    assert result.receipt["machine_proof"]["system_question_answer_local_only"] is True
+    assert result.receipt["machine_proof"]["package_recorded"] is False
+    assert not (tmp_path / "workflow_package_queue.sqlite").exists()
+    _assert_system_question_display(result.receipt["operator_display"], speaker_ref="hermes", voice_mode="recommendation")
+    assert "Chief is a named OpenClaw role" in json.dumps(result.receipt["system_question_answer"])
+    _assert_no_unsafe_grants(result.receipt)
+
+
+def test_capital_hilton_block_question_routes_to_chief_diagnostic_answer(tmp_path):
+    request = _request_payload(
+        request_id="system_question_capital_hilton_block",
+        source_text="Why did Submit Capital Hilton invoice block?",
+        world_ref="finance",
+        thread_ref="capital_hilton",
+    )
+
+    result = consumer.consume_workflow_package_request(
+        request,
+        source_request_filename="mission_control_operator_instruction_request_system_question_capital_hilton_block.json",
+        generated_at=FIXED_NOW,
+        sqlite_path=tmp_path / "workflow_package_queue.sqlite",
+    )
+
+    assert result.receipt["workflow_ref"] == "system_question_answer"
+    _assert_system_question_display(result.receipt["operator_display"], speaker_ref="chief", voice_mode="diagnostic")
+    assert "provider gate" in result.receipt["operator_display"]["routing_reason"]
+    assert "Capital Hilton" in result.receipt["operator_display"]["headline"]
+    assert "Submit gate" in json.dumps(result.receipt["system_question_answer"]) or "final Submit gate" in json.dumps(result.receipt["system_question_answer"])
+    _assert_no_unsafe_grants(result.receipt)
+
+
+def test_send_email_question_routes_to_guardian_safety_answer(tmp_path):
+    request = _request_payload(
+        request_id="system_question_send_email",
+        source_text="Can this send email?",
+        world_ref="operations",
+        thread_ref="openclaw",
+    )
+
+    result = consumer.consume_workflow_package_request(
+        request,
+        source_request_filename="mission_control_operator_instruction_request_system_question_send_email.json",
+        generated_at=FIXED_NOW,
+        sqlite_path=tmp_path / "workflow_package_queue.sqlite",
+    )
+
+    assert result.receipt["workflow_ref"] == "system_question_answer"
+    _assert_system_question_display(result.receipt["operator_display"], speaker_ref="guardian", voice_mode="safety_gate")
+    assert "Email send authority is closed" == result.receipt["operator_display"]["headline"]
+    assert result.receipt["machine_proof"]["email_send_performed"] is False
+    _assert_no_unsafe_grants(result.receipt)
+
+
+def test_sqlite_st_annes_question_summarizes_refs_not_raw_rows(tmp_path):
+    raw_marker = "RAW_ROW_BODY_SHOULD_NOT_APPEAR"
+    request = _request_payload(
+        request_id="system_question_st_annes_sqlite",
+        source_text=f"What does SQLite know about St. Anne's work logs? {raw_marker * 20}",
+        world_ref="finance",
+        thread_ref="st_annes",
+    )
+
+    result = consumer.consume_workflow_package_request(
+        request,
+        source_request_filename="mission_control_operator_instruction_request_system_question_st_annes_sqlite.json",
+        generated_at=FIXED_NOW,
+        sqlite_path=tmp_path / "workflow_package_queue.sqlite",
+    )
+    rendered = json.dumps(result.receipt)
+
+    assert result.receipt["workflow_ref"] == "system_question_answer"
+    _assert_system_question_display(result.receipt["operator_display"], speaker_ref="chief", voice_mode="diagnostic")
+    assert "SQLite has work-log metadata" == result.receipt["operator_display"]["headline"]
+    assert raw_marker not in rendered
+    assert len(result.receipt["system_question_answer"]["question"]) <= 240
+    _assert_no_unsafe_grants(result.receipt)
+
+
+def test_unknown_system_question_returns_safe_openclaw_fallback(tmp_path):
+    request = _request_payload(
+        request_id="system_question_unknown",
+        source_text="What does OpenClaw know about the purple submarine?",
+        world_ref="operations",
+        thread_ref="openclaw",
+    )
+
+    result = consumer.consume_workflow_package_request(
+        request,
+        source_request_filename="mission_control_operator_instruction_request_system_question_unknown.json",
+        generated_at=FIXED_NOW,
+        sqlite_path=tmp_path / "workflow_package_queue.sqlite",
+    )
+
+    assert result.receipt["workflow_ref"] == "system_question_answer"
+    _assert_system_question_display(result.receipt["operator_display"], speaker_ref="openclaw", voice_mode="operator_calm")
+    assert result.receipt["operator_display"]["headline"] == "No local answer found"
+    assert result.receipt["system_question_answer"]["answer"]["unknown"]
+    assert result.receipt["system_question_answer"]["answer"]["proof_refs"]
+    assert result.receipt["machine_proof"]["live_execution_performed"] is False
+    _assert_no_unsafe_grants(result.receipt)
+
+
+def test_safe_next_question_routes_to_openclaw_status_answer(tmp_path):
+    request = _request_payload(
+        request_id="system_question_safe_next",
+        source_text="What is safe next?",
+        world_ref="operations",
+        thread_ref="openclaw",
+    )
+
+    result = consumer.consume_workflow_package_request(
+        request,
+        source_request_filename="mission_control_operator_instruction_request_system_question_safe_next.json",
+        generated_at=FIXED_NOW,
+        sqlite_path=tmp_path / "workflow_package_queue.sqlite",
+    )
+
+    assert result.receipt["workflow_ref"] == "system_question_answer"
+    _assert_system_question_display(result.receipt["operator_display"], speaker_ref="openclaw", voice_mode="operator_calm")
+    assert "safe next" in result.receipt["operator_display"]["headline"].lower()
+    assert result.receipt["system_question_answer"]["answer"]["proof_refs"]
+    _assert_no_unsafe_grants(result.receipt)
+
+
 def test_consumer_records_valid_workflow_package_request_in_queue_sqlite(tmp_path):
     sqlite_path = tmp_path / "workflow_package_queue.sqlite"
     request = _request_payload(
@@ -462,3 +636,54 @@ def test_service_processes_three_workflow_package_requests_and_writes_scoped_res
         ("capital_hilton_proposal_followup", "capital_hilton", "OPERATOR_REVIEW_REQUIRED"),
         ("st_annes_work_log_event", "st_annes", "OPERATOR_REVIEW_REQUIRED"),
     ]
+
+
+def test_service_processes_system_question_request_file_without_queue_write(tmp_path, capsys, monkeypatch):
+    inbox = tmp_path / "inbox"
+    response_dir = tmp_path / "responses"
+    export_root = tmp_path / "read_models"
+    sqlite_path = tmp_path / "workflow_package_queue.sqlite"
+    inbox.mkdir()
+    monkeypatch.setenv(consumer.SQLITE_PATH_ENV, sqlite_path.as_posix())
+    request = _write_request(
+        inbox / "mission_control_operator_instruction_request_system_question_send_email.json",
+        request_id="system_question_send_email",
+        source_text="Can this send email?",
+        world_ref="operations",
+        thread_ref="openclaw",
+    )
+
+    assert service_main(
+        [
+            "--watch-seconds",
+            "1",
+            "--max-requests",
+            "1",
+            "--inbox",
+            str(inbox),
+            "--response-dir",
+            str(response_dir),
+            "--export-root",
+            str(export_root),
+            "--generated-at",
+            FIXED_NOW,
+            "--format",
+            "json",
+        ]
+    ) == 0
+    service_payload = json.loads(capsys.readouterr().out)
+    response = json.loads(_safe_response_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
+
+    assert service_payload["service_status"]["processed_count"] == 1
+    assert response["raw_internal_status"] == "RESPONSE_READY"
+    assert response["response_kind"] == "WORKFLOW_PACKAGE_REQUEST_RESPONSE"
+    assert response["workflow_ref"] == "system_question_answer"
+    assert response["package_status"] == "ANSWER_READY"
+    assert response["operator_display"]["speaker_ref"] == "guardian"
+    assert response["operator_display"]["voice_mode"] == "safety_gate"
+    assert response["operator_display"]["proof_refs_collapsed"] is True
+    assert response["detail_disclosure"]["workflow_package_request_consumer"]["machine_proof"]["package_recorded"] is False
+    assert response["detail_disclosure"]["system_question_answer"]["workflow_ref"] == "system_question_answer"
+    assert response["machine_proof"]["email_send_performed"] is False
+    assert response["machine_proof"]["external_action_performed"] is False
+    assert not sqlite_path.exists()

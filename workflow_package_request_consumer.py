@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 import agent_voice_router
+import system_question_answer
 import workflow_package_queue
 
 
@@ -124,6 +125,33 @@ WORLD_ALIASES = {
     "diagnostic": "diagnostic",
 }
 
+SYSTEM_QUESTION_HINTS = (
+    "what is the difference between chief and a spawned worker",
+    "why did submit capital hilton invoice block",
+    "can this send email",
+    "what does sqlite know about st. anne",
+    "what does sqlite know about st anne",
+    "what is safe next",
+)
+
+SYSTEM_QUESTION_TERMS = (
+    "openclaw",
+    "chief",
+    "spawned worker",
+    "system question",
+    "system design",
+    "architecture",
+    "package",
+    "gate",
+    "block",
+    "sqlite",
+    "st. anne",
+    "st anne",
+    "capital hilton",
+    "send email",
+    "safe next",
+)
+
 
 @dataclass(frozen=True)
 class WorkflowPackageRequestResult:
@@ -179,6 +207,186 @@ def _source_text(raw_request: Mapping[str, Any]) -> str:
         if value:
             return value
     return ""
+
+
+def _bounded_question_text(source_text: str) -> str:
+    text = " ".join(str(source_text or "").strip().split())
+    question_mark = text.find("?")
+    if question_mark >= 0:
+        return text[: question_mark + 1]
+    return text[:240]
+
+
+def is_system_question_request(raw_request: Mapping[str, Any]) -> bool:
+    workflow_ref = str(raw_request.get("workflow_ref") or "").strip()
+    if workflow_ref == system_question_answer.WORKFLOW_REF:
+        return True
+    source_text = _source_text(raw_request)
+    text = source_text.lower()
+    if any(hint in text for hint in SYSTEM_QUESTION_HINTS):
+        return True
+    question_like = "?" in text or text.strip().startswith(("what ", "why ", "can ", "how "))
+    if not question_like:
+        return False
+    return any(term in text for term in SYSTEM_QUESTION_TERMS)
+
+
+def _system_question_route_metadata(raw_request: Mapping[str, Any]) -> dict[str, Any]:
+    raw_current_world = str(raw_request.get("world_ref") or raw_request.get("world") or "")
+    raw_current_thread = str(raw_request.get("thread_ref") or raw_request.get("thread") or "")
+    return {
+        "current_world_ref": normalize_world_ref(raw_current_world),
+        "current_thread_ref": normalize_thread_ref(raw_current_thread),
+        "source_world_ref": raw_current_world,
+        "source_thread_ref": raw_current_thread,
+        "target_world_ref": "operations",
+        "target_thread_ref": "openclaw",
+        "cross_lane_routed": False,
+        "routing_note": "Routed to local system question answer.",
+    }
+
+
+def _system_question_routing_reason(answer_payload: Mapping[str, Any]) -> str:
+    speaker_ref = str(answer_payload.get("speaker_ref") or "")
+    voice_mode = str(answer_payload.get("voice_mode") or "")
+    headline = str((answer_payload.get("answer") or {}).get("headline") or "").lower() if isinstance(answer_payload.get("answer"), Mapping) else ""
+    if speaker_ref == "hermes":
+        return "architecture/system design question"
+    if speaker_ref == "chief":
+        if "capital hilton" in headline or voice_mode == "diagnostic":
+            return "provider gate, package block, or diagnostic question"
+        return "diagnostic question"
+    if speaker_ref == "guardian":
+        return "safety or authority question"
+    return "neutral status question"
+
+
+def _operator_display_from_system_question(answer_payload: Mapping[str, Any]) -> dict[str, Any]:
+    answer = answer_payload.get("answer") if isinstance(answer_payload.get("answer"), Mapping) else {}
+    speaker_ref = str(answer_payload.get("speaker_ref") or "openclaw")
+    voice_mode = str(answer_payload.get("voice_mode") or "operator_calm")
+    confirmed = answer.get("confirmed") if isinstance(answer.get("confirmed"), list) else []
+    primary_fact = str(confirmed[0]) if confirmed else "Local answer only."
+    secondary_facts = [str(item) for item in confirmed[1:3]]
+    if not secondary_facts:
+        secondary_facts = ["No business action ran."]
+    plain_summary = str(answer.get("plain_summary") or "Answered from local OpenClaw sources.")
+    plain_summary = plain_summary.replace("St. Anne's", "St Anne's")
+    return {
+        "speaker_ref": speaker_ref,
+        "voice_profile_ref": str(answer_payload.get("voice_profile_ref") or f"agent_voice_profile:{speaker_ref}"),
+        "voice_mode": voice_mode,
+        "audience": "internal_operator",
+        "routing_reason": _system_question_routing_reason(answer_payload),
+        "headline": str(answer.get("headline") or "System answer ready"),
+        "subheadline": "Local-only OpenClaw answer.",
+        "status_label": "Answer ready",
+        "tone": "calm" if speaker_ref != "guardian" else "warning",
+        "plain_summary": plain_summary,
+        "next_safe_action": str(answer.get("next_safe_action") or "Review the local proof refs."),
+        "why_it_matters": "Mission Control can ask about OpenClaw without invoking live providers or business actions.",
+        "primary_fact": primary_fact,
+        "secondary_facts": secondary_facts,
+        "proof_caption": "Proof available.",
+        "proof_refs_collapsed": True,
+        "show_machine_details_by_default": False,
+    }
+
+
+def _system_question_receipt(
+    raw_request: Mapping[str, Any],
+    *,
+    request_id: str,
+    source_request_filename: str,
+    generated_at: str,
+    sqlite_path: Path,
+) -> WorkflowPackageRequestResult:
+    question = _bounded_question_text(_source_text(raw_request))
+    answer_payload = system_question_answer.answer_system_question(question)
+    operator_display = _operator_display_from_system_question(answer_payload)
+    route = _system_question_route_metadata(raw_request)
+    proof_refs = (
+        answer_payload.get("answer", {}).get("proof_refs", [])
+        if isinstance(answer_payload.get("answer"), Mapping)
+        else []
+    )
+    receipt = {
+        "schema_version": "workflow_package_request_consumer_v0",
+        "receipt_type": "WORKFLOW_PACKAGE_REQUEST_RESULT_RECEIPT",
+        "request_id": request_id,
+        "source_request_filename": source_request_filename,
+        "raw_internal_status": "RESPONSE_READY",
+        "primary_status": "ANSWER_READY",
+        "package_id": "",
+        "workflow_ref": system_question_answer.WORKFLOW_REF,
+        "client_ref": None,
+        "world": "system",
+        "package_status": "ANSWER_READY",
+        "capability_gate_status": "LOCAL_ONLY_SOURCES",
+        "blocker": "",
+        "next_safe_action": operator_display["next_safe_action"],
+        "current_world_ref": route["current_world_ref"],
+        "current_thread_ref": route["current_thread_ref"],
+        "source_world_ref": route["source_world_ref"],
+        "source_thread_ref": route["source_thread_ref"],
+        "target_world_ref": route["target_world_ref"],
+        "target_thread_ref": route["target_thread_ref"],
+        "cross_lane_routed": route["cross_lane_routed"],
+        "routing_note": route["routing_note"],
+        "speaker_ref": operator_display["speaker_ref"],
+        "voice_profile_ref": operator_display["voice_profile_ref"],
+        "voice_mode": operator_display["voice_mode"],
+        "audience": operator_display["audience"],
+        "operator_display": operator_display,
+        "system_question_answer": answer_payload,
+        "proof_refs": list(dict.fromkeys(str(ref) for ref in proof_refs)),
+        "proof_refs_collapsed": True,
+        "authority_boundary": dict(workflow_package_queue.AUTHORITY_BOUNDARY_DEFAULT),
+        "request_authority_boundary_all_false": not _authority_blockers(raw_request),
+        "no_external_authority_granted": True,
+        "result_receipt_required": raw_request.get("result_receipt_required") is True,
+        "sqlite_path": str(sqlite_path),
+        "created_at": generated_at,
+        "machine_proof": {
+            "workflow_package_request_v0_detected": is_workflow_package_request(raw_request),
+            "system_question_intent_detected": True,
+            "system_question_answer_local_only": True,
+            "source_surface_mission_control": str(raw_request.get("source_surface") or "") == "mission_control",
+            "requested_mode_operator": str(raw_request.get("requested_mode") or "") == "operator",
+            "package_recorded": False,
+            "queue_sqlite_mutated": False,
+            "business_action_gate_closed": True,
+            "authority_flags_all_false": all(
+                value is False for value in workflow_package_queue.AUTHORITY_BOUNDARY_DEFAULT.values()
+            ),
+            "external_llm_called": False,
+            "child_agent_spawned": False,
+            "live_execution_performed": False,
+            "email_send_performed": False,
+            "ledger_mutation_performed": False,
+            "browser_access_performed": False,
+            "gmail_access_performed": False,
+            "coupa_access_performed": False,
+            "workbook_mutation_performed": False,
+            "pdf_export_performed": False,
+            "paid_marking_performed": False,
+            "submit_performed": False,
+            "business_state_mutation_performed": False,
+            "raw_text_stored_in_sqlite": False,
+            "proof_refs_collapsed": True,
+            "unsafe_true_grants_absent": not _authority_blockers(raw_request),
+        },
+    }
+    return WorkflowPackageRequestResult(
+        status="RECORDED",
+        request_id=request_id,
+        request_filename=source_request_filename,
+        package=None,
+        blockers=(),
+        response_primary_status="ANSWER_READY",
+        next_safe_action=str(operator_display["next_safe_action"]),
+        receipt=receipt,
+    )
 
 
 def _normalize_ref(value: str) -> str:
@@ -465,6 +673,14 @@ def consume_workflow_package_request(
     sqlite_path = sqlite_path or default_sqlite_path()
     request_id = _request_id(raw_request, source_request_filename)
     ok, blockers = validate_envelope(raw_request, source_request_filename=source_request_filename)
+    if ok and is_system_question_request(raw_request):
+        return _system_question_receipt(
+            raw_request,
+            request_id=request_id,
+            source_request_filename=source_request_filename,
+            generated_at=generated_at,
+            sqlite_path=sqlite_path,
+        )
     package: dict[str, Any] | None = None
     if ok:
         package_created_at = str(raw_request.get("created_at") or generated_at)
