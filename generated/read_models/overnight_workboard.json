@@ -1,7 +1,7 @@
 {
   "schema_version": "overnight_workboard.v0",
   "read_model_id": "overnight_workboard",
-  "generated_at": "2026-06-02T04:49:23Z",
+  "generated_at": "2026-06-02T06:30:00Z",
   "status": "READY_FOR_OPERATOR_REVIEW",
   "mode": "planning_only",
   "purpose": "Plan the next OpenClaw lanes for operator review. Hermes recommends sequence, Chief packages bounded next tasks, and Guardian marks protected actions.",
@@ -27,6 +27,14 @@
       "status": "ST_ANNES_MONTHLY_WORK_LOG_CONTRACT_READY"
     },
     {
+      "path": "generated/read_models/st_annes_work_log_events.json",
+      "status": "ST_ANNES_WORK_LOG_INTAKE_V0_READY"
+    },
+    {
+      "path": "generated/read_models/st_annes_work_log_hygiene.json",
+      "status": "ST_ANNES_WORK_LOG_SMOKE_HYGIENE_READY"
+    },
+    {
       "path": "generated/read_models/operator_assist_provider_registry.json",
       "status": "OPERATOR_ASSIST_PROVIDER_REGISTRY_READY"
     },
@@ -45,39 +53,43 @@
     {
       "path": "generated/read_models/agent_voice_routing_contract.json",
       "status": "AGENT_VOICE_ROUTING_V0_READY"
+    },
+    {
+      "path": "generated/read_models/operator_conversation_journal.json",
+      "status": "OPERATOR_CONVERSATION_JOURNAL_READY"
     }
   ],
   "hermes_recommendation": {
     "speaker_ref": "hermes",
     "voice_profile_ref": "agent_voice_profile:hermes",
     "voice_mode": "recommendation",
-    "summary": "Sequence the overnight board around record-only work first, then operator-assist follow-ups, then hardening work. Nothing should execute while the operator is asleep.",
+    "summary": "Sequence overnight planning around operator review and hygiene first, then client follow-up watches, then hardening work. Nothing should execute while the operator is asleep.",
     "recommended_lane_sequence": [
       {
         "sequence": 1,
-        "lane_ref": "st_annes_work_log_confirmation",
-        "label": "St. Anne's work-log confirmation path",
-        "reason": "Work-log intake is available without Excel and can be reviewed before any month-end rollup.",
-        "next_safe_move": "Prepare an operator review surface for staged St. Anne's events."
+        "lane_ref": "st_annes_work_log_confirm_discard",
+        "label": "Confirm/discard St. Anne's work-log events",
+        "reason": "The current staged church-sound event is marked SMOKE_OR_TEST_EVENT and NOT_INCLUDED_SMOKE_EVENT. Real billable work needs a separate business confirmation.",
+        "next_safe_move": "Show the operator a confirm/discard plan that preserves smoke evidence and does not include smoke events in rollup."
       },
       {
         "sequence": 2,
         "lane_ref": "st_annes_month_end_rollup_readiness",
-        "label": "St. Anne's month-end rollup path",
-        "reason": "The rollup contract is ready, but workbook/PDF permissions and operator confirmation remain required.",
-        "next_safe_move": "List rollup prerequisites and blockers without writing Excel."
+        "label": "Build St. Anne's month-end rollup path",
+        "reason": "The rollup must be built from confirmed real events only. The current smoke/test event is explicitly excluded.",
+        "next_safe_move": "List rollup prerequisites and blockers from confirmed events without writing Excel."
       },
       {
         "sequence": 3,
         "lane_ref": "capital_hilton_proposal_followup",
-        "label": "Capital Hilton proposal follow-up timing",
+        "label": "Track Capital Hilton proposal response",
         "reason": "The proposal is sent for client review and must not become finance work until accepted.",
         "next_safe_move": "Stage a follow-up planning packet only."
       },
       {
         "sequence": 4,
         "lane_ref": "capital_hilton_coupa_payment_watch",
-        "label": "Capital Hilton Coupa payment watch",
+        "label": "Track Capital Hilton Coupa Processing",
         "reason": "Coupa was recorded as Processing; paid state and ledger truth remain blocked.",
         "next_safe_move": "Prepare a watch checklist for later operator review."
       },
@@ -91,14 +103,14 @@
       {
         "sequence": 6,
         "lane_ref": "telegram_cassandra_non_live_adapter",
-        "label": "Telegram/Cassandra non-live adapter",
+        "label": "Prepare Telegram/Cassandra dry-run inbox",
         "reason": "Mission Control instructions route to the package queue; Telegram should enter the same rail later without live credentials.",
         "next_safe_move": "Draft non-live envelope tests only."
       },
       {
         "sequence": 7,
-        "lane_ref": "tts_voice_profile_usage",
-        "label": "TTS sanitizer and voice profile usage",
+        "lane_ref": "tts_sanitizer_speaker_profiles",
+        "label": "Add TTS sanitizer for speaker profiles",
         "reason": "Operator display copy now has speaker/profile routing, and TTS text needs safe profile-specific preparation.",
         "next_safe_move": "Map display fields to sanitizer output without connecting TTS."
       }
@@ -110,13 +122,15 @@
       "speaker_ref": "chief",
       "voice_profile_ref": "agent_voice_profile:chief",
       "mode": "planning_only",
-      "goal": "Prepare the next operator review surface for staged St. Anne's work-log events.",
+      "goal": "Prepare confirm/discard guidance for staged St. Anne's work-log events without treating smoke as billable truth.",
       "allowed_actions": [
         "inspect local St. Anne's work-log read models",
-        "summarize staged and confirmed event states",
+        "summarize staged, confirmed, and smoke-excluded event states",
+        "read the St. Anne's work-log hygiene read model",
         "prepare a no-action review checklist"
       ],
       "blocked_actions": [
+        "include smoke/test events in invoice rollup",
         "mutate Excel",
         "create invoice",
         "export PDF",
@@ -125,20 +139,22 @@
         "mark paid"
       ],
       "requires_operator": true,
-      "next_safe_move": "Show staged events with confirm/discard/edit actions gated by operator review."
+      "next_safe_move": "Show that the current church-sound event is smoke/test-only and ask for separate real-world confirmation before any rollup eligibility."
     },
     {
       "packet_id": "chief_packet:st_annes_month_end_rollup_prereqs",
       "speaker_ref": "chief",
       "voice_profile_ref": "agent_voice_profile:chief",
       "mode": "planning_only",
-      "goal": "Package St. Anne's month-end rollup prerequisites without touching the workbook.",
+      "goal": "Package St. Anne's month-end rollup prerequisites from confirmed real events only, without touching the workbook.",
       "allowed_actions": [
         "read the monthly work-log contract",
-        "list confirmed event requirements",
+        "list confirmed real-event requirements",
+        "exclude smoke/test events from rollup",
         "identify Excel/PDF permission blockers"
       ],
       "blocked_actions": [
+        "use smoke/test events as billable invoice truth",
         "write workbook cells",
         "copy sheets",
         "export PDF",
@@ -147,7 +163,7 @@
         "mark paid"
       ],
       "requires_operator": true,
-      "next_safe_move": "Create a rollup readiness checklist that stops before workbook mutation."
+      "next_safe_move": "Create a rollup readiness checklist that has zero eligible events until real operator business confirmation exists."
     },
     {
       "packet_id": "chief_packet:capital_hilton_proposal_followup_plan",
@@ -157,6 +173,7 @@
       "goal": "Prepare a Capital Hilton proposal follow-up plan that stays in Business Development.",
       "allowed_actions": [
         "read proposal lane state",
+        "read operator conversation journal counts for Business Development / Capital Hilton",
         "summarize proposal status",
         "draft internal follow-up options for operator review"
       ],
@@ -180,6 +197,7 @@
       "allowed_actions": [
         "read operator-run status",
         "read Coupa workflow harvest",
+        "read operator conversation journal counts for Finance / Capital Hilton",
         "prepare a later check checklist"
       ],
       "blocked_actions": [
@@ -222,7 +240,8 @@
       "allowed_actions": [
         "read package queue contract",
         "read Cassandra Telegram intake contract if present",
-        "draft non-live envelope fixtures"
+        "draft non-live envelope fixtures",
+        "keep Telegram input as dry-run package requests only"
       ],
       "blocked_actions": [
         "connect Telegram",
@@ -242,7 +261,8 @@
       "allowed_actions": [
         "read voice profile and routing contracts",
         "map visible copy fields to sanitizer input",
-        "prepare local tests"
+        "prepare local tests",
+        "reuse operator_display summaries from the conversation journal"
       ],
       "blocked_actions": [
         "connect TTS live",
@@ -341,6 +361,7 @@
     "paid_marking",
     "invoice_creation",
     "proposal_acceptance_marking",
+    "st_annes_smoke_event_invoice_inclusion",
     "service_restart",
     "loop_control.sh",
     "start_chief.sh",
@@ -376,6 +397,8 @@
     "no_paid": true,
     "no_push": true,
     "no_service_restart": true,
+    "st_annes_smoke_event_excluded_from_rollup": true,
+    "operator_conversation_journal_read": true,
     "guardian_gates_exist_for_send_submit_ledger_excel": true,
     "bridge_publish_required": true
   }
