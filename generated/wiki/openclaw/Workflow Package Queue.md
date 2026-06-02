@@ -35,6 +35,30 @@ V0 uses dry-run/no-op workers only. It does not connect Telegram live, send emai
 - `capital_hilton_invoice_operator_assist`: status `PROVIDER_GATE_REQUIRED`, capability gate `PROVIDER_GATE_REQUIRED`
 - `diagnostic_package_gate_smoke`: status `PACKAGE_STAGED`, capability gate `ALLOW_DRY_RUN`
 
+## Operator Display Layer
+
+Package responses include `operator_display` for Mission Control cards while retaining machine fields in proof/details.
+
+- `headline`
+- `subheadline`
+- `status_label`
+- `tone`
+- `plain_summary`
+- `next_safe_action`
+- `why_it_matters`
+- `primary_fact`
+- `secondary_facts`
+- `proof_caption`
+- `show_machine_details_by_default`
+
+Example display headlines:
+
+- St. Anne's work log captured: Needs confirmation - Review and confirm the event.
+- St. Anne's invoice is not ready to send: Missing prerequisite - Resolve the missing gate, then review the package again.
+- Capital Hilton proposal follow-up staged: Needs review - Review the follow-up plan.
+- Capital Hilton invoice needs operator assist: Provider gate required - Stage an operator-assist packet when you are ready.
+- Workflow package staged: Needs review - Review the staged package.
+
 ## Authority Boundary
 
 - Email send allowed: no

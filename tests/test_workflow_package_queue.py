@@ -16,10 +16,16 @@ def _package(text: str, **kwargs):
 
 def test_st_annes_work_log_instruction_stages_record_only_package():
     package = _package("Mark that I'm at church running sound.")
+    display = package["operator_display"]
 
     assert package["workflow_ref"] == "st_annes_work_log_event"
     assert package["client_ref"] == "st_annes"
     assert package["status"] == "OPERATOR_REVIEW_REQUIRED"
+    assert display["headline"] == "St. Anne's work log captured"
+    assert display["status_label"] == "Needs confirmation"
+    assert display["tone"] == "warning"
+    assert "st_annes_work_log_event" not in display["headline"]
+    assert display["show_machine_details_by_default"] is False
     assert package["capability_gate_result"]["status"] == "ALLOW_DRY_RUN"
     assert package["authority_boundary"]["workbook_source_mutation_allowed"] is False
     assert package["authority_boundary"]["email_send_allowed"] is False
@@ -57,11 +63,17 @@ def test_st_annes_invoice_send_blocks_for_artifact_when_permission_ready():
 
 def test_capital_hilton_proposal_followup_is_business_development_no_invoice_or_send():
     package = _package("Follow up on Capital Hilton proposal.")
+    display = package["operator_display"]
 
     assert package["workflow_ref"] == "capital_hilton_proposal_followup"
     assert package["world"] == "business_development"
     assert package["client_ref"] == "capital_hilton"
     assert package["status"] == "OPERATOR_REVIEW_REQUIRED"
+    assert display["headline"] == "Capital Hilton proposal follow-up staged"
+    assert display["status_label"] == "Needs review"
+    assert display["tone"] == "calm"
+    assert "capital_hilton_proposal_followup" not in display["headline"]
+    assert "No email will be sent" in display["plain_summary"]
     assert package["business_action_gate_result"]["email_send_allowed"] is False
     assert package["authority_boundary"]["email_send_allowed"] is False
     assert package["authority_boundary"]["ledger_posting_allowed"] is False
@@ -70,10 +82,16 @@ def test_capital_hilton_proposal_followup_is_business_development_no_invoice_or_
 
 def test_capital_hilton_invoice_submit_requires_operator_assist_provider_and_submit_gate():
     package = _package("Submit Capital Hilton invoice.")
+    display = package["operator_display"]
 
     assert package["workflow_ref"] == "capital_hilton_invoice_operator_assist"
     assert package["client_ref"] == "capital_hilton"
     assert package["status"] == "PROVIDER_GATE_REQUIRED"
+    assert display["headline"] == "Capital Hilton invoice needs operator assist"
+    assert display["status_label"] == "Provider gate required"
+    assert display["tone"] == "blocked"
+    assert "capital_hilton_invoice_operator_assist" not in display["headline"]
+    assert "requires an operator-present workflow" in display["plain_summary"]
     assert package["capability_gate_result"]["status"] == "PROVIDER_GATE_REQUIRED"
     assert "coupa_submit" in package["capability_gate_result"]["blocked_actions"]
     assert package["worker_result"]["coupa_access_performed"] is False
@@ -155,7 +173,10 @@ def test_export_writes_contract_read_model_wiki_bridge_and_sqlite(tmp_path):
     assert read_model == bridge
     assert read_model["status"] == "WORKFLOW_PACKAGE_QUEUE_V0_READY"
     assert read_model["supported_package_types"] == list(queue.SUPPORTED_PACKAGE_TYPES)
+    assert "operator_display" in read_model["package_field_contract"]
+    assert read_model["operator_display_schema"] == list(queue.OPERATOR_DISPLAY_FIELDS)
     assert len(read_model["packages"]) == 5
+    assert all("operator_display" in package for package in read_model["packages"])
     assert Path(result.wiki_path).exists()
     assert Path(result.sqlite_path).exists()
 

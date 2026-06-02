@@ -213,6 +213,35 @@ def _blocker(package: Mapping[str, Any] | None, blockers: tuple[str, ...]) -> st
     return ""
 
 
+def _operator_display(
+    package: Mapping[str, Any] | None,
+    *,
+    primary_status: str,
+    blocker: str,
+    next_safe_action: str,
+) -> dict[str, Any]:
+    if package is not None and isinstance(package.get("operator_display"), Mapping):
+        display = dict(package["operator_display"])
+        display.setdefault("next_safe_action", next_safe_action)
+        return display
+    return {
+        "headline": "Instruction needs a safety fix",
+        "subheadline": "The request envelope did not pass local checks.",
+        "status_label": "Blocked",
+        "tone": "blocked",
+        "plain_summary": "I could not stage this instruction because the safe request envelope is incomplete.",
+        "next_safe_action": next_safe_action,
+        "why_it_matters": "OpenClaw needs a valid local envelope before it records package intent.",
+        "primary_fact": "Nothing ran.",
+        "secondary_facts": [
+            f"Missing or unsafe field: {blocker}" if blocker else f"Status: {primary_status}",
+            "No business action ran.",
+        ],
+        "proof_caption": "Proof available",
+        "show_machine_details_by_default": False,
+    }
+
+
 def consume_workflow_package_request(
     raw_request: Mapping[str, Any],
     *,
@@ -247,6 +276,12 @@ def consume_workflow_package_request(
     primary_status = _primary_status(package, blockers)
     blocker = _blocker(package, blockers)
     next_safe_action = _next_safe_action(package, blockers)
+    operator_display = _operator_display(
+        package,
+        primary_status=primary_status,
+        blocker=blocker,
+        next_safe_action=next_safe_action,
+    )
     receipt = {
         "schema_version": "workflow_package_request_consumer_v0",
         "receipt_type": "WORKFLOW_PACKAGE_REQUEST_RESULT_RECEIPT",
@@ -266,6 +301,7 @@ def consume_workflow_package_request(
         ),
         "blocker": blocker,
         "next_safe_action": next_safe_action,
+        "operator_display": operator_display,
         "authority_boundary": dict(workflow_package_queue.AUTHORITY_BOUNDARY_DEFAULT),
         "request_authority_boundary_all_false": not _authority_blockers(raw_request),
         "no_external_authority_granted": True,

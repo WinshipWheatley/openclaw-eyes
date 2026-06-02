@@ -87,6 +87,11 @@ def test_consumer_records_valid_workflow_package_request_in_queue_sqlite(tmp_pat
     assert result.receipt["workflow_ref"] == "st_annes_work_log_event"
     assert result.receipt["client_ref"] == "st_annes"
     assert result.receipt["package_status"] == "OPERATOR_REVIEW_REQUIRED"
+    assert result.receipt["operator_display"]["headline"] == "St. Anne's work log captured"
+    assert result.receipt["operator_display"]["status_label"] == "Needs confirmation"
+    assert result.receipt["operator_display"]["tone"] == "warning"
+    assert "st_annes_work_log_event" not in result.receipt["operator_display"]["headline"]
+    assert result.receipt["operator_display"]["show_machine_details_by_default"] is False
     assert result.receipt["machine_proof"]["queue_noop_worker_only"] is True
     assert result.receipt["machine_proof"]["business_state_mutation_performed"] is False
 
@@ -187,22 +192,38 @@ def test_service_processes_three_workflow_package_requests_and_writes_scoped_res
     assert service_payload["service_status"]["service_status"] == "REQUEST_PROCESSED"
 
     expected = {
-        "church_sound_operator_instruction_smoke": ("st_annes_work_log_event", "st_annes", "OPERATOR_REVIEW_REQUIRED"),
+        "church_sound_operator_instruction_smoke": (
+            "st_annes_work_log_event",
+            "st_annes",
+            "OPERATOR_REVIEW_REQUIRED",
+            "St. Anne's work log captured",
+            "Needs confirmation",
+            "warning",
+            "Review and confirm the event.",
+        ),
         "capital_hilton_business_development_operator_instruction_smoke": (
             "capital_hilton_proposal_followup",
             "capital_hilton",
             "OPERATOR_REVIEW_REQUIRED",
+            "Capital Hilton proposal follow-up staged",
+            "Needs review",
+            "calm",
+            "Review the follow-up plan.",
         ),
         "capital_hilton_invoice_workflow_operator_instruction_smoke": (
             "capital_hilton_invoice_operator_assist",
             "capital_hilton",
             "PROVIDER_GATE_REQUIRED",
+            "Capital Hilton invoice needs operator assist",
+            "Provider gate required",
+            "blocked",
+            "Stage an operator-assist packet when you are ready.",
         ),
     }
     for request in requests:
         response = json.loads(_safe_response_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
         heartbeat = json.loads(_safe_heartbeat_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
-        workflow_ref, client_ref, package_status = expected[request["request_id"]]
+        workflow_ref, client_ref, package_status, headline, status_label, tone, next_safe_action = expected[request["request_id"]]
 
         assert heartbeat["request_type"] == "WORKFLOW_PACKAGE_REQUEST"
         assert heartbeat["processing_status"] == "CHECKING_WORKFLOW_PACKAGE_QUEUE"
@@ -214,8 +235,25 @@ def test_service_processes_three_workflow_package_requests_and_writes_scoped_res
         assert response["client_ref"] == client_ref
         assert response["package_status"] == package_status
         assert response["package_id"].startswith("workflow_package:")
+        display = response["operator_display"]
+        assert display["headline"] == headline
+        assert display["status_label"] == status_label
+        assert display["tone"] == tone
+        assert display["next_safe_action"] == next_safe_action
+        assert display["proof_caption"] == "Proof available"
+        assert display["show_machine_details_by_default"] is False
+        assert workflow_ref not in display["headline"]
+        assert response["headline"] == headline
+        assert response["primary_status"] == status_label
+        assert response["next_action"] == f"Next: {next_safe_action}"
+        assert response["detail_disclosure"]["workflow_package_request_consumer"]["operator_display"] == display
         assert response["no_external_authority_granted"] is True
         assert response["detail_disclosure"]["workflow_package_request_consumer"]["package_status"] == package_status
+        assert response["detail_disclosure"]["workflow_package_request_consumer"]["workflow_ref"] == workflow_ref
+        assert response["detail_disclosure"]["package"]["workflow_ref"] == workflow_ref
+        if package_status == "PROVIDER_GATE_REQUIRED":
+            assert "cannot run unattended" in display["plain_summary"]
+            assert "final Submit confirmation" in display["plain_summary"]
         assert response["machine_proof"]["email_send_performed"] is False
         assert response["machine_proof"]["browser_access_performed"] is False
         assert response["machine_proof"]["coupa_access_or_submit_performed"] is False

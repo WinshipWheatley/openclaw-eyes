@@ -22,11 +22,40 @@
     "workflow_package_queue_and_st_annes_intake": "259682b85f61760e75278b5be510a2bd418246ef",
     "workflow_package_request_consumer": "e9cd69f94db70416ff281bc02059ed658d8c9033"
   },
+  "operator_display_schema": [
+    "headline",
+    "subheadline",
+    "status_label",
+    "tone",
+    "plain_summary",
+    "next_safe_action",
+    "why_it_matters",
+    "primary_fact",
+    "secondary_facts",
+    "proof_caption",
+    "show_machine_details_by_default"
+  ],
   "last_smoke_results": [
     {
       "blocker": "",
       "client_ref": "st_annes",
       "external_action_performed": false,
+      "operator_display": {
+        "headline": "St. Anne's work log captured",
+        "next_safe_action": "Review and confirm the event.",
+        "plain_summary": "I saved this as a draft work event. Confirm it before it counts toward the monthly invoice.",
+        "primary_fact": "No invoice was changed.",
+        "proof_caption": "Proof available",
+        "secondary_facts": [
+          "No email will be sent.",
+          "No ledger entry was touched."
+        ],
+        "show_machine_details_by_default": false,
+        "status_label": "Needs confirmation",
+        "subheadline": "Church sound event saved for review.",
+        "tone": "warning",
+        "why_it_matters": "Confirmed work-log events become the source for the month-end invoice package."
+      },
       "package_id": "workflow_package:32e611e2996fb30d",
       "package_status": "OPERATOR_REVIEW_REQUIRED",
       "raw_internal_status": "RESPONSE_READY",
@@ -39,6 +68,22 @@
       "blocker": "",
       "client_ref": "capital_hilton",
       "external_action_performed": false,
+      "operator_display": {
+        "headline": "Capital Hilton proposal follow-up staged",
+        "next_safe_action": "Review the follow-up plan.",
+        "plain_summary": "I staged this as a proposal follow-up. No email will be sent until you approve it.",
+        "primary_fact": "No invoice was created.",
+        "proof_caption": "Proof available",
+        "secondary_facts": [
+          "No email will be sent.",
+          "No finance handoff was opened."
+        ],
+        "show_machine_details_by_default": false,
+        "status_label": "Needs review",
+        "subheadline": "Business Development follow-up, no finance action.",
+        "tone": "calm",
+        "why_it_matters": "Proposal follow-up stays separate from finance until the client accepts."
+      },
       "package_id": "workflow_package:ed3ee1f1c7efbceb",
       "package_status": "OPERATOR_REVIEW_REQUIRED",
       "raw_internal_status": "RESPONSE_READY",
@@ -51,6 +96,22 @@
       "blocker": "Operator-assist provider and final Submit gate are not explicitly staged.",
       "client_ref": "capital_hilton",
       "external_action_performed": false,
+      "operator_display": {
+        "headline": "Capital Hilton invoice needs operator assist",
+        "next_safe_action": "Stage an operator-assist packet when you are ready.",
+        "plain_summary": "This cannot run unattended. Coupa submission requires an operator-present workflow and a final Submit confirmation.",
+        "primary_fact": "No invoice was submitted.",
+        "proof_caption": "Proof available",
+        "secondary_facts": [
+          "No Coupa action ran.",
+          "No email will be sent."
+        ],
+        "show_machine_details_by_default": false,
+        "status_label": "Provider gate required",
+        "subheadline": "Coupa requires a live submit gate.",
+        "tone": "blocked",
+        "why_it_matters": "Portal submission and email send are external actions that need a human gate."
+      },
       "package_id": "workflow_package:e6b4d3d9a4af4c05",
       "package_status": "PROVIDER_GATE_REQUIRED",
       "raw_internal_status": "RESPONSE_READY",
@@ -67,6 +128,7 @@
     "email_send_performed": false,
     "ledger_mutation_performed": false,
     "no_live_business_actions": true,
+    "operator_display_present": true,
     "package_queue_consumed_requests": true,
     "pdf_export_performed": false,
     "service_active_verified": true,

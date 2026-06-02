@@ -76,6 +76,20 @@ FIXTURE_INSTRUCTIONS = (
     ("codex", "Run diagnostic package gate smoke."),
 )
 
+OPERATOR_DISPLAY_FIELDS = (
+    "headline",
+    "subheadline",
+    "status_label",
+    "tone",
+    "plain_summary",
+    "next_safe_action",
+    "why_it_matters",
+    "primary_fact",
+    "secondary_facts",
+    "proof_caption",
+    "show_machine_details_by_default",
+)
+
 
 @dataclass(frozen=True)
 class QueueConfig:
@@ -287,6 +301,124 @@ def _worker_result_status(package_status: str) -> str:
     return "NOOP_RESULT_RECORDED"
 
 
+def operator_display_for_package(
+    workflow_ref: str,
+    package_status: str,
+    *,
+    blocker: str = "",
+) -> dict[str, Any]:
+    """Build calm operator-facing copy while keeping machine fields elsewhere."""
+    if workflow_ref == "st_annes_work_log_event":
+        return {
+            "headline": "St. Anne's work log captured",
+            "subheadline": "Church sound event saved for review.",
+            "status_label": "Needs confirmation",
+            "tone": "warning",
+            "plain_summary": "I saved this as a draft work event. Confirm it before it counts toward the monthly invoice.",
+            "next_safe_action": "Review and confirm the event.",
+            "why_it_matters": "Confirmed work-log events become the source for the month-end invoice package.",
+            "primary_fact": "No invoice was changed.",
+            "secondary_facts": [
+                "No email will be sent.",
+                "No ledger entry was touched.",
+            ],
+            "proof_caption": "Proof available",
+            "show_machine_details_by_default": False,
+        }
+    if workflow_ref == "capital_hilton_proposal_followup":
+        return {
+            "headline": "Capital Hilton proposal follow-up staged",
+            "subheadline": "Business Development follow-up, no finance action.",
+            "status_label": "Needs review",
+            "tone": "calm",
+            "plain_summary": "I staged this as a proposal follow-up. No email will be sent until you approve it.",
+            "next_safe_action": "Review the follow-up plan.",
+            "why_it_matters": "Proposal follow-up stays separate from finance until the client accepts.",
+            "primary_fact": "No invoice was created.",
+            "secondary_facts": [
+                "No email will be sent.",
+                "No finance handoff was opened.",
+            ],
+            "proof_caption": "Proof available",
+            "show_machine_details_by_default": False,
+        }
+    if workflow_ref == "capital_hilton_invoice_operator_assist":
+        return {
+            "headline": "Capital Hilton invoice needs operator assist",
+            "subheadline": "Coupa requires a live submit gate.",
+            "status_label": "Provider gate required",
+            "tone": "blocked",
+            "plain_summary": "This cannot run unattended. Coupa submission requires an operator-present workflow and a final Submit confirmation.",
+            "next_safe_action": "Stage an operator-assist packet when you are ready.",
+            "why_it_matters": "Portal submission and email send are external actions that need a human gate.",
+            "primary_fact": "No invoice was submitted.",
+            "secondary_facts": [
+                "No Coupa action ran.",
+                "No email will be sent.",
+            ],
+            "proof_caption": "Proof available",
+            "show_machine_details_by_default": False,
+        }
+    if workflow_ref == "st_annes_monthly_invoice_rollup":
+        missing = "the required invoice permission and artifact gates"
+        if package_status == "ARTIFACT_REQUIRED":
+            missing = "an approved invoice PDF artifact"
+        elif package_status == "PERMISSION_REQUIRED":
+            missing = "stable workbook/PDF permissions and an explicit send gate"
+        if blocker:
+            missing = blocker.rstrip(".")
+        return {
+            "headline": "St. Anne's invoice is not ready to send",
+            "subheadline": "Invoice work stays gated until proof is ready.",
+            "status_label": "Missing prerequisite",
+            "tone": "blocked",
+            "plain_summary": f"This is blocked because {missing}. No email will be sent.",
+            "next_safe_action": "Resolve the missing gate, then review the package again.",
+            "why_it_matters": "Invoice sending must wait for approved artifacts and explicit operator authority.",
+            "primary_fact": "No invoice was sent.",
+            "secondary_facts": [
+                "Excel was not touched.",
+                "No ledger entry was touched.",
+            ],
+            "proof_caption": "Proof available",
+            "show_machine_details_by_default": False,
+        }
+    if package_status in {"PERMISSION_REQUIRED", "ARTIFACT_REQUIRED", "PROVIDER_GATE_REQUIRED"}:
+        missing = blocker.rstrip(".") if blocker else "a required gate is missing"
+        return {
+            "headline": "Workflow needs a gate",
+            "subheadline": "A required permission is missing.",
+            "status_label": "Blocked",
+            "tone": "blocked",
+            "plain_summary": f"This is blocked because {missing}. Nothing ran.",
+            "next_safe_action": "Resolve the missing gate, then review the package again.",
+            "why_it_matters": "OpenClaw keeps external actions closed until the right proof exists.",
+            "primary_fact": "No business action ran.",
+            "secondary_facts": [
+                "No email will be sent.",
+                "No ledger entry was touched.",
+            ],
+            "proof_caption": "Proof available",
+            "show_machine_details_by_default": False,
+        }
+    return {
+        "headline": "Workflow package staged",
+        "subheadline": "Saved for operator review.",
+        "status_label": "Needs review",
+        "tone": "calm",
+        "plain_summary": "I staged this as a dry-run package. No business action ran.",
+        "next_safe_action": "Review the staged package.",
+        "why_it_matters": "Operator review separates captured intent from live execution.",
+        "primary_fact": "No external action ran.",
+        "secondary_facts": [
+            "No email will be sent.",
+            "No ledger entry was touched.",
+        ],
+        "proof_caption": "Proof available",
+        "show_machine_details_by_default": False,
+    }
+
+
 def create_package(
     source_text: str,
     *,
@@ -302,6 +434,11 @@ def create_package(
     workflow_ref = str(intent["workflow_ref"])
     capability = _capability_gate(workflow_ref, config)
     status = _package_status(workflow_ref, str(capability["status"]))
+    operator_display = operator_display_for_package(
+        workflow_ref,
+        status,
+        blocker=str(capability.get("reason") or ""),
+    )
     package_id = "workflow_package:" + _short_hash(source_surface, protected_hash, workflow_ref, created_at)
     worker_ref = "noop_worker:" + workflow_ref
     result_status = _worker_result_status(status)
@@ -331,6 +468,7 @@ def create_package(
         "privacy_impact": privacy["privacy_impact"],
         "provider_policy": capability["provider_policy"],
         "authority_boundary": dict(AUTHORITY_BOUNDARY_DEFAULT),
+        "operator_display": operator_display,
         "status": status,
         "created_at": created_at,
         "updated_at": created_at,
@@ -409,10 +547,12 @@ def build_contract_read_model(
             "privacy_impact",
             "provider_policy",
             "authority_boundary",
+            "operator_display",
             "status",
             "created_at",
             "updated_at",
         ],
+        "operator_display_schema": list(OPERATOR_DISPLAY_FIELDS),
         "packages": packages,
         "fixtures_summary": [
             {
@@ -768,6 +908,28 @@ def build_operator_wiki(read_model: Mapping[str, Any]) -> str:
     for item in read_model["fixtures_summary"]:
         lines.append(
             f"- `{item['workflow_ref']}`: status `{item['status']}`, capability gate `{item['capability_gate_status']}`"
+        )
+    lines.extend(
+        [
+            "",
+            "## Operator Display Layer",
+            "",
+            "Package responses include `operator_display` for Mission Control cards while retaining machine fields in proof/details.",
+            "",
+        ]
+    )
+    lines.extend(f"- `{field}`" for field in read_model["operator_display_schema"])
+    lines.extend(
+        [
+            "",
+            "Example display headlines:",
+            "",
+        ]
+    )
+    for package in read_model["packages"]:
+        display = package["operator_display"]
+        lines.append(
+            f"- {display['headline']}: {display['status_label']} - {display['next_safe_action']}"
         )
     lines.extend(
         [

@@ -2360,28 +2360,44 @@ def _process_workflow_package_request(
     capability_status = str(receipt.get("capability_gate_status") or "NOT_EVALUATED")
     package_recorded = result.package is not None
     internal_status = "RESPONSE_READY" if package_recorded else "BLOCKED_WITH_REASON"
-    headline = "Workflow package staged" if package_recorded else "Workflow package blocked"
-    if package_status in {"PROVIDER_GATE_REQUIRED", "PERMISSION_REQUIRED", "ARTIFACT_REQUIRED"}:
-        headline = "Workflow package gate closed"
-    message = (
-        "OpenClaw recorded this Mission Control instruction as a dry-run workflow package. "
-        "No business action ran and all external authority remains closed."
-        if package_recorded
-        else "OpenClaw found the operator instruction, but the envelope failed the local safety checks. Nothing ran."
-    )
     blocker = str(receipt.get("blocker") or "")
-    status_tone = "blocked" if blocker else "ready"
+    operator_display = (
+        dict(receipt.get("operator_display"))
+        if isinstance(receipt.get("operator_display"), Mapping)
+        else {
+            "headline": "Workflow package staged" if package_recorded else "Instruction needs a safety fix",
+            "subheadline": "Saved for operator review." if package_recorded else "The request envelope did not pass local checks.",
+            "status_label": "Needs review" if package_recorded else "Blocked",
+            "tone": "calm" if package_recorded else "blocked",
+            "plain_summary": (
+                "I staged this as a dry-run package. No business action ran."
+                if package_recorded
+                else "I could not stage this instruction because the safe request envelope is incomplete."
+            ),
+            "next_safe_action": result.next_safe_action,
+            "why_it_matters": "Operator review separates captured intent from live execution.",
+            "primary_fact": "No external action ran.",
+            "secondary_facts": ("No email will be sent.", "No ledger entry was touched."),
+            "proof_caption": "Proof available",
+            "show_machine_details_by_default": False,
+        }
+    )
+    headline = str(operator_display.get("headline") or "Workflow package staged")
+    message = str(operator_display.get("plain_summary") or "I staged this as a dry-run package. No business action ran.")
+    status_tone = str(operator_display.get("tone") or ("blocked" if blocker else "calm"))
+    next_safe_action = str(operator_display.get("next_safe_action") or result.next_safe_action)
     response_classification = _workflow_package_request_classification(classification)
     layered_fields = {
         "response_kind": "WORKFLOW_PACKAGE_REQUEST_RESPONSE",
         "audience_mode": "ELIWINSHIP",
         "display_mode": "COMPACT_CHAT",
+        "operator_display": operator_display,
         "headline": headline,
         "one_line_answer": message,
         "eliwinship": message,
-        "primary_status": package_status if package_recorded else "Blocked",
+        "primary_status": str(operator_display.get("status_label") or ("Needs review" if package_recorded else "Blocked")),
         "primary_blocker": blocker or "None",
-        "next_action": f"Next: {result.next_safe_action}",
+        "next_action": f"Next: {next_safe_action}",
         "missing_items_short": (blocker,) if blocker else (),
         "detail_summary": (
             f"Package status {package_status}; capability gate {capability_status}. "
@@ -2419,17 +2435,15 @@ def _process_workflow_package_request(
             if package_recorded
             else f"Envelope validation blockers: {blocker}."
         ),
-        how_to_fix=result.next_safe_action,
+        how_to_fix=next_safe_action,
         visible_cards=(
             {
                 "title": headline,
                 "bullets": (
-                    f"Package: {receipt.get('package_id') or 'not created'}",
-                    f"Workflow: {workflow_ref}",
-                    f"Client: {client_ref or 'none'}",
-                    f"Status: {package_status}",
-                    f"Gate: {capability_status}",
-                    "Authority: no send, ledger, browser, Gmail, Coupa, workbook, PDF, submit, paid, or sent grant.",
+                    str(operator_display.get("subheadline") or "Saved for operator review."),
+                    str(operator_display.get("primary_fact") or "No business action ran."),
+                    *tuple(str(item) for item in operator_display.get("secondary_facts") or ()),
+                    f"Next: {next_safe_action}",
                 ),
                 "status_tone": status_tone,
             },
@@ -2456,6 +2470,7 @@ def _process_workflow_package_request(
             "request_classification": asdict(response_classification),
             "workflow_package_request_consumer": receipt,
             "package": package,
+            "operator_display": operator_display,
             "package_queue_sqlite_path": receipt.get("sqlite_path"),
             "source_request_metadata": package.get("source_request_metadata") if isinstance(package, Mapping) else None,
             "live_worker_executed": False,
@@ -2464,7 +2479,7 @@ def _process_workflow_package_request(
             "layered_response_fields": layered_fields,
         },
         readback_files=(),
-        next_safe_move=result.next_safe_action,
+        next_safe_move=next_safe_action,
     )
 
 

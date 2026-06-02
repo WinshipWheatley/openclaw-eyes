@@ -20,11 +20,21 @@ This is a dry-run package queue rail only. It does not connect Telegram live, se
 
 ## Smoke Results
 
-- St. Anne's church sound instruction: `st_annes_work_log_event`, `OPERATOR_REVIEW_REQUIRED`
-- Capital Hilton proposal follow-up: `capital_hilton_proposal_followup`, `OPERATOR_REVIEW_REQUIRED`
-- Capital Hilton invoice submit request: `capital_hilton_invoice_operator_assist`, `PROVIDER_GATE_REQUIRED`
+- St. Anne's church sound instruction: "St. Anne's work log captured" with status "Needs confirmation"
+- Capital Hilton proposal follow-up: "Capital Hilton proposal follow-up staged" with status "Needs review"
+- Capital Hilton invoice submit request: "Capital Hilton invoice needs operator assist" with status "Provider gate required"
 
 The Capital Hilton invoice submit package remains blocked because the operator-assist provider and final Submit gate are not explicitly staged. No Coupa action occurred.
+
+## Operator Display Layer
+
+Workflow package responses keep machine fields in proof/details, but Mission Control can render `operator_display` for primary copy.
+
+- Plain human language first
+- No raw workflow refs in primary visible copy
+- No all-caps machine statuses in primary visible copy
+- Proof/details collapsed by default
+- Blocked responses explain the missing gate in one sentence
 
 ## Boundary
 
