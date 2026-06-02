@@ -1,0 +1,115 @@
+{
+  "authority_boundary": {
+    "browser_access_allowed": false,
+    "coupa_allowed": false,
+    "email_send_allowed": false,
+    "gmail_allowed": false,
+    "ledger_posting_allowed": false,
+    "paid": false,
+    "pdf_export_allowed": false,
+    "portal_submit_allowed": false,
+    "sent": false,
+    "telegram_credentials_access_allowed": false,
+    "telegram_live_connection_allowed": false,
+    "telegram_send_allowed": false,
+    "workbook_mutation_allowed": false,
+    "workbook_source_mutation_allowed": false
+  },
+  "blocked_message_count": 0,
+  "cassandra_telegram_intake_contract_ref": "generated/read_models/cassandra_telegram_intake_contract.json",
+  "generated_at": "2026-06-02T06:30:00+00:00",
+  "inbox_path": "/mnt/e/openclaw/cassandra_telegram_dryrun_inbox",
+  "machine_proof": {
+    "authority_flags_all_false": true,
+    "browser_access_performed": false,
+    "coupa_access_performed": false,
+    "email_send_performed": false,
+    "gmail_access_performed": false,
+    "ledger_mutation_performed": false,
+    "package_queue_entries_recorded": 3,
+    "paid_marking_performed": false,
+    "pdf_export_performed": false,
+    "response_receipts_written": 3,
+    "submit_performed": false,
+    "telegram_credentials_accessed": false,
+    "telegram_dryrun_only": true,
+    "telegram_live_connected": false,
+    "telegram_message_sent": false,
+    "unsafe_true_grants_absent": true,
+    "workbook_mutation_performed": false
+  },
+  "message_count": 3,
+  "package_queue_entries_recorded": 3,
+  "purpose": "Non-live Telegram/Cassandra dry-run inbox that converts simulated Telegram messages into Workflow Package Queue requests.",
+  "read_model_id": "cassandra_telegram_dryrun_status",
+  "response_receipt_dir": "/mnt/e/openclaw/cassandra_telegram_dryrun_inbox/responses",
+  "response_receipt_paths": [
+    "/mnt/e/openclaw/cassandra_telegram_dryrun_inbox/responses/cassandra_telegram_dryrun_response_telegram_dryrun_fixture_capital_hilton_proposal.json",
+    "/mnt/e/openclaw/cassandra_telegram_dryrun_inbox/responses/cassandra_telegram_dryrun_response_telegram_dryrun_fixture_st_annes_invoice_send.json",
+    "/mnt/e/openclaw/cassandra_telegram_dryrun_inbox/responses/cassandra_telegram_dryrun_response_telegram_dryrun_fixture_st_annes_work_log.json"
+  ],
+  "response_statuses": [
+    {
+      "blocker": "",
+      "capability_gate_status": "ALLOW_DRY_RUN",
+      "client_ref": "capital_hilton",
+      "message_id": "telegram_dryrun_fixture_capital_hilton_proposal",
+      "package_status": "OPERATOR_REVIEW_REQUIRED",
+      "response_text": "Capital Hilton proposal follow-up staged. Review the follow-up.",
+      "target_thread_ref": "capital_hilton",
+      "target_world_ref": "business_development",
+      "workflow_ref": "capital_hilton_proposal_followup"
+    },
+    {
+      "blocker": "Send permission registry is not ready for V0 package execution.",
+      "capability_gate_status": "PERMISSION_REQUIRED",
+      "client_ref": "st_annes",
+      "message_id": "telegram_dryrun_fixture_st_annes_invoice_send",
+      "package_status": "PERMISSION_REQUIRED",
+      "response_text": "Blocked: St. Anne's invoice send still needs the required gate. No email was sent.",
+      "target_thread_ref": "st_annes",
+      "target_world_ref": "finance",
+      "workflow_ref": "st_annes_monthly_invoice_rollup"
+    },
+    {
+      "blocker": "",
+      "capability_gate_status": "ALLOW_DRY_RUN",
+      "client_ref": "st_annes",
+      "message_id": "telegram_dryrun_fixture_st_annes_work_log",
+      "package_status": "OPERATOR_REVIEW_REQUIRED",
+      "response_text": "St. Anne's work log captured. Confirm or discard.",
+      "target_thread_ref": "st_annes",
+      "target_world_ref": "finance",
+      "workflow_ref": "st_annes_work_log_event"
+    }
+  ],
+  "rules": [
+    "No live Telegram connection.",
+    "No Telegram reply is sent.",
+    "No Excel or workbook mutation.",
+    "No email, browser, Gmail, Coupa, portal submit, ledger mutation, paid marking, or PDF export.",
+    "Missing permissions are recorded as blockers in response receipts."
+  ],
+  "schema_version": "cassandra_telegram_dryrun_inbox_v0",
+  "source_surface": "telegram_dryrun",
+  "sqlite_path": "/home/openclaw/generated/system_knowledge/workflow_package_queue.sqlite",
+  "status": "CASSANDRA_TELEGRAM_DRYRUN_INBOX_READY",
+  "supported_examples": [
+    {
+      "expected_package_status": "OPERATOR_REVIEW_REQUIRED",
+      "expected_workflow_ref": "st_annes_work_log_event",
+      "message_id": "telegram_dryrun_fixture_st_annes_work_log"
+    },
+    {
+      "expected_package_status": "OPERATOR_REVIEW_REQUIRED",
+      "expected_workflow_ref": "capital_hilton_proposal_followup",
+      "message_id": "telegram_dryrun_fixture_capital_hilton_proposal"
+    },
+    {
+      "expected_package_status": "PERMISSION_REQUIRED",
+      "expected_workflow_ref": "st_annes_monthly_invoice_rollup",
+      "message_id": "telegram_dryrun_fixture_st_annes_invoice_send"
+    }
+  ],
+  "workflow_package_queue_ref": "generated/read_models/workflow_package_queue_contract.json"
+}
