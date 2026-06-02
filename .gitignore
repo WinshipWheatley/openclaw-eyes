@@ -133,6 +133,7 @@
 !openclaw_event_bridge_contract.py
 !openclaw_event_bridge_adapter.py
 !workflow_package_queue.py
+!workflow_package_request_consumer.py
 !st_annes_work_log_intake.py
 !simple_invoice_workflow_fixtures.py
 !simple_invoice_event_bridge_rail_registry.py
@@ -1017,6 +1018,7 @@
 !tests/test_openclaw_event_bridge_contract.py
 !tests/test_openclaw_event_bridge_adapter.py
 !tests/test_workflow_package_queue.py
+!tests/test_workflow_package_request_consumer.py
 !tests/test_st_annes_work_log_intake.py
 !tests/test_simple_invoice_event_bridge_rail_registry.py
 !tests/test_st_annes_invoice_status.py

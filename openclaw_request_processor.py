@@ -37,6 +37,7 @@ import openclaw_request_router
 import local_artifact_reference
 import scoped_context_package_compiler_contract
 import worker_routing_intelligence
+import workflow_package_request_consumer
 import workflow_execution_package_compiler
 
 
@@ -85,10 +86,12 @@ CONTEXT_ATTACHMENT_PATTERN = "mission_control_context_request_*.json"
 SECRET_INTAKE_PATTERN = "mission_control_secret_intake_request_*.json"
 VISUAL_WORKSPACE_PATTERN = "mission_control_visual_workspace_request_*.json"
 WORKER_DISPATCH_PATTERN = "mission_control_worker_dispatch_request_*.json"
+WORKFLOW_PACKAGE_REQUEST_PATTERNS = workflow_package_request_consumer.REQUEST_FILENAME_PATTERNS
 
 SUPPORTED_REQUEST_PATTERNS = (
     CHAT_PATTERN,
     FILE_METADATA_PATTERN,
+    *WORKFLOW_PACKAGE_REQUEST_PATTERNS,
     *LOCAL_SURFACE_RESULT_PATTERNS,
     *ARTIFACT_REFERENCE_APPROVAL_PATTERNS,
     *ARTIFACT_INTAKE_REQUEST_PATTERNS,
@@ -106,6 +109,7 @@ FUTURE_REQUEST_PATTERNS = (
 REQUEST_FAMILIES = (
     "CHAT",
     "FILE_METADATA",
+    "WORKFLOW_PACKAGE_REQUEST",
     "LOCAL_SURFACE_RESULT",
     "INVOICE_REVIEW_ACTION_RESULT",
     "ARTIFACT_REFERENCE_APPROVAL",
@@ -397,6 +401,7 @@ RESPONDER_TARGET_TYPES = (
     "DETERMINISTIC_ROUTER",
     "FILE_METADATA_INTAKE",
     "LOCAL_SURFACE_RESULT_INTAKE",
+    "WORKFLOW_PACKAGE_QUEUE",
     "WORKER_ROUTING_INTELLIGENCE",
     "SCOPED_CONTEXT_PACKAGE_COMPILER",
     "CODEX_RESPONDER_FUTURE",
@@ -811,6 +816,11 @@ def classify_request_filename(filename: str | None) -> RequestClassification:
         rail = "operator_file_metadata_intake"
         reason = "Filename matches Mission Control file metadata intake pattern."
         future_supported = False
+    elif filename and any(fnmatch.fnmatch(filename, pattern) for pattern in WORKFLOW_PACKAGE_REQUEST_PATTERNS):
+        family = "WORKFLOW_PACKAGE_REQUEST"
+        rail = "workflow_package_request_consumer"
+        reason = "Filename matches Mission Control generic operator instruction package pattern."
+        future_supported = False
     elif filename and any(fnmatch.fnmatch(filename, pattern) for pattern in LOCAL_SURFACE_RESULT_PATTERNS):
         family = "LOCAL_SURFACE_RESULT"
         rail = "local_surface_result_intake"
@@ -870,7 +880,14 @@ def classify_request_filename(filename: str | None) -> RequestClassification:
         future_supported=future_supported,
         next_safe_move=(
             "Run the selected deterministic rail once and write a Mac-readable response."
-            if family in {"CHAT", "FILE_METADATA", "LOCAL_SURFACE_RESULT", "ARTIFACT_REFERENCE_APPROVAL", "ARTIFACT_INTAKE_REQUEST"}
+            if family in {
+                "CHAT",
+                "FILE_METADATA",
+                "WORKFLOW_PACKAGE_REQUEST",
+                "LOCAL_SURFACE_RESULT",
+                "ARTIFACT_REFERENCE_APPROVAL",
+                "ARTIFACT_INTAKE_REQUEST",
+            }
             else "Return a human blocked response until the requested rail is connected."
         ),
     )
@@ -885,6 +902,7 @@ def list_supported_requests(inbox: Path = APPROVED_INBOX) -> tuple[Path, ...]:
         if path.is_file() and classify_request_filename(path.name).request_family in {
             "CHAT",
             "FILE_METADATA",
+            "WORKFLOW_PACKAGE_REQUEST",
             "LOCAL_SURFACE_RESULT",
             "ARTIFACT_REFERENCE_APPROVAL",
             "ARTIFACT_INTAKE_REQUEST",
@@ -952,6 +970,13 @@ def build_responder_targets(selected_family: str) -> tuple[RequestProcessorRespo
             ("LOCAL_SURFACE_RESULT",),
             True,
             selected_family == "LOCAL_SURFACE_RESULT",
+        ),
+        target(
+            "WORKFLOW_PACKAGE_QUEUE",
+            "Workflow package queue request consumer",
+            ("WORKFLOW_PACKAGE_REQUEST",),
+            True,
+            selected_family == "WORKFLOW_PACKAGE_REQUEST",
         ),
         target(
             "ARTIFACT_REFERENCE_APPROVAL",
@@ -1030,6 +1055,18 @@ def _required_fields_for_family(request_family: str) -> tuple[str, ...]:
         return CHAT_REQUIRED_FIELDS
     if request_family == "FILE_METADATA":
         return FILE_REQUIRED_FIELDS
+    if request_family == "WORKFLOW_PACKAGE_REQUEST":
+        return (
+            "request_id",
+            "idempotency_key",
+            "payload_hash",
+            "authority_boundary",
+            "created_at",
+            "source_surface",
+            "source_text",
+            "requested_mode",
+            "result_receipt_required",
+        )
     if request_family in {"LOCAL_SURFACE_RESULT", "ARTIFACT_REFERENCE_APPROVAL", "ARTIFACT_INTAKE_REQUEST"}:
         return ("request_id", "idempotency_key", "payload_hash", "authority_boundary", "created_at", "intended_use")
     return ("request_id", "idempotency_key", "payload_hash", "authority_boundary", "created_at")
@@ -2288,6 +2325,146 @@ def _classification_from_router_decision(
         ),
         future_supported=False,
         next_safe_move=str(decision.get("next_safe_move") or classification.next_safe_move),
+    )
+
+
+def _workflow_package_request_classification(classification: RequestClassification) -> RequestClassification:
+    return RequestClassification(
+        classification_id=f"request_classification_{_short_hash(classification.source_request_filename, 'workflow_package_request')}",
+        source_request_filename=classification.source_request_filename,
+        request_family="WORKFLOW_PACKAGE_REQUEST",
+        selected_rail="workflow_package_request_consumer",
+        classification_reason="Request envelope is a Mission Control WORKFLOW_PACKAGE_REQUEST_V0 operator instruction.",
+        future_supported=False,
+        next_safe_move="Record the instruction as a dry-run package queue item and return a Mac readback.",
+    )
+
+
+def _process_workflow_package_request(
+    request_path: Path,
+    raw_request: Mapping[str, Any],
+    *,
+    generated_at: str | None,
+    classification: RequestClassification,
+) -> OpenClawResponseForMac:
+    result = workflow_package_request_consumer.consume_workflow_package_request(
+        raw_request,
+        source_request_filename=request_path.name,
+        generated_at=generated_at,
+    )
+    receipt = result.receipt
+    package = result.package or {}
+    package_status = str(receipt.get("package_status") or "NOT_CREATED")
+    workflow_ref = str(receipt.get("workflow_ref") or raw_request.get("workflow_ref") or "unknown")
+    client_ref = receipt.get("client_ref")
+    capability_status = str(receipt.get("capability_gate_status") or "NOT_EVALUATED")
+    package_recorded = result.package is not None
+    internal_status = "RESPONSE_READY" if package_recorded else "BLOCKED_WITH_REASON"
+    headline = "Workflow package staged" if package_recorded else "Workflow package blocked"
+    if package_status in {"PROVIDER_GATE_REQUIRED", "PERMISSION_REQUIRED", "ARTIFACT_REQUIRED"}:
+        headline = "Workflow package gate closed"
+    message = (
+        "OpenClaw recorded this Mission Control instruction as a dry-run workflow package. "
+        "No business action ran and all external authority remains closed."
+        if package_recorded
+        else "OpenClaw found the operator instruction, but the envelope failed the local safety checks. Nothing ran."
+    )
+    blocker = str(receipt.get("blocker") or "")
+    status_tone = "blocked" if blocker else "ready"
+    response_classification = _workflow_package_request_classification(classification)
+    layered_fields = {
+        "response_kind": "WORKFLOW_PACKAGE_REQUEST_RESPONSE",
+        "audience_mode": "ELIWINSHIP",
+        "display_mode": "COMPACT_CHAT",
+        "headline": headline,
+        "one_line_answer": message,
+        "eliwinship": message,
+        "primary_status": package_status if package_recorded else "Blocked",
+        "primary_blocker": blocker or "None",
+        "next_action": f"Next: {result.next_safe_action}",
+        "missing_items_short": (blocker,) if blocker else (),
+        "detail_summary": (
+            f"Package status {package_status}; capability gate {capability_status}. "
+            "The queue recorded only a no-op worker result and a closed business action gate."
+        ),
+        "proof_refs": (),
+        "debug_refs": (),
+        "raw_internal_status": internal_status,
+        "mac_render_hint": "COMPACT_WITH_DISCLOSURE",
+        "request_ref": result.request_id,
+        "package_id": str(receipt.get("package_id") or ""),
+        "workflow_ref": workflow_ref,
+        "client_ref": client_ref,
+        "package_status": package_status,
+        "blocker": blocker,
+        "no_external_authority_granted": True,
+    }
+    return OpenClawResponseForMac(
+        source_request_id=result.request_id,
+        source_request_filename=request_path.name,
+        workflow_ref=workflow_ref,
+        request_type="WORKFLOW_PACKAGE_REQUEST",
+        internal_status=internal_status,
+        operator_headline=headline,
+        operator_message=message,
+        what_happened=(
+            "PC recognized a Mission Control WORKFLOW_PACKAGE_REQUEST_V0 envelope.",
+            "PC validated source surface, operator mode, receipt requirement, and false authority boundaries.",
+            "PC routed the instruction into the Workflow Package Queue V0 dry-run registry.",
+            "PC returned a scoped Mac response with the package status.",
+            "No Telegram live connection, email, Gmail, browser, Coupa, workbook mutation, PDF export, ledger mutation, submit, paid marking, or business-state mutation occurred.",
+        ),
+        why_it_happened=(
+            f"Workflow Package Queue classified the instruction as {workflow_ref} with package status {package_status}."
+            if package_recorded
+            else f"Envelope validation blockers: {blocker}."
+        ),
+        how_to_fix=result.next_safe_action,
+        visible_cards=(
+            {
+                "title": headline,
+                "bullets": (
+                    f"Package: {receipt.get('package_id') or 'not created'}",
+                    f"Workflow: {workflow_ref}",
+                    f"Client: {client_ref or 'none'}",
+                    f"Status: {package_status}",
+                    f"Gate: {capability_status}",
+                    "Authority: no send, ledger, browser, Gmail, Coupa, workbook, PDF, submit, paid, or sent grant.",
+                ),
+                "status_tone": status_tone,
+            },
+        ),
+        cards_available=True,
+        card_mirror_refs=(),
+        file_readback_refs=(),
+        worker_route_refs=(
+            {
+                "selected_worker_target": "PC_CODEX",
+                "selected_machine": "PC_WSL",
+                "routing_status": "PROCESSING_ON_PC",
+                "selected_rail": "workflow_package_request_consumer",
+                "package_id": receipt.get("package_id") or "",
+                "workflow_ref": workflow_ref,
+                "package_status": package_status,
+                "capability_gate_status": capability_status,
+                "noop_worker_only": True,
+            },
+        ),
+        context_package_refs=(),
+        blocked_reason=blocker or None,
+        detail_disclosure={
+            "request_classification": asdict(response_classification),
+            "workflow_package_request_consumer": receipt,
+            "package": package,
+            "package_queue_sqlite_path": receipt.get("sqlite_path"),
+            "source_request_metadata": package.get("source_request_metadata") if isinstance(package, Mapping) else None,
+            "live_worker_executed": False,
+            "business_state_mutation_performed": False,
+            "external_actions_locked": True,
+            "layered_response_fields": layered_fields,
+        },
+        readback_files=(),
+        next_safe_move=result.next_safe_action,
     )
 
 
@@ -5120,6 +5297,13 @@ def process_request_path(
             request_path,
             raw_request,
             classification=classification,
+        )
+    if effective_classification.request_family == "WORKFLOW_PACKAGE_REQUEST":
+        return _process_workflow_package_request(
+            request_path,
+            raw_request,
+            generated_at=generated_at,
+            classification=effective_classification,
         )
     if classification.request_family == "CHAT" and _is_workbook_candidate_keep_choice_request(raw_request):
         return _process_workbook_candidate_choice_request(

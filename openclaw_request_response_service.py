@@ -80,6 +80,7 @@ SERVICE_SUPPORTED_REQUEST_FAMILIES = (
     "EVENT_BRIDGE",
     "CHAT",
     "FILE_METADATA",
+    "WORKFLOW_PACKAGE_REQUEST",
     "LOCAL_SURFACE_RESULT",
     "ARTIFACT_REFERENCE_APPROVAL",
     "ARTIFACT_INTAKE_REQUEST",
@@ -765,6 +766,23 @@ def _route_for_request(request_path: Path, identity: RequestIdentity, raw_reques
             operator_message="OpenClaw picked this up and is checking the metadata-only local rail.",
             next_safe_move="Wait for the file reference readback.",
             route_reason="File metadata requests are handled by the deterministic PC metadata rail.",
+            pc_handled=True,
+            mac_handoff_required=False,
+            future_worker_blocked=False,
+        )
+    if request_type == "WORKFLOW_PACKAGE_REQUEST":
+        return RouteDecision(
+            routing_status="PROCESSING_ON_PC",
+            selected_worker_target="PC_CODEX",
+            selected_machine="PC_WSL",
+            processing_status="CHECKING_WORKFLOW_PACKAGE_QUEUE",
+            operator_headline="OpenClaw is staging this instruction",
+            operator_message="OpenClaw picked this up and is routing it into the dry-run workflow package queue.",
+            next_safe_move="Wait for the workflow package queue readback.",
+            route_reason=(
+                "Mission Control generic operator instructions are handled by the Workflow Package Queue V0 "
+                "consumer with no live business action authority."
+            ),
             pc_handled=True,
             mac_handoff_required=False,
             future_worker_blocked=False,

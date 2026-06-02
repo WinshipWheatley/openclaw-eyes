@@ -62,6 +62,11 @@ LIVE_ARTS_PDF_CANDIDATE_DECISION_RESULT_INTENDED_USES = (
     "selected_invoice_pdf_candidate_review_decision",
 )
 
+WORKFLOW_PACKAGE_REQUEST_KINDS = (
+    "OPERATOR_INSTRUCTION_PACKAGE_REQUEST",
+    "WORKFLOW_PACKAGE_REQUEST_V0",
+)
+
 
 @dataclass(frozen=True)
 class RequestRouteEnvelope:
@@ -343,6 +348,27 @@ def selected_invoice_pdf_export_completed_result_handlers() -> tuple[RequestHand
     )
 
 
+def workflow_package_request_handlers() -> tuple[RequestHandlerRegistration, ...]:
+    return tuple(
+        RequestHandlerRegistration(
+            request_kind=request_kind,
+            handler_id="workflow_package_queue.operator_instruction",
+            handler_label="Workflow Package Queue operator instruction",
+            intended_use="",
+            world_refs=(),
+            workflow_refs=(),
+            client_refs=(),
+            project_refs=(),
+            adapter_available=True,
+            next_safe_move=(
+                "Record the generic operator instruction as a dry-run package queue item; "
+                "all business action authority remains denied."
+            ),
+        )
+        for request_kind in WORKFLOW_PACKAGE_REQUEST_KINDS
+    )
+
+
 def default_handler_registrations() -> tuple[RequestHandlerRegistration, ...]:
     return (
         capital_hilton_field_mapping_handler(),
@@ -351,6 +377,7 @@ def default_handler_registrations() -> tuple[RequestHandlerRegistration, ...]:
         *invoice_review_action_handlers(),
         *invoice_record_selection_result_handlers(),
         *selected_invoice_pdf_export_completed_result_handlers(),
+        *workflow_package_request_handlers(),
     )
 
 
