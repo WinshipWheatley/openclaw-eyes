@@ -88,6 +88,11 @@ def test_consumer_records_valid_workflow_package_request_in_queue_sqlite(tmp_pat
     assert result.receipt["client_ref"] == "st_annes"
     assert result.receipt["package_status"] == "OPERATOR_REVIEW_REQUIRED"
     assert result.receipt["operator_display"]["headline"] == "St. Anne's work log captured"
+    assert result.receipt["speaker_ref"] == "cassandra"
+    assert result.receipt["voice_mode"] == "operator_intake"
+    assert result.receipt["audience"] == "internal_operator"
+    assert result.receipt["operator_display"]["speaker_ref"] == "cassandra"
+    assert result.receipt["operator_display"]["voice_mode"] == "operator_intake"
     assert result.receipt["operator_display"]["status_label"] == "Needs confirmation"
     assert result.receipt["operator_display"]["tone"] == "warning"
     assert "st_annes_work_log_event" not in result.receipt["operator_display"]["headline"]
@@ -131,6 +136,9 @@ def test_consumer_blocks_unsafe_true_grant_without_queue_write(tmp_path):
     assert result.status == "BLOCKED"
     assert result.receipt["raw_internal_status"] == "BLOCKED_WITH_REASON"
     assert f"authority_true:{unsafe_key}" in result.blockers
+    assert result.receipt["speaker_ref"] == "guardian"
+    assert result.receipt["voice_mode"] == "safety_gate"
+    assert result.receipt["operator_display"]["speaker_ref"] == "guardian"
     assert not sqlite_path.exists()
 
 
@@ -200,6 +208,8 @@ def test_service_processes_three_workflow_package_requests_and_writes_scoped_res
             "Needs confirmation",
             "warning",
             "Review and confirm the event.",
+            "cassandra",
+            "operator_intake",
         ),
         "capital_hilton_business_development_operator_instruction_smoke": (
             "capital_hilton_proposal_followup",
@@ -209,6 +219,8 @@ def test_service_processes_three_workflow_package_requests_and_writes_scoped_res
             "Needs review",
             "calm",
             "Review the follow-up plan.",
+            "cassandra",
+            "operator_calm",
         ),
         "capital_hilton_invoice_workflow_operator_instruction_smoke": (
             "capital_hilton_invoice_operator_assist",
@@ -218,12 +230,14 @@ def test_service_processes_three_workflow_package_requests_and_writes_scoped_res
             "Provider gate required",
             "blocked",
             "Stage an operator-assist packet when you are ready.",
+            "chief",
+            "diagnostic",
         ),
     }
     for request in requests:
         response = json.loads(_safe_response_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
         heartbeat = json.loads(_safe_heartbeat_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
-        workflow_ref, client_ref, package_status, headline, status_label, tone, next_safe_action = expected[request["request_id"]]
+        workflow_ref, client_ref, package_status, headline, status_label, tone, next_safe_action, speaker_ref, voice_mode = expected[request["request_id"]]
 
         assert heartbeat["request_type"] == "WORKFLOW_PACKAGE_REQUEST"
         assert heartbeat["processing_status"] == "CHECKING_WORKFLOW_PACKAGE_QUEUE"
@@ -240,10 +254,16 @@ def test_service_processes_three_workflow_package_requests_and_writes_scoped_res
         assert display["status_label"] == status_label
         assert display["tone"] == tone
         assert display["next_safe_action"] == next_safe_action
+        assert display["speaker_ref"] == speaker_ref
+        assert display["voice_mode"] == voice_mode
+        assert display["audience"] == "internal_operator"
         assert display["proof_caption"] == "Proof available"
         assert display["show_machine_details_by_default"] is False
         assert workflow_ref not in display["headline"]
         assert response["headline"] == headline
+        assert response["speaker_ref"] == speaker_ref
+        assert response["voice_mode"] == voice_mode
+        assert response["audience"] == "internal_operator"
         assert response["primary_status"] == status_label
         assert response["next_action"] == f"Next: {next_safe_action}"
         assert response["detail_disclosure"]["workflow_package_request_consumer"]["operator_display"] == display

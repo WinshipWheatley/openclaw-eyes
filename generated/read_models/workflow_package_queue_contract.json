@@ -1,4 +1,5 @@
 {
+  "agent_voice_routing_contract_ref": "generated/read_models/agent_voice_routing_contract.json",
   "authority_boundary_default": {
     "browser_access_allowed": false,
     "coupa_allowed": false,
@@ -47,7 +48,7 @@
       "world": "diagnostic"
     }
   ],
-  "generated_at": "2026-06-02T02:45:00+00:00",
+  "generated_at": "2026-06-02T03:10:00+00:00",
   "machine_proof": {
     "authority_flags_all_false": true,
     "dry_run_only": true,
@@ -67,6 +68,9 @@
     "unsafe_true_grants_absent": true
   },
   "operator_display_schema": [
+    "speaker_ref",
+    "voice_mode",
+    "audience",
     "headline",
     "subheadline",
     "status_label",
@@ -113,7 +117,7 @@
         "browser_access_allowed": false,
         "coupa_allowed": false,
         "email_send_allowed": false,
-        "gate_ref": "business_action_gate:37dcb3eb4fbddd15",
+        "gate_ref": "business_action_gate:cf1e4c0111c06982",
         "gmail_allowed": false,
         "ledger_posting_allowed": false,
         "paid": false,
@@ -132,7 +136,7 @@
         "status": "ALLOW_DRY_RUN"
       },
       "client_ref": "st_annes",
-      "created_at": "2026-06-02T02:45:00+00:00",
+      "created_at": "2026-06-02T03:10:00+00:00",
       "intent_classification_result": {
         "client_ref": "st_annes",
         "confidence": "high",
@@ -141,6 +145,7 @@
         "world": "invoice_operations"
       },
       "operator_display": {
+        "audience": "internal_operator",
         "headline": "St. Anne's work log captured",
         "next_safe_action": "Review and confirm the event.",
         "plain_summary": "I saved this as a draft work event. Confirm it before it counts toward the monthly invoice.",
@@ -151,18 +156,21 @@
           "No ledger entry was touched."
         ],
         "show_machine_details_by_default": false,
+        "speaker_ref": "cassandra",
         "status_label": "Needs confirmation",
         "subheadline": "Church sound event saved for review.",
         "tone": "warning",
+        "voice_mode": "operator_intake",
+        "voice_routing_reason": "work-log intake",
         "why_it_matters": "Confirmed work-log events become the source for the month-end invoice package."
       },
       "operator_review_receipt": {
         "business_action_authority_granted": false,
         "operator_review_required": true,
-        "receipt_ref": "operator_review_receipt:d1a0842e8b6d5672",
+        "receipt_ref": "operator_review_receipt:c7038de379d58b0c",
         "status": "OPERATOR_REVIEW_REQUIRED"
       },
-      "package_id": "workflow_package:ec344780d816806a",
+      "package_id": "workflow_package:f78d6c42ac38ff67",
       "pii_status": "MINIMAL_BUSINESS_CONTEXT",
       "privacy_gate_result": {
         "gate_ref": "privacy_gate:326e1d14837b55e9",
@@ -193,10 +201,10 @@
       "source_surface": "mission_control",
       "source_text_ref": "protected_text_hash:sha256:8732162cb575eb50e24104cf433c7796ad45a76c20a7451f78c69d5b200b954a",
       "status": "OPERATOR_REVIEW_REQUIRED",
-      "updated_at": "2026-06-02T02:45:00+00:00",
+      "updated_at": "2026-06-02T03:10:00+00:00",
       "worker_assignment": {
         "assigned": true,
-        "assignment_ref": "worker_assignment:90f55e53fb0385b5",
+        "assignment_ref": "worker_assignment:6678d177fc665de6",
         "live_action_authority": false,
         "worker_kind": "dry_run_noop_worker",
         "worker_ref": "noop_worker:st_annes_work_log_event"
@@ -209,7 +217,7 @@
         "ledger_mutation_performed": false,
         "paid_marking_performed": false,
         "pdf_export_performed": false,
-        "result_ref": "worker_result:17ad8c041ce97dcf",
+        "result_ref": "worker_result:a0839211a2d72c39",
         "result_status": "NOOP_RESULT_RECORDED",
         "submit_performed": false,
         "summary": "Dry-run worker recorded package state only.",
@@ -234,7 +242,7 @@
         "browser_access_allowed": false,
         "coupa_allowed": false,
         "email_send_allowed": false,
-        "gate_ref": "business_action_gate:cd5535362452d7f0",
+        "gate_ref": "business_action_gate:eb3e77a1987830e4",
         "gmail_allowed": false,
         "ledger_posting_allowed": false,
         "paid": false,
@@ -257,7 +265,7 @@
         "status": "PERMISSION_REQUIRED"
       },
       "client_ref": "st_annes",
-      "created_at": "2026-06-02T02:45:00+00:00",
+      "created_at": "2026-06-02T03:10:00+00:00",
       "intent_classification_result": {
         "client_ref": "st_annes",
         "confidence": "high",
@@ -266,6 +274,7 @@
         "world": "invoice_operations"
       },
       "operator_display": {
+        "audience": "internal_operator",
         "headline": "St. Anne's invoice is not ready to send",
         "next_safe_action": "Resolve the missing gate, then review the package again.",
         "plain_summary": "This is blocked because Send permission registry is not ready for V0 package execution. No email will be sent.",
@@ -276,18 +285,21 @@
           "No ledger entry was touched."
         ],
         "show_machine_details_by_default": false,
+        "speaker_ref": "openclaw",
         "status_label": "Missing prerequisite",
         "subheadline": "Invoice work stays gated until proof is ready.",
         "tone": "blocked",
+        "voice_mode": "operator_calm",
+        "voice_routing_reason": "neutral cockpit/system orientation",
         "why_it_matters": "Invoice sending must wait for approved artifacts and explicit operator authority."
       },
       "operator_review_receipt": {
         "business_action_authority_granted": false,
         "operator_review_required": true,
-        "receipt_ref": "operator_review_receipt:2d91971a81e462c0",
+        "receipt_ref": "operator_review_receipt:db7ba9ae16cb75f9",
         "status": "BLOCKED_PRE_REVIEW"
       },
-      "package_id": "workflow_package:c387d7fecc7654ce",
+      "package_id": "workflow_package:486ff5dfb9f8649f",
       "pii_status": "MINIMAL_BUSINESS_CONTEXT",
       "privacy_gate_result": {
         "gate_ref": "privacy_gate:dce4d05b906c3f8c",
@@ -318,10 +330,10 @@
       "source_surface": "mission_control",
       "source_text_ref": "protected_text_hash:sha256:68007050de58aa782d4f60a95ce85ead8c144728cc199db731c551279308e4a6",
       "status": "PERMISSION_REQUIRED",
-      "updated_at": "2026-06-02T02:45:00+00:00",
+      "updated_at": "2026-06-02T03:10:00+00:00",
       "worker_assignment": {
         "assigned": true,
-        "assignment_ref": "worker_assignment:0a0b17148c2baaef",
+        "assignment_ref": "worker_assignment:5527e853e0adcb21",
         "live_action_authority": false,
         "worker_kind": "dry_run_noop_worker",
         "worker_ref": "noop_worker:st_annes_monthly_invoice_rollup"
@@ -334,7 +346,7 @@
         "ledger_mutation_performed": false,
         "paid_marking_performed": false,
         "pdf_export_performed": false,
-        "result_ref": "worker_result:2d710192a9d0f51c",
+        "result_ref": "worker_result:423d0c115d4f63e6",
         "result_status": "NOOP_BLOCKED_BY_GATE",
         "submit_performed": false,
         "summary": "Dry-run worker recorded package state only.",
@@ -359,7 +371,7 @@
         "browser_access_allowed": false,
         "coupa_allowed": false,
         "email_send_allowed": false,
-        "gate_ref": "business_action_gate:99f51cdc79db33c3",
+        "gate_ref": "business_action_gate:5bb237bc7f342941",
         "gmail_allowed": false,
         "ledger_posting_allowed": false,
         "paid": false,
@@ -382,7 +394,7 @@
         "status": "ALLOW_DRY_RUN"
       },
       "client_ref": "capital_hilton",
-      "created_at": "2026-06-02T02:45:00+00:00",
+      "created_at": "2026-06-02T03:10:00+00:00",
       "intent_classification_result": {
         "client_ref": "capital_hilton",
         "confidence": "high",
@@ -391,6 +403,7 @@
         "world": "business_development"
       },
       "operator_display": {
+        "audience": "internal_operator",
         "headline": "Capital Hilton proposal follow-up staged",
         "next_safe_action": "Review the follow-up plan.",
         "plain_summary": "I staged this as a proposal follow-up. No email will be sent until you approve it.",
@@ -401,18 +414,21 @@
           "No finance handoff was opened."
         ],
         "show_machine_details_by_default": false,
+        "speaker_ref": "cassandra",
         "status_label": "Needs review",
         "subheadline": "Business Development follow-up, no finance action.",
         "tone": "calm",
+        "voice_mode": "operator_calm",
+        "voice_routing_reason": "human-layer coordination or correspondence prep",
         "why_it_matters": "Proposal follow-up stays separate from finance until the client accepts."
       },
       "operator_review_receipt": {
         "business_action_authority_granted": false,
         "operator_review_required": true,
-        "receipt_ref": "operator_review_receipt:8ae78b8038138bb6",
+        "receipt_ref": "operator_review_receipt:c7b84746e5c2b75f",
         "status": "OPERATOR_REVIEW_REQUIRED"
       },
-      "package_id": "workflow_package:83415727af67bf64",
+      "package_id": "workflow_package:5429c9249af4927c",
       "pii_status": "MINIMAL_BUSINESS_CONTEXT",
       "privacy_gate_result": {
         "gate_ref": "privacy_gate:684a0f929decb611",
@@ -443,10 +459,10 @@
       "source_surface": "mission_control",
       "source_text_ref": "protected_text_hash:sha256:bd7d8d625bd3b906afa861eef02af056f114798e11ceaf5d5407ae2995e24b13",
       "status": "OPERATOR_REVIEW_REQUIRED",
-      "updated_at": "2026-06-02T02:45:00+00:00",
+      "updated_at": "2026-06-02T03:10:00+00:00",
       "worker_assignment": {
         "assigned": true,
-        "assignment_ref": "worker_assignment:6cda5512986bb1ff",
+        "assignment_ref": "worker_assignment:31fdde8b943da4fa",
         "live_action_authority": false,
         "worker_kind": "dry_run_noop_worker",
         "worker_ref": "noop_worker:capital_hilton_proposal_followup"
@@ -459,7 +475,7 @@
         "ledger_mutation_performed": false,
         "paid_marking_performed": false,
         "pdf_export_performed": false,
-        "result_ref": "worker_result:403d07766ab2a30d",
+        "result_ref": "worker_result:fe2e47a89a78c470",
         "result_status": "NOOP_RESULT_RECORDED",
         "submit_performed": false,
         "summary": "Dry-run worker recorded package state only.",
@@ -484,7 +500,7 @@
         "browser_access_allowed": false,
         "coupa_allowed": false,
         "email_send_allowed": false,
-        "gate_ref": "business_action_gate:da63e426c17d89a7",
+        "gate_ref": "business_action_gate:81960dda76d09b48",
         "gmail_allowed": false,
         "ledger_posting_allowed": false,
         "paid": false,
@@ -507,7 +523,7 @@
         "status": "PROVIDER_GATE_REQUIRED"
       },
       "client_ref": "capital_hilton",
-      "created_at": "2026-06-02T02:45:00+00:00",
+      "created_at": "2026-06-02T03:10:00+00:00",
       "intent_classification_result": {
         "client_ref": "capital_hilton",
         "confidence": "high",
@@ -516,6 +532,7 @@
         "world": "invoice_operations"
       },
       "operator_display": {
+        "audience": "internal_operator",
         "headline": "Capital Hilton invoice needs operator assist",
         "next_safe_action": "Stage an operator-assist packet when you are ready.",
         "plain_summary": "This cannot run unattended. Coupa submission requires an operator-present workflow and a final Submit confirmation.",
@@ -526,18 +543,21 @@
           "No email will be sent."
         ],
         "show_machine_details_by_default": false,
+        "speaker_ref": "chief",
         "status_label": "Provider gate required",
         "subheadline": "Coupa requires a live submit gate.",
         "tone": "blocked",
+        "voice_mode": "diagnostic",
+        "voice_routing_reason": "provider gate required",
         "why_it_matters": "Portal submission and email send are external actions that need a human gate."
       },
       "operator_review_receipt": {
         "business_action_authority_granted": false,
         "operator_review_required": true,
-        "receipt_ref": "operator_review_receipt:740e748bc48be0f4",
+        "receipt_ref": "operator_review_receipt:6b6a9d3d09a766cc",
         "status": "BLOCKED_PRE_REVIEW"
       },
-      "package_id": "workflow_package:2abfe3594cf7a43d",
+      "package_id": "workflow_package:66c20d7649c0bbba",
       "pii_status": "MINIMAL_BUSINESS_CONTEXT",
       "privacy_gate_result": {
         "gate_ref": "privacy_gate:b4dddb748c5d8f04",
@@ -568,10 +588,10 @@
       "source_surface": "mission_control",
       "source_text_ref": "protected_text_hash:sha256:6c29b37757833a0e38039d18182ca598da19a3ae4a2da4c58ee0bf38cc7cc08b",
       "status": "PROVIDER_GATE_REQUIRED",
-      "updated_at": "2026-06-02T02:45:00+00:00",
+      "updated_at": "2026-06-02T03:10:00+00:00",
       "worker_assignment": {
         "assigned": true,
-        "assignment_ref": "worker_assignment:36d2fffa5771114f",
+        "assignment_ref": "worker_assignment:7f2677c6bbd8f0d0",
         "live_action_authority": false,
         "worker_kind": "dry_run_noop_worker",
         "worker_ref": "noop_worker:capital_hilton_invoice_operator_assist"
@@ -584,7 +604,7 @@
         "ledger_mutation_performed": false,
         "paid_marking_performed": false,
         "pdf_export_performed": false,
-        "result_ref": "worker_result:bf05b737babbefca",
+        "result_ref": "worker_result:36d9653af4b4c6f0",
         "result_status": "NOOP_BLOCKED_BY_GATE",
         "submit_performed": false,
         "summary": "Dry-run worker recorded package state only.",
@@ -609,7 +629,7 @@
         "browser_access_allowed": false,
         "coupa_allowed": false,
         "email_send_allowed": false,
-        "gate_ref": "business_action_gate:2f7a242aedab7a81",
+        "gate_ref": "business_action_gate:e3e89ecf3fb88402",
         "gmail_allowed": false,
         "ledger_posting_allowed": false,
         "paid": false,
@@ -628,7 +648,7 @@
         "status": "ALLOW_DRY_RUN"
       },
       "client_ref": null,
-      "created_at": "2026-06-02T02:45:00+00:00",
+      "created_at": "2026-06-02T03:10:00+00:00",
       "intent_classification_result": {
         "client_ref": null,
         "confidence": "medium",
@@ -637,6 +657,7 @@
         "world": "diagnostic"
       },
       "operator_display": {
+        "audience": "internal_operator",
         "headline": "Workflow package staged",
         "next_safe_action": "Review the staged package.",
         "plain_summary": "I staged this as a dry-run package. No business action ran.",
@@ -647,18 +668,21 @@
           "No ledger entry was touched."
         ],
         "show_machine_details_by_default": false,
+        "speaker_ref": "chief",
         "status_label": "Needs review",
         "subheadline": "Saved for operator review.",
         "tone": "calm",
+        "voice_mode": "diagnostic",
+        "voice_routing_reason": "diagnostic, queue, route, or workbench posture",
         "why_it_matters": "Operator review separates captured intent from live execution."
       },
       "operator_review_receipt": {
         "business_action_authority_granted": false,
         "operator_review_required": true,
-        "receipt_ref": "operator_review_receipt:476141ebee6db8ae",
+        "receipt_ref": "operator_review_receipt:dcda5ed9dd6f5927",
         "status": "OPERATOR_REVIEW_REQUIRED"
       },
-      "package_id": "workflow_package:4cf17b9cccc0c3ea",
+      "package_id": "workflow_package:9a4cd2c52c733f20",
       "pii_status": "MINIMAL_BUSINESS_CONTEXT",
       "privacy_gate_result": {
         "gate_ref": "privacy_gate:19ad018df7f4c3de",
@@ -689,10 +713,10 @@
       "source_surface": "codex",
       "source_text_ref": "protected_text_hash:sha256:c95831af880a8d7c04a6065c80d8e60bc614f88c28d4d23ef66e59ce49a9792d",
       "status": "PACKAGE_STAGED",
-      "updated_at": "2026-06-02T02:45:00+00:00",
+      "updated_at": "2026-06-02T03:10:00+00:00",
       "worker_assignment": {
         "assigned": true,
-        "assignment_ref": "worker_assignment:f7cc0ce996c0d772",
+        "assignment_ref": "worker_assignment:59671c681e1b6749",
         "live_action_authority": false,
         "worker_kind": "dry_run_noop_worker",
         "worker_ref": "noop_worker:diagnostic_package_gate_smoke"
@@ -705,7 +729,7 @@
         "ledger_mutation_performed": false,
         "paid_marking_performed": false,
         "pdf_export_performed": false,
-        "result_ref": "worker_result:338befad7e23ab9f",
+        "result_ref": "worker_result:f33d15b9cfa9908d",
         "result_status": "NOOP_RESULT_RECORDED",
         "submit_performed": false,
         "summary": "Dry-run worker recorded package state only.",

@@ -17,12 +17,15 @@
   },
   "bridge_response_dir": "/mnt/e/openclaw/mission_control_responses/to_mac",
   "consumer_status": "READY",
-  "generated_at": "2026-06-02T02:50:00+00:00",
+  "generated_at": "2026-06-02T03:10:00+00:00",
   "known_commits": {
     "workflow_package_queue_and_st_annes_intake": "259682b85f61760e75278b5be510a2bd418246ef",
     "workflow_package_request_consumer": "e9cd69f94db70416ff281bc02059ed658d8c9033"
   },
   "operator_display_schema": [
+    "speaker_ref",
+    "voice_mode",
+    "audience",
     "headline",
     "subheadline",
     "status_label",
@@ -41,6 +44,7 @@
       "client_ref": "st_annes",
       "external_action_performed": false,
       "operator_display": {
+        "audience": "internal_operator",
         "headline": "St. Anne's work log captured",
         "next_safe_action": "Review and confirm the event.",
         "plain_summary": "I saved this as a draft work event. Confirm it before it counts toward the monthly invoice.",
@@ -51,11 +55,16 @@
           "No ledger entry was touched."
         ],
         "show_machine_details_by_default": false,
+        "speaker_ref": "cassandra",
         "status_label": "Needs confirmation",
         "subheadline": "Church sound event saved for review.",
         "tone": "warning",
+        "voice_mode": "operator_intake",
         "why_it_matters": "Confirmed work-log events become the source for the month-end invoice package."
       },
+      "audience": "internal_operator",
+      "speaker_ref": "cassandra",
+      "voice_mode": "operator_intake",
       "package_id": "workflow_package:32e611e2996fb30d",
       "package_status": "OPERATOR_REVIEW_REQUIRED",
       "raw_internal_status": "RESPONSE_READY",
@@ -69,6 +78,7 @@
       "client_ref": "capital_hilton",
       "external_action_performed": false,
       "operator_display": {
+        "audience": "internal_operator",
         "headline": "Capital Hilton proposal follow-up staged",
         "next_safe_action": "Review the follow-up plan.",
         "plain_summary": "I staged this as a proposal follow-up. No email will be sent until you approve it.",
@@ -79,11 +89,16 @@
           "No finance handoff was opened."
         ],
         "show_machine_details_by_default": false,
+        "speaker_ref": "cassandra",
         "status_label": "Needs review",
         "subheadline": "Business Development follow-up, no finance action.",
         "tone": "calm",
+        "voice_mode": "operator_calm",
         "why_it_matters": "Proposal follow-up stays separate from finance until the client accepts."
       },
+      "audience": "internal_operator",
+      "speaker_ref": "cassandra",
+      "voice_mode": "operator_calm",
       "package_id": "workflow_package:ed3ee1f1c7efbceb",
       "package_status": "OPERATOR_REVIEW_REQUIRED",
       "raw_internal_status": "RESPONSE_READY",
@@ -97,6 +112,7 @@
       "client_ref": "capital_hilton",
       "external_action_performed": false,
       "operator_display": {
+        "audience": "internal_operator",
         "headline": "Capital Hilton invoice needs operator assist",
         "next_safe_action": "Stage an operator-assist packet when you are ready.",
         "plain_summary": "This cannot run unattended. Coupa submission requires an operator-present workflow and a final Submit confirmation.",
@@ -107,11 +123,16 @@
           "No email will be sent."
         ],
         "show_machine_details_by_default": false,
+        "speaker_ref": "chief",
         "status_label": "Provider gate required",
         "subheadline": "Coupa requires a live submit gate.",
         "tone": "blocked",
+        "voice_mode": "diagnostic",
         "why_it_matters": "Portal submission and email send are external actions that need a human gate."
       },
+      "audience": "internal_operator",
+      "speaker_ref": "chief",
+      "voice_mode": "diagnostic",
       "package_id": "workflow_package:e6b4d3d9a4af4c05",
       "package_status": "PROVIDER_GATE_REQUIRED",
       "raw_internal_status": "RESPONSE_READY",
@@ -128,6 +149,7 @@
     "email_send_performed": false,
     "ledger_mutation_performed": false,
     "no_live_business_actions": true,
+    "deterministic_voice_routing_present": true,
     "operator_display_present": true,
     "package_queue_consumed_requests": true,
     "pdf_export_performed": false,

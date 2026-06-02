@@ -16,6 +16,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping
 
+import agent_voice_router
+
 
 ROOT = Path(__file__).resolve().parent
 DEFAULT_EXPORT_ROOT = Path("generated/read_models")
@@ -77,6 +79,9 @@ FIXTURE_INSTRUCTIONS = (
 )
 
 OPERATOR_DISPLAY_FIELDS = (
+    "speaker_ref",
+    "voice_mode",
+    "audience",
     "headline",
     "subheadline",
     "status_label",
@@ -306,10 +311,26 @@ def operator_display_for_package(
     package_status: str,
     *,
     blocker: str = "",
+    source_text: str = "",
+    source_surface: str = "",
+    world: str = "",
+    client_ref: str | None = None,
+    authority_boundary: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Build calm operator-facing copy while keeping machine fields elsewhere."""
+    voice_fields = agent_voice_router.route_agent_voice_dict(
+        workflow_ref=workflow_ref,
+        package_status=package_status,
+        source_text=source_text,
+        source_surface=source_surface,
+        world=world,
+        client_ref=client_ref,
+        authority_boundary=authority_boundary or AUTHORITY_BOUNDARY_DEFAULT,
+        blocker=blocker,
+    )
     if workflow_ref == "st_annes_work_log_event":
         return {
+            **voice_fields,
             "headline": "St. Anne's work log captured",
             "subheadline": "Church sound event saved for review.",
             "status_label": "Needs confirmation",
@@ -327,6 +348,7 @@ def operator_display_for_package(
         }
     if workflow_ref == "capital_hilton_proposal_followup":
         return {
+            **voice_fields,
             "headline": "Capital Hilton proposal follow-up staged",
             "subheadline": "Business Development follow-up, no finance action.",
             "status_label": "Needs review",
@@ -344,6 +366,7 @@ def operator_display_for_package(
         }
     if workflow_ref == "capital_hilton_invoice_operator_assist":
         return {
+            **voice_fields,
             "headline": "Capital Hilton invoice needs operator assist",
             "subheadline": "Coupa requires a live submit gate.",
             "status_label": "Provider gate required",
@@ -368,6 +391,7 @@ def operator_display_for_package(
         if blocker:
             missing = blocker.rstrip(".")
         return {
+            **voice_fields,
             "headline": "St. Anne's invoice is not ready to send",
             "subheadline": "Invoice work stays gated until proof is ready.",
             "status_label": "Missing prerequisite",
@@ -386,6 +410,7 @@ def operator_display_for_package(
     if package_status in {"PERMISSION_REQUIRED", "ARTIFACT_REQUIRED", "PROVIDER_GATE_REQUIRED"}:
         missing = blocker.rstrip(".") if blocker else "a required gate is missing"
         return {
+            **voice_fields,
             "headline": "Workflow needs a gate",
             "subheadline": "A required permission is missing.",
             "status_label": "Blocked",
@@ -402,6 +427,7 @@ def operator_display_for_package(
             "show_machine_details_by_default": False,
         }
     return {
+        **voice_fields,
         "headline": "Workflow package staged",
         "subheadline": "Saved for operator review.",
         "status_label": "Needs review",
@@ -438,6 +464,11 @@ def create_package(
         workflow_ref,
         status,
         blocker=str(capability.get("reason") or ""),
+        source_text=source_text,
+        source_surface=source_surface,
+        world=str(intent["world"]),
+        client_ref=intent.get("client_ref"),
+        authority_boundary=AUTHORITY_BOUNDARY_DEFAULT,
     )
     package_id = "workflow_package:" + _short_hash(source_surface, protected_hash, workflow_ref, created_at)
     worker_ref = "noop_worker:" + workflow_ref
@@ -535,6 +566,7 @@ def build_contract_read_model(
             "final_provider_decision",
             "approval_required",
         ],
+        "agent_voice_routing_contract_ref": "generated/read_models/agent_voice_routing_contract.json",
         "package_field_contract": [
             "package_id",
             "workflow_ref",

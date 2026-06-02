@@ -1492,6 +1492,24 @@ def _voice_context_text(response: OpenClawResponseForMac, layered_fields: Mappin
 
 def _initial_response_author(response: OpenClawResponseForMac, layered_fields: Mapping[str, Any]) -> tuple[str, str]:
     detail = response.detail_disclosure if isinstance(response.detail_disclosure, Mapping) else {}
+    speaker_map = {
+        "chief": "CHIEF",
+        "cassandra": "CASSANDRA",
+        "clara": "CLARA",
+        "guardian": "GUARDIAN",
+        "niles": "NILES",
+        "hermes": "HERMES",
+        "openclaw": "OPENCLAW_SYSTEM",
+    }
+    display = layered_fields.get("operator_display") if isinstance(layered_fields.get("operator_display"), Mapping) else None
+    if display is None and isinstance(detail.get("operator_display"), Mapping):
+        display = detail.get("operator_display")
+    if display is None and isinstance(detail.get("workflow_package_request_consumer"), Mapping):
+        receipt_display = detail["workflow_package_request_consumer"].get("operator_display")
+        display = receipt_display if isinstance(receipt_display, Mapping) else None
+    speaker_ref = str(display.get("speaker_ref") or "").strip().lower() if isinstance(display, Mapping) else ""
+    if speaker_ref in speaker_map:
+        return speaker_map[speaker_ref], "deterministic agent voice routing"
     selected_voice = str(detail.get("selected_voice") or "").strip().upper()
     if selected_voice in VOICE_PROFILE_REFS and selected_voice not in {"UNKNOWN", "OPENCLAW_SYSTEM"}:
         return selected_voice, "offline worker selected voice"
@@ -2392,6 +2410,9 @@ def _process_workflow_package_request(
         "audience_mode": "ELIWINSHIP",
         "display_mode": "COMPACT_CHAT",
         "operator_display": operator_display,
+        "speaker_ref": str(operator_display.get("speaker_ref") or "openclaw"),
+        "voice_mode": str(operator_display.get("voice_mode") or "operator_calm"),
+        "audience": str(operator_display.get("audience") or "internal_operator"),
         "headline": headline,
         "one_line_answer": message,
         "eliwinship": message,

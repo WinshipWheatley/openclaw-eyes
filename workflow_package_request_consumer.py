@@ -17,6 +17,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping
 
+import agent_voice_router
 import workflow_package_queue
 
 
@@ -219,12 +220,23 @@ def _operator_display(
     primary_status: str,
     blocker: str,
     next_safe_action: str,
+    raw_request: Mapping[str, Any],
 ) -> dict[str, Any]:
     if package is not None and isinstance(package.get("operator_display"), Mapping):
         display = dict(package["operator_display"])
         display.setdefault("next_safe_action", next_safe_action)
         return display
+    voice_fields = agent_voice_router.route_agent_voice_dict(
+        workflow_ref=str(raw_request.get("workflow_ref") or ""),
+        package_status=primary_status,
+        source_text=_source_text(raw_request),
+        source_surface=str(raw_request.get("source_surface") or ""),
+        world=str(raw_request.get("world_ref") or raw_request.get("world") or ""),
+        authority_boundary=raw_request.get("authority_boundary") if isinstance(raw_request.get("authority_boundary"), Mapping) else {},
+        blocker=blocker,
+    )
     return {
+        **voice_fields,
         "headline": "Instruction needs a safety fix",
         "subheadline": "The request envelope did not pass local checks.",
         "status_label": "Blocked",
@@ -281,6 +293,7 @@ def consume_workflow_package_request(
         primary_status=primary_status,
         blocker=blocker,
         next_safe_action=next_safe_action,
+        raw_request=raw_request,
     )
     receipt = {
         "schema_version": "workflow_package_request_consumer_v0",
@@ -301,6 +314,9 @@ def consume_workflow_package_request(
         ),
         "blocker": blocker,
         "next_safe_action": next_safe_action,
+        "speaker_ref": operator_display["speaker_ref"],
+        "voice_mode": operator_display["voice_mode"],
+        "audience": operator_display["audience"],
         "operator_display": operator_display,
         "authority_boundary": dict(workflow_package_queue.AUTHORITY_BOUNDARY_DEFAULT),
         "request_authority_boundary_all_false": not _authority_blockers(raw_request),

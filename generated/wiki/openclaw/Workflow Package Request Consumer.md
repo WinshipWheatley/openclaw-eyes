@@ -20,9 +20,9 @@ This is a dry-run package queue rail only. It does not connect Telegram live, se
 
 ## Smoke Results
 
-- St. Anne's church sound instruction: "St. Anne's work log captured" with status "Needs confirmation"
-- Capital Hilton proposal follow-up: "Capital Hilton proposal follow-up staged" with status "Needs review"
-- Capital Hilton invoice submit request: "Capital Hilton invoice needs operator assist" with status "Provider gate required"
+- St. Anne's church sound instruction: `cassandra` / `operator_intake` / "St. Anne's work log captured"
+- Capital Hilton proposal follow-up: `cassandra` / `operator_calm` / "Capital Hilton proposal follow-up staged"
+- Capital Hilton invoice submit request: `chief` / `diagnostic` / "Capital Hilton invoice needs operator assist"
 
 The Capital Hilton invoice submit package remains blocked because the operator-assist provider and final Submit gate are not explicitly staged. No Coupa action occurred.
 
@@ -35,6 +35,16 @@ Workflow package responses keep machine fields in proof/details, but Mission Con
 - No all-caps machine statuses in primary visible copy
 - Proof/details collapsed by default
 - Blocked responses explain the missing gate in one sentence
+
+## Voice Routing
+
+Package responses include deterministic voice fields:
+
+- `speaker_ref`
+- `voice_mode`
+- `audience`
+
+External client-facing draft copy should use `clara`; internal agent names are not for client-visible copy.
 
 ## Boundary
 
