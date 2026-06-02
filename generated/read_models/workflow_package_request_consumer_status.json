@@ -1,0 +1,92 @@
+{
+  "authority_boundary": {
+    "browser_access_allowed": false,
+    "coupa_allowed": false,
+    "coupa_submit_allowed": false,
+    "email_send_allowed": false,
+    "gmail_allowed": false,
+    "ledger_posting_allowed": false,
+    "paid": false,
+    "pdf_export_allowed": false,
+    "portal_submit_allowed": false,
+    "sent": false,
+    "telegram_live_connection_allowed": false,
+    "telegram_send_allowed": false,
+    "workbook_mutation_allowed": false,
+    "workbook_source_mutation_allowed": false
+  },
+  "bridge_response_dir": "/mnt/e/openclaw/mission_control_responses/to_mac",
+  "consumer_status": "READY",
+  "generated_at": "2026-06-02T02:50:00+00:00",
+  "known_commits": {
+    "workflow_package_queue_and_st_annes_intake": "259682b85f61760e75278b5be510a2bd418246ef",
+    "workflow_package_request_consumer": "e9cd69f94db70416ff281bc02059ed658d8c9033"
+  },
+  "last_smoke_results": [
+    {
+      "blocker": "",
+      "client_ref": "st_annes",
+      "external_action_performed": false,
+      "package_id": "workflow_package:32e611e2996fb30d",
+      "package_status": "OPERATOR_REVIEW_REQUIRED",
+      "raw_internal_status": "RESPONSE_READY",
+      "request_id": "church_sound_operator_instruction_smoke_20260602T014445Z_28aa6e27f7ef_1",
+      "response_path": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_church_sound_operator_instruction_smoke_20260602T014445Z_28aa6e27f7ef_1.json",
+      "source_text_summary": "Mark that I'm at church running sound.",
+      "workflow_ref": "st_annes_work_log_event"
+    },
+    {
+      "blocker": "",
+      "client_ref": "capital_hilton",
+      "external_action_performed": false,
+      "package_id": "workflow_package:ed3ee1f1c7efbceb",
+      "package_status": "OPERATOR_REVIEW_REQUIRED",
+      "raw_internal_status": "RESPONSE_READY",
+      "request_id": "capital_hilton_business_development_operator_instruction_smoke_20260602T014445Z_74ebfb96af00_2",
+      "response_path": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_business_development_operator_instruction_smoke_20260602T014445Z_74ebfb96af00_2.json",
+      "source_text_summary": "Follow up on the Capital Hilton proposal.",
+      "workflow_ref": "capital_hilton_proposal_followup"
+    },
+    {
+      "blocker": "Operator-assist provider and final Submit gate are not explicitly staged.",
+      "client_ref": "capital_hilton",
+      "external_action_performed": false,
+      "package_id": "workflow_package:e6b4d3d9a4af4c05",
+      "package_status": "PROVIDER_GATE_REQUIRED",
+      "raw_internal_status": "RESPONSE_READY",
+      "request_id": "capital_hilton_invoice_workflow_operator_instruction_smoke_20260602T014445Z_6c29b3775783_3",
+      "response_path": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_invoice_workflow_operator_instruction_smoke_20260602T014445Z_6c29b3775783_3.json",
+      "source_text_summary": "Submit Capital Hilton invoice.",
+      "workflow_ref": "capital_hilton_invoice_operator_assist"
+    }
+  ],
+  "machine_proof": {
+    "authority_boundary_all_false": true,
+    "bridge_responses_written": true,
+    "coupa_action_performed": false,
+    "email_send_performed": false,
+    "ledger_mutation_performed": false,
+    "no_live_business_actions": true,
+    "package_queue_consumed_requests": true,
+    "pdf_export_performed": false,
+    "service_active_verified": true,
+    "unsafe_true_grants_absent": true,
+    "workbook_mutation_performed": false
+  },
+  "next_required_mac_step": "actual_chat_ui_response_smoke",
+  "no_live_business_actions": true,
+  "package_queue_status": "READY",
+  "read_model_id": "workflow_package_request_consumer_status",
+  "request_source": "mission_control",
+  "schema_version": "workflow_package_request_consumer_status_v0",
+  "service_active": true,
+  "status": "WORKFLOW_PACKAGE_RAIL_STATUS_READY",
+  "supported_envelope": "WORKFLOW_PACKAGE_REQUEST_V0",
+  "supported_package_types": [
+    "st_annes_work_log_event",
+    "st_annes_monthly_invoice_rollup",
+    "capital_hilton_invoice_operator_assist",
+    "capital_hilton_proposal_followup",
+    "diagnostic_package_gate_smoke"
+  ]
+}
