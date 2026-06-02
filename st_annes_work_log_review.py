@@ -54,6 +54,11 @@ PENDING_STATUS = "OPERATOR_REVIEW_REQUIRED"
 READY_FOR_ROLLUP = "READY_FOR_MONTHLY_ROLLUP"
 DISCARDED_FROM_INVOICE = "DISCARDED_NOT_FOR_INVOICE"
 NOT_INCLUDED_PENDING = "NOT_INCLUDED_OPERATOR_CONFIRMATION_REQUIRED"
+SMOKE_OR_TEST_STATUS = "SMOKE_OR_TEST_EVENT"
+NOT_INCLUDED_SMOKE = "NOT_INCLUDED_SMOKE_EVENT"
+CONFIRMED_BILLING_TRUTH_STATUS = "OPERATOR_CONFIRMED_READY_FOR_ROLLUP"
+DISCARDED_BILLING_TRUTH_STATUS = "DISCARDED_BY_OPERATOR"
+PENDING_BILLING_TRUTH_STATUS = intake.PENDING_BILLING_TRUTH_STATUS
 
 AUTHORITY_BOUNDARY = {
     **intake.AUTHORITY_BOUNDARY,
@@ -281,6 +286,11 @@ def init_sqlite(sqlite_path: Path = DEFAULT_SQLITE_PATH) -> None:
 def _event_from_row(row: sqlite3.Row | Mapping[str, Any]) -> dict[str, Any]:
     event = dict(row)
     event["operator_confirmed"] = bool(event["operator_confirmed"])
+    event["operator_business_confirmed"] = bool(event.get("operator_business_confirmed", 0))
+    notes = event.pop("hygiene_notes_json", "[]")
+    evidence_refs = event.pop("hygiene_evidence_refs_json", "[]")
+    event["hygiene_notes"] = json.loads(notes or "[]")
+    event["hygiene_evidence_refs"] = json.loads(evidence_refs or "[]")
     boundary = event.pop("authority_boundary_json", None)
     if isinstance(boundary, str):
         event["authority_boundary"] = json.loads(boundary)
@@ -429,27 +439,58 @@ def review_event(
 
         changed: dict[str, Any]
         if action == CONFIRM_ACTION:
-            changed = {
-                "operator_confirmed": True,
-                "staging_status": CONFIRMED_STATUS,
-                "invoice_inclusion_status": READY_FOR_ROLLUP,
-            }
-            conn.execute(
-                """
-                UPDATE st_annes_work_log_events
-                SET operator_confirmed = 1,
-                    staging_status = ?,
-                    invoice_inclusion_status = ?,
-                    updated_at = ?
-                WHERE event_id = ?
-                """,
-                (CONFIRMED_STATUS, READY_FOR_ROLLUP, generated_at, event_id),
-            )
+            if (
+                previous.get("billing_truth_status") == SMOKE_OR_TEST_STATUS
+                and previous.get("operator_business_confirmed") is not True
+            ):
+                notes = list(previous.get("hygiene_notes") or [])
+                if "confirm_ignored_for_smoke_or_test_event_without_business_confirmation" not in notes:
+                    notes.append("confirm_ignored_for_smoke_or_test_event_without_business_confirmation")
+                changed = {
+                    "operator_confirmed": False,
+                    "staging_status": SMOKE_OR_TEST_STATUS,
+                    "invoice_inclusion_status": NOT_INCLUDED_SMOKE,
+                    "billing_truth_status": SMOKE_OR_TEST_STATUS,
+                    "hygiene_notes": notes,
+                }
+                conn.execute(
+                    """
+                    UPDATE st_annes_work_log_events
+                    SET operator_confirmed = 0,
+                        staging_status = ?,
+                        invoice_inclusion_status = ?,
+                        billing_truth_status = ?,
+                        hygiene_notes_json = ?,
+                        updated_at = ?
+                    WHERE event_id = ?
+                    """,
+                    (SMOKE_OR_TEST_STATUS, NOT_INCLUDED_SMOKE, SMOKE_OR_TEST_STATUS, stable_json(notes), generated_at, event_id),
+                )
+            else:
+                changed = {
+                    "operator_confirmed": True,
+                    "staging_status": CONFIRMED_STATUS,
+                    "invoice_inclusion_status": READY_FOR_ROLLUP,
+                    "billing_truth_status": CONFIRMED_BILLING_TRUTH_STATUS,
+                }
+                conn.execute(
+                    """
+                    UPDATE st_annes_work_log_events
+                    SET operator_confirmed = 1,
+                        staging_status = ?,
+                        invoice_inclusion_status = ?,
+                        billing_truth_status = ?,
+                        updated_at = ?
+                    WHERE event_id = ?
+                    """,
+                    (CONFIRMED_STATUS, READY_FOR_ROLLUP, CONFIRMED_BILLING_TRUTH_STATUS, generated_at, event_id),
+                )
         elif action == DISCARD_ACTION:
             changed = {
                 "operator_confirmed": False,
                 "staging_status": DISCARDED_STATUS,
                 "invoice_inclusion_status": DISCARDED_FROM_INVOICE,
+                "billing_truth_status": DISCARDED_BILLING_TRUTH_STATUS,
             }
             conn.execute(
                 """
@@ -457,10 +498,11 @@ def review_event(
                 SET operator_confirmed = 0,
                     staging_status = ?,
                     invoice_inclusion_status = ?,
+                    billing_truth_status = ?,
                     updated_at = ?
                 WHERE event_id = ?
                 """,
-                (DISCARDED_STATUS, DISCARDED_FROM_INVOICE, generated_at, event_id),
+                (DISCARDED_STATUS, DISCARDED_FROM_INVOICE, DISCARDED_BILLING_TRUTH_STATUS, generated_at, event_id),
             )
         else:
             clean_edits, blockers = _validate_edits(edits or {})
@@ -484,6 +526,7 @@ def review_event(
                     "operator_confirmed": False,
                     "staging_status": PENDING_STATUS,
                     "invoice_inclusion_status": NOT_INCLUDED_PENDING,
+                    "billing_truth_status": PENDING_BILLING_TRUTH_STATUS,
                 }
             )
             assignments = []
@@ -499,10 +542,11 @@ def review_event(
                     "operator_confirmed = 0",
                     "staging_status = ?",
                     "invoice_inclusion_status = ?",
+                    "billing_truth_status = ?",
                     "updated_at = ?",
                 ]
             )
-            params.extend([PENDING_STATUS, NOT_INCLUDED_PENDING, generated_at, event_id])
+            params.extend([PENDING_STATUS, NOT_INCLUDED_PENDING, PENDING_BILLING_TRUTH_STATUS, generated_at, event_id])
             conn.execute(
                 f"UPDATE st_annes_work_log_events SET {', '.join(assignments)} WHERE event_id = ?",
                 tuple(params),
@@ -529,6 +573,8 @@ def review_event(
 def _review_actions_for_event(event: Mapping[str, Any]) -> tuple[str, ...]:
     if event.get("staging_status") == DISCARDED_STATUS:
         return ()
+    if event.get("invoice_inclusion_status") == NOT_INCLUDED_SMOKE:
+        return (DISCARD_ACTION, EDIT_ACTION)
     return REVIEW_ACTIONS
 
 
@@ -542,6 +588,7 @@ def build_review_surface(
     pending = [event for event in events if event.get("invoice_inclusion_status") == NOT_INCLUDED_PENDING]
     ready = [event for event in events if event.get("invoice_inclusion_status") == READY_FOR_ROLLUP]
     discarded = [event for event in events if event.get("staging_status") == DISCARDED_STATUS]
+    smoke_or_test = [event for event in events if event.get("billing_truth_status") == SMOKE_OR_TEST_STATUS]
     return {
         "schema_version": SCHEMA_VERSION,
         "read_model_id": READ_MODEL_ID,
@@ -556,6 +603,7 @@ def build_review_surface(
             "pending_operator_review": len(pending),
             "ready_for_monthly_rollup": len(ready),
             "discarded_by_operator": len(discarded),
+            "smoke_or_test_not_included": len(smoke_or_test),
         },
         "events": [
             {
@@ -565,8 +613,10 @@ def build_review_surface(
                 "description": event["description"],
                 "amount": event["amount"],
                 "operator_confirmed": event["operator_confirmed"],
+                "operator_business_confirmed": event.get("operator_business_confirmed", False),
                 "staging_status": event["staging_status"],
                 "invoice_inclusion_status": event["invoice_inclusion_status"],
+                "billing_truth_status": event.get("billing_truth_status", PENDING_BILLING_TRUTH_STATUS),
                 "allowed_review_actions": list(_review_actions_for_event(event)),
                 "invoice_ref": event["invoice_ref"],
             }
@@ -584,9 +634,13 @@ def build_review_surface(
             "email_send_allowed": False,
             "ledger_mutation_allowed": False,
             "paid_marking_allowed": False,
+            "smoke_or_test_events_not_invoice_included": True,
         },
         "machine_proof": {
             "review_surface_ready": True,
+            "smoke_or_test_events_excluded_from_rollup": all(
+                event.get("invoice_inclusion_status") != READY_FOR_ROLLUP for event in smoke_or_test
+            ),
             "authority_flags_all_false": all(value is False for value in AUTHORITY_BOUNDARY.values()),
             "unsafe_true_grants_absent": True,
             "excel_mutation_performed": False,

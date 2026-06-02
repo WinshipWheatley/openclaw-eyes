@@ -35,6 +35,7 @@ READY_STATUS = "ST_ANNES_WORK_LOG_INTAKE_V0_READY"
 CLIENT_REF = "st_annes"
 WORKFLOW_REF = "st_annes_work_log_event"
 DEFAULT_RATE = 125
+PENDING_BILLING_TRUTH_STATUS = "PENDING_OPERATOR_CONFIRMATION"
 
 AUTHORITY_BOUNDARY = {
     "telegram_live_connection_allowed": False,
@@ -285,6 +286,10 @@ def intake_work_log_event(
         "date_inference_basis": date_basis,
         "staging_status": "OPERATOR_REVIEW_REQUIRED",
         "invoice_inclusion_status": "NOT_INCLUDED_OPERATOR_CONFIRMATION_REQUIRED",
+        "billing_truth_status": PENDING_BILLING_TRUTH_STATUS,
+        "operator_business_confirmed": False,
+        "hygiene_notes": [],
+        "hygiene_evidence_refs": [],
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
         "created_at": generated_at,
         "updated_at": generated_at,
@@ -313,6 +318,10 @@ CREATE TABLE IF NOT EXISTS st_annes_work_log_events (
   date_inference_basis TEXT NOT NULL,
   staging_status TEXT NOT NULL,
   invoice_inclusion_status TEXT NOT NULL,
+  billing_truth_status TEXT NOT NULL DEFAULT 'PENDING_OPERATOR_CONFIRMATION',
+  operator_business_confirmed INTEGER NOT NULL DEFAULT 0 CHECK(operator_business_confirmed IN (0, 1)),
+  hygiene_notes_json TEXT NOT NULL DEFAULT '[]',
+  hygiene_evidence_refs_json TEXT NOT NULL DEFAULT '[]',
   authority_boundary_json TEXT NOT NULL,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
@@ -332,12 +341,42 @@ CREATE TABLE IF NOT EXISTS st_annes_work_log_intake_results (
 """.strip() + "\n"
 
 
+def _ensure_sqlite_column(conn: sqlite3.Connection, *, table: str, column: str, definition: str) -> None:
+    columns = {row[1] for row in conn.execute(f"PRAGMA table_info({table})")}
+    if column not in columns:
+        conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
+
+
 def init_sqlite(sqlite_path: Path = DEFAULT_SQLITE_PATH) -> None:
     sqlite_path = _rooted(sqlite_path)
     sqlite_path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(sqlite_path)
     try:
         conn.executescript(sqlite_schema_sql())
+        _ensure_sqlite_column(
+            conn,
+            table="st_annes_work_log_events",
+            column="billing_truth_status",
+            definition="TEXT NOT NULL DEFAULT 'PENDING_OPERATOR_CONFIRMATION'",
+        )
+        _ensure_sqlite_column(
+            conn,
+            table="st_annes_work_log_events",
+            column="operator_business_confirmed",
+            definition="INTEGER NOT NULL DEFAULT 0 CHECK(operator_business_confirmed IN (0, 1))",
+        )
+        _ensure_sqlite_column(
+            conn,
+            table="st_annes_work_log_events",
+            column="hygiene_notes_json",
+            definition="TEXT NOT NULL DEFAULT '[]'",
+        )
+        _ensure_sqlite_column(
+            conn,
+            table="st_annes_work_log_events",
+            column="hygiene_evidence_refs_json",
+            definition="TEXT NOT NULL DEFAULT '[]'",
+        )
         conn.commit()
     finally:
         conn.close()
@@ -357,8 +396,10 @@ def record_intake_result(result: IntakeResult, sqlite_path: Path = DEFAULT_SQLIT
                   event_id, package_id, workflow_ref, client_ref, service_date, service_time,
                   service_label, description, default_rate, amount, source, operator_confirmed,
                   pii_privacy_status, included_in_invoice_period, invoice_ref, date_inference_basis,
-                  staging_status, invoice_inclusion_status, authority_boundary_json, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                  staging_status, invoice_inclusion_status, billing_truth_status,
+                  operator_business_confirmed, hygiene_notes_json, hygiene_evidence_refs_json,
+                  authority_boundary_json, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     event["event_id"],
@@ -379,6 +420,10 @@ def record_intake_result(result: IntakeResult, sqlite_path: Path = DEFAULT_SQLIT
                     event["date_inference_basis"],
                     event["staging_status"],
                     event["invoice_inclusion_status"],
+                    event.get("billing_truth_status", PENDING_BILLING_TRUTH_STATUS),
+                    int(bool(event.get("operator_business_confirmed", False))),
+                    stable_json(event.get("hygiene_notes", [])),
+                    stable_json(event.get("hygiene_evidence_refs", [])),
                     stable_json(event["authority_boundary"]),
                     event["created_at"],
                     event["updated_at"],
@@ -428,6 +473,11 @@ def read_staged_events(sqlite_path: Path = DEFAULT_SQLITE_PATH) -> list[dict[str
     for row in rows:
         event = dict(row)
         event["operator_confirmed"] = bool(event["operator_confirmed"])
+        event["operator_business_confirmed"] = bool(event.get("operator_business_confirmed", 0))
+        notes = event.pop("hygiene_notes_json", "[]")
+        evidence_refs = event.pop("hygiene_evidence_refs_json", "[]")
+        event["hygiene_notes"] = json.loads(notes or "[]")
+        event["hygiene_evidence_refs"] = json.loads(evidence_refs or "[]")
         event["authority_boundary"] = json.loads(event.pop("authority_boundary_json"))
         events.append(event)
     return events
@@ -461,11 +511,17 @@ def build_read_model(
             "ledger_mutation_allowed": False,
             "paid_marking_allowed": False,
             "operator_confirmation_required_before_invoice_inclusion": True,
+            "smoke_or_test_events_not_invoice_included": True,
         },
         "machine_proof": {
             "package_backed": True,
             "events_are_staging_only": True,
             "operator_confirmed_defaults_false": all(event["operator_confirmed"] is False for event in events),
+            "smoke_or_test_events_excluded": all(
+                event.get("invoice_inclusion_status") != "READY_FOR_MONTHLY_ROLLUP"
+                for event in events
+                if event.get("billing_truth_status") == "SMOKE_OR_TEST_EVENT"
+            ),
             "authority_flags_all_false": all(value is False for value in AUTHORITY_BOUNDARY.values()),
             "unsafe_true_grants_absent": True,
         },
