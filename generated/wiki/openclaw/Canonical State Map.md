@@ -17,7 +17,14 @@ This map answers where OpenClaw knows facts from. It is read-only and does not g
 
 - Domain: `request_response`
 - Canonical source: `generated/read_models/package_event_index.json`
-- Truth scope: Request/response linkage, event ids, package ids, response refs, and proof refs.
+- Truth scope: Bridge receipts and package event index entries for request/response linkage, package ids, response refs, and proof refs.
+- Write posture: `no_write_grant_from_this_map`
+
+### Package event index
+
+- Domain: `package_event_index`
+- Canonical source: `generated/read_models/package_event_index.json`
+- Truth scope: Package event ids, bridge receipt refs, request/response refs, workflow refs, and proof refs.
 - Write posture: `no_write_grant_from_this_map`
 
 ### Operator-facing conversation journal
@@ -38,7 +45,7 @@ This map answers where OpenClaw knows facts from. It is read-only and does not g
 
 - Domain: `st_annes_invoice_status`
 - Canonical source: `generated/read_models/st_annes_invoice_status.json`
-- Truth scope: Recorded invoice artifact status, manual send posture, payment status, validation refs, and safety flags.
+- Truth scope: Manual-send receipt/read model for St. Anne's sent invoice truth, invoice artifact status, payment posture, validation refs, and safety flags.
 - Write posture: `no_write_grant_from_this_map`
 
 ### Capital Hilton invoice status
@@ -85,13 +92,17 @@ This map answers where OpenClaw knows facts from. It is read-only and does not g
 
 ## Truth Rules
 
-- Package status truth comes from package queue / package event index.
+- Package status truth comes from package queue and package event index.
+- Request/response truth comes from bridge receipts and package event index.
 - Operator-facing history comes from conversation journal.
 - St. Anne's work-log truth comes from St. Anne's work-log DB/read model.
+- St. Anne's sent invoice truth comes from manual-send receipt/read model.
 - Capital Hilton invoice submission truth comes from ingested operator run receipt/read model.
-- Proposal status truth comes from Business Development proposal read model.
-- Paid truth never comes from proposal, send, or Coupa submit alone.
-- Ledger truth stays isolated until explicit payment evidence.
+- Capital Hilton proposal status truth comes from Business Development proposal read model.
+- Paid truth never comes from proposal, email send, manual send, or Coupa submit alone.
+- Ledger truth stays isolated until explicit payment evidence exists.
+- Test harness DBs cannot become canonical truth.
+- Generated proof/status DBs are evidence unless explicitly promoted.
 
 ## Boundary
 

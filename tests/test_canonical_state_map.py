@@ -73,6 +73,25 @@ def test_builds_all_required_domains_with_ready_preconditions(tmp_path):
     assert {domain["domain_ref"] for domain in read_model["domains"]} == set(state_map.REQUIRED_DOMAIN_REFS)
     assert all(item["ready"] for item in read_model["preconditions"])
     assert read_model["missing_required_inputs"] == []
+    required_fields = {
+        "domain_ref",
+        "plain_name",
+        "canonical_source",
+        "supporting_sources",
+        "evidence_sources",
+        "not_truth_sources",
+        "write_authority",
+        "read_authority",
+        "protected_boundary",
+        "safe_question_examples",
+        "forbidden_mutations",
+        "proof_refs",
+    }
+    for domain in read_model["domains"]:
+        assert required_fields <= set(domain)
+        assert domain["proof_refs"]
+        assert domain["protected_boundary"]["raw_row_dump_allowed"] is False
+        assert domain["protected_boundary"]["business_action_allowed"] is False
 
 
 def test_package_and_conversation_truth_sources_are_explicit(tmp_path):
@@ -85,11 +104,20 @@ def test_package_and_conversation_truth_sources_are_explicit(tmp_path):
         source["source_ref"] == "generated/read_models/package_event_index.json"
         for source in package["supporting_sources"]
     )
-    assert "Package status truth comes from package queue / package event index." in read_model["truth_rules"]
+    assert "Package status truth comes from package queue and package event index." in read_model["truth_rules"]
+
+    package_event_index = _domain(read_model, "package_event_index")
+    assert package_event_index["plain_name"] == "Package event index"
+    assert package_event_index["canonical_source"]["source_ref"] == "generated/read_models/package_event_index.json"
+    assert any("bridge receipt" in example.lower() for example in package_event_index["safe_question_examples"])
 
     conversation = _domain(read_model, "conversation_journal")
     assert conversation["canonical_source"]["source_ref"] == "generated/read_models/operator_conversation_journal.json"
     assert "Operator-facing history comes from conversation journal." in read_model["truth_rules"]
+
+    request_response = _domain(read_model, "request_response")
+    assert request_response["canonical_source"]["source_ref"] == "generated/read_models/package_event_index.json"
+    assert "Request/response truth comes from bridge receipts and package event index." in read_model["truth_rules"]
 
 
 def test_invoice_proposal_paid_and_ledger_rules_are_guarded(tmp_path):
@@ -102,6 +130,11 @@ def test_invoice_proposal_paid_and_ledger_rules_are_guarded(tmp_path):
     )
     assert any("Do not mark paid from Coupa submission alone." == item for item in capital_invoice["forbidden_mutations"])
 
+    st_annes_invoice = _domain(read_model, "st_annes_invoice_status")
+    assert st_annes_invoice["canonical_source"]["source_ref"] == "generated/read_models/st_annes_invoice_status.json"
+    assert "manual-send receipt/read model" in st_annes_invoice["canonical_source"]["truth_scope"].lower()
+    assert any("manual send" in item.lower() for item in st_annes_invoice["forbidden_mutations"])
+
     proposal = _domain(read_model, "capital_hilton_proposal_status")
     assert proposal["canonical_source"]["source_ref"] == (
         "generated/read_models/capital_hilton_business_development_proposal.json"
@@ -111,8 +144,12 @@ def test_invoice_proposal_paid_and_ledger_rules_are_guarded(tmp_path):
     ledger = _domain(read_model, "business_ledger")
     assert ledger["canonical_source"]["source_ref"] == "generated/read_models/sqlite_governance_registry.json"
     assert any("proposal" in source["reason"].lower() for source in ledger["not_truth_sources"])
-    assert "Paid truth never comes from proposal, send, or Coupa submit alone." in read_model["truth_rules"]
-    assert "Ledger truth stays isolated until explicit payment evidence." in read_model["truth_rules"]
+    assert "Paid truth never comes from proposal, email send, manual send, or Coupa submit alone." in read_model["truth_rules"]
+    assert "Ledger truth stays isolated until explicit payment evidence exists." in read_model["truth_rules"]
+    assert "Test harness DBs cannot become canonical truth." in read_model["truth_rules"]
+    assert "Generated proof/status DBs are evidence unless explicitly promoted." in read_model["truth_rules"]
+    assert ledger["protected_boundary"]["ledger_mutation_allowed"] is False
+    assert any("sqlite_governance_registry.json" in ref for ref in ledger["proof_refs"])
 
 
 def test_missing_precondition_marks_not_ready(tmp_path):

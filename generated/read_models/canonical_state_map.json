@@ -15,7 +15,7 @@
     "sqlite_consolidation_allowed": false,
     "workbook_mutation_allowed": false
   },
-  "domain_count": 11,
+  "domain_count": 12,
   "domains": [
     {
       "canonical_source": {
@@ -50,6 +50,30 @@
         }
       ],
       "notes": [],
+      "plain_name": "Workflow package queue",
+      "proof_refs": [
+        "generated/read_models/workflow_package_queue_contract.json",
+        "generated/read_models/package_event_index.json",
+        "generated/read_models/sqlite_governance_registry.json",
+        "generated/read_models/operator_conversation_journal.json"
+      ],
+      "protected_boundary": {
+        "business_action_allowed": false,
+        "domain_ref": "package_queue",
+        "external_tool_allowed": false,
+        "forbidden_mutations": [
+          "Do not edit package rows from this map.",
+          "Do not mark a package submitted, paid, or sent from an explanation.",
+          "Do not consolidate package queue databases."
+        ],
+        "ledger_mutation_allowed": false,
+        "mode": "protected_read_model_summary_only",
+        "paid_marking_allowed": false,
+        "proof_collapsed_by_default": true,
+        "raw_row_dump_allowed": false,
+        "submit_allowed": false,
+        "workbook_mutation_allowed": false
+      },
       "read_authority": {
         "mode": "local_read_model_refs_only",
         "notes": "Safe for system_question_answer to cite summarized refs without raw row dumps.",
@@ -93,7 +117,7 @@
       "canonical_source": {
         "source_ref": "generated/read_models/package_event_index.json",
         "status": "PACKAGE_EVENT_INDEX_READY",
-        "truth_scope": "Request/response linkage, event ids, package ids, response refs, and proof refs."
+        "truth_scope": "Bridge receipts and package event index entries for request/response linkage, package ids, response refs, and proof refs."
       },
       "domain_ref": "request_response",
       "evidence_sources": [
@@ -117,6 +141,30 @@
         }
       ],
       "notes": [],
+      "plain_name": "Mission Control request/response receipts",
+      "proof_refs": [
+        "generated/read_models/package_event_index.json",
+        "generated/read_models/workflow_package_queue_contract.json",
+        "generated/read_models/operator_conversation_journal.json",
+        "generated/read_models/sqlite_governance_registry.json"
+      ],
+      "protected_boundary": {
+        "business_action_allowed": false,
+        "domain_ref": "request_response",
+        "external_tool_allowed": false,
+        "forbidden_mutations": [
+          "Do not rewrite request or response receipts.",
+          "Do not store raw prompt bodies in this map.",
+          "Do not send or resubmit a response."
+        ],
+        "ledger_mutation_allowed": false,
+        "mode": "protected_read_model_summary_only",
+        "paid_marking_allowed": false,
+        "proof_collapsed_by_default": true,
+        "raw_row_dump_allowed": false,
+        "submit_allowed": false,
+        "workbook_mutation_allowed": false
+      },
       "read_authority": {
         "mode": "local_read_model_refs_only",
         "notes": "Safe for system_question_answer to cite summarized refs without raw row dumps.",
@@ -157,6 +205,101 @@
     },
     {
       "canonical_source": {
+        "source_ref": "generated/read_models/package_event_index.json",
+        "status": "PACKAGE_EVENT_INDEX_READY",
+        "truth_scope": "Package event ids, bridge receipt refs, request/response refs, workflow refs, and proof refs."
+      },
+      "domain_ref": "package_event_index",
+      "evidence_sources": [
+        {
+          "reason": "Generated proof/status databases are evidence unless explicitly promoted.",
+          "source_ref": "generated/read_models/sqlite_governance_registry.json",
+          "status": "SQLITE_GOVERNANCE_REGISTRY_READY"
+        }
+      ],
+      "forbidden_mutations": [
+        "Do not rewrite package event index entries from this map.",
+        "Do not promote generated proof/status databases without explicit promotion.",
+        "Do not store raw prompt bodies in the event index."
+      ],
+      "label": "Package event index",
+      "not_truth_sources": [
+        {
+          "reason": "Planning workboard is not event truth.",
+          "source_ref": "generated/read_models/overnight_workboard.json",
+          "status": "READY_FOR_OPERATOR_REVIEW"
+        },
+        {
+          "reason": "Speaker routing does not prove event occurrence.",
+          "source_ref": "generated/read_models/agent_voice_profiles.json",
+          "status": "AGENT_VOICE_PROFILES_V0_READY"
+        }
+      ],
+      "notes": [],
+      "plain_name": "Package event index",
+      "proof_refs": [
+        "generated/read_models/package_event_index.json",
+        "generated/read_models/workflow_package_queue_contract.json",
+        "generated/read_models/operator_conversation_journal.json",
+        "generated/read_models/sqlite_governance_registry.json"
+      ],
+      "protected_boundary": {
+        "business_action_allowed": false,
+        "domain_ref": "package_event_index",
+        "external_tool_allowed": false,
+        "forbidden_mutations": [
+          "Do not rewrite package event index entries from this map.",
+          "Do not promote generated proof/status databases without explicit promotion.",
+          "Do not store raw prompt bodies in the event index."
+        ],
+        "ledger_mutation_allowed": false,
+        "mode": "protected_read_model_summary_only",
+        "paid_marking_allowed": false,
+        "proof_collapsed_by_default": true,
+        "raw_row_dump_allowed": false,
+        "submit_allowed": false,
+        "workbook_mutation_allowed": false
+      },
+      "read_authority": {
+        "mode": "local_read_model_refs_only",
+        "notes": "Safe for system_question_answer to cite summarized refs without raw row dumps.",
+        "source_refs": [
+          "generated/read_models/package_event_index.json",
+          "generated/read_models/workflow_package_queue_contract.json",
+          "generated/read_models/operator_conversation_journal.json"
+        ],
+        "truth_scope": "package event index writers only; this map grants no event writes"
+      },
+      "safe_question_examples": [
+        "Which package event proves this answer?",
+        "Where is the request/response bridge receipt indexed?"
+      ],
+      "supporting_sources": [
+        {
+          "reason": "Package queue supplies package state that indexed events point back to.",
+          "source_ref": "generated/read_models/workflow_package_queue_contract.json",
+          "status": "WORKFLOW_PACKAGE_QUEUE_V0_READY"
+        },
+        {
+          "reason": "Operator-facing journal may display event-linked summaries.",
+          "source_ref": "generated/read_models/operator_conversation_journal.json",
+          "status": "OPERATOR_CONVERSATION_JOURNAL_READY"
+        }
+      ],
+      "write_authority": {
+        "forbidden_by_default": [
+          "Do not rewrite package event index entries from this map.",
+          "Do not promote generated proof/status databases without explicit promotion.",
+          "Do not store raw prompt bodies in the event index."
+        ],
+        "mode": "no_write_grant_from_this_map",
+        "notes": "This map describes ownership only. It does not authorize mutations.",
+        "operator_gate_required": true,
+        "truth_scope": "package event index writers only; this map grants no event writes"
+      }
+    },
+    {
+      "canonical_source": {
         "source_ref": "generated/read_models/operator_conversation_journal.json",
         "status": "OPERATOR_CONVERSATION_JOURNAL_READY",
         "truth_scope": "Operator-facing history, thread grouping, headlines, summaries, and proof refs."
@@ -182,6 +325,29 @@
         }
       ],
       "notes": [],
+      "plain_name": "Operator-facing conversation journal",
+      "proof_refs": [
+        "generated/read_models/operator_conversation_journal.json",
+        "generated/read_models/package_event_index.json",
+        "generated/read_models/workflow_package_queue_contract.json",
+        "generated/read_models/sqlite_governance_registry.json"
+      ],
+      "protected_boundary": {
+        "business_action_allowed": false,
+        "domain_ref": "conversation_journal",
+        "external_tool_allowed": false,
+        "forbidden_mutations": [
+          "Do not edit journal entries from this map.",
+          "Do not infer business truth from phrasing alone."
+        ],
+        "ledger_mutation_allowed": false,
+        "mode": "protected_read_model_summary_only",
+        "paid_marking_allowed": false,
+        "proof_collapsed_by_default": true,
+        "raw_row_dump_allowed": false,
+        "submit_allowed": false,
+        "workbook_mutation_allowed": false
+      },
       "read_authority": {
         "mode": "local_read_model_refs_only",
         "notes": "Safe for system_question_answer to cite summarized refs without raw row dumps.",
@@ -246,6 +412,30 @@
         }
       ],
       "notes": [],
+      "plain_name": "St. Anne's work log",
+      "proof_refs": [
+        "generated/read_models/st_annes_work_log_events.json",
+        "generated/read_models/workflow_package_queue_contract.json",
+        "generated/read_models/sqlite_governance_registry.json",
+        "generated/read_models/operator_conversation_journal.json"
+      ],
+      "protected_boundary": {
+        "business_action_allowed": false,
+        "domain_ref": "st_annes_work_log",
+        "external_tool_allowed": false,
+        "forbidden_mutations": [
+          "Do not include staged events in invoice truth without operator confirmation.",
+          "Do not mutate workbook cells.",
+          "Do not send an invoice."
+        ],
+        "ledger_mutation_allowed": false,
+        "mode": "protected_read_model_summary_only",
+        "paid_marking_allowed": false,
+        "proof_collapsed_by_default": true,
+        "raw_row_dump_allowed": false,
+        "submit_allowed": false,
+        "workbook_mutation_allowed": false
+      },
       "read_authority": {
         "mode": "local_read_model_refs_only",
         "notes": "Safe for system_question_answer to cite summarized refs without raw row dumps.",
@@ -288,7 +478,7 @@
       "canonical_source": {
         "source_ref": "generated/read_models/st_annes_invoice_status.json",
         "status": "MANUAL_SEND_OUT_OF_BAND_RECORDED",
-        "truth_scope": "Recorded invoice artifact status, manual send posture, payment status, validation refs, and safety flags."
+        "truth_scope": "Manual-send receipt/read model for St. Anne's sent invoice truth, invoice artifact status, payment posture, validation refs, and safety flags."
       },
       "domain_ref": "st_annes_invoice_status",
       "evidence_sources": [
@@ -299,6 +489,7 @@
         }
       ],
       "forbidden_mutations": [
+        "Do not treat manual send as paid truth.",
         "Do not mark paid from invoice artifact existence.",
         "Do not post ledger entries.",
         "Do not export or send PDFs from this map."
@@ -312,6 +503,31 @@
         }
       ],
       "notes": [],
+      "plain_name": "St. Anne's invoice status",
+      "proof_refs": [
+        "generated/read_models/st_annes_invoice_status.json",
+        "generated/read_models/st_annes_work_log_events.json",
+        "generated/read_models/sqlite_governance_registry.json",
+        "generated/read_models/operator_conversation_journal.json"
+      ],
+      "protected_boundary": {
+        "business_action_allowed": false,
+        "domain_ref": "st_annes_invoice_status",
+        "external_tool_allowed": false,
+        "forbidden_mutations": [
+          "Do not treat manual send as paid truth.",
+          "Do not mark paid from invoice artifact existence.",
+          "Do not post ledger entries.",
+          "Do not export or send PDFs from this map."
+        ],
+        "ledger_mutation_allowed": false,
+        "mode": "protected_read_model_summary_only",
+        "paid_marking_allowed": false,
+        "proof_collapsed_by_default": true,
+        "raw_row_dump_allowed": false,
+        "submit_allowed": false,
+        "workbook_mutation_allowed": false
+      },
       "read_authority": {
         "mode": "local_read_model_refs_only",
         "notes": "Safe for system_question_answer to cite summarized refs without raw row dumps.",
@@ -323,6 +539,7 @@
       },
       "safe_question_examples": [
         "Was the St. Anne's invoice sent by OpenClaw?",
+        "Where does St. Anne's sent invoice truth come from?",
         "What is the current St. Anne's invoice payment posture?"
       ],
       "supporting_sources": [
@@ -339,6 +556,7 @@
       ],
       "write_authority": {
         "forbidden_by_default": [
+          "Do not treat manual send as paid truth.",
           "Do not mark paid from invoice artifact existence.",
           "Do not post ledger entries.",
           "Do not export or send PDFs from this map."
@@ -378,6 +596,32 @@
         }
       ],
       "notes": [],
+      "plain_name": "Capital Hilton invoice status",
+      "proof_refs": [
+        "generated/read_models/capital_hilton_invoice_operator_run_status.json",
+        "generated/read_models/package_event_index.json",
+        "generated/read_models/workflow_package_queue_contract.json",
+        "generated/read_models/sqlite_governance_registry.json",
+        "generated/read_models/operator_conversation_journal.json"
+      ],
+      "protected_boundary": {
+        "business_action_allowed": false,
+        "domain_ref": "capital_hilton_invoice_status",
+        "external_tool_allowed": false,
+        "forbidden_mutations": [
+          "Do not submit Coupa.",
+          "Do not send email.",
+          "Do not mark paid from Coupa submission alone.",
+          "Do not mutate ledger."
+        ],
+        "ledger_mutation_allowed": false,
+        "mode": "protected_read_model_summary_only",
+        "paid_marking_allowed": false,
+        "proof_collapsed_by_default": true,
+        "raw_row_dump_allowed": false,
+        "submit_allowed": false,
+        "workbook_mutation_allowed": false
+      },
       "read_authority": {
         "mode": "local_read_model_refs_only",
         "notes": "Safe for system_question_answer to cite summarized refs without raw row dumps.",
@@ -450,6 +694,30 @@
         }
       ],
       "notes": [],
+      "plain_name": "Capital Hilton proposal status",
+      "proof_refs": [
+        "generated/read_models/capital_hilton_business_development_proposal.json",
+        "generated/read_models/operator_conversation_journal.json",
+        "generated/read_models/package_event_index.json",
+        "generated/read_models/sqlite_governance_registry.json"
+      ],
+      "protected_boundary": {
+        "business_action_allowed": false,
+        "domain_ref": "capital_hilton_proposal_status",
+        "external_tool_allowed": false,
+        "forbidden_mutations": [
+          "Do not infer proposal acceptance from send recording.",
+          "Do not create finance handoff from proposal status alone.",
+          "Do not mark paid."
+        ],
+        "ledger_mutation_allowed": false,
+        "mode": "protected_read_model_summary_only",
+        "paid_marking_allowed": false,
+        "proof_collapsed_by_default": true,
+        "raw_row_dump_allowed": false,
+        "submit_allowed": false,
+        "workbook_mutation_allowed": false
+      },
       "read_authority": {
         "mode": "local_read_model_refs_only",
         "notes": "Safe for system_question_answer to cite summarized refs without raw row dumps.",
@@ -515,6 +783,29 @@
         }
       ],
       "notes": [],
+      "plain_name": "Agent voice profiles",
+      "proof_refs": [
+        "generated/read_models/agent_voice_profiles.json",
+        "generated/read_models/operator_conversation_journal.json",
+        "generated/read_models/workflow_package_queue_contract.json"
+      ],
+      "protected_boundary": {
+        "business_action_allowed": false,
+        "domain_ref": "agent_voice_profiles",
+        "external_tool_allowed": false,
+        "forbidden_mutations": [
+          "Do not use voice profile as approval.",
+          "Do not launch agents or TTS from this map.",
+          "Do not send messages."
+        ],
+        "ledger_mutation_allowed": false,
+        "mode": "protected_read_model_summary_only",
+        "paid_marking_allowed": false,
+        "proof_collapsed_by_default": true,
+        "raw_row_dump_allowed": false,
+        "submit_allowed": false,
+        "workbook_mutation_allowed": false
+      },
       "read_authority": {
         "mode": "local_read_model_refs_only",
         "notes": "Safe for system_question_answer to cite summarized refs without raw row dumps.",
@@ -575,6 +866,30 @@
         }
       ],
       "notes": [],
+      "plain_name": "Automation permission registry",
+      "proof_refs": [
+        "generated/read_models/automation_permission_registry.json",
+        "generated/read_models/workflow_package_queue_contract.json",
+        "generated/read_models/sqlite_governance_registry.json",
+        "generated/read_models/package_event_index.json"
+      ],
+      "protected_boundary": {
+        "business_action_allowed": false,
+        "domain_ref": "permission_registry",
+        "external_tool_allowed": false,
+        "forbidden_mutations": [
+          "Do not convert blocked permissions into approvals.",
+          "Do not open Gmail, browser, or Coupa.",
+          "Do not post ledger or mark paid."
+        ],
+        "ledger_mutation_allowed": false,
+        "mode": "protected_read_model_summary_only",
+        "paid_marking_allowed": false,
+        "proof_collapsed_by_default": true,
+        "raw_row_dump_allowed": false,
+        "submit_allowed": false,
+        "workbook_mutation_allowed": false
+      },
       "read_authority": {
         "mode": "local_read_model_refs_only",
         "notes": "Safe for system_question_answer to cite summarized refs without raw row dumps.",
@@ -647,6 +962,31 @@
         }
       ],
       "notes": [],
+      "plain_name": "Overnight workboard",
+      "proof_refs": [
+        "generated/read_models/overnight_workboard.json",
+        "generated/read_models/operator_conversation_journal.json",
+        "generated/read_models/automation_permission_registry.json",
+        "generated/read_models/sqlite_governance_registry.json"
+      ],
+      "protected_boundary": {
+        "business_action_allowed": false,
+        "domain_ref": "overnight_workboard",
+        "external_tool_allowed": false,
+        "forbidden_mutations": [
+          "Do not launch loops.",
+          "Do not restart services.",
+          "Do not push.",
+          "Do not execute workboard packets unattended."
+        ],
+        "ledger_mutation_allowed": false,
+        "mode": "protected_read_model_summary_only",
+        "paid_marking_allowed": false,
+        "proof_collapsed_by_default": true,
+        "raw_row_dump_allowed": false,
+        "submit_allowed": false,
+        "workbook_mutation_allowed": false
+      },
       "read_authority": {
         "mode": "local_read_model_refs_only",
         "notes": "Safe for system_question_answer to cite summarized refs without raw row dumps.",
@@ -726,6 +1066,31 @@
         "Paid truth never comes from proposal, send, or Coupa submit alone.",
         "Ledger truth stays isolated until explicit payment evidence."
       ],
+      "plain_name": "Protected business ledger",
+      "proof_refs": [
+        "generated/read_models/sqlite_governance_registry.json",
+        "generated/read_models/st_annes_invoice_status.json",
+        "generated/read_models/capital_hilton_invoice_operator_run_status.json",
+        "generated/read_models/capital_hilton_business_development_proposal.json",
+        "generated/read_models/package_event_index.json"
+      ],
+      "protected_boundary": {
+        "business_action_allowed": false,
+        "domain_ref": "business_ledger",
+        "external_tool_allowed": false,
+        "forbidden_mutations": [
+          "Do not mutate ledger.",
+          "Do not mark paid from proposal send, email send, Coupa submit, or invoice artifact alone.",
+          "Do not consolidate ledger with package, agent, or generated evidence databases."
+        ],
+        "ledger_mutation_allowed": false,
+        "mode": "protected_read_model_summary_only",
+        "paid_marking_allowed": false,
+        "proof_collapsed_by_default": true,
+        "raw_row_dump_allowed": false,
+        "submit_allowed": false,
+        "workbook_mutation_allowed": false
+      },
       "read_authority": {
         "mode": "local_read_model_refs_only",
         "notes": "Safe for system_question_answer to cite summarized refs without raw row dumps.",
@@ -771,7 +1136,7 @@
       }
     }
   ],
-  "generated_at": "2026-06-03T02:05:29+00:00",
+  "generated_at": "2026-06-03T02:51:49+00:00",
   "machine_proof": {
     "all_required_domains_present": true,
     "browser_access_performed": false,
@@ -807,7 +1172,7 @@
       "source_ref": "generated/read_models/package_event_index.json"
     }
   ],
-  "purpose": "Clear source-of-truth map for OpenClaw system questions about packages, work logs, invoices, proposals, gates, receipts, and ledgers.",
+  "purpose": "Clear source-of-truth map for OpenClaw system questions about packages, work logs, invoices, proposals, gates, receipts, agents, and ledgers.",
   "read_model_id": "canonical_state_map",
   "schema_version": "canonical_state_map_v0",
   "source_summaries": {
@@ -883,7 +1248,7 @@
     },
     "sqlite_governance_registry": {
       "exists": true,
-      "generated_at": "2026-06-03T01:58:07+00:00",
+      "generated_at": "2026-06-03T02:05:43+00:00",
       "path": "/home/openclaw/generated/read_models/sqlite_governance_registry.json",
       "read_model_id": "sqlite_governance_registry",
       "schema_version": "sqlite_governance_registry_v0",
@@ -924,12 +1289,16 @@
   },
   "status": "CANONICAL_STATE_MAP_READY",
   "truth_rules": [
-    "Package status truth comes from package queue / package event index.",
+    "Package status truth comes from package queue and package event index.",
+    "Request/response truth comes from bridge receipts and package event index.",
     "Operator-facing history comes from conversation journal.",
     "St. Anne's work-log truth comes from St. Anne's work-log DB/read model.",
+    "St. Anne's sent invoice truth comes from manual-send receipt/read model.",
     "Capital Hilton invoice submission truth comes from ingested operator run receipt/read model.",
-    "Proposal status truth comes from Business Development proposal read model.",
-    "Paid truth never comes from proposal, send, or Coupa submit alone.",
-    "Ledger truth stays isolated until explicit payment evidence."
+    "Capital Hilton proposal status truth comes from Business Development proposal read model.",
+    "Paid truth never comes from proposal, email send, manual send, or Coupa submit alone.",
+    "Ledger truth stays isolated until explicit payment evidence exists.",
+    "Test harness DBs cannot become canonical truth.",
+    "Generated proof/status DBs are evidence unless explicitly promoted."
   ]
 }

@@ -30,6 +30,7 @@ MAP_NOT_READY_STATUS = "CANONICAL_STATE_MAP_NOT_READY"
 REQUIRED_DOMAIN_REFS = (
     "package_queue",
     "request_response",
+    "package_event_index",
     "conversation_journal",
     "st_annes_work_log",
     "st_annes_invoice_status",
@@ -165,10 +166,40 @@ def _read_authority(scope: str, sources: list[str]) -> dict[str, Any]:
     }
 
 
+def _unique_refs(*refs: str) -> list[str]:
+    ordered: list[str] = []
+    seen: set[str] = set()
+    for ref in refs:
+        if ref and ref not in seen:
+            ordered.append(ref)
+            seen.add(ref)
+    return ordered
+
+
+def _entry_refs(entries: list[dict[str, str]]) -> list[str]:
+    return [str(entry.get("source_ref") or "") for entry in entries if entry.get("source_ref")]
+
+
+def _protected_boundary(domain_ref: str, forbidden_mutations: list[str]) -> dict[str, Any]:
+    return {
+        "mode": "protected_read_model_summary_only",
+        "domain_ref": domain_ref,
+        "proof_collapsed_by_default": True,
+        "raw_row_dump_allowed": False,
+        "business_action_allowed": False,
+        "external_tool_allowed": False,
+        "ledger_mutation_allowed": False,
+        "workbook_mutation_allowed": False,
+        "submit_allowed": False,
+        "paid_marking_allowed": False,
+        "forbidden_mutations": forbidden_mutations,
+    }
+
+
 def _domain(
     *,
     domain_ref: str,
-    label: str,
+    plain_name: str,
     canonical_source: dict[str, str],
     supporting_sources: list[dict[str, str]],
     evidence_sources: list[dict[str, str]],
@@ -179,17 +210,26 @@ def _domain(
     forbidden_mutations: list[str],
     notes: list[str] | None = None,
 ) -> dict[str, Any]:
+    proof_refs = _unique_refs(
+        str(canonical_source.get("source_ref") or ""),
+        *_entry_refs(supporting_sources),
+        *_entry_refs(evidence_sources),
+        *read_refs,
+    )
     return {
         "domain_ref": domain_ref,
-        "label": label,
+        "plain_name": plain_name,
+        "label": plain_name,
         "canonical_source": canonical_source,
         "supporting_sources": supporting_sources,
         "evidence_sources": evidence_sources,
         "not_truth_sources": not_truth_sources,
         "write_authority": _write_authority(write_scope, forbidden_mutations),
         "read_authority": _read_authority(write_scope, read_refs),
+        "protected_boundary": _protected_boundary(domain_ref, forbidden_mutations),
         "safe_question_examples": safe_question_examples,
         "forbidden_mutations": forbidden_mutations,
+        "proof_refs": proof_refs,
         "notes": notes or [],
     }
 
@@ -210,7 +250,7 @@ def build_domains(sources: Mapping[str, Mapping[str, Any]]) -> list[dict[str, An
     return [
         _domain(
             domain_ref="package_queue",
-            label="Workflow package queue",
+            plain_name="Workflow package queue",
             canonical_source=_canonical(
                 "workflow_package_queue_contract",
                 sources,
@@ -240,11 +280,11 @@ def build_domains(sources: Mapping[str, Mapping[str, Any]]) -> list[dict[str, An
         ),
         _domain(
             domain_ref="request_response",
-            label="Mission Control request/response receipts",
+            plain_name="Mission Control request/response receipts",
             canonical_source=_canonical(
                 "package_event_index",
                 sources,
-                "Request/response linkage, event ids, package ids, response refs, and proof refs.",
+                "Bridge receipts and package event index entries for request/response linkage, package ids, response refs, and proof refs.",
             ),
             supporting_sources=[
                 _ref("workflow_package_queue_contract", sources, "Package queue provides package status context."),
@@ -265,8 +305,39 @@ def build_domains(sources: Mapping[str, Mapping[str, Any]]) -> list[dict[str, An
             ],
         ),
         _domain(
+            domain_ref="package_event_index",
+            plain_name="Package event index",
+            canonical_source=_canonical(
+                "package_event_index",
+                sources,
+                "Package event ids, bridge receipt refs, request/response refs, workflow refs, and proof refs.",
+            ),
+            supporting_sources=[
+                _ref("workflow_package_queue_contract", sources, "Package queue supplies package state that indexed events point back to."),
+                _ref("operator_conversation_journal", sources, "Operator-facing journal may display event-linked summaries."),
+            ],
+            evidence_sources=[
+                _ref("sqlite_governance_registry", sources, "Generated proof/status databases are evidence unless explicitly promoted."),
+            ],
+            not_truth_sources=[
+                _ref("overnight_workboard", sources, "Planning workboard is not event truth."),
+                _ref("agent_voice_profiles", sources, "Speaker routing does not prove event occurrence."),
+            ],
+            write_scope="package event index writers only; this map grants no event writes",
+            read_refs=[event_ref, package_ref, conversation_ref],
+            safe_question_examples=[
+                "Which package event proves this answer?",
+                "Where is the request/response bridge receipt indexed?",
+            ],
+            forbidden_mutations=[
+                "Do not rewrite package event index entries from this map.",
+                "Do not promote generated proof/status databases without explicit promotion.",
+                "Do not store raw prompt bodies in the event index.",
+            ],
+        ),
+        _domain(
             domain_ref="conversation_journal",
-            label="Operator-facing conversation journal",
+            plain_name="Operator-facing conversation journal",
             canonical_source=_canonical(
                 "operator_conversation_journal",
                 sources,
@@ -291,7 +362,7 @@ def build_domains(sources: Mapping[str, Mapping[str, Any]]) -> list[dict[str, An
         ),
         _domain(
             domain_ref="st_annes_work_log",
-            label="St. Anne's work log",
+            plain_name="St. Anne's work log",
             canonical_source=_canonical(
                 "st_annes_work_log_events",
                 sources,
@@ -319,11 +390,11 @@ def build_domains(sources: Mapping[str, Mapping[str, Any]]) -> list[dict[str, An
         ),
         _domain(
             domain_ref="st_annes_invoice_status",
-            label="St. Anne's invoice status",
+            plain_name="St. Anne's invoice status",
             canonical_source=_canonical(
                 "st_annes_invoice_status",
                 sources,
-                "Recorded invoice artifact status, manual send posture, payment status, validation refs, and safety flags.",
+                "Manual-send receipt/read model for St. Anne's sent invoice truth, invoice artifact status, payment posture, validation refs, and safety flags.",
             ),
             supporting_sources=[
                 _ref("st_annes_work_log_events", sources, "Work-log facts support invoice content but do not mark paid."),
@@ -337,9 +408,11 @@ def build_domains(sources: Mapping[str, Mapping[str, Any]]) -> list[dict[str, An
             read_refs=[st_invoice_ref, work_log_ref],
             safe_question_examples=[
                 "Was the St. Anne's invoice sent by OpenClaw?",
+                "Where does St. Anne's sent invoice truth come from?",
                 "What is the current St. Anne's invoice payment posture?",
             ],
             forbidden_mutations=[
+                "Do not treat manual send as paid truth.",
                 "Do not mark paid from invoice artifact existence.",
                 "Do not post ledger entries.",
                 "Do not export or send PDFs from this map.",
@@ -347,7 +420,7 @@ def build_domains(sources: Mapping[str, Mapping[str, Any]]) -> list[dict[str, An
         ),
         _domain(
             domain_ref="capital_hilton_invoice_status",
-            label="Capital Hilton invoice status",
+            plain_name="Capital Hilton invoice status",
             canonical_source=_canonical(
                 "capital_hilton_invoice_operator_run_status",
                 sources,
@@ -377,7 +450,7 @@ def build_domains(sources: Mapping[str, Mapping[str, Any]]) -> list[dict[str, An
         ),
         _domain(
             domain_ref="capital_hilton_proposal_status",
-            label="Capital Hilton proposal status",
+            plain_name="Capital Hilton proposal status",
             canonical_source=_canonical(
                 "capital_hilton_business_development_proposal",
                 sources,
@@ -405,7 +478,7 @@ def build_domains(sources: Mapping[str, Mapping[str, Any]]) -> list[dict[str, An
         ),
         _domain(
             domain_ref="agent_voice_profiles",
-            label="Agent voice profiles",
+            plain_name="Agent voice profiles",
             canonical_source=_canonical(
                 "agent_voice_profiles",
                 sources,
@@ -430,7 +503,7 @@ def build_domains(sources: Mapping[str, Mapping[str, Any]]) -> list[dict[str, An
         ),
         _domain(
             domain_ref="permission_registry",
-            label="Automation permission registry",
+            plain_name="Automation permission registry",
             canonical_source=_canonical(
                 "automation_permission_registry",
                 sources,
@@ -458,7 +531,7 @@ def build_domains(sources: Mapping[str, Mapping[str, Any]]) -> list[dict[str, An
         ),
         _domain(
             domain_ref="overnight_workboard",
-            label="Overnight workboard",
+            plain_name="Overnight workboard",
             canonical_source=_canonical(
                 "overnight_workboard",
                 sources,
@@ -488,7 +561,7 @@ def build_domains(sources: Mapping[str, Mapping[str, Any]]) -> list[dict[str, An
         ),
         _domain(
             domain_ref="business_ledger",
-            label="Protected business ledger",
+            plain_name="Protected business ledger",
             canonical_source=_canonical(
                 "sqlite_governance_registry",
                 sources,
@@ -557,20 +630,24 @@ def build_read_model(*, read_model_root: Path = DEFAULT_READ_MODEL_ROOT, generat
         "read_model_id": READ_MODEL_ID,
         "generated_at": generated_at,
         "status": MAP_STATUS if ready else MAP_NOT_READY_STATUS,
-        "purpose": "Clear source-of-truth map for OpenClaw system questions about packages, work logs, invoices, proposals, gates, receipts, and ledgers.",
+        "purpose": "Clear source-of-truth map for OpenClaw system questions about packages, work logs, invoices, proposals, gates, receipts, agents, and ledgers.",
         "mode": "read_only_truth_map",
         "preconditions": preconditions,
         "source_summaries": sources,
         "domain_count": len(domains),
         "domains": domains,
         "truth_rules": [
-            "Package status truth comes from package queue / package event index.",
+            "Package status truth comes from package queue and package event index.",
+            "Request/response truth comes from bridge receipts and package event index.",
             "Operator-facing history comes from conversation journal.",
             "St. Anne's work-log truth comes from St. Anne's work-log DB/read model.",
+            "St. Anne's sent invoice truth comes from manual-send receipt/read model.",
             "Capital Hilton invoice submission truth comes from ingested operator run receipt/read model.",
-            "Proposal status truth comes from Business Development proposal read model.",
-            "Paid truth never comes from proposal, send, or Coupa submit alone.",
-            "Ledger truth stays isolated until explicit payment evidence.",
+            "Capital Hilton proposal status truth comes from Business Development proposal read model.",
+            "Paid truth never comes from proposal, email send, manual send, or Coupa submit alone.",
+            "Ledger truth stays isolated until explicit payment evidence exists.",
+            "Test harness DBs cannot become canonical truth.",
+            "Generated proof/status DBs are evidence unless explicitly promoted.",
         ],
         "missing_required_inputs": missing_required_inputs,
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
@@ -609,7 +686,7 @@ def build_wiki(read_model: Mapping[str, Any]) -> str:
         canonical = domain["canonical_source"]
         lines.extend(
             [
-                f"### {domain['label']}",
+                f"### {domain['plain_name']}",
                 "",
                 f"- Domain: `{domain['domain_ref']}`",
                 f"- Canonical source: `{canonical['source_ref']}`",
