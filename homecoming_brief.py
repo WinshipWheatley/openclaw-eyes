@@ -257,10 +257,10 @@ def build_homecoming_brief(
         automation_permission_registry=automation_permission_registry,
     )
 
-    headline = "Good evening, Winship. OpenClaw is calm and ready."
+    headline = "Good evening, Winship. Client work is recorded, and protected actions remain locked."
     spoken_parts = [
         headline,
-        "Client work is clean.",
+        "Client work is recorded.",
         st_annes,
         capital_invoice,
         proposal,
@@ -271,7 +271,7 @@ def build_homecoming_brief(
     spoken_text = _tts_safe(" ".join(spoken_parts))
 
     visible_summary = [
-        "Client work is recorded and ready for review.",
+        "Client work is recorded, and protected actions remain locked.",
         st_annes,
         capital_invoice,
         proposal,
@@ -308,6 +308,16 @@ def build_homecoming_brief(
         "agent_inserts": agent_inserts,
         "next_recommended_action": action,
         "proof_refs": proof_refs,
+        "evidence_confidence": {
+            "readiness_or_calm_claim": "not_asserted",
+            "client_work_recorded": "high",
+            "protected_actions_locked": "high",
+            "proof_refs": [
+                "generated/read_models/client_work_closeout_2026_06_01.json",
+                "generated/read_models/automation_permission_registry.json",
+                "generated/read_models/operator_next_decision.json",
+            ],
+        },
         "proof_collapsed_by_default": True,
         "source_read_models": SOURCE_READ_MODELS,
         "fact_basis": {
@@ -338,6 +348,7 @@ def build_homecoming_brief(
             "no_pdf_export": True,
             "no_paid_marking": True,
             "unsafe_true_grants_absent": True,
+            "unproven_ready_claim_absent": True,
         },
     }
 

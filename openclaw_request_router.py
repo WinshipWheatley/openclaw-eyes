@@ -16,6 +16,7 @@ from typing import Any, Mapping
 import simple_invoice_workflow_fixtures
 import st_annes_work_log_review
 import workroom_review_decision_consumer
+import client_invoice_workbook_registry
 
 
 SCHEMA_VERSION = "openclaw_request_router_v0"
@@ -77,6 +78,11 @@ ST_ANNES_WORK_LOG_REVIEW_ACTION_REQUEST_KINDS = (
 WORKROOM_REVIEW_DECISION_REQUEST_KINDS = (
     workroom_review_decision_consumer.REQUEST_KIND,
     workroom_review_decision_consumer.REQUEST_TYPE,
+)
+
+WORKBOOK_REGISTRATION_REQUEST_KINDS = (
+    client_invoice_workbook_registry.REQUEST_KIND,
+    client_invoice_workbook_registry.REQUEST_TYPE,
 )
 
 
@@ -423,6 +429,27 @@ def workroom_review_decision_handlers() -> tuple[RequestHandlerRegistration, ...
     )
 
 
+def workbook_registration_handlers() -> tuple[RequestHandlerRegistration, ...]:
+    return tuple(
+        RequestHandlerRegistration(
+            request_kind=request_kind,
+            handler_id="client_invoice_workbook_registry.register_workbook",
+            handler_label="Client invoice workbook registration",
+            intended_use="",
+            world_refs=(),
+            workflow_refs=(),
+            client_refs=(),
+            project_refs=(),
+            adapter_available=True,
+            next_safe_move=(
+                "Register the workbook reference as metadata only; do not open, read, mutate, "
+                "or audit workbook cells."
+            ),
+        )
+        for request_kind in WORKBOOK_REGISTRATION_REQUEST_KINDS
+    )
+
+
 def default_handler_registrations() -> tuple[RequestHandlerRegistration, ...]:
     return (
         capital_hilton_field_mapping_handler(),
@@ -434,6 +461,7 @@ def default_handler_registrations() -> tuple[RequestHandlerRegistration, ...]:
         *workflow_package_request_handlers(),
         *st_annes_work_log_review_action_handlers(),
         *workroom_review_decision_handlers(),
+        *workbook_registration_handlers(),
     )
 
 

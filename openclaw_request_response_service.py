@@ -82,6 +82,7 @@ SERVICE_SUPPORTED_REQUEST_FAMILIES = (
     "FILE_METADATA",
     "ST_ANNES_WORK_LOG_REVIEW_ACTION_REQUEST",
     "WORKROOM_REVIEW_DECISION_REQUEST",
+    "WORKBOOK_REGISTRATION_REQUEST",
     "WORKFLOW_PACKAGE_REQUEST",
     "LOCAL_SURFACE_RESULT",
     "ARTIFACT_REFERENCE_APPROVAL",
@@ -801,6 +802,23 @@ def _route_for_request(request_path: Path, identity: RequestIdentity, raw_reques
             route_reason=(
                 "Mission Control Workroom review decisions are handled by a bounded PC consumer "
                 "that records review receipts only and cannot merge, push, or perform business actions."
+            ),
+            pc_handled=True,
+            mac_handoff_required=False,
+            future_worker_blocked=False,
+        )
+    if request_type == "WORKBOOK_REGISTRATION_REQUEST":
+        return RouteDecision(
+            routing_status="PROCESSING_ON_PC",
+            selected_worker_target="OPENCLAW_SYSTEM",
+            selected_machine="PC_WSL",
+            processing_status="CHECKING_WORKBOOK_REGISTRATION",
+            operator_headline="OpenClaw is registering this workbook",
+            operator_message="OpenClaw picked this up and is checking the metadata-only workbook registration rail.",
+            next_safe_move="Wait for the workbook registration readback.",
+            route_reason=(
+                "Mission Control workbook chooser requests are handled by the deterministic PC workbook registry "
+                "without opening or mutating the workbook."
             ),
             pc_handled=True,
             mac_handoff_required=False,

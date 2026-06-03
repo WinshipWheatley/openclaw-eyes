@@ -29,6 +29,8 @@ OPERATOR_EXPORT_NAME = f"{READ_MODEL_ID}_OPERATOR.md"
 CONTRACT_STATUS = "DETERMINISTIC_CLIENT_INVOICE_WORKBOOK_REGISTRY_NO_CELL_READ"
 
 INTENDED_USE = "client_invoice_workbook_registration"
+REQUEST_TYPE = "WORKBOOK_REGISTRATION_REQUEST_V0"
+REQUEST_KIND = "WORKBOOK_REGISTRATION_REQUEST"
 
 WORKBOOK_STATUSES = (
     "WORKBOOK_REFERENCE_CAPTURED",
@@ -180,7 +182,12 @@ def _safe_token(value: object) -> str:
 
 
 def _path_ref_from_request(raw_request: Mapping[str, Any], source_request_id: str) -> str:
-    raw_ref = str(raw_request.get("local_path_ref") or raw_request.get("mac_visible_path_ref") or "").strip()
+    raw_ref = str(
+        raw_request.get("local_path_ref")
+        or raw_request.get("mac_visible_path_ref")
+        or raw_request.get("selected_local_path")
+        or ""
+    ).strip()
     if not raw_ref:
         return "path_ref:missing"
     lowered = raw_ref.lower()
@@ -210,7 +217,13 @@ def _is_spreadsheet_request(request: WorkbookRegistrationRequest) -> bool:
 
 
 def is_workbook_registration_request(raw_request: Mapping[str, Any]) -> bool:
-    return str(raw_request.get("intended_use") or "").strip() == INTENDED_USE
+    request_type = str(raw_request.get("request_type") or raw_request.get("type") or "").strip().upper()
+    kind = str(raw_request.get("kind") or "").strip().upper()
+    return (
+        str(raw_request.get("intended_use") or "").strip() == INTENDED_USE
+        or request_type == REQUEST_TYPE
+        or kind == REQUEST_KIND
+    )
 
 
 def _capital_hilton_explicit(request: WorkbookRegistrationRequest) -> bool:
@@ -238,18 +251,25 @@ def _tenant_scope(raw_request: Mapping[str, Any], request: WorkbookRegistrationR
 
 def normalize_registration_request(raw_request: Mapping[str, Any]) -> WorkbookRegistrationRequest:
     source_request_id = str(raw_request.get("request_id") or "unknown_file_metadata_request")
-    display_name = _safe_label(raw_request.get("file_display_name"))
+    display_name = _safe_label(
+        raw_request.get("file_display_name")
+        or raw_request.get("selected_local_path")
+        or raw_request.get("local_path_ref")
+    )
     extension = _normalize_extension(raw_request.get("file_extension"), display_name)
     file_type = _detect_file_type(extension, raw_request.get("file_type") or raw_request.get("file_kind_hint"), display_name)
     client_ref = str(raw_request.get("client_ref") or "").strip()
     workflow_ref = str(raw_request.get("workflow_ref") or "").strip()
     world_ref = str(raw_request.get("world_ref") or "").strip()
+    intended_use = str(raw_request.get("intended_use") or "")
+    if is_workbook_registration_request(raw_request) and not intended_use:
+        intended_use = INTENDED_USE
     missing_context: list[str] = []
     if client_ref in {"", "unknown", "UNKNOWN"}:
         missing_context.append("client_ref")
     if workflow_ref in {"", "unknown", "UNKNOWN"}:
         missing_context.append("workflow_ref")
-    if str(raw_request.get("intended_use") or "") != INTENDED_USE:
+    if intended_use != INTENDED_USE:
         validation_status = "UNKNOWN_FAIL_CLOSED"
         next_move = "Use the generic file metadata rail."
     elif extension not in SPREADSHEET_EXTENSIONS or file_type != "spreadsheet":
@@ -264,7 +284,7 @@ def normalize_registration_request(raw_request: Mapping[str, Any]) -> WorkbookRe
     return WorkbookRegistrationRequest(
         request_id=f"workbook_registration_request:{_short_hash(source_request_id, display_name, extension)}",
         source_request_id=source_request_id,
-        intended_use=str(raw_request.get("intended_use") or ""),
+        intended_use=intended_use,
         file_display_name=display_name,
         file_extension=extension,
         file_type=file_type,

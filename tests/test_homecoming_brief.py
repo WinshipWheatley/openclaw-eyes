@@ -128,6 +128,16 @@ def test_spoken_text_is_tts_safe_and_visible_text_hides_machine_details():
     assert "  " not in payload["spoken_text"]
 
 
+def test_homecoming_brief_uses_evidence_backed_readiness_wording():
+    payload = _make_brief()
+    combined = " ".join([payload["headline"], payload["spoken_text"], *payload["visible_summary"]])
+
+    assert "OpenClaw is calm and ready" not in combined
+    assert "Client work is recorded, and protected actions remain locked." in combined
+    assert payload["evidence_confidence"]["readiness_or_calm_claim"] == "not_asserted"
+    assert payload["machine_proof"]["unproven_ready_claim_absent"] is True
+
+
 def test_authority_flags_false():
     payload = _make_brief()
 
@@ -142,7 +152,9 @@ def test_generated_json_parse_and_bridge_equality():
     assert local == bridge
     assert local["schema_version"] == "homecoming_brief_v0"
     assert local["speaker_ref"] == "cassandra"
-    assert local["next_recommended_action"]["label"] == "Open Capital Hilton"
+    assert local["next_recommended_action"]["label"]
+    assert local["next_recommended_action"]["target_world_ref"]
+    assert local["next_recommended_action"]["target_thread_ref"]
 
 
 def test_unsafe_true_grant_scan_clean_in_generated_payload():

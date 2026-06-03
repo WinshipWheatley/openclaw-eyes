@@ -84,6 +84,10 @@ INVOICE_REVIEW_ACTION_RESULT_PATTERNS = (
     "mission_control_invoice_review_action_result_*.json",
     "mission_control_capture_request_*invoice_review_action_result*.json",
 )
+WORKBOOK_REGISTRATION_REQUEST_PATTERNS = (
+    "mission_control_workbook_registration_request_*.json",
+    "mission_control_capture_request_*workbook_registration*.json",
+)
 CONTEXT_ATTACHMENT_PATTERN = "mission_control_context_request_*.json"
 SECRET_INTAKE_PATTERN = "mission_control_secret_intake_request_*.json"
 VISUAL_WORKSPACE_PATTERN = "mission_control_visual_workspace_request_*.json"
@@ -103,6 +107,7 @@ SUPPORTED_REQUEST_PATTERNS = (
     *ARTIFACT_INTAKE_REQUEST_PATTERNS,
     *INVOICE_REVIEW_ACTION_PATTERNS,
     *INVOICE_REVIEW_ACTION_RESULT_PATTERNS,
+    *WORKBOOK_REGISTRATION_REQUEST_PATTERNS,
 )
 
 FUTURE_REQUEST_PATTERNS = (
@@ -117,6 +122,7 @@ REQUEST_FAMILIES = (
     "FILE_METADATA",
     "ST_ANNES_WORK_LOG_REVIEW_ACTION_REQUEST",
     "WORKROOM_REVIEW_DECISION_REQUEST",
+    "WORKBOOK_REGISTRATION_REQUEST",
     "WORKFLOW_PACKAGE_REQUEST",
     "LOCAL_SURFACE_RESULT",
     "INVOICE_REVIEW_ACTION_RESULT",
@@ -410,6 +416,7 @@ RESPONDER_TARGET_TYPES = (
     "FILE_METADATA_INTAKE",
     "LOCAL_SURFACE_RESULT_INTAKE",
     "WORKFLOW_PACKAGE_QUEUE",
+    "WORKBOOK_REGISTRATION",
     "WORKER_ROUTING_INTELLIGENCE",
     "SCOPED_CONTEXT_PACKAGE_COMPILER",
     "CODEX_RESPONDER_FUTURE",
@@ -844,6 +851,11 @@ def classify_request_filename(filename: str | None) -> RequestClassification:
         rail = "workroom_review_decision_consumer"
         reason = "Filename matches Mission Control Workroom review decision request pattern."
         future_supported = False
+    elif filename and any(fnmatch.fnmatch(filename, pattern) for pattern in WORKBOOK_REGISTRATION_REQUEST_PATTERNS):
+        family = "WORKBOOK_REGISTRATION_REQUEST"
+        rail = "client_invoice_workbook_registry"
+        reason = "Filename matches Mission Control workbook registration request pattern."
+        future_supported = False
     elif filename and any(fnmatch.fnmatch(filename, pattern) for pattern in WORKFLOW_PACKAGE_REQUEST_PATTERNS):
         family = "WORKFLOW_PACKAGE_REQUEST"
         rail = "workflow_package_request_consumer"
@@ -913,6 +925,7 @@ def classify_request_filename(filename: str | None) -> RequestClassification:
                 "FILE_METADATA",
                 "ST_ANNES_WORK_LOG_REVIEW_ACTION_REQUEST",
                 "WORKROOM_REVIEW_DECISION_REQUEST",
+                "WORKBOOK_REGISTRATION_REQUEST",
                 "WORKFLOW_PACKAGE_REQUEST",
                 "LOCAL_SURFACE_RESULT",
                 "ARTIFACT_REFERENCE_APPROVAL",
@@ -934,6 +947,7 @@ def list_supported_requests(inbox: Path = APPROVED_INBOX) -> tuple[Path, ...]:
             "FILE_METADATA",
             "WORKFLOW_PACKAGE_REQUEST",
             "WORKROOM_REVIEW_DECISION_REQUEST",
+            "WORKBOOK_REGISTRATION_REQUEST",
             "LOCAL_SURFACE_RESULT",
             "ARTIFACT_REFERENCE_APPROVAL",
             "ARTIFACT_INTAKE_REQUEST",
@@ -1015,6 +1029,13 @@ def build_responder_targets(selected_family: str) -> tuple[RequestProcessorRespo
             ("WORKROOM_REVIEW_DECISION_REQUEST",),
             True,
             selected_family == "WORKROOM_REVIEW_DECISION_REQUEST",
+        ),
+        target(
+            "WORKBOOK_REGISTRATION",
+            "Client invoice workbook registration",
+            ("WORKBOOK_REGISTRATION_REQUEST",),
+            True,
+            selected_family == "WORKBOOK_REGISTRATION_REQUEST",
         ),
         target(
             "ARTIFACT_REFERENCE_APPROVAL",
@@ -1113,6 +1134,18 @@ def _required_fields_for_family(request_family: str) -> tuple[str, ...]:
             "authority_boundary",
             "review_packet_id",
             "decision_action",
+        )
+    if request_family == "WORKBOOK_REGISTRATION_REQUEST":
+        return (
+            "request_id",
+            "idempotency_key",
+            "payload_hash",
+            "authority_boundary",
+            "created_at",
+            "source_surface",
+            "client_ref",
+            "workflow_ref",
+            "selected_local_path",
         )
     if request_family == "ST_ANNES_WORK_LOG_REVIEW_ACTION_REQUEST":
         return (
@@ -5350,6 +5383,135 @@ def _process_workbook_active_selection_ambiguity_request(
     )
 
 
+def _workbook_registration_request_classification(classification: RequestClassification) -> RequestClassification:
+    return RequestClassification(
+        classification_id=f"request_classification_{_short_hash(classification.source_request_filename, 'workbook_registration')}",
+        source_request_filename=classification.source_request_filename,
+        request_family="WORKBOOK_REGISTRATION_REQUEST",
+        selected_rail="client_invoice_workbook_registry",
+        classification_reason=(
+            "Request envelope is a Mission Control WORKBOOK_REGISTRATION_REQUEST_V0 workbook chooser action."
+        ),
+        future_supported=False,
+        next_safe_move="Record the workbook reference as metadata only and return a Mac readback.",
+    )
+
+
+def _process_workbook_registration_request(
+    request_path: Path,
+    raw_request: Mapping[str, Any],
+    *,
+    export_root: Path,
+    generated_at: str | None,
+    classification: RequestClassification,
+    route_decision: Mapping[str, Any] | None = None,
+) -> OpenClawResponseForMac:
+    registry_payload = client_invoice_workbook_registry.register_workbook_request(
+        raw_request,
+        export_root=export_root,
+        generated_at=generated_at,
+        source_file_metadata_ref=f"mission_control_request:{request_path.name}",
+    )
+    registry_json, registry_operator = client_invoice_workbook_registry.write_exports(registry_payload, export_root)
+    workbook_readback = registry_payload["registration_readback"]
+    active_record = registry_payload.get("active_record") or {}
+    candidate_record = registry_payload.get("candidate_record") or {}
+    status = str(workbook_readback["status"])
+    terminal_ready = status == "WORKBOOK_REFERENCE_CAPTURED"
+    headline = str(workbook_readback["operator_headline"])
+    message = str(workbook_readback["operator_message"])
+    next_action = str(workbook_readback["next_action"])
+    missing_items = tuple(str(item) for item in workbook_readback.get("missing_items") or ())
+    primary_blocker = "None" if terminal_ready else (missing_items[0] if missing_items else status)
+    response_classification = _workbook_registration_request_classification(classification)
+    detail = {
+        "client_invoice_workbook_registry": {
+            "registry_readback_ref": registry_json.as_posix(),
+            "operator_readback_ref": registry_operator.as_posix(),
+            "registration_request": registry_payload["registration_request"],
+            "registration_readback": workbook_readback,
+            "active_record": active_record,
+            "candidate_record": candidate_record,
+            "duplicate_result": registry_payload["duplicate_result"],
+            "selected_local_path_received": bool(raw_request.get("selected_local_path")),
+            "selected_local_path_stored_as_ref_only": True,
+            "approved_for_metadata_read": bool((active_record or candidate_record).get("approved_for_metadata_read")),
+            "approved_for_cell_read": bool((active_record or candidate_record).get("approved_for_cell_read")),
+            "workbook_body_read_performed": False,
+            "spreadsheet_parse_performed": False,
+            "spreadsheet_cell_read_performed": False,
+            "folder_scan_performed": False,
+            "external_action_performed": False,
+        },
+        "layered_response_fields": {
+            "response_kind": "CLIENT_INVOICE_WORKBOOK_REGISTRATION",
+            "audience_mode": "ELIWINSHIP",
+            "display_mode": "COMPACT_CHAT",
+            "headline": headline,
+            "one_line_answer": message,
+            "eliwinship": message,
+            "primary_status": status.replace("_", " ").title(),
+            "primary_blocker": primary_blocker,
+            "next_action": next_action,
+            "missing_items_short": missing_items,
+            "detail_summary": str(workbook_readback.get("workbook_summary") or ""),
+            "proof_refs": (f"generated/read_models/{client_invoice_workbook_registry.JSON_EXPORT_NAME}",),
+            "mac_render_hint": "COMPACT_WITH_DISCLOSURE",
+        },
+        "persistent_registry_write": False,
+        "generated_registry_readmodel_write": True,
+        "request_classification": asdict(response_classification),
+        "request_router_decision": dict(route_decision or {}),
+        "external_actions_locked": True,
+        "model_or_worker_response_adapter_called": False,
+    }
+    return OpenClawResponseForMac(
+        source_request_id=str(raw_request.get("request_id") or workbook_readback["hidden_refs"]["source_request_id"]),
+        source_request_filename=request_path.name,
+        workflow_ref=str(raw_request.get("workflow_ref") or "unknown"),
+        request_type=response_classification.request_family,
+        internal_status="RESPONSE_READY" if terminal_ready else "BLOCKED_WITH_REASON",
+        operator_headline=headline,
+        operator_message=message,
+        what_happened=(
+            "PC recognized a Mission Control workbook registration request.",
+            "PC wrote a generated workbook registry read-model from request metadata only.",
+            "PC did not open the workbook, read workbook cells, parse spreadsheets, scan folders, mutate workbooks, export PDFs, send email, open Coupa, post ledger entries, or perform external action.",
+        ),
+        why_it_happened=(
+            "The workbook chooser provided client, workflow, and selected path metadata for registration."
+            if terminal_ready
+            else "The workbook registration request needs safer context before binding or could not be registered."
+        ),
+        how_to_fix=(
+            "No fix is needed. Audit the invoice sheet later when you explicitly request that governed lane."
+            if terminal_ready
+            else next_action
+        ),
+        visible_cards=(
+            {
+                "title": headline,
+                "bullets": (
+                    str(workbook_readback.get("client_summary") or ""),
+                    str(workbook_readback.get("workbook_summary") or ""),
+                    "Workbook body and cells were not read.",
+                    next_action,
+                ),
+                "status_tone": "ready" if terminal_ready else "blocked",
+            },
+        ),
+        cards_available=True,
+        card_mirror_refs=(),
+        file_readback_refs=(registry_json.as_posix(),),
+        worker_route_refs=(),
+        context_package_refs=(),
+        blocked_reason=None if terminal_ready else primary_blocker,
+        detail_disclosure=detail,
+        readback_files=(registry_json.as_posix(), registry_operator.as_posix()),
+        next_safe_move=next_action,
+    )
+
+
 def _process_file_request(
     request_path: Path,
     raw_request: Mapping[str, Any],
@@ -5783,6 +5945,15 @@ def process_request_path(
             generated_at=generated_at,
             classification=effective_classification,
         )
+    if classification.request_family == "WORKBOOK_REGISTRATION_REQUEST":
+        return _process_workbook_registration_request(
+            request_path,
+            raw_request,
+            export_root=export_root,
+            generated_at=generated_at,
+            classification=classification,
+            route_decision=route_decision,
+        )
     if effective_classification.request_family == "WORKFLOW_PACKAGE_REQUEST":
         return _process_workflow_package_request(
             request_path,
@@ -6081,6 +6252,9 @@ def _machine_proof(
         "request_router_selected_handler_id": str(router_decision.get("selected_handler_id") or ""),
         "supported_chat_pattern_present": CHAT_PATTERN in SUPPORTED_REQUEST_PATTERNS,
         "supported_file_pattern_present": FILE_METADATA_PATTERN in SUPPORTED_REQUEST_PATTERNS,
+        "supported_workbook_registration_pattern_present": all(
+            pattern in SUPPORTED_REQUEST_PATTERNS for pattern in WORKBOOK_REGISTRATION_REQUEST_PATTERNS
+        ),
         "supported_local_surface_result_pattern_present": all(pattern in SUPPORTED_REQUEST_PATTERNS for pattern in LOCAL_SURFACE_RESULT_PATTERNS),
         "supported_artifact_reference_approval_pattern_present": all(pattern in SUPPORTED_REQUEST_PATTERNS for pattern in ARTIFACT_REFERENCE_APPROVAL_PATTERNS),
         "future_request_families_modeled": all(pattern in FUTURE_REQUEST_PATTERNS for pattern in FUTURE_REQUEST_PATTERNS),

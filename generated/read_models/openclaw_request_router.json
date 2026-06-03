@@ -812,6 +812,54 @@
         "st_annes_work_log_event"
       ],
       "world_refs": []
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [],
+      "handler_id": "workroom_review_decision_consumer.record_decision",
+      "handler_label": "Workroom review decision consumer",
+      "intended_use": "",
+      "next_safe_move": "Record the review packet decision receipt only; no merge, push, worker spawn, or business action authority is granted.",
+      "project_refs": [],
+      "request_kind": "WORKROOM_REVIEW_DECISION_REQUEST",
+      "workflow_refs": [],
+      "world_refs": []
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [],
+      "handler_id": "workroom_review_decision_consumer.record_decision",
+      "handler_label": "Workroom review decision consumer",
+      "intended_use": "",
+      "next_safe_move": "Record the review packet decision receipt only; no merge, push, worker spawn, or business action authority is granted.",
+      "project_refs": [],
+      "request_kind": "WORKROOM_REVIEW_DECISION_REQUEST_V0",
+      "workflow_refs": [],
+      "world_refs": []
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [],
+      "handler_id": "client_invoice_workbook_registry.register_workbook",
+      "handler_label": "Client invoice workbook registration",
+      "intended_use": "",
+      "next_safe_move": "Register the workbook reference as metadata only; do not open, read, mutate, or audit workbook cells.",
+      "project_refs": [],
+      "request_kind": "WORKBOOK_REGISTRATION_REQUEST",
+      "workflow_refs": [],
+      "world_refs": []
+    },
+    {
+      "adapter_available": true,
+      "client_refs": [],
+      "handler_id": "client_invoice_workbook_registry.register_workbook",
+      "handler_label": "Client invoice workbook registration",
+      "intended_use": "",
+      "next_safe_move": "Register the workbook reference as metadata only; do not open, read, mutate, or audit workbook cells.",
+      "project_refs": [],
+      "request_kind": "WORKBOOK_REGISTRATION_REQUEST_V0",
+      "workflow_refs": [],
+      "world_refs": []
     }
   ],
   "route_statuses": [
