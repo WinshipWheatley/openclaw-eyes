@@ -1,4 +1,9 @@
 {
+  "agent_handoff_event_consumer": {
+    "applied": true,
+    "latest_post_id": "workroom_post:e5bcc4fdf9e45ed2",
+    "status_ref": "generated/read_models/agent_handoff_event_status.json"
+  },
   "authority_boundary": {
     "agent_loop_allowed": false,
     "browser_access_allowed": false,
@@ -26,7 +31,7 @@
   "channel_post_counts": {
     "architecture_hermes": 1,
     "build_mission_control_mac": 3,
-    "build_openclaw_backend": 2,
+    "build_openclaw_backend": 3,
     "business_development_capital_hilton": 15,
     "finance_capital_hilton": 20,
     "finance_st_annes": 32,
@@ -48,14 +53,17 @@
     "raw_request_bodies_included": false,
     "show_machine_details_by_default": false
   },
-  "generated_at": "2026-06-03T04:23:28+00:00",
+  "generated_at": "2026-06-03T12:03:45+00:00",
   "machine_proof": {
+    "agent_handoff_event_consumer_applied": true,
+    "agent_handoff_event_post_added": true,
     "agent_loop_launched": false,
     "browser_access_performed": false,
     "business_action_performed": false,
     "coupa_access_performed": false,
     "decision_lifecycle_applied": true,
     "decision_post_count": 1,
+    "downstream_worker_assigned": false,
     "email_send_performed": false,
     "external_llm_called": false,
     "git_push_performed": false,
@@ -75,12 +83,14 @@
     "slack_connected": false,
     "submit_performed": false,
     "telegram_live_connected": false,
+    "tool_execution_performed": false,
     "unsafe_true_grants_absent": true,
     "workbook_mutation_performed": false,
+    "worker_execution_performed": false,
     "worker_spawn_performed": false
   },
   "mode": "local_read_model_generation_only_no_live_slack",
-  "post_count": 78,
+  "post_count": 79,
   "posts": [
     {
       "business_action_performed": true,
@@ -1979,6 +1989,37 @@
       "target_world_ref": "build",
       "timestamp": "2026-06-03T04:13:52+00:00",
       "visible_by_default": false
+    },
+    {
+      "business_action_performed": false,
+      "channel_ref": "build_openclaw_backend",
+      "downstream_worker_assigned": false,
+      "from_agent": "chief",
+      "handoff_ref": "chief_to_pc_codex_backend_implementation",
+      "headline": "Handoff: chief to pc_codex",
+      "next_safe_action": "Review the handoff packet; downstream work has not run.",
+      "package_id": "",
+      "package_type": "pc_codex_backend_worker_packet",
+      "plain_summary": "Track A recorded a backend handoff event as a receipt only; no worker was assigned or run.",
+      "post_id": "workroom_post:e5bcc4fdf9e45ed2",
+      "post_type": "handoff",
+      "proof_refs": [
+        "generated/read_models/agent_handoff_registry.json",
+        "generated/read_models/openclaw_workroom_registry.json",
+        "generated/read_models/package_event_index.json",
+        "generated/read_models/agent_handoff_event_status.json"
+      ],
+      "proof_refs_collapsed": true,
+      "show_machine_details_by_default": false,
+      "source_kind": "agent_handoff_event",
+      "speaker_ref": "chief",
+      "status_label": "Handoff Recorded",
+      "target_thread_ref": "workroom:build_openclaw_backend:main",
+      "target_world_ref": "build",
+      "timestamp": "2026-06-03T12:03:45+00:00",
+      "to_agent_or_worker": "pc_codex",
+      "tool_execution_performed": false,
+      "worker_execution_performed": false
     }
   ],
   "posts_by_channel": {
@@ -1992,7 +2033,8 @@
     ],
     "build_openclaw_backend": [
       "workroom_post:2bc78bbe7db92b6d",
-      "workroom_post:7b4fe1ea34fbaa40"
+      "workroom_post:7b4fe1ea34fbaa40",
+      "workroom_post:e5bcc4fdf9e45ed2"
     ],
     "business_development_capital_hilton": [
       "workroom_post:1104f1a9d262a597",
@@ -2144,7 +2186,8 @@
     "Do not create new business truth.",
     "No send, submit, ledger, push, Slack, Telegram, Gmail, browser, or Coupa authority.",
     "Decision posts summarize review receipts only and create no business truth.",
-    "Completed review packet posts are hidden by default; rework remains visible."
+    "Completed review packet posts are hidden by default; rework remains visible.",
+    "Agent handoff event posts record routing receipts only and do not execute downstream work."
   ],
   "schema_version": "openclaw_workroom_activity_feed_v0",
   "source_refs": [
@@ -2156,7 +2199,8 @@
     "generated/read_models/operator_next_decision.json",
     "generated/read_models/helm_action_lifecycle_status.json",
     "generated/read_models/workroom_review_decision_status.json",
-    "generated/read_models/workroom_review_decision_lifecycle_status.json"
+    "generated/read_models/workroom_review_decision_lifecycle_status.json",
+    "generated/read_models/agent_handoff_event_status.json"
   ],
   "status": "OPENCLAW_WORKROOM_ACTIVITY_FEED_READY"
 }
