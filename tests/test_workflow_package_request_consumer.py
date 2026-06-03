@@ -254,6 +254,31 @@ def test_safe_next_question_routes_to_openclaw_status_answer(tmp_path):
     _assert_no_unsafe_grants(result.receipt)
 
 
+def test_never_merge_question_routes_to_guardian_without_queue_write(tmp_path):
+    request = _request_payload(
+        request_id="system_question_never_merge",
+        source_text="What should never be merged?",
+        world_ref="operations",
+        thread_ref="openclaw",
+    )
+
+    result = consumer.consume_workflow_package_request(
+        request,
+        source_request_filename="mission_control_operator_instruction_request_system_question_never_merge.json",
+        generated_at=FIXED_NOW,
+        sqlite_path=tmp_path / "workflow_package_queue.sqlite",
+    )
+    rendered = json.dumps(result.receipt)
+
+    assert result.receipt["workflow_ref"] == "system_question_answer"
+    _assert_system_question_display(result.receipt["operator_display"], speaker_ref="guardian", voice_mode="safety_gate")
+    assert "Protected stores must never merge" == result.receipt["operator_display"]["headline"]
+    assert "ledger into package DB" in rendered
+    assert result.receipt["machine_proof"]["package_recorded"] is False
+    assert not (tmp_path / "workflow_package_queue.sqlite").exists()
+    _assert_no_unsafe_grants(result.receipt)
+
+
 def test_consumer_records_valid_workflow_package_request_in_queue_sqlite(tmp_path):
     sqlite_path = tmp_path / "workflow_package_queue.sqlite"
     request = _request_payload(

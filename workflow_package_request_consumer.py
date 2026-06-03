@@ -139,6 +139,7 @@ SYSTEM_QUESTION_HINTS = (
     "can we consolidate sqlite",
     "is the ledger mixed into this",
     "what is safe to clean up",
+    "what should never be merged",
 )
 
 SYSTEM_QUESTION_TERMS = (
@@ -160,6 +161,10 @@ SYSTEM_QUESTION_TERMS = (
     "owner",
     "consolidate",
     "consolidation",
+    "merge",
+    "merged",
+    "never merge",
+    "never be merged",
     "ledger mixed",
     "clean up",
     "cleanup",

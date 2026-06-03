@@ -326,10 +326,10 @@
         ],
         "headline": "SQLite databases are classified by ownership",
         "inferred": [
-          "Most entries are not consolidation targets; many are ledgers, test harnesses, generated proof/status stores, or review-only unknowns."
+          "The ledger is protected and not part of package consolidation; most entries are not consolidation targets."
         ],
         "next_safe_action": "Ask for one domain, such as package truth, work logs, ledger, or cleanup posture.",
-        "plain_summary": "The governance registry groups the databases by truth role instead of dumping rows.",
+        "plain_summary": "OpenClaw has workflow state, generated evidence, generated status, test harness, protected ledger, and unknown-review database classes.",
         "proof_refs": [
           "generated/read_models/sqlite_governance_registry.json",
           "generated/read_models/canonical_state_map.json",
@@ -488,15 +488,15 @@
       "answer": {
         "confirmed": [
           "The current consolidation plan status is plan-only and migration_allowed_now=false for each candidate.",
-          "First low-risk move: Create views/indexes over existing package/event/journal refs, not a data migration.",
-          "Required before any consolidation: backup, schema_diff, row_count_proof, rollback_plan, test_coverage, no_business_ledger_mixing, operator_approval."
+          "First low-risk move: Create views/indexes over existing package/event/journal refs, not a data migration; use package_event_index as the cross-reference layer.",
+          "Required before any consolidation: backup, schema_diff, row_count_proof, checksum_or_sample_row_proof, rollback_plan, focused_tests, no_business_ledger_mixing, operator_approval."
         ],
         "headline": "SQLite consolidation is plan-only",
         "inferred": [
-          "A generated overlay/read model is safer than altering canonical workflow databases."
+          "The package event index and canonical state map are the cross-reference layer before any consolidation attempt."
         ],
         "next_safe_action": "Review the plan and create a non-mutating overlay design; do not create views, indexes, or migrations yet.",
-        "plain_summary": "Do not consolidate yet; the safe first move is a read-only views/indexes overlay, not migration.",
+        "plain_summary": "Do not consolidate yet; the safe first move is a package-event-index-backed views/indexes overlay, not migration.",
         "proof_refs": [
           "generated/read_models/sqlite_consolidation_plan.json",
           "generated/read_models/sqlite_governance_registry.json",
@@ -543,12 +543,12 @@
         "confirmed": [
           "SQLite governance marks 438 ledger-shaped entries as protected_business_ledger.",
           "Business ledger consolidation risk is forbidden.",
-          "Paid truth never comes from proposal, send, Coupa submit, or invoice artifact alone."
+          "Paid truth never comes from proposal, email send, manual send, Coupa submit, or invoice artifact alone."
         ],
         "headline": "Ledger stays isolated",
         "inferred": [
           "Package/event read models may reference ledger exclusion policy, but they must not read, merge, or mutate ledger rows.",
-          "Never-consolidate rules include: Never consolidate ledger into package DB., Never consolidate secrets/tokens into read models., Never consolidate raw prompt bodies into operator journal.."
+          "Never-consolidate rules include: Never consolidate ledger into package DB, Never consolidate secrets/tokens into read models, Never consolidate raw prompt bodies into operator journal, Never consolidate test harness into canonical state."
         ],
         "next_safe_action": "Keep ledger and protected stores out of package/event consolidation unless a separate approved payment-evidence workflow exists.",
         "plain_summary": "The ledger is not a package/read-model truth store and must not be mixed into SQLite consolidation.",
@@ -597,8 +597,9 @@
     {
       "answer": {
         "confirmed": [
-          "Do-not-touch buckets: business_ledger=438, legacy_archives=0, unknown_needs_review=10, protected_evidence=1.",
-          "Keep-isolated buckets: test_harness=186, generated_proof_status_dbs=17, one_off_read_model_proof_dbs=10.",
+          "Do-not-touch buckets: protected_business_ledger=438, legacy_archives=0, unknown_needs_review=10, protected_evidence=1, token_secret_credential_stores=3.",
+          "Keep-isolated buckets: test_harness=186, generated_proof_status_dbs=17, one_off_read_model_proof_dbs=10, dry_run_warmup_dbs=2.",
+          "Unknown DB policy: unknown_needs_review stays read-only; no deletion or migration is allowed.",
           "The consolidation plan does not authorize deletes, moves, migrations, or existing DB mutation."
         ],
         "headline": "Cleanup is review-only for now",
@@ -649,9 +650,63 @@
       "voice_mode": "safety_gate",
       "voice_profile_ref": "agent_voice_profile:guardian",
       "workflow_ref": "system_question_answer"
+    },
+    {
+      "answer": {
+        "confirmed": [
+          "Never-consolidate rules: Never consolidate ledger into package DB, Never consolidate secrets/tokens into read models, Never consolidate raw prompt bodies into operator journal, Never consolidate test harness into canonical state.",
+          "Do-not-touch buckets include: protected_business_ledger, legacy_archives, unknown_needs_review, protected_evidence, token_secret_credential_stores.",
+          "This answer grants no delete, migration, submit, send, ledger, or paid authority."
+        ],
+        "headline": "Protected stores must never merge",
+        "inferred": [
+          "Package/event indexes may reference proof refs, but they must not absorb protected stores or raw prompt bodies."
+        ],
+        "next_safe_action": "Keep these stores isolated and require a separate operator-approved classification packet before any future change.",
+        "plain_summary": "Never merge ledgers, secrets, raw prompt bodies, or test harness data into package or read-model state.",
+        "proof_refs": [
+          "generated/read_models/sqlite_consolidation_plan.json",
+          "generated/read_models/sqlite_governance_registry.json",
+          "generated/read_models/canonical_state_map.json"
+        ],
+        "show_machine_details_by_default": false,
+        "unknown": []
+      },
+      "authority_boundary": {
+        "browser_access_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "gmail_allowed": false,
+        "ledger_posting_allowed": false,
+        "paid": false,
+        "portal_submit_allowed": false,
+        "sent": false
+      },
+      "machine_proof": {
+        "browser_access_performed": false,
+        "child_agent_spawned": false,
+        "coupa_access_performed": false,
+        "email_send_performed": false,
+        "external_llm_called": false,
+        "gmail_access_performed": false,
+        "ledger_mutation_performed": false,
+        "live_execution_performed": false,
+        "local_only": true,
+        "paid_marking_performed": false,
+        "pdf_export_performed": false,
+        "submit_performed": false,
+        "unsafe_true_grants_absent": true,
+        "workbook_mutation_performed": false
+      },
+      "privacy_impact": "local_only",
+      "question": "What should never be merged?",
+      "speaker_ref": "guardian",
+      "voice_mode": "safety_gate",
+      "voice_profile_ref": "agent_voice_profile:guardian",
+      "workflow_ref": "system_question_answer"
     }
   ],
-  "generated_at": "2026-06-03T02:24:10+00:00",
+  "generated_at": "2026-06-03T03:01:51+00:00",
   "machine_proof": {
     "authority_flags_all_false": true,
     "browser_access_performed": false,
@@ -659,7 +714,7 @@
     "child_agent_spawned": false,
     "coupa_access_performed": false,
     "email_send_performed": false,
-    "example_count": 11,
+    "example_count": 12,
     "external_llm_called": false,
     "gmail_access_performed": false,
     "ledger_mutation_performed": false,

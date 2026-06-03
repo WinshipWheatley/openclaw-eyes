@@ -82,6 +82,7 @@ EXAMPLE_QUESTIONS = (
     "Can we consolidate SQLite?",
     "Is the ledger mixed into this?",
     "What is safe to clean up?",
+    "What should never be merged?",
 )
 
 
@@ -203,6 +204,9 @@ def speaker_for_question(question: str) -> tuple[str, str]:
         "safe to clean",
         "cleanup",
         "clean up",
+        "never merge",
+        "never be merged",
+        "should never be merged",
     )
     diagnostic_terms = (
         "why did",
@@ -232,6 +236,8 @@ def speaker_for_question(question: str) -> tuple[str, str]:
         "child",
         "consolidate",
         "consolidation",
+        "merge",
+        "merged",
     )
     if any(term in text for term in safety_terms):
         return "guardian", "safety_gate"
@@ -448,6 +454,11 @@ def _classification_summary(registry: Mapping[str, Any]) -> str:
     return ", ".join(parts) if parts else "classification counts unavailable"
 
 
+def _join_policy_items(items: list[Any], fallback: str) -> str:
+    parts = [str(item).strip().rstrip(".") for item in items if str(item).strip()]
+    return ", ".join(parts) if parts else fallback
+
+
 def _database_inventory_answer(question: str, sources: Mapping[str, Any]) -> dict[str, Any]:
     registry = sources.get("sqlite_governance_registry") if isinstance(sources.get("sqlite_governance_registry"), dict) else {}
     database_count = registry.get("database_count", "unknown")
@@ -464,7 +475,7 @@ def _database_inventory_answer(question: str, sources: Mapping[str, Any]) -> dic
         voice_mode="diagnostic",
         question=question,
         headline="SQLite databases are classified by ownership",
-        plain_summary="The governance registry groups the databases by truth role instead of dumping rows.",
+        plain_summary="OpenClaw has workflow state, generated evidence, generated status, test harness, protected ledger, and unknown-review database classes.",
         confirmed=[
             f"The SQLite governance registry currently classifies {database_count} databases.",
             f"Classification counts: {_classification_summary(registry)}.",
@@ -472,7 +483,7 @@ def _database_inventory_answer(question: str, sources: Mapping[str, Any]) -> dic
             "The canonical state map explains which read model owns each truth domain.",
         ],
         inferred=[
-            "Most entries are not consolidation targets; many are ledgers, test harnesses, generated proof/status stores, or review-only unknowns.",
+            "The ledger is protected and not part of package consolidation; most entries are not consolidation targets.",
         ],
         unknown=[],
         next_safe_action="Ask for one domain, such as package truth, work logs, ledger, or cleanup posture.",
@@ -574,14 +585,14 @@ def _sqlite_consolidation_answer(question: str, sources: Mapping[str, Any]) -> d
         voice_mode="recommendation",
         question=question,
         headline="SQLite consolidation is plan-only",
-        plain_summary="Do not consolidate yet; the safe first move is a read-only views/indexes overlay, not migration.",
+        plain_summary="Do not consolidate yet; the safe first move is a package-event-index-backed views/indexes overlay, not migration.",
         confirmed=[
             "The current consolidation plan status is plan-only and migration_allowed_now=false for each candidate.",
             f"First low-risk move: {first_move.get('summary', 'Create views/indexes over existing DB refs, not migration.')}",
             f"Required before any consolidation: {', '.join(requirement_names) if requirement_names else 'backup, schema diff, row-count proof, rollback plan, tests, no ledger mixing, operator approval'}.",
         ],
         inferred=[
-            "A generated overlay/read model is safer than altering canonical workflow databases.",
+            "The package event index and canonical state map are the cross-reference layer before any consolidation attempt.",
         ],
         unknown=[],
         next_safe_action="Review the plan and create a non-mutating overlay design; do not create views, indexes, or migrations yet.",
@@ -594,6 +605,10 @@ def _ledger_isolation_answer(question: str, sources: Mapping[str, Any]) -> dict[
     plan = sources.get("sqlite_consolidation_plan") if isinstance(sources.get("sqlite_consolidation_plan"), dict) else {}
     protected_count = registry.get("protected_ledger_count", "unknown")
     never_rules = plan.get("never_consolidate") if isinstance(plan.get("never_consolidate"), list) else []
+    never_summary = _join_policy_items(
+        never_rules,
+        "ledger into package DB; secrets/tokens into read models; raw prompt bodies into operator journal",
+    )
     proof_refs = _existing_refs(
         CORE_SOURCE_REFS["sqlite_governance_registry"],
         CORE_SOURCE_REFS["canonical_state_map"],
@@ -609,14 +624,52 @@ def _ledger_isolation_answer(question: str, sources: Mapping[str, Any]) -> dict[
         confirmed=[
             f"SQLite governance marks {protected_count} ledger-shaped entries as protected_business_ledger.",
             "Business ledger consolidation risk is forbidden.",
-            "Paid truth never comes from proposal, send, Coupa submit, or invoice artifact alone.",
+            "Paid truth never comes from proposal, email send, manual send, Coupa submit, or invoice artifact alone.",
         ],
         inferred=[
             "Package/event read models may reference ledger exclusion policy, but they must not read, merge, or mutate ledger rows.",
-            f"Never-consolidate rules include: {', '.join(str(rule) for rule in never_rules) if never_rules else 'ledger into package DB; secrets/tokens into read models; raw prompt bodies into operator journal'}.",
+            f"Never-consolidate rules include: {never_summary}.",
         ],
         unknown=[],
         next_safe_action="Keep ledger and protected stores out of package/event consolidation unless a separate approved payment-evidence workflow exists.",
+        proof_refs=proof_refs,
+    )
+
+
+def _never_merge_answer(question: str, sources: Mapping[str, Any]) -> dict[str, Any]:
+    plan = sources.get("sqlite_consolidation_plan") if isinstance(sources.get("sqlite_consolidation_plan"), dict) else {}
+    never_rules = plan.get("never_consolidate") if isinstance(plan.get("never_consolidate"), list) else []
+    never_summary = _join_policy_items(
+        never_rules,
+        "ledger into package DB; secrets/tokens into read models; raw prompt bodies into operator journal; test harness into canonical state",
+    )
+    do_not_touch = plan.get("do_not_touch_databases") if isinstance(plan.get("do_not_touch_databases"), list) else []
+    protected_buckets = [
+        str(item.get("category"))
+        for item in do_not_touch
+        if isinstance(item, Mapping) and item.get("category")
+    ]
+    proof_refs = _existing_refs(
+        CORE_SOURCE_REFS["sqlite_consolidation_plan"],
+        CORE_SOURCE_REFS["sqlite_governance_registry"],
+        CORE_SOURCE_REFS["canonical_state_map"],
+    )
+    return _answer_payload(
+        speaker_ref="guardian",
+        voice_mode="safety_gate",
+        question=question,
+        headline="Protected stores must never merge",
+        plain_summary="Never merge ledgers, secrets, raw prompt bodies, or test harness data into package or read-model state.",
+        confirmed=[
+            f"Never-consolidate rules: {never_summary}.",
+            f"Do-not-touch buckets include: {', '.join(protected_buckets) if protected_buckets else 'protected_business_ledger, legacy_archives, unknown_needs_review, protected_evidence, token_secret_credential_stores'}.",
+            "This answer grants no delete, migration, submit, send, ledger, or paid authority.",
+        ],
+        inferred=[
+            "Package/event indexes may reference proof refs, but they must not absorb protected stores or raw prompt bodies.",
+        ],
+        unknown=[],
+        next_safe_action="Keep these stores isolated and require a separate operator-approved classification packet before any future change.",
         proof_refs=proof_refs,
     )
 
@@ -625,6 +678,7 @@ def _safe_cleanup_answer(question: str, sources: Mapping[str, Any]) -> dict[str,
     plan = sources.get("sqlite_consolidation_plan") if isinstance(sources.get("sqlite_consolidation_plan"), dict) else {}
     do_not_touch = plan.get("do_not_touch_databases") if isinstance(plan.get("do_not_touch_databases"), list) else []
     keep_isolated = plan.get("keep_isolated_databases") if isinstance(plan.get("keep_isolated_databases"), list) else []
+    unknown_policy = plan.get("unknown_db_policy") if isinstance(plan.get("unknown_db_policy"), Mapping) else {}
     do_not_summary = ", ".join(
         f"{item.get('category')}={item.get('count')}"
         for item in do_not_touch
@@ -649,6 +703,7 @@ def _safe_cleanup_answer(question: str, sources: Mapping[str, Any]) -> dict[str,
         confirmed=[
             f"Do-not-touch buckets: {do_not_summary}.",
             f"Keep-isolated buckets: {keep_summary}.",
+            f"Unknown DB policy: {unknown_policy.get('summary', 'unknown_needs_review stays read-only; no deletion or migration is allowed.')}",
             "The consolidation plan does not authorize deletes, moves, migrations, or existing DB mutation.",
         ],
         inferred=[
@@ -821,6 +876,10 @@ def answer_system_question(
         "what are" in text and ("databases" in text or "sqlite" in text)
     ):
         return _database_inventory_answer(question, sources)
+    if ("never" in text or "should not" in text or "must not" in text) and (
+        "merge" in text or "merged" in text or "consolidate" in text or "consolidation" in text
+    ):
+        return _never_merge_answer(question, sources)
     if "consolidate" in text or "consolidation" in text:
         return _sqlite_consolidation_answer(question, sources)
     if "ledger" in text and ("mixed" in text or "mix" in text or "included" in text or "in this" in text):

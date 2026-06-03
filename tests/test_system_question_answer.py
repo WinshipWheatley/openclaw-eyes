@@ -183,13 +183,17 @@ def _fixture_sources(root: Path, sqlite_root: Path) -> None:
         {
             "status": "SQLITE_CONSOLIDATION_PLAN_READY",
             "do_not_touch_databases": [
-                {"category": "business_ledger", "count": 1},
+                {"category": "protected_business_ledger", "count": 1},
+                {"category": "legacy_archives", "count": 0},
                 {"category": "unknown_needs_review", "count": 1},
                 {"category": "protected_evidence", "count": 1},
+                {"category": "token_secret_credential_stores", "count": 1},
             ],
             "keep_isolated_databases": [
                 {"category": "test_harness", "count": 1},
                 {"category": "generated_proof_status_dbs", "count": 3},
+                {"category": "one_off_read_model_proof_dbs", "count": 1},
+                {"category": "dry_run_warmup_dbs", "count": 1},
             ],
             "consolidation_candidates": [
                 {"candidate_ref": "package_queue_event_concepts", "migration_allowed_now": False},
@@ -198,15 +202,16 @@ def _fixture_sources(root: Path, sqlite_root: Path) -> None:
                 {"candidate_ref": "work_log_staging_if_safe", "migration_allowed_now": False},
             ],
             "recommended_first_low_risk_move": {
-                "summary": "Create views/indexes over existing package/event/journal refs, not a data migration.",
+                "summary": "Create views/indexes over existing package/event/journal refs, not a data migration; use package_event_index as the cross-reference layer.",
                 "write_allowed_now": False,
             },
             "migration_requirements_before_any_consolidation": [
                 {"requirement_ref": "backup"},
                 {"requirement_ref": "schema_diff"},
                 {"requirement_ref": "row_count_proof"},
+                {"requirement_ref": "checksum_or_sample_row_proof"},
                 {"requirement_ref": "rollback_plan"},
-                {"requirement_ref": "test_coverage"},
+                {"requirement_ref": "focused_tests"},
                 {"requirement_ref": "no_business_ledger_mixing"},
                 {"requirement_ref": "operator_approval"},
             ],
@@ -214,7 +219,13 @@ def _fixture_sources(root: Path, sqlite_root: Path) -> None:
                 "Never consolidate ledger into package DB.",
                 "Never consolidate secrets/tokens into read models.",
                 "Never consolidate raw prompt bodies into operator journal.",
+                "Never consolidate test harness into canonical state.",
             ],
+            "unknown_db_policy": {
+                "summary": "unknown_needs_review stays read-only; no deletion or migration is allowed.",
+                "delete_allowed_now": False,
+                "migration_allowed_now": False,
+            },
         },
     )
 
@@ -325,6 +336,8 @@ def test_sqlite_consolidation_question_says_plan_only_and_first_safe_step(tmp_pa
     assert "Do not consolidate yet" in text
     assert "views/indexes" in text
     assert "not a data migration" in text
+    assert "package_event_index" in text
+    assert "checksum_or_sample_row_proof" in text
     assert payload["machine_proof"]["ledger_mutation_performed"] is False
 
 
@@ -338,6 +351,20 @@ def test_ledger_mixed_question_routes_to_guardian_and_keeps_ledger_isolated(tmp_
     assert "protected_business_ledger" in text
     assert "consolidation risk is forbidden" in text
     assert "Paid truth never comes from proposal" in text
+    assert payload["authority_boundary"]["ledger_posting_allowed"] is False
+
+
+def test_never_merge_question_routes_to_guardian_and_lists_forbidden_merges(tmp_path):
+    payload = _answer("What should never be merged?", tmp_path)
+    text = json.dumps(payload)
+
+    assert payload["speaker_ref"] == "guardian"
+    assert payload["voice_mode"] == "safety_gate"
+    assert "Protected stores must never merge" in text
+    assert "ledger into package DB" in text
+    assert "secrets/tokens into read models" in text
+    assert "raw prompt bodies into operator journal" in text
+    assert "test harness into canonical state" in text
     assert payload["authority_boundary"]["ledger_posting_allowed"] is False
 
 
@@ -360,6 +387,7 @@ def test_safe_cleanup_question_does_not_approve_delete_or_move(tmp_path):
     assert payload["voice_mode"] == "safety_gate"
     assert "Nothing is safe to delete" in text
     assert "Do-not-touch buckets" in text
+    assert "unknown_needs_review stays read-only" in text
     assert "does not authorize deletes" in text
     assert payload["machine_proof"]["live_execution_performed"] is False
 
@@ -394,7 +422,7 @@ def test_contract_exports_local_and_bridge_json_equal(tmp_path):
     assert local["status"] == sqa.CONTRACT_STATUS
     assert local["workflow_ref"] == "system_question_answer"
     assert local["privacy"]["privacy_impact"] == "local_only"
-    assert len(local["examples"]) == 11
+    assert len(local["examples"]) == 12
     assert Path(result["wiki_path"]).exists()
 
 
