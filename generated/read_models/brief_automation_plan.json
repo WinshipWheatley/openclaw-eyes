@@ -1,0 +1,232 @@
+{
+  "schema_version": "brief_automation_plan_v0",
+  "read_model_id": "brief_automation_plan",
+  "status": "BRIEF_AUTOMATION_PLAN_READY",
+  "generated_at": "2026-06-03T01:25:54Z",
+  "planning_only": true,
+  "purpose": "Plan scheduleable Cassandra-led homecoming, morning, evening, and manual status briefs without creating timers or granting business authority.",
+  "source_surfaces": [
+    "homecoming_brief",
+    "helm_composer",
+    "operator_next_decision",
+    "automation_permission_registry"
+  ],
+  "trigger_plan": [
+    {
+      "trigger_ref": "helm_composer_manual_brief",
+      "briefing_mode": "manual_status",
+      "operator_label": "Ask Cassandra for a brief",
+      "entry_surface": "helm_composer",
+      "intended_behavior": "Generate a fresh local brief when Winship asks from Helm Composer.",
+      "allowed_before_future_approval": true,
+      "delivery_policy": "show_inside_helm_only",
+      "proof_collapsed_by_default": true
+    },
+    {
+      "trigger_ref": "scheduled_morning_brief",
+      "briefing_mode": "morning",
+      "operator_label": "Morning state brief",
+      "entry_surface": "future_scheduler",
+      "intended_behavior": "Regenerate the brief during the morning review window so Helm has a current calm summary ready.",
+      "allowed_before_future_approval": false,
+      "delivery_policy": "prepare_local_read_model_only_until_scheduler_is_approved",
+      "proof_collapsed_by_default": true
+    },
+    {
+      "trigger_ref": "scheduled_evening_homecoming_brief",
+      "briefing_mode": "homecoming",
+      "operator_label": "Evening homecoming brief",
+      "entry_surface": "future_scheduler",
+      "intended_behavior": "Regenerate the brief near the evening/homecoming window after local read models settle.",
+      "allowed_before_future_approval": false,
+      "delivery_policy": "prepare_local_read_model_only_until_scheduler_is_approved",
+      "proof_collapsed_by_default": true
+    },
+    {
+      "trigger_ref": "telegram_cassandra_future_trigger",
+      "briefing_mode": "manual_status",
+      "operator_label": "Telegram ask Cassandra",
+      "entry_surface": "future_telegram_adapter",
+      "intended_behavior": "Accept a future Telegram-shaped request and route it through the same local brief generator after explicit provider approval.",
+      "allowed_before_future_approval": false,
+      "delivery_policy": "no_live_telegram_until_approved",
+      "proof_collapsed_by_default": true
+    },
+    {
+      "trigger_ref": "tts_future_trigger",
+      "briefing_mode": "homecoming",
+      "operator_label": "Speak the brief",
+      "entry_surface": "future_tts_adapter",
+      "intended_behavior": "Use the TTS-safe spoken_text field only after a separate live-audio approval gate exists.",
+      "allowed_before_future_approval": false,
+      "delivery_policy": "no_live_tts_until_approved",
+      "proof_collapsed_by_default": true
+    }
+  ],
+  "required_services": [
+    {
+      "service_ref": "homecoming_brief_generator",
+      "status": "required",
+      "description": "Local generator that writes generated/read_models/homecoming_brief.json and the bridge copy."
+    },
+    {
+      "service_ref": "helm_composer",
+      "status": "required_for_manual_trigger",
+      "description": "Calm operator entry surface for manual asks."
+    },
+    {
+      "service_ref": "operator_next_decision",
+      "status": "required_for_next_action",
+      "description": "Current one-move decision surface used for the brief next action."
+    },
+    {
+      "service_ref": "future_scheduler",
+      "status": "not_created",
+      "description": "Cron or systemd scheduling must wait for a separate approval task."
+    },
+    {
+      "service_ref": "future_telegram_adapter",
+      "status": "not_connected",
+      "description": "Telegram live connection must wait for a separate approval task."
+    },
+    {
+      "service_ref": "future_tts_adapter",
+      "status": "not_connected",
+      "description": "TTS live playback must wait for a separate approval task."
+    }
+  ],
+  "required_read_models": [
+    "generated/read_models/homecoming_brief.json",
+    "generated/read_models/operator_next_decision.json",
+    "generated/read_models/client_work_closeout_2026_06_01.json",
+    "generated/read_models/overnight_workboard.json",
+    "generated/read_models/package_event_index.json",
+    "generated/read_models/operator_conversation_journal.json",
+    "generated/read_models/capital_hilton_invoice_operator_run_status.json",
+    "generated/read_models/capital_hilton_business_development_proposal.json",
+    "generated/read_models/st_annes_invoice_status.json",
+    "generated/read_models/st_annes_work_log_events.json",
+    "generated/read_models/automation_permission_registry.json",
+    "generated/read_models/agent_voice_profiles.json"
+  ],
+  "permissions": {
+    "local_read_models_read_allowed": true,
+    "generated_read_model_write_allowed": true,
+    "bridge_read_model_write_allowed": true,
+    "wiki_write_allowed": true,
+    "cron_or_systemd_timer_creation_allowed": false,
+    "telegram_live_allowed": false,
+    "tts_live_allowed": false,
+    "message_delivery_allowed": false,
+    "business_action_allowed": false
+  },
+  "sleep_policy": {
+    "can_run_while_winship_sleeps": [
+      "Regenerate local homecoming_brief.json from existing read models.",
+      "Refresh the bridge copy of homecoming_brief.json.",
+      "Refresh brief_automation_plan.json if the source contract changes.",
+      "Record local validation receipts for JSON parse and unsafe-scan checks."
+    ],
+    "must_wait_for_approval": [
+      "Create cron or systemd timers.",
+      "Send a message outside Helm.",
+      "Connect Telegram live.",
+      "Use TTS live playback.",
+      "Open Gmail, browser, Coupa, or other provider surfaces.",
+      "Submit portal actions.",
+      "Mutate ledger or workbook state.",
+      "Export PDFs.",
+      "Mark paid or sent truth."
+    ]
+  },
+  "failure_modes": [
+    {
+      "failure_ref": "missing_required_read_model",
+      "operator_impact": "Brief may omit current facts.",
+      "safe_response": "Publish NOT_READY or keep last known brief visible with a missing-source note; do not send anything."
+    },
+    {
+      "failure_ref": "stale_operator_next_decision",
+      "operator_impact": "Next action may be old.",
+      "safe_response": "Fall back to Open workboard and include proof refs collapsed."
+    },
+    {
+      "failure_ref": "bridge_write_unavailable",
+      "operator_impact": "Mac/Helm may not see the newest brief.",
+      "safe_response": "Keep the local read model and report bridge publish failure."
+    },
+    {
+      "failure_ref": "unsafe_authority_detected",
+      "operator_impact": "Brief automation is blocked.",
+      "safe_response": "Stop publish, report Guardian review required, and leave business authority closed."
+    },
+    {
+      "failure_ref": "future_scheduler_disabled",
+      "operator_impact": "Briefs are manual only.",
+      "safe_response": "Manual Helm Composer trigger remains available; no background job is created."
+    },
+    {
+      "failure_ref": "future_provider_credentials_absent",
+      "operator_impact": "Telegram and TTS cannot run.",
+      "safe_response": "Generate local text only and wait for explicit provider approval."
+    }
+  ],
+  "approval_gates": [
+    {
+      "gate_ref": "scheduler_creation",
+      "required_before": "cron_or_systemd_timer_creation",
+      "approval_owner": "Winship",
+      "default_state": "blocked"
+    },
+    {
+      "gate_ref": "telegram_live_connection",
+      "required_before": "telegram_delivery_or_receive",
+      "approval_owner": "Winship",
+      "default_state": "blocked"
+    },
+    {
+      "gate_ref": "tts_live_playback",
+      "required_before": "spoken_audio_output",
+      "approval_owner": "Winship",
+      "default_state": "blocked"
+    },
+    {
+      "gate_ref": "business_authority",
+      "required_before": "send_submit_ledger_workbook_pdf_paid_actions",
+      "approval_owner": "Winship",
+      "default_state": "blocked"
+    }
+  ],
+  "proof_policy": {
+    "proof_collapsed_by_default": true,
+    "raw_request_bodies_visible_by_default": false,
+    "raw_package_ids_visible_by_default": false,
+    "raw_sqlite_names_visible_by_default": false
+  },
+  "authority_boundary": {
+    "email_send_allowed": false,
+    "ledger_posting_allowed": false,
+    "browser_access_allowed": false,
+    "gmail_allowed": false,
+    "coupa_allowed": false,
+    "portal_submit_allowed": false,
+    "sent": false,
+    "paid": false
+  },
+  "machine_proof": {
+    "planning_only": true,
+    "cron_or_systemd_timer_created": false,
+    "telegram_connected": false,
+    "tts_live_used": false,
+    "message_sent": false,
+    "business_action_truth_created": false,
+    "no_email_sent": true,
+    "no_provider_opened": true,
+    "no_ledger_mutation": true,
+    "no_workbook_mutation": true,
+    "no_pdf_export": true,
+    "no_paid_marking": true,
+    "proof_collapsed_by_default": true,
+    "unsafe_true_grants_absent": true
+  }
+}
