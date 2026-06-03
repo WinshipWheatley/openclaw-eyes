@@ -15,6 +15,7 @@ from typing import Any, Mapping
 
 import simple_invoice_workflow_fixtures
 import st_annes_work_log_review
+import workroom_review_decision_consumer
 
 
 SCHEMA_VERSION = "openclaw_request_router_v0"
@@ -71,6 +72,11 @@ WORKFLOW_PACKAGE_REQUEST_KINDS = (
 ST_ANNES_WORK_LOG_REVIEW_ACTION_REQUEST_KINDS = (
     st_annes_work_log_review.REQUEST_KIND,
     st_annes_work_log_review.REQUEST_TYPE,
+)
+
+WORKROOM_REVIEW_DECISION_REQUEST_KINDS = (
+    workroom_review_decision_consumer.REQUEST_KIND,
+    workroom_review_decision_consumer.REQUEST_TYPE,
 )
 
 
@@ -396,6 +402,27 @@ def st_annes_work_log_review_action_handlers() -> tuple[RequestHandlerRegistrati
     )
 
 
+def workroom_review_decision_handlers() -> tuple[RequestHandlerRegistration, ...]:
+    return tuple(
+        RequestHandlerRegistration(
+            request_kind=request_kind,
+            handler_id="workroom_review_decision_consumer.record_decision",
+            handler_label="Workroom review decision consumer",
+            intended_use="",
+            world_refs=(),
+            workflow_refs=(),
+            client_refs=(),
+            project_refs=(),
+            adapter_available=True,
+            next_safe_move=(
+                "Record the review packet decision receipt only; no merge, push, worker spawn, "
+                "or business action authority is granted."
+            ),
+        )
+        for request_kind in WORKROOM_REVIEW_DECISION_REQUEST_KINDS
+    )
+
+
 def default_handler_registrations() -> tuple[RequestHandlerRegistration, ...]:
     return (
         capital_hilton_field_mapping_handler(),
@@ -406,6 +433,7 @@ def default_handler_registrations() -> tuple[RequestHandlerRegistration, ...]:
         *selected_invoice_pdf_export_completed_result_handlers(),
         *workflow_package_request_handlers(),
         *st_annes_work_log_review_action_handlers(),
+        *workroom_review_decision_handlers(),
     )
 
 

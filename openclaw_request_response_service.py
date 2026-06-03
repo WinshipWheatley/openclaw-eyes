@@ -81,6 +81,7 @@ SERVICE_SUPPORTED_REQUEST_FAMILIES = (
     "CHAT",
     "FILE_METADATA",
     "ST_ANNES_WORK_LOG_REVIEW_ACTION_REQUEST",
+    "WORKROOM_REVIEW_DECISION_REQUEST",
     "WORKFLOW_PACKAGE_REQUEST",
     "LOCAL_SURFACE_RESULT",
     "ARTIFACT_REFERENCE_APPROVAL",
@@ -783,6 +784,23 @@ def _route_for_request(request_path: Path, identity: RequestIdentity, raw_reques
             route_reason=(
                 "Mission Control generic operator instructions are handled by the Workflow Package Queue V0 "
                 "consumer with no live business action authority."
+            ),
+            pc_handled=True,
+            mac_handoff_required=False,
+            future_worker_blocked=False,
+        )
+    if request_type == "WORKROOM_REVIEW_DECISION_REQUEST":
+        return RouteDecision(
+            routing_status="PROCESSING_ON_PC",
+            selected_worker_target="PC_CODEX",
+            selected_machine="PC_WSL",
+            processing_status="CHECKING_WORKROOM_REVIEW_DECISION",
+            operator_headline="OpenClaw is recording this review decision",
+            operator_message="OpenClaw picked this up and is checking the Workroom review decision consumer.",
+            next_safe_move="Wait for the review decision readback.",
+            route_reason=(
+                "Mission Control Workroom review decisions are handled by a bounded PC consumer "
+                "that records review receipts only and cannot merge, push, or perform business actions."
             ),
             pc_handled=True,
             mac_handoff_required=False,

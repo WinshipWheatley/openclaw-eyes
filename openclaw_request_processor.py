@@ -37,6 +37,7 @@ import openclaw_request_router
 import local_artifact_reference
 import scoped_context_package_compiler_contract
 import st_annes_work_log_review
+import workroom_review_decision_consumer
 import worker_routing_intelligence
 import workflow_package_request_consumer
 import workflow_execution_package_compiler
@@ -89,11 +90,13 @@ VISUAL_WORKSPACE_PATTERN = "mission_control_visual_workspace_request_*.json"
 WORKER_DISPATCH_PATTERN = "mission_control_worker_dispatch_request_*.json"
 WORKFLOW_PACKAGE_REQUEST_PATTERNS = workflow_package_request_consumer.REQUEST_FILENAME_PATTERNS
 ST_ANNES_WORK_LOG_REVIEW_ACTION_REQUEST_PATTERNS = st_annes_work_log_review.REQUEST_FILENAME_PATTERNS
+WORKROOM_REVIEW_DECISION_REQUEST_PATTERNS = workroom_review_decision_consumer.REQUEST_FILENAME_PATTERNS
 
 SUPPORTED_REQUEST_PATTERNS = (
     CHAT_PATTERN,
     FILE_METADATA_PATTERN,
     *ST_ANNES_WORK_LOG_REVIEW_ACTION_REQUEST_PATTERNS,
+    *WORKROOM_REVIEW_DECISION_REQUEST_PATTERNS,
     *WORKFLOW_PACKAGE_REQUEST_PATTERNS,
     *LOCAL_SURFACE_RESULT_PATTERNS,
     *ARTIFACT_REFERENCE_APPROVAL_PATTERNS,
@@ -113,6 +116,7 @@ REQUEST_FAMILIES = (
     "CHAT",
     "FILE_METADATA",
     "ST_ANNES_WORK_LOG_REVIEW_ACTION_REQUEST",
+    "WORKROOM_REVIEW_DECISION_REQUEST",
     "WORKFLOW_PACKAGE_REQUEST",
     "LOCAL_SURFACE_RESULT",
     "INVOICE_REVIEW_ACTION_RESULT",
@@ -825,6 +829,11 @@ def classify_request_filename(filename: str | None) -> RequestClassification:
         rail = "st_annes_work_log_review.action_consumer"
         reason = "Filename matches Mission Control St. Anne's work-log review action pattern."
         future_supported = False
+    elif filename and any(fnmatch.fnmatch(filename, pattern) for pattern in WORKROOM_REVIEW_DECISION_REQUEST_PATTERNS):
+        family = "WORKROOM_REVIEW_DECISION_REQUEST"
+        rail = "workroom_review_decision_consumer"
+        reason = "Filename matches Mission Control Workroom review decision request pattern."
+        future_supported = False
     elif filename and any(fnmatch.fnmatch(filename, pattern) for pattern in WORKFLOW_PACKAGE_REQUEST_PATTERNS):
         family = "WORKFLOW_PACKAGE_REQUEST"
         rail = "workflow_package_request_consumer"
@@ -893,6 +902,7 @@ def classify_request_filename(filename: str | None) -> RequestClassification:
                 "CHAT",
                 "FILE_METADATA",
                 "ST_ANNES_WORK_LOG_REVIEW_ACTION_REQUEST",
+                "WORKROOM_REVIEW_DECISION_REQUEST",
                 "WORKFLOW_PACKAGE_REQUEST",
                 "LOCAL_SURFACE_RESULT",
                 "ARTIFACT_REFERENCE_APPROVAL",
@@ -913,6 +923,7 @@ def list_supported_requests(inbox: Path = APPROVED_INBOX) -> tuple[Path, ...]:
             "CHAT",
             "FILE_METADATA",
             "WORKFLOW_PACKAGE_REQUEST",
+            "WORKROOM_REVIEW_DECISION_REQUEST",
             "LOCAL_SURFACE_RESULT",
             "ARTIFACT_REFERENCE_APPROVAL",
             "ARTIFACT_INTAKE_REQUEST",
@@ -987,6 +998,13 @@ def build_responder_targets(selected_family: str) -> tuple[RequestProcessorRespo
             ("WORKFLOW_PACKAGE_REQUEST",),
             True,
             selected_family == "WORKFLOW_PACKAGE_REQUEST",
+        ),
+        target(
+            "WORKROOM_REVIEW_DECISION_CONSUMER",
+            "Workroom review decision consumer",
+            ("WORKROOM_REVIEW_DECISION_REQUEST",),
+            True,
+            selected_family == "WORKROOM_REVIEW_DECISION_REQUEST",
         ),
         target(
             "ARTIFACT_REFERENCE_APPROVAL",
@@ -1077,6 +1095,15 @@ def _required_fields_for_family(request_family: str) -> tuple[str, ...]:
             "requested_mode",
             "result_receipt_required",
         )
+    if request_family == "WORKROOM_REVIEW_DECISION_REQUEST":
+        return (
+            "request_type",
+            "source_surface",
+            "requested_mode",
+            "authority_boundary",
+            "review_packet_id",
+            "decision_action",
+        )
     if request_family == "ST_ANNES_WORK_LOG_REVIEW_ACTION_REQUEST":
         return (
             "request_id",
@@ -1102,17 +1129,17 @@ def preflight_request(raw_request: Mapping[str, Any], request_family: str) -> tu
     if missing:
         blockers.append(f"Missing required field(s): {', '.join(missing)}.")
         fixes.append("Regenerate or resend the request with the required fields.")
-    if not raw_request.get("idempotency_key"):
+    if request_family != "WORKROOM_REVIEW_DECISION_REQUEST" and not raw_request.get("idempotency_key"):
         blockers.append("Missing idempotency key.")
         fixes.append("Resend the request with idempotency_key set.")
-    if not raw_request.get("payload_hash"):
+    if request_family != "WORKROOM_REVIEW_DECISION_REQUEST" and not raw_request.get("payload_hash"):
         blockers.append("Missing payload hash.")
         fixes.append("Resend the request with payload_hash set.")
     authority = raw_request.get("authority_boundary")
     if not isinstance(authority, Mapping):
         blockers.append("Missing or invalid authority boundary.")
         fixes.append("Include an authority_boundary object with all live authority set false.")
-    elif any(value is True for value in authority.values()):
+    elif request_family != "WORKROOM_REVIEW_DECISION_REQUEST" and any(value is True for value in authority.values()):
         blockers.append("Request asks for live authority this processor cannot grant.")
         fixes.append("Resend as a deterministic request with all external/live authority false.")
     for path, value in _walk_dict(raw_request):
@@ -2390,6 +2417,173 @@ def _st_annes_work_log_review_action_classification(classification: RequestClass
         classification_reason="Request envelope is a Mission Control St. Anne's work-log review action.",
         future_supported=False,
         next_safe_move="Record the bounded work-log review action and return a Mac readback.",
+    )
+
+
+def _workroom_review_decision_request_classification(classification: RequestClassification) -> RequestClassification:
+    return RequestClassification(
+        classification_id=f"request_classification_{_short_hash(classification.source_request_filename, 'workroom_review_decision')}",
+        source_request_filename=classification.source_request_filename,
+        request_family="WORKROOM_REVIEW_DECISION_REQUEST",
+        selected_rail="workroom_review_decision_consumer",
+        classification_reason="Request envelope is a Mission Control Workroom review decision.",
+        future_supported=False,
+        next_safe_move="Record the review decision receipt only and return a Mac readback.",
+    )
+
+
+def _process_workroom_review_decision_request(
+    request_path: Path,
+    raw_request: Mapping[str, Any],
+    *,
+    export_root: Path,
+    generated_at: str | None,
+    classification: RequestClassification,
+) -> OpenClawResponseForMac:
+    bridge_export_root = (
+        workroom_review_decision_consumer.DEFAULT_BRIDGE_EXPORT_ROOT
+        if _same_path(export_root, DEFAULT_EXPORT_ROOT)
+        else None
+    )
+    wiki_path = (
+        workroom_review_decision_consumer.DEFAULT_WIKI_PATH
+        if _same_path(export_root, DEFAULT_EXPORT_ROOT)
+        else export_root.parent / "wiki" / "Workroom Review Decision Consumer.md"
+    )
+    result = workroom_review_decision_consumer.consume_workroom_review_decision_request(
+        raw_request,
+        source_request_filename=request_path.name,
+        generated_at=generated_at,
+        read_model_root=DEFAULT_EXPORT_ROOT,
+        export_root=export_root,
+        bridge_export_root=bridge_export_root,
+        wiki_path=wiki_path,
+    )
+    receipt = result.receipt
+    internal_status = str(receipt.get("raw_internal_status") or ("RESPONSE_READY" if result.status == "RECORDED" else "BLOCKED_WITH_REASON"))
+    blocker = "; ".join(str(item) for item in receipt.get("blockers") or ())
+    operator_display = dict(receipt.get("operator_display") or {})
+    operator_display.setdefault("voice_profile_ref", f"agent_voice_profile:{operator_display.get('speaker_ref') or 'chief'}")
+    headline = str(operator_display.get("headline") or "Review decision recorded")
+    message = str(operator_display.get("plain_summary") or "Chief recorded the review decision only. No merge or push ran.")
+    status_tone = str(operator_display.get("tone") or ("blocked" if blocker else "calm"))
+    next_safe_action = str(operator_display.get("next_safe_action") or result.next_safe_action)
+    response_classification = _workroom_review_decision_request_classification(classification)
+    paths = receipt.get("read_model_paths") if isinstance(receipt.get("read_model_paths"), Mapping) else {}
+    readback_files = tuple(
+        str(path)
+        for path in (
+            paths.get("local_status_path"),
+            paths.get("bridge_status_path"),
+            paths.get("wiki_path"),
+        )
+        if path
+    )
+    packet_summary = receipt.get("review_packet_summary") if isinstance(receipt.get("review_packet_summary"), Mapping) else {}
+    worker_ref = str(receipt.get("worker_ref") or packet_summary.get("worker_ref") or "")
+    proof_refs = tuple(str(ref) for ref in receipt.get("proof_refs") or () if ref)
+    layered_fields = {
+        "response_kind": "WORKROOM_REVIEW_DECISION_RESPONSE",
+        "audience_mode": "ELIWINSHIP",
+        "display_mode": "COMPACT_CHAT",
+        "operator_display": operator_display,
+        "speaker_ref": str(operator_display.get("speaker_ref") or "chief"),
+        "voice_profile_ref": str(operator_display.get("voice_profile_ref") or "agent_voice_profile:chief"),
+        "voice_mode": str(operator_display.get("voice_mode") or "diagnostic"),
+        "audience": str(operator_display.get("audience") or "internal_operator"),
+        "routing_reason": str(operator_display.get("routing_reason") or ""),
+        "headline": headline,
+        "one_line_answer": message,
+        "eliwinship": message,
+        "primary_status": str(operator_display.get("status_label") or result.response_primary_status),
+        "primary_blocker": blocker or "None",
+        "next_action": f"Next: {next_safe_action}",
+        "missing_items_short": tuple(str(item) for item in receipt.get("blockers") or ()),
+        "detail_summary": (
+            f"Review decision {receipt.get('decision_action')} returned {receipt.get('status')}. "
+            "The consumer wrote a decision receipt only; no merge, push, worker spawn, or business action ran."
+        ),
+        "proof_refs": proof_refs,
+        "debug_refs": readback_files,
+        "raw_internal_status": internal_status,
+        "mac_render_hint": "COMPACT_WITH_DISCLOSURE",
+        "request_ref": result.request_id,
+        "workflow_ref": workroom_review_decision_consumer.WORKFLOW_REF,
+        "review_packet_id": str(receipt.get("review_packet_id") or ""),
+        "decision_action": str(receipt.get("decision_action") or ""),
+        "decision_status": str(receipt.get("status") or ""),
+        "worker_ref": worker_ref,
+        "worker_ref_is_speaker": False,
+        "blocker": blocker,
+        "no_external_authority_granted": True,
+    }
+    return OpenClawResponseForMac(
+        source_request_id=result.request_id,
+        source_request_filename=request_path.name,
+        workflow_ref=workroom_review_decision_consumer.WORKFLOW_REF,
+        request_type="WORKROOM_REVIEW_DECISION_REQUEST",
+        internal_status=internal_status,
+        operator_headline=headline,
+        operator_message=message,
+        what_happened=(
+            "PC recognized a Mission Control Workroom review decision envelope.",
+            "PC validated the review packet id, decision action, and authority boundary through the local consumer.",
+            (
+                "PC recorded a generated review decision receipt only."
+                if result.status == "RECORDED"
+                else "PC blocked the review decision before recording approval."
+            ),
+            "No merge, git push, worker spawn, child agent run, email, Gmail, browser, Coupa, workbook mutation, PDF export, ledger mutation, submit, paid marking, or business action occurred.",
+        ),
+        why_it_happened=(
+            f"Review decision status: {receipt.get('status')}."
+            if result.status == "RECORDED"
+            else f"Review decision blockers: {blocker or 'unknown blocker'}."
+        ),
+        how_to_fix=next_safe_action,
+        visible_cards=(
+            {
+                "title": headline,
+                "bullets": (
+                    message,
+                    f"Next: {next_safe_action}",
+                ),
+                "status_tone": status_tone,
+            },
+        ),
+        cards_available=True,
+        card_mirror_refs=(),
+        file_readback_refs=readback_files,
+        worker_route_refs=(
+            {
+                "selected_worker_target": "PC_CODEX",
+                "selected_machine": "PC_WSL",
+                "routing_status": "PROCESSING_ON_PC",
+                "selected_rail": "workroom_review_decision_consumer",
+                "review_packet_id": receipt.get("review_packet_id") or "",
+                "decision_action": receipt.get("decision_action") or "",
+                "decision_status": receipt.get("status") or "",
+                "worker_ref": worker_ref,
+                "worker_ref_is_speaker": False,
+            },
+        ),
+        context_package_refs=(),
+        blocked_reason=blocker or None,
+        detail_disclosure={
+            "request_classification": asdict(response_classification),
+            "workroom_review_decision_consumer": receipt,
+            "operator_display": operator_display,
+            "review_packet_summary": packet_summary,
+            "live_worker_executed": False,
+            "worker_spawn_performed": False,
+            "merge_performed": False,
+            "git_push_performed": False,
+            "business_state_mutation_performed": False,
+            "external_actions_locked": True,
+            "layered_response_fields": layered_fields,
+        },
+        readback_files=readback_files,
+        next_safe_move=next_safe_action,
     )
 
 
@@ -5565,6 +5759,14 @@ def process_request_path(
         )
     if effective_classification.request_family == "ST_ANNES_WORK_LOG_REVIEW_ACTION_REQUEST":
         return _process_st_annes_work_log_review_action_request(
+            request_path,
+            raw_request,
+            export_root=export_root,
+            generated_at=generated_at,
+            classification=effective_classification,
+        )
+    if effective_classification.request_family == "WORKROOM_REVIEW_DECISION_REQUEST":
+        return _process_workroom_review_decision_request(
             request_path,
             raw_request,
             export_root=export_root,
