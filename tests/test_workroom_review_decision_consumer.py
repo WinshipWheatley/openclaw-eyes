@@ -14,6 +14,11 @@ from scripts.run_openclaw_request_response_service import main as service_main
 
 FIXED_NOW = "2026-06-03T20:00:00+00:00"
 PACKET_ID = "review_packet:fixture"
+FAILED_MAC_PACKET_ID = "review_packet:c4ec166103f9aa35"
+FAILED_MAC_FILENAME = (
+    "mission_control_workroom_review_decision_workroom_review_decision_"
+    "mark_review_packet_informational_20260603T155504Z_87feadc5fa6d.json"
+)
 
 
 def _write_json(path: Path, payload: dict) -> None:
@@ -382,4 +387,139 @@ def test_request_response_service_consumes_review_decision_request(tmp_path, cap
     assert response["detail_disclosure"]["workroom_review_decision_consumer"]["git_push_performed"] is False
     assert response["detail_disclosure"]["workroom_review_decision_consumer"]["merge_performed"] is False
     assert status["last_decision"]["status"] == "OPERATOR_REVIEW_RECORDED"
+    _assert_no_unsafe_grants(response)
+
+
+def test_request_response_service_consumes_exact_failed_mac_review_decision_shape(tmp_path, capsys):
+    root = _fixture_root(tmp_path)
+    packet_index_path = root / "workroom_review_packet_index.json"
+    packet_index = json.loads(packet_index_path.read_text(encoding="utf-8"))
+    packet_index["packets"][0]["review_packet_id"] = FAILED_MAC_PACKET_ID
+    _write_json(packet_index_path, packet_index)
+    inbox = tmp_path / "inbox"
+    response_dir = tmp_path / "responses"
+    export_root = tmp_path / "read_models"
+    inbox.mkdir()
+    request = {
+        "schema_version": "workroom_review_decision_request_v0",
+        "request_type": "WORKROOM_REVIEW_DECISION_REQUEST_V0",
+        "kind": "WORKROOM_REVIEW_DECISION_REQUEST_V0",
+        "type": "WORKROOM_REVIEW_DECISION_REQUEST_V0",
+        "source_surface": "mission_control",
+        "origin_surface": "mission_control",
+        "requested_mode": "operator",
+        "request_id": "workroom_review_decision_mark_review_packet_informational_20260603T155504Z_87feadc5fa6d",
+        "idempotency_key": "mission_control_workroom_review_decision:mark_review_packet_informational:87feadc5fa6d60c64855",
+        "payload_hash": "sha256:bc36e361b8c6f1a8e7616412f5dd8097fbdaca37604785d460532fc80a6d451f",
+        "created_at": "2026-06-03T15:55:04Z",
+        "review_packet_id": FAILED_MAC_PACKET_ID,
+        "decision_action": "mark_review_packet_informational",
+        "decision_status": "INFORMATIONAL_REVIEW_CLOSED",
+        "decision_effect": "informational_only",
+        "informational_only": True,
+        "review_closed": True,
+        "operator_reviewed": True,
+        "source_channel": "build_openclaw_backend",
+        "channel_ref": "build_openclaw_backend",
+        "world_ref": "build",
+        "worker_ref": "pc_codex",
+        "mac_wrote_request_only": True,
+        "no_merge": True,
+        "no_push": True,
+        "no_business_action": True,
+        "business_action_performed": False,
+        "merge_performed": False,
+        "git_push_performed": False,
+        "email_send_performed": False,
+        "browser_access_performed": False,
+        "gmail_access_performed": False,
+        "coupa_access_performed": False,
+        "ledger_mutation_performed": False,
+        "workbook_mutation_performed": False,
+        "pdf_export_performed": False,
+        "portal_submit_performed": False,
+        "paid_marking_performed": False,
+        "worker_spawn_performed": False,
+        "worker_inherits_speaker_authority": False,
+        "authority_boundary": {
+            "agent_activation_allowed": False,
+            "browser_access_allowed": False,
+            "browser_automation_allowed": False,
+            "business_action_allowed": False,
+            "coupa_access_allowed": False,
+            "coupa_allowed": False,
+            "coupa_submit_allowed": False,
+            "email_draft_allowed": False,
+            "email_send_allowed": False,
+            "excel_automation_allowed": False,
+            "external_action_allowed": False,
+            "git_push_allowed": False,
+            "gmail_access_allowed": False,
+            "gmail_allowed": False,
+            "ledger_mutation_allowed": False,
+            "ledger_posting_allowed": False,
+            "merge_allowed": False,
+            "model_call_allowed": False,
+            "paid": False,
+            "paid_marking_allowed": False,
+            "payment_marking_allowed": False,
+            "pdf_export_allowed": False,
+            "portal_submit_allowed": False,
+            "queue_execution_allowed": False,
+            "raw_body_ingestion_allowed": False,
+            "runtime_dispatch_allowed": False,
+            "sent": False,
+            "tool_execution_allowed": False,
+            "workbook_mutation_allowed": False,
+            "workbook_open_allowed": False,
+            "workbook_source_mutation_allowed": False,
+            "worker_spawn_allowed": False,
+        },
+    }
+    request_path = inbox / FAILED_MAC_FILENAME
+    _write_json(request_path, request)
+
+    assert processor.classify_request_filename(request_path.name).request_family == "WORKROOM_REVIEW_DECISION_REQUEST"
+    assert service.classify_request_path(request_path) == "WORKROOM_REVIEW_DECISION_REQUEST"
+
+    assert service_main(
+        [
+            "--watch-seconds",
+            "1",
+            "--max-requests",
+            "1",
+            "--inbox",
+            str(inbox),
+            "--response-dir",
+            str(response_dir),
+            "--export-root",
+            str(export_root),
+            "--generated-at",
+            FIXED_NOW,
+            "--format",
+            "json",
+        ]
+    ) == 0
+    service_payload = json.loads(capsys.readouterr().out)
+    response_path = response_dir / f"openclaw_response_for_mac_{service._safe_filename_part(request['request_id'])}.json"
+    response = json.loads(response_path.read_text(encoding="utf-8"))
+    status = json.loads((export_root / "workroom_review_decision_status.json").read_text(encoding="utf-8"))
+
+    assert service_payload["service_status"]["processed_count"] == 1
+    assert response["raw_internal_status"] == "RESPONSE_READY"
+    assert response["workflow_ref"] == "workroom_review_decision"
+    assert response["primary_status"] == "Workroom review decision recorded"
+    assert response["review_packet_id"] == FAILED_MAC_PACKET_ID
+    assert response["decision_action"] == "mark_review_packet_informational"
+    assert response["decision_status"] == "INFORMATIONAL_REVIEW_CLOSED"
+    assert response["operator_display"]["speaker_ref"] == "chief"
+    assert response["operator_display"]["headline"] == "Review marked informational"
+    assert response["operator_display"]["plain_summary"] == "I recorded the review decision. No merge or push was performed."
+    assert response["operator_display"]["next_safe_action"] == "No action needed."
+    assert response["authority_boundary"]["push_allowed"] is False
+    assert response["authority_boundary"]["merge_allowed"] is False
+    assert response["detail_disclosure"]["workroom_review_decision_consumer"]["merge_performed"] is False
+    assert response["detail_disclosure"]["workroom_review_decision_consumer"]["git_push_performed"] is False
+    assert status["last_decision"]["review_packet_id"] == FAILED_MAC_PACKET_ID
+    assert status["last_decision"]["status"] == "INFORMATIONAL_REVIEW_CLOSED"
     _assert_no_unsafe_grants(response)

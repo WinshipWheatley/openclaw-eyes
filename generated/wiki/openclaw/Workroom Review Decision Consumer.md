@@ -12,12 +12,12 @@ This consumer records operator review decisions against Workroom review packets.
 
 ## Latest Decision
 
-- Receipt: `workroom_review_decision_consumer:92254cebc0a326a9`
-- Packet: `review_packet:1ec9dae46a22e6ae`
-- Action: `approve_review_packet_for_record`
-- Status: `OPERATOR_REVIEW_RECORDED`
+- Receipt: `workroom_review_decision_consumer:6789b934558a0457`
+- Packet: `review_packet:c4ec166103f9aa35`
+- Action: `mark_review_packet_informational`
+- Status: `INFORMATIONAL_REVIEW_CLOSED`
 - Speaker: `chief`
-- Next safe action: Record complete. No merge or push performed.
+- Next safe action: No action needed.
 
 ## Boundary
 

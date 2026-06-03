@@ -453,6 +453,16 @@ AUTHORITY_BOUNDARY = {
     "mac_sync_import_allowed": False,
     "mission_control_swift_change_allowed": False,
     "git_push_pull_fetch_allowed": False,
+    "email_send_allowed": False,
+    "ledger_posting_allowed": False,
+    "browser_access_allowed": False,
+    "gmail_allowed": False,
+    "coupa_allowed": False,
+    "portal_submit_allowed": False,
+    "push_allowed": False,
+    "merge_allowed": False,
+    "sent": False,
+    "paid": False,
 }
 
 RAW_BODY_KEYS = {

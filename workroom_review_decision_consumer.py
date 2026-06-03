@@ -37,6 +37,7 @@ REQUEST_KIND = "WORKROOM_REVIEW_DECISION_REQUEST"
 WORKFLOW_REF = "workroom_review_decision"
 REQUEST_FILENAME_PATTERNS = (
     "mission_control_workroom_review_decision_request_*.json",
+    "mission_control_workroom_review_decision_*.json",
     "mission_control_capture_request_*workroom_review_decision*.json",
 )
 
@@ -69,10 +70,10 @@ ACTION_EFFECTS = {
     },
     "mark_review_packet_informational": {
         "status": "INFORMATIONAL_REVIEW_CLOSED",
-        "headline": "Informational review closed",
-        "summary": "Chief closed the review as informational only; no follow-up action ran.",
+        "headline": "Review marked informational",
+        "summary": "I recorded the review decision. No merge or push was performed.",
         "next_safe_action": "No action needed.",
-        "status_label": "Informational",
+        "status_label": "Workroom review decision recorded",
     },
 }
 
