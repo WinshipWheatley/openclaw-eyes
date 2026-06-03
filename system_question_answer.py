@@ -68,6 +68,14 @@ CORE_SOURCE_REFS = {
     "sqlite_governance_registry": "generated/read_models/sqlite_governance_registry.json",
     "canonical_state_map": "generated/read_models/canonical_state_map.json",
     "sqlite_consolidation_plan": "generated/read_models/sqlite_consolidation_plan.json",
+    "openclaw_workroom_registry": "generated/read_models/openclaw_workroom_registry.json",
+    "agent_handoff_registry": "generated/read_models/agent_handoff_registry.json",
+    "spawned_worker_package_lifecycle": "generated/read_models/spawned_worker_package_lifecycle.json",
+    "openclaw_workroom_activity_feed": "generated/read_models/openclaw_workroom_activity_feed.json",
+    "workroom_review_packet_index": "generated/read_models/workroom_review_packet_index.json",
+    "workroom_review_decision_contract": "generated/read_models/workroom_review_decision_contract.json",
+    "worker_package_staging": "generated/read_models/worker_package_staging_status.json",
+    "chief_build_backlog": "generated/read_models/chief_build_backlog.json",
 }
 
 EXAMPLE_QUESTIONS = (
@@ -83,6 +91,13 @@ EXAMPLE_QUESTIONS = (
     "Is the ledger mixed into this?",
     "What is safe to clean up?",
     "What should never be merged?",
+    "Where is the team working?",
+    "What is in Build / Mission Control Mac?",
+    "What did MAC_CODEX produce?",
+    "What review packets need my attention?",
+    "Who does Cassandra hand off to?",
+    "What happens when Hermes recommends a build?",
+    "Can PC_CODEX push this?",
 )
 
 
@@ -183,6 +198,13 @@ def _load_sources(read_model_root: Path, sqlite_root: Path) -> dict[str, Any]:
         "sqlite_governance_registry": _load_json_file(read_model_root / "sqlite_governance_registry.json"),
         "canonical_state_map": _load_json_file(read_model_root / "canonical_state_map.json"),
         "sqlite_consolidation_plan": _load_json_file(read_model_root / "sqlite_consolidation_plan.json"),
+        "openclaw_workroom_registry": _load_json_file(read_model_root / "openclaw_workroom_registry.json"),
+        "agent_handoff_registry": _load_json_file(read_model_root / "agent_handoff_registry.json"),
+        "spawned_worker_package_lifecycle": _load_json_file(read_model_root / "spawned_worker_package_lifecycle.json"),
+        "openclaw_workroom_activity_feed": _load_json_file(read_model_root / "openclaw_workroom_activity_feed.json"),
+        "workroom_review_packet_index": _load_json_file(read_model_root / "workroom_review_packet_index.json"),
+        "worker_package_staging": _load_json_file(read_model_root / "worker_package_staging_status.json"),
+        "chief_build_backlog": _load_json_file(read_model_root / "chief_build_backlog.json"),
         "st_annes_work_log_sqlite": _sqlite_metadata(sqlite_root / "st_annes_monthly_work_log.sqlite"),
         "workflow_package_queue_sqlite": _sqlite_metadata(sqlite_root / "workflow_package_queue.sqlite"),
     }
@@ -260,6 +282,74 @@ def _package_by_workflow(queue_payload: Mapping[str, Any], workflow_ref: str) ->
             if isinstance(fixture, dict) and fixture.get("workflow_ref") == workflow_ref:
                 return dict(fixture)
     return {}
+
+
+def _channels(workroom_registry: Mapping[str, Any]) -> list[dict[str, Any]]:
+    return [
+        dict(item)
+        for item in workroom_registry.get("channels", [])
+        if isinstance(item, Mapping)
+    ]
+
+
+def _handoffs(handoff_registry: Mapping[str, Any]) -> list[dict[str, Any]]:
+    return [
+        dict(item)
+        for item in handoff_registry.get("handoffs", [])
+        if isinstance(item, Mapping)
+    ]
+
+
+def _review_packets(packet_index: Mapping[str, Any]) -> list[dict[str, Any]]:
+    return [
+        dict(item)
+        for item in packet_index.get("packets", [])
+        if isinstance(item, Mapping)
+    ]
+
+
+def _activity_posts(activity_feed: Mapping[str, Any]) -> list[dict[str, Any]]:
+    return [
+        dict(item)
+        for item in activity_feed.get("posts", [])
+        if isinstance(item, Mapping)
+    ]
+
+
+def _channel_label(channel: Mapping[str, Any]) -> str:
+    display = str(channel.get("display_name") or channel.get("channel_ref") or "unknown channel")
+    channel_ref = str(channel.get("channel_ref") or "")
+    world_ref = str(channel.get("world_ref") or "")
+    thread_ref = str(channel.get("thread_ref") or "")
+    parts = [display]
+    if channel_ref:
+        parts.append(f"channel={channel_ref}")
+    if world_ref:
+        parts.append(f"world={world_ref}")
+    if thread_ref:
+        parts.append(f"thread={thread_ref}")
+    return " | ".join(parts)
+
+
+def _packet_label(packet: Mapping[str, Any]) -> str:
+    packet_id = str(packet.get("review_packet_id") or "unknown_packet")
+    worker = str(packet.get("worker_ref") or "unknown_worker")
+    status = str(packet.get("status") or "unknown_status")
+    summary = str(packet.get("human_summary") or "No summary recorded.")
+    return f"{packet_id} from {worker}: {status}. {summary}"
+
+
+def _proof_refs_for_workrooms(*extra: str) -> list[str]:
+    return _existing_refs(
+        CORE_SOURCE_REFS["openclaw_workroom_registry"],
+        CORE_SOURCE_REFS["agent_handoff_registry"],
+        CORE_SOURCE_REFS["spawned_worker_package_lifecycle"],
+        CORE_SOURCE_REFS["openclaw_workroom_activity_feed"],
+        CORE_SOURCE_REFS["workroom_review_packet_index"],
+        CORE_SOURCE_REFS["worker_package_staging"],
+        CORE_SOURCE_REFS["chief_build_backlog"],
+        *extra,
+    )
 
 
 def _answer_payload(
@@ -834,6 +924,189 @@ def _safe_next_answer(question: str, sources: Mapping[str, Any]) -> dict[str, An
     )
 
 
+def _workroom_team_answer(question: str, sources: Mapping[str, Any]) -> dict[str, Any]:
+    registry = sources.get("openclaw_workroom_registry") if isinstance(sources.get("openclaw_workroom_registry"), dict) else {}
+    activity = sources.get("openclaw_workroom_activity_feed") if isinstance(sources.get("openclaw_workroom_activity_feed"), dict) else {}
+    channels = _channels(registry)
+    posts = _activity_posts(activity)
+    channel_refs_with_posts = sorted({str(post.get("channel_ref") or "") for post in posts if post.get("channel_ref")})
+    confirmed = [
+        f"Workroom channels: {'; '.join(_channel_label(channel) for channel in channels) if channels else 'no channels found'}.",
+        f"Channels with recent local activity: {', '.join(channel_refs_with_posts) if channel_refs_with_posts else 'none recorded'}.",
+        "Workroom answers read local read models only and keep proof refs collapsed.",
+    ]
+    return _answer_payload(
+        speaker_ref="chief",
+        voice_mode="diagnostic",
+        question=question,
+        headline="The team is working in local Workrooms",
+        plain_summary="Chief sees current work split across Build, Operations, Finance, Architecture, Security, and related Workroom channels.",
+        confirmed=confirmed,
+        inferred=[
+            "Use the channel ref to open the relevant lane; do not treat a channel post as permission to execute work.",
+        ],
+        unknown=[],
+        next_safe_action="Open the specific Workroom channel you want to review.",
+        proof_refs=_proof_refs_for_workrooms(),
+    )
+
+
+def _workroom_channel_answer(question: str, sources: Mapping[str, Any]) -> dict[str, Any]:
+    registry = sources.get("openclaw_workroom_registry") if isinstance(sources.get("openclaw_workroom_registry"), dict) else {}
+    packet_index = sources.get("workroom_review_packet_index") if isinstance(sources.get("workroom_review_packet_index"), dict) else {}
+    activity = sources.get("openclaw_workroom_activity_feed") if isinstance(sources.get("openclaw_workroom_activity_feed"), dict) else {}
+    text = question.lower()
+    channel_ref = "build_mission_control_mac" if "mission control mac" in text or "build / mission control" in text else ""
+    channel = next((item for item in _channels(registry) if item.get("channel_ref") == channel_ref), {})
+    packets = [item for item in _review_packets(packet_index) if item.get("channel_ref") == channel_ref]
+    posts = [item for item in _activity_posts(activity) if item.get("channel_ref") == channel_ref]
+    confirmed = [
+        f"Channel: {_channel_label(channel) if channel else channel_ref or 'unknown'}.",
+        f"Review packets: {'; '.join(_packet_label(packet) for packet in packets) if packets else 'none found'}.",
+        f"Recent posts: {'; '.join(str(post.get('headline') or post.get('plain_summary') or '') for post in posts[:5]) if posts else 'none found'}.",
+    ]
+    return _answer_payload(
+        speaker_ref="chief",
+        voice_mode="diagnostic",
+        question=question,
+        headline="Build / Mission Control Mac has review context",
+        plain_summary="The Mac build Workroom contains local UI review packet and activity context.",
+        confirmed=confirmed,
+        inferred=[
+            "Completed review packets are record/proof context; unresolved packets need operator review.",
+        ],
+        unknown=[],
+        next_safe_action="Open the Workroom review packet controls; no merge or push is authorized by this answer.",
+        proof_refs=_proof_refs_for_workrooms(),
+    )
+
+
+def _worker_output_answer(question: str, sources: Mapping[str, Any], worker_ref: str) -> dict[str, Any]:
+    packet_index = sources.get("workroom_review_packet_index") if isinstance(sources.get("workroom_review_packet_index"), dict) else {}
+    lifecycle = sources.get("spawned_worker_package_lifecycle") if isinstance(sources.get("spawned_worker_package_lifecycle"), dict) else {}
+    packets = [item for item in _review_packets(packet_index) if str(item.get("worker_ref") or "").lower() == worker_ref]
+    examples = [
+        dict(item)
+        for item in lifecycle.get("examples", [])
+        if isinstance(item, Mapping) and str(item.get("worker_ref") or "").lower() == worker_ref
+    ]
+    screenshots = []
+    example_summaries = []
+    for packet in packets:
+        screenshots.extend(str(item) for item in packet.get("screenshots", []) if str(item))
+    for example in examples:
+        summary = example.get("review_packet_summary") if isinstance(example.get("review_packet_summary"), Mapping) else {}
+        screenshots.extend(str(item) for item in summary.get("screenshots", []) if str(item))
+        if summary.get("human_summary"):
+            example_summaries.append(str(summary["human_summary"]))
+    confirmed = [
+        f"Review packet outputs: {'; '.join(_packet_label(packet) for packet in packets) if packets else 'none found'}.",
+        f"Lifecycle examples: {'; '.join(example_summaries) if example_summaries else 'none recorded'}.",
+        f"Screenshots/proof media: {', '.join(dict.fromkeys(screenshots)) if screenshots else 'none recorded'}.",
+        "Worker output is review/proof context only; it does not grant speaker or business authority.",
+    ]
+    return _answer_payload(
+        speaker_ref="chief",
+        voice_mode="diagnostic",
+        question=question,
+        headline=f"{worker_ref.upper()} output is in review packets",
+        plain_summary=f"Chief can summarize {worker_ref.upper()} output from local review packet refs without running the worker.",
+        confirmed=confirmed,
+        inferred=[
+            "Use the packet status to decide whether to approve-for-record, request rework, or mark informational.",
+        ],
+        unknown=[],
+        next_safe_action="Review the packet proof; do not merge, push, or run worker actions from this answer.",
+        proof_refs=_proof_refs_for_workrooms(),
+    )
+
+
+def _review_packets_attention_answer(question: str, sources: Mapping[str, Any]) -> dict[str, Any]:
+    packet_index = sources.get("workroom_review_packet_index") if isinstance(sources.get("workroom_review_packet_index"), dict) else {}
+    open_packets = [
+        packet
+        for packet in _review_packets(packet_index)
+        if packet.get("operator_decision_required") is True
+        and packet.get("completed") is not True
+        and str(packet.get("status") or "") not in {"OPERATOR_REVIEW_RECORDED", "INFORMATIONAL_REVIEW_CLOSED"}
+    ]
+    confirmed = [
+        f"Open review packets needing attention: {'; '.join(_packet_label(packet) for packet in open_packets) if open_packets else 'none found'}.",
+        "Completed or informational packets are not primary attention items.",
+        "Review decisions are record/rework/informational only; no merge or push authority is granted.",
+    ]
+    return _answer_payload(
+        speaker_ref="chief",
+        voice_mode="diagnostic",
+        question=question,
+        headline="Review packets need local operator decisions",
+        plain_summary="Chief filters Workroom review packets to unresolved items that need your attention.",
+        confirmed=confirmed,
+        inferred=[
+            "The safe choices are approve for record, request rework, or mark informational if the decision consumer is ready.",
+        ],
+        unknown=[],
+        next_safe_action="Open the first unresolved review packet and choose a review-only decision.",
+        proof_refs=_proof_refs_for_workrooms(),
+    )
+
+
+def _handoff_design_answer(question: str, sources: Mapping[str, Any], *, from_agent: str) -> dict[str, Any]:
+    handoff_registry = sources.get("agent_handoff_registry") if isinstance(sources.get("agent_handoff_registry"), dict) else {}
+    rows = [handoff for handoff in _handoffs(handoff_registry) if str(handoff.get("from_agent") or "").lower() == from_agent]
+    route_strings = [
+        f"{row.get('handoff_ref')} -> {row.get('to_agent_or_worker')} via {row.get('channel_ref')} as {row.get('package_type')}"
+        for row in rows
+    ]
+    confirmed = [
+        f"{from_agent} handoff routes: {'; '.join(route_strings) if route_strings else 'none found'}.",
+        "Handoff refs describe local routing and package staging, not live execution.",
+        "A handoff can become a local build packet only after the relevant consumer/staging path records it.",
+    ]
+    if from_agent == "hermes":
+        plain = "When Hermes recommends a build, the route is a local build packet to Chief before any worker packet exists."
+        headline = "Hermes routes build recommendations to Chief"
+    else:
+        plain = "Cassandra hands operational package needs to Chief through registered local handoff refs."
+        headline = "Cassandra hands package needs to Chief"
+    return _answer_payload(
+        speaker_ref="hermes",
+        voice_mode="recommendation",
+        question=question,
+        headline=headline,
+        plain_summary=plain,
+        confirmed=confirmed,
+        inferred=[
+            "Architecture and handoff design questions use Hermes; work packet diagnostics use Chief.",
+        ],
+        unknown=[],
+        next_safe_action="Record or stage only a local handoff packet; do not spawn workers from the answer.",
+        proof_refs=_proof_refs_for_workrooms(),
+    )
+
+
+def _push_authority_answer(question: str, sources: Mapping[str, Any]) -> dict[str, Any]:
+    proof_refs = _proof_refs_for_workrooms(CORE_SOURCE_REFS["workroom_review_decision_contract"])
+    return _answer_payload(
+        speaker_ref="guardian",
+        voice_mode="safety_gate",
+        question=question,
+        headline="PC_CODEX cannot push from this workflow",
+        plain_summary="PC_CODEX can produce local result receipts or review packets, but git_push_allowed=false in these Workroom surfaces.",
+        confirmed=[
+            "PC_CODEX cannot push this from a system question answer.",
+            "git_push_allowed=false and worker output does not inherit speaker authority.",
+            "Review packets can be approved for record, requested for rework, or marked informational without merge or push.",
+        ],
+        inferred=[
+            "A future human-approved git operation would need a separate explicit prompt outside this answer.",
+        ],
+        unknown=[],
+        next_safe_action="Keep review packet decisions local; do not push.",
+        proof_refs=proof_refs,
+    )
+
+
 def _unknown_answer(question: str, speaker_ref: str, voice_mode: str) -> dict[str, Any]:
     proof_refs = _existing_refs(
         CORE_SOURCE_REFS["operator_human_readability_surface"],
@@ -902,6 +1175,22 @@ def answer_system_question(
         return _capital_hilton_block_answer(question, sources)
     if "send email" in text or "can this send" in text or "email authority" in text:
         return _email_authority_answer(question, sources)
+    if ("pc_codex" in text or "mac_codex" in text or "codex" in text) and "push" in text:
+        return _push_authority_answer(question, sources)
+    if "where is the team working" in text or ("team" in text and "working" in text):
+        return _workroom_team_answer(question, sources)
+    if "build" in text and ("mission control mac" in text or "mission control" in text):
+        return _workroom_channel_answer(question, sources)
+    if "mac_codex" in text and ("produce" in text or "produced" in text or "output" in text):
+        return _worker_output_answer(question, sources, "mac_codex")
+    if "pc_codex" in text and ("produce" in text or "produced" in text or "output" in text):
+        return _worker_output_answer(question, sources, "pc_codex")
+    if "review packet" in text and ("attention" in text or "need" in text or "open" in text):
+        return _review_packets_attention_answer(question, sources)
+    if "cassandra" in text and "hand" in text:
+        return _handoff_design_answer(question, sources, from_agent="cassandra")
+    if "hermes" in text and ("recommends a build" in text or "recommend" in text and "build" in text):
+        return _handoff_design_answer(question, sources, from_agent="hermes")
     if "what is safe next" in text or text.strip() in {"safe next?", "what's safe next?", "whats safe next?"}:
         return _safe_next_answer(question, sources)
     if "which agent should speak" in text or "speaker" in text or "voice" in text:

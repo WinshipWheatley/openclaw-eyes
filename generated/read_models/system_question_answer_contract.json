@@ -704,9 +704,417 @@
       "voice_mode": "safety_gate",
       "voice_profile_ref": "agent_voice_profile:guardian",
       "workflow_ref": "system_question_answer"
+    },
+    {
+      "answer": {
+        "confirmed": [
+          "Workroom channels: Helm Daily Desk | channel=helm_daily_desk | world=helm | thread=workroom:helm_daily_desk:main; Finance - St. Anne's | channel=finance_st_annes | world=finance | thread=workroom:finance_st_annes:main; Finance - Capital Hilton | channel=finance_capital_hilton | world=finance | thread=workroom:finance_capital_hilton:main; Finance - Live Arts MD | channel=finance_live_arts_md | world=finance | thread=workroom:finance_live_arts_md:main; Business Development - Capital Hilton | channel=business_development_capital_hilton | world=business_development | thread=workroom:business_development_capital_hilton:main; Build - Mission Control Mac | channel=build_mission_control_mac | world=build | thread=workroom:build_mission_control_mac:main; Build - OpenClaw Backend | channel=build_openclaw_backend | world=build | thread=workroom:build_openclaw_backend:main; Creative - Niles Studio | channel=creative_niles_studio | world=creative | thread=workroom:creative_niles_studio:main; Security - Guardian Gates | channel=security_guardian_gates | world=security | thread=workroom:security_guardian_gates:main; Architecture - Hermes | channel=architecture_hermes | world=architecture | thread=workroom:architecture_hermes:main; Operations - Chief Workboard | channel=operations_chief_workboard | world=operations | thread=workroom:operations_chief_workboard:main.",
+          "Channels with recent local activity: architecture_hermes, build_mission_control_mac, build_openclaw_backend, business_development_capital_hilton, finance_capital_hilton, finance_st_annes, operations_chief_workboard, security_guardian_gates.",
+          "Workroom answers read local read models only and keep proof refs collapsed."
+        ],
+        "headline": "The team is working in local Workrooms",
+        "inferred": [
+          "Use the channel ref to open the relevant lane; do not treat a channel post as permission to execute work."
+        ],
+        "next_safe_action": "Open the specific Workroom channel you want to review.",
+        "plain_summary": "Chief sees current work split across Build, Operations, Finance, Architecture, Security, and related Workroom channels.",
+        "proof_refs": [
+          "generated/read_models/openclaw_workroom_registry.json",
+          "generated/read_models/agent_handoff_registry.json",
+          "generated/read_models/spawned_worker_package_lifecycle.json",
+          "generated/read_models/openclaw_workroom_activity_feed.json",
+          "generated/read_models/workroom_review_packet_index.json",
+          "generated/read_models/worker_package_staging_status.json",
+          "generated/read_models/chief_build_backlog.json"
+        ],
+        "show_machine_details_by_default": false,
+        "unknown": []
+      },
+      "authority_boundary": {
+        "browser_access_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "gmail_allowed": false,
+        "ledger_posting_allowed": false,
+        "paid": false,
+        "portal_submit_allowed": false,
+        "sent": false
+      },
+      "machine_proof": {
+        "browser_access_performed": false,
+        "child_agent_spawned": false,
+        "coupa_access_performed": false,
+        "email_send_performed": false,
+        "external_llm_called": false,
+        "gmail_access_performed": false,
+        "ledger_mutation_performed": false,
+        "live_execution_performed": false,
+        "local_only": true,
+        "paid_marking_performed": false,
+        "pdf_export_performed": false,
+        "submit_performed": false,
+        "unsafe_true_grants_absent": true,
+        "workbook_mutation_performed": false
+      },
+      "privacy_impact": "local_only",
+      "question": "Where is the team working?",
+      "speaker_ref": "chief",
+      "voice_mode": "diagnostic",
+      "voice_profile_ref": "agent_voice_profile:chief",
+      "workflow_ref": "system_question_answer"
+    },
+    {
+      "answer": {
+        "confirmed": [
+          "Channel: Build - Mission Control Mac | channel=build_mission_control_mac | world=build | thread=workroom:build_mission_control_mac:main.",
+          "Review packets: review_packet:1ec9dae46a22e6ae from mac_codex: OPERATOR_REVIEW_RECORDED. MAC_CODEX returned UI work with screenshot proof for operator review..",
+          "Recent posts: MAC_CODEX review packet ready; Handoff: chief to mac_codex; Review recorded."
+        ],
+        "headline": "Build / Mission Control Mac has review context",
+        "inferred": [
+          "Completed review packets are record/proof context; unresolved packets need operator review."
+        ],
+        "next_safe_action": "Open the Workroom review packet controls; no merge or push is authorized by this answer.",
+        "plain_summary": "The Mac build Workroom contains local UI review packet and activity context.",
+        "proof_refs": [
+          "generated/read_models/openclaw_workroom_registry.json",
+          "generated/read_models/agent_handoff_registry.json",
+          "generated/read_models/spawned_worker_package_lifecycle.json",
+          "generated/read_models/openclaw_workroom_activity_feed.json",
+          "generated/read_models/workroom_review_packet_index.json",
+          "generated/read_models/worker_package_staging_status.json",
+          "generated/read_models/chief_build_backlog.json"
+        ],
+        "show_machine_details_by_default": false,
+        "unknown": []
+      },
+      "authority_boundary": {
+        "browser_access_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "gmail_allowed": false,
+        "ledger_posting_allowed": false,
+        "paid": false,
+        "portal_submit_allowed": false,
+        "sent": false
+      },
+      "machine_proof": {
+        "browser_access_performed": false,
+        "child_agent_spawned": false,
+        "coupa_access_performed": false,
+        "email_send_performed": false,
+        "external_llm_called": false,
+        "gmail_access_performed": false,
+        "ledger_mutation_performed": false,
+        "live_execution_performed": false,
+        "local_only": true,
+        "paid_marking_performed": false,
+        "pdf_export_performed": false,
+        "submit_performed": false,
+        "unsafe_true_grants_absent": true,
+        "workbook_mutation_performed": false
+      },
+      "privacy_impact": "local_only",
+      "question": "What is in Build / Mission Control Mac?",
+      "speaker_ref": "chief",
+      "voice_mode": "diagnostic",
+      "voice_profile_ref": "agent_voice_profile:chief",
+      "workflow_ref": "system_question_answer"
+    },
+    {
+      "answer": {
+        "confirmed": [
+          "Review packet outputs: review_packet:1ec9dae46a22e6ae from mac_codex: OPERATOR_REVIEW_RECORDED. MAC_CODEX returned UI work with screenshot proof for operator review..",
+          "Lifecycle examples: MAC_CODEX returned UI work with screenshot proof for operator review..",
+          "Screenshots/proof media: generated/screenshots/example_mission_control_review.png.",
+          "Worker output is review/proof context only; it does not grant speaker or business authority."
+        ],
+        "headline": "MAC_CODEX output is in review packets",
+        "inferred": [
+          "Use the packet status to decide whether to approve-for-record, request rework, or mark informational."
+        ],
+        "next_safe_action": "Review the packet proof; do not merge, push, or run worker actions from this answer.",
+        "plain_summary": "Chief can summarize MAC_CODEX output from local review packet refs without running the worker.",
+        "proof_refs": [
+          "generated/read_models/openclaw_workroom_registry.json",
+          "generated/read_models/agent_handoff_registry.json",
+          "generated/read_models/spawned_worker_package_lifecycle.json",
+          "generated/read_models/openclaw_workroom_activity_feed.json",
+          "generated/read_models/workroom_review_packet_index.json",
+          "generated/read_models/worker_package_staging_status.json",
+          "generated/read_models/chief_build_backlog.json"
+        ],
+        "show_machine_details_by_default": false,
+        "unknown": []
+      },
+      "authority_boundary": {
+        "browser_access_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "gmail_allowed": false,
+        "ledger_posting_allowed": false,
+        "paid": false,
+        "portal_submit_allowed": false,
+        "sent": false
+      },
+      "machine_proof": {
+        "browser_access_performed": false,
+        "child_agent_spawned": false,
+        "coupa_access_performed": false,
+        "email_send_performed": false,
+        "external_llm_called": false,
+        "gmail_access_performed": false,
+        "ledger_mutation_performed": false,
+        "live_execution_performed": false,
+        "local_only": true,
+        "paid_marking_performed": false,
+        "pdf_export_performed": false,
+        "submit_performed": false,
+        "unsafe_true_grants_absent": true,
+        "workbook_mutation_performed": false
+      },
+      "privacy_impact": "local_only",
+      "question": "What did MAC_CODEX produce?",
+      "speaker_ref": "chief",
+      "voice_mode": "diagnostic",
+      "voice_profile_ref": "agent_voice_profile:chief",
+      "workflow_ref": "system_question_answer"
+    },
+    {
+      "answer": {
+        "confirmed": [
+          "Open review packets needing attention: review_packet:c4ec166103f9aa35 from pc_codex: REVIEW_PACKET_READY. PC_CODEX changed backend code and returned local validation proof for operator review..",
+          "Completed or informational packets are not primary attention items.",
+          "Review decisions are record/rework/informational only; no merge or push authority is granted."
+        ],
+        "headline": "Review packets need local operator decisions",
+        "inferred": [
+          "The safe choices are approve for record, request rework, or mark informational if the decision consumer is ready."
+        ],
+        "next_safe_action": "Open the first unresolved review packet and choose a review-only decision.",
+        "plain_summary": "Chief filters Workroom review packets to unresolved items that need your attention.",
+        "proof_refs": [
+          "generated/read_models/openclaw_workroom_registry.json",
+          "generated/read_models/agent_handoff_registry.json",
+          "generated/read_models/spawned_worker_package_lifecycle.json",
+          "generated/read_models/openclaw_workroom_activity_feed.json",
+          "generated/read_models/workroom_review_packet_index.json",
+          "generated/read_models/worker_package_staging_status.json",
+          "generated/read_models/chief_build_backlog.json"
+        ],
+        "show_machine_details_by_default": false,
+        "unknown": []
+      },
+      "authority_boundary": {
+        "browser_access_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "gmail_allowed": false,
+        "ledger_posting_allowed": false,
+        "paid": false,
+        "portal_submit_allowed": false,
+        "sent": false
+      },
+      "machine_proof": {
+        "browser_access_performed": false,
+        "child_agent_spawned": false,
+        "coupa_access_performed": false,
+        "email_send_performed": false,
+        "external_llm_called": false,
+        "gmail_access_performed": false,
+        "ledger_mutation_performed": false,
+        "live_execution_performed": false,
+        "local_only": true,
+        "paid_marking_performed": false,
+        "pdf_export_performed": false,
+        "submit_performed": false,
+        "unsafe_true_grants_absent": true,
+        "workbook_mutation_performed": false
+      },
+      "privacy_impact": "local_only",
+      "question": "What review packets need my attention?",
+      "speaker_ref": "chief",
+      "voice_mode": "diagnostic",
+      "voice_profile_ref": "agent_voice_profile:chief",
+      "workflow_ref": "system_question_answer"
+    },
+    {
+      "answer": {
+        "confirmed": [
+          "cassandra handoff routes: cassandra_to_chief_package_needed -> chief via operations_chief_workboard as package_request_handoff_packet; cassandra_to_guardian_authority_detected -> guardian via security_guardian_gates as protected_authority_gate_packet.",
+          "Handoff refs describe local routing and package staging, not live execution.",
+          "A handoff can become a local build packet only after the relevant consumer/staging path records it."
+        ],
+        "headline": "Cassandra hands package needs to Chief",
+        "inferred": [
+          "Architecture and handoff design questions use Hermes; work packet diagnostics use Chief."
+        ],
+        "next_safe_action": "Record or stage only a local handoff packet; do not spawn workers from the answer.",
+        "plain_summary": "Cassandra hands operational package needs to Chief through registered local handoff refs.",
+        "proof_refs": [
+          "generated/read_models/openclaw_workroom_registry.json",
+          "generated/read_models/agent_handoff_registry.json",
+          "generated/read_models/spawned_worker_package_lifecycle.json",
+          "generated/read_models/openclaw_workroom_activity_feed.json",
+          "generated/read_models/workroom_review_packet_index.json",
+          "generated/read_models/worker_package_staging_status.json",
+          "generated/read_models/chief_build_backlog.json"
+        ],
+        "show_machine_details_by_default": false,
+        "unknown": []
+      },
+      "authority_boundary": {
+        "browser_access_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "gmail_allowed": false,
+        "ledger_posting_allowed": false,
+        "paid": false,
+        "portal_submit_allowed": false,
+        "sent": false
+      },
+      "machine_proof": {
+        "browser_access_performed": false,
+        "child_agent_spawned": false,
+        "coupa_access_performed": false,
+        "email_send_performed": false,
+        "external_llm_called": false,
+        "gmail_access_performed": false,
+        "ledger_mutation_performed": false,
+        "live_execution_performed": false,
+        "local_only": true,
+        "paid_marking_performed": false,
+        "pdf_export_performed": false,
+        "submit_performed": false,
+        "unsafe_true_grants_absent": true,
+        "workbook_mutation_performed": false
+      },
+      "privacy_impact": "local_only",
+      "question": "Who does Cassandra hand off to?",
+      "speaker_ref": "hermes",
+      "voice_mode": "recommendation",
+      "voice_profile_ref": "agent_voice_profile:hermes",
+      "workflow_ref": "system_question_answer"
+    },
+    {
+      "answer": {
+        "confirmed": [
+          "hermes handoff routes: hermes_to_chief_build_packet -> chief via operations_chief_workboard as architecture_to_build_packet.",
+          "Handoff refs describe local routing and package staging, not live execution.",
+          "A handoff can become a local build packet only after the relevant consumer/staging path records it."
+        ],
+        "headline": "Hermes routes build recommendations to Chief",
+        "inferred": [
+          "Architecture and handoff design questions use Hermes; work packet diagnostics use Chief."
+        ],
+        "next_safe_action": "Record or stage only a local handoff packet; do not spawn workers from the answer.",
+        "plain_summary": "When Hermes recommends a build, the route is a local build packet to Chief before any worker packet exists.",
+        "proof_refs": [
+          "generated/read_models/openclaw_workroom_registry.json",
+          "generated/read_models/agent_handoff_registry.json",
+          "generated/read_models/spawned_worker_package_lifecycle.json",
+          "generated/read_models/openclaw_workroom_activity_feed.json",
+          "generated/read_models/workroom_review_packet_index.json",
+          "generated/read_models/worker_package_staging_status.json",
+          "generated/read_models/chief_build_backlog.json"
+        ],
+        "show_machine_details_by_default": false,
+        "unknown": []
+      },
+      "authority_boundary": {
+        "browser_access_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "gmail_allowed": false,
+        "ledger_posting_allowed": false,
+        "paid": false,
+        "portal_submit_allowed": false,
+        "sent": false
+      },
+      "machine_proof": {
+        "browser_access_performed": false,
+        "child_agent_spawned": false,
+        "coupa_access_performed": false,
+        "email_send_performed": false,
+        "external_llm_called": false,
+        "gmail_access_performed": false,
+        "ledger_mutation_performed": false,
+        "live_execution_performed": false,
+        "local_only": true,
+        "paid_marking_performed": false,
+        "pdf_export_performed": false,
+        "submit_performed": false,
+        "unsafe_true_grants_absent": true,
+        "workbook_mutation_performed": false
+      },
+      "privacy_impact": "local_only",
+      "question": "What happens when Hermes recommends a build?",
+      "speaker_ref": "hermes",
+      "voice_mode": "recommendation",
+      "voice_profile_ref": "agent_voice_profile:hermes",
+      "workflow_ref": "system_question_answer"
+    },
+    {
+      "answer": {
+        "confirmed": [
+          "PC_CODEX cannot push this from a system question answer.",
+          "git_push_allowed=false and worker output does not inherit speaker authority.",
+          "Review packets can be approved for record, requested for rework, or marked informational without merge or push."
+        ],
+        "headline": "PC_CODEX cannot push from this workflow",
+        "inferred": [
+          "A future human-approved git operation would need a separate explicit prompt outside this answer."
+        ],
+        "next_safe_action": "Keep review packet decisions local; do not push.",
+        "plain_summary": "PC_CODEX can produce local result receipts or review packets, but git_push_allowed=false in these Workroom surfaces.",
+        "proof_refs": [
+          "generated/read_models/openclaw_workroom_registry.json",
+          "generated/read_models/agent_handoff_registry.json",
+          "generated/read_models/spawned_worker_package_lifecycle.json",
+          "generated/read_models/openclaw_workroom_activity_feed.json",
+          "generated/read_models/workroom_review_packet_index.json",
+          "generated/read_models/worker_package_staging_status.json",
+          "generated/read_models/chief_build_backlog.json",
+          "generated/read_models/workroom_review_decision_contract.json"
+        ],
+        "show_machine_details_by_default": false,
+        "unknown": []
+      },
+      "authority_boundary": {
+        "browser_access_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "gmail_allowed": false,
+        "ledger_posting_allowed": false,
+        "paid": false,
+        "portal_submit_allowed": false,
+        "sent": false
+      },
+      "machine_proof": {
+        "browser_access_performed": false,
+        "child_agent_spawned": false,
+        "coupa_access_performed": false,
+        "email_send_performed": false,
+        "external_llm_called": false,
+        "gmail_access_performed": false,
+        "ledger_mutation_performed": false,
+        "live_execution_performed": false,
+        "local_only": true,
+        "paid_marking_performed": false,
+        "pdf_export_performed": false,
+        "submit_performed": false,
+        "unsafe_true_grants_absent": true,
+        "workbook_mutation_performed": false
+      },
+      "privacy_impact": "local_only",
+      "question": "Can PC_CODEX push this?",
+      "speaker_ref": "guardian",
+      "voice_mode": "safety_gate",
+      "voice_profile_ref": "agent_voice_profile:guardian",
+      "workflow_ref": "system_question_answer"
     }
   ],
-  "generated_at": "2026-06-03T03:01:51+00:00",
+  "generated_at": "2026-06-03T12:15:16+00:00",
   "machine_proof": {
     "authority_flags_all_false": true,
     "browser_access_performed": false,
@@ -714,7 +1122,7 @@
     "child_agent_spawned": false,
     "coupa_access_performed": false,
     "email_send_performed": false,
-    "example_count": 12,
+    "example_count": 19,
     "external_llm_called": false,
     "gmail_access_performed": false,
     "ledger_mutation_performed": false,
@@ -736,22 +1144,30 @@
   "read_model_id": "system_question_answer_contract",
   "schema_version": "system_question_answer_v0",
   "source_refs": {
+    "agent_handoff_registry": "generated/read_models/agent_handoff_registry.json",
     "agent_voice_profiles": "generated/read_models/agent_voice_profiles.json",
     "agent_voice_routing": "generated/read_models/agent_voice_routing_contract.json",
     "automation_permission_registry": "generated/read_models/automation_permission_registry.json",
     "canonical_state_map": "generated/read_models/canonical_state_map.json",
+    "chief_build_backlog": "generated/read_models/chief_build_backlog.json",
     "openclaw_lm_child_package_gate": "generated/read_models/openclaw_lm_child_package_gate.json",
+    "openclaw_workroom_activity_feed": "generated/read_models/openclaw_workroom_activity_feed.json",
+    "openclaw_workroom_registry": "generated/read_models/openclaw_workroom_registry.json",
     "operator_assist_provider_registry": "generated/read_models/operator_assist_provider_registry.json",
     "operator_conversation_journal": "generated/read_models/operator_conversation_journal.json",
     "operator_human_readability_surface": "generated/read_models/operator_human_readability_surface.json",
     "overnight_workboard": "generated/read_models/overnight_workboard.json",
     "package_event_index": "generated/read_models/package_event_index.json",
     "role_package_gate": "generated/read_models/role_package_gate.json",
+    "spawned_worker_package_lifecycle": "generated/read_models/spawned_worker_package_lifecycle.json",
     "sqlite_consolidation_plan": "generated/read_models/sqlite_consolidation_plan.json",
     "sqlite_governance_registry": "generated/read_models/sqlite_governance_registry.json",
     "st_annes_monthly_work_log_contract": "generated/read_models/st_annes_monthly_work_log_contract.json",
     "st_annes_work_log_events": "generated/read_models/st_annes_work_log_events.json",
-    "workflow_package_queue": "generated/read_models/workflow_package_queue_contract.json"
+    "worker_package_staging": "generated/read_models/worker_package_staging_status.json",
+    "workflow_package_queue": "generated/read_models/workflow_package_queue_contract.json",
+    "workroom_review_decision_contract": "generated/read_models/workroom_review_decision_contract.json",
+    "workroom_review_packet_index": "generated/read_models/workroom_review_packet_index.json"
   },
   "source_scope": {
     "doctrine_docs": "docs/doctrine/*.md",

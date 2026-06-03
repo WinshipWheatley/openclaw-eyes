@@ -99,6 +99,152 @@ def _fixture_sources(root: Path, sqlite_root: Path) -> None:
         },
     )
     _write_json(
+        root / "openclaw_workroom_registry.json",
+        {
+            "status": "OPENCLAW_WORKROOM_REGISTRY_READY",
+            "channels": [
+                {
+                    "channel_ref": "build_mission_control_mac",
+                    "display_name": "Build - Mission Control Mac",
+                    "world_ref": "build",
+                    "thread_ref": "workroom:build_mission_control_mac:main",
+                    "primary_agent": "chief",
+                },
+                {
+                    "channel_ref": "build_openclaw_backend",
+                    "display_name": "Build - OpenClaw Backend",
+                    "world_ref": "build",
+                    "thread_ref": "workroom:build_openclaw_backend:main",
+                    "primary_agent": "chief",
+                },
+                {
+                    "channel_ref": "operations_chief_workboard",
+                    "display_name": "Operations - Chief Workboard",
+                    "world_ref": "operations",
+                    "thread_ref": "workroom:operations_chief_workboard:main",
+                    "primary_agent": "chief",
+                },
+            ],
+        },
+    )
+    _write_json(
+        root / "agent_handoff_registry.json",
+        {
+            "status": "AGENT_HANDOFF_REGISTRY_READY",
+            "handoffs": [
+                {
+                    "handoff_ref": "cassandra_to_chief_package_needed",
+                    "from_agent": "cassandra",
+                    "to_agent_or_worker": "chief",
+                    "channel_ref": "operations_chief_workboard",
+                    "package_type": "package_request_handoff_packet",
+                },
+                {
+                    "handoff_ref": "hermes_to_chief_build_packet",
+                    "from_agent": "hermes",
+                    "to_agent_or_worker": "chief",
+                    "channel_ref": "operations_chief_workboard",
+                    "package_type": "architecture_to_build_packet",
+                },
+                {
+                    "handoff_ref": "chief_to_mac_codex_ui_excel_gui_operator_assist",
+                    "from_agent": "chief",
+                    "to_agent_or_worker": "mac_codex",
+                    "channel_ref": "build_mission_control_mac",
+                    "package_type": "mac_codex_operator_assist_worker_packet",
+                },
+                {
+                    "handoff_ref": "chief_to_pc_codex_backend_implementation",
+                    "from_agent": "chief",
+                    "to_agent_or_worker": "pc_codex",
+                    "channel_ref": "build_openclaw_backend",
+                    "package_type": "pc_codex_backend_worker_packet",
+                },
+            ],
+        },
+    )
+    _write_json(
+        root / "spawned_worker_package_lifecycle.json",
+        {
+            "status": "SPAWNED_WORKER_PACKAGE_LIFECYCLE_READY",
+            "examples": [
+                {
+                    "example_ref": "mac_ui_package_review",
+                    "worker_ref": "mac_codex",
+                    "channel_ref": "build_mission_control_mac",
+                    "package_id": "pkg:example:mission_control_ui_patch",
+                    "review_packet_summary": {
+                        "human_summary": "MAC_CODEX returned Mission Control UI review output.",
+                        "screenshots": ["generated/screenshots/example_mission_control_review.png"],
+                    },
+                }
+            ],
+        },
+    )
+    _write_json(
+        root / "openclaw_workroom_activity_feed.json",
+        {
+            "status": "OPENCLAW_WORKROOM_ACTIVITY_FEED_READY",
+            "posts": [
+                {
+                    "post_id": "workroom_post:mac_review",
+                    "channel_ref": "build_mission_control_mac",
+                    "speaker_ref": "mac_codex",
+                    "headline": "MAC_CODEX review packet ready",
+                    "plain_summary": "MAC_CODEX returned UI work with screenshot proof for operator review.",
+                    "business_action_performed": False,
+                },
+                {
+                    "post_id": "workroom_post:pc_review",
+                    "channel_ref": "build_openclaw_backend",
+                    "speaker_ref": "pc_codex",
+                    "headline": "PC_CODEX review packet ready",
+                    "plain_summary": "PC_CODEX returned backend validation proof for operator review.",
+                    "business_action_performed": False,
+                },
+            ],
+        },
+    )
+    _write_json(
+        root / "workroom_review_packet_index.json",
+        {
+            "status": "WORKROOM_REVIEW_PACKET_INDEX_READY",
+            "packets": [
+                {
+                    "review_packet_id": "review_packet:mac_done",
+                    "package_id": "pkg:example:mission_control_ui_patch",
+                    "worker_ref": "mac_codex",
+                    "channel_ref": "build_mission_control_mac",
+                    "status": "OPERATOR_REVIEW_RECORDED",
+                    "human_summary": "MAC_CODEX returned UI work with screenshot proof for operator review.",
+                    "screenshots": ["generated/screenshots/example_mission_control_review.png"],
+                    "operator_decision_required": False,
+                    "visible_by_default": False,
+                    "completed": True,
+                    "business_action_performed": False,
+                    "git_push_performed": False,
+                    "proof_refs": ["generated/read_models/spawned_worker_package_lifecycle.json#mac_ui_package_review"],
+                },
+                {
+                    "review_packet_id": "review_packet:pc_ready",
+                    "package_id": "pkg:example:backend_registry_patch",
+                    "worker_ref": "pc_codex",
+                    "channel_ref": "build_openclaw_backend",
+                    "status": "REVIEW_PACKET_READY",
+                    "human_summary": "PC_CODEX changed backend code and returned local validation proof for operator review.",
+                    "operator_decision_required": True,
+                    "visible_by_default": True,
+                    "completed": False,
+                    "business_action_performed": False,
+                    "git_push_performed": False,
+                    "proof_refs": ["generated/read_models/spawned_worker_package_lifecycle.json#pc_backend_package_review"],
+                },
+            ],
+        },
+    )
+    _write_json(root / "worker_package_staging_status.json", {"status": "WORKER_PACKAGE_STAGING_READY"})
+    _write_json(root / "chief_build_backlog.json", {"status": "CHIEF_BUILD_BACKLOG_READY", "backlog_items": []})
+    _write_json(
         root / "sqlite_governance_registry.json",
         {
             "status": "SQLITE_GOVERNANCE_REGISTRY_READY",
@@ -392,6 +538,82 @@ def test_safe_cleanup_question_does_not_approve_delete_or_move(tmp_path):
     assert payload["machine_proof"]["live_execution_performed"] is False
 
 
+def test_where_team_is_working_summarizes_workrooms(tmp_path):
+    payload = _answer("Where is the team working?", tmp_path)
+    text = json.dumps(payload)
+
+    assert payload["speaker_ref"] == "chief"
+    assert payload["voice_mode"] == "diagnostic"
+    assert "Build - Mission Control Mac" in text
+    assert "Build - OpenClaw Backend" in text
+    assert "operations_chief_workboard" in text
+    assert payload["answer"]["show_machine_details_by_default"] is False
+
+
+def test_build_mission_control_mac_question_names_channel_and_packets(tmp_path):
+    payload = _answer("What is in Build / Mission Control Mac?", tmp_path)
+    text = json.dumps(payload)
+
+    assert payload["speaker_ref"] == "chief"
+    assert payload["voice_mode"] == "diagnostic"
+    assert "build_mission_control_mac" in text
+    assert "MAC_CODEX returned UI work" in text
+    assert "OPERATOR_REVIEW_RECORDED" in text
+
+
+def test_mac_codex_output_answer_summarizes_review_packet_without_raw_dump(tmp_path):
+    payload = _answer("What did MAC_CODEX produce?", tmp_path)
+    text = json.dumps(payload)
+
+    assert payload["speaker_ref"] == "chief"
+    assert "Mission Control UI" in text
+    assert "generated/screenshots/example_mission_control_review.png" in text
+    assert "RAW_SECRET_ROW_SHOULD_NOT_APPEAR" not in text
+    assert payload["machine_proof"]["child_agent_spawned"] is False
+
+
+def test_review_packets_need_attention_answer_filters_open_packets(tmp_path):
+    payload = _answer("What review packets need my attention?", tmp_path)
+    text = json.dumps(payload)
+
+    assert payload["speaker_ref"] == "chief"
+    assert "review_packet:pc_ready" in text
+    assert "PC_CODEX changed backend code" in text
+    assert "review_packet:mac_done" not in payload["answer"]["confirmed"][0]
+    assert payload["machine_proof"]["live_execution_performed"] is False
+
+
+def test_cassandra_handoff_question_routes_to_hermes(tmp_path):
+    payload = _answer("Who does Cassandra hand off to?", tmp_path)
+    text = json.dumps(payload)
+
+    assert payload["speaker_ref"] == "hermes"
+    assert payload["voice_mode"] == "recommendation"
+    assert "cassandra_to_chief_package_needed" in text
+    assert "operations_chief_workboard" in text
+
+
+def test_hermes_build_recommendation_question_routes_to_hermes(tmp_path):
+    payload = _answer("What happens when Hermes recommends a build?", tmp_path)
+    text = json.dumps(payload)
+
+    assert payload["speaker_ref"] == "hermes"
+    assert "hermes_to_chief_build_packet" in text
+    assert "local build packet" in text
+    assert payload["machine_proof"]["external_llm_called"] is False
+
+
+def test_pc_codex_push_question_routes_guardian_and_blocks_push(tmp_path):
+    payload = _answer("Can PC_CODEX push this?", tmp_path)
+    text = json.dumps(payload)
+
+    assert payload["speaker_ref"] == "guardian"
+    assert payload["voice_mode"] == "safety_gate"
+    assert "PC_CODEX cannot push" in text
+    assert "git_push_allowed=false" in text
+    assert payload["machine_proof"]["submit_performed"] is False
+
+
 def test_unknown_question_returns_safe_fallback_with_unknowns_and_proof_refs(tmp_path):
     payload = _answer("What does OpenClaw know about the purple submarine?", tmp_path)
 
@@ -422,7 +644,7 @@ def test_contract_exports_local_and_bridge_json_equal(tmp_path):
     assert local["status"] == sqa.CONTRACT_STATUS
     assert local["workflow_ref"] == "system_question_answer"
     assert local["privacy"]["privacy_impact"] == "local_only"
-    assert len(local["examples"]) == 12
+    assert len(local["examples"]) == len(sqa.EXAMPLE_QUESTIONS)
     assert Path(result["wiki_path"]).exists()
 
 
