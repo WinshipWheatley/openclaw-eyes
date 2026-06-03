@@ -1,0 +1,258 @@
+{
+  "authority_boundary": {
+    "browser_access_allowed": false,
+    "business_action_allowed": false,
+    "coupa_allowed": false,
+    "email_send_allowed": false,
+    "external_provider_allowed": false,
+    "git_push_allowed": false,
+    "gmail_allowed": false,
+    "ledger_posting_allowed": false,
+    "paid": false,
+    "pdf_export_allowed": false,
+    "portal_submit_allowed": false,
+    "sent": false,
+    "workbook_mutation_allowed": false,
+    "worker_spawn_allowed": false
+  },
+  "decision_count": 10,
+  "decisions": [
+    {
+      "authority_granted": false,
+      "authority_requested": "email_send",
+      "created_at": "2026-06-03T12:29:28+00:00",
+      "decision": "approval_required",
+      "decision_id": "gate_decision:480c739b174f8368",
+      "gate_ref": "send_email",
+      "package_id": "",
+      "proof_refs": [
+        "generated/read_models/workflow_package_queue_contract.json",
+        "generated/read_models/automation_permission_registry.json",
+        "generated/read_models/agent_voice_routing_contract.json"
+      ],
+      "reason": "Email sending is a protected business action and requires explicit operator approval plus a separate executor gate.",
+      "source_request_ref": "governance_seed:track_b_gate_decision_ledger_v0",
+      "speaker_ref": "guardian"
+    },
+    {
+      "authority_granted": false,
+      "authority_requested": "portal_submit",
+      "created_at": "2026-06-03T12:29:28+00:00",
+      "decision": "approval_required",
+      "decision_id": "gate_decision:2262015969bccff0",
+      "gate_ref": "coupa_submit",
+      "package_id": "",
+      "proof_refs": [
+        "generated/read_models/workflow_package_queue_contract.json",
+        "generated/read_models/automation_permission_registry.json",
+        "generated/read_models/agent_voice_routing_contract.json"
+      ],
+      "reason": "Coupa submit is a protected portal action and cannot be authorized by a read model.",
+      "source_request_ref": "governance_seed:track_b_gate_decision_ledger_v0",
+      "speaker_ref": "guardian"
+    },
+    {
+      "authority_granted": false,
+      "authority_requested": "ledger_post",
+      "created_at": "2026-06-03T12:29:28+00:00",
+      "decision": "blocked",
+      "decision_id": "gate_decision:2da431fe92e9341a",
+      "gate_ref": "ledger_post",
+      "package_id": "",
+      "proof_refs": [
+        "generated/read_models/workflow_package_queue_contract.json",
+        "generated/read_models/automation_permission_registry.json",
+        "generated/read_models/agent_voice_routing_contract.json"
+      ],
+      "reason": "Business ledger posting requires separate ledger/payment evidence and is outside this governance ledger.",
+      "source_request_ref": "governance_seed:track_b_gate_decision_ledger_v0",
+      "speaker_ref": "guardian"
+    },
+    {
+      "authority_granted": false,
+      "authority_requested": "mark_paid",
+      "created_at": "2026-06-03T12:29:28+00:00",
+      "decision": "blocked",
+      "decision_id": "gate_decision:fd4c6aa9a00a128b",
+      "gate_ref": "mark_paid",
+      "package_id": "",
+      "proof_refs": [
+        "generated/read_models/workflow_package_queue_contract.json",
+        "generated/read_models/automation_permission_registry.json",
+        "generated/read_models/agent_voice_routing_contract.json"
+      ],
+      "reason": "Paid truth requires payment evidence; package or operator-display state cannot mark paid.",
+      "source_request_ref": "governance_seed:track_b_gate_decision_ledger_v0",
+      "speaker_ref": "guardian"
+    },
+    {
+      "authority_granted": false,
+      "authority_requested": "workbook_mutation",
+      "created_at": "2026-06-03T12:29:28+00:00",
+      "decision": "approval_required",
+      "decision_id": "gate_decision:d58ed16484785403",
+      "gate_ref": "workbook_mutation",
+      "package_id": "",
+      "proof_refs": [
+        "generated/read_models/workflow_package_queue_contract.json",
+        "generated/read_models/automation_permission_registry.json",
+        "generated/read_models/agent_voice_routing_contract.json"
+      ],
+      "reason": "Workbook changes are source-data mutations and must stay behind operator approval.",
+      "source_request_ref": "governance_seed:track_b_gate_decision_ledger_v0",
+      "speaker_ref": "guardian"
+    },
+    {
+      "authority_granted": false,
+      "authority_requested": "pdf_export",
+      "created_at": "2026-06-03T12:29:28+00:00",
+      "decision": "approval_required",
+      "decision_id": "gate_decision:7238307591604202",
+      "gate_ref": "pdf_export",
+      "package_id": "",
+      "proof_refs": [
+        "generated/read_models/workflow_package_queue_contract.json",
+        "generated/read_models/automation_permission_registry.json",
+        "generated/read_models/agent_voice_routing_contract.json"
+      ],
+      "reason": "PDF export can create client-facing artifacts and needs operator approval.",
+      "source_request_ref": "governance_seed:track_b_gate_decision_ledger_v0",
+      "speaker_ref": "guardian"
+    },
+    {
+      "authority_granted": false,
+      "authority_requested": "git_push",
+      "created_at": "2026-06-03T12:29:28+00:00",
+      "decision": "blocked",
+      "decision_id": "gate_decision:f24f71f161665b3f",
+      "gate_ref": "git_push",
+      "package_id": "",
+      "proof_refs": [
+        "generated/read_models/workflow_package_queue_contract.json",
+        "generated/read_models/automation_permission_registry.json",
+        "generated/read_models/agent_voice_routing_contract.json"
+      ],
+      "reason": "Build packets may commit after validation, but push remains outside local package authority.",
+      "source_request_ref": "governance_seed:track_b_gate_decision_ledger_v0",
+      "speaker_ref": "chief"
+    },
+    {
+      "authority_granted": false,
+      "authority_requested": "worker_spawn",
+      "created_at": "2026-06-03T12:29:28+00:00",
+      "decision": "blocked",
+      "decision_id": "gate_decision:2acf4e9d49f1b427",
+      "gate_ref": "worker_spawn",
+      "package_id": "",
+      "proof_refs": [
+        "generated/read_models/workflow_package_queue_contract.json",
+        "generated/read_models/automation_permission_registry.json",
+        "generated/read_models/agent_voice_routing_contract.json"
+      ],
+      "reason": "Worker packages can be staged, but workers are not spawned by governance surfaces.",
+      "source_request_ref": "governance_seed:track_b_gate_decision_ledger_v0",
+      "speaker_ref": "chief"
+    },
+    {
+      "authority_granted": false,
+      "authority_requested": "external_provider",
+      "created_at": "2026-06-03T12:29:28+00:00",
+      "decision": "blocked",
+      "decision_id": "gate_decision:e80c6e9e55132303",
+      "gate_ref": "external_provider",
+      "package_id": "",
+      "proof_refs": [
+        "generated/read_models/workflow_package_queue_contract.json",
+        "generated/read_models/automation_permission_registry.json",
+        "generated/read_models/agent_voice_routing_contract.json"
+      ],
+      "reason": "External providers and model runtimes are not used by local governance read models.",
+      "source_request_ref": "governance_seed:track_b_gate_decision_ledger_v0",
+      "speaker_ref": "guardian"
+    },
+    {
+      "authority_granted": false,
+      "authority_requested": "local_read",
+      "created_at": "2026-06-03T12:29:28+00:00",
+      "decision": "allowed",
+      "decision_id": "gate_decision:5dfa9e0bf05fa632",
+      "gate_ref": "local_only_read",
+      "package_id": "",
+      "proof_refs": [
+        "generated/read_models/workflow_package_queue_contract.json",
+        "generated/read_models/automation_permission_registry.json",
+        "generated/read_models/agent_voice_routing_contract.json"
+      ],
+      "reason": "Local read-model, wiki, and generated SQLite metadata reads are allowed for safe status work.",
+      "source_request_ref": "governance_seed:track_b_gate_decision_ledger_v0",
+      "speaker_ref": "openclaw"
+    }
+  ],
+  "generated_at": "2026-06-03T12:29:28+00:00",
+  "machine_proof": {
+    "authority_granted": false,
+    "browser_or_coupa_opened": false,
+    "business_action_performed": false,
+    "business_ledger_mutated": false,
+    "email_sent": false,
+    "gmail_opened": false,
+    "paid_marked": false,
+    "pdf_exported": false,
+    "preconditions_ready": true,
+    "pushed": false,
+    "submitted": false,
+    "workbook_mutated": false
+  },
+  "preconditions": [
+    {
+      "accepted_statuses": [
+        "WORKFLOW_PACKAGE_QUEUE_V0_READY"
+      ],
+      "observed_status": "WORKFLOW_PACKAGE_QUEUE_V0_READY",
+      "precondition_ref": "workflow_package_queue",
+      "ready": true,
+      "source_ref": "generated/read_models/workflow_package_queue_contract.json"
+    },
+    {
+      "accepted_statuses": [
+        "AGENT_VOICE_ROUTING_V0_READY"
+      ],
+      "observed_status": "AGENT_VOICE_ROUTING_V0_READY",
+      "precondition_ref": "agent_voice_routing",
+      "ready": true,
+      "source_ref": "generated/read_models/agent_voice_routing_contract.json"
+    },
+    {
+      "accepted_statuses": [
+        "AUTOMATION_PERMISSION_REGISTRY_READY"
+      ],
+      "observed_status": "AUTOMATION_PERMISSION_REGISTRY_READY",
+      "precondition_ref": "automation_permission_registry",
+      "ready": true,
+      "source_ref": "generated/read_models/automation_permission_registry.json"
+    }
+  ],
+  "read_model_id": "gate_decision_ledger",
+  "required_gates": [
+    "send_email",
+    "coupa_submit",
+    "ledger_post",
+    "mark_paid",
+    "workbook_mutation",
+    "pdf_export",
+    "git_push",
+    "worker_spawn",
+    "external_provider",
+    "local_only_read"
+  ],
+  "rules": [
+    "This ledger records gate decisions only.",
+    "It never grants authority.",
+    "Guardian owns protected business/provider gates.",
+    "Chief owns diagnostic/build gates.",
+    "No business action was performed."
+  ],
+  "schema_version": "gate_decision_ledger_v0",
+  "sqlite_path": "/home/openclaw/generated/system_knowledge/gate_decision_ledger.sqlite",
+  "status": "GATE_DECISION_LEDGER_READY"
+}
