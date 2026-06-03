@@ -1,0 +1,170 @@
+{
+  "authority_boundary": {
+    "agent_loop_allowed": false,
+    "browser_access_allowed": false,
+    "business_action_allowed": false,
+    "coupa_allowed": false,
+    "email_send_allowed": false,
+    "external_llm_allowed": false,
+    "git_push_allowed": false,
+    "gmail_allowed": false,
+    "ledger_mutation_allowed": false,
+    "ledger_posting_allowed": false,
+    "local_model_runtime_allowed": false,
+    "paid": false,
+    "paid_marking_allowed": false,
+    "pdf_export_allowed": false,
+    "portal_submit_allowed": false,
+    "sent": false,
+    "tool_execution_allowed": false,
+    "workbook_mutation_allowed": false,
+    "worker_assignment_allowed": false,
+    "worker_execution_allowed": false,
+    "worker_spawn_allowed": false
+  },
+  "generated_at": "2026-06-03T12:07:06+00:00",
+  "machine_proof": {
+    "browser_access_performed": false,
+    "business_action_performed": false,
+    "business_state_mutation_performed": false,
+    "child_agent_run_performed": false,
+    "coupa_access_performed": false,
+    "email_send_performed": false,
+    "external_llm_called": false,
+    "git_push_performed": false,
+    "gmail_access_performed": false,
+    "ledger_mutation_performed": false,
+    "local_model_runtime_connected": false,
+    "local_only": true,
+    "paid_marking_performed": false,
+    "pdf_export_performed": false,
+    "preconditions_ready": true,
+    "read_model_generation_only": true,
+    "review_packet_created": false,
+    "source_code_edited_by_staging": false,
+    "submit_performed": false,
+    "tool_execution_performed": false,
+    "unsafe_true_grants_absent": true,
+    "workbook_mutation_performed": false,
+    "worker_assignment_performed": false,
+    "worker_execution_performed": false,
+    "worker_package_stub_count": 1,
+    "worker_spawn_performed": false
+  },
+  "mode": "local_package_stub_generation_only_no_worker_execution",
+  "preconditions": [
+    {
+      "observed_status": "AGENT_HANDOFF_EVENT_CONSUMER_READY",
+      "precondition_ref": "agent_handoff_event_consumer",
+      "ready": true,
+      "required_status": "AGENT_HANDOFF_EVENT_CONSUMER_READY",
+      "source_ref": "generated/read_models/agent_handoff_event_status.json"
+    },
+    {
+      "observed_status": "SPAWNED_WORKER_PACKAGE_LIFECYCLE_READY",
+      "precondition_ref": "spawned_worker_package_lifecycle",
+      "ready": true,
+      "required_status": "SPAWNED_WORKER_PACKAGE_LIFECYCLE_READY",
+      "source_ref": "generated/read_models/spawned_worker_package_lifecycle.json"
+    },
+    {
+      "observed_status": "WORKROOM_REVIEW_PACKET_INDEX_READY",
+      "precondition_ref": "workroom_review_packet_index",
+      "ready": true,
+      "required_status": "WORKROOM_REVIEW_PACKET_INDEX_READY",
+      "source_ref": "generated/read_models/workroom_review_packet_index.json"
+    }
+  ],
+  "purpose": "Stage worker package stubs from recorded handoff events without running workers.",
+  "read_model_id": "worker_package_staging_status",
+  "schema_version": "worker_package_staging_v0",
+  "source_event_count": 1,
+  "source_refs": [
+    "generated/read_models/agent_handoff_event_status.json",
+    "generated/read_models/spawned_worker_package_lifecycle.json",
+    "generated/read_models/workroom_review_packet_index.json"
+  ],
+  "staged_package_count": 1,
+  "staged_packages": [
+    {
+      "allowed_files_or_paths": [
+        "generated/read_models/",
+        "generated/wiki/openclaw/",
+        "tests/",
+        "scripts/"
+      ],
+      "blocked_actions": [
+        "send_email",
+        "open_gmail",
+        "open_browser",
+        "open_coupa",
+        "mutate_ledger",
+        "mutate_workbook",
+        "export_pdf",
+        "mark_paid",
+        "submit_portal",
+        "push_git",
+        "spawn_worker",
+        "assign_worker",
+        "run_worker",
+        "run_child_agent",
+        "launch_agent_loop",
+        "call_external_llm",
+        "connect_local_model_runtime",
+        "run_live_provider",
+        "edit_source_code_during_staging",
+        "create_review_packet_before_worker_result"
+      ],
+      "business_action_allowed": false,
+      "business_action_performed": false,
+      "channel_ref": "build_openclaw_backend",
+      "expected_outputs": [
+        "result receipt read model",
+        "focused pytest results",
+        "py_compile or JSON parse results as relevant"
+      ],
+      "git_push_allowed": false,
+      "git_push_performed": false,
+      "goal": "Track A recorded a backend handoff event as a receipt only; no worker was assigned or run.",
+      "operator_approval_required_before_execution": true,
+      "package_id": "worker_package_stub:c400a53c4bc391d2",
+      "proof_refs": [
+        "generated/read_models/agent_handoff_registry.json",
+        "generated/read_models/openclaw_workroom_registry.json",
+        "generated/read_models/package_event_index.json",
+        "generated/read_models/agent_handoff_event_status.json",
+        "generated/read_models/worker_package_staging_status.json"
+      ],
+      "proof_refs_collapsed": true,
+      "result_receipt_required": true,
+      "review_packet_created": false,
+      "source_handoff_event_id": "agent_handoff_event:3c270e8405e6ff52",
+      "source_handoff_ref": "chief_to_pc_codex_backend_implementation",
+      "source_package_type": "pc_codex_backend_worker_packet",
+      "status": "PACKAGE_STAGED",
+      "tests_required": [
+        "focused pytest for touched backend surface",
+        "py_compile for changed Python files",
+        "JSON parse for generated read models",
+        "unsafe true-grant scan"
+      ],
+      "tool_execution_performed": false,
+      "worker_assignment_performed": false,
+      "worker_execution_performed": false,
+      "worker_inherits_speaker_authority": false,
+      "worker_ref": "pc_codex",
+      "worker_spawn_performed": false
+    }
+  ],
+  "staging_policy": {
+    "result_receipt_required": true,
+    "review_packet_created_by_staging": false,
+    "source_status_required": "HANDOFF_EVENT_RECORDED",
+    "supported_workers": [
+      "mac_codex",
+      "pc_codex"
+    ],
+    "worker_inherits_speaker_authority": false
+  },
+  "status": "WORKER_PACKAGE_STAGING_READY"
+}

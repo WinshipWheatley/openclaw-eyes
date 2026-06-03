@@ -39,7 +39,7 @@
     "review_packet_only": true,
     "show_machine_details_by_default": false
   },
-  "generated_at": "2026-06-03T04:23:28+00:00",
+  "generated_at": "2026-06-03T12:07:06+00:00",
   "lifecycle_states": [
     "PACKAGE_STAGED",
     "WORKER_ASSIGNED",
@@ -71,14 +71,20 @@
     "lifecycle_states_parsed": true,
     "local_only": true,
     "merge_performed": false,
+    "no_review_packet_created_from_staging": true,
     "open_packets_visible_by_default": true,
     "paid_marking_performed": false,
     "pdf_export_performed": false,
     "preconditions_ready": true,
     "read_model_generation_only": true,
     "submit_performed": false,
+    "tool_execution_performed": false,
     "unsafe_true_grants_absent": true,
     "workbook_mutation_performed": false,
+    "worker_assignment_performed": false,
+    "worker_execution_performed": false,
+    "worker_package_staging_applied": true,
+    "worker_package_stub_count": 1,
     "worker_spawn_performed": false,
     "workers_inherit_speaker_authority": false
   },
@@ -313,7 +319,17 @@
     "generated/read_models/openclaw_workroom_activity_feed.json",
     "generated/read_models/package_event_index.json",
     "generated/read_models/workroom_review_decision_status.json",
-    "generated/read_models/workroom_review_decision_lifecycle_status.json"
+    "generated/read_models/workroom_review_decision_lifecycle_status.json",
+    "generated/read_models/worker_package_staging_status.json"
   ],
-  "status": "WORKROOM_REVIEW_PACKET_INDEX_READY"
+  "status": "WORKROOM_REVIEW_PACKET_INDEX_READY",
+  "worker_package_staging": {
+    "applied": true,
+    "next_safe_action": "Wait for a worker result receipt before creating a real review packet.",
+    "review_packet_created": false,
+    "staged_package_ids": [
+      "worker_package_stub:c400a53c4bc391d2"
+    ],
+    "status_ref": "generated/read_models/worker_package_staging_status.json"
+  }
 }
