@@ -1,0 +1,105 @@
+{
+  "agent_inserts": [
+    {
+      "speaker_ref": "chief",
+      "text": "Chief has the package rail active and indexed."
+    },
+    {
+      "speaker_ref": "hermes",
+      "text": "Hermes recommends clearing the St. Anne's work-log path before deeper planning."
+    },
+    {
+      "speaker_ref": "guardian",
+      "text": "Guardian confirms payment marking and ledger posting remain blocked."
+    }
+  ],
+  "authority_boundary": {
+    "browser_access_allowed": false,
+    "coupa_allowed": false,
+    "email_send_allowed": false,
+    "gmail_allowed": false,
+    "ledger_posting_allowed": false,
+    "paid": false,
+    "portal_submit_allowed": false,
+    "sent": false
+  },
+  "briefing_mode": "homecoming",
+  "fact_basis": {
+    "confirmed": [
+      "St. Anne's manual out-of-band send is recorded.",
+      "Capital Hilton operator-assisted Coupa submission and Annette email are recorded.",
+      "Capital Hilton proposal is recorded as sent for client review.",
+      "No payment proof or ledger posting is recorded."
+    ],
+    "inferred": [
+      "The safest current move comes from operator_next_decision.",
+      "St. Anne's work-log path remains the planning path Hermes is watching."
+    ]
+  },
+  "generated_at": "2026-06-03T01:23:42+00:00",
+  "headline": "Good evening, Winship. OpenClaw is calm and ready.",
+  "machine_proof": {
+    "business_action_truth_created": false,
+    "cassandra_speaks_first": true,
+    "no_browser_or_coupa_opened": true,
+    "no_email_sent": true,
+    "no_gmail_opened": true,
+    "no_ledger_mutation": true,
+    "no_paid_marking": true,
+    "no_pdf_export": true,
+    "no_workbook_mutation": true,
+    "proof_refs_collapsed_by_default": true,
+    "raw_package_ids_hidden_from_visible_text": true,
+    "raw_sqlite_names_hidden_from_visible_text": true,
+    "tts_safe_spoken_text": true,
+    "unsafe_true_grants_absent": true
+  },
+  "next_recommended_action": {
+    "action_type": "navigate",
+    "label": "Open Capital Hilton",
+    "target_thread_ref": "capital_hilton",
+    "target_world_ref": "finance"
+  },
+  "proof_collapsed_by_default": true,
+  "proof_refs": [
+    "generated/read_models/client_work_closeout_2026_06_01.json",
+    "generated/read_models/operator_next_decision.json",
+    "generated/read_models/overnight_workboard.json",
+    "generated/read_models/package_event_index.json",
+    "generated/read_models/operator_conversation_journal.json",
+    "generated/read_models/capital_hilton_invoice_operator_run_status.json",
+    "generated/read_models/capital_hilton_business_development_proposal.json",
+    "generated/read_models/st_annes_invoice_status.json",
+    "generated/read_models/st_annes_work_log_events.json",
+    "generated/read_models/automation_permission_registry.json",
+    "generated/read_models/agent_voice_profiles.json"
+  ],
+  "read_model_id": "homecoming_brief",
+  "schema_version": "homecoming_brief_v0",
+  "source_read_models": [
+    "generated/read_models/client_work_closeout_2026_06_01.json",
+    "generated/read_models/operator_next_decision.json",
+    "generated/read_models/overnight_workboard.json",
+    "generated/read_models/package_event_index.json",
+    "generated/read_models/operator_conversation_journal.json",
+    "generated/read_models/capital_hilton_invoice_operator_run_status.json",
+    "generated/read_models/capital_hilton_business_development_proposal.json",
+    "generated/read_models/st_annes_invoice_status.json",
+    "generated/read_models/st_annes_work_log_events.json",
+    "generated/read_models/automation_permission_registry.json",
+    "generated/read_models/agent_voice_profiles.json"
+  ],
+  "speaker_ref": "cassandra",
+  "spoken_text": "Good evening, Winship. OpenClaw is calm and ready. Client work is clean. St. Anne's May invoice was sent manually and recorded as out of band. Capital Hilton's invoice is submitted in Coupa, status Processing, and Annette was emailed. The fight-weekend proposal is with Lawrence for client review. The current St. Anne's work-log item is test-only and is not part of an invoice. No payment has been marked, and the ledger is untouched. Your next safe move is to Open Capital Hilton.",
+  "status": "HOMECOMING_BRIEF_READY",
+  "visible_summary": [
+    "Client work is recorded and ready for review.",
+    "St. Anne's May invoice was sent manually and recorded as out of band.",
+    "Capital Hilton's invoice is submitted in Coupa, status Processing, and Annette was emailed.",
+    "The fight-weekend proposal is with Lawrence for client review.",
+    "The current St. Anne's work-log item is test-only and is not part of an invoice.",
+    "No payment has been marked, and the ledger is untouched.",
+    "Next safe move: Open Capital Hilton."
+  ],
+  "voice_profile_ref": "agent_voice_profile:cassandra"
+}
