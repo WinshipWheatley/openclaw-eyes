@@ -1,0 +1,256 @@
+{
+  "authority_boundary": {
+    "browser_access_allowed": false,
+    "business_action_allowed": false,
+    "coupa_allowed": false,
+    "email_send_allowed": false,
+    "gmail_allowed": false,
+    "ledger_posting_allowed": false,
+    "paid": false,
+    "portal_submit_allowed": false,
+    "sent": false
+  },
+  "generated_at": "2026-06-03T12:43:09+00:00",
+  "machine_proof": {
+    "automatic_promotion_performed": false,
+    "browser_or_coupa_opened": false,
+    "business_action_performed": false,
+    "business_truth_created": false,
+    "email_sent": false,
+    "gmail_opened": false,
+    "ledger_mutated": false,
+    "paid_marked": false,
+    "pdf_exported": false,
+    "preconditions_ready": true,
+    "pushed": false,
+    "raw_prompt_stored": false,
+    "secret_stored": false,
+    "submitted": false,
+    "workbook_mutated": false
+  },
+  "memory_states": [
+    "candidate",
+    "operator_approved",
+    "rejected",
+    "stale",
+    "needs_more_proof"
+  ],
+  "preconditions": [
+    {
+      "accepted_statuses": [
+        "OPERATOR_MEMORY_DISTILLATION_READY"
+      ],
+      "observed_status": "OPERATOR_MEMORY_DISTILLATION_READY",
+      "precondition_ref": "operator_memory_distillation",
+      "ready": true,
+      "source_ref": "generated/read_models/operator_memory_distillation.json"
+    },
+    {
+      "accepted_statuses": [
+        "GATE_DECISION_LEDGER_READY"
+      ],
+      "observed_status": "GATE_DECISION_LEDGER_READY",
+      "precondition_ref": "gate_decision_ledger",
+      "ready": true,
+      "source_ref": "generated/read_models/gate_decision_ledger.json"
+    }
+  ],
+  "promotion_entries": [
+    {
+      "allowed_usage": "Use as routing guidance for St. Anne's work-log and invoice surfaces.",
+      "business_truth_created": false,
+      "candidate_summary": "Finance / St. Anne's should use a dedicated thread so work-log intake and month-end invoice questions do not blur together.",
+      "created_at": "2026-06-03T12:43:09+00:00",
+      "forbidden_usage": [
+        "canonical_use_without_operator_approval",
+        "store_raw_prompt_body",
+        "store_secret",
+        "create_business_truth",
+        "grant_business_authority"
+      ],
+      "memory_ref": "memory_candidate:14740d6a7f1f8aad",
+      "operator_approval_required": true,
+      "privacy_class": "client_ref_only",
+      "promotion_status": "candidate",
+      "proof_refs": [
+        "generated/read_models/st_annes_work_log_events.json",
+        "generated/read_models/package_event_index.json"
+      ],
+      "raw_prompt_stored": false,
+      "secret_stored": false
+    },
+    {
+      "allowed_usage": "Use in Helm surface layout and operator next-decision summaries.",
+      "business_truth_created": false,
+      "candidate_summary": "Helm should be action desk, not proof wall; show one current action and keep proof collapsed unless asked.",
+      "created_at": "2026-06-03T12:43:09+00:00",
+      "forbidden_usage": [
+        "canonical_use_without_operator_approval",
+        "store_raw_prompt_body",
+        "store_secret",
+        "create_business_truth",
+        "grant_business_authority"
+      ],
+      "memory_ref": "memory_candidate:f730b5216187c7d3",
+      "operator_approval_required": false,
+      "privacy_class": "operator_workflow_preference",
+      "promotion_status": "candidate",
+      "proof_refs": [
+        "generated/read_models/helm_action_lifecycle_status.json",
+        "generated/read_models/operator_next_decision.json"
+      ],
+      "raw_prompt_stored": false,
+      "secret_stored": false
+    },
+    {
+      "allowed_usage": "Use as provider warning text before future Coupa-assisted invoice packets.",
+      "business_truth_created": false,
+      "candidate_summary": "Capital Hilton Coupa invoice numbers cannot use hyphen; Coupa normalized 2026-1006 into 2026 1006.",
+      "created_at": "2026-06-03T12:43:09+00:00",
+      "forbidden_usage": [
+        "canonical_use_without_operator_approval",
+        "store_raw_prompt_body",
+        "store_secret",
+        "create_business_truth",
+        "grant_business_authority"
+      ],
+      "memory_ref": "memory_candidate:9a60c8d262d85fbf",
+      "operator_approval_required": true,
+      "privacy_class": "client_ref_only",
+      "promotion_status": "candidate",
+      "proof_refs": [
+        "generated/read_models/capital_hilton_invoice_operator_run_status.json",
+        "generated/read_models/artifact_lineage_registry.json"
+      ],
+      "raw_prompt_stored": false,
+      "secret_stored": false
+    },
+    {
+      "allowed_usage": "Use for briefing tone and speaker routing only.",
+      "business_truth_created": false,
+      "candidate_summary": "Cassandra can lead homecoming-style briefings in plain language, with short Chief/Hermes/Guardian inserts.",
+      "created_at": "2026-06-03T12:43:09+00:00",
+      "forbidden_usage": [
+        "canonical_use_without_operator_approval",
+        "store_raw_prompt_body",
+        "store_secret",
+        "create_business_truth",
+        "grant_business_authority"
+      ],
+      "memory_ref": "memory_candidate:0acc8cc5d116cc8a",
+      "operator_approval_required": false,
+      "privacy_class": "operator_taste_preference",
+      "promotion_status": "candidate",
+      "proof_refs": [
+        "generated/read_models/homecoming_brief.json",
+        "generated/read_models/agent_voice_profiles.json"
+      ],
+      "raw_prompt_stored": false,
+      "secret_stored": false
+    },
+    {
+      "allowed_usage": "Use for next-decision ranking.",
+      "business_truth_created": false,
+      "candidate_summary": "When competing safe next moves exist, prefer active unresolved review items, then Capital Hilton payment watch, then workboard review.",
+      "created_at": "2026-06-03T12:43:09+00:00",
+      "forbidden_usage": [
+        "canonical_use_without_operator_approval",
+        "store_raw_prompt_body",
+        "store_secret",
+        "create_business_truth",
+        "grant_business_authority"
+      ],
+      "memory_ref": "memory_candidate:df4a02b00304e404",
+      "operator_approval_required": false,
+      "privacy_class": "operator_workflow_preference",
+      "promotion_status": "candidate",
+      "proof_refs": [
+        "generated/read_models/operator_next_decision.json",
+        "generated/read_models/helm_action_lifecycle_status.json"
+      ],
+      "raw_prompt_stored": false,
+      "secret_stored": false
+    },
+    {
+      "allowed_usage": "Use as follow-up reminder, not as payment truth.",
+      "business_truth_created": false,
+      "candidate_summary": "Capital Hilton is a payment-watch lane after Coupa Processing; ledger remains untouched until payment proof arrives.",
+      "created_at": "2026-06-03T12:43:09+00:00",
+      "forbidden_usage": [
+        "canonical_use_without_operator_approval",
+        "store_raw_prompt_body",
+        "store_secret",
+        "create_business_truth",
+        "grant_business_authority"
+      ],
+      "memory_ref": "memory_candidate:4c82aaa9fb755aa6",
+      "operator_approval_required": true,
+      "privacy_class": "client_ref_only",
+      "promotion_status": "candidate",
+      "proof_refs": [
+        "generated/read_models/capital_hilton_invoice_operator_run_status.json",
+        "generated/read_models/evidence_confidence_scoring.json"
+      ],
+      "raw_prompt_stored": false,
+      "secret_stored": false
+    },
+    {
+      "allowed_usage": "Use as a caution in future workbook/export planning.",
+      "business_truth_created": false,
+      "candidate_summary": "Mac Excel helper permissions are unstable for St. Anne's; do not rely on helper OPEN_WORKBOOK as the only export path.",
+      "created_at": "2026-06-03T12:43:09+00:00",
+      "forbidden_usage": [
+        "canonical_use_without_operator_approval",
+        "store_raw_prompt_body",
+        "store_secret",
+        "create_business_truth",
+        "grant_business_authority"
+      ],
+      "memory_ref": "memory_candidate:ec3e3029916c8031",
+      "operator_approval_required": false,
+      "privacy_class": "workflow_lesson",
+      "promotion_status": "candidate",
+      "proof_refs": [
+        "generated/read_models/artifact_lineage_registry.json",
+        "/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/capital_hilton_invoice_operator_run_full_automation_report_20260601T222036Z.md"
+      ],
+      "raw_prompt_stored": false,
+      "secret_stored": false
+    },
+    {
+      "allowed_usage": "Use as a pending UX question for Helm and Workrooms.",
+      "business_truth_created": false,
+      "candidate_summary": "Proof should be collapsed unless asked; decide later which proof details become operator-visible by default.",
+      "created_at": "2026-06-03T12:43:09+00:00",
+      "forbidden_usage": [
+        "canonical_use_without_operator_approval",
+        "store_raw_prompt_body",
+        "store_secret",
+        "create_business_truth",
+        "grant_business_authority"
+      ],
+      "memory_ref": "memory_candidate:7f1d86402ee149d3",
+      "operator_approval_required": false,
+      "privacy_class": "operator_workflow_preference",
+      "promotion_status": "candidate",
+      "proof_refs": [
+        "generated/read_models/operator_human_readability_surface.json",
+        "generated/read_models/helm_composer_contract.json"
+      ],
+      "raw_prompt_stored": false,
+      "secret_stored": false
+    }
+  ],
+  "promotion_entry_count": 8,
+  "read_model_id": "memory_promotion_gate",
+  "rules": [
+    "No automatic promotion.",
+    "Sensitive/client facts require operator approval.",
+    "Taste and workflow preferences may be promoted with lower risk, but still remain candidates here.",
+    "No raw prompt bodies.",
+    "No secrets.",
+    "No business action truth."
+  ],
+  "schema_version": "memory_promotion_gate_v0",
+  "status": "MEMORY_PROMOTION_GATE_READY"
+}
