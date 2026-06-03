@@ -1,0 +1,270 @@
+{
+  "approval_request_count": 7,
+  "approval_requests": [
+    {
+      "approval_request_id": "approval_request:9d31d86fd1d618cf",
+      "business_action_performed": false,
+      "created_at": "2026-06-03T12:32:05+00:00",
+      "forbidden_options": [
+        "merge_code",
+        "push_git",
+        "spawn_worker"
+      ],
+      "gate_ref": "workroom_review_record",
+      "owner_speaker_ref": "chief",
+      "plain_summary": "Approve a review packet for record only, with no merge or push.",
+      "proof_refs": [
+        "generated/read_models/gate_decision_ledger.json",
+        "generated/read_models/operator_next_decision.json"
+      ],
+      "requested_action": "approve_review_packet_for_record",
+      "requested_by_agent": "chief",
+      "risk_summary": "Low. This records operator review state but does not execute code or business actions.",
+      "safe_options": [
+        "approve_for_record",
+        "request_rework",
+        "mark_informational"
+      ],
+      "status": "pending",
+      "target_thread_ref": "workroom_review",
+      "target_world_ref": "build"
+    },
+    {
+      "approval_request_id": "approval_request:c1f79a10dd8eb10a",
+      "business_action_performed": false,
+      "created_at": "2026-06-03T12:32:05+00:00",
+      "forbidden_options": [
+        "run_worker",
+        "spawn_worker",
+        "push_git"
+      ],
+      "gate_ref": "workroom_review_rework",
+      "owner_speaker_ref": "chief",
+      "plain_summary": "Ask for review packet rework without spawning a worker automatically.",
+      "proof_refs": [
+        "generated/read_models/gate_decision_ledger.json",
+        "generated/read_models/operator_next_decision.json"
+      ],
+      "requested_action": "request_review_packet_rework",
+      "requested_by_agent": "chief",
+      "risk_summary": "Low. Rework is recorded; execution requires a later package.",
+      "safe_options": [
+        "record_rework_request",
+        "leave_pending"
+      ],
+      "status": "pending",
+      "target_thread_ref": "workroom_review",
+      "target_world_ref": "build"
+    },
+    {
+      "approval_request_id": "approval_request:abb8c8a9f78776ba",
+      "business_action_performed": false,
+      "created_at": "2026-06-03T12:32:05+00:00",
+      "forbidden_options": [
+        "send_email",
+        "open_gmail_without_operator",
+        "mark_sent_without_receipt"
+      ],
+      "gate_ref": "send_email",
+      "owner_speaker_ref": "guardian",
+      "plain_summary": "Approve an already prepared email draft for manual or gated send.",
+      "proof_refs": [
+        "generated/read_models/gate_decision_ledger.json",
+        "generated/read_models/operator_next_decision.json"
+      ],
+      "requested_action": "approve_email_draft_send",
+      "requested_by_agent": "cassandra",
+      "risk_summary": "Protected. Email send remains pending until explicit operator action and executor gate.",
+      "safe_options": [
+        "review_draft",
+        "reject_request",
+        "keep_pending"
+      ],
+      "status": "pending",
+      "target_thread_ref": "capital_hilton",
+      "target_world_ref": "finance"
+    },
+    {
+      "approval_request_id": "approval_request:6e5fd7e5d9cfdf62",
+      "business_action_performed": false,
+      "created_at": "2026-06-03T12:32:05+00:00",
+      "forbidden_options": [
+        "coupa_submit",
+        "open_coupa_unattended",
+        "mark_submitted_without_receipt"
+      ],
+      "gate_ref": "coupa_submit",
+      "owner_speaker_ref": "guardian",
+      "plain_summary": "Approve Coupa submit only through a separate operator-assisted provider gate.",
+      "proof_refs": [
+        "generated/read_models/gate_decision_ledger.json",
+        "generated/read_models/operator_next_decision.json"
+      ],
+      "requested_action": "approve_coupa_submit",
+      "requested_by_agent": "chief",
+      "risk_summary": "Protected portal action. This queue cannot submit to Coupa.",
+      "safe_options": [
+        "review_provider_gate",
+        "reject_request",
+        "keep_pending"
+      ],
+      "status": "pending",
+      "target_thread_ref": "capital_hilton",
+      "target_world_ref": "finance"
+    },
+    {
+      "approval_request_id": "approval_request:7c389f657e1d3c18",
+      "business_action_performed": false,
+      "created_at": "2026-06-03T12:32:05+00:00",
+      "forbidden_options": [
+        "mutate_workbook",
+        "open_excel_helper",
+        "rewrite_source_rows"
+      ],
+      "gate_ref": "workbook_mutation",
+      "owner_speaker_ref": "guardian",
+      "plain_summary": "Approve source workbook edits only after operator review.",
+      "proof_refs": [
+        "generated/read_models/gate_decision_ledger.json",
+        "generated/read_models/operator_next_decision.json"
+      ],
+      "requested_action": "approve_workbook_mutation",
+      "requested_by_agent": "cassandra",
+      "risk_summary": "Source-data mutation. Excel remains blocked here.",
+      "safe_options": [
+        "review_change_summary",
+        "reject_request",
+        "keep_pending"
+      ],
+      "status": "pending",
+      "target_thread_ref": "st_annes",
+      "target_world_ref": "finance"
+    },
+    {
+      "approval_request_id": "approval_request:45531169a8d68bce",
+      "business_action_performed": false,
+      "created_at": "2026-06-03T12:32:05+00:00",
+      "forbidden_options": [
+        "export_pdf",
+        "replace_pdf_without_lineage",
+        "send_pdf"
+      ],
+      "gate_ref": "pdf_export",
+      "owner_speaker_ref": "guardian",
+      "plain_summary": "Approve PDF export only through a later artifact-producing workflow.",
+      "proof_refs": [
+        "generated/read_models/gate_decision_ledger.json",
+        "generated/read_models/operator_next_decision.json"
+      ],
+      "requested_action": "approve_pdf_export",
+      "requested_by_agent": "cassandra",
+      "risk_summary": "Client-facing artifact creation. This queue records approval need only.",
+      "safe_options": [
+        "review_export_intent",
+        "reject_request",
+        "keep_pending"
+      ],
+      "status": "pending",
+      "target_thread_ref": "st_annes",
+      "target_world_ref": "finance"
+    },
+    {
+      "approval_request_id": "approval_request:bb59d849f4c7b82d",
+      "business_action_performed": false,
+      "created_at": "2026-06-03T12:32:05+00:00",
+      "forbidden_options": [
+        "post_ledger",
+        "mark_paid",
+        "create_business_truth_without_evidence"
+      ],
+      "gate_ref": "ledger_post",
+      "owner_speaker_ref": "guardian",
+      "plain_summary": "Approve ledger posting only after separate payment or posting evidence exists.",
+      "proof_refs": [
+        "generated/read_models/gate_decision_ledger.json",
+        "generated/read_models/operator_next_decision.json"
+      ],
+      "requested_action": "approve_ledger_post",
+      "requested_by_agent": "guardian",
+      "risk_summary": "Protected accounting action. No ledger write can occur from this queue.",
+      "safe_options": [
+        "wait_for_payment_evidence",
+        "reject_request",
+        "keep_pending"
+      ],
+      "status": "pending",
+      "target_thread_ref": "capital_hilton",
+      "target_world_ref": "finance"
+    }
+  ],
+  "authority_boundary": {
+    "browser_access_allowed": false,
+    "business_action_allowed": false,
+    "coupa_allowed": false,
+    "email_send_allowed": false,
+    "gmail_allowed": false,
+    "ledger_posting_allowed": false,
+    "paid": false,
+    "pdf_export_allowed": false,
+    "portal_submit_allowed": false,
+    "sent": false,
+    "workbook_mutation_allowed": false
+  },
+  "generated_at": "2026-06-03T12:32:05+00:00",
+  "machine_proof": {
+    "browser_or_coupa_opened": false,
+    "business_action_performed": false,
+    "email_sent": false,
+    "gmail_opened": false,
+    "ledger_mutated": false,
+    "paid_marked": false,
+    "pdf_exported": false,
+    "preconditions_ready": true,
+    "pushed": false,
+    "submitted": false,
+    "workbook_mutated": false
+  },
+  "preconditions": [
+    {
+      "accepted_statuses": [
+        "GATE_DECISION_LEDGER_READY"
+      ],
+      "observed_status": "GATE_DECISION_LEDGER_READY",
+      "optional": false,
+      "precondition_ref": "gate_decision_ledger",
+      "ready": true,
+      "source_ref": "generated/read_models/gate_decision_ledger.json"
+    },
+    {
+      "accepted_statuses": [
+        "WORKROOM_REVIEW_DECISION_CONTRACT_READY"
+      ],
+      "observed_status": "WORKROOM_REVIEW_DECISION_CONTRACT_READY",
+      "optional": true,
+      "precondition_ref": "workroom_review_decision_contract",
+      "ready": true,
+      "source_ref": "generated/read_models/workroom_review_decision_contract.json"
+    },
+    {
+      "accepted_statuses": [
+        "OPERATOR_NEXT_DECISION_READY",
+        "READY"
+      ],
+      "observed_status": "READY",
+      "optional": false,
+      "precondition_ref": "operator_next_decision",
+      "ready": true,
+      "source_ref": "generated/read_models/operator_next_decision.json"
+    }
+  ],
+  "read_model_id": "approval_request_queue",
+  "rules": [
+    "The queue does not execute approvals.",
+    "Business actions require a separate executor and gate.",
+    "Send, Coupa, workbook, PDF, ledger, and paid actions remain pending until explicit operator action.",
+    "This queue records pending decisions only."
+  ],
+  "schema_version": "approval_request_queue_v0",
+  "sqlite_path": "/home/openclaw/generated/system_knowledge/approval_request_queue.sqlite",
+  "status": "APPROVAL_REQUEST_QUEUE_READY"
+}
