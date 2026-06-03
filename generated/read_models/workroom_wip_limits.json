@@ -1,0 +1,393 @@
+{
+  "authority_boundary": {
+    "agent_loop_allowed": false,
+    "authority_grant_allowed": false,
+    "browser_access_allowed": false,
+    "business_action_allowed": false,
+    "child_agent_run_allowed": false,
+    "coupa_allowed": false,
+    "email_send_allowed": false,
+    "excel_automation_allowed": false,
+    "external_llm_allowed": false,
+    "git_push_allowed": false,
+    "gmail_allowed": false,
+    "ledger_mutation_allowed": false,
+    "ledger_posting_allowed": false,
+    "paid": false,
+    "paid_marking_allowed": false,
+    "pdf_export_allowed": false,
+    "portal_submit_allowed": false,
+    "push_allowed": false,
+    "sent": false,
+    "spreadsheet_cell_read_allowed": false,
+    "tool_execution_allowed": false,
+    "workbook_body_read_allowed": false,
+    "workbook_mutation_allowed": false,
+    "workbook_open_allowed": false,
+    "worker_execution_allowed": false,
+    "worker_spawn_allowed": false
+  },
+  "channel_count": 12,
+  "channels": [
+    {
+      "active_packet_count": 0,
+      "channel_ref": "build_mission_control_mac",
+      "dead_letter_count": 0,
+      "dead_letter_refs": [],
+      "limit_policy": {
+        "max_active_review_packets_per_channel": 1,
+        "max_dead_letters_per_channel": 2,
+        "max_pending_approvals_per_channel": 0
+      },
+      "pending_approval_count": 0,
+      "pending_approval_refs": [],
+      "protected_gate_count": 0,
+      "protected_gate_refs": [],
+      "recommended_action": "Channel is clear; new staging may be considered only after explicit operator approval.",
+      "review_packet_count": 1,
+      "review_packet_refs": [
+        "review_packet:1ec9dae46a22e6ae"
+      ],
+      "stage_new_work_allowed": true,
+      "wip_status": "clear"
+    },
+    {
+      "active_packet_count": 1,
+      "channel_ref": "build_openclaw_backend",
+      "dead_letter_count": 0,
+      "dead_letter_refs": [],
+      "limit_policy": {
+        "max_active_review_packets_per_channel": 1,
+        "max_dead_letters_per_channel": 2,
+        "max_pending_approvals_per_channel": 0
+      },
+      "pending_approval_count": 0,
+      "pending_approval_refs": [],
+      "protected_gate_count": 0,
+      "protected_gate_refs": [],
+      "recommended_action": "Finish the active review packet before staging optional new work.",
+      "review_packet_count": 1,
+      "review_packet_refs": [
+        "review_packet:c4ec166103f9aa35"
+      ],
+      "stage_new_work_allowed": false,
+      "wip_status": "watch"
+    },
+    {
+      "active_packet_count": 0,
+      "channel_ref": "build_request_response_service",
+      "dead_letter_count": 1,
+      "dead_letter_refs": [
+        "dead_letter:c2dabd2295a3d8b9"
+      ],
+      "limit_policy": {
+        "max_active_review_packets_per_channel": 1,
+        "max_dead_letters_per_channel": 2,
+        "max_pending_approvals_per_channel": 0
+      },
+      "pending_approval_count": 0,
+      "pending_approval_refs": [],
+      "protected_gate_count": 0,
+      "protected_gate_refs": [],
+      "recommended_action": "Inspect the dead-letter backlog before staging optional new work.",
+      "review_packet_count": 0,
+      "review_packet_refs": [],
+      "stage_new_work_allowed": false,
+      "wip_status": "watch"
+    },
+    {
+      "active_packet_count": 0,
+      "channel_ref": "build_workflow_router",
+      "dead_letter_count": 1,
+      "dead_letter_refs": [
+        "dead_letter:616e689ed2ed6742"
+      ],
+      "limit_policy": {
+        "max_active_review_packets_per_channel": 1,
+        "max_dead_letters_per_channel": 2,
+        "max_pending_approvals_per_channel": 0
+      },
+      "pending_approval_count": 0,
+      "pending_approval_refs": [],
+      "protected_gate_count": 0,
+      "protected_gate_refs": [],
+      "recommended_action": "Inspect the dead-letter backlog before staging optional new work.",
+      "review_packet_count": 0,
+      "review_packet_refs": [],
+      "stage_new_work_allowed": false,
+      "wip_status": "watch"
+    },
+    {
+      "active_packet_count": 0,
+      "channel_ref": "build_workroom_review",
+      "dead_letter_count": 0,
+      "dead_letter_refs": [],
+      "limit_policy": {
+        "max_active_review_packets_per_channel": 1,
+        "max_dead_letters_per_channel": 2,
+        "max_pending_approvals_per_channel": 0
+      },
+      "pending_approval_count": 2,
+      "pending_approval_refs": [
+        "approval_request:9d31d86fd1d618cf",
+        "approval_request:c1f79a10dd8eb10a"
+      ],
+      "protected_gate_count": 0,
+      "protected_gate_refs": [],
+      "recommended_action": "Chief recommends finishing review and clearing pending approvals or dead letters before creating new packets.",
+      "review_packet_count": 0,
+      "review_packet_refs": [],
+      "stage_new_work_allowed": false,
+      "wip_status": "pileup_risk"
+    },
+    {
+      "active_packet_count": 0,
+      "channel_ref": "finance_capital_hilton",
+      "dead_letter_count": 0,
+      "dead_letter_refs": [],
+      "limit_policy": {
+        "max_active_review_packets_per_channel": 1,
+        "max_dead_letters_per_channel": 2,
+        "max_pending_approvals_per_channel": 0
+      },
+      "pending_approval_count": 3,
+      "pending_approval_refs": [
+        "approval_request:abb8c8a9f78776ba",
+        "approval_request:6e5fd7e5d9cfdf62",
+        "approval_request:bb59d849f4c7b82d"
+      ],
+      "protected_gate_count": 3,
+      "protected_gate_refs": [
+        "send_email",
+        "coupa_submit",
+        "ledger_post"
+      ],
+      "recommended_action": "Do not stage new work. Resolve the protected Guardian gate before escalating or creating more packets.",
+      "review_packet_count": 0,
+      "review_packet_refs": [],
+      "stage_new_work_allowed": false,
+      "wip_status": "blocked"
+    },
+    {
+      "active_packet_count": 0,
+      "channel_ref": "finance_provider_gate",
+      "dead_letter_count": 1,
+      "dead_letter_refs": [
+        "dead_letter:f2b341f1d2d4c8e7"
+      ],
+      "limit_policy": {
+        "max_active_review_packets_per_channel": 1,
+        "max_dead_letters_per_channel": 2,
+        "max_pending_approvals_per_channel": 0
+      },
+      "pending_approval_count": 0,
+      "pending_approval_refs": [],
+      "protected_gate_count": 0,
+      "protected_gate_refs": [],
+      "recommended_action": "Inspect the dead-letter backlog before staging optional new work.",
+      "review_packet_count": 0,
+      "review_packet_refs": [],
+      "stage_new_work_allowed": false,
+      "wip_status": "watch"
+    },
+    {
+      "active_packet_count": 0,
+      "channel_ref": "finance_st_annes",
+      "dead_letter_count": 0,
+      "dead_letter_refs": [],
+      "limit_policy": {
+        "max_active_review_packets_per_channel": 1,
+        "max_dead_letters_per_channel": 2,
+        "max_pending_approvals_per_channel": 0
+      },
+      "pending_approval_count": 2,
+      "pending_approval_refs": [
+        "approval_request:7c389f657e1d3c18",
+        "approval_request:45531169a8d68bce"
+      ],
+      "protected_gate_count": 2,
+      "protected_gate_refs": [
+        "workbook_mutation",
+        "pdf_export"
+      ],
+      "recommended_action": "Do not stage new work. Resolve the protected Guardian gate before escalating or creating more packets.",
+      "review_packet_count": 0,
+      "review_packet_refs": [],
+      "stage_new_work_allowed": false,
+      "wip_status": "blocked"
+    },
+    {
+      "active_packet_count": 0,
+      "channel_ref": "governance_guardian",
+      "dead_letter_count": 1,
+      "dead_letter_refs": [
+        "dead_letter:cf572181da6f02d3"
+      ],
+      "limit_policy": {
+        "max_active_review_packets_per_channel": 1,
+        "max_dead_letters_per_channel": 2,
+        "max_pending_approvals_per_channel": 0
+      },
+      "pending_approval_count": 0,
+      "pending_approval_refs": [],
+      "protected_gate_count": 0,
+      "protected_gate_refs": [],
+      "recommended_action": "Inspect the dead-letter backlog before staging optional new work.",
+      "review_packet_count": 0,
+      "review_packet_refs": [],
+      "stage_new_work_allowed": false,
+      "wip_status": "watch"
+    },
+    {
+      "active_packet_count": 0,
+      "channel_ref": "operations_bridge",
+      "dead_letter_count": 1,
+      "dead_letter_refs": [
+        "dead_letter:83de47d436d601d2"
+      ],
+      "limit_policy": {
+        "max_active_review_packets_per_channel": 1,
+        "max_dead_letters_per_channel": 2,
+        "max_pending_approvals_per_channel": 0
+      },
+      "pending_approval_count": 0,
+      "pending_approval_refs": [],
+      "protected_gate_count": 0,
+      "protected_gate_refs": [],
+      "recommended_action": "Inspect the dead-letter backlog before staging optional new work.",
+      "review_packet_count": 0,
+      "review_packet_refs": [],
+      "stage_new_work_allowed": false,
+      "wip_status": "watch"
+    },
+    {
+      "active_packet_count": 0,
+      "channel_ref": "operations_mission_control",
+      "dead_letter_count": 3,
+      "dead_letter_refs": [
+        "dead_letter:1ae6bfc41a392c73",
+        "dead_letter:6f4e2bb0c8be1265",
+        "dead_letter:b926c9c9a7b464a9"
+      ],
+      "limit_policy": {
+        "max_active_review_packets_per_channel": 1,
+        "max_dead_letters_per_channel": 2,
+        "max_pending_approvals_per_channel": 0
+      },
+      "pending_approval_count": 0,
+      "pending_approval_refs": [],
+      "protected_gate_count": 0,
+      "protected_gate_refs": [],
+      "recommended_action": "Chief recommends finishing review and clearing pending approvals or dead letters before creating new packets.",
+      "review_packet_count": 0,
+      "review_packet_refs": [],
+      "stage_new_work_allowed": false,
+      "wip_status": "pileup_risk"
+    },
+    {
+      "active_packet_count": 0,
+      "channel_ref": "operations_permissions",
+      "dead_letter_count": 1,
+      "dead_letter_refs": [
+        "dead_letter:39e6695dbe8c318e"
+      ],
+      "limit_policy": {
+        "max_active_review_packets_per_channel": 1,
+        "max_dead_letters_per_channel": 2,
+        "max_pending_approvals_per_channel": 0
+      },
+      "pending_approval_count": 0,
+      "pending_approval_refs": [],
+      "protected_gate_count": 0,
+      "protected_gate_refs": [],
+      "recommended_action": "Inspect the dead-letter backlog before staging optional new work.",
+      "review_packet_count": 0,
+      "review_packet_refs": [],
+      "stage_new_work_allowed": false,
+      "wip_status": "watch"
+    }
+  ],
+  "chief_recommendation": "Finish review and clear bottlenecks before creating new packets.",
+  "generated_at": "2026-06-03T23:31:16+00:00",
+  "limits": {
+    "max_active_review_packets_per_channel": 1,
+    "max_dead_letters_per_channel": 2,
+    "max_pending_approvals_per_channel": 0
+  },
+  "machine_proof": {
+    "agent_loop_started": false,
+    "browser_access_performed": false,
+    "business_action_performed": false,
+    "chief_recommends_finishing_review_before_new_packets": true,
+    "child_agent_run_performed": false,
+    "coupa_access_performed": false,
+    "email_send_performed": false,
+    "external_llm_called": false,
+    "git_push_performed": false,
+    "gmail_access_performed": false,
+    "ledger_mutation_performed": false,
+    "paid_marking_performed": false,
+    "pdf_export_performed": false,
+    "preconditions_ready": true,
+    "protected_gates_block_escalation": true,
+    "read_model_only": true,
+    "stage_new_work_false_when_overloaded": true,
+    "submit_performed": false,
+    "unsafe_true_grants": [],
+    "unsafe_true_grants_absent": true,
+    "workbook_mutation_performed": false,
+    "worker_execution_performed": false,
+    "worker_spawn_performed": false
+  },
+  "overloaded_channel_count": 4,
+  "preconditions": [
+    {
+      "observed_status": "OPENCLAW_WORKROOM_ACTIVITY_FEED_READY",
+      "precondition_ref": "openclaw_workroom_activity_feed",
+      "ready": true,
+      "required_status": "OPENCLAW_WORKROOM_ACTIVITY_FEED_READY",
+      "source_ref": "generated/read_models/openclaw_workroom_activity_feed.json"
+    },
+    {
+      "observed_status": "WORKROOM_REVIEW_PACKET_INDEX_READY",
+      "precondition_ref": "workroom_review_packet_index",
+      "ready": true,
+      "required_status": "WORKROOM_REVIEW_PACKET_INDEX_READY",
+      "source_ref": "generated/read_models/workroom_review_packet_index.json"
+    },
+    {
+      "observed_status": "APPROVAL_REQUEST_QUEUE_READY",
+      "precondition_ref": "approval_request_queue",
+      "ready": true,
+      "required_status": "APPROVAL_REQUEST_QUEUE_READY",
+      "source_ref": "generated/read_models/approval_request_queue.json"
+    },
+    {
+      "observed_status": "DEAD_LETTER_QUEUE_READY",
+      "precondition_ref": "dead_letter_queue",
+      "ready": true,
+      "required_status": "DEAD_LETTER_QUEUE_READY",
+      "source_ref": "generated/read_models/dead_letter_queue.json"
+    },
+    {
+      "observed_status": "OPERATOR_NEXT_DECISION_WORKROOMS_READY",
+      "precondition_ref": "operator_next_decision_workrooms",
+      "ready": true,
+      "required_status": "OPERATOR_NEXT_DECISION_WORKROOMS_READY",
+      "source_ref": "generated/read_models/track_a_workroom_backbone_status.json#phases.operator_next_decision_workrooms"
+    }
+  ],
+  "purpose": "Per-channel WIP limits and bottleneck detection so Workrooms do not create more review work than the operator can process.",
+  "read_model_id": "workroom_wip_limits",
+  "schema_version": "workroom_wip_limits_v0",
+  "source_refs": [
+    "generated/read_models/openclaw_workroom_activity_feed.json",
+    "generated/read_models/workroom_review_packet_index.json",
+    "generated/read_models/approval_request_queue.json",
+    "generated/read_models/dead_letter_queue.json",
+    "generated/read_models/track_a_workroom_backbone_status.json#phases.operator_next_decision_workrooms"
+  ],
+  "stage_new_work_allowed_globally": false,
+  "status": "WORKROOM_WIP_LIMITS_READY",
+  "watch_channel_count": 7
+}
