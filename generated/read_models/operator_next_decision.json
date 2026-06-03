@@ -1,5 +1,5 @@
 {
-  "action_label": "Open Capital Hilton",
+  "action_label": "Open review packet",
   "action_type": "navigate",
   "active_action_count_considered": 2,
   "authority_boundary": {
@@ -22,11 +22,12 @@
     "proof_refs_collapsed": true
   },
   "excluded_items": [
+    "review_packet:1ec9dae46a22e6ae",
     "safe_next_st_annes_review",
     "st_annes_smoke_work_log_event"
   ],
-  "generated_at": "2026-06-03T01:17:40+00:00",
-  "headline": "Watch Capital Hilton payment",
+  "generated_at": "2026-06-03T12:17:58+00:00",
+  "headline": "Review Workroom packet",
   "history_policy": {
     "proof_collapsed_by_default": true,
     "raw_request_bodies_visible_by_default": false,
@@ -46,26 +47,33 @@
     "proof_collapsed_by_default": true,
     "unsafe_true_grants_absent": true
   },
-  "plain_summary": "Coupa is processing. Ledger stays untouched until payment proof arrives.",
+  "open_review_packet_count_considered": 1,
+  "plain_summary": "PC_CODEX changed backend code and returned local validation proof for operator review.",
   "precomputed_question_payload": {
-    "question_text": "What is safe next for Capital Hilton payment watch?",
-    "target_thread_ref": "capital_hilton",
-    "target_world_ref": "finance",
+    "question_text": "What should I do with review packet review_packet:c4ec166103f9aa35?",
+    "target_thread_ref": "build_openclaw_backend",
+    "target_world_ref": "build",
     "workflow_ref": "system_question_answer"
   },
-  "priority": "normal",
+  "priority": "high",
   "proof_collapsed_by_default": true,
   "proof_refs": [
-    "generated/read_models/helm_actionability_surface.json",
-    "generated/read_models/helm_action_lifecycle_status.json",
-    "generated/read_models/capital_hilton_invoice_operator_run_status.json",
-    "generated/read_models/package_event_index.json"
+    "generated/read_models/workroom_review_packet_index.json",
+    "generated/read_models/workroom_review_decision_contract.json",
+    "generated/read_models/openclaw_workroom_activity_feed.json",
+    "generated/read_models/spawned_worker_package_lifecycle.json#pc_backend_package_review"
   ],
   "read_model_id": "operator_next_decision",
   "resolved_action_refs": [
     "safe_next_st_annes_review",
     "st_annes_smoke_work_log_event"
   ],
+  "review_packet_action_options": [
+    "approve_review_packet_for_record",
+    "request_review_packet_rework",
+    "mark_review_packet_informational"
+  ],
+  "review_packet_id": "review_packet:c4ec166103f9aa35",
   "schema_version": "operator_next_decision_v0",
   "source_read_models": [
     "generated/read_models/helm_actionability_surface.json",
@@ -77,12 +85,17 @@
     "generated/read_models/automation_permission_registry.json",
     "generated/read_models/st_annes_work_log_events.json",
     "generated/read_models/capital_hilton_invoice_operator_run_status.json",
-    "generated/read_models/capital_hilton_business_development_proposal.json"
+    "generated/read_models/capital_hilton_business_development_proposal.json",
+    "generated/read_models/workroom_review_packet_index.json",
+    "generated/read_models/workroom_review_decision_contract.json",
+    "generated/read_models/openclaw_workroom_activity_feed.json",
+    "generated/read_models/chief_build_backlog.json"
   ],
   "speaker_ref": "chief",
   "status": "READY",
-  "target_thread_ref": "capital_hilton",
-  "target_world_ref": "finance",
-  "voice_mode": "operator_calm",
-  "voice_profile_ref": "agent_voice_profile:chief"
+  "target_thread_ref": "build_openclaw_backend",
+  "target_world_ref": "build",
+  "voice_mode": "diagnostic",
+  "voice_profile_ref": "agent_voice_profile:chief",
+  "worker_ref": "pc_codex"
 }

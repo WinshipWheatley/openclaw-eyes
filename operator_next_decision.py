@@ -27,6 +27,10 @@ DEFAULT_PERMISSION_REGISTRY_PATH = Path("generated/read_models/automation_permis
 DEFAULT_ST_ANNES_EVENTS_PATH = Path("generated/read_models/st_annes_work_log_events.json")
 DEFAULT_CAPITAL_INVOICE_STATUS_PATH = Path("generated/read_models/capital_hilton_invoice_operator_run_status.json")
 DEFAULT_CAPITAL_PROPOSAL_PATH = Path("generated/read_models/capital_hilton_business_development_proposal.json")
+DEFAULT_WORKROOM_REVIEW_PACKET_INDEX_PATH = Path("generated/read_models/workroom_review_packet_index.json")
+DEFAULT_WORKROOM_REVIEW_DECISION_CONTRACT_PATH = Path("generated/read_models/workroom_review_decision_contract.json")
+DEFAULT_WORKROOM_ACTIVITY_FEED_PATH = Path("generated/read_models/openclaw_workroom_activity_feed.json")
+DEFAULT_CHIEF_BUILD_BACKLOG_PATH = Path("generated/read_models/chief_build_backlog.json")
 DEFAULT_DECISION_PATH = Path("generated/read_models/operator_next_decision.json")
 DEFAULT_WIKI_PATH = Path("generated/wiki/openclaw/Operator Next Decision.md")
 DEFAULT_BRIDGE_ROOT = Path("/mnt/e/openclaw/generated/read_models")
@@ -78,6 +82,10 @@ SOURCE_READ_MODELS = [
     "generated/read_models/st_annes_work_log_events.json",
     "generated/read_models/capital_hilton_invoice_operator_run_status.json",
     "generated/read_models/capital_hilton_business_development_proposal.json",
+    "generated/read_models/workroom_review_packet_index.json",
+    "generated/read_models/workroom_review_decision_contract.json",
+    "generated/read_models/openclaw_workroom_activity_feed.json",
+    "generated/read_models/chief_build_backlog.json",
 ]
 
 
@@ -200,6 +208,28 @@ def _is_st_annes_card(card: Mapping[str, Any]) -> bool:
 
 def _find_card(cards: list[dict[str, Any]], card_id: str) -> dict[str, Any] | None:
     return next((card for card in cards if _card_id(card) == card_id), None)
+
+
+def _open_review_packets(packet_index: Mapping[str, Any]) -> tuple[list[dict[str, Any]], list[str]]:
+    open_packets: list[dict[str, Any]] = []
+    excluded: list[str] = []
+    for packet in packet_index.get("packets") or []:
+        if not isinstance(packet, Mapping):
+            continue
+        packet_id = str(packet.get("review_packet_id") or "")
+        status = str(packet.get("status") or packet.get("review_decision_status") or "")
+        if (
+            packet.get("operator_decision_required") is True
+            and packet.get("completed") is not True
+            and packet.get("visible_by_default") is not False
+            and status not in {"OPERATOR_REVIEW_RECORDED", "INFORMATIONAL_REVIEW_CLOSED"}
+            and packet.get("business_action_performed") is not True
+            and packet.get("git_push_performed") is not True
+        ):
+            open_packets.append(dict(packet))
+        elif packet_id:
+            excluded.append(packet_id)
+    return open_packets, sorted(set(excluded))
 
 
 def _base_decision(*, generated_at: str, excluded_items: list[str]) -> dict[str, Any]:
@@ -368,6 +398,47 @@ def _apply_workboard_decision(payload: dict[str, Any]) -> None:
     )
 
 
+def _apply_workroom_review_packet_decision(payload: dict[str, Any], packet: Mapping[str, Any]) -> None:
+    channel_ref = str(packet.get("channel_ref") or "")
+    worker_ref = str(packet.get("worker_ref") or "")
+    review_packet_id = str(packet.get("review_packet_id") or "")
+    summary = str(packet.get("human_summary") or "Review the worker output packet.")
+    proof_refs = [
+        "generated/read_models/workroom_review_packet_index.json",
+        "generated/read_models/workroom_review_decision_contract.json",
+        "generated/read_models/openclaw_workroom_activity_feed.json",
+    ]
+    proof_refs.extend(str(ref) for ref in packet.get("proof_refs") or [] if str(ref))
+    payload.update(
+        {
+            "headline": "Review Workroom packet",
+            "plain_summary": summary,
+            "speaker_ref": "chief",
+            "voice_profile_ref": "agent_voice_profile:chief",
+            "voice_mode": "diagnostic",
+            "action_label": "Open review packet",
+            "action_type": "navigate",
+            "target_world_ref": "build",
+            "target_thread_ref": channel_ref,
+            "priority": "high",
+            "proof_refs": list(dict.fromkeys(proof_refs)),
+            "review_packet_id": review_packet_id,
+            "worker_ref": worker_ref,
+            "review_packet_action_options": [
+                "approve_review_packet_for_record",
+                "request_review_packet_rework",
+                "mark_review_packet_informational",
+            ],
+            "precomputed_question_payload": {
+                "workflow_ref": "system_question_answer",
+                "question_text": f"What should I do with review packet {review_packet_id}?",
+                "target_world_ref": "build",
+                "target_thread_ref": channel_ref,
+            },
+        }
+    )
+
+
 def choose_next_decision(
     *,
     actionability_surface: Mapping[str, Any],
@@ -380,6 +451,10 @@ def choose_next_decision(
     st_annes_events: Mapping[str, Any] | None = None,
     capital_hilton_invoice_status: Mapping[str, Any] | None = None,
     capital_hilton_proposal: Mapping[str, Any] | None = None,
+    workroom_review_packet_index: Mapping[str, Any] | None = None,
+    workroom_review_decision_contract: Mapping[str, Any] | None = None,
+    openclaw_workroom_activity_feed: Mapping[str, Any] | None = None,
+    chief_build_backlog: Mapping[str, Any] | None = None,
     generated_at: str | None = None,
 ) -> dict[str, Any]:
     del overnight_workboard
@@ -389,15 +464,22 @@ def choose_next_decision(
     del automation_permission_registry
     del capital_hilton_invoice_status
     del capital_hilton_proposal
+    del workroom_review_decision_contract
+    del openclaw_workroom_activity_feed
+    del chief_build_backlog
 
     generated_at = generated_at or utc_now()
     active_cards, excluded_items = _active_safe_cards(actionability_surface, lifecycle_status)
+    open_review_packets, excluded_review_packets = _open_review_packets(workroom_review_packet_index or {})
+    excluded_items = sorted(set(excluded_items + excluded_review_packets))
     payload = _base_decision(generated_at=generated_at, excluded_items=excluded_items)
     st_annes_events = st_annes_events or {}
 
     st_annes_card = next((card for card in active_cards if _is_st_annes_card(card)), None)
     if st_annes_card is not None and _has_pending_st_annes_event(st_annes_events):
         _apply_st_annes_decision(payload)
+    elif open_review_packets:
+        _apply_workroom_review_packet_decision(payload, open_review_packets[0])
     elif _find_card(active_cards, "capital_hilton_payment_watch") is not None:
         _apply_capital_payment_decision(payload)
     elif _find_card(active_cards, "capital_hilton_proposal_watch") is not None:
@@ -407,6 +489,7 @@ def choose_next_decision(
 
     payload["resolved_action_refs"] = sorted(_resolved_card_ids(lifecycle_status))
     payload["active_action_count_considered"] = len(active_cards)
+    payload["open_review_packet_count_considered"] = len(open_review_packets)
     payload["business_action"] = False
     payload["authority_boundary"] = dict(AUTHORITY_BOUNDARY)
     return payload
@@ -424,6 +507,10 @@ def write_outputs(
     st_annes_events_path: Path = DEFAULT_ST_ANNES_EVENTS_PATH,
     capital_invoice_status_path: Path = DEFAULT_CAPITAL_INVOICE_STATUS_PATH,
     capital_proposal_path: Path = DEFAULT_CAPITAL_PROPOSAL_PATH,
+    workroom_review_packet_index_path: Path = DEFAULT_WORKROOM_REVIEW_PACKET_INDEX_PATH,
+    workroom_review_decision_contract_path: Path = DEFAULT_WORKROOM_REVIEW_DECISION_CONTRACT_PATH,
+    openclaw_workroom_activity_feed_path: Path = DEFAULT_WORKROOM_ACTIVITY_FEED_PATH,
+    chief_build_backlog_path: Path = DEFAULT_CHIEF_BUILD_BACKLOG_PATH,
     decision_path: Path = DEFAULT_DECISION_PATH,
     wiki_path: Path = DEFAULT_WIKI_PATH,
     bridge_root: Path | None = DEFAULT_BRIDGE_ROOT,
@@ -440,6 +527,10 @@ def write_outputs(
         st_annes_events=_read_json(st_annes_events_path),
         capital_hilton_invoice_status=_read_json(capital_invoice_status_path),
         capital_hilton_proposal=_read_json(capital_proposal_path),
+        workroom_review_packet_index=_read_json(workroom_review_packet_index_path),
+        workroom_review_decision_contract=_read_json(workroom_review_decision_contract_path),
+        openclaw_workroom_activity_feed=_read_json(openclaw_workroom_activity_feed_path),
+        chief_build_backlog=_read_json(chief_build_backlog_path),
         generated_at=generated_at,
     )
 

@@ -59,6 +59,43 @@ def _workboard() -> dict:
     return {"status": "READY_FOR_OPERATOR_REVIEW"}
 
 
+def _review_packet_index(*, open_packet: bool = True) -> dict:
+    packets = []
+    if open_packet:
+        packets.append(
+            {
+                "review_packet_id": "review_packet:pc_ready",
+                "package_id": "pkg:example:backend_registry_patch",
+                "worker_ref": "pc_codex",
+                "channel_ref": "build_openclaw_backend",
+                "status": "REVIEW_PACKET_READY",
+                "human_summary": "PC_CODEX changed backend code and returned local validation proof for operator review.",
+                "operator_decision_required": True,
+                "visible_by_default": True,
+                "completed": False,
+                "business_action_performed": False,
+                "git_push_performed": False,
+                "proof_refs": ["generated/read_models/spawned_worker_package_lifecycle.json#pc_backend_package_review"],
+            }
+        )
+    packets.append(
+        {
+            "review_packet_id": "review_packet:mac_done",
+            "package_id": "pkg:example:mission_control_ui_patch",
+            "worker_ref": "mac_codex",
+            "channel_ref": "build_mission_control_mac",
+            "status": "OPERATOR_REVIEW_RECORDED",
+            "human_summary": "MAC_CODEX returned UI work with screenshot proof for operator review.",
+            "operator_decision_required": False,
+            "visible_by_default": False,
+            "completed": True,
+            "business_action_performed": False,
+            "git_push_performed": False,
+        }
+    )
+    return {"status": "WORKROOM_REVIEW_PACKET_INDEX_READY", "packets": packets}
+
+
 def test_unresolved_st_annes_review_becomes_next_decision():
     payload = decision.choose_next_decision(
         actionability_surface=_surface([_st_annes_card(), _capital_payment_card()]),
@@ -73,6 +110,44 @@ def test_unresolved_st_annes_review_becomes_next_decision():
     assert payload["target_world_ref"] == "finance"
     assert payload["target_thread_ref"] == "st_annes"
     assert payload["action_type"] == "review_event"
+
+
+def test_workroom_review_packet_can_become_next_decision():
+    payload = decision.choose_next_decision(
+        actionability_surface=_surface([_capital_payment_card()]),
+        lifecycle_status={"resolved_actions": []},
+        overnight_workboard=_workboard(),
+        st_annes_events={"staged_events": []},
+        workroom_review_packet_index=_review_packet_index(open_packet=True),
+    )
+
+    assert payload["headline"] == "Review Workroom packet"
+    assert payload["plain_summary"] == "PC_CODEX changed backend code and returned local validation proof for operator review."
+    assert payload["action_label"] == "Open review packet"
+    assert payload["target_world_ref"] == "build"
+    assert payload["target_thread_ref"] == "build_openclaw_backend"
+    assert payload["review_packet_id"] == "review_packet:pc_ready"
+    assert payload["business_action"] is False
+    assert "review_packet:mac_done" in payload["excluded_items"]
+    assert payload["review_packet_action_options"] == [
+        "approve_review_packet_for_record",
+        "request_review_packet_rework",
+        "mark_review_packet_informational",
+    ]
+
+
+def test_completed_review_packets_do_not_displace_capital_watch():
+    payload = decision.choose_next_decision(
+        actionability_surface=_surface([_capital_payment_card()]),
+        lifecycle_status={"resolved_actions": []},
+        overnight_workboard=_workboard(),
+        st_annes_events={"staged_events": []},
+        workroom_review_packet_index=_review_packet_index(open_packet=False),
+    )
+
+    assert payload["headline"] == "Watch Capital Hilton payment"
+    assert payload["action_label"] == "Open Capital Hilton"
+    assert "review_packet:mac_done" in payload["excluded_items"]
 
 
 def test_resolved_test_event_is_excluded_and_capital_payment_watch_can_win():
