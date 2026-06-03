@@ -47,6 +47,7 @@ def _fixture_read_model_root(tmp_path: Path) -> Path:
         _db("/home/openclaw/generated/system_knowledge/openclaw_change_sentinel.sqlite", "generated_status", "system_health", "medium", True),
         _db("/home/openclaw/generated/system_knowledge/package_event_index.sqlite", "generated_evidence", "package_event_index", "high", True),
         _db("/home/openclaw/generated/system_knowledge/st_annes_monthly_work_log.sqlite", "generated_evidence", "invoice_operations", "medium", True),
+        _db("/home/openclaw/generated/system_knowledge/dry_run_warmup.sqlite", "generated_evidence", "system_health", "medium"),
         _db("/home/openclaw/generated/system_knowledge/workflow_package_queue.sqlite", "canonical_workflow_state", "workflow_package_queue", "low"),
         _db("/home/openclaw/generated/system_knowledge/operator_conversation_journal.sqlite", "canonical_workflow_state", "operator_conversation", "medium"),
     ]
@@ -149,12 +150,14 @@ def test_plan_builds_ready_no_touch_and_keep_isolated_sections(tmp_path):
     read_model = plan.build_read_model(read_model_root=root, generated_at=FIXED_NOW)
 
     assert read_model["status"] == plan.PLAN_STATUS
-    assert _bucket(read_model, "do_not_touch_databases", "business_ledger")["count"] == 1
+    assert _bucket(read_model, "do_not_touch_databases", "protected_business_ledger")["count"] == 1
     assert _bucket(read_model, "do_not_touch_databases", "legacy_archives")["count"] == 1
     assert _bucket(read_model, "do_not_touch_databases", "unknown_needs_review")["count"] == 1
     assert _bucket(read_model, "do_not_touch_databases", "protected_evidence")["count"] == 1
+    assert _bucket(read_model, "do_not_touch_databases", "token_secret_credential_stores")["count"] == 1
     assert _bucket(read_model, "keep_isolated_databases", "test_harness")["count"] == 1
-    assert _bucket(read_model, "keep_isolated_databases", "generated_proof_status_dbs")["count"] == 3
+    assert _bucket(read_model, "keep_isolated_databases", "generated_proof_status_dbs")["count"] == 4
+    assert _bucket(read_model, "keep_isolated_databases", "dry_run_warmup_dbs")["count"] == 1
 
 
 def test_candidates_first_move_and_never_rules_are_present(tmp_path):
@@ -170,9 +173,12 @@ def test_candidates_first_move_and_never_rules_are_present(tmp_path):
     } == candidate_refs
     assert read_model["recommended_first_low_risk_move"]["move_ref"] == "read_only_views_and_indexes_overlay"
     assert read_model["recommended_first_low_risk_move"]["write_allowed_now"] is False
+    assert "package_event_index" in read_model["recommended_first_low_risk_move"]["summary"]
+    assert "Do not alter ledger." in read_model["recommended_first_low_risk_move"]["notes"]
     assert "Never consolidate ledger into package DB." in read_model["never_consolidate"]
     assert "Never consolidate secrets/tokens into read models." in read_model["never_consolidate"]
     assert "Never consolidate raw prompt bodies into operator journal." in read_model["never_consolidate"]
+    assert "Never consolidate test harness into canonical state." in read_model["never_consolidate"]
 
 
 def test_migration_requirements_include_all_required_gates(tmp_path):
@@ -184,10 +190,16 @@ def test_migration_requirements_include_all_required_gates(tmp_path):
         for item in read_model["migration_requirements_before_any_consolidation"]
     }
     assert set(plan.MIGRATION_REQUIREMENTS) == requirement_refs
+    assert "checksum_or_sample_row_proof" in requirement_refs
+    assert "focused_tests" in requirement_refs
     assert all(
         item["required_before_consolidation"] == "yes"
         for item in read_model["migration_requirements_before_any_consolidation"]
     )
+    assert read_model["unknown_db_policy"]["classification"] == "unknown_needs_review"
+    assert read_model["unknown_db_policy"]["delete_allowed"] is False
+    assert read_model["unknown_db_policy"]["migration_allowed"] is False
+    assert read_model["unknown_db_policy"]["required_next_packet"] == "classification_packet_later"
 
 
 def test_missing_precondition_marks_not_ready(tmp_path):

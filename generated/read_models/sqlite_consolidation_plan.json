@@ -51,6 +51,7 @@
   "canonical_domain_refs": [
     "package_queue",
     "request_response",
+    "package_event_index",
     "conversation_journal",
     "st_annes_work_log",
     "st_annes_invoice_status",
@@ -75,7 +76,7 @@
       "candidate_ref": "package_queue_event_concepts",
       "concept": "Package queue package/gate/event concepts",
       "migration_allowed_now": false,
-      "recommended_plan": "Create a read-only package_event_overlay view/index plan over package queue and package event index refs; do not migrate rows.",
+      "recommended_plan": "Create a read-only package_event_overlay view/index plan over package queue and package_event_index refs; do not migrate source DB rows.",
       "risk": "medium",
       "source_refs": [
         "generated/read_models/workflow_package_queue_contract.json",
@@ -135,9 +136,9 @@
         "operator_confirmation_for_invoice_inclusion"
       ],
       "candidate_ref": "work_log_staging_if_safe",
-      "concept": "St. Anne's work-log staging concepts",
+      "concept": "St. Anne's work-log staging indexes if safe",
       "migration_allowed_now": false,
-      "recommended_plan": "Keep staged work logs isolated until operator confirmation; future overlay may expose package/work-log refs without workbook mutation.",
+      "recommended_plan": "Keep staged work logs isolated until operator confirmation; future overlay may expose package/work-log staging indexes without workbook mutation.",
       "risk": "medium",
       "source_refs": [
         "generated/read_models/st_annes_work_log_events.json",
@@ -151,7 +152,7 @@
   ],
   "do_not_touch_databases": [
     {
-      "category": "business_ledger",
+      "category": "protected_business_ledger",
       "count": 438,
       "databases": [
         {
@@ -540,9 +541,47 @@
       ],
       "policy": "do_not_touch",
       "reason": "Privacy/protected evidence such as token vaults must never enter read-model consolidation."
+    },
+    {
+      "category": "token_secret_credential_stores",
+      "count": 3,
+      "databases": [
+        {
+          "canonical_truth_allowed": true,
+          "classification": "canonical_workflow_state",
+          "consolidation_candidate": false,
+          "consolidation_risk": "forbidden",
+          "db_ref": "sqlite_db:sha256:3dd6aed999a0be61",
+          "owner_lane": "privacy",
+          "path": "/home/openclaw/.openclaw/privacy/token_vault.sqlite",
+          "reason": "token/secret/credential/vault store"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "protected_business_ledger",
+          "consolidation_candidate": false,
+          "consolidation_risk": "forbidden",
+          "db_ref": "sqlite_db:sha256:6fbd81c601b77da1",
+          "owner_lane": "business_ops",
+          "path": "/home/openclaw/.openclaw/tmp/pytest-threshold-map-final/test_credential_bearing_values0/ledger.sqlite",
+          "reason": "token/secret/credential/vault store"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "protected_business_ledger",
+          "consolidation_candidate": false,
+          "consolidation_risk": "forbidden",
+          "db_ref": "sqlite_db:sha256:5af1279ab283d603",
+          "owner_lane": "business_ops",
+          "path": "/home/openclaw/.openclaw/tmp/pytest-threshold-map-focused/test_credential_bearing_values0/ledger.sqlite",
+          "reason": "token/secret/credential/vault store"
+        }
+      ],
+      "policy": "do_not_touch",
+      "reason": "Token, secret, credential, and vault stores must not enter read-model or workflow consolidation."
     }
   ],
-  "generated_at": "2026-06-03T02:13:54+00:00",
+  "generated_at": "2026-06-03T02:55:19+00:00",
   "keep_isolated_databases": [
     {
       "category": "test_harness",
@@ -1087,6 +1126,34 @@
       ],
       "policy": "keep_isolated",
       "reason": "One-off proof/read-model databases should stay as source evidence, not merged into canonical workflow state."
+    },
+    {
+      "category": "dry_run_warmup_dbs",
+      "count": 2,
+      "databases": [
+        {
+          "canonical_truth_allowed": false,
+          "classification": "test_harness",
+          "consolidation_candidate": false,
+          "consolidation_risk": "high",
+          "db_ref": "sqlite_db:sha256:01757bbee31e2808",
+          "owner_lane": "test_harness",
+          "path": "/home/openclaw/.openclaw/test_harness/automation_package_warmup.sqlite",
+          "reason": "dry-run/warmup/smoke database"
+        },
+        {
+          "canonical_truth_allowed": false,
+          "classification": "test_harness",
+          "consolidation_candidate": false,
+          "consolidation_risk": "medium",
+          "db_ref": "sqlite_db:sha256:ab0ea3af2ac73adc",
+          "owner_lane": "test_harness",
+          "path": "/home/openclaw/.openclaw/test_harness/reality_bounce_shadow_smoke.sqlite",
+          "reason": "dry-run/warmup/smoke database"
+        }
+      ],
+      "policy": "keep_isolated",
+      "reason": "Dry-run, smoke, and warmup databases are validation artifacts, not canonical state."
     }
   ],
   "machine_proof": {
@@ -1119,9 +1186,14 @@
       "requirement_ref": "schema_diff"
     },
     {
-      "description": "Record pre/post row counts and checksums for every affected table.",
+      "description": "Record pre/post row counts for every affected table.",
       "required_before_consolidation": "yes",
       "requirement_ref": "row_count_proof"
+    },
+    {
+      "description": "Record checksums or sample-row proof for every affected table before and after any future write.",
+      "required_before_consolidation": "yes",
+      "requirement_ref": "checksum_or_sample_row_proof"
     },
     {
       "description": "Document exact rollback steps and owners before changes.",
@@ -1131,7 +1203,7 @@
     {
       "description": "Add focused tests for joins, refs, permissions, and forbidden state mixing.",
       "required_before_consolidation": "yes",
-      "requirement_ref": "test_coverage"
+      "requirement_ref": "focused_tests"
     },
     {
       "description": "Prove protected ledger databases are excluded from package/agent/read-model stores.",
@@ -1148,7 +1220,8 @@
   "never_consolidate": [
     "Never consolidate ledger into package DB.",
     "Never consolidate secrets/tokens into read models.",
-    "Never consolidate raw prompt bodies into operator journal."
+    "Never consolidate raw prompt bodies into operator journal.",
+    "Never consolidate test harness into canonical state."
   ],
   "preconditions": [
     {
@@ -1172,11 +1245,14 @@
     "move_ref": "read_only_views_and_indexes_overlay",
     "notes": [
       "This task does not create the views or indexes.",
+      "Do not migrate source DBs.",
+      "Do not alter ledger.",
+      "Use package_event_index as the cross-reference layer between package queue, request/response, and operator conversation refs.",
       "If indexes/views are written inside existing databases later, that still requires operator approval.",
       "A detached generated overlay/read-model is lower risk than altering canonical source databases."
     ],
     "plan_only": true,
-    "summary": "Create views/indexes over existing package/event/journal refs, not a data migration.",
+    "summary": "Create views/indexes over existing package/event/journal refs, not a data migration; use package_event_index as the cross-reference layer.",
     "write_allowed_now": false
   },
   "registry_summary": {
@@ -1221,5 +1297,19 @@
       "status": "SQLITE_GOVERNANCE_REGISTRY_READY"
     }
   },
-  "status": "SQLITE_CONSOLIDATION_PLAN_READY"
+  "status": "SQLITE_CONSOLIDATION_PLAN_READY",
+  "unknown_db_policy": {
+    "classification": "unknown_needs_review",
+    "delete_allowed": false,
+    "migration_allowed": false,
+    "notes": [
+      "Unknown DBs stay read-only.",
+      "No deletion.",
+      "No migration.",
+      "Require a classification packet before any future consolidation decision."
+    ],
+    "policy": "read_only_review_required",
+    "required_next_packet": "classification_packet_later",
+    "writable_by_automation": false
+  }
 }

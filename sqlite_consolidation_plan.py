@@ -61,8 +61,9 @@ MIGRATION_REQUIREMENTS = (
     "backup",
     "schema_diff",
     "row_count_proof",
+    "checksum_or_sample_row_proof",
     "rollback_plan",
-    "test_coverage",
+    "focused_tests",
     "no_business_ledger_mixing",
     "operator_approval",
 )
@@ -71,6 +72,7 @@ NEVER_CONSOLIDATE_RULES = (
     "Never consolidate ledger into package DB.",
     "Never consolidate secrets/tokens into read models.",
     "Never consolidate raw prompt bodies into operator journal.",
+    "Never consolidate test harness into canonical state.",
 )
 
 
@@ -163,6 +165,13 @@ def build_do_not_touch(databases: list[Mapping[str, Any]]) -> list[dict[str, Any
     protected_ledgers = _matching(databases, lambda item: item.get("classification") == "protected_business_ledger")
     legacy_archives = _matching(databases, lambda item: item.get("classification") == "legacy_archive")
     unknown = _matching(databases, lambda item: item.get("classification") == "unknown_needs_review")
+    token_secret_credential_stores = _matching(
+        databases,
+        lambda item: any(
+            term in f"{item.get('path') or ''} {item.get('purpose') or ''} {item.get('owner_lane') or ''}".lower()
+            for term in ("token", "secret", "credential", "vault")
+        ),
+    )
     protected_evidence = _matching(
         databases,
         lambda item: item.get("owner_lane") == "privacy"
@@ -171,7 +180,7 @@ def build_do_not_touch(databases: list[Mapping[str, Any]]) -> list[dict[str, Any
     )
     return [
         {
-            "category": "business_ledger",
+            "category": "protected_business_ledger",
             "policy": "do_not_touch",
             "reason": "Business ledger and ledger-shaped databases are protected; consolidation risk is forbidden.",
             "count": len(protected_ledgers),
@@ -198,6 +207,13 @@ def build_do_not_touch(databases: list[Mapping[str, Any]]) -> list[dict[str, Any
             "count": len(protected_evidence),
             "databases": _with_reason(protected_evidence, "protected evidence or token/privacy store", limit=25),
         },
+        {
+            "category": "token_secret_credential_stores",
+            "policy": "do_not_touch",
+            "reason": "Token, secret, credential, and vault stores must not enter read-model or workflow consolidation.",
+            "count": len(token_secret_credential_stores),
+            "databases": _with_reason(token_secret_credential_stores, "token/secret/credential/vault store", limit=25),
+        },
     ]
 
 
@@ -205,6 +221,13 @@ def build_keep_isolated(databases: list[Mapping[str, Any]]) -> list[dict[str, An
     test_harness = _matching(databases, lambda item: item.get("classification") == "test_harness")
     generated_status = _matching(databases, lambda item: item.get("classification") == "generated_status")
     generated_proof = _matching(databases, lambda item: item.get("classification") == "generated_evidence")
+    dry_run_warmup = _matching(
+        databases,
+        lambda item: any(
+            term in f"{item.get('path') or ''} {item.get('purpose') or ''}".lower()
+            for term in ("dry_run", "dry-run", "warmup", "smoke")
+        ),
+    )
     one_off = [
         item
         for item in generated_proof
@@ -232,6 +255,13 @@ def build_keep_isolated(databases: list[Mapping[str, Any]]) -> list[dict[str, An
             "reason": "One-off proof/read-model databases should stay as source evidence, not merged into canonical workflow state.",
             "count": len(one_off),
             "databases": _with_reason(one_off, "one-off read-model/proof database", limit=30),
+        },
+        {
+            "category": "dry_run_warmup_dbs",
+            "policy": "keep_isolated",
+            "reason": "Dry-run, smoke, and warmup databases are validation artifacts, not canonical state.",
+            "count": len(dry_run_warmup),
+            "databases": _with_reason(dry_run_warmup, "dry-run/warmup/smoke database", limit=30),
         },
     ]
 
@@ -286,7 +316,7 @@ def build_consolidation_candidates(
             "package_queue_event_concepts",
             "Package queue package/gate/event concepts",
             [str(package_ref), "generated/read_models/package_event_index.json", workflow_sqlite],
-            "Create a read-only package_event_overlay view/index plan over package queue and package event index refs; do not migrate rows.",
+            "Create a read-only package_event_overlay view/index plan over package queue and package_event_index refs; do not migrate source DB rows.",
             "medium",
             common_blockers,
         ),
@@ -308,9 +338,9 @@ def build_consolidation_candidates(
         ),
         _candidate(
             "work_log_staging_if_safe",
-            "St. Anne's work-log staging concepts",
+            "St. Anne's work-log staging indexes if safe",
             [str(work_log_ref), *by_owner.get("invoice_operations", [])],
-            "Keep staged work logs isolated until operator confirmation; future overlay may expose package/work-log refs without workbook mutation.",
+            "Keep staged work logs isolated until operator confirmation; future overlay may expose package/work-log staging indexes without workbook mutation.",
             "medium",
             [*common_blockers, "operator_confirmation_for_invoice_inclusion"],
         ),
@@ -321,9 +351,10 @@ def build_migration_requirements() -> list[dict[str, str]]:
     descriptions = {
         "backup": "Create verified backups of every source database before any future write.",
         "schema_diff": "Compare schemas and table contracts before creating any overlay or migration target.",
-        "row_count_proof": "Record pre/post row counts and checksums for every affected table.",
+        "row_count_proof": "Record pre/post row counts for every affected table.",
+        "checksum_or_sample_row_proof": "Record checksums or sample-row proof for every affected table before and after any future write.",
         "rollback_plan": "Document exact rollback steps and owners before changes.",
-        "test_coverage": "Add focused tests for joins, refs, permissions, and forbidden state mixing.",
+        "focused_tests": "Add focused tests for joins, refs, permissions, and forbidden state mixing.",
         "no_business_ledger_mixing": "Prove protected ledger databases are excluded from package/agent/read-model stores.",
         "operator_approval": "Require explicit operator approval for any database write, index, view, migration, move, or delete.",
     }
@@ -397,17 +428,34 @@ def build_read_model(*, read_model_root: Path = DEFAULT_READ_MODEL_ROOT, generat
         "consolidation_candidates": candidates,
         "recommended_first_low_risk_move": {
             "move_ref": "read_only_views_and_indexes_overlay",
-            "summary": "Create views/indexes over existing package/event/journal refs, not a data migration.",
+            "summary": "Create views/indexes over existing package/event/journal refs, not a data migration; use package_event_index as the cross-reference layer.",
             "plan_only": True,
             "write_allowed_now": False,
             "notes": [
                 "This task does not create the views or indexes.",
+                "Do not migrate source DBs.",
+                "Do not alter ledger.",
+                "Use package_event_index as the cross-reference layer between package queue, request/response, and operator conversation refs.",
                 "If indexes/views are written inside existing databases later, that still requires operator approval.",
                 "A detached generated overlay/read-model is lower risk than altering canonical source databases.",
             ],
         },
         "migration_requirements_before_any_consolidation": build_migration_requirements(),
         "never_consolidate": list(NEVER_CONSOLIDATE_RULES),
+        "unknown_db_policy": {
+            "classification": "unknown_needs_review",
+            "policy": "read_only_review_required",
+            "writable_by_automation": False,
+            "delete_allowed": False,
+            "migration_allowed": False,
+            "required_next_packet": "classification_packet_later",
+            "notes": [
+                "Unknown DBs stay read-only.",
+                "No deletion.",
+                "No migration.",
+                "Require a classification packet before any future consolidation decision.",
+            ],
+        },
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
         "machine_proof": {
             "plan_only": True,
