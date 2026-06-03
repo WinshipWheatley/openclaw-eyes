@@ -134,6 +134,7 @@
 !openclaw_event_bridge_adapter.py
 !workflow_package_queue.py
 !workflow_package_request_consumer.py
+!sqlite_governance_registry.py
 !st_annes_work_log_intake.py
 !st_annes_work_log_review.py
 !simple_invoice_workflow_fixtures.py
@@ -1020,6 +1021,7 @@
 !tests/test_openclaw_event_bridge_adapter.py
 !tests/test_workflow_package_queue.py
 !tests/test_workflow_package_request_consumer.py
+!tests/test_sqlite_governance_registry.py
 !tests/test_st_annes_work_log_intake.py
 !tests/test_st_annes_work_log_review.py
 !tests/test_simple_invoice_event_bridge_rail_registry.py
@@ -1084,6 +1086,7 @@
 !generated/system_knowledge/st_annes_invoice_status_SCHEMA.sql
 !generated/system_knowledge/st_annes_invoice_status_SEED.sql
 !generated/system_knowledge/st_annes_monthly_work_log.sqlite
+!generated/system_knowledge/sqlite_governance_registry.sqlite
 !generated/external_registries/
 !generated/external_registries/openclaw-eyes/
 !generated/external_registries/openclaw-eyes/openclaw_system_knowledge_registry.json
