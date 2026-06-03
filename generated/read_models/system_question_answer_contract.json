@@ -209,7 +209,7 @@
           "SQLite metadata path: /home/openclaw/generated/system_knowledge/st_annes_monthly_work_log.sqlite",
           "SQLite exists: True",
           "SQLite tables visible: st_annes_month_rollup_fixture, st_annes_work_log_contract, st_annes_work_log_events, st_annes_work_log_fixture_events, st_annes_work_log_hygiene_actions, st_annes_work_log_intake_results, st_annes_work_log_review_actions",
-          "SQLite table counts: {\"st_annes_month_rollup_fixture\": 1, \"st_annes_work_log_contract\": 1, \"st_annes_work_log_events\": 1, \"st_annes_work_log_fixture_events\": 4, \"st_annes_work_log_hygiene_actions\": 1, \"st_annes_work_log_intake_results\": 1, \"st_annes_work_log_review_actions\": 1}",
+          "SQLite table counts: {\"st_annes_month_rollup_fixture\": 1, \"st_annes_work_log_contract\": 1, \"st_annes_work_log_events\": 1, \"st_annes_work_log_fixture_events\": 4, \"st_annes_work_log_hygiene_actions\": 1, \"st_annes_work_log_intake_results\": 1, \"st_annes_work_log_review_actions\": 2}",
           "Work-log read model event_count: 1"
         ],
         "headline": "SQLite has work-log metadata",
@@ -315,9 +315,343 @@
       "voice_mode": "operator_calm",
       "voice_profile_ref": "agent_voice_profile:openclaw",
       "workflow_ref": "system_question_answer"
+    },
+    {
+      "answer": {
+        "confirmed": [
+          "The SQLite governance registry currently classifies 654 databases.",
+          "Classification counts: canonical_workflow_state=3, generated_evidence=15, generated_status=2, test_harness=186, protected_business_ledger=438, unknown_needs_review=10.",
+          "Protected ledger entries: 438; unknown review entries: 10.",
+          "The canonical state map explains which read model owns each truth domain."
+        ],
+        "headline": "SQLite databases are classified by ownership",
+        "inferred": [
+          "Most entries are not consolidation targets; many are ledgers, test harnesses, generated proof/status stores, or review-only unknowns."
+        ],
+        "next_safe_action": "Ask for one domain, such as package truth, work logs, ledger, or cleanup posture.",
+        "plain_summary": "The governance registry groups the databases by truth role instead of dumping rows.",
+        "proof_refs": [
+          "generated/read_models/sqlite_governance_registry.json",
+          "generated/read_models/canonical_state_map.json",
+          "generated/read_models/sqlite_consolidation_plan.json",
+          "generated/read_models/agentic_chain_inspector.json"
+        ],
+        "show_machine_details_by_default": false,
+        "unknown": []
+      },
+      "authority_boundary": {
+        "browser_access_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "gmail_allowed": false,
+        "ledger_posting_allowed": false,
+        "paid": false,
+        "portal_submit_allowed": false,
+        "sent": false
+      },
+      "machine_proof": {
+        "browser_access_performed": false,
+        "child_agent_spawned": false,
+        "coupa_access_performed": false,
+        "email_send_performed": false,
+        "external_llm_called": false,
+        "gmail_access_performed": false,
+        "ledger_mutation_performed": false,
+        "live_execution_performed": false,
+        "local_only": true,
+        "paid_marking_performed": false,
+        "pdf_export_performed": false,
+        "submit_performed": false,
+        "unsafe_true_grants_absent": true,
+        "workbook_mutation_performed": false
+      },
+      "privacy_impact": "local_only",
+      "question": "What are all these databases?",
+      "speaker_ref": "chief",
+      "voice_mode": "diagnostic",
+      "voice_profile_ref": "agent_voice_profile:chief",
+      "workflow_ref": "system_question_answer"
+    },
+    {
+      "answer": {
+        "confirmed": [
+          "Canonical state map source: generated/read_models/workflow_package_queue_contract.json.",
+          "SQLite governance owner lane: workflow_package_queue at /home/openclaw/generated/system_knowledge/workflow_package_queue.sqlite.",
+          "Package status truth comes from package queue / package event index."
+        ],
+        "headline": "Package truth lives in the package queue",
+        "inferred": [
+          "Mission Control should cite package queue status first, then use package_event_index for response and proof linkage."
+        ],
+        "next_safe_action": "Use the package id or workflow_ref to inspect local package proof; do not mutate package rows from an answer.",
+        "plain_summary": "Package status truth comes from the workflow package queue, with the package event index as the request/response index.",
+        "proof_refs": [
+          "generated/read_models/canonical_state_map.json",
+          "generated/read_models/sqlite_governance_registry.json",
+          "generated/read_models/workflow_package_queue_contract.json",
+          "generated/read_models/package_event_index.json",
+          "/home/openclaw/generated/system_knowledge/workflow_package_queue.sqlite"
+        ],
+        "show_machine_details_by_default": false,
+        "unknown": []
+      },
+      "authority_boundary": {
+        "browser_access_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "gmail_allowed": false,
+        "ledger_posting_allowed": false,
+        "paid": false,
+        "portal_submit_allowed": false,
+        "sent": false
+      },
+      "machine_proof": {
+        "browser_access_performed": false,
+        "child_agent_spawned": false,
+        "coupa_access_performed": false,
+        "email_send_performed": false,
+        "external_llm_called": false,
+        "gmail_access_performed": false,
+        "ledger_mutation_performed": false,
+        "live_execution_performed": false,
+        "local_only": true,
+        "paid_marking_performed": false,
+        "pdf_export_performed": false,
+        "submit_performed": false,
+        "unsafe_true_grants_absent": true,
+        "workbook_mutation_performed": false
+      },
+      "privacy_impact": "local_only",
+      "question": "Which database owns package truth?",
+      "speaker_ref": "chief",
+      "voice_mode": "diagnostic",
+      "voice_profile_ref": "agent_voice_profile:chief",
+      "workflow_ref": "system_question_answer"
+    },
+    {
+      "answer": {
+        "confirmed": [
+          "Canonical state map source: generated/read_models/st_annes_work_log_events.json.",
+          "St Anne's work-log SQLite staging database: /home/openclaw/generated/system_knowledge/st_annes_monthly_work_log.sqlite.",
+          "St Anne's staged work logs do not become invoice truth until operator confirmation."
+        ],
+        "headline": "St Anne's work-log truth has a local owner",
+        "inferred": [
+          "Use the read model for plain answers and the SQLite metadata as proof that staging tables exist."
+        ],
+        "next_safe_action": "Ask for confirmed versus staged work-log status; do not mutate workbook cells or invoice inclusion from this answer.",
+        "plain_summary": "Operator-facing St Anne's work-log truth comes from the work-log read model, backed by the local staging SQLite database.",
+        "proof_refs": [
+          "generated/read_models/canonical_state_map.json",
+          "generated/read_models/sqlite_governance_registry.json",
+          "generated/read_models/st_annes_work_log_events.json",
+          "generated/read_models/st_annes_monthly_work_log_contract.json",
+          "/home/openclaw/generated/system_knowledge/st_annes_monthly_work_log.sqlite"
+        ],
+        "show_machine_details_by_default": false,
+        "unknown": []
+      },
+      "authority_boundary": {
+        "browser_access_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "gmail_allowed": false,
+        "ledger_posting_allowed": false,
+        "paid": false,
+        "portal_submit_allowed": false,
+        "sent": false
+      },
+      "machine_proof": {
+        "browser_access_performed": false,
+        "child_agent_spawned": false,
+        "coupa_access_performed": false,
+        "email_send_performed": false,
+        "external_llm_called": false,
+        "gmail_access_performed": false,
+        "ledger_mutation_performed": false,
+        "live_execution_performed": false,
+        "local_only": true,
+        "paid_marking_performed": false,
+        "pdf_export_performed": false,
+        "submit_performed": false,
+        "unsafe_true_grants_absent": true,
+        "workbook_mutation_performed": false
+      },
+      "privacy_impact": "local_only",
+      "question": "Which database owns St. Anne's work logs?",
+      "speaker_ref": "chief",
+      "voice_mode": "diagnostic",
+      "voice_profile_ref": "agent_voice_profile:chief",
+      "workflow_ref": "system_question_answer"
+    },
+    {
+      "answer": {
+        "confirmed": [
+          "The current consolidation plan status is plan-only and migration_allowed_now=false for each candidate.",
+          "First low-risk move: Create views/indexes over existing package/event/journal refs, not a data migration.",
+          "Required before any consolidation: backup, schema_diff, row_count_proof, rollback_plan, test_coverage, no_business_ledger_mixing, operator_approval."
+        ],
+        "headline": "SQLite consolidation is plan-only",
+        "inferred": [
+          "A generated overlay/read model is safer than altering canonical workflow databases."
+        ],
+        "next_safe_action": "Review the plan and create a non-mutating overlay design; do not create views, indexes, or migrations yet.",
+        "plain_summary": "Do not consolidate yet; the safe first move is a read-only views/indexes overlay, not migration.",
+        "proof_refs": [
+          "generated/read_models/sqlite_consolidation_plan.json",
+          "generated/read_models/sqlite_governance_registry.json",
+          "generated/read_models/canonical_state_map.json"
+        ],
+        "show_machine_details_by_default": false,
+        "unknown": []
+      },
+      "authority_boundary": {
+        "browser_access_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "gmail_allowed": false,
+        "ledger_posting_allowed": false,
+        "paid": false,
+        "portal_submit_allowed": false,
+        "sent": false
+      },
+      "machine_proof": {
+        "browser_access_performed": false,
+        "child_agent_spawned": false,
+        "coupa_access_performed": false,
+        "email_send_performed": false,
+        "external_llm_called": false,
+        "gmail_access_performed": false,
+        "ledger_mutation_performed": false,
+        "live_execution_performed": false,
+        "local_only": true,
+        "paid_marking_performed": false,
+        "pdf_export_performed": false,
+        "submit_performed": false,
+        "unsafe_true_grants_absent": true,
+        "workbook_mutation_performed": false
+      },
+      "privacy_impact": "local_only",
+      "question": "Can we consolidate SQLite?",
+      "speaker_ref": "hermes",
+      "voice_mode": "recommendation",
+      "voice_profile_ref": "agent_voice_profile:hermes",
+      "workflow_ref": "system_question_answer"
+    },
+    {
+      "answer": {
+        "confirmed": [
+          "SQLite governance marks 438 ledger-shaped entries as protected_business_ledger.",
+          "Business ledger consolidation risk is forbidden.",
+          "Paid truth never comes from proposal, send, Coupa submit, or invoice artifact alone."
+        ],
+        "headline": "Ledger stays isolated",
+        "inferred": [
+          "Package/event read models may reference ledger exclusion policy, but they must not read, merge, or mutate ledger rows.",
+          "Never-consolidate rules include: Never consolidate ledger into package DB., Never consolidate secrets/tokens into read models., Never consolidate raw prompt bodies into operator journal.."
+        ],
+        "next_safe_action": "Keep ledger and protected stores out of package/event consolidation unless a separate approved payment-evidence workflow exists.",
+        "plain_summary": "The ledger is not a package/read-model truth store and must not be mixed into SQLite consolidation.",
+        "proof_refs": [
+          "generated/read_models/sqlite_governance_registry.json",
+          "generated/read_models/canonical_state_map.json",
+          "generated/read_models/sqlite_consolidation_plan.json",
+          "generated/read_models/package_event_index.json"
+        ],
+        "show_machine_details_by_default": false,
+        "unknown": []
+      },
+      "authority_boundary": {
+        "browser_access_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "gmail_allowed": false,
+        "ledger_posting_allowed": false,
+        "paid": false,
+        "portal_submit_allowed": false,
+        "sent": false
+      },
+      "machine_proof": {
+        "browser_access_performed": false,
+        "child_agent_spawned": false,
+        "coupa_access_performed": false,
+        "email_send_performed": false,
+        "external_llm_called": false,
+        "gmail_access_performed": false,
+        "ledger_mutation_performed": false,
+        "live_execution_performed": false,
+        "local_only": true,
+        "paid_marking_performed": false,
+        "pdf_export_performed": false,
+        "submit_performed": false,
+        "unsafe_true_grants_absent": true,
+        "workbook_mutation_performed": false
+      },
+      "privacy_impact": "local_only",
+      "question": "Is the ledger mixed into this?",
+      "speaker_ref": "guardian",
+      "voice_mode": "safety_gate",
+      "voice_profile_ref": "agent_voice_profile:guardian",
+      "workflow_ref": "system_question_answer"
+    },
+    {
+      "answer": {
+        "confirmed": [
+          "Do-not-touch buckets: business_ledger=438, legacy_archives=0, unknown_needs_review=10, protected_evidence=1.",
+          "Keep-isolated buckets: test_harness=186, generated_proof_status_dbs=17, one_off_read_model_proof_dbs=10.",
+          "The consolidation plan does not authorize deletes, moves, migrations, or existing DB mutation."
+        ],
+        "headline": "Cleanup is review-only for now",
+        "inferred": [
+          "A future cleanup candidate list should exclude ledgers, protected stores, unknown review DBs, test harnesses, and generated proof/status DBs unless separately approved."
+        ],
+        "next_safe_action": "Create a review checklist from the plan; do not delete or move any database.",
+        "plain_summary": "Nothing is safe to delete from this answer; safe cleanup means classify, review, and plan non-mutating overlays first.",
+        "proof_refs": [
+          "generated/read_models/sqlite_consolidation_plan.json",
+          "generated/read_models/sqlite_governance_registry.json",
+          "generated/read_models/canonical_state_map.json"
+        ],
+        "show_machine_details_by_default": false,
+        "unknown": [
+          "No database was approved for deletion or migration by this answer."
+        ]
+      },
+      "authority_boundary": {
+        "browser_access_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "gmail_allowed": false,
+        "ledger_posting_allowed": false,
+        "paid": false,
+        "portal_submit_allowed": false,
+        "sent": false
+      },
+      "machine_proof": {
+        "browser_access_performed": false,
+        "child_agent_spawned": false,
+        "coupa_access_performed": false,
+        "email_send_performed": false,
+        "external_llm_called": false,
+        "gmail_access_performed": false,
+        "ledger_mutation_performed": false,
+        "live_execution_performed": false,
+        "local_only": true,
+        "paid_marking_performed": false,
+        "pdf_export_performed": false,
+        "submit_performed": false,
+        "unsafe_true_grants_absent": true,
+        "workbook_mutation_performed": false
+      },
+      "privacy_impact": "local_only",
+      "question": "What is safe to clean up?",
+      "speaker_ref": "guardian",
+      "voice_mode": "safety_gate",
+      "voice_profile_ref": "agent_voice_profile:guardian",
+      "workflow_ref": "system_question_answer"
     }
   ],
-  "generated_at": "2026-06-02T15:15:51+00:00",
+  "generated_at": "2026-06-03T02:24:10+00:00",
   "machine_proof": {
     "authority_flags_all_false": true,
     "browser_access_performed": false,
@@ -325,7 +659,7 @@
     "child_agent_spawned": false,
     "coupa_access_performed": false,
     "email_send_performed": false,
-    "example_count": 5,
+    "example_count": 11,
     "external_llm_called": false,
     "gmail_access_performed": false,
     "ledger_mutation_performed": false,
@@ -350,12 +684,16 @@
     "agent_voice_profiles": "generated/read_models/agent_voice_profiles.json",
     "agent_voice_routing": "generated/read_models/agent_voice_routing_contract.json",
     "automation_permission_registry": "generated/read_models/automation_permission_registry.json",
+    "canonical_state_map": "generated/read_models/canonical_state_map.json",
     "openclaw_lm_child_package_gate": "generated/read_models/openclaw_lm_child_package_gate.json",
     "operator_assist_provider_registry": "generated/read_models/operator_assist_provider_registry.json",
     "operator_conversation_journal": "generated/read_models/operator_conversation_journal.json",
     "operator_human_readability_surface": "generated/read_models/operator_human_readability_surface.json",
     "overnight_workboard": "generated/read_models/overnight_workboard.json",
+    "package_event_index": "generated/read_models/package_event_index.json",
     "role_package_gate": "generated/read_models/role_package_gate.json",
+    "sqlite_consolidation_plan": "generated/read_models/sqlite_consolidation_plan.json",
+    "sqlite_governance_registry": "generated/read_models/sqlite_governance_registry.json",
     "st_annes_monthly_work_log_contract": "generated/read_models/st_annes_monthly_work_log_contract.json",
     "st_annes_work_log_events": "generated/read_models/st_annes_work_log_events.json",
     "workflow_package_queue": "generated/read_models/workflow_package_queue_contract.json"

@@ -1,6 +1,11 @@
 import json
 import sqlite3
+import sys
 from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 import system_question_answer as sqa
 
@@ -81,6 +86,137 @@ def _fixture_sources(root: Path, sqlite_root: Path) -> None:
     _write_json(root / "operator_human_readability_surface.json", {"status": "OPERATOR_HUMAN_READABILITY_SURFACE_READY"})
     _write_json(root / "openclaw_lm_child_package_gate.json", {"status": "CHILD_PACKAGE_GATE_CONTRACT_READY"})
     _write_json(root / "role_package_gate.json", {"status": "ROLE_PACKAGE_GATE_READY"})
+    _write_json(
+        root / "package_event_index.json",
+        {
+            "status": "PACKAGE_EVENT_INDEX_READY",
+            "source_systems": {
+                "business_ledger": {
+                    "included": False,
+                    "policy": "excluded",
+                }
+            },
+        },
+    )
+    _write_json(
+        root / "sqlite_governance_registry.json",
+        {
+            "status": "SQLITE_GOVERNANCE_REGISTRY_READY",
+            "database_count": 8,
+            "classification_counts": {
+                "canonical_workflow_state": 3,
+                "generated_evidence": 2,
+                "generated_status": 1,
+                "test_harness": 1,
+                "protected_business_ledger": 1,
+                "unknown_needs_review": 1,
+            },
+            "protected_ledger_count": 1,
+            "unknown_review_count": 1,
+            "databases": [
+                {
+                    "path": "generated/system_knowledge/workflow_package_queue.sqlite",
+                    "classification": "canonical_workflow_state",
+                    "owner_lane": "workflow_package_queue",
+                    "consolidation_risk": "low",
+                    "canonical_truth_allowed": True,
+                    "consolidation_candidate": False,
+                },
+                {
+                    "path": "generated/system_knowledge/operator_conversation_journal.sqlite",
+                    "classification": "canonical_workflow_state",
+                    "owner_lane": "operator_conversation",
+                    "consolidation_risk": "medium",
+                    "canonical_truth_allowed": True,
+                    "consolidation_candidate": False,
+                },
+                {
+                    "path": "generated/system_knowledge/st_annes_monthly_work_log.sqlite",
+                    "classification": "generated_evidence",
+                    "owner_lane": "invoice_operations",
+                    "consolidation_risk": "medium",
+                    "canonical_truth_allowed": False,
+                    "consolidation_candidate": True,
+                },
+                {
+                    "path": ".openclaw/business_ops/ledger.sqlite",
+                    "classification": "protected_business_ledger",
+                    "owner_lane": "business_ops",
+                    "consolidation_risk": "forbidden",
+                    "canonical_truth_allowed": True,
+                    "consolidation_candidate": False,
+                },
+            ],
+        },
+    )
+    _write_json(
+        root / "canonical_state_map.json",
+        {
+            "status": "CANONICAL_STATE_MAP_READY",
+            "domains": [
+                {
+                    "domain_ref": "package_queue",
+                    "canonical_source": {
+                        "source_ref": "generated/read_models/workflow_package_queue_contract.json",
+                        "truth_scope": "Package definitions and package statuses.",
+                    },
+                },
+                {
+                    "domain_ref": "st_annes_work_log",
+                    "canonical_source": {
+                        "source_ref": "generated/read_models/st_annes_work_log_events.json",
+                        "truth_scope": "St Anne's work-log events.",
+                    },
+                },
+                {
+                    "domain_ref": "business_ledger",
+                    "canonical_source": {
+                        "source_ref": "generated/read_models/sqlite_governance_registry.json",
+                        "truth_scope": "Ledger location and isolation truth.",
+                    },
+                },
+            ],
+        },
+    )
+    _write_json(
+        root / "sqlite_consolidation_plan.json",
+        {
+            "status": "SQLITE_CONSOLIDATION_PLAN_READY",
+            "do_not_touch_databases": [
+                {"category": "business_ledger", "count": 1},
+                {"category": "unknown_needs_review", "count": 1},
+                {"category": "protected_evidence", "count": 1},
+            ],
+            "keep_isolated_databases": [
+                {"category": "test_harness", "count": 1},
+                {"category": "generated_proof_status_dbs", "count": 3},
+            ],
+            "consolidation_candidates": [
+                {"candidate_ref": "package_queue_event_concepts", "migration_allowed_now": False},
+                {"candidate_ref": "request_response_index_concepts", "migration_allowed_now": False},
+                {"candidate_ref": "operator_conversation_index_concepts", "migration_allowed_now": False},
+                {"candidate_ref": "work_log_staging_if_safe", "migration_allowed_now": False},
+            ],
+            "recommended_first_low_risk_move": {
+                "summary": "Create views/indexes over existing package/event/journal refs, not a data migration.",
+                "write_allowed_now": False,
+            },
+            "migration_requirements_before_any_consolidation": [
+                {"requirement_ref": "backup"},
+                {"requirement_ref": "schema_diff"},
+                {"requirement_ref": "row_count_proof"},
+                {"requirement_ref": "rollback_plan"},
+                {"requirement_ref": "test_coverage"},
+                {"requirement_ref": "no_business_ledger_mixing"},
+                {"requirement_ref": "operator_approval"},
+            ],
+            "never_consolidate": [
+                "Never consolidate ledger into package DB.",
+                "Never consolidate secrets/tokens into read models.",
+                "Never consolidate raw prompt bodies into operator journal.",
+            ],
+        },
+    )
 
     sqlite_root.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(sqlite_root / "st_annes_monthly_work_log.sqlite")
@@ -166,6 +302,68 @@ def test_sqlite_work_log_answer_summarizes_metadata_without_dumping_rows(tmp_pat
     assert payload["answer"]["unknown"]
 
 
+def test_database_inventory_question_summarizes_classifications(tmp_path):
+    payload = _answer("What are all these databases?", tmp_path)
+    text = json.dumps(payload)
+
+    assert payload["speaker_ref"] == "chief"
+    assert payload["voice_mode"] == "diagnostic"
+    assert "classifies 8 databases" in text
+    assert "canonical_workflow_state=3" in text
+    assert "protected_business_ledger=1" in text
+    assert "RAW_SECRET_ROW_SHOULD_NOT_APPEAR" not in text
+    assert payload["answer"]["show_machine_details_by_default"] is False
+
+
+def test_sqlite_consolidation_question_says_plan_only_and_first_safe_step(tmp_path):
+    payload = _answer("Can we consolidate SQLite?", tmp_path)
+    text = json.dumps(payload)
+
+    assert payload["speaker_ref"] == "hermes"
+    assert payload["voice_mode"] == "recommendation"
+    assert "plan-only" in text
+    assert "Do not consolidate yet" in text
+    assert "views/indexes" in text
+    assert "not a data migration" in text
+    assert payload["machine_proof"]["ledger_mutation_performed"] is False
+
+
+def test_ledger_mixed_question_routes_to_guardian_and_keeps_ledger_isolated(tmp_path):
+    payload = _answer("Is the ledger mixed into this?", tmp_path)
+    text = json.dumps(payload)
+
+    assert payload["speaker_ref"] == "guardian"
+    assert payload["voice_mode"] == "safety_gate"
+    assert "Ledger stays isolated" in text
+    assert "protected_business_ledger" in text
+    assert "consolidation risk is forbidden" in text
+    assert "Paid truth never comes from proposal" in text
+    assert payload["authority_boundary"]["ledger_posting_allowed"] is False
+
+
+def test_st_annes_work_log_owner_question_names_canonical_source(tmp_path):
+    payload = _answer("Which database owns St. Anne's work logs?", tmp_path)
+    text = json.dumps(payload)
+
+    assert payload["speaker_ref"] == "chief"
+    assert payload["voice_mode"] == "diagnostic"
+    assert "st_annes_work_log_events.json" in text
+    assert "st_annes_monthly_work_log.sqlite" in text
+    assert "do not become invoice truth until operator confirmation" in text
+
+
+def test_safe_cleanup_question_does_not_approve_delete_or_move(tmp_path):
+    payload = _answer("What is safe to clean up?", tmp_path)
+    text = json.dumps(payload)
+
+    assert payload["speaker_ref"] == "guardian"
+    assert payload["voice_mode"] == "safety_gate"
+    assert "Nothing is safe to delete" in text
+    assert "Do-not-touch buckets" in text
+    assert "does not authorize deletes" in text
+    assert payload["machine_proof"]["live_execution_performed"] is False
+
+
 def test_unknown_question_returns_safe_fallback_with_unknowns_and_proof_refs(tmp_path):
     payload = _answer("What does OpenClaw know about the purple submarine?", tmp_path)
 
@@ -196,7 +394,7 @@ def test_contract_exports_local_and_bridge_json_equal(tmp_path):
     assert local["status"] == sqa.CONTRACT_STATUS
     assert local["workflow_ref"] == "system_question_answer"
     assert local["privacy"]["privacy_impact"] == "local_only"
-    assert len(local["examples"]) == 5
+    assert len(local["examples"]) == 11
     assert Path(result["wiki_path"]).exists()
 
 

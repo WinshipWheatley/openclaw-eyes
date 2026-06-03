@@ -64,6 +64,10 @@ CORE_SOURCE_REFS = {
     "operator_human_readability_surface": "generated/read_models/operator_human_readability_surface.json",
     "openclaw_lm_child_package_gate": "generated/read_models/openclaw_lm_child_package_gate.json",
     "role_package_gate": "generated/read_models/role_package_gate.json",
+    "package_event_index": "generated/read_models/package_event_index.json",
+    "sqlite_governance_registry": "generated/read_models/sqlite_governance_registry.json",
+    "canonical_state_map": "generated/read_models/canonical_state_map.json",
+    "sqlite_consolidation_plan": "generated/read_models/sqlite_consolidation_plan.json",
 }
 
 EXAMPLE_QUESTIONS = (
@@ -72,6 +76,12 @@ EXAMPLE_QUESTIONS = (
     "Can this send email?",
     "What does SQLite know about St. Anne's work logs?",
     "What is safe next?",
+    "What are all these databases?",
+    "Which database owns package truth?",
+    "Which database owns St. Anne's work logs?",
+    "Can we consolidate SQLite?",
+    "Is the ledger mixed into this?",
+    "What is safe to clean up?",
 )
 
 
@@ -168,6 +178,10 @@ def _load_sources(read_model_root: Path, sqlite_root: Path) -> dict[str, Any]:
         "operator_human_readability_surface": _load_json_file(read_model_root / "operator_human_readability_surface.json"),
         "openclaw_lm_child_package_gate": _load_json_file(read_model_root / "openclaw_lm_child_package_gate.json"),
         "role_package_gate": _load_json_file(read_model_root / "role_package_gate.json"),
+        "package_event_index": _load_json_file(read_model_root / "package_event_index.json"),
+        "sqlite_governance_registry": _load_json_file(read_model_root / "sqlite_governance_registry.json"),
+        "canonical_state_map": _load_json_file(read_model_root / "canonical_state_map.json"),
+        "sqlite_consolidation_plan": _load_json_file(read_model_root / "sqlite_consolidation_plan.json"),
         "st_annes_work_log_sqlite": _sqlite_metadata(sqlite_root / "st_annes_monthly_work_log.sqlite"),
         "workflow_package_queue_sqlite": _sqlite_metadata(sqlite_root / "workflow_package_queue.sqlite"),
     }
@@ -182,9 +196,13 @@ def speaker_for_question(question: str) -> tuple[str, str]:
         "email authority",
         "safe next",
         "ledger",
+        "ledger mixed",
         "paid",
         "submit allowed",
         "authority",
+        "safe to clean",
+        "cleanup",
+        "clean up",
     )
     diagnostic_terms = (
         "why did",
@@ -196,6 +214,11 @@ def speaker_for_question(question: str) -> tuple[str, str]:
         "receipt",
         "proof",
         "request",
+        "database",
+        "databases",
+        "truth",
+        "owns",
+        "owner",
     )
     architecture_terms = (
         "difference",
@@ -207,6 +230,8 @@ def speaker_for_question(question: str) -> tuple[str, str]:
         "system design",
         "lm2",
         "child",
+        "consolidate",
+        "consolidation",
     )
     if any(term in text for term in safety_terms):
         return "guardian", "safety_gate"
@@ -377,6 +402,266 @@ def _email_authority_answer(question: str, sources: Mapping[str, Any]) -> dict[s
     )
 
 
+def _domain_by_ref(state_map: Mapping[str, Any], domain_ref: str) -> dict[str, Any]:
+    domains = state_map.get("domains")
+    if isinstance(domains, list):
+        for domain in domains:
+            if isinstance(domain, Mapping) and domain.get("domain_ref") == domain_ref:
+                return dict(domain)
+    return {}
+
+
+def _dbs_by_owner(
+    registry: Mapping[str, Any],
+    owner_lane: str,
+    *,
+    classification: str | None = None,
+) -> list[dict[str, Any]]:
+    databases = registry.get("databases")
+    if not isinstance(databases, list):
+        return []
+    rows: list[dict[str, Any]] = []
+    for item in databases:
+        if not isinstance(item, Mapping):
+            continue
+        if item.get("owner_lane") != owner_lane:
+            continue
+        if classification is not None and item.get("classification") != classification:
+            continue
+        rows.append(dict(item))
+    return rows
+
+
+def _classification_summary(registry: Mapping[str, Any]) -> str:
+    counts = registry.get("classification_counts")
+    if not isinstance(counts, Mapping) or not counts:
+        return "classification counts unavailable"
+    order = (
+        "canonical_workflow_state",
+        "generated_evidence",
+        "generated_status",
+        "test_harness",
+        "protected_business_ledger",
+        "unknown_needs_review",
+    )
+    parts = [f"{key}={counts.get(key, 0)}" for key in order if key in counts]
+    return ", ".join(parts) if parts else "classification counts unavailable"
+
+
+def _database_inventory_answer(question: str, sources: Mapping[str, Any]) -> dict[str, Any]:
+    registry = sources.get("sqlite_governance_registry") if isinstance(sources.get("sqlite_governance_registry"), dict) else {}
+    database_count = registry.get("database_count", "unknown")
+    unknown_count = registry.get("unknown_review_count", "unknown")
+    protected_count = registry.get("protected_ledger_count", "unknown")
+    proof_refs = _existing_refs(
+        CORE_SOURCE_REFS["sqlite_governance_registry"],
+        CORE_SOURCE_REFS["canonical_state_map"],
+        CORE_SOURCE_REFS["sqlite_consolidation_plan"],
+        "generated/read_models/agentic_chain_inspector.json",
+    )
+    return _answer_payload(
+        speaker_ref="chief",
+        voice_mode="diagnostic",
+        question=question,
+        headline="SQLite databases are classified by ownership",
+        plain_summary="The governance registry groups the databases by truth role instead of dumping rows.",
+        confirmed=[
+            f"The SQLite governance registry currently classifies {database_count} databases.",
+            f"Classification counts: {_classification_summary(registry)}.",
+            f"Protected ledger entries: {protected_count}; unknown review entries: {unknown_count}.",
+            "The canonical state map explains which read model owns each truth domain.",
+        ],
+        inferred=[
+            "Most entries are not consolidation targets; many are ledgers, test harnesses, generated proof/status stores, or review-only unknowns.",
+        ],
+        unknown=[],
+        next_safe_action="Ask for one domain, such as package truth, work logs, ledger, or cleanup posture.",
+        proof_refs=proof_refs,
+    )
+
+
+def _package_truth_owner_answer(question: str, sources: Mapping[str, Any]) -> dict[str, Any]:
+    registry = sources.get("sqlite_governance_registry") if isinstance(sources.get("sqlite_governance_registry"), dict) else {}
+    state_map = sources.get("canonical_state_map") if isinstance(sources.get("canonical_state_map"), dict) else {}
+    domain = _domain_by_ref(state_map, "package_queue")
+    source = domain.get("canonical_source") if isinstance(domain.get("canonical_source"), Mapping) else {}
+    queue_dbs = _dbs_by_owner(registry, "workflow_package_queue", classification="canonical_workflow_state")
+    db_path = str(queue_dbs[0].get("path") or "generated/system_knowledge/workflow_package_queue.sqlite") if queue_dbs else "generated/system_knowledge/workflow_package_queue.sqlite"
+    proof_refs = _existing_refs(
+        CORE_SOURCE_REFS["canonical_state_map"],
+        CORE_SOURCE_REFS["sqlite_governance_registry"],
+        CORE_SOURCE_REFS["workflow_package_queue"],
+        CORE_SOURCE_REFS["package_event_index"],
+    )
+    proof_refs.append(db_path)
+    return _answer_payload(
+        speaker_ref="chief",
+        voice_mode="diagnostic",
+        question=question,
+        headline="Package truth lives in the package queue",
+        plain_summary="Package status truth comes from the workflow package queue, with the package event index as the request/response index.",
+        confirmed=[
+            f"Canonical state map source: {source.get('source_ref', CORE_SOURCE_REFS['workflow_package_queue'])}.",
+            f"SQLite governance owner lane: workflow_package_queue at {db_path}.",
+            "Package status truth comes from package queue / package event index.",
+        ],
+        inferred=[
+            "Mission Control should cite package queue status first, then use package_event_index for response and proof linkage.",
+        ],
+        unknown=[],
+        next_safe_action="Use the package id or workflow_ref to inspect local package proof; do not mutate package rows from an answer.",
+        proof_refs=proof_refs,
+    )
+
+
+def _st_annes_work_log_owner_answer(question: str, sources: Mapping[str, Any]) -> dict[str, Any]:
+    registry = sources.get("sqlite_governance_registry") if isinstance(sources.get("sqlite_governance_registry"), dict) else {}
+    state_map = sources.get("canonical_state_map") if isinstance(sources.get("canonical_state_map"), dict) else {}
+    domain = _domain_by_ref(state_map, "st_annes_work_log")
+    source = domain.get("canonical_source") if isinstance(domain.get("canonical_source"), Mapping) else {}
+    invoice_dbs = _dbs_by_owner(registry, "invoice_operations")
+    work_log_db = next(
+        (
+            str(item.get("path") or "")
+            for item in invoice_dbs
+            if "st_annes_monthly_work_log.sqlite" in str(item.get("path") or "")
+        ),
+        "generated/system_knowledge/st_annes_monthly_work_log.sqlite",
+    )
+    proof_refs = _existing_refs(
+        CORE_SOURCE_REFS["canonical_state_map"],
+        CORE_SOURCE_REFS["sqlite_governance_registry"],
+        CORE_SOURCE_REFS["st_annes_work_log_events"],
+        CORE_SOURCE_REFS["st_annes_monthly_work_log_contract"],
+    )
+    proof_refs.append(work_log_db)
+    return _answer_payload(
+        speaker_ref="chief",
+        voice_mode="diagnostic",
+        question=question,
+        headline="St Anne's work-log truth has a local owner",
+        plain_summary="Operator-facing St Anne's work-log truth comes from the work-log read model, backed by the local staging SQLite database.",
+        confirmed=[
+            f"Canonical state map source: {source.get('source_ref', CORE_SOURCE_REFS['st_annes_work_log_events'])}.",
+            f"St Anne's work-log SQLite staging database: {work_log_db}.",
+            "St Anne's staged work logs do not become invoice truth until operator confirmation.",
+        ],
+        inferred=[
+            "Use the read model for plain answers and the SQLite metadata as proof that staging tables exist.",
+        ],
+        unknown=[],
+        next_safe_action="Ask for confirmed versus staged work-log status; do not mutate workbook cells or invoice inclusion from this answer.",
+        proof_refs=proof_refs,
+    )
+
+
+def _sqlite_consolidation_answer(question: str, sources: Mapping[str, Any]) -> dict[str, Any]:
+    plan = sources.get("sqlite_consolidation_plan") if isinstance(sources.get("sqlite_consolidation_plan"), dict) else {}
+    first_move = plan.get("recommended_first_low_risk_move") if isinstance(plan.get("recommended_first_low_risk_move"), Mapping) else {}
+    requirements = plan.get("migration_requirements_before_any_consolidation")
+    requirement_names = [
+        str(item.get("requirement_ref"))
+        for item in requirements
+        if isinstance(item, Mapping) and item.get("requirement_ref")
+    ] if isinstance(requirements, list) else []
+    proof_refs = _existing_refs(
+        CORE_SOURCE_REFS["sqlite_consolidation_plan"],
+        CORE_SOURCE_REFS["sqlite_governance_registry"],
+        CORE_SOURCE_REFS["canonical_state_map"],
+    )
+    return _answer_payload(
+        speaker_ref="hermes",
+        voice_mode="recommendation",
+        question=question,
+        headline="SQLite consolidation is plan-only",
+        plain_summary="Do not consolidate yet; the safe first move is a read-only views/indexes overlay, not migration.",
+        confirmed=[
+            "The current consolidation plan status is plan-only and migration_allowed_now=false for each candidate.",
+            f"First low-risk move: {first_move.get('summary', 'Create views/indexes over existing DB refs, not migration.')}",
+            f"Required before any consolidation: {', '.join(requirement_names) if requirement_names else 'backup, schema diff, row-count proof, rollback plan, tests, no ledger mixing, operator approval'}.",
+        ],
+        inferred=[
+            "A generated overlay/read model is safer than altering canonical workflow databases.",
+        ],
+        unknown=[],
+        next_safe_action="Review the plan and create a non-mutating overlay design; do not create views, indexes, or migrations yet.",
+        proof_refs=proof_refs,
+    )
+
+
+def _ledger_isolation_answer(question: str, sources: Mapping[str, Any]) -> dict[str, Any]:
+    registry = sources.get("sqlite_governance_registry") if isinstance(sources.get("sqlite_governance_registry"), dict) else {}
+    plan = sources.get("sqlite_consolidation_plan") if isinstance(sources.get("sqlite_consolidation_plan"), dict) else {}
+    protected_count = registry.get("protected_ledger_count", "unknown")
+    never_rules = plan.get("never_consolidate") if isinstance(plan.get("never_consolidate"), list) else []
+    proof_refs = _existing_refs(
+        CORE_SOURCE_REFS["sqlite_governance_registry"],
+        CORE_SOURCE_REFS["canonical_state_map"],
+        CORE_SOURCE_REFS["sqlite_consolidation_plan"],
+        CORE_SOURCE_REFS["package_event_index"],
+    )
+    return _answer_payload(
+        speaker_ref="guardian",
+        voice_mode="safety_gate",
+        question=question,
+        headline="Ledger stays isolated",
+        plain_summary="The ledger is not a package/read-model truth store and must not be mixed into SQLite consolidation.",
+        confirmed=[
+            f"SQLite governance marks {protected_count} ledger-shaped entries as protected_business_ledger.",
+            "Business ledger consolidation risk is forbidden.",
+            "Paid truth never comes from proposal, send, Coupa submit, or invoice artifact alone.",
+        ],
+        inferred=[
+            "Package/event read models may reference ledger exclusion policy, but they must not read, merge, or mutate ledger rows.",
+            f"Never-consolidate rules include: {', '.join(str(rule) for rule in never_rules) if never_rules else 'ledger into package DB; secrets/tokens into read models; raw prompt bodies into operator journal'}.",
+        ],
+        unknown=[],
+        next_safe_action="Keep ledger and protected stores out of package/event consolidation unless a separate approved payment-evidence workflow exists.",
+        proof_refs=proof_refs,
+    )
+
+
+def _safe_cleanup_answer(question: str, sources: Mapping[str, Any]) -> dict[str, Any]:
+    plan = sources.get("sqlite_consolidation_plan") if isinstance(sources.get("sqlite_consolidation_plan"), dict) else {}
+    do_not_touch = plan.get("do_not_touch_databases") if isinstance(plan.get("do_not_touch_databases"), list) else []
+    keep_isolated = plan.get("keep_isolated_databases") if isinstance(plan.get("keep_isolated_databases"), list) else []
+    do_not_summary = ", ".join(
+        f"{item.get('category')}={item.get('count')}"
+        for item in do_not_touch
+        if isinstance(item, Mapping)
+    ) or "do-not-touch counts unavailable"
+    keep_summary = ", ".join(
+        f"{item.get('category')}={item.get('count')}"
+        for item in keep_isolated
+        if isinstance(item, Mapping)
+    ) or "keep-isolated counts unavailable"
+    proof_refs = _existing_refs(
+        CORE_SOURCE_REFS["sqlite_consolidation_plan"],
+        CORE_SOURCE_REFS["sqlite_governance_registry"],
+        CORE_SOURCE_REFS["canonical_state_map"],
+    )
+    return _answer_payload(
+        speaker_ref="guardian",
+        voice_mode="safety_gate",
+        question=question,
+        headline="Cleanup is review-only for now",
+        plain_summary="Nothing is safe to delete from this answer; safe cleanup means classify, review, and plan non-mutating overlays first.",
+        confirmed=[
+            f"Do-not-touch buckets: {do_not_summary}.",
+            f"Keep-isolated buckets: {keep_summary}.",
+            "The consolidation plan does not authorize deletes, moves, migrations, or existing DB mutation.",
+        ],
+        inferred=[
+            "A future cleanup candidate list should exclude ledgers, protected stores, unknown review DBs, test harnesses, and generated proof/status DBs unless separately approved.",
+        ],
+        unknown=[
+            "No database was approved for deletion or migration by this answer.",
+        ],
+        next_safe_action="Create a review checklist from the plan; do not delete or move any database.",
+        proof_refs=proof_refs,
+    )
+
+
 def _sqlite_work_log_answer(question: str, sources: Mapping[str, Any]) -> dict[str, Any]:
     sqlite_meta = sources.get("st_annes_work_log_sqlite") if isinstance(sources.get("st_annes_work_log_sqlite"), dict) else {}
     work_log_read_model = sources.get("st_annes_work_log_events") if isinstance(sources.get("st_annes_work_log_events"), dict) else {}
@@ -532,14 +817,32 @@ def answer_system_question(
     text = question.lower()
     sources = _load_sources(read_model_root, sqlite_root)
 
+    if "all these database" in text or "all these sqlite" in text or (
+        "what are" in text and ("databases" in text or "sqlite" in text)
+    ):
+        return _database_inventory_answer(question, sources)
+    if "consolidate" in text or "consolidation" in text:
+        return _sqlite_consolidation_answer(question, sources)
+    if "ledger" in text and ("mixed" in text or "mix" in text or "included" in text or "in this" in text):
+        return _ledger_isolation_answer(question, sources)
+    if "safe" in text and ("clean up" in text or "cleanup" in text or "delete" in text or "remove" in text):
+        return _safe_cleanup_answer(question, sources)
+    if ("package truth" in text or ("database" in text and "package" in text and ("own" in text or "truth" in text))):
+        return _package_truth_owner_answer(question, sources)
+    if "sqlite" in text and ("st. anne" in text or "st anne" in text or "work log" in text or "work logs" in text):
+        return _sqlite_work_log_answer(question, sources)
+    if (
+        ("st. anne" in text or "st anne" in text)
+        and ("database" in text or "sqlite" in text or "truth" in text or "own" in text)
+        and ("work log" in text or "work logs" in text)
+    ):
+        return _st_annes_work_log_owner_answer(question, sources)
     if "chief" in text and ("spawned worker" in text or "worker" in text or "child" in text or "lm2" in text):
         return _chief_vs_worker_answer(question, sources)
     if "submit capital hilton invoice" in text and ("block" in text or "why" in text or "gate" in text):
         return _capital_hilton_block_answer(question, sources)
     if "send email" in text or "can this send" in text or "email authority" in text:
         return _email_authority_answer(question, sources)
-    if "sqlite" in text and ("st. anne" in text or "st anne" in text or "work log" in text or "work logs" in text):
-        return _sqlite_work_log_answer(question, sources)
     if "what is safe next" in text or text.strip() in {"safe next?", "what's safe next?", "whats safe next?"}:
         return _safe_next_answer(question, sources)
     if "which agent should speak" in text or "speaker" in text or "voice" in text:
