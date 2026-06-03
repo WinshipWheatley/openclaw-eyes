@@ -25,13 +25,21 @@
   },
   "channel_post_counts": {
     "architecture_hermes": 1,
-    "build_mission_control_mac": 2,
+    "build_mission_control_mac": 3,
     "build_openclaw_backend": 2,
     "business_development_capital_hilton": 15,
     "finance_capital_hilton": 20,
     "finance_st_annes": 32,
     "operations_chief_workboard": 3,
     "security_guardian_gates": 2
+  },
+  "decision_lifecycle": {
+    "applied": true,
+    "decision_post_ids": [
+      "workroom_post:6511de7db794faf2"
+    ],
+    "decision_source_ref": "generated/read_models/workroom_review_decision_status.json",
+    "lifecycle_status_ref": "generated/read_models/workroom_review_decision_lifecycle_status.json"
   },
   "display_policy": {
     "plain_summary_first": true,
@@ -40,17 +48,21 @@
     "raw_request_bodies_included": false,
     "show_machine_details_by_default": false
   },
-  "generated_at": "2026-06-03T03:31:48+00:00",
+  "generated_at": "2026-06-03T04:23:28+00:00",
   "machine_proof": {
     "agent_loop_launched": false,
     "browser_access_performed": false,
+    "business_action_performed": false,
     "coupa_access_performed": false,
+    "decision_lifecycle_applied": true,
+    "decision_post_count": 1,
     "email_send_performed": false,
     "external_llm_called": false,
     "git_push_performed": false,
     "gmail_access_performed": false,
     "ledger_mutation_performed": false,
     "local_only": true,
+    "merge_performed": false,
     "message_send_performed": false,
     "new_business_truth_created": false,
     "paid_marking_performed": false,
@@ -68,7 +80,7 @@
     "worker_spawn_performed": false
   },
   "mode": "local_read_model_generation_only_no_live_slack",
-  "post_count": 77,
+  "post_count": 78,
   "posts": [
     {
       "business_action_performed": true,
@@ -1832,22 +1844,31 @@
     {
       "business_action_performed": false,
       "channel_ref": "build_mission_control_mac",
+      "completed": true,
+      "decision_action": "approve_review_packet_for_record",
+      "decision_receipt_id": "workroom_review_decision_consumer:92254cebc0a326a9",
       "headline": "MAC_CODEX review packet ready",
-      "next_safe_action": "Inspect the screenshot and validation refs before approval.",
+      "next_safe_action": "Record complete. No merge or push performed.",
       "package_id": "pkg:example:mission_control_ui_patch",
       "plain_summary": "MAC_CODEX returned UI work with screenshot proof for operator review.",
       "post_id": "workroom_post:b5fba3cbdb7c57cd",
       "post_type": "review_packet",
       "proof_refs": [
         "generated/screenshots/example_mission_control_review.png",
-        "generated/read_models/spawned_worker_package_lifecycle.json#mac_ui_package_review"
+        "generated/read_models/spawned_worker_package_lifecycle.json#mac_ui_package_review",
+        "generated/read_models/workroom_review_decision_status.json#workroom_review_decision_consumer:92254cebc0a326a9",
+        "generated/read_models/workroom_review_decision_lifecycle_status.json"
       ],
+      "proof_refs_collapsed": true,
+      "review_decision_status": "OPERATOR_REVIEW_RECORDED",
+      "review_packet_id": "review_packet:1ec9dae46a22e6ae",
       "show_machine_details_by_default": false,
       "speaker_ref": "mac_codex",
-      "status_label": "Review Packet Ready",
+      "status_label": "Operator Review Recorded",
       "target_thread_ref": "build_mission_control_mac",
       "target_world_ref": "build",
-      "timestamp": "2026-06-03T03:31:48+00:00"
+      "timestamp": "2026-06-03T03:31:48+00:00",
+      "visible_by_default": false
     },
     {
       "business_action_performed": false,
@@ -1924,6 +1945,40 @@
       "target_thread_ref": "operations_chief_workboard",
       "target_world_ref": "operations",
       "timestamp": "2026-06-03T03:31:48+00:00"
+    },
+    {
+      "business_action_performed": false,
+      "channel_ref": "build_mission_control_mac",
+      "completed": true,
+      "decision_action": "approve_review_packet_for_record",
+      "decision_receipt_id": "workroom_review_decision_consumer:92254cebc0a326a9",
+      "headline": "Review recorded",
+      "next_safe_action": "Record complete. No merge or push performed.",
+      "package_id": "pkg:example:mission_control_ui_patch",
+      "plain_summary": "Chief recorded the operator review decision only; no merge or push ran.",
+      "post_id": "workroom_post:6511de7db794faf2",
+      "post_type": "decision",
+      "proof_refs": [
+        "generated/read_models/workroom_review_packet_index.json",
+        "generated/read_models/workroom_review_decision_contract.json",
+        "generated/read_models/package_event_index.json",
+        "generated/read_models/workroom_review_decision_status.json",
+        "generated/screenshots/example_mission_control_review.png",
+        "generated/read_models/spawned_worker_package_lifecycle.json#mac_ui_package_review",
+        "generated/read_models/workroom_review_decision_status.json#workroom_review_decision_consumer:92254cebc0a326a9",
+        "generated/read_models/workroom_review_decision_lifecycle_status.json"
+      ],
+      "proof_refs_collapsed": true,
+      "review_decision_status": "OPERATOR_REVIEW_RECORDED",
+      "review_packet_id": "review_packet:1ec9dae46a22e6ae",
+      "show_machine_details_by_default": false,
+      "source_kind": "workroom_review_decision_lifecycle",
+      "speaker_ref": "chief",
+      "status_label": "Operator Review Recorded",
+      "target_thread_ref": "build_mission_control_mac",
+      "target_world_ref": "build",
+      "timestamp": "2026-06-03T04:13:52+00:00",
+      "visible_by_default": false
     }
   ],
   "posts_by_channel": {
@@ -1932,7 +1987,8 @@
     ],
     "build_mission_control_mac": [
       "workroom_post:b5fba3cbdb7c57cd",
-      "workroom_post:c28d9b73520dbeeb"
+      "workroom_post:c28d9b73520dbeeb",
+      "workroom_post:6511de7db794faf2"
     ],
     "build_openclaw_backend": [
       "workroom_post:2bc78bbe7db92b6d",
@@ -2086,7 +2142,9 @@
     "Worker posts are review outputs, not autonomous authority.",
     "Business actions are only recorded if already ingested as operator-assisted truth.",
     "Do not create new business truth.",
-    "No send, submit, ledger, push, Slack, Telegram, Gmail, browser, or Coupa authority."
+    "No send, submit, ledger, push, Slack, Telegram, Gmail, browser, or Coupa authority.",
+    "Decision posts summarize review receipts only and create no business truth.",
+    "Completed review packet posts are hidden by default; rework remains visible."
   ],
   "schema_version": "openclaw_workroom_activity_feed_v0",
   "source_refs": [
@@ -2096,7 +2154,9 @@
     "generated/read_models/package_event_index.json",
     "generated/read_models/operator_conversation_journal.json",
     "generated/read_models/operator_next_decision.json",
-    "generated/read_models/helm_action_lifecycle_status.json"
+    "generated/read_models/helm_action_lifecycle_status.json",
+    "generated/read_models/workroom_review_decision_status.json",
+    "generated/read_models/workroom_review_decision_lifecycle_status.json"
   ],
   "status": "OPENCLAW_WORKROOM_ACTIVITY_FEED_READY"
 }
