@@ -42,8 +42,8 @@ def test_safe_next_question_has_concrete_action():
     assert surface["mode"] == "operator_calm"
     assert question["action"]["action_type"] == "navigate"
     assert question["action"]["target_world_ref"] == "finance"
-    assert question["action"]["target_thread_ref"] == "st_annes"
-    assert question["action"]["payload_ref"] == "generated/read_models/st_annes_work_log_review_surface.json"
+    assert question["action"]["target_thread_ref"] == "capital_hilton"
+    assert question["action"]["payload_ref"] == "generated/read_models/capital_hilton_invoice_operator_run_status.json"
 
 
 def test_st_annes_smoke_event_has_mark_test_or_discard_action():
