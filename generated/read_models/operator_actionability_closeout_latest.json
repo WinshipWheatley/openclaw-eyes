@@ -1,0 +1,1152 @@
+{
+  "authority_boundary": {
+    "agent_loop_allowed": false,
+    "browser_access_allowed": false,
+    "child_agent_run_allowed": false,
+    "coupa_allowed": false,
+    "email_send_allowed": false,
+    "external_action_allowed": false,
+    "git_push_allowed": false,
+    "gmail_allowed": false,
+    "ledger_posting_allowed": false,
+    "merge_allowed": false,
+    "paid": false,
+    "pdf_export_allowed": false,
+    "portal_submit_allowed": false,
+    "push_allowed": false,
+    "sent": false,
+    "workbook_mutation_allowed": false,
+    "workbook_open_allowed": false,
+    "worker_spawn_allowed": false
+  },
+  "counts": {
+    "action_payload_count": 29,
+    "actionable_count": 10,
+    "by_action_type": {
+      "explain_gate": 5,
+      "navigate": 8,
+      "record_payment_proof_intake": 1,
+      "review_decision": 3,
+      "stage_package_request": 6,
+      "system_question": 5,
+      "workbook_registration": 1
+    },
+    "disabled_action_count": 1,
+    "enabled_action_count": 28,
+    "known_unrelated_dirty_entries": 26,
+    "mac_smoke_ref_count": 7,
+    "navigation_only_count": 18,
+    "pending_approval_count": 7,
+    "proof_only_count": 6,
+    "protected_gate_count": 9
+  },
+  "generated_at": "2026-06-03T23:22:13+00:00",
+  "headline": "Operator action payloads are ready for Mac routing.",
+  "history_policy": {
+    "proof_collapsed_by_default": true,
+    "raw_request_bodies_visible_by_default": false,
+    "show_full_history_by_default": false
+  },
+  "machine_proof": {
+    "business_action_performed": false,
+    "cutover_board_ready": true,
+    "git_push_performed": false,
+    "homecoming_brief_ready": true,
+    "latest_review_decision_response_ready": true,
+    "merge_performed": false,
+    "no_authority_grants": true,
+    "no_new_business_truth": true,
+    "no_paid_or_sent_inference": true,
+    "operating_picture_ready": true,
+    "operator_action_payloads_ready": true,
+    "operator_os_final_closeout_ready": true,
+    "paid": false,
+    "sent": false
+  },
+  "plain_summary": "OpenClaw now has renderable operator action payloads for navigation, safe package staging, Workroom review decisions, workbook registration staging, system questions, Guardian gate explanation/approval staging, and Capital Hilton payment-watch inspection. Protected business actions remain blocked.",
+  "proof_collapsed_by_default": true,
+  "proof_refs": [
+    "generated/read_models/operator_action_payloads.json",
+    "generated/read_models/operator_os_final_closeout.json",
+    "generated/read_models/workroom_review_decision_status.json",
+    "generated/read_models/approval_request_queue.json",
+    "generated/read_models/gate_decision_ledger.json"
+  ],
+  "read_model_id": "operator_actionability_closeout_latest",
+  "schema_version": "operator_actionability_closeout_latest_v0",
+  "sections": {
+    "blocked_protected": {
+      "business_action_performed": false,
+      "headline": "9 protected gate decisions remain blocked or approval-required.",
+      "items": [
+        {
+          "business_action_performed": false,
+          "decision": "approval_required",
+          "gate_ref": "send_email",
+          "proof_refs_collapsed": true,
+          "reason": "Email sending is a protected business action and requires explicit operator approval plus a separate executor gate.",
+          "speaker_ref": "guardian"
+        },
+        {
+          "business_action_performed": false,
+          "decision": "approval_required",
+          "gate_ref": "coupa_submit",
+          "proof_refs_collapsed": true,
+          "reason": "Coupa submit is a protected portal action and cannot be authorized by a read model.",
+          "speaker_ref": "guardian"
+        },
+        {
+          "business_action_performed": false,
+          "decision": "blocked",
+          "gate_ref": "ledger_post",
+          "proof_refs_collapsed": true,
+          "reason": "Business ledger posting requires separate ledger/payment evidence and is outside this governance ledger.",
+          "speaker_ref": "guardian"
+        },
+        {
+          "business_action_performed": false,
+          "decision": "blocked",
+          "gate_ref": "mark_paid",
+          "proof_refs_collapsed": true,
+          "reason": "Paid truth requires payment evidence; package or operator-display state cannot mark paid.",
+          "speaker_ref": "guardian"
+        },
+        {
+          "business_action_performed": false,
+          "decision": "approval_required",
+          "gate_ref": "workbook_mutation",
+          "proof_refs_collapsed": true,
+          "reason": "Workbook changes are source-data mutations and must stay behind operator approval.",
+          "speaker_ref": "guardian"
+        },
+        {
+          "business_action_performed": false,
+          "decision": "approval_required",
+          "gate_ref": "pdf_export",
+          "proof_refs_collapsed": true,
+          "reason": "PDF export can create client-facing artifacts and needs operator approval.",
+          "speaker_ref": "guardian"
+        },
+        {
+          "business_action_performed": false,
+          "decision": "blocked",
+          "gate_ref": "git_push",
+          "proof_refs_collapsed": true,
+          "reason": "Build packets may commit after validation, but push remains outside local package authority.",
+          "speaker_ref": "chief"
+        },
+        {
+          "business_action_performed": false,
+          "decision": "blocked",
+          "gate_ref": "worker_spawn",
+          "proof_refs_collapsed": true,
+          "reason": "Worker packages can be staged, but workers are not spawned by governance surfaces.",
+          "speaker_ref": "chief"
+        },
+        {
+          "business_action_performed": false,
+          "decision": "blocked",
+          "gate_ref": "external_provider",
+          "proof_refs_collapsed": true,
+          "reason": "External providers and model runtimes are not used by local governance read models.",
+          "speaker_ref": "guardian"
+        }
+      ],
+      "proof_collapsed_by_default": true,
+      "proof_refs": [
+        "generated/read_models/gate_decision_ledger.json"
+      ],
+      "section_ref": "blocked_protected",
+      "summary": "Send, Coupa submit, ledger post, mark-paid, workbook mutation, PDF export, push, worker spawn, and external provider actions are still protected."
+    },
+    "build_review_packet_routing_status": {
+      "business_action_performed": false,
+      "headline": "Build review packet routing is actionable and receipt-only.",
+      "items": [
+        {
+          "business_action_performed": false,
+          "git_push_performed": false,
+          "latest_decision_action": "mark_review_packet_informational",
+          "latest_decision_status": "INFORMATIONAL_REVIEW_CLOSED",
+          "latest_raw_internal_status": "RESPONSE_READY",
+          "merge_performed": false,
+          "proof_refs_collapsed": true,
+          "response_path": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_workroom_review_decision_mark_review_packet_informational_20260603T155504Z_87feadc5fa6d.json",
+          "review_packet_id": "review_packet:c4ec166103f9aa35",
+          "routing_result": "Mac Workroom review decision request was consumed and responded to by PC."
+        },
+        {
+          "action_id": "review_packet.review_packet_c4ec166103f9aa35.approve_review_packet_for_record",
+          "action_type": "review_decision",
+          "business_action": false,
+          "business_action_performed": false,
+          "disabled_reason": null,
+          "enabled": true,
+          "label": "Approve for record",
+          "proof_refs_collapsed": true,
+          "safe_to_render_button": true,
+          "target_thread_ref": "build_openclaw_backend",
+          "target_world_ref": "build"
+        },
+        {
+          "action_id": "review_packet.review_packet_c4ec166103f9aa35.mark_review_packet_informational",
+          "action_type": "review_decision",
+          "business_action": false,
+          "business_action_performed": false,
+          "disabled_reason": null,
+          "enabled": true,
+          "label": "Mark informational",
+          "proof_refs_collapsed": true,
+          "safe_to_render_button": true,
+          "target_thread_ref": "build_openclaw_backend",
+          "target_world_ref": "build"
+        },
+        {
+          "action_id": "review_packet.review_packet_c4ec166103f9aa35.open",
+          "action_type": "navigate",
+          "business_action": false,
+          "business_action_performed": false,
+          "disabled_reason": null,
+          "enabled": true,
+          "label": "Open review packet",
+          "proof_refs_collapsed": true,
+          "safe_to_render_button": true,
+          "target_thread_ref": "build_openclaw_backend",
+          "target_world_ref": "build"
+        },
+        {
+          "action_id": "review_packet.review_packet_c4ec166103f9aa35.request_review_packet_rework",
+          "action_type": "review_decision",
+          "business_action": false,
+          "business_action_performed": false,
+          "disabled_reason": null,
+          "enabled": true,
+          "label": "Request rework",
+          "proof_refs_collapsed": true,
+          "safe_to_render_button": true,
+          "target_thread_ref": "build_openclaw_backend",
+          "target_world_ref": "build"
+        },
+        {
+          "business_action_performed": false,
+          "channel_ref": "build_mission_control_mac",
+          "completed": true,
+          "operator_decision_required": false,
+          "proof_refs_collapsed": true,
+          "status": "OPERATOR_REVIEW_RECORDED",
+          "summary": "MAC_CODEX returned UI work with screenshot proof for operator review."
+        },
+        {
+          "business_action_performed": false,
+          "channel_ref": "build_openclaw_backend",
+          "completed": false,
+          "operator_decision_required": true,
+          "proof_refs_collapsed": true,
+          "status": "REVIEW_PACKET_READY",
+          "summary": "PC_CODEX changed backend code and returned local validation proof for operator review."
+        }
+      ],
+      "proof_collapsed_by_default": true,
+      "proof_refs": [
+        "generated/read_models/workroom_review_packet_index.json",
+        "generated/read_models/workroom_review_decision_status.json",
+        "generated/read_models/operator_action_payloads.json"
+      ],
+      "section_ref": "build_review_packet_routing_status",
+      "summary": "Mac can open the packet and stage approve/rework/informational review decisions. Latest informational decision was consumed by PC and produced a response. No merge or push authority is granted."
+    },
+    "business_development_followup_routing_status": {
+      "business_action_performed": false,
+      "headline": "Capital Hilton proposal follow-up can stage a safe package request.",
+      "items": [
+        {
+          "action_id": "capital_hilton.proposal.stage_followup",
+          "action_type": "stage_package_request",
+          "business_action": false,
+          "business_action_performed": false,
+          "disabled_reason": null,
+          "enabled": true,
+          "label": "Stage proposal follow-up",
+          "proof_refs_collapsed": true,
+          "safe_to_render_button": true,
+          "target_thread_ref": "capital_hilton",
+          "target_world_ref": "business_development"
+        }
+      ],
+      "proof_collapsed_by_default": true,
+      "proof_refs": [
+        "generated/read_models/operator_action_payloads.json",
+        "generated/read_models/capital_hilton_business_development_proposal.json"
+      ],
+      "section_ref": "business_development_followup_routing_status",
+      "summary": "The payload stages a dry-run package for operator review; it does not send email or contact the client."
+    },
+    "check_engine_routing_status": {
+      "business_action_performed": false,
+      "headline": "Check Engine routes to Chief diagnostic read models only.",
+      "items": [
+        {
+          "action_id": "chief_diagnostic.open",
+          "action_type": "navigate",
+          "business_action": false,
+          "business_action_performed": false,
+          "disabled_reason": null,
+          "enabled": true,
+          "label": "Open Chief diagnostic",
+          "proof_refs_collapsed": true,
+          "safe_to_render_button": true,
+          "target_thread_ref": "chief_diagnostic",
+          "target_world_ref": "system"
+        }
+      ],
+      "proof_collapsed_by_default": true,
+      "proof_refs": [
+        "generated/read_models/operator_action_payloads.json",
+        "generated/read_models/chief_check_engine_diagnostic_package.json",
+        "generated/read_models/chief_check_engine_environment_posture.json"
+      ],
+      "section_ref": "check_engine_routing_status",
+      "summary": "The Chief diagnostic payload opens diagnostic/environment posture references and carries no repair authority."
+    },
+    "finance_capital_hilton_payment_watch_status": {
+      "business_action_performed": false,
+      "headline": "Capital Hilton payment watch is inspect-only until payment evidence exists.",
+      "items": [
+        {
+          "action_id": "capital_hilton.payment.open_finance",
+          "action_type": "navigate",
+          "business_action": false,
+          "business_action_performed": false,
+          "disabled_reason": null,
+          "enabled": true,
+          "label": "Open Finance / Capital Hilton",
+          "proof_refs_collapsed": true,
+          "safe_to_render_button": true,
+          "target_thread_ref": "capital_hilton",
+          "target_world_ref": "finance"
+        },
+        {
+          "action_id": "capital_hilton.payment.record_proof",
+          "action_type": "record_payment_proof_intake",
+          "business_action": false,
+          "business_action_performed": false,
+          "disabled_reason": "Payment evidence has not been provided yet.",
+          "enabled": false,
+          "label": "Record payment proof",
+          "proof_refs_collapsed": true,
+          "safe_to_render_button": true,
+          "target_thread_ref": "capital_hilton",
+          "target_world_ref": "finance"
+        }
+      ],
+      "proof_collapsed_by_default": true,
+      "proof_refs": [
+        "generated/read_models/operator_action_payloads.json",
+        "generated/read_models/capital_hilton_invoice_operator_run_status.json"
+      ],
+      "section_ref": "finance_capital_hilton_payment_watch_status",
+      "summary": "Open Finance / Capital Hilton is enabled for inspection. Record payment proof is disabled because payment evidence has not been provided; no paid or ledger truth is inferred."
+    },
+    "known_unrelated_dirty_files": {
+      "business_action_performed": false,
+      "headline": "26 unrelated dirty entries remain untouched.",
+      "items": [
+        {
+          "git_status": " M .gitignore",
+          "left_untouched": true
+        },
+        {
+          "git_status": " M generated/read_models/invoice_review_bundle.json",
+          "left_untouched": true
+        },
+        {
+          "git_status": " M generated/read_models/invoice_review_bundle_OPERATOR.md",
+          "left_untouched": true
+        },
+        {
+          "git_status": " M generated/read_models/openclaw_change_sentinel.json",
+          "left_untouched": true
+        },
+        {
+          "git_status": " M generated/read_models/openclaw_change_sentinel_OPERATOR.md",
+          "left_untouched": true
+        },
+        {
+          "git_status": " M generated/read_models/openclaw_request_processor_OPERATOR.md",
+          "left_untouched": true
+        },
+        {
+          "git_status": " M generated/read_models/openclaw_request_processor_status.json",
+          "left_untouched": true
+        },
+        {
+          "git_status": " M generated/read_models/openclaw_request_response_service_status.json",
+          "left_untouched": true
+        },
+        {
+          "git_status": " M generated/read_models/openclaw_response_for_mac.json",
+          "left_untouched": true
+        },
+        {
+          "git_status": " M generated/read_models/openclaw_service_keeper_status.json",
+          "left_untouched": true
+        },
+        {
+          "git_status": " M generated/read_models/operator_action_event_journal.json",
+          "left_untouched": true
+        },
+        {
+          "git_status": " M generated/read_models/operator_action_event_journal_OPERATOR.md",
+          "left_untouched": true
+        },
+        {
+          "git_status": " M generated/read_models/st_annes_work_log_events.json",
+          "left_untouched": true
+        },
+        {
+          "git_status": " M generated/read_models/st_annes_work_log_review_surface.json",
+          "left_untouched": true
+        },
+        {
+          "git_status": " M generated/read_models/sync_health.json",
+          "left_untouched": true
+        },
+        {
+          "git_status": " M generated/read_models/sync_health_OPERATOR.md",
+          "left_untouched": true
+        },
+        {
+          "git_status": " M generated/system_knowledge/openclaw_change_sentinel.sqlite",
+          "left_untouched": true
+        },
+        {
+          "git_status": " M generated/system_knowledge/openclaw_change_sentinel_SCHEMA.sql",
+          "left_untouched": true
+        },
+        {
+          "git_status": " M generated/system_knowledge/openclaw_change_sentinel_SEED.sql",
+          "left_untouched": true
+        },
+        {
+          "git_status": " M generated/system_knowledge/st_annes_monthly_work_log.sqlite",
+          "left_untouched": true
+        },
+        {
+          "git_status": " M generated/system_knowledge/workflow_package_queue.sqlite",
+          "left_untouched": true
+        },
+        {
+          "git_status": " M tests/test_launch_ladder_static_contract.py",
+          "left_untouched": true
+        },
+        {
+          "git_status": "?? .codex/",
+          "left_untouched": true
+        },
+        {
+          "git_status": "?? generated/read_models/invoice_review_action_request_receipt.json",
+          "left_untouched": true
+        },
+        {
+          "git_status": "?? generated/read_models/invoice_review_action_request_receipt_OPERATOR.md",
+          "left_untouched": true
+        },
+        {
+          "git_status": "?? polish_loop/tasks/",
+          "left_untouched": true
+        }
+      ],
+      "proof_collapsed_by_default": true,
+      "proof_refs": [],
+      "section_ref": "known_unrelated_dirty_files",
+      "summary": "These were present outside this closeout task and should not be inferred as part of this commit."
+    },
+    "mac_smoke_report_refs": {
+      "business_action_performed": false,
+      "headline": "7 visible Mac smoke response refs were found.",
+      "items": [
+        {
+          "business_action_performed": false,
+          "path": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_processing_for_mac_openclaw_event_bridge_live_arts_prepare_pdf_smoke_20260531T044811Z.json",
+          "proof_only": true,
+          "proof_refs_collapsed": true
+        },
+        {
+          "business_action_performed": false,
+          "path": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_processing_for_mac_system_question_route_smoke_20260602T153000Z.json",
+          "proof_only": true,
+          "proof_refs_collapsed": true
+        },
+        {
+          "business_action_performed": false,
+          "path": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_business_development_operator_instruction_smoke_20260602T014445Z_74ebfb96af00_2.json",
+          "proof_only": true,
+          "proof_refs_collapsed": true
+        },
+        {
+          "business_action_performed": false,
+          "path": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_invoice_workflow_operator_instruction_smoke_20260602T014445Z_6c29b3775783_3.json",
+          "proof_only": true,
+          "proof_refs_collapsed": true
+        },
+        {
+          "business_action_performed": false,
+          "path": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_church_sound_operator_instruction_smoke_20260602T014445Z_28aa6e27f7ef_1.json",
+          "proof_only": true,
+          "proof_refs_collapsed": true
+        },
+        {
+          "business_action_performed": false,
+          "path": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_openclaw_event_bridge_live_arts_prepare_pdf_smoke_20260531T044811Z.json",
+          "proof_only": true,
+          "proof_refs_collapsed": true
+        },
+        {
+          "business_action_performed": false,
+          "path": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_system_question_route_smoke_20260602T153000Z.json",
+          "proof_only": true,
+          "proof_refs_collapsed": true
+        }
+      ],
+      "proof_collapsed_by_default": true,
+      "proof_refs": [
+        "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_processing_for_mac_openclaw_event_bridge_live_arts_prepare_pdf_smoke_20260531T044811Z.json",
+        "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_processing_for_mac_system_question_route_smoke_20260602T153000Z.json",
+        "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_business_development_operator_instruction_smoke_20260602T014445Z_74ebfb96af00_2.json",
+        "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_capital_hilton_invoice_workflow_operator_instruction_smoke_20260602T014445Z_6c29b3775783_3.json"
+      ],
+      "section_ref": "mac_smoke_report_refs",
+      "summary": "Existing smoke responses are referenced as proof only; this closeout does not replay them."
+    },
+    "proof_only": {
+      "business_action_performed": false,
+      "headline": "Proof-only and disabled controls remain non-executing.",
+      "items": [
+        {
+          "action_id": "capital_hilton.payment.record_proof",
+          "action_type": "record_payment_proof_intake",
+          "business_action": false,
+          "business_action_performed": false,
+          "disabled_reason": "Payment evidence has not been provided yet.",
+          "enabled": false,
+          "label": "Record payment proof",
+          "proof_refs_collapsed": true,
+          "safe_to_render_button": true,
+          "target_thread_ref": "capital_hilton",
+          "target_world_ref": "finance"
+        },
+        {
+          "action_id": "guardian_gate.coupa_submit.explain",
+          "action_type": "explain_gate",
+          "business_action": false,
+          "business_action_performed": false,
+          "disabled_reason": null,
+          "enabled": true,
+          "label": "Explain this gate",
+          "proof_refs_collapsed": true,
+          "safe_to_render_button": true,
+          "target_thread_ref": "guardian",
+          "target_world_ref": "system"
+        },
+        {
+          "action_id": "guardian_gate.ledger_post.explain",
+          "action_type": "explain_gate",
+          "business_action": false,
+          "business_action_performed": false,
+          "disabled_reason": null,
+          "enabled": true,
+          "label": "Explain this gate",
+          "proof_refs_collapsed": true,
+          "safe_to_render_button": true,
+          "target_thread_ref": "guardian",
+          "target_world_ref": "system"
+        },
+        {
+          "action_id": "guardian_gate.pdf_export.explain",
+          "action_type": "explain_gate",
+          "business_action": false,
+          "business_action_performed": false,
+          "disabled_reason": null,
+          "enabled": true,
+          "label": "Explain this gate",
+          "proof_refs_collapsed": true,
+          "safe_to_render_button": true,
+          "target_thread_ref": "guardian",
+          "target_world_ref": "system"
+        },
+        {
+          "action_id": "guardian_gate.send_email.explain",
+          "action_type": "explain_gate",
+          "business_action": false,
+          "business_action_performed": false,
+          "disabled_reason": null,
+          "enabled": true,
+          "label": "Explain this gate",
+          "proof_refs_collapsed": true,
+          "safe_to_render_button": true,
+          "target_thread_ref": "guardian",
+          "target_world_ref": "system"
+        },
+        {
+          "action_id": "guardian_gate.workbook_mutation.explain",
+          "action_type": "explain_gate",
+          "business_action": false,
+          "business_action_performed": false,
+          "disabled_reason": null,
+          "enabled": true,
+          "label": "Explain this gate",
+          "proof_refs_collapsed": true,
+          "safe_to_render_button": true,
+          "target_thread_ref": "guardian",
+          "target_world_ref": "system"
+        }
+      ],
+      "proof_collapsed_by_default": true,
+      "proof_refs": [
+        "generated/read_models/operator_action_payloads.json"
+      ],
+      "section_ref": "proof_only",
+      "summary": "Gate explainers and disabled payment proof intake should remain proof/readback only until required evidence or approval exists."
+    },
+    "recommended_next_human_smoke_tests": {
+      "business_action_performed": false,
+      "headline": "Run Mac smoke by inspecting routes, not executing protected actions.",
+      "items": [
+        {
+          "business_action_performed": false,
+          "label": "Open Helm/Mac action desk and verify action buttons render from operator_action_payloads.json.",
+          "proof_refs_collapsed": true
+        },
+        {
+          "business_action_performed": false,
+          "label": "Click or inspect Register workbook and confirm it stages registration only, with no workbook open or mutation authority.",
+          "proof_refs_collapsed": true
+        },
+        {
+          "business_action_performed": false,
+          "label": "Open Chief diagnostic and confirm it is navigation/read-model only, not repair authority.",
+          "proof_refs_collapsed": true
+        },
+        {
+          "business_action_performed": false,
+          "label": "Open Build review packet controls and confirm approve/rework/informational payloads route to Workroom review decision requests only.",
+          "proof_refs_collapsed": true
+        },
+        {
+          "business_action_performed": false,
+          "label": "Open Capital Hilton payment watch and confirm Record payment proof remains disabled until payment evidence exists.",
+          "proof_refs_collapsed": true
+        },
+        {
+          "business_action_performed": false,
+          "label": "Inspect Guardian gate actions and confirm explain/open/stage approval are available without send/Coupa/ledger execution.",
+          "proof_refs_collapsed": true
+        }
+      ],
+      "proof_collapsed_by_default": true,
+      "proof_refs": [
+        "generated/read_models/operator_action_payloads.json"
+      ],
+      "section_ref": "recommended_next_human_smoke_tests",
+      "summary": "The next human smoke should verify rendering, disabled states, and request staging paths."
+    },
+    "requires_explicit_approval": {
+      "business_action_performed": false,
+      "headline": "7 approval requests are pending.",
+      "items": [
+        {
+          "business_action_performed": false,
+          "gate_ref": "workroom_review_record",
+          "owner_speaker_ref": "chief",
+          "plain_summary": "Approve a review packet for record only, with no merge or push.",
+          "proof_refs_collapsed": true,
+          "requested_action": "approve_review_packet_for_record"
+        },
+        {
+          "business_action_performed": false,
+          "gate_ref": "workroom_review_rework",
+          "owner_speaker_ref": "chief",
+          "plain_summary": "Ask for review packet rework without spawning a worker automatically.",
+          "proof_refs_collapsed": true,
+          "requested_action": "request_review_packet_rework"
+        },
+        {
+          "business_action_performed": false,
+          "gate_ref": "send_email",
+          "owner_speaker_ref": "guardian",
+          "plain_summary": "Approve an already prepared email draft for manual or gated send.",
+          "proof_refs_collapsed": true,
+          "requested_action": "approve_email_draft_send"
+        },
+        {
+          "business_action_performed": false,
+          "gate_ref": "coupa_submit",
+          "owner_speaker_ref": "guardian",
+          "plain_summary": "Approve Coupa submit only through a separate operator-assisted provider gate.",
+          "proof_refs_collapsed": true,
+          "requested_action": "approve_coupa_submit"
+        },
+        {
+          "business_action_performed": false,
+          "gate_ref": "workbook_mutation",
+          "owner_speaker_ref": "guardian",
+          "plain_summary": "Approve source workbook edits only after operator review.",
+          "proof_refs_collapsed": true,
+          "requested_action": "approve_workbook_mutation"
+        },
+        {
+          "business_action_performed": false,
+          "gate_ref": "pdf_export",
+          "owner_speaker_ref": "guardian",
+          "plain_summary": "Approve PDF export only through a later artifact-producing workflow.",
+          "proof_refs_collapsed": true,
+          "requested_action": "approve_pdf_export"
+        },
+        {
+          "business_action_performed": false,
+          "gate_ref": "ledger_post",
+          "owner_speaker_ref": "guardian",
+          "plain_summary": "Approve ledger posting only after separate payment or posting evidence exists.",
+          "proof_refs_collapsed": true,
+          "requested_action": "approve_ledger_post"
+        }
+      ],
+      "proof_collapsed_by_default": true,
+      "proof_refs": [
+        "generated/read_models/approval_request_queue.json"
+      ],
+      "section_ref": "requires_explicit_approval",
+      "summary": "Approval staging is available, but approval queues do not execute the underlying action."
+    },
+    "what_is_now_actionable": {
+      "business_action_performed": false,
+      "headline": "10 enabled payloads can stage safe requests or local-only actions.",
+      "items": [
+        {
+          "action_id": "capital_hilton.proposal.stage_followup",
+          "action_type": "stage_package_request",
+          "business_action": false,
+          "business_action_performed": false,
+          "disabled_reason": null,
+          "enabled": true,
+          "label": "Stage proposal follow-up",
+          "proof_refs_collapsed": true,
+          "safe_to_render_button": true,
+          "target_thread_ref": "capital_hilton",
+          "target_world_ref": "business_development"
+        },
+        {
+          "action_id": "client_invoice_workbook.register",
+          "action_type": "workbook_registration",
+          "business_action": false,
+          "business_action_performed": false,
+          "disabled_reason": null,
+          "enabled": true,
+          "label": "Register workbook",
+          "proof_refs_collapsed": true,
+          "safe_to_render_button": true,
+          "target_thread_ref": "capital_hilton",
+          "target_world_ref": "finance"
+        },
+        {
+          "action_id": "guardian_gate.coupa_submit.stage_approval_request",
+          "action_type": "stage_package_request",
+          "business_action": false,
+          "business_action_performed": false,
+          "disabled_reason": null,
+          "enabled": true,
+          "label": "Stage approval request",
+          "proof_refs_collapsed": true,
+          "safe_to_render_button": true,
+          "target_thread_ref": "capital_hilton",
+          "target_world_ref": "finance"
+        },
+        {
+          "action_id": "guardian_gate.ledger_post.stage_approval_request",
+          "action_type": "stage_package_request",
+          "business_action": false,
+          "business_action_performed": false,
+          "disabled_reason": null,
+          "enabled": true,
+          "label": "Stage approval request",
+          "proof_refs_collapsed": true,
+          "safe_to_render_button": true,
+          "target_thread_ref": "capital_hilton",
+          "target_world_ref": "finance"
+        },
+        {
+          "action_id": "guardian_gate.pdf_export.stage_approval_request",
+          "action_type": "stage_package_request",
+          "business_action": false,
+          "business_action_performed": false,
+          "disabled_reason": null,
+          "enabled": true,
+          "label": "Stage approval request",
+          "proof_refs_collapsed": true,
+          "safe_to_render_button": true,
+          "target_thread_ref": "st_annes",
+          "target_world_ref": "finance"
+        },
+        {
+          "action_id": "guardian_gate.send_email.stage_approval_request",
+          "action_type": "stage_package_request",
+          "business_action": false,
+          "business_action_performed": false,
+          "disabled_reason": null,
+          "enabled": true,
+          "label": "Stage approval request",
+          "proof_refs_collapsed": true,
+          "safe_to_render_button": true,
+          "target_thread_ref": "capital_hilton",
+          "target_world_ref": "finance"
+        },
+        {
+          "action_id": "guardian_gate.workbook_mutation.stage_approval_request",
+          "action_type": "stage_package_request",
+          "business_action": false,
+          "business_action_performed": false,
+          "disabled_reason": null,
+          "enabled": true,
+          "label": "Stage approval request",
+          "proof_refs_collapsed": true,
+          "safe_to_render_button": true,
+          "target_thread_ref": "st_annes",
+          "target_world_ref": "finance"
+        },
+        {
+          "action_id": "review_packet.review_packet_c4ec166103f9aa35.approve_review_packet_for_record",
+          "action_type": "review_decision",
+          "business_action": false,
+          "business_action_performed": false,
+          "disabled_reason": null,
+          "enabled": true,
+          "label": "Approve for record",
+          "proof_refs_collapsed": true,
+          "safe_to_render_button": true,
+          "target_thread_ref": "build_openclaw_backend",
+          "target_world_ref": "build"
+        },
+        {
+          "action_id": "review_packet.review_packet_c4ec166103f9aa35.mark_review_packet_informational",
+          "action_type": "review_decision",
+          "business_action": false,
+          "business_action_performed": false,
+          "disabled_reason": null,
+          "enabled": true,
+          "label": "Mark informational",
+          "proof_refs_collapsed": true,
+          "safe_to_render_button": true,
+          "target_thread_ref": "build_openclaw_backend",
+          "target_world_ref": "build"
+        },
+        {
+          "action_id": "review_packet.review_packet_c4ec166103f9aa35.request_review_packet_rework",
+          "action_type": "review_decision",
+          "business_action": false,
+          "business_action_performed": false,
+          "disabled_reason": null,
+          "enabled": true,
+          "label": "Request rework",
+          "proof_refs_collapsed": true,
+          "safe_to_render_button": true,
+          "target_thread_ref": "build_openclaw_backend",
+          "target_world_ref": "build"
+        }
+      ],
+      "proof_collapsed_by_default": true,
+      "proof_refs": [
+        "generated/read_models/operator_action_payloads.json"
+      ],
+      "section_ref": "what_is_now_actionable",
+      "summary": "Actionability now includes safe package staging, Workroom review decisions, workbook registration staging, and disabled payment-proof intake until evidence exists."
+    },
+    "what_remains_navigation_only": {
+      "business_action_performed": false,
+      "headline": "18 enabled payloads are navigation, question, or explanation only.",
+      "items": [
+        {
+          "action_id": "capital_hilton.payment.open_finance",
+          "action_type": "navigate",
+          "business_action": false,
+          "business_action_performed": false,
+          "disabled_reason": null,
+          "enabled": true,
+          "label": "Open Finance / Capital Hilton",
+          "proof_refs_collapsed": true,
+          "safe_to_render_button": true,
+          "target_thread_ref": "capital_hilton",
+          "target_world_ref": "finance"
+        },
+        {
+          "action_id": "chief_diagnostic.open",
+          "action_type": "navigate",
+          "business_action": false,
+          "business_action_performed": false,
+          "disabled_reason": null,
+          "enabled": true,
+          "label": "Open Chief diagnostic",
+          "proof_refs_collapsed": true,
+          "safe_to_render_button": true,
+          "target_thread_ref": "chief_diagnostic",
+          "target_world_ref": "system"
+        },
+        {
+          "action_id": "guardian_gate.coupa_submit.explain",
+          "action_type": "explain_gate",
+          "business_action": false,
+          "business_action_performed": false,
+          "disabled_reason": null,
+          "enabled": true,
+          "label": "Explain this gate",
+          "proof_refs_collapsed": true,
+          "safe_to_render_button": true,
+          "target_thread_ref": "guardian",
+          "target_world_ref": "system"
+        },
+        {
+          "action_id": "guardian_gate.coupa_submit.open",
+          "action_type": "navigate",
+          "business_action": false,
+          "business_action_performed": false,
+          "disabled_reason": null,
+          "enabled": true,
+          "label": "Open relevant lane",
+          "proof_refs_collapsed": true,
+          "safe_to_render_button": true,
+          "target_thread_ref": "capital_hilton",
+          "target_world_ref": "finance"
+        },
+        {
+          "action_id": "guardian_gate.ledger_post.explain",
+          "action_type": "explain_gate",
+          "business_action": false,
+          "business_action_performed": false,
+          "disabled_reason": null,
+          "enabled": true,
+          "label": "Explain this gate",
+          "proof_refs_collapsed": true,
+          "safe_to_render_button": true,
+          "target_thread_ref": "guardian",
+          "target_world_ref": "system"
+        },
+        {
+          "action_id": "guardian_gate.ledger_post.open",
+          "action_type": "navigate",
+          "business_action": false,
+          "business_action_performed": false,
+          "disabled_reason": null,
+          "enabled": true,
+          "label": "Open relevant lane",
+          "proof_refs_collapsed": true,
+          "safe_to_render_button": true,
+          "target_thread_ref": "capital_hilton",
+          "target_world_ref": "finance"
+        },
+        {
+          "action_id": "guardian_gate.pdf_export.explain",
+          "action_type": "explain_gate",
+          "business_action": false,
+          "business_action_performed": false,
+          "disabled_reason": null,
+          "enabled": true,
+          "label": "Explain this gate",
+          "proof_refs_collapsed": true,
+          "safe_to_render_button": true,
+          "target_thread_ref": "guardian",
+          "target_world_ref": "system"
+        },
+        {
+          "action_id": "guardian_gate.pdf_export.open",
+          "action_type": "navigate",
+          "business_action": false,
+          "business_action_performed": false,
+          "disabled_reason": null,
+          "enabled": true,
+          "label": "Open relevant lane",
+          "proof_refs_collapsed": true,
+          "safe_to_render_button": true,
+          "target_thread_ref": "st_annes",
+          "target_world_ref": "finance"
+        },
+        {
+          "action_id": "guardian_gate.send_email.explain",
+          "action_type": "explain_gate",
+          "business_action": false,
+          "business_action_performed": false,
+          "disabled_reason": null,
+          "enabled": true,
+          "label": "Explain this gate",
+          "proof_refs_collapsed": true,
+          "safe_to_render_button": true,
+          "target_thread_ref": "guardian",
+          "target_world_ref": "system"
+        },
+        {
+          "action_id": "guardian_gate.send_email.open",
+          "action_type": "navigate",
+          "business_action": false,
+          "business_action_performed": false,
+          "disabled_reason": null,
+          "enabled": true,
+          "label": "Open relevant lane",
+          "proof_refs_collapsed": true,
+          "safe_to_render_button": true,
+          "target_thread_ref": "capital_hilton",
+          "target_world_ref": "finance"
+        },
+        {
+          "action_id": "guardian_gate.workbook_mutation.explain",
+          "action_type": "explain_gate",
+          "business_action": false,
+          "business_action_performed": false,
+          "disabled_reason": null,
+          "enabled": true,
+          "label": "Explain this gate",
+          "proof_refs_collapsed": true,
+          "safe_to_render_button": true,
+          "target_thread_ref": "guardian",
+          "target_world_ref": "system"
+        },
+        {
+          "action_id": "guardian_gate.workbook_mutation.open",
+          "action_type": "navigate",
+          "business_action": false,
+          "business_action_performed": false,
+          "disabled_reason": null,
+          "enabled": true,
+          "label": "Open relevant lane",
+          "proof_refs_collapsed": true,
+          "safe_to_render_button": true,
+          "target_thread_ref": "st_annes",
+          "target_world_ref": "finance"
+        },
+        {
+          "action_id": "helm_question.capital_hilton_invoice_block.ask",
+          "action_type": "system_question",
+          "business_action": false,
+          "business_action_performed": false,
+          "disabled_reason": null,
+          "enabled": true,
+          "label": "Why did Submit Capital Hilton invoice block?",
+          "proof_refs_collapsed": true,
+          "safe_to_render_button": true,
+          "target_thread_ref": "capital_hilton",
+          "target_world_ref": "finance"
+        },
+        {
+          "action_id": "helm_question.email_authority.ask",
+          "action_type": "system_question",
+          "business_action": false,
+          "business_action_performed": false,
+          "disabled_reason": null,
+          "enabled": true,
+          "label": "Can this send email?",
+          "proof_refs_collapsed": true,
+          "safe_to_render_button": true,
+          "target_thread_ref": "guardian",
+          "target_world_ref": "system"
+        },
+        {
+          "action_id": "helm_question.hardwired_vs_spawned.ask",
+          "action_type": "system_question",
+          "business_action": false,
+          "business_action_performed": false,
+          "disabled_reason": null,
+          "enabled": true,
+          "label": "What is the difference between Chief and a spawned worker?",
+          "proof_refs_collapsed": true,
+          "safe_to_render_button": true,
+          "target_thread_ref": "architecture",
+          "target_world_ref": "system"
+        },
+        {
+          "action_id": "helm_question.safe_next.ask",
+          "action_type": "system_question",
+          "business_action": false,
+          "business_action_performed": false,
+          "disabled_reason": null,
+          "enabled": true,
+          "label": "What is safe next?",
+          "proof_refs_collapsed": true,
+          "safe_to_render_button": true,
+          "target_thread_ref": "capital_hilton",
+          "target_world_ref": "finance"
+        },
+        {
+          "action_id": "helm_question.st_annes_church_sound.ask",
+          "action_type": "system_question",
+          "business_action": false,
+          "business_action_performed": false,
+          "disabled_reason": null,
+          "enabled": true,
+          "label": "Mark that I'm at church running sound.",
+          "proof_refs_collapsed": true,
+          "safe_to_render_button": true,
+          "target_thread_ref": "st_annes",
+          "target_world_ref": "finance"
+        },
+        {
+          "action_id": "review_packet.review_packet_c4ec166103f9aa35.open",
+          "action_type": "navigate",
+          "business_action": false,
+          "business_action_performed": false,
+          "disabled_reason": null,
+          "enabled": true,
+          "label": "Open review packet",
+          "proof_refs_collapsed": true,
+          "safe_to_render_button": true,
+          "target_thread_ref": "build_openclaw_backend",
+          "target_world_ref": "build"
+        }
+      ],
+      "proof_collapsed_by_default": true,
+      "proof_refs": [
+        "generated/read_models/operator_action_payloads.json"
+      ],
+      "section_ref": "what_remains_navigation_only",
+      "summary": "These are useful Mac/Helm controls, but they do not execute business actions."
+    },
+    "workbook_registration_status": {
+      "business_action_performed": false,
+      "headline": "Workbook registration is staged, not opened or mutated.",
+      "items": [
+        {
+          "action_id": "client_invoice_workbook.register",
+          "action_type": "workbook_registration",
+          "business_action": false,
+          "business_action_performed": false,
+          "disabled_reason": null,
+          "enabled": true,
+          "label": "Register workbook",
+          "proof_refs_collapsed": true,
+          "safe_to_render_button": true,
+          "target_thread_ref": "capital_hilton",
+          "target_world_ref": "finance"
+        }
+      ],
+      "proof_collapsed_by_default": true,
+      "proof_refs": [
+        "generated/read_models/operator_action_payloads.json",
+        "generated/read_models/client_invoice_workbook_registry.json"
+      ],
+      "section_ref": "workbook_registration_status",
+      "summary": "The register workbook payload requires a selected local path and explicitly denies workbook body read, workbook open, cell read, and mutation authority."
+    }
+  },
+  "source_read_models": [
+    "generated/read_models/operator_action_payloads.json",
+    "generated/read_models/operator_os_final_closeout.json",
+    "generated/read_models/openclaw_operating_picture_latest.json",
+    "generated/read_models/operator_next_decision.json",
+    "generated/read_models/workroom_review_packet_index.json",
+    "generated/read_models/workroom_review_decision_status.json",
+    "generated/read_models/approval_request_queue.json",
+    "generated/read_models/gate_decision_ledger.json",
+    "generated/read_models/homecoming_brief.json",
+    "generated/read_models/operator_mode_cutover_board.json"
+  ],
+  "speaker_ref": "chief",
+  "status": "OPERATOR_ACTIONABILITY_CLOSEOUT_READY",
+  "voice_mode": "operator_calm",
+  "voice_profile_ref": "agent_voice_profile:chief"
+}
