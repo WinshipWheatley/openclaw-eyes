@@ -126,6 +126,18 @@ WORLD_ALIASES = {
 }
 
 SYSTEM_QUESTION_HINTS = (
+    "what should i do here",
+    "what do i do here",
+    "what is this",
+    "what's this",
+    "whats this",
+    "what's next here",
+    "whats next here",
+    "what is next here",
+    "why am i here",
+    "what do i do with this",
+    "what should i do with this",
+    "is this done",
     "what is the difference between chief and a spawned worker",
     "why did submit capital hilton invoice block",
     "can this send email",
@@ -246,6 +258,8 @@ def is_system_question_request(raw_request: Mapping[str, Any]) -> bool:
         return True
     source_text = _source_text(raw_request)
     text = source_text.lower()
+    if system_question_answer.is_contextual_question(source_text):
+        return True
     if any(hint in text for hint in SYSTEM_QUESTION_HINTS):
         return True
     question_like = "?" in text or text.strip().startswith(("what ", "why ", "can ", "how "))
@@ -255,17 +269,21 @@ def is_system_question_request(raw_request: Mapping[str, Any]) -> bool:
 
 
 def _system_question_route_metadata(raw_request: Mapping[str, Any]) -> dict[str, Any]:
-    raw_current_world = str(raw_request.get("world_ref") or raw_request.get("world") or "")
-    raw_current_thread = str(raw_request.get("thread_ref") or raw_request.get("thread") or "")
+    raw_current_world = str(raw_request.get("current_world_ref") or raw_request.get("world_ref") or raw_request.get("world") or "")
+    raw_current_thread = str(raw_request.get("current_thread_ref") or raw_request.get("thread_ref") or raw_request.get("thread") or "")
+    current_world = normalize_world_ref(raw_current_world)
+    current_thread = normalize_thread_ref(raw_current_thread)
+    has_context = current_world not in {"", "unknown"} and current_thread not in {"", "unknown"}
+    lane_display = routing_note_for_lane(current_world, current_thread).replace("Routed to ", "", 1).rstrip(".")
     return {
-        "current_world_ref": normalize_world_ref(raw_current_world),
-        "current_thread_ref": normalize_thread_ref(raw_current_thread),
+        "current_world_ref": current_world,
+        "current_thread_ref": current_thread,
         "source_world_ref": raw_current_world,
         "source_thread_ref": raw_current_thread,
-        "target_world_ref": "operations",
-        "target_thread_ref": "openclaw",
+        "target_world_ref": current_world if has_context else "operations",
+        "target_thread_ref": current_thread if has_context else "openclaw",
         "cross_lane_routed": False,
-        "routing_note": "Routed to local system question answer.",
+        "routing_note": f"Answered from {lane_display}." if has_context else "Routed to local system question answer.",
     }
 
 
@@ -325,9 +343,13 @@ def _system_question_receipt(
     sqlite_path: Path,
 ) -> WorkflowPackageRequestResult:
     question = _bounded_question_text(_source_text(raw_request))
-    answer_payload = system_question_answer.answer_system_question(question)
-    operator_display = _operator_display_from_system_question(answer_payload)
     route = _system_question_route_metadata(raw_request)
+    answer_payload = system_question_answer.answer_system_question(
+        question,
+        current_world_ref=route["current_world_ref"],
+        current_thread_ref=route["current_thread_ref"],
+    )
+    operator_display = _operator_display_from_system_question(answer_payload)
     proof_refs = (
         answer_payload.get("answer", {}).get("proof_refs", [])
         if isinstance(answer_payload.get("answer"), Mapping)
@@ -455,8 +477,8 @@ def routing_note_for_lane(world_ref: str, thread_ref: str) -> str:
 
 
 def routing_metadata(raw_request: Mapping[str, Any], package: Mapping[str, Any] | None) -> dict[str, Any]:
-    raw_current_world = str(raw_request.get("world_ref") or raw_request.get("world") or "")
-    raw_current_thread = str(raw_request.get("thread_ref") or raw_request.get("thread") or "")
+    raw_current_world = str(raw_request.get("current_world_ref") or raw_request.get("world_ref") or raw_request.get("world") or "")
+    raw_current_thread = str(raw_request.get("current_thread_ref") or raw_request.get("thread_ref") or raw_request.get("thread") or "")
     current_world = normalize_world_ref(raw_current_world)
     current_thread = normalize_thread_ref(raw_current_thread)
     workflow_ref = str((package or {}).get("workflow_ref") or raw_request.get("workflow_ref") or "")

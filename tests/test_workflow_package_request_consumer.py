@@ -254,6 +254,114 @@ def test_safe_next_question_routes_to_openclaw_status_answer(tmp_path):
     _assert_no_unsafe_grants(result.receipt)
 
 
+def test_contextual_what_should_i_do_here_finance_capital_hilton_answers_payment_watch(tmp_path):
+    sqlite_path = tmp_path / "workflow_package_queue.sqlite"
+    request = _request_payload(
+        request_id="contextual_finance_capital_hilton_here",
+        source_text="What should I do here?",
+        world_ref="finance",
+        thread_ref="capital_hilton",
+    )
+
+    result = consumer.consume_workflow_package_request(
+        request,
+        source_request_filename="mission_control_operator_instruction_request_contextual_finance_capital_hilton.json",
+        generated_at=FIXED_NOW,
+        sqlite_path=sqlite_path,
+    )
+
+    assert result.status == "RECORDED"
+    assert result.package is None
+    assert not sqlite_path.exists()
+    assert result.receipt["workflow_ref"] == "system_question_answer"
+    assert result.receipt["package_status"] == "ANSWER_READY"
+    assert result.receipt["target_world_ref"] == "finance"
+    assert result.receipt["target_thread_ref"] == "capital_hilton"
+    assert result.receipt["operator_display"]["headline"] == "Stay on payment watch"
+    assert result.receipt["operator_display"]["plain_summary"] == (
+        "Coupa is processing. Wait for payment evidence before anything touches the ledger."
+    )
+    assert result.receipt["operator_display"]["next_safe_action"] == "Watch for payment proof."
+    assert result.receipt["machine_proof"]["package_recorded"] is False
+    assert result.receipt["machine_proof"]["queue_sqlite_mutated"] is False
+    assert result.receipt["machine_proof"]["coupa_access_performed"] is False
+    assert result.receipt["machine_proof"]["ledger_mutation_performed"] is False
+    _assert_no_unsafe_grants(result.receipt)
+
+
+def test_contextual_question_does_not_route_to_diagnostic_workflow_package_queue(tmp_path):
+    request = _request_payload(
+        request_id="contextual_no_diagnostic_queue",
+        source_text="What should I do here?",
+        world_ref="finance",
+        thread_ref="capital_hilton",
+    )
+
+    result = consumer.consume_workflow_package_request(
+        request,
+        source_request_filename="mission_control_operator_instruction_request_contextual_no_diagnostic_queue.json",
+        generated_at=FIXED_NOW,
+        sqlite_path=tmp_path / "workflow_package_queue.sqlite",
+    )
+    rendered = json.dumps(result.receipt)
+
+    assert result.package is None
+    assert "Workflow package staged" not in rendered
+    assert "Diagnostic / Workflow Package Queue" not in rendered
+    assert result.receipt["target_world_ref"] != "diagnostic"
+    assert result.receipt["target_thread_ref"] != "workflow_package_queue"
+
+
+def test_contextual_business_development_capital_hilton_answer_has_no_send(tmp_path):
+    request = _request_payload(
+        request_id="contextual_business_development_capital_hilton",
+        source_text="What's next here?",
+        world_ref="business_development",
+        thread_ref="capital_hilton",
+    )
+
+    result = consumer.consume_workflow_package_request(
+        request,
+        source_request_filename="mission_control_operator_instruction_request_contextual_bd_capital_hilton.json",
+        generated_at=FIXED_NOW,
+        sqlite_path=tmp_path / "workflow_package_queue.sqlite",
+    )
+
+    assert result.package is None
+    assert result.receipt["operator_display"]["headline"] == "Proposal follow-up is review-only"
+    assert "do not send" in result.receipt["operator_display"]["plain_summary"].lower()
+    assert result.receipt["machine_proof"]["email_send_performed"] is False
+    _assert_no_unsafe_grants(result.receipt)
+
+
+def test_contextual_build_context_returns_review_packet_no_merge_push(tmp_path):
+    request = _request_payload(
+        request_id="contextual_build_review_packet",
+        source_text="What do I do with this?",
+        world_ref="build",
+        thread_ref="build_openclaw_backend",
+    )
+
+    result = consumer.consume_workflow_package_request(
+        request,
+        source_request_filename="mission_control_operator_instruction_request_contextual_build_review.json",
+        generated_at=FIXED_NOW,
+        sqlite_path=tmp_path / "workflow_package_queue.sqlite",
+    )
+    rendered = json.dumps(result.receipt)
+
+    assert result.package is None
+    assert result.receipt["operator_display"]["headline"] == "Review packet needs local decision"
+    assert "review controls only" in result.receipt["operator_display"]["plain_summary"].lower()
+    assert "merge" in rendered.lower()
+    assert "push" in rendered.lower()
+    assert result.receipt["system_question_answer"]["authority_boundary"]["merge_allowed"] is False
+    assert result.receipt["system_question_answer"]["authority_boundary"]["git_push_allowed"] is False
+    assert result.receipt["system_question_answer"]["machine_proof"]["merge_performed"] is False
+    assert result.receipt["system_question_answer"]["machine_proof"]["git_push_performed"] is False
+    _assert_no_unsafe_grants(result.receipt)
+
+
 def test_never_merge_question_routes_to_guardian_without_queue_write(tmp_path):
     request = _request_payload(
         request_id="system_question_never_merge",

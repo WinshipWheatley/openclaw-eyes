@@ -1,8 +1,9 @@
 # System Question Answering
 
 Status: `SYSTEM_QUESTION_ANSWER_V0_READY`
+Contextual status: `CONTEXTUAL_SYSTEM_QUESTIONS_READY`
 
-This workflow answers local questions about OpenClaw state, gates, agents, packages, receipts, and proof refs.
+This workflow answers local questions about OpenClaw state, gates, agents, packages, receipts, proof refs, and current lane context.
 
 It is deterministic and local-only. It does not call an external LLM, spawn agents, run loops, send email, open browser/Gmail/Coupa, mutate ledgers or workbooks, export PDFs, submit portals, or mark paid/sent.
 
@@ -12,6 +13,16 @@ It is deterministic and local-only. It does not call an external LLM, spawn agen
 - `package_block_gate_diagnostic` -> `chief`
 - `safety_authority` -> `guardian`
 - `neutral_status` -> `openclaw`
+- `contextual_current_lane` -> `chief|cassandra`
+
+## Contextual Questions
+
+- Questions like `What should I do here?`, `What is this?`, `What's next here?`, `Why am I here?`, `What do I do with this?`, and `Is this done?` answer from `current_world_ref/current_thread_ref` first.
+- Finance / Capital Hilton answers payment watch: Coupa is processing and ledger touch waits for payment evidence.
+- Business Development / Capital Hilton answers proposal status and allows follow-up draft/stage only for review.
+- Finance / St. Anne's answers work-log/invoice state without Excel, PDF, email, or ledger action.
+- Build lanes answer review packet state with review controls only and no merge/push.
+- Missing context falls back to the existing deterministic system-question behavior.
 
 ## Source Scope
 
@@ -42,6 +53,11 @@ It is deterministic and local-only. It does not call an external LLM, spawn agen
 - Cassandra hands package needs to Chief: Cassandra hands operational package needs to Chief through registered local handoff refs. Next: Record or stage only a local handoff packet; do not spawn workers from the answer.
 - Hermes routes build recommendations to Chief: When Hermes recommends a build, the route is a local build packet to Chief before any worker packet exists. Next: Record or stage only a local handoff packet; do not spawn workers from the answer.
 - PC_CODEX cannot push from this workflow: PC_CODEX can produce local result receipts or review packets, but git_push_allowed=false in these Workroom surfaces. Next: Keep review packet decisions local; do not push.
+- No local answer found: I do not have a deterministic local answer for that question yet. Next: Ask with a specific package id, gate name, client, or receipt ref.
+- Stay on payment watch: Coupa is processing. Wait for payment evidence before anything touches the ledger. Next: Watch for payment proof.
+- Proposal follow-up is review-only: Capital Hilton proposal context is business development. Draft or stage a follow-up only for review; do not send. Next: Draft or stage a follow-up packet for review only.
+- Review St. Anne's work-log state: St. Anne's finance lane is work-log and invoice context; Excel, PDF, email, and ledger actions stay gated. Next: Review confirmed versus staged work logs before invoice work.
+- Review packet needs local decision: This build lane is review-packet context. Use review controls only; no merge or push is authorized. Next: Use review controls only; do not merge or push.
 
 ## Boundary
 

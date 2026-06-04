@@ -30,17 +30,56 @@ SCHEMA_VERSION = "system_question_answer_v0"
 READ_MODEL_ID = "system_question_answer_contract"
 JSON_EXPORT_NAME = f"{READ_MODEL_ID}.json"
 CONTRACT_STATUS = "SYSTEM_QUESTION_ANSWER_V0_READY"
+CONTEXTUAL_STATUS = "CONTEXTUAL_SYSTEM_QUESTIONS_READY"
 WORKFLOW_REF = "system_question_answer"
 
 AUTHORITY_BOUNDARY = {
     "email_send_allowed": False,
     "ledger_posting_allowed": False,
+    "ledger_mutation_allowed": False,
     "browser_access_allowed": False,
     "gmail_allowed": False,
     "coupa_allowed": False,
     "portal_submit_allowed": False,
+    "workbook_open_allowed": False,
+    "workbook_body_read_allowed": False,
+    "spreadsheet_cell_read_allowed": False,
+    "workbook_mutation_allowed": False,
+    "excel_automation_allowed": False,
+    "pdf_export_allowed": False,
+    "merge_allowed": False,
+    "git_push_allowed": False,
+    "push_allowed": False,
+    "business_action_allowed": False,
+    "authority_grant_allowed": False,
+    "worker_spawn_allowed": False,
+    "worker_execution_allowed": False,
+    "child_agent_run_allowed": False,
     "sent": False,
     "paid": False,
+}
+
+UNSAFE_TRUE_KEYS = set(AUTHORITY_BOUNDARY) | {
+    "email_send_performed",
+    "ledger_mutation_performed",
+    "browser_access_performed",
+    "gmail_access_performed",
+    "coupa_access_performed",
+    "workbook_open_performed",
+    "workbook_body_read_performed",
+    "spreadsheet_cell_read_performed",
+    "workbook_mutation_performed",
+    "excel_automation_performed",
+    "pdf_export_performed",
+    "paid_marking_performed",
+    "submit_performed",
+    "merge_performed",
+    "git_push_performed",
+    "worker_spawn_performed",
+    "worker_execution_performed",
+    "child_agent_spawned",
+    "business_action_performed",
+    "business_state_mutation_performed",
 }
 
 SOURCE_SCOPE = {
@@ -76,6 +115,14 @@ CORE_SOURCE_REFS = {
     "workroom_review_decision_contract": "generated/read_models/workroom_review_decision_contract.json",
     "worker_package_staging": "generated/read_models/worker_package_staging_status.json",
     "chief_build_backlog": "generated/read_models/chief_build_backlog.json",
+    "capital_hilton_invoice_operator_run_status": "generated/read_models/capital_hilton_invoice_operator_run_status.json",
+    "operator_action_payloads": "generated/read_models/operator_action_payloads.json",
+    "lm_bounded_operator_orchestration": "generated/read_models/lm_bounded_operator_orchestration_latest.json",
+    "operator_next_decision": "generated/read_models/operator_next_decision.json",
+    "finance_thread_index": "generated/read_models/finance_thread_index.json",
+    "capital_hilton_business_development_proposal": "generated/read_models/capital_hilton_business_development_proposal.json",
+    "backend_queue_recovery_status": "generated/read_models/backend_queue_recovery_status.json",
+    "readiness_status_alias_registry": "generated/read_models/openclaw_readiness_status_alias_registry.json",
 }
 
 EXAMPLE_QUESTIONS = (
@@ -98,6 +145,33 @@ EXAMPLE_QUESTIONS = (
     "Who does Cassandra hand off to?",
     "What happens when Hermes recommends a build?",
     "Can PC_CODEX push this?",
+    "What should I do here?",
+    "What should I do here? [Finance / Capital Hilton]",
+    "What should I do here? [Business Development / Capital Hilton]",
+    "Is this done? [Finance / St. Anne's]",
+    "What should I do here? [Build / OpenClaw Backend]",
+)
+
+EXAMPLE_CONTEXTS = {
+    "What should I do here? [Finance / Capital Hilton]": ("finance", "capital_hilton"),
+    "What should I do here? [Business Development / Capital Hilton]": ("business_development", "capital_hilton"),
+    "Is this done? [Finance / St. Anne's]": ("finance", "st_annes"),
+    "What should I do here? [Build / OpenClaw Backend]": ("build", "build_openclaw_backend"),
+}
+
+CONTEXTUAL_QUESTION_PATTERNS = (
+    "what should i do here",
+    "what do i do here",
+    "what is this",
+    "what's this",
+    "whats this",
+    "what's next here",
+    "whats next here",
+    "what is next here",
+    "why am i here",
+    "what do i do with this",
+    "what should i do with this",
+    "is this done",
 )
 
 
@@ -122,6 +196,18 @@ def _safe_question(question: str, *, max_chars: int = 240) -> str:
     if len(cleaned) <= max_chars:
         return cleaned
     return cleaned[: max_chars - 14].rstrip() + " [truncated]"
+
+
+def _normalized_question_key(question: str) -> str:
+    text = _safe_question(question).lower()
+    text = text.replace("’", "'").replace("?", "").replace(".", "")
+    text = text.replace("/", " ")
+    return " ".join(text.split())
+
+
+def is_contextual_question(question: str) -> bool:
+    text = _normalized_question_key(question)
+    return any(pattern in text for pattern in CONTEXTUAL_QUESTION_PATTERNS)
 
 
 def _load_json_file(path: Path) -> dict[str, Any]:
@@ -205,9 +291,31 @@ def _load_sources(read_model_root: Path, sqlite_root: Path) -> dict[str, Any]:
         "workroom_review_packet_index": _load_json_file(read_model_root / "workroom_review_packet_index.json"),
         "worker_package_staging": _load_json_file(read_model_root / "worker_package_staging_status.json"),
         "chief_build_backlog": _load_json_file(read_model_root / "chief_build_backlog.json"),
+        "capital_hilton_invoice_operator_run_status": _load_json_file(read_model_root / "capital_hilton_invoice_operator_run_status.json"),
+        "operator_action_payloads": _load_json_file(read_model_root / "operator_action_payloads.json"),
+        "lm_bounded_operator_orchestration": _load_json_file(read_model_root / "lm_bounded_operator_orchestration_latest.json"),
+        "operator_next_decision": _load_json_file(read_model_root / "operator_next_decision.json"),
+        "finance_thread_index": _load_json_file(read_model_root / "finance_thread_index.json"),
+        "capital_hilton_business_development_proposal": _load_json_file(read_model_root / "capital_hilton_business_development_proposal.json"),
+        "backend_queue_recovery_status": _load_json_file(read_model_root / "backend_queue_recovery_status.json"),
+        "readiness_status_alias_registry": _load_json_file(read_model_root / "openclaw_readiness_status_alias_registry.json"),
         "st_annes_work_log_sqlite": _sqlite_metadata(sqlite_root / "st_annes_monthly_work_log.sqlite"),
         "workflow_package_queue_sqlite": _sqlite_metadata(sqlite_root / "workflow_package_queue.sqlite"),
     }
+
+
+def _walk_values(payload: Any):
+    if isinstance(payload, Mapping):
+        for key, value in payload.items():
+            yield str(key), value
+            yield from _walk_values(value)
+    elif isinstance(payload, list):
+        for value in payload:
+            yield from _walk_values(value)
+
+
+def unsafe_true_grants(payload: Mapping[str, Any]) -> list[str]:
+    return sorted({key for key, value in _walk_values(payload) if key in UNSAFE_TRUE_KEYS and value is True})
 
 
 def speaker_for_question(question: str) -> tuple[str, str]:
@@ -387,19 +495,386 @@ def _answer_payload(
             "local_only": True,
             "external_llm_called": False,
             "child_agent_spawned": False,
+            "worker_spawn_performed": False,
+            "worker_execution_performed": False,
             "live_execution_performed": False,
             "email_send_performed": False,
             "ledger_mutation_performed": False,
             "browser_access_performed": False,
             "gmail_access_performed": False,
             "coupa_access_performed": False,
+            "workbook_open_performed": False,
+            "workbook_body_read_performed": False,
+            "spreadsheet_cell_read_performed": False,
             "workbook_mutation_performed": False,
+            "excel_automation_performed": False,
             "pdf_export_performed": False,
             "paid_marking_performed": False,
             "submit_performed": False,
+            "business_action_performed": False,
+            "business_state_mutation_performed": False,
+            "merge_performed": False,
+            "git_push_performed": False,
             "unsafe_true_grants_absent": True,
         },
     }
+
+
+def _context_display_name(world_ref: str, thread_ref: str) -> str:
+    labels = {
+        ("finance", "capital_hilton"): "Finance / Capital Hilton",
+        ("business_development", "capital_hilton"): "Business Development / Capital Hilton",
+        ("finance", "st_annes"): "Finance / St. Anne's",
+        ("build", "build_openclaw_backend"): "Build / OpenClaw Backend",
+        ("build", "build_mission_control_mac"): "Build / Mission Control Mac",
+    }
+    if (world_ref, thread_ref) in labels:
+        return labels[(world_ref, thread_ref)]
+    if not world_ref or not thread_ref or world_ref == "unknown" or thread_ref == "unknown":
+        return "Unknown lane"
+    return f"{world_ref.replace('_', ' ').title()} / {thread_ref.replace('_', ' ').title()}"
+
+
+def _route_confirmed(world_ref: str, thread_ref: str) -> str:
+    return f"Answered from current lane metadata: {_context_display_name(world_ref, thread_ref)}."
+
+
+def _capital_hilton_invoice_processing(sources: Mapping[str, Any]) -> bool:
+    receipt = sources.get("capital_hilton_invoice_operator_run_status")
+    receipt = receipt if isinstance(receipt, Mapping) else {}
+    submitted = receipt.get("coupa_submitted") is True or receipt.get("coupa_submission_recorded") is True
+    status_text = " ".join(
+        str(receipt.get(key) or "")
+        for key in ("coupa_submission_status", "coupa_status_observed", "source_receipt_status")
+    ).lower()
+    return submitted and ("processing" in status_text or "submitted" in status_text)
+
+
+def _capital_hilton_payment_watch_answer(
+    question: str,
+    sources: Mapping[str, Any],
+    *,
+    world_ref: str,
+    thread_ref: str,
+) -> dict[str, Any]:
+    receipt = sources.get("capital_hilton_invoice_operator_run_status")
+    receipt = receipt if isinstance(receipt, Mapping) else {}
+    orchestration = sources.get("lm_bounded_operator_orchestration")
+    orchestration = orchestration if isinstance(orchestration, Mapping) else {}
+    recommended = (
+        orchestration.get("lm_recommended_action")
+        if isinstance(orchestration.get("lm_recommended_action"), Mapping)
+        else {}
+    )
+    status = str(receipt.get("coupa_submission_status") or receipt.get("coupa_status_observed") or "processing")
+    proof_refs = _existing_refs(
+        CORE_SOURCE_REFS["capital_hilton_invoice_operator_run_status"],
+        CORE_SOURCE_REFS["operator_action_payloads"],
+        CORE_SOURCE_REFS["lm_bounded_operator_orchestration"],
+        CORE_SOURCE_REFS["finance_thread_index"],
+    )
+    return _answer_payload(
+        speaker_ref="chief",
+        voice_mode="diagnostic",
+        question=question,
+        headline="Stay on payment watch",
+        plain_summary="Coupa is processing. Wait for payment evidence before anything touches the ledger.",
+        confirmed=[
+            _route_confirmed(world_ref, thread_ref),
+            f"Capital Hilton Coupa submission status is {status}.",
+            "Payment evidence is not recorded, and ledger mutation remains closed.",
+            f"Bounded orchestration recommends {recommended.get('label', 'Open Finance / Capital Hilton')} without execution authority.",
+        ],
+        inferred=[
+            "This is a watch state, not a restart or proof-recording state.",
+        ],
+        unknown=[
+            "Payment proof is still unknown until a separate receipt appears.",
+        ],
+        next_safe_action="Watch for payment proof.",
+        proof_refs=proof_refs,
+    )
+
+
+def _capital_hilton_business_development_context_answer(
+    question: str,
+    sources: Mapping[str, Any],
+    *,
+    world_ref: str,
+    thread_ref: str,
+) -> dict[str, Any]:
+    proposal = sources.get("capital_hilton_business_development_proposal")
+    proposal = proposal if isinstance(proposal, Mapping) else {}
+    status = str(proposal.get("proposal_status") or "proposal status unknown")
+    client_review_pending = proposal.get("client_review_pending") is True
+    proof_refs = _existing_refs(
+        CORE_SOURCE_REFS["capital_hilton_business_development_proposal"],
+        CORE_SOURCE_REFS["operator_action_payloads"],
+        CORE_SOURCE_REFS["lm_bounded_operator_orchestration"],
+    )
+    return _answer_payload(
+        speaker_ref="cassandra",
+        voice_mode="operator_calm",
+        question=question,
+        headline="Proposal follow-up is review-only",
+        plain_summary="Capital Hilton proposal context is business development. Draft or stage a follow-up only for review; do not send.",
+        confirmed=[
+            _route_confirmed(world_ref, thread_ref),
+            f"Proposal status: {status}.",
+            f"Client review pending: {str(client_review_pending).lower()}.",
+            "Email send, finance handoff, ledger posting, and accepted/paid truth are closed.",
+        ],
+        inferred=[
+            "A follow-up packet can be drafted or staged for operator review if the relationship context calls for it.",
+        ],
+        unknown=[
+            "No new client response or acceptance is recorded by this answer.",
+        ],
+        next_safe_action="Draft or stage a follow-up packet for review only.",
+        proof_refs=proof_refs,
+    )
+
+
+def _st_annes_finance_context_answer(
+    question: str,
+    sources: Mapping[str, Any],
+    *,
+    world_ref: str,
+    thread_ref: str,
+) -> dict[str, Any]:
+    work_logs = sources.get("st_annes_work_log_events")
+    work_logs = work_logs if isinstance(work_logs, Mapping) else {}
+    event_count = work_logs.get("event_count", "unknown")
+    proof_refs = _existing_refs(
+        CORE_SOURCE_REFS["st_annes_work_log_events"],
+        CORE_SOURCE_REFS["st_annes_monthly_work_log_contract"],
+        CORE_SOURCE_REFS["finance_thread_index"],
+    )
+    return _answer_payload(
+        speaker_ref="chief",
+        voice_mode="diagnostic",
+        question=question,
+        headline="Review St. Anne's work-log state",
+        plain_summary="St. Anne's finance lane is work-log and invoice context; Excel, PDF, email, and ledger actions stay gated.",
+        confirmed=[
+            _route_confirmed(world_ref, thread_ref),
+            f"Work-log read model event_count: {event_count}.",
+            "Invoice inclusion still requires review and operator confirmation.",
+            "Excel/workbook mutation, PDF export, email send, and ledger posting are not authorized by this answer.",
+        ],
+        inferred=[
+            "Use this lane to compare staged versus confirmed work logs before invoice prep.",
+        ],
+        unknown=[
+            "This answer did not inspect workbook body or spreadsheet cells.",
+        ],
+        next_safe_action="Review confirmed versus staged work logs before invoice work.",
+        proof_refs=proof_refs,
+    )
+
+
+def _build_review_context_answer(
+    question: str,
+    sources: Mapping[str, Any],
+    *,
+    world_ref: str,
+    thread_ref: str,
+) -> dict[str, Any]:
+    packet_index = sources.get("workroom_review_packet_index")
+    packet_index = packet_index if isinstance(packet_index, Mapping) else {}
+    operator_next = sources.get("operator_next_decision")
+    operator_next = operator_next if isinstance(operator_next, Mapping) else {}
+    packets = [
+        packet
+        for packet in _review_packets(packet_index)
+        if str(packet.get("channel_ref") or "") == thread_ref
+        and packet.get("operator_decision_required") is True
+        and packet.get("completed") is not True
+        and str(packet.get("status") or "") not in {"OPERATOR_REVIEW_RECORDED", "INFORMATIONAL_REVIEW_CLOSED"}
+    ]
+    if not packets and str(operator_next.get("target_world_ref") or "") == world_ref:
+        target_thread = str(operator_next.get("target_thread_ref") or "")
+        if target_thread == thread_ref and operator_next.get("review_packet_id"):
+            packets = [
+                {
+                    "review_packet_id": operator_next.get("review_packet_id"),
+                    "worker_ref": operator_next.get("worker_ref"),
+                    "status": "REVIEW_PACKET_READY",
+                    "human_summary": operator_next.get("plain_summary"),
+                }
+            ]
+    packet_summary = "; ".join(_packet_label(packet) for packet in packets) if packets else "no unresolved packet found"
+    proof_refs = _existing_refs(
+        CORE_SOURCE_REFS["workroom_review_packet_index"],
+        CORE_SOURCE_REFS["workroom_review_decision_contract"],
+        CORE_SOURCE_REFS["operator_next_decision"],
+        CORE_SOURCE_REFS["openclaw_workroom_activity_feed"],
+    )
+    return _answer_payload(
+        speaker_ref="chief",
+        voice_mode="diagnostic",
+        question=question,
+        headline="Review packet needs local decision",
+        plain_summary="This build lane is review-packet context. Use review controls only; no merge or push is authorized.",
+        confirmed=[
+            _route_confirmed(world_ref, thread_ref),
+            f"Current review context: {packet_summary}.",
+            "Allowed review controls are approve-for-record, request-rework, or mark-informational.",
+            "Merge and git push remain closed.",
+        ],
+        inferred=[
+            "Use the packet proof to decide review outcome; do not treat worker output as execution authority.",
+        ],
+        unknown=[] if packets else ["No unresolved packet was found for this exact build lane."],
+        next_safe_action="Use review controls only; do not merge or push.",
+        proof_refs=proof_refs,
+    )
+
+
+def contextual_answer_for_lane(
+    question: str,
+    sources: Mapping[str, Any],
+    *,
+    current_world_ref: str = "",
+    current_thread_ref: str = "",
+) -> dict[str, Any] | None:
+    world_ref = str(current_world_ref or "").strip()
+    thread_ref = str(current_thread_ref or "").strip()
+    if not is_contextual_question(question) or not world_ref or not thread_ref:
+        return None
+    if world_ref in {"unknown", "none"} or thread_ref in {"unknown", "none"}:
+        return None
+    if world_ref == "finance" and thread_ref == "capital_hilton":
+        return _capital_hilton_payment_watch_answer(
+            question,
+            sources,
+            world_ref=world_ref,
+            thread_ref=thread_ref,
+        )
+    if world_ref == "business_development" and thread_ref == "capital_hilton":
+        return _capital_hilton_business_development_context_answer(
+            question,
+            sources,
+            world_ref=world_ref,
+            thread_ref=thread_ref,
+        )
+    if world_ref == "finance" and thread_ref == "st_annes":
+        return _st_annes_finance_context_answer(
+            question,
+            sources,
+            world_ref=world_ref,
+            thread_ref=thread_ref,
+        )
+    if world_ref == "build":
+        return _build_review_context_answer(
+            question,
+            sources,
+            world_ref=world_ref,
+            thread_ref=thread_ref,
+        )
+    return None
+
+
+def _status(payload: Mapping[str, Any]) -> str:
+    return str(payload.get("status") or payload.get("readiness_status") or payload.get("contract_status") or "")
+
+
+def _alias_registry_has_status(registry: Mapping[str, Any], status_ref: str) -> bool:
+    rows = registry.get("canonical_statuses")
+    if not isinstance(rows, list):
+        return False
+    for row in rows:
+        if not isinstance(row, Mapping):
+            continue
+        aliases = row.get("aliases") if isinstance(row.get("aliases"), list) else []
+        if row.get("canonical") == status_ref or status_ref in aliases:
+            return True
+    return False
+
+
+def _backend_dependency_ready(payload: Mapping[str, Any], status_ref: str) -> bool:
+    deps = payload.get("completed_dependencies")
+    if not isinstance(deps, list):
+        return False
+    for dep in deps:
+        if not isinstance(dep, Mapping):
+            continue
+        if dep.get("status") == status_ref and dep.get("completion_confirmed") is True:
+            return True
+    return False
+
+
+def build_preconditions(
+    *,
+    read_model_root: Path = DEFAULT_READ_MODEL_ROOT,
+    sqlite_root: Path = DEFAULT_SQLITE_ROOT,
+) -> list[dict[str, Any]]:
+    sources = _load_sources(read_model_root, sqlite_root)
+    invoice = sources.get("capital_hilton_invoice_operator_run_status")
+    invoice = invoice if isinstance(invoice, Mapping) else {}
+    sqlite_meta = sources.get("st_annes_work_log_sqlite")
+    sqlite_meta = sqlite_meta if isinstance(sqlite_meta, Mapping) else {}
+    alias_registry = sources.get("readiness_status_alias_registry")
+    alias_registry = alias_registry if isinstance(alias_registry, Mapping) else {}
+    backend_recovery = sources.get("backend_queue_recovery_status")
+    backend_recovery = backend_recovery if isinstance(backend_recovery, Mapping) else {}
+    lm_bounded = sources.get("lm_bounded_operator_orchestration")
+    lm_bounded = lm_bounded if isinstance(lm_bounded, Mapping) else {}
+    lm_observed = str(lm_bounded.get("readiness_status") or _status(lm_bounded))
+
+    rows = [
+        {
+            "precondition_ref": "system_question_route",
+            "required_status": "SYSTEM_QUESTION_ROUTE_READY",
+            "observed_status": "SYSTEM_QUESTION_ROUTE_READY"
+            if _alias_registry_has_status(alias_registry, "SYSTEM_QUESTION_ROUTE_READY")
+            else "",
+            "ready": _alias_registry_has_status(alias_registry, "SYSTEM_QUESTION_ROUTE_READY"),
+            "source_ref": CORE_SOURCE_REFS["readiness_status_alias_registry"],
+        },
+        {
+            "precondition_ref": "system_question_sqlite_answers",
+            "required_status": "SYSTEM_QUESTION_SQLITE_ANSWERS_READY",
+            "observed_status": "SYSTEM_QUESTION_SQLITE_ANSWERS_READY"
+            if _backend_dependency_ready(backend_recovery, "SYSTEM_QUESTION_SQLITE_ANSWERS_READY")
+            or sqlite_meta.get("exists") is True
+            else "",
+            "ready": _backend_dependency_ready(backend_recovery, "SYSTEM_QUESTION_SQLITE_ANSWERS_READY")
+            or sqlite_meta.get("exists") is True,
+            "source_ref": CORE_SOURCE_REFS["backend_queue_recovery_status"],
+        },
+        {
+            "precondition_ref": "operator_action_payloads",
+            "required_status": "OPERATOR_ACTION_PAYLOADS_READY",
+            "observed_status": _status(sources.get("operator_action_payloads") or {}),
+            "ready": _status(sources.get("operator_action_payloads") or {}) == "OPERATOR_ACTION_PAYLOADS_READY",
+            "source_ref": CORE_SOURCE_REFS["operator_action_payloads"],
+        },
+        {
+            "precondition_ref": "lm_bounded_operator_orchestration",
+            "required_status": "LM_BOUNDED_OPERATOR_ORCHESTRATION_READY",
+            "observed_status": lm_observed,
+            "ready": lm_observed == "LM_BOUNDED_OPERATOR_ORCHESTRATION_READY",
+            "source_ref": CORE_SOURCE_REFS["lm_bounded_operator_orchestration"],
+        },
+        {
+            "precondition_ref": "capital_hilton_operator_run",
+            "required_status": "CAPITAL_HILTON_OPERATOR_RUN_RECORDED",
+            "observed_status": _status(invoice),
+            "ready": _status(invoice) == "CAPITAL_HILTON_OPERATOR_RUN_RECORDED"
+            or invoice.get("coupa_submission_recorded") is True,
+            "source_ref": CORE_SOURCE_REFS["capital_hilton_invoice_operator_run_status"],
+        },
+        {
+            "precondition_ref": "finance_thread_routing",
+            "required_status": "FINANCE_THREAD_ROUTING_READY",
+            "observed_status": _status(sources.get("finance_thread_index") or {}),
+            "ready": _status(sources.get("finance_thread_index") or {}) == "FINANCE_THREAD_INDEX_READY",
+            "source_ref": CORE_SOURCE_REFS["finance_thread_index"],
+            "equivalent_status_accepted": "FINANCE_THREAD_INDEX_READY",
+        },
+    ]
+    return rows
 
 
 def _chief_vs_worker_answer(question: str, sources: Mapping[str, Any]) -> dict[str, Any]:
@@ -1136,6 +1611,8 @@ def _unknown_answer(question: str, speaker_ref: str, voice_mode: str) -> dict[st
 def answer_system_question(
     question: str,
     *,
+    current_world_ref: str = "",
+    current_thread_ref: str = "",
     read_model_root: Path = DEFAULT_READ_MODEL_ROOT,
     wiki_root: Path = DEFAULT_WIKI_ROOT,
     sqlite_root: Path = DEFAULT_SQLITE_ROOT,
@@ -1144,6 +1621,24 @@ def answer_system_question(
     question = _safe_question(question)
     text = question.lower()
     sources = _load_sources(read_model_root, sqlite_root)
+    contextual = contextual_answer_for_lane(
+        question,
+        sources,
+        current_world_ref=current_world_ref,
+        current_thread_ref=current_thread_ref,
+    )
+    if contextual is not None:
+        contextual["contextual_route"] = {
+            "contextual_question_detected": True,
+            "current_world_ref": current_world_ref,
+            "current_thread_ref": current_thread_ref,
+            "source_priority": "current_lane_first",
+            "fallback_used": False,
+        }
+        contextual["machine_proof"]["contextual_lane_answer_used"] = True
+        contextual["machine_proof"]["package_staged"] = False
+        contextual["machine_proof"]["diagnostic_queue_routed"] = False
+        return contextual
 
     if "all these database" in text or "all these sqlite" in text or (
         "what are" in text and ("databases" in text or "sqlite" in text)
@@ -1212,18 +1707,24 @@ def build_contract_read_model(
     examples = [
         answer_system_question(
             question,
+            current_world_ref=EXAMPLE_CONTEXTS.get(question, ("", ""))[0],
+            current_thread_ref=EXAMPLE_CONTEXTS.get(question, ("", ""))[1],
             read_model_root=read_model_root,
             sqlite_root=sqlite_root,
         )
         for question in EXAMPLE_QUESTIONS
     ]
+    preconditions = build_preconditions(read_model_root=read_model_root, sqlite_root=sqlite_root)
+    preconditions_ready = all(row["ready"] for row in preconditions)
     return {
         "schema_version": SCHEMA_VERSION,
         "read_model_id": READ_MODEL_ID,
         "generated_at": generated_at,
         "status": CONTRACT_STATUS,
+        "contextual_status": CONTEXTUAL_STATUS if preconditions_ready else "CONTEXTUAL_SYSTEM_QUESTIONS_NOT_READY",
         "workflow_ref": WORKFLOW_REF,
-        "purpose": "Local-only system question answering over existing OpenClaw read models, wiki files, and SQLite metadata.",
+        "purpose": "Local-only system question answering over existing OpenClaw read models, wiki files, SQLite metadata, and current lane context.",
+        "preconditions": preconditions,
         "source_scope": dict(SOURCE_SCOPE),
         "source_refs": dict(CORE_SOURCE_REFS),
         "privacy": {
@@ -1237,6 +1738,51 @@ def build_contract_read_model(
             "package_block_gate_diagnostic": "chief",
             "safety_authority": "guardian",
             "neutral_status": "openclaw",
+            "contextual_current_lane": "chief|cassandra",
+        },
+        "contextual_question_rules": {
+            "detects": list(CONTEXTUAL_QUESTION_PATTERNS),
+            "current_lane_first_when_world_and_thread_present": True,
+            "missing_context_falls_back_to_existing_behavior": True,
+            "does_not_stage_packages": True,
+            "does_not_route_to_diagnostic_workflow_package_queue": True,
+            "protected_actions_remain_blocked": [
+                "email",
+                "gmail",
+                "browser",
+                "coupa",
+                "ledger",
+                "workbook",
+                "excel",
+                "pdf",
+                "submit",
+                "mark_paid",
+                "merge",
+                "push",
+                "worker",
+            ],
+        },
+        "contextual_lane_answers": {
+            "finance/capital_hilton": {
+                "headline": "Stay on payment watch",
+                "plain_summary": "Coupa is processing. Wait for payment evidence before anything touches the ledger.",
+                "next_safe_action": "Watch for payment proof.",
+            },
+            "business_development/capital_hilton": {
+                "headline": "Proposal follow-up is review-only",
+                "plain_summary": "Capital Hilton proposal context is business development. Draft or stage a follow-up only for review; do not send.",
+                "next_safe_action": "Draft or stage a follow-up packet for review only.",
+            },
+            "finance/st_annes": {
+                "headline": "Review St. Anne's work-log state",
+                "plain_summary": "St. Anne's finance lane is work-log and invoice context; Excel, PDF, email, and ledger actions stay gated.",
+                "next_safe_action": "Review confirmed versus staged work logs before invoice work.",
+            },
+            "build/*": {
+                "headline": "Review packet needs local decision",
+                "plain_summary": "This build lane is review-packet context. Use review controls only; no merge or push is authorized.",
+                "next_safe_action": "Use review controls only; do not merge or push.",
+            },
         },
         "answer_shape": {
             "workflow_ref": WORKFLOW_REF,
@@ -1258,9 +1804,17 @@ def build_contract_read_model(
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
         "machine_proof": {
             "local_only": True,
+            "preconditions_ready": preconditions_ready,
             "example_count": len(examples),
+            "contextual_question_examples_present": any(
+                example.get("contextual_route", {}).get("contextual_question_detected") is True
+                for example in examples
+                if isinstance(example, Mapping)
+            ),
             "external_llm_called": False,
             "child_agent_spawned": False,
+            "worker_spawn_performed": False,
+            "worker_execution_performed": False,
             "chief_cassandra_hermes_guardian_niles_loops_launched": False,
             "loop_control_run": False,
             "email_send_performed": False,
@@ -1268,10 +1822,17 @@ def build_contract_read_model(
             "browser_access_performed": False,
             "gmail_access_performed": False,
             "coupa_access_performed": False,
+            "workbook_open_performed": False,
+            "workbook_body_read_performed": False,
+            "spreadsheet_cell_read_performed": False,
             "workbook_mutation_performed": False,
+            "excel_automation_performed": False,
             "pdf_export_performed": False,
             "paid_marking_performed": False,
             "submit_performed": False,
+            "business_action_performed": False,
+            "merge_performed": False,
+            "git_push_performed": False,
             "authority_flags_all_false": all(value is False for value in AUTHORITY_BOUNDARY.values()),
             "unsafe_true_grants_absent": True,
         },
@@ -1283,8 +1844,9 @@ def build_wiki(read_model: Mapping[str, Any]) -> str:
         "# System Question Answering",
         "",
         f"Status: `{CONTRACT_STATUS}`",
+        f"Contextual status: `{read_model.get('contextual_status', CONTEXTUAL_STATUS)}`",
         "",
-        "This workflow answers local questions about OpenClaw state, gates, agents, packages, receipts, and proof refs.",
+        "This workflow answers local questions about OpenClaw state, gates, agents, packages, receipts, proof refs, and current lane context.",
         "",
         "It is deterministic and local-only. It does not call an external LLM, spawn agents, run loops, send email, open browser/Gmail/Coupa, mutate ledgers or workbooks, export PDFs, submit portals, or mark paid/sent.",
         "",
@@ -1293,6 +1855,19 @@ def build_wiki(read_model: Mapping[str, Any]) -> str:
     ]
     for key, value in read_model["speaker_routing"].items():
         lines.append(f"- `{key}` -> `{value}`")
+    lines.extend(
+        [
+            "",
+            "## Contextual Questions",
+            "",
+            "- Questions like `What should I do here?`, `What is this?`, `What's next here?`, `Why am I here?`, `What do I do with this?`, and `Is this done?` answer from `current_world_ref/current_thread_ref` first.",
+            "- Finance / Capital Hilton answers payment watch: Coupa is processing and ledger touch waits for payment evidence.",
+            "- Business Development / Capital Hilton answers proposal status and allows follow-up draft/stage only for review.",
+            "- Finance / St. Anne's answers work-log/invoice state without Excel, PDF, email, or ledger action.",
+            "- Build lanes answer review packet state with review controls only and no merge/push.",
+            "- Missing context falls back to the existing deterministic system-question behavior.",
+        ]
+    )
     lines.extend(["", "## Source Scope", ""])
     for key, value in read_model["source_scope"].items():
         lines.append(f"- `{key}`: `{value}`")
@@ -1346,6 +1921,7 @@ def export_system_question_answer(
     wiki_path.write_text(build_wiki(read_model), encoding="utf-8")
     return {
         "status": CONTRACT_STATUS,
+        "contextual_status": str(read_model.get("contextual_status", CONTEXTUAL_STATUS)),
         "read_model_path": local_path.as_posix(),
         "bridge_read_model_path": bridge_path,
         "wiki_path": wiki_path.as_posix(),

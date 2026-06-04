@@ -245,6 +245,79 @@ def _fixture_sources(root: Path, sqlite_root: Path) -> None:
     _write_json(root / "worker_package_staging_status.json", {"status": "WORKER_PACKAGE_STAGING_READY"})
     _write_json(root / "chief_build_backlog.json", {"status": "CHIEF_BUILD_BACKLOG_READY", "backlog_items": []})
     _write_json(
+        root / "capital_hilton_invoice_operator_run_status.json",
+        {
+            "status": "CAPITAL_HILTON_OPERATOR_RUN_RECORDED",
+            "coupa_submitted": True,
+            "coupa_submission_recorded": True,
+            "coupa_submission_status": "processing",
+            "coupa_status_observed": "Processing",
+            "payment_received_recorded": False,
+            "paid": False,
+            "ledger_mutation_performed": False,
+        },
+    )
+    _write_json(
+        root / "operator_action_payloads.json",
+        {
+            "status": "OPERATOR_ACTION_PAYLOADS_READY",
+            "action_payloads": [
+                {
+                    "action_id": "capital_hilton.payment.open_finance",
+                    "label": "Open Finance / Capital Hilton",
+                    "enabled": True,
+                    "business_action": False,
+                    "safe_to_render_button": True,
+                    "authority_boundary": {"ledger_mutation_allowed": False, "coupa_allowed": False},
+                }
+            ],
+        },
+    )
+    _write_json(
+        root / "lm_bounded_operator_orchestration_latest.json",
+        {
+            "status": "READY",
+            "readiness_status": "LM_BOUNDED_OPERATOR_ORCHESTRATION_READY",
+            "lm_recommended_action": {
+                "action_id": "capital_hilton.payment.open_finance",
+                "label": "Open Finance / Capital Hilton",
+            },
+        },
+    )
+    _write_json(
+        root / "finance_thread_index.json",
+        {
+            "status": "FINANCE_THREAD_INDEX_READY",
+            "threads": [
+                {"world_ref": "finance", "thread_ref": "capital_hilton"},
+                {"world_ref": "finance", "thread_ref": "st_annes"},
+            ],
+        },
+    )
+    _write_json(
+        root / "operator_next_decision.json",
+        {
+            "status": "READY",
+            "target_world_ref": "build",
+            "target_thread_ref": "build_openclaw_backend",
+            "review_packet_id": "review_packet:pc_ready",
+            "worker_ref": "pc_codex",
+            "plain_summary": "PC_CODEX changed backend code and returned local validation proof for operator review.",
+        },
+    )
+    _write_json(
+        root / "capital_hilton_business_development_proposal.json",
+        {
+            "client_ref": "capital_hilton",
+            "client_review_pending": True,
+            "proposal_status": "SENT_FOR_CLIENT_REVIEW",
+            "email_send_allowed": False,
+            "finance_handoff_allowed": False,
+            "ledger_posting_allowed": False,
+            "paid": False,
+        },
+    )
+    _write_json(
         root / "sqlite_governance_registry.json",
         {
             "status": "SQLITE_GOVERNANCE_REGISTRY_READY",
@@ -389,12 +462,20 @@ def _fixture_sources(root: Path, sqlite_root: Path) -> None:
         conn.close()
 
 
-def _answer(question: str, tmp_path: Path) -> dict:
+def _answer(
+    question: str,
+    tmp_path: Path,
+    *,
+    current_world_ref: str = "",
+    current_thread_ref: str = "",
+) -> dict:
     read_model_root = tmp_path / "read_models"
     sqlite_root = tmp_path / "sqlite"
     _fixture_sources(read_model_root, sqlite_root)
     return sqa.answer_system_question(
         question,
+        current_world_ref=current_world_ref,
+        current_thread_ref=current_thread_ref,
         read_model_root=read_model_root,
         sqlite_root=sqlite_root,
     )
@@ -420,6 +501,74 @@ def test_chief_vs_spawned_worker_answer_explains_role_vs_package_worker(tmp_path
     assert "package-bound execution thread" in text
     assert payload["machine_proof"]["child_agent_spawned"] is False
     assert payload["machine_proof"]["external_llm_called"] is False
+
+
+def test_contextual_finance_capital_hilton_returns_payment_watch_answer(tmp_path):
+    payload = _answer(
+        "What should I do here?",
+        tmp_path,
+        current_world_ref="finance",
+        current_thread_ref="capital_hilton",
+    )
+
+    assert payload["speaker_ref"] in {"chief", "cassandra"}
+    assert payload["answer"]["headline"] == "Stay on payment watch"
+    assert payload["answer"]["plain_summary"] == (
+        "Coupa is processing. Wait for payment evidence before anything touches the ledger."
+    )
+    assert payload["answer"]["next_safe_action"] == "Watch for payment proof."
+    assert payload["contextual_route"]["source_priority"] == "current_lane_first"
+    assert payload["machine_proof"]["package_staged"] is False
+    assert payload["machine_proof"]["diagnostic_queue_routed"] is False
+    assert payload["machine_proof"]["coupa_access_performed"] is False
+    assert payload["machine_proof"]["ledger_mutation_performed"] is False
+
+
+def test_contextual_business_development_capital_hilton_returns_followup_no_send(tmp_path):
+    payload = _answer(
+        "What's next here?",
+        tmp_path,
+        current_world_ref="business_development",
+        current_thread_ref="capital_hilton",
+    )
+    text = json.dumps(payload)
+
+    assert payload["speaker_ref"] == "cassandra"
+    assert payload["answer"]["headline"] == "Proposal follow-up is review-only"
+    assert "Draft or stage a follow-up only for review" in payload["answer"]["plain_summary"]
+    assert "do not send" in payload["answer"]["plain_summary"].lower()
+    assert "SENT_FOR_CLIENT_REVIEW" in text
+    assert payload["authority_boundary"]["email_send_allowed"] is False
+    assert payload["machine_proof"]["email_send_performed"] is False
+
+
+def test_contextual_build_lane_returns_review_packet_no_merge_or_push(tmp_path):
+    payload = _answer(
+        "What do I do with this?",
+        tmp_path,
+        current_world_ref="build",
+        current_thread_ref="build_openclaw_backend",
+    )
+    text = json.dumps(payload)
+
+    assert payload["speaker_ref"] == "chief"
+    assert payload["answer"]["headline"] == "Review packet needs local decision"
+    assert "review_packet:pc_ready" in text
+    assert "review controls only" in payload["answer"]["plain_summary"].lower()
+    assert payload["answer"]["next_safe_action"] == "Use review controls only; do not merge or push."
+    assert payload["authority_boundary"]["merge_allowed"] is False
+    assert payload["authority_boundary"]["git_push_allowed"] is False
+    assert payload["machine_proof"]["merge_performed"] is False
+    assert payload["machine_proof"]["git_push_performed"] is False
+
+
+def test_contextual_missing_context_falls_back_safely(tmp_path):
+    payload = _answer("What should I do here?", tmp_path)
+
+    assert "contextual_route" not in payload
+    assert payload["answer"]["headline"] == "No local answer found"
+    assert payload["answer"]["unknown"]
+    assert payload["machine_proof"]["live_execution_performed"] is False
 
 
 def test_capital_hilton_submit_block_explains_provider_and_submit_gate(tmp_path):
