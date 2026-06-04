@@ -1,0 +1,175 @@
+{
+  "schema_version": "operator_controller_surface_audit_v1",
+  "status": "OPERATOR_CONTROLLER_SURFACE_AUDIT_READY",
+  "executive_summary": "Mission Control must evolve from a proof browser and dashboard into a playable Operator Controller. Like a production instrument, it should protect flow state, map discrete gestures to backend scenes/cues, and only reveal deep complexity (the 'monitor path' or 'arrangement view') when explicitly summoned.",
+  "controller_analogy": {
+    "keys": "Chat and prompt input (improvisational input to the LMs).",
+    "pads": "Discrete action triggers ('Do it', 'Approve', 'Deny').",
+    "knobs": "Context selectors (tuning into a specific lane, client, or trust level).",
+    "faders": "Trust ramps / Delegation depth (how far an agent can run before stopping).",
+    "transport_controls": "Workflow execution (Pause, Resume, Stop, Hold, Continue).",
+    "scene_launcher": "World/Mode switches (Helm, Finance, Build, Business Development, Art).",
+    "display": "Dynamic Action Cards (rendering the current state, focus, and read models).",
+    "metering": "System health lights, sync status, and Guardian activity.",
+    "record_arm": "Guardian interlocks (gating protected or destructive actions).",
+    "monitor_path": "Proof drawer / Reading receipts (inspecting the actual work).",
+    "patch_browser": "Tool inventory / Agent roster.",
+    "session_view": "Helm / current actionability surface (what needs doing right now).",
+    "arrangement_view": "Ledger / history / operator conversation journal."
+  },
+  "playable_controls": {
+    "first_class_controls": [
+      "Chat / say goal",
+      "Do it",
+      "Approve",
+      "Deny",
+      "Attach proof",
+      "Stop / cancel / hold",
+      "Switch mode",
+      "Ask why"
+    ],
+    "deprioritized_or_contextual": [
+      "Continue",
+      "Show details",
+      "Open lane",
+      "Stage plan",
+      "Review packet",
+      "Request rework",
+      "Mark informational",
+      "Park this",
+      "Remember this",
+      "Wake this up later",
+      "Record evidence"
+    ]
+  },
+  "controller_surface_layers": {
+    "bespoke_mac_ui": "Global navigation, persistent metering (system health/sync), and the physical layout of the controller window.",
+    "dynamic_card_rendering": "All lane-specific status, question answering, approval requests, and active task tracking. The app should merely render `dynamic_card_packet` without hardcoded knowledge of the business domains.",
+    "proof_developer_mode": "Raw read models, deep execution logs, detailed evidence receipts, and LM reasoning traces.",
+    "removed_from_operator_mode": "Hardcoded status cards for specific clients, redundant file-system state displays, and un-actionable telemetry."
+  },
+  "multi_device_roles": {
+    "mac": {
+      "role": "The Studio Workstation",
+      "strengths": "Deep monitoring, proof drawer, arrangement view, full file-system integration.",
+      "hidden": "None.",
+      "controls": "Full keyboard, detailed chat, multi-window layout.",
+      "proof_level": "High resolution (side-by-side docs).",
+      "approval_level": "Root authority."
+    },
+    "ipad": {
+      "role": "The Tabletop Performance Controller",
+      "strengths": "Scene launching, pad pushing, visual evidence review (PDFs/images), flow state preservation.",
+      "hidden": "Deep logs, raw read models.",
+      "controls": "Touch gestures, big pads, dynamic cards.",
+      "proof_level": "Visual receipts, annotated images.",
+      "approval_level": "High authority (ideal for signing/approving)."
+    },
+    "iphone": {
+      "role": "The Remote Transport Control",
+      "strengths": "Chat, quick approve/deny, low-res metering, on-the-go capture.",
+      "hidden": "Complex arrangement views, dense proof documents.",
+      "controls": "Voice chat, simple binary pads.",
+      "proof_level": "Summary only.",
+      "approval_level": "Limited (routine approvals, no root destructive actions)."
+    }
+  },
+  "agent_session_model": {
+    "persistent_characters": [
+      "Cassandra (Memory & Comm)",
+      "Chief (Orchestration & Status)",
+      "Guardian (Safety & Interlocks)",
+      "Niles (Music/Art)",
+      "Clara (Operations)"
+    ],
+    "temporary_workers": [
+      "Hermes (Transport)",
+      "PC_CODEX",
+      "MAC_CODEX",
+      "Spawned local harnesses"
+    ],
+    "session_behavior": "Persistent characters represent stable roles and tones. Sessions resume via compiled receipts in SQLite, not endless chat context windows. Context follows the thread, not the worker, avoiding false recursive truth."
+  },
+  "first_class_authority_envelope": {
+    "operator_ref": "winship",
+    "app_instance_ref": "uuid",
+    "device_ref": "mac|ipad|iphone",
+    "session_ref": "uuid",
+    "request_hash": "sha256",
+    "operator_verified": "boolean",
+    "input_surface": "chat|pad|card",
+    "current_world": "string",
+    "authority_requested": "array",
+    "authority_granted": "array",
+    "proof_required": "boolean"
+  },
+  "dynamic_card_requirements": {
+    "evolution": "Move beyond `dynamic_card_packet_v0` to ensure the app is a pure renderer.",
+    "contents": [
+      "card_id",
+      "priority",
+      "headline",
+      "plain_summary",
+      "trust_state",
+      "speaker_ref",
+      "tone",
+      "actions (with deterministic backend payload refs)",
+      "proof_drawer_refs"
+    ],
+    "eliminated": "Hardcoded UI views for Capital Hilton, St. Annes, etc."
+  },
+  "evidence_intake": {
+    "gesture": "Like sampling audio: drag-and-drop, paste, or voice note.",
+    "process": "Intake -> Classify & Route -> Generate Review Card -> Unlock associated gate (e.g. payment)."
+  },
+  "hide_remove_deprioritize": {
+    "hide": "Internal state packages, raw JSON responses, LM token metrics.",
+    "remove": "Bespoke Mac UI for specific workflows.",
+    "chat_summon_only": "Deep dive analytics, historical logs.",
+    "developer_proof_only": "Full LM1/LM2 prompts, SQLite table dumps."
+  },
+  "human_language_glossary": {
+    "package": "Cue / Patch",
+    "gate": "Safety Lock",
+    "worker": "Script / Delegate",
+    "proof": "Receipts",
+    "read_model": "Dashboard Data",
+    "receipt": "Record",
+    "authority_boundary": "Permission",
+    "capability": "Skill",
+    "deterministic_rail": "Routine",
+    "LM2_worker_cage": "Sandbox",
+    "dynamic_card": "Focus Card",
+    "operator_review": "Human Check",
+    "business_action_gate": "Final Approval"
+  },
+  "playability_test": [
+    "Can Winship open the app and know the next move in 5 seconds?",
+    "Can he attach proof without thinking about files/contracts?",
+    "Can he approve/deny safely?",
+    "Can he ask 'what should I do here?' and get a lane-aware answer?",
+    "Can he stay in creative mode while business work is handled?",
+    "Can he step into finance/build when he wants?",
+    "Can he trust that protected actions are locked?",
+    "Can he find proof without seeing proof all day?"
+  ],
+  "recommended_build_sequence": [
+    "Implement the generic `dynamic_card_packet` renderer in the Mac App, ripping out hardcoded business domain UIs.",
+    "Build the 'First-class authority envelope' architecture for secure requests from App to Backend.",
+    "Implement 'World/Bank' switching in the App, filtering dynamic cards and context by active Mode (Helm, Finance, Build, etc.).",
+    "Build the 'Pad' execution endpoints (Approve, Deny, Do It, Stop) that map to the authority envelope.",
+    "Create the universal 'Evidence Intake' dropzone gesture (the 'sampler')."
+  ],
+  "risks": [
+    "If dynamic cards become too flexible, they become mini-web-pages, recreating the bloat problem.",
+    "If World/Bank switching hides too much, critical Guardian alerts might be missed."
+  ],
+  "final_recommendation": "Commit fully to the Controller metaphor. Treat the backend as a rack of gear. Mission Control is the APC40/Push controller. Make it fast, tactile, and highly bounded. Do not build a dashboard.",
+  "machine_proof": {
+    "audit_read_only": true,
+    "runtime_code_modified": false,
+    "service_restarted": false,
+    "unsafe_true_grants": [],
+    "unsafe_true_grants_absent": true
+  }
+}
