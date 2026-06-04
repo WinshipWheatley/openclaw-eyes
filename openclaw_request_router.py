@@ -17,6 +17,7 @@ import simple_invoice_workflow_fixtures
 import st_annes_work_log_review
 import workroom_review_decision_consumer
 import client_invoice_workbook_registry
+import evidence_intake
 
 
 SCHEMA_VERSION = "openclaw_request_router_v0"
@@ -83,6 +84,10 @@ WORKROOM_REVIEW_DECISION_REQUEST_KINDS = (
 WORKBOOK_REGISTRATION_REQUEST_KINDS = (
     client_invoice_workbook_registry.REQUEST_KIND,
     client_invoice_workbook_registry.REQUEST_TYPE,
+)
+
+EVIDENCE_INTAKE_REQUEST_KINDS = (
+    evidence_intake.REQUEST_TYPE,
 )
 
 
@@ -167,9 +172,9 @@ def envelope_from_request(
         filename_request_family=filename_request_family,
         request_kind=_normalized_kind(raw_request, filename_request_family),
         intended_use=str(raw_request.get("intended_use") or "").strip(),
-        world_ref=str(raw_request.get("world_ref") or "unknown").strip(),
-        workflow_ref=str(raw_request.get("workflow_ref") or "unknown").strip(),
-        client_ref=str(raw_request.get("client_ref") or "unknown").strip(),
+        world_ref=str(raw_request.get("world_ref") or raw_request.get("current_world_ref") or "unknown").strip(),
+        workflow_ref=str(raw_request.get("workflow_ref") or raw_request.get("claimed_workflow_ref") or "unknown").strip(),
+        client_ref=str(raw_request.get("client_ref") or raw_request.get("claimed_client_ref") or "unknown").strip(),
         project_ref=str(raw_request.get("project_ref") or raw_request.get("lane_ref") or "unknown").strip(),
         tenant_ref=str(raw_request.get("tenant_ref") or "unknown").strip(),
         authority_boundary_present=authority_present,
@@ -450,6 +455,28 @@ def workbook_registration_handlers() -> tuple[RequestHandlerRegistration, ...]:
     )
 
 
+def evidence_intake_handlers() -> tuple[RequestHandlerRegistration, ...]:
+    return tuple(
+        RequestHandlerRegistration(
+            request_kind=request_kind,
+            handler_id="evidence_intake.record_candidate_evidence",
+            handler_label="Verified operator evidence intake",
+            intended_use=intended_use,
+            world_refs=(),
+            workflow_refs=(),
+            client_refs=(),
+            project_refs=(),
+            adapter_available=True,
+            next_safe_move=(
+                "Validate the verified operator envelope, record candidate evidence locally, "
+                "and emit a dynamic card without ledger, workbook, paid, provider, or external action authority."
+            ),
+        )
+        for request_kind in EVIDENCE_INTAKE_REQUEST_KINDS
+        for intended_use in evidence_intake.INTENDED_USES
+    )
+
+
 def default_handler_registrations() -> tuple[RequestHandlerRegistration, ...]:
     return (
         capital_hilton_field_mapping_handler(),
@@ -462,6 +489,7 @@ def default_handler_registrations() -> tuple[RequestHandlerRegistration, ...]:
         *st_annes_work_log_review_action_handlers(),
         *workroom_review_decision_handlers(),
         *workbook_registration_handlers(),
+        *evidence_intake_handlers(),
     )
 
 

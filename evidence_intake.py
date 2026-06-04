@@ -882,6 +882,51 @@ def build_status_read_model(
     return payload
 
 
+def build_status_read_model_for_record(
+    record: Mapping[str, Any],
+    *,
+    read_model_root: Path = DEFAULT_READ_MODEL_ROOT,
+    sqlite_path: Path = DEFAULT_SQLITE_PATH,
+    artifact_lineage_sqlite_path: Path | None = DEFAULT_ARTIFACT_LINEAGE_SQLITE_PATH,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    generated_at = generated_at or utc_now()
+    preconditions = _precondition_rows(read_model_root)
+    preconditions_ready = all(row["ready"] for row in preconditions)
+    status = READY_STATUS if record.get("status") == READY_STATUS and preconditions_ready else NOT_READY_STATUS
+    payload = {
+        "schema_version": SCHEMA_VERSION,
+        "read_model_id": STATUS_READ_MODEL_ID,
+        "status": status,
+        "generated_at": generated_at,
+        "latest_record": dict(record),
+        "dynamic_card": dict(record.get("dynamic_card") or {}),
+        "preconditions": preconditions,
+        "sqlite_path": str(_rooted(sqlite_path)),
+        "artifact_lineage_sqlite_path": str(_rooted(artifact_lineage_sqlite_path)) if artifact_lineage_sqlite_path else "",
+        "authority_boundary": dict(AUTHORITY_BOUNDARY),
+        "machine_proof": {
+            "preconditions_ready": preconditions_ready,
+            "verified_operator_evidence_intake_ready": status == READY_STATUS,
+            "candidate_evidence_recorded": record.get("evidence_status") == EVIDENCE_STATUS_RECORDED,
+            "payment_processing_evidence_does_not_mark_paid": (record.get("payment") or {}).get("paid") is False,
+            "ledger_mutation_performed": False,
+            "paid_marking_performed": False,
+            "raw_ocr_text_stored": False,
+            "raw_sensitive_detail_promoted_to_memory": False,
+            "general_memory_promotion_allowed": False,
+            "external_llm_invoked": False,
+            "external_provider_connected": False,
+            "local_model_runtime_connected": False,
+            "worker_spawn_performed": False,
+            "business_action_performed": False,
+        },
+    }
+    payload["machine_proof"]["unsafe_true_grants"] = unsafe_true_grants(payload)
+    payload["machine_proof"]["unsafe_true_grants_absent"] = not payload["machine_proof"]["unsafe_true_grants"]
+    return payload
+
+
 def build_wiki(contract: Mapping[str, Any], status: Mapping[str, Any]) -> str:
     latest = status.get("latest_record") if isinstance(status.get("latest_record"), Mapping) else {}
     card = status.get("dynamic_card") if isinstance(status.get("dynamic_card"), Mapping) else {}
@@ -928,6 +973,57 @@ def build_wiki(contract: Mapping[str, Any], status: Mapping[str, Any]) -> str:
             f"- Paid marking performed: `{str((status.get('machine_proof') or {}).get('paid_marking_performed')).lower()}`",
         ]
     ) + "\n"
+
+
+def publish_evidence_intake_status(
+    record: Mapping[str, Any],
+    *,
+    read_model_root: Path = DEFAULT_READ_MODEL_ROOT,
+    export_root: Path = DEFAULT_EXPORT_ROOT,
+    bridge_root: Path | None = DEFAULT_BRIDGE_ROOT,
+    wiki_path: Path = DEFAULT_WIKI_PATH,
+    sqlite_path: Path = DEFAULT_SQLITE_PATH,
+    artifact_lineage_sqlite_path: Path | None = DEFAULT_ARTIFACT_LINEAGE_SQLITE_PATH,
+    generated_at: str | None = None,
+) -> dict[str, str]:
+    generated_at = generated_at or utc_now()
+    contract = build_contract_read_model(read_model_root=read_model_root, generated_at=generated_at)
+    status = build_status_read_model_for_record(
+        record,
+        read_model_root=read_model_root,
+        sqlite_path=sqlite_path,
+        artifact_lineage_sqlite_path=artifact_lineage_sqlite_path,
+        generated_at=generated_at,
+    )
+    export_root = _rooted(export_root)
+    export_root.mkdir(parents=True, exist_ok=True)
+    contract_path = export_root / CONTRACT_JSON_EXPORT_NAME
+    status_path = export_root / STATUS_JSON_EXPORT_NAME
+    contract_path.write_text(stable_json(contract), encoding="utf-8")
+    status_path.write_text(stable_json(status), encoding="utf-8")
+
+    bridge_contract_path = ""
+    bridge_status_path = ""
+    if bridge_root is not None:
+        bridge_root.mkdir(parents=True, exist_ok=True)
+        bridge_contract = bridge_root / CONTRACT_JSON_EXPORT_NAME
+        bridge_status = bridge_root / STATUS_JSON_EXPORT_NAME
+        shutil.copy2(contract_path, bridge_contract)
+        shutil.copy2(status_path, bridge_status)
+        bridge_contract_path = bridge_contract.as_posix()
+        bridge_status_path = bridge_status.as_posix()
+
+    wiki_path = _rooted(wiki_path)
+    wiki_path.parent.mkdir(parents=True, exist_ok=True)
+    wiki_path.write_text(build_wiki(contract, status), encoding="utf-8")
+    return {
+        "status": str(status["status"]),
+        "contract_read_model_path": contract_path.as_posix(),
+        "status_read_model_path": status_path.as_posix(),
+        "bridge_contract_read_model_path": bridge_contract_path,
+        "bridge_status_read_model_path": bridge_status_path,
+        "wiki_path": wiki_path.as_posix(),
+    }
 
 
 def export_evidence_intake(

@@ -83,6 +83,7 @@ SERVICE_SUPPORTED_REQUEST_FAMILIES = (
     "ST_ANNES_WORK_LOG_REVIEW_ACTION_REQUEST",
     "WORKROOM_REVIEW_DECISION_REQUEST",
     "WORKBOOK_REGISTRATION_REQUEST",
+    "EVIDENCE_INTAKE_REQUEST",
     "WORKFLOW_PACKAGE_REQUEST",
     "LOCAL_SURFACE_RESULT",
     "ARTIFACT_REFERENCE_APPROVAL",
@@ -448,6 +449,8 @@ def classify_request_path(path: Path) -> str:
         return processor_family
     if is_event_bridge_envelope(raw):
         return "EVENT_BRIDGE"
+    if processor.is_evidence_intake_request(raw):
+        return "EVIDENCE_INTAKE_REQUEST"
     return processor_family
 
 
@@ -529,7 +532,7 @@ def read_request_identity(path: Path) -> RequestIdentity:
         source_request_id = str(raw.get("request_id") or f"missing_request_id_{path.stem}")
     idempotency_key = str(raw.get("idempotency_key")) if raw.get("idempotency_key") else None
     payload_hash = str(raw.get("payload_hash")) if raw.get("payload_hash") else _content_hash(dict(raw)) if request_type == "EVENT_BRIDGE" else None
-    workflow_ref = str(raw.get("workflow_ref") or "unknown")
+    workflow_ref = str(raw.get("workflow_ref") or raw.get("claimed_workflow_ref") or "unknown")
     if source_request_id and not source_request_id.startswith("missing_request_id_"):
         request_key = f"request_id:{source_request_id}"
     elif idempotency_key:
@@ -819,6 +822,23 @@ def _route_for_request(request_path: Path, identity: RequestIdentity, raw_reques
             route_reason=(
                 "Mission Control workbook chooser requests are handled by the deterministic PC workbook registry "
                 "without opening or mutating the workbook."
+            ),
+            pc_handled=True,
+            mac_handoff_required=False,
+            future_worker_blocked=False,
+        )
+    if request_type == "EVIDENCE_INTAKE_REQUEST":
+        return RouteDecision(
+            routing_status="PROCESSING_ON_PC",
+            selected_worker_target="OPENCLAW_SYSTEM",
+            selected_machine="PC_WSL",
+            processing_status="CHECKING_EVIDENCE_INTAKE",
+            operator_headline="OpenClaw is recording this evidence",
+            operator_message="OpenClaw picked this up and is checking the verified operator evidence intake rail.",
+            next_safe_move="Wait for the evidence intake card.",
+            route_reason=(
+                "Mission Control evidence drop requests are handled by the verified local evidence intake rail "
+                "without OCR, external providers, ledger mutation, or paid marking."
             ),
             pc_handled=True,
             mac_handoff_required=False,

@@ -29,6 +29,7 @@ import client_invoice_sheet_audit
 import client_invoice_workbook_registry
 import conversational_workflow_router_intake
 import deterministic_intent_interpreter
+import evidence_intake
 import guardian_output_gate
 import invoice_review_action_request_handler
 import local_surface_request_contract
@@ -88,6 +89,12 @@ WORKBOOK_REGISTRATION_REQUEST_PATTERNS = (
     "mission_control_workbook_registration_request_*.json",
     "mission_control_capture_request_*workbook_registration*.json",
 )
+EVIDENCE_INTAKE_REQUEST_PATTERNS = (
+    "mission_control_evidence_intake_request_*.json",
+    "mission_control_evidence_drop_request_*.json",
+    "mission_control_capture_request_*evidence_intake*.json",
+    "mission_control_capture_request_*evidence_drop*.json",
+)
 CONTEXT_ATTACHMENT_PATTERN = "mission_control_context_request_*.json"
 SECRET_INTAKE_PATTERN = "mission_control_secret_intake_request_*.json"
 VISUAL_WORKSPACE_PATTERN = "mission_control_visual_workspace_request_*.json"
@@ -108,6 +115,7 @@ SUPPORTED_REQUEST_PATTERNS = (
     *INVOICE_REVIEW_ACTION_PATTERNS,
     *INVOICE_REVIEW_ACTION_RESULT_PATTERNS,
     *WORKBOOK_REGISTRATION_REQUEST_PATTERNS,
+    *EVIDENCE_INTAKE_REQUEST_PATTERNS,
 )
 
 FUTURE_REQUEST_PATTERNS = (
@@ -123,6 +131,7 @@ REQUEST_FAMILIES = (
     "ST_ANNES_WORK_LOG_REVIEW_ACTION_REQUEST",
     "WORKROOM_REVIEW_DECISION_REQUEST",
     "WORKBOOK_REGISTRATION_REQUEST",
+    "EVIDENCE_INTAKE_REQUEST",
     "WORKFLOW_PACKAGE_REQUEST",
     "LOCAL_SURFACE_RESULT",
     "INVOICE_REVIEW_ACTION_RESULT",
@@ -417,6 +426,7 @@ RESPONDER_TARGET_TYPES = (
     "LOCAL_SURFACE_RESULT_INTAKE",
     "WORKFLOW_PACKAGE_QUEUE",
     "WORKBOOK_REGISTRATION",
+    "EVIDENCE_INTAKE",
     "WORKER_ROUTING_INTELLIGENCE",
     "SCOPED_CONTEXT_PACKAGE_COMPILER",
     "CODEX_RESPONDER_FUTURE",
@@ -686,6 +696,10 @@ def default_response_publication_dir(*, inbox: Path, request_file: Path | None) 
     return None
 
 
+def is_evidence_intake_request(raw_request: Mapping[str, Any]) -> bool:
+    return str(raw_request.get("request_type") or raw_request.get("kind") or raw_request.get("type") or "").strip().upper() == evidence_intake.REQUEST_TYPE
+
+
 def _valid_publication_source_request_id(value: object) -> bool:
     request_id = str(value or "").strip()
     if not request_id:
@@ -856,6 +870,11 @@ def classify_request_filename(filename: str | None) -> RequestClassification:
         rail = "client_invoice_workbook_registry"
         reason = "Filename matches Mission Control workbook registration request pattern."
         future_supported = False
+    elif filename and any(fnmatch.fnmatch(filename, pattern) for pattern in EVIDENCE_INTAKE_REQUEST_PATTERNS):
+        family = "EVIDENCE_INTAKE_REQUEST"
+        rail = "verified_operator_evidence_intake"
+        reason = "Filename matches Mission Control evidence intake request pattern."
+        future_supported = False
     elif filename and any(fnmatch.fnmatch(filename, pattern) for pattern in WORKFLOW_PACKAGE_REQUEST_PATTERNS):
         family = "WORKFLOW_PACKAGE_REQUEST"
         rail = "workflow_package_request_consumer"
@@ -926,6 +945,7 @@ def classify_request_filename(filename: str | None) -> RequestClassification:
                 "ST_ANNES_WORK_LOG_REVIEW_ACTION_REQUEST",
                 "WORKROOM_REVIEW_DECISION_REQUEST",
                 "WORKBOOK_REGISTRATION_REQUEST",
+                "EVIDENCE_INTAKE_REQUEST",
                 "WORKFLOW_PACKAGE_REQUEST",
                 "LOCAL_SURFACE_RESULT",
                 "ARTIFACT_REFERENCE_APPROVAL",
@@ -948,6 +968,7 @@ def list_supported_requests(inbox: Path = APPROVED_INBOX) -> tuple[Path, ...]:
             "WORKFLOW_PACKAGE_REQUEST",
             "WORKROOM_REVIEW_DECISION_REQUEST",
             "WORKBOOK_REGISTRATION_REQUEST",
+            "EVIDENCE_INTAKE_REQUEST",
             "LOCAL_SURFACE_RESULT",
             "ARTIFACT_REFERENCE_APPROVAL",
             "ARTIFACT_INTAKE_REQUEST",
@@ -1036,6 +1057,13 @@ def build_responder_targets(selected_family: str) -> tuple[RequestProcessorRespo
             ("WORKBOOK_REGISTRATION_REQUEST",),
             True,
             selected_family == "WORKBOOK_REGISTRATION_REQUEST",
+        ),
+        target(
+            "EVIDENCE_INTAKE",
+            "Verified operator evidence intake",
+            ("EVIDENCE_INTAKE_REQUEST",),
+            True,
+            selected_family == "EVIDENCE_INTAKE_REQUEST",
         ),
         target(
             "ARTIFACT_REFERENCE_APPROVAL",
@@ -1147,6 +1175,17 @@ def _required_fields_for_family(request_family: str) -> tuple[str, ...]:
             "workflow_ref",
             "selected_local_path",
         )
+    if request_family == "EVIDENCE_INTAKE_REQUEST":
+        return (
+            "request_type",
+            "source_surface",
+            "current_world_ref",
+            "current_thread_ref",
+            "artifact_kind",
+            "operator_note",
+            "intended_use",
+            "authority_boundary",
+        )
     if request_family == "ST_ANNES_WORK_LOG_REVIEW_ACTION_REQUEST":
         return (
             "request_id",
@@ -1172,10 +1211,10 @@ def preflight_request(raw_request: Mapping[str, Any], request_family: str) -> tu
     if missing:
         blockers.append(f"Missing required field(s): {', '.join(missing)}.")
         fixes.append("Regenerate or resend the request with the required fields.")
-    if request_family != "WORKROOM_REVIEW_DECISION_REQUEST" and not raw_request.get("idempotency_key"):
+    if request_family not in {"WORKROOM_REVIEW_DECISION_REQUEST", "EVIDENCE_INTAKE_REQUEST"} and not raw_request.get("idempotency_key"):
         blockers.append("Missing idempotency key.")
         fixes.append("Resend the request with idempotency_key set.")
-    if request_family != "WORKROOM_REVIEW_DECISION_REQUEST" and not raw_request.get("payload_hash"):
+    if request_family not in {"WORKROOM_REVIEW_DECISION_REQUEST", "EVIDENCE_INTAKE_REQUEST"} and not raw_request.get("payload_hash"):
         blockers.append("Missing payload hash.")
         fixes.append("Resend the request with payload_hash set.")
     authority = raw_request.get("authority_boundary")
@@ -1185,6 +1224,9 @@ def preflight_request(raw_request: Mapping[str, Any], request_family: str) -> tu
     elif request_family != "WORKROOM_REVIEW_DECISION_REQUEST" and any(value is True for value in authority.values()):
         blockers.append("Request asks for live authority this processor cannot grant.")
         fixes.append("Resend as a deterministic request with all external/live authority false.")
+    if request_family == "EVIDENCE_INTAKE_REQUEST" and not str(raw_request.get("artifact_path") or raw_request.get("bridge_artifact_ref") or "").strip():
+        blockers.append("Missing artifact_path or bridge_artifact_ref.")
+        fixes.append("Resend the evidence intake request with an artifact reference.")
     for path, value in _walk_dict(raw_request):
         key = path.rsplit(".", 1)[-1].lower()
         if key in RAW_BODY_KEYS and _has_nonempty_value(value):
@@ -1616,6 +1658,8 @@ def _initial_response_author(response: OpenClawResponseForMac, layered_fields: M
     text = _voice_context_text(response, layered_fields)
     if response.request_type == "FILE_METADATA":
         return "OPENCLAW_SYSTEM", "file intake / source reference status"
+    if response.request_type == "EVIDENCE_INTAKE_REQUEST":
+        return "CHIEF", "verified payment evidence intake status"
     if response.request_type in {"LOCAL_SURFACE_RESULT", "ARTIFACT_REFERENCE_APPROVAL"}:
         return "OPENCLAW_SYSTEM", "local surface result intake status"
     if _is_capital_hilton_status_response(response):
@@ -4284,6 +4328,204 @@ def _process_artifact_intake_request(
     )
 
 
+def _evidence_response_card(record: Mapping[str, Any]) -> dict[str, Any]:
+    card = dict(record.get("dynamic_card") or {})
+    summary = "This appears to show payment processing. Ledger remains untouched until payment is confirmed."
+    card["headline"] = "Payment proof received"
+    card["summary"] = summary
+    card["plain_summary"] = summary
+    card["status_label"] = "Processing evidence"
+    card["trust_state"] = str(card.get("trust_state") or "operator_reported")
+    card["authority_boundary"] = dict(evidence_intake.AUTHORITY_BOUNDARY)
+    card.setdefault("machine_proof", {})
+    card["machine_proof"].update(
+        {
+            "ledger_mutation_performed": False,
+            "paid_marking_performed": False,
+            "external_llm_invoked": False,
+            "local_model_runtime_connected": False,
+        }
+    )
+    return card
+
+
+def _process_evidence_intake_request(
+    request_path: Path,
+    raw_request: Mapping[str, Any],
+    *,
+    export_root: Path = DEFAULT_EXPORT_ROOT,
+    generated_at: str | None = None,
+    classification: RequestClassification,
+    route_decision: Mapping[str, Any],
+) -> OpenClawResponseForMac:
+    generated_at = generated_at or utc_now()
+    record = evidence_intake.record_evidence_intake(
+        raw_request,
+        sqlite_path=evidence_intake.DEFAULT_SQLITE_PATH,
+        artifact_lineage_sqlite_path=evidence_intake.DEFAULT_ARTIFACT_LINEAGE_SQLITE_PATH,
+        generated_at=generated_at,
+    )
+    request_id = str(raw_request.get("request_id") or raw_request.get("request_hash") or f"missing_request_id_{request_path.stem}")
+    workflow_ref = str(raw_request.get("claimed_workflow_ref") or raw_request.get("workflow_ref") or "evidence_intake")
+    if record.get("status") == evidence_intake.VERIFICATION_REQUIRED_STATUS:
+        return OpenClawResponseForMac(
+            source_request_id=request_id,
+            source_request_filename=request_path.name,
+            workflow_ref=workflow_ref,
+            request_type=classification.request_family,
+            internal_status="BLOCKED_WITH_REASON",
+            operator_headline="Operator verification required",
+            operator_message="Mission Control needs a verified operator envelope before this evidence can be recorded.",
+            what_happened=(
+                "OpenClaw recognized an evidence intake request.",
+                "The operator envelope was missing, incomplete, unverified, or hash-invalid.",
+                "No evidence row, ledger mutation, paid marking, OCR, provider call, or external action occurred.",
+            ),
+            why_it_happened=evidence_intake.VERIFICATION_REQUIRED_STATUS,
+            how_to_fix="Resend the evidence request with operator_ref, app_instance_ref, device_ref, session_ref, request_hash, created_at, source_surface=mission_control, and operator_verified=true.",
+            visible_cards=(),
+            cards_available=False,
+            card_mirror_refs=(),
+            file_readback_refs=(),
+            worker_route_refs=(),
+            context_package_refs=(),
+            blocked_reason=evidence_intake.VERIFICATION_REQUIRED_STATUS,
+            detail_disclosure={
+                "request_classification": asdict(classification),
+                "request_router_decision": dict(route_decision),
+                "evidence_intake": {
+                    "status": record.get("status"),
+                    "blockers": record.get("blockers") or (),
+                    "candidate_evidence_recorded": False,
+                    "ledger_mutation_performed": False,
+                    "paid_marking_performed": False,
+                    "raw_ocr_text_stored": False,
+                    "external_provider_connected": False,
+                },
+            },
+            readback_files=(),
+            next_safe_move="Resend with a verified operator envelope.",
+        )
+
+    if record.get("status") != evidence_intake.READY_STATUS:
+        return OpenClawResponseForMac(
+            source_request_id=request_id,
+            source_request_filename=request_path.name,
+            workflow_ref=workflow_ref,
+            request_type=classification.request_family,
+            internal_status="BLOCKED_WITH_REASON",
+            operator_headline="Evidence intake blocked",
+            operator_message="OpenClaw recognized the evidence request, but it did not pass the local intake checks.",
+            what_happened=(
+                "OpenClaw validated the evidence request locally.",
+                "The request was blocked before evidence recording.",
+                "No ledger mutation, paid marking, OCR, provider call, or external action occurred.",
+            ),
+            why_it_happened=" ".join(str(item) for item in record.get("blockers") or ("EVIDENCE_INTAKE_REQUEST_BLOCKED",)),
+            how_to_fix="Fix the evidence request fields and resend with all authority boundary values false.",
+            visible_cards=(),
+            cards_available=False,
+            card_mirror_refs=(),
+            file_readback_refs=(),
+            worker_route_refs=(),
+            context_package_refs=(),
+            blocked_reason=str(record.get("status") or "EVIDENCE_INTAKE_REQUEST_BLOCKED"),
+            detail_disclosure={
+                "request_classification": asdict(classification),
+                "request_router_decision": dict(route_decision),
+                "evidence_intake": {
+                    "status": record.get("status"),
+                    "blockers": record.get("blockers") or (),
+                    "candidate_evidence_recorded": False,
+                    "ledger_mutation_performed": False,
+                    "paid_marking_performed": False,
+                    "raw_ocr_text_stored": False,
+                    "external_provider_connected": False,
+                },
+            },
+            readback_files=(),
+            next_safe_move="Fix the evidence request and retry.",
+        )
+
+    publish_result = evidence_intake.publish_evidence_intake_status(
+        record,
+        export_root=export_root,
+        bridge_root=evidence_intake.DEFAULT_BRIDGE_ROOT,
+        wiki_path=evidence_intake.DEFAULT_WIKI_PATH,
+        sqlite_path=evidence_intake.DEFAULT_SQLITE_PATH,
+        artifact_lineage_sqlite_path=evidence_intake.DEFAULT_ARTIFACT_LINEAGE_SQLITE_PATH,
+        generated_at=generated_at,
+    )
+    card = _evidence_response_card(record)
+    layered_fields = {
+        "response_id": f"openclaw_response_{_short_hash(request_id, evidence_intake.REQUEST_TYPE, generated_at)}",
+        "response_kind": "EVIDENCE_INTAKE_DYNAMIC_CARD",
+        "audience_mode": "ELIWINSHIP",
+        "display_mode": "COMPACT_CHAT",
+        "headline": "Payment proof received",
+        "one_line_answer": "This appears to show payment processing. Ledger remains untouched until payment is confirmed.",
+        "eliwinship": "OpenClaw recorded this as payment-processing evidence only. It is not paid proof, and nothing touched the ledger.",
+        "primary_status": "Processing evidence",
+        "primary_blocker": "Payment is not confirmed",
+        "next_action": "Next: Review the evidence card.",
+        "missing_items_short": ("Payment or ledger confirmation",),
+        "detail_summary": "Verified operator evidence intake recorded candidate evidence locally with financial-sensitive, local-only handling.",
+        "proof_refs": ("generated/read_models/evidence_intake_status.json",),
+        "debug_refs": ("generated/read_models/evidence_intake_status.json",),
+        "raw_internal_status": "RESPONSE_READY",
+        "mac_render_hint": "DYNAMIC_CARD_WITH_DISCLOSURE",
+    }
+    return OpenClawResponseForMac(
+        source_request_id=request_id,
+        source_request_filename=request_path.name,
+        workflow_ref=workflow_ref,
+        request_type=classification.request_family,
+        internal_status="RESPONSE_READY",
+        operator_headline="Payment proof received",
+        operator_message="This appears to show payment processing. Ledger remains untouched until payment is confirmed.",
+        what_happened=(
+            "OpenClaw validated the verified operator envelope.",
+            "Candidate evidence was recorded and attached to the current world/thread.",
+            "A dynamic card response is ready for Mission Control.",
+        ),
+        why_it_happened="The request type is EVIDENCE_INTAKE_REQUEST_V0 and the authority boundary stayed false.",
+        how_to_fix="No fix is needed. Keep watching for payment or ledger confirmation before any paid or ledger action.",
+        visible_cards=(card,),
+        cards_available=True,
+        card_mirror_refs=(),
+        file_readback_refs=("generated/read_models/evidence_intake_status.json",),
+        worker_route_refs=(),
+        context_package_refs=(),
+        blocked_reason=None,
+        detail_disclosure={
+            "request_classification": asdict(classification),
+            "request_router_decision": dict(route_decision),
+            "layered_response_fields": layered_fields,
+            "evidence_intake": {
+                "status": record.get("status"),
+                "evidence_status": record.get("evidence_status"),
+                "artifact_ref": record.get("artifact_ref"),
+                "current_world_ref": record.get("current_world_ref"),
+                "current_thread_ref": record.get("current_thread_ref"),
+                "claimed_client_ref": record.get("claimed_client_ref"),
+                "privacy": record.get("privacy"),
+                "payment": record.get("payment"),
+                "dynamic_card": card,
+                "publish_result": publish_result,
+                "candidate_evidence_recorded": True,
+                "ledger_mutation_performed": False,
+                "paid_marking_performed": False,
+                "raw_ocr_text_stored": False,
+                "external_provider_connected": False,
+                "external_llm_invoked": False,
+                "local_model_runtime_connected": False,
+            },
+        },
+        readback_files=("generated/read_models/evidence_intake_status.json",),
+        next_safe_move="Review the evidence card and wait for payment or ledger confirmation before paid truth.",
+    )
+
+
 def _process_parked_router_request(
     request_path: Path,
     raw_request: Mapping[str, Any],
@@ -5845,13 +6087,6 @@ def process_request_path(
     read_model_reader: ReadModelReader | None = None,
 ) -> OpenClawResponseForMac:
     classification = classify_request_filename(request_path.name)
-    if classification.request_family == "UNKNOWN_FAIL_CLOSED":
-        return _failed_response(
-            request_path=request_path,
-            classification=classification,
-            reason="Unsupported request filename.",
-            how_to_fix="Use mission_control_chat_request_*.json or mission_control_file_intake_request_*.json for v0.",
-        )
     try:
         raw_request = _load_json_request(request_path)
     except json.JSONDecodeError as exc:
@@ -5875,6 +6110,24 @@ def process_request_path(
             reason=f"Could not read request file: {exc}.",
             how_to_fix="Check that the request file exists and is readable, then rerun.",
         )
+    if classification.request_family == "UNKNOWN_FAIL_CLOSED":
+        if is_evidence_intake_request(raw_request):
+            classification = RequestClassification(
+                classification_id=f"request_classification_{_short_hash(request_path.name, 'EVIDENCE_INTAKE_REQUEST')}",
+                source_request_filename=request_path.name,
+                request_family="EVIDENCE_INTAKE_REQUEST",
+                selected_rail="verified_operator_evidence_intake",
+                classification_reason="Request JSON declares EVIDENCE_INTAKE_REQUEST_V0.",
+                future_supported=False,
+                next_safe_move="Validate the operator envelope and record candidate evidence locally.",
+            )
+        else:
+            return _failed_response(
+                request_path=request_path,
+                classification=classification,
+                reason="Unsupported request filename.",
+                how_to_fix="Use a supported Mission Control request filename or an EVIDENCE_INTAKE_REQUEST_V0 envelope.",
+            )
     _route_envelope, route_decision_dataclass = openclaw_request_router.route_request(
         raw_request,
         source_request_filename=request_path.name,
@@ -5952,6 +6205,15 @@ def process_request_path(
             export_root=export_root,
             generated_at=generated_at,
             classification=classification,
+            route_decision=route_decision,
+        )
+    if effective_classification.request_family == "EVIDENCE_INTAKE_REQUEST":
+        return _process_evidence_intake_request(
+            request_path,
+            raw_request,
+            export_root=export_root,
+            generated_at=generated_at,
+            classification=effective_classification,
             route_decision=route_decision,
         )
     if effective_classification.request_family == "WORKFLOW_PACKAGE_REQUEST":

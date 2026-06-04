@@ -139,7 +139,7 @@
       "workbook_mutation_allowed": false,
       "workbook_source_mutation_allowed": false
     },
-    "card_id": "dynamic_card.evidence_intake.payment_processing.ad96013cf6",
+    "card_id": "dynamic_card.evidence_intake.payment_processing.88e175a496",
     "card_type": "evidence_intake",
     "headline": "Payment proof received",
     "machine_proof": {
@@ -149,7 +149,7 @@
     },
     "plain_summary": "This appears to show payment processing for invoice 2026-1001. Ledger remains untouched until payment is confirmed.",
     "proof": {
-      "artifact_ref": "artifact:evidence_intake_a9646b7115c89905",
+      "artifact_ref": "artifact:evidence_intake_836803b8526772be",
       "collapsed_by_default": true,
       "read_model_refs": [
         "generated/read_models/evidence_intake_status.json"
@@ -163,10 +163,10 @@
     "target_world_ref": "finance",
     "trust_state": "operator_reported"
   },
-  "generated_at": "2026-06-04T19:00:00+00:00",
+  "generated_at": "2026-06-04T20:30:00+00:00",
   "latest_record": {
     "artifact": {
-      "artifact_ref": "artifact:evidence_intake_a9646b7115c89905",
+      "artifact_ref": "artifact:evidence_intake_836803b8526772be",
       "bridge_artifact_ref": "mission_control_drop:live_arts_md_payment_processing_screenshot_invoice_2026-1001",
       "bridge_path": "",
       "kind": "screenshot",
@@ -175,7 +175,7 @@
       "sha256": ""
     },
     "artifact_lineage_registry_update_status": "recorded",
-    "artifact_ref": "artifact:evidence_intake_a9646b7115c89905",
+    "artifact_ref": "artifact:evidence_intake_836803b8526772be",
     "authority_boundary": {
       "authority_grant_allowed": false,
       "browser_access_allowed": false,
@@ -196,7 +196,7 @@
     },
     "claimed_client_ref": "live_arts_md",
     "claimed_workflow_ref": "live_arts_md_payment_watch",
-    "created_at": "2026-06-04T19:00:00+00:00",
+    "created_at": "2026-06-04T20:30:00+00:00",
     "current_thread_ref": "live_arts_md",
     "current_world_ref": "finance",
     "dynamic_card": {
@@ -320,7 +320,7 @@
         "workbook_mutation_allowed": false,
         "workbook_source_mutation_allowed": false
       },
-      "card_id": "dynamic_card.evidence_intake.payment_processing.ad96013cf6",
+      "card_id": "dynamic_card.evidence_intake.payment_processing.88e175a496",
       "card_type": "evidence_intake",
       "headline": "Payment proof received",
       "machine_proof": {
@@ -330,7 +330,7 @@
       },
       "plain_summary": "This appears to show payment processing for invoice 2026-1001. Ledger remains untouched until payment is confirmed.",
       "proof": {
-        "artifact_ref": "artifact:evidence_intake_a9646b7115c89905",
+        "artifact_ref": "artifact:evidence_intake_836803b8526772be",
         "collapsed_by_default": true,
         "read_model_refs": [
           "generated/read_models/evidence_intake_status.json"
@@ -345,7 +345,7 @@
       "trust_state": "operator_reported"
     },
     "evidence_status": "CANDIDATE_EVIDENCE_RECORDED",
-    "intake_id": "evidence_intake:e03d170424482e84",
+    "intake_id": "evidence_intake:fa5914019d729d28",
     "intended_use": "payment_proof",
     "lineage_status": "candidate_evidence",
     "machine_proof": {
@@ -366,11 +366,11 @@
     },
     "operator_envelope": {
       "app_instance_ref": "mission_control:pc",
-      "created_at": "2026-06-04T19:00:00+00:00",
+      "created_at": "2026-06-04T20:30:00+00:00",
       "device_ref": "device:pc",
       "operator_ref": "operator:winship",
       "operator_verified": true,
-      "request_hash": "sha256:a612da0c749e35fd4a4964cf7cf2f77cc545e4c68b20fb8cf207e461a3a13ffd",
+      "request_hash": "sha256:01fa921f5abb5feece9276a4260f5514b633a0c0b9bf20f8a158588850b8475d",
       "session_ref": "session:evidence-intake-example"
     },
     "operator_note": {
@@ -405,10 +405,10 @@
       "raw_sensitive_detail_promoted_to_memory": false,
       "tokenization_required": true
     },
-    "request_ref": "evidence_intake_request:1fd78bb58d3690e9",
+    "request_ref": "evidence_intake_request:71abbcb0225ec5ce",
     "schema_version": "evidence_intake_v0",
     "source_request": {
-      "request_hash": "sha256:a612da0c749e35fd4a4964cf7cf2f77cc545e4c68b20fb8cf207e461a3a13ffd",
+      "request_hash": "sha256:01fa921f5abb5feece9276a4260f5514b633a0c0b9bf20f8a158588850b8475d",
       "request_type": "EVIDENCE_INTAKE_REQUEST_V0",
       "source_surface": "mission_control"
     },

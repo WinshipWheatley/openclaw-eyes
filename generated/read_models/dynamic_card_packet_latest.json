@@ -155,7 +155,7 @@
         "label": "Details",
         "proof_refs": [
           "generated/read_models/evidence_intake_status.json",
-          "artifact:evidence_intake_a9646b7115c89905"
+          "artifact:evidence_intake_836803b8526772be"
         ],
         "read_model_refs": [
           "generated/read_models/evidence_intake_status.json"
@@ -544,7 +544,7 @@
       "visible_by_default": false
     }
   ],
-  "generated_at": "2026-06-04T19:00:00+00:00",
+  "generated_at": "2026-06-04T20:30:00+00:00",
   "machine_proof": {
     "all_visible_cards_have_trust_state": true,
     "backend_generated_operator_surface": true,
@@ -585,7 +585,7 @@
     "worker_execution_performed": false,
     "worker_spawn_performed": false
   },
-  "packet_id": "dynamic_card_packet:f4af6ed4fb5f",
+  "packet_id": "dynamic_card_packet:09adad7a5fed",
   "preconditions": [
     {
       "equivalent_status_accepted": "",
