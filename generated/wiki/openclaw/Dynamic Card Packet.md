@@ -28,6 +28,22 @@ The Dynamic Card Packet is the backend-generated operator card surface for Missi
 Actions:
 - `capital_hilton.payment.open_finance` / `Open Finance / Capital Hilton` / enabled=`true`
 
+### Payment proof received
+
+- Card id: `dynamic_card.finance.capital_hilton.evidence_intake.payment_processing`
+- Type: `evidence_intake`
+- Speaker: `chief`
+- Trust: `candidate_evidence`
+- Summary: This appears to show payment processing for invoice 2026-1001. Ledger remains untouched until payment is confirmed.
+- Next/status: `Processing evidence`
+- Visible by default: `true`
+
+Actions:
+- `evidence_intake.attach_to_lane` / `Attach to lane` / enabled=`false`
+- `evidence_intake.ask_what_this_means` / `Ask what this means` / enabled=`false`
+- `evidence_intake.mark_as_test` / `Mark as test` / enabled=`false`
+- `evidence_intake.show_details` / `Show details` / enabled=`false`
+
 ### Stay on payment watch
 
 - Card id: `dynamic_card.finance.capital_hilton.contextual_question`
@@ -110,7 +126,7 @@ Actions:
 
 - Contract read model: `generated/read_models/dynamic_card_packet_contract.json`
 - Latest packet: `generated/read_models/dynamic_card_packet_latest.json`
-- Required example cards: `7`
+- Required example cards: `8`
 
 ## Machine Proof
 

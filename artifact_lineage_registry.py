@@ -383,6 +383,37 @@ def _workroom_review_artifacts(read_model_root: Path, generated_at: str) -> list
     return rows
 
 
+def _evidence_intake_artifacts(read_model_root: Path, generated_at: str) -> list[dict[str, Any]]:
+    payload = _load_json(read_model_root / "evidence_intake_status.json")
+    record = payload.get("latest_record")
+    if not isinstance(record, Mapping) or record.get("evidence_status") != "CANDIDATE_EVIDENCE_RECORDED":
+        return []
+    artifact = record.get("artifact")
+    if not isinstance(artifact, Mapping):
+        return []
+    artifact_ref = str(record.get("artifact_ref") or artifact.get("artifact_ref") or "")
+    if not artifact_ref:
+        return []
+    path = str(artifact.get("path") or artifact.get("bridge_artifact_ref") or "")
+    row = _artifact(
+        artifact_ref=artifact_ref,
+        artifact_kind=str(artifact.get("kind") or "document"),
+        path=path,
+        source_workflow_ref=str(record.get("claimed_workflow_ref") or "evidence_intake"),
+        lineage_status="candidate_evidence",
+        proof_refs=[
+            "generated/read_models/evidence_intake_status.json",
+            str(record.get("request_ref") or ""),
+        ],
+        created_at=str(record.get("created_at") or generated_at),
+        source_sha256=str(artifact.get("sha256") or ""),
+    )
+    bridge_ref = str(artifact.get("bridge_artifact_ref") or "")
+    if bridge_ref.startswith("/mnt/e/openclaw/"):
+        row["bridge_path"] = bridge_ref
+    return [row]
+
+
 def _dedupe(rows: Sequence[dict[str, Any]]) -> list[dict[str, Any]]:
     by_ref: dict[str, dict[str, Any]] = {}
     for row in rows:
@@ -467,6 +498,7 @@ def build_read_model(
             *_capital_proposal_artifacts(read_model_root, generated_at),
             *_live_arts_artifacts(search_roots, generated_at),
             *_workroom_review_artifacts(read_model_root, generated_at),
+            *_evidence_intake_artifacts(read_model_root, generated_at),
         ]
     )
     _write_sqlite(sqlite_path, artifacts)

@@ -75,6 +75,31 @@ def test_contextual_question_answer_card_generated_for_finance_capital_hilton():
     assert card["trust_state"] == "trusted_current"
 
 
+def test_evidence_intake_card_example_generated_no_ledger_or_paid_action():
+    packet = _latest()
+    card = _by_id(packet)["dynamic_card.finance.capital_hilton.evidence_intake.payment_processing"]
+
+    assert card["card_type"] == "evidence_intake"
+    assert card["headline"] == "Payment proof received"
+    assert card["plain_summary"] == (
+        "This appears to show payment processing for invoice 2026-1001. "
+        "Ledger remains untouched until payment is confirmed."
+    )
+    assert card["status_label"] == "Processing evidence"
+    assert card["trust_state"] == "candidate_evidence"
+    assert {action["label"] for action in card["actions"]} == {
+        "Attach to lane",
+        "Ask what this means",
+        "Mark as test",
+        "Show details",
+    }
+    assert all(action["enabled"] is False for action in card["actions"])
+    assert card["authority_boundary"]["ledger_mutation_allowed"] is False
+    assert card["authority_boundary"]["paid_marking_allowed"] is False
+    assert packet["machine_proof"]["ledger_mutation_performed"] is False
+    assert packet["machine_proof"]["paid_marking_performed"] is False
+
+
 def test_review_packet_card_uses_review_decision_actions_only_no_merge_push():
     packet = _latest()
     card = _by_id(packet)["dynamic_card.build.review_packet.current"]

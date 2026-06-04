@@ -43,6 +43,7 @@ CARD_TYPES = (
     "gate",
     "memory",
     "artifact",
+    "evidence_intake",
     "payment_watch",
     "question",
     "workbook_registration",
@@ -50,7 +51,15 @@ CARD_TYPES = (
 
 SPEAKER_REFS = ("cassandra", "chief", "hermes", "guardian", "niles", "openclaw")
 TONES = ("calm", "success", "warning", "blocked", "neutral")
-TRUST_STATES = ("trusted_current", "preview_only", "future_gated", "stale_needs_proof", "unknown")
+TRUST_STATES = (
+    "trusted_current",
+    "preview_only",
+    "future_gated",
+    "stale_needs_proof",
+    "operator_reported",
+    "candidate_evidence",
+    "unknown",
+)
 ACTION_TYPES = (
     "navigate",
     "stage_package_request",
@@ -76,6 +85,7 @@ SOURCE_FILENAMES = {
     "client_invoice_workbook_registry": "client_invoice_workbook_registry.json",
     "package_event_index": "package_event_index.json",
     "chief_check_engine_diagnostic_package": "chief_check_engine_diagnostic_package.json",
+    "evidence_intake": "evidence_intake_status.json",
 }
 
 PRECONDITIONS = {
@@ -122,7 +132,13 @@ AUTHORITY_BOUNDARY = {
     "coupa_allowed": False,
     "portal_submit_allowed": False,
     "workbook_source_mutation_allowed": False,
+    "ledger_mutation_allowed": False,
+    "workbook_mutation_allowed": False,
     "pdf_export_allowed": False,
+    "paid_marking_allowed": False,
+    "business_action_allowed": False,
+    "external_action_allowed": False,
+    "authority_grant_allowed": False,
     "sent": False,
     "paid": False,
 }
@@ -664,6 +680,65 @@ def _st_annes_work_log_card(sources: Mapping[str, Mapping[str, Any]]) -> dict[st
     )
 
 
+def _evidence_intake_card(sources: Mapping[str, Mapping[str, Any]]) -> dict[str, Any]:
+    status = sources.get("evidence_intake", {})
+    record = status.get("latest_record") if isinstance(status.get("latest_record"), Mapping) else {}
+    card = status.get("dynamic_card") if isinstance(status.get("dynamic_card"), Mapping) else {}
+    artifact = record.get("artifact") if isinstance(record.get("artifact"), Mapping) else {}
+    payment = record.get("payment") if isinstance(record.get("payment"), Mapping) else {}
+    disabled_reason = "No deterministic operator_action_payload exists yet for evidence intake card actions."
+    summary = str(
+        card.get("summary")
+        or "This appears to show payment processing for invoice 2026-1001. Ledger remains untouched until payment is confirmed."
+    )
+    return _card(
+        card_id="dynamic_card.finance.capital_hilton.evidence_intake.payment_processing",
+        card_type="evidence_intake",
+        speaker_ref="chief",
+        headline=str(card.get("headline") or "Payment proof received"),
+        plain_summary=summary,
+        supporting_lines=[
+            f"Evidence status: {record.get('evidence_status', 'unknown')}.",
+            f"Payment state: {payment.get('payment_state', 'unknown')}.",
+            "Candidate evidence does not mark paid or touch the ledger.",
+        ],
+        status_label=str(card.get("status_label") or "Processing evidence"),
+        tone="calm",
+        trust_state=str(card.get("trust_state") or "candidate_evidence"),
+        priority=97,
+        visible_by_default=bool(record),
+        actions=[
+            _disabled_action(
+                action_id="evidence_intake.attach_to_lane",
+                label="Attach to lane",
+                disabled_reason=disabled_reason,
+            ),
+            _disabled_action(
+                action_id="evidence_intake.ask_what_this_means",
+                label="Ask what this means",
+                disabled_reason=disabled_reason,
+            ),
+            _disabled_action(
+                action_id="evidence_intake.mark_as_test",
+                label="Mark as test",
+                disabled_reason=disabled_reason,
+            ),
+            _disabled_action(
+                action_id="evidence_intake.show_details",
+                label="Show details",
+                disabled_reason=disabled_reason,
+            ),
+        ],
+        proof=_proof(
+            proof_refs=[
+                _source_ref("evidence_intake_status.json"),
+                str(artifact.get("artifact_ref") or record.get("artifact_ref") or ""),
+            ],
+            read_model_refs=[_source_ref("evidence_intake_status.json")],
+        ),
+    )
+
+
 def _precondition_rows(read_model_root: Path = DEFAULT_READ_MODEL_ROOT) -> list[dict[str, Any]]:
     root = _rooted(read_model_root)
     rows: list[dict[str, Any]] = []
@@ -780,6 +855,7 @@ def build_latest_packet(
     preconditions = _precondition_rows(read_model_root)
     cards = [
         _capital_hilton_payment_watch_card(sources, action_index),
+        _evidence_intake_card(sources),
         _contextual_question_card(action_index),
         _review_packet_card(sources, action_index),
         _business_development_card(sources, action_index),
@@ -903,6 +979,7 @@ def build_contract_read_model(
             "Check Engine diagnostic",
             "Workbook registration",
             "St. Anne's work-log review",
+            "Evidence intake payment-processing artifact",
         ],
         "example_packet_digest": {
             "packet_id": latest["packet_id"],

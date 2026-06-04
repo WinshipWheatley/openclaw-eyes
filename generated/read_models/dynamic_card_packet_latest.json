@@ -1,17 +1,23 @@
 {
   "authority_boundary": {
+    "authority_grant_allowed": false,
     "browser_access_allowed": false,
+    "business_action_allowed": false,
     "coupa_allowed": false,
     "email_send_allowed": false,
+    "external_action_allowed": false,
     "gmail_allowed": false,
+    "ledger_mutation_allowed": false,
     "ledger_posting_allowed": false,
     "paid": false,
+    "paid_marking_allowed": false,
     "pdf_export_allowed": false,
     "portal_submit_allowed": false,
     "sent": false,
+    "workbook_mutation_allowed": false,
     "workbook_source_mutation_allowed": false
   },
-  "card_count": 7,
+  "card_count": 8,
   "cards": [
     {
       "actions": [
@@ -26,15 +32,21 @@
         }
       ],
       "authority_boundary": {
+        "authority_grant_allowed": false,
         "browser_access_allowed": false,
+        "business_action_allowed": false,
         "coupa_allowed": false,
         "email_send_allowed": false,
+        "external_action_allowed": false,
         "gmail_allowed": false,
+        "ledger_mutation_allowed": false,
         "ledger_posting_allowed": false,
         "paid": false,
+        "paid_marking_allowed": false,
         "pdf_export_allowed": false,
         "portal_submit_allowed": false,
         "sent": false,
+        "workbook_mutation_allowed": false,
         "workbook_source_mutation_allowed": false
       },
       "card_id": "dynamic_card.finance.capital_hilton.payment_watch",
@@ -79,6 +91,91 @@
     {
       "actions": [
         {
+          "action_id": "evidence_intake.attach_to_lane",
+          "action_type": "none",
+          "business_action": false,
+          "disabled_reason": "No deterministic operator_action_payload exists yet for evidence intake card actions.",
+          "enabled": false,
+          "label": "Attach to lane",
+          "payload_ref": ""
+        },
+        {
+          "action_id": "evidence_intake.ask_what_this_means",
+          "action_type": "none",
+          "business_action": false,
+          "disabled_reason": "No deterministic operator_action_payload exists yet for evidence intake card actions.",
+          "enabled": false,
+          "label": "Ask what this means",
+          "payload_ref": ""
+        },
+        {
+          "action_id": "evidence_intake.mark_as_test",
+          "action_type": "none",
+          "business_action": false,
+          "disabled_reason": "No deterministic operator_action_payload exists yet for evidence intake card actions.",
+          "enabled": false,
+          "label": "Mark as test",
+          "payload_ref": ""
+        },
+        {
+          "action_id": "evidence_intake.show_details",
+          "action_type": "none",
+          "business_action": false,
+          "disabled_reason": "No deterministic operator_action_payload exists yet for evidence intake card actions.",
+          "enabled": false,
+          "label": "Show details",
+          "payload_ref": ""
+        }
+      ],
+      "authority_boundary": {
+        "authority_grant_allowed": false,
+        "browser_access_allowed": false,
+        "business_action_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "external_action_allowed": false,
+        "gmail_allowed": false,
+        "ledger_mutation_allowed": false,
+        "ledger_posting_allowed": false,
+        "paid": false,
+        "paid_marking_allowed": false,
+        "pdf_export_allowed": false,
+        "portal_submit_allowed": false,
+        "sent": false,
+        "workbook_mutation_allowed": false,
+        "workbook_source_mutation_allowed": false
+      },
+      "card_id": "dynamic_card.finance.capital_hilton.evidence_intake.payment_processing",
+      "card_type": "evidence_intake",
+      "headline": "Payment proof received",
+      "plain_summary": "This appears to show payment processing for invoice 2026-1001. Ledger remains untouched until payment is confirmed.",
+      "priority": 97,
+      "proof": {
+        "collapsed_by_default": true,
+        "label": "Details",
+        "proof_refs": [
+          "generated/read_models/evidence_intake_status.json",
+          "artifact:evidence_intake_59ebcecad95553c8"
+        ],
+        "read_model_refs": [
+          "generated/read_models/evidence_intake_status.json"
+        ],
+        "receipt_refs": []
+      },
+      "speaker_ref": "chief",
+      "status_label": "Processing evidence",
+      "supporting_lines": [
+        "Evidence status: CANDIDATE_EVIDENCE_RECORDED.",
+        "Payment state: payment_processing_evidence_received.",
+        "Candidate evidence does not mark paid or touch the ledger."
+      ],
+      "tone": "calm",
+      "trust_state": "candidate_evidence",
+      "visible_by_default": true
+    },
+    {
+      "actions": [
+        {
           "action_id": "capital_hilton.payment.open_finance",
           "action_type": "navigate",
           "business_action": false,
@@ -89,15 +186,21 @@
         }
       ],
       "authority_boundary": {
+        "authority_grant_allowed": false,
         "browser_access_allowed": false,
+        "business_action_allowed": false,
         "coupa_allowed": false,
         "email_send_allowed": false,
+        "external_action_allowed": false,
         "gmail_allowed": false,
+        "ledger_mutation_allowed": false,
         "ledger_posting_allowed": false,
         "paid": false,
+        "paid_marking_allowed": false,
         "pdf_export_allowed": false,
         "portal_submit_allowed": false,
         "sent": false,
+        "workbook_mutation_allowed": false,
         "workbook_source_mutation_allowed": false
       },
       "card_id": "dynamic_card.finance.capital_hilton.contextual_question",
@@ -161,15 +264,21 @@
         }
       ],
       "authority_boundary": {
+        "authority_grant_allowed": false,
         "browser_access_allowed": false,
+        "business_action_allowed": false,
         "coupa_allowed": false,
         "email_send_allowed": false,
+        "external_action_allowed": false,
         "gmail_allowed": false,
+        "ledger_mutation_allowed": false,
         "ledger_posting_allowed": false,
         "paid": false,
+        "paid_marking_allowed": false,
         "pdf_export_allowed": false,
         "portal_submit_allowed": false,
         "sent": false,
+        "workbook_mutation_allowed": false,
         "workbook_source_mutation_allowed": false
       },
       "card_id": "dynamic_card.build.review_packet.current",
@@ -215,15 +324,21 @@
         }
       ],
       "authority_boundary": {
+        "authority_grant_allowed": false,
         "browser_access_allowed": false,
+        "business_action_allowed": false,
         "coupa_allowed": false,
         "email_send_allowed": false,
+        "external_action_allowed": false,
         "gmail_allowed": false,
+        "ledger_mutation_allowed": false,
         "ledger_posting_allowed": false,
         "paid": false,
+        "paid_marking_allowed": false,
         "pdf_export_allowed": false,
         "portal_submit_allowed": false,
         "sent": false,
+        "workbook_mutation_allowed": false,
         "workbook_source_mutation_allowed": false
       },
       "card_id": "dynamic_card.business_development.capital_hilton.proposal",
@@ -279,15 +394,21 @@
         }
       ],
       "authority_boundary": {
+        "authority_grant_allowed": false,
         "browser_access_allowed": false,
+        "business_action_allowed": false,
         "coupa_allowed": false,
         "email_send_allowed": false,
+        "external_action_allowed": false,
         "gmail_allowed": false,
+        "ledger_mutation_allowed": false,
         "ledger_posting_allowed": false,
         "paid": false,
+        "paid_marking_allowed": false,
         "pdf_export_allowed": false,
         "portal_submit_allowed": false,
         "sent": false,
+        "workbook_mutation_allowed": false,
         "workbook_source_mutation_allowed": false
       },
       "card_id": "dynamic_card.system.check_engine.diagnostic",
@@ -331,15 +452,21 @@
         }
       ],
       "authority_boundary": {
+        "authority_grant_allowed": false,
         "browser_access_allowed": false,
+        "business_action_allowed": false,
         "coupa_allowed": false,
         "email_send_allowed": false,
+        "external_action_allowed": false,
         "gmail_allowed": false,
+        "ledger_mutation_allowed": false,
         "ledger_posting_allowed": false,
         "paid": false,
+        "paid_marking_allowed": false,
         "pdf_export_allowed": false,
         "portal_submit_allowed": false,
         "sent": false,
+        "workbook_mutation_allowed": false,
         "workbook_source_mutation_allowed": false
       },
       "card_id": "dynamic_card.finance.capital_hilton.workbook_registration",
@@ -372,15 +499,21 @@
     {
       "actions": [],
       "authority_boundary": {
+        "authority_grant_allowed": false,
         "browser_access_allowed": false,
+        "business_action_allowed": false,
         "coupa_allowed": false,
         "email_send_allowed": false,
+        "external_action_allowed": false,
         "gmail_allowed": false,
+        "ledger_mutation_allowed": false,
         "ledger_posting_allowed": false,
         "paid": false,
+        "paid_marking_allowed": false,
         "pdf_export_allowed": false,
         "portal_submit_allowed": false,
         "sent": false,
+        "workbook_mutation_allowed": false,
         "workbook_source_mutation_allowed": false
       },
       "card_id": "dynamic_card.finance.st_annes.work_log_review",
@@ -411,7 +544,7 @@
       "visible_by_default": false
     }
   ],
-  "generated_at": "2026-06-04T16:30:44+00:00",
+  "generated_at": "2026-06-04T18:00:00+00:00",
   "machine_proof": {
     "all_visible_cards_have_trust_state": true,
     "backend_generated_operator_surface": true,
@@ -452,7 +585,7 @@
     "worker_execution_performed": false,
     "worker_spawn_performed": false
   },
-  "packet_id": "dynamic_card_packet:d97698df8aea",
+  "packet_id": "dynamic_card_packet:96ae8868f036",
   "preconditions": [
     {
       "equivalent_status_accepted": "",
@@ -526,7 +659,8 @@
     "generated/read_models/system_question_answer_contract.json",
     "generated/read_models/client_invoice_workbook_registry.json",
     "generated/read_models/package_event_index.json",
-    "generated/read_models/chief_check_engine_diagnostic_package.json"
+    "generated/read_models/chief_check_engine_diagnostic_package.json",
+    "generated/read_models/evidence_intake_status.json"
   ],
   "status": "DYNAMIC_CARD_PACKET_READY",
   "surface_context": {
@@ -536,5 +670,5 @@
     "workflow_ref": "dynamic_card_packet",
     "world_ref": "mission_control"
   },
-  "visible_card_count": 6
+  "visible_card_count": 7
 }

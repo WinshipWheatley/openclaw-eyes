@@ -1,14 +1,20 @@
 {
   "authority_boundary": {
+    "authority_grant_allowed": false,
     "browser_access_allowed": false,
+    "business_action_allowed": false,
     "coupa_allowed": false,
     "email_send_allowed": false,
+    "external_action_allowed": false,
     "gmail_allowed": false,
+    "ledger_mutation_allowed": false,
     "ledger_posting_allowed": false,
     "paid": false,
+    "paid_marking_allowed": false,
     "pdf_export_allowed": false,
     "portal_submit_allowed": false,
     "sent": false,
+    "workbook_mutation_allowed": false,
     "workbook_source_mutation_allowed": false
   },
   "card_schema": {
@@ -23,15 +29,21 @@
       "none"
     ],
     "authority_boundary": {
+      "authority_grant_allowed": false,
       "browser_access_allowed": false,
+      "business_action_allowed": false,
       "coupa_allowed": false,
       "email_send_allowed": false,
+      "external_action_allowed": false,
       "gmail_allowed": false,
+      "ledger_mutation_allowed": false,
       "ledger_posting_allowed": false,
       "paid": false,
+      "paid_marking_allowed": false,
       "pdf_export_allowed": false,
       "portal_submit_allowed": false,
       "sent": false,
+      "workbook_mutation_allowed": false,
       "workbook_source_mutation_allowed": false
     },
     "card_types": [
@@ -44,6 +56,7 @@
       "gate",
       "memory",
       "artifact",
+      "evidence_intake",
       "payment_watch",
       "question",
       "workbook_registration"
@@ -68,13 +81,16 @@
       "preview_only",
       "future_gated",
       "stale_needs_proof",
+      "operator_reported",
+      "candidate_evidence",
       "unknown"
     ]
   },
   "example_packet_digest": {
-    "card_count": 7,
+    "card_count": 8,
     "card_ids": [
       "dynamic_card.finance.capital_hilton.payment_watch",
+      "dynamic_card.finance.capital_hilton.evidence_intake.payment_processing",
       "dynamic_card.finance.capital_hilton.contextual_question",
       "dynamic_card.build.review_packet.current",
       "dynamic_card.business_development.capital_hilton.proposal",
@@ -82,10 +98,10 @@
       "dynamic_card.finance.capital_hilton.workbook_registration",
       "dynamic_card.finance.st_annes.work_log_review"
     ],
-    "packet_id": "dynamic_card_packet:d97698df8aea",
-    "visible_card_count": 6
+    "packet_id": "dynamic_card_packet:96ae8868f036",
+    "visible_card_count": 7
   },
-  "generated_at": "2026-06-04T16:30:44+00:00",
+  "generated_at": "2026-06-04T18:00:00+00:00",
   "latest_packet_ref": "generated/read_models/dynamic_card_packet_latest.json",
   "machine_proof": {
     "all_visible_cards_have_trust_state": true,
@@ -182,7 +198,8 @@
     "Business Development / Capital Hilton proposal",
     "Check Engine diagnostic",
     "Workbook registration",
-    "St. Anne's work-log review"
+    "St. Anne's work-log review",
+    "Evidence intake payment-processing artifact"
   ],
   "required_top_level_fields": [
     "schema_version",
@@ -217,7 +234,8 @@
     "generated/read_models/system_question_answer_contract.json",
     "generated/read_models/client_invoice_workbook_registry.json",
     "generated/read_models/package_event_index.json",
-    "generated/read_models/chief_check_engine_diagnostic_package.json"
+    "generated/read_models/chief_check_engine_diagnostic_package.json",
+    "generated/read_models/evidence_intake_status.json"
   ],
   "status": "DYNAMIC_CARD_PACKET_READY"
 }
