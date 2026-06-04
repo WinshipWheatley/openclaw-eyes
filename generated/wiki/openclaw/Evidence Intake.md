@@ -23,7 +23,7 @@ Evidence Intake records operator-dropped screenshots and files as candidate evid
 
 - Headline: `Payment proof received`
 - Status label: `Processing evidence`
-- Trust state: `candidate_evidence`
+- Trust state: `operator_reported`
 - Summary: This appears to show payment processing for invoice 2026-1001. Ledger remains untouched until payment is confirmed.
 
 ## Artifacts

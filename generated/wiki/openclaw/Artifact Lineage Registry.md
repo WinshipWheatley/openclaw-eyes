@@ -14,7 +14,7 @@ This registry records where artifacts came from and does not delete or overwrite
 - artifact:capital_hilton_proposal_pdf (proposal): active - trusted for action: false
 - artifact:capital_hilton_proposal_proposal_send_receipt (receipt): operator_sent - trusted for action: false
 - artifact:capital_hilton_proposal_review_receipt (receipt): active - trusted for action: false
-- artifact:evidence_intake_59ebcecad95553c8 (screenshot): candidate_evidence - trusted for action: false
+- artifact:evidence_intake_a9646b7115c89905 (screenshot): candidate_evidence - trusted for action: false
 - artifact:live_arts_corrected_invoice_pdf (pdf): active - trusted for action: false
 - artifact:st_annes_manual_send_receipt (receipt): operator_sent - trusted for action: false
 - artifact:st_annes_operator_sent_invoice_pdf (pdf): operator_sent - trusted for action: false

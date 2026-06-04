@@ -139,7 +139,7 @@
       "workbook_mutation_allowed": false,
       "workbook_source_mutation_allowed": false
     },
-    "card_id": "dynamic_card.evidence_intake.payment_processing.039455c631",
+    "card_id": "dynamic_card.evidence_intake.payment_processing.ad96013cf6",
     "card_type": "evidence_intake",
     "headline": "Payment proof received",
     "machine_proof": {
@@ -149,7 +149,7 @@
     },
     "plain_summary": "This appears to show payment processing for invoice 2026-1001. Ledger remains untouched until payment is confirmed.",
     "proof": {
-      "artifact_ref": "artifact:evidence_intake_59ebcecad95553c8",
+      "artifact_ref": "artifact:evidence_intake_a9646b7115c89905",
       "collapsed_by_default": true,
       "read_model_refs": [
         "generated/read_models/evidence_intake_status.json"
@@ -159,15 +159,15 @@
     "source_surface": "mission_control",
     "status_label": "Processing evidence",
     "summary": "This appears to show payment processing for invoice 2026-1001. Ledger remains untouched until payment is confirmed.",
-    "target_thread_ref": "capital_hilton",
+    "target_thread_ref": "live_arts_md",
     "target_world_ref": "finance",
-    "trust_state": "candidate_evidence"
+    "trust_state": "operator_reported"
   },
-  "generated_at": "2026-06-04T18:00:00+00:00",
+  "generated_at": "2026-06-04T19:00:00+00:00",
   "latest_record": {
     "artifact": {
-      "artifact_ref": "artifact:evidence_intake_59ebcecad95553c8",
-      "bridge_artifact_ref": "mission_control_drop:payment_processing_screenshot_invoice_2026-1001",
+      "artifact_ref": "artifact:evidence_intake_a9646b7115c89905",
+      "bridge_artifact_ref": "mission_control_drop:live_arts_md_payment_processing_screenshot_invoice_2026-1001",
       "bridge_path": "",
       "kind": "screenshot",
       "path": "",
@@ -175,7 +175,7 @@
       "sha256": ""
     },
     "artifact_lineage_registry_update_status": "recorded",
-    "artifact_ref": "artifact:evidence_intake_59ebcecad95553c8",
+    "artifact_ref": "artifact:evidence_intake_a9646b7115c89905",
     "authority_boundary": {
       "authority_grant_allowed": false,
       "browser_access_allowed": false,
@@ -194,10 +194,10 @@
       "workbook_mutation_allowed": false,
       "workbook_source_mutation_allowed": false
     },
-    "claimed_client_ref": "capital_hilton",
-    "claimed_workflow_ref": "capital_hilton_payment_watch",
-    "created_at": "2026-06-04T18:00:00+00:00",
-    "current_thread_ref": "capital_hilton",
+    "claimed_client_ref": "live_arts_md",
+    "claimed_workflow_ref": "live_arts_md_payment_watch",
+    "created_at": "2026-06-04T19:00:00+00:00",
+    "current_thread_ref": "live_arts_md",
     "current_world_ref": "finance",
     "dynamic_card": {
       "actions": [
@@ -320,7 +320,7 @@
         "workbook_mutation_allowed": false,
         "workbook_source_mutation_allowed": false
       },
-      "card_id": "dynamic_card.evidence_intake.payment_processing.039455c631",
+      "card_id": "dynamic_card.evidence_intake.payment_processing.ad96013cf6",
       "card_type": "evidence_intake",
       "headline": "Payment proof received",
       "machine_proof": {
@@ -330,7 +330,7 @@
       },
       "plain_summary": "This appears to show payment processing for invoice 2026-1001. Ledger remains untouched until payment is confirmed.",
       "proof": {
-        "artifact_ref": "artifact:evidence_intake_59ebcecad95553c8",
+        "artifact_ref": "artifact:evidence_intake_a9646b7115c89905",
         "collapsed_by_default": true,
         "read_model_refs": [
           "generated/read_models/evidence_intake_status.json"
@@ -340,12 +340,12 @@
       "source_surface": "mission_control",
       "status_label": "Processing evidence",
       "summary": "This appears to show payment processing for invoice 2026-1001. Ledger remains untouched until payment is confirmed.",
-      "target_thread_ref": "capital_hilton",
+      "target_thread_ref": "live_arts_md",
       "target_world_ref": "finance",
-      "trust_state": "candidate_evidence"
+      "trust_state": "operator_reported"
     },
     "evidence_status": "CANDIDATE_EVIDENCE_RECORDED",
-    "intake_id": "evidence_intake:a1d763bdf1e38da2",
+    "intake_id": "evidence_intake:e03d170424482e84",
     "intended_use": "payment_proof",
     "lineage_status": "candidate_evidence",
     "machine_proof": {
@@ -366,17 +366,17 @@
     },
     "operator_envelope": {
       "app_instance_ref": "mission_control:pc",
-      "created_at": "2026-06-04T18:00:00+00:00",
+      "created_at": "2026-06-04T19:00:00+00:00",
       "device_ref": "device:pc",
       "operator_ref": "operator:winship",
       "operator_verified": true,
-      "request_hash": "sha256:37c89d012c21f26b37810b6bf76b4c183e0d7fbab3892fe00f84bb8cc9dbbf19",
+      "request_hash": "sha256:a612da0c749e35fd4a4964cf7cf2f77cc545e4c68b20fb8cf207e461a3a13ffd",
       "session_ref": "session:evidence-intake-example"
     },
     "operator_note": {
       "raw_note_stored_in_general_memory": false,
-      "redacted": "Screenshot appears to show payment processing for invoice 2026-1001.",
-      "sha256": "sha256:3e12ad534683d2714063bf2c621398d790cee0bb30bcca0b04a2cd0e412617c2"
+      "redacted": "Live Arts MD screenshot appears to show payment processing for invoice 2026-1001.",
+      "sha256": "sha256:3c146d1512848be70597c969fac2c677d762aa0719ceb12fda57be1adc242b28"
     },
     "payment": {
       "evidence_is_payment_processing_only": true,
@@ -405,10 +405,10 @@
       "raw_sensitive_detail_promoted_to_memory": false,
       "tokenization_required": true
     },
-    "request_ref": "evidence_intake_request:eb60dd5c1595d0a6",
+    "request_ref": "evidence_intake_request:1fd78bb58d3690e9",
     "schema_version": "evidence_intake_v0",
     "source_request": {
-      "request_hash": "sha256:37c89d012c21f26b37810b6bf76b4c183e0d7fbab3892fe00f84bb8cc9dbbf19",
+      "request_hash": "sha256:a612da0c749e35fd4a4964cf7cf2f77cc545e4c68b20fb8cf207e461a3a13ffd",
       "request_type": "EVIDENCE_INTAKE_REQUEST_V0",
       "source_surface": "mission_control"
     },
@@ -424,6 +424,7 @@
     "local_model_runtime_connected": false,
     "paid_marking_performed": false,
     "payment_processing_evidence_does_not_mark_paid": true,
+    "preconditions_ready": true,
     "raw_ocr_text_stored": false,
     "raw_sensitive_detail_promoted_to_memory": false,
     "unsafe_true_grants": [],
@@ -431,6 +432,53 @@
     "verified_operator_evidence_intake_ready": true,
     "worker_spawn_performed": false
   },
+  "preconditions": [
+    {
+      "accepted_statuses": [
+        "DYNAMIC_CARD_PACKET_READY"
+      ],
+      "observed_status": "DYNAMIC_CARD_PACKET_READY",
+      "precondition_ref": "dynamic_card_packet",
+      "ready": true,
+      "source_ref": "generated/read_models/dynamic_card_packet_latest.json"
+    },
+    {
+      "accepted_statuses": [
+        "OPERATOR_ACTION_PAYLOADS_READY"
+      ],
+      "observed_status": "OPERATOR_ACTION_PAYLOADS_READY",
+      "precondition_ref": "operator_action_payloads",
+      "ready": true,
+      "source_ref": "generated/read_models/operator_action_payloads.json"
+    },
+    {
+      "accepted_statuses": [
+        "ARTIFACT_LINEAGE_REGISTRY_READY"
+      ],
+      "observed_status": "ARTIFACT_LINEAGE_REGISTRY_READY",
+      "precondition_ref": "artifact_lineage_registry",
+      "ready": true,
+      "source_ref": "generated/read_models/artifact_lineage_registry.json"
+    },
+    {
+      "accepted_statuses": [
+        "EVIDENCE_CONFIDENCE_SCORING_READY"
+      ],
+      "observed_status": "EVIDENCE_CONFIDENCE_SCORING_READY",
+      "precondition_ref": "evidence_confidence_scoring",
+      "ready": true,
+      "source_ref": "generated/read_models/evidence_confidence_scoring.json"
+    },
+    {
+      "accepted_statuses": [
+        "GATE_DECISION_LEDGER_READY"
+      ],
+      "observed_status": "GATE_DECISION_LEDGER_READY",
+      "precondition_ref": "gate_decision_ledger",
+      "ready": true,
+      "source_ref": "generated/read_models/gate_decision_ledger.json"
+    }
+  ],
   "read_model_id": "evidence_intake_status",
   "schema_version": "evidence_intake_v0",
   "sqlite_path": "/home/openclaw/generated/system_knowledge/evidence_intake.sqlite",

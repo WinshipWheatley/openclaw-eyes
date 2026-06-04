@@ -27,6 +27,7 @@ DEFAULT_BRIDGE_ROOT = Path("/mnt/e/openclaw/generated/read_models")
 DEFAULT_WIKI_PATH = Path("generated/wiki/openclaw/Evidence Intake.md")
 DEFAULT_SQLITE_PATH = Path("generated/system_knowledge/evidence_intake.sqlite")
 DEFAULT_ARTIFACT_LINEAGE_SQLITE_PATH = Path("generated/system_knowledge/artifact_lineage_registry.sqlite")
+DEFAULT_READ_MODEL_ROOT = Path("generated/read_models")
 
 REQUEST_TYPE = "EVIDENCE_INTAKE_REQUEST_V0"
 SCHEMA_VERSION = "evidence_intake_v0"
@@ -58,6 +59,29 @@ PAYMENT_PROOF_STATES = (
     "ledger_recorded",
     "rejected_or_test",
 )
+
+PRECONDITIONS = {
+    "dynamic_card_packet": {
+        "filename": "dynamic_card_packet_latest.json",
+        "accepted_statuses": ("DYNAMIC_CARD_PACKET_READY",),
+    },
+    "operator_action_payloads": {
+        "filename": "operator_action_payloads.json",
+        "accepted_statuses": ("OPERATOR_ACTION_PAYLOADS_READY",),
+    },
+    "artifact_lineage_registry": {
+        "filename": "artifact_lineage_registry.json",
+        "accepted_statuses": ("ARTIFACT_LINEAGE_REGISTRY_READY",),
+    },
+    "evidence_confidence_scoring": {
+        "filename": "evidence_confidence_scoring.json",
+        "accepted_statuses": ("EVIDENCE_CONFIDENCE_SCORING_READY",),
+    },
+    "gate_decision_ledger": {
+        "filename": "gate_decision_ledger.json",
+        "accepted_statuses": ("GATE_DECISION_LEDGER_READY",),
+    },
+}
 
 AUTHORITY_BOUNDARY = {
     "email_send_allowed": False,
@@ -173,6 +197,48 @@ def _request_text(request: Mapping[str, Any]) -> str:
         request.get("intended_use"),
     ]
     return " ".join(str(value or "") for value in fields).lower()
+
+
+def _load_json(path: Path) -> dict[str, Any]:
+    path = _rooted(path)
+    if not path.exists():
+        return {}
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return {}
+    return payload if isinstance(payload, dict) else {}
+
+
+def _status(payload: Mapping[str, Any]) -> str:
+    for key in ("status", "readiness_status", "contract_status"):
+        value = payload.get(key)
+        if value:
+            return str(value)
+    return ""
+
+
+def _source_ref(filename: str) -> str:
+    return f"generated/read_models/{filename}"
+
+
+def _precondition_rows(read_model_root: Path = DEFAULT_READ_MODEL_ROOT) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for ref, spec in PRECONDITIONS.items():
+        filename = str(spec["filename"])
+        payload = _load_json(_rooted(read_model_root) / filename)
+        observed = _status(payload)
+        accepted = tuple(str(status) for status in spec["accepted_statuses"])
+        rows.append(
+            {
+                "precondition_ref": ref,
+                "observed_status": observed,
+                "accepted_statuses": list(accepted),
+                "ready": observed in accepted,
+                "source_ref": _source_ref(filename),
+            }
+        )
+    return rows
 
 
 def _detect_invoice_ref(request: Mapping[str, Any]) -> str:
@@ -331,7 +397,7 @@ def build_dynamic_card(record: Mapping[str, Any]) -> dict[str, Any]:
         "summary": summary,
         "plain_summary": summary,
         "status_label": "Processing evidence",
-        "trust_state": "candidate_evidence",
+        "trust_state": "operator_reported",
         "source_surface": operator_envelope.SOURCE_SURFACE,
         "target_world_ref": str(record.get("current_world_ref") or ""),
         "target_thread_ref": str(record.get("current_thread_ref") or ""),
@@ -558,6 +624,18 @@ def _insert_evidence_row(conn: sqlite3.Connection, record: Mapping[str, Any]) ->
     )
 
 
+def _reset_evidence_records(sqlite_path: Path) -> None:
+    sqlite_path = _rooted(sqlite_path)
+    sqlite_path.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(sqlite_path)
+    try:
+        _init_evidence_schema(conn)
+        conn.execute("DELETE FROM evidence_intake_records")
+        conn.commit()
+    finally:
+        conn.close()
+
+
 def _init_artifact_lineage_schema(conn: sqlite3.Connection) -> None:
     conn.execute(
         """
@@ -653,13 +731,13 @@ def example_payment_processing_request(*, generated_at: str | None = None) -> di
         "request_type": REQUEST_TYPE,
         "source_surface": operator_envelope.SOURCE_SURFACE,
         "current_world_ref": "finance",
-        "current_thread_ref": "capital_hilton",
-        "claimed_client_ref": "capital_hilton",
-        "claimed_workflow_ref": "capital_hilton_payment_watch",
+        "current_thread_ref": "live_arts_md",
+        "claimed_client_ref": "live_arts_md",
+        "claimed_workflow_ref": "live_arts_md_payment_watch",
         "artifact_path": "",
-        "bridge_artifact_ref": "mission_control_drop:payment_processing_screenshot_invoice_2026-1001",
+        "bridge_artifact_ref": "mission_control_drop:live_arts_md_payment_processing_screenshot_invoice_2026-1001",
         "artifact_kind": "screenshot",
-        "operator_note": "Screenshot appears to show payment processing for invoice 2026-1001.",
+        "operator_note": "Live Arts MD screenshot appears to show payment processing for invoice 2026-1001.",
         "privacy_class": "financial_sensitive",
         "intended_use": "payment_proof",
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
@@ -674,12 +752,18 @@ def example_payment_processing_request(*, generated_at: str | None = None) -> di
     )
 
 
-def build_contract_read_model(*, generated_at: str | None = None) -> dict[str, Any]:
+def build_contract_read_model(
+    *,
+    read_model_root: Path = DEFAULT_READ_MODEL_ROOT,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
     generated_at = generated_at or utc_now()
+    preconditions = _precondition_rows(read_model_root)
+    preconditions_ready = all(row["ready"] for row in preconditions)
     payload: dict[str, Any] = {
         "schema_version": CONTRACT_SCHEMA_VERSION,
         "read_model_id": CONTRACT_READ_MODEL_ID,
-        "status": READY_STATUS,
+        "status": READY_STATUS if preconditions_ready else NOT_READY_STATUS,
         "generated_at": generated_at,
         "request_type": REQUEST_TYPE,
         "purpose": "Authenticated operator artifact drops for candidate evidence intake without business-truth mutation.",
@@ -715,12 +799,14 @@ def build_contract_read_model(*, generated_at: str | None = None) -> dict[str, A
         "dynamic_card_contract": {
             "headline": "Payment proof received",
             "status_label": "Processing evidence",
-            "trust_states": ["operator_reported", "candidate_evidence"],
+            "trust_states": ["preview_only", "operator_reported"],
             "required_actions": ["Attach to lane", "Ask what this means", "Mark as test", "Show details"],
         },
+        "preconditions": preconditions,
         "sqlite_path": str(_rooted(DEFAULT_SQLITE_PATH)),
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
         "machine_proof": {
+            "preconditions_ready": preconditions_ready,
             "contract_only": True,
             "operator_envelope_required": True,
             "request_hash_required": True,
@@ -744,19 +830,25 @@ def build_contract_read_model(*, generated_at: str | None = None) -> dict[str, A
 
 def build_status_read_model(
     *,
+    read_model_root: Path = DEFAULT_READ_MODEL_ROOT,
     sqlite_path: Path = DEFAULT_SQLITE_PATH,
     artifact_lineage_sqlite_path: Path | None = DEFAULT_ARTIFACT_LINEAGE_SQLITE_PATH,
+    replace_status_snapshot: bool = True,
     generated_at: str | None = None,
 ) -> dict[str, Any]:
     generated_at = generated_at or utc_now()
+    preconditions = _precondition_rows(read_model_root)
+    preconditions_ready = all(row["ready"] for row in preconditions)
     request = example_payment_processing_request(generated_at=generated_at)
+    if replace_status_snapshot:
+        _reset_evidence_records(sqlite_path)
     record = record_evidence_intake(
         request,
         sqlite_path=sqlite_path,
         artifact_lineage_sqlite_path=artifact_lineage_sqlite_path,
         generated_at=generated_at,
     )
-    status = READY_STATUS if record["status"] == READY_STATUS else NOT_READY_STATUS
+    status = READY_STATUS if record["status"] == READY_STATUS and preconditions_ready else NOT_READY_STATUS
     payload = {
         "schema_version": SCHEMA_VERSION,
         "read_model_id": STATUS_READ_MODEL_ID,
@@ -764,10 +856,12 @@ def build_status_read_model(
         "generated_at": generated_at,
         "latest_record": record,
         "dynamic_card": record.get("dynamic_card", {}),
+        "preconditions": preconditions,
         "sqlite_path": str(_rooted(sqlite_path)),
         "artifact_lineage_sqlite_path": str(_rooted(artifact_lineage_sqlite_path)) if artifact_lineage_sqlite_path else "",
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
         "machine_proof": {
+            "preconditions_ready": preconditions_ready,
             "verified_operator_evidence_intake_ready": status == READY_STATUS,
             "candidate_evidence_recorded": record.get("evidence_status") == EVIDENCE_STATUS_RECORDED,
             "payment_processing_evidence_does_not_mark_paid": (record.get("payment") or {}).get("paid") is False,
@@ -838,18 +932,22 @@ def build_wiki(contract: Mapping[str, Any], status: Mapping[str, Any]) -> str:
 
 def export_evidence_intake(
     *,
+    read_model_root: Path = DEFAULT_READ_MODEL_ROOT,
     export_root: Path = DEFAULT_EXPORT_ROOT,
     bridge_root: Path | None = DEFAULT_BRIDGE_ROOT,
     wiki_path: Path = DEFAULT_WIKI_PATH,
     sqlite_path: Path = DEFAULT_SQLITE_PATH,
     artifact_lineage_sqlite_path: Path | None = DEFAULT_ARTIFACT_LINEAGE_SQLITE_PATH,
+    replace_status_snapshot: bool = True,
     generated_at: str | None = None,
 ) -> dict[str, str]:
     generated_at = generated_at or utc_now()
-    contract = build_contract_read_model(generated_at=generated_at)
+    contract = build_contract_read_model(read_model_root=read_model_root, generated_at=generated_at)
     status = build_status_read_model(
+        read_model_root=read_model_root,
         sqlite_path=sqlite_path,
         artifact_lineage_sqlite_path=artifact_lineage_sqlite_path,
+        replace_status_snapshot=replace_status_snapshot,
         generated_at=generated_at,
     )
 
@@ -904,6 +1002,7 @@ def unsafe_true_grants(payload: Mapping[str, Any]) -> list[str]:
 def build_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Publish Verified Evidence Intake V0.")
     parser.add_argument("--export-root", default=str(DEFAULT_EXPORT_ROOT))
+    parser.add_argument("--read-model-root", default=str(DEFAULT_READ_MODEL_ROOT))
     parser.add_argument("--bridge-root", default=str(DEFAULT_BRIDGE_ROOT))
     parser.add_argument("--wiki-path", default=str(DEFAULT_WIKI_PATH))
     parser.add_argument("--sqlite-path", default=str(DEFAULT_SQLITE_PATH))
@@ -911,6 +1010,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--generated-at")
     parser.add_argument("--no-bridge", action="store_true")
     parser.add_argument("--no-artifact-lineage", action="store_true")
+    parser.add_argument("--append-status-snapshot", action="store_true")
     parser.add_argument("--format", choices=("summary", "json"), default="summary")
     return parser
 
@@ -919,10 +1019,12 @@ def main(argv: list[str] | None = None) -> int:
     args = build_arg_parser().parse_args(argv)
     result = export_evidence_intake(
         export_root=Path(args.export_root),
+        read_model_root=Path(args.read_model_root),
         bridge_root=None if args.no_bridge else Path(args.bridge_root),
         wiki_path=Path(args.wiki_path),
         sqlite_path=Path(args.sqlite_path),
         artifact_lineage_sqlite_path=None if args.no_artifact_lineage else Path(args.artifact_lineage_sqlite_path),
+        replace_status_snapshot=not args.append_status_snapshot,
         generated_at=args.generated_at,
     )
     if args.format == "json":

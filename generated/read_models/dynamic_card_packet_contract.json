@@ -90,7 +90,7 @@
     "card_count": 8,
     "card_ids": [
       "dynamic_card.finance.capital_hilton.payment_watch",
-      "dynamic_card.finance.capital_hilton.evidence_intake.payment_processing",
+      "dynamic_card.finance.live_arts_md.evidence_intake.payment_processing",
       "dynamic_card.finance.capital_hilton.contextual_question",
       "dynamic_card.build.review_packet.current",
       "dynamic_card.business_development.capital_hilton.proposal",
@@ -98,10 +98,10 @@
       "dynamic_card.finance.capital_hilton.workbook_registration",
       "dynamic_card.finance.st_annes.work_log_review"
     ],
-    "packet_id": "dynamic_card_packet:96ae8868f036",
+    "packet_id": "dynamic_card_packet:f4af6ed4fb5f",
     "visible_card_count": 7
   },
-  "generated_at": "2026-06-04T18:00:00+00:00",
+  "generated_at": "2026-06-04T19:00:00+00:00",
   "latest_packet_ref": "generated/read_models/dynamic_card_packet_latest.json",
   "machine_proof": {
     "all_visible_cards_have_trust_state": true,

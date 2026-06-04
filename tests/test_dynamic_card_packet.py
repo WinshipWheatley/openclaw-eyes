@@ -77,7 +77,7 @@ def test_contextual_question_answer_card_generated_for_finance_capital_hilton():
 
 def test_evidence_intake_card_example_generated_no_ledger_or_paid_action():
     packet = _latest()
-    card = _by_id(packet)["dynamic_card.finance.capital_hilton.evidence_intake.payment_processing"]
+    card = _by_id(packet)["dynamic_card.finance.live_arts_md.evidence_intake.payment_processing"]
 
     assert card["card_type"] == "evidence_intake"
     assert card["headline"] == "Payment proof received"
@@ -86,7 +86,7 @@ def test_evidence_intake_card_example_generated_no_ledger_or_paid_action():
         "Ledger remains untouched until payment is confirmed."
     )
     assert card["status_label"] == "Processing evidence"
-    assert card["trust_state"] == "candidate_evidence"
+    assert card["trust_state"] == "operator_reported"
     assert {action["label"] for action in card["actions"]} == {
         "Attach to lane",
         "Ask what this means",

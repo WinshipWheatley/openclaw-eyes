@@ -27,12 +27,12 @@ def _request(tmp_path: Path, *, note: str | None = None):
         "request_type": intake.REQUEST_TYPE,
         "source_surface": "mission_control",
         "current_world_ref": "finance",
-        "current_thread_ref": "capital_hilton",
-        "claimed_client_ref": "capital_hilton",
-        "claimed_workflow_ref": "capital_hilton_payment_watch",
+        "current_thread_ref": "live_arts_md",
+        "claimed_client_ref": "live_arts_md",
+        "claimed_workflow_ref": "live_arts_md_payment_watch",
         "artifact_path": str(artifact),
         "artifact_kind": "screenshot",
-        "operator_note": note or "Screenshot shows payment processing for invoice 2026-1001.",
+        "operator_note": note or "Live Arts MD screenshot shows payment processing for invoice 2026-1001.",
         "privacy_class": "financial_sensitive",
         "intended_use": "payment_proof",
         "authority_boundary": dict(intake.AUTHORITY_BOUNDARY),
@@ -65,6 +65,8 @@ def test_payment_screenshot_classified_financial_sensitive_local_only(tmp_path):
     record = intake.build_intake_record(request, generated_at=FIXED_NOW)
 
     assert record["status"] == "EVIDENCE_INTAKE_READY"
+    assert record["current_thread_ref"] == "live_arts_md"
+    assert record["claimed_client_ref"] == "live_arts_md"
     assert record["privacy"]["privacy_class"] == "financial_sensitive"
     assert record["privacy"]["processing_location"] == "local_only"
     assert record["privacy"]["external_provider_policy"] == "external_provider_blocked"
@@ -115,7 +117,7 @@ def test_payment_processing_evidence_does_not_mark_paid_or_mutate_ledger(tmp_pat
 def test_raw_sensitive_detail_is_not_promoted_to_memory(tmp_path):
     request = _request(
         tmp_path,
-        note="Screenshot shows payment processing for invoice 2026-1001, bank account 123456789 and routing 011000015.",
+        note="Live Arts MD screenshot shows payment processing for invoice 2026-1001, bank account 123456789 and routing 011000015.",
     )
 
     record = intake.record_evidence_intake(
@@ -178,7 +180,7 @@ def test_dynamic_human_card_created(tmp_path):
         "Ledger remains untouched until payment is confirmed."
     )
     assert card["status_label"] == "Processing evidence"
-    assert card["trust_state"] == "candidate_evidence"
+    assert card["trust_state"] == "operator_reported"
     assert [action["label"] for action in card["actions"]] == [
         "Attach to lane",
         "Ask what this means",
@@ -210,6 +212,9 @@ def test_export_writes_json_bridge_sqlite_and_wiki(tmp_path):
     assert status == bridge_status
     assert contract["status"] == "EVIDENCE_INTAKE_READY"
     assert status["status"] == "EVIDENCE_INTAKE_READY"
+    assert contract["machine_proof"]["preconditions_ready"] is True
+    assert status["machine_proof"]["preconditions_ready"] is True
+    assert status["latest_record"]["claimed_client_ref"] == "live_arts_md"
     assert status["latest_record"]["payment"]["paid"] is False
     assert _sqlite_count(Path(result["sqlite_path"]), "evidence_intake_records") == 1
     assert Path(result["wiki_path"]).exists()

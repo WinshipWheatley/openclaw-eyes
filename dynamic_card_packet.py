@@ -686,13 +686,15 @@ def _evidence_intake_card(sources: Mapping[str, Mapping[str, Any]]) -> dict[str,
     card = status.get("dynamic_card") if isinstance(status.get("dynamic_card"), Mapping) else {}
     artifact = record.get("artifact") if isinstance(record.get("artifact"), Mapping) else {}
     payment = record.get("payment") if isinstance(record.get("payment"), Mapping) else {}
+    world_ref = str(record.get("current_world_ref") or "finance")
+    thread_ref = str(record.get("current_thread_ref") or "evidence_intake")
     disabled_reason = "No deterministic operator_action_payload exists yet for evidence intake card actions."
     summary = str(
         card.get("summary")
         or "This appears to show payment processing for invoice 2026-1001. Ledger remains untouched until payment is confirmed."
     )
     return _card(
-        card_id="dynamic_card.finance.capital_hilton.evidence_intake.payment_processing",
+        card_id=f"dynamic_card.{_slug(world_ref)}.{_slug(thread_ref)}.evidence_intake.payment_processing",
         card_type="evidence_intake",
         speaker_ref="chief",
         headline=str(card.get("headline") or "Payment proof received"),
@@ -704,7 +706,7 @@ def _evidence_intake_card(sources: Mapping[str, Mapping[str, Any]]) -> dict[str,
         ],
         status_label=str(card.get("status_label") or "Processing evidence"),
         tone="calm",
-        trust_state=str(card.get("trust_state") or "candidate_evidence"),
+        trust_state=str(card.get("trust_state") or "operator_reported"),
         priority=97,
         visible_by_default=bool(record),
         actions=[

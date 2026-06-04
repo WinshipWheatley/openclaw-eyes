@@ -30,10 +30,10 @@ Actions:
 
 ### Payment proof received
 
-- Card id: `dynamic_card.finance.capital_hilton.evidence_intake.payment_processing`
+- Card id: `dynamic_card.finance.live_arts_md.evidence_intake.payment_processing`
 - Type: `evidence_intake`
 - Speaker: `chief`
-- Trust: `candidate_evidence`
+- Trust: `operator_reported`
 - Summary: This appears to show payment processing for invoice 2026-1001. Ledger remains untouched until payment is confirmed.
 - Next/status: `Processing evidence`
 - Visible by default: `true`

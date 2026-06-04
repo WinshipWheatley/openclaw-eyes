@@ -34,11 +34,11 @@
     ],
     "status_label": "Processing evidence",
     "trust_states": [
-      "operator_reported",
-      "candidate_evidence"
+      "preview_only",
+      "operator_reported"
     ]
   },
-  "generated_at": "2026-06-04T18:00:00+00:00",
+  "generated_at": "2026-06-04T19:00:00+00:00",
   "intended_uses": [
     "payment_proof",
     "invoice_proof",
@@ -57,6 +57,7 @@
     "operator_envelope_required": true,
     "paid_marking_performed": false,
     "payment_processing_evidence_does_not_mark_paid": true,
+    "preconditions_ready": true,
     "raw_ocr_text_stored": false,
     "raw_sensitive_detail_promoted_to_memory": false,
     "request_hash_required": true,
@@ -77,6 +78,53 @@
     "Payment-processing evidence does not equal paid.",
     "Paid truth requires payment or ledger confirmation.",
     "Ledger recording remains pending operator review."
+  ],
+  "preconditions": [
+    {
+      "accepted_statuses": [
+        "DYNAMIC_CARD_PACKET_READY"
+      ],
+      "observed_status": "DYNAMIC_CARD_PACKET_READY",
+      "precondition_ref": "dynamic_card_packet",
+      "ready": true,
+      "source_ref": "generated/read_models/dynamic_card_packet_latest.json"
+    },
+    {
+      "accepted_statuses": [
+        "OPERATOR_ACTION_PAYLOADS_READY"
+      ],
+      "observed_status": "OPERATOR_ACTION_PAYLOADS_READY",
+      "precondition_ref": "operator_action_payloads",
+      "ready": true,
+      "source_ref": "generated/read_models/operator_action_payloads.json"
+    },
+    {
+      "accepted_statuses": [
+        "ARTIFACT_LINEAGE_REGISTRY_READY"
+      ],
+      "observed_status": "ARTIFACT_LINEAGE_REGISTRY_READY",
+      "precondition_ref": "artifact_lineage_registry",
+      "ready": true,
+      "source_ref": "generated/read_models/artifact_lineage_registry.json"
+    },
+    {
+      "accepted_statuses": [
+        "EVIDENCE_CONFIDENCE_SCORING_READY"
+      ],
+      "observed_status": "EVIDENCE_CONFIDENCE_SCORING_READY",
+      "precondition_ref": "evidence_confidence_scoring",
+      "ready": true,
+      "source_ref": "generated/read_models/evidence_confidence_scoring.json"
+    },
+    {
+      "accepted_statuses": [
+        "GATE_DECISION_LEDGER_READY"
+      ],
+      "observed_status": "GATE_DECISION_LEDGER_READY",
+      "precondition_ref": "gate_decision_ledger",
+      "ready": true,
+      "source_ref": "generated/read_models/gate_decision_ledger.json"
+    }
   ],
   "privacy_rules": [
     "Payment screenshots classify as financial_sensitive.",
