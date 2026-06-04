@@ -32,6 +32,8 @@ CONTRACT_JSON_EXPORT_NAME = f"{CONTRACT_READ_MODEL_ID}.json"
 LATEST_JSON_EXPORT_NAME = f"{LATEST_READ_MODEL_ID}.json"
 READY_STATUS = "DYNAMIC_CARD_PACKET_READY"
 NOT_READY_STATUS = "DYNAMIC_CARD_PACKET_NOT_READY"
+FIRST_CLASS_OPERATOR_ENVELOPE_CONTRACT_REF = "generated/read_models/first_class_operator_envelope_contract.json"
+FIRST_CLASS_OPERATOR_ENVELOPE_STATUS_REF = "generated/read_models/first_class_operator_envelope_status.json"
 
 CARD_TYPES = (
     "answer",
@@ -86,6 +88,8 @@ SOURCE_FILENAMES = {
     "package_event_index": "package_event_index.json",
     "chief_check_engine_diagnostic_package": "chief_check_engine_diagnostic_package.json",
     "evidence_intake": "evidence_intake_status.json",
+    "first_class_operator_envelope_contract": "first_class_operator_envelope_contract.json",
+    "first_class_operator_envelope_status": "first_class_operator_envelope_status.json",
 }
 
 PRECONDITIONS = {
@@ -680,6 +684,23 @@ def _st_annes_work_log_card(sources: Mapping[str, Mapping[str, Any]]) -> dict[st
     )
 
 
+def _evidence_envelope_required_action(*, action_id: str, label: str, disabled_reason: str) -> dict[str, Any]:
+    action = _disabled_action(
+        action_id=action_id,
+        label=label,
+        disabled_reason=disabled_reason,
+    )
+    action.update(
+        {
+            "requires_operator_authority_envelope": True,
+            "operator_authority_envelope_contract_ref": FIRST_CLASS_OPERATOR_ENVELOPE_CONTRACT_REF,
+            "operator_authority_envelope_status_ref": FIRST_CLASS_OPERATOR_ENVELOPE_STATUS_REF,
+            "authority_granted_by_action": False,
+        }
+    )
+    return action
+
+
 def _evidence_intake_card(sources: Mapping[str, Mapping[str, Any]]) -> dict[str, Any]:
     status = sources.get("evidence_intake", {})
     record = status.get("latest_record") if isinstance(status.get("latest_record"), Mapping) else {}
@@ -710,22 +731,22 @@ def _evidence_intake_card(sources: Mapping[str, Mapping[str, Any]]) -> dict[str,
         priority=97,
         visible_by_default=bool(record),
         actions=[
-            _disabled_action(
+            _evidence_envelope_required_action(
                 action_id="evidence_intake.attach_to_lane",
                 label="Attach to lane",
                 disabled_reason=disabled_reason,
             ),
-            _disabled_action(
+            _evidence_envelope_required_action(
                 action_id="evidence_intake.ask_what_this_means",
                 label="Ask what this means",
                 disabled_reason=disabled_reason,
             ),
-            _disabled_action(
+            _evidence_envelope_required_action(
                 action_id="evidence_intake.mark_as_test",
                 label="Mark as test",
                 disabled_reason=disabled_reason,
             ),
-            _disabled_action(
+            _evidence_envelope_required_action(
                 action_id="evidence_intake.show_details",
                 label="Show details",
                 disabled_reason=disabled_reason,

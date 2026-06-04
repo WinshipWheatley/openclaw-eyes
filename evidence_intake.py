@@ -18,6 +18,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping
 
+import first_class_operator_envelope as operator_authority_envelope
 import verified_operator_envelope as operator_envelope
 
 
@@ -41,6 +42,8 @@ NOT_READY_STATUS = "EVIDENCE_INTAKE_NOT_READY"
 VERIFICATION_REQUIRED_STATUS = operator_envelope.STATUS_VERIFICATION_REQUIRED
 REQUEST_BLOCKED_STATUS = "EVIDENCE_INTAKE_REQUEST_BLOCKED"
 EVIDENCE_STATUS_RECORDED = "CANDIDATE_EVIDENCE_RECORDED"
+FIRST_CLASS_OPERATOR_ENVELOPE_STATUS_REF = "generated/read_models/first_class_operator_envelope_status.json"
+FIRST_CLASS_OPERATOR_ENVELOPE_CONTRACT_REF = "generated/read_models/first_class_operator_envelope_contract.json"
 
 ARTIFACT_KINDS = ("screenshot", "pdf", "image", "document", "receipt")
 INTENDED_USES = (
@@ -342,6 +345,11 @@ def classify_payment_state(request: Mapping[str, Any]) -> dict[str, Any]:
 def validate_evidence_request(request: Mapping[str, Any]) -> dict[str, Any]:
     blockers: list[str] = []
     envelope_result = operator_envelope.validate_operator_envelope(request)
+    authority_envelope_result: dict[str, Any] = {}
+    if any(key in request for key in operator_authority_envelope.ENVELOPE_KEYS):
+        authority_envelope_result = operator_authority_envelope.validate_operator_authority_envelope(request)
+        if authority_envelope_result["verification_status"] != operator_authority_envelope.VERIFICATION_STATUS_VERIFIED:
+            blockers.append("first_class_operator_authority_envelope_invalid")
     if envelope_result["status"] != operator_envelope.STATUS_VERIFIED:
         blockers.append("operator_verification_required")
     if request.get("request_type") != REQUEST_TYPE:
@@ -373,11 +381,17 @@ def validate_evidence_request(request: Mapping[str, Any]) -> dict[str, Any]:
         "valid": not blockers,
         "blockers": blockers,
         "operator_envelope": envelope_result,
+        "operator_authority_envelope": authority_envelope_result,
     }
 
 
 def build_dynamic_card(record: Mapping[str, Any]) -> dict[str, Any]:
     payment = record.get("payment") if isinstance(record.get("payment"), Mapping) else {}
+    authority_envelope = (
+        record.get("operator_authority_envelope")
+        if isinstance(record.get("operator_authority_envelope"), Mapping)
+        else {}
+    )
     invoice_ref = str(payment.get("invoice_ref") or record.get("invoice_ref") or "2026-1001")
     summary = (
         f"This appears to show payment processing for invoice {invoice_ref}. "
@@ -408,6 +422,9 @@ def build_dynamic_card(record: Mapping[str, Any]) -> dict[str, Any]:
                 "enabled": True,
                 "effect": effect,
                 "business_action": False,
+                "requires_operator_authority_envelope": True,
+                "operator_authority_envelope_contract_ref": FIRST_CLASS_OPERATOR_ENVELOPE_CONTRACT_REF,
+                "operator_authority_envelope_ref": str(authority_envelope.get("envelope_id") or ""),
                 "authority_boundary": dict(AUTHORITY_BOUNDARY),
             }
             for action_id, label, effect in actions
@@ -415,7 +432,10 @@ def build_dynamic_card(record: Mapping[str, Any]) -> dict[str, Any]:
         "proof": {
             "collapsed_by_default": True,
             "artifact_ref": str(record.get("artifact_ref") or ""),
-            "read_model_refs": [f"generated/read_models/{STATUS_JSON_EXPORT_NAME}"],
+            "read_model_refs": [
+                f"generated/read_models/{STATUS_JSON_EXPORT_NAME}",
+                FIRST_CLASS_OPERATOR_ENVELOPE_STATUS_REF,
+            ],
         },
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
         "machine_proof": {
@@ -436,6 +456,7 @@ def build_intake_record(request: Mapping[str, Any], *, generated_at: str | None 
             "evidence_status": "NOT_RECORDED",
             "blockers": validation["blockers"],
             "operator_envelope": validation["operator_envelope"],
+            "operator_authority_envelope": validation.get("operator_authority_envelope") or {},
             "authority_boundary": dict(AUTHORITY_BOUNDARY),
             "machine_proof": {
                 "candidate_evidence_recorded": False,
@@ -446,6 +467,7 @@ def build_intake_record(request: Mapping[str, Any], *, generated_at: str | None 
         }
 
     envelope = validation["operator_envelope"]
+    authority_envelope = validation.get("operator_authority_envelope") or {}
     request_hash = str(envelope.get("request_hash") or operator_envelope.compute_request_hash(request))
     artifact_path = str(request.get("artifact_path") or "")
     bridge_artifact_ref = str(request.get("bridge_artifact_ref") or "")
@@ -475,6 +497,20 @@ def build_intake_record(request: Mapping[str, Any], *, generated_at: str | None 
             "request_hash": request_hash,
             "operator_verified": True,
         },
+        "operator_authority_envelope": {
+            "envelope_id": str(authority_envelope.get("envelope_id") or ""),
+            "verification_status": str(authority_envelope.get("verification_status") or ""),
+            "operator_ref": str(authority_envelope.get("operator_ref") or ""),
+            "app_instance_ref": str(authority_envelope.get("app_instance_ref") or ""),
+            "device_ref": str(authority_envelope.get("device_ref") or ""),
+            "device_class": str(authority_envelope.get("device_class") or ""),
+            "session_ref": str(authority_envelope.get("session_ref") or ""),
+            "controller_action_type": str(authority_envelope.get("controller_action_type") or ""),
+            "authority_requested": list(authority_envelope.get("authority_requested") or []),
+            "authority_granted": list(authority_envelope.get("authority_granted") or []),
+            "proof_refs": list(authority_envelope.get("proof_refs") or []),
+            "read_model_ref": FIRST_CLASS_OPERATOR_ENVELOPE_STATUS_REF if authority_envelope else "",
+        } if authority_envelope else {},
         "current_world_ref": str(request.get("current_world_ref") or ""),
         "current_thread_ref": str(request.get("current_thread_ref") or ""),
         "claimed_client_ref": str(request.get("claimed_client_ref") or ""),
