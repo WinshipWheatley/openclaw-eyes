@@ -1,0 +1,32 @@
+{
+  "schema_version": "hermes_sidecar_inventory_v1",
+  "read_model_id": "hermes_sidecar_inventory",
+  "status": "HERMES_SIDECAR_INVENTORY_READY",
+  "sidecar_present": true,
+  "sidecar_running": false,
+  "identity_classification": {
+    "openclaw_internal_hermes": "internal_advisory_identity",
+    "sidecar_process": "local_sidecar_process",
+    "harness_candidate": "external_harness_candidate"
+  },
+  "read_access": "Bounded to allowed surfaces per contract; sidecar has file_tools capable of arbitrary reads if unbounded.",
+  "write_access": "Sidecar file_tools capable of writes; contract forbids mutating canonical docs/runtime/state.",
+  "shadow_memory_state_flagged": true,
+  "network_provider_access": "Sidecar contains gateway/web integrations; must remain blocked per contract.",
+  "writes_receipts": false,
+  "registered_in_harness_selection": false,
+  "guardian_gating": false,
+  "sleep_safe": false,
+  "blocked_actions": [
+    "Direct Mutation",
+    "Autonomous Wiring",
+    "Approval Decisions",
+    "Queue Mutation",
+    "Canonical Memory Writes",
+    "Broad MCP Expansion",
+    "External provider access"
+  ],
+  "machine_proof": {
+    "unsafe_true_grants_absent": true
+  }
+}
