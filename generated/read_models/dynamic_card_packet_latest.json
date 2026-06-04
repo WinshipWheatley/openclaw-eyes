@@ -1,0 +1,540 @@
+{
+  "authority_boundary": {
+    "browser_access_allowed": false,
+    "coupa_allowed": false,
+    "email_send_allowed": false,
+    "gmail_allowed": false,
+    "ledger_posting_allowed": false,
+    "paid": false,
+    "pdf_export_allowed": false,
+    "portal_submit_allowed": false,
+    "sent": false,
+    "workbook_source_mutation_allowed": false
+  },
+  "card_count": 7,
+  "cards": [
+    {
+      "actions": [
+        {
+          "action_id": "capital_hilton.payment.open_finance",
+          "action_type": "navigate",
+          "business_action": false,
+          "disabled_reason": null,
+          "enabled": true,
+          "label": "Open Finance / Capital Hilton",
+          "payload_ref": "generated/read_models/operator_action_payloads.json#action_payloads.capital_hilton.payment.open_finance"
+        }
+      ],
+      "authority_boundary": {
+        "browser_access_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "gmail_allowed": false,
+        "ledger_posting_allowed": false,
+        "paid": false,
+        "pdf_export_allowed": false,
+        "portal_submit_allowed": false,
+        "sent": false,
+        "workbook_source_mutation_allowed": false
+      },
+      "card_id": "dynamic_card.finance.capital_hilton.payment_watch",
+      "card_type": "payment_watch",
+      "headline": "Stay on payment watch",
+      "plain_summary": "Coupa is processing. Wait for payment evidence before anything touches the ledger.",
+      "priority": 100,
+      "proof": {
+        "collapsed_by_default": true,
+        "label": "Details",
+        "proof_refs": [
+          "generated/read_models/capital_hilton_invoice_operator_run_status.json",
+          "generated/read_models/operator_action_payloads.json",
+          "generated/read_models/lm_bounded_operator_orchestration_latest.json",
+          "/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/capital_hilton_invoice_operator_run_full_automation_report_20260601T222036Z.md",
+          "/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/2026-06-01/Invoice_Capital_Hilton_2026-06-01.pdf",
+          "/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/capital_hilton_invoice_operator_run_receipt_20260601T221600Z.json",
+          "/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/capital_hilton_invoice_operator_run_report_20260601T221600Z.md"
+        ],
+        "read_model_refs": [
+          "generated/read_models/capital_hilton_invoice_operator_run_status.json",
+          "generated/read_models/lm_bounded_operator_orchestration_latest.json"
+        ],
+        "receipt_refs": [
+          "/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/capital_hilton_invoice_operator_run_full_automation_report_20260601T222036Z.md",
+          "/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/2026-06-01/Invoice_Capital_Hilton_2026-06-01.pdf",
+          "/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/capital_hilton_invoice_operator_run_receipt_20260601T221600Z.json",
+          "/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/capital_hilton_invoice_operator_run_report_20260601T221600Z.md"
+        ]
+      },
+      "speaker_ref": "chief",
+      "status_label": "Payment watch",
+      "supporting_lines": [
+        "Coupa status: processing.",
+        "Payment evidence is not recorded as ledger truth.",
+        "No Coupa, browser, ledger, or paid action is available from this card."
+      ],
+      "tone": "calm",
+      "trust_state": "trusted_current",
+      "visible_by_default": true
+    },
+    {
+      "actions": [
+        {
+          "action_id": "capital_hilton.payment.open_finance",
+          "action_type": "navigate",
+          "business_action": false,
+          "disabled_reason": null,
+          "enabled": true,
+          "label": "Open Finance / Capital Hilton",
+          "payload_ref": "generated/read_models/operator_action_payloads.json#action_payloads.capital_hilton.payment.open_finance"
+        }
+      ],
+      "authority_boundary": {
+        "browser_access_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "gmail_allowed": false,
+        "ledger_posting_allowed": false,
+        "paid": false,
+        "pdf_export_allowed": false,
+        "portal_submit_allowed": false,
+        "sent": false,
+        "workbook_source_mutation_allowed": false
+      },
+      "card_id": "dynamic_card.finance.capital_hilton.contextual_question",
+      "card_type": "answer",
+      "headline": "Stay on payment watch",
+      "plain_summary": "Coupa is processing. Wait for payment evidence before anything touches the ledger.",
+      "priority": 95,
+      "proof": {
+        "collapsed_by_default": true,
+        "label": "Details",
+        "proof_refs": [
+          "generated/read_models/system_question_answer_contract.json",
+          "generated/read_models/capital_hilton_invoice_operator_run_status.json",
+          "generated/read_models/finance_thread_index.json"
+        ],
+        "read_model_refs": [
+          "generated/read_models/system_question_answer_contract.json",
+          "generated/read_models/finance_thread_index.json"
+        ],
+        "receipt_refs": []
+      },
+      "speaker_ref": "chief",
+      "status_label": "Answer ready",
+      "supporting_lines": [
+        "Answered from current lane metadata: Finance / Capital Hilton.",
+        "This is a local answer, not package staging.",
+        "Diagnostic workflow queue routing is not needed for this question."
+      ],
+      "tone": "calm",
+      "trust_state": "trusted_current",
+      "visible_by_default": true
+    },
+    {
+      "actions": [
+        {
+          "action_id": "review_packet.review_packet_c4ec166103f9aa35.approve_review_packet_for_record",
+          "action_type": "review_decision",
+          "business_action": false,
+          "disabled_reason": null,
+          "enabled": true,
+          "label": "Approve for record",
+          "payload_ref": "generated/read_models/operator_action_payloads.json#action_payloads.review_packet.review_packet_c4ec166103f9aa35.approve_review_packet_for_record"
+        },
+        {
+          "action_id": "review_packet.review_packet_c4ec166103f9aa35.request_review_packet_rework",
+          "action_type": "review_decision",
+          "business_action": false,
+          "disabled_reason": null,
+          "enabled": true,
+          "label": "Request rework",
+          "payload_ref": "generated/read_models/operator_action_payloads.json#action_payloads.review_packet.review_packet_c4ec166103f9aa35.request_review_packet_rework"
+        },
+        {
+          "action_id": "review_packet.review_packet_c4ec166103f9aa35.mark_review_packet_informational",
+          "action_type": "review_decision",
+          "business_action": false,
+          "disabled_reason": null,
+          "enabled": true,
+          "label": "Mark informational",
+          "payload_ref": "generated/read_models/operator_action_payloads.json#action_payloads.review_packet.review_packet_c4ec166103f9aa35.mark_review_packet_informational"
+        }
+      ],
+      "authority_boundary": {
+        "browser_access_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "gmail_allowed": false,
+        "ledger_posting_allowed": false,
+        "paid": false,
+        "pdf_export_allowed": false,
+        "portal_submit_allowed": false,
+        "sent": false,
+        "workbook_source_mutation_allowed": false
+      },
+      "card_id": "dynamic_card.build.review_packet.current",
+      "card_type": "review_packet",
+      "headline": "Review packet needs local decision",
+      "plain_summary": "PC_CODEX changed backend code and returned local validation proof for operator review.",
+      "priority": 90,
+      "proof": {
+        "collapsed_by_default": true,
+        "label": "Details",
+        "proof_refs": [
+          "generated/read_models/workroom_review_packet_index.json",
+          "generated/read_models/workroom_review_decision_status.json",
+          "generated/read_models/spawned_worker_package_lifecycle.json#pc_backend_package_review"
+        ],
+        "read_model_refs": [
+          "generated/read_models/workroom_review_packet_index.json",
+          "generated/read_models/workroom_review_decision_status.json"
+        ],
+        "receipt_refs": []
+      },
+      "speaker_ref": "chief",
+      "status_label": "REVIEW_PACKET_READY",
+      "supporting_lines": [
+        "Packet: review_packet:c4ec166103f9aa35.",
+        "Worker: pc_codex.",
+        "Use review controls only; no merge or push is authorized."
+      ],
+      "tone": "warning",
+      "trust_state": "preview_only",
+      "visible_by_default": true
+    },
+    {
+      "actions": [
+        {
+          "action_id": "capital_hilton.proposal.stage_followup",
+          "action_type": "stage_package_request",
+          "business_action": false,
+          "disabled_reason": null,
+          "enabled": true,
+          "label": "Stage proposal follow-up",
+          "payload_ref": "generated/read_models/operator_action_payloads.json#action_payloads.capital_hilton.proposal.stage_followup"
+        }
+      ],
+      "authority_boundary": {
+        "browser_access_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "gmail_allowed": false,
+        "ledger_posting_allowed": false,
+        "paid": false,
+        "pdf_export_allowed": false,
+        "portal_submit_allowed": false,
+        "sent": false,
+        "workbook_source_mutation_allowed": false
+      },
+      "card_id": "dynamic_card.business_development.capital_hilton.proposal",
+      "card_type": "status",
+      "headline": "Proposal follow-up is review-only",
+      "plain_summary": "Capital Hilton proposal context is business development. Draft or stage a follow-up only for review; do not send.",
+      "priority": 80,
+      "proof": {
+        "collapsed_by_default": true,
+        "label": "Details",
+        "proof_refs": [
+          "generated/read_models/capital_hilton_business_development_proposal.json",
+          "/mnt/e/openclaw/artifacts/proposals/capital_hilton/fight_weekend_2026/capital_hilton_fight_weekend_proposal_packet.json",
+          "/mnt/e/openclaw/artifacts/proposals/capital_hilton/fight_weekend_2026/Capital_Hilton_Fight_Weekend_Entertainment_Proposal_DRAFT.pdf",
+          "/mnt/e/openclaw/artifacts/proposals/capital_hilton/fight_weekend_2026/capital_hilton_fight_weekend_proposal_review_receipt.json",
+          "/mnt/e/openclaw/artifacts/proposals/capital_hilton/fight_weekend_2026/capital_hilton_proposal_email_sent_receipt_20260601T223704Z.json"
+        ],
+        "read_model_refs": [
+          "generated/read_models/capital_hilton_business_development_proposal.json"
+        ],
+        "receipt_refs": []
+      },
+      "speaker_ref": "cassandra",
+      "status_label": "Proposal status",
+      "supporting_lines": [
+        "Proposal status: SENT_FOR_CLIENT_REVIEW.",
+        "Client review pending: true.",
+        "Email send, finance handoff, ledger posting, and accepted/paid truth are closed."
+      ],
+      "tone": "calm",
+      "trust_state": "trusted_current",
+      "visible_by_default": true
+    },
+    {
+      "actions": [
+        {
+          "action_id": "chief_diagnostic.open",
+          "action_type": "navigate",
+          "business_action": false,
+          "disabled_reason": null,
+          "enabled": true,
+          "label": "Open Chief diagnostic",
+          "payload_ref": "generated/read_models/operator_action_payloads.json#action_payloads.chief_diagnostic.open"
+        },
+        {
+          "action_id": "helm_question.hardwired_vs_spawned.ask",
+          "action_type": "system_question",
+          "business_action": false,
+          "disabled_reason": null,
+          "enabled": true,
+          "label": "What is the difference between Chief and a spawned worker?",
+          "payload_ref": "generated/read_models/operator_action_payloads.json#action_payloads.helm_question.hardwired_vs_spawned.ask"
+        }
+      ],
+      "authority_boundary": {
+        "browser_access_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "gmail_allowed": false,
+        "ledger_posting_allowed": false,
+        "paid": false,
+        "pdf_export_allowed": false,
+        "portal_submit_allowed": false,
+        "sent": false,
+        "workbook_source_mutation_allowed": false
+      },
+      "card_id": "dynamic_card.system.check_engine.diagnostic",
+      "card_type": "status",
+      "headline": "Chief diagnostic only",
+      "plain_summary": "Open the Check Engine diagnostic or ask Chief; no repair authority is granted.",
+      "priority": 70,
+      "proof": {
+        "collapsed_by_default": true,
+        "label": "Details",
+        "proof_refs": [
+          "generated/read_models/chief_check_engine_diagnostic_package.json",
+          "generated/read_models/operator_action_payloads.json"
+        ],
+        "read_model_refs": [
+          "generated/read_models/chief_check_engine_diagnostic_package.json",
+          "generated/read_models/operator_action_payloads.json"
+        ],
+        "receipt_refs": []
+      },
+      "speaker_ref": "chief",
+      "status_label": "Diagnostic",
+      "supporting_lines": [
+        "This card can explain or open diagnostics only.",
+        "No repair, worker spawn, push, or business action follows from this card."
+      ],
+      "tone": "neutral",
+      "trust_state": "preview_only",
+      "visible_by_default": true
+    },
+    {
+      "actions": [
+        {
+          "action_id": "client_invoice_workbook.register",
+          "action_type": "workbook_registration",
+          "business_action": false,
+          "disabled_reason": null,
+          "enabled": true,
+          "label": "Register workbook",
+          "payload_ref": "generated/read_models/operator_action_payloads.json#action_payloads.client_invoice_workbook.register"
+        }
+      ],
+      "authority_boundary": {
+        "browser_access_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "gmail_allowed": false,
+        "ledger_posting_allowed": false,
+        "paid": false,
+        "pdf_export_allowed": false,
+        "portal_submit_allowed": false,
+        "sent": false,
+        "workbook_source_mutation_allowed": false
+      },
+      "card_id": "dynamic_card.finance.capital_hilton.workbook_registration",
+      "card_type": "workbook_registration",
+      "headline": "Workbook reference can be registered",
+      "plain_summary": "Register the workbook reference as metadata only; do not read workbook body, run Excel, or mutate the file.",
+      "priority": 60,
+      "proof": {
+        "collapsed_by_default": true,
+        "label": "Details",
+        "proof_refs": [
+          "generated/read_models/client_invoice_workbook_registry.json"
+        ],
+        "read_model_refs": [
+          "generated/read_models/client_invoice_workbook_registry.json"
+        ],
+        "receipt_refs": []
+      },
+      "speaker_ref": "chief",
+      "status_label": "Workbook registration",
+      "supporting_lines": [
+        "Workbook: Capital Hilton invoice workbook.xlsx.",
+        "Status: WORKBOOK_REFERENCE_CAPTURED.",
+        "Metadata registration is separate from any governed sheet audit."
+      ],
+      "tone": "calm",
+      "trust_state": "trusted_current",
+      "visible_by_default": true
+    },
+    {
+      "actions": [],
+      "authority_boundary": {
+        "browser_access_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "gmail_allowed": false,
+        "ledger_posting_allowed": false,
+        "paid": false,
+        "pdf_export_allowed": false,
+        "portal_submit_allowed": false,
+        "sent": false,
+        "workbook_source_mutation_allowed": false
+      },
+      "card_id": "dynamic_card.finance.st_annes.work_log_review",
+      "card_type": "status",
+      "headline": "St. Anne's work-log review",
+      "plain_summary": "St. Anne's work-log review stays local; completed or test-only items are not primary active blockers.",
+      "priority": 20,
+      "proof": {
+        "collapsed_by_default": true,
+        "label": "Details",
+        "proof_refs": [
+          "generated/read_models/st_annes_work_log_review_surface.json"
+        ],
+        "read_model_refs": [
+          "generated/read_models/st_annes_work_log_review_surface.json"
+        ],
+        "receipt_refs": []
+      },
+      "speaker_ref": "chief",
+      "status_label": "No active blocker",
+      "supporting_lines": [
+        "Pending review: 0.",
+        "Smoke/test not included: 1.",
+        "Excel, PDF, email, ledger, and invoice inclusion remain gated."
+      ],
+      "tone": "neutral",
+      "trust_state": "trusted_current",
+      "visible_by_default": false
+    }
+  ],
+  "generated_at": "2026-06-04T16:30:44+00:00",
+  "machine_proof": {
+    "all_visible_cards_have_trust_state": true,
+    "backend_generated_operator_surface": true,
+    "browser_access_performed": false,
+    "business_action_performed": false,
+    "child_agent_run_performed": false,
+    "coupa_access_performed": false,
+    "coupa_submit_performed": false,
+    "dynamic_card_packet_generated": true,
+    "email_send_performed": false,
+    "enabled_actions_reference_deterministic_payloads": true,
+    "excel_automation_performed": false,
+    "external_llm_invoked": false,
+    "generated_summaries_do_not_override_receipts": true,
+    "git_push_performed": false,
+    "gmail_access_performed": false,
+    "human_copy_first": true,
+    "ledger_mutation_performed": false,
+    "local_model_runtime_connected": false,
+    "machine_contracts_hidden_by_default": true,
+    "memory_candidates_do_not_become_truth": true,
+    "merge_performed": false,
+    "no_card_invents_authority": true,
+    "paid_marking_performed": false,
+    "payment_truth_requires_payment_evidence": true,
+    "pdf_export_performed": false,
+    "preconditions_ready": true,
+    "proof_collapsed_by_default": true,
+    "repair_performed": false,
+    "spreadsheet_cell_read_performed": false,
+    "submit_performed": false,
+    "unsafe_true_grants": [],
+    "unsafe_true_grants_absent": true,
+    "validation_errors": [],
+    "workbook_body_read_performed": false,
+    "workbook_mutation_performed": false,
+    "workbook_open_performed": false,
+    "worker_execution_performed": false,
+    "worker_spawn_performed": false
+  },
+  "packet_id": "dynamic_card_packet:d97698df8aea",
+  "preconditions": [
+    {
+      "equivalent_status_accepted": "",
+      "observed_status": "OPERATOR_RUNTIME_CHAIN_CURRENT_STATE_AUDIT_READY",
+      "precondition_ref": "operator_runtime_chain_current_state_audit",
+      "ready": true,
+      "required_status": "OPERATOR_RUNTIME_CHAIN_CURRENT_STATE_AUDIT_READY",
+      "source_ref": "generated/read_models/operator_runtime_chain_current_state_audit.json"
+    },
+    {
+      "equivalent_status_accepted": "",
+      "observed_status": "OPERATOR_ACTION_PAYLOADS_READY",
+      "precondition_ref": "operator_action_payloads",
+      "ready": true,
+      "required_status": "OPERATOR_ACTION_PAYLOADS_READY",
+      "source_ref": "generated/read_models/operator_action_payloads.json"
+    },
+    {
+      "equivalent_status_accepted": "",
+      "observed_status": "LM_BOUNDED_OPERATOR_ORCHESTRATION_READY",
+      "precondition_ref": "lm_bounded_operator_orchestration",
+      "ready": true,
+      "required_status": "LM_BOUNDED_OPERATOR_ORCHESTRATION_READY",
+      "source_ref": "generated/read_models/lm_bounded_operator_orchestration_latest.json"
+    },
+    {
+      "equivalent_status_accepted": "SYSTEM_QUESTION_ANSWER_V0_READY",
+      "observed_status": "SYSTEM_QUESTION_ANSWER_V0_READY",
+      "precondition_ref": "system_question_route",
+      "ready": true,
+      "required_status": "SYSTEM_QUESTION_ROUTE_READY",
+      "source_ref": "generated/read_models/system_question_answer_contract.json"
+    },
+    {
+      "equivalent_status_accepted": "",
+      "observed_status": "WORKROOM_REVIEW_DECISION_CONSUMER_READY",
+      "precondition_ref": "workroom_review_decision_consumer",
+      "ready": true,
+      "required_status": "WORKROOM_REVIEW_DECISION_CONSUMER_READY",
+      "source_ref": "generated/read_models/workroom_review_decision_status.json"
+    },
+    {
+      "equivalent_status_accepted": "DETERMINISTIC_CLIENT_INVOICE_WORKBOOK_REGISTRY_NO_CELL_READ",
+      "observed_status": "DETERMINISTIC_CLIENT_INVOICE_WORKBOOK_REGISTRY_NO_CELL_READ",
+      "precondition_ref": "workbook_registration_route",
+      "ready": true,
+      "required_status": "WORKBOOK_REGISTRATION_ROUTE_READY",
+      "source_ref": "generated/read_models/client_invoice_workbook_registry.json"
+    },
+    {
+      "equivalent_status_accepted": "",
+      "observed_status": "PACKAGE_EVENT_INDEX_READY",
+      "precondition_ref": "package_event_index",
+      "ready": true,
+      "required_status": "PACKAGE_EVENT_INDEX_READY",
+      "source_ref": "generated/read_models/package_event_index.json"
+    }
+  ],
+  "read_model_id": "dynamic_card_packet_latest",
+  "schema_version": "dynamic_card_packet_v0",
+  "source_refs": [
+    "generated/read_models/operator_runtime_chain_current_state_audit.json",
+    "generated/read_models/operator_action_payloads.json",
+    "generated/read_models/lm_bounded_operator_orchestration_latest.json",
+    "generated/read_models/operator_next_decision.json",
+    "generated/read_models/capital_hilton_invoice_operator_run_status.json",
+    "generated/read_models/capital_hilton_business_development_proposal.json",
+    "generated/read_models/st_annes_work_log_review_surface.json",
+    "generated/read_models/workroom_review_packet_index.json",
+    "generated/read_models/workroom_review_decision_status.json",
+    "generated/read_models/system_question_answer_contract.json",
+    "generated/read_models/client_invoice_workbook_registry.json",
+    "generated/read_models/package_event_index.json",
+    "generated/read_models/chief_check_engine_diagnostic_package.json"
+  ],
+  "status": "DYNAMIC_CARD_PACKET_READY",
+  "surface_context": {
+    "active_entity_ref": "operator_current_surface",
+    "client_ref": "mixed",
+    "thread_ref": "operator_surface",
+    "workflow_ref": "dynamic_card_packet",
+    "world_ref": "mission_control"
+  },
+  "visible_card_count": 6
+}
