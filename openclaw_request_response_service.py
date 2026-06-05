@@ -84,6 +84,7 @@ SERVICE_SUPPORTED_REQUEST_FAMILIES = (
     "WORKROOM_REVIEW_DECISION_REQUEST",
     "WORKBOOK_REGISTRATION_REQUEST",
     "EVIDENCE_INTAKE_REQUEST",
+    "OPERATOR_CONTROLLER_EVENT_REQUEST",
     "WORKFLOW_PACKAGE_REQUEST",
     "LOCAL_SURFACE_RESULT",
     "ARTIFACT_REFERENCE_APPROVAL",
@@ -451,6 +452,8 @@ def classify_request_path(path: Path) -> str:
         return "EVENT_BRIDGE"
     if processor.is_evidence_intake_request(raw):
         return "EVIDENCE_INTAKE_REQUEST"
+    if processor.is_operator_controller_event_request(raw):
+        return "OPERATOR_CONTROLLER_EVENT_REQUEST"
     return processor_family
 
 
@@ -839,6 +842,23 @@ def _route_for_request(request_path: Path, identity: RequestIdentity, raw_reques
             route_reason=(
                 "Mission Control evidence drop requests are handled by the verified local evidence intake rail "
                 "without OCR, external providers, ledger mutation, or paid marking."
+            ),
+            pc_handled=True,
+            mac_handoff_required=False,
+            future_worker_blocked=False,
+        )
+    if request_type == "OPERATOR_CONTROLLER_EVENT_REQUEST":
+        return RouteDecision(
+            routing_status="PROCESSING_ON_PC",
+            selected_worker_target="PC_CODEX",
+            selected_machine="PC_WSL",
+            processing_status="CHECKING_OPERATOR_CONTROLLER_EVENT",
+            operator_headline="OpenClaw is routing this controller event",
+            operator_message="OpenClaw picked this up and is checking the verified controller event router.",
+            next_safe_move="Wait for the controller event dynamic card response.",
+            route_reason=(
+                "Mission Control controller events are handled on PC through the Operator Controller Event Router, "
+                "which validates the first-class operator envelope and maps only to safe backend rails."
             ),
             pc_handled=True,
             mac_handoff_required=False,

@@ -41,6 +41,7 @@ ENVELOPE_KEYS = (
     "operator_authority_envelope",
     "first_class_operator_envelope",
     "operator_controller_envelope",
+    "operator_envelope",
 )
 
 REQUIRED_ENVELOPE_FIELDS = (

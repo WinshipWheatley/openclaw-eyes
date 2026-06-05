@@ -28,7 +28,7 @@ It is a controller layer, not a business executor.
 
 ## Latest Receipt
 
-- Receipt: `operator_controller_event_router:ff7083dae54fc611`
+- Receipt: `operator_controller_event_router:8dd7614b41ecfecc`
 - Event: `ask_why`
 - Status: `ROUTED`
 - Backend route: `system_question_answer.contextual_answer`

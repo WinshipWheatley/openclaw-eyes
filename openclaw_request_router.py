@@ -18,6 +18,7 @@ import st_annes_work_log_review
 import workroom_review_decision_consumer
 import client_invoice_workbook_registry
 import evidence_intake
+import operator_controller_event_router
 
 
 SCHEMA_VERSION = "openclaw_request_router_v0"
@@ -88,6 +89,10 @@ WORKBOOK_REGISTRATION_REQUEST_KINDS = (
 
 EVIDENCE_INTAKE_REQUEST_KINDS = (
     *evidence_intake.REQUEST_TYPE_ALIASES,
+)
+
+OPERATOR_CONTROLLER_EVENT_REQUEST_KINDS = (
+    operator_controller_event_router.REQUEST_TYPE,
 )
 
 
@@ -477,6 +482,27 @@ def evidence_intake_handlers() -> tuple[RequestHandlerRegistration, ...]:
     )
 
 
+def operator_controller_event_handlers() -> tuple[RequestHandlerRegistration, ...]:
+    return tuple(
+        RequestHandlerRegistration(
+            request_kind=request_kind,
+            handler_id="operator_controller_event_router.route_event",
+            handler_label="Operator controller event router",
+            intended_use="",
+            world_refs=(),
+            workflow_refs=(),
+            client_refs=(),
+            project_refs=(),
+            adapter_available=True,
+            next_safe_move=(
+                "Validate the first-class operator envelope, route the generic controller event "
+                "to an existing safe backend rail, and emit a receipt-backed dynamic card response."
+            ),
+        )
+        for request_kind in OPERATOR_CONTROLLER_EVENT_REQUEST_KINDS
+    )
+
+
 def default_handler_registrations() -> tuple[RequestHandlerRegistration, ...]:
     return (
         capital_hilton_field_mapping_handler(),
@@ -490,6 +516,7 @@ def default_handler_registrations() -> tuple[RequestHandlerRegistration, ...]:
         *workroom_review_decision_handlers(),
         *workbook_registration_handlers(),
         *evidence_intake_handlers(),
+        *operator_controller_event_handlers(),
     )
 
 

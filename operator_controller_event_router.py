@@ -30,6 +30,11 @@ DEFAULT_WIKI_PATH = Path("generated/wiki/openclaw/Operator Controller Event Rout
 DEFAULT_SQLITE_PATH = Path("generated/system_knowledge/operator_controller_event_router.sqlite")
 
 REQUEST_TYPE = "OPERATOR_CONTROLLER_EVENT_REQUEST_V0"
+REQUEST_FILENAME_PATTERNS = (
+    "mission_control_controller_event_request_*.json",
+    "mission_control_operator_controller_event_request_*.json",
+    "mission_control_capture_request_*controller_event*.json",
+)
 SCHEMA_VERSION = "operator_controller_event_router_v0"
 CONTRACT_SCHEMA_VERSION = "operator_controller_event_router_contract_v0"
 CONTRACT_READ_MODEL_ID = "operator_controller_event_router_contract"
@@ -285,13 +290,6 @@ def normalize_controller_event_request(raw_request: Mapping[str, Any]) -> dict[s
     event_type = str(request.get("controller_event_type") or request.get("controller_action_type") or "").strip()
     if event_type and not request.get("controller_action_type"):
         request["controller_action_type"] = event_type
-    envelope = request.get("operator_envelope")
-    if (
-        isinstance(envelope, Mapping)
-        and "operator_authority_envelope" not in request
-        and any(field in envelope for field in operator_authority.REQUIRED_ENVELOPE_FIELDS)
-    ):
-        request["operator_authority_envelope"] = dict(envelope)
     return request
 
 

@@ -34,6 +34,7 @@ import guardian_output_gate
 import invoice_review_action_request_handler
 import local_surface_request_contract
 import operator_file_metadata_intake
+import operator_controller_event_router
 import openclaw_request_router
 import local_artifact_reference
 import scoped_context_package_compiler_contract
@@ -95,6 +96,7 @@ EVIDENCE_INTAKE_REQUEST_PATTERNS = (
     "mission_control_capture_request_*evidence_intake*.json",
     "mission_control_capture_request_*evidence_drop*.json",
 )
+OPERATOR_CONTROLLER_EVENT_REQUEST_PATTERNS = operator_controller_event_router.REQUEST_FILENAME_PATTERNS
 CONTEXT_ATTACHMENT_PATTERN = "mission_control_context_request_*.json"
 SECRET_INTAKE_PATTERN = "mission_control_secret_intake_request_*.json"
 VISUAL_WORKSPACE_PATTERN = "mission_control_visual_workspace_request_*.json"
@@ -116,6 +118,7 @@ SUPPORTED_REQUEST_PATTERNS = (
     *INVOICE_REVIEW_ACTION_RESULT_PATTERNS,
     *WORKBOOK_REGISTRATION_REQUEST_PATTERNS,
     *EVIDENCE_INTAKE_REQUEST_PATTERNS,
+    *OPERATOR_CONTROLLER_EVENT_REQUEST_PATTERNS,
 )
 
 FUTURE_REQUEST_PATTERNS = (
@@ -132,6 +135,7 @@ REQUEST_FAMILIES = (
     "WORKROOM_REVIEW_DECISION_REQUEST",
     "WORKBOOK_REGISTRATION_REQUEST",
     "EVIDENCE_INTAKE_REQUEST",
+    "OPERATOR_CONTROLLER_EVENT_REQUEST",
     "WORKFLOW_PACKAGE_REQUEST",
     "LOCAL_SURFACE_RESULT",
     "INVOICE_REVIEW_ACTION_RESULT",
@@ -700,6 +704,10 @@ def is_evidence_intake_request(raw_request: Mapping[str, Any]) -> bool:
     return evidence_intake.is_evidence_intake_request(raw_request)
 
 
+def is_operator_controller_event_request(raw_request: Mapping[str, Any]) -> bool:
+    return str(raw_request.get("request_type") or raw_request.get("kind") or raw_request.get("type") or "").strip().upper() == operator_controller_event_router.REQUEST_TYPE
+
+
 def _valid_publication_source_request_id(value: object) -> bool:
     request_id = str(value or "").strip()
     if not request_id:
@@ -874,6 +882,11 @@ def classify_request_filename(filename: str | None) -> RequestClassification:
         family = "EVIDENCE_INTAKE_REQUEST"
         rail = "verified_operator_evidence_intake"
         reason = "Filename matches Mission Control evidence intake request pattern."
+        future_supported = False
+    elif filename and any(fnmatch.fnmatch(filename, pattern) for pattern in OPERATOR_CONTROLLER_EVENT_REQUEST_PATTERNS):
+        family = "OPERATOR_CONTROLLER_EVENT_REQUEST"
+        rail = "operator_controller_event_router"
+        reason = "Filename matches Mission Control operator controller event request pattern."
         future_supported = False
     elif filename and any(fnmatch.fnmatch(filename, pattern) for pattern in WORKFLOW_PACKAGE_REQUEST_PATTERNS):
         family = "WORKFLOW_PACKAGE_REQUEST"
@@ -1186,6 +1199,16 @@ def _required_fields_for_family(request_family: str) -> tuple[str, ...]:
             "intended_use",
             "authority_boundary",
         )
+    if request_family == "OPERATOR_CONTROLLER_EVENT_REQUEST":
+        return (
+            "request_type",
+            "source_surface",
+            "controller_event_type",
+            "current_world_ref",
+            "current_thread_ref",
+            "authority_requested",
+            "authority_boundary",
+        )
     if request_family == "ST_ANNES_WORK_LOG_REVIEW_ACTION_REQUEST":
         return (
             "request_id",
@@ -1211,10 +1234,15 @@ def preflight_request(raw_request: Mapping[str, Any], request_family: str) -> tu
     if missing:
         blockers.append(f"Missing required field(s): {', '.join(missing)}.")
         fixes.append("Regenerate or resend the request with the required fields.")
-    if request_family not in {"WORKROOM_REVIEW_DECISION_REQUEST", "EVIDENCE_INTAKE_REQUEST"} and not raw_request.get("idempotency_key"):
+    envelope_verified_families = {
+        "WORKROOM_REVIEW_DECISION_REQUEST",
+        "EVIDENCE_INTAKE_REQUEST",
+        "OPERATOR_CONTROLLER_EVENT_REQUEST",
+    }
+    if request_family not in envelope_verified_families and not raw_request.get("idempotency_key"):
         blockers.append("Missing idempotency key.")
         fixes.append("Resend the request with idempotency_key set.")
-    if request_family not in {"WORKROOM_REVIEW_DECISION_REQUEST", "EVIDENCE_INTAKE_REQUEST"} and not raw_request.get("payload_hash"):
+    if request_family not in envelope_verified_families and not raw_request.get("payload_hash"):
         blockers.append("Missing payload hash.")
         fixes.append("Resend the request with payload_hash set.")
     authority = raw_request.get("authority_boundary")
@@ -4526,6 +4554,188 @@ def _process_evidence_intake_request(
     )
 
 
+def _controller_event_dynamic_card(receipt: Mapping[str, Any]) -> dict[str, Any]:
+    card = dict(receipt.get("dynamic_card_response") or {})
+    if not card:
+        card = {
+            "schema_version": "operator_controller_dynamic_card_response_v0",
+            "card_id": f"dynamic_card.operator_controller_event.{_short_hash(receipt.get('receipt_id'), 'fallback')}",
+            "card_type": "controller_event_response",
+            "headline": "Controller event processed",
+            "plain_summary": "OpenClaw processed the controller event without business execution.",
+            "summary": "OpenClaw processed the controller event without business execution.",
+            "status_label": str(receipt.get("route_status") or "Controller event"),
+        }
+    card.setdefault("controller_event_type", str(receipt.get("controller_event_type") or ""))
+    card.setdefault("authority_boundary", dict(operator_controller_event_router.AUTHORITY_BOUNDARY))
+    card.setdefault("machine_proof", {})
+    card["machine_proof"].update(
+        {
+            "ledger_mutation_performed": False,
+            "paid_marking_performed": False,
+            "business_action_performed": False,
+            "external_llm_invoked": False,
+            "external_provider_connected": False,
+            "local_model_runtime_connected": False,
+        }
+    )
+    return card
+
+
+def _process_operator_controller_event_request(
+    request_path: Path,
+    raw_request: Mapping[str, Any],
+    *,
+    export_root: Path = DEFAULT_EXPORT_ROOT,
+    generated_at: str | None = None,
+    classification: RequestClassification,
+    route_decision: Mapping[str, Any],
+) -> OpenClawResponseForMac:
+    generated_at = generated_at or utc_now()
+    default_paths = _same_path(export_root, DEFAULT_EXPORT_ROOT)
+    bridge_root = operator_controller_event_router.DEFAULT_BRIDGE_ROOT if default_paths else export_root.parent / "bridge"
+    wiki_path = (
+        operator_controller_event_router.DEFAULT_WIKI_PATH
+        if default_paths
+        else export_root.parent / "wiki" / "Operator Controller Event Router.md"
+    )
+    workroom_wiki_path = (
+        workroom_review_decision_consumer.DEFAULT_WIKI_PATH
+        if default_paths
+        else export_root.parent / "wiki" / "Workroom Review Decision Consumer.md"
+    )
+    sqlite_path = (
+        operator_controller_event_router.DEFAULT_SQLITE_PATH
+        if default_paths
+        else export_root.parent / "system_knowledge" / "operator_controller_event_router.sqlite"
+    )
+    evidence_sqlite_path = (
+        evidence_intake.DEFAULT_SQLITE_PATH
+        if default_paths
+        else export_root.parent / "system_knowledge" / "evidence_intake.sqlite"
+    )
+    artifact_lineage_sqlite_path = (
+        evidence_intake.DEFAULT_ARTIFACT_LINEAGE_SQLITE_PATH
+        if default_paths
+        else export_root.parent / "system_knowledge" / "artifact_lineage_registry.sqlite"
+    )
+    receipt = operator_controller_event_router.route_controller_event(
+        raw_request,
+        source_request_filename=request_path.name,
+        read_model_root=export_root,
+        export_root=export_root,
+        bridge_root=bridge_root,
+        wiki_path=wiki_path,
+        workroom_wiki_path=workroom_wiki_path,
+        sqlite_path=sqlite_path,
+        evidence_sqlite_path=evidence_sqlite_path,
+        artifact_lineage_sqlite_path=artifact_lineage_sqlite_path,
+        generated_at=generated_at,
+    )
+    request_id = str(receipt.get("request_id") or raw_request.get("request_id") or f"missing_request_id_{request_path.stem}")
+    event_type = str(receipt.get("controller_event_type") or raw_request.get("controller_event_type") or "")
+    internal_status = str(receipt.get("raw_internal_status") or "BLOCKED_WITH_REASON")
+    route_status = str(receipt.get("route_status") or "")
+    card = _controller_event_dynamic_card(receipt)
+    headline = str(card.get("headline") or ("Controller event routed" if internal_status == "RESPONSE_READY" else "Controller event blocked"))
+    message = str(card.get("plain_summary") or card.get("summary") or "OpenClaw handled the controller event locally.")
+    blockers = tuple(str(item) for item in receipt.get("blockers") or () if item)
+    rejected = tuple(str(item) for item in receipt.get("rejected_reasons") or () if item)
+    proof_refs = tuple(str(ref) for ref in receipt.get("proof_refs") or () if ref)
+    local_readbacks = (
+        "generated/read_models/operator_controller_event_router_status.json",
+        "generated/read_models/operator_controller_event_router_contract.json",
+    )
+    readback_files = tuple(dict.fromkeys(local_readbacks + proof_refs))
+    next_safe_move = (
+        "Render the returned dynamic card in Mission Control."
+        if internal_status == "RESPONSE_READY"
+        else "Fix verification, selected action payload, or event type and resend."
+    )
+    layered_fields = {
+        "response_kind": "OPERATOR_CONTROLLER_EVENT_RESPONSE",
+        "audience_mode": "ELIWINSHIP",
+        "display_mode": "COMPACT_CHAT",
+        "headline": headline,
+        "one_line_answer": message,
+        "eliwinship": message,
+        "primary_status": str(card.get("status_label") or route_status or internal_status),
+        "primary_blocker": "; ".join(blockers or rejected) or "None",
+        "next_action": f"Next: {next_safe_move}",
+        "missing_items_short": blockers + rejected,
+        "detail_summary": (
+            f"Controller event {event_type or 'unknown'} returned {route_status or internal_status} "
+            f"through {receipt.get('backend_route') or 'fail_closed'}."
+        ),
+        "proof_refs": proof_refs,
+        "debug_refs": readback_files,
+        "raw_internal_status": internal_status,
+        "mac_render_hint": "DYNAMIC_CARD_WITH_DISCLOSURE",
+        "request_ref": request_id,
+        "controller_event_type": event_type,
+        "route_status": route_status,
+        "route_ref": str(receipt.get("route_ref") or ""),
+        "route_receipt_ref": str(receipt.get("route_receipt_ref") or ""),
+        "no_external_authority_granted": True,
+    }
+    current_world = str(receipt.get("current_world_ref") or raw_request.get("current_world_ref") or "unknown")
+    current_thread = str(receipt.get("current_thread_ref") or raw_request.get("current_thread_ref") or "unknown")
+    return OpenClawResponseForMac(
+        source_request_id=request_id,
+        source_request_filename=request_path.name,
+        workflow_ref=f"{current_world}/{current_thread}",
+        request_type="OPERATOR_CONTROLLER_EVENT_REQUEST",
+        internal_status=internal_status,
+        operator_headline=headline,
+        operator_message=message,
+        what_happened=(
+            "OpenClaw recognized a Mission Control controller event.",
+            "The event was routed through the Operator Controller Event Router.",
+            "The router returned a receipt-backed dynamic card response.",
+            "No email, Gmail, browser, Coupa, submit, ledger, workbook, PDF, paid, push, external LLM, local model runtime, or business execution occurred.",
+        ),
+        why_it_happened=(
+            f"Controller event {event_type} routed to {receipt.get('backend_route')}."
+            if internal_status == "RESPONSE_READY"
+            else "; ".join(blockers or rejected or (route_status or "controller_event_blocked",))
+        ),
+        how_to_fix=next_safe_move if internal_status == "RESPONSE_READY" else " ".join(blockers or rejected) or next_safe_move,
+        visible_cards=(card,),
+        cards_available=bool(card),
+        card_mirror_refs=(),
+        file_readback_refs=readback_files,
+        worker_route_refs=(
+            {
+                "selected_worker_target": "PC_CODEX",
+                "selected_machine": "PC_WSL",
+                "routing_status": "PROCESSING_ON_PC",
+                "selected_rail": "operator_controller_event_router",
+                "controller_event_type": event_type,
+                "route_status": route_status,
+                "backend_route": str(receipt.get("backend_route") or ""),
+            },
+        ),
+        context_package_refs=(),
+        blocked_reason=None if internal_status == "RESPONSE_READY" else "; ".join(blockers or rejected) or route_status,
+        detail_disclosure={
+            "request_classification": asdict(classification),
+            "request_router_decision": dict(route_decision),
+            "layered_response_fields": layered_fields,
+            "operator_controller_event_router": receipt,
+            "dynamic_card_response": card,
+            "live_external_provider_action_performed": False,
+            "business_action_performed": False,
+            "ledger_mutation_performed": False,
+            "workbook_mutation_performed": False,
+            "paid_marking_performed": False,
+            "external_llm_invoked": False,
+            "local_model_runtime_connected": False,
+        },
+        readback_files=readback_files,
+        next_safe_move=next_safe_move,
+    )
+
+
 def _process_parked_router_request(
     request_path: Path,
     raw_request: Mapping[str, Any],
@@ -6123,12 +6333,25 @@ def process_request_path(
                 future_supported=False,
                 next_safe_move="Validate the operator envelope and record candidate evidence locally.",
             )
+        elif is_operator_controller_event_request(raw_request):
+            classification = RequestClassification(
+                classification_id=f"request_classification_{_short_hash(request_path.name, 'OPERATOR_CONTROLLER_EVENT_REQUEST')}",
+                source_request_filename=request_path.name,
+                request_family="OPERATOR_CONTROLLER_EVENT_REQUEST",
+                selected_rail="operator_controller_event_router",
+                classification_reason="Request JSON declares OPERATOR_CONTROLLER_EVENT_REQUEST_V0.",
+                future_supported=False,
+                next_safe_move="Validate the operator envelope and route the controller event safely.",
+            )
         else:
             return _failed_response(
                 request_path=request_path,
                 classification=classification,
                 reason="Unsupported request filename.",
-                how_to_fix="Use a supported Mission Control request filename or an EVIDENCE_INTAKE_REQUEST_V0 envelope.",
+                how_to_fix=(
+                    "Use a supported Mission Control request filename, an EVIDENCE_INTAKE_REQUEST_V0 envelope, "
+                    "or an OPERATOR_CONTROLLER_EVENT_REQUEST_V0 envelope."
+                ),
             )
     _route_envelope, route_decision_dataclass = openclaw_request_router.route_request(
         raw_request,
@@ -6211,6 +6434,15 @@ def process_request_path(
         )
     if effective_classification.request_family == "EVIDENCE_INTAKE_REQUEST":
         return _process_evidence_intake_request(
+            request_path,
+            raw_request,
+            export_root=export_root,
+            generated_at=generated_at,
+            classification=effective_classification,
+            route_decision=route_decision,
+        )
+    if effective_classification.request_family == "OPERATOR_CONTROLLER_EVENT_REQUEST":
+        return _process_operator_controller_event_request(
             request_path,
             raw_request,
             export_root=export_root,
