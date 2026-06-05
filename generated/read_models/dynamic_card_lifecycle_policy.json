@@ -27,7 +27,7 @@
     "historical",
     "unknown"
   ],
-  "generated_at": "2026-06-04T22:15:00+00:00",
+  "generated_at": "2026-06-05T00:59:04+00:00",
   "lifecycle_states": [
     "active",
     "waiting",
@@ -54,7 +54,7 @@
     "paid_marking_performed": false,
     "payment_processing_evidence_does_not_mark_paid": true,
     "pdf_export_performed": false,
-    "preconditions_ready": false,
+    "preconditions_ready": true,
     "proof_only_cards_hidden_by_default": true,
     "resolved_cards_hidden_by_default": true,
     "stale_cards_require_verification_label": true,
@@ -273,6 +273,7 @@
       "accepted_statuses": [
         "DYNAMIC_CARD_PACKET_READY"
       ],
+      "bridge_proof_accepted": false,
       "observed_status": "DYNAMIC_CARD_PACKET_READY",
       "precondition_ref": "dynamic_card_packet",
       "ready": true,
@@ -282,15 +283,17 @@
       "accepted_statuses": [
         "MAC_DYNAMIC_CARD_RENDERER_READY"
       ],
-      "observed_status": "",
+      "bridge_proof_accepted": true,
+      "observed_status": "MAC_DYNAMIC_CARD_RENDERER_READY",
       "precondition_ref": "mac_dynamic_card_renderer",
-      "ready": false,
-      "source_ref": "generated/read_models/mac_dynamic_card_renderer.json"
+      "ready": true,
+      "source_ref": "/mnt/e/openclaw/generated/read_models/mac_dynamic_card_renderer_status.json"
     },
     {
       "accepted_statuses": [
         "OPERATOR_ACTION_PAYLOADS_READY"
       ],
+      "bridge_proof_accepted": false,
       "observed_status": "OPERATOR_ACTION_PAYLOADS_READY",
       "precondition_ref": "operator_action_payloads",
       "ready": true,
@@ -300,6 +303,7 @@
       "accepted_statuses": [
         "EVIDENCE_INTAKE_READY"
       ],
+      "bridge_proof_accepted": false,
       "observed_status": "EVIDENCE_INTAKE_READY",
       "precondition_ref": "verified_evidence_intake",
       "ready": true,
@@ -321,7 +325,7 @@
     "primary_control_ref"
   ],
   "schema_version": "dynamic_card_lifecycle_policy_v0",
-  "status": "DYNAMIC_CARD_LIFECYCLE_POLICY_NOT_READY",
+  "status": "DYNAMIC_CARD_LIFECYCLE_POLICY_READY",
   "visibility_rules": [
     "Show active/needs_operator cards by default.",
     "Hide resolved cards by default after receipt is recorded.",

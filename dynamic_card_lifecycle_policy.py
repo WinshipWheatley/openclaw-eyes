@@ -19,6 +19,7 @@ ROOT = Path(__file__).resolve().parent
 DEFAULT_READ_MODEL_ROOT = Path("generated/read_models")
 DEFAULT_EXPORT_ROOT = Path("generated/read_models")
 DEFAULT_BRIDGE_ROOT = Path("/mnt/e/openclaw/generated/read_models")
+DEFAULT_MAC_RENDERER_STATUS_PATH = DEFAULT_BRIDGE_ROOT / "mac_dynamic_card_renderer_status.json"
 DEFAULT_WIKI_PATH = Path("generated/wiki/openclaw/Dynamic Card Lifecycle Policy.md")
 
 SCHEMA_VERSION = "dynamic_card_lifecycle_policy_v0"
@@ -65,6 +66,8 @@ PRECONDITIONS = {
     },
     "mac_dynamic_card_renderer": {
         "filename": "mac_dynamic_card_renderer.json",
+        "fallback_filenames": ("mac_dynamic_card_renderer_status.json",),
+        "bridge_paths": (DEFAULT_MAC_RENDERER_STATUS_PATH,),
         "accepted_statuses": ("MAC_DYNAMIC_CARD_RENDERER_READY",),
     },
     "operator_action_payloads": {
@@ -166,11 +169,46 @@ def _source_ref(filename: str) -> str:
     return f"generated/read_models/{filename}"
 
 
+def _candidate_precondition_paths(read_model_root: Path, spec: Mapping[str, Any]) -> list[tuple[Path, str, bool]]:
+    root = _rooted(read_model_root)
+    rows: list[tuple[Path, str, bool]] = []
+    filenames = [spec.get("filename"), *(spec.get("fallback_filenames") or ())]
+    for filename in filenames:
+        if filename:
+            name = str(filename)
+            rows.append((root / name, _source_ref(name), False))
+    for path in spec.get("bridge_paths") or ():
+        bridge_path = Path(path)
+        rows.append((bridge_path, bridge_path.as_posix(), True))
+    return rows
+
+
+def _select_precondition_payload(
+    read_model_root: Path,
+    spec: Mapping[str, Any],
+) -> tuple[dict[str, Any], str, bool]:
+    accepted = tuple(str(status) for status in spec["accepted_statuses"])
+    first_existing: tuple[dict[str, Any], str, bool] | None = None
+    for path, source_ref, bridge_proof in _candidate_precondition_paths(read_model_root, spec):
+        payload = _load_json(path)
+        if not payload:
+            continue
+        candidate = (payload, source_ref, bridge_proof)
+        if first_existing is None:
+            first_existing = candidate
+        if _status(payload) in accepted:
+            return candidate
+    if first_existing is not None:
+        return first_existing
+
+    filename = str(spec["filename"])
+    return {}, _source_ref(filename), False
+
+
 def _precondition_rows(read_model_root: Path = DEFAULT_READ_MODEL_ROOT) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for ref, spec in PRECONDITIONS.items():
-        filename = str(spec["filename"])
-        payload = _load_json(_rooted(read_model_root) / filename)
+        payload, source_ref, bridge_proof_accepted = _select_precondition_payload(read_model_root, spec)
         observed = _status(payload)
         accepted = tuple(str(status) for status in spec["accepted_statuses"])
         rows.append(
@@ -179,7 +217,8 @@ def _precondition_rows(read_model_root: Path = DEFAULT_READ_MODEL_ROOT) -> list[
                 "observed_status": observed,
                 "accepted_statuses": list(accepted),
                 "ready": observed in accepted,
-                "source_ref": _source_ref(filename),
+                "source_ref": source_ref,
+                "bridge_proof_accepted": bridge_proof_accepted and observed in accepted,
             }
         )
     return rows

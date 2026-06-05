@@ -1,6 +1,6 @@
 # Dynamic Card Lifecycle Policy
 
-Status: `DYNAMIC_CARD_LIFECYCLE_POLICY_NOT_READY`
+Status: `DYNAMIC_CARD_LIFECYCLE_POLICY_READY`
 
 This policy keeps Mission Control focused on current controls instead of stale dashboard accumulation.
 

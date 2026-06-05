@@ -27,6 +27,11 @@ def _base_card(**overrides):
     return card
 
 
+def _write_json(path, payload):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
 def test_resolved_review_packet_is_hidden_by_default():
     card = lifecycle.apply_lifecycle_policy(
         _base_card(
@@ -142,6 +147,35 @@ def test_dynamic_card_packet_validates_lifecycle_fields():
         all(field in card for field in lifecycle.REQUIRED_CARD_FIELDS)
         for card in packet["cards"]
     )
+
+
+def test_mac_renderer_readiness_proof_is_accepted_from_bridge_file(tmp_path, monkeypatch):
+    read_model_root = tmp_path / "read_models"
+    bridge_status_path = tmp_path / "bridge" / "mac_dynamic_card_renderer_status.json"
+    _write_json(read_model_root / "dynamic_card_packet_latest.json", {"status": "DYNAMIC_CARD_PACKET_READY"})
+    _write_json(read_model_root / "operator_action_payloads.json", {"status": "OPERATOR_ACTION_PAYLOADS_READY"})
+    _write_json(read_model_root / "evidence_intake_status.json", {"status": "EVIDENCE_INTAKE_READY"})
+    _write_json(bridge_status_path, {"status": "MAC_DYNAMIC_CARD_RENDERER_READY"})
+
+    patched_preconditions = dict(lifecycle.PRECONDITIONS)
+    patched_preconditions["mac_dynamic_card_renderer"] = {
+        "filename": "mac_dynamic_card_renderer.json",
+        "fallback_filenames": ("mac_dynamic_card_renderer_status.json",),
+        "bridge_paths": (bridge_status_path,),
+        "accepted_statuses": ("MAC_DYNAMIC_CARD_RENDERER_READY",),
+    }
+    monkeypatch.setattr(lifecycle, "PRECONDITIONS", patched_preconditions)
+
+    read_model = lifecycle.build_read_model(read_model_root=read_model_root, generated_at=FIXED_NOW)
+    mac_row = next(
+        row for row in read_model["preconditions"]
+        if row["precondition_ref"] == "mac_dynamic_card_renderer"
+    )
+
+    assert read_model["status"] == lifecycle.READY_STATUS
+    assert mac_row["ready"] is True
+    assert mac_row["source_ref"] == bridge_status_path.as_posix()
+    assert mac_row["bridge_proof_accepted"] is True
 
 
 def test_export_writes_json_bridge_and_wiki(tmp_path):
