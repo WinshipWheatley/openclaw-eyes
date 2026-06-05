@@ -1,0 +1,1182 @@
+{
+  "authority_boundary": {
+    "authority_grant_allowed": false,
+    "browser_access_allowed": false,
+    "business_action_allowed": false,
+    "coupa_allowed": false,
+    "email_send_allowed": false,
+    "external_action_allowed": false,
+    "git_push_allowed": false,
+    "gmail_allowed": false,
+    "ledger_mutation_allowed": false,
+    "ledger_posting_allowed": false,
+    "paid": false,
+    "paid_marking_allowed": false,
+    "pdf_export_allowed": false,
+    "portal_submit_allowed": false,
+    "workbook_mutation_allowed": false,
+    "worker_spawn_allowed": false
+  },
+  "generated_at": "2026-06-05T04:21:23+00:00",
+  "machine_proof": {
+    "all_receipts_valid": true,
+    "business_action_performed": false,
+    "coupa_submit_performed": false,
+    "email_send_performed": false,
+    "incoming_authority_granted_accepted": false,
+    "ledger_mutation_performed": false,
+    "paid_marking_performed": false,
+    "pdf_export_performed": false,
+    "preconditions_ready": true,
+    "sqlite_row_count_matches_status": true,
+    "unsafe_true_grants": [],
+    "unsafe_true_grants_absent": true,
+    "workbook_mutation_performed": false,
+    "worker_run_performed": false
+  },
+  "preconditions": [
+    {
+      "accepted_statuses": [
+        "OPERATOR_CONTROLLER_EVENT_LIVE_ROUTE_READY",
+        "OPERATOR_CONTROLLER_EVENT_ROUTER_READY"
+      ],
+      "observed_status": "OPERATOR_CONTROLLER_EVENT_ROUTER_READY",
+      "precondition_ref": "operator_controller_event_live_route",
+      "ready": true,
+      "source_ref": "generated/read_models/operator_controller_event_router_status.json"
+    },
+    {
+      "accepted_statuses": [
+        "DYNAMIC_CARD_PACKET_V1_READY",
+        "DYNAMIC_CARD_PACKET_READY"
+      ],
+      "observed_status": "DYNAMIC_CARD_PACKET_READY",
+      "precondition_ref": "dynamic_card_packet_v1",
+      "ready": true,
+      "source_ref": "generated/read_models/dynamic_card_packet_latest.json"
+    },
+    {
+      "accepted_statuses": [
+        "VERIFIED_EVIDENCE_INTAKE_READY",
+        "EVIDENCE_INTAKE_LIVE_ROUTE_READY",
+        "EVIDENCE_INTAKE_READY"
+      ],
+      "observed_status": "EVIDENCE_INTAKE_READY",
+      "precondition_ref": "verified_evidence_intake",
+      "ready": true,
+      "source_ref": "generated/read_models/evidence_intake_status.json"
+    },
+    {
+      "accepted_statuses": [
+        "WORKROOM_REVIEW_DECISION_CONSUMER_READY"
+      ],
+      "observed_status": "WORKROOM_REVIEW_DECISION_CONSUMER_READY",
+      "precondition_ref": "workroom_review_decision_consumer",
+      "ready": true,
+      "source_ref": "generated/read_models/workroom_review_decision_status.json"
+    },
+    {
+      "accepted_statuses": [
+        "GATE_DECISION_LEDGER_READY"
+      ],
+      "observed_status": "GATE_DECISION_LEDGER_READY",
+      "precondition_ref": "gate_decision_ledger",
+      "ready": true,
+      "source_ref": "generated/read_models/gate_decision_ledger.json"
+    },
+    {
+      "accepted_statuses": [
+        "APPROVAL_REQUEST_QUEUE_READY"
+      ],
+      "observed_status": "APPROVAL_REQUEST_QUEUE_READY",
+      "precondition_ref": "approval_request_queue",
+      "ready": true,
+      "source_ref": "generated/read_models/approval_request_queue.json"
+    }
+  ],
+  "read_model_id": "universal_receipt_envelope_status",
+  "receipt_count": 11,
+  "receipt_schema_version": "universal_receipt_envelope_v0",
+  "receipt_types_present": [
+    "approval_recorded",
+    "controller_event_received",
+    "dynamic_card_emitted",
+    "evidence_recorded",
+    "gate_blocked",
+    "memory_candidate_recorded",
+    "package_rejected",
+    "package_staged",
+    "review_decision_recorded",
+    "worker_result_recorded_future",
+    "workflow_plan_staged"
+  ],
+  "receipts": [
+    {
+      "action_not_taken": [
+        "No package dispatch.",
+        "No business execution.",
+        "No external provider action."
+      ],
+      "action_taken": "Verified controller event was accepted for safe routing.",
+      "actor_ref": "openclaw",
+      "agent_character": "Chief",
+      "artifact_refs": [],
+      "authority_boundary": {
+        "authority_grant_allowed": false,
+        "browser_access_allowed": false,
+        "business_action_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "external_action_allowed": false,
+        "git_push_allowed": false,
+        "gmail_allowed": false,
+        "ledger_mutation_allowed": false,
+        "ledger_posting_allowed": false,
+        "paid": false,
+        "paid_marking_allowed": false,
+        "pdf_export_allowed": false,
+        "portal_submit_allowed": false,
+        "workbook_mutation_allowed": false,
+        "worker_spawn_allowed": false
+      },
+      "authority_denied": [],
+      "authority_granted": [],
+      "authority_requested": [],
+      "browser_access_performed": false,
+      "business_action_performed": false,
+      "card_id": "dynamic_card.finance.capital_hilton.payment_watch",
+      "client_ref": "",
+      "controller_event_id": "controller_event:ask_why:capital_hilton",
+      "coupa_submit_performed": false,
+      "created_at": "2026-06-05T04:21:23+00:00",
+      "email_send_performed": false,
+      "external_llm_invoked": false,
+      "external_provider_connected": false,
+      "git_push_performed": false,
+      "gmail_access_performed": false,
+      "hash_refs": [],
+      "ledger_mutation_performed": false,
+      "machine_proof": {
+        "approval_is_execution_proof": false,
+        "business_action_receipt_requires_future_executor_gate": true,
+        "evidence_is_paid_truth": false,
+        "incoming_authority_granted_accepted": false,
+        "incoming_authority_granted_ignored": false,
+        "incoming_authority_granted_values": [],
+        "lm_output_is_receipt_truth": false,
+        "no_business_action_receipt_type_available": true,
+        "receipt_records_what_happened_and_not_happened": true
+      },
+      "merge_performed": false,
+      "next_safe_action": "Route only to a safe backend read-model or details action.",
+      "operator_envelope_ref": "",
+      "package_id": "",
+      "paid_marking_performed": false,
+      "pdf_export_performed": false,
+      "proof_refs": [
+        "generated/read_models/operator_controller_event_router_status.json"
+      ],
+      "read_model_refs": [
+        "generated/read_models/operator_controller_event_router_status.json"
+      ],
+      "receipt_content_hash": "sha256:a198e639a9b05589b08329dca185676f719cd4c2bbb8cb9564cb2dbe8b7f655a",
+      "receipt_id": "universal_receipt:controller_event_received:6860b1549da9e7a4",
+      "receipt_type": "controller_event_received",
+      "result_status": "received",
+      "schema_version": "universal_receipt_envelope_v0",
+      "source_request_id": "controller_event:ask_why:capital_hilton",
+      "sqlite_refs": [],
+      "submit_performed": false,
+      "thread_ref": "capital_hilton",
+      "validation": {
+        "errors": [],
+        "unsafe_true_grants": [],
+        "unsafe_true_grants_absent": true,
+        "valid": true
+      },
+      "validation_refs": [],
+      "workbook_body_read_performed": false,
+      "workbook_mutation_performed": false,
+      "worker_run_performed": false,
+      "worker_spawn_performed": false,
+      "workflow_ref": "operator_controller_event_router",
+      "world_ref": "finance"
+    },
+    {
+      "action_not_taken": [
+        "No ledger mutation.",
+        "No paid marking.",
+        "No payment truth inferred from operator report."
+      ],
+      "action_taken": "Payment-processing evidence candidate was recorded locally.",
+      "actor_ref": "guardian",
+      "agent_character": "Guardian",
+      "artifact_refs": [],
+      "authority_boundary": {
+        "authority_grant_allowed": false,
+        "browser_access_allowed": false,
+        "business_action_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "external_action_allowed": false,
+        "git_push_allowed": false,
+        "gmail_allowed": false,
+        "ledger_mutation_allowed": false,
+        "ledger_posting_allowed": false,
+        "paid": false,
+        "paid_marking_allowed": false,
+        "pdf_export_allowed": false,
+        "portal_submit_allowed": false,
+        "workbook_mutation_allowed": false,
+        "worker_spawn_allowed": false
+      },
+      "authority_denied": [
+        "record_evidence_candidate",
+        "mark_paid"
+      ],
+      "authority_granted": [],
+      "authority_requested": [
+        "record_evidence_candidate",
+        "mark_paid"
+      ],
+      "browser_access_performed": false,
+      "business_action_performed": false,
+      "card_id": "",
+      "client_ref": "live_arts_md",
+      "controller_event_id": "controller_event:attach_proof:live_arts_md",
+      "coupa_submit_performed": false,
+      "created_at": "2026-06-05T04:21:23+00:00",
+      "email_send_performed": false,
+      "external_llm_invoked": false,
+      "external_provider_connected": false,
+      "git_push_performed": false,
+      "gmail_access_performed": false,
+      "hash_refs": [],
+      "ledger_mutation_performed": false,
+      "machine_proof": {
+        "approval_is_execution_proof": false,
+        "business_action_receipt_requires_future_executor_gate": true,
+        "evidence_is_paid_truth": false,
+        "incoming_authority_granted_accepted": false,
+        "incoming_authority_granted_ignored": false,
+        "incoming_authority_granted_values": [],
+        "lm_output_is_receipt_truth": false,
+        "no_business_action_receipt_type_available": true,
+        "receipt_records_what_happened_and_not_happened": true
+      },
+      "merge_performed": false,
+      "next_safe_action": "Wait for payment or ledger evidence before any paid or ledger state changes.",
+      "operator_envelope_ref": "",
+      "package_id": "",
+      "paid_marking_performed": false,
+      "pdf_export_performed": false,
+      "proof_refs": [
+        "generated/read_models/evidence_intake_status.json"
+      ],
+      "read_model_refs": [
+        "generated/read_models/evidence_intake_status.json"
+      ],
+      "receipt_content_hash": "sha256:bc85adf68988c25ba8cd45028fb34cdad7c9fbbe4a88d9408574cdc568f8ca2a",
+      "receipt_id": "universal_receipt:evidence_recorded:d575c566537ac901",
+      "receipt_type": "evidence_recorded",
+      "result_status": "evidence_recorded",
+      "schema_version": "universal_receipt_envelope_v0",
+      "source_request_id": "evidence_intake:live_arts_md:payment_processing",
+      "sqlite_refs": [
+        "generated/system_knowledge/evidence_intake.sqlite"
+      ],
+      "submit_performed": false,
+      "thread_ref": "live_arts_md",
+      "validation": {
+        "errors": [],
+        "unsafe_true_grants": [],
+        "unsafe_true_grants_absent": true,
+        "valid": true
+      },
+      "validation_refs": [],
+      "workbook_body_read_performed": false,
+      "workbook_mutation_performed": false,
+      "worker_run_performed": false,
+      "worker_spawn_performed": false,
+      "workflow_ref": "evidence_intake",
+      "world_ref": "finance"
+    },
+    {
+      "action_not_taken": [
+        "No email sent.",
+        "No CRM or portal update.",
+        "No business execution."
+      ],
+      "action_taken": "Workflow package was staged for review-only handling.",
+      "actor_ref": "cassandra",
+      "agent_character": "Cassandra",
+      "artifact_refs": [],
+      "authority_boundary": {
+        "authority_grant_allowed": false,
+        "browser_access_allowed": false,
+        "business_action_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "external_action_allowed": false,
+        "git_push_allowed": false,
+        "gmail_allowed": false,
+        "ledger_mutation_allowed": false,
+        "ledger_posting_allowed": false,
+        "paid": false,
+        "paid_marking_allowed": false,
+        "pdf_export_allowed": false,
+        "portal_submit_allowed": false,
+        "workbook_mutation_allowed": false,
+        "worker_spawn_allowed": false
+      },
+      "authority_denied": [
+        "stage_package"
+      ],
+      "authority_granted": [],
+      "authority_requested": [
+        "stage_package"
+      ],
+      "browser_access_performed": false,
+      "business_action_performed": false,
+      "card_id": "",
+      "client_ref": "",
+      "controller_event_id": "",
+      "coupa_submit_performed": false,
+      "created_at": "2026-06-05T04:21:23+00:00",
+      "email_send_performed": false,
+      "external_llm_invoked": false,
+      "external_provider_connected": false,
+      "git_push_performed": false,
+      "gmail_access_performed": false,
+      "hash_refs": [],
+      "ledger_mutation_performed": false,
+      "machine_proof": {
+        "approval_is_execution_proof": false,
+        "business_action_receipt_requires_future_executor_gate": true,
+        "evidence_is_paid_truth": false,
+        "incoming_authority_granted_accepted": false,
+        "incoming_authority_granted_ignored": false,
+        "incoming_authority_granted_values": [],
+        "lm_output_is_receipt_truth": false,
+        "no_business_action_receipt_type_available": true,
+        "receipt_records_what_happened_and_not_happened": true
+      },
+      "merge_performed": false,
+      "next_safe_action": "Show the staged package and wait for operator review.",
+      "operator_envelope_ref": "",
+      "package_id": "workflow_package:capital_hilton_follow_up",
+      "paid_marking_performed": false,
+      "pdf_export_performed": false,
+      "proof_refs": [
+        "generated/read_models/workflow_package_request_consumer_status.json"
+      ],
+      "read_model_refs": [
+        "generated/read_models/workflow_package_request_consumer_status.json"
+      ],
+      "receipt_content_hash": "sha256:2a97ebaa0ed9d7ea9e3f4efe98228fd462fb665e5a59caaab0062ffa0ffa1fe0",
+      "receipt_id": "universal_receipt:package_staged:7901f9da098e3f3f",
+      "receipt_type": "package_staged",
+      "result_status": "staged",
+      "schema_version": "universal_receipt_envelope_v0",
+      "source_request_id": "workflow_package:capital_hilton_follow_up",
+      "sqlite_refs": [
+        "generated/system_knowledge/workflow_package_queue.sqlite"
+      ],
+      "submit_performed": false,
+      "thread_ref": "capital_hilton",
+      "validation": {
+        "errors": [],
+        "unsafe_true_grants": [],
+        "unsafe_true_grants_absent": true,
+        "valid": true
+      },
+      "validation_refs": [],
+      "workbook_body_read_performed": false,
+      "workbook_mutation_performed": false,
+      "worker_run_performed": false,
+      "worker_spawn_performed": false,
+      "workflow_ref": "workflow_package_request_consumer",
+      "world_ref": "business_development"
+    },
+    {
+      "action_not_taken": [
+        "No send.",
+        "No submit.",
+        "No external provider action."
+      ],
+      "action_taken": "Protected package request was rejected because execution authority was missing.",
+      "actor_ref": "guardian",
+      "agent_character": "Guardian",
+      "artifact_refs": [],
+      "authority_boundary": {
+        "authority_grant_allowed": false,
+        "browser_access_allowed": false,
+        "business_action_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "external_action_allowed": false,
+        "git_push_allowed": false,
+        "gmail_allowed": false,
+        "ledger_mutation_allowed": false,
+        "ledger_posting_allowed": false,
+        "paid": false,
+        "paid_marking_allowed": false,
+        "pdf_export_allowed": false,
+        "portal_submit_allowed": false,
+        "workbook_mutation_allowed": false,
+        "worker_spawn_allowed": false
+      },
+      "authority_denied": [
+        "send_email"
+      ],
+      "authority_granted": [],
+      "authority_requested": [
+        "send_email"
+      ],
+      "browser_access_performed": false,
+      "business_action_performed": false,
+      "card_id": "",
+      "client_ref": "",
+      "controller_event_id": "",
+      "coupa_submit_performed": false,
+      "created_at": "2026-06-05T04:21:23+00:00",
+      "email_send_performed": false,
+      "external_llm_invoked": false,
+      "external_provider_connected": false,
+      "git_push_performed": false,
+      "gmail_access_performed": false,
+      "hash_refs": [],
+      "ledger_mutation_performed": false,
+      "machine_proof": {
+        "approval_is_execution_proof": false,
+        "business_action_receipt_requires_future_executor_gate": true,
+        "evidence_is_paid_truth": false,
+        "incoming_authority_granted_accepted": false,
+        "incoming_authority_granted_ignored": false,
+        "incoming_authority_granted_values": [],
+        "lm_output_is_receipt_truth": false,
+        "no_business_action_receipt_type_available": true,
+        "receipt_records_what_happened_and_not_happened": true
+      },
+      "merge_performed": false,
+      "next_safe_action": "Stage approval or rework request instead of executing.",
+      "operator_envelope_ref": "",
+      "package_id": "",
+      "paid_marking_performed": false,
+      "pdf_export_performed": false,
+      "proof_refs": [
+        "generated/read_models/gate_decision_ledger.json"
+      ],
+      "read_model_refs": [
+        "generated/read_models/gate_decision_ledger.json"
+      ],
+      "receipt_content_hash": "sha256:409b432e21450f52412f2b2aa03478ee9856e1ea35cf33b9b852125d17c13235",
+      "receipt_id": "universal_receipt:package_rejected:56aeb61b1c5347d4",
+      "receipt_type": "package_rejected",
+      "result_status": "rejected",
+      "schema_version": "universal_receipt_envelope_v0",
+      "source_request_id": "workflow_package:protected_send_without_gate",
+      "sqlite_refs": [],
+      "submit_performed": false,
+      "thread_ref": "capital_hilton",
+      "validation": {
+        "errors": [],
+        "unsafe_true_grants": [],
+        "unsafe_true_grants_absent": true,
+        "valid": true
+      },
+      "validation_refs": [],
+      "workbook_body_read_performed": false,
+      "workbook_mutation_performed": false,
+      "worker_run_performed": false,
+      "worker_spawn_performed": false,
+      "workflow_ref": "workflow_package_request_consumer",
+      "world_ref": "business_development"
+    },
+    {
+      "action_not_taken": [
+        "No merge.",
+        "No git push.",
+        "No worker spawn.",
+        "No business execution."
+      ],
+      "action_taken": "Review decision was recorded as informational.",
+      "actor_ref": "chief",
+      "agent_character": "Chief",
+      "artifact_refs": [],
+      "authority_boundary": {
+        "authority_grant_allowed": false,
+        "browser_access_allowed": false,
+        "business_action_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "external_action_allowed": false,
+        "git_push_allowed": false,
+        "gmail_allowed": false,
+        "ledger_mutation_allowed": false,
+        "ledger_posting_allowed": false,
+        "paid": false,
+        "paid_marking_allowed": false,
+        "pdf_export_allowed": false,
+        "portal_submit_allowed": false,
+        "workbook_mutation_allowed": false,
+        "worker_spawn_allowed": false
+      },
+      "authority_denied": [
+        "record_review_decision"
+      ],
+      "authority_granted": [],
+      "authority_requested": [
+        "record_review_decision"
+      ],
+      "browser_access_performed": false,
+      "business_action_performed": false,
+      "card_id": "",
+      "client_ref": "",
+      "controller_event_id": "",
+      "coupa_submit_performed": false,
+      "created_at": "2026-06-05T04:21:23+00:00",
+      "email_send_performed": false,
+      "external_llm_invoked": false,
+      "external_provider_connected": false,
+      "git_push_performed": false,
+      "gmail_access_performed": false,
+      "hash_refs": [],
+      "ledger_mutation_performed": false,
+      "machine_proof": {
+        "approval_is_execution_proof": false,
+        "business_action_receipt_requires_future_executor_gate": true,
+        "evidence_is_paid_truth": false,
+        "incoming_authority_granted_accepted": false,
+        "incoming_authority_granted_ignored": false,
+        "incoming_authority_granted_values": [],
+        "lm_output_is_receipt_truth": false,
+        "no_business_action_receipt_type_available": true,
+        "receipt_records_what_happened_and_not_happened": true
+      },
+      "merge_performed": false,
+      "next_safe_action": "Keep the receipt as history; any build work requires a separate task.",
+      "operator_envelope_ref": "",
+      "package_id": "review_packet:build_dynamic_card_v1_rails",
+      "paid_marking_performed": false,
+      "pdf_export_performed": false,
+      "proof_refs": [
+        "generated/read_models/workroom_review_decision_status.json"
+      ],
+      "read_model_refs": [
+        "generated/read_models/workroom_review_decision_status.json"
+      ],
+      "receipt_content_hash": "sha256:900c22b803e60c9cac3648ddd7efc709dac4276b1757cbe3a849b12f128f19aa",
+      "receipt_id": "universal_receipt:review_decision_recorded:a8d1a6f2053629b9",
+      "receipt_type": "review_decision_recorded",
+      "result_status": "decision_recorded",
+      "schema_version": "universal_receipt_envelope_v0",
+      "source_request_id": "workroom_review:mark_informational",
+      "sqlite_refs": [],
+      "submit_performed": false,
+      "thread_ref": "workroom_review",
+      "validation": {
+        "errors": [],
+        "unsafe_true_grants": [],
+        "unsafe_true_grants_absent": true,
+        "valid": true
+      },
+      "validation_refs": [],
+      "workbook_body_read_performed": false,
+      "workbook_mutation_performed": false,
+      "worker_run_performed": false,
+      "worker_spawn_performed": false,
+      "workflow_ref": "workroom_review_decision_consumer",
+      "world_ref": "build"
+    },
+    {
+      "action_not_taken": [
+        "No Coupa submit.",
+        "No portal access.",
+        "No business execution."
+      ],
+      "action_taken": "Approval need was recorded in the queue.",
+      "actor_ref": "guardian",
+      "agent_character": "Guardian",
+      "artifact_refs": [],
+      "authority_boundary": {
+        "authority_grant_allowed": false,
+        "browser_access_allowed": false,
+        "business_action_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "external_action_allowed": false,
+        "git_push_allowed": false,
+        "gmail_allowed": false,
+        "ledger_mutation_allowed": false,
+        "ledger_posting_allowed": false,
+        "paid": false,
+        "paid_marking_allowed": false,
+        "pdf_export_allowed": false,
+        "portal_submit_allowed": false,
+        "workbook_mutation_allowed": false,
+        "worker_spawn_allowed": false
+      },
+      "authority_denied": [
+        "coupa_submit"
+      ],
+      "authority_granted": [],
+      "authority_requested": [
+        "coupa_submit"
+      ],
+      "browser_access_performed": false,
+      "business_action_performed": false,
+      "card_id": "",
+      "client_ref": "",
+      "controller_event_id": "",
+      "coupa_submit_performed": false,
+      "created_at": "2026-06-05T04:21:23+00:00",
+      "email_send_performed": false,
+      "external_llm_invoked": false,
+      "external_provider_connected": false,
+      "git_push_performed": false,
+      "gmail_access_performed": false,
+      "hash_refs": [],
+      "ledger_mutation_performed": false,
+      "machine_proof": {
+        "approval_is_execution_proof": false,
+        "business_action_receipt_requires_future_executor_gate": true,
+        "evidence_is_paid_truth": false,
+        "incoming_authority_granted_accepted": false,
+        "incoming_authority_granted_ignored": false,
+        "incoming_authority_granted_values": [],
+        "lm_output_is_receipt_truth": false,
+        "no_business_action_receipt_type_available": true,
+        "receipt_records_what_happened_and_not_happened": true
+      },
+      "merge_performed": false,
+      "next_safe_action": "Wait for a separate explicit executor gate before any protected action.",
+      "operator_envelope_ref": "",
+      "package_id": "",
+      "paid_marking_performed": false,
+      "pdf_export_performed": false,
+      "proof_refs": [
+        "generated/read_models/approval_request_queue.json"
+      ],
+      "read_model_refs": [
+        "generated/read_models/approval_request_queue.json"
+      ],
+      "receipt_content_hash": "sha256:9e8ef441778c4994ed0e42910321f7b76bb7d6f461b21e4d434461574cdf5e05",
+      "receipt_id": "universal_receipt:approval_recorded:5429b11043dd6c5a",
+      "receipt_type": "approval_recorded",
+      "result_status": "approval_recorded_not_executed",
+      "schema_version": "universal_receipt_envelope_v0",
+      "source_request_id": "approval_request:coupa_submit",
+      "sqlite_refs": [
+        "generated/system_knowledge/approval_request_queue.sqlite"
+      ],
+      "submit_performed": false,
+      "thread_ref": "capital_hilton",
+      "validation": {
+        "errors": [],
+        "unsafe_true_grants": [],
+        "unsafe_true_grants_absent": true,
+        "valid": true
+      },
+      "validation_refs": [],
+      "workbook_body_read_performed": false,
+      "workbook_mutation_performed": false,
+      "worker_run_performed": false,
+      "worker_spawn_performed": false,
+      "workflow_ref": "approval_request_queue",
+      "world_ref": "finance"
+    },
+    {
+      "action_not_taken": [
+        "No paid marking.",
+        "No ledger mutation.",
+        "No authority granted."
+      ],
+      "action_taken": "Protected paid/ledger gate was blocked.",
+      "actor_ref": "guardian",
+      "agent_character": "Guardian",
+      "artifact_refs": [],
+      "authority_boundary": {
+        "authority_grant_allowed": false,
+        "browser_access_allowed": false,
+        "business_action_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "external_action_allowed": false,
+        "git_push_allowed": false,
+        "gmail_allowed": false,
+        "ledger_mutation_allowed": false,
+        "ledger_posting_allowed": false,
+        "paid": false,
+        "paid_marking_allowed": false,
+        "pdf_export_allowed": false,
+        "portal_submit_allowed": false,
+        "workbook_mutation_allowed": false,
+        "worker_spawn_allowed": false
+      },
+      "authority_denied": [
+        "mark_paid",
+        "ledger_post"
+      ],
+      "authority_granted": [],
+      "authority_requested": [
+        "mark_paid",
+        "ledger_post"
+      ],
+      "browser_access_performed": false,
+      "business_action_performed": false,
+      "card_id": "",
+      "client_ref": "",
+      "controller_event_id": "",
+      "coupa_submit_performed": false,
+      "created_at": "2026-06-05T04:21:23+00:00",
+      "email_send_performed": false,
+      "external_llm_invoked": false,
+      "external_provider_connected": false,
+      "git_push_performed": false,
+      "gmail_access_performed": false,
+      "hash_refs": [],
+      "ledger_mutation_performed": false,
+      "machine_proof": {
+        "approval_is_execution_proof": false,
+        "business_action_receipt_requires_future_executor_gate": true,
+        "evidence_is_paid_truth": false,
+        "incoming_authority_granted_accepted": false,
+        "incoming_authority_granted_ignored": false,
+        "incoming_authority_granted_values": [],
+        "lm_output_is_receipt_truth": false,
+        "no_business_action_receipt_type_available": true,
+        "receipt_records_what_happened_and_not_happened": true
+      },
+      "merge_performed": false,
+      "next_safe_action": "Require payment or ledger evidence before any protected finance state change.",
+      "operator_envelope_ref": "",
+      "package_id": "",
+      "paid_marking_performed": false,
+      "pdf_export_performed": false,
+      "proof_refs": [
+        "generated/read_models/gate_decision_ledger.json"
+      ],
+      "read_model_refs": [
+        "generated/read_models/gate_decision_ledger.json"
+      ],
+      "receipt_content_hash": "sha256:b08b23cc3759607d90e3412cc8895a67a815e519844583b4adc46275e7bfb2bd",
+      "receipt_id": "universal_receipt:gate_blocked:6c271847b98e5c34",
+      "receipt_type": "gate_blocked",
+      "result_status": "blocked",
+      "schema_version": "universal_receipt_envelope_v0",
+      "source_request_id": "gate_decision:mark_paid",
+      "sqlite_refs": [
+        "generated/system_knowledge/gate_decision_ledger.sqlite"
+      ],
+      "submit_performed": false,
+      "thread_ref": "capital_hilton",
+      "validation": {
+        "errors": [],
+        "unsafe_true_grants": [],
+        "unsafe_true_grants_absent": true,
+        "valid": true
+      },
+      "validation_refs": [],
+      "workbook_body_read_performed": false,
+      "workbook_mutation_performed": false,
+      "worker_run_performed": false,
+      "worker_spawn_performed": false,
+      "workflow_ref": "gate_decision_ledger",
+      "world_ref": "finance"
+    },
+    {
+      "action_not_taken": [
+        "No business execution.",
+        "No source truth changed.",
+        "No client-specific hardcoding required."
+      ],
+      "action_taken": "Receipt-backed dynamic card was emitted for Mission Control.",
+      "actor_ref": "openclaw",
+      "agent_character": "Chief",
+      "artifact_refs": [],
+      "authority_boundary": {
+        "authority_grant_allowed": false,
+        "browser_access_allowed": false,
+        "business_action_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "external_action_allowed": false,
+        "git_push_allowed": false,
+        "gmail_allowed": false,
+        "ledger_mutation_allowed": false,
+        "ledger_posting_allowed": false,
+        "paid": false,
+        "paid_marking_allowed": false,
+        "pdf_export_allowed": false,
+        "portal_submit_allowed": false,
+        "workbook_mutation_allowed": false,
+        "worker_spawn_allowed": false
+      },
+      "authority_denied": [
+        "render_card"
+      ],
+      "authority_granted": [],
+      "authority_requested": [
+        "render_card"
+      ],
+      "browser_access_performed": false,
+      "business_action_performed": false,
+      "card_id": "dynamic_card.finance.capital_hilton.payment_watch",
+      "client_ref": "",
+      "controller_event_id": "",
+      "coupa_submit_performed": false,
+      "created_at": "2026-06-05T04:21:23+00:00",
+      "email_send_performed": false,
+      "external_llm_invoked": false,
+      "external_provider_connected": false,
+      "git_push_performed": false,
+      "gmail_access_performed": false,
+      "hash_refs": [
+        "sha256:dynamic_card_packet_latest:capital_hilton_payment_watch"
+      ],
+      "ledger_mutation_performed": false,
+      "machine_proof": {
+        "approval_is_execution_proof": false,
+        "business_action_receipt_requires_future_executor_gate": true,
+        "evidence_is_paid_truth": false,
+        "incoming_authority_granted_accepted": false,
+        "incoming_authority_granted_ignored": false,
+        "incoming_authority_granted_values": [],
+        "lm_output_is_receipt_truth": false,
+        "no_business_action_receipt_type_available": true,
+        "receipt_records_what_happened_and_not_happened": true
+      },
+      "merge_performed": false,
+      "next_safe_action": "Render the card and open proof details on request.",
+      "operator_envelope_ref": "",
+      "package_id": "",
+      "paid_marking_performed": false,
+      "pdf_export_performed": false,
+      "proof_refs": [
+        "generated/read_models/dynamic_card_packet_latest.json"
+      ],
+      "read_model_refs": [
+        "generated/read_models/dynamic_card_packet_latest.json"
+      ],
+      "receipt_content_hash": "sha256:2a03ebb80742998d294b9ec34eff1ee8fb4efad7ad57c685caaff3298e1b673d",
+      "receipt_id": "universal_receipt:dynamic_card_emitted:e811c126f7bdf8d4",
+      "receipt_type": "dynamic_card_emitted",
+      "result_status": "card_emitted",
+      "schema_version": "universal_receipt_envelope_v0",
+      "source_request_id": "dynamic_card_packet:latest",
+      "sqlite_refs": [],
+      "submit_performed": false,
+      "thread_ref": "capital_hilton",
+      "validation": {
+        "errors": [],
+        "unsafe_true_grants": [],
+        "unsafe_true_grants_absent": true,
+        "valid": true
+      },
+      "validation_refs": [],
+      "workbook_body_read_performed": false,
+      "workbook_mutation_performed": false,
+      "worker_run_performed": false,
+      "worker_spawn_performed": false,
+      "workflow_ref": "dynamic_card_packet",
+      "world_ref": "finance"
+    },
+    {
+      "action_not_taken": [
+        "No canonical memory promotion.",
+        "No proof elevation.",
+        "No business execution."
+      ],
+      "action_taken": "Memory candidate was recorded for review.",
+      "actor_ref": "guardian",
+      "agent_character": "Guardian",
+      "artifact_refs": [],
+      "authority_boundary": {
+        "authority_grant_allowed": false,
+        "browser_access_allowed": false,
+        "business_action_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "external_action_allowed": false,
+        "git_push_allowed": false,
+        "gmail_allowed": false,
+        "ledger_mutation_allowed": false,
+        "ledger_posting_allowed": false,
+        "paid": false,
+        "paid_marking_allowed": false,
+        "pdf_export_allowed": false,
+        "portal_submit_allowed": false,
+        "workbook_mutation_allowed": false,
+        "worker_spawn_allowed": false
+      },
+      "authority_denied": [
+        "record_memory_candidate"
+      ],
+      "authority_granted": [],
+      "authority_requested": [
+        "record_memory_candidate"
+      ],
+      "browser_access_performed": false,
+      "business_action_performed": false,
+      "card_id": "",
+      "client_ref": "",
+      "controller_event_id": "",
+      "coupa_submit_performed": false,
+      "created_at": "2026-06-05T04:21:23+00:00",
+      "email_send_performed": false,
+      "external_llm_invoked": false,
+      "external_provider_connected": false,
+      "git_push_performed": false,
+      "gmail_access_performed": false,
+      "hash_refs": [],
+      "ledger_mutation_performed": false,
+      "machine_proof": {
+        "approval_is_execution_proof": false,
+        "business_action_receipt_requires_future_executor_gate": true,
+        "evidence_is_paid_truth": false,
+        "incoming_authority_granted_accepted": false,
+        "incoming_authority_granted_ignored": false,
+        "incoming_authority_granted_values": [],
+        "lm_output_is_receipt_truth": false,
+        "no_business_action_receipt_type_available": true,
+        "receipt_records_what_happened_and_not_happened": true
+      },
+      "merge_performed": false,
+      "next_safe_action": "Show candidate for operator review; promote only after a later promotion receipt.",
+      "operator_envelope_ref": "",
+      "package_id": "",
+      "paid_marking_performed": false,
+      "pdf_export_performed": false,
+      "proof_refs": [
+        "generated/read_models/memory_promotion_gate.json"
+      ],
+      "read_model_refs": [
+        "generated/read_models/memory_promotion_gate.json"
+      ],
+      "receipt_content_hash": "sha256:79ae32ebc0924776589bbc848fa9d2c8230832bdabc2a5c9fdc2e0c334cfb971",
+      "receipt_id": "universal_receipt:memory_candidate_recorded:63074b7c3fa6c70d",
+      "receipt_type": "memory_candidate_recorded",
+      "result_status": "candidate_recorded",
+      "schema_version": "universal_receipt_envelope_v0",
+      "source_request_id": "memory_promotion_gate:payment_evidence_candidate",
+      "sqlite_refs": [],
+      "submit_performed": false,
+      "thread_ref": "promotion_gate",
+      "validation": {
+        "errors": [],
+        "unsafe_true_grants": [],
+        "unsafe_true_grants_absent": true,
+        "valid": true
+      },
+      "validation_refs": [],
+      "workbook_body_read_performed": false,
+      "workbook_mutation_performed": false,
+      "worker_run_performed": false,
+      "worker_spawn_performed": false,
+      "workflow_ref": "memory_promotion_gate",
+      "world_ref": "memory"
+    },
+    {
+      "action_not_taken": [
+        "No email sent.",
+        "No submit.",
+        "No worker run."
+      ],
+      "action_taken": "Workflow plan was staged as a deterministic proposal.",
+      "actor_ref": "cassandra",
+      "agent_character": "Cassandra",
+      "artifact_refs": [],
+      "authority_boundary": {
+        "authority_grant_allowed": false,
+        "browser_access_allowed": false,
+        "business_action_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "external_action_allowed": false,
+        "git_push_allowed": false,
+        "gmail_allowed": false,
+        "ledger_mutation_allowed": false,
+        "ledger_posting_allowed": false,
+        "paid": false,
+        "paid_marking_allowed": false,
+        "pdf_export_allowed": false,
+        "portal_submit_allowed": false,
+        "workbook_mutation_allowed": false,
+        "worker_spawn_allowed": false
+      },
+      "authority_denied": [
+        "stage_plan"
+      ],
+      "authority_granted": [],
+      "authority_requested": [
+        "stage_plan"
+      ],
+      "browser_access_performed": false,
+      "business_action_performed": false,
+      "card_id": "",
+      "client_ref": "",
+      "controller_event_id": "",
+      "coupa_submit_performed": false,
+      "created_at": "2026-06-05T04:21:23+00:00",
+      "email_send_performed": false,
+      "external_llm_invoked": false,
+      "external_provider_connected": false,
+      "git_push_performed": false,
+      "gmail_access_performed": false,
+      "hash_refs": [],
+      "ledger_mutation_performed": false,
+      "machine_proof": {
+        "approval_is_execution_proof": false,
+        "business_action_receipt_requires_future_executor_gate": true,
+        "evidence_is_paid_truth": false,
+        "incoming_authority_granted_accepted": false,
+        "incoming_authority_granted_ignored": false,
+        "incoming_authority_granted_values": [],
+        "lm_output_is_receipt_truth": false,
+        "no_business_action_receipt_type_available": true,
+        "receipt_records_what_happened_and_not_happened": true
+      },
+      "merge_performed": false,
+      "next_safe_action": "Review the plan and choose a safe controller event.",
+      "operator_envelope_ref": "",
+      "package_id": "",
+      "paid_marking_performed": false,
+      "pdf_export_performed": false,
+      "proof_refs": [
+        "generated/read_models/workflow_composer_latest.json"
+      ],
+      "read_model_refs": [
+        "generated/read_models/workflow_composer_latest.json"
+      ],
+      "receipt_content_hash": "sha256:340b64981161e4f8847951bdf774f9086585e10b03081ed70595c19de3f69b51",
+      "receipt_id": "universal_receipt:workflow_plan_staged:2447e7779cd06414",
+      "receipt_type": "workflow_plan_staged",
+      "result_status": "plan_staged",
+      "schema_version": "universal_receipt_envelope_v0",
+      "source_request_id": "workflow_composer:capital_hilton_follow_up",
+      "sqlite_refs": [],
+      "submit_performed": false,
+      "thread_ref": "capital_hilton",
+      "validation": {
+        "errors": [],
+        "unsafe_true_grants": [],
+        "unsafe_true_grants_absent": true,
+        "valid": true
+      },
+      "validation_refs": [],
+      "workbook_body_read_performed": false,
+      "workbook_mutation_performed": false,
+      "worker_run_performed": false,
+      "worker_spawn_performed": false,
+      "workflow_ref": "workflow_composer",
+      "world_ref": "business_development"
+    },
+    {
+      "action_not_taken": [
+        "No worker run.",
+        "No child agent run.",
+        "No authority inherited from speaker."
+      ],
+      "action_taken": "Future worker result receipt shape is reserved.",
+      "actor_ref": "codex",
+      "agent_character": "Codex",
+      "artifact_refs": [],
+      "authority_boundary": {
+        "authority_grant_allowed": false,
+        "browser_access_allowed": false,
+        "business_action_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "external_action_allowed": false,
+        "git_push_allowed": false,
+        "gmail_allowed": false,
+        "ledger_mutation_allowed": false,
+        "ledger_posting_allowed": false,
+        "paid": false,
+        "paid_marking_allowed": false,
+        "pdf_export_allowed": false,
+        "portal_submit_allowed": false,
+        "workbook_mutation_allowed": false,
+        "worker_spawn_allowed": false
+      },
+      "authority_denied": [
+        "record_future_worker_result"
+      ],
+      "authority_granted": [],
+      "authority_requested": [
+        "record_future_worker_result"
+      ],
+      "browser_access_performed": false,
+      "business_action_performed": false,
+      "card_id": "",
+      "client_ref": "",
+      "controller_event_id": "",
+      "coupa_submit_performed": false,
+      "created_at": "2026-06-05T04:21:23+00:00",
+      "email_send_performed": false,
+      "external_llm_invoked": false,
+      "external_provider_connected": false,
+      "git_push_performed": false,
+      "gmail_access_performed": false,
+      "hash_refs": [],
+      "ledger_mutation_performed": false,
+      "machine_proof": {
+        "approval_is_execution_proof": false,
+        "business_action_receipt_requires_future_executor_gate": true,
+        "evidence_is_paid_truth": false,
+        "incoming_authority_granted_accepted": false,
+        "incoming_authority_granted_ignored": false,
+        "incoming_authority_granted_values": [],
+        "lm_output_is_receipt_truth": false,
+        "no_business_action_receipt_type_available": true,
+        "receipt_records_what_happened_and_not_happened": true
+      },
+      "merge_performed": false,
+      "next_safe_action": "Use this shape only after a future explicit worker gate records a result.",
+      "operator_envelope_ref": "",
+      "package_id": "",
+      "paid_marking_performed": false,
+      "pdf_export_performed": false,
+      "proof_refs": [
+        "generated/read_models/universal_receipt_envelope_contract.json"
+      ],
+      "read_model_refs": [
+        "generated/read_models/universal_receipt_envelope_contract.json"
+      ],
+      "receipt_content_hash": "sha256:c82c9e785ec2cd14788dd244788277647d5b1456d45f5a9d4d6461a9f30ee478",
+      "receipt_id": "universal_receipt:worker_result_recorded_future:ec9d11ff4ac3f877",
+      "receipt_type": "worker_result_recorded_future",
+      "result_status": "future_shape_reserved",
+      "schema_version": "universal_receipt_envelope_v0",
+      "source_request_id": "future_worker_result:placeholder",
+      "sqlite_refs": [],
+      "submit_performed": false,
+      "thread_ref": "future_worker_results",
+      "validation": {
+        "errors": [],
+        "unsafe_true_grants": [],
+        "unsafe_true_grants_absent": true,
+        "valid": true
+      },
+      "validation_refs": [],
+      "workbook_body_read_performed": false,
+      "workbook_mutation_performed": false,
+      "worker_run_performed": false,
+      "worker_spawn_performed": false,
+      "workflow_ref": "worker_result_future",
+      "world_ref": "build"
+    }
+  ],
+  "rules": [
+    "Receipts are durable local proof refs, not action grants.",
+    "Approval and gate receipts remain separate from protected execution.",
+    "Evidence receipts remain candidate proof until source payment or ledger evidence exists.",
+    "Dynamic card receipts prove emission and card hashes, not source truth changes.",
+    "Worker-result receipt shape is reserved but no worker is run by this read model."
+  ],
+  "schema_version": "universal_receipt_envelope_v0_status",
+  "sqlite_path": "/home/openclaw/generated/system_knowledge/universal_receipts.sqlite",
+  "sqlite_row_count": 11,
+  "status": "UNIVERSAL_RECEIPT_ENVELOPE_READY"
+}
