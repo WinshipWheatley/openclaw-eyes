@@ -1,0 +1,796 @@
+{
+  "status": "BACKEND_CONTROLLER_GRAMMAR_AUDIT_READY",
+  "generated_at": "2026-06-04T21:40:00Z",
+  "executive_summary": "OpenClaw is designed around playable primitives rather than workflow-specific views. Mission Control acts as a physical controller interface where dynamic cards represent state, proof, and gates, and first-class actions serve as controls. The backend is the instrument rack, worker cages are interpreted execution units, and guardian gates prevent false recursive truth.",
+  "grammar_principles": [
+    "Mission Control is an Operator Controller Surface, not a custom-dashboard workspace.",
+    "Dynamic cards are backend-generated and standard-component mapped, eliminating custom SwiftUI per client.",
+    "First-class actions are mapped to explicit, deterministic backend routes, validating operator intent and session proof without granting business authority.",
+    "Knobs (zoom, delegation, proof, urgency, mode) filter views and control automation boundaries without changing execution safety rails."
+  ],
+  "first_class_controls": {
+    "chat_goal": {
+      "control_id": "chat_goal",
+      "display_name": "Chat / say goal",
+      "purpose": "Express high-level contextual goals or ask questions to drive the composer/planner.",
+      "when_visible": "Always visible in Chat and Pad inputs.",
+      "required_envelope_fields": [
+        "envelope_id",
+        "operator_ref",
+        "app_instance_ref",
+        "device_ref",
+        "device_class",
+        "session_ref",
+        "request_hash",
+        "created_at",
+        "input_surface",
+        "current_world_ref",
+        "current_thread_ref"
+      ],
+      "required_backend_route": "openclaw_request_processor.contextual_goal_or_workflow_composer",
+      "required_proof_receipt": "None (request metadata is logged but doesn't write business truth)",
+      "allowed_action_payload_types": [
+        "system_question",
+        "stage_package_request",
+        "navigate"
+      ],
+      "forbidden_action_payload_types": [
+        "email_send",
+        "gmail_access",
+        "browser_access",
+        "coupa_access",
+        "portal_submit",
+        "ledger_post",
+        "ledger_mutation",
+        "workbook_mutation",
+        "pdf_export",
+        "mark_paid",
+        "merge",
+        "git_push",
+        "worker_spawn",
+        "external_provider_call"
+      ],
+      "example_use": "operator_controller_envelope contains chat_goal request to 'Get St. Anne's monthly invoice ready'",
+      "backend_support": "ready",
+      "mac_app_implication": "Maps the primary text input area directly to this event type."
+    },
+    "do_it": {
+      "control_id": "do_it",
+      "display_name": "Do it",
+      "purpose": "Authorize execution of a staged, safe local flow or step.",
+      "when_visible": "On dynamic cards when a safe local action is staged and operator attention is requested.",
+      "required_envelope_fields": [
+        "envelope_id",
+        "operator_ref",
+        "app_instance_ref",
+        "device_ref",
+        "device_class",
+        "session_ref",
+        "request_hash",
+        "created_at",
+        "input_surface",
+        "current_world_ref",
+        "current_thread_ref"
+      ],
+      "required_backend_route": "operator_action_payload_gate.contextual_safe_action",
+      "required_proof_receipt": "Yes (writes a session receipt and updates status read model)",
+      "allowed_action_payload_types": [
+        "system_question",
+        "stage_package_request",
+        "navigate"
+      ],
+      "forbidden_action_payload_types": [
+        "email_send",
+        "gmail_access",
+        "browser_access",
+        "coupa_access",
+        "portal_submit",
+        "ledger_post",
+        "ledger_mutation",
+        "workbook_mutation",
+        "pdf_export",
+        "mark_paid",
+        "merge",
+        "git_push",
+        "worker_spawn",
+        "external_provider_call"
+      ],
+      "example_use": "Operator presses 'Do it' to execute a local file-pickup check-engine task",
+      "backend_support": "partial",
+      "mac_app_implication": "Single prominent action button on a staged card that executes the local routine."
+    },
+    "approve": {
+      "control_id": "approve",
+      "display_name": "Approve",
+      "purpose": "Authorize a pending gate request or record an operator review verdict.",
+      "when_visible": "On approval or review packet cards.",
+      "required_envelope_fields": [
+        "envelope_id",
+        "operator_ref",
+        "app_instance_ref",
+        "device_ref",
+        "device_class",
+        "session_ref",
+        "request_hash",
+        "created_at",
+        "input_surface",
+        "current_world_ref",
+        "current_thread_ref",
+        "active_entity_ref"
+      ],
+      "required_backend_route": "workroom_review_decision_or_guardian_approval_queue",
+      "required_proof_receipt": "Yes (writes an approval_receipt_ref to the database/read models)",
+      "allowed_action_payload_types": [
+        "review_decision",
+        "explain_gate"
+      ],
+      "forbidden_action_payload_types": [
+        "email_send",
+        "gmail_access",
+        "browser_access",
+        "coupa_access",
+        "portal_submit",
+        "ledger_post",
+        "ledger_mutation",
+        "workbook_mutation",
+        "pdf_export",
+        "mark_paid",
+        "merge",
+        "git_push",
+        "worker_spawn",
+        "external_provider_call"
+      ],
+      "example_use": "Operator clicks 'Approve' to authorize the staged Capital Hilton review packet",
+      "backend_support": "ready",
+      "mac_app_implication": "Green/success button on approval or review cards; does not directly execute actions, only signs approval."
+    },
+    "deny": {
+      "control_id": "deny",
+      "display_name": "Deny",
+      "purpose": "Reject a pending gate or request, cancelling the staged flow.",
+      "when_visible": "On approval or review packet cards.",
+      "required_envelope_fields": [
+        "envelope_id",
+        "operator_ref",
+        "app_instance_ref",
+        "device_ref",
+        "device_class",
+        "session_ref",
+        "request_hash",
+        "created_at",
+        "input_surface",
+        "current_world_ref",
+        "current_thread_ref",
+        "active_entity_ref"
+      ],
+      "required_backend_route": "workroom_review_decision_or_approval_request_queue",
+      "required_proof_receipt": "Yes (writes a rejection decision receipt)",
+      "allowed_action_payload_types": [
+        "review_decision",
+        "explain_gate"
+      ],
+      "forbidden_action_payload_types": [
+        "email_send",
+        "gmail_access",
+        "browser_access",
+        "coupa_access",
+        "portal_submit",
+        "ledger_post",
+        "ledger_mutation",
+        "workbook_mutation",
+        "pdf_export",
+        "mark_paid",
+        "merge",
+        "git_push",
+        "worker_spawn",
+        "external_provider_call"
+      ],
+      "example_use": "Operator clicks 'Deny' on a Coupa submit request because the PO number is wrong",
+      "backend_support": "ready",
+      "mac_app_implication": "Red/destructive action button on cards; returns status to pending/canceled."
+    },
+    "ask_why": {
+      "control_id": "ask_why",
+      "display_name": "Ask why",
+      "purpose": "Request an explanation of why a gate blocked, a package is waiting, or a provider was chosen.",
+      "when_visible": "On cards with status warnings, blocked actions, or provider selection flags.",
+      "required_envelope_fields": [
+        "envelope_id",
+        "operator_ref",
+        "app_instance_ref",
+        "device_ref",
+        "device_class",
+        "session_ref",
+        "request_hash",
+        "created_at",
+        "input_surface",
+        "current_world_ref",
+        "current_thread_ref"
+      ],
+      "required_backend_route": "system_question_answer.contextual_answer",
+      "required_proof_receipt": "None (read-only query against existing logs and contracts)",
+      "allowed_action_payload_types": [
+        "system_question",
+        "inspect_proof"
+      ],
+      "forbidden_action_payload_types": [
+        "email_send",
+        "gmail_access",
+        "browser_access",
+        "coupa_access",
+        "portal_submit",
+        "ledger_post",
+        "ledger_mutation",
+        "workbook_mutation",
+        "pdf_export",
+        "mark_paid",
+        "merge",
+        "git_push",
+        "worker_spawn",
+        "external_provider_call"
+      ],
+      "example_use": "Operator clicks 'Ask why' next to a blocked Coupa submit Order viewOrder gate",
+      "backend_support": "ready",
+      "mac_app_implication": "Renders a help link or query button that triggers a popover showing the system's reasoning."
+    },
+    "attach_proof": {
+      "control_id": "attach_proof",
+      "display_name": "Attach proof",
+      "purpose": "Upload or link an external artifact (e.g. screenshot, PDF receipt) to satisfy a payment/invoice gate.",
+      "when_visible": "On cards requesting evidence, or inside the dropzone/proof drawer.",
+      "required_envelope_fields": [
+        "envelope_id",
+        "operator_ref",
+        "app_instance_ref",
+        "device_ref",
+        "device_class",
+        "session_ref",
+        "request_hash",
+        "created_at",
+        "input_surface",
+        "current_world_ref",
+        "current_thread_ref"
+      ],
+      "required_backend_route": "evidence_intake.record_candidate_evidence",
+      "required_proof_receipt": "Yes (writes a protected_evidence_reference_receipt)",
+      "allowed_action_payload_types": [
+        "record_payment_proof_intake",
+        "inspect_proof"
+      ],
+      "forbidden_action_payload_types": [
+        "email_send",
+        "gmail_access",
+        "browser_access",
+        "coupa_access",
+        "portal_submit",
+        "ledger_post",
+        "ledger_mutation",
+        "workbook_mutation",
+        "pdf_export",
+        "mark_paid",
+        "merge",
+        "git_push",
+        "worker_spawn",
+        "external_provider_call"
+      ],
+      "example_use": "Operator drags a payment confirmation screenshot into the dropzone for Capital Hilton",
+      "backend_support": "ready",
+      "mac_app_implication": "Tied directly to the drag-and-drop zone or a file selector in the app drawer."
+    },
+    "open_lane": {
+      "control_id": "open_lane",
+      "display_name": "Open lane",
+      "purpose": "Switch focus to a specific thread/world/lane in the UI.",
+      "when_visible": "On navigation menus, search results, or thread redirects.",
+      "required_envelope_fields": [
+        "envelope_id",
+        "operator_ref",
+        "app_instance_ref",
+        "device_ref",
+        "device_class",
+        "session_ref",
+        "request_hash",
+        "created_at",
+        "input_surface",
+        "current_world_ref",
+        "current_thread_ref"
+      ],
+      "required_backend_route": "operator_action_payloads.navigate",
+      "required_proof_receipt": "None (local UI navigation only)",
+      "allowed_action_payload_types": [
+        "navigate"
+      ],
+      "forbidden_action_payload_types": [
+        "email_send",
+        "gmail_access",
+        "browser_access",
+        "coupa_access",
+        "portal_submit",
+        "ledger_post",
+        "ledger_mutation",
+        "workbook_mutation",
+        "pdf_export",
+        "mark_paid",
+        "merge",
+        "git_push",
+        "worker_spawn",
+        "external_provider_call"
+      ],
+      "example_use": "Operator clicks a card action that navigates to the 'finance/capital_hilton' lane",
+      "backend_support": "ready",
+      "mac_app_implication": "Triggers local navigation, updating active thread/world filters in the sidebar."
+    },
+    "stage_plan": {
+      "control_id": "stage_plan",
+      "display_name": "Stage plan",
+      "purpose": "Compile and stage a proposed workflow plan in the queue without running it.",
+      "when_visible": "On Composer or chat cards when a plan has been drafted by LMs/pre-execution planners.",
+      "required_envelope_fields": [
+        "envelope_id",
+        "operator_ref",
+        "app_instance_ref",
+        "device_ref",
+        "device_class",
+        "session_ref",
+        "request_hash",
+        "created_at",
+        "input_surface",
+        "current_world_ref",
+        "current_thread_ref"
+      ],
+      "required_backend_route": "workflow_composer_or_workflow_package_request_consumer.stage_only",
+      "required_proof_receipt": "Yes (writes a staged package to the package queue database)",
+      "allowed_action_payload_types": [
+        "stage_package_request"
+      ],
+      "forbidden_action_payload_types": [
+        "email_send",
+        "gmail_access",
+        "browser_access",
+        "coupa_access",
+        "portal_submit",
+        "ledger_post",
+        "ledger_mutation",
+        "workbook_mutation",
+        "pdf_export",
+        "mark_paid",
+        "merge",
+        "git_push",
+        "worker_spawn",
+        "external_provider_call"
+      ],
+      "example_use": "Operator clicks 'Stage plan' to queue the St. Anne's monthly invoice package",
+      "backend_support": "ready",
+      "mac_app_implication": "Button on composer plan views that transitions the state to 'staged' inside the package registry."
+    },
+    "continue": {
+      "control_id": "continue",
+      "display_name": "Continue",
+      "purpose": "Acknowledge a non-critical warning or gate block and resume the local flow.",
+      "when_visible": "On warning or paused status cards that are safe to continue.",
+      "required_envelope_fields": [
+        "envelope_id",
+        "operator_ref",
+        "app_instance_ref",
+        "device_ref",
+        "device_class",
+        "session_ref",
+        "request_hash",
+        "created_at",
+        "input_surface",
+        "current_world_ref",
+        "current_thread_ref"
+      ],
+      "required_backend_route": "operator_action_payload_gate.continue_safe_local_flow",
+      "required_proof_receipt": "Yes (updates package run status)",
+      "allowed_action_payload_types": [
+        "system_question",
+        "stage_package_request",
+        "navigate"
+      ],
+      "forbidden_action_payload_types": [
+        "email_send",
+        "gmail_access",
+        "browser_access",
+        "coupa_access",
+        "portal_submit",
+        "ledger_post",
+        "ledger_mutation",
+        "workbook_mutation",
+        "pdf_export",
+        "mark_paid",
+        "merge",
+        "git_push",
+        "worker_spawn",
+        "external_provider_call"
+      ],
+      "example_use": "Operator clicks 'Continue' after acknowledging an address picker warning on a draft",
+      "backend_support": "partial",
+      "mac_app_implication": "Resumes the paused run indicator on the corresponding card."
+    },
+    "request_rework": {
+      "control_id": "request_rework",
+      "display_name": "Request rework",
+      "purpose": "Send a review packet back to the compiler/stager phase with comments.",
+      "when_visible": "On active workroom review cards.",
+      "required_envelope_fields": [
+        "envelope_id",
+        "operator_ref",
+        "app_instance_ref",
+        "device_ref",
+        "device_class",
+        "session_ref",
+        "request_hash",
+        "created_at",
+        "input_surface",
+        "current_world_ref",
+        "current_thread_ref",
+        "active_entity_ref"
+      ],
+      "required_backend_route": "workroom_review_decision_consumer.request_rework",
+      "required_proof_receipt": "Yes (writes a review decision receipt showing rework requested)",
+      "allowed_action_payload_types": [
+        "review_decision"
+      ],
+      "forbidden_action_payload_types": [
+        "email_send",
+        "gmail_access",
+        "browser_access",
+        "coupa_access",
+        "portal_submit",
+        "ledger_post",
+        "ledger_mutation",
+        "workbook_mutation",
+        "pdf_export",
+        "mark_paid",
+        "merge",
+        "git_push",
+        "worker_spawn",
+        "external_provider_call"
+      ],
+      "example_use": "Operator clicks 'Request rework' because the hours on St. Anne's invoice are incorrect",
+      "backend_support": "ready",
+      "mac_app_implication": "Opens a text popover for feedback and triggers a status rollback."
+    },
+    "mark_informational": {
+      "control_id": "mark_informational",
+      "display_name": "Mark informational",
+      "purpose": "Acknowledge and archive a card/packet without staging or executing anything.",
+      "when_visible": "On workroom review cards or notification cards.",
+      "required_envelope_fields": [
+        "envelope_id",
+        "operator_ref",
+        "app_instance_ref",
+        "device_ref",
+        "device_class",
+        "session_ref",
+        "request_hash",
+        "created_at",
+        "input_surface",
+        "current_world_ref",
+        "current_thread_ref",
+        "active_entity_ref"
+      ],
+      "required_backend_route": "workroom_review_decision_consumer.mark_informational",
+      "required_proof_receipt": "Yes (writes a review decision receipt of type informational)",
+      "allowed_action_payload_types": [
+        "review_decision"
+      ],
+      "forbidden_action_payload_types": [
+        "email_send",
+        "gmail_access",
+        "browser_access",
+        "coupa_access",
+        "portal_submit",
+        "ledger_post",
+        "ledger_mutation",
+        "workbook_mutation",
+        "pdf_export",
+        "mark_paid",
+        "merge",
+        "git_push",
+        "worker_spawn",
+        "external_provider_call"
+      ],
+      "example_use": "Operator dismisses a check-engine warning card using mark_informational",
+      "backend_support": "ready",
+      "mac_app_implication": "Archives the card from operator attention queue into completed/history drawer."
+    },
+    "stop_hold_cancel": {
+      "control_id": "stop_hold_cancel",
+      "display_name": "Stop / hold",
+      "purpose": "Immediately pause a lane, cancel active plans, or revoke pending approvals.",
+      "when_visible": "Always accessible on any running or pending card.",
+      "required_envelope_fields": [
+        "envelope_id",
+        "operator_ref",
+        "app_instance_ref",
+        "device_ref",
+        "device_class",
+        "session_ref",
+        "request_hash",
+        "created_at",
+        "input_surface",
+        "current_world_ref",
+        "current_thread_ref"
+      ],
+      "required_backend_route": "approval_request_queue_or_workroom_review_decision_consumer.stop_hold_cancel",
+      "required_proof_receipt": "Yes (logs a cancellation/hold receipt and updates queue rows)",
+      "allowed_action_payload_types": [
+        "review_decision",
+        "explain_gate"
+      ],
+      "forbidden_action_payload_types": [
+        "email_send",
+        "gmail_access",
+        "browser_access",
+        "coupa_access",
+        "portal_submit",
+        "ledger_post",
+        "ledger_mutation",
+        "workbook_mutation",
+        "pdf_export",
+        "mark_paid",
+        "merge",
+        "git_push",
+        "worker_spawn",
+        "external_provider_call"
+      ],
+      "example_use": "Operator hits stop/hold on the Capital Hilton lane after a billing revision",
+      "backend_support": "ready",
+      "mac_app_implication": "Renders as a red stop/cancellation button on cards or thread headers."
+    },
+    "show_details": {
+      "control_id": "show_details",
+      "display_name": "Show details",
+      "purpose": "Toggle visibility of raw logs, SHA256 hashes, receipts, and developer proof files.",
+      "when_visible": "On any card containing proof_refs or receipt_refs.",
+      "required_envelope_fields": [
+        "envelope_id",
+        "operator_ref",
+        "app_instance_ref",
+        "device_ref",
+        "device_class",
+        "session_ref",
+        "request_hash",
+        "created_at",
+        "input_surface",
+        "current_world_ref",
+        "current_thread_ref"
+      ],
+      "required_backend_route": "dynamic_card_packet.proof_drawer",
+      "required_proof_receipt": "None (read-only UI display toggle)",
+      "allowed_action_payload_types": [
+        "inspect_proof",
+        "none"
+      ],
+      "forbidden_action_payload_types": [
+        "email_send",
+        "gmail_access",
+        "browser_access",
+        "coupa_access",
+        "portal_submit",
+        "ledger_post",
+        "ledger_mutation",
+        "workbook_mutation",
+        "pdf_export",
+        "mark_paid",
+        "merge",
+        "git_push",
+        "worker_spawn",
+        "external_provider_call"
+      ],
+      "example_use": "Operator clicks 'Show details' to view invoice PDF validation proof",
+      "backend_support": "ready",
+      "mac_app_implication": "Disclosure triangle or 'Show Details' drawer toggle in the card view."
+    }
+  },
+  "forbidden_or_future_controls": {
+    "switch_mode": {
+      "control_id": "switch_mode",
+      "display_name": "Switch mode",
+      "purpose": "Manually force a lane to graduate from operator-assisted to unattended mode.",
+      "status": "forbidden",
+      "reason_not_implemented": "Lane graduation/cutover is a backend-only gate-decision rule evaluated against concrete preconditions. Letting the operator manually override cutover safety limits violates the safety interlock."
+    },
+    "remember_this": {
+      "control_id": "remember_this",
+      "display_name": "Remember this",
+      "purpose": "Manually promote a candidate context detail to permanent memory.",
+      "status": "forbidden",
+      "reason_not_implemented": "Long-term memory promotion requires structured validation to prevent hallucinated LM contexts from becoming permanent truth. Needs a review loop first."
+    },
+    "wake_this_up_later": {
+      "control_id": "wake_this_up_later",
+      "display_name": "Wake this up later",
+      "purpose": "Postpone or schedule a card/workflow reactivation.",
+      "status": "forbidden",
+      "reason_not_implemented": "Scheduling is handled by backend timers (systemd/cron) and file queues. Arbitrary delays from the UI would desynchronize batch processing queues."
+    }
+  },
+  "secondary_contextual_controls": [
+    {
+      "action_type": "workbook_registration",
+      "display_name": "Register workbook",
+      "purpose": "Register a newly detected local invoice workbook with the registry.",
+      "route": "client_invoice_workbook_registry.register_workbook",
+      "visibility": "When a new workbook file is detected in the inbox."
+    },
+    {
+      "action_type": "work_log_review_actions",
+      "display_name": "Confirm / Discard / Edit / Mark as Test",
+      "purpose": "Refine individual time entry facts for monthly work log rollups.",
+      "route": "st_annes_work_log_review_surface.json",
+      "visibility": "On St. Anne's work-log review cards."
+    }
+  ],
+  "controller_knobs": {
+    "zoom_level": {
+      "description": "Determines the density and scope of context displayed to the operator.",
+      "values": {
+        "moment": "Focuses on a single verification card or preflight step (e.g. verifying a PO number).",
+        "task": "Focuses on a single package run (e.g. St. Anne's monthly rollup).",
+        "lane": "Filters view to a specific world/thread feed (e.g. finance/capital_hilton).",
+        "world": "Filters view to all threads under a domain world (e.g. finance).",
+        "system": "Displays a global picture of OpenClaw (WIP limits, diagnostics, cutover board)."
+      }
+    },
+    "delegation_depth": {
+      "description": "Sets how far the backend automation is allowed to progress before halting for operator review.",
+      "values": {
+        "readback": "Audit/reporting mode only; operator performs all actions manually.",
+        "plan": "System drafts a proposal/composer plan and stops.",
+        "stage": "System compiles and stages packages in the registry queue.",
+        "safe_work": "System staging executes safe local routines and dry runs automatically.",
+        "prepare_approval": "System stages work, runs dry runs, and queues approval gates for the operator.",
+        "execute_after_approval": "Future mode where the system executes external actions automatically upon approval (currently blocked)."
+      }
+    },
+    "proof_depth": {
+      "description": "Controls the visibility of logs and cryptographic details.",
+      "values": {
+        "none": "Hides all proof refs; shows only headlines and primary statuses.",
+        "summary": "Shows simple bullets and the next safe move.",
+        "receipts": "Shows SHA256 hashes, file reference paths, and approval signatures.",
+        "full_developer_proof": "Exposes raw JSON read models, database schemas, and service diagnostic details."
+      }
+    },
+    "urgency": {
+      "description": "Modifies queue priority in the workroom WIP limit manager.",
+      "values": {
+        "park": "Suspends execution; moves to low priority backlog.",
+        "normal": "Standard queue priority.",
+        "today": "Elevated queue priority.",
+        "urgent": "Bypasses normal queue limits; alerts operator immediately."
+      }
+    },
+    "mode": {
+      "description": "Roles-based filter for active views and card channels.",
+      "values": {
+        "artist": "Focuses on bookings, performance logs, and creative thread context.",
+        "finance": "Focuses on invoicing, POs, ledger gates, and payment watches.",
+        "build": "Focuses on system engineering, code staging, and diagnostic checks.",
+        "business": "Focuses on proposals, client reviews, and agreement tracking.",
+        "creative": "Focuses on asset creation and layout reviews.",
+        "system": "Global supervisor mode; displays all domains, WIP limits, and service logs."
+      }
+    }
+  },
+  "backend_support_matrix": {
+    "chat_goal": {
+      "status": "ready",
+      "supporting_contract": "generated/read_models/operator_controller_protocol.json",
+      "gaps": "Input is file-pickup based, not a universal chat event bus."
+    },
+    "do_it": {
+      "status": "partial",
+      "supporting_contract": "generated/read_models/operator_action_payloads.json",
+      "gaps": "Backend validates action payloads, but runs them in dry-run/local mode only."
+    },
+    "approve": {
+      "status": "ready",
+      "supporting_contract": "generated/read_models/workroom_review_decision_status.json",
+      "gaps": "Requires approval records to reside in their respective SQLite registries."
+    },
+    "deny": {
+      "status": "ready",
+      "supporting_contract": "generated/read_models/workroom_review_decision_status.json",
+      "gaps": "Resets the package run status but lacks a universal rollback state machine."
+    },
+    "ask_why": {
+      "status": "ready",
+      "supporting_contract": "generated/read_models/system_question_answer_contract.json",
+      "gaps": "Contextual queries are localized to lanes; lacks cross-lane reasoning."
+    },
+    "attach_proof": {
+      "status": "ready",
+      "supporting_contract": "generated/read_models/evidence_intake_status.json",
+      "gaps": "Integrates file paths only; lacks real-time verification of banking API endpoints."
+    },
+    "open_lane": {
+      "status": "ready",
+      "supporting_contract": "generated/read_models/finance_thread_index.json",
+      "gaps": "None."
+    },
+    "stage_plan": {
+      "status": "ready",
+      "supporting_contract": "generated/read_models/workflow_package_queue_contract.json",
+      "gaps": "No automatic staging bridge from composer plans to queued packages."
+    },
+    "continue": {
+      "status": "partial",
+      "supporting_contract": "generated/read_models/operator_controller_protocol.json",
+      "gaps": "Lacks the state machine needed to resume suspended/warned execution."
+    },
+    "request_rework": {
+      "status": "ready",
+      "supporting_contract": "generated/read_models/workroom_review_decision_status.json",
+      "gaps": "Resets review status in read models; lacks automatic compiler trigger."
+    },
+    "mark_informational": {
+      "status": "ready",
+      "supporting_contract": "generated/read_models/workroom_review_decision_status.json",
+      "gaps": "None."
+    },
+    "stop_hold_cancel": {
+      "status": "ready",
+      "supporting_contract": "generated/read_models/approval_request_queue.json",
+      "gaps": "Writes hold/cancellation state to queues; lacks active process kill signals."
+    },
+    "show_details": {
+      "status": "ready",
+      "supporting_contract": "generated/read_models/dynamic_card_packet_latest.json",
+      "gaps": "Requires standard collapsing indicators on all dynamic cards."
+    }
+  },
+  "missing_backend_contracts": [
+    {
+      "contract": "universal_card_packet_outlet",
+      "description": "A single consolidated endpoint/file representing dynamic_card_packet_latest.json. Currently, cards are generated by disparate modules rather than a unified outlet."
+    },
+    {
+      "contract": "unified_receipt_schema",
+      "description": "A shared structure uniting approval queue receipts, review packet decisions, and evidence intake metadata into a single ledger receipt format."
+    },
+    {
+      "contract": "knob_filtering_contract",
+      "description": "Backend logic to dynamically filter and prune the card list based on the operator's current zoom, proof depth, and mode parameters."
+    }
+  ],
+  "mac_app_implications": {
+    "hardcoding_removable": [
+      "Special-case SwiftUI layout views for Capital Hilton order views versus St. Anne's work log reviews.",
+      "Local UI-level enablement logic that duplicates the backend's gate rules.",
+      "Hardcoded client-specific status copy and tone labels.",
+      "Local proof disclosure heuristics that determine when to reveal file paths."
+    ],
+    "replacement_system": "The Mac app renders a single DynamicCardComponent mapped to schema tones, headlines, summaries, bullets, and action buttons. Action buttons contain deterministic payloads which are returned to the backend route verbatim."
+  },
+  "risks": [
+    "Operator fatigue if zoom level is set too low (moment level for everything).",
+    "False recursive truth if planner outputs are displayed as verified facts without explicit proof refs.",
+    "Bypassing gates if action buttons are rendered without validating device/session verification status."
+  ],
+  "recommended_next_implementation_sequence": [
+    {
+      "step": 1,
+      "task": "regression_tests",
+      "description": "Freeze current deterministic rails (system question, workflow package, workroom review, workbook registration) with regression tests."
+    },
+    {
+      "step": 2,
+      "task": "additive_card_packet",
+      "description": "Implement the dynamic_card_packet schema as an additive field on existing backend response structures, keeping Mac compatibility."
+    },
+    {
+      "step": 3,
+      "task": "port_existing_rails",
+      "description": "Populate dynamic_card_packet for system-question, workflow-package, workroom-review, and workbook-registration rails first."
+    },
+    {
+      "step": 4,
+      "task": "smoke_test_rendering",
+      "description": "Run bridge comparison tests to ensure the new dynamic cards represent equivalent copy, links, and buttons before upgrading the app."
+    }
+  ]
+}
