@@ -219,6 +219,6 @@ def test_export_writes_json_local_bridge_and_wiki(tmp_path):
     assert latest == bridge_latest
     assert contract["status"] == "DYNAMIC_CARD_PACKET_READY"
     assert latest["status"] == "DYNAMIC_CARD_PACKET_READY"
-    assert latest["schema_version"] == "dynamic_card_packet_v0"
+    assert latest["schema_version"] == "dynamic_card_packet_v1"
     assert latest["card_count"] >= 7
     assert Path(result["wiki_path"]).exists()
