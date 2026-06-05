@@ -1,0 +1,1722 @@
+"""Operator Controller Event Router V0.
+
+Maps verified Mission Control controller events to existing safe OpenClaw
+routes. The router records receipts and card responses only; it never sends,
+submits, opens external providers, mutates ledgers/workbooks, marks paid, pushes
+git state, invokes LMs, or connects local model runtimes.
+"""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import shutil
+import sqlite3
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Mapping, Sequence
+
+import evidence_intake
+import first_class_operator_envelope as operator_authority
+import workroom_review_decision_consumer
+
+
+ROOT = Path(__file__).resolve().parent
+DEFAULT_READ_MODEL_ROOT = Path("generated/read_models")
+DEFAULT_EXPORT_ROOT = Path("generated/read_models")
+DEFAULT_BRIDGE_ROOT = Path("/mnt/e/openclaw/generated/read_models")
+DEFAULT_WIKI_PATH = Path("generated/wiki/openclaw/Operator Controller Event Router.md")
+DEFAULT_SQLITE_PATH = Path("generated/system_knowledge/operator_controller_event_router.sqlite")
+
+REQUEST_TYPE = "OPERATOR_CONTROLLER_EVENT_REQUEST_V0"
+SCHEMA_VERSION = "operator_controller_event_router_v0"
+CONTRACT_SCHEMA_VERSION = "operator_controller_event_router_contract_v0"
+CONTRACT_READ_MODEL_ID = "operator_controller_event_router_contract"
+STATUS_READ_MODEL_ID = "operator_controller_event_router_status"
+CONTRACT_JSON_EXPORT_NAME = f"{CONTRACT_READ_MODEL_ID}.json"
+STATUS_JSON_EXPORT_NAME = f"{STATUS_READ_MODEL_ID}.json"
+
+READY_STATUS = "OPERATOR_CONTROLLER_EVENT_ROUTER_READY"
+NOT_READY_STATUS = "OPERATOR_CONTROLLER_EVENT_ROUTER_NOT_READY"
+
+RESPONSE_READY = "RESPONSE_READY"
+BLOCKED_WITH_REASON = "BLOCKED_WITH_REASON"
+
+EVENT_TYPES = (
+    "chat_goal",
+    "do_it",
+    "approve",
+    "deny",
+    "attach_proof",
+    "ask_why",
+    "open_lane",
+    "stage_plan",
+    "continue",
+    "request_rework",
+    "mark_informational",
+    "stop_hold_cancel",
+    "show_details",
+)
+
+WORKROOM_DECISION_BY_EVENT = {
+    "approve": "approve_review_packet_for_record",
+    "deny": "request_review_packet_rework",
+    "request_rework": "request_review_packet_rework",
+    "mark_informational": "mark_review_packet_informational",
+}
+
+ACTION_TYPES_WITH_PAYLOAD_REQUIRED = {
+    "do_it",
+    "approve",
+    "deny",
+    "request_rework",
+    "mark_informational",
+}
+
+PRECONDITIONS = {
+    "operator_controller_protocol": {
+        "filename": "operator_controller_protocol.json",
+        "accepted_statuses": ("OPERATOR_CONTROLLER_PROTOCOL_READY",),
+    },
+    "first_class_operator_envelope": {
+        "filename": "first_class_operator_envelope_status.json",
+        "accepted_statuses": ("FIRST_CLASS_OPERATOR_ENVELOPE_READY",),
+    },
+    "dynamic_card_packet": {
+        "filename": "dynamic_card_packet_latest.json",
+        "accepted_statuses": ("DYNAMIC_CARD_PACKET_READY",),
+    },
+    "dynamic_card_lifecycle_policy": {
+        "filename": "dynamic_card_lifecycle_policy.json",
+        "accepted_statuses": ("DYNAMIC_CARD_LIFECYCLE_POLICY_READY",),
+    },
+    "verified_evidence_intake": {
+        "filename": "evidence_intake_status.json",
+        "accepted_statuses": ("EVIDENCE_INTAKE_READY", "EVIDENCE_INTAKE_LIVE_ROUTE_READY"),
+    },
+    "operator_action_payloads": {
+        "filename": "operator_action_payloads.json",
+        "accepted_statuses": ("OPERATOR_ACTION_PAYLOADS_READY",),
+    },
+    "contextual_system_questions": {
+        "filename": "system_question_answer_contract.json",
+        "accepted_statuses": ("CONTEXTUAL_SYSTEM_QUESTIONS_READY", "SYSTEM_QUESTION_ANSWER_V0_READY"),
+        "status_keys": ("contextual_status", "status", "readiness_status", "contract_status"),
+    },
+    "workroom_review_decision_consumer": {
+        "filename": "workroom_review_decision_status.json",
+        "accepted_statuses": ("WORKROOM_REVIEW_DECISION_CONSUMER_READY",),
+    },
+}
+
+AUTHORITY_BOUNDARY = {
+    **operator_authority.AUTHORITY_BOUNDARY,
+    "merge_allowed": False,
+    "push_allowed": False,
+    "agent_loop_allowed": False,
+    "child_agent_run_allowed": False,
+    "worker_execution_allowed": False,
+    "workbook_open_allowed": False,
+    "workbook_body_read_allowed": False,
+    "spreadsheet_cell_read_allowed": False,
+    "excel_automation_allowed": False,
+    "repair_authority_allowed": False,
+}
+
+UNSAFE_TRUE_KEYS = set(operator_authority.UNSAFE_TRUE_KEYS) | set(evidence_intake.UNSAFE_TRUE_KEYS) | {
+    "merge_allowed",
+    "push_allowed",
+    "agent_loop_allowed",
+    "child_agent_run_allowed",
+    "worker_execution_allowed",
+    "workbook_open_allowed",
+    "workbook_body_read_allowed",
+    "spreadsheet_cell_read_allowed",
+    "excel_automation_allowed",
+    "repair_authority_allowed",
+    "merge_performed",
+    "business_state_mutation_performed",
+    "child_agent_run_performed",
+    "worker_execution_performed",
+    "live_external_provider_action_performed",
+    "package_staged_without_operator_review",
+    "approval_granted",
+}
+
+PROTECTED_TERMS = (
+    "email",
+    "gmail",
+    "browser",
+    "coupa",
+    "submit",
+    "ledger",
+    "workbook",
+    "excel",
+    "pdf",
+    "mark_paid",
+    "paid",
+    "merge",
+    "push",
+    "worker",
+    "external_provider",
+)
+
+
+def stable_json(payload: Any) -> str:
+    return json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
+
+
+def utc_now() -> str:
+    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
+def _rooted(path: Path) -> Path:
+    return path if path.is_absolute() else ROOT / path
+
+
+def _short_hash(*parts: object, length: int = 16) -> str:
+    joined = "\0".join(str(part) for part in parts)
+    return hashlib.sha256(joined.encode("utf-8")).hexdigest()[:length]
+
+
+def _load_json(path: Path) -> dict[str, Any]:
+    path = _rooted(path)
+    if not path.exists():
+        return {}
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return {}
+    return payload if isinstance(payload, dict) else {}
+
+
+def _status(payload: Mapping[str, Any], keys: Sequence[str] = ("status", "readiness_status", "contract_status")) -> str:
+    for key in keys:
+        value = payload.get(key)
+        if value:
+            return str(value)
+    return ""
+
+
+def _precondition_rows(read_model_root: Path = DEFAULT_READ_MODEL_ROOT) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    root = _rooted(read_model_root)
+    for ref, spec in PRECONDITIONS.items():
+        filename = str(spec["filename"])
+        payload = _load_json(root / filename)
+        accepted = tuple(str(item) for item in spec["accepted_statuses"])
+        keys = tuple(str(item) for item in spec.get("status_keys", ("status", "readiness_status", "contract_status")))
+        observed = _status(payload, keys)
+        rows.append(
+            {
+                "precondition_ref": ref,
+                "observed_status": observed,
+                "accepted_statuses": list(accepted),
+                "ready": observed in accepted,
+                "source_ref": f"generated/read_models/{filename}",
+            }
+        )
+    return rows
+
+
+def _as_list(value: Any) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, str):
+        return [value.strip()] if value.strip() else []
+    if isinstance(value, Sequence) and not isinstance(value, (bytes, bytearray)):
+        return [str(item).strip() for item in value if str(item).strip()]
+    return []
+
+
+def _walk(payload: Any):
+    if isinstance(payload, Mapping):
+        for key, value in payload.items():
+            yield str(key), value
+            yield from _walk(value)
+    elif isinstance(payload, list):
+        for value in payload:
+            yield from _walk(value)
+
+
+def unsafe_true_grants(payload: Mapping[str, Any]) -> list[str]:
+    return sorted({key for key, value in _walk(payload) if key in UNSAFE_TRUE_KEYS and value is True})
+
+
+def _incoming_authority_granted_fields(payload: Mapping[str, Any]) -> list[str]:
+    fields: list[str] = []
+
+    def scan(value: Any, path: str) -> None:
+        if isinstance(value, Mapping):
+            for key, child in value.items():
+                child_path = f"{path}.{key}" if path else str(key)
+                if key in {"authority_granted", "gate_decision_ref", "approval_receipt_ref"}:
+                    fields.append(child_path)
+                scan(child, child_path)
+        elif isinstance(value, list):
+            for index, child in enumerate(value):
+                scan(child, f"{path}[{index}]")
+
+    scan(payload, "")
+    return sorted(dict.fromkeys(fields))
+
+
+def _boundary_all_false(boundary: Any) -> bool:
+    if not isinstance(boundary, Mapping):
+        return False
+    for key in AUTHORITY_BOUNDARY:
+        if key not in boundary or boundary.get(key) is not False:
+            return False
+    return True
+
+
+def _canonical_action_id(value: str) -> str:
+    action_id = str(value or "").strip()
+    if "#action_payloads." in action_id:
+        action_id = action_id.split("#action_payloads.", 1)[1]
+    if action_id.startswith("action_payloads."):
+        action_id = action_id[len("action_payloads.") :]
+    return action_id
+
+
+def normalize_controller_event_request(raw_request: Mapping[str, Any]) -> dict[str, Any]:
+    request = dict(raw_request)
+    event_type = str(request.get("controller_event_type") or request.get("controller_action_type") or "").strip()
+    if event_type and not request.get("controller_action_type"):
+        request["controller_action_type"] = event_type
+    envelope = request.get("operator_envelope")
+    if (
+        isinstance(envelope, Mapping)
+        and "operator_authority_envelope" not in request
+        and any(field in envelope for field in operator_authority.REQUIRED_ENVELOPE_FIELDS)
+    ):
+        request["operator_authority_envelope"] = dict(envelope)
+    return request
+
+
+def _validate_controller_event(request: Mapping[str, Any]) -> dict[str, Any]:
+    blockers: list[str] = []
+    rejected_reasons: list[str] = []
+    event_type = str(request.get("controller_event_type") or "").strip()
+    envelope_result = operator_authority.validate_operator_authority_envelope(request)
+
+    if str(request.get("request_type") or "") != REQUEST_TYPE:
+        blockers.append("request_type_invalid")
+    if not str(request.get("current_world_ref") or "").strip():
+        blockers.append("current_world_ref_missing")
+    if not str(request.get("current_thread_ref") or "").strip():
+        blockers.append("current_thread_ref_missing")
+    if not _boundary_all_false(request.get("authority_boundary")):
+        blockers.append("authority_boundary_not_all_false")
+
+    incoming_grant_fields = _incoming_authority_granted_fields(request)
+    if incoming_grant_fields:
+        rejected_reasons.append("incoming_authority_granted_or_backend_gate_fields_not_accepted")
+
+    true_grants = unsafe_true_grants(request)
+    if true_grants:
+        rejected_reasons.append("unsafe_true_grants_present")
+
+    if envelope_result.get("verification_status") != operator_authority.VERIFICATION_STATUS_VERIFIED:
+        blockers.append("verified_operator_envelope_required")
+
+    status = "verified"
+    if rejected_reasons:
+        status = "rejected"
+    elif blockers:
+        status = "needs_verification"
+
+    return {
+        "status": status,
+        "verified": status == "verified",
+        "blockers": blockers,
+        "rejected_reasons": rejected_reasons,
+        "unsafe_true_grants": true_grants,
+        "incoming_authority_granted_fields": incoming_grant_fields,
+        "operator_authority_envelope": envelope_result,
+    }
+
+
+def _action_payloads(read_model_root: Path) -> list[dict[str, Any]]:
+    payload = _load_json(_rooted(read_model_root) / "operator_action_payloads.json")
+    actions = payload.get("action_payloads")
+    if not isinstance(actions, list):
+        return []
+    return [dict(item) for item in actions if isinstance(item, Mapping)]
+
+
+def _action_payload_by_id(read_model_root: Path, action_id: str) -> dict[str, Any] | None:
+    wanted = _canonical_action_id(action_id)
+    if not wanted:
+        return None
+    for action in _action_payloads(read_model_root):
+        if str(action.get("action_id") or "") == wanted:
+            return action
+    return None
+
+
+def _find_review_action_payload(read_model_root: Path, event_type: str, request: Mapping[str, Any]) -> dict[str, Any] | None:
+    selected = _action_payload_by_id(read_model_root, str(request.get("selected_action_id") or ""))
+    if selected:
+        return selected
+    wanted_decision = WORKROOM_DECISION_BY_EVENT.get(event_type, "")
+    if not wanted_decision:
+        return None
+    world = str(request.get("current_world_ref") or "")
+    thread = str(request.get("current_thread_ref") or "")
+    for action in _action_payloads(read_model_root):
+        payload = action.get("payload") if isinstance(action.get("payload"), Mapping) else {}
+        if str(action.get("action_type") or "") != "review_decision":
+            continue
+        if str(payload.get("decision_action") or "") != wanted_decision:
+            continue
+        if world and str(action.get("target_world_ref") or "") != world:
+            continue
+        if thread and str(action.get("target_thread_ref") or "") != thread:
+            continue
+        return action
+    return None
+
+
+def _default_do_it_action_id(request: Mapping[str, Any]) -> str:
+    joined = " ".join(
+        str(request.get(key) or "")
+        for key in ("selected_action_id", "selected_card_id", "active_entity_ref", "operator_text")
+    ).lower()
+    world = str(request.get("current_world_ref") or "").strip().lower()
+    thread = str(request.get("current_thread_ref") or "").strip().lower()
+    if "coupa" in joined and "submit" in joined:
+        return "guardian_gate.coupa_submit.stage_approval_request"
+    if world == "finance" and thread == "capital_hilton":
+        return "capital_hilton.payment.open_finance"
+    if world == "business_development" and thread == "capital_hilton":
+        return "capital_hilton.proposal.stage_followup"
+    return ""
+
+
+def _resolve_action_payload(read_model_root: Path, event_type: str, request: Mapping[str, Any]) -> dict[str, Any] | None:
+    selected = _action_payload_by_id(read_model_root, str(request.get("selected_action_id") or ""))
+    if selected:
+        return selected
+    if event_type == "do_it":
+        return _action_payload_by_id(read_model_root, _default_do_it_action_id(request))
+    if event_type in WORKROOM_DECISION_BY_EVENT:
+        return _find_review_action_payload(read_model_root, event_type, request)
+    return None
+
+
+def _contextual_answer(read_model_root: Path, request: Mapping[str, Any]) -> dict[str, Any]:
+    contract = _load_json(_rooted(read_model_root) / "system_question_answer_contract.json")
+    answers = contract.get("contextual_lane_answers") if isinstance(contract.get("contextual_lane_answers"), Mapping) else {}
+    world = str(request.get("current_world_ref") or "").strip()
+    thread = str(request.get("current_thread_ref") or "").strip()
+    key = f"{world}/{thread}"
+    answer = answers.get(key)
+    if not isinstance(answer, Mapping):
+        answer = answers.get(f"{world}/*")
+    if not isinstance(answer, Mapping):
+        answer = {
+            "headline": "Needs context",
+            "plain_summary": "I need a known world and thread before I can answer this controller question.",
+            "next_safe_action": "Select a lane or card and ask again.",
+        }
+    return {
+        "workflow_ref": "system_question_answer",
+        "question": str(request.get("operator_text") or "Why is this here?"),
+        "speaker_ref": "chief",
+        "voice_mode": "diagnostic",
+        "headline": str(answer.get("headline") or "Context answer"),
+        "plain_summary": str(answer.get("plain_summary") or ""),
+        "confirmed": [str(answer.get("plain_summary") or "")] if answer.get("plain_summary") else [],
+        "inferred": [],
+        "unknown": [],
+        "next_safe_action": str(answer.get("next_safe_action") or ""),
+        "proof_refs": [
+            "generated/read_models/system_question_answer_contract.json",
+            "generated/read_models/dynamic_card_packet_latest.json",
+        ],
+        "package_staged": False,
+    }
+
+
+def _cards(read_model_root: Path) -> list[dict[str, Any]]:
+    packet = _load_json(_rooted(read_model_root) / "dynamic_card_packet_latest.json")
+    cards = packet.get("cards")
+    if not isinstance(cards, list):
+        return []
+    return [dict(item) for item in cards if isinstance(item, Mapping)]
+
+
+def _card_by_id(read_model_root: Path, card_id: str) -> dict[str, Any] | None:
+    for card in _cards(read_model_root):
+        if str(card.get("card_id") or "") == card_id:
+            return card
+    return None
+
+
+def _proof_refs_from_card(card: Mapping[str, Any] | None) -> list[str]:
+    if not isinstance(card, Mapping):
+        return ["generated/read_models/dynamic_card_packet_latest.json"]
+    proof = card.get("proof") if isinstance(card.get("proof"), Mapping) else {}
+    refs: list[str] = ["generated/read_models/dynamic_card_packet_latest.json"]
+    for key in ("proof_refs", "read_model_refs", "receipt_refs"):
+        refs.extend(_as_list(proof.get(key)))
+    return list(dict.fromkeys(ref for ref in refs if ref))
+
+
+def _card_response(
+    *,
+    receipt_id: str,
+    event_type: str,
+    headline: str,
+    summary: str,
+    status_label: str,
+    route_status: str,
+    current_world_ref: str,
+    current_thread_ref: str,
+    actions: list[dict[str, Any]] | None = None,
+    proof_refs: list[str] | None = None,
+    tone: str = "calm",
+) -> dict[str, Any]:
+    return {
+        "schema_version": "operator_controller_dynamic_card_response_v0",
+        "card_id": f"dynamic_card.operator_controller_event.{_short_hash(receipt_id, event_type, length=12)}",
+        "card_type": "controller_event_response",
+        "controller_event_type": event_type,
+        "headline": headline,
+        "plain_summary": summary,
+        "summary": summary,
+        "status_label": status_label,
+        "tone": tone,
+        "trust_state": "trusted_current" if route_status == "ROUTED" else "needs_verification",
+        "lifecycle_state": "active" if route_status == "ROUTED" else "needs_operator",
+        "freshness_state": "current",
+        "visible_by_default": True,
+        "operator_attention_required": route_status != "ROUTED",
+        "target_world_ref": current_world_ref,
+        "target_thread_ref": current_thread_ref,
+        "actions": actions or [],
+        "proof": {
+            "collapsed_by_default": True,
+            "label": "Details",
+            "proof_refs": proof_refs or ["generated/read_models/operator_controller_event_router_status.json"],
+            "read_model_refs": [
+                "generated/read_models/operator_controller_event_router_status.json",
+                "generated/read_models/operator_controller_event_router_contract.json",
+            ],
+            "receipt_refs": [receipt_id],
+        },
+        "authority_boundary": dict(AUTHORITY_BOUNDARY),
+        "machine_proof": _machine_proof(),
+    }
+
+
+def _machine_proof(**overrides: Any) -> dict[str, Any]:
+    proof = {
+        "verified_operator_envelope_required": True,
+        "authority_requested_does_not_imply_authority_granted": True,
+        "incoming_authority_granted_accepted": False,
+        "dynamic_card_response_emitted": True,
+        "no_live_external_provider_action": True,
+        "no_business_execution": True,
+        "email_send_performed": False,
+        "gmail_access_performed": False,
+        "browser_access_performed": False,
+        "coupa_access_performed": False,
+        "portal_submit_performed": False,
+        "ledger_posting_performed": False,
+        "ledger_mutation_performed": False,
+        "workbook_mutation_performed": False,
+        "pdf_export_performed": False,
+        "paid_marking_performed": False,
+        "submit_performed": False,
+        "business_action_performed": False,
+        "business_state_mutation_performed": False,
+        "merge_performed": False,
+        "git_push_performed": False,
+        "worker_spawn_performed": False,
+        "child_agent_run_performed": False,
+        "external_llm_invoked": False,
+        "external_provider_connected": False,
+        "local_model_runtime_connected": False,
+        "live_external_provider_action_performed": False,
+    }
+    proof.update(overrides)
+    return proof
+
+
+def _request_id(request: Mapping[str, Any]) -> str:
+    return str(request.get("request_id") or request.get("source_request_id") or "operator_controller_event_request")
+
+
+def _base_receipt(
+    request: Mapping[str, Any],
+    *,
+    receipt_id: str,
+    generated_at: str,
+    validation: Mapping[str, Any],
+) -> dict[str, Any]:
+    event_type = str(request.get("controller_event_type") or "")
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "receipt_type": "OPERATOR_CONTROLLER_EVENT_ROUTER_RECEIPT",
+        "receipt_id": receipt_id,
+        "generated_at": generated_at,
+        "request_id": _request_id(request),
+        "request_type": str(request.get("request_type") or ""),
+        "controller_event_type": event_type,
+        "current_world_ref": str(request.get("current_world_ref") or ""),
+        "current_thread_ref": str(request.get("current_thread_ref") or ""),
+        "active_entity_ref": str(request.get("active_entity_ref") or ""),
+        "selected_card_id": str(request.get("selected_card_id") or ""),
+        "selected_action_id": _canonical_action_id(str(request.get("selected_action_id") or "")),
+        "operator_text": str(request.get("operator_text") or ""),
+        "authority_requested": _as_list(request.get("authority_requested")),
+        "authority_granted": [],
+        "authority_boundary": dict(AUTHORITY_BOUNDARY),
+        "operator_authority_envelope": dict(validation.get("operator_authority_envelope") or {}),
+        "incoming_authority_granted_fields": list(validation.get("incoming_authority_granted_fields") or []),
+        "incoming_authority_granted_accepted": False,
+        "blockers": list(validation.get("blockers") or []),
+        "rejected_reasons": list(validation.get("rejected_reasons") or []),
+        "unsafe_true_grants": list(validation.get("unsafe_true_grants") or []),
+        "route_status": "PENDING",
+        "raw_internal_status": BLOCKED_WITH_REASON,
+        "backend_route": "",
+        "route_ref": "",
+        "route_receipt_ref": "",
+        "dynamic_card_response": {},
+        "proof_refs": ["generated/read_models/operator_controller_event_router_status.json"],
+        "machine_proof": _machine_proof(dynamic_card_response_emitted=False),
+    }
+
+
+def _blocked_receipt(
+    request: Mapping[str, Any],
+    *,
+    receipt_id: str,
+    generated_at: str,
+    validation: Mapping[str, Any],
+    route_status: str,
+    headline: str,
+    summary: str,
+    blocker: str,
+) -> dict[str, Any]:
+    receipt = _base_receipt(request, receipt_id=receipt_id, generated_at=generated_at, validation=validation)
+    blockers = list(receipt.get("blockers") or [])
+    if blocker and blocker not in blockers:
+        blockers.append(blocker)
+    receipt.update(
+        {
+            "route_status": route_status,
+            "raw_internal_status": BLOCKED_WITH_REASON,
+            "blockers": blockers,
+            "backend_route": "fail_closed",
+            "route_ref": "operator_controller_event_router.fail_closed",
+        }
+    )
+    card = _card_response(
+        receipt_id=receipt_id,
+        event_type=str(request.get("controller_event_type") or ""),
+        headline=headline,
+        summary=summary,
+        status_label="Needs verification" if route_status == "NEEDS_VERIFICATION" else "Blocked",
+        route_status=route_status,
+        current_world_ref=str(request.get("current_world_ref") or ""),
+        current_thread_ref=str(request.get("current_thread_ref") or ""),
+        tone="blocked",
+    )
+    receipt["dynamic_card_response"] = card
+    receipt["proof_refs"] = list(card["proof"]["proof_refs"])
+    receipt["machine_proof"] = _machine_proof(
+        dynamic_card_response_emitted=True,
+        incoming_authority_granted_accepted=False,
+    )
+    receipt["machine_proof"]["unsafe_true_grants"] = unsafe_true_grants(receipt)
+    receipt["machine_proof"]["unsafe_true_grants_absent"] = not receipt["machine_proof"]["unsafe_true_grants"]
+    return receipt
+
+
+def _safe_action_summary(action: Mapping[str, Any]) -> dict[str, Any]:
+    payload = action.get("payload") if isinstance(action.get("payload"), Mapping) else {}
+    return {
+        "action_id": str(action.get("action_id") or ""),
+        "action_type": str(action.get("action_type") or ""),
+        "label": str(action.get("label") or ""),
+        "enabled": action.get("enabled") is True,
+        "business_action": action.get("business_action") is True,
+        "target_world_ref": str(action.get("target_world_ref") or ""),
+        "target_thread_ref": str(action.get("target_thread_ref") or ""),
+        "payload": dict(payload),
+        "proof_refs": _as_list(action.get("proof_refs")),
+    }
+
+
+def _action_safe(action: Mapping[str, Any]) -> bool:
+    if action.get("business_action") is True:
+        return False
+    if action.get("enabled") is False:
+        return False
+    boundary = action.get("authority_boundary")
+    if isinstance(boundary, Mapping) and any(value is True for value in boundary.values()):
+        return False
+    payload = action.get("payload") if isinstance(action.get("payload"), Mapping) else {}
+    payload_boundary = payload.get("authority_boundary")
+    if isinstance(payload_boundary, Mapping) and any(value is True for value in payload_boundary.values()):
+        return False
+    return not unsafe_true_grants(action)
+
+
+def _route_ask_why(
+    request: Mapping[str, Any],
+    *,
+    read_model_root: Path,
+    receipt_id: str,
+    generated_at: str,
+    validation: Mapping[str, Any],
+) -> dict[str, Any]:
+    answer = _contextual_answer(read_model_root, request)
+    receipt = _base_receipt(request, receipt_id=receipt_id, generated_at=generated_at, validation=validation)
+    card = _card_response(
+        receipt_id=receipt_id,
+        event_type="ask_why",
+        headline=answer["headline"],
+        summary=answer["plain_summary"],
+        status_label="Context answer",
+        route_status="ROUTED",
+        current_world_ref=str(request.get("current_world_ref") or ""),
+        current_thread_ref=str(request.get("current_thread_ref") or ""),
+        actions=[],
+        proof_refs=list(answer["proof_refs"]),
+    )
+    receipt.update(
+        {
+            "route_status": "ROUTED",
+            "raw_internal_status": RESPONSE_READY,
+            "backend_route": "system_question_answer.contextual_answer",
+            "route_ref": "system_question_answer:contextual_lane_answer",
+            "route_result": answer,
+            "dynamic_card_response": card,
+            "proof_refs": list(card["proof"]["proof_refs"]),
+            "machine_proof": _machine_proof(package_staged=False),
+        }
+    )
+    return receipt
+
+
+def _route_open_lane(
+    request: Mapping[str, Any],
+    *,
+    read_model_root: Path,
+    receipt_id: str,
+    generated_at: str,
+    validation: Mapping[str, Any],
+) -> dict[str, Any]:
+    action = _action_payload_by_id(read_model_root, str(request.get("selected_action_id") or ""))
+    if action and str(action.get("action_type") or "") != "navigate":
+        action = None
+    if action and not _action_safe(action):
+        return _blocked_receipt(
+            request,
+            receipt_id=receipt_id,
+            generated_at=generated_at,
+            validation=validation,
+            route_status="NEEDS_VERIFICATION",
+            headline="Needs verification",
+            summary="The selected lane action is not a safe navigation payload.",
+            blocker="selected_action_payload_not_safe_navigation",
+        )
+    target_world = str((action or {}).get("target_world_ref") or request.get("current_world_ref") or "")
+    target_thread = str((action or {}).get("target_thread_ref") or request.get("current_thread_ref") or "")
+    action_summary = _safe_action_summary(action) if action else {
+        "action_id": "controller.open_current_lane",
+        "action_type": "navigate",
+        "label": "Open lane",
+        "enabled": True,
+        "business_action": False,
+        "target_world_ref": target_world,
+        "target_thread_ref": target_thread,
+        "payload": {"open_lane_only": True},
+        "proof_refs": ["generated/read_models/dynamic_card_packet_latest.json"],
+    }
+    receipt = _base_receipt(request, receipt_id=receipt_id, generated_at=generated_at, validation=validation)
+    card = _card_response(
+        receipt_id=receipt_id,
+        event_type=str(request.get("controller_event_type") or "open_lane"),
+        headline="Lane navigation ready",
+        summary=f"Mission Control can navigate to {target_world}/{target_thread}. No business action is attached.",
+        status_label="Navigation only",
+        route_status="ROUTED",
+        current_world_ref=target_world,
+        current_thread_ref=target_thread,
+        actions=[action_summary],
+        proof_refs=action_summary["proof_refs"],
+    )
+    receipt.update(
+        {
+            "route_status": "ROUTED",
+            "raw_internal_status": RESPONSE_READY,
+            "backend_route": "operator_action_payloads.navigate",
+            "route_ref": str(action_summary["action_id"]),
+            "route_result": {"navigation": action_summary, "business_action": False},
+            "dynamic_card_response": card,
+            "proof_refs": list(card["proof"]["proof_refs"]),
+            "machine_proof": _machine_proof(navigation_only=True),
+        }
+    )
+    return receipt
+
+
+def _route_attach_proof(
+    request: Mapping[str, Any],
+    *,
+    receipt_id: str,
+    generated_at: str,
+    validation: Mapping[str, Any],
+    evidence_sqlite_path: Path,
+    artifact_lineage_sqlite_path: Path | None,
+) -> dict[str, Any]:
+    envelope = validation.get("operator_authority_envelope") if isinstance(validation.get("operator_authority_envelope"), Mapping) else {}
+    note = str(request.get("operator_text") or "")
+    intended_use = str(request.get("intended_use") or "")
+    text = " ".join(
+        str(request.get(key) or "")
+        for key in ("operator_text", "artifact_ref", "selected_card_id", "selected_action_id", "active_entity_ref")
+    ).lower()
+    if not intended_use:
+        intended_use = "payment_proof" if "payment" in text or str(request.get("current_world_ref") or "") == "finance" else "general_reference"
+    evidence_request = {
+        "request_id": f"controller_event_evidence_intake_{_short_hash(receipt_id)}",
+        "request_type": evidence_intake.VERIFIED_REQUEST_TYPE,
+        "kind": evidence_intake.VERIFIED_REQUEST_TYPE,
+        "type": evidence_intake.VERIFIED_REQUEST_TYPE,
+        "source_surface": "mission_control",
+        "current_world_ref": str(request.get("current_world_ref") or ""),
+        "current_thread_ref": str(request.get("current_thread_ref") or ""),
+        "world_ref": str(request.get("current_world_ref") or ""),
+        "thread_ref": str(request.get("current_thread_ref") or ""),
+        "claimed_client_ref": str(request.get("current_thread_ref") or ""),
+        "claimed_workflow_ref": str(request.get("claimed_workflow_ref") or request.get("workflow_ref") or f"{request.get('current_thread_ref', '')}_payment_watch"),
+        "operator_ref": str(envelope.get("operator_ref") or ""),
+        "app_instance_ref": str(envelope.get("app_instance_ref") or ""),
+        "device_ref": str(envelope.get("device_ref") or ""),
+        "session_ref": str(envelope.get("session_ref") or ""),
+        "created_at": generated_at,
+        "request_hash": str(envelope.get("request_hash") or operator_authority.compute_request_hash(request)),
+        "artifact_path": str(request.get("artifact_path") or ""),
+        "bridge_artifact_ref": str(request.get("bridge_artifact_ref") or request.get("artifact_ref") or ""),
+        "artifact_kind": str(request.get("artifact_kind") or "screenshot"),
+        "operator_note": note or "Operator attached proof from Mission Control.",
+        "privacy_class": "financial_sensitive" if intended_use == "payment_proof" else str(request.get("privacy_class") or "internal_reference"),
+        "intended_use": intended_use,
+        "authority_boundary": dict(evidence_intake.AUTHORITY_BOUNDARY),
+    }
+    record = evidence_intake.record_evidence_intake(
+        evidence_request,
+        sqlite_path=evidence_sqlite_path,
+        artifact_lineage_sqlite_path=artifact_lineage_sqlite_path,
+        generated_at=generated_at,
+    )
+    receipt = _base_receipt(request, receipt_id=receipt_id, generated_at=generated_at, validation=validation)
+    if record.get("status") != evidence_intake.READY_STATUS:
+        return _blocked_receipt(
+            request,
+            receipt_id=receipt_id,
+            generated_at=generated_at,
+            validation=validation,
+            route_status="NEEDS_VERIFICATION",
+            headline="Needs verification",
+            summary="Evidence intake blocked because the proof request was incomplete or unverified.",
+            blocker="evidence_intake_blocked",
+        )
+    card = dict(record.get("dynamic_card") or {})
+    card["controller_event_type"] = "attach_proof"
+    card.setdefault("authority_boundary", dict(AUTHORITY_BOUNDARY))
+    receipt.update(
+        {
+            "route_status": "ROUTED",
+            "raw_internal_status": RESPONSE_READY,
+            "backend_route": "evidence_intake.record_candidate_evidence",
+            "route_ref": str(record.get("intake_id") or ""),
+            "route_receipt_ref": str(record.get("request_ref") or ""),
+            "route_result": record,
+            "dynamic_card_response": card,
+            "proof_refs": [
+                "generated/read_models/evidence_intake_status.json",
+                str(record.get("artifact_ref") or ""),
+                str(record.get("request_ref") or ""),
+            ],
+            "machine_proof": _machine_proof(
+                evidence_intake_recorded=True,
+                payment_processing_evidence_does_not_mark_paid=(record.get("payment") or {}).get("paid") is False,
+                ledger_mutation_performed=False,
+                paid_marking_performed=False,
+            ),
+        }
+    )
+    return receipt
+
+
+def _route_workroom_decision(
+    request: Mapping[str, Any],
+    *,
+    read_model_root: Path,
+    export_root: Path,
+    bridge_root: Path | None,
+    workroom_wiki_path: Path | None,
+    receipt_id: str,
+    generated_at: str,
+    validation: Mapping[str, Any],
+) -> dict[str, Any]:
+    event_type = str(request.get("controller_event_type") or "")
+    action = _find_review_action_payload(read_model_root, event_type, request)
+    if not action:
+        return _blocked_receipt(
+            request,
+            receipt_id=receipt_id,
+            generated_at=generated_at,
+            validation=validation,
+            route_status="NEEDS_VERIFICATION",
+            headline="Needs verification",
+            summary="No deterministic review decision action payload matched the selected card/action.",
+            blocker="missing_action_payload",
+        )
+    if not _action_safe(action):
+        return _blocked_receipt(
+            request,
+            receipt_id=receipt_id,
+            generated_at=generated_at,
+            validation=validation,
+            route_status="NEEDS_VERIFICATION",
+            headline="Needs verification",
+            summary="The selected review decision payload requested unsafe authority.",
+            blocker="unsafe_action_payload",
+        )
+    payload = dict(action.get("payload") or {})
+    payload["reason"] = str(request.get("operator_text") or payload.get("reason") or "")
+    payload["request_id"] = f"controller_event_workroom_review_{_short_hash(receipt_id)}"
+    result = workroom_review_decision_consumer.consume_workroom_review_decision_request(
+        payload,
+        source_request_filename=f"{payload['request_id']}.json",
+        generated_at=generated_at,
+        read_model_root=read_model_root,
+        export_root=export_root,
+        bridge_export_root=bridge_root,
+        wiki_path=workroom_wiki_path or workroom_review_decision_consumer.DEFAULT_WIKI_PATH,
+    )
+    workroom_receipt = result.receipt
+    receipt = _base_receipt(request, receipt_id=receipt_id, generated_at=generated_at, validation=validation)
+    routed = str(workroom_receipt.get("raw_internal_status") or "") == RESPONSE_READY
+    display = workroom_receipt.get("operator_display") if isinstance(workroom_receipt.get("operator_display"), Mapping) else {}
+    card = _card_response(
+        receipt_id=receipt_id,
+        event_type=event_type,
+        headline=str(display.get("headline") or workroom_receipt.get("response_primary_status") or "Review decision recorded"),
+        summary=str(display.get("plain_summary") or "Review decision receipt recorded only."),
+        status_label=str(workroom_receipt.get("response_primary_status") or "Review decision"),
+        route_status="ROUTED" if routed else "NEEDS_VERIFICATION",
+        current_world_ref=str(request.get("current_world_ref") or ""),
+        current_thread_ref=str(request.get("current_thread_ref") or ""),
+        proof_refs=_as_list(workroom_receipt.get("proof_refs")),
+        tone="calm" if routed else "blocked",
+    )
+    receipt.update(
+        {
+            "route_status": "ROUTED" if routed else "NEEDS_VERIFICATION",
+            "raw_internal_status": RESPONSE_READY if routed else BLOCKED_WITH_REASON,
+            "backend_route": "workroom_review_decision_consumer.record_decision_only",
+            "route_ref": str(action.get("action_id") or ""),
+            "route_receipt_ref": str(workroom_receipt.get("receipt_id") or ""),
+            "route_result": workroom_receipt,
+            "dynamic_card_response": card,
+            "proof_refs": list(card["proof"]["proof_refs"]),
+            "machine_proof": _machine_proof(
+                review_decision_recorded=bool(workroom_receipt.get("decision_recorded") is True),
+                merge_performed=False,
+                git_push_performed=False,
+            ),
+        }
+    )
+    return receipt
+
+
+def _route_show_details(
+    request: Mapping[str, Any],
+    *,
+    read_model_root: Path,
+    receipt_id: str,
+    generated_at: str,
+    validation: Mapping[str, Any],
+) -> dict[str, Any]:
+    card = _card_by_id(read_model_root, str(request.get("selected_card_id") or ""))
+    proof_refs = _proof_refs_from_card(card)
+    headline = "Proof details"
+    summary = "Proof/details are available in the drawer. No action was performed."
+    if card:
+        headline = f"Details: {card.get('headline', 'Selected card')}"
+        summary = str(card.get("plain_summary") or summary)
+    receipt = _base_receipt(request, receipt_id=receipt_id, generated_at=generated_at, validation=validation)
+    response_card = _card_response(
+        receipt_id=receipt_id,
+        event_type="show_details",
+        headline=headline,
+        summary=summary,
+        status_label="Details",
+        route_status="ROUTED",
+        current_world_ref=str(request.get("current_world_ref") or ""),
+        current_thread_ref=str(request.get("current_thread_ref") or ""),
+        proof_refs=proof_refs,
+    )
+    receipt.update(
+        {
+            "route_status": "ROUTED",
+            "raw_internal_status": RESPONSE_READY,
+            "backend_route": "dynamic_card_packet.proof_drawer",
+            "route_ref": str(request.get("selected_card_id") or ""),
+            "route_result": {"selected_card": card or {}, "proof_refs": proof_refs},
+            "dynamic_card_response": response_card,
+            "proof_refs": proof_refs,
+            "machine_proof": _machine_proof(details_only=True),
+        }
+    )
+    return receipt
+
+
+def _route_action_payload(
+    request: Mapping[str, Any],
+    *,
+    read_model_root: Path,
+    receipt_id: str,
+    generated_at: str,
+    validation: Mapping[str, Any],
+) -> dict[str, Any]:
+    event_type = str(request.get("controller_event_type") or "")
+    action = _resolve_action_payload(read_model_root, event_type, request)
+    if not action:
+        protected_text = " ".join(str(request.get(key) or "") for key in ("operator_text", "selected_action_id", "selected_card_id")).lower()
+        if any(term in protected_text for term in PROTECTED_TERMS):
+            route_status = "PROTECTED_ACTION_STAGED_OR_BLOCKED"
+            summary = "This looks like a protected action, but no deterministic safe staging payload matched it. No execution ran."
+        else:
+            route_status = "NEEDS_VERIFICATION"
+            summary = "No deterministic operator_action_payload matched the selected card/action."
+        return _blocked_receipt(
+            request,
+            receipt_id=receipt_id,
+            generated_at=generated_at,
+            validation=validation,
+            route_status=route_status,
+            headline="Needs verification",
+            summary=summary,
+            blocker="missing_action_payload",
+        )
+    if not _action_safe(action):
+        return _blocked_receipt(
+            request,
+            receipt_id=receipt_id,
+            generated_at=generated_at,
+            validation=validation,
+            route_status="NEEDS_VERIFICATION",
+            headline="Needs verification",
+            summary="The deterministic action payload is disabled or requests unsafe authority.",
+            blocker="unsafe_or_disabled_action_payload",
+        )
+
+    action_type = str(action.get("action_type") or "")
+    action_summary = _safe_action_summary(action)
+    if action_type == "navigate":
+        backend_route = "operator_action_payloads.navigate"
+        headline = action_summary["label"] or "Navigation ready"
+        summary = "Mission Control can navigate to the target lane. No business action was performed."
+        status_label = "Navigation only"
+        route_status = "ROUTED"
+    elif action_type == "stage_package_request":
+        payload = action_summary["payload"]
+        if payload.get("approval_request_id") or payload.get("gate_ref"):
+            backend_route = "approval_request_queue.stage_only"
+            headline = "Approval staged for review"
+            summary = "A protected action was staged as an approval/gate reference only. No Coupa, browser, send, submit, ledger, workbook, or paid action ran."
+            status_label = "Stage only"
+            route_status = "PROTECTED_ACTION_STAGED_OR_BLOCKED"
+        else:
+            backend_route = "workflow_package_request_consumer.stage_only"
+            headline = action_summary["label"] or "Package staged for review"
+            summary = "The request is limited to drafting/staging for operator review. No send or business execution ran."
+            status_label = "Stage only"
+            route_status = "ROUTED"
+    elif action_type == "explain_gate":
+        backend_route = "guardian_gate.explain"
+        headline = action_summary["label"] or "Gate explanation"
+        summary = str(action_summary["payload"].get("why_it_matters") or "Protected action remains gated.")
+        status_label = "Gate"
+        route_status = "ROUTED"
+    else:
+        return _blocked_receipt(
+            request,
+            receipt_id=receipt_id,
+            generated_at=generated_at,
+            validation=validation,
+            route_status="NEEDS_VERIFICATION",
+            headline="Needs verification",
+            summary=f"Action type {action_type or 'unknown'} is not executable through this controller router.",
+            blocker="unsupported_action_payload_type",
+        )
+
+    receipt = _base_receipt(request, receipt_id=receipt_id, generated_at=generated_at, validation=validation)
+    card = _card_response(
+        receipt_id=receipt_id,
+        event_type=event_type,
+        headline=headline,
+        summary=summary,
+        status_label=status_label,
+        route_status="ROUTED" if route_status == "ROUTED" else route_status,
+        current_world_ref=str(action.get("target_world_ref") or request.get("current_world_ref") or ""),
+        current_thread_ref=str(action.get("target_thread_ref") or request.get("current_thread_ref") or ""),
+        actions=[action_summary],
+        proof_refs=action_summary["proof_refs"] or ["generated/read_models/operator_action_payloads.json"],
+        tone="calm" if route_status == "ROUTED" else "warning",
+    )
+    route_result: dict[str, Any] = {"action_payload": action_summary, "stage_only": action_type == "stage_package_request"}
+    if action_type == "navigate":
+        route_result["navigation"] = action_summary
+    receipt.update(
+        {
+            "route_status": route_status,
+            "raw_internal_status": RESPONSE_READY,
+            "backend_route": backend_route,
+            "route_ref": str(action.get("action_id") or ""),
+            "route_result": route_result,
+            "dynamic_card_response": card,
+            "proof_refs": list(card["proof"]["proof_refs"]),
+            "machine_proof": _machine_proof(
+                stage_only=action_type == "stage_package_request",
+                navigation_only=action_type == "navigate",
+                protected_action_staged_only=route_status == "PROTECTED_ACTION_STAGED_OR_BLOCKED",
+            ),
+        }
+    )
+    return receipt
+
+
+def _route_event(
+    request: Mapping[str, Any],
+    *,
+    read_model_root: Path,
+    export_root: Path,
+    bridge_root: Path | None,
+    workroom_wiki_path: Path | None,
+    receipt_id: str,
+    generated_at: str,
+    validation: Mapping[str, Any],
+    evidence_sqlite_path: Path,
+    artifact_lineage_sqlite_path: Path | None,
+) -> dict[str, Any]:
+    event_type = str(request.get("controller_event_type") or "")
+    if event_type == "ask_why":
+        return _route_ask_why(
+            request,
+            read_model_root=read_model_root,
+            receipt_id=receipt_id,
+            generated_at=generated_at,
+            validation=validation,
+        )
+    if event_type == "open_lane":
+        return _route_open_lane(
+            request,
+            read_model_root=read_model_root,
+            receipt_id=receipt_id,
+            generated_at=generated_at,
+            validation=validation,
+        )
+    if event_type == "attach_proof":
+        return _route_attach_proof(
+            request,
+            receipt_id=receipt_id,
+            generated_at=generated_at,
+            validation=validation,
+            evidence_sqlite_path=evidence_sqlite_path,
+            artifact_lineage_sqlite_path=artifact_lineage_sqlite_path,
+        )
+    if event_type in {"approve", "deny", "request_rework", "mark_informational"}:
+        return _route_workroom_decision(
+            request,
+            read_model_root=read_model_root,
+            export_root=export_root,
+            bridge_root=bridge_root,
+            workroom_wiki_path=workroom_wiki_path,
+            receipt_id=receipt_id,
+            generated_at=generated_at,
+            validation=validation,
+        )
+    if event_type == "show_details":
+        return _route_show_details(
+            request,
+            read_model_root=read_model_root,
+            receipt_id=receipt_id,
+            generated_at=generated_at,
+            validation=validation,
+        )
+    if event_type in {"do_it", "chat_goal", "stage_plan", "continue", "stop_hold_cancel"}:
+        return _route_action_payload(
+            request,
+            read_model_root=read_model_root,
+            receipt_id=receipt_id,
+            generated_at=generated_at,
+            validation=validation,
+        )
+    return _blocked_receipt(
+        request,
+        receipt_id=receipt_id,
+        generated_at=generated_at,
+        validation=validation,
+        route_status="UNKNOWN_EVENT_BLOCKED",
+        headline="Controller event blocked",
+        summary="Unknown controller events fail closed.",
+        blocker="unknown_controller_event_type",
+    )
+
+
+def _init_schema(conn: sqlite3.Connection) -> None:
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS controller_event_receipts (
+          receipt_id TEXT PRIMARY KEY,
+          request_id TEXT NOT NULL,
+          controller_event_type TEXT NOT NULL,
+          route_status TEXT NOT NULL,
+          raw_internal_status TEXT NOT NULL,
+          backend_route TEXT NOT NULL,
+          route_ref TEXT NOT NULL,
+          route_receipt_ref TEXT NOT NULL,
+          current_world_ref TEXT NOT NULL,
+          current_thread_ref TEXT NOT NULL,
+          active_entity_ref TEXT NOT NULL,
+          selected_card_id TEXT NOT NULL,
+          selected_action_id TEXT NOT NULL,
+          authority_requested_json TEXT NOT NULL,
+          authority_granted_json TEXT NOT NULL,
+          dynamic_card_json TEXT NOT NULL,
+          proof_refs_json TEXT NOT NULL,
+          blockers_json TEXT NOT NULL,
+          email_send_performed INTEGER NOT NULL,
+          coupa_access_performed INTEGER NOT NULL,
+          browser_access_performed INTEGER NOT NULL,
+          ledger_mutation_performed INTEGER NOT NULL,
+          workbook_mutation_performed INTEGER NOT NULL,
+          paid_marking_performed INTEGER NOT NULL,
+          submit_performed INTEGER NOT NULL,
+          business_action_performed INTEGER NOT NULL,
+          external_llm_invoked INTEGER NOT NULL,
+          local_model_runtime_connected INTEGER NOT NULL,
+          generated_at TEXT NOT NULL
+        )
+        """
+    )
+
+
+def _insert_receipt(conn: sqlite3.Connection, receipt: Mapping[str, Any]) -> None:
+    proof = receipt.get("machine_proof") if isinstance(receipt.get("machine_proof"), Mapping) else {}
+    conn.execute(
+        """
+        INSERT OR REPLACE INTO controller_event_receipts (
+          receipt_id, request_id, controller_event_type, route_status,
+          raw_internal_status, backend_route, route_ref, route_receipt_ref,
+          current_world_ref, current_thread_ref, active_entity_ref,
+          selected_card_id, selected_action_id, authority_requested_json,
+          authority_granted_json, dynamic_card_json, proof_refs_json,
+          blockers_json, email_send_performed, coupa_access_performed,
+          browser_access_performed, ledger_mutation_performed,
+          workbook_mutation_performed, paid_marking_performed,
+          submit_performed, business_action_performed, external_llm_invoked,
+          local_model_runtime_connected, generated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            str(receipt.get("receipt_id") or ""),
+            str(receipt.get("request_id") or ""),
+            str(receipt.get("controller_event_type") or ""),
+            str(receipt.get("route_status") or ""),
+            str(receipt.get("raw_internal_status") or ""),
+            str(receipt.get("backend_route") or ""),
+            str(receipt.get("route_ref") or ""),
+            str(receipt.get("route_receipt_ref") or ""),
+            str(receipt.get("current_world_ref") or ""),
+            str(receipt.get("current_thread_ref") or ""),
+            str(receipt.get("active_entity_ref") or ""),
+            str(receipt.get("selected_card_id") or ""),
+            str(receipt.get("selected_action_id") or ""),
+            stable_json(receipt.get("authority_requested") or []),
+            stable_json(receipt.get("authority_granted") or []),
+            stable_json(receipt.get("dynamic_card_response") or {}),
+            stable_json(receipt.get("proof_refs") or []),
+            stable_json(receipt.get("blockers") or []),
+            1 if proof.get("email_send_performed") is True else 0,
+            1 if proof.get("coupa_access_performed") is True else 0,
+            1 if proof.get("browser_access_performed") is True else 0,
+            1 if proof.get("ledger_mutation_performed") is True else 0,
+            1 if proof.get("workbook_mutation_performed") is True else 0,
+            1 if proof.get("paid_marking_performed") is True else 0,
+            1 if proof.get("submit_performed") is True else 0,
+            1 if proof.get("business_action_performed") is True else 0,
+            1 if proof.get("external_llm_invoked") is True else 0,
+            1 if proof.get("local_model_runtime_connected") is True else 0,
+            str(receipt.get("generated_at") or ""),
+        ),
+    )
+
+
+def record_router_receipt(
+    receipt: Mapping[str, Any],
+    *,
+    sqlite_path: Path = DEFAULT_SQLITE_PATH,
+) -> None:
+    path = _rooted(sqlite_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(path)
+    try:
+        _init_schema(conn)
+        _insert_receipt(conn, receipt)
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def _latest_receipts(sqlite_path: Path, *, limit: int = 20) -> list[dict[str, Any]]:
+    path = _rooted(sqlite_path)
+    if not path.exists():
+        return []
+    conn = sqlite3.connect(path)
+    conn.row_factory = sqlite3.Row
+    try:
+        _init_schema(conn)
+        rows = conn.execute(
+            """
+            SELECT receipt_id, request_id, controller_event_type, route_status,
+                   raw_internal_status, backend_route, route_ref, route_receipt_ref,
+                   current_world_ref, current_thread_ref, selected_card_id,
+                   selected_action_id, dynamic_card_json, proof_refs_json,
+                   blockers_json, generated_at
+            FROM controller_event_receipts
+            ORDER BY generated_at DESC, receipt_id DESC
+            LIMIT ?
+            """,
+            (limit,),
+        ).fetchall()
+    finally:
+        conn.close()
+    receipts: list[dict[str, Any]] = []
+    for row in rows:
+        item = dict(row)
+        for key in ("dynamic_card_json", "proof_refs_json", "blockers_json"):
+            try:
+                item[key.replace("_json", "")] = json.loads(str(item.pop(key) or "[]"))
+            except json.JSONDecodeError:
+                item[key.replace("_json", "")] = [] if key != "dynamic_card_json" else {}
+        receipts.append(item)
+    return receipts
+
+
+def route_controller_event(
+    raw_request: Mapping[str, Any],
+    *,
+    source_request_filename: str = "",
+    read_model_root: Path = DEFAULT_READ_MODEL_ROOT,
+    export_root: Path = DEFAULT_EXPORT_ROOT,
+    bridge_root: Path | None = DEFAULT_BRIDGE_ROOT,
+    wiki_path: Path = DEFAULT_WIKI_PATH,
+    workroom_wiki_path: Path | None = None,
+    sqlite_path: Path = DEFAULT_SQLITE_PATH,
+    evidence_sqlite_path: Path = evidence_intake.DEFAULT_SQLITE_PATH,
+    artifact_lineage_sqlite_path: Path | None = evidence_intake.DEFAULT_ARTIFACT_LINEAGE_SQLITE_PATH,
+    generated_at: str | None = None,
+    export_read_models: bool = True,
+) -> dict[str, Any]:
+    generated_at = generated_at or utc_now()
+    request = normalize_controller_event_request(raw_request)
+    validation = _validate_controller_event(request)
+    receipt_id = "operator_controller_event_router:" + _short_hash(
+        _request_id(request),
+        source_request_filename,
+        str(request.get("controller_event_type") or ""),
+        str(request.get("selected_action_id") or ""),
+        str(request.get("artifact_ref") or ""),
+        generated_at,
+    )
+
+    if not validation["verified"]:
+        route_status = "NEEDS_VERIFICATION" if "verified_operator_envelope_required" in validation["blockers"] else "REJECTED"
+        receipt = _blocked_receipt(
+            request,
+            receipt_id=receipt_id,
+            generated_at=generated_at,
+            validation=validation,
+            route_status=route_status,
+            headline="Needs verification",
+            summary="Controller events require a verified first-class operator envelope and a false authority boundary.",
+            blocker="verified_operator_envelope_required",
+        )
+    elif str(request.get("controller_event_type") or "") not in EVENT_TYPES:
+        receipt = _blocked_receipt(
+            request,
+            receipt_id=receipt_id,
+            generated_at=generated_at,
+            validation=validation,
+            route_status="UNKNOWN_EVENT_BLOCKED",
+            headline="Controller event blocked",
+            summary="Unknown controller events fail closed.",
+            blocker="unknown_controller_event_type",
+        )
+    else:
+        receipt = _route_event(
+            request,
+            read_model_root=read_model_root,
+            export_root=export_root,
+            bridge_root=bridge_root,
+            workroom_wiki_path=workroom_wiki_path,
+            receipt_id=receipt_id,
+            generated_at=generated_at,
+            validation=validation,
+            evidence_sqlite_path=evidence_sqlite_path,
+            artifact_lineage_sqlite_path=artifact_lineage_sqlite_path,
+        )
+
+    receipt["source_request_filename"] = source_request_filename
+    receipt["machine_proof"]["unsafe_true_grants"] = unsafe_true_grants(receipt)
+    receipt["machine_proof"]["unsafe_true_grants_absent"] = not receipt["machine_proof"]["unsafe_true_grants"]
+    record_router_receipt(receipt, sqlite_path=sqlite_path)
+    if export_read_models:
+        export_operator_controller_event_router(
+            latest_receipt=receipt,
+            read_model_root=read_model_root,
+            export_root=export_root,
+            bridge_root=bridge_root,
+            wiki_path=wiki_path,
+            sqlite_path=sqlite_path,
+            generated_at=generated_at,
+        )
+    return receipt
+
+
+def build_contract_read_model(
+    *,
+    read_model_root: Path = DEFAULT_READ_MODEL_ROOT,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    generated_at = generated_at or utc_now()
+    preconditions = _precondition_rows(read_model_root)
+    preconditions_ready = all(row["ready"] for row in preconditions)
+    route_table = [
+        {
+            "controller_event_type": "ask_why",
+            "backend_route": "system_question_answer.contextual_answer",
+            "effect": "contextual answer only; no package staging unless explicitly required",
+        },
+        {
+            "controller_event_type": "open_lane",
+            "backend_route": "operator_action_payloads.navigate",
+            "effect": "navigation card/action only",
+        },
+        {
+            "controller_event_type": "attach_proof",
+            "backend_route": "evidence_intake.record_candidate_evidence",
+            "effect": "candidate evidence only; no paid or ledger mutation",
+        },
+        {
+            "controller_event_type": "approve|deny",
+            "backend_route": "workroom_review_decision_consumer or approval_request_queue.stage_only",
+            "effect": "decision/staging receipt only; no business execution",
+        },
+        {
+            "controller_event_type": "request_rework|mark_informational",
+            "backend_route": "workroom_review_decision_consumer.record_decision_only",
+            "effect": "review decision receipt only; no merge or push",
+        },
+        {
+            "controller_event_type": "do_it",
+            "backend_route": "operator_action_payloads deterministic safe route",
+            "effect": "safe internal route or protected action staged/blocked",
+        },
+        {
+            "controller_event_type": "show_details",
+            "backend_route": "dynamic_card_packet.proof_drawer",
+            "effect": "proof/details card only",
+        },
+    ]
+    payload = {
+        "schema_version": CONTRACT_SCHEMA_VERSION,
+        "read_model_id": CONTRACT_READ_MODEL_ID,
+        "status": READY_STATUS if preconditions_ready else NOT_READY_STATUS,
+        "generated_at": generated_at,
+        "request_type": REQUEST_TYPE,
+        "purpose": "Map verified generic Mission Control controller events into existing safe OpenClaw routes.",
+        "controller_event_types": list(EVENT_TYPES),
+        "rules": [
+            "Verified first-class operator envelope required.",
+            "Incoming authority_granted, gate_decision_ref, and approval_receipt_ref are backend-only and rejected or ignored.",
+            "authority_requested does not imply authority_granted.",
+            "Unknown events fail closed.",
+            "Missing deterministic action payload returns Needs verification.",
+            "Every route emits a receipt/ref and dynamic card response.",
+            "No live external provider action and no business execution.",
+            "Protected actions are staged for approval/gate review or blocked; never directly sent, submitted, posted, marked paid, merged, or pushed.",
+        ],
+        "route_table": route_table,
+        "examples": [
+            {
+                "name": "Finance / Capital Hilton ask_why",
+                "expected": "payment-watch explanation",
+            },
+            {
+                "name": "Finance / Live Arts MD attach_proof",
+                "expected": "evidence intake records payment-processing proof while ledger remains untouched",
+            },
+            {
+                "name": "Build review packet mark_informational",
+                "expected": "workroom review decision recorded; no merge or push",
+            },
+            {
+                "name": "Business Development follow-up do_it",
+                "expected": "draft/stage only; no send",
+            },
+            {
+                "name": "Protected Coupa submit do_it",
+                "expected": "stage approval/gate or block; no Coupa/browser submit",
+            },
+        ],
+        "preconditions": preconditions,
+        "authority_boundary": dict(AUTHORITY_BOUNDARY),
+        "machine_proof": {
+            "preconditions_ready": preconditions_ready,
+            "contract_only": True,
+            "verified_operator_envelope_required": True,
+            "incoming_authority_granted_accepted": False,
+            "authority_requested_does_not_imply_authority_granted": True,
+            "external_llm_invoked": False,
+            "external_provider_connected": False,
+            "local_model_runtime_connected": False,
+            "business_action_performed": False,
+        },
+    }
+    payload["machine_proof"]["unsafe_true_grants"] = unsafe_true_grants(payload)
+    payload["machine_proof"]["unsafe_true_grants_absent"] = not payload["machine_proof"]["unsafe_true_grants"]
+    return payload
+
+
+def build_status_read_model(
+    *,
+    latest_receipt: Mapping[str, Any] | None = None,
+    read_model_root: Path = DEFAULT_READ_MODEL_ROOT,
+    sqlite_path: Path = DEFAULT_SQLITE_PATH,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    generated_at = generated_at or utc_now()
+    preconditions = _precondition_rows(read_model_root)
+    preconditions_ready = all(row["ready"] for row in preconditions)
+    history = _latest_receipts(sqlite_path, limit=20)
+    latest = dict(latest_receipt) if isinstance(latest_receipt, Mapping) else (history[0] if history else None)
+    routed_count = sum(1 for item in history if str(item.get("raw_internal_status") or "") == RESPONSE_READY)
+    blocked_count = sum(1 for item in history if str(item.get("raw_internal_status") or "") != RESPONSE_READY)
+    status = READY_STATUS if preconditions_ready else NOT_READY_STATUS
+    payload: dict[str, Any] = {
+        "schema_version": SCHEMA_VERSION,
+        "read_model_id": STATUS_READ_MODEL_ID,
+        "status": status,
+        "generated_at": generated_at,
+        "request_type": REQUEST_TYPE,
+        "latest_receipt": latest,
+        "recent_receipts": history,
+        "recent_receipt_count": len(history),
+        "recent_routed_count": routed_count,
+        "recent_blocked_count": blocked_count,
+        "sqlite_path": str(_rooted(sqlite_path)),
+        "bridge_contract_ref": f"/mnt/e/openclaw/generated/read_models/{CONTRACT_JSON_EXPORT_NAME}",
+        "bridge_status_ref": f"/mnt/e/openclaw/generated/read_models/{STATUS_JSON_EXPORT_NAME}",
+        "preconditions": preconditions,
+        "authority_boundary": dict(AUTHORITY_BOUNDARY),
+        "machine_proof": {
+            "preconditions_ready": preconditions_ready,
+            "router_ready": status == READY_STATUS,
+            "latest_dynamic_card_response_emitted": bool(latest and latest.get("dynamic_card_response")),
+            "authority_requested_does_not_imply_authority_granted": True,
+            "incoming_authority_granted_accepted": False,
+            "email_send_performed": False,
+            "gmail_access_performed": False,
+            "browser_access_performed": False,
+            "coupa_access_performed": False,
+            "portal_submit_performed": False,
+            "ledger_mutation_performed": False,
+            "workbook_mutation_performed": False,
+            "pdf_export_performed": False,
+            "paid_marking_performed": False,
+            "submit_performed": False,
+            "business_action_performed": False,
+            "external_llm_invoked": False,
+            "external_provider_connected": False,
+            "local_model_runtime_connected": False,
+            "worker_spawn_performed": False,
+            "git_push_performed": False,
+        },
+    }
+    payload["machine_proof"]["unsafe_true_grants"] = unsafe_true_grants(payload)
+    payload["machine_proof"]["unsafe_true_grants_absent"] = not payload["machine_proof"]["unsafe_true_grants"]
+    return payload
+
+
+def build_wiki(contract: Mapping[str, Any], status: Mapping[str, Any]) -> str:
+    latest = status.get("latest_receipt") if isinstance(status.get("latest_receipt"), Mapping) else {}
+    lines = [
+        "# Operator Controller Event Router",
+        "",
+        f"Status: `{status.get('status', NOT_READY_STATUS)}`",
+        "",
+        "This router maps verified generic Mission Control controller events into existing safe backend routes.",
+        "It is a controller layer, not a business executor.",
+        "",
+        "## Rules",
+        "",
+    ]
+    for rule in contract.get("rules", []):
+        lines.append(f"- {rule}")
+    lines.extend(
+        [
+            "",
+            "## Routes",
+            "",
+        ]
+    )
+    for route in contract.get("route_table", []):
+        lines.append(
+            f"- `{route.get('controller_event_type', '')}` -> `{route.get('backend_route', '')}`: {route.get('effect', '')}"
+        )
+    lines.extend(
+        [
+            "",
+            "## Latest Receipt",
+            "",
+            f"- Receipt: `{latest.get('receipt_id', '')}`",
+            f"- Event: `{latest.get('controller_event_type', '')}`",
+            f"- Status: `{latest.get('route_status', '')}`",
+            f"- Backend route: `{latest.get('backend_route', '')}`",
+            f"- Route ref: `{latest.get('route_ref', '')}`",
+            "",
+            "## Safety Boundary",
+            "",
+            "- No email/Gmail/browser/Coupa/portal submit.",
+            "- No ledger or workbook mutation.",
+            "- No PDF export or paid marking.",
+            "- No merge, push, worker spawn, external LLM, or local model runtime.",
+            "- Incoming `authority_requested` is only a request; incoming `authority_granted` is rejected or ignored.",
+        ]
+    )
+    return "\n".join(lines) + "\n"
+
+
+def export_operator_controller_event_router(
+    *,
+    latest_receipt: Mapping[str, Any] | None = None,
+    read_model_root: Path = DEFAULT_READ_MODEL_ROOT,
+    export_root: Path = DEFAULT_EXPORT_ROOT,
+    bridge_root: Path | None = DEFAULT_BRIDGE_ROOT,
+    wiki_path: Path = DEFAULT_WIKI_PATH,
+    sqlite_path: Path = DEFAULT_SQLITE_PATH,
+    generated_at: str | None = None,
+) -> dict[str, str]:
+    generated_at = generated_at or utc_now()
+    contract = build_contract_read_model(read_model_root=read_model_root, generated_at=generated_at)
+    status = build_status_read_model(
+        latest_receipt=latest_receipt,
+        read_model_root=read_model_root,
+        sqlite_path=sqlite_path,
+        generated_at=generated_at,
+    )
+    export_root = _rooted(export_root)
+    export_root.mkdir(parents=True, exist_ok=True)
+    contract_path = export_root / CONTRACT_JSON_EXPORT_NAME
+    status_path = export_root / STATUS_JSON_EXPORT_NAME
+    contract_path.write_text(stable_json(contract), encoding="utf-8")
+    status_path.write_text(stable_json(status), encoding="utf-8")
+
+    bridge_contract_path = ""
+    bridge_status_path = ""
+    if bridge_root is not None:
+        bridge_root = _rooted(bridge_root)
+        bridge_root.mkdir(parents=True, exist_ok=True)
+        bridge_contract = bridge_root / CONTRACT_JSON_EXPORT_NAME
+        bridge_status = bridge_root / STATUS_JSON_EXPORT_NAME
+        shutil.copy2(contract_path, bridge_contract)
+        shutil.copy2(status_path, bridge_status)
+        bridge_contract_path = bridge_contract.as_posix()
+        bridge_status_path = bridge_status.as_posix()
+
+    wiki_path = _rooted(wiki_path)
+    wiki_path.parent.mkdir(parents=True, exist_ok=True)
+    wiki_path.write_text(build_wiki(contract, status), encoding="utf-8")
+    return {
+        "status": str(status["status"]),
+        "contract_read_model_path": contract_path.as_posix(),
+        "status_read_model_path": status_path.as_posix(),
+        "bridge_contract_read_model_path": bridge_contract_path,
+        "bridge_status_read_model_path": bridge_status_path,
+        "wiki_path": wiki_path.as_posix(),
+        "sqlite_path": str(_rooted(sqlite_path)),
+    }
+
+
+def _load_request_file(path: Path) -> dict[str, Any]:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError("request file must contain a JSON object")
+    return payload
+
+
+def build_arg_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Export or consume Operator Controller Event Router V0.")
+    parser.add_argument("--request-file", help="Optional OPERATOR_CONTROLLER_EVENT_REQUEST_V0 JSON file to route.")
+    parser.add_argument("--read-model-root", default=str(DEFAULT_READ_MODEL_ROOT))
+    parser.add_argument("--export-root", default=str(DEFAULT_EXPORT_ROOT))
+    parser.add_argument("--bridge-root", default=str(DEFAULT_BRIDGE_ROOT))
+    parser.add_argument("--wiki-path", default=str(DEFAULT_WIKI_PATH))
+    parser.add_argument("--workroom-wiki-path")
+    parser.add_argument("--sqlite-path", default=str(DEFAULT_SQLITE_PATH))
+    parser.add_argument("--evidence-sqlite-path", default=str(evidence_intake.DEFAULT_SQLITE_PATH))
+    parser.add_argument("--artifact-lineage-sqlite-path", default=str(evidence_intake.DEFAULT_ARTIFACT_LINEAGE_SQLITE_PATH))
+    parser.add_argument("--generated-at")
+    parser.add_argument("--no-bridge", action="store_true")
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = build_arg_parser().parse_args(argv)
+    bridge_root = None if args.no_bridge else Path(args.bridge_root)
+    if args.request_file:
+        request_path = Path(args.request_file)
+        receipt = route_controller_event(
+            _load_request_file(request_path),
+            source_request_filename=request_path.name,
+            read_model_root=Path(args.read_model_root),
+            export_root=Path(args.export_root),
+            bridge_root=bridge_root,
+            wiki_path=Path(args.wiki_path),
+            workroom_wiki_path=Path(args.workroom_wiki_path) if args.workroom_wiki_path else None,
+            sqlite_path=Path(args.sqlite_path),
+            evidence_sqlite_path=Path(args.evidence_sqlite_path),
+            artifact_lineage_sqlite_path=Path(args.artifact_lineage_sqlite_path),
+            generated_at=args.generated_at,
+        )
+        print(stable_json(receipt), end="")
+        return 0 if receipt.get("raw_internal_status") == RESPONSE_READY else 2
+    result = export_operator_controller_event_router(
+        read_model_root=Path(args.read_model_root),
+        export_root=Path(args.export_root),
+        bridge_root=bridge_root,
+        wiki_path=Path(args.wiki_path),
+        sqlite_path=Path(args.sqlite_path),
+        generated_at=args.generated_at,
+    )
+    print(stable_json(result), end="")
+    return 0 if result["status"] == READY_STATUS else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

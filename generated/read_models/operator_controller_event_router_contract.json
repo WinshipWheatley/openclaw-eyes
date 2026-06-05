@@ -1,0 +1,211 @@
+{
+  "authority_boundary": {
+    "agent_loop_allowed": false,
+    "authority_grant_allowed": false,
+    "browser_access_allowed": false,
+    "business_action_allowed": false,
+    "child_agent_run_allowed": false,
+    "coupa_allowed": false,
+    "email_send_allowed": false,
+    "excel_automation_allowed": false,
+    "external_action_allowed": false,
+    "git_push_allowed": false,
+    "gmail_allowed": false,
+    "ledger_mutation_allowed": false,
+    "ledger_posting_allowed": false,
+    "merge_allowed": false,
+    "paid": false,
+    "paid_marking_allowed": false,
+    "pdf_export_allowed": false,
+    "portal_submit_allowed": false,
+    "push_allowed": false,
+    "repair_authority_allowed": false,
+    "sent": false,
+    "spreadsheet_cell_read_allowed": false,
+    "workbook_body_read_allowed": false,
+    "workbook_mutation_allowed": false,
+    "workbook_open_allowed": false,
+    "workbook_source_mutation_allowed": false,
+    "worker_execution_allowed": false,
+    "worker_spawn_allowed": false
+  },
+  "controller_event_types": [
+    "chat_goal",
+    "do_it",
+    "approve",
+    "deny",
+    "attach_proof",
+    "ask_why",
+    "open_lane",
+    "stage_plan",
+    "continue",
+    "request_rework",
+    "mark_informational",
+    "stop_hold_cancel",
+    "show_details"
+  ],
+  "examples": [
+    {
+      "expected": "payment-watch explanation",
+      "name": "Finance / Capital Hilton ask_why"
+    },
+    {
+      "expected": "evidence intake records payment-processing proof while ledger remains untouched",
+      "name": "Finance / Live Arts MD attach_proof"
+    },
+    {
+      "expected": "workroom review decision recorded; no merge or push",
+      "name": "Build review packet mark_informational"
+    },
+    {
+      "expected": "draft/stage only; no send",
+      "name": "Business Development follow-up do_it"
+    },
+    {
+      "expected": "stage approval/gate or block; no Coupa/browser submit",
+      "name": "Protected Coupa submit do_it"
+    }
+  ],
+  "generated_at": "2026-06-05T12:30:00+00:00",
+  "machine_proof": {
+    "authority_requested_does_not_imply_authority_granted": true,
+    "business_action_performed": false,
+    "contract_only": true,
+    "external_llm_invoked": false,
+    "external_provider_connected": false,
+    "incoming_authority_granted_accepted": false,
+    "local_model_runtime_connected": false,
+    "preconditions_ready": true,
+    "unsafe_true_grants": [],
+    "unsafe_true_grants_absent": true,
+    "verified_operator_envelope_required": true
+  },
+  "preconditions": [
+    {
+      "accepted_statuses": [
+        "OPERATOR_CONTROLLER_PROTOCOL_READY"
+      ],
+      "observed_status": "OPERATOR_CONTROLLER_PROTOCOL_READY",
+      "precondition_ref": "operator_controller_protocol",
+      "ready": true,
+      "source_ref": "generated/read_models/operator_controller_protocol.json"
+    },
+    {
+      "accepted_statuses": [
+        "FIRST_CLASS_OPERATOR_ENVELOPE_READY"
+      ],
+      "observed_status": "FIRST_CLASS_OPERATOR_ENVELOPE_READY",
+      "precondition_ref": "first_class_operator_envelope",
+      "ready": true,
+      "source_ref": "generated/read_models/first_class_operator_envelope_status.json"
+    },
+    {
+      "accepted_statuses": [
+        "DYNAMIC_CARD_PACKET_READY"
+      ],
+      "observed_status": "DYNAMIC_CARD_PACKET_READY",
+      "precondition_ref": "dynamic_card_packet",
+      "ready": true,
+      "source_ref": "generated/read_models/dynamic_card_packet_latest.json"
+    },
+    {
+      "accepted_statuses": [
+        "DYNAMIC_CARD_LIFECYCLE_POLICY_READY"
+      ],
+      "observed_status": "DYNAMIC_CARD_LIFECYCLE_POLICY_READY",
+      "precondition_ref": "dynamic_card_lifecycle_policy",
+      "ready": true,
+      "source_ref": "generated/read_models/dynamic_card_lifecycle_policy.json"
+    },
+    {
+      "accepted_statuses": [
+        "EVIDENCE_INTAKE_READY",
+        "EVIDENCE_INTAKE_LIVE_ROUTE_READY"
+      ],
+      "observed_status": "EVIDENCE_INTAKE_READY",
+      "precondition_ref": "verified_evidence_intake",
+      "ready": true,
+      "source_ref": "generated/read_models/evidence_intake_status.json"
+    },
+    {
+      "accepted_statuses": [
+        "OPERATOR_ACTION_PAYLOADS_READY"
+      ],
+      "observed_status": "OPERATOR_ACTION_PAYLOADS_READY",
+      "precondition_ref": "operator_action_payloads",
+      "ready": true,
+      "source_ref": "generated/read_models/operator_action_payloads.json"
+    },
+    {
+      "accepted_statuses": [
+        "CONTEXTUAL_SYSTEM_QUESTIONS_READY",
+        "SYSTEM_QUESTION_ANSWER_V0_READY"
+      ],
+      "observed_status": "CONTEXTUAL_SYSTEM_QUESTIONS_READY",
+      "precondition_ref": "contextual_system_questions",
+      "ready": true,
+      "source_ref": "generated/read_models/system_question_answer_contract.json"
+    },
+    {
+      "accepted_statuses": [
+        "WORKROOM_REVIEW_DECISION_CONSUMER_READY"
+      ],
+      "observed_status": "WORKROOM_REVIEW_DECISION_CONSUMER_READY",
+      "precondition_ref": "workroom_review_decision_consumer",
+      "ready": true,
+      "source_ref": "generated/read_models/workroom_review_decision_status.json"
+    }
+  ],
+  "purpose": "Map verified generic Mission Control controller events into existing safe OpenClaw routes.",
+  "read_model_id": "operator_controller_event_router_contract",
+  "request_type": "OPERATOR_CONTROLLER_EVENT_REQUEST_V0",
+  "route_table": [
+    {
+      "backend_route": "system_question_answer.contextual_answer",
+      "controller_event_type": "ask_why",
+      "effect": "contextual answer only; no package staging unless explicitly required"
+    },
+    {
+      "backend_route": "operator_action_payloads.navigate",
+      "controller_event_type": "open_lane",
+      "effect": "navigation card/action only"
+    },
+    {
+      "backend_route": "evidence_intake.record_candidate_evidence",
+      "controller_event_type": "attach_proof",
+      "effect": "candidate evidence only; no paid or ledger mutation"
+    },
+    {
+      "backend_route": "workroom_review_decision_consumer or approval_request_queue.stage_only",
+      "controller_event_type": "approve|deny",
+      "effect": "decision/staging receipt only; no business execution"
+    },
+    {
+      "backend_route": "workroom_review_decision_consumer.record_decision_only",
+      "controller_event_type": "request_rework|mark_informational",
+      "effect": "review decision receipt only; no merge or push"
+    },
+    {
+      "backend_route": "operator_action_payloads deterministic safe route",
+      "controller_event_type": "do_it",
+      "effect": "safe internal route or protected action staged/blocked"
+    },
+    {
+      "backend_route": "dynamic_card_packet.proof_drawer",
+      "controller_event_type": "show_details",
+      "effect": "proof/details card only"
+    }
+  ],
+  "rules": [
+    "Verified first-class operator envelope required.",
+    "Incoming authority_granted, gate_decision_ref, and approval_receipt_ref are backend-only and rejected or ignored.",
+    "authority_requested does not imply authority_granted.",
+    "Unknown events fail closed.",
+    "Missing deterministic action payload returns Needs verification.",
+    "Every route emits a receipt/ref and dynamic card response.",
+    "No live external provider action and no business execution.",
+    "Protected actions are staged for approval/gate review or blocked; never directly sent, submitted, posted, marked paid, merged, or pushed."
+  ],
+  "schema_version": "operator_controller_event_router_contract_v0",
+  "status": "OPERATOR_CONTROLLER_EVENT_ROUTER_READY"
+}
