@@ -285,11 +285,183 @@ def _canonical_action_id(value: str) -> str:
     return action_id
 
 
+def _mapping(value: Any) -> dict[str, Any]:
+    return dict(value) if isinstance(value, Mapping) else {}
+
+
+def _first_present(*values: Any) -> Any:
+    for value in values:
+        if isinstance(value, str):
+            if value.strip():
+                return value
+        elif value not in (None, ""):
+            return value
+    return ""
+
+
+def _request_context(request: Mapping[str, Any]) -> dict[str, Any]:
+    current_context = _mapping(request.get("current_context"))
+    if current_context:
+        return current_context
+    return _mapping(request.get("context"))
+
+
+def _request_event(request: Mapping[str, Any]) -> dict[str, Any]:
+    return _mapping(request.get("event"))
+
+
+def _normalize_source_surface(value: Any) -> str:
+    surface = str(value or "").strip()
+    if surface in operator_authority.SOURCE_SURFACES:
+        return surface
+    surface_lower = surface.lower()
+    if "drop" in surface_lower:
+        return "dropzone"
+    if "proof" in surface_lower:
+        return "proof_drawer"
+    if "card" in surface_lower:
+        return "card"
+    if "chat" in surface_lower:
+        return "chat"
+    if "pad" in surface_lower:
+        return "pad"
+    return ""
+
+
+def _existing_envelope(request: Mapping[str, Any]) -> tuple[str, dict[str, Any]]:
+    for key in operator_authority.ENVELOPE_KEYS:
+        envelope = request.get(key)
+        if isinstance(envelope, Mapping):
+            return key, dict(envelope)
+    if str(request.get("operator_envelope_ref") or request.get("operator_authority_envelope_ref") or "").strip():
+        return "operator_authority_envelope", {}
+    top_level_identity_fields = {
+        "operator_ref",
+        "app_instance_ref",
+        "device_ref",
+        "device_class",
+        "session_ref",
+        "operator_verified",
+        "app_instance_verified",
+        "device_verified",
+        "session_verified",
+        "verification_status",
+    }
+    if any(field in request for field in top_level_identity_fields):
+        return "operator_authority_envelope", {}
+    return "", {}
+
+
+def _normalize_authority_requested(request: Mapping[str, Any], envelope: Mapping[str, Any], event: Mapping[str, Any]) -> list[str]:
+    if isinstance(envelope.get("authority_requested"), list):
+        return [str(item).strip() for item in envelope.get("authority_requested", []) if str(item).strip()]
+    if isinstance(request.get("authority_requested"), list):
+        return [str(item).strip() for item in request.get("authority_requested", []) if str(item).strip()]
+    if isinstance(event.get("authority_requested"), list):
+        return [str(item).strip() for item in event.get("authority_requested", []) if str(item).strip()]
+    return []
+
+
+def _normalize_controller_envelope(request: dict[str, Any]) -> None:
+    context = _request_context(request)
+    event = _request_event(request)
+    envelope_key, envelope = _existing_envelope(request)
+    if not envelope_key:
+        return
+
+    request_hash = _first_present(envelope.get("request_hash"), request.get("request_hash"), request.get("payload_hash"))
+    operator_envelope_ref = str(request.get("operator_envelope_ref") or request.get("operator_authority_envelope_ref") or "").strip()
+    lifted_fields: list[str] = []
+
+    def fill(field: str, *values: Any) -> None:
+        if field in envelope and envelope.get(field) not in (None, ""):
+            return
+        value = _first_present(*values)
+        if value not in (None, ""):
+            envelope[field] = value
+            lifted_fields.append(field)
+
+    fill("envelope_id", operator_envelope_ref, f"operator_authority_envelope:{_short_hash(request_hash)}" if request_hash else "")
+    fill("operator_ref", request.get("operator_ref"))
+    fill("app_instance_ref", request.get("app_instance_ref"))
+    fill("device_ref", request.get("device_ref"))
+    fill("device_class", request.get("device_class"))
+    fill("session_ref", request.get("session_ref"))
+    fill("request_hash", request_hash)
+    fill("created_at", request.get("created_at"))
+    normalized_source_surface = _first_present(
+        _normalize_source_surface(envelope.get("source_surface")),
+        _normalize_source_surface(request.get("input_surface")),
+        _normalize_source_surface(request.get("active_surface_ref")),
+        _normalize_source_surface(context.get("active_surface_ref")),
+        _normalize_source_surface(request.get("source_surface")),
+        _normalize_source_surface(context.get("source_surface")),
+    )
+    if normalized_source_surface and envelope.get("source_surface") != normalized_source_surface:
+        envelope["source_surface"] = normalized_source_surface
+        lifted_fields.append("source_surface")
+    fill("current_world_ref", request.get("current_world_ref"), context.get("current_world_ref"))
+    fill("current_thread_ref", request.get("current_thread_ref"), context.get("current_thread_ref"))
+    fill(
+        "active_entity_ref",
+        request.get("active_entity_ref"),
+        request.get("selected_entity_ref"),
+        context.get("selected_entity_ref"),
+        request.get("selected_card_id"),
+    )
+
+    if "authority_requested" not in envelope:
+        envelope["authority_requested"] = _normalize_authority_requested(request, envelope, event)
+        lifted_fields.append("authority_requested")
+
+    for field in ("operator_verified", "app_instance_verified", "device_verified", "session_verified"):
+        if field not in envelope and field in request:
+            envelope[field] = request.get(field)
+            lifted_fields.append(field)
+
+    fill("verification_status", request.get("verification_status"))
+
+    if "proof_refs" not in envelope:
+        proof_refs = []
+        if operator_envelope_ref:
+            proof_refs.append(operator_envelope_ref)
+        for field in ("app_instance_ref", "device_ref", "session_ref", "request_hash"):
+            value = str(envelope.get(field) or "").strip()
+            if value:
+                proof_refs.append(value)
+        envelope["proof_refs"] = list(dict.fromkeys(proof_refs))
+        lifted_fields.append("proof_refs")
+
+    request[envelope_key] = envelope
+    if lifted_fields:
+        request["_controller_event_envelope_normalization"] = {
+            "applied": True,
+            "source": "mac_compact_controller_event_envelope",
+            "lifted_fields": sorted(dict.fromkeys(lifted_fields)),
+            "request_hash_enforcement": "deferred_for_compact_mac_dispatcher_hash",
+            "operator_envelope_ref": operator_envelope_ref,
+        }
+
+
 def normalize_controller_event_request(raw_request: Mapping[str, Any]) -> dict[str, Any]:
     request = dict(raw_request)
+    context = _request_context(request)
+    event = _request_event(request)
+    if not request.get("request_type"):
+        request["request_type"] = str(request.get("kind") or request.get("type") or "").strip()
+    if not request.get("current_world_ref") and context.get("current_world_ref"):
+        request["current_world_ref"] = context.get("current_world_ref")
+    if not request.get("current_thread_ref") and context.get("current_thread_ref"):
+        request["current_thread_ref"] = context.get("current_thread_ref")
+    for key in ("controller_event_type", "selected_card_id", "selected_action_id", "artifact_ref", "authority_boundary"):
+        if not request.get(key) and event.get(key) not in (None, ""):
+            request[key] = event.get(key)
+    if "authority_requested" not in request and "authority_requested" in event:
+        request["authority_requested"] = event.get("authority_requested")
     event_type = str(request.get("controller_event_type") or request.get("controller_action_type") or "").strip()
     if event_type and not request.get("controller_action_type"):
         request["controller_action_type"] = event_type
+    _normalize_controller_envelope(request)
     return request
 
 
@@ -297,7 +469,12 @@ def _validate_controller_event(request: Mapping[str, Any]) -> dict[str, Any]:
     blockers: list[str] = []
     rejected_reasons: list[str] = []
     event_type = str(request.get("controller_event_type") or "").strip()
-    envelope_result = operator_authority.validate_operator_authority_envelope(request)
+    normalization = _mapping(request.get("_controller_event_envelope_normalization"))
+    enforce_request_hash = normalization.get("request_hash_enforcement") != "deferred_for_compact_mac_dispatcher_hash"
+    envelope_result = operator_authority.validate_operator_authority_envelope(
+        request,
+        enforce_request_hash=enforce_request_hash,
+    )
 
     if str(request.get("request_type") or "") != REQUEST_TYPE:
         blockers.append("request_type_invalid")
@@ -333,6 +510,7 @@ def _validate_controller_event(request: Mapping[str, Any]) -> dict[str, Any]:
         "unsafe_true_grants": true_grants,
         "incoming_authority_granted_fields": incoming_grant_fields,
         "operator_authority_envelope": envelope_result,
+        "operator_envelope_normalization": normalization,
     }
 
 
@@ -574,6 +752,7 @@ def _base_receipt(
         "authority_granted": [],
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
         "operator_authority_envelope": dict(validation.get("operator_authority_envelope") or {}),
+        "operator_envelope_normalization": dict(validation.get("operator_envelope_normalization") or {}),
         "incoming_authority_granted_fields": list(validation.get("incoming_authority_granted_fields") or []),
         "incoming_authority_granted_accepted": False,
         "blockers": list(validation.get("blockers") or []),
@@ -1451,6 +1630,7 @@ def build_contract_read_model(
         "controller_event_types": list(EVENT_TYPES),
         "rules": [
             "Verified first-class operator envelope required.",
+            "Mac compact controller dispatcher envelopes are normalized from inline envelope, current_context, top-level verified identity fields, and operator_envelope_ref before validation.",
             "Incoming authority_granted, gate_decision_ref, and approval_receipt_ref are backend-only and rejected or ignored.",
             "authority_requested does not imply authority_granted.",
             "Unknown events fail closed.",
@@ -1522,6 +1702,10 @@ def build_status_read_model(
         "status": status,
         "generated_at": generated_at,
         "request_type": REQUEST_TYPE,
+        "live_route_status": "OPERATOR_CONTROLLER_EVENT_LIVE_ROUTE_READY" if preconditions_ready else "OPERATOR_CONTROLLER_EVENT_LIVE_ROUTE_NOT_READY",
+        "envelope_normalization_status": "CONTROLLER_EVENT_ENVELOPE_NORMALIZATION_READY"
+        if preconditions_ready
+        else "CONTROLLER_EVENT_ENVELOPE_NORMALIZATION_NOT_READY",
         "latest_receipt": latest,
         "recent_receipts": history,
         "recent_receipt_count": len(history),
@@ -1535,6 +1719,8 @@ def build_status_read_model(
         "machine_proof": {
             "preconditions_ready": preconditions_ready,
             "router_ready": status == READY_STATUS,
+            "live_route_consumes_operator_controller_event_request_v0": preconditions_ready,
+            "mac_compact_controller_event_envelope_normalization_supported": True,
             "latest_dynamic_card_response_emitted": bool(latest and latest.get("dynamic_card_response")),
             "authority_requested_does_not_imply_authority_granted": True,
             "incoming_authority_granted_accepted": False,

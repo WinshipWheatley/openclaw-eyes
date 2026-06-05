@@ -18,7 +18,7 @@ FIXED_NOW = "2026-06-05T12:00:00+00:00"
 
 def _seed_read_models(tmp_path: Path) -> Path:
     read_model_root = tmp_path / "read_models"
-    read_model_root.mkdir(parents=True)
+    read_model_root.mkdir(parents=True, exist_ok=True)
     required = [
         "operator_controller_protocol.json",
         "first_class_operator_envelope_status.json",
@@ -82,6 +82,116 @@ def _event_request(
     )
 
 
+def _mac_dispatcher_request(
+    *,
+    event_type: str = "open_lane",
+    controller_action_type: str | None = None,
+    selected_card_id: str = "dynamic_card.finance.capital_hilton.payment_watch",
+    selected_action_id: str = "capital_hilton.payment.open_finance",
+    request_id: str = "finance_open_lane_capital_hilton_payment_open_finance_20260605T161818Z_3a8c5dbcc6c0",
+    verification_overrides: dict | None = None,
+) -> dict:
+    authority_boundary = dict(router.AUTHORITY_BOUNDARY)
+    current_context = {
+        "active_surface_ref": "helm_dynamic_card",
+        "current_thread_ref": "capital_hilton",
+        "current_world_ref": "finance",
+        "requested_mode": "operator",
+        "selected_entity_ref": "capital_hilton",
+        "source_surface": "mission_control",
+        "visible_lane_ref": "capital_hilton",
+    }
+    request = {
+        "active_surface_ref": "helm_dynamic_card",
+        "app_instance_ref": "sha256:b7efb2d5f3ec5e0b0f1a77589c9c276612600550161e555f4fe5384f98fd3e07",
+        "app_instance_verified": True,
+        "authority_boundary": authority_boundary,
+        "authority_requested": [],
+        "browser_access_performed": False,
+        "business_action_performed": False,
+        "business_state_mutation_performed": False,
+        "child_agent_run_performed": False,
+        "context": dict(current_context),
+        "controller_event_type": event_type,
+        "controller_action_type": controller_action_type or event_type,
+        "coupa_access_performed": False,
+        "created_at": "2026-06-05T16:18:18Z",
+        "current_context": dict(current_context),
+        "current_thread_ref": "capital_hilton",
+        "current_world_ref": "finance",
+        "device_class": "mac",
+        "device_ref": "sha256:b191fdb712c2c5d281944b1ab6435791fae47f1ca78fdd184cfb0fc36dd2b2d7",
+        "device_verified": True,
+        "email_send_performed": False,
+        "event": {
+            "authority_boundary": authority_boundary,
+            "authority_requested": [],
+            "controller_event_type": event_type,
+            "selected_action_id": selected_action_id,
+            "selected_card_id": selected_card_id,
+        },
+        "external_provider_connected": False,
+        "git_push_performed": False,
+        "gmail_access_performed": False,
+        "incoming_authority_granted_accepted": False,
+        "incoming_authority_granted_fields": [],
+        "input_surface": "helm_dynamic_card",
+        "kind": router.REQUEST_TYPE,
+        "ledger_mutation_performed": False,
+        "ledger_posting_performed": False,
+        "mac_wrote_request_only": True,
+        "merge_performed": False,
+        "no_external_action": True,
+        "operator_authority_envelope": {
+            "app_instance_ref": "sha256:b7efb2d5f3ec5e0b0f1a77589c9c276612600550161e555f4fe5384f98fd3e07",
+            "app_instance_verified": True,
+            "device_class": "mac",
+            "device_ref": "sha256:b191fdb712c2c5d281944b1ab6435791fae47f1ca78fdd184cfb0fc36dd2b2d7",
+            "device_verified": True,
+            "operator_ref": "hwinshipwheatley",
+            "operator_verified": True,
+            "request_hash": "sha256:3a8c5dbcc6c0ec3a64a4ebcb304bfa00bf064ca17fe479d0b6f302e579ed1245",
+            "session_ref": "sha256:49fe9e9d6dba9ac5fc5acfff73769d92c69ae58c2a38881305132ffe2d0fe340",
+            "session_verified": True,
+            "verification_status": operator_authority.VERIFICATION_STATUS_VERIFIED,
+        },
+        "operator_ref": "hwinshipwheatley",
+        "operator_verified": True,
+        "origin_surface": "mission_control_mac",
+        "paid_marking_performed": False,
+        "payload_hash": "sha256:47f21d9686398741a48e014ca6de2b57326260aa3a1893f8de8e8ff91b4d8a7c",
+        "pdf_export_performed": False,
+        "portal_submit_performed": False,
+        "request_hash": "sha256:3a8c5dbcc6c0ec3a64a4ebcb304bfa00bf064ca17fe479d0b6f302e579ed1245",
+        "request_hash_checked": True,
+        "request_id": request_id,
+        "request_type": router.REQUEST_TYPE,
+        "requested_mode": "operator",
+        "result_receipt_required": True,
+        "schema_version": "operator_controller_event_request_v0",
+        "selected_action_id": selected_action_id,
+        "selected_card_id": selected_card_id,
+        "selected_entity_ref": "capital_hilton",
+        "session_ref": "sha256:49fe9e9d6dba9ac5fc5acfff73769d92c69ae58c2a38881305132ffe2d0fe340",
+        "session_verified": True,
+        "source_channel": "mission_control_dynamic_card",
+        "source_request_id": request_id,
+        "source_surface": "mission_control",
+        "type": router.REQUEST_TYPE,
+        "verification_status": operator_authority.VERIFICATION_STATUS_VERIFIED,
+        "visible_lane_ref": "capital_hilton",
+        "workbook_body_read": False,
+        "workbook_mutation_performed": False,
+        "workbook_source_mutation_performed": False,
+        "worker_spawn_performed": False,
+    }
+    if verification_overrides:
+        for key, value in verification_overrides.items():
+            request[key] = value
+            request["operator_authority_envelope"][key] = value
+    return request
+
+
 def _route(tmp_path: Path, request: dict) -> dict:
     read_model_root = _seed_read_models(tmp_path)
     return router.route_controller_event(
@@ -137,6 +247,80 @@ def test_ask_why_finance_capital_hilton_returns_payment_watch_context(tmp_path):
     assert "Coupa is processing" in receipt["dynamic_card_response"]["plain_summary"]
     assert "ledger" in receipt["dynamic_card_response"]["plain_summary"].lower()
     assert receipt["dynamic_card_response"]
+    assert not _unsafe_true_grants(receipt)
+
+
+def test_exact_observed_mac_open_lane_compact_envelope_is_accepted(tmp_path):
+    receipt = _route(tmp_path, _mac_dispatcher_request())
+
+    assert receipt["raw_internal_status"] == router.RESPONSE_READY
+    assert receipt["backend_route"] == "operator_action_payloads.navigate"
+    assert receipt["route_status"] == "ROUTED"
+    assert receipt["dynamic_card_response"]["headline"] == "Lane navigation ready"
+    assert receipt["operator_authority_envelope"]["verified"] is True
+    assert receipt["operator_authority_envelope"]["source_surface"] == "card"
+    assert receipt["operator_envelope_normalization"]["applied"] is True
+    assert receipt["incoming_authority_granted_accepted"] is False
+    assert receipt["authority_granted"] == []
+    assert all(value is False for value in receipt["authority_boundary"].values())
+    assert receipt["machine_proof"]["business_action_performed"] is False
+    assert receipt["machine_proof"]["ledger_mutation_performed"] is False
+    assert receipt["machine_proof"]["paid_marking_performed"] is False
+    assert not _unsafe_true_grants(receipt)
+
+
+def test_mac_dispatcher_ask_why_compact_envelope_is_accepted(tmp_path):
+    request = _mac_dispatcher_request(
+        event_type="ask_why",
+        selected_action_id="",
+        request_id="finance_ask_why_capital_hilton_20260605T161818Z_3a8c5dbcc6c0",
+    )
+    request["operator_text"] = "Why am I here?"
+    receipt = _route(tmp_path, request)
+
+    assert receipt["raw_internal_status"] == router.RESPONSE_READY
+    assert receipt["backend_route"] == "system_question_answer.contextual_answer"
+    assert "Coupa is processing" in receipt["dynamic_card_response"]["plain_summary"]
+    assert receipt["operator_authority_envelope"]["verified"] is True
+    assert not _unsafe_true_grants(receipt)
+
+
+def test_mac_dispatcher_inline_mission_control_source_surface_normalizes_to_card(tmp_path):
+    request = _mac_dispatcher_request(request_id="mac_dispatcher_inline_source_surface")
+    request["operator_authority_envelope"]["source_surface"] = "mission_control"
+    receipt = _route(tmp_path, request)
+
+    assert receipt["raw_internal_status"] == router.RESPONSE_READY
+    assert receipt["operator_authority_envelope"]["source_surface"] == "card"
+    assert "source_surface" in receipt["operator_envelope_normalization"]["lifted_fields"]
+    assert not _unsafe_true_grants(receipt)
+
+
+def test_mac_dispatcher_false_verification_blocks(tmp_path):
+    for verification_field in ("operator_verified", "device_verified", "session_verified"):
+        receipt = _route(
+            tmp_path,
+            _mac_dispatcher_request(
+                request_id=f"mac_dispatcher_false_{verification_field}",
+                verification_overrides={verification_field: False},
+            ),
+        )
+        assert receipt["raw_internal_status"] == router.BLOCKED_WITH_REASON
+        assert "verified_operator_envelope_required" in receipt["blockers"]
+        assert f"{verification_field}_false_or_missing" in receipt["operator_authority_envelope"]["blockers"]
+        assert not _unsafe_true_grants(receipt)
+
+
+def test_mac_dispatcher_incoming_authority_granted_rejected(tmp_path):
+    request = _mac_dispatcher_request(request_id="mac_dispatcher_incoming_authority_granted")
+    request["authority_granted"] = ["email_send"]
+    receipt = _route(tmp_path, request)
+
+    assert receipt["raw_internal_status"] == router.BLOCKED_WITH_REASON
+    assert receipt["incoming_authority_granted_accepted"] is False
+    assert receipt["authority_granted"] == []
+    assert receipt["incoming_authority_granted_fields"]
+    assert "incoming_authority_granted_or_backend_gate_fields_not_accepted" in receipt["rejected_reasons"]
     assert not _unsafe_true_grants(receipt)
 
 

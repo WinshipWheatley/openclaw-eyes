@@ -93,6 +93,83 @@ def _controller_event_request(
     return request
 
 
+def _mac_dispatcher_request(
+    *,
+    event_type: str = "open_lane",
+    selected_card_id: str = "dynamic_card.finance.capital_hilton.payment_watch",
+    selected_action_id: str = "capital_hilton.payment.open_finance",
+    request_id: str = "finance_open_lane_capital_hilton_payment_open_finance_20260605T161818Z_3a8c5dbcc6c0",
+) -> dict:
+    authority_boundary = dict(controller_router.AUTHORITY_BOUNDARY)
+    current_context = {
+        "active_surface_ref": "helm_dynamic_card",
+        "current_thread_ref": "capital_hilton",
+        "current_world_ref": "finance",
+        "requested_mode": "operator",
+        "selected_entity_ref": "capital_hilton",
+        "source_surface": "mission_control",
+        "visible_lane_ref": "capital_hilton",
+    }
+    return {
+        "active_surface_ref": "helm_dynamic_card",
+        "app_instance_ref": "sha256:b7efb2d5f3ec5e0b0f1a77589c9c276612600550161e555f4fe5384f98fd3e07",
+        "app_instance_verified": True,
+        "authority_boundary": authority_boundary,
+        "authority_requested": [],
+        "context": dict(current_context),
+        "controller_event_type": event_type,
+        "controller_action_type": event_type,
+        "created_at": "2026-06-05T16:18:18Z",
+        "current_context": dict(current_context),
+        "current_thread_ref": "capital_hilton",
+        "current_world_ref": "finance",
+        "device_class": "mac",
+        "device_ref": "sha256:b191fdb712c2c5d281944b1ab6435791fae47f1ca78fdd184cfb0fc36dd2b2d7",
+        "device_verified": True,
+        "event": {
+            "authority_boundary": authority_boundary,
+            "authority_requested": [],
+            "controller_event_type": event_type,
+            "selected_action_id": selected_action_id,
+            "selected_card_id": selected_card_id,
+        },
+        "input_surface": "helm_dynamic_card",
+        "kind": controller_router.REQUEST_TYPE,
+        "mac_wrote_request_only": True,
+        "operator_authority_envelope": {
+            "app_instance_ref": "sha256:b7efb2d5f3ec5e0b0f1a77589c9c276612600550161e555f4fe5384f98fd3e07",
+            "app_instance_verified": True,
+            "device_class": "mac",
+            "device_ref": "sha256:b191fdb712c2c5d281944b1ab6435791fae47f1ca78fdd184cfb0fc36dd2b2d7",
+            "device_verified": True,
+            "operator_ref": "hwinshipwheatley",
+            "operator_verified": True,
+            "request_hash": "sha256:3a8c5dbcc6c0ec3a64a4ebcb304bfa00bf064ca17fe479d0b6f302e579ed1245",
+            "session_ref": "sha256:49fe9e9d6dba9ac5fc5acfff73769d92c69ae58c2a38881305132ffe2d0fe340",
+            "session_verified": True,
+            "verification_status": operator_authority.VERIFICATION_STATUS_VERIFIED,
+        },
+        "operator_ref": "hwinshipwheatley",
+        "operator_verified": True,
+        "origin_surface": "mission_control_mac",
+        "payload_hash": "sha256:47f21d9686398741a48e014ca6de2b57326260aa3a1893f8de8e8ff91b4d8a7c",
+        "request_hash": "sha256:3a8c5dbcc6c0ec3a64a4ebcb304bfa00bf064ca17fe479d0b6f302e579ed1245",
+        "request_id": request_id,
+        "request_type": controller_router.REQUEST_TYPE,
+        "selected_action_id": selected_action_id,
+        "selected_card_id": selected_card_id,
+        "selected_entity_ref": "capital_hilton",
+        "session_ref": "sha256:49fe9e9d6dba9ac5fc5acfff73769d92c69ae58c2a38881305132ffe2d0fe340",
+        "session_verified": True,
+        "source_channel": "mission_control_dynamic_card",
+        "source_request_id": request_id,
+        "source_surface": "mission_control",
+        "type": controller_router.REQUEST_TYPE,
+        "verification_status": operator_authority.VERIFICATION_STATUS_VERIFIED,
+        "visible_lane_ref": "capital_hilton",
+    }
+
+
 def _run_live(tmp_path: Path, request: dict, *, filename_suffix: str) -> tuple[dict, dict, Path]:
     inbox = tmp_path / "inbox"
     response_dir = tmp_path / "responses"
@@ -163,6 +240,48 @@ def test_live_ask_why_finance_capital_hilton_returns_payment_watch_card(tmp_path
     assert receipt["current_thread_ref"] == "capital_hilton"
     assert receipt["route_result"]["package_staged"] is False
     assert "Coupa is processing" in response["visible_cards"][0]["plain_summary"]
+    assert not _unsafe_true_grants(response)
+
+
+def test_live_mac_dispatcher_open_lane_compact_envelope_accepts(tmp_path):
+    response, _published, _export_root = _run_live(
+        tmp_path,
+        _mac_dispatcher_request(),
+        filename_suffix="mac_dispatcher_open_lane",
+    )
+
+    receipt = _router_receipt(response)
+    assert response["internal_status"] == controller_router.RESPONSE_READY
+    assert receipt["backend_route"] == "operator_action_payloads.navigate"
+    assert response["visible_cards"][0]["headline"] == "Lane navigation ready"
+    assert receipt["operator_authority_envelope"]["verified"] is True
+    assert receipt["operator_envelope_normalization"]["applied"] is True
+    assert receipt["authority_granted"] == []
+    assert all(value is False for value in receipt["authority_boundary"].values())
+    assert receipt["machine_proof"]["business_action_performed"] is False
+    assert receipt["machine_proof"]["ledger_mutation_performed"] is False
+    assert receipt["machine_proof"]["paid_marking_performed"] is False
+    assert not _unsafe_true_grants(response)
+
+
+def test_live_mac_dispatcher_ask_why_compact_envelope_accepts(tmp_path):
+    request = _mac_dispatcher_request(
+        event_type="ask_why",
+        selected_action_id="",
+        request_id="finance_ask_why_capital_hilton_20260605T161818Z_3a8c5dbcc6c0",
+    )
+    request["operator_text"] = "Why am I here?"
+    response, _published, _export_root = _run_live(
+        tmp_path,
+        request,
+        filename_suffix="mac_dispatcher_ask_why",
+    )
+
+    receipt = _router_receipt(response)
+    assert response["internal_status"] == controller_router.RESPONSE_READY
+    assert receipt["backend_route"] == "system_question_answer.contextual_answer"
+    assert "Coupa is processing" in response["visible_cards"][0]["plain_summary"]
+    assert receipt["operator_authority_envelope"]["verified"] is True
     assert not _unsafe_true_grants(response)
 
 

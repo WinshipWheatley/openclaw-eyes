@@ -8,6 +8,7 @@ It is a controller layer, not a business executor.
 ## Rules
 
 - Verified first-class operator envelope required.
+- Mac compact controller dispatcher envelopes are normalized from inline envelope, current_context, top-level verified identity fields, and operator_envelope_ref before validation.
 - Incoming authority_granted, gate_decision_ref, and approval_receipt_ref are backend-only and rejected or ignored.
 - authority_requested does not imply authority_granted.
 - Unknown events fail closed.
@@ -28,7 +29,7 @@ It is a controller layer, not a business executor.
 
 ## Latest Receipt
 
-- Receipt: `operator_controller_event_router:8dd7614b41ecfecc`
+- Receipt: `operator_controller_event_router:65d3c3927ac32c67`
 - Event: `ask_why`
 - Status: `ROUTED`
 - Backend route: `system_question_answer.contextual_answer`
