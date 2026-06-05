@@ -51,8 +51,14 @@
       },
       "card_id": "dynamic_card.finance.capital_hilton.payment_watch",
       "card_type": "payment_watch",
+      "collapse_when_resolved": false,
+      "expires_at": "",
+      "freshness_state": "current",
       "headline": "Stay on payment watch",
+      "lifecycle_state": "active",
+      "operator_attention_required": false,
       "plain_summary": "Coupa is processing. Wait for payment evidence before anything touches the ledger.",
+      "primary_control_ref": "dynamic_card.finance.capital_hilton.payment_watch",
       "priority": 100,
       "proof": {
         "collapsed_by_default": true,
@@ -77,7 +83,10 @@
           "/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/capital_hilton_invoice_operator_run_report_20260601T221600Z.md"
         ]
       },
+      "replacement_card_ref": "",
+      "resolved_by_receipt_ref": "",
       "speaker_ref": "chief",
+      "stale_reason": "",
       "status_label": "Payment watch",
       "supporting_lines": [
         "Coupa status: processing.",
@@ -163,8 +172,14 @@
       },
       "card_id": "dynamic_card.finance.live_arts_md.evidence_intake.payment_processing",
       "card_type": "evidence_intake",
+      "collapse_when_resolved": true,
+      "expires_at": "",
+      "freshness_state": "waiting_on_external",
       "headline": "Payment proof received",
+      "lifecycle_state": "waiting",
+      "operator_attention_required": false,
       "plain_summary": "This appears to show payment processing for invoice 2026-1001. Ledger remains untouched until payment is confirmed.",
+      "primary_control_ref": "dynamic_card.finance.live_arts_md.evidence_intake.payment_processing",
       "priority": 97,
       "proof": {
         "collapsed_by_default": true,
@@ -178,7 +193,10 @@
         ],
         "receipt_refs": []
       },
+      "replacement_card_ref": "",
+      "resolved_by_receipt_ref": "",
       "speaker_ref": "chief",
+      "stale_reason": "",
       "status_label": "Processing evidence",
       "supporting_lines": [
         "Evidence status: CANDIDATE_EVIDENCE_RECORDED.",
@@ -221,8 +239,14 @@
       },
       "card_id": "dynamic_card.finance.capital_hilton.contextual_question",
       "card_type": "answer",
+      "collapse_when_resolved": true,
+      "expires_at": "",
+      "freshness_state": "current",
       "headline": "Stay on payment watch",
+      "lifecycle_state": "active",
+      "operator_attention_required": true,
       "plain_summary": "Coupa is processing. Wait for payment evidence before anything touches the ledger.",
+      "primary_control_ref": "dynamic_card.finance.capital_hilton.contextual_question",
       "priority": 95,
       "proof": {
         "collapsed_by_default": true,
@@ -238,7 +262,10 @@
         ],
         "receipt_refs": []
       },
+      "replacement_card_ref": "",
+      "resolved_by_receipt_ref": "",
       "speaker_ref": "chief",
+      "stale_reason": "",
       "status_label": "Answer ready",
       "supporting_lines": [
         "Answered from current lane metadata: Finance / Capital Hilton.",
@@ -299,8 +326,14 @@
       },
       "card_id": "dynamic_card.build.review_packet.current",
       "card_type": "review_packet",
+      "collapse_when_resolved": true,
+      "expires_at": "",
+      "freshness_state": "current",
       "headline": "Review packet needs local decision",
+      "lifecycle_state": "needs_operator",
+      "operator_attention_required": true,
       "plain_summary": "PC_CODEX changed backend code and returned local validation proof for operator review.",
+      "primary_control_ref": "dynamic_card.build.review_packet.current",
       "priority": 90,
       "proof": {
         "collapsed_by_default": true,
@@ -316,7 +349,10 @@
         ],
         "receipt_refs": []
       },
+      "replacement_card_ref": "",
+      "resolved_by_receipt_ref": "",
       "speaker_ref": "chief",
+      "stale_reason": "",
       "status_label": "REVIEW_PACKET_READY",
       "supporting_lines": [
         "Packet: review_packet:c4ec166103f9aa35.",
@@ -359,8 +395,14 @@
       },
       "card_id": "dynamic_card.business_development.capital_hilton.proposal",
       "card_type": "status",
+      "collapse_when_resolved": true,
+      "expires_at": "",
+      "freshness_state": "current",
       "headline": "Proposal follow-up is review-only",
+      "lifecycle_state": "active",
+      "operator_attention_required": true,
       "plain_summary": "Capital Hilton proposal context is business development. Draft or stage a follow-up only for review; do not send.",
+      "primary_control_ref": "dynamic_card.business_development.capital_hilton.proposal",
       "priority": 80,
       "proof": {
         "collapsed_by_default": true,
@@ -377,7 +419,10 @@
         ],
         "receipt_refs": []
       },
+      "replacement_card_ref": "",
+      "resolved_by_receipt_ref": "",
       "speaker_ref": "cassandra",
+      "stale_reason": "",
       "status_label": "Proposal status",
       "supporting_lines": [
         "Proposal status: SENT_FOR_CLIENT_REVIEW.",
@@ -429,8 +474,14 @@
       },
       "card_id": "dynamic_card.system.check_engine.diagnostic",
       "card_type": "status",
+      "collapse_when_resolved": true,
+      "expires_at": "",
+      "freshness_state": "current",
       "headline": "Chief diagnostic only",
+      "lifecycle_state": "active",
+      "operator_attention_required": true,
       "plain_summary": "Open the Check Engine diagnostic or ask Chief; no repair authority is granted.",
+      "primary_control_ref": "dynamic_card.system.check_engine.diagnostic",
       "priority": 70,
       "proof": {
         "collapsed_by_default": true,
@@ -445,7 +496,10 @@
         ],
         "receipt_refs": []
       },
+      "replacement_card_ref": "",
+      "resolved_by_receipt_ref": "",
       "speaker_ref": "chief",
+      "stale_reason": "",
       "status_label": "Diagnostic",
       "supporting_lines": [
         "This card can explain or open diagnostics only.",
@@ -487,8 +541,14 @@
       },
       "card_id": "dynamic_card.finance.capital_hilton.workbook_registration",
       "card_type": "workbook_registration",
+      "collapse_when_resolved": true,
+      "expires_at": "",
+      "freshness_state": "current",
       "headline": "Workbook reference can be registered",
+      "lifecycle_state": "active",
+      "operator_attention_required": true,
       "plain_summary": "Register the workbook reference as metadata only; do not read workbook body, run Excel, or mutate the file.",
+      "primary_control_ref": "dynamic_card.finance.capital_hilton.workbook_registration",
       "priority": 60,
       "proof": {
         "collapsed_by_default": true,
@@ -501,7 +561,10 @@
         ],
         "receipt_refs": []
       },
+      "replacement_card_ref": "",
+      "resolved_by_receipt_ref": "",
       "speaker_ref": "chief",
+      "stale_reason": "",
       "status_label": "Workbook registration",
       "supporting_lines": [
         "Workbook: Capital Hilton invoice workbook.xlsx.",
@@ -534,8 +597,14 @@
       },
       "card_id": "dynamic_card.finance.st_annes.work_log_review",
       "card_type": "status",
+      "collapse_when_resolved": true,
+      "expires_at": "",
+      "freshness_state": "historical",
       "headline": "St. Anne's work-log review",
+      "lifecycle_state": "resolved",
+      "operator_attention_required": false,
       "plain_summary": "St. Anne's work-log review stays local; completed or test-only items are not primary active blockers.",
+      "primary_control_ref": "dynamic_card.finance.st_annes.work_log_review",
       "priority": 20,
       "proof": {
         "collapsed_by_default": true,
@@ -548,7 +617,10 @@
         ],
         "receipt_refs": []
       },
+      "replacement_card_ref": "",
+      "resolved_by_receipt_ref": "generated/read_models/st_annes_work_log_review_surface.json",
       "speaker_ref": "chief",
+      "stale_reason": "",
       "status_label": "No active blocker",
       "supporting_lines": [
         "Pending review: 0.",
@@ -560,7 +632,8 @@
       "visible_by_default": false
     }
   ],
-  "generated_at": "2026-06-04T21:15:00+00:00",
+  "generated_at": "2026-06-04T22:15:00+00:00",
+  "history_card_count": 1,
   "machine_proof": {
     "all_visible_cards_have_trust_state": true,
     "backend_generated_operator_surface": true,
@@ -579,6 +652,8 @@
     "gmail_access_performed": false,
     "human_copy_first": true,
     "ledger_mutation_performed": false,
+    "lifecycle_fields_present": true,
+    "lifecycle_policy_ref": "generated/read_models/dynamic_card_lifecycle_policy.json",
     "local_model_runtime_connected": false,
     "machine_contracts_hidden_by_default": true,
     "memory_candidates_do_not_become_truth": true,
@@ -601,7 +676,8 @@
     "worker_execution_performed": false,
     "worker_spawn_performed": false
   },
-  "packet_id": "dynamic_card_packet:dacbaf2f6694",
+  "operator_attention_card_count": 5,
+  "packet_id": "dynamic_card_packet:f9c47593e5b6",
   "preconditions": [
     {
       "equivalent_status_accepted": "",

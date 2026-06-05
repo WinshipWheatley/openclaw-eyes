@@ -17,6 +17,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping
 
+import dynamic_card_lifecycle_policy as lifecycle_policy
+
 
 ROOT = Path(__file__).resolve().parent
 DEFAULT_READ_MODEL_ROOT = Path("generated/read_models")
@@ -34,6 +36,7 @@ READY_STATUS = "DYNAMIC_CARD_PACKET_READY"
 NOT_READY_STATUS = "DYNAMIC_CARD_PACKET_NOT_READY"
 FIRST_CLASS_OPERATOR_ENVELOPE_CONTRACT_REF = "generated/read_models/first_class_operator_envelope_contract.json"
 FIRST_CLASS_OPERATOR_ENVELOPE_STATUS_REF = "generated/read_models/first_class_operator_envelope_status.json"
+LIFECYCLE_POLICY_REF = "generated/read_models/dynamic_card_lifecycle_policy.json"
 
 CARD_TYPES = (
     "answer",
@@ -387,7 +390,7 @@ def _card(
         raise ValueError(f"unsupported tone: {tone}")
     if trust_state not in TRUST_STATES:
         raise ValueError(f"unsupported trust_state: {trust_state}")
-    return {
+    card = {
         "card_id": card_id,
         "card_type": card_type,
         "speaker_ref": speaker_ref,
@@ -403,6 +406,7 @@ def _card(
         "proof": dict(proof),
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
     }
+    return lifecycle_policy.apply_lifecycle_policy(card)
 
 
 def _capital_hilton_payment_watch_card(sources: Mapping[str, Mapping[str, Any]], action_index: Mapping[str, Mapping[str, Any]]) -> dict[str, Any]:
@@ -813,6 +817,7 @@ def validate_packet(packet: Mapping[str, Any], action_index: Mapping[str, Mappin
         card_id = str(card.get("card_id") or "unknown_card")
         if card.get("trust_state") not in TRUST_STATES:
             errors.append(f"{card_id}:trust_state_missing_or_invalid")
+        errors.extend(lifecycle_policy.validate_card_lifecycle(card))
         if card.get("card_type") not in CARD_TYPES:
             errors.append(f"{card_id}:card_type_invalid")
         if card.get("speaker_ref") not in SPEAKER_REFS:
@@ -862,6 +867,11 @@ def validate_packet(packet: Mapping[str, Any], action_index: Mapping[str, Mappin
             and card["proof"].get("collapsed_by_default") is True
             for card in cards
         ),
+        "lifecycle_fields_present": all(
+            isinstance(card, Mapping)
+            and all(field in card for field in lifecycle_policy.REQUIRED_CARD_FIELDS)
+            for card in cards
+        ),
         "unsafe_true_grants": unsafe,
         "unsafe_true_grants_absent": not unsafe,
     }
@@ -903,6 +913,12 @@ def build_latest_packet(
         "cards": cards,
         "card_count": len(cards),
         "visible_card_count": sum(1 for card in cards if card.get("visible_by_default") is True),
+        "history_card_count": sum(
+            1 for card in cards if card.get("lifecycle_state") in {"resolved", "archived"}
+        ),
+        "operator_attention_card_count": sum(
+            1 for card in cards if card.get("operator_attention_required") is True
+        ),
         "source_refs": [_source_ref(filename) for filename in SOURCE_FILENAMES.values()],
         "preconditions": preconditions,
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
@@ -917,6 +933,8 @@ def build_latest_packet(
         "proof_collapsed_by_default": validation["proof_collapsed_by_default"],
         "all_visible_cards_have_trust_state": validation["all_visible_cards_have_trust_state"],
         "enabled_actions_reference_deterministic_payloads": validation["enabled_actions_reference_deterministic_payloads"],
+        "lifecycle_fields_present": validation["lifecycle_fields_present"],
+        "lifecycle_policy_ref": LIFECYCLE_POLICY_REF,
         "no_card_invents_authority": validation["valid"],
         "payment_truth_requires_payment_evidence": True,
         "generated_summaries_do_not_override_receipts": True,
@@ -980,6 +998,9 @@ def build_contract_read_model(
             "tones": list(TONES),
             "trust_states": list(TRUST_STATES),
             "action_types": list(ACTION_TYPES),
+            "lifecycle_states": list(lifecycle_policy.LIFECYCLE_STATES),
+            "freshness_states": list(lifecycle_policy.FRESHNESS_STATES),
+            "required_lifecycle_fields": list(lifecycle_policy.REQUIRED_CARD_FIELDS),
             "authority_boundary": dict(AUTHORITY_BOUNDARY),
         },
         "rules": [
@@ -993,6 +1014,10 @@ def build_contract_read_model(
             "Generated summaries cannot override receipts.",
             "Memory candidates cannot become truth.",
             "Payment truth cannot come from email, Coupa, or proposal status without payment evidence.",
+            "Every card must include lifecycle_state, freshness_state, operator_attention_required, collapse_when_resolved, and primary_control_ref.",
+            "Resolved and archived cards are hidden by default and collapse into Completed / History.",
+            "Stale cards must say Needs verification.",
+            "Proof-only and machine-contract cards are hidden in operator mode unless requested.",
         ],
         "required_example_cards": [
             "Finance / Capital Hilton payment watch",
@@ -1020,6 +1045,8 @@ def build_contract_read_model(
             "all_visible_cards_have_trust_state": latest["machine_proof"]["all_visible_cards_have_trust_state"],
             "enabled_actions_reference_deterministic_payloads": latest["machine_proof"]["enabled_actions_reference_deterministic_payloads"],
             "proof_collapsed_by_default": latest["machine_proof"]["proof_collapsed_by_default"],
+            "lifecycle_fields_present": latest["machine_proof"]["lifecycle_fields_present"],
+            "lifecycle_policy_ref": LIFECYCLE_POLICY_REF,
             "external_llm_invoked": False,
             "local_model_runtime_connected": False,
             "worker_spawn_performed": False,
