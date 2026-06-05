@@ -31,6 +31,8 @@ DEFAULT_ARTIFACT_LINEAGE_SQLITE_PATH = Path("generated/system_knowledge/artifact
 DEFAULT_READ_MODEL_ROOT = Path("generated/read_models")
 
 REQUEST_TYPE = "EVIDENCE_INTAKE_REQUEST_V0"
+VERIFIED_REQUEST_TYPE = "VERIFIED_EVIDENCE_INTAKE_REQUEST_V0"
+REQUEST_TYPE_ALIASES = (REQUEST_TYPE, VERIFIED_REQUEST_TYPE)
 SCHEMA_VERSION = "evidence_intake_v0"
 CONTRACT_SCHEMA_VERSION = "evidence_intake_contract_v0"
 CONTRACT_READ_MODEL_ID = "evidence_intake_contract"
@@ -180,6 +182,18 @@ def _artifact_sha256(path: str) -> str:
     return _sha256_file(_resolve_artifact_path(path))
 
 
+def _artifact_hash_allowed(request: Mapping[str, Any]) -> bool:
+    return any(
+        request.get(field) is True
+        for field in (
+            "artifact_hash_allowed",
+            "hash_artifact_allowed",
+            "file_hash_allowed",
+            "approved_for_hash",
+        )
+    )
+
+
 def _bridge_path(path: str, bridge_artifact_ref: str) -> str:
     if path.startswith("/mnt/e/openclaw/"):
         return path
@@ -200,6 +214,173 @@ def _request_text(request: Mapping[str, Any]) -> str:
         request.get("intended_use"),
     ]
     return " ".join(str(value or "") for value in fields).lower()
+
+
+def request_type_value(request: Mapping[str, Any]) -> str:
+    for key in ("request_type", "kind", "type"):
+        value = str(request.get(key) or "").strip().upper()
+        if value:
+            return value
+    return ""
+
+
+def is_evidence_intake_request(request: Mapping[str, Any]) -> bool:
+    return request_type_value(request) in REQUEST_TYPE_ALIASES
+
+
+def _normalized_artifact_kind(request: Mapping[str, Any]) -> str:
+    explicit = str(request.get("artifact_kind") or "").strip().lower()
+    if explicit in ARTIFACT_KINDS:
+        return explicit
+    hint = str(request.get("file_kind_hint") or "").strip().lower()
+    extension = str(request.get("file_extension") or "").strip().lower().lstrip(".")
+    if "screenshot" in hint:
+        return "screenshot"
+    if extension in {"png", "jpg", "jpeg", "heic", "webp", "gif", "tiff"} or "image" in hint:
+        return "image"
+    if extension == "pdf" or "pdf" in hint:
+        return "pdf"
+    if "receipt" in hint:
+        return "receipt"
+    if "document" in hint or extension in {"doc", "docx", "txt", "rtf"}:
+        return "document"
+    return explicit
+
+
+def _first_present(*values: Any) -> str:
+    for value in values:
+        text = str(value or "").strip()
+        if text:
+            return text
+    return ""
+
+
+def _verified_mac_drop_shape(request: Mapping[str, Any]) -> bool:
+    if str(request.get("original_request_type") or request_type_value(request)).strip().upper() != VERIFIED_REQUEST_TYPE:
+        return False
+    required = (
+        "operator_ref",
+        "app_instance_ref",
+        "device_ref",
+        "session_ref",
+        "created_at",
+        "request_hash",
+        "current_world_ref",
+        "current_thread_ref",
+    )
+    return all(_first_present(request.get(field)) for field in required)
+
+
+def _attach_derived_envelopes_for_verified_drop(request: dict[str, Any]) -> dict[str, Any]:
+    if "operator_envelope" in request and any(key in request for key in operator_authority_envelope.ENVELOPE_KEYS):
+        return request
+    if not _verified_mac_drop_shape(request):
+        return request
+
+    original_request_hash = str(request.get("request_hash") or "")
+    created_at = str(request.get("created_at") or utc_now())
+    current_world_ref = str(request.get("current_world_ref") or request.get("world_ref") or "")
+    current_thread_ref = str(request.get("current_thread_ref") or request.get("thread_ref") or request.get("lane_ref") or "")
+    operator_ref = str(request.get("operator_ref") or "")
+    app_instance_ref = str(request.get("app_instance_ref") or "")
+    device_ref = str(request.get("device_ref") or "")
+    session_ref = str(request.get("session_ref") or "")
+
+    request["source_request_hash"] = original_request_hash
+    request["controller_action_type"] = "attach_proof"
+    request["operator_envelope"] = {
+        "operator_ref": operator_ref,
+        "app_instance_ref": app_instance_ref,
+        "device_ref": device_ref,
+        "session_ref": session_ref,
+        "created_at": created_at,
+        "source_surface": operator_envelope.SOURCE_SURFACE,
+        "operator_verified": True,
+        "request_hash": "",
+    }
+    request["operator_authority_envelope"] = {
+        "envelope_id": "operator_authority_envelope:" + _short_hash(
+            operator_ref,
+            app_instance_ref,
+            device_ref,
+            session_ref,
+            current_world_ref,
+            current_thread_ref,
+            created_at,
+            "attach_proof",
+        ),
+        "operator_ref": operator_ref,
+        "app_instance_ref": app_instance_ref,
+        "device_ref": device_ref,
+        "device_class": "mac",
+        "session_ref": session_ref,
+        "request_hash": "",
+        "created_at": created_at,
+        "source_surface": "dropzone",
+        "current_world_ref": current_world_ref,
+        "current_thread_ref": current_thread_ref,
+        "active_entity_ref": str(request.get("selected_entity_ref") or current_thread_ref),
+        "authority_requested": [],
+        "operator_verified": True,
+        "app_instance_verified": True,
+        "device_verified": True,
+        "session_verified": True,
+        "verification_status": operator_authority_envelope.VERIFICATION_STATUS_VERIFIED,
+        "proof_refs": [
+            str(request.get("origin_surface") or request.get("source_channel") or "mission_control_evidence_drop_zone"),
+            app_instance_ref,
+            device_ref,
+            session_ref,
+            original_request_hash,
+        ],
+    }
+    canonical_hash = operator_envelope.compute_request_hash(request)
+    request["request_hash"] = canonical_hash
+    request["operator_envelope"]["request_hash"] = canonical_hash
+    request["operator_authority_envelope"]["request_hash"] = canonical_hash
+    return request
+
+
+def normalize_evidence_request(request: Mapping[str, Any]) -> dict[str, Any]:
+    normalized = dict(request)
+    original_request_type = str(normalized.get("original_request_type") or request_type_value(normalized)).strip().upper()
+    if original_request_type in REQUEST_TYPE_ALIASES:
+        normalized["original_request_type"] = original_request_type
+        normalized["request_type"] = REQUEST_TYPE
+    normalized.setdefault("source_surface", operator_envelope.SOURCE_SURFACE)
+    normalized["current_world_ref"] = _first_present(
+        normalized.get("current_world_ref"),
+        normalized.get("world_ref"),
+    )
+    normalized["current_thread_ref"] = _first_present(
+        normalized.get("current_thread_ref"),
+        normalized.get("thread_ref"),
+        normalized.get("lane_ref"),
+        normalized.get("visible_lane_ref"),
+    )
+    normalized["claimed_client_ref"] = _first_present(
+        normalized.get("claimed_client_ref"),
+        normalized.get("selected_client_ref"),
+        normalized.get("client_ref"),
+        normalized.get("current_thread_ref"),
+    )
+    normalized["claimed_workflow_ref"] = _first_present(
+        normalized.get("claimed_workflow_ref"),
+        normalized.get("workflow_ref"),
+    )
+    artifact_kind = _normalized_artifact_kind(normalized)
+    if artifact_kind:
+        normalized["artifact_kind"] = artifact_kind
+    if not _first_present(normalized.get("artifact_path"), normalized.get("bridge_artifact_ref")):
+        normalized["bridge_artifact_ref"] = _first_present(
+            normalized.get("approved_pc_readable_path"),
+            normalized.get("bridge_path"),
+            normalized.get("mac_visible_path_ref"),
+            normalized.get("file_display_name"),
+        )
+    if str(normalized.get("intended_use") or "") == "payment_proof":
+        normalized.setdefault("privacy_class", "financial_sensitive")
+    return _attach_derived_envelopes_for_verified_drop(normalized)
 
 
 def _load_json(path: Path) -> dict[str, Any]:
@@ -343,13 +524,12 @@ def classify_payment_state(request: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def validate_evidence_request(request: Mapping[str, Any]) -> dict[str, Any]:
+    request = normalize_evidence_request(request)
     blockers: list[str] = []
     envelope_result = operator_envelope.validate_operator_envelope(request)
-    authority_envelope_result: dict[str, Any] = {}
-    if any(key in request for key in operator_authority_envelope.ENVELOPE_KEYS):
-        authority_envelope_result = operator_authority_envelope.validate_operator_authority_envelope(request)
-        if authority_envelope_result["verification_status"] != operator_authority_envelope.VERIFICATION_STATUS_VERIFIED:
-            blockers.append("first_class_operator_authority_envelope_invalid")
+    authority_envelope_result = operator_authority_envelope.validate_operator_authority_envelope(request)
+    if authority_envelope_result["verification_status"] != operator_authority_envelope.VERIFICATION_STATUS_VERIFIED:
+        blockers.append("first_class_operator_authority_envelope_invalid")
     if envelope_result["status"] != operator_envelope.STATUS_VERIFIED:
         blockers.append("operator_verification_required")
     if request.get("request_type") != REQUEST_TYPE:
@@ -447,6 +627,7 @@ def build_dynamic_card(record: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def build_intake_record(request: Mapping[str, Any], *, generated_at: str | None = None) -> dict[str, Any]:
+    request = normalize_evidence_request(request)
     generated_at = generated_at or utc_now()
     validation = validate_evidence_request(request)
     if validation["status"] != READY_STATUS:
@@ -471,7 +652,9 @@ def build_intake_record(request: Mapping[str, Any], *, generated_at: str | None 
     request_hash = str(envelope.get("request_hash") or operator_envelope.compute_request_hash(request))
     artifact_path = str(request.get("artifact_path") or "")
     bridge_artifact_ref = str(request.get("bridge_artifact_ref") or "")
-    artifact_sha256 = _artifact_sha256(artifact_path)
+    artifact_sha256 = str(request.get("artifact_sha256") or request.get("sha256") or "")
+    if not artifact_sha256 and artifact_path and _artifact_hash_allowed(request):
+        artifact_sha256 = _artifact_sha256(artifact_path)
     artifact_ref = f"artifact:evidence_intake_{_short_hash(request_hash, artifact_path, bridge_artifact_ref)}"
     request_ref = f"evidence_intake_request:{_short_hash(request_hash)}"
     operator_note = str(request.get("operator_note") or "")
@@ -487,6 +670,7 @@ def build_intake_record(request: Mapping[str, Any], *, generated_at: str | None 
             "request_type": REQUEST_TYPE,
             "source_surface": operator_envelope.SOURCE_SURFACE,
             "request_hash": request_hash,
+            "source_request_hash": str(request.get("source_request_hash") or ""),
         },
         "operator_envelope": {
             "operator_ref": str(envelope.get("operator_ref") or ""),
@@ -542,7 +726,9 @@ def build_intake_record(request: Mapping[str, Any], *, generated_at: str | None 
     record["machine_proof"] = {
         "operator_verification_required_if_missing": True,
         "candidate_evidence_recorded": True,
-        "artifact_hash_recorded_if_possible": bool(artifact_sha256) if artifact_path else False,
+        "artifact_hash_recorded_if_possible": bool(artifact_sha256),
+        "artifact_hash_recorded_if_available": bool(artifact_sha256),
+        "artifact_file_body_read_for_hash": bool(artifact_path and _artifact_hash_allowed(request) and artifact_sha256),
         "payment_processing_evidence_does_not_mark_paid": payment["paid"] is False,
         "ledger_mutation_performed": False,
         "paid_marking_performed": False,
@@ -764,12 +950,23 @@ def record_evidence_intake(
 def example_payment_processing_request(*, generated_at: str | None = None) -> dict[str, Any]:
     generated_at = generated_at or "2026-06-04T17:00:00+00:00"
     payload = {
-        "request_type": REQUEST_TYPE,
+        "request_id": "evidence_intake_example_payment_processing",
+        "request_type": VERIFIED_REQUEST_TYPE,
+        "kind": VERIFIED_REQUEST_TYPE,
+        "type": VERIFIED_REQUEST_TYPE,
         "source_surface": operator_envelope.SOURCE_SURFACE,
         "current_world_ref": "finance",
         "current_thread_ref": "live_arts_md",
+        "world_ref": "finance",
+        "thread_ref": "live_arts_md",
         "claimed_client_ref": "live_arts_md",
         "claimed_workflow_ref": "live_arts_md_payment_watch",
+        "operator_ref": "operator:winship",
+        "app_instance_ref": "mission_control:pc",
+        "device_ref": "device:pc",
+        "session_ref": "session:evidence-intake-example",
+        "created_at": generated_at,
+        "request_hash": "sha256:example_source_request_hash",
         "artifact_path": "",
         "bridge_artifact_ref": "mission_control_drop:live_arts_md_payment_processing_screenshot_invoice_2026-1001",
         "artifact_kind": "screenshot",
@@ -778,14 +975,7 @@ def example_payment_processing_request(*, generated_at: str | None = None) -> di
         "intended_use": "payment_proof",
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
     }
-    return operator_envelope.attach_verified_operator_envelope(
-        payload,
-        operator_ref="operator:winship",
-        app_instance_ref="mission_control:pc",
-        device_ref="device:pc",
-        session_ref="session:evidence-intake-example",
-        created_at=generated_at,
-    )
+    return payload
 
 
 def build_contract_read_model(

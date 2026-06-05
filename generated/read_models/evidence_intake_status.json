@@ -45,7 +45,7 @@
         "enabled": true,
         "label": "Attach to lane",
         "operator_authority_envelope_contract_ref": "generated/read_models/first_class_operator_envelope_contract.json",
-        "operator_authority_envelope_ref": "",
+        "operator_authority_envelope_ref": "operator_authority_envelope:f3f063e64f35615a",
         "requires_operator_authority_envelope": true
       },
       {
@@ -73,7 +73,7 @@
         "enabled": true,
         "label": "Ask what this means",
         "operator_authority_envelope_contract_ref": "generated/read_models/first_class_operator_envelope_contract.json",
-        "operator_authority_envelope_ref": "",
+        "operator_authority_envelope_ref": "operator_authority_envelope:f3f063e64f35615a",
         "requires_operator_authority_envelope": true
       },
       {
@@ -101,7 +101,7 @@
         "enabled": true,
         "label": "Mark as test",
         "operator_authority_envelope_contract_ref": "generated/read_models/first_class_operator_envelope_contract.json",
-        "operator_authority_envelope_ref": "",
+        "operator_authority_envelope_ref": "operator_authority_envelope:f3f063e64f35615a",
         "requires_operator_authority_envelope": true
       },
       {
@@ -129,7 +129,7 @@
         "enabled": true,
         "label": "Show details",
         "operator_authority_envelope_contract_ref": "generated/read_models/first_class_operator_envelope_contract.json",
-        "operator_authority_envelope_ref": "",
+        "operator_authority_envelope_ref": "operator_authority_envelope:f3f063e64f35615a",
         "requires_operator_authority_envelope": true
       }
     ],
@@ -151,7 +151,7 @@
       "workbook_mutation_allowed": false,
       "workbook_source_mutation_allowed": false
     },
-    "card_id": "dynamic_card.evidence_intake.payment_processing.919a0f32df",
+    "card_id": "dynamic_card.evidence_intake.payment_processing.aeafe331d1",
     "card_type": "evidence_intake",
     "headline": "Payment proof received",
     "machine_proof": {
@@ -161,7 +161,7 @@
     },
     "plain_summary": "This appears to show payment processing for invoice 2026-1001. Ledger remains untouched until payment is confirmed.",
     "proof": {
-      "artifact_ref": "artifact:evidence_intake_40a1629d982c29d2",
+      "artifact_ref": "artifact:evidence_intake_a8191f31df3ce664",
       "collapsed_by_default": true,
       "read_model_refs": [
         "generated/read_models/evidence_intake_status.json",
@@ -176,11 +176,11 @@
     "target_world_ref": "finance",
     "trust_state": "operator_reported"
   },
-  "generated_at": "2026-06-04T21:15:00+00:00",
+  "generated_at": "2026-06-05T02:58:46+00:00",
   "latest_record": {
     "artifact": {
-      "artifact_ref": "artifact:evidence_intake_40a1629d982c29d2",
-      "bridge_artifact_ref": "mission_control_drop:live_arts_md_payment_processing_screenshot_invoice_2026-1001",
+      "artifact_ref": "artifact:evidence_intake_a8191f31df3ce664",
+      "bridge_artifact_ref": "/Users/hwinshipwheatley/Documents/Invoices/Invoice Clients/openclaw-evidence-smoke.png",
       "bridge_path": "",
       "kind": "screenshot",
       "path": "",
@@ -188,7 +188,7 @@
       "sha256": ""
     },
     "artifact_lineage_registry_update_status": "recorded",
-    "artifact_ref": "artifact:evidence_intake_40a1629d982c29d2",
+    "artifact_ref": "artifact:evidence_intake_a8191f31df3ce664",
     "authority_boundary": {
       "authority_grant_allowed": false,
       "browser_access_allowed": false,
@@ -208,8 +208,8 @@
       "workbook_source_mutation_allowed": false
     },
     "claimed_client_ref": "live_arts_md",
-    "claimed_workflow_ref": "live_arts_md_payment_watch",
-    "created_at": "2026-06-04T21:15:00+00:00",
+    "claimed_workflow_ref": "live_arts_md_invoice_workflow",
+    "created_at": "2026-06-05T02:58:46+00:00",
     "current_thread_ref": "live_arts_md",
     "current_world_ref": "finance",
     "dynamic_card": {
@@ -239,7 +239,7 @@
           "enabled": true,
           "label": "Attach to lane",
           "operator_authority_envelope_contract_ref": "generated/read_models/first_class_operator_envelope_contract.json",
-          "operator_authority_envelope_ref": "",
+          "operator_authority_envelope_ref": "operator_authority_envelope:f3f063e64f35615a",
           "requires_operator_authority_envelope": true
         },
         {
@@ -267,7 +267,7 @@
           "enabled": true,
           "label": "Ask what this means",
           "operator_authority_envelope_contract_ref": "generated/read_models/first_class_operator_envelope_contract.json",
-          "operator_authority_envelope_ref": "",
+          "operator_authority_envelope_ref": "operator_authority_envelope:f3f063e64f35615a",
           "requires_operator_authority_envelope": true
         },
         {
@@ -295,7 +295,7 @@
           "enabled": true,
           "label": "Mark as test",
           "operator_authority_envelope_contract_ref": "generated/read_models/first_class_operator_envelope_contract.json",
-          "operator_authority_envelope_ref": "",
+          "operator_authority_envelope_ref": "operator_authority_envelope:f3f063e64f35615a",
           "requires_operator_authority_envelope": true
         },
         {
@@ -323,7 +323,7 @@
           "enabled": true,
           "label": "Show details",
           "operator_authority_envelope_contract_ref": "generated/read_models/first_class_operator_envelope_contract.json",
-          "operator_authority_envelope_ref": "",
+          "operator_authority_envelope_ref": "operator_authority_envelope:f3f063e64f35615a",
           "requires_operator_authority_envelope": true
         }
       ],
@@ -345,7 +345,7 @@
         "workbook_mutation_allowed": false,
         "workbook_source_mutation_allowed": false
       },
-      "card_id": "dynamic_card.evidence_intake.payment_processing.919a0f32df",
+      "card_id": "dynamic_card.evidence_intake.payment_processing.aeafe331d1",
       "card_type": "evidence_intake",
       "headline": "Payment proof received",
       "machine_proof": {
@@ -355,7 +355,7 @@
       },
       "plain_summary": "This appears to show payment processing for invoice 2026-1001. Ledger remains untouched until payment is confirmed.",
       "proof": {
-        "artifact_ref": "artifact:evidence_intake_40a1629d982c29d2",
+        "artifact_ref": "artifact:evidence_intake_a8191f31df3ce664",
         "collapsed_by_default": true,
         "read_model_refs": [
           "generated/read_models/evidence_intake_status.json",
@@ -371,10 +371,12 @@
       "trust_state": "operator_reported"
     },
     "evidence_status": "CANDIDATE_EVIDENCE_RECORDED",
-    "intake_id": "evidence_intake:33a985a83a782464",
+    "intake_id": "evidence_intake:37bbc6cac71d9b27",
     "intended_use": "payment_proof",
     "lineage_status": "candidate_evidence",
     "machine_proof": {
+      "artifact_file_body_read_for_hash": false,
+      "artifact_hash_recorded_if_available": false,
       "artifact_hash_recorded_if_possible": false,
       "business_action_performed": false,
       "candidate_evidence_recorded": true,
@@ -390,24 +392,43 @@
       "raw_sensitive_detail_promoted_to_memory": false,
       "worker_spawn_performed": false
     },
-    "operator_authority_envelope": {},
+    "operator_authority_envelope": {
+      "app_instance_ref": "sha256:b7efb2d5f3ec5e0b0f1a77589c9c276612600550161e555f4fe5384f98fd3e07",
+      "authority_granted": [],
+      "authority_requested": [],
+      "controller_action_type": "attach_proof",
+      "device_class": "mac",
+      "device_ref": "sha256:f761589fd26c8a19c0ffb6d5701e9fe1ae12925552f4de7089c94827388de3cf",
+      "envelope_id": "operator_authority_envelope:f3f063e64f35615a",
+      "operator_ref": "operator_winship_local",
+      "proof_refs": [
+        "mission_control_mac",
+        "sha256:b7efb2d5f3ec5e0b0f1a77589c9c276612600550161e555f4fe5384f98fd3e07",
+        "sha256:f761589fd26c8a19c0ffb6d5701e9fe1ae12925552f4de7089c94827388de3cf",
+        "sha256:f68da3acb7b2e7a7503154d6078ad8ef1fb3e429e378bc140b4b8e881ffe7493",
+        "sha256:source-request-route_closeout_20260605T025918Z"
+      ],
+      "read_model_ref": "generated/read_models/first_class_operator_envelope_status.json",
+      "session_ref": "sha256:f68da3acb7b2e7a7503154d6078ad8ef1fb3e429e378bc140b4b8e881ffe7493",
+      "verification_status": "verified"
+    },
     "operator_envelope": {
-      "app_instance_ref": "mission_control:pc",
-      "created_at": "2026-06-04T21:15:00+00:00",
-      "device_ref": "device:pc",
-      "operator_ref": "operator:winship",
+      "app_instance_ref": "sha256:b7efb2d5f3ec5e0b0f1a77589c9c276612600550161e555f4fe5384f98fd3e07",
+      "created_at": "2026-06-05T02:59:18Z",
+      "device_ref": "sha256:f761589fd26c8a19c0ffb6d5701e9fe1ae12925552f4de7089c94827388de3cf",
+      "operator_ref": "operator_winship_local",
       "operator_verified": true,
-      "request_hash": "sha256:2eda837309e6228158628ba6511941b2c4f665c3e1c4522772b1106ed02592c0",
-      "session_ref": "session:evidence-intake-example"
+      "request_hash": "sha256:1eeaba74a59d36c482c83ffe44e43e08210bc2823e718dab7848c591282ace13",
+      "session_ref": "sha256:f68da3acb7b2e7a7503154d6078ad8ef1fb3e429e378bc140b4b8e881ffe7493"
     },
     "operator_note": {
       "raw_note_stored_in_general_memory": false,
-      "redacted": "Live Arts MD screenshot appears to show payment processing for invoice 2026-1001.",
-      "sha256": "sha256:3c146d1512848be70597c969fac2c677d762aa0719ceb12fda57be1adc242b28"
+      "redacted": "Smoke test payment evidence for Live Arts MD.",
+      "sha256": "sha256:8a1f995a2cd998a2d82da4318c346ab473884315b28dfe79f23b7abfb2e973fa"
     },
     "payment": {
-      "evidence_is_payment_processing_only": true,
-      "invoice_ref": "2026-1001",
+      "evidence_is_payment_processing_only": false,
+      "invoice_ref": "",
       "ledger_mutation_performed": false,
       "ledger_recording_allowed": false,
       "paid": false,
@@ -418,7 +439,7 @@
         "operator review before ledger recording"
       ],
       "paid_truth_status": "NOT_PAID_PROOF",
-      "payment_state": "payment_processing_evidence_received"
+      "payment_state": "payment_proof_candidate"
     },
     "privacy": {
       "external_provider_blocked": true,
@@ -432,11 +453,12 @@
       "raw_sensitive_detail_promoted_to_memory": false,
       "tokenization_required": true
     },
-    "request_ref": "evidence_intake_request:9ab73486ab70b7b7",
+    "request_ref": "evidence_intake_request:ee8176f8cbf522e9",
     "schema_version": "evidence_intake_v0",
     "source_request": {
-      "request_hash": "sha256:2eda837309e6228158628ba6511941b2c4f665c3e1c4522772b1106ed02592c0",
+      "request_hash": "sha256:1eeaba74a59d36c482c83ffe44e43e08210bc2823e718dab7848c591282ace13",
       "request_type": "EVIDENCE_INTAKE_REQUEST_V0",
+      "source_request_hash": "sha256:source-request-route_closeout_20260605T025918Z",
       "source_surface": "mission_control"
     },
     "status": "EVIDENCE_INTAKE_READY"

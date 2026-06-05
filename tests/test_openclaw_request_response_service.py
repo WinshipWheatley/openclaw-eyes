@@ -18,6 +18,7 @@ import client_invoice_workbook_registry as workbook_registry
 import invoice_review_bundle
 import local_artifact_reference
 import mac_worker_handoff_package as mac_handoff
+import evidence_intake
 import openclaw_event_bridge_contract as event_contract
 import openclaw_request_processor as processor
 import openclaw_request_response_service as service
@@ -427,6 +428,123 @@ def _write_artifact_intake_request(path: Path, *, bridge_root: Path, suffix: str
     }
     path.write_text(json.dumps(request, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return request
+
+
+def _write_mac_evidence_drop_request(path: Path, *, suffix: str = "service_evidence", verified: bool = True) -> dict:
+    request_type = evidence_intake.VERIFIED_REQUEST_TYPE if verified else evidence_intake.REQUEST_TYPE
+    request = {
+        "active_surface_ref": "evidence_drop_zone",
+        "app_instance_ref": f"sha256:app-{suffix}",
+        "authority_boundary": dict(evidence_intake.AUTHORITY_BOUNDARY),
+        "body_read": False,
+        "client_ref": "live_arts_md",
+        "content_read": False,
+        "created_at": FIXED_NOW,
+        "current_thread_ref": "live_arts_md",
+        "current_world_ref": "finance",
+        "device_ref": f"sha256:device-{suffix}",
+        "external_action": False,
+        "external_llm_shared": False,
+        "file_body_read": False,
+        "file_display_name": "openclaw-evidence-smoke.png",
+        "file_extension": "png",
+        "file_kind_hint": "image_screenshot",
+        "file_size_bytes": 7910081,
+        "idempotency_key": f"mission_control_evidence_intake:live_arts_md_invoice_workflow:{suffix}",
+        "intended_use": "payment_proof",
+        "kind": request_type,
+        "lane_ref": "live_arts_md",
+        "mac_visible_path_ref": "/Users/hwinshipwheatley/Documents/Invoices/Invoice Clients/openclaw-evidence-smoke.png",
+        "mac_wrote_request_only": True,
+        "no_browser_access": True,
+        "no_coupa_access": True,
+        "no_email_send": True,
+        "no_excel_automation": True,
+        "no_ledger_mutation": True,
+        "no_ocr": True,
+        "no_paid_marking": True,
+        "no_pdf_export": True,
+        "ocr_performed": False,
+        "operator_note": "Smoke test payment evidence for Live Arts MD.",
+        "operator_ref": f"operator:winship:{suffix}",
+        "origin_surface": "mission_control_mac",
+        "payload_hash": f"sha256:payload-{suffix}",
+        "private_file_contents_read": False,
+        "request_hash": f"sha256:source-request-{suffix}",
+        "request_id": f"live_arts_md_evidence_intake_{suffix}",
+        "request_type": request_type,
+        "requested_mode": "operator",
+        "result_receipt_required": True,
+        "schema_version": "verified_evidence_intake_request_v0" if verified else "evidence_intake_request_v0",
+        "selected_client_ref": "live_arts_md",
+        "selected_entity_ref": "live_arts_md",
+        "session_ref": f"sha256:session-{suffix}",
+        "source_channel": "mission_control_evidence_drop_zone",
+        "source_request_id": f"live_arts_md_evidence_intake_{suffix}",
+        "source_surface": "mission_control",
+        "spreadsheet_cell_read": False,
+        "tenant_ref": "operator_winship_local",
+        "thread_ref": "live_arts_md",
+        "type": request_type,
+        "visible_lane_ref": "live_arts_md",
+        "workflow_ref": "live_arts_md_invoice_workflow",
+        "world_ref": "finance",
+    }
+    if not verified:
+        for field in ("operator_ref", "app_instance_ref", "device_ref", "session_ref", "request_hash"):
+            request.pop(field, None)
+    path.write_text(json.dumps(request, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return request
+
+
+def _patch_evidence_intake_paths(monkeypatch, tmp_path: Path) -> tuple[Path, Path, Path]:
+    evidence_db = tmp_path / "evidence_intake.sqlite"
+    lineage_db = tmp_path / "artifact_lineage.sqlite"
+    bridge_root = tmp_path / "bridge_read_models"
+    monkeypatch.setattr(evidence_intake, "DEFAULT_SQLITE_PATH", evidence_db)
+    monkeypatch.setattr(evidence_intake, "DEFAULT_ARTIFACT_LINEAGE_SQLITE_PATH", lineage_db)
+    monkeypatch.setattr(evidence_intake, "DEFAULT_BRIDGE_ROOT", bridge_root)
+    monkeypatch.setattr(evidence_intake, "DEFAULT_WIKI_PATH", tmp_path / "Evidence Intake.md")
+    return evidence_db, lineage_db, bridge_root
+
+
+def _seed_evidence_preconditions(export_root: Path) -> None:
+    export_root.mkdir(parents=True, exist_ok=True)
+    statuses = {
+        "dynamic_card_packet_latest.json": "DYNAMIC_CARD_PACKET_READY",
+        "operator_action_payloads.json": "OPERATOR_ACTION_PAYLOADS_READY",
+        "artifact_lineage_registry.json": "ARTIFACT_LINEAGE_REGISTRY_READY",
+        "evidence_confidence_scoring.json": "EVIDENCE_CONFIDENCE_SCORING_READY",
+        "gate_decision_ledger.json": "GATE_DECISION_LEDGER_READY",
+    }
+    for filename, status in statuses.items():
+        (export_root / filename).write_text(json.dumps({"status": status}, indent=2) + "\n", encoding="utf-8")
+
+
+def _unsafe_true_grants(value, path: str = "$") -> list[str]:
+    unsafe_keys = set(evidence_intake.UNSAFE_TRUE_KEYS) | {
+        "live_email_send_allowed",
+        "live_coupa_access_allowed",
+        "live_coupa_submit_allowed",
+        "live_browser_allowed",
+        "live_model_call_allowed",
+        "live_tool_execution_allowed",
+        "live_agent_dispatch_allowed",
+        "live_payment_tracking_write_allowed",
+        "live_external_action_allowed",
+        "raw_body_ingestion_allowed",
+    }
+    hits: list[str] = []
+    if isinstance(value, dict):
+        for key, child in value.items():
+            child_path = f"{path}.{key}"
+            if key in unsafe_keys and child is True:
+                hits.append(child_path)
+            hits.extend(_unsafe_true_grants(child, child_path))
+    elif isinstance(value, list):
+        for index, child in enumerate(value):
+            hits.extend(_unsafe_true_grants(child, f"{path}[{index}]"))
+    return hits
 
 
 def _seed_workbook_registry(export_root: Path) -> None:
@@ -2439,6 +2557,107 @@ def test_no_request_deletion_no_raw_body_ingestion_no_external_authority(tmp_pat
     assert payload["machine_proof"]["tool_execution_performed"] is False
     for key, value in status["authority_boundary"].items():
         assert value is False, key
+
+
+def test_mac_evidence_drop_request_records_candidate_evidence_and_dynamic_card(tmp_path, monkeypatch):
+    inbox = tmp_path / "inbox"
+    response_dir = tmp_path / "responses"
+    export_root = tmp_path / "read_models"
+    inbox.mkdir()
+    _seed_evidence_preconditions(export_root)
+    evidence_db, lineage_db, bridge_root = _patch_evidence_intake_paths(monkeypatch, tmp_path)
+    request_path = inbox / "mission_control_evidence_intake_request_route_fixture.json"
+    request = _write_mac_evidence_drop_request(request_path, suffix="route_fixture", verified=True)
+
+    result = service.process_one_pending_request(
+        inbox=inbox,
+        response_dir=response_dir,
+        export_root=export_root,
+        generated_at=FIXED_NOW,
+    )
+
+    assert result.service_status == "REQUEST_PROCESSED"
+    assert result.processed_count == 1
+    response_path = _safe_response_path(response_dir, request["request_id"])
+    response = json.loads(response_path.read_text(encoding="utf-8"))
+    assert response["internal_status"] == "RESPONSE_READY"
+    assert response["request_type"] == "EVIDENCE_INTAKE_REQUEST"
+    assert response["operator_headline"] == "Payment proof received"
+    assert "Ledger remains untouched until payment is confirmed." in response["operator_message"]
+    assert response["visible_cards"][0]["headline"] == "Payment proof received"
+    assert "Ledger remains untouched until payment is confirmed." in response["visible_cards"][0]["plain_summary"]
+
+    detail = response["detail_disclosure"]["evidence_intake"]
+    assert detail["current_world_ref"] == "finance"
+    assert detail["current_thread_ref"] == "live_arts_md"
+    assert detail["claimed_client_ref"] == "live_arts_md"
+    assert detail["privacy"]["privacy_class"] == "financial_sensitive"
+    assert detail["privacy"]["processing_location"] == "local_only"
+    assert detail["payment"]["paid"] is False
+    assert detail["payment"]["ledger_mutation_performed"] is False
+    assert detail["raw_ocr_text_stored"] is False
+    assert detail["external_llm_invoked"] is False
+    assert detail["local_model_runtime_connected"] is False
+
+    with sqlite3.connect(evidence_db) as conn:
+        row = conn.execute(
+            """
+            SELECT current_world_ref, current_thread_ref, privacy_class, processing_location,
+                   intended_use, paid, ledger_mutation_performed, raw_ocr_text_stored,
+                   general_memory_promotion_allowed, dynamic_card_json
+            FROM evidence_intake_records
+            WHERE current_thread_ref = 'live_arts_md'
+            """
+        ).fetchone()
+    assert row is not None
+    assert row[:5] == ("finance", "live_arts_md", "financial_sensitive", "local_only", "payment_proof")
+    assert row[5:9] == (0, 0, 0, 0)
+    row_card = json.loads(row[9])
+    assert row_card["headline"] == "Payment proof received"
+
+    with sqlite3.connect(lineage_db) as conn:
+        lineage = conn.execute(
+            "SELECT artifact_kind, path_exists, sha256, lineage_status, trusted_for_action FROM artifact_lineage"
+        ).fetchone()
+    assert lineage == ("screenshot", 0, "", "candidate_evidence", 0)
+
+    for path in [
+        export_root / evidence_intake.STATUS_JSON_EXPORT_NAME,
+        bridge_root / evidence_intake.STATUS_JSON_EXPORT_NAME,
+    ]:
+        parsed = json.loads(path.read_text(encoding="utf-8"))
+        assert parsed["status"] == evidence_intake.READY_STATUS
+    assert _unsafe_true_grants(response) == []
+
+
+def test_mac_evidence_drop_missing_envelope_blocks_without_sqlite_write(tmp_path, monkeypatch):
+    inbox = tmp_path / "inbox"
+    response_dir = tmp_path / "responses"
+    export_root = tmp_path / "read_models"
+    inbox.mkdir()
+    _seed_evidence_preconditions(export_root)
+    evidence_db, lineage_db, _bridge_root = _patch_evidence_intake_paths(monkeypatch, tmp_path)
+    request_path = inbox / "mission_control_evidence_intake_request_missing_envelope.json"
+    request = _write_mac_evidence_drop_request(request_path, suffix="missing_envelope", verified=False)
+
+    result = service.process_one_pending_request(
+        inbox=inbox,
+        response_dir=response_dir,
+        export_root=export_root,
+        generated_at=FIXED_NOW,
+    )
+
+    assert result.service_status == "REQUEST_PROCESSED"
+    response = json.loads(_safe_response_path(response_dir, request["request_id"]).read_text(encoding="utf-8"))
+    assert response["internal_status"] == "BLOCKED_WITH_REASON"
+    assert response["operator_headline"] in {"Operator verification required", "Evidence intake blocked"}
+    assert "No evidence row" in " ".join(response["what_happened"]) or "blocked before evidence recording" in " ".join(response["what_happened"])
+    assert response["detail_disclosure"]["evidence_intake"]["candidate_evidence_recorded"] is False
+    assert response["detail_disclosure"]["evidence_intake"]["ledger_mutation_performed"] is False
+    assert response["detail_disclosure"]["evidence_intake"]["paid_marking_performed"] is False
+    assert not evidence_db.exists()
+    assert not lineage_db.exists()
+    assert _unsafe_true_grants(response) == []
 
 
 def test_symlink_request_is_not_followed(tmp_path, capsys):

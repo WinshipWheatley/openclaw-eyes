@@ -15,7 +15,7 @@ Evidence Intake records operator-dropped screenshots and files as candidate evid
 ## Payment Proof
 
 - Evidence status: `CANDIDATE_EVIDENCE_RECORDED`
-- Payment state: `payment_processing_evidence_received`
+- Payment state: `payment_proof_candidate`
 - Payment-processing evidence is not paid proof.
 - Paid truth requires payment or ledger confirmation and operator review.
 

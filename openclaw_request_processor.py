@@ -697,7 +697,7 @@ def default_response_publication_dir(*, inbox: Path, request_file: Path | None) 
 
 
 def is_evidence_intake_request(raw_request: Mapping[str, Any]) -> bool:
-    return str(raw_request.get("request_type") or raw_request.get("kind") or raw_request.get("type") or "").strip().upper() == evidence_intake.REQUEST_TYPE
+    return evidence_intake.is_evidence_intake_request(raw_request)
 
 
 def _valid_publication_source_request_id(value: object) -> bool:
@@ -6110,6 +6110,8 @@ def process_request_path(
             reason=f"Could not read request file: {exc}.",
             how_to_fix="Check that the request file exists and is readable, then rerun.",
         )
+    if classification.request_family == "EVIDENCE_INTAKE_REQUEST" or is_evidence_intake_request(raw_request):
+        raw_request = evidence_intake.normalize_evidence_request(raw_request)
     if classification.request_family == "UNKNOWN_FAIL_CLOSED":
         if is_evidence_intake_request(raw_request):
             classification = RequestClassification(
