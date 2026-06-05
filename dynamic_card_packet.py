@@ -167,6 +167,10 @@ SOURCE_FILENAMES = {
     "operator_controller_design_brief": "operator_controller_design_brief.json",
     "operator_controller_protocol": "operator_controller_protocol.json",
     "dynamic_card_lifecycle_policy": "dynamic_card_lifecycle_policy.json",
+    "workflow_package_request_consumer_status": "workflow_package_request_consumer_status.json",
+    "workflow_composer_latest": "workflow_composer_latest.json",
+    "approval_request_queue": "approval_request_queue.json",
+    "memory_promotion_gate": "memory_promotion_gate.json",
     "lm_bounded_operator_orchestration": "lm_bounded_operator_orchestration_latest.json",
     "operator_next_decision": "operator_next_decision.json",
     "capital_hilton_invoice_operator_run_status": "capital_hilton_invoice_operator_run_status.json",
@@ -215,6 +219,22 @@ PRECONDITIONS = {
         "filename": "evidence_intake_status.json",
         "required_status": "EVIDENCE_INTAKE_LIVE_ROUTE_READY",
         "accepted_statuses": ("EVIDENCE_INTAKE_READY", "EVIDENCE_INTAKE_LIVE_ROUTE_READY"),
+    },
+    "workflow_composer": {
+        "filename": "workflow_composer_latest.json",
+        "required_status": "WORKFLOW_COMPOSER_READY",
+    },
+    "approval_request_queue": {
+        "filename": "approval_request_queue.json",
+        "required_status": "APPROVAL_REQUEST_QUEUE_READY",
+    },
+    "gate_decision_ledger": {
+        "filename": "gate_decision_ledger.json",
+        "required_status": "GATE_DECISION_LEDGER_READY",
+    },
+    "memory_promotion_gate": {
+        "filename": "memory_promotion_gate.json",
+        "required_status": "MEMORY_PROMOTION_GATE_READY",
     },
     "lm_bounded_operator_orchestration": {
         "filename": "lm_bounded_operator_orchestration_latest.json",
@@ -561,7 +581,18 @@ def _proof_refs(value: Any) -> list[str]:
     refs: list[str] = []
     if isinstance(value, Mapping):
         for key, item in value.items():
-            if key == "collapsed_by_default":
+            if key in {
+                "collapsed_by_default",
+                "developer_proof_only",
+                "raw_detail_available",
+                "label",
+                "redacted_summary",
+                "sensitive_detail_policy",
+                "source_content_hash",
+                "unsafe_scan_result",
+            }:
+                continue
+            if key == "validation_commands":
                 continue
             if isinstance(item, str) and item:
                 refs.append(item)
@@ -1365,6 +1396,53 @@ def _approval_request_card(
     )
 
 
+def _completed_review_receipt_card(sources: Mapping[str, Mapping[str, Any]]) -> dict[str, Any]:
+    status = sources.get("workroom_review_decision_status", {})
+    last_decision = status.get("last_decision") if isinstance(status.get("last_decision"), Mapping) else {}
+    review_packet_id = str(last_decision.get("review_packet_id") or "review_packet:informational")
+    decision_status = str(last_decision.get("status") or "INFORMATIONAL_REVIEW_CLOSED")
+    return _card(
+        card_id="dynamic_card.build.review_packet.completed_historical_receipt",
+        card_family="completed_historical_receipt_card",
+        card_type="review_packet",
+        speaker_ref="chief",
+        headline="Review decision recorded",
+        plain_summary="A workroom review decision is recorded as history. It is not merge, push, worker, or business execution proof.",
+        supporting_lines=[
+            f"Packet: {review_packet_id}.",
+            f"Decision status: {decision_status}.",
+            "Resolved review receipts collapse into history by lifecycle policy.",
+        ],
+        status_label="Review recorded",
+        tone="neutral",
+        trust_state="trusted_current",
+        priority=12,
+        visible_by_default=False,
+        actions=[],
+        proof=_proof(
+            proof_refs=[
+                _source_ref("workroom_review_decision_status.json"),
+                _source_ref("workroom_review_packet_index.json"),
+                _source_ref("workroom_review_decision_contract.json"),
+            ],
+            receipt_refs=[str(last_decision.get("receipt_id") or "")],
+            read_model_refs=[
+                _source_ref("workroom_review_decision_status.json"),
+                _source_ref("workroom_review_packet_index.json"),
+                _source_ref("workroom_review_decision_contract.json"),
+            ],
+            redacted_summary="Review decision receipt is historical proof only; no execution authority is created.",
+            sensitive_detail_policy="review_receipt_metadata_only",
+        ),
+        source_payloads=sources,
+        workflow_ref="workroom_review_decision",
+        entity_refs=[f"review_packet:{review_packet_id}"],
+        object_refs=[str(last_decision.get("receipt_id") or review_packet_id)],
+        danger_label="Merge or push",
+        danger_reason="Resolved review receipts cannot merge, push, spawn workers, or execute business actions.",
+    )
+
+
 def _memory_candidate_card(sources: Mapping[str, Mapping[str, Any]]) -> dict[str, Any]:
     return _card(
         card_id="dynamic_card.memory.payment_evidence_candidate",
@@ -1540,7 +1618,12 @@ def unsafe_true_grants(payload: Mapping[str, Any]) -> list[str]:
     return sorted({key for key, value in _walk_values(payload) if key in UNSAFE_TRUE_KEYS and value is True})
 
 
-def validate_packet(packet: Mapping[str, Any], action_index: Mapping[str, Mapping[str, Any]]) -> dict[str, Any]:
+def validate_packet(
+    packet: Mapping[str, Any],
+    action_index: Mapping[str, Mapping[str, Any]],
+    *,
+    require_all_card_families: bool = True,
+) -> dict[str, Any]:
     errors: list[str] = []
     for field in REQUIRED_PACKET_FIELDS:
         if field not in packet:
@@ -1634,7 +1717,7 @@ def validate_packet(packet: Mapping[str, Any], action_index: Mapping[str, Mappin
                 if not action.get("disabled_reason"):
                     errors.append(f"{card_id}:{action_id}:disabled_reason_missing")
     missing_families = sorted(set(CARD_FAMILIES) - families_present)
-    if missing_families:
+    if missing_families and require_all_card_families:
         errors.extend(f"missing_card_family:{family}" for family in missing_families)
     unsafe = unsafe_true_grants(packet)
     if unsafe:
@@ -1682,15 +1765,10 @@ def validate_packet(packet: Mapping[str, Any], action_index: Mapping[str, Mappin
     }
 
 
-def build_latest_packet(
-    *,
-    read_model_root: Path = DEFAULT_READ_MODEL_ROOT,
-    generated_at: str | None = None,
-) -> dict[str, Any]:
-    generated_at = generated_at or utc_now()
-    sources = _source_payloads(read_model_root)
-    action_index = _action_index(sources.get("operator_action_payloads", {}))
-    preconditions = _precondition_rows(read_model_root)
+def _build_cards_from_sources(
+    sources: Mapping[str, Mapping[str, Any]],
+    action_index: Mapping[str, Mapping[str, Any]],
+) -> list[dict[str, Any]]:
     cards = [
         _capital_hilton_payment_watch_card(sources, action_index),
         _evidence_intake_card(sources),
@@ -1701,11 +1779,167 @@ def build_latest_packet(
         _check_engine_card(sources, action_index),
         _workbook_registration_card(sources, action_index),
         _contextual_safe_next_card(sources, action_index),
+        _completed_review_receipt_card(sources),
         _st_annes_work_log_card(sources),
         _memory_candidate_card(sources),
         _artifact_proof_card(sources),
     ]
-    cards = sorted(cards, key=lambda card: (-int(card["priority"]), str(card["card_id"])))
+    return sorted(cards, key=lambda card: (-int(card["priority"]), str(card["card_id"])))
+
+
+RAIL_CARD_IDS = {
+    "system_question_answer": (
+        "dynamic_card.finance.capital_hilton.contextual_question",
+        "dynamic_card.controller.safe_next.what_should_i_do",
+        "dynamic_card.system.check_engine.diagnostic",
+    ),
+    "workflow_package_request_consumer": (
+        "dynamic_card.business_development.capital_hilton.proposal",
+        "dynamic_card.finance.st_annes.work_log_review",
+        "dynamic_card.finance.capital_hilton.payment_watch",
+    ),
+    "workroom_review_decision_consumer": (
+        "dynamic_card.build.review_packet.current",
+        "dynamic_card.build.review_packet.completed_historical_receipt",
+    ),
+    "evidence_intake": (
+        "dynamic_card.finance.live_arts_md.evidence_intake.payment_processing",
+        "dynamic_card.artifact.evidence_intake.proof_only",
+    ),
+    "workbook_registration": (
+        "dynamic_card.finance.capital_hilton.workbook_registration",
+    ),
+    "approval_request_queue": (
+        "dynamic_card.finance.capital_hilton.approval_request.coupa_submit",
+    ),
+    "gate_decision_ledger": (
+        "dynamic_card.finance.capital_hilton.approval_request.coupa_submit",
+        "dynamic_card.system.check_engine.diagnostic",
+    ),
+    "workflow_composer": (
+        "dynamic_card.business_development.capital_hilton.proposal",
+        "dynamic_card.controller.safe_next.what_should_i_do",
+    ),
+    "memory_promotion_gate": (
+        "dynamic_card.memory.payment_evidence_candidate",
+    ),
+}
+
+RAIL_SOURCE_KEYS = {
+    "system_question_answer": "system_question_answer",
+    "workflow_package_request_consumer": "workflow_package_request_consumer_status",
+    "workroom_review_decision_consumer": "workroom_review_decision_status",
+    "evidence_intake": "evidence_intake",
+    "workbook_registration": "client_invoice_workbook_registry",
+    "approval_request_queue": "approval_request_queue",
+    "gate_decision_ledger": "gate_decision_ledger",
+    "workflow_composer": "workflow_composer_latest",
+    "memory_promotion_gate": "memory_promotion_gate",
+}
+
+
+def build_rail_card_packet(
+    rail_ref: str,
+    *,
+    read_model_root: Path = DEFAULT_READ_MODEL_ROOT,
+    source_overrides: Mapping[str, Mapping[str, Any]] | None = None,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    generated_at = generated_at or utc_now()
+    sources = _source_payloads(read_model_root)
+    if source_overrides:
+        for source_key, payload in source_overrides.items():
+            sources[str(source_key)] = dict(payload)
+    action_index = _action_index(sources.get("operator_action_payloads", {}))
+    selected_ids = tuple(RAIL_CARD_IDS.get(rail_ref, ()))
+    cards_by_id = {card["card_id"]: card for card in _build_cards_from_sources(sources, action_index)}
+    selected_cards = [cards_by_id[card_id] for card_id in selected_ids if card_id in cards_by_id]
+    packet: dict[str, Any] = {
+        "schema_version": SCHEMA_VERSION,
+        "rail_packet_schema_version": "dynamic_card_packet_v1_rail_population",
+        "rail_ref": rail_ref,
+        "packet_id": f"dynamic_card_packet:{rail_ref}:{_short_hash(generated_at, rail_ref, len(selected_cards))}",
+        "generated_at": generated_at,
+        "surface_context": {
+            "world_ref": "mission_control",
+            "thread_ref": rail_ref,
+            "workflow_ref": "dynamic_card_v1_rail_population",
+            "client_ref": "mixed",
+            "active_entity_ref": rail_ref,
+        },
+        "source_request_id": f"rail_population:{rail_ref}",
+        "packet_source_read_model_refs": [_source_ref(filename) for filename in SOURCE_FILENAMES.values()],
+        "packet_content_hash": _content_hash({"rail_ref": rail_ref, "cards": selected_cards}),
+        "cards": selected_cards,
+        "card_count": len(selected_cards),
+        "legacy_fields_additive": True,
+        "authority_boundary": dict(AUTHORITY_BOUNDARY),
+    }
+    validation = validate_packet(packet, action_index, require_all_card_families=False)
+    packet["machine_proof"] = {
+        "valid_v1_cards": validation["valid"],
+        "validation_errors": validation["errors"],
+        "legacy_fields_preserved": True,
+        "card_count_positive": len(selected_cards) > 0,
+        "action_slots_present": validation["action_slots_present"],
+        "proof_categorized": validation["proof_categorized"],
+        "lifecycle_fields_present": validation["lifecycle_fields_present"],
+        "enabled_actions_reference_deterministic_payloads": validation["enabled_actions_reference_deterministic_payloads"],
+        "no_business_execution": True,
+        "incoming_authority_granted_accepted": False,
+        "unsafe_true_grants": validation["unsafe_true_grants"],
+        "unsafe_true_grants_absent": validation["unsafe_true_grants_absent"],
+    }
+    return packet
+
+
+def validate_rail_card_packet(
+    packet: Mapping[str, Any],
+    action_index: Mapping[str, Mapping[str, Any]] | None = None,
+    *,
+    read_model_root: Path = DEFAULT_READ_MODEL_ROOT,
+) -> dict[str, Any]:
+    if action_index is None:
+        action_index = _action_index(_source_payloads(read_model_root).get("operator_action_payloads", {}))
+    return validate_packet(packet, action_index, require_all_card_families=False)
+
+
+def add_rail_card_packet(
+    payload: Mapping[str, Any],
+    rail_ref: str,
+    *,
+    read_model_root: Path = DEFAULT_READ_MODEL_ROOT,
+    generated_at: str | None = None,
+    source_key: str | None = None,
+) -> dict[str, Any]:
+    enriched = dict(payload)
+    source_key = source_key or RAIL_SOURCE_KEYS.get(rail_ref, "")
+    source_overrides = {source_key: enriched} if source_key else {}
+    enriched["dynamic_card_packet_v1"] = build_rail_card_packet(
+        rail_ref,
+        read_model_root=read_model_root,
+        source_overrides=source_overrides,
+        generated_at=generated_at or str(enriched.get("generated_at") or utc_now()),
+    )
+    machine_proof = dict(enriched.get("machine_proof") or {})
+    machine_proof["dynamic_card_packet_v1_emitted"] = bool(enriched["dynamic_card_packet_v1"]["cards"])
+    machine_proof["dynamic_card_packet_v1_valid"] = bool(
+        enriched["dynamic_card_packet_v1"]["machine_proof"]["valid_v1_cards"]
+    )
+    enriched["machine_proof"] = machine_proof
+    return enriched
+
+
+def build_latest_packet(
+    *,
+    read_model_root: Path = DEFAULT_READ_MODEL_ROOT,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    generated_at = generated_at or utc_now()
+    sources = _source_payloads(read_model_root)
+    action_index = _action_index(sources.get("operator_action_payloads", {}))
+    preconditions = _precondition_rows(read_model_root)
+    cards = _build_cards_from_sources(sources, action_index)
     packet: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
         "read_model_id": LATEST_READ_MODEL_ID,

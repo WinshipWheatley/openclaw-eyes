@@ -45,7 +45,7 @@
         "enabled": true,
         "label": "Attach to lane",
         "operator_authority_envelope_contract_ref": "generated/read_models/first_class_operator_envelope_contract.json",
-        "operator_authority_envelope_ref": "operator_authority_envelope:f3f063e64f35615a",
+        "operator_authority_envelope_ref": "operator_authority_envelope:9c5ec0b981d71a81",
         "requires_operator_authority_envelope": true
       },
       {
@@ -73,7 +73,7 @@
         "enabled": true,
         "label": "Ask what this means",
         "operator_authority_envelope_contract_ref": "generated/read_models/first_class_operator_envelope_contract.json",
-        "operator_authority_envelope_ref": "operator_authority_envelope:f3f063e64f35615a",
+        "operator_authority_envelope_ref": "operator_authority_envelope:9c5ec0b981d71a81",
         "requires_operator_authority_envelope": true
       },
       {
@@ -101,7 +101,7 @@
         "enabled": true,
         "label": "Mark as test",
         "operator_authority_envelope_contract_ref": "generated/read_models/first_class_operator_envelope_contract.json",
-        "operator_authority_envelope_ref": "operator_authority_envelope:f3f063e64f35615a",
+        "operator_authority_envelope_ref": "operator_authority_envelope:9c5ec0b981d71a81",
         "requires_operator_authority_envelope": true
       },
       {
@@ -129,7 +129,7 @@
         "enabled": true,
         "label": "Show details",
         "operator_authority_envelope_contract_ref": "generated/read_models/first_class_operator_envelope_contract.json",
-        "operator_authority_envelope_ref": "operator_authority_envelope:f3f063e64f35615a",
+        "operator_authority_envelope_ref": "operator_authority_envelope:9c5ec0b981d71a81",
         "requires_operator_authority_envelope": true
       }
     ],
@@ -151,7 +151,7 @@
       "workbook_mutation_allowed": false,
       "workbook_source_mutation_allowed": false
     },
-    "card_id": "dynamic_card.evidence_intake.payment_processing.aeafe331d1",
+    "card_id": "dynamic_card.evidence_intake.payment_processing.4b6f52f4e2",
     "card_type": "evidence_intake",
     "headline": "Payment proof received",
     "machine_proof": {
@@ -161,7 +161,7 @@
     },
     "plain_summary": "This appears to show payment processing for invoice 2026-1001. Ledger remains untouched until payment is confirmed.",
     "proof": {
-      "artifact_ref": "artifact:evidence_intake_a8191f31df3ce664",
+      "artifact_ref": "artifact:evidence_intake_56cda4b43a6b7054",
       "collapsed_by_default": true,
       "read_model_refs": [
         "generated/read_models/evidence_intake_status.json",
@@ -176,11 +176,872 @@
     "target_world_ref": "finance",
     "trust_state": "operator_reported"
   },
-  "generated_at": "2026-06-05T02:58:46+00:00",
+  "dynamic_card_packet_v1": {
+    "authority_boundary": {
+      "agent_loop_allowed": false,
+      "authority_grant_allowed": false,
+      "browser_access_allowed": false,
+      "business_action_allowed": false,
+      "child_agent_run_allowed": false,
+      "coupa_allowed": false,
+      "email_send_allowed": false,
+      "external_action_allowed": false,
+      "git_push_allowed": false,
+      "gmail_allowed": false,
+      "ledger_mutation_allowed": false,
+      "ledger_posting_allowed": false,
+      "merge_allowed": false,
+      "paid": false,
+      "paid_marking_allowed": false,
+      "pdf_export_allowed": false,
+      "portal_submit_allowed": false,
+      "push_allowed": false,
+      "repair_authority_allowed": false,
+      "sent": false,
+      "spreadsheet_cell_read_allowed": false,
+      "workbook_body_read_allowed": false,
+      "workbook_mutation_allowed": false,
+      "workbook_open_allowed": false,
+      "workbook_source_mutation_allowed": false,
+      "worker_spawn_allowed": false
+    },
+    "card_count": 2,
+    "cards": [
+      {
+        "accessibility_text": "Payment proof received. Processing evidence. This appears to show payment processing for invoice 2026-1001. Ledger remains untouched until payment is confirmed.",
+        "action_slots": {
+          "danger_disabled": {
+            "action_id": "",
+            "action_payload_ref": "",
+            "authority_boundary": {
+              "agent_loop_allowed": false,
+              "authority_grant_allowed": false,
+              "browser_access_allowed": false,
+              "business_action_allowed": false,
+              "child_agent_run_allowed": false,
+              "coupa_allowed": false,
+              "email_send_allowed": false,
+              "external_action_allowed": false,
+              "git_push_allowed": false,
+              "gmail_allowed": false,
+              "ledger_mutation_allowed": false,
+              "ledger_posting_allowed": false,
+              "merge_allowed": false,
+              "paid": false,
+              "paid_marking_allowed": false,
+              "pdf_export_allowed": false,
+              "portal_submit_allowed": false,
+              "push_allowed": false,
+              "repair_authority_allowed": false,
+              "sent": false,
+              "spreadsheet_cell_read_allowed": false,
+              "workbook_body_read_allowed": false,
+              "workbook_mutation_allowed": false,
+              "workbook_open_allowed": false,
+              "workbook_source_mutation_allowed": false,
+              "worker_spawn_allowed": false
+            },
+            "controller_event_type": "do_it",
+            "disabled_reason": "Payment-processing evidence never marks paid or mutates the ledger.",
+            "enabled": false,
+            "label": "Mark paid",
+            "proof_refs": [
+              "generated/read_models/evidence_intake_status.json",
+              "artifact:evidence_intake_56cda4b43a6b7054",
+              "mission_control_drop:live_arts_md_payment_processing_screenshot_invoice_2026-1001",
+              "/home/openclaw/generated/system_knowledge/evidence_intake.sqlite"
+            ],
+            "receipt_required": true,
+            "requires_operator_envelope": true
+          },
+          "detail": {
+            "action_id": "evidence_intake.mark_as_test",
+            "action_payload_ref": "",
+            "authority_boundary": {
+              "agent_loop_allowed": false,
+              "authority_grant_allowed": false,
+              "browser_access_allowed": false,
+              "business_action_allowed": false,
+              "child_agent_run_allowed": false,
+              "coupa_allowed": false,
+              "email_send_allowed": false,
+              "external_action_allowed": false,
+              "git_push_allowed": false,
+              "gmail_allowed": false,
+              "ledger_mutation_allowed": false,
+              "ledger_posting_allowed": false,
+              "merge_allowed": false,
+              "paid": false,
+              "paid_marking_allowed": false,
+              "pdf_export_allowed": false,
+              "portal_submit_allowed": false,
+              "push_allowed": false,
+              "repair_authority_allowed": false,
+              "sent": false,
+              "spreadsheet_cell_read_allowed": false,
+              "workbook_body_read_allowed": false,
+              "workbook_mutation_allowed": false,
+              "workbook_open_allowed": false,
+              "workbook_source_mutation_allowed": false,
+              "worker_spawn_allowed": false
+            },
+            "controller_event_type": "mark_informational",
+            "disabled_reason": "No deterministic operator_action_payload exists yet for evidence intake card actions.",
+            "enabled": false,
+            "label": "Mark as test",
+            "proof_refs": [
+              "generated/read_models/evidence_intake_status.json",
+              "artifact:evidence_intake_56cda4b43a6b7054",
+              "mission_control_drop:live_arts_md_payment_processing_screenshot_invoice_2026-1001",
+              "/home/openclaw/generated/system_knowledge/evidence_intake.sqlite"
+            ],
+            "receipt_required": true,
+            "requires_operator_envelope": true
+          },
+          "dismiss": {
+            "action_id": "",
+            "action_payload_ref": "",
+            "authority_boundary": {
+              "agent_loop_allowed": false,
+              "authority_grant_allowed": false,
+              "browser_access_allowed": false,
+              "business_action_allowed": false,
+              "child_agent_run_allowed": false,
+              "coupa_allowed": false,
+              "email_send_allowed": false,
+              "external_action_allowed": false,
+              "git_push_allowed": false,
+              "gmail_allowed": false,
+              "ledger_mutation_allowed": false,
+              "ledger_posting_allowed": false,
+              "merge_allowed": false,
+              "paid": false,
+              "paid_marking_allowed": false,
+              "pdf_export_allowed": false,
+              "portal_submit_allowed": false,
+              "push_allowed": false,
+              "repair_authority_allowed": false,
+              "sent": false,
+              "spreadsheet_cell_read_allowed": false,
+              "workbook_body_read_allowed": false,
+              "workbook_mutation_allowed": false,
+              "workbook_open_allowed": false,
+              "workbook_source_mutation_allowed": false,
+              "worker_spawn_allowed": false
+            },
+            "controller_event_type": "show_details",
+            "disabled_reason": "Dismiss is a local client view preference; backend does not record dismissal from this packet.",
+            "enabled": false,
+            "label": "Dismiss",
+            "proof_refs": [
+              "generated/read_models/evidence_intake_status.json",
+              "artifact:evidence_intake_56cda4b43a6b7054",
+              "mission_control_drop:live_arts_md_payment_processing_screenshot_invoice_2026-1001",
+              "/home/openclaw/generated/system_knowledge/evidence_intake.sqlite"
+            ],
+            "receipt_required": false,
+            "requires_operator_envelope": true
+          },
+          "primary": {
+            "action_id": "evidence_intake.attach_to_lane",
+            "action_payload_ref": "",
+            "authority_boundary": {
+              "agent_loop_allowed": false,
+              "authority_grant_allowed": false,
+              "browser_access_allowed": false,
+              "business_action_allowed": false,
+              "child_agent_run_allowed": false,
+              "coupa_allowed": false,
+              "email_send_allowed": false,
+              "external_action_allowed": false,
+              "git_push_allowed": false,
+              "gmail_allowed": false,
+              "ledger_mutation_allowed": false,
+              "ledger_posting_allowed": false,
+              "merge_allowed": false,
+              "paid": false,
+              "paid_marking_allowed": false,
+              "pdf_export_allowed": false,
+              "portal_submit_allowed": false,
+              "push_allowed": false,
+              "repair_authority_allowed": false,
+              "sent": false,
+              "spreadsheet_cell_read_allowed": false,
+              "workbook_body_read_allowed": false,
+              "workbook_mutation_allowed": false,
+              "workbook_open_allowed": false,
+              "workbook_source_mutation_allowed": false,
+              "worker_spawn_allowed": false
+            },
+            "controller_event_type": "attach_proof",
+            "disabled_reason": "No deterministic operator_action_payload exists yet for evidence intake card actions.",
+            "enabled": false,
+            "label": "Attach to lane",
+            "proof_refs": [
+              "generated/read_models/evidence_intake_status.json",
+              "artifact:evidence_intake_56cda4b43a6b7054",
+              "mission_control_drop:live_arts_md_payment_processing_screenshot_invoice_2026-1001",
+              "/home/openclaw/generated/system_knowledge/evidence_intake.sqlite"
+            ],
+            "receipt_required": true,
+            "requires_operator_envelope": true
+          },
+          "secondary": {
+            "action_id": "evidence_intake.ask_what_this_means",
+            "action_payload_ref": "",
+            "authority_boundary": {
+              "agent_loop_allowed": false,
+              "authority_grant_allowed": false,
+              "browser_access_allowed": false,
+              "business_action_allowed": false,
+              "child_agent_run_allowed": false,
+              "coupa_allowed": false,
+              "email_send_allowed": false,
+              "external_action_allowed": false,
+              "git_push_allowed": false,
+              "gmail_allowed": false,
+              "ledger_mutation_allowed": false,
+              "ledger_posting_allowed": false,
+              "merge_allowed": false,
+              "paid": false,
+              "paid_marking_allowed": false,
+              "pdf_export_allowed": false,
+              "portal_submit_allowed": false,
+              "push_allowed": false,
+              "repair_authority_allowed": false,
+              "sent": false,
+              "spreadsheet_cell_read_allowed": false,
+              "workbook_body_read_allowed": false,
+              "workbook_mutation_allowed": false,
+              "workbook_open_allowed": false,
+              "workbook_source_mutation_allowed": false,
+              "worker_spawn_allowed": false
+            },
+            "controller_event_type": "ask_why",
+            "disabled_reason": "No deterministic operator_action_payload exists yet for evidence intake card actions.",
+            "enabled": false,
+            "label": "Ask what this means",
+            "proof_refs": [
+              "generated/read_models/evidence_intake_status.json",
+              "artifact:evidence_intake_56cda4b43a6b7054",
+              "mission_control_drop:live_arts_md_payment_processing_screenshot_invoice_2026-1001",
+              "/home/openclaw/generated/system_knowledge/evidence_intake.sqlite"
+            ],
+            "receipt_required": false,
+            "requires_operator_envelope": true
+          }
+        },
+        "actions": [
+          {
+            "action_id": "evidence_intake.attach_to_lane",
+            "action_type": "none",
+            "authority_granted_by_action": false,
+            "business_action": false,
+            "disabled_reason": "No deterministic operator_action_payload exists yet for evidence intake card actions.",
+            "enabled": false,
+            "label": "Attach to lane",
+            "operator_authority_envelope_contract_ref": "generated/read_models/first_class_operator_envelope_contract.json",
+            "operator_authority_envelope_status_ref": "generated/read_models/first_class_operator_envelope_status.json",
+            "payload_ref": "",
+            "requires_operator_authority_envelope": true
+          },
+          {
+            "action_id": "evidence_intake.ask_what_this_means",
+            "action_type": "none",
+            "authority_granted_by_action": false,
+            "business_action": false,
+            "disabled_reason": "No deterministic operator_action_payload exists yet for evidence intake card actions.",
+            "enabled": false,
+            "label": "Ask what this means",
+            "operator_authority_envelope_contract_ref": "generated/read_models/first_class_operator_envelope_contract.json",
+            "operator_authority_envelope_status_ref": "generated/read_models/first_class_operator_envelope_status.json",
+            "payload_ref": "",
+            "requires_operator_authority_envelope": true
+          },
+          {
+            "action_id": "evidence_intake.mark_as_test",
+            "action_type": "none",
+            "authority_granted_by_action": false,
+            "business_action": false,
+            "disabled_reason": "No deterministic operator_action_payload exists yet for evidence intake card actions.",
+            "enabled": false,
+            "label": "Mark as test",
+            "operator_authority_envelope_contract_ref": "generated/read_models/first_class_operator_envelope_contract.json",
+            "operator_authority_envelope_status_ref": "generated/read_models/first_class_operator_envelope_status.json",
+            "payload_ref": "",
+            "requires_operator_authority_envelope": true
+          },
+          {
+            "action_id": "evidence_intake.show_details",
+            "action_type": "none",
+            "authority_granted_by_action": false,
+            "business_action": false,
+            "disabled_reason": "No deterministic operator_action_payload exists yet for evidence intake card actions.",
+            "enabled": false,
+            "label": "Show details",
+            "operator_authority_envelope_contract_ref": "generated/read_models/first_class_operator_envelope_contract.json",
+            "operator_authority_envelope_status_ref": "generated/read_models/first_class_operator_envelope_status.json",
+            "payload_ref": "",
+            "requires_operator_authority_envelope": true
+          }
+        ],
+        "attention_cost": "operator_attention",
+        "authority_boundary": {
+          "agent_loop_allowed": false,
+          "authority_grant_allowed": false,
+          "browser_access_allowed": false,
+          "business_action_allowed": false,
+          "child_agent_run_allowed": false,
+          "coupa_allowed": false,
+          "email_send_allowed": false,
+          "external_action_allowed": false,
+          "git_push_allowed": false,
+          "gmail_allowed": false,
+          "ledger_mutation_allowed": false,
+          "ledger_posting_allowed": false,
+          "merge_allowed": false,
+          "paid": false,
+          "paid_marking_allowed": false,
+          "pdf_export_allowed": false,
+          "portal_submit_allowed": false,
+          "push_allowed": false,
+          "repair_authority_allowed": false,
+          "sent": false,
+          "spreadsheet_cell_read_allowed": false,
+          "workbook_body_read_allowed": false,
+          "workbook_mutation_allowed": false,
+          "workbook_open_allowed": false,
+          "workbook_source_mutation_allowed": false,
+          "worker_spawn_allowed": false
+        },
+        "card_family": "evidence_intake_receipt_card",
+        "card_id": "dynamic_card.finance.live_arts_md.evidence_intake.payment_processing",
+        "card_type": "evidence_intake",
+        "client_ref": "live_arts_md",
+        "collapse_when_resolved": true,
+        "confidence_class": "operator_reported",
+        "confidence_score": 0.56,
+        "developer_proof_only": false,
+        "device_render_hint": {
+          "preferred_height": "compact",
+          "primary_interaction": "controller_event"
+        },
+        "device_render_hints": {
+          "ipad": {
+            "layout": "compact_controller_card",
+            "proof_drawer": "available"
+          },
+          "iphone": {
+            "layout": "single_column_summary",
+            "proof_drawer": "collapsed"
+          },
+          "mac": {
+            "layout": "full_width_controller_card",
+            "proof_drawer": "available"
+          }
+        },
+        "entity_refs": [
+          "client:live_arts_md"
+        ],
+        "expires_at": "",
+        "freshness_state": "waiting_on_external",
+        "headline": "Payment proof received",
+        "history_group_ref": "history.finance.live_arts_md",
+        "lane_ref": "finance/live_arts_md",
+        "lifecycle_state": "waiting",
+        "machine_contract_visible": false,
+        "object_refs": [
+          "artifact:evidence_intake_56cda4b43a6b7054"
+        ],
+        "operator_attention_required": false,
+        "operator_mode_visible": true,
+        "plain_summary": "This appears to show payment processing for invoice 2026-1001. Ledger remains untouched until payment is confirmed.",
+        "primary_control_ref": "dynamic_card.finance.live_arts_md.evidence_intake.payment_processing",
+        "priority": 97,
+        "proof": {
+          "artifact_refs": [
+            "artifact:evidence_intake_56cda4b43a6b7054",
+            "mission_control_drop:live_arts_md_payment_processing_screenshot_invoice_2026-1001"
+          ],
+          "collapsed_by_default": true,
+          "developer_proof_only": false,
+          "hash_refs": [],
+          "label": "Details",
+          "proof_refs": [
+            "generated/read_models/evidence_intake_status.json",
+            "artifact:evidence_intake_56cda4b43a6b7054",
+            "mission_control_drop:live_arts_md_payment_processing_screenshot_invoice_2026-1001",
+            "/home/openclaw/generated/system_knowledge/evidence_intake.sqlite"
+          ],
+          "raw_detail_available": false,
+          "read_model_refs": [
+            "generated/read_models/evidence_intake_status.json"
+          ],
+          "receipt_refs": [],
+          "redacted_summary": "Payment-processing proof was recorded as local candidate evidence; raw sensitive detail stays out of primary UI.",
+          "request_refs": [],
+          "response_refs": [],
+          "sensitive_detail_policy": "financial_sensitive/local_only_redacted",
+          "source_content_hash": "sha256:812f08058bc85891c661c5e5143c85fbd62ae36f48222bc5d8b097b23f2820b2",
+          "sqlite_refs": [
+            "/home/openclaw/generated/system_knowledge/evidence_intake.sqlite"
+          ],
+          "unsafe_scan_result": "clean",
+          "validation_commands": []
+        },
+        "replacement_card_ref": "",
+        "resolved_by_receipt_ref": "",
+        "source_content_hash": "sha256:f95cddd7efac34a191f7ebbbe737e49b9c71eb53ab004b798435ad43eb829287",
+        "source_generated_at": {
+          "generated/read_models/evidence_intake_status.json": "2026-06-05T04:07:26+00:00"
+        },
+        "source_read_model_refs": [
+          "generated/read_models/evidence_intake_status.json"
+        ],
+        "source_statuses": {
+          "generated/read_models/evidence_intake_status.json": "EVIDENCE_INTAKE_READY"
+        },
+        "speaker_ref": "chief",
+        "stale_after": "",
+        "stale_reason": "",
+        "status_label": "Processing evidence",
+        "superseded_by_card_ref": "",
+        "supporting_lines": [
+          "Evidence status: CANDIDATE_EVIDENCE_RECORDED.",
+          "Payment state: payment_processing_evidence_received.",
+          "Candidate evidence does not mark paid or touch the ledger."
+        ],
+        "thread_ref": "live_arts_md",
+        "tone": "calm",
+        "trust_state": "operator_reported",
+        "visibility_reason": "shown_by_lifecycle_policy",
+        "visible_by_default": true,
+        "workflow_ref": "live_arts_md_payment_watch",
+        "world_ref": "finance"
+      },
+      {
+        "accessibility_text": "Artifact proof is available. Proof only. Artifact refs, hashes, and SQLite lineage are available in Developer Proof, not as primary controller UI.",
+        "action_slots": {
+          "danger_disabled": {
+            "action_id": "",
+            "action_payload_ref": "",
+            "authority_boundary": {
+              "agent_loop_allowed": false,
+              "authority_grant_allowed": false,
+              "browser_access_allowed": false,
+              "business_action_allowed": false,
+              "child_agent_run_allowed": false,
+              "coupa_allowed": false,
+              "email_send_allowed": false,
+              "external_action_allowed": false,
+              "git_push_allowed": false,
+              "gmail_allowed": false,
+              "ledger_mutation_allowed": false,
+              "ledger_posting_allowed": false,
+              "merge_allowed": false,
+              "paid": false,
+              "paid_marking_allowed": false,
+              "pdf_export_allowed": false,
+              "portal_submit_allowed": false,
+              "push_allowed": false,
+              "repair_authority_allowed": false,
+              "sent": false,
+              "spreadsheet_cell_read_allowed": false,
+              "workbook_body_read_allowed": false,
+              "workbook_mutation_allowed": false,
+              "workbook_open_allowed": false,
+              "workbook_source_mutation_allowed": false,
+              "worker_spawn_allowed": false
+            },
+            "controller_event_type": "do_it",
+            "disabled_reason": "Raw artifact body reads require a separate explicit gate.",
+            "enabled": false,
+            "label": "Read raw artifact",
+            "proof_refs": [
+              "generated/read_models/evidence_intake_status.json",
+              "artifact:evidence_intake_56cda4b43a6b7054",
+              "mission_control_drop:live_arts_md_payment_processing_screenshot_invoice_2026-1001",
+              "/home/openclaw/generated/system_knowledge/evidence_intake.sqlite"
+            ],
+            "receipt_required": true,
+            "requires_operator_envelope": true
+          },
+          "detail": {
+            "action_id": "",
+            "action_payload_ref": "",
+            "authority_boundary": {
+              "agent_loop_allowed": false,
+              "authority_grant_allowed": false,
+              "browser_access_allowed": false,
+              "business_action_allowed": false,
+              "child_agent_run_allowed": false,
+              "coupa_allowed": false,
+              "email_send_allowed": false,
+              "external_action_allowed": false,
+              "git_push_allowed": false,
+              "gmail_allowed": false,
+              "ledger_mutation_allowed": false,
+              "ledger_posting_allowed": false,
+              "merge_allowed": false,
+              "paid": false,
+              "paid_marking_allowed": false,
+              "pdf_export_allowed": false,
+              "portal_submit_allowed": false,
+              "push_allowed": false,
+              "repair_authority_allowed": false,
+              "sent": false,
+              "spreadsheet_cell_read_allowed": false,
+              "workbook_body_read_allowed": false,
+              "workbook_mutation_allowed": false,
+              "workbook_open_allowed": false,
+              "workbook_source_mutation_allowed": false,
+              "worker_spawn_allowed": false
+            },
+            "controller_event_type": "show_details",
+            "disabled_reason": "No deterministic inspect-proof payload exists for this card.",
+            "enabled": false,
+            "label": "Show details",
+            "proof_refs": [
+              "generated/read_models/evidence_intake_status.json",
+              "artifact:evidence_intake_56cda4b43a6b7054",
+              "mission_control_drop:live_arts_md_payment_processing_screenshot_invoice_2026-1001",
+              "/home/openclaw/generated/system_knowledge/evidence_intake.sqlite"
+            ],
+            "receipt_required": false,
+            "requires_operator_envelope": true
+          },
+          "dismiss": {
+            "action_id": "",
+            "action_payload_ref": "",
+            "authority_boundary": {
+              "agent_loop_allowed": false,
+              "authority_grant_allowed": false,
+              "browser_access_allowed": false,
+              "business_action_allowed": false,
+              "child_agent_run_allowed": false,
+              "coupa_allowed": false,
+              "email_send_allowed": false,
+              "external_action_allowed": false,
+              "git_push_allowed": false,
+              "gmail_allowed": false,
+              "ledger_mutation_allowed": false,
+              "ledger_posting_allowed": false,
+              "merge_allowed": false,
+              "paid": false,
+              "paid_marking_allowed": false,
+              "pdf_export_allowed": false,
+              "portal_submit_allowed": false,
+              "push_allowed": false,
+              "repair_authority_allowed": false,
+              "sent": false,
+              "spreadsheet_cell_read_allowed": false,
+              "workbook_body_read_allowed": false,
+              "workbook_mutation_allowed": false,
+              "workbook_open_allowed": false,
+              "workbook_source_mutation_allowed": false,
+              "worker_spawn_allowed": false
+            },
+            "controller_event_type": "show_details",
+            "disabled_reason": "Dismiss is a local client view preference; backend does not record dismissal from this packet.",
+            "enabled": false,
+            "label": "Dismiss",
+            "proof_refs": [
+              "generated/read_models/evidence_intake_status.json",
+              "artifact:evidence_intake_56cda4b43a6b7054",
+              "mission_control_drop:live_arts_md_payment_processing_screenshot_invoice_2026-1001",
+              "/home/openclaw/generated/system_knowledge/evidence_intake.sqlite"
+            ],
+            "receipt_required": false,
+            "requires_operator_envelope": true
+          },
+          "primary": {
+            "action_id": "",
+            "action_payload_ref": "",
+            "authority_boundary": {
+              "agent_loop_allowed": false,
+              "authority_grant_allowed": false,
+              "browser_access_allowed": false,
+              "business_action_allowed": false,
+              "child_agent_run_allowed": false,
+              "coupa_allowed": false,
+              "email_send_allowed": false,
+              "external_action_allowed": false,
+              "git_push_allowed": false,
+              "gmail_allowed": false,
+              "ledger_mutation_allowed": false,
+              "ledger_posting_allowed": false,
+              "merge_allowed": false,
+              "paid": false,
+              "paid_marking_allowed": false,
+              "pdf_export_allowed": false,
+              "portal_submit_allowed": false,
+              "push_allowed": false,
+              "repair_authority_allowed": false,
+              "sent": false,
+              "spreadsheet_cell_read_allowed": false,
+              "workbook_body_read_allowed": false,
+              "workbook_mutation_allowed": false,
+              "workbook_open_allowed": false,
+              "workbook_source_mutation_allowed": false,
+              "worker_spawn_allowed": false
+            },
+            "controller_event_type": "show_details",
+            "disabled_reason": "No primary action for this card.",
+            "enabled": false,
+            "label": "No primary action",
+            "proof_refs": [
+              "generated/read_models/evidence_intake_status.json",
+              "artifact:evidence_intake_56cda4b43a6b7054",
+              "mission_control_drop:live_arts_md_payment_processing_screenshot_invoice_2026-1001",
+              "/home/openclaw/generated/system_knowledge/evidence_intake.sqlite"
+            ],
+            "receipt_required": false,
+            "requires_operator_envelope": true
+          },
+          "secondary": {
+            "action_id": "",
+            "action_payload_ref": "",
+            "authority_boundary": {
+              "agent_loop_allowed": false,
+              "authority_grant_allowed": false,
+              "browser_access_allowed": false,
+              "business_action_allowed": false,
+              "child_agent_run_allowed": false,
+              "coupa_allowed": false,
+              "email_send_allowed": false,
+              "external_action_allowed": false,
+              "git_push_allowed": false,
+              "gmail_allowed": false,
+              "ledger_mutation_allowed": false,
+              "ledger_posting_allowed": false,
+              "merge_allowed": false,
+              "paid": false,
+              "paid_marking_allowed": false,
+              "pdf_export_allowed": false,
+              "portal_submit_allowed": false,
+              "push_allowed": false,
+              "repair_authority_allowed": false,
+              "sent": false,
+              "spreadsheet_cell_read_allowed": false,
+              "workbook_body_read_allowed": false,
+              "workbook_mutation_allowed": false,
+              "workbook_open_allowed": false,
+              "workbook_source_mutation_allowed": false,
+              "worker_spawn_allowed": false
+            },
+            "controller_event_type": "show_details",
+            "disabled_reason": "No secondary action for this card.",
+            "enabled": false,
+            "label": "No secondary action",
+            "proof_refs": [
+              "generated/read_models/evidence_intake_status.json",
+              "artifact:evidence_intake_56cda4b43a6b7054",
+              "mission_control_drop:live_arts_md_payment_processing_screenshot_invoice_2026-1001",
+              "/home/openclaw/generated/system_knowledge/evidence_intake.sqlite"
+            ],
+            "receipt_required": false,
+            "requires_operator_envelope": true
+          }
+        },
+        "actions": [],
+        "attention_cost": "collapsed_history_or_proof",
+        "authority_boundary": {
+          "agent_loop_allowed": false,
+          "authority_grant_allowed": false,
+          "browser_access_allowed": false,
+          "business_action_allowed": false,
+          "child_agent_run_allowed": false,
+          "coupa_allowed": false,
+          "email_send_allowed": false,
+          "external_action_allowed": false,
+          "git_push_allowed": false,
+          "gmail_allowed": false,
+          "ledger_mutation_allowed": false,
+          "ledger_posting_allowed": false,
+          "merge_allowed": false,
+          "paid": false,
+          "paid_marking_allowed": false,
+          "pdf_export_allowed": false,
+          "portal_submit_allowed": false,
+          "push_allowed": false,
+          "repair_authority_allowed": false,
+          "sent": false,
+          "spreadsheet_cell_read_allowed": false,
+          "workbook_body_read_allowed": false,
+          "workbook_mutation_allowed": false,
+          "workbook_open_allowed": false,
+          "workbook_source_mutation_allowed": false,
+          "worker_spawn_allowed": false
+        },
+        "card_family": "artifact_proof_card",
+        "card_id": "dynamic_card.artifact.evidence_intake.proof_only",
+        "card_type": "artifact",
+        "client_ref": "",
+        "collapse_when_resolved": true,
+        "confidence_class": "operator_reported",
+        "confidence_score": 0.56,
+        "developer_proof_only": true,
+        "device_render_hint": {
+          "preferred_height": "compact",
+          "primary_interaction": "controller_event"
+        },
+        "device_render_hints": {
+          "ipad": {
+            "layout": "compact_controller_card",
+            "proof_drawer": "available"
+          },
+          "iphone": {
+            "layout": "single_column_summary",
+            "proof_drawer": "collapsed"
+          },
+          "mac": {
+            "layout": "full_width_controller_card",
+            "proof_drawer": "available"
+          }
+        },
+        "entity_refs": [
+          "artifact:evidence_intake"
+        ],
+        "expires_at": "",
+        "freshness_state": "historical",
+        "headline": "Artifact proof is available",
+        "history_group_ref": "history.artifact.evidence_intake",
+        "lane_ref": "artifact/evidence_intake",
+        "lifecycle_state": "archived",
+        "machine_contract_visible": false,
+        "object_refs": [
+          "artifact:evidence_intake_56cda4b43a6b7054"
+        ],
+        "operator_attention_required": false,
+        "operator_mode_visible": false,
+        "plain_summary": "Artifact refs, hashes, and SQLite lineage are available in Developer Proof, not as primary controller UI.",
+        "primary_control_ref": "",
+        "priority": 9,
+        "proof": {
+          "artifact_refs": [
+            "artifact:evidence_intake_56cda4b43a6b7054",
+            "mission_control_drop:live_arts_md_payment_processing_screenshot_invoice_2026-1001"
+          ],
+          "collapsed_by_default": true,
+          "developer_proof_only": true,
+          "hash_refs": [],
+          "label": "Details",
+          "proof_refs": [
+            "generated/read_models/evidence_intake_status.json",
+            "artifact:evidence_intake_56cda4b43a6b7054",
+            "mission_control_drop:live_arts_md_payment_processing_screenshot_invoice_2026-1001",
+            "/home/openclaw/generated/system_knowledge/evidence_intake.sqlite"
+          ],
+          "raw_detail_available": false,
+          "read_model_refs": [
+            "generated/read_models/evidence_intake_status.json"
+          ],
+          "receipt_refs": [],
+          "redacted_summary": "Artifact proof metadata is categorized for the proof drawer; raw content is not primary UI.",
+          "request_refs": [],
+          "response_refs": [],
+          "sensitive_detail_policy": "financial_sensitive/local_only_redacted",
+          "source_content_hash": "sha256:812f08058bc85891c661c5e5143c85fbd62ae36f48222bc5d8b097b23f2820b2",
+          "sqlite_refs": [
+            "/home/openclaw/generated/system_knowledge/evidence_intake.sqlite"
+          ],
+          "unsafe_scan_result": "clean",
+          "validation_commands": []
+        },
+        "replacement_card_ref": "",
+        "resolved_by_receipt_ref": "",
+        "source_content_hash": "sha256:f95cddd7efac34a191f7ebbbe737e49b9c71eb53ab004b798435ad43eb829287",
+        "source_generated_at": {
+          "generated/read_models/evidence_intake_status.json": "2026-06-05T04:07:26+00:00"
+        },
+        "source_read_model_refs": [
+          "generated/read_models/evidence_intake_status.json"
+        ],
+        "source_statuses": {
+          "generated/read_models/evidence_intake_status.json": "EVIDENCE_INTAKE_READY"
+        },
+        "speaker_ref": "openclaw",
+        "stale_after": "",
+        "stale_reason": "",
+        "status_label": "Proof only",
+        "superseded_by_card_ref": "",
+        "supporting_lines": [
+          "Raw artifact body is not read by this packet.",
+          "Financial-sensitive detail remains local-only and redacted.",
+          "Artifact proof does not mark paid or mutate ledgers."
+        ],
+        "thread_ref": "evidence_intake",
+        "tone": "neutral",
+        "trust_state": "operator_reported",
+        "visibility_reason": "hidden_by_lifecycle_policy",
+        "visible_by_default": false,
+        "workflow_ref": "evidence_intake_artifact_lineage",
+        "world_ref": "artifact"
+      }
+    ],
+    "generated_at": "2026-06-05T04:07:26+00:00",
+    "legacy_fields_additive": true,
+    "machine_proof": {
+      "action_slots_present": true,
+      "card_count_positive": true,
+      "enabled_actions_reference_deterministic_payloads": true,
+      "incoming_authority_granted_accepted": false,
+      "legacy_fields_preserved": true,
+      "lifecycle_fields_present": true,
+      "no_business_execution": true,
+      "proof_categorized": true,
+      "unsafe_true_grants": [],
+      "unsafe_true_grants_absent": true,
+      "valid_v1_cards": true,
+      "validation_errors": []
+    },
+    "packet_content_hash": "sha256:016b00adce20b6619222dcf6a91a6c63c69da9aa8c64c62b3e8a6e976e0b1ab6",
+    "packet_id": "dynamic_card_packet:evidence_intake:222ffd762bfc",
+    "packet_source_read_model_refs": [
+      "generated/read_models/operator_runtime_chain_current_state_audit.json",
+      "generated/read_models/operator_action_payloads.json",
+      "generated/read_models/operator_controller_design_brief.json",
+      "generated/read_models/operator_controller_protocol.json",
+      "generated/read_models/dynamic_card_lifecycle_policy.json",
+      "generated/read_models/workflow_package_request_consumer_status.json",
+      "generated/read_models/workflow_composer_latest.json",
+      "generated/read_models/approval_request_queue.json",
+      "generated/read_models/memory_promotion_gate.json",
+      "generated/read_models/lm_bounded_operator_orchestration_latest.json",
+      "generated/read_models/operator_next_decision.json",
+      "generated/read_models/capital_hilton_invoice_operator_run_status.json",
+      "generated/read_models/capital_hilton_business_development_proposal.json",
+      "generated/read_models/st_annes_work_log_review_surface.json",
+      "generated/read_models/workroom_review_packet_index.json",
+      "generated/read_models/workroom_review_decision_status.json",
+      "generated/read_models/system_question_answer_contract.json",
+      "generated/read_models/client_invoice_workbook_registry.json",
+      "generated/read_models/package_event_index.json",
+      "generated/read_models/chief_check_engine_diagnostic_package.json",
+      "generated/read_models/evidence_intake_status.json",
+      "generated/read_models/evidence_confidence_scoring.json",
+      "generated/read_models/gate_decision_ledger.json",
+      "generated/read_models/workroom_wip_limits.json",
+      "generated/read_models/first_class_operator_envelope_contract.json",
+      "generated/read_models/first_class_operator_envelope_status.json"
+    ],
+    "rail_packet_schema_version": "dynamic_card_packet_v1_rail_population",
+    "rail_ref": "evidence_intake",
+    "schema_version": "dynamic_card_packet_v1",
+    "source_request_id": "rail_population:evidence_intake",
+    "surface_context": {
+      "active_entity_ref": "evidence_intake",
+      "client_ref": "mixed",
+      "thread_ref": "evidence_intake",
+      "workflow_ref": "dynamic_card_v1_rail_population",
+      "world_ref": "mission_control"
+    }
+  },
+  "generated_at": "2026-06-05T04:07:26+00:00",
   "latest_record": {
     "artifact": {
-      "artifact_ref": "artifact:evidence_intake_a8191f31df3ce664",
-      "bridge_artifact_ref": "/Users/hwinshipwheatley/Documents/Invoices/Invoice Clients/openclaw-evidence-smoke.png",
+      "artifact_ref": "artifact:evidence_intake_56cda4b43a6b7054",
+      "bridge_artifact_ref": "mission_control_drop:live_arts_md_payment_processing_screenshot_invoice_2026-1001",
       "bridge_path": "",
       "kind": "screenshot",
       "path": "",
@@ -188,7 +1049,7 @@
       "sha256": ""
     },
     "artifact_lineage_registry_update_status": "recorded",
-    "artifact_ref": "artifact:evidence_intake_a8191f31df3ce664",
+    "artifact_ref": "artifact:evidence_intake_56cda4b43a6b7054",
     "authority_boundary": {
       "authority_grant_allowed": false,
       "browser_access_allowed": false,
@@ -208,8 +1069,8 @@
       "workbook_source_mutation_allowed": false
     },
     "claimed_client_ref": "live_arts_md",
-    "claimed_workflow_ref": "live_arts_md_invoice_workflow",
-    "created_at": "2026-06-05T02:58:46+00:00",
+    "claimed_workflow_ref": "live_arts_md_payment_watch",
+    "created_at": "2026-06-05T04:07:26+00:00",
     "current_thread_ref": "live_arts_md",
     "current_world_ref": "finance",
     "dynamic_card": {
@@ -239,7 +1100,7 @@
           "enabled": true,
           "label": "Attach to lane",
           "operator_authority_envelope_contract_ref": "generated/read_models/first_class_operator_envelope_contract.json",
-          "operator_authority_envelope_ref": "operator_authority_envelope:f3f063e64f35615a",
+          "operator_authority_envelope_ref": "operator_authority_envelope:9c5ec0b981d71a81",
           "requires_operator_authority_envelope": true
         },
         {
@@ -267,7 +1128,7 @@
           "enabled": true,
           "label": "Ask what this means",
           "operator_authority_envelope_contract_ref": "generated/read_models/first_class_operator_envelope_contract.json",
-          "operator_authority_envelope_ref": "operator_authority_envelope:f3f063e64f35615a",
+          "operator_authority_envelope_ref": "operator_authority_envelope:9c5ec0b981d71a81",
           "requires_operator_authority_envelope": true
         },
         {
@@ -295,7 +1156,7 @@
           "enabled": true,
           "label": "Mark as test",
           "operator_authority_envelope_contract_ref": "generated/read_models/first_class_operator_envelope_contract.json",
-          "operator_authority_envelope_ref": "operator_authority_envelope:f3f063e64f35615a",
+          "operator_authority_envelope_ref": "operator_authority_envelope:9c5ec0b981d71a81",
           "requires_operator_authority_envelope": true
         },
         {
@@ -323,7 +1184,7 @@
           "enabled": true,
           "label": "Show details",
           "operator_authority_envelope_contract_ref": "generated/read_models/first_class_operator_envelope_contract.json",
-          "operator_authority_envelope_ref": "operator_authority_envelope:f3f063e64f35615a",
+          "operator_authority_envelope_ref": "operator_authority_envelope:9c5ec0b981d71a81",
           "requires_operator_authority_envelope": true
         }
       ],
@@ -345,7 +1206,7 @@
         "workbook_mutation_allowed": false,
         "workbook_source_mutation_allowed": false
       },
-      "card_id": "dynamic_card.evidence_intake.payment_processing.aeafe331d1",
+      "card_id": "dynamic_card.evidence_intake.payment_processing.4b6f52f4e2",
       "card_type": "evidence_intake",
       "headline": "Payment proof received",
       "machine_proof": {
@@ -355,7 +1216,7 @@
       },
       "plain_summary": "This appears to show payment processing for invoice 2026-1001. Ledger remains untouched until payment is confirmed.",
       "proof": {
-        "artifact_ref": "artifact:evidence_intake_a8191f31df3ce664",
+        "artifact_ref": "artifact:evidence_intake_56cda4b43a6b7054",
         "collapsed_by_default": true,
         "read_model_refs": [
           "generated/read_models/evidence_intake_status.json",
@@ -371,7 +1232,7 @@
       "trust_state": "operator_reported"
     },
     "evidence_status": "CANDIDATE_EVIDENCE_RECORDED",
-    "intake_id": "evidence_intake:37bbc6cac71d9b27",
+    "intake_id": "evidence_intake:f683f345e5cf2a4d",
     "intended_use": "payment_proof",
     "lineage_status": "candidate_evidence",
     "machine_proof": {
@@ -393,42 +1254,42 @@
       "worker_spawn_performed": false
     },
     "operator_authority_envelope": {
-      "app_instance_ref": "sha256:b7efb2d5f3ec5e0b0f1a77589c9c276612600550161e555f4fe5384f98fd3e07",
+      "app_instance_ref": "mission_control:pc",
       "authority_granted": [],
       "authority_requested": [],
       "controller_action_type": "attach_proof",
       "device_class": "mac",
-      "device_ref": "sha256:f761589fd26c8a19c0ffb6d5701e9fe1ae12925552f4de7089c94827388de3cf",
-      "envelope_id": "operator_authority_envelope:f3f063e64f35615a",
-      "operator_ref": "operator_winship_local",
+      "device_ref": "device:pc",
+      "envelope_id": "operator_authority_envelope:9c5ec0b981d71a81",
+      "operator_ref": "operator:winship",
       "proof_refs": [
-        "mission_control_mac",
-        "sha256:b7efb2d5f3ec5e0b0f1a77589c9c276612600550161e555f4fe5384f98fd3e07",
-        "sha256:f761589fd26c8a19c0ffb6d5701e9fe1ae12925552f4de7089c94827388de3cf",
-        "sha256:f68da3acb7b2e7a7503154d6078ad8ef1fb3e429e378bc140b4b8e881ffe7493",
-        "sha256:source-request-route_closeout_20260605T025918Z"
+        "mission_control_evidence_drop_zone",
+        "mission_control:pc",
+        "device:pc",
+        "session:evidence-intake-example",
+        "sha256:example_source_request_hash"
       ],
       "read_model_ref": "generated/read_models/first_class_operator_envelope_status.json",
-      "session_ref": "sha256:f68da3acb7b2e7a7503154d6078ad8ef1fb3e429e378bc140b4b8e881ffe7493",
+      "session_ref": "session:evidence-intake-example",
       "verification_status": "verified"
     },
     "operator_envelope": {
-      "app_instance_ref": "sha256:b7efb2d5f3ec5e0b0f1a77589c9c276612600550161e555f4fe5384f98fd3e07",
-      "created_at": "2026-06-05T02:59:18Z",
-      "device_ref": "sha256:f761589fd26c8a19c0ffb6d5701e9fe1ae12925552f4de7089c94827388de3cf",
-      "operator_ref": "operator_winship_local",
+      "app_instance_ref": "mission_control:pc",
+      "created_at": "2026-06-05T04:07:26+00:00",
+      "device_ref": "device:pc",
+      "operator_ref": "operator:winship",
       "operator_verified": true,
-      "request_hash": "sha256:1eeaba74a59d36c482c83ffe44e43e08210bc2823e718dab7848c591282ace13",
-      "session_ref": "sha256:f68da3acb7b2e7a7503154d6078ad8ef1fb3e429e378bc140b4b8e881ffe7493"
+      "request_hash": "sha256:06dd7a67b6f0a007fe10dd48ba159f06c4dc50fc1932ab961f1a1a6da054f3dc",
+      "session_ref": "session:evidence-intake-example"
     },
     "operator_note": {
       "raw_note_stored_in_general_memory": false,
-      "redacted": "Smoke test payment evidence for Live Arts MD.",
-      "sha256": "sha256:8a1f995a2cd998a2d82da4318c346ab473884315b28dfe79f23b7abfb2e973fa"
+      "redacted": "Live Arts MD screenshot appears to show payment processing for invoice 2026-1001.",
+      "sha256": "sha256:3c146d1512848be70597c969fac2c677d762aa0719ceb12fda57be1adc242b28"
     },
     "payment": {
-      "evidence_is_payment_processing_only": false,
-      "invoice_ref": "",
+      "evidence_is_payment_processing_only": true,
+      "invoice_ref": "2026-1001",
       "ledger_mutation_performed": false,
       "ledger_recording_allowed": false,
       "paid": false,
@@ -439,7 +1300,7 @@
         "operator review before ledger recording"
       ],
       "paid_truth_status": "NOT_PAID_PROOF",
-      "payment_state": "payment_proof_candidate"
+      "payment_state": "payment_processing_evidence_received"
     },
     "privacy": {
       "external_provider_blocked": true,
@@ -453,12 +1314,12 @@
       "raw_sensitive_detail_promoted_to_memory": false,
       "tokenization_required": true
     },
-    "request_ref": "evidence_intake_request:ee8176f8cbf522e9",
+    "request_ref": "evidence_intake_request:cf32bb7dceb181c4",
     "schema_version": "evidence_intake_v0",
     "source_request": {
-      "request_hash": "sha256:1eeaba74a59d36c482c83ffe44e43e08210bc2823e718dab7848c591282ace13",
+      "request_hash": "sha256:06dd7a67b6f0a007fe10dd48ba159f06c4dc50fc1932ab961f1a1a6da054f3dc",
       "request_type": "EVIDENCE_INTAKE_REQUEST_V0",
-      "source_request_hash": "sha256:source-request-route_closeout_20260605T025918Z",
+      "source_request_hash": "sha256:example_source_request_hash",
       "source_surface": "mission_control"
     },
     "status": "EVIDENCE_INTAKE_READY"
@@ -466,6 +1327,8 @@
   "machine_proof": {
     "business_action_performed": false,
     "candidate_evidence_recorded": true,
+    "dynamic_card_packet_v1_emitted": true,
+    "dynamic_card_packet_v1_valid": true,
     "external_llm_invoked": false,
     "external_provider_connected": false,
     "general_memory_promotion_allowed": false,

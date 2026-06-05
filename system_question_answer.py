@@ -17,6 +17,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping
 
+import dynamic_card_packet
+
 
 ROOT = Path(__file__).resolve().parent
 DEFAULT_READ_MODEL_ROOT = Path("generated/read_models")
@@ -267,7 +269,7 @@ def _sqlite_metadata(sqlite_path: Path) -> dict[str, Any]:
 def _load_sources(read_model_root: Path, sqlite_root: Path) -> dict[str, Any]:
     read_model_root = _rooted(read_model_root)
     sqlite_root = _rooted(sqlite_root)
-    return {
+    payload: dict[str, Any] = {
         "workflow_package_queue": _load_json_file(read_model_root / "workflow_package_queue_contract.json"),
         "automation_permission_registry": _load_json_file(read_model_root / "automation_permission_registry.json"),
         "operator_assist_provider_registry": _load_json_file(read_model_root / "operator_assist_provider_registry.json"),
@@ -302,6 +304,7 @@ def _load_sources(read_model_root: Path, sqlite_root: Path) -> dict[str, Any]:
         "st_annes_work_log_sqlite": _sqlite_metadata(sqlite_root / "st_annes_monthly_work_log.sqlite"),
         "workflow_package_queue_sqlite": _sqlite_metadata(sqlite_root / "workflow_package_queue.sqlite"),
     }
+    return payload
 
 
 def _walk_values(payload: Any):
@@ -1716,7 +1719,7 @@ def build_contract_read_model(
     ]
     preconditions = build_preconditions(read_model_root=read_model_root, sqlite_root=sqlite_root)
     preconditions_ready = all(row["ready"] for row in preconditions)
-    return {
+    payload: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
         "read_model_id": READ_MODEL_ID,
         "generated_at": generated_at,
@@ -1837,6 +1840,12 @@ def build_contract_read_model(
             "unsafe_true_grants_absent": True,
         },
     }
+    return dynamic_card_packet.add_rail_card_packet(
+        payload,
+        "system_question_answer",
+        read_model_root=read_model_root,
+        generated_at=generated_at,
+    )
 
 
 def build_wiki(read_model: Mapping[str, Any]) -> str:

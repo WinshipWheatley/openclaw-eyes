@@ -211,7 +211,7 @@
     ]
   },
   "example_packet_digest": {
-    "card_count": 12,
+    "card_count": 13,
     "card_ids": [
       "dynamic_card.finance.capital_hilton.payment_watch",
       "dynamic_card.finance.live_arts_md.evidence_intake.payment_processing",
@@ -223,13 +223,14 @@
       "dynamic_card.finance.capital_hilton.approval_request.coupa_submit",
       "dynamic_card.controller.safe_next.what_should_i_do",
       "dynamic_card.finance.st_annes.work_log_review",
+      "dynamic_card.build.review_packet.completed_historical_receipt",
       "dynamic_card.memory.payment_evidence_candidate",
       "dynamic_card.artifact.evidence_intake.proof_only"
     ],
-    "packet_id": "dynamic_card_packet:e16bda16e899",
+    "packet_id": "dynamic_card_packet:1b170f51d129",
     "visible_card_count": 8
   },
-  "generated_at": "2026-06-05T03:51:59+00:00",
+  "generated_at": "2026-06-05T04:09:44+00:00",
   "latest_packet_ref": "generated/read_models/dynamic_card_packet_latest.json",
   "machine_proof": {
     "action_slots_present": true,
@@ -327,6 +328,38 @@
     },
     {
       "equivalent_status_accepted": "",
+      "observed_status": "WORKFLOW_COMPOSER_READY",
+      "precondition_ref": "workflow_composer",
+      "ready": true,
+      "required_status": "WORKFLOW_COMPOSER_READY",
+      "source_ref": "generated/read_models/workflow_composer_latest.json"
+    },
+    {
+      "equivalent_status_accepted": "",
+      "observed_status": "APPROVAL_REQUEST_QUEUE_READY",
+      "precondition_ref": "approval_request_queue",
+      "ready": true,
+      "required_status": "APPROVAL_REQUEST_QUEUE_READY",
+      "source_ref": "generated/read_models/approval_request_queue.json"
+    },
+    {
+      "equivalent_status_accepted": "",
+      "observed_status": "GATE_DECISION_LEDGER_READY",
+      "precondition_ref": "gate_decision_ledger",
+      "ready": true,
+      "required_status": "GATE_DECISION_LEDGER_READY",
+      "source_ref": "generated/read_models/gate_decision_ledger.json"
+    },
+    {
+      "equivalent_status_accepted": "",
+      "observed_status": "MEMORY_PROMOTION_GATE_READY",
+      "precondition_ref": "memory_promotion_gate",
+      "ready": true,
+      "required_status": "MEMORY_PROMOTION_GATE_READY",
+      "source_ref": "generated/read_models/memory_promotion_gate.json"
+    },
+    {
+      "equivalent_status_accepted": "",
       "observed_status": "LM_BOUNDED_OPERATOR_ORCHESTRATION_READY",
       "precondition_ref": "lm_bounded_operator_orchestration",
       "ready": true,
@@ -421,6 +454,10 @@
     "generated/read_models/operator_controller_design_brief.json",
     "generated/read_models/operator_controller_protocol.json",
     "generated/read_models/dynamic_card_lifecycle_policy.json",
+    "generated/read_models/workflow_package_request_consumer_status.json",
+    "generated/read_models/workflow_composer_latest.json",
+    "generated/read_models/approval_request_queue.json",
+    "generated/read_models/memory_promotion_gate.json",
     "generated/read_models/lm_bounded_operator_orchestration_latest.json",
     "generated/read_models/operator_next_decision.json",
     "generated/read_models/capital_hilton_invoice_operator_run_status.json",

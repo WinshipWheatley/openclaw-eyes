@@ -12,6 +12,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping
 
+import dynamic_card_packet
+
 
 ROOT = Path(__file__).resolve().parent
 DEFAULT_READ_MODEL_ROOT = Path("generated/read_models")
@@ -157,7 +159,7 @@ def build_read_model(
     preconditions = _preconditions(read_model_root)
     preconditions_ready = all(row["ready"] for row in preconditions)
     entries = _promotion_entries(_rooted(read_model_root), generated_at)
-    return {
+    payload: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
         "read_model_id": READ_MODEL_ID,
         "status": STATUS_READY if preconditions_ready else STATUS_NOT_READY,
@@ -193,6 +195,12 @@ def build_read_model(
             "pushed": False,
         },
     }
+    return dynamic_card_packet.add_rail_card_packet(
+        payload,
+        "memory_promotion_gate",
+        read_model_root=read_model_root,
+        generated_at=generated_at,
+    )
 
 
 def _wiki(read_model: Mapping[str, Any]) -> str:

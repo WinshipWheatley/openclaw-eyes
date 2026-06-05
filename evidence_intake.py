@@ -18,6 +18,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping
 
+import dynamic_card_packet
 import first_class_operator_envelope as operator_authority_envelope
 import verified_operator_envelope as operator_envelope
 
@@ -1105,7 +1106,12 @@ def build_status_read_model(
     }
     payload["machine_proof"]["unsafe_true_grants"] = unsafe_true_grants(payload)
     payload["machine_proof"]["unsafe_true_grants_absent"] = not payload["machine_proof"]["unsafe_true_grants"]
-    return payload
+    return dynamic_card_packet.add_rail_card_packet(
+        payload,
+        "evidence_intake",
+        read_model_root=read_model_root,
+        generated_at=generated_at,
+    )
 
 
 def build_status_read_model_for_record(
@@ -1150,7 +1156,12 @@ def build_status_read_model_for_record(
     }
     payload["machine_proof"]["unsafe_true_grants"] = unsafe_true_grants(payload)
     payload["machine_proof"]["unsafe_true_grants_absent"] = not payload["machine_proof"]["unsafe_true_grants"]
-    return payload
+    return dynamic_card_packet.add_rail_card_packet(
+        payload,
+        "evidence_intake",
+        read_model_root=read_model_root,
+        generated_at=generated_at,
+    )
 
 
 def build_wiki(contract: Mapping[str, Any], status: Mapping[str, Any]) -> str:

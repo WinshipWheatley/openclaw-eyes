@@ -17,6 +17,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping
 
+import dynamic_card_packet
 import workroom_review_decision_contract as decision_contract
 
 
@@ -446,7 +447,7 @@ def _receipt(
         packet=packet,
     )
     raw_internal_status = "RESPONSE_READY" if accepted else "BLOCKED_WITH_REASON"
-    return {
+    payload: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
         "receipt_type": "WORKROOM_REVIEW_DECISION_CONSUMER_RECEIPT",
         "receipt_id": receipt_id,
@@ -504,6 +505,7 @@ def _receipt(
             "wiki_path": "",
         },
     }
+    return payload
 
 
 def _existing_history(export_root: Path) -> list[dict[str, Any]]:
@@ -534,7 +536,7 @@ def build_read_model(
     history = history[-200:]
     last_decision = dict(receipt) if isinstance(receipt, Mapping) else (history[-1] if history else None)
     status = CONSUMER_STATUS if preconditions_ready else CONSUMER_NOT_READY_STATUS
-    return {
+    payload: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
         "read_model_id": READ_MODEL_ID,
         "generated_at": generated_at,
@@ -584,6 +586,12 @@ def build_read_model(
             "unsafe_true_grants_absent": all(value is False for value in AUTHORITY_BOUNDARY.values()),
         },
     }
+    return dynamic_card_packet.add_rail_card_packet(
+        payload,
+        "workroom_review_decision_consumer",
+        read_model_root=read_model_root,
+        generated_at=generated_at,
+    )
 
 
 def build_wiki(read_model: Mapping[str, Any]) -> str:

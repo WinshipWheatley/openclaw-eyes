@@ -259,6 +259,30 @@ Action slots:
 Proof categories:
 - receipts=`0` artifacts=`0` hashes=`0` sqlite=`0` read_models=`1`
 
+### Review decision recorded
+
+- Card id: `dynamic_card.build.review_packet.completed_historical_receipt`
+- Family: `completed_historical_receipt_card`
+- Type: `review_packet`
+- Speaker: `chief`
+- Trust: `trusted_current`
+- Freshness: `historical`
+- Lifecycle: `resolved`
+- Confidence: `trusted_current` / `0.86`
+- Summary: A workroom review decision is recorded as history. It is not merge, push, worker, or business execution proof.
+- Next/status: `Review recorded`
+- Visible by default: `false`
+
+Action slots:
+- `primary`: `show_details` / `No primary action` / enabled=`false`
+- `secondary`: `show_details` / `No secondary action` / enabled=`false`
+- `detail`: `show_details` / `Show details` / enabled=`false`
+- `dismiss`: `show_details` / `Dismiss` / enabled=`false`
+- `danger_disabled`: `do_it` / `Merge or push` / enabled=`false`
+
+Proof categories:
+- receipts=`1` artifacts=`1` hashes=`0` sqlite=`0` read_models=`3`
+
 ### Candidate memory stays unpromoted
 
 - Card id: `dynamic_card.memory.payment_evidence_candidate`

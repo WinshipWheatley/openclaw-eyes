@@ -27,7 +27,7 @@
     "workbook_source_mutation_allowed": false,
     "worker_spawn_allowed": false
   },
-  "card_count": 12,
+  "card_count": 13,
   "cards": [
     {
       "accessibility_text": "Stay on payment watch. Payment watch. Coupa is processing. Wait for payment evidence before anything touches the ledger.",
@@ -68,18 +68,13 @@
           "enabled": false,
           "label": "Submit in Coupa",
           "proof_refs": [
-            "Details",
             "generated/read_models/capital_hilton_invoice_operator_run_status.json",
             "generated/read_models/operator_action_payloads.json",
             "generated/read_models/lm_bounded_operator_orchestration_latest.json",
             "/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/capital_hilton_invoice_operator_run_full_automation_report_20260601T222036Z.md",
             "/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/2026-06-01/Invoice_Capital_Hilton_2026-06-01.pdf",
             "/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/capital_hilton_invoice_operator_run_receipt_20260601T221600Z.json",
-            "/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/capital_hilton_invoice_operator_run_report_20260601T221600Z.md",
-            "Proof is available in categorized refs; raw sensitive details are not primary UI.",
-            "redacted_by_default",
-            "sha256:f5da0e74630cf51a32b9792cacb1bdaea43eca0b1dc77042e3b69d9a4a8d4b2c",
-            "clean"
+            "/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/capital_hilton_invoice_operator_run_report_20260601T221600Z.md"
           ],
           "receipt_required": true,
           "requires_operator_envelope": true
@@ -120,18 +115,13 @@
           "enabled": false,
           "label": "Show details",
           "proof_refs": [
-            "Details",
             "generated/read_models/capital_hilton_invoice_operator_run_status.json",
             "generated/read_models/operator_action_payloads.json",
             "generated/read_models/lm_bounded_operator_orchestration_latest.json",
             "/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/capital_hilton_invoice_operator_run_full_automation_report_20260601T222036Z.md",
             "/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/2026-06-01/Invoice_Capital_Hilton_2026-06-01.pdf",
             "/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/capital_hilton_invoice_operator_run_receipt_20260601T221600Z.json",
-            "/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/capital_hilton_invoice_operator_run_report_20260601T221600Z.md",
-            "Proof is available in categorized refs; raw sensitive details are not primary UI.",
-            "redacted_by_default",
-            "sha256:f5da0e74630cf51a32b9792cacb1bdaea43eca0b1dc77042e3b69d9a4a8d4b2c",
-            "clean"
+            "/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/capital_hilton_invoice_operator_run_report_20260601T221600Z.md"
           ],
           "receipt_required": false,
           "requires_operator_envelope": true
@@ -172,18 +162,13 @@
           "enabled": false,
           "label": "Dismiss",
           "proof_refs": [
-            "Details",
             "generated/read_models/capital_hilton_invoice_operator_run_status.json",
             "generated/read_models/operator_action_payloads.json",
             "generated/read_models/lm_bounded_operator_orchestration_latest.json",
             "/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/capital_hilton_invoice_operator_run_full_automation_report_20260601T222036Z.md",
             "/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/2026-06-01/Invoice_Capital_Hilton_2026-06-01.pdf",
             "/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/capital_hilton_invoice_operator_run_receipt_20260601T221600Z.json",
-            "/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/capital_hilton_invoice_operator_run_report_20260601T221600Z.md",
-            "Proof is available in categorized refs; raw sensitive details are not primary UI.",
-            "redacted_by_default",
-            "sha256:f5da0e74630cf51a32b9792cacb1bdaea43eca0b1dc77042e3b69d9a4a8d4b2c",
-            "clean"
+            "/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/capital_hilton_invoice_operator_run_report_20260601T221600Z.md"
           ],
           "receipt_required": false,
           "requires_operator_envelope": true
@@ -224,18 +209,13 @@
           "enabled": true,
           "label": "Open Finance / Capital Hilton",
           "proof_refs": [
-            "Details",
             "generated/read_models/capital_hilton_invoice_operator_run_status.json",
             "generated/read_models/operator_action_payloads.json",
             "generated/read_models/lm_bounded_operator_orchestration_latest.json",
             "/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/capital_hilton_invoice_operator_run_full_automation_report_20260601T222036Z.md",
             "/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/2026-06-01/Invoice_Capital_Hilton_2026-06-01.pdf",
             "/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/capital_hilton_invoice_operator_run_receipt_20260601T221600Z.json",
-            "/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/capital_hilton_invoice_operator_run_report_20260601T221600Z.md",
-            "Proof is available in categorized refs; raw sensitive details are not primary UI.",
-            "redacted_by_default",
-            "sha256:f5da0e74630cf51a32b9792cacb1bdaea43eca0b1dc77042e3b69d9a4a8d4b2c",
-            "clean"
+            "/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/capital_hilton_invoice_operator_run_report_20260601T221600Z.md"
           ],
           "receipt_required": false,
           "requires_operator_envelope": true
@@ -276,18 +256,13 @@
           "enabled": false,
           "label": "No secondary action",
           "proof_refs": [
-            "Details",
             "generated/read_models/capital_hilton_invoice_operator_run_status.json",
             "generated/read_models/operator_action_payloads.json",
             "generated/read_models/lm_bounded_operator_orchestration_latest.json",
             "/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/capital_hilton_invoice_operator_run_full_automation_report_20260601T222036Z.md",
             "/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/2026-06-01/Invoice_Capital_Hilton_2026-06-01.pdf",
             "/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/capital_hilton_invoice_operator_run_receipt_20260601T221600Z.json",
-            "/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/capital_hilton_invoice_operator_run_report_20260601T221600Z.md",
-            "Proof is available in categorized refs; raw sensitive details are not primary UI.",
-            "redacted_by_default",
-            "sha256:f5da0e74630cf51a32b9792cacb1bdaea43eca0b1dc77042e3b69d9a4a8d4b2c",
-            "clean"
+            "/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/capital_hilton_invoice_operator_run_report_20260601T221600Z.md"
           ],
           "receipt_required": false,
           "requires_operator_envelope": true
@@ -492,15 +467,10 @@
           "enabled": false,
           "label": "Mark paid",
           "proof_refs": [
-            "Details",
             "generated/read_models/evidence_intake_status.json",
-            "artifact:evidence_intake_a8191f31df3ce664",
-            "/Users/hwinshipwheatley/Documents/Invoices/Invoice Clients/openclaw-evidence-smoke.png",
-            "/home/openclaw/generated/system_knowledge/evidence_intake.sqlite",
-            "Payment-processing proof was recorded as local candidate evidence; raw sensitive detail stays out of primary UI.",
-            "financial_sensitive/local_only_redacted",
-            "sha256:7fb2504ce115cfc40a95fb911502f7c510a3d055bda188f85a50149e2e4be309",
-            "clean"
+            "artifact:evidence_intake_56cda4b43a6b7054",
+            "mission_control_drop:live_arts_md_payment_processing_screenshot_invoice_2026-1001",
+            "/home/openclaw/generated/system_knowledge/evidence_intake.sqlite"
           ],
           "receipt_required": true,
           "requires_operator_envelope": true
@@ -541,15 +511,10 @@
           "enabled": false,
           "label": "Mark as test",
           "proof_refs": [
-            "Details",
             "generated/read_models/evidence_intake_status.json",
-            "artifact:evidence_intake_a8191f31df3ce664",
-            "/Users/hwinshipwheatley/Documents/Invoices/Invoice Clients/openclaw-evidence-smoke.png",
-            "/home/openclaw/generated/system_knowledge/evidence_intake.sqlite",
-            "Payment-processing proof was recorded as local candidate evidence; raw sensitive detail stays out of primary UI.",
-            "financial_sensitive/local_only_redacted",
-            "sha256:7fb2504ce115cfc40a95fb911502f7c510a3d055bda188f85a50149e2e4be309",
-            "clean"
+            "artifact:evidence_intake_56cda4b43a6b7054",
+            "mission_control_drop:live_arts_md_payment_processing_screenshot_invoice_2026-1001",
+            "/home/openclaw/generated/system_knowledge/evidence_intake.sqlite"
           ],
           "receipt_required": true,
           "requires_operator_envelope": true
@@ -590,15 +555,10 @@
           "enabled": false,
           "label": "Dismiss",
           "proof_refs": [
-            "Details",
             "generated/read_models/evidence_intake_status.json",
-            "artifact:evidence_intake_a8191f31df3ce664",
-            "/Users/hwinshipwheatley/Documents/Invoices/Invoice Clients/openclaw-evidence-smoke.png",
-            "/home/openclaw/generated/system_knowledge/evidence_intake.sqlite",
-            "Payment-processing proof was recorded as local candidate evidence; raw sensitive detail stays out of primary UI.",
-            "financial_sensitive/local_only_redacted",
-            "sha256:7fb2504ce115cfc40a95fb911502f7c510a3d055bda188f85a50149e2e4be309",
-            "clean"
+            "artifact:evidence_intake_56cda4b43a6b7054",
+            "mission_control_drop:live_arts_md_payment_processing_screenshot_invoice_2026-1001",
+            "/home/openclaw/generated/system_knowledge/evidence_intake.sqlite"
           ],
           "receipt_required": false,
           "requires_operator_envelope": true
@@ -639,15 +599,10 @@
           "enabled": false,
           "label": "Attach to lane",
           "proof_refs": [
-            "Details",
             "generated/read_models/evidence_intake_status.json",
-            "artifact:evidence_intake_a8191f31df3ce664",
-            "/Users/hwinshipwheatley/Documents/Invoices/Invoice Clients/openclaw-evidence-smoke.png",
-            "/home/openclaw/generated/system_knowledge/evidence_intake.sqlite",
-            "Payment-processing proof was recorded as local candidate evidence; raw sensitive detail stays out of primary UI.",
-            "financial_sensitive/local_only_redacted",
-            "sha256:7fb2504ce115cfc40a95fb911502f7c510a3d055bda188f85a50149e2e4be309",
-            "clean"
+            "artifact:evidence_intake_56cda4b43a6b7054",
+            "mission_control_drop:live_arts_md_payment_processing_screenshot_invoice_2026-1001",
+            "/home/openclaw/generated/system_knowledge/evidence_intake.sqlite"
           ],
           "receipt_required": true,
           "requires_operator_envelope": true
@@ -688,15 +643,10 @@
           "enabled": false,
           "label": "Ask what this means",
           "proof_refs": [
-            "Details",
             "generated/read_models/evidence_intake_status.json",
-            "artifact:evidence_intake_a8191f31df3ce664",
-            "/Users/hwinshipwheatley/Documents/Invoices/Invoice Clients/openclaw-evidence-smoke.png",
-            "/home/openclaw/generated/system_knowledge/evidence_intake.sqlite",
-            "Payment-processing proof was recorded as local candidate evidence; raw sensitive detail stays out of primary UI.",
-            "financial_sensitive/local_only_redacted",
-            "sha256:7fb2504ce115cfc40a95fb911502f7c510a3d055bda188f85a50149e2e4be309",
-            "clean"
+            "artifact:evidence_intake_56cda4b43a6b7054",
+            "mission_control_drop:live_arts_md_payment_processing_screenshot_invoice_2026-1001",
+            "/home/openclaw/generated/system_knowledge/evidence_intake.sqlite"
           ],
           "receipt_required": false,
           "requires_operator_envelope": true
@@ -822,7 +772,7 @@
       "lifecycle_state": "waiting",
       "machine_contract_visible": false,
       "object_refs": [
-        "artifact:evidence_intake_a8191f31df3ce664"
+        "artifact:evidence_intake_56cda4b43a6b7054"
       ],
       "operator_attention_required": false,
       "operator_mode_visible": true,
@@ -831,8 +781,8 @@
       "priority": 97,
       "proof": {
         "artifact_refs": [
-          "artifact:evidence_intake_a8191f31df3ce664",
-          "/Users/hwinshipwheatley/Documents/Invoices/Invoice Clients/openclaw-evidence-smoke.png"
+          "artifact:evidence_intake_56cda4b43a6b7054",
+          "mission_control_drop:live_arts_md_payment_processing_screenshot_invoice_2026-1001"
         ],
         "collapsed_by_default": true,
         "developer_proof_only": false,
@@ -840,8 +790,8 @@
         "label": "Details",
         "proof_refs": [
           "generated/read_models/evidence_intake_status.json",
-          "artifact:evidence_intake_a8191f31df3ce664",
-          "/Users/hwinshipwheatley/Documents/Invoices/Invoice Clients/openclaw-evidence-smoke.png",
+          "artifact:evidence_intake_56cda4b43a6b7054",
+          "mission_control_drop:live_arts_md_payment_processing_screenshot_invoice_2026-1001",
           "/home/openclaw/generated/system_knowledge/evidence_intake.sqlite"
         ],
         "raw_detail_available": false,
@@ -853,7 +803,7 @@
         "request_refs": [],
         "response_refs": [],
         "sensitive_detail_policy": "financial_sensitive/local_only_redacted",
-        "source_content_hash": "sha256:7fb2504ce115cfc40a95fb911502f7c510a3d055bda188f85a50149e2e4be309",
+        "source_content_hash": "sha256:812f08058bc85891c661c5e5143c85fbd62ae36f48222bc5d8b097b23f2820b2",
         "sqlite_refs": [
           "/home/openclaw/generated/system_knowledge/evidence_intake.sqlite"
         ],
@@ -862,9 +812,9 @@
       },
       "replacement_card_ref": "",
       "resolved_by_receipt_ref": "",
-      "source_content_hash": "sha256:8fe3139e899f882745d4741a135ae63077b471112724a358b69c8c40290b6f36",
+      "source_content_hash": "sha256:bf54a3be589a4d934819df500a30a466c338108093687eefea14780131e140dd",
       "source_generated_at": {
-        "generated/read_models/evidence_intake_status.json": "2026-06-05T02:58:46+00:00"
+        "generated/read_models/evidence_intake_status.json": "2026-06-05T04:07:26+00:00"
       },
       "source_read_model_refs": [
         "generated/read_models/evidence_intake_status.json"
@@ -879,7 +829,7 @@
       "superseded_by_card_ref": "",
       "supporting_lines": [
         "Evidence status: CANDIDATE_EVIDENCE_RECORDED.",
-        "Payment state: payment_proof_candidate.",
+        "Payment state: payment_processing_evidence_received.",
         "Candidate evidence does not mark paid or touch the ledger."
       ],
       "thread_ref": "live_arts_md",
@@ -887,7 +837,7 @@
       "trust_state": "operator_reported",
       "visibility_reason": "shown_by_lifecycle_policy",
       "visible_by_default": true,
-      "workflow_ref": "live_arts_md_invoice_workflow",
+      "workflow_ref": "live_arts_md_payment_watch",
       "world_ref": "finance"
     },
     {
@@ -929,14 +879,9 @@
           "enabled": false,
           "label": "Protected action unavailable",
           "proof_refs": [
-            "Details",
             "generated/read_models/system_question_answer_contract.json",
             "generated/read_models/capital_hilton_invoice_operator_run_status.json",
-            "generated/read_models/finance_thread_index.json",
-            "Proof is available in categorized refs; raw sensitive details are not primary UI.",
-            "redacted_by_default",
-            "sha256:1d61c46d9295cc727c151a0783572877250bb8a74e268930f520521677a138bd",
-            "clean"
+            "generated/read_models/finance_thread_index.json"
           ],
           "receipt_required": true,
           "requires_operator_envelope": true
@@ -977,14 +922,9 @@
           "enabled": false,
           "label": "Show details",
           "proof_refs": [
-            "Details",
             "generated/read_models/system_question_answer_contract.json",
             "generated/read_models/capital_hilton_invoice_operator_run_status.json",
-            "generated/read_models/finance_thread_index.json",
-            "Proof is available in categorized refs; raw sensitive details are not primary UI.",
-            "redacted_by_default",
-            "sha256:1d61c46d9295cc727c151a0783572877250bb8a74e268930f520521677a138bd",
-            "clean"
+            "generated/read_models/finance_thread_index.json"
           ],
           "receipt_required": false,
           "requires_operator_envelope": true
@@ -1025,14 +965,9 @@
           "enabled": false,
           "label": "Dismiss",
           "proof_refs": [
-            "Details",
             "generated/read_models/system_question_answer_contract.json",
             "generated/read_models/capital_hilton_invoice_operator_run_status.json",
-            "generated/read_models/finance_thread_index.json",
-            "Proof is available in categorized refs; raw sensitive details are not primary UI.",
-            "redacted_by_default",
-            "sha256:1d61c46d9295cc727c151a0783572877250bb8a74e268930f520521677a138bd",
-            "clean"
+            "generated/read_models/finance_thread_index.json"
           ],
           "receipt_required": false,
           "requires_operator_envelope": true
@@ -1073,14 +1008,9 @@
           "enabled": true,
           "label": "Open Finance / Capital Hilton",
           "proof_refs": [
-            "Details",
             "generated/read_models/system_question_answer_contract.json",
             "generated/read_models/capital_hilton_invoice_operator_run_status.json",
-            "generated/read_models/finance_thread_index.json",
-            "Proof is available in categorized refs; raw sensitive details are not primary UI.",
-            "redacted_by_default",
-            "sha256:1d61c46d9295cc727c151a0783572877250bb8a74e268930f520521677a138bd",
-            "clean"
+            "generated/read_models/finance_thread_index.json"
           ],
           "receipt_required": false,
           "requires_operator_envelope": true
@@ -1121,14 +1051,9 @@
           "enabled": false,
           "label": "No secondary action",
           "proof_refs": [
-            "Details",
             "generated/read_models/system_question_answer_contract.json",
             "generated/read_models/capital_hilton_invoice_operator_run_status.json",
-            "generated/read_models/finance_thread_index.json",
-            "Proof is available in categorized refs; raw sensitive details are not primary UI.",
-            "redacted_by_default",
-            "sha256:1d61c46d9295cc727c151a0783572877250bb8a74e268930f520521677a138bd",
-            "clean"
+            "generated/read_models/finance_thread_index.json"
           ],
           "receipt_required": false,
           "requires_operator_envelope": true
@@ -1247,11 +1172,11 @@
       },
       "replacement_card_ref": "",
       "resolved_by_receipt_ref": "",
-      "source_content_hash": "sha256:1870242d4f88b7baf2802fd3949a24f39850c4ef36064d17e90bc00e176e3ff0",
+      "source_content_hash": "sha256:046d9977472217d7d1c3f4d7f91b2fe7d9065c8fa879e22c5e592678c91b5205",
       "source_generated_at": {
         "generated/read_models/capital_hilton_invoice_operator_run_status.json": "2026-06-01T22:28:55+00:00",
         "generated/read_models/finance_thread_index.json": "",
-        "generated/read_models/system_question_answer_contract.json": "2026-06-04T14:20:06+00:00"
+        "generated/read_models/system_question_answer_contract.json": "2026-06-05T04:07:25+00:00"
       },
       "source_read_model_refs": [
         "generated/read_models/system_question_answer_contract.json",
@@ -1320,14 +1245,9 @@
           "enabled": false,
           "label": "Merge or push",
           "proof_refs": [
-            "Details",
             "generated/read_models/workroom_review_packet_index.json",
             "generated/read_models/workroom_review_decision_status.json",
-            "generated/read_models/spawned_worker_package_lifecycle.json#pc_backend_package_review",
-            "Proof is available in categorized refs; raw sensitive details are not primary UI.",
-            "redacted_by_default",
-            "sha256:7c8810522a8c5504e02ec9d61c20e1afac44db8306e92d1f14f73bdeda184889",
-            "clean"
+            "generated/read_models/spawned_worker_package_lifecycle.json#pc_backend_package_review"
           ],
           "receipt_required": true,
           "requires_operator_envelope": true
@@ -1368,14 +1288,9 @@
           "enabled": true,
           "label": "Mark informational",
           "proof_refs": [
-            "Details",
             "generated/read_models/workroom_review_packet_index.json",
             "generated/read_models/workroom_review_decision_status.json",
-            "generated/read_models/spawned_worker_package_lifecycle.json#pc_backend_package_review",
-            "Proof is available in categorized refs; raw sensitive details are not primary UI.",
-            "redacted_by_default",
-            "sha256:7c8810522a8c5504e02ec9d61c20e1afac44db8306e92d1f14f73bdeda184889",
-            "clean"
+            "generated/read_models/spawned_worker_package_lifecycle.json#pc_backend_package_review"
           ],
           "receipt_required": true,
           "requires_operator_envelope": true
@@ -1416,14 +1331,9 @@
           "enabled": false,
           "label": "Dismiss",
           "proof_refs": [
-            "Details",
             "generated/read_models/workroom_review_packet_index.json",
             "generated/read_models/workroom_review_decision_status.json",
-            "generated/read_models/spawned_worker_package_lifecycle.json#pc_backend_package_review",
-            "Proof is available in categorized refs; raw sensitive details are not primary UI.",
-            "redacted_by_default",
-            "sha256:7c8810522a8c5504e02ec9d61c20e1afac44db8306e92d1f14f73bdeda184889",
-            "clean"
+            "generated/read_models/spawned_worker_package_lifecycle.json#pc_backend_package_review"
           ],
           "receipt_required": false,
           "requires_operator_envelope": true
@@ -1464,14 +1374,9 @@
           "enabled": true,
           "label": "Approve for record",
           "proof_refs": [
-            "Details",
             "generated/read_models/workroom_review_packet_index.json",
             "generated/read_models/workroom_review_decision_status.json",
-            "generated/read_models/spawned_worker_package_lifecycle.json#pc_backend_package_review",
-            "Proof is available in categorized refs; raw sensitive details are not primary UI.",
-            "redacted_by_default",
-            "sha256:7c8810522a8c5504e02ec9d61c20e1afac44db8306e92d1f14f73bdeda184889",
-            "clean"
+            "generated/read_models/spawned_worker_package_lifecycle.json#pc_backend_package_review"
           ],
           "receipt_required": true,
           "requires_operator_envelope": true
@@ -1512,14 +1417,9 @@
           "enabled": true,
           "label": "Request rework",
           "proof_refs": [
-            "Details",
             "generated/read_models/workroom_review_packet_index.json",
             "generated/read_models/workroom_review_decision_status.json",
-            "generated/read_models/spawned_worker_package_lifecycle.json#pc_backend_package_review",
-            "Proof is available in categorized refs; raw sensitive details are not primary UI.",
-            "redacted_by_default",
-            "sha256:7c8810522a8c5504e02ec9d61c20e1afac44db8306e92d1f14f73bdeda184889",
-            "clean"
+            "generated/read_models/spawned_worker_package_lifecycle.json#pc_backend_package_review"
           ],
           "receipt_required": true,
           "requires_operator_envelope": true
@@ -1656,10 +1556,10 @@
       },
       "replacement_card_ref": "",
       "resolved_by_receipt_ref": "",
-      "source_content_hash": "sha256:36649481bfdb9b5cdb77e901a6bcf0089f9d8bca728c815ed557ce63800c4495",
+      "source_content_hash": "sha256:099303d6f8309494f7e034ef3e7302bcfb61d221c866edd3d663e877a57b4664",
       "source_generated_at": {
         "generated/read_models/spawned_worker_package_lifecycle.json#pc_backend_package_review": "",
-        "generated/read_models/workroom_review_decision_status.json": "2026-06-03T17:02:47+00:00",
+        "generated/read_models/workroom_review_decision_status.json": "2026-06-05T04:07:26+00:00",
         "generated/read_models/workroom_review_packet_index.json": "2026-06-03T12:07:06+00:00"
       },
       "source_read_model_refs": [
@@ -1729,16 +1629,11 @@
           "enabled": false,
           "label": "Send follow-up",
           "proof_refs": [
-            "Details",
             "generated/read_models/capital_hilton_business_development_proposal.json",
             "/mnt/e/openclaw/artifacts/proposals/capital_hilton/fight_weekend_2026/capital_hilton_fight_weekend_proposal_packet.json",
             "/mnt/e/openclaw/artifacts/proposals/capital_hilton/fight_weekend_2026/Capital_Hilton_Fight_Weekend_Entertainment_Proposal_DRAFT.pdf",
             "/mnt/e/openclaw/artifacts/proposals/capital_hilton/fight_weekend_2026/capital_hilton_fight_weekend_proposal_review_receipt.json",
-            "/mnt/e/openclaw/artifacts/proposals/capital_hilton/fight_weekend_2026/capital_hilton_proposal_email_sent_receipt_20260601T223704Z.json",
-            "Proof is available in categorized refs; raw sensitive details are not primary UI.",
-            "redacted_by_default",
-            "sha256:18a2a65a6008a20f90bc803f0fa5c457b9360af9b4b138a672e616184ddfdacc",
-            "clean"
+            "/mnt/e/openclaw/artifacts/proposals/capital_hilton/fight_weekend_2026/capital_hilton_proposal_email_sent_receipt_20260601T223704Z.json"
           ],
           "receipt_required": true,
           "requires_operator_envelope": true
@@ -1779,16 +1674,11 @@
           "enabled": false,
           "label": "Show details",
           "proof_refs": [
-            "Details",
             "generated/read_models/capital_hilton_business_development_proposal.json",
             "/mnt/e/openclaw/artifacts/proposals/capital_hilton/fight_weekend_2026/capital_hilton_fight_weekend_proposal_packet.json",
             "/mnt/e/openclaw/artifacts/proposals/capital_hilton/fight_weekend_2026/Capital_Hilton_Fight_Weekend_Entertainment_Proposal_DRAFT.pdf",
             "/mnt/e/openclaw/artifacts/proposals/capital_hilton/fight_weekend_2026/capital_hilton_fight_weekend_proposal_review_receipt.json",
-            "/mnt/e/openclaw/artifacts/proposals/capital_hilton/fight_weekend_2026/capital_hilton_proposal_email_sent_receipt_20260601T223704Z.json",
-            "Proof is available in categorized refs; raw sensitive details are not primary UI.",
-            "redacted_by_default",
-            "sha256:18a2a65a6008a20f90bc803f0fa5c457b9360af9b4b138a672e616184ddfdacc",
-            "clean"
+            "/mnt/e/openclaw/artifacts/proposals/capital_hilton/fight_weekend_2026/capital_hilton_proposal_email_sent_receipt_20260601T223704Z.json"
           ],
           "receipt_required": false,
           "requires_operator_envelope": true
@@ -1829,16 +1719,11 @@
           "enabled": false,
           "label": "Dismiss",
           "proof_refs": [
-            "Details",
             "generated/read_models/capital_hilton_business_development_proposal.json",
             "/mnt/e/openclaw/artifacts/proposals/capital_hilton/fight_weekend_2026/capital_hilton_fight_weekend_proposal_packet.json",
             "/mnt/e/openclaw/artifacts/proposals/capital_hilton/fight_weekend_2026/Capital_Hilton_Fight_Weekend_Entertainment_Proposal_DRAFT.pdf",
             "/mnt/e/openclaw/artifacts/proposals/capital_hilton/fight_weekend_2026/capital_hilton_fight_weekend_proposal_review_receipt.json",
-            "/mnt/e/openclaw/artifacts/proposals/capital_hilton/fight_weekend_2026/capital_hilton_proposal_email_sent_receipt_20260601T223704Z.json",
-            "Proof is available in categorized refs; raw sensitive details are not primary UI.",
-            "redacted_by_default",
-            "sha256:18a2a65a6008a20f90bc803f0fa5c457b9360af9b4b138a672e616184ddfdacc",
-            "clean"
+            "/mnt/e/openclaw/artifacts/proposals/capital_hilton/fight_weekend_2026/capital_hilton_proposal_email_sent_receipt_20260601T223704Z.json"
           ],
           "receipt_required": false,
           "requires_operator_envelope": true
@@ -1879,16 +1764,11 @@
           "enabled": true,
           "label": "Stage proposal follow-up",
           "proof_refs": [
-            "Details",
             "generated/read_models/capital_hilton_business_development_proposal.json",
             "/mnt/e/openclaw/artifacts/proposals/capital_hilton/fight_weekend_2026/capital_hilton_fight_weekend_proposal_packet.json",
             "/mnt/e/openclaw/artifacts/proposals/capital_hilton/fight_weekend_2026/Capital_Hilton_Fight_Weekend_Entertainment_Proposal_DRAFT.pdf",
             "/mnt/e/openclaw/artifacts/proposals/capital_hilton/fight_weekend_2026/capital_hilton_fight_weekend_proposal_review_receipt.json",
-            "/mnt/e/openclaw/artifacts/proposals/capital_hilton/fight_weekend_2026/capital_hilton_proposal_email_sent_receipt_20260601T223704Z.json",
-            "Proof is available in categorized refs; raw sensitive details are not primary UI.",
-            "redacted_by_default",
-            "sha256:18a2a65a6008a20f90bc803f0fa5c457b9360af9b4b138a672e616184ddfdacc",
-            "clean"
+            "/mnt/e/openclaw/artifacts/proposals/capital_hilton/fight_weekend_2026/capital_hilton_proposal_email_sent_receipt_20260601T223704Z.json"
           ],
           "receipt_required": true,
           "requires_operator_envelope": true
@@ -1929,16 +1809,11 @@
           "enabled": false,
           "label": "No secondary action",
           "proof_refs": [
-            "Details",
             "generated/read_models/capital_hilton_business_development_proposal.json",
             "/mnt/e/openclaw/artifacts/proposals/capital_hilton/fight_weekend_2026/capital_hilton_fight_weekend_proposal_packet.json",
             "/mnt/e/openclaw/artifacts/proposals/capital_hilton/fight_weekend_2026/Capital_Hilton_Fight_Weekend_Entertainment_Proposal_DRAFT.pdf",
             "/mnt/e/openclaw/artifacts/proposals/capital_hilton/fight_weekend_2026/capital_hilton_fight_weekend_proposal_review_receipt.json",
-            "/mnt/e/openclaw/artifacts/proposals/capital_hilton/fight_weekend_2026/capital_hilton_proposal_email_sent_receipt_20260601T223704Z.json",
-            "Proof is available in categorized refs; raw sensitive details are not primary UI.",
-            "redacted_by_default",
-            "sha256:18a2a65a6008a20f90bc803f0fa5c457b9360af9b4b138a672e616184ddfdacc",
-            "clean"
+            "/mnt/e/openclaw/artifacts/proposals/capital_hilton/fight_weekend_2026/capital_hilton_proposal_email_sent_receipt_20260601T223704Z.json"
           ],
           "receipt_required": false,
           "requires_operator_envelope": true
@@ -2130,13 +2005,8 @@
           "enabled": false,
           "label": "Run repair",
           "proof_refs": [
-            "Details",
             "generated/read_models/chief_check_engine_diagnostic_package.json",
-            "generated/read_models/operator_action_payloads.json",
-            "Proof is available in categorized refs; raw sensitive details are not primary UI.",
-            "redacted_by_default",
-            "sha256:1eea0979ad11a8153de96089f027c57a9f240ee6df42ee0e2c5b2ad40b9cf676",
-            "clean"
+            "generated/read_models/operator_action_payloads.json"
           ],
           "receipt_required": true,
           "requires_operator_envelope": true
@@ -2177,13 +2047,8 @@
           "enabled": false,
           "label": "Show details",
           "proof_refs": [
-            "Details",
             "generated/read_models/chief_check_engine_diagnostic_package.json",
-            "generated/read_models/operator_action_payloads.json",
-            "Proof is available in categorized refs; raw sensitive details are not primary UI.",
-            "redacted_by_default",
-            "sha256:1eea0979ad11a8153de96089f027c57a9f240ee6df42ee0e2c5b2ad40b9cf676",
-            "clean"
+            "generated/read_models/operator_action_payloads.json"
           ],
           "receipt_required": false,
           "requires_operator_envelope": true
@@ -2224,13 +2089,8 @@
           "enabled": false,
           "label": "Dismiss",
           "proof_refs": [
-            "Details",
             "generated/read_models/chief_check_engine_diagnostic_package.json",
-            "generated/read_models/operator_action_payloads.json",
-            "Proof is available in categorized refs; raw sensitive details are not primary UI.",
-            "redacted_by_default",
-            "sha256:1eea0979ad11a8153de96089f027c57a9f240ee6df42ee0e2c5b2ad40b9cf676",
-            "clean"
+            "generated/read_models/operator_action_payloads.json"
           ],
           "receipt_required": false,
           "requires_operator_envelope": true
@@ -2271,13 +2131,8 @@
           "enabled": true,
           "label": "Open Chief diagnostic",
           "proof_refs": [
-            "Details",
             "generated/read_models/chief_check_engine_diagnostic_package.json",
-            "generated/read_models/operator_action_payloads.json",
-            "Proof is available in categorized refs; raw sensitive details are not primary UI.",
-            "redacted_by_default",
-            "sha256:1eea0979ad11a8153de96089f027c57a9f240ee6df42ee0e2c5b2ad40b9cf676",
-            "clean"
+            "generated/read_models/operator_action_payloads.json"
           ],
           "receipt_required": false,
           "requires_operator_envelope": true
@@ -2318,13 +2173,8 @@
           "enabled": true,
           "label": "What is the difference between Chief and a spawned worker?",
           "proof_refs": [
-            "Details",
             "generated/read_models/chief_check_engine_diagnostic_package.json",
-            "generated/read_models/operator_action_payloads.json",
-            "Proof is available in categorized refs; raw sensitive details are not primary UI.",
-            "redacted_by_default",
-            "sha256:1eea0979ad11a8153de96089f027c57a9f240ee6df42ee0e2c5b2ad40b9cf676",
-            "clean"
+            "generated/read_models/operator_action_payloads.json"
           ],
           "receipt_required": false,
           "requires_operator_envelope": true
@@ -2519,12 +2369,7 @@
           "enabled": false,
           "label": "Open workbook body",
           "proof_refs": [
-            "Details",
-            "generated/read_models/client_invoice_workbook_registry.json",
-            "Proof is available in categorized refs; raw sensitive details are not primary UI.",
-            "redacted_by_default",
-            "sha256:692078bfd66335819525266eabaaeb0596638eb00804065c05c2881d92868605",
-            "clean"
+            "generated/read_models/client_invoice_workbook_registry.json"
           ],
           "receipt_required": true,
           "requires_operator_envelope": true
@@ -2565,12 +2410,7 @@
           "enabled": false,
           "label": "Show details",
           "proof_refs": [
-            "Details",
-            "generated/read_models/client_invoice_workbook_registry.json",
-            "Proof is available in categorized refs; raw sensitive details are not primary UI.",
-            "redacted_by_default",
-            "sha256:692078bfd66335819525266eabaaeb0596638eb00804065c05c2881d92868605",
-            "clean"
+            "generated/read_models/client_invoice_workbook_registry.json"
           ],
           "receipt_required": false,
           "requires_operator_envelope": true
@@ -2611,12 +2451,7 @@
           "enabled": false,
           "label": "Dismiss",
           "proof_refs": [
-            "Details",
-            "generated/read_models/client_invoice_workbook_registry.json",
-            "Proof is available in categorized refs; raw sensitive details are not primary UI.",
-            "redacted_by_default",
-            "sha256:692078bfd66335819525266eabaaeb0596638eb00804065c05c2881d92868605",
-            "clean"
+            "generated/read_models/client_invoice_workbook_registry.json"
           ],
           "receipt_required": false,
           "requires_operator_envelope": true
@@ -2657,12 +2492,7 @@
           "enabled": true,
           "label": "Register workbook",
           "proof_refs": [
-            "Details",
-            "generated/read_models/client_invoice_workbook_registry.json",
-            "Proof is available in categorized refs; raw sensitive details are not primary UI.",
-            "redacted_by_default",
-            "sha256:692078bfd66335819525266eabaaeb0596638eb00804065c05c2881d92868605",
-            "clean"
+            "generated/read_models/client_invoice_workbook_registry.json"
           ],
           "receipt_required": true,
           "requires_operator_envelope": true
@@ -2703,12 +2533,7 @@
           "enabled": false,
           "label": "No secondary action",
           "proof_refs": [
-            "Details",
-            "generated/read_models/client_invoice_workbook_registry.json",
-            "Proof is available in categorized refs; raw sensitive details are not primary UI.",
-            "redacted_by_default",
-            "sha256:692078bfd66335819525266eabaaeb0596638eb00804065c05c2881d92868605",
-            "clean"
+            "generated/read_models/client_invoice_workbook_registry.json"
           ],
           "receipt_required": false,
           "requires_operator_envelope": true
@@ -2823,7 +2648,7 @@
       },
       "replacement_card_ref": "",
       "resolved_by_receipt_ref": "",
-      "source_content_hash": "sha256:d7894dc655620c9c6f1f0b9d58ca74c28b66c0afe03aedf2da616292357a8fd2",
+      "source_content_hash": "sha256:8113432a525dd252f9aa5d4f24828bc3ea15ef33d07fc75ec68d4b23dbf26d2b",
       "source_generated_at": {
         "generated/read_models/client_invoice_workbook_registry.json": "2026-05-26T00:00:00+00:00"
       },
@@ -2890,14 +2715,9 @@
           "enabled": false,
           "label": "Submit in Coupa",
           "proof_refs": [
-            "Details",
             "generated/read_models/gate_decision_ledger.json",
             "generated/read_models/operator_action_payloads.json",
-            "generated/read_models/operator_controller_protocol.json",
-            "Protected Coupa submit is represented as a gate/approval card only.",
-            "gate_metadata_only",
-            "sha256:565bd1c445f5acfd1eb18ba6c5ca003a43b501ff4fd9ec04271d335e6fee08e1",
-            "clean"
+            "generated/read_models/operator_controller_protocol.json"
           ],
           "receipt_required": true,
           "requires_operator_envelope": true
@@ -2938,14 +2758,9 @@
           "enabled": true,
           "label": "Explain this gate",
           "proof_refs": [
-            "Details",
             "generated/read_models/gate_decision_ledger.json",
             "generated/read_models/operator_action_payloads.json",
-            "generated/read_models/operator_controller_protocol.json",
-            "Protected Coupa submit is represented as a gate/approval card only.",
-            "gate_metadata_only",
-            "sha256:565bd1c445f5acfd1eb18ba6c5ca003a43b501ff4fd9ec04271d335e6fee08e1",
-            "clean"
+            "generated/read_models/operator_controller_protocol.json"
           ],
           "receipt_required": false,
           "requires_operator_envelope": true
@@ -2986,14 +2801,9 @@
           "enabled": false,
           "label": "Dismiss",
           "proof_refs": [
-            "Details",
             "generated/read_models/gate_decision_ledger.json",
             "generated/read_models/operator_action_payloads.json",
-            "generated/read_models/operator_controller_protocol.json",
-            "Protected Coupa submit is represented as a gate/approval card only.",
-            "gate_metadata_only",
-            "sha256:565bd1c445f5acfd1eb18ba6c5ca003a43b501ff4fd9ec04271d335e6fee08e1",
-            "clean"
+            "generated/read_models/operator_controller_protocol.json"
           ],
           "receipt_required": false,
           "requires_operator_envelope": true
@@ -3034,14 +2844,9 @@
           "enabled": true,
           "label": "Stage approval request",
           "proof_refs": [
-            "Details",
             "generated/read_models/gate_decision_ledger.json",
             "generated/read_models/operator_action_payloads.json",
-            "generated/read_models/operator_controller_protocol.json",
-            "Protected Coupa submit is represented as a gate/approval card only.",
-            "gate_metadata_only",
-            "sha256:565bd1c445f5acfd1eb18ba6c5ca003a43b501ff4fd9ec04271d335e6fee08e1",
-            "clean"
+            "generated/read_models/operator_controller_protocol.json"
           ],
           "receipt_required": true,
           "requires_operator_envelope": true
@@ -3082,14 +2887,9 @@
           "enabled": true,
           "label": "Open relevant lane",
           "proof_refs": [
-            "Details",
             "generated/read_models/gate_decision_ledger.json",
             "generated/read_models/operator_action_payloads.json",
-            "generated/read_models/operator_controller_protocol.json",
-            "Protected Coupa submit is represented as a gate/approval card only.",
-            "gate_metadata_only",
-            "sha256:565bd1c445f5acfd1eb18ba6c5ca003a43b501ff4fd9ec04271d335e6fee08e1",
-            "clean"
+            "generated/read_models/operator_controller_protocol.json"
           ],
           "receipt_required": false,
           "requires_operator_envelope": true
@@ -3227,9 +3027,9 @@
       },
       "replacement_card_ref": "",
       "resolved_by_receipt_ref": "",
-      "source_content_hash": "sha256:67539c9b5394d0b99793305cbf9e7a47269ab9110acc5820bbbaaa24d8bfa6b4",
+      "source_content_hash": "sha256:69358ca68721dbb96f1b0b64accf4d2894b9bc383b7d2f14eedc1bd7df7ad42f",
       "source_generated_at": {
-        "generated/read_models/gate_decision_ledger.json": "2026-06-03T12:29:28+00:00",
+        "generated/read_models/gate_decision_ledger.json": "2026-06-05T04:07:25+00:00",
         "generated/read_models/operator_action_payloads.json": "2026-06-03T20:56:13+00:00",
         "generated/read_models/operator_controller_protocol.json": "2026-06-04T21:45:00+00:00"
       },
@@ -3300,14 +3100,9 @@
           "enabled": false,
           "label": "Execute protected action",
           "proof_refs": [
-            "Details",
             "generated/read_models/operator_controller_design_brief.json",
             "generated/read_models/operator_controller_protocol.json",
-            "generated/read_models/system_question_answer_contract.json",
-            "Safe-next answers are controller guidance, not authority grants.",
-            "read_model_summary_only",
-            "sha256:d6a940816e6e605b8a9274c4222feb48095789699b9f2c5273fcc79b8dfc243e",
-            "clean"
+            "generated/read_models/system_question_answer_contract.json"
           ],
           "receipt_required": true,
           "requires_operator_envelope": true
@@ -3348,14 +3143,9 @@
           "enabled": false,
           "label": "Show details",
           "proof_refs": [
-            "Details",
             "generated/read_models/operator_controller_design_brief.json",
             "generated/read_models/operator_controller_protocol.json",
-            "generated/read_models/system_question_answer_contract.json",
-            "Safe-next answers are controller guidance, not authority grants.",
-            "read_model_summary_only",
-            "sha256:d6a940816e6e605b8a9274c4222feb48095789699b9f2c5273fcc79b8dfc243e",
-            "clean"
+            "generated/read_models/system_question_answer_contract.json"
           ],
           "receipt_required": false,
           "requires_operator_envelope": true
@@ -3396,14 +3186,9 @@
           "enabled": false,
           "label": "Dismiss",
           "proof_refs": [
-            "Details",
             "generated/read_models/operator_controller_design_brief.json",
             "generated/read_models/operator_controller_protocol.json",
-            "generated/read_models/system_question_answer_contract.json",
-            "Safe-next answers are controller guidance, not authority grants.",
-            "read_model_summary_only",
-            "sha256:d6a940816e6e605b8a9274c4222feb48095789699b9f2c5273fcc79b8dfc243e",
-            "clean"
+            "generated/read_models/system_question_answer_contract.json"
           ],
           "receipt_required": false,
           "requires_operator_envelope": true
@@ -3444,14 +3229,9 @@
           "enabled": true,
           "label": "What is safe next?",
           "proof_refs": [
-            "Details",
             "generated/read_models/operator_controller_design_brief.json",
             "generated/read_models/operator_controller_protocol.json",
-            "generated/read_models/system_question_answer_contract.json",
-            "Safe-next answers are controller guidance, not authority grants.",
-            "read_model_summary_only",
-            "sha256:d6a940816e6e605b8a9274c4222feb48095789699b9f2c5273fcc79b8dfc243e",
-            "clean"
+            "generated/read_models/system_question_answer_contract.json"
           ],
           "receipt_required": false,
           "requires_operator_envelope": true
@@ -3492,14 +3272,9 @@
           "enabled": false,
           "label": "No secondary action",
           "proof_refs": [
-            "Details",
             "generated/read_models/operator_controller_design_brief.json",
             "generated/read_models/operator_controller_protocol.json",
-            "generated/read_models/system_question_answer_contract.json",
-            "Safe-next answers are controller guidance, not authority grants.",
-            "read_model_summary_only",
-            "sha256:d6a940816e6e605b8a9274c4222feb48095789699b9f2c5273fcc79b8dfc243e",
-            "clean"
+            "generated/read_models/system_question_answer_contract.json"
           ],
           "receipt_required": false,
           "requires_operator_envelope": true
@@ -3618,11 +3393,11 @@
       },
       "replacement_card_ref": "",
       "resolved_by_receipt_ref": "",
-      "source_content_hash": "sha256:19f3526daf6c18141c8ed0ba826786009763c4eadec11c6da862c29e30e90705",
+      "source_content_hash": "sha256:024ecd37bcef80b35b6563b749970ff2b082df27d94e7270a9e624a607d349d1",
       "source_generated_at": {
         "generated/read_models/operator_controller_design_brief.json": "2026-06-05T02:06:39Z",
         "generated/read_models/operator_controller_protocol.json": "2026-06-04T21:45:00+00:00",
-        "generated/read_models/system_question_answer_contract.json": "2026-06-04T14:20:06+00:00"
+        "generated/read_models/system_question_answer_contract.json": "2026-06-05T04:07:25+00:00"
       },
       "source_read_model_refs": [
         "generated/read_models/operator_controller_design_brief.json",
@@ -3691,12 +3466,7 @@
           "enabled": false,
           "label": "Include in invoice",
           "proof_refs": [
-            "Details",
-            "generated/read_models/st_annes_work_log_review_surface.json",
-            "Proof is available in categorized refs; raw sensitive details are not primary UI.",
-            "redacted_by_default",
-            "sha256:c7ba9de569018da063e5b26ce75c101069d91cfca846a675de26efc2ef6d7e58",
-            "clean"
+            "generated/read_models/st_annes_work_log_review_surface.json"
           ],
           "receipt_required": true,
           "requires_operator_envelope": true
@@ -3737,12 +3507,7 @@
           "enabled": false,
           "label": "Show details",
           "proof_refs": [
-            "Details",
-            "generated/read_models/st_annes_work_log_review_surface.json",
-            "Proof is available in categorized refs; raw sensitive details are not primary UI.",
-            "redacted_by_default",
-            "sha256:c7ba9de569018da063e5b26ce75c101069d91cfca846a675de26efc2ef6d7e58",
-            "clean"
+            "generated/read_models/st_annes_work_log_review_surface.json"
           ],
           "receipt_required": false,
           "requires_operator_envelope": true
@@ -3783,12 +3548,7 @@
           "enabled": false,
           "label": "Dismiss",
           "proof_refs": [
-            "Details",
-            "generated/read_models/st_annes_work_log_review_surface.json",
-            "Proof is available in categorized refs; raw sensitive details are not primary UI.",
-            "redacted_by_default",
-            "sha256:c7ba9de569018da063e5b26ce75c101069d91cfca846a675de26efc2ef6d7e58",
-            "clean"
+            "generated/read_models/st_annes_work_log_review_surface.json"
           ],
           "receipt_required": false,
           "requires_operator_envelope": true
@@ -3829,12 +3589,7 @@
           "enabled": false,
           "label": "No primary action",
           "proof_refs": [
-            "Details",
-            "generated/read_models/st_annes_work_log_review_surface.json",
-            "Proof is available in categorized refs; raw sensitive details are not primary UI.",
-            "redacted_by_default",
-            "sha256:c7ba9de569018da063e5b26ce75c101069d91cfca846a675de26efc2ef6d7e58",
-            "clean"
+            "generated/read_models/st_annes_work_log_review_surface.json"
           ],
           "receipt_required": false,
           "requires_operator_envelope": true
@@ -3875,12 +3630,7 @@
           "enabled": false,
           "label": "No secondary action",
           "proof_refs": [
-            "Details",
-            "generated/read_models/st_annes_work_log_review_surface.json",
-            "Proof is available in categorized refs; raw sensitive details are not primary UI.",
-            "redacted_by_default",
-            "sha256:c7ba9de569018da063e5b26ce75c101069d91cfca846a675de26efc2ef6d7e58",
-            "clean"
+            "generated/read_models/st_annes_work_log_review_surface.json"
           ],
           "receipt_required": false,
           "requires_operator_envelope": true
@@ -4014,7 +3764,7 @@
       "world_ref": "finance"
     },
     {
-      "accessibility_text": "Candidate memory stays unpromoted. Candidate only. Payment-processing evidence can become a reviewed memory candidate, but candidate memory is not business truth.",
+      "accessibility_text": "Review decision recorded. Review recorded. A workroom review decision is recorded as history. It is not merge, push, worker, or business execution proof.",
       "action_slots": {
         "danger_disabled": {
           "action_id": "",
@@ -4048,17 +3798,14 @@
             "worker_spawn_allowed": false
           },
           "controller_event_type": "do_it",
-          "disabled_reason": "Memory promotion is gated and unavailable from proof-only cards.",
+          "disabled_reason": "Resolved review receipts cannot merge, push, spawn workers, or execute business actions.",
           "enabled": false,
-          "label": "Promote memory",
+          "label": "Merge or push",
           "proof_refs": [
-            "Details",
-            "generated/read_models/evidence_confidence_scoring.json",
-            "generated/read_models/evidence_intake_status.json",
-            "Memory candidate is hidden until a backend review route makes it operator-actionable.",
-            "candidate_memory_no_raw_sensitive_detail",
-            "sha256:033cea73b468b7e338a12a29167327c50939a320ff19bdc04d3cc814daa5bea9",
-            "clean"
+            "generated/read_models/workroom_review_decision_status.json",
+            "generated/read_models/workroom_review_packet_index.json",
+            "generated/read_models/workroom_review_decision_contract.json",
+            "workroom_review_decision_consumer:6789b934558a0457"
           ],
           "receipt_required": true,
           "requires_operator_envelope": true
@@ -4099,13 +3846,10 @@
           "enabled": false,
           "label": "Show details",
           "proof_refs": [
-            "Details",
-            "generated/read_models/evidence_confidence_scoring.json",
-            "generated/read_models/evidence_intake_status.json",
-            "Memory candidate is hidden until a backend review route makes it operator-actionable.",
-            "candidate_memory_no_raw_sensitive_detail",
-            "sha256:033cea73b468b7e338a12a29167327c50939a320ff19bdc04d3cc814daa5bea9",
-            "clean"
+            "generated/read_models/workroom_review_decision_status.json",
+            "generated/read_models/workroom_review_packet_index.json",
+            "generated/read_models/workroom_review_decision_contract.json",
+            "workroom_review_decision_consumer:6789b934558a0457"
           ],
           "receipt_required": false,
           "requires_operator_envelope": true
@@ -4146,13 +3890,10 @@
           "enabled": false,
           "label": "Dismiss",
           "proof_refs": [
-            "Details",
-            "generated/read_models/evidence_confidence_scoring.json",
-            "generated/read_models/evidence_intake_status.json",
-            "Memory candidate is hidden until a backend review route makes it operator-actionable.",
-            "candidate_memory_no_raw_sensitive_detail",
-            "sha256:033cea73b468b7e338a12a29167327c50939a320ff19bdc04d3cc814daa5bea9",
-            "clean"
+            "generated/read_models/workroom_review_decision_status.json",
+            "generated/read_models/workroom_review_packet_index.json",
+            "generated/read_models/workroom_review_decision_contract.json",
+            "workroom_review_decision_consumer:6789b934558a0457"
           ],
           "receipt_required": false,
           "requires_operator_envelope": true
@@ -4193,13 +3934,10 @@
           "enabled": false,
           "label": "No primary action",
           "proof_refs": [
-            "Details",
-            "generated/read_models/evidence_confidence_scoring.json",
-            "generated/read_models/evidence_intake_status.json",
-            "Memory candidate is hidden until a backend review route makes it operator-actionable.",
-            "candidate_memory_no_raw_sensitive_detail",
-            "sha256:033cea73b468b7e338a12a29167327c50939a320ff19bdc04d3cc814daa5bea9",
-            "clean"
+            "generated/read_models/workroom_review_decision_status.json",
+            "generated/read_models/workroom_review_packet_index.json",
+            "generated/read_models/workroom_review_decision_contract.json",
+            "workroom_review_decision_consumer:6789b934558a0457"
           ],
           "receipt_required": false,
           "requires_operator_envelope": true
@@ -4240,13 +3978,366 @@
           "enabled": false,
           "label": "No secondary action",
           "proof_refs": [
-            "Details",
+            "generated/read_models/workroom_review_decision_status.json",
+            "generated/read_models/workroom_review_packet_index.json",
+            "generated/read_models/workroom_review_decision_contract.json",
+            "workroom_review_decision_consumer:6789b934558a0457"
+          ],
+          "receipt_required": false,
+          "requires_operator_envelope": true
+        }
+      },
+      "actions": [],
+      "attention_cost": "collapsed_history_or_proof",
+      "authority_boundary": {
+        "agent_loop_allowed": false,
+        "authority_grant_allowed": false,
+        "browser_access_allowed": false,
+        "business_action_allowed": false,
+        "child_agent_run_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "external_action_allowed": false,
+        "git_push_allowed": false,
+        "gmail_allowed": false,
+        "ledger_mutation_allowed": false,
+        "ledger_posting_allowed": false,
+        "merge_allowed": false,
+        "paid": false,
+        "paid_marking_allowed": false,
+        "pdf_export_allowed": false,
+        "portal_submit_allowed": false,
+        "push_allowed": false,
+        "repair_authority_allowed": false,
+        "sent": false,
+        "spreadsheet_cell_read_allowed": false,
+        "workbook_body_read_allowed": false,
+        "workbook_mutation_allowed": false,
+        "workbook_open_allowed": false,
+        "workbook_source_mutation_allowed": false,
+        "worker_spawn_allowed": false
+      },
+      "card_family": "completed_historical_receipt_card",
+      "card_id": "dynamic_card.build.review_packet.completed_historical_receipt",
+      "card_type": "review_packet",
+      "client_ref": "",
+      "collapse_when_resolved": true,
+      "confidence_class": "trusted_current",
+      "confidence_score": 0.86,
+      "developer_proof_only": false,
+      "device_render_hint": {
+        "preferred_height": "compact",
+        "primary_interaction": "controller_event"
+      },
+      "device_render_hints": {
+        "ipad": {
+          "layout": "compact_controller_card",
+          "proof_drawer": "available"
+        },
+        "iphone": {
+          "layout": "single_column_summary",
+          "proof_drawer": "collapsed"
+        },
+        "mac": {
+          "layout": "full_width_controller_card",
+          "proof_drawer": "available"
+        }
+      },
+      "entity_refs": [
+        "review_packet:review_packet:c4ec166103f9aa35"
+      ],
+      "expires_at": "",
+      "freshness_state": "historical",
+      "headline": "Review decision recorded",
+      "history_group_ref": "history.build.review_packet",
+      "lane_ref": "build/review_packet",
+      "lifecycle_state": "resolved",
+      "machine_contract_visible": false,
+      "object_refs": [
+        "workroom_review_decision_consumer:6789b934558a0457"
+      ],
+      "operator_attention_required": false,
+      "operator_mode_visible": false,
+      "plain_summary": "A workroom review decision is recorded as history. It is not merge, push, worker, or business execution proof.",
+      "primary_control_ref": "dynamic_card.build.review_packet.completed_historical_receipt",
+      "priority": 12,
+      "proof": {
+        "artifact_refs": [
+          "workroom_review_decision_consumer:6789b934558a0457"
+        ],
+        "collapsed_by_default": true,
+        "developer_proof_only": false,
+        "hash_refs": [],
+        "label": "Details",
+        "proof_refs": [
+          "generated/read_models/workroom_review_decision_status.json",
+          "generated/read_models/workroom_review_packet_index.json",
+          "generated/read_models/workroom_review_decision_contract.json",
+          "workroom_review_decision_consumer:6789b934558a0457"
+        ],
+        "raw_detail_available": false,
+        "read_model_refs": [
+          "generated/read_models/workroom_review_decision_status.json",
+          "generated/read_models/workroom_review_packet_index.json",
+          "generated/read_models/workroom_review_decision_contract.json"
+        ],
+        "receipt_refs": [
+          "workroom_review_decision_consumer:6789b934558a0457"
+        ],
+        "redacted_summary": "Review decision receipt is historical proof only; no execution authority is created.",
+        "request_refs": [],
+        "response_refs": [],
+        "sensitive_detail_policy": "review_receipt_metadata_only",
+        "source_content_hash": "sha256:50ece30acba69c9e38f9564423eeb8f759b91ee9a0f73281b06fd397e885c486",
+        "sqlite_refs": [],
+        "unsafe_scan_result": "clean",
+        "validation_commands": []
+      },
+      "replacement_card_ref": "",
+      "resolved_by_receipt_ref": "generated/read_models/workroom_review_decision_status.json",
+      "source_content_hash": "sha256:c1690ae7ca15d517e3fa6b74a2effa550ff9d715bdc82aed550196bacee5c3ed",
+      "source_generated_at": {
+        "generated/read_models/workroom_review_decision_contract.json": "",
+        "generated/read_models/workroom_review_decision_status.json": "2026-06-05T04:07:26+00:00",
+        "generated/read_models/workroom_review_packet_index.json": "2026-06-03T12:07:06+00:00"
+      },
+      "source_read_model_refs": [
+        "generated/read_models/workroom_review_decision_status.json",
+        "generated/read_models/workroom_review_packet_index.json",
+        "generated/read_models/workroom_review_decision_contract.json"
+      ],
+      "source_statuses": {
+        "generated/read_models/workroom_review_decision_contract.json": "",
+        "generated/read_models/workroom_review_decision_status.json": "WORKROOM_REVIEW_DECISION_CONSUMER_READY",
+        "generated/read_models/workroom_review_packet_index.json": "WORKROOM_REVIEW_PACKET_INDEX_READY"
+      },
+      "speaker_ref": "chief",
+      "stale_after": "",
+      "stale_reason": "",
+      "status_label": "Review recorded",
+      "superseded_by_card_ref": "",
+      "supporting_lines": [
+        "Packet: review_packet:c4ec166103f9aa35.",
+        "Decision status: INFORMATIONAL_REVIEW_CLOSED.",
+        "Resolved review receipts collapse into history by lifecycle policy."
+      ],
+      "thread_ref": "review_packet",
+      "tone": "neutral",
+      "trust_state": "trusted_current",
+      "visibility_reason": "hidden_by_lifecycle_policy",
+      "visible_by_default": false,
+      "workflow_ref": "workroom_review_decision",
+      "world_ref": "build"
+    },
+    {
+      "accessibility_text": "Candidate memory stays unpromoted. Candidate only. Payment-processing evidence can become a reviewed memory candidate, but candidate memory is not business truth.",
+      "action_slots": {
+        "danger_disabled": {
+          "action_id": "",
+          "action_payload_ref": "",
+          "authority_boundary": {
+            "agent_loop_allowed": false,
+            "authority_grant_allowed": false,
+            "browser_access_allowed": false,
+            "business_action_allowed": false,
+            "child_agent_run_allowed": false,
+            "coupa_allowed": false,
+            "email_send_allowed": false,
+            "external_action_allowed": false,
+            "git_push_allowed": false,
+            "gmail_allowed": false,
+            "ledger_mutation_allowed": false,
+            "ledger_posting_allowed": false,
+            "merge_allowed": false,
+            "paid": false,
+            "paid_marking_allowed": false,
+            "pdf_export_allowed": false,
+            "portal_submit_allowed": false,
+            "push_allowed": false,
+            "repair_authority_allowed": false,
+            "sent": false,
+            "spreadsheet_cell_read_allowed": false,
+            "workbook_body_read_allowed": false,
+            "workbook_mutation_allowed": false,
+            "workbook_open_allowed": false,
+            "workbook_source_mutation_allowed": false,
+            "worker_spawn_allowed": false
+          },
+          "controller_event_type": "do_it",
+          "disabled_reason": "Memory promotion is gated and unavailable from proof-only cards.",
+          "enabled": false,
+          "label": "Promote memory",
+          "proof_refs": [
             "generated/read_models/evidence_confidence_scoring.json",
-            "generated/read_models/evidence_intake_status.json",
-            "Memory candidate is hidden until a backend review route makes it operator-actionable.",
-            "candidate_memory_no_raw_sensitive_detail",
-            "sha256:033cea73b468b7e338a12a29167327c50939a320ff19bdc04d3cc814daa5bea9",
-            "clean"
+            "generated/read_models/evidence_intake_status.json"
+          ],
+          "receipt_required": true,
+          "requires_operator_envelope": true
+        },
+        "detail": {
+          "action_id": "",
+          "action_payload_ref": "",
+          "authority_boundary": {
+            "agent_loop_allowed": false,
+            "authority_grant_allowed": false,
+            "browser_access_allowed": false,
+            "business_action_allowed": false,
+            "child_agent_run_allowed": false,
+            "coupa_allowed": false,
+            "email_send_allowed": false,
+            "external_action_allowed": false,
+            "git_push_allowed": false,
+            "gmail_allowed": false,
+            "ledger_mutation_allowed": false,
+            "ledger_posting_allowed": false,
+            "merge_allowed": false,
+            "paid": false,
+            "paid_marking_allowed": false,
+            "pdf_export_allowed": false,
+            "portal_submit_allowed": false,
+            "push_allowed": false,
+            "repair_authority_allowed": false,
+            "sent": false,
+            "spreadsheet_cell_read_allowed": false,
+            "workbook_body_read_allowed": false,
+            "workbook_mutation_allowed": false,
+            "workbook_open_allowed": false,
+            "workbook_source_mutation_allowed": false,
+            "worker_spawn_allowed": false
+          },
+          "controller_event_type": "show_details",
+          "disabled_reason": "No deterministic inspect-proof payload exists for this card.",
+          "enabled": false,
+          "label": "Show details",
+          "proof_refs": [
+            "generated/read_models/evidence_confidence_scoring.json",
+            "generated/read_models/evidence_intake_status.json"
+          ],
+          "receipt_required": false,
+          "requires_operator_envelope": true
+        },
+        "dismiss": {
+          "action_id": "",
+          "action_payload_ref": "",
+          "authority_boundary": {
+            "agent_loop_allowed": false,
+            "authority_grant_allowed": false,
+            "browser_access_allowed": false,
+            "business_action_allowed": false,
+            "child_agent_run_allowed": false,
+            "coupa_allowed": false,
+            "email_send_allowed": false,
+            "external_action_allowed": false,
+            "git_push_allowed": false,
+            "gmail_allowed": false,
+            "ledger_mutation_allowed": false,
+            "ledger_posting_allowed": false,
+            "merge_allowed": false,
+            "paid": false,
+            "paid_marking_allowed": false,
+            "pdf_export_allowed": false,
+            "portal_submit_allowed": false,
+            "push_allowed": false,
+            "repair_authority_allowed": false,
+            "sent": false,
+            "spreadsheet_cell_read_allowed": false,
+            "workbook_body_read_allowed": false,
+            "workbook_mutation_allowed": false,
+            "workbook_open_allowed": false,
+            "workbook_source_mutation_allowed": false,
+            "worker_spawn_allowed": false
+          },
+          "controller_event_type": "show_details",
+          "disabled_reason": "Dismiss is a local client view preference; backend does not record dismissal from this packet.",
+          "enabled": false,
+          "label": "Dismiss",
+          "proof_refs": [
+            "generated/read_models/evidence_confidence_scoring.json",
+            "generated/read_models/evidence_intake_status.json"
+          ],
+          "receipt_required": false,
+          "requires_operator_envelope": true
+        },
+        "primary": {
+          "action_id": "",
+          "action_payload_ref": "",
+          "authority_boundary": {
+            "agent_loop_allowed": false,
+            "authority_grant_allowed": false,
+            "browser_access_allowed": false,
+            "business_action_allowed": false,
+            "child_agent_run_allowed": false,
+            "coupa_allowed": false,
+            "email_send_allowed": false,
+            "external_action_allowed": false,
+            "git_push_allowed": false,
+            "gmail_allowed": false,
+            "ledger_mutation_allowed": false,
+            "ledger_posting_allowed": false,
+            "merge_allowed": false,
+            "paid": false,
+            "paid_marking_allowed": false,
+            "pdf_export_allowed": false,
+            "portal_submit_allowed": false,
+            "push_allowed": false,
+            "repair_authority_allowed": false,
+            "sent": false,
+            "spreadsheet_cell_read_allowed": false,
+            "workbook_body_read_allowed": false,
+            "workbook_mutation_allowed": false,
+            "workbook_open_allowed": false,
+            "workbook_source_mutation_allowed": false,
+            "worker_spawn_allowed": false
+          },
+          "controller_event_type": "show_details",
+          "disabled_reason": "No primary action for this card.",
+          "enabled": false,
+          "label": "No primary action",
+          "proof_refs": [
+            "generated/read_models/evidence_confidence_scoring.json",
+            "generated/read_models/evidence_intake_status.json"
+          ],
+          "receipt_required": false,
+          "requires_operator_envelope": true
+        },
+        "secondary": {
+          "action_id": "",
+          "action_payload_ref": "",
+          "authority_boundary": {
+            "agent_loop_allowed": false,
+            "authority_grant_allowed": false,
+            "browser_access_allowed": false,
+            "business_action_allowed": false,
+            "child_agent_run_allowed": false,
+            "coupa_allowed": false,
+            "email_send_allowed": false,
+            "external_action_allowed": false,
+            "git_push_allowed": false,
+            "gmail_allowed": false,
+            "ledger_mutation_allowed": false,
+            "ledger_posting_allowed": false,
+            "merge_allowed": false,
+            "paid": false,
+            "paid_marking_allowed": false,
+            "pdf_export_allowed": false,
+            "portal_submit_allowed": false,
+            "push_allowed": false,
+            "repair_authority_allowed": false,
+            "sent": false,
+            "spreadsheet_cell_read_allowed": false,
+            "workbook_body_read_allowed": false,
+            "workbook_mutation_allowed": false,
+            "workbook_open_allowed": false,
+            "workbook_source_mutation_allowed": false,
+            "worker_spawn_allowed": false
+          },
+          "controller_event_type": "show_details",
+          "disabled_reason": "No secondary action for this card.",
+          "enabled": false,
+          "label": "No secondary action",
+          "proof_refs": [
+            "generated/read_models/evidence_confidence_scoring.json",
+            "generated/read_models/evidence_intake_status.json"
           ],
           "receipt_required": false,
           "requires_operator_envelope": true
@@ -4353,10 +4444,10 @@
       },
       "replacement_card_ref": "",
       "resolved_by_receipt_ref": "",
-      "source_content_hash": "sha256:85a3b52dbf8b0b42df9b326cf9216f76ffb86913df94613b940282447ad69344",
+      "source_content_hash": "sha256:20b3ba09fb76dde60bf5db07a37c23753a931f1b92e1187b5a44d929c6e7349a",
       "source_generated_at": {
         "generated/read_models/evidence_confidence_scoring.json": "2026-06-03T12:39:21+00:00",
-        "generated/read_models/evidence_intake_status.json": "2026-06-05T02:58:46+00:00"
+        "generated/read_models/evidence_intake_status.json": "2026-06-05T04:07:26+00:00"
       },
       "source_read_model_refs": [
         "generated/read_models/evidence_confidence_scoring.json",
@@ -4423,15 +4514,10 @@
           "enabled": false,
           "label": "Read raw artifact",
           "proof_refs": [
-            "Details",
             "generated/read_models/evidence_intake_status.json",
-            "artifact:evidence_intake_a8191f31df3ce664",
-            "/Users/hwinshipwheatley/Documents/Invoices/Invoice Clients/openclaw-evidence-smoke.png",
-            "/home/openclaw/generated/system_knowledge/evidence_intake.sqlite",
-            "Artifact proof metadata is categorized for the proof drawer; raw content is not primary UI.",
-            "financial_sensitive/local_only_redacted",
-            "sha256:7fb2504ce115cfc40a95fb911502f7c510a3d055bda188f85a50149e2e4be309",
-            "clean"
+            "artifact:evidence_intake_56cda4b43a6b7054",
+            "mission_control_drop:live_arts_md_payment_processing_screenshot_invoice_2026-1001",
+            "/home/openclaw/generated/system_knowledge/evidence_intake.sqlite"
           ],
           "receipt_required": true,
           "requires_operator_envelope": true
@@ -4472,15 +4558,10 @@
           "enabled": false,
           "label": "Show details",
           "proof_refs": [
-            "Details",
             "generated/read_models/evidence_intake_status.json",
-            "artifact:evidence_intake_a8191f31df3ce664",
-            "/Users/hwinshipwheatley/Documents/Invoices/Invoice Clients/openclaw-evidence-smoke.png",
-            "/home/openclaw/generated/system_knowledge/evidence_intake.sqlite",
-            "Artifact proof metadata is categorized for the proof drawer; raw content is not primary UI.",
-            "financial_sensitive/local_only_redacted",
-            "sha256:7fb2504ce115cfc40a95fb911502f7c510a3d055bda188f85a50149e2e4be309",
-            "clean"
+            "artifact:evidence_intake_56cda4b43a6b7054",
+            "mission_control_drop:live_arts_md_payment_processing_screenshot_invoice_2026-1001",
+            "/home/openclaw/generated/system_knowledge/evidence_intake.sqlite"
           ],
           "receipt_required": false,
           "requires_operator_envelope": true
@@ -4521,15 +4602,10 @@
           "enabled": false,
           "label": "Dismiss",
           "proof_refs": [
-            "Details",
             "generated/read_models/evidence_intake_status.json",
-            "artifact:evidence_intake_a8191f31df3ce664",
-            "/Users/hwinshipwheatley/Documents/Invoices/Invoice Clients/openclaw-evidence-smoke.png",
-            "/home/openclaw/generated/system_knowledge/evidence_intake.sqlite",
-            "Artifact proof metadata is categorized for the proof drawer; raw content is not primary UI.",
-            "financial_sensitive/local_only_redacted",
-            "sha256:7fb2504ce115cfc40a95fb911502f7c510a3d055bda188f85a50149e2e4be309",
-            "clean"
+            "artifact:evidence_intake_56cda4b43a6b7054",
+            "mission_control_drop:live_arts_md_payment_processing_screenshot_invoice_2026-1001",
+            "/home/openclaw/generated/system_knowledge/evidence_intake.sqlite"
           ],
           "receipt_required": false,
           "requires_operator_envelope": true
@@ -4570,15 +4646,10 @@
           "enabled": false,
           "label": "No primary action",
           "proof_refs": [
-            "Details",
             "generated/read_models/evidence_intake_status.json",
-            "artifact:evidence_intake_a8191f31df3ce664",
-            "/Users/hwinshipwheatley/Documents/Invoices/Invoice Clients/openclaw-evidence-smoke.png",
-            "/home/openclaw/generated/system_knowledge/evidence_intake.sqlite",
-            "Artifact proof metadata is categorized for the proof drawer; raw content is not primary UI.",
-            "financial_sensitive/local_only_redacted",
-            "sha256:7fb2504ce115cfc40a95fb911502f7c510a3d055bda188f85a50149e2e4be309",
-            "clean"
+            "artifact:evidence_intake_56cda4b43a6b7054",
+            "mission_control_drop:live_arts_md_payment_processing_screenshot_invoice_2026-1001",
+            "/home/openclaw/generated/system_knowledge/evidence_intake.sqlite"
           ],
           "receipt_required": false,
           "requires_operator_envelope": true
@@ -4619,15 +4690,10 @@
           "enabled": false,
           "label": "No secondary action",
           "proof_refs": [
-            "Details",
             "generated/read_models/evidence_intake_status.json",
-            "artifact:evidence_intake_a8191f31df3ce664",
-            "/Users/hwinshipwheatley/Documents/Invoices/Invoice Clients/openclaw-evidence-smoke.png",
-            "/home/openclaw/generated/system_knowledge/evidence_intake.sqlite",
-            "Artifact proof metadata is categorized for the proof drawer; raw content is not primary UI.",
-            "financial_sensitive/local_only_redacted",
-            "sha256:7fb2504ce115cfc40a95fb911502f7c510a3d055bda188f85a50149e2e4be309",
-            "clean"
+            "artifact:evidence_intake_56cda4b43a6b7054",
+            "mission_control_drop:live_arts_md_payment_processing_screenshot_invoice_2026-1001",
+            "/home/openclaw/generated/system_knowledge/evidence_intake.sqlite"
           ],
           "receipt_required": false,
           "requires_operator_envelope": true
@@ -4700,7 +4766,7 @@
       "lifecycle_state": "archived",
       "machine_contract_visible": false,
       "object_refs": [
-        "artifact:evidence_intake_a8191f31df3ce664"
+        "artifact:evidence_intake_56cda4b43a6b7054"
       ],
       "operator_attention_required": false,
       "operator_mode_visible": false,
@@ -4709,8 +4775,8 @@
       "priority": 9,
       "proof": {
         "artifact_refs": [
-          "artifact:evidence_intake_a8191f31df3ce664",
-          "/Users/hwinshipwheatley/Documents/Invoices/Invoice Clients/openclaw-evidence-smoke.png"
+          "artifact:evidence_intake_56cda4b43a6b7054",
+          "mission_control_drop:live_arts_md_payment_processing_screenshot_invoice_2026-1001"
         ],
         "collapsed_by_default": true,
         "developer_proof_only": true,
@@ -4718,8 +4784,8 @@
         "label": "Details",
         "proof_refs": [
           "generated/read_models/evidence_intake_status.json",
-          "artifact:evidence_intake_a8191f31df3ce664",
-          "/Users/hwinshipwheatley/Documents/Invoices/Invoice Clients/openclaw-evidence-smoke.png",
+          "artifact:evidence_intake_56cda4b43a6b7054",
+          "mission_control_drop:live_arts_md_payment_processing_screenshot_invoice_2026-1001",
           "/home/openclaw/generated/system_knowledge/evidence_intake.sqlite"
         ],
         "raw_detail_available": false,
@@ -4731,7 +4797,7 @@
         "request_refs": [],
         "response_refs": [],
         "sensitive_detail_policy": "financial_sensitive/local_only_redacted",
-        "source_content_hash": "sha256:7fb2504ce115cfc40a95fb911502f7c510a3d055bda188f85a50149e2e4be309",
+        "source_content_hash": "sha256:812f08058bc85891c661c5e5143c85fbd62ae36f48222bc5d8b097b23f2820b2",
         "sqlite_refs": [
           "/home/openclaw/generated/system_knowledge/evidence_intake.sqlite"
         ],
@@ -4740,9 +4806,9 @@
       },
       "replacement_card_ref": "",
       "resolved_by_receipt_ref": "",
-      "source_content_hash": "sha256:8fe3139e899f882745d4741a135ae63077b471112724a358b69c8c40290b6f36",
+      "source_content_hash": "sha256:bf54a3be589a4d934819df500a30a466c338108093687eefea14780131e140dd",
       "source_generated_at": {
-        "generated/read_models/evidence_intake_status.json": "2026-06-05T02:58:46+00:00"
+        "generated/read_models/evidence_intake_status.json": "2026-06-05T04:07:26+00:00"
       },
       "source_read_model_refs": [
         "generated/read_models/evidence_intake_status.json"
@@ -4769,8 +4835,8 @@
       "world_ref": "artifact"
     }
   ],
-  "generated_at": "2026-06-05T03:51:59+00:00",
-  "history_card_count": 4,
+  "generated_at": "2026-06-05T04:09:44+00:00",
+  "history_card_count": 5,
   "machine_proof": {
     "action_slots_present": true,
     "all_required_card_families_present": true,
@@ -4841,14 +4907,18 @@
     "worker_spawn_performed": false
   },
   "operator_attention_card_count": 6,
-  "packet_content_hash": "sha256:07b86f223551f7269fdfa8f37633753982ef0748aeb57c752a94128b60174dc4",
-  "packet_id": "dynamic_card_packet:e16bda16e899",
+  "packet_content_hash": "sha256:495cab4e4706866df4c49b02d13eacdacfd494d11fd42bf1e6a8ae1c645ece91",
+  "packet_id": "dynamic_card_packet:1b170f51d129",
   "packet_source_read_model_refs": [
     "generated/read_models/operator_runtime_chain_current_state_audit.json",
     "generated/read_models/operator_action_payloads.json",
     "generated/read_models/operator_controller_design_brief.json",
     "generated/read_models/operator_controller_protocol.json",
     "generated/read_models/dynamic_card_lifecycle_policy.json",
+    "generated/read_models/workflow_package_request_consumer_status.json",
+    "generated/read_models/workflow_composer_latest.json",
+    "generated/read_models/approval_request_queue.json",
+    "generated/read_models/memory_promotion_gate.json",
     "generated/read_models/lm_bounded_operator_orchestration_latest.json",
     "generated/read_models/operator_next_decision.json",
     "generated/read_models/capital_hilton_invoice_operator_run_status.json",
@@ -4926,6 +4996,38 @@
     },
     {
       "equivalent_status_accepted": "",
+      "observed_status": "WORKFLOW_COMPOSER_READY",
+      "precondition_ref": "workflow_composer",
+      "ready": true,
+      "required_status": "WORKFLOW_COMPOSER_READY",
+      "source_ref": "generated/read_models/workflow_composer_latest.json"
+    },
+    {
+      "equivalent_status_accepted": "",
+      "observed_status": "APPROVAL_REQUEST_QUEUE_READY",
+      "precondition_ref": "approval_request_queue",
+      "ready": true,
+      "required_status": "APPROVAL_REQUEST_QUEUE_READY",
+      "source_ref": "generated/read_models/approval_request_queue.json"
+    },
+    {
+      "equivalent_status_accepted": "",
+      "observed_status": "GATE_DECISION_LEDGER_READY",
+      "precondition_ref": "gate_decision_ledger",
+      "ready": true,
+      "required_status": "GATE_DECISION_LEDGER_READY",
+      "source_ref": "generated/read_models/gate_decision_ledger.json"
+    },
+    {
+      "equivalent_status_accepted": "",
+      "observed_status": "MEMORY_PROMOTION_GATE_READY",
+      "precondition_ref": "memory_promotion_gate",
+      "ready": true,
+      "required_status": "MEMORY_PROMOTION_GATE_READY",
+      "source_ref": "generated/read_models/memory_promotion_gate.json"
+    },
+    {
+      "equivalent_status_accepted": "",
       "observed_status": "LM_BOUNDED_OPERATOR_ORCHESTRATION_READY",
       "precondition_ref": "lm_bounded_operator_orchestration",
       "ready": true,
@@ -4973,6 +5075,10 @@
     "generated/read_models/operator_controller_design_brief.json",
     "generated/read_models/operator_controller_protocol.json",
     "generated/read_models/dynamic_card_lifecycle_policy.json",
+    "generated/read_models/workflow_package_request_consumer_status.json",
+    "generated/read_models/workflow_composer_latest.json",
+    "generated/read_models/approval_request_queue.json",
+    "generated/read_models/memory_promotion_gate.json",
     "generated/read_models/lm_bounded_operator_orchestration_latest.json",
     "generated/read_models/operator_next_decision.json",
     "generated/read_models/capital_hilton_invoice_operator_run_status.json",

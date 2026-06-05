@@ -44,7 +44,7 @@
     "Protected authority is never granted by this contract.",
     "Plans must surface bottlenecks and avoid large unreviewed work piles."
   ],
-  "generated_at": "2026-06-03T23:25:59+00:00",
+  "generated_at": "2026-06-05T04:07:25+00:00",
   "input_contract": {
     "defaults": {
       "allowed_provider_policy": "local_generated_read_models_only",

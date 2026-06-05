@@ -16,6 +16,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping
 
+import dynamic_card_packet
+
 
 ROOT = Path(__file__).resolve().parent
 DEFAULT_READ_MODEL_ROOT = Path("generated/read_models")
@@ -930,7 +932,13 @@ def build_latest_read_model(
     unsafe = unsafe_true_grants(payload)
     payload["machine_proof"]["unsafe_true_grants"] = unsafe
     payload["machine_proof"]["unsafe_true_grants_absent"] = not unsafe
-    return payload
+    return dynamic_card_packet.add_rail_card_packet(
+        payload,
+        "workflow_composer",
+        read_model_root=read_model_root,
+        generated_at=generated_at,
+        source_key="workflow_composer_latest",
+    )
 
 
 def build_wiki(contract: Mapping[str, Any], latest: Mapping[str, Any]) -> str:

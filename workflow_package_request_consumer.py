@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 import agent_voice_router
+import dynamic_card_packet
 import system_question_answer
 import workflow_package_queue
 
@@ -32,6 +33,8 @@ DEFAULT_SQLITE_PATH = workflow_package_queue.DEFAULT_SQLITE_PATH
 SQLITE_PATH_ENV = "OPENCLAW_WORKFLOW_PACKAGE_QUEUE_SQLITE_PATH"
 DEFAULT_EXPORT_ROOT = Path("generated/read_models")
 DEFAULT_BRIDGE_EXPORT_ROOT = Path("/mnt/e/openclaw/generated/read_models")
+STATUS_READ_MODEL_ID = "workflow_package_request_consumer_status"
+STATUS_JSON_EXPORT_NAME = f"{STATUS_READ_MODEL_ID}.json"
 FINANCE_THREAD_INDEX_READ_MODEL_ID = "finance_thread_index"
 FINANCE_THREAD_INDEX_JSON_EXPORT_NAME = f"{FINANCE_THREAD_INDEX_READ_MODEL_ID}.json"
 
@@ -215,6 +218,17 @@ def default_sqlite_path() -> Path:
 
 def _rooted(path: Path) -> Path:
     return path if path.is_absolute() else Path(__file__).resolve().parent / path
+
+
+def _load_json_file(path: Path) -> dict[str, Any]:
+    path = _rooted(path)
+    if not path.exists():
+        return {}
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return {}
+    return payload if isinstance(payload, dict) else {}
 
 
 def _sha256_text(text: str) -> str:
@@ -422,6 +436,13 @@ def _system_question_receipt(
             "unsafe_true_grants_absent": not _authority_blockers(raw_request),
         },
     }
+    receipt = dynamic_card_packet.add_rail_card_packet(
+        receipt,
+        "system_question_answer",
+        read_model_root=DEFAULT_EXPORT_ROOT,
+        generated_at=generated_at,
+        source_key="system_question_answer",
+    )
     return WorkflowPackageRequestResult(
         status="RECORDED",
         request_id=request_id,
@@ -585,6 +606,66 @@ def export_finance_thread_index(
         "read_model_path": local_path.as_posix(),
         "bridge_read_model_path": bridge_path,
         "status": str(read_model["status"]),
+    }
+
+
+def build_status_read_model_from_existing(
+    *,
+    export_root: Path = DEFAULT_EXPORT_ROOT,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    status_path = _rooted(export_root) / STATUS_JSON_EXPORT_NAME
+    payload = _load_json_file(status_path)
+    if not payload:
+        payload = {
+            "schema_version": "workflow_package_request_consumer_status_v0",
+            "read_model_id": STATUS_READ_MODEL_ID,
+            "status": "WORKFLOW_PACKAGE_RAIL_STATUS_READY",
+            "consumer_status": "READY",
+            "generated_at": generated_at or utc_now(),
+            "legacy_status_file_missing": True,
+            "authority_boundary": {key: False for key in AUTHORITY_FALSE_FIELDS},
+            "machine_proof": {
+                "no_live_business_actions": True,
+                "unsafe_true_grants_absent": True,
+            },
+        }
+    if generated_at is not None:
+        payload["generated_at"] = generated_at
+    return dynamic_card_packet.add_rail_card_packet(
+        payload,
+        "workflow_package_request_consumer",
+        read_model_root=export_root,
+        generated_at=str(payload.get("generated_at") or utc_now()),
+        source_key="workflow_package_request_consumer_status",
+    )
+
+
+def export_workflow_package_request_consumer_status(
+    *,
+    export_root: Path = DEFAULT_EXPORT_ROOT,
+    bridge_export_root: Path | None = DEFAULT_BRIDGE_EXPORT_ROOT,
+    generated_at: str | None = None,
+) -> dict[str, str]:
+    payload = build_status_read_model_from_existing(
+        export_root=export_root,
+        generated_at=generated_at,
+    )
+    export_root = _rooted(export_root)
+    export_root.mkdir(parents=True, exist_ok=True)
+    local_path = export_root / STATUS_JSON_EXPORT_NAME
+    local_path.write_text(stable_json(payload), encoding="utf-8")
+    bridge_path = ""
+    if bridge_export_root is not None:
+        bridge_export_root.mkdir(parents=True, exist_ok=True)
+        bridge = bridge_export_root / STATUS_JSON_EXPORT_NAME
+        bridge.write_text(stable_json(payload), encoding="utf-8")
+        bridge_path = bridge.as_posix()
+    return {
+        "read_model_path": local_path.as_posix(),
+        "bridge_read_model_path": bridge_path,
+        "status": str(payload.get("status") or ""),
+        "dynamic_card_v1_card_count": str((payload.get("dynamic_card_packet_v1") or {}).get("card_count") or 0),
     }
 
 
@@ -824,6 +905,13 @@ def consume_workflow_package_request(
             "unsafe_true_grants_absent": not _authority_blockers(raw_request),
         },
     }
+    receipt = dynamic_card_packet.add_rail_card_packet(
+        receipt,
+        "workflow_package_request_consumer",
+        read_model_root=DEFAULT_EXPORT_ROOT,
+        generated_at=generated_at,
+        source_key="workflow_package_request_consumer_status",
+    )
     return WorkflowPackageRequestResult(
         status="RECORDED" if package is not None else "BLOCKED",
         request_id=request_id,

@@ -18,6 +18,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping
 
+import dynamic_card_packet
+
 
 DEFAULT_EXPORT_ROOT = Path("generated/read_models")
 DEFAULT_GENERATED_AT = "2026-05-26T00:00:00+00:00"
@@ -925,13 +927,23 @@ def _build_payload(
         },
     }
     payload["machine_proof"]["content_hash"] = _content_hash(payload)
-    return payload
+    return dynamic_card_packet.add_rail_card_packet(
+        payload,
+        "workbook_registration",
+        generated_at=generated_at,
+        source_key="client_invoice_workbook_registry",
+    )
 
 
 def build_payload(*, export_root: Path = DEFAULT_EXPORT_ROOT, generated_at: str = DEFAULT_GENERATED_AT) -> dict[str, Any]:
     existing = load_existing_payload(export_root)
     if existing is not None:
-        return existing
+        return dynamic_card_packet.add_rail_card_packet(
+            existing,
+            "workbook_registration",
+            generated_at=str(existing.get("generated_at") or generated_at),
+            source_key="client_invoice_workbook_registry",
+        )
     return register_workbook_request(
         make_capital_hilton_fixture_request(),
         export_root=export_root,
