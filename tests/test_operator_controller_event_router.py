@@ -192,6 +192,118 @@ def _mac_dispatcher_request(
     return request
 
 
+def _mac_review_dispatcher_request(
+    *,
+    request_id: str = "build_mark_informational_review_packet_review_packet_c4ec166103f9aa35_mark_review_packet_informational_20260605T172815Z_ec1066ebe6c0",
+    event_type: str = "mark_informational",
+    selected_card_id: str = "dynamic_card.build.review_packet.current",
+    selected_action_id: str = "review_packet.review_packet_c4ec166103f9aa35.mark_review_packet_informational",
+    include_top_level_thread: bool = False,
+    nested_thread: str = "",
+    review_packet_id: str = "",
+    verification_overrides: dict | None = None,
+) -> dict:
+    authority_boundary = dict(router.AUTHORITY_BOUNDARY)
+    current_context = {
+        "active_surface_ref": "world_dynamic_card",
+        "current_world_ref": "build",
+        "requested_mode": "operator",
+        "source_surface": "mission_control",
+    }
+    if nested_thread:
+        current_context["current_thread_ref"] = nested_thread
+    request = {
+        "active_surface_ref": "world_dynamic_card",
+        "app_instance_ref": "sha256:b7efb2d5f3ec5e0b0f1a77589c9c276612600550161e555f4fe5384f98fd3e07",
+        "app_instance_verified": True,
+        "authority_boundary": authority_boundary,
+        "authority_requested": [],
+        "browser_access_performed": False,
+        "business_action_performed": False,
+        "business_state_mutation_performed": False,
+        "child_agent_run_performed": False,
+        "context": dict(current_context),
+        "controller_event_type": event_type,
+        "controller_action_type": event_type,
+        "coupa_access_performed": False,
+        "created_at": "2026-06-05T17:28:15Z",
+        "current_context": dict(current_context),
+        "current_world_ref": "build",
+        "device_class": "mac",
+        "device_ref": "sha256:b191fdb712c2c5d281944b1ab6435791fae47f1ca78fdd184cfb0fc36dd2b2d7",
+        "device_verified": True,
+        "email_send_performed": False,
+        "event": {
+            "authority_boundary": authority_boundary,
+            "authority_requested": [],
+            "controller_event_type": event_type,
+            "selected_action_id": selected_action_id,
+            "selected_card_id": selected_card_id,
+        },
+        "external_provider_connected": False,
+        "git_push_performed": False,
+        "gmail_access_performed": False,
+        "incoming_authority_granted_accepted": False,
+        "incoming_authority_granted_fields": [],
+        "input_surface": "world_dynamic_card",
+        "kind": router.REQUEST_TYPE,
+        "ledger_mutation_performed": False,
+        "ledger_posting_performed": False,
+        "mac_wrote_request_only": True,
+        "merge_performed": False,
+        "no_external_action": True,
+        "operator_authority_envelope": {
+            "app_instance_ref": "sha256:b7efb2d5f3ec5e0b0f1a77589c9c276612600550161e555f4fe5384f98fd3e07",
+            "app_instance_verified": True,
+            "device_class": "mac",
+            "device_ref": "sha256:b191fdb712c2c5d281944b1ab6435791fae47f1ca78fdd184cfb0fc36dd2b2d7",
+            "device_verified": True,
+            "operator_ref": "hwinshipwheatley",
+            "operator_verified": True,
+            "request_hash": "sha256:ec1066ebe6c0a487d1eb219237bd53018f3db2166a825f9288bd5c22d110d69b",
+            "session_ref": "sha256:5d9dcf1bd6a56c9afdae80aed5fdf1a3b06c5f6d9f4654fd0425bef43ae2a8a1",
+            "session_verified": True,
+            "verification_status": operator_authority.VERIFICATION_STATUS_VERIFIED,
+        },
+        "operator_ref": "hwinshipwheatley",
+        "operator_verified": True,
+        "origin_surface": "mission_control_mac",
+        "paid_marking_performed": False,
+        "payload_hash": "sha256:99454287f65596ecbd3c3d9cb185ab6d76bd410efae561818acde8738c85b8f7",
+        "pdf_export_performed": False,
+        "portal_submit_performed": False,
+        "request_hash": "sha256:ec1066ebe6c0a487d1eb219237bd53018f3db2166a825f9288bd5c22d110d69b",
+        "request_hash_checked": True,
+        "request_id": request_id,
+        "request_type": router.REQUEST_TYPE,
+        "requested_mode": "operator",
+        "result_receipt_required": True,
+        "schema_version": "operator_controller_event_request_v0",
+        "selected_action_id": selected_action_id,
+        "selected_card_id": selected_card_id,
+        "session_ref": "sha256:5d9dcf1bd6a56c9afdae80aed5fdf1a3b06c5f6d9f4654fd0425bef43ae2a8a1",
+        "session_verified": True,
+        "source_channel": "mission_control_dynamic_card",
+        "source_request_id": request_id,
+        "source_surface": "mission_control",
+        "type": router.REQUEST_TYPE,
+        "verification_status": operator_authority.VERIFICATION_STATUS_VERIFIED,
+        "workbook_body_read": False,
+        "workbook_mutation_performed": False,
+        "workbook_source_mutation_performed": False,
+        "worker_spawn_performed": False,
+    }
+    if include_top_level_thread:
+        request["current_thread_ref"] = "build_openclaw_backend"
+    if review_packet_id:
+        request["review_packet_id"] = review_packet_id
+    if verification_overrides:
+        for key, value in verification_overrides.items():
+            request[key] = value
+            request["operator_authority_envelope"][key] = value
+    return request
+
+
 def _route(tmp_path: Path, request: dict) -> dict:
     read_model_root = _seed_read_models(tmp_path)
     return router.route_controller_event(
@@ -320,6 +432,94 @@ def test_mac_dispatcher_incoming_authority_granted_rejected(tmp_path):
     assert receipt["incoming_authority_granted_accepted"] is False
     assert receipt["authority_granted"] == []
     assert receipt["incoming_authority_granted_fields"]
+    assert "incoming_authority_granted_or_backend_gate_fields_not_accepted" in receipt["rejected_reasons"]
+    assert not _unsafe_true_grants(receipt)
+
+
+def test_exact_observed_mac_mark_informational_review_request_routes(tmp_path):
+    receipt = _route(tmp_path, _mac_review_dispatcher_request())
+
+    assert receipt["raw_internal_status"] == router.RESPONSE_READY
+    assert receipt["backend_route"] == "workroom_review_decision_consumer.record_decision_only"
+    assert receipt["current_world_ref"] == "build"
+    assert receipt["current_thread_ref"] == "build_openclaw_backend"
+    assert receipt["context_normalization"]["applied"] is True
+    assert "current_thread_ref:selected_action_payload" in receipt["context_normalization"]["inferred_fields"]
+    assert receipt["route_result"]["decision_action"] == "mark_review_packet_informational"
+    assert receipt["route_result"]["decision_recorded"] is True
+    assert receipt["route_result"]["merge_performed"] is False
+    assert receipt["route_result"]["git_push_performed"] is False
+    assert receipt["machine_proof"]["merge_performed"] is False
+    assert receipt["machine_proof"]["git_push_performed"] is False
+    assert receipt["machine_proof"]["worker_spawn_performed"] is False
+    assert receipt["machine_proof"]["business_action_performed"] is False
+    assert all(value is False for value in receipt["authority_boundary"].values())
+    assert not _unsafe_true_grants(receipt)
+
+
+def test_review_request_with_nested_current_context_routes(tmp_path):
+    receipt = _route(
+        tmp_path,
+        _mac_review_dispatcher_request(
+            request_id="build_review_nested_context",
+            selected_action_id="",
+            nested_thread="build_openclaw_backend",
+        ),
+    )
+
+    assert receipt["raw_internal_status"] == router.RESPONSE_READY
+    assert receipt["current_thread_ref"] == "build_openclaw_backend"
+    assert receipt["route_result"]["decision_recorded"] is True
+    assert receipt["machine_proof"]["merge_performed"] is False
+    assert receipt["machine_proof"]["git_push_performed"] is False
+    assert not _unsafe_true_grants(receipt)
+
+
+def test_review_packet_id_without_thread_infers_build_thread(tmp_path):
+    receipt = _route(
+        tmp_path,
+        _mac_review_dispatcher_request(
+            request_id="build_review_packet_id_infers_context",
+            selected_action_id="",
+            review_packet_id="review_packet:c4ec166103f9aa35",
+        ),
+    )
+
+    assert receipt["raw_internal_status"] == router.RESPONSE_READY
+    assert receipt["current_thread_ref"] == "build_openclaw_backend"
+    assert receipt["context_normalization"]["review_packet_id"] == "review_packet:c4ec166103f9aa35"
+    assert "current_thread_ref:workroom_review_packet_index" in receipt["context_normalization"]["inferred_fields"]
+    assert receipt["route_result"]["decision_recorded"] is True
+    assert not _unsafe_true_grants(receipt)
+
+
+def test_unresolvable_review_context_returns_needs_lane_context_card(tmp_path):
+    receipt = _route(
+        tmp_path,
+        _mac_review_dispatcher_request(
+            request_id="build_review_context_unresolvable",
+            selected_card_id="dynamic_card.build.review_packet.unknown",
+            selected_action_id="",
+            review_packet_id="review_packet:unknown",
+        ),
+    )
+
+    assert receipt["raw_internal_status"] == router.BLOCKED_WITH_REASON
+    assert receipt["route_status"] == "NEEDS_LANE_CONTEXT"
+    assert receipt["dynamic_card_response"]["headline"] == "Needs lane context"
+    assert "Build lane" in receipt["dynamic_card_response"]["plain_summary"]
+    assert "current_thread_ref_missing" in receipt["blockers"]
+    assert not _unsafe_true_grants(receipt)
+
+
+def test_review_request_incoming_authority_granted_rejected(tmp_path):
+    request = _mac_review_dispatcher_request(request_id="build_review_incoming_authority_granted")
+    request["authority_granted"] = ["merge"]
+    receipt = _route(tmp_path, request)
+
+    assert receipt["raw_internal_status"] == router.BLOCKED_WITH_REASON
+    assert receipt["incoming_authority_granted_accepted"] is False
+    assert receipt["authority_granted"] == []
     assert "incoming_authority_granted_or_backend_gate_fields_not_accepted" in receipt["rejected_reasons"]
     assert not _unsafe_true_grants(receipt)
 

@@ -1204,8 +1204,6 @@ def _required_fields_for_family(request_family: str) -> tuple[str, ...]:
             "request_type",
             "source_surface",
             "controller_event_type",
-            "current_world_ref",
-            "current_thread_ref",
             "authority_requested",
             "authority_boundary",
         )
@@ -6322,6 +6320,11 @@ def process_request_path(
         )
     if classification.request_family == "EVIDENCE_INTAKE_REQUEST" or is_evidence_intake_request(raw_request):
         raw_request = evidence_intake.normalize_evidence_request(raw_request)
+    if classification.request_family == "OPERATOR_CONTROLLER_EVENT_REQUEST" or is_operator_controller_event_request(raw_request):
+        raw_request = operator_controller_event_router.normalize_controller_event_request(
+            raw_request,
+            read_model_root=export_root,
+        )
     if classification.request_family == "UNKNOWN_FAIL_CLOSED":
         if is_evidence_intake_request(raw_request):
             classification = RequestClassification(

@@ -29,11 +29,11 @@ It is a controller layer, not a business executor.
 
 ## Latest Receipt
 
-- Receipt: `operator_controller_event_router:65d3c3927ac32c67`
-- Event: `ask_why`
+- Receipt: `operator_controller_event_router:38a3b33e1f02f081`
+- Event: `mark_informational`
 - Status: `ROUTED`
-- Backend route: `system_question_answer.contextual_answer`
-- Route ref: `system_question_answer:contextual_lane_answer`
+- Backend route: `workroom_review_decision_consumer.record_decision_only`
+- Route ref: `review_packet.review_packet_c4ec166103f9aa35.mark_review_packet_informational`
 
 ## Safety Boundary
 

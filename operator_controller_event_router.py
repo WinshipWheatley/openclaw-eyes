@@ -362,6 +362,101 @@ def _normalize_authority_requested(request: Mapping[str, Any], envelope: Mapping
     return []
 
 
+def _review_packet_id_from_request(request: Mapping[str, Any], action: Mapping[str, Any] | None = None) -> str:
+    candidates: list[Any] = [
+        request.get("review_packet_id"),
+        request.get("active_entity_ref"),
+        request.get("selected_card_id"),
+        request.get("selected_action_id"),
+    ]
+    if isinstance(action, Mapping):
+        payload = action.get("payload") if isinstance(action.get("payload"), Mapping) else {}
+        candidates.extend([payload.get("review_packet_id"), action.get("action_id")])
+    for candidate in candidates:
+        text = str(candidate or "").strip()
+        if not text:
+            continue
+        if text.startswith("review_packet:"):
+            return text
+        if "review_packet_" in text:
+            token = text.split("review_packet_", 1)[1].split(".", 1)[0].split("/", 1)[0]
+            if token:
+                return f"review_packet:{token}"
+        if "review_packet:" in text:
+            return "review_packet:" + text.split("review_packet:", 1)[1].split(".", 1)[0].split("/", 1)[0]
+    return ""
+
+
+def _packet_by_review_packet_id(read_model_root: Path, review_packet_id: str) -> dict[str, Any] | None:
+    if not review_packet_id:
+        return None
+    index = _load_json(_rooted(read_model_root) / "workroom_review_packet_index.json")
+    packets = index.get("packets")
+    if not isinstance(packets, list):
+        return None
+    for packet in packets:
+        if isinstance(packet, Mapping) and str(packet.get("review_packet_id") or "") == review_packet_id:
+            return dict(packet)
+    return None
+
+
+def _apply_context_from_read_models(request: dict[str, Any], *, read_model_root: Path) -> None:
+    if request.get("current_world_ref") and request.get("current_thread_ref"):
+        return
+
+    context_sources: list[tuple[str, Mapping[str, Any]]] = []
+    selected_action = _action_payload_by_id(read_model_root, str(request.get("selected_action_id") or ""))
+    if selected_action:
+        context_sources.append(("selected_action_payload", selected_action))
+        selected_payload = selected_action.get("payload") if isinstance(selected_action.get("payload"), Mapping) else {}
+        if selected_payload:
+            context_sources.append(("selected_action_payload.payload", selected_payload))
+
+    review_packet_id = _review_packet_id_from_request(request, selected_action)
+    packet = _packet_by_review_packet_id(read_model_root, review_packet_id)
+    if packet:
+        context_sources.append(("workroom_review_packet_index", packet))
+        request.setdefault("review_packet_id", review_packet_id)
+
+    selected_card = _card_by_id(read_model_root, str(request.get("selected_card_id") or ""))
+    if selected_card:
+        context_sources.append(("selected_dynamic_card", selected_card))
+
+    inferred: list[str] = []
+    for source_name, source in context_sources:
+        if not request.get("current_world_ref"):
+            world = _first_present(
+                source.get("target_world_ref"),
+                source.get("world_ref"),
+                "build" if source.get("channel_ref") else "",
+            )
+            if world:
+                request["current_world_ref"] = world
+                inferred.append(f"current_world_ref:{source_name}")
+        if not request.get("current_thread_ref"):
+            thread = _first_present(
+                source.get("target_thread_ref"),
+                source.get("thread_ref"),
+                source.get("lane_ref"),
+                source.get("channel_ref"),
+                source.get("target_lane_ref"),
+            )
+            if thread:
+                request["current_thread_ref"] = thread
+                inferred.append(f"current_thread_ref:{source_name}")
+        if request.get("current_world_ref") and request.get("current_thread_ref"):
+            break
+
+    if inferred:
+        request["_controller_event_context_normalization"] = {
+            "applied": True,
+            "inferred_fields": sorted(dict.fromkeys(inferred)),
+            "review_packet_id": review_packet_id,
+            "selected_action_id": _canonical_action_id(str(request.get("selected_action_id") or "")),
+            "selected_card_id": str(request.get("selected_card_id") or ""),
+        }
+
+
 def _normalize_controller_envelope(request: dict[str, Any]) -> None:
     context = _request_context(request)
     event = _request_event(request)
@@ -443,7 +538,11 @@ def _normalize_controller_envelope(request: dict[str, Any]) -> None:
         }
 
 
-def normalize_controller_event_request(raw_request: Mapping[str, Any]) -> dict[str, Any]:
+def normalize_controller_event_request(
+    raw_request: Mapping[str, Any],
+    *,
+    read_model_root: Path = DEFAULT_READ_MODEL_ROOT,
+) -> dict[str, Any]:
     request = dict(raw_request)
     context = _request_context(request)
     event = _request_event(request)
@@ -461,6 +560,7 @@ def normalize_controller_event_request(raw_request: Mapping[str, Any]) -> dict[s
     event_type = str(request.get("controller_event_type") or request.get("controller_action_type") or "").strip()
     if event_type and not request.get("controller_action_type"):
         request["controller_action_type"] = event_type
+    _apply_context_from_read_models(request, read_model_root=read_model_root)
     _normalize_controller_envelope(request)
     return request
 
@@ -511,6 +611,7 @@ def _validate_controller_event(request: Mapping[str, Any]) -> dict[str, Any]:
         "incoming_authority_granted_fields": incoming_grant_fields,
         "operator_authority_envelope": envelope_result,
         "operator_envelope_normalization": normalization,
+        "context_normalization": _mapping(request.get("_controller_event_context_normalization")),
     }
 
 
@@ -753,6 +854,7 @@ def _base_receipt(
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
         "operator_authority_envelope": dict(validation.get("operator_authority_envelope") or {}),
         "operator_envelope_normalization": dict(validation.get("operator_envelope_normalization") or {}),
+        "context_normalization": dict(validation.get("context_normalization") or {}),
         "incoming_authority_granted_fields": list(validation.get("incoming_authority_granted_fields") or []),
         "incoming_authority_granted_accepted": False,
         "blockers": list(validation.get("blockers") or []),
@@ -1510,7 +1612,7 @@ def route_controller_event(
     export_read_models: bool = True,
 ) -> dict[str, Any]:
     generated_at = generated_at or utc_now()
-    request = normalize_controller_event_request(raw_request)
+    request = normalize_controller_event_request(raw_request, read_model_root=read_model_root)
     validation = _validate_controller_event(request)
     receipt_id = "operator_controller_event_router:" + _short_hash(
         _request_id(request),
@@ -1522,16 +1624,29 @@ def route_controller_event(
     )
 
     if not validation["verified"]:
-        route_status = "NEEDS_VERIFICATION" if "verified_operator_envelope_required" in validation["blockers"] else "REJECTED"
+        context_missing = any(
+            blocker in validation["blockers"]
+            for blocker in ("current_world_ref_missing", "current_thread_ref_missing")
+        )
+        route_status = "NEEDS_LANE_CONTEXT" if context_missing else (
+            "NEEDS_VERIFICATION" if "verified_operator_envelope_required" in validation["blockers"] else "REJECTED"
+        )
+        headline = "Needs lane context" if context_missing else "Needs verification"
+        summary = (
+            "I need the Build lane or review packet thread before I can record this review decision."
+            if context_missing
+            else "Controller events require a verified first-class operator envelope and a false authority boundary."
+        )
+        blocker = "current_thread_ref_missing" if context_missing else "verified_operator_envelope_required"
         receipt = _blocked_receipt(
             request,
             receipt_id=receipt_id,
             generated_at=generated_at,
             validation=validation,
             route_status=route_status,
-            headline="Needs verification",
-            summary="Controller events require a verified first-class operator envelope and a false authority boundary.",
-            blocker="verified_operator_envelope_required",
+            headline=headline,
+            summary=summary,
+            blocker=blocker,
         )
     elif str(request.get("controller_event_type") or "") not in EVENT_TYPES:
         receipt = _blocked_receipt(

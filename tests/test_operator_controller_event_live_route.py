@@ -170,6 +170,80 @@ def _mac_dispatcher_request(
     }
 
 
+def _mac_review_dispatcher_request(
+    *,
+    request_id: str = "build_mark_informational_review_packet_review_packet_c4ec166103f9aa35_mark_review_packet_informational_20260605T172815Z_ec1066ebe6c0",
+    selected_action_id: str = "review_packet.review_packet_c4ec166103f9aa35.mark_review_packet_informational",
+    selected_card_id: str = "dynamic_card.build.review_packet.current",
+    review_packet_id: str = "",
+) -> dict:
+    authority_boundary = dict(controller_router.AUTHORITY_BOUNDARY)
+    current_context = {
+        "active_surface_ref": "world_dynamic_card",
+        "current_world_ref": "build",
+        "requested_mode": "operator",
+        "source_surface": "mission_control",
+    }
+    request = {
+        "active_surface_ref": "world_dynamic_card",
+        "app_instance_ref": "sha256:b7efb2d5f3ec5e0b0f1a77589c9c276612600550161e555f4fe5384f98fd3e07",
+        "app_instance_verified": True,
+        "authority_boundary": authority_boundary,
+        "authority_requested": [],
+        "context": dict(current_context),
+        "controller_event_type": "mark_informational",
+        "controller_action_type": "mark_informational",
+        "created_at": "2026-06-05T17:28:15Z",
+        "current_context": dict(current_context),
+        "current_world_ref": "build",
+        "device_class": "mac",
+        "device_ref": "sha256:b191fdb712c2c5d281944b1ab6435791fae47f1ca78fdd184cfb0fc36dd2b2d7",
+        "device_verified": True,
+        "event": {
+            "authority_boundary": authority_boundary,
+            "authority_requested": [],
+            "controller_event_type": "mark_informational",
+            "selected_action_id": selected_action_id,
+            "selected_card_id": selected_card_id,
+        },
+        "input_surface": "world_dynamic_card",
+        "kind": controller_router.REQUEST_TYPE,
+        "mac_wrote_request_only": True,
+        "operator_authority_envelope": {
+            "app_instance_ref": "sha256:b7efb2d5f3ec5e0b0f1a77589c9c276612600550161e555f4fe5384f98fd3e07",
+            "app_instance_verified": True,
+            "device_class": "mac",
+            "device_ref": "sha256:b191fdb712c2c5d281944b1ab6435791fae47f1ca78fdd184cfb0fc36dd2b2d7",
+            "device_verified": True,
+            "operator_ref": "hwinshipwheatley",
+            "operator_verified": True,
+            "request_hash": "sha256:ec1066ebe6c0a487d1eb219237bd53018f3db2166a825f9288bd5c22d110d69b",
+            "session_ref": "sha256:5d9dcf1bd6a56c9afdae80aed5fdf1a3b06c5f6d9f4654fd0425bef43ae2a8a1",
+            "session_verified": True,
+            "verification_status": operator_authority.VERIFICATION_STATUS_VERIFIED,
+        },
+        "operator_ref": "hwinshipwheatley",
+        "operator_verified": True,
+        "origin_surface": "mission_control_mac",
+        "payload_hash": "sha256:99454287f65596ecbd3c3d9cb185ab6d76bd410efae561818acde8738c85b8f7",
+        "request_hash": "sha256:ec1066ebe6c0a487d1eb219237bd53018f3db2166a825f9288bd5c22d110d69b",
+        "request_id": request_id,
+        "request_type": controller_router.REQUEST_TYPE,
+        "selected_action_id": selected_action_id,
+        "selected_card_id": selected_card_id,
+        "session_ref": "sha256:5d9dcf1bd6a56c9afdae80aed5fdf1a3b06c5f6d9f4654fd0425bef43ae2a8a1",
+        "session_verified": True,
+        "source_channel": "mission_control_dynamic_card",
+        "source_request_id": request_id,
+        "source_surface": "mission_control",
+        "type": controller_router.REQUEST_TYPE,
+        "verification_status": operator_authority.VERIFICATION_STATUS_VERIFIED,
+    }
+    if review_packet_id:
+        request["review_packet_id"] = review_packet_id
+    return request
+
+
 def _run_live(tmp_path: Path, request: dict, *, filename_suffix: str) -> tuple[dict, dict, Path]:
     inbox = tmp_path / "inbox"
     response_dir = tmp_path / "responses"
@@ -282,6 +356,47 @@ def test_live_mac_dispatcher_ask_why_compact_envelope_accepts(tmp_path):
     assert receipt["backend_route"] == "system_question_answer.contextual_answer"
     assert "Coupa is processing" in response["visible_cards"][0]["plain_summary"]
     assert receipt["operator_authority_envelope"]["verified"] is True
+    assert not _unsafe_true_grants(response)
+
+
+def test_live_observed_mac_mark_informational_review_request_routes(tmp_path):
+    response, _published, _export_root = _run_live(
+        tmp_path,
+        _mac_review_dispatcher_request(),
+        filename_suffix="mac_review_mark_informational",
+    )
+
+    receipt = _router_receipt(response)
+    assert response["internal_status"] == controller_router.RESPONSE_READY
+    assert receipt["backend_route"] == "workroom_review_decision_consumer.record_decision_only"
+    assert receipt["current_thread_ref"] == "build_openclaw_backend"
+    assert receipt["context_normalization"]["applied"] is True
+    assert response["visible_cards"][0]["headline"] == "Review marked informational"
+    assert receipt["route_result"]["decision_recorded"] is True
+    assert receipt["route_result"]["merge_performed"] is False
+    assert receipt["route_result"]["git_push_performed"] is False
+    assert receipt["machine_proof"]["worker_spawn_performed"] is False
+    assert receipt["machine_proof"]["business_action_performed"] is False
+    assert not _unsafe_true_grants(response)
+
+
+def test_live_unresolvable_review_context_returns_card_not_preflight_block(tmp_path):
+    response, _published, _export_root = _run_live(
+        tmp_path,
+        _mac_review_dispatcher_request(
+            request_id="build_review_context_unresolvable_live",
+            selected_card_id="dynamic_card.build.review_packet.unknown",
+            selected_action_id="",
+            review_packet_id="review_packet:unknown",
+        ),
+        filename_suffix="mac_review_context_missing",
+    )
+
+    receipt = _router_receipt(response)
+    assert response["internal_status"] == controller_router.BLOCKED_WITH_REASON
+    assert receipt["route_status"] == "NEEDS_LANE_CONTEXT"
+    assert response["visible_cards"][0]["headline"] == "Needs lane context"
+    assert "preflight_blockers" not in response["detail_disclosure"]
     assert not _unsafe_true_grants(response)
 
 
