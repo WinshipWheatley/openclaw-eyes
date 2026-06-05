@@ -1,0 +1,1025 @@
+{
+  "schema_version": "dynamic_surface_unbloat_audit_v0",
+  "read_model_id": "dynamic_surface_unbloat_audit",
+  "status": "DYNAMIC_SURFACE_UNBLOAT_AUDIT_READY",
+  "generated_at": "2026-06-05T01:39:22Z",
+  "audit_mode": "read_only_design_audit",
+  "purpose": "Determine what backend-generated surfaces are needed so Mission Control can remain a thin controller shell and stop hardcoding workflow-specific cards.",
+  "controller_principle": {
+    "ratio": "95% controls, 5% status",
+    "attention_rule": "Cards cost attention. A card should exist only when it shows current focus, explains a needed decision, presents proof requested by the operator, or gives the next playable control.",
+    "backend_owns": [
+      "workflow-specific card text",
+      "lane-specific status interpretation",
+      "trust and freshness labels",
+      "proof references and receipts",
+      "lifecycle and visibility decisions",
+      "safe action payload references"
+    ],
+    "mac_owns": [
+      "Helm shell",
+      "Composer input surface",
+      "world/bank switcher",
+      "generic dynamic card renderer",
+      "evidence drop zone",
+      "proof/details drawer",
+      "safe action dispatcher",
+      "compact meters"
+    ]
+  },
+  "inspected_read_models": [
+    "generated/read_models/dynamic_card_packet_contract.json",
+    "generated/read_models/dynamic_card_packet_latest.json",
+    "generated/read_models/dynamic_card_lifecycle_policy.json",
+    "generated/read_models/operator_action_payloads.json",
+    "generated/read_models/operator_controller_protocol.json",
+    "generated/read_models/first_class_operator_envelope_contract.json",
+    "generated/read_models/evidence_intake_status.json",
+    "generated/read_models/operator_next_decision.json",
+    "generated/read_models/lm_bounded_operator_orchestration_latest.json",
+    "generated/read_models/workflow_composer_latest.json",
+    "generated/read_models/workroom_wip_limits.json",
+    "generated/read_models/operator_os_final_closeout.json",
+    "generated/read_models/openclaw_operating_picture_latest.json",
+    "generated/read_models/capital_hilton_invoice_operator_run_status.json",
+    "generated/read_models/capital_hilton_business_development_proposal.json",
+    "generated/read_models/st_annes_work_log_review_surface.json",
+    "generated/read_models/workroom_review_packet_index.json",
+    "generated/read_models/approval_request_queue.json",
+    "generated/read_models/gate_decision_ledger.json",
+    "generated/read_models/memory_promotion_gate.json",
+    "generated/read_models/evidence_confidence_scoring.json"
+  ],
+  "executive_summary": {
+    "answer": "The backend already has enough read-model evidence to drive a thin Mac renderer, but dynamic_card_packet_latest still mixes generic card structure with workflow-specific card identities and lacks a first-class card_family, normalized data-source refs, action slots, and proof/detail metadata. Dynamic card packet v1 should make card family, lifecycle, trust, proof, and controller-event actions explicit so Mac renders cards by contract instead of by workflow name.",
+    "current_backend_card_count": 8,
+    "current_gap": "The current packet can render cards, but Mac still has to understand domain-specific card ids such as Capital Hilton payment watch, Live Arts MD evidence intake, St. Anne's work-log review, and workbook registration.",
+    "recommended_direction": "Keep Mission Control bespoke only for shell, switching, drop zone, proof drawer, generic rendering, and safe dispatch. Move all workflow-specific card copy, visibility, proof refs, trust labels, and next controls into backend dynamic cards.",
+    "risk_if_not_done": "Mac becomes a dashboard of special cases. Stale workflow cards will remain visible after receipts, and each new finance/build/proof lane will require app code changes."
+  },
+  "current_backend_card_inventory": [
+    {
+      "card_id": "dynamic_card.finance.capital_hilton.payment_watch",
+      "card_type": "payment_watch",
+      "family_fit": "payment_watch",
+      "headline": "Stay on payment watch",
+      "lifecycle_state": "active",
+      "freshness_state": "current",
+      "trust_state": "trusted_current",
+      "visible_by_default": true,
+      "operator_attention_required": false,
+      "primary_action_refs": [
+        "capital_hilton.payment.open_finance"
+      ],
+      "source_read_models": [
+        "generated/read_models/capital_hilton_invoice_operator_run_status.json",
+        "generated/read_models/lm_bounded_operator_orchestration_latest.json"
+      ],
+      "audit_note": "Good card family candidate, but still workflow-specific in id and text."
+    },
+    {
+      "card_id": "dynamic_card.finance.live_arts_md.evidence_intake.payment_processing",
+      "card_type": "evidence_intake",
+      "family_fit": "evidence_intake_receipt",
+      "headline": "Payment proof received",
+      "lifecycle_state": "waiting",
+      "freshness_state": "waiting_on_external",
+      "trust_state": "operator_reported",
+      "visible_by_default": true,
+      "operator_attention_required": false,
+      "primary_action_refs": [
+        "evidence_intake.attach_to_lane",
+        "evidence_intake.ask_what_this_means",
+        "evidence_intake.mark_as_test",
+        "evidence_intake.show_details"
+      ],
+      "source_read_models": [
+        "generated/read_models/evidence_intake_status.json"
+      ],
+      "audit_note": "Strong backend-driven receipt pattern; actions should use real controller action types instead of action_type none in the packet."
+    },
+    {
+      "card_id": "dynamic_card.finance.capital_hilton.contextual_question",
+      "card_type": "answer",
+      "family_fit": "contextual_answer",
+      "headline": "Stay on payment watch",
+      "lifecycle_state": "active",
+      "freshness_state": "current",
+      "trust_state": "trusted_current",
+      "visible_by_default": true,
+      "operator_attention_required": true,
+      "primary_action_refs": [
+        "capital_hilton.payment.open_finance"
+      ],
+      "source_read_models": [
+        "generated/read_models/system_question_answer_contract.json",
+        "generated/read_models/finance_thread_index.json",
+        "generated/read_models/capital_hilton_invoice_operator_run_status.json"
+      ],
+      "audit_note": "This is the right replacement for hardcoded contextual answer panels."
+    },
+    {
+      "card_id": "dynamic_card.build.review_packet.current",
+      "card_type": "review_packet",
+      "family_fit": "review_packet",
+      "headline": "Review packet needs local decision",
+      "lifecycle_state": "needs_operator",
+      "freshness_state": "current",
+      "trust_state": "preview_only",
+      "visible_by_default": true,
+      "operator_attention_required": true,
+      "primary_action_refs": [
+        "review_packet.review_packet_c4ec166103f9aa35.approve_review_packet_for_record",
+        "review_packet.review_packet_c4ec166103f9aa35.request_review_packet_rework",
+        "review_packet.review_packet_c4ec166103f9aa35.mark_review_packet_informational"
+      ],
+      "source_read_models": [
+        "generated/read_models/workroom_review_packet_index.json",
+        "generated/read_models/workroom_review_decision_status.json"
+      ],
+      "audit_note": "Good generic review packet card; Mac should not own PC_CODEX/MAC_CODEX-specific layouts."
+    },
+    {
+      "card_id": "dynamic_card.business_development.capital_hilton.proposal",
+      "card_type": "status",
+      "family_fit": "current_focus_or_answer",
+      "headline": "Proposal follow-up is review-only",
+      "lifecycle_state": "active",
+      "freshness_state": "current",
+      "trust_state": "trusted_current",
+      "visible_by_default": true,
+      "operator_attention_required": true,
+      "primary_action_refs": [
+        "capital_hilton.proposal.stage_followup"
+      ],
+      "source_read_models": [
+        "generated/read_models/capital_hilton_business_development_proposal.json"
+      ],
+      "audit_note": "Useful domain card, but should become a generic current-focus card with proposal refs rather than a bespoke proposal UI."
+    },
+    {
+      "card_id": "dynamic_card.system.check_engine.diagnostic",
+      "card_type": "status",
+      "family_fit": "answer_or_gate",
+      "headline": "Chief diagnostic only",
+      "lifecycle_state": "active",
+      "freshness_state": "current",
+      "trust_state": "preview_only",
+      "visible_by_default": true,
+      "operator_attention_required": true,
+      "primary_action_refs": [
+        "chief_diagnostic.open",
+        "helm_question.hardwired_vs_spawned.ask"
+      ],
+      "source_read_models": [
+        "generated/read_models/chief_check_engine_diagnostic_package.json",
+        "generated/read_models/operator_action_payloads.json"
+      ],
+      "audit_note": "Can render generically as a diagnostic answer card."
+    },
+    {
+      "card_id": "dynamic_card.finance.capital_hilton.workbook_registration",
+      "card_type": "workbook_registration",
+      "family_fit": "gate_or_current_focus",
+      "headline": "Workbook reference can be registered",
+      "lifecycle_state": "active",
+      "freshness_state": "current",
+      "trust_state": "trusted_current",
+      "visible_by_default": true,
+      "operator_attention_required": true,
+      "primary_action_refs": [
+        "client_invoice_workbook.register"
+      ],
+      "source_read_models": [
+        "generated/read_models/client_invoice_workbook_registry.json"
+      ],
+      "audit_note": "Card type is too specific; v1 should represent this as a metadata-only lane action with workbook refs."
+    },
+    {
+      "card_id": "dynamic_card.finance.st_annes.work_log_review",
+      "card_type": "status",
+      "family_fit": "completed_historical_receipt",
+      "headline": "St. Anne's work-log review",
+      "lifecycle_state": "resolved",
+      "freshness_state": "historical",
+      "trust_state": "trusted_current",
+      "visible_by_default": false,
+      "operator_attention_required": false,
+      "primary_action_refs": [],
+      "source_read_models": [
+        "generated/read_models/st_annes_work_log_review_surface.json"
+      ],
+      "audit_note": "Correctly hidden by default; Mac should place this under Completed / History."
+    }
+  ],
+  "cards_still_too_workflow_specific": [
+    {
+      "problem": "Card identity encodes domain workflow names.",
+      "examples": [
+        "dynamic_card.finance.capital_hilton.payment_watch",
+        "dynamic_card.finance.live_arts_md.evidence_intake.payment_processing",
+        "dynamic_card.finance.st_annes.work_log_review"
+      ],
+      "backend_fix": "Add card_family plus lane_ref/entity_refs/workflow_ref so Mac can ignore domain-specific ids."
+    },
+    {
+      "problem": "Some card types are narrow workflow verbs.",
+      "examples": [
+        "workbook_registration"
+      ],
+      "backend_fix": "Represent narrow verbs through generic action payloads and metadata-only gate/current-focus cards."
+    },
+    {
+      "problem": "Proof refs exist but proof details are not normalized enough for a generic drawer.",
+      "examples": [
+        "mixed artifact paths, read model refs, receipt refs, hashes, and sqlite refs"
+      ],
+      "backend_fix": "Split proof into categorized proof_refs, receipt_refs, artifact_refs, hash_refs, sqlite_refs, redacted_detail_summary, and sensitive_detail_policy."
+    },
+    {
+      "problem": "Action layout is not explicit.",
+      "examples": [
+        "primary action is implied by ordering",
+        "evidence-intake actions are disabled with action_type none despite representing valid controller controls"
+      ],
+      "backend_fix": "Add action_slots with primary, secondary, detail, dismiss, danger_disabled, and backend controller event type."
+    }
+  ],
+  "dynamic_card_families": [
+    {
+      "family_ref": "current_focus_card",
+      "purpose": "One current next playable control for the active lane.",
+      "required_fields": [
+        "card_id",
+        "card_family",
+        "headline",
+        "plain_summary",
+        "target_world_ref",
+        "target_thread_ref",
+        "primary_action_ref",
+        "supporting_lines",
+        "proof",
+        "trust_state",
+        "freshness_state",
+        "lifecycle_state"
+      ],
+      "allowed_actions": [
+        "open_lane",
+        "continue",
+        "ask_why",
+        "show_details",
+        "stage_plan"
+      ],
+      "forbidden_actions": [
+        "email_send",
+        "coupa_submit",
+        "ledger_post",
+        "workbook_mutation",
+        "pdf_export",
+        "mark_paid",
+        "worker_spawn",
+        "git_push"
+      ],
+      "lifecycle_behavior": "Visible by default while it is the current focus; superseded immediately by a newer receipt or higher-priority needs_operator card.",
+      "trust_state": "trusted_current or preview_only",
+      "proof_refs": [
+        "generated/read_models/operator_next_decision.json",
+        "generated/read_models/openclaw_operating_picture_latest.json"
+      ],
+      "mac_rendering_needs": [
+        "primary command button",
+        "one-line status label",
+        "collapsed proof button",
+        "lane chip"
+      ],
+      "backend_data_sources": [
+        "operator_next_decision.json",
+        "openclaw_operating_picture_latest.json",
+        "lm_bounded_operator_orchestration_latest.json",
+        "workroom_wip_limits.json"
+      ]
+    },
+    {
+      "family_ref": "answer_card",
+      "purpose": "Answer contextual or explanatory operator questions without staging packages by default.",
+      "required_fields": [
+        "speaker_ref",
+        "headline",
+        "plain_summary",
+        "next_safe_action",
+        "target_world_ref",
+        "target_thread_ref",
+        "source_question",
+        "route_explanation",
+        "proof"
+      ],
+      "allowed_actions": [
+        "open_lane",
+        "ask_why",
+        "show_details"
+      ],
+      "forbidden_actions": [
+        "stage_diagnostic_package_unless_requested",
+        "business_action",
+        "provider_access",
+        "ledger_mutation"
+      ],
+      "lifecycle_behavior": "Visible until answered or superseded by current focus; then collapses into History.",
+      "trust_state": "trusted_current when sourced from lane read models, preview_only when sourced from generated summary",
+      "proof_refs": [
+        "generated/read_models/system_question_answer_contract.json",
+        "lane source read model"
+      ],
+      "mac_rendering_needs": [
+        "answer layout",
+        "source lane chip",
+        "calm route explanation"
+      ],
+      "backend_data_sources": [
+        "system_question_answer_contract.json",
+        "finance_thread_index.json",
+        "capital_hilton_invoice_operator_run_status.json",
+        "capital_hilton_business_development_proposal.json"
+      ]
+    },
+    {
+      "family_ref": "payment_watch_card",
+      "purpose": "Keep payment lanes visible only while payment evidence is missing.",
+      "required_fields": [
+        "client_ref",
+        "invoice_ref",
+        "provider_status_label",
+        "payment_state",
+        "paid",
+        "ledger_lock",
+        "payment_evidence_missing",
+        "next_safe_action",
+        "proof"
+      ],
+      "allowed_actions": [
+        "open_lane",
+        "attach_proof",
+        "ask_why",
+        "show_details"
+      ],
+      "forbidden_actions": [
+        "mark_paid",
+        "ledger_post",
+        "coupa_submit",
+        "open_coupa_unattended",
+        "email_send"
+      ],
+      "lifecycle_behavior": "Active while payment evidence is missing; replaced by evidence-intake receipt when proof arrives; never marks paid.",
+      "trust_state": "operator_reported or trusted_current",
+      "proof_refs": [
+        "capital_hilton_invoice_operator_run_status.json",
+        "evidence_confidence_scoring.json"
+      ],
+      "mac_rendering_needs": [
+        "watch status label",
+        "proof drop affordance",
+        "ledger lock indicator"
+      ],
+      "backend_data_sources": [
+        "capital_hilton_invoice_operator_run_status.json",
+        "evidence_confidence_scoring.json",
+        "evidence_intake_status.json"
+      ]
+    },
+    {
+      "family_ref": "evidence_intake_receipt_card",
+      "purpose": "Show that operator-submitted proof was recorded as candidate evidence without mutating business truth.",
+      "required_fields": [
+        "intake_id",
+        "artifact_ref",
+        "artifact_kind",
+        "intended_use",
+        "privacy_class",
+        "evidence_status",
+        "payment_proof_state",
+        "raw_sensitive_detail_stored",
+        "proof"
+      ],
+      "allowed_actions": [
+        "attach_proof",
+        "ask_why",
+        "mark_as_test",
+        "show_details"
+      ],
+      "forbidden_actions": [
+        "mark_paid",
+        "ledger_mutation",
+        "raw_ocr_to_memory",
+        "external_provider_call"
+      ],
+      "lifecycle_behavior": "Waiting after intake; resolves or is superseded after classification, rejection, or ledger-review receipt.",
+      "trust_state": "operator_reported or candidate_evidence",
+      "proof_refs": [
+        "evidence_intake_status.json",
+        "artifact lineage refs"
+      ],
+      "mac_rendering_needs": [
+        "receipt state",
+        "redacted proof preview",
+        "details drawer",
+        "test marker control"
+      ],
+      "backend_data_sources": [
+        "evidence_intake_status.json",
+        "first_class_operator_envelope_contract.json",
+        "evidence_confidence_scoring.json"
+      ]
+    },
+    {
+      "family_ref": "approval_request_card",
+      "purpose": "Ask for a bounded operator decision on a protected gate without performing the protected action.",
+      "required_fields": [
+        "approval_request_id",
+        "gate_ref",
+        "requested_action",
+        "risk_summary",
+        "safe_options",
+        "forbidden_options",
+        "receipt_required",
+        "proof"
+      ],
+      "allowed_actions": [
+        "approve",
+        "deny",
+        "ask_why",
+        "show_details",
+        "stop_hold_cancel"
+      ],
+      "forbidden_actions": [
+        "perform_requested_business_action",
+        "grant_authority_from_card",
+        "provider_access",
+        "worker_spawn"
+      ],
+      "lifecycle_behavior": "Needs operator while pending; resolved and hidden after approval/denial receipt.",
+      "trust_state": "preview_only",
+      "proof_refs": [
+        "approval_request_queue.json",
+        "gate_decision_ledger.json"
+      ],
+      "mac_rendering_needs": [
+        "decision controls",
+        "risk summary",
+        "safe/forbidden option list"
+      ],
+      "backend_data_sources": [
+        "approval_request_queue.json",
+        "gate_decision_ledger.json",
+        "operator_controller_protocol.json"
+      ]
+    },
+    {
+      "family_ref": "review_packet_card",
+      "purpose": "Present worker/package result review controls without merge, push, or worker execution authority.",
+      "required_fields": [
+        "review_packet_id",
+        "worker_ref",
+        "package_id",
+        "files_changed",
+        "tests_run",
+        "unsafe_scan_result",
+        "next_safe_action",
+        "proof"
+      ],
+      "allowed_actions": [
+        "approve",
+        "request_rework",
+        "mark_informational",
+        "show_details",
+        "open_lane"
+      ],
+      "forbidden_actions": [
+        "merge",
+        "git_push",
+        "spawn_worker",
+        "run_child_agent",
+        "business_action"
+      ],
+      "lifecycle_behavior": "Needs operator while review_packet status is ready; hidden by default after review receipt.",
+      "trust_state": "preview_only",
+      "proof_refs": [
+        "workroom_review_packet_index.json",
+        "workroom_review_decision_status.json"
+      ],
+      "mac_rendering_needs": [
+        "file/test summary",
+        "review decision buttons",
+        "collapsed proof"
+      ],
+      "backend_data_sources": [
+        "workroom_review_packet_index.json",
+        "workroom_wip_limits.json",
+        "spawned_worker_package_lifecycle.json"
+      ]
+    },
+    {
+      "family_ref": "workflow_composer_plan_card",
+      "purpose": "Show a proposed workflow plan before any worker or business action runs.",
+      "required_fields": [
+        "workflow_plan_id",
+        "goal",
+        "speaker_summary",
+        "step_count",
+        "guardian_gates",
+        "likely_bottlenecks",
+        "safe_to_stage",
+        "safe_to_execute",
+        "proof"
+      ],
+      "allowed_actions": [
+        "stage_plan",
+        "ask_why",
+        "show_details",
+        "stop_hold_cancel"
+      ],
+      "forbidden_actions": [
+        "execute_worker",
+        "spawn_worker",
+        "grant_authority",
+        "send_email",
+        "mutate_workbook",
+        "ledger_post"
+      ],
+      "lifecycle_behavior": "Active only during plan review; becomes historical when staged, rejected, or superseded.",
+      "trust_state": "preview_only",
+      "proof_refs": [
+        "workflow_composer_latest.json",
+        "workroom_wip_limits.json"
+      ],
+      "mac_rendering_needs": [
+        "step preview",
+        "gate chips",
+        "bottleneck warning",
+        "stage-only action"
+      ],
+      "backend_data_sources": [
+        "workflow_composer_latest.json",
+        "workroom_wip_limits.json",
+        "harness_provider_selection_registry.json"
+      ]
+    },
+    {
+      "family_ref": "gate_lock_card",
+      "purpose": "Explain why a protected action is blocked or approval-gated.",
+      "required_fields": [
+        "gate_ref",
+        "protected_action",
+        "decision",
+        "reason",
+        "authority_requested",
+        "authority_granted",
+        "approval_path",
+        "proof"
+      ],
+      "allowed_actions": [
+        "explain_gate",
+        "open_lane",
+        "stage_plan",
+        "show_details"
+      ],
+      "forbidden_actions": [
+        "grant_authority",
+        "perform_protected_action",
+        "turn_gate_green_from_lm"
+      ],
+      "lifecycle_behavior": "Visible only when it explains a current blocker or needed decision; otherwise developer proof only.",
+      "trust_state": "trusted_current",
+      "proof_refs": [
+        "gate_decision_ledger.json",
+        "approval_request_queue.json"
+      ],
+      "mac_rendering_needs": [
+        "lock icon",
+        "blocked reason",
+        "approval path",
+        "disabled protected action label"
+      ],
+      "backend_data_sources": [
+        "gate_decision_ledger.json",
+        "approval_request_queue.json",
+        "operator_controller_protocol.json"
+      ]
+    },
+    {
+      "family_ref": "memory_candidate_card",
+      "purpose": "Let the operator review candidate memories without creating truth.",
+      "required_fields": [
+        "memory_ref",
+        "candidate_summary",
+        "privacy_class",
+        "promotion_status",
+        "operator_approval_required",
+        "allowed_usage",
+        "forbidden_usage",
+        "proof"
+      ],
+      "allowed_actions": [
+        "approve",
+        "deny",
+        "mark_informational",
+        "show_details"
+      ],
+      "forbidden_actions": [
+        "create_business_truth",
+        "store_raw_prompt_body",
+        "store_secret",
+        "grant_business_authority"
+      ],
+      "lifecycle_behavior": "Needs operator only when approval is required; otherwise collapsed as developer proof or preference candidate.",
+      "trust_state": "candidate_evidence",
+      "proof_refs": [
+        "memory_promotion_gate.json"
+      ],
+      "mac_rendering_needs": [
+        "candidate summary",
+        "privacy badge",
+        "promote/reject controls"
+      ],
+      "backend_data_sources": [
+        "memory_promotion_gate.json",
+        "evidence_confidence_scoring.json"
+      ]
+    },
+    {
+      "family_ref": "artifact_proof_card",
+      "purpose": "Expose requested proof details without becoming a primary operator card.",
+      "required_fields": [
+        "artifact_ref",
+        "artifact_kind",
+        "hash_ref",
+        "privacy_class",
+        "redacted_summary",
+        "confidence_class",
+        "collapsed_by_default",
+        "source_request_ref"
+      ],
+      "allowed_actions": [
+        "show_details",
+        "attach_proof",
+        "mark_as_test"
+      ],
+      "forbidden_actions": [
+        "operator_primary",
+        "business_action",
+        "external_provider_call",
+        "raw_sensitive_memory_promotion"
+      ],
+      "lifecycle_behavior": "Archived by default; shown in proof drawer or when requested by another card.",
+      "trust_state": "proven_artifact_hash, operator_reported, candidate_evidence, or test_only",
+      "proof_refs": [
+        "artifact lineage refs",
+        "evidence_intake_status.json"
+      ],
+      "mac_rendering_needs": [
+        "proof drawer row",
+        "preview if local and safe",
+        "copy ref control"
+      ],
+      "backend_data_sources": [
+        "evidence_intake_status.json",
+        "evidence_confidence_scoring.json",
+        "artifact_lineage_registry.json"
+      ]
+    },
+    {
+      "family_ref": "contextual_what_should_i_do_card",
+      "purpose": "Answer deictic questions from the current world/thread instead of routing to generic diagnostics.",
+      "required_fields": [
+        "source_question",
+        "current_world_ref",
+        "current_thread_ref",
+        "speaker_ref",
+        "headline",
+        "plain_summary",
+        "next_safe_action",
+        "route_explanation",
+        "proof"
+      ],
+      "allowed_actions": [
+        "open_lane",
+        "ask_why",
+        "show_details"
+      ],
+      "forbidden_actions": [
+        "stage_diagnostic_queue",
+        "execute_package",
+        "business_action"
+      ],
+      "lifecycle_behavior": "Short-lived active answer; collapses after context changes or a newer lane receipt supersedes it.",
+      "trust_state": "trusted_current",
+      "proof_refs": [
+        "system_question_answer_contract.json",
+        "lane-specific source read model"
+      ],
+      "mac_rendering_needs": [
+        "answer copy",
+        "current lane badge",
+        "route explanation"
+      ],
+      "backend_data_sources": [
+        "system_question_answer_contract.json",
+        "operator_next_decision.json",
+        "finance_thread_index.json"
+      ]
+    },
+    {
+      "family_ref": "completed_historical_receipt_card",
+      "purpose": "Preserve receipts and historical status without taking primary attention.",
+      "required_fields": [
+        "receipt_ref",
+        "completed_action",
+        "resolved_at",
+        "resolved_by_receipt_ref",
+        "summary",
+        "proof",
+        "history_group_ref"
+      ],
+      "allowed_actions": [
+        "show_details",
+        "open_lane"
+      ],
+      "forbidden_actions": [
+        "operator_primary",
+        "reopen_without_new_context",
+        "perform_business_action"
+      ],
+      "lifecycle_behavior": "Resolved or archived; hidden by default under Completed / History.",
+      "trust_state": "trusted_current or proven_receipt",
+      "proof_refs": [
+        "workroom_review_decision_status.json",
+        "operator_os_final_closeout.json",
+        "lane receipt refs"
+      ],
+      "mac_rendering_needs": [
+        "history row",
+        "receipt badge",
+        "details drawer link"
+      ],
+      "backend_data_sources": [
+        "workroom_review_packet_index.json",
+        "operator_os_final_closeout.json",
+        "openclaw_operating_picture_latest.json"
+      ]
+    }
+  ],
+  "fields_missing_from_current_dynamic_card_packet": [
+    "card_family",
+    "lane_ref",
+    "workflow_ref",
+    "entity_refs",
+    "object_refs",
+    "source_read_model_refs",
+    "source_statuses",
+    "source_generated_at",
+    "source_content_hash",
+    "confidence_class",
+    "confidence_score",
+    "visibility_reason",
+    "attention_cost",
+    "sort_bucket",
+    "history_group_ref",
+    "developer_proof_only",
+    "operator_mode_visible",
+    "machine_contract_visible",
+    "action_slots",
+    "controller_event_type",
+    "requires_operator_envelope",
+    "receipt_required",
+    "stale_after",
+    "superseded_by_card_ref",
+    "proof.artifact_refs",
+    "proof.hash_refs",
+    "proof.sqlite_refs",
+    "proof.sensitive_detail_policy",
+    "proof.redacted_summary",
+    "proof.raw_detail_available"
+  ],
+  "lifecycle_staleness_rules": [
+    "Active and needs_operator cards show by default only when they provide the next playable control.",
+    "Resolved cards hide by default after a receipt is recorded.",
+    "Historical cards collapse under Completed / History.",
+    "Stale cards must display Needs verification and name stale_reason.",
+    "Proof-only cards are hidden unless requested through details.",
+    "Workroom cards show only when operator_decision_required is true.",
+    "Finance payment-watch cards stay visible only while payment evidence is missing.",
+    "Payment-processing evidence becomes waiting evidence, not paid truth.",
+    "No card remains primary when replacement_card_ref or superseded_by_card_ref points to a newer receipt/card.",
+    "Machine-contract cards stay hidden in operator mode."
+  ],
+  "proof_detail_fields_to_keep_collapsed": [
+    "proof.proof_refs",
+    "proof.read_model_refs",
+    "proof.receipt_refs",
+    "proof.artifact_refs",
+    "proof.hash_refs",
+    "proof.sqlite_refs",
+    "proof.raw_request_ref",
+    "proof.raw_response_ref",
+    "proof.source_content_hash",
+    "proof.validation_commands",
+    "proof.unsafe_scan_result",
+    "proof.sensitive_detail_policy",
+    "proof.redacted_summary"
+  ],
+  "generic_actions_and_controls": {
+    "baseline_actions": [
+      "open_lane",
+      "ask_why",
+      "show_details"
+    ],
+    "decision_actions": [
+      "approve",
+      "deny",
+      "request_rework",
+      "mark_informational",
+      "stop_hold_cancel"
+    ],
+    "staging_actions": [
+      "stage_plan",
+      "continue"
+    ],
+    "proof_actions": [
+      "attach_proof",
+      "mark_as_test",
+      "show_details"
+    ],
+    "rendering_rule": "Mac should render enabled, disabled, and proof/detail controls from backend action payload refs. It should not synthesize workflow-specific buttons.",
+    "dispatch_rule": "Every mutating controller event requires a verified operator/app/device/session envelope. Incoming authority_requested is only a request; authority_granted remains backend-only."
+  },
+  "trust_and_freshness_labels": {
+    "current_contract_labels": [
+      "trusted_current",
+      "preview_only",
+      "future_gated",
+      "stale_needs_proof",
+      "operator_reported",
+      "candidate_evidence",
+      "unknown"
+    ],
+    "recommended_v1_labels": [
+      "proven_receipt",
+      "proven_artifact_hash",
+      "trusted_current",
+      "operator_reported",
+      "candidate_evidence",
+      "generated_summary",
+      "inferred",
+      "stale_needs_proof",
+      "test_only",
+      "rejected",
+      "unknown"
+    ],
+    "freshness_labels": [
+      "current",
+      "waiting_on_external",
+      "needs_verification",
+      "superseded",
+      "historical",
+      "unknown"
+    ]
+  },
+  "mac_bespoke_ui_can_be_replaced": [
+    "Capital Hilton payment-watch card",
+    "Capital Hilton proposal follow-up card",
+    "Live Arts MD evidence receipt card",
+    "St. Anne's work-log review summary",
+    "Workroom review packet cards",
+    "approval request and protected gate cards",
+    "contextual what-should-I-do answer cards",
+    "workflow composer plan preview cards",
+    "memory candidate review cards",
+    "completed receipt/history rows"
+  ],
+  "mac_must_keep_bespoke": [
+    "application shell and window layout",
+    "world/bank switcher and lane navigation state",
+    "Composer input surface",
+    "generic dynamic card renderer",
+    "safe action dispatcher and controller-envelope creation",
+    "evidence drop zone, file picker, and local preview",
+    "proof/details drawer",
+    "compact meters for WIP, approvals, proof, and bridge/service health",
+    "local error/offline/bridge status handling",
+    "accessibility, keyboard focus, and view preferences"
+  ],
+  "cards_that_should_never_be_operator_primary": [
+    "machine-contract cards",
+    "raw artifact/proof cards",
+    "generated summary-only proof",
+    "completed/historical receipt cards",
+    "test-only evidence",
+    "stale service-status cards without current receipt",
+    "memory candidates that do not require operator approval",
+    "gate ledger rows that do not explain a current blocker",
+    "WIP/watch metrics without a needed decision"
+  ],
+  "recommended_dynamic_card_packet_v1_changes": [
+    {
+      "change": "Add card_family as a required field.",
+      "reason": "Mac should switch on generic family rather than workflow-specific card ids."
+    },
+    {
+      "change": "Add normalized lane, workflow, entity, and object refs.",
+      "reason": "The backend can preserve domain context while Mac renders a generic shell."
+    },
+    {
+      "change": "Replace action ordering with action_slots.",
+      "reason": "Mac needs primary/secondary/detail/disabled-danger slots without bespoke button logic."
+    },
+    {
+      "change": "Add controller_event_type, requires_operator_envelope, and receipt_required to each action.",
+      "reason": "The safe dispatcher should not infer verification or receipt rules from labels."
+    },
+    {
+      "change": "Expand proof into categorized refs and redacted details.",
+      "reason": "Proof drawer should render safely without exposing raw sensitive text or guessing source type."
+    },
+    {
+      "change": "Add source status/hash/generated_at fields.",
+      "reason": "Cards can become stale when their source read model or receipt changes."
+    },
+    {
+      "change": "Add developer_proof_only, machine_contract_visible, and operator_mode_visible.",
+      "reason": "Machine contracts should never leak into operator-primary surfaces."
+    },
+    {
+      "change": "Add confidence_class and confidence_score from evidence_confidence_scoring.",
+      "reason": "Mac needs compact trust labels for receipt-backed, operator-reported, inferred, stale, and unknown states."
+    },
+    {
+      "change": "Add history_group_ref and superseded_by_card_ref.",
+      "reason": "Mac can collapse old cards deterministically without custom workflow cleanup."
+    }
+  ],
+  "recommended_mac_thinning_sequence": [
+    {
+      "step": 1,
+      "work": "Render existing dynamic_card_packet_latest cards exclusively through the generic renderer for one pane.",
+      "success_criteria": "Capital Hilton payment-watch, evidence-intake, review packet, proposal, diagnostic, workbook registration, and St. Anne's historical cards render without bespoke Mac card classes."
+    },
+    {
+      "step": 2,
+      "work": "Add card_family and action_slots to backend packet v1 while preserving v0 compatibility.",
+      "success_criteria": "Mac switches layout by family and action slot, not by card_id."
+    },
+    {
+      "step": 3,
+      "work": "Move approval, gate, workflow composer, memory candidate, and historical receipt surfaces into backend cards.",
+      "success_criteria": "Mac removes hardcoded approval/gate/review/workflow-specific panels."
+    },
+    {
+      "step": 4,
+      "work": "Unify proof/details drawer around categorized proof fields.",
+      "success_criteria": "Artifacts, receipts, hashes, sqlite refs, and redacted summaries render from proof metadata only."
+    },
+    {
+      "step": 5,
+      "work": "Retire Mac workflow-specific card code after parity screenshots and controller-event smoke tests.",
+      "success_criteria": "Mac keeps shell, switcher, renderer, drop zone, proof drawer, dispatcher, and meters only."
+    }
+  ],
+  "authority_boundary": {
+    "email_send_allowed": false,
+    "gmail_allowed": false,
+    "browser_access_allowed": false,
+    "coupa_allowed": false,
+    "portal_submit_allowed": false,
+    "ledger_posting_allowed": false,
+    "ledger_mutation_allowed": false,
+    "workbook_source_mutation_allowed": false,
+    "workbook_mutation_allowed": false,
+    "pdf_export_allowed": false,
+    "paid_marking_allowed": false,
+    "business_action_allowed": false,
+    "external_action_allowed": false,
+    "authority_grant_allowed": false,
+    "worker_spawn_allowed": false,
+    "git_push_allowed": false,
+    "sent": false,
+    "paid": false
+  },
+  "machine_proof": {
+    "audit_only": true,
+    "runtime_code_edited": false,
+    "sqlite_mutated": false,
+    "email_send_performed": false,
+    "gmail_access_performed": false,
+    "browser_access_performed": false,
+    "coupa_access_performed": false,
+    "ledger_mutation_performed": false,
+    "workbook_mutation_performed": false,
+    "pdf_export_performed": false,
+    "paid_marking_performed": false,
+    "submit_performed": false,
+    "business_action_performed": false,
+    "worker_spawn_performed": false,
+    "external_llm_invoked": false,
+    "unsafe_true_grants": [],
+    "unsafe_true_grants_absent": true
+  }
+}
