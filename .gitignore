@@ -431,6 +431,8 @@
 !tests/test_pc_review_fallback.py
 !tests/test_builder_fallback.py
 !tests/test_skill_pipeline_smoke.py
+!tests/test_skill_vetter_description_limit.py
+!tests/test_check_skill_metadata.py
 !tests/test_launch_ladder_static_contract.py
 !tests/test_backend_sqlite_schema.py
 !tests/test_backend_sqlite_runtime.py
@@ -671,6 +673,7 @@
 !scripts/query_context_packets.py
 !tests/test_context_packet_retrieval.py
 !scripts/check_runtime_activation_gate.py
+!scripts/check_skill_metadata.py
 !tests/test_runtime_activation_gate.py
 !tests/test_context_substrate_pipeline.py
 !scripts/build_helm_state.py

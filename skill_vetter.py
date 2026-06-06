@@ -11,6 +11,7 @@ from typing import Any, Sequence
 
 DEFAULT_RULESET = {
     "min_description_length": 20,
+    "max_description_bytes": 1024,
     "min_content_words": 12,
 }
 VALID_STATUSES = frozenset({"pass", "fail"})
@@ -46,6 +47,8 @@ def vet_skills(
     effective_rules = dict(DEFAULT_RULESET)
     if ruleset:
         effective_rules.update(ruleset)
+        if "max_description_bytes" not in ruleset and "max_description_length" in ruleset:
+            effective_rules["max_description_bytes"] = ruleset["max_description_length"]
     try:
         effective_rules = _normalize_ruleset(effective_rules)
     except SkillVetterError as exc:
@@ -104,6 +107,13 @@ def _vet_one_skill(index: int, skill: dict[str, Any], ruleset: dict[str, Any]) -
                 f"description must be at least {int(ruleset['min_description_length'])} characters",
             )
         )
+    if description and len(description.encode("utf-8")) > int(ruleset["max_description_bytes"]):
+        reasons.append(
+            _reason(
+                "DESCRIPTION_TOO_LONG",
+                f"description must be at most {int(ruleset['max_description_bytes'])} UTF-8 bytes",
+            )
+        )
     if content and len(content.split()) < int(ruleset["min_content_words"]):
         reasons.append(
             _reason(
@@ -135,7 +145,7 @@ def _coerce_text(value: Any) -> str:
 
 def _normalize_ruleset(ruleset: dict[str, Any]) -> dict[str, int]:
     normalized: dict[str, int] = {}
-    for field_name in ("min_description_length", "min_content_words"):
+    for field_name in ("min_description_length", "max_description_bytes", "min_content_words"):
         raw_value = ruleset.get(field_name, DEFAULT_RULESET[field_name])
         try:
             coerced = int(raw_value)
