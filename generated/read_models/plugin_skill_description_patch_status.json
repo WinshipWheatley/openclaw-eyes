@@ -1,0 +1,72 @@
+{
+  "schema_version": "plugin_skill_description_patch_status_v0",
+  "read_model_id": "plugin_skill_description_patch_status",
+  "status": "PLUGIN_SKILL_DESCRIPTION_PATCH_PRESERVED",
+  "generated_at": "2026-06-06T20:50:07Z",
+  "purpose": "Preserve the local openai/plugins skill-description limit fix as a portable patch artifact and record remaining upstream risk.",
+  "temp_plugin_checkout": {
+    "path": "/home/openclaw/.codex/.tmp/plugins",
+    "temp_plugin_commit": "995d982",
+    "commit_subject": "fix: shorten plugin skill descriptions",
+    "commit_stat": {
+      "files_changed": 3,
+      "insertions": 27,
+      "deletions": 49,
+      "changed_files": [
+        "plugins/heygen/skills/heygen-avatar/SKILL.md",
+        "plugins/heygen/skills/heygen-video/SKILL.md",
+        "plugins/twilio/skills/twilio-enterprise-knowledge/SKILL.md"
+      ]
+    },
+    "git_diff_check_clean": true,
+    "temp_source_clean": true,
+    "temp_source_checked_skill_count": 550,
+    "temp_source_over_1024_bytes": 0,
+    "canonical_checker_command": "python3 scripts/check_skill_metadata.py --root /home/openclaw/.codex/.tmp/plugins --no-codex-cache"
+  },
+  "openclaw_checker": {
+    "openclaw_checker_commit": "64811f2",
+    "commit_subject": "fix: support skill metadata checker root flag",
+    "checker_path": "/home/openclaw/scripts/check_skill_metadata.py",
+    "root_flag_verified": true
+  },
+  "active_skill_cache": {
+    "path": "/home/openclaw/.codex/plugins/cache",
+    "active_cache_clean": true,
+    "active_cache_checked_skill_count": 55,
+    "active_cache_over_1024_bytes": 0,
+    "active_skill_cache_modified": false,
+    "canonical_checker_command": "python3 scripts/check_skill_metadata.py --root /home/openclaw/.codex/plugins/cache --no-codex-cache"
+  },
+  "portable_patch": {
+    "patch_path": "/home/openclaw/openai_plugins_skill_description_limit_995d982.patch",
+    "patch_exists": true,
+    "patch_non_empty": true,
+    "patch_size_bytes": 7791,
+    "patch_sha256": "8ae49fb99aa42a42233c2be46fff2560494f351ec5d335ff99c7968086e119fb",
+    "format_patch_command": "git format-patch -1 995d982 --stdout > /home/openclaw/openai_plugins_skill_description_limit_995d982.patch"
+  },
+  "upstream_status": "not_confirmed",
+  "remaining_risk": "If /home/openclaw/.codex/.tmp/plugins is reset or recloned before 995d982 or an equivalent change is upstreamed, invalid skill metadata can return.",
+  "next_safe_action": "Upstream the patch or apply it to the canonical plugin source/fork before relying on a reset or reclone.",
+  "openclaw_ready_claimed": false,
+  "openclaw_runtime_behavior_mutated": false,
+  "temp_plugin_checkout_committed_now": false,
+  "temp_plugin_checkout_push_performed": false,
+  "openclaw_push_performed": false,
+  "browser_opened": false,
+  "messages_sent": false,
+  "machine_proof": {
+    "temp_commit_verified": true,
+    "temp_git_diff_check_clean": true,
+    "active_cache_clean": true,
+    "temp_source_clean": true,
+    "patch_file_exists_and_non_empty": true,
+    "bridge_copy_required": true,
+    "openclaw_ready_claimed": false,
+    "openclaw_runtime_behavior_mutated": false,
+    "active_skill_cache_modified": false,
+    "plugin_files_deleted": false,
+    "push_performed": false
+  }
+}
