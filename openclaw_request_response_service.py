@@ -1230,8 +1230,18 @@ def publish_response_for_mac(
     latest_file = response_dir / LATEST_RESPONSE_EXPORT_NAME
     manifest_file = response_dir / MANIFEST_EXPORT_NAME
     published_payload = _published_response_payload(response_payload, created_at=created_at)
+    published_payload = processor.stamp_proof_to_response_source_response_path(
+        published_payload,
+        source_response_path=response_file.as_posix(),
+    )
     _atomic_write_text(response_file, stable_json(published_payload))
     _atomic_write_text(latest_file, stable_json(published_payload))
+    if isinstance(published_payload.get("proof_to_response"), Mapping):
+        processor.proof_to_response_runtime.restamp_latest_source_response_path(
+            source_request_id=request_id,
+            source_response_path=response_file.as_posix(),
+            generated_at=created_at,
+        )
 
     manifest = _read_manifest(response_dir)
     responses = manifest.get("responses")

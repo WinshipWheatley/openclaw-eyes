@@ -1743,15 +1743,40 @@ def _attach_proof_to_response(
     proof_to_response_sqlite_path: Path | None,
     generated_at: str,
 ) -> None:
+    runtime_sqlite_path = proof_to_response_sqlite_path or _proof_to_response_sqlite_path(router_sqlite_path)
+    source_request_id = str(receipt.get("request_id") or request.get("request_id") or "")
+    controller_event_type = str(receipt.get("controller_event_type") or request.get("controller_event_type") or "")
+    selected_card_id = str(receipt.get("selected_card_id") or request.get("selected_card_id") or "")
+    selected_action_id = str(receipt.get("selected_action_id") or request.get("selected_action_id") or "")
+    world_ref = str(receipt.get("current_world_ref") or request.get("current_world_ref") or "")
+    thread_ref = str(receipt.get("current_thread_ref") or request.get("current_thread_ref") or "")
     if not receipt.get("dynamic_card_response"):
+        receipt["proof_to_response_status"] = "unavailable:no_dynamic_card_response"
         return
     scenario_id = _proof_to_response_scenario_id(request, receipt)
     if not scenario_id:
+        export_result = proof_to_response_runtime.export_unavailable_controller_response(
+            source_request_id=source_request_id,
+            controller_event_type=controller_event_type,
+            world_ref=world_ref,
+            thread_ref=thread_ref,
+            selected_card_id=selected_card_id,
+            selected_action_id=selected_action_id,
+            unavailable_reason="no_supported_proof_to_response_scenario_for_controller_route",
+            read_model_root=read_model_root,
+            export_root=export_root,
+            bridge_export_root=bridge_root,
+            wiki_path=_proof_to_response_wiki_path(wiki_path),
+            sqlite_path=runtime_sqlite_path,
+            generated_at=generated_at,
+        )
+        receipt["proof_to_response_status"] = "unavailable:no_supported_scenario"
+        receipt["proof_to_response_unavailable_reason"] = "no_supported_proof_to_response_scenario_for_controller_route"
+        receipt["proof_to_response_runtime_export"] = export_result
         return
     candidate = request.get("proof_to_response_candidate")
     if not isinstance(candidate, Mapping):
         candidate = None
-    runtime_sqlite_path = proof_to_response_sqlite_path or _proof_to_response_sqlite_path(router_sqlite_path)
     publish_result = proof_to_response_runtime.publish_response(
         scenario_id,
         candidate_response=candidate,
@@ -1759,8 +1784,18 @@ def _attach_proof_to_response(
         sqlite_path=runtime_sqlite_path,
         read_model_root=read_model_root,
     )
+    primary_response = proof_to_response_runtime.scope_controller_response(
+        publish_result.get("published_response") if isinstance(publish_result.get("published_response"), Mapping) else {},
+        source_request_id=source_request_id,
+        controller_event_type=controller_event_type,
+        selected_card_id=selected_card_id,
+        selected_action_id=selected_action_id,
+        generated_at=generated_at,
+    )
+    scoped_publish_result = dict(publish_result)
+    scoped_publish_result["published_response"] = primary_response
     export_result = proof_to_response_runtime.export_controller_integration_response(
-        publish_result,
+        scoped_publish_result,
         read_model_root=read_model_root,
         export_root=export_root,
         bridge_export_root=bridge_root,
@@ -1768,13 +1803,13 @@ def _attach_proof_to_response(
         sqlite_path=runtime_sqlite_path,
         generated_at=generated_at,
     )
-    primary_response = dict(publish_result.get("published_response") or {})
     runtime_receipt = dict(publish_result.get("receipt") or {})
     receipt["primary_response_kind"] = "proof_to_response"
     receipt["proof_to_response"] = primary_response
     receipt["proof_to_response_receipt"] = runtime_receipt
     receipt["proof_to_response_runtime_export"] = export_result
     receipt["proof_to_response_scenario_id"] = scenario_id
+    receipt["proof_to_response_status"] = str(primary_response.get("verification_status") or "unavailable")
     receipt["dynamic_card_role"] = "support_display"
     receipt["details_collapsed"] = True
     receipt.setdefault("proof_refs", [])

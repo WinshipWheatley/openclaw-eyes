@@ -16,7 +16,7 @@ import json
 import re
 import sys
 import time
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Mapping
@@ -585,6 +585,8 @@ class OpenClawResponseForMac:
     detail_disclosure: dict[str, Any]
     readback_files: tuple[str, ...]
     next_safe_move: str
+    proof_to_response: dict[str, Any] = field(default_factory=dict)
+    proof_to_response_status: str = ""
 
 
 @dataclass(frozen=True)
@@ -752,6 +754,42 @@ def _read_response_manifest(response_dir: Path) -> dict[str, Any]:
     }
 
 
+def stamp_proof_to_response_source_response_path(
+    response_payload: Mapping[str, Any],
+    *,
+    source_response_path: str,
+) -> dict[str, Any]:
+    """Stamp request-scoped proof responses with the final Mac response path."""
+
+    def stamp(value: Any) -> Any:
+        if not isinstance(value, Mapping):
+            return value
+        stamped = dict(value)
+        stamped["source_response_path"] = source_response_path
+        stamped["response_content_hash"] = proof_to_response_runtime._content_hash(
+            {key: item for key, item in stamped.items() if key != "response_content_hash"}
+        )
+        return stamped
+
+    payload = dict(response_payload)
+    if isinstance(payload.get("proof_to_response"), Mapping):
+        payload["proof_to_response"] = stamp(payload["proof_to_response"])
+
+    detail = payload.get("detail_disclosure")
+    if isinstance(detail, Mapping):
+        stamped_detail = dict(detail)
+        if isinstance(stamped_detail.get("proof_to_response"), Mapping):
+            stamped_detail["proof_to_response"] = stamp(stamped_detail["proof_to_response"])
+        layered = stamped_detail.get("layered_response_fields")
+        if isinstance(layered, Mapping):
+            stamped_layered = dict(layered)
+            if isinstance(stamped_layered.get("proof_to_response"), Mapping):
+                stamped_layered["proof_to_response"] = stamp(stamped_layered["proof_to_response"])
+            stamped_detail["layered_response_fields"] = stamped_layered
+        payload["detail_disclosure"] = stamped_detail
+    return payload
+
+
 def publish_response_for_mac_outbox(
     response_payload: Mapping[str, Any],
     *,
@@ -789,13 +827,22 @@ def publish_response_for_mac_outbox(
     response_file = response_dir / f"openclaw_response_for_mac_{_safe_filename_part(source_request_id)}.json"
     latest_file = response_dir / LATEST_RESPONSE_EXPORT_NAME
     manifest_file = response_dir / RESPONSE_MANIFEST_EXPORT_NAME
-    published_payload = dict(response_payload)
+    published_payload = stamp_proof_to_response_source_response_path(
+        response_payload,
+        source_response_path=response_file.as_posix(),
+    )
     published_payload["published_at"] = published_at
     published_payload["terminal"] = bool(response_payload.get("terminal"))
     published_payload["service_note"] = "Published by bounded OpenClaw processor for Mac scoped response lookup."
 
     _atomic_write_text(response_file, stable_json(published_payload))
     _atomic_write_text(latest_file, stable_json(published_payload))
+    if isinstance(published_payload.get("proof_to_response"), Mapping):
+        proof_to_response_runtime.restamp_latest_source_response_path(
+            source_request_id=source_request_id,
+            source_response_path=response_file.as_posix(),
+            generated_at=published_at,
+        )
 
     manifest = _read_response_manifest(response_dir)
     responses = manifest.get("responses")
@@ -4643,6 +4690,11 @@ def _process_operator_controller_event_request(
     route_status = str(receipt.get("route_status") or "")
     card = _controller_event_dynamic_card(receipt)
     primary_response = receipt.get("proof_to_response") if isinstance(receipt.get("proof_to_response"), Mapping) else {}
+    proof_to_response_status = str(
+        receipt.get("proof_to_response_status")
+        or primary_response.get("verification_status")
+        or "unavailable"
+    )
     headline = str(
         primary_response.get("headline")
         or card.get("headline")
@@ -4680,6 +4732,7 @@ def _process_operator_controller_event_request(
         "proof_refs": proof_refs,
         "primary_response_kind": str(receipt.get("primary_response_kind") or "dynamic_card_response"),
         "proof_to_response": primary_response,
+        "proof_to_response_status": proof_to_response_status,
         "debug_refs": readback_files,
         "raw_internal_status": internal_status,
         "mac_render_hint": "DYNAMIC_CARD_WITH_DISCLOSURE",
@@ -4735,6 +4788,7 @@ def _process_operator_controller_event_request(
             "layered_response_fields": layered_fields,
             "operator_controller_event_router": receipt,
             "proof_to_response": primary_response,
+            "proof_to_response_status": proof_to_response_status,
             "dynamic_card_response": card,
             "live_external_provider_action_performed": False,
             "business_action_performed": False,
@@ -4746,6 +4800,8 @@ def _process_operator_controller_event_request(
         },
         readback_files=readback_files,
         next_safe_move=next_safe_move,
+        proof_to_response=dict(primary_response),
+        proof_to_response_status=proof_to_response_status,
     )
 
 

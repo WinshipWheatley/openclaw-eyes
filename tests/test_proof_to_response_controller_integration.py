@@ -9,6 +9,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import first_class_operator_envelope as operator_authority
+import openclaw_request_processor as processor
 import operator_controller_event_router as router
 import proof_to_response_runtime as runtime
 
@@ -138,6 +139,13 @@ def _candidate(read_model_root: Path, scenario_id: str, **overrides) -> dict:
 
 def _assert_primary_shape(response: dict) -> None:
     for field in (
+        "response_id",
+        "source_request_id",
+        "controller_event_type",
+        "world_ref",
+        "thread_ref",
+        "speaker_ref",
+        "voice_mode",
         "headline",
         "body",
         "next_step",
@@ -146,6 +154,10 @@ def _assert_primary_shape(response: dict) -> None:
         "cannot_do_yet",
         "controls",
         "proof_meters",
+        "proof_refs",
+        "receipt_refs",
+        "verification_status",
+        "authority_boundary",
     ):
         assert field in response
     assert response["details_collapsed"] is True
@@ -168,6 +180,11 @@ def test_capital_hilton_ask_why_updates_proof_to_response_latest(tmp_path):
     primary = receipt["proof_to_response"]
     _assert_primary_shape(primary)
     assert latest == bridge_latest
+    assert latest["source_request_id"] == receipt["request_id"]
+    assert latest["world_ref"] == "finance"
+    assert latest["thread_ref"] == "capital_hilton"
+    assert latest["selected_card_id"] == "dynamic_card.finance.capital_hilton.payment_watch"
+    assert latest["stale_if_context_mismatch"] is True
     assert latest["latest_response"]["headline"] == "Payment evidence needed"
     assert "payment evidence" in primary["body"].lower()
     assert "ledger stays untouched" in primary["body"].lower()
@@ -212,7 +229,43 @@ def test_business_development_advance_objective_updates_proof_to_response_latest
     assert primary["headline"] == "Follow-up can be staged"
     assert "stage a follow-up draft" in primary["body"]
     assert "not send" in primary["body"]
+    assert latest["world_ref"] == "business_development"
+    assert latest["thread_ref"] == "capital_hilton"
+    assert latest["source_request_id"] == receipt["request_id"]
     assert latest["latest_response"]["headline"] == "Follow-up can be staged"
+
+
+def test_latest_moves_from_finance_to_business_development(tmp_path):
+    finance_receipt, finance_latest, _finance_bridge = _route(
+        tmp_path,
+        _controller_event_request(
+            event_type="ask_why",
+            world="finance",
+            thread="capital_hilton",
+            suffix="sequential_finance",
+            selected_card_id="dynamic_card.finance.capital_hilton.payment_watch",
+            operator_text="Why am I here?",
+        ),
+    )
+    business_receipt, business_latest, _business_bridge = _route(
+        tmp_path,
+        _controller_event_request(
+            event_type="advance_objective",
+            world="business_development",
+            thread="capital_hilton",
+            suffix="sequential_business_development",
+            selected_card_id="dynamic_card.business_development.capital_hilton.proposal",
+            operator_text="Advance the follow-up.",
+        ),
+    )
+
+    assert finance_latest["world_ref"] == "finance"
+    assert finance_latest["source_request_id"] == finance_receipt["request_id"]
+    assert business_latest["world_ref"] == "business_development"
+    assert business_latest["thread_ref"] == "capital_hilton"
+    assert business_latest["source_request_id"] == business_receipt["request_id"]
+    assert business_latest["latest_response"]["headline"] == "Follow-up can be staged"
+    assert business_latest["latest_response"]["world_ref"] == "business_development"
 
 
 def test_live_arts_evidence_intake_updates_candidate_not_paid_response(tmp_path):
@@ -234,6 +287,8 @@ def test_live_arts_evidence_intake_updates_candidate_not_paid_response(tmp_path)
     assert "candidate evidence" in primary["body"]
     assert "does not mark the invoice paid" in primary["body"]
     assert receipt["route_result"]["payment"]["paid"] is False
+    assert latest["world_ref"] == "finance"
+    assert latest["thread_ref"] == "live_arts_md"
     assert latest["latest_response"]["headline"] == "Payment proof received"
 
 
@@ -363,6 +418,69 @@ def test_dynamic_card_remains_available_as_support(tmp_path):
     assert receipt["dynamic_card_role"] == "support_display"
     assert receipt["dynamic_card_response"]["proof"]["collapsed_by_default"] is True
     assert receipt["details_collapsed"] is True
+
+
+def test_processor_response_embeds_request_scoped_proof_to_response(tmp_path):
+    read_model_root = _seed_read_models(tmp_path)
+    request = _controller_event_request(
+        event_type="advance_objective",
+        world="business_development",
+        thread="capital_hilton",
+        suffix="processor_business_development",
+        selected_card_id="dynamic_card.business_development.capital_hilton.proposal",
+        operator_text="Advance the follow-up.",
+    )
+    request_path = tmp_path / "mission_control_controller_event_request_processor_business.json"
+    request_path.write_text(json.dumps(request, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    classification = processor.RequestClassification(
+        classification_id="test:proof_to_response_controller",
+        source_request_filename=request_path.name,
+        request_family="OPERATOR_CONTROLLER_EVENT_REQUEST",
+        selected_rail="operator_controller_event_router",
+        classification_reason="test",
+        future_supported=False,
+        next_safe_move="route controller event",
+    )
+    response = processor._process_operator_controller_event_request(
+        request_path,
+        request,
+        export_root=read_model_root,
+        generated_at=FIXED_NOW,
+        classification=classification,
+        route_decision={"selected_rail": "operator_controller_event_router"},
+    )
+
+    assert response.proof_to_response_status == "publishable"
+    assert response.proof_to_response["source_request_id"] == request["request_id"]
+    assert response.proof_to_response["world_ref"] == "business_development"
+    assert response.proof_to_response["thread_ref"] == "capital_hilton"
+    assert response.operator_headline == "Follow-up can be staged"
+    assert response.visible_cards
+
+    response_path = "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_processor_business.json"
+    response_payload, _status_payload = processor.build_payloads(response, generated_at=FIXED_NOW)
+    stamped = processor.stamp_proof_to_response_source_response_path(
+        response_payload,
+        source_response_path=response_path,
+    )
+    assert stamped["proof_to_response"]["source_response_path"] == response_path
+    assert (
+        stamped["detail_disclosure"]["proof_to_response"]["source_response_path"]
+        == response_path
+    )
+    runtime.restamp_latest_source_response_path(
+        source_request_id=request["request_id"],
+        source_response_path=response_path,
+        export_root=read_model_root,
+        bridge_export_root=tmp_path / "bridge",
+        wiki_path=tmp_path / "wiki" / "Proof To Response Runtime.md",
+        generated_at=FIXED_NOW,
+    )
+    latest = json.loads((read_model_root / runtime.LATEST_JSON_EXPORT_NAME).read_text(encoding="utf-8"))
+    bridge_latest = json.loads((tmp_path / "bridge" / runtime.LATEST_JSON_EXPORT_NAME).read_text(encoding="utf-8"))
+    assert latest == bridge_latest
+    assert latest["source_response_path"] == response_path
+    assert latest["latest_response"]["source_response_path"] == response_path
 
 
 def test_unsafe_true_grant_scan_clean(tmp_path):

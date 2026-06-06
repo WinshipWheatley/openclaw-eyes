@@ -28,13 +28,13 @@ Verifier-only runtime for publishing concise agent responses from machine proof.
 
 ## Runtime Scenarios
 
-- `finance_capital_hilton_payment_watch`: Payment evidence needed -> `publishable`
+- `business_development_capital_hilton_followup`: Follow-up can be staged -> `publishable`
 
 ## Receipt Store
 
 - SQLite: `generated/system_knowledge/proof_to_response_runtime.sqlite`
-- Published responses: `8`
-- SQLite rows: `8`
+- Published responses: `14`
+- SQLite rows: `14`
 
 ## Boundary
 

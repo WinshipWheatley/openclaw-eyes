@@ -698,6 +698,50 @@ def _published_response_from_candidate(
     return response
 
 
+def scope_controller_response(
+    published_response: Mapping[str, Any],
+    *,
+    source_request_id: str,
+    controller_event_type: str,
+    selected_card_id: str = "",
+    selected_action_id: str = "",
+    source_response_path: str = "",
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    generated_at = generated_at or utc_now()
+    source_context = published_response.get("source_context") if isinstance(published_response.get("source_context"), Mapping) else {}
+    scoped = {
+        "response_id": str(published_response.get("response_id") or ""),
+        "source_request_id": source_request_id,
+        "source_response_path": source_response_path,
+        "controller_event_type": controller_event_type,
+        "selected_card_id": selected_card_id,
+        "selected_action_id": selected_action_id,
+        "world_ref": str(source_context.get("world_ref") or ""),
+        "thread_ref": str(source_context.get("thread_ref") or ""),
+        "objective_ref": str(source_context.get("objective_ref") or ""),
+        "speaker_ref": str(published_response.get("speaker_ref") or "openclaw"),
+        "voice_mode": str(published_response.get("voice_mode") or "brief"),
+        "headline": str(published_response.get("headline") or ""),
+        "body": str(published_response.get("body") or ""),
+        "next_step": str(published_response.get("next_step") or ""),
+        "missing_input": list(published_response.get("missing_input") or []),
+        "can_do_now": list(published_response.get("can_do_now") or []),
+        "cannot_do_yet": list(published_response.get("cannot_do_yet") or []),
+        "controls": list(published_response.get("controls") or []),
+        "proof_meters": list(published_response.get("proof_meters") or []),
+        "details_collapsed": True,
+        "proof_refs": list(published_response.get("proof_refs") or source_context.get("proof_refs") or []),
+        "receipt_refs": list(published_response.get("receipt_refs") or source_context.get("receipt_refs") or []),
+        "verification_status": str(published_response.get("verification_status") or ""),
+        "fallback_reason": str(published_response.get("fallback_reason") or ""),
+        "authority_boundary": {"protected_actions_allowed": False},
+        "generated_at": generated_at,
+    }
+    scoped["response_content_hash"] = _content_hash({k: v for k, v in scoped.items() if k != "response_content_hash"})
+    return scoped
+
+
 def _initialise_receipt_db(sqlite_path: Path, *, reset: bool = False) -> None:
     sqlite_path = _rooted(sqlite_path)
     sqlite_path.parent.mkdir(parents=True, exist_ok=True)
@@ -1001,14 +1045,27 @@ def build_latest_read_model(
         first = runs[0] if isinstance(runs[0], Mapping) else {}
         latest_response = dict(first.get("published_response") or {})
         latest_receipt = dict(first.get("receipt") or {})
+    latest_source_context = latest_response.get("source_context") if isinstance(latest_response.get("source_context"), Mapping) else {}
+    latest_world_ref = str(latest_response.get("world_ref") or latest_source_context.get("world_ref") or "")
+    latest_thread_ref = str(latest_response.get("thread_ref") or latest_source_context.get("thread_ref") or "")
     payload = {
         "schema_version": SCHEMA_VERSION,
         "read_model_id": LATEST_READ_MODEL_ID,
         "status": str(status.get("status") or NOT_READY_STATUS),
         "generated_at": generated_at,
         "source_status_ref": "generated/read_models/proof_to_response_runtime_status.json",
+        "source_request_id": str(latest_response.get("source_request_id") or status.get("source_request_id") or ""),
+        "source_response_path": str(latest_response.get("source_response_path") or status.get("source_response_path") or ""),
+        "world_ref": latest_world_ref or str(status.get("world_ref") or ""),
+        "thread_ref": latest_thread_ref or str(status.get("thread_ref") or ""),
+        "selected_card_id": str(latest_response.get("selected_card_id") or status.get("selected_card_id") or ""),
+        "selected_action_id": str(latest_response.get("selected_action_id") or status.get("selected_action_id") or ""),
+        "expires_or_superseded_by": "",
+        "stale_if_context_mismatch": True,
         "latest_response": latest_response,
         "latest_receipt_ref": latest_receipt.get("receipt_id", ""),
+        "proof_to_response_status": str(latest_response.get("verification_status") or status.get("proof_to_response_status") or ""),
+        "proof_to_response_unavailable_reason": str(status.get("proof_to_response_unavailable_reason") or ""),
         "details_collapsed": True,
         "authority_boundary": {"protected_actions_allowed": False},
         "implementation_boundary": dict(PERFORMED_FLAGS),
@@ -1016,6 +1073,8 @@ def build_latest_read_model(
     unsafe = unsafe_true_grants(payload)
     payload["machine_proof"] = {
         "latest_response_present": bool(latest_response),
+        "latest_context_scoped": bool((latest_world_ref or status.get("world_ref")) and (latest_thread_ref or status.get("thread_ref"))),
+        "stale_if_context_mismatch": True,
         "unsafe_true_grants": unsafe,
         "unsafe_true_grants_absent": not unsafe,
         **PERFORMED_FLAGS,
@@ -1083,6 +1142,189 @@ def export_controller_integration_response(
             "controller_event_updated_latest_response": bool(published_response),
             "latest_response_verification_status": str(published_response.get("verification_status") or ""),
             "safe_fallback_available": str(published_response.get("verification_status") or "") == "fallback",
+            **PERFORMED_FLAGS,
+        },
+    }
+    unsafe = unsafe_true_grants(status)
+    status["machine_proof"]["unsafe_true_grants"] = unsafe
+    status["machine_proof"]["unsafe_true_grants_absent"] = not unsafe
+    if unsafe:
+        status["status"] = NOT_READY_STATUS
+    latest = build_latest_read_model(status, generated_at=generated_at)
+
+    export_root = _rooted(export_root)
+    export_root.mkdir(parents=True, exist_ok=True)
+    contract_path = export_root / CONTRACT_JSON_EXPORT_NAME
+    status_path = export_root / STATUS_JSON_EXPORT_NAME
+    latest_path = export_root / LATEST_JSON_EXPORT_NAME
+    _write_json(contract_path, contract)
+    _write_json(status_path, status)
+    _write_json(latest_path, latest)
+
+    bridge_contract_path = ""
+    bridge_status_path = ""
+    bridge_latest_path = ""
+    if bridge_export_root is not None:
+        bridge_root = _rooted(bridge_export_root)
+        bridge_root.mkdir(parents=True, exist_ok=True)
+        bridge_contract = bridge_root / CONTRACT_JSON_EXPORT_NAME
+        bridge_status = bridge_root / STATUS_JSON_EXPORT_NAME
+        bridge_latest = bridge_root / LATEST_JSON_EXPORT_NAME
+        shutil.copy2(contract_path, bridge_contract)
+        shutil.copy2(status_path, bridge_status)
+        shutil.copy2(latest_path, bridge_latest)
+        bridge_contract_path = bridge_contract.as_posix()
+        bridge_status_path = bridge_status.as_posix()
+        bridge_latest_path = bridge_latest.as_posix()
+
+    wiki_path = _rooted(wiki_path)
+    wiki_path.parent.mkdir(parents=True, exist_ok=True)
+    wiki_path.write_text(build_wiki(contract, status), encoding="utf-8")
+    return {
+        "status": str(status["status"]),
+        "contract_path": contract_path.as_posix(),
+        "status_path": status_path.as_posix(),
+        "latest_path": latest_path.as_posix(),
+        "bridge_contract_path": bridge_contract_path,
+        "bridge_status_path": bridge_status_path,
+        "bridge_latest_path": bridge_latest_path,
+        "wiki_path": wiki_path.as_posix(),
+        "sqlite_path": str(_rooted(sqlite_path)),
+    }
+
+
+def restamp_latest_source_response_path(
+    *,
+    source_request_id: str,
+    source_response_path: str,
+    export_root: Path = DEFAULT_EXPORT_ROOT,
+    bridge_export_root: Path | None = DEFAULT_BRIDGE_EXPORT_ROOT,
+    wiki_path: Path = DEFAULT_WIKI_PATH,
+    generated_at: str | None = None,
+) -> dict[str, str]:
+    """Attach the final Mac response path once the publisher knows it."""
+
+    source_request_id = str(source_request_id or "").strip()
+    source_response_path = str(source_response_path or "").strip()
+    if not source_request_id or not source_response_path:
+        return {"updated": "false", "reason": "missing_source_request_or_response_path"}
+
+    generated_at = generated_at or utc_now()
+    export_root = _rooted(export_root)
+    contract_path = export_root / CONTRACT_JSON_EXPORT_NAME
+    status_path = export_root / STATUS_JSON_EXPORT_NAME
+    latest_path = export_root / LATEST_JSON_EXPORT_NAME
+    contract = _load_json(contract_path)
+    status = _load_json(status_path)
+    if not status:
+        return {"updated": "false", "reason": "missing_status_read_model"}
+
+    latest_response = status.get("latest_response") if isinstance(status.get("latest_response"), Mapping) else {}
+    runtime_runs = status.get("runtime_runs") if isinstance(status.get("runtime_runs"), list) else []
+    run_response: dict[str, Any] = {}
+    if runtime_runs and isinstance(runtime_runs[0], Mapping):
+        candidate = runtime_runs[0].get("published_response")
+        if isinstance(candidate, Mapping):
+            run_response = dict(candidate)
+    active_response = dict(latest_response or run_response)
+    active_request_id = str(active_response.get("source_request_id") or status.get("source_request_id") or "")
+    if active_request_id != source_request_id:
+        return {"updated": "false", "reason": "source_request_mismatch", "active_source_request_id": active_request_id}
+
+    active_response["source_response_path"] = source_response_path
+    active_response["response_content_hash"] = _content_hash(
+        {key: value for key, value in active_response.items() if key != "response_content_hash"}
+    )
+    status["latest_response"] = active_response
+    status["source_request_id"] = source_request_id
+    status["source_response_path"] = source_response_path
+    status["generated_at"] = generated_at
+    if runtime_runs and isinstance(runtime_runs[0], dict):
+        runtime_runs[0]["published_response"] = dict(active_response)
+        source_hashes = status.setdefault("source_content_hashes", {})
+        if isinstance(source_hashes, dict):
+            source_hashes["latest_publish_result"] = _content_hash(runtime_runs[0])
+    status["runtime_runs"] = runtime_runs
+    latest = build_latest_read_model(status, generated_at=generated_at)
+
+    _write_json(status_path, status)
+    _write_json(latest_path, latest)
+
+    bridge_status_path = ""
+    bridge_latest_path = ""
+    if bridge_export_root is not None:
+        bridge_root = _rooted(bridge_export_root)
+        bridge_root.mkdir(parents=True, exist_ok=True)
+        bridge_status = bridge_root / STATUS_JSON_EXPORT_NAME
+        bridge_latest = bridge_root / LATEST_JSON_EXPORT_NAME
+        shutil.copy2(status_path, bridge_status)
+        shutil.copy2(latest_path, bridge_latest)
+        bridge_status_path = bridge_status.as_posix()
+        bridge_latest_path = bridge_latest.as_posix()
+
+    if contract:
+        wiki_path = _rooted(wiki_path)
+        wiki_path.parent.mkdir(parents=True, exist_ok=True)
+        wiki_path.write_text(build_wiki(contract, status), encoding="utf-8")
+
+    return {
+        "updated": "true",
+        "status_path": status_path.as_posix(),
+        "latest_path": latest_path.as_posix(),
+        "bridge_status_path": bridge_status_path,
+        "bridge_latest_path": bridge_latest_path,
+    }
+
+
+def export_unavailable_controller_response(
+    *,
+    source_request_id: str,
+    controller_event_type: str,
+    world_ref: str,
+    thread_ref: str,
+    selected_card_id: str = "",
+    selected_action_id: str = "",
+    unavailable_reason: str,
+    read_model_root: Path = DEFAULT_READ_MODEL_ROOT,
+    export_root: Path = DEFAULT_EXPORT_ROOT,
+    bridge_export_root: Path | None = DEFAULT_BRIDGE_EXPORT_ROOT,
+    wiki_path: Path = DEFAULT_WIKI_PATH,
+    sqlite_path: Path = DEFAULT_SQLITE_PATH,
+    generated_at: str | None = None,
+) -> dict[str, str]:
+    generated_at = generated_at or utc_now()
+    contract = build_contract_read_model(read_model_root=read_model_root, generated_at=generated_at)
+    row_count = _receipt_count(sqlite_path)
+    status = {
+        "schema_version": SCHEMA_VERSION,
+        "read_model_id": STATUS_READ_MODEL_ID,
+        "status": READY_STATUS if contract.get("status") == READY_STATUS else NOT_READY_STATUS,
+        "generated_at": generated_at,
+        "contract_ref": "generated/read_models/proof_to_response_runtime_contract.json",
+        "latest_ref": "generated/read_models/proof_to_response_latest.json",
+        "sqlite_ref": "generated/system_knowledge/proof_to_response_runtime.sqlite",
+        "controller_integration_status": "PROOF_TO_RESPONSE_CONTROLLER_INTEGRATION_ACTIVE",
+        "proof_to_response_status": "unavailable",
+        "proof_to_response_unavailable_reason": unavailable_reason,
+        "source_request_id": source_request_id,
+        "source_response_path": "",
+        "controller_event_type": controller_event_type,
+        "world_ref": world_ref,
+        "thread_ref": thread_ref,
+        "selected_card_id": selected_card_id,
+        "selected_action_id": selected_action_id,
+        "published_response_count": row_count,
+        "sqlite_row_count": row_count,
+        "latest_response": {},
+        "latest_receipt": {},
+        "runtime_runs": [],
+        "implementation_boundary": dict(PERFORMED_FLAGS),
+        "authority_boundary": dict(AUTHORITY_BOUNDARY),
+        "machine_proof": {
+            "contract_ready": contract.get("status") == READY_STATUS,
+            "controller_event_updated_latest_response": False,
+            "unavailable_context_scoped": True,
+            "safe_fallback_available": False,
             **PERFORMED_FLAGS,
         },
     }
