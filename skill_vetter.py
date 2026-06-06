@@ -11,6 +11,7 @@ from typing import Any, Sequence
 
 DEFAULT_RULESET = {
     "min_description_length": 20,
+    "max_description_bytes": 1024,
     "min_content_words": 12,
 }
 VALID_STATUSES = frozenset({"pass", "fail"})
@@ -104,6 +105,16 @@ def _vet_one_skill(index: int, skill: dict[str, Any], ruleset: dict[str, Any]) -
                 f"description must be at least {int(ruleset['min_description_length'])} characters",
             )
         )
+    if description:
+        description_bytes = description_byte_length(description)
+        max_description_bytes = int(ruleset["max_description_bytes"])
+        if description_bytes > max_description_bytes:
+            reasons.append(
+                _reason(
+                    "DESCRIPTION_TOO_LONG",
+                    f"description must be at most {max_description_bytes} bytes; got {description_bytes}",
+                )
+            )
     if content and len(content.split()) < int(ruleset["min_content_words"]):
         reasons.append(
             _reason(
@@ -133,9 +144,13 @@ def _coerce_text(value: Any) -> str:
     return value.strip()
 
 
+def description_byte_length(description: str) -> int:
+    return len(description.encode("utf-8"))
+
+
 def _normalize_ruleset(ruleset: dict[str, Any]) -> dict[str, int]:
     normalized: dict[str, int] = {}
-    for field_name in ("min_description_length", "min_content_words"):
+    for field_name in ("min_description_length", "max_description_bytes", "min_content_words"):
         raw_value = ruleset.get(field_name, DEFAULT_RULESET[field_name])
         try:
             coerced = int(raw_value)
