@@ -43,7 +43,7 @@ def _parse_frontmatter(path: Path) -> tuple[dict[str, Any], str | None]:
     if not content.startswith("---"):
         return {}, "missing frontmatter"
 
-    lines = content.splitlines()
+    lines = content.splitlines(keepends=True)
     if not lines or lines[0].strip() != "---":
         return {}, "missing frontmatter"
 
@@ -56,7 +56,7 @@ def _parse_frontmatter(path: Path) -> tuple[dict[str, Any], str | None]:
         return {}, "unterminated frontmatter"
 
     try:
-        parsed = yaml.safe_load("\n".join(lines[1:closing_index])) or {}
+        parsed = yaml.safe_load("".join(lines[1:closing_index])) or {}
     except yaml.YAMLError as exc:
         return {}, str(exc).splitlines()[0]
     if not isinstance(parsed, dict):
@@ -93,7 +93,7 @@ def check_skill_file(path: Path, max_description_bytes: int) -> dict[str, Any] |
     if not isinstance(description, str) or not description.strip():
         return _issue(path, "MISSING_DESCRIPTION", "description is required")
 
-    description_bytes = len(description.strip().encode("utf-8"))
+    description_bytes = len(description.encode("utf-8"))
     if description_bytes > max_description_bytes:
         return _issue(
             path,
