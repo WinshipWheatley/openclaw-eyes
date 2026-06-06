@@ -20,6 +20,7 @@ from typing import Any, Mapping, Sequence
 import evidence_intake
 import first_class_operator_envelope as operator_authority
 import objective_advancement_protocol
+import proof_to_response_runtime
 import workroom_review_decision_consumer
 
 
@@ -1680,6 +1681,112 @@ def _route_event(
     )
 
 
+def _proof_to_response_sqlite_path(router_sqlite_path: Path) -> Path:
+    path = _rooted(router_sqlite_path)
+    return path.parent / "proof_to_response_runtime.sqlite"
+
+
+def _proof_to_response_wiki_path(router_wiki_path: Path) -> Path:
+    path = _rooted(router_wiki_path)
+    return path.parent / "Proof To Response Runtime.md"
+
+
+def _looks_protected_controller_request(request: Mapping[str, Any], receipt: Mapping[str, Any]) -> bool:
+    text = " ".join(
+        str(value or "")
+        for value in (
+            request.get("operator_text"),
+            request.get("selected_action_id"),
+            request.get("selected_card_id"),
+            receipt.get("route_ref"),
+            receipt.get("route_status"),
+            receipt.get("backend_route"),
+        )
+    ).lower()
+    return (
+        "protected" in text
+        or "coupa" in text
+        or "submit" in text
+        or "ledger" in text and "payment" in text
+        or str(receipt.get("route_status") or "") == "PROTECTED_ACTION_STAGED_OR_BLOCKED"
+    )
+
+
+def _proof_to_response_scenario_id(request: Mapping[str, Any], receipt: Mapping[str, Any]) -> str:
+    world = str(receipt.get("current_world_ref") or request.get("current_world_ref") or "").strip().lower()
+    thread = str(receipt.get("current_thread_ref") or request.get("current_thread_ref") or "").strip().lower()
+    event_type = str(receipt.get("controller_event_type") or request.get("controller_event_type") or "").strip()
+    if _looks_protected_controller_request(request, receipt):
+        return "protected_coupa_ledger_email_request"
+    if event_type == "attach_proof" and world == "finance" and thread == "live_arts_md":
+        return "finance_live_arts_payment_evidence"
+    if world == "business_development" and thread == "capital_hilton":
+        return "business_development_capital_hilton_followup"
+    if world == "finance" and thread == "capital_hilton":
+        return "finance_capital_hilton_payment_watch"
+    if world == "build" and "review" in str(receipt.get("backend_route") or ""):
+        return "build_review_packet"
+    if str(receipt.get("route_status") or "") == "NEEDS_LANE_CONTEXT":
+        return "unknown_context"
+    return ""
+
+
+def _attach_proof_to_response(
+    receipt: dict[str, Any],
+    request: Mapping[str, Any],
+    *,
+    read_model_root: Path,
+    export_root: Path,
+    bridge_root: Path | None,
+    wiki_path: Path,
+    router_sqlite_path: Path,
+    proof_to_response_sqlite_path: Path | None,
+    generated_at: str,
+) -> None:
+    if not receipt.get("dynamic_card_response"):
+        return
+    scenario_id = _proof_to_response_scenario_id(request, receipt)
+    if not scenario_id:
+        return
+    candidate = request.get("proof_to_response_candidate")
+    if not isinstance(candidate, Mapping):
+        candidate = None
+    runtime_sqlite_path = proof_to_response_sqlite_path or _proof_to_response_sqlite_path(router_sqlite_path)
+    publish_result = proof_to_response_runtime.publish_response(
+        scenario_id,
+        candidate_response=candidate,
+        generated_at=generated_at,
+        sqlite_path=runtime_sqlite_path,
+        read_model_root=read_model_root,
+    )
+    export_result = proof_to_response_runtime.export_controller_integration_response(
+        publish_result,
+        read_model_root=read_model_root,
+        export_root=export_root,
+        bridge_export_root=bridge_root,
+        wiki_path=_proof_to_response_wiki_path(wiki_path),
+        sqlite_path=runtime_sqlite_path,
+        generated_at=generated_at,
+    )
+    primary_response = dict(publish_result.get("published_response") or {})
+    runtime_receipt = dict(publish_result.get("receipt") or {})
+    receipt["primary_response_kind"] = "proof_to_response"
+    receipt["proof_to_response"] = primary_response
+    receipt["proof_to_response_receipt"] = runtime_receipt
+    receipt["proof_to_response_runtime_export"] = export_result
+    receipt["proof_to_response_scenario_id"] = scenario_id
+    receipt["dynamic_card_role"] = "support_display"
+    receipt["details_collapsed"] = True
+    receipt.setdefault("proof_refs", [])
+    for ref in primary_response.get("proof_refs") or []:
+        if ref and ref not in receipt["proof_refs"]:
+            receipt["proof_refs"].append(ref)
+    receipt["machine_proof"]["proof_to_response_primary_emitted"] = bool(primary_response)
+    receipt["machine_proof"]["proof_to_response_verification_status"] = str(primary_response.get("verification_status") or "")
+    receipt["machine_proof"]["details_collapsed"] = primary_response.get("details_collapsed") is not False
+    receipt["machine_proof"]["dynamic_card_role"] = "support_display"
+
+
 def _init_schema(conn: sqlite3.Connection) -> None:
     conn.execute(
         """
@@ -1832,6 +1939,7 @@ def route_controller_event(
     sqlite_path: Path = DEFAULT_SQLITE_PATH,
     evidence_sqlite_path: Path = evidence_intake.DEFAULT_SQLITE_PATH,
     artifact_lineage_sqlite_path: Path | None = evidence_intake.DEFAULT_ARTIFACT_LINEAGE_SQLITE_PATH,
+    proof_to_response_sqlite_path: Path | None = None,
     generated_at: str | None = None,
     export_read_models: bool = True,
 ) -> dict[str, Any]:
@@ -1898,6 +2006,17 @@ def route_controller_event(
         )
 
     receipt["source_request_filename"] = source_request_filename
+    _attach_proof_to_response(
+        receipt,
+        request,
+        read_model_root=read_model_root,
+        export_root=export_root,
+        bridge_root=bridge_root,
+        wiki_path=wiki_path,
+        router_sqlite_path=sqlite_path,
+        proof_to_response_sqlite_path=proof_to_response_sqlite_path,
+        generated_at=generated_at,
+    )
     receipt["machine_proof"]["unsafe_true_grants"] = unsafe_true_grants(receipt)
     receipt["machine_proof"]["unsafe_true_grants_absent"] = not receipt["machine_proof"]["unsafe_true_grants"]
     record_router_receipt(receipt, sqlite_path=sqlite_path)

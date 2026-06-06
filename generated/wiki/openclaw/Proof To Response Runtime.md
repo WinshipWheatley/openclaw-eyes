@@ -29,18 +29,12 @@ Verifier-only runtime for publishing concise agent responses from machine proof.
 ## Runtime Scenarios
 
 - `finance_capital_hilton_payment_watch`: Payment evidence needed -> `publishable`
-- `finance_live_arts_payment_evidence`: Evidence recorded -> `publishable`
-- `business_development_capital_hilton_followup`: Follow-up can be staged -> `publishable`
-- `build_review_packet`: Review packet is informational -> `publishable`
-- `unknown_context`: Needs lane context -> `publishable`
-- `protected_coupa_ledger_email_request`: Blocked until proof and approval -> `publishable`
-- `self_heal_missing_proof_for_payment`: Payment evidence is missing -> `publishable`
 
 ## Receipt Store
 
 - SQLite: `generated/system_knowledge/proof_to_response_runtime.sqlite`
-- Published responses: `7`
-- SQLite rows: `7`
+- Published responses: `8`
+- SQLite rows: `8`
 
 ## Boundary
 

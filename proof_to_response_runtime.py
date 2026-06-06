@@ -388,7 +388,7 @@ def fixture_candidate_response(proof_bundle: Mapping[str, Any]) -> dict[str, Any
     if scenario_id == "finance_live_arts_payment_evidence":
         return {
             **common,
-            "draft_headline": "Evidence recorded",
+            "draft_headline": "Payment proof received",
             "draft_body": "Payment-processing evidence is recorded as candidate evidence. It does not mark the invoice paid, and the ledger remains untouched.",
             "draft_next_step": "Verify arrival or attach stronger proof",
             "claimed_facts": ["candidate_evidence_recorded", "not_paid_truth", "ledger_untouched"],
@@ -1023,6 +1023,115 @@ def build_latest_read_model(
     if unsafe:
         payload["status"] = NOT_READY_STATUS
     return payload
+
+
+def export_controller_integration_response(
+    publish_result: Mapping[str, Any],
+    *,
+    read_model_root: Path = DEFAULT_READ_MODEL_ROOT,
+    export_root: Path = DEFAULT_EXPORT_ROOT,
+    bridge_export_root: Path | None = DEFAULT_BRIDGE_EXPORT_ROOT,
+    wiki_path: Path = DEFAULT_WIKI_PATH,
+    sqlite_path: Path = DEFAULT_SQLITE_PATH,
+    generated_at: str | None = None,
+) -> dict[str, str]:
+    """Export latest proof-to-response read models for one controller event.
+
+    This is intentionally separate from the full fixture export. Controller
+    events need the latest response to reflect the event that just routed.
+    """
+
+    generated_at = generated_at or utc_now()
+    published_response = dict(publish_result.get("published_response") or {})
+    proof_bundle = dict(publish_result.get("proof_bundle") or {})
+    verifier_result = dict(publish_result.get("verifier_result") or {})
+    receipt = dict(publish_result.get("receipt") or {})
+    contract = build_contract_read_model(read_model_root=read_model_root, generated_at=generated_at)
+    run = {
+        "scenario_id": str(publish_result.get("scenario_id") or proof_bundle.get("scenario_id") or ""),
+        "proof_bundle_id": str(proof_bundle.get("proof_bundle_id") or ""),
+        "candidate_response_id": str((publish_result.get("candidate_response") or {}).get("response_id") or ""),
+        "verifier_status": str(verifier_result.get("status") or ""),
+        "verification_status": str(published_response.get("verification_status") or ""),
+        "verification_errors": list(verifier_result.get("verification_errors") or []),
+        "published_response": published_response,
+        "receipt": receipt,
+    }
+    row_count = _receipt_count(sqlite_path)
+    status = {
+        "schema_version": SCHEMA_VERSION,
+        "read_model_id": STATUS_READ_MODEL_ID,
+        "status": READY_STATUS if contract.get("status") == READY_STATUS and not unsafe_true_grants(published_response) else NOT_READY_STATUS,
+        "generated_at": generated_at,
+        "contract_ref": "generated/read_models/proof_to_response_runtime_contract.json",
+        "latest_ref": "generated/read_models/proof_to_response_latest.json",
+        "sqlite_ref": "generated/system_knowledge/proof_to_response_runtime.sqlite",
+        "controller_integration_status": "PROOF_TO_RESPONSE_CONTROLLER_INTEGRATION_ACTIVE",
+        "published_response_count": row_count,
+        "sqlite_row_count": row_count,
+        "latest_response": published_response,
+        "latest_receipt": receipt,
+        "runtime_runs": [run],
+        "source_content_hashes": {
+            "contract": _content_hash(contract),
+            "latest_publish_result": _content_hash(run),
+        },
+        "implementation_boundary": dict(PERFORMED_FLAGS),
+        "authority_boundary": dict(AUTHORITY_BOUNDARY),
+        "machine_proof": {
+            "contract_ready": contract.get("status") == READY_STATUS,
+            "controller_event_updated_latest_response": bool(published_response),
+            "latest_response_verification_status": str(published_response.get("verification_status") or ""),
+            "safe_fallback_available": str(published_response.get("verification_status") or "") == "fallback",
+            **PERFORMED_FLAGS,
+        },
+    }
+    unsafe = unsafe_true_grants(status)
+    status["machine_proof"]["unsafe_true_grants"] = unsafe
+    status["machine_proof"]["unsafe_true_grants_absent"] = not unsafe
+    if unsafe:
+        status["status"] = NOT_READY_STATUS
+    latest = build_latest_read_model(status, generated_at=generated_at)
+
+    export_root = _rooted(export_root)
+    export_root.mkdir(parents=True, exist_ok=True)
+    contract_path = export_root / CONTRACT_JSON_EXPORT_NAME
+    status_path = export_root / STATUS_JSON_EXPORT_NAME
+    latest_path = export_root / LATEST_JSON_EXPORT_NAME
+    _write_json(contract_path, contract)
+    _write_json(status_path, status)
+    _write_json(latest_path, latest)
+
+    bridge_contract_path = ""
+    bridge_status_path = ""
+    bridge_latest_path = ""
+    if bridge_export_root is not None:
+        bridge_root = _rooted(bridge_export_root)
+        bridge_root.mkdir(parents=True, exist_ok=True)
+        bridge_contract = bridge_root / CONTRACT_JSON_EXPORT_NAME
+        bridge_status = bridge_root / STATUS_JSON_EXPORT_NAME
+        bridge_latest = bridge_root / LATEST_JSON_EXPORT_NAME
+        shutil.copy2(contract_path, bridge_contract)
+        shutil.copy2(status_path, bridge_status)
+        shutil.copy2(latest_path, bridge_latest)
+        bridge_contract_path = bridge_contract.as_posix()
+        bridge_status_path = bridge_status.as_posix()
+        bridge_latest_path = bridge_latest.as_posix()
+
+    wiki_path = _rooted(wiki_path)
+    wiki_path.parent.mkdir(parents=True, exist_ok=True)
+    wiki_path.write_text(build_wiki(contract, status), encoding="utf-8")
+    return {
+        "status": str(status["status"]),
+        "contract_path": contract_path.as_posix(),
+        "status_path": status_path.as_posix(),
+        "latest_path": latest_path.as_posix(),
+        "bridge_contract_path": bridge_contract_path,
+        "bridge_status_path": bridge_status_path,
+        "bridge_latest_path": bridge_latest_path,
+        "wiki_path": wiki_path.as_posix(),
+        "sqlite_path": str(_rooted(sqlite_path)),
+    }
 
 
 def build_wiki(contract: Mapping[str, Any], status: Mapping[str, Any]) -> str:

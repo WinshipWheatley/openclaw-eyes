@@ -36,6 +36,7 @@ import local_surface_request_contract
 import operator_file_metadata_intake
 import operator_controller_event_router
 import openclaw_request_router
+import proof_to_response_runtime
 import local_artifact_reference
 import scoped_context_package_compiler_contract
 import st_annes_work_log_review
@@ -4617,6 +4618,11 @@ def _process_operator_controller_event_request(
         if default_paths
         else export_root.parent / "system_knowledge" / "artifact_lineage_registry.sqlite"
     )
+    proof_to_response_sqlite_path = (
+        proof_to_response_runtime.DEFAULT_SQLITE_PATH
+        if default_paths
+        else export_root.parent / "system_knowledge" / "proof_to_response_runtime.sqlite"
+    )
     receipt = operator_controller_event_router.route_controller_event(
         raw_request,
         source_request_filename=request_path.name,
@@ -4628,6 +4634,7 @@ def _process_operator_controller_event_request(
         sqlite_path=sqlite_path,
         evidence_sqlite_path=evidence_sqlite_path,
         artifact_lineage_sqlite_path=artifact_lineage_sqlite_path,
+        proof_to_response_sqlite_path=proof_to_response_sqlite_path,
         generated_at=generated_at,
     )
     request_id = str(receipt.get("request_id") or raw_request.get("request_id") or f"missing_request_id_{request_path.stem}")
@@ -4635,8 +4642,13 @@ def _process_operator_controller_event_request(
     internal_status = str(receipt.get("raw_internal_status") or "BLOCKED_WITH_REASON")
     route_status = str(receipt.get("route_status") or "")
     card = _controller_event_dynamic_card(receipt)
-    headline = str(card.get("headline") or ("Controller event routed" if internal_status == "RESPONSE_READY" else "Controller event blocked"))
-    message = str(card.get("plain_summary") or card.get("summary") or "OpenClaw handled the controller event locally.")
+    primary_response = receipt.get("proof_to_response") if isinstance(receipt.get("proof_to_response"), Mapping) else {}
+    headline = str(
+        primary_response.get("headline")
+        or card.get("headline")
+        or ("Controller event routed" if internal_status == "RESPONSE_READY" else "Controller event blocked")
+    )
+    message = str(primary_response.get("body") or card.get("plain_summary") or card.get("summary") or "OpenClaw handled the controller event locally.")
     blockers = tuple(str(item) for item in receipt.get("blockers") or () if item)
     rejected = tuple(str(item) for item in receipt.get("rejected_reasons") or () if item)
     proof_refs = tuple(str(ref) for ref in receipt.get("proof_refs") or () if ref)
@@ -4645,7 +4657,7 @@ def _process_operator_controller_event_request(
         "generated/read_models/operator_controller_event_router_contract.json",
     )
     readback_files = tuple(dict.fromkeys(local_readbacks + proof_refs))
-    next_safe_move = (
+    next_safe_move = str(primary_response.get("next_step") or "") or (
         "Render the returned dynamic card in Mission Control."
         if internal_status == "RESPONSE_READY"
         else "Fix verification, selected action payload, or event type and resend."
@@ -4666,6 +4678,8 @@ def _process_operator_controller_event_request(
             f"through {receipt.get('backend_route') or 'fail_closed'}."
         ),
         "proof_refs": proof_refs,
+        "primary_response_kind": str(receipt.get("primary_response_kind") or "dynamic_card_response"),
+        "proof_to_response": primary_response,
         "debug_refs": readback_files,
         "raw_internal_status": internal_status,
         "mac_render_hint": "DYNAMIC_CARD_WITH_DISCLOSURE",
@@ -4689,7 +4703,7 @@ def _process_operator_controller_event_request(
         what_happened=(
             "OpenClaw recognized a Mission Control controller event.",
             "The event was routed through the Operator Controller Event Router.",
-            "The router returned a receipt-backed dynamic card response.",
+            "The router returned a verified concise agent response with the dynamic card kept as support.",
             "No email, Gmail, browser, Coupa, submit, ledger, workbook, PDF, paid, push, external LLM, local model runtime, or business execution occurred.",
         ),
         why_it_happened=(
@@ -4720,6 +4734,7 @@ def _process_operator_controller_event_request(
             "request_router_decision": dict(route_decision),
             "layered_response_fields": layered_fields,
             "operator_controller_event_router": receipt,
+            "proof_to_response": primary_response,
             "dynamic_card_response": card,
             "live_external_provider_action_performed": False,
             "business_action_performed": False,
