@@ -52,3 +52,12 @@ def test_main_returns_nonzero_for_over_limit_description(tmp_path: Path, capsys)
 
     assert exit_code == 1
     assert "fail: checked 1 skills; 1 over 1024 bytes" in capsys.readouterr().out
+
+
+def test_main_accepts_root_alias_and_no_codex_cache_flag(tmp_path: Path, capsys) -> None:
+    _write_skill(tmp_path, "valid-skill", "a" * 64)
+
+    exit_code = main(["--root", str(tmp_path), "--no-codex-cache"])
+
+    assert exit_code == 0
+    assert "pass: checked 1 skills; 0 over 1024 bytes" in capsys.readouterr().out

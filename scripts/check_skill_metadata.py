@@ -68,9 +68,14 @@ def check_skill_metadata(
 
 def _build_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Check active Codex skill metadata byte limits.")
-    parser.add_argument("--skills-path", type=Path, default=DEFAULT_SKILLS_PATH)
+    parser.add_argument("--skills-path", "--root", dest="skills_path", type=Path, default=DEFAULT_SKILLS_PATH)
     parser.add_argument("--max-description-bytes", type=int, default=int(DEFAULT_RULESET["max_description_bytes"]))
     parser.add_argument("--format", choices=("summary", "json"), default="summary")
+    parser.add_argument(
+        "--no-codex-cache",
+        action="store_true",
+        help="Compatibility no-op: the checker uses the explicit --root/--skills-path when provided.",
+    )
     return parser
 
 
