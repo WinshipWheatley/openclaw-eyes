@@ -1,0 +1,147 @@
+{
+  "authority_boundary": {
+    "protected_actions_allowed": false
+  },
+  "details_collapsed": true,
+  "generated_at": "2026-06-06T20:29:05+00:00",
+  "implementation_boundary": {
+    "business_action_performed": false,
+    "coupa_submit_performed": false,
+    "email_send_performed": false,
+    "external_llm_invoked": false,
+    "git_push_performed": false,
+    "incoming_authority_granted_accepted": false,
+    "ledger_mutation_performed": false,
+    "local_model_runtime_connected": false,
+    "merge_performed": false,
+    "paid_marking_performed": false,
+    "pdf_export_performed": false,
+    "portal_submit_performed": false,
+    "workbook_mutation_performed": false,
+    "worker_spawn_performed": false
+  },
+  "latest_receipt_ref": "proof_to_response_receipt:finance_capital_hilton_payment_watch:0d710e7b9a49",
+  "latest_response": {
+    "authority_boundary": {
+      "protected_actions_allowed": false
+    },
+    "body": "Coupa is processing. I can't mark this paid until payment evidence is attached. The ledger stays untouched.",
+    "business_action_performed": false,
+    "can_do_now": [
+      "Attach payment evidence"
+    ],
+    "cannot_do_yet": [
+      "paid marking",
+      "ledger mutation",
+      "Coupa/browser action"
+    ],
+    "controls": [
+      {
+        "action_payload_ref": "generated/read_models/operator_action_payloads.json#action_payloads.capital_hilton.payment.record_proof",
+        "authority_boundary": {
+          "protected_actions_allowed": false
+        },
+        "controller_event_type": "attach_proof",
+        "disabled_reason": "",
+        "enabled": true,
+        "label": "Attach payment evidence"
+      }
+    ],
+    "coupa_submit_performed": false,
+    "details_collapsed": true,
+    "email_send_performed": false,
+    "external_llm_invoked": false,
+    "fallback_reason": "",
+    "generated_at": "2026-06-06T20:29:05+00:00",
+    "git_push_performed": false,
+    "headline": "Payment evidence needed",
+    "incoming_authority_granted_accepted": false,
+    "ledger_mutation_performed": false,
+    "local_model_runtime_connected": false,
+    "merge_performed": false,
+    "missing_input": [
+      "payment arrival confirmation"
+    ],
+    "next_step": "Attach payment evidence.",
+    "paid_marking_performed": false,
+    "pdf_export_performed": false,
+    "portal_submit_performed": false,
+    "proof_meters": [
+      {
+        "card_id": "dynamic_card.finance.capital_hilton.payment_watch",
+        "meter_ref": "truth",
+        "meter_state": "trusted_current",
+        "opens_details": true,
+        "source_ref": "generated/read_models/proof_meter_normalization.json"
+      },
+      {
+        "card_id": "dynamic_card.finance.capital_hilton.payment_watch",
+        "meter_ref": "authority",
+        "meter_state": "no_grant",
+        "opens_details": true,
+        "source_ref": "generated/read_models/proof_meter_normalization.json"
+      },
+      {
+        "card_id": "dynamic_card.finance.capital_hilton.payment_watch",
+        "meter_ref": "risk",
+        "meter_state": "watch",
+        "opens_details": true,
+        "source_ref": "generated/read_models/proof_meter_normalization.json"
+      }
+    ],
+    "proof_refs": [
+      "generated/read_models/dynamic_card_packet_latest.json",
+      "generated/read_models/proof_meter_normalization.json",
+      "generated/read_models/objective_advancement_protocol.json"
+    ],
+    "receipt_refs": [
+      "universal_receipt:dynamic_card_emitted:e811c126f7bdf8d4"
+    ],
+    "response_content_hash": "sha256:1baec76279181d41ba82f85f62bfccc0559c905c4044875d02f82ffebe2315bb",
+    "response_id": "proof_response:publishable:finance_capital_hilton_payment_watch",
+    "schema_version": "proof_to_response_runtime_v0",
+    "source_context": {
+      "card_id": "dynamic_card.finance.capital_hilton.payment_watch",
+      "gate_refs": [],
+      "objective_ref": "objective:finance:capital_hilton:payment_watch",
+      "proof_refs": [
+        "generated/read_models/dynamic_card_packet_latest.json",
+        "generated/read_models/proof_meter_normalization.json",
+        "generated/read_models/objective_advancement_protocol.json"
+      ],
+      "receipt_refs": [
+        "universal_receipt:dynamic_card_emitted:e811c126f7bdf8d4"
+      ],
+      "thread_ref": "capital_hilton",
+      "world_ref": "finance"
+    },
+    "speaker_ref": "chief",
+    "verification_status": "publishable",
+    "voice_mode": "operations",
+    "workbook_mutation_performed": false,
+    "worker_spawn_performed": false
+  },
+  "machine_proof": {
+    "business_action_performed": false,
+    "coupa_submit_performed": false,
+    "email_send_performed": false,
+    "external_llm_invoked": false,
+    "git_push_performed": false,
+    "incoming_authority_granted_accepted": false,
+    "latest_response_present": true,
+    "ledger_mutation_performed": false,
+    "local_model_runtime_connected": false,
+    "merge_performed": false,
+    "paid_marking_performed": false,
+    "pdf_export_performed": false,
+    "portal_submit_performed": false,
+    "unsafe_true_grants": [],
+    "unsafe_true_grants_absent": true,
+    "workbook_mutation_performed": false,
+    "worker_spawn_performed": false
+  },
+  "read_model_id": "proof_to_response_latest",
+  "schema_version": "proof_to_response_runtime_v0",
+  "source_status_ref": "generated/read_models/proof_to_response_runtime_status.json",
+  "status": "PROOF_TO_RESPONSE_RUNTIME_READY"
+}

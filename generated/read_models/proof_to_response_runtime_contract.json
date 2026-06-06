@@ -1,0 +1,217 @@
+{
+  "authority_boundary": {
+    "authority_grant_allowed": false,
+    "browser_access_allowed": false,
+    "business_action_allowed": false,
+    "coupa_allowed": false,
+    "email_send_allowed": false,
+    "external_provider_connect_allowed": false,
+    "git_push_allowed": false,
+    "gmail_allowed": false,
+    "ledger_mutation_allowed": false,
+    "live_lm_invocation_allowed": false,
+    "local_model_runtime_allowed": false,
+    "merge_allowed": false,
+    "model_invocation_allowed": false,
+    "paid_marking_allowed": false,
+    "pdf_export_allowed": false,
+    "portal_submit_allowed": false,
+    "protected_actions_allowed": false,
+    "workbook_mutation_allowed": false,
+    "worker_spawn_allowed": false
+  },
+  "candidate_response_required_fields": [
+    "response_id",
+    "proof_bundle_id",
+    "speaker_ref",
+    "draft_headline",
+    "draft_body",
+    "draft_next_step",
+    "claimed_facts",
+    "implied_actions",
+    "requested_controls",
+    "uncertainty_notes"
+  ],
+  "deterministic_checks": [
+    "candidate references the active proof bundle",
+    "every claimed fact exists in the proof bundle",
+    "no unsupported paid, sent, submitted, approved, or executed claim",
+    "no protected-action promise",
+    "no machine-contract jargon in the primary response",
+    "response remains concise",
+    "next step maps to allowed controller control",
+    "self-heal responses name blocker, cite proof, state can-do and cannot-do",
+    "details remain collapsed",
+    "all protected authority flags remain false"
+  ],
+  "doctrine": [
+    "Candidate agent text is not truth.",
+    "Machine proof, receipts, gates, source refs, and hashes define publishable claims.",
+    "The runtime may publish concise human text only after deterministic verification.",
+    "If verification fails, the runtime publishes a safe fallback instead of the draft.",
+    "Controls remain controller events and never grant protected authority.",
+    "Details and proof stay collapsed by default."
+  ],
+  "generated_at": "2026-06-06T20:29:05+00:00",
+  "implementation_boundary": {
+    "business_action_performed": false,
+    "coupa_submit_performed": false,
+    "email_send_performed": false,
+    "external_llm_invoked": false,
+    "git_push_performed": false,
+    "incoming_authority_granted_accepted": false,
+    "ledger_mutation_performed": false,
+    "local_model_runtime_connected": false,
+    "merge_performed": false,
+    "paid_marking_performed": false,
+    "pdf_export_performed": false,
+    "portal_submit_performed": false,
+    "workbook_mutation_performed": false,
+    "worker_spawn_performed": false
+  },
+  "machine_proof": {
+    "business_action_performed": false,
+    "coupa_submit_performed": false,
+    "email_send_performed": false,
+    "external_llm_invoked": false,
+    "git_push_performed": false,
+    "incoming_authority_granted_accepted": false,
+    "ledger_mutation_performed": false,
+    "local_model_runtime_connected": false,
+    "merge_performed": false,
+    "paid_marking_performed": false,
+    "pdf_export_performed": false,
+    "portal_submit_performed": false,
+    "preconditions_ready": true,
+    "unsafe_true_grants": [],
+    "unsafe_true_grants_absent": true,
+    "workbook_mutation_performed": false,
+    "worker_spawn_performed": false
+  },
+  "preconditions": [
+    {
+      "accepted_statuses": [
+        "AGENTIC_RESPONSE_REPAIR_GATE_INTEGRATION_PLAN_READY"
+      ],
+      "observed_status": "AGENTIC_RESPONSE_REPAIR_GATE_INTEGRATION_PLAN_READY",
+      "precondition_ref": "agentic_response_repair_gate_integration_plan",
+      "ready": true,
+      "source_ref": "generated/read_models/agentic_response_repair_gate_integration_plan.json"
+    },
+    {
+      "accepted_statuses": [
+        "PROOF_TO_RESPONSE_LM_SHADOW_HARNESS_READY"
+      ],
+      "observed_status": "PROOF_TO_RESPONSE_LM_SHADOW_HARNESS_READY",
+      "precondition_ref": "proof_to_response_lm_shadow_harness",
+      "ready": true,
+      "source_ref": "generated/read_models/proof_to_response_lm_shadow_status.json"
+    },
+    {
+      "accepted_statuses": [
+        "PROOF_TO_RESPONSE_LM_SHADOW_HARNESS_READY"
+      ],
+      "observed_status": "PROOF_TO_RESPONSE_LM_SHADOW_HARNESS_READY",
+      "precondition_ref": "proof_to_response_lm_shadow_contract",
+      "ready": true,
+      "source_ref": "generated/read_models/proof_to_response_lm_shadow_contract.json"
+    },
+    {
+      "accepted_statuses": [
+        "SELF_HEAL_REPAIR_DOCTRINE_READY"
+      ],
+      "observed_status": "SELF_HEAL_REPAIR_DOCTRINE_READY",
+      "precondition_ref": "self_heal_repair_doctrine",
+      "ready": true,
+      "source_ref": "generated/read_models/self_heal_repair_doctrine.json"
+    },
+    {
+      "accepted_statuses": [
+        "GOLDILOCKS_GATE_CALIBRATION_READY"
+      ],
+      "observed_status": "GOLDILOCKS_GATE_CALIBRATION_READY",
+      "precondition_ref": "goldilocks_gate_calibration",
+      "ready": true,
+      "source_ref": "generated/read_models/goldilocks_gate_calibration.json"
+    },
+    {
+      "accepted_statuses": [
+        "PROOF_TO_RESPONSE_TDD_SPEC_READY"
+      ],
+      "observed_status": "PROOF_TO_RESPONSE_TDD_SPEC_READY",
+      "precondition_ref": "proof_to_response_tdd_spec",
+      "ready": true,
+      "source_ref": "generated/read_models/proof_to_response_tdd_spec.json"
+    },
+    {
+      "accepted_statuses": [
+        "OBJECTIVE_ADVANCEMENT_CONTROLLER_ROUTE_READY",
+        "OBJECTIVE_ADVANCEMENT_PROTOCOL_READY"
+      ],
+      "observed_status": "OBJECTIVE_ADVANCEMENT_PROTOCOL_READY",
+      "precondition_ref": "objective_advancement_controller_route",
+      "ready": true,
+      "source_ref": "generated/read_models/objective_advancement_protocol.json"
+    },
+    {
+      "accepted_statuses": [
+        "DYNAMIC_CARD_PACKET_V1_READY",
+        "DYNAMIC_CARD_PACKET_READY"
+      ],
+      "observed_status": "DYNAMIC_CARD_PACKET_READY",
+      "precondition_ref": "dynamic_card_packet_v1",
+      "ready": true,
+      "source_ref": "generated/read_models/dynamic_card_packet_latest.json"
+    },
+    {
+      "accepted_statuses": [
+        "UNIVERSAL_RECEIPT_ENVELOPE_READY"
+      ],
+      "observed_status": "UNIVERSAL_RECEIPT_ENVELOPE_READY",
+      "precondition_ref": "universal_receipt_envelope",
+      "ready": true,
+      "source_ref": "generated/read_models/universal_receipt_envelope_status.json"
+    },
+    {
+      "accepted_statuses": [
+        "PROOF_METER_NORMALIZATION_READY"
+      ],
+      "observed_status": "PROOF_METER_NORMALIZATION_READY",
+      "precondition_ref": "proof_meter_normalization",
+      "ready": true,
+      "source_ref": "generated/read_models/proof_meter_normalization.json"
+    },
+    {
+      "accepted_statuses": [
+        "OPERATOR_CONTROLLER_PROTOCOL_READY"
+      ],
+      "observed_status": "OPERATOR_CONTROLLER_PROTOCOL_READY",
+      "precondition_ref": "operator_controller_protocol",
+      "ready": true,
+      "source_ref": "generated/read_models/operator_controller_protocol.json"
+    }
+  ],
+  "read_model_id": "proof_to_response_runtime_contract",
+  "runtime_contract": {
+    "fallback_output": "safe fallback response grounded in available proof",
+    "inputs": [
+      "proof_bundle",
+      "candidate_agent_response"
+    ],
+    "publishable_output": "concise human response with collapsed details and false protected authority",
+    "receipt_required": true,
+    "runtime_mode": "verifier_only_no_model_invocation",
+    "sqlite_table": "proof_to_response_receipts"
+  },
+  "schema_version": "proof_to_response_runtime_v0",
+  "status": "PROOF_TO_RESPONSE_RUNTIME_READY",
+  "supported_scenarios": [
+    "finance_capital_hilton_payment_watch",
+    "finance_live_arts_payment_evidence",
+    "business_development_capital_hilton_followup",
+    "build_review_packet",
+    "unknown_context",
+    "protected_coupa_ledger_email_request",
+    "self_heal_missing_proof_for_payment"
+  ]
+}
