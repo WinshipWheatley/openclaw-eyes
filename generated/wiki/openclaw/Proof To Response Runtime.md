@@ -28,16 +28,18 @@ Verifier-only runtime for publishing concise agent responses from machine proof.
 
 ## Runtime Scenarios
 
-- `business_development_capital_hilton_followup`: Follow-up can be staged -> `publishable`
+- `business_development_capital_hilton_followup`: Follow-up can be staged -> `publishable` via `shadow_pilot_candidate`
 
 ## Receipt Store
 
 - SQLite: `generated/system_knowledge/proof_to_response_runtime.sqlite`
-- Published responses: `14`
-- SQLite rows: `14`
+- Published responses: `23`
+- SQLite rows: `23`
 
 ## Boundary
 
+- Active candidate source: `shadow_pilot_candidate`
+- Supported candidate sources: `deterministic_fixture`, `shadow_pilot_candidate`, `future_live_lm_blocked`.
 - No live LM invocation.
 - No local model runtime connection.
 - No worker spawn.

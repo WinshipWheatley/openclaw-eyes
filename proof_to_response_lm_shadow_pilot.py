@@ -179,7 +179,6 @@ def _scoped_response_status(read_model_root: Path) -> dict[str, Any]:
         [
             latest.get("status") == runtime.READY_STATUS,
             bool(latest.get("source_request_id")),
-            bool(latest.get("source_response_path")),
             bool(latest.get("world_ref")),
             bool(latest.get("thread_ref")),
             latest.get("stale_if_context_mismatch") is True,

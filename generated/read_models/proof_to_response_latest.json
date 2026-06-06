@@ -2,9 +2,10 @@
   "authority_boundary": {
     "protected_actions_allowed": false
   },
+  "candidate_source": "shadow_pilot_candidate",
   "details_collapsed": true,
   "expires_or_superseded_by": "",
-  "generated_at": "2026-06-06T22:04:55+00:00",
+  "generated_at": "2026-06-06T23:49:03+00:00",
   "implementation_boundary": {
     "business_action_performed": false,
     "coupa_submit_performed": false,
@@ -21,7 +22,7 @@
     "workbook_mutation_performed": false,
     "worker_spawn_performed": false
   },
-  "latest_receipt_ref": "proof_to_response_receipt:business_development_capital_hilton_followup:46a1695f2a88",
+  "latest_receipt_ref": "proof_to_response_receipt:business_development_capital_hilton_followup:b6d659724e0b",
   "latest_response": {
     "authority_boundary": {
       "protected_actions_allowed": false
@@ -30,6 +31,7 @@
     "can_do_now": [
       "Stage follow-up"
     ],
+    "candidate_source": "shadow_pilot_candidate",
     "cannot_do_yet": [
       "email send",
       "external system update"
@@ -49,7 +51,7 @@
     ],
     "details_collapsed": true,
     "fallback_reason": "",
-    "generated_at": "2026-06-06T22:04:55+00:00",
+    "generated_at": "2026-06-06T23:49:03+00:00",
     "headline": "Follow-up can be staged",
     "missing_input": [],
     "next_step": "Stage follow-up",
@@ -85,12 +87,12 @@
     "receipt_refs": [
       "universal_receipt:package_staged:7901f9da098e3f3f"
     ],
-    "response_content_hash": "sha256:14a116eedbfc0d3494e90a0fe0322323d389abfdfa412fc11736c9fa6cc8bed5",
+    "response_content_hash": "sha256:0efda905a14594ecc6ba1afd9eb29d120f8d99b4147e7bad1ee01ec47fcc0eb4",
     "response_id": "proof_response:publishable:business_development_capital_hilton_followup",
     "selected_action_id": "",
     "selected_card_id": "dynamic_card.business_development.capital_hilton.proposal",
-    "source_request_id": "proof_to_response_scoping_service2_business_development_advance_20260606T220450Z",
-    "source_response_path": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_proof_to_response_scoping_service2_business_development_advance_20260606T220450Z.json",
+    "source_request_id": "shadow_pilot_runtime_service_business_development_advance_20260606T234855Z",
+    "source_response_path": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_shadow_pilot_runtime_service_business_development_advance_20260606T234855Z.json",
     "speaker_ref": "cassandra",
     "thread_ref": "capital_hilton",
     "verification_status": "publishable",
@@ -124,8 +126,8 @@
   "schema_version": "proof_to_response_runtime_v0",
   "selected_action_id": "",
   "selected_card_id": "dynamic_card.business_development.capital_hilton.proposal",
-  "source_request_id": "proof_to_response_scoping_service2_business_development_advance_20260606T220450Z",
-  "source_response_path": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_proof_to_response_scoping_service2_business_development_advance_20260606T220450Z.json",
+  "source_request_id": "shadow_pilot_runtime_service_business_development_advance_20260606T234855Z",
+  "source_response_path": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_shadow_pilot_runtime_service_business_development_advance_20260606T234855Z.json",
   "source_status_ref": "generated/read_models/proof_to_response_runtime_status.json",
   "stale_if_context_mismatch": true,
   "status": "PROOF_TO_RESPONSE_RUNTIME_READY",

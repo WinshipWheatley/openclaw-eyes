@@ -37,6 +37,14 @@ STATUS_JSON_EXPORT_NAME = f"{STATUS_READ_MODEL_ID}.json"
 LATEST_JSON_EXPORT_NAME = f"{LATEST_READ_MODEL_ID}.json"
 READY_STATUS = "PROOF_TO_RESPONSE_RUNTIME_READY"
 NOT_READY_STATUS = "PROOF_TO_RESPONSE_RUNTIME_NOT_READY"
+CANDIDATE_SOURCE_DETERMINISTIC = "deterministic_fixture"
+CANDIDATE_SOURCE_SHADOW_PILOT = "shadow_pilot_candidate"
+CANDIDATE_SOURCE_FUTURE_LIVE_LM_BLOCKED = "future_live_lm_blocked"
+CANDIDATE_SOURCES = (
+    CANDIDATE_SOURCE_DETERMINISTIC,
+    CANDIDATE_SOURCE_SHADOW_PILOT,
+    CANDIDATE_SOURCE_FUTURE_LIVE_LM_BLOCKED,
+)
 
 SUPPORTED_SCENARIOS = (
     "finance_capital_hilton_payment_watch",
@@ -60,6 +68,10 @@ PRECONDITIONS = {
     "proof_to_response_lm_shadow_contract": {
         "filename": "proof_to_response_lm_shadow_contract.json",
         "accepted_statuses": ["PROOF_TO_RESPONSE_LM_SHADOW_HARNESS_READY"],
+    },
+    "proof_to_response_lm_shadow_pilot": {
+        "filename": "proof_to_response_lm_shadow_pilot.json",
+        "accepted_statuses": ["PROOF_TO_RESPONSE_LM_SHADOW_PILOT_READY"],
     },
     "self_heal_repair_doctrine": {
         "filename": "self_heal_repair_doctrine.json",
@@ -449,6 +461,26 @@ def fixture_candidate_response(proof_bundle: Mapping[str, Any]) -> dict[str, Any
     raise ValueError(f"unknown_scenario:{scenario_id}")
 
 
+def candidate_response_for_source(
+    proof_bundle: Mapping[str, Any],
+    *,
+    candidate_source: str = CANDIDATE_SOURCE_DETERMINISTIC,
+) -> dict[str, Any]:
+    candidate_source = str(candidate_source or CANDIDATE_SOURCE_DETERMINISTIC)
+    if candidate_source == CANDIDATE_SOURCE_DETERMINISTIC:
+        return fixture_candidate_response(proof_bundle)
+    if candidate_source == CANDIDATE_SOURCE_SHADOW_PILOT:
+        import proof_to_response_lm_shadow_pilot as shadow_pilot
+
+        try:
+            return shadow_pilot.mock_lm_style_candidate_response(proof_bundle)
+        except ValueError:
+            return fixture_candidate_response(proof_bundle)
+    if candidate_source == CANDIDATE_SOURCE_FUTURE_LIVE_LM_BLOCKED:
+        return _safe_fallback_candidate(proof_bundle, reason="future_live_lm_blocked")
+    raise ValueError(f"unknown_candidate_source:{candidate_source}")
+
+
 def _allowed_control_labels(proof_bundle: Mapping[str, Any]) -> set[str]:
     return {
         str(control.get("label"))
@@ -661,6 +693,7 @@ def _published_response_from_candidate(
     *,
     generated_at: str,
     verification_status: str,
+    candidate_source: str = CANDIDATE_SOURCE_DETERMINISTIC,
     fallback_reason: str = "",
 ) -> dict[str, Any]:
     response = {
@@ -678,6 +711,7 @@ def _published_response_from_candidate(
         },
         "speaker_ref": str(candidate.get("speaker_ref") or proof_bundle.get("response_speaker_ref") or "openclaw"),
         "voice_mode": str(proof_bundle.get("response_voice_mode") or "brief"),
+        "candidate_source": str(candidate_source or CANDIDATE_SOURCE_DETERMINISTIC),
         "headline": str(candidate.get("draft_headline") or ""),
         "body": str(candidate.get("draft_body") or ""),
         "next_step": str(candidate.get("draft_next_step") or ""),
@@ -722,6 +756,7 @@ def scope_controller_response(
         "objective_ref": str(source_context.get("objective_ref") or ""),
         "speaker_ref": str(published_response.get("speaker_ref") or "openclaw"),
         "voice_mode": str(published_response.get("voice_mode") or "brief"),
+        "candidate_source": str(published_response.get("candidate_source") or CANDIDATE_SOURCE_DETERMINISTIC),
         "headline": str(published_response.get("headline") or ""),
         "body": str(published_response.get("body") or ""),
         "next_step": str(published_response.get("next_step") or ""),
@@ -776,6 +811,7 @@ def record_receipt(
     verifier_result: Mapping[str, Any],
     sqlite_path: Path,
     created_at: str,
+    candidate_source: str = CANDIDATE_SOURCE_DETERMINISTIC,
 ) -> dict[str, Any]:
     sqlite_path = _rooted(sqlite_path)
     _initialise_receipt_db(sqlite_path)
@@ -786,6 +822,7 @@ def record_receipt(
         "source_request_id": "",
         "proof_bundle_id": str(proof_bundle.get("proof_bundle_id") or ""),
         "response_id": str(response.get("response_id") or ""),
+        "candidate_source": str(candidate_source or CANDIDATE_SOURCE_DETERMINISTIC),
         "world_ref": str(proof_bundle.get("world_ref") or "unknown"),
         "thread_ref": str(proof_bundle.get("thread_ref") or "unknown"),
         "action_taken": "published_verified_response" if response.get("verification_status") == "publishable" else "published_safe_fallback_response",
@@ -853,6 +890,7 @@ def publish_response(
     scenario_id: str,
     *,
     candidate_response: Mapping[str, Any] | None = None,
+    candidate_source: str = CANDIDATE_SOURCE_DETERMINISTIC,
     proof_bundle: Mapping[str, Any] | None = None,
     generated_at: str | None = None,
     sqlite_path: Path | None = None,
@@ -860,8 +898,11 @@ def publish_response(
 ) -> dict[str, Any]:
     generated_at = generated_at or utc_now()
     sqlite_path = sqlite_path or DEFAULT_SQLITE_PATH
+    candidate_source = str(candidate_source or CANDIDATE_SOURCE_DETERMINISTIC)
+    if candidate_source not in CANDIDATE_SOURCES:
+        raise ValueError(f"unknown_candidate_source:{candidate_source}")
     bundle = build_or_load_proof_bundle(scenario_id, proof_bundle=proof_bundle, read_model_root=read_model_root)
-    candidate = dict(candidate_response or fixture_candidate_response(bundle))
+    candidate = dict(candidate_response or candidate_response_for_source(bundle, candidate_source=candidate_source))
     verifier_result = verify_candidate_response(candidate, bundle, read_model_root=read_model_root)
     if verifier_result.get("publishable") is True:
         published_response = _published_response_from_candidate(
@@ -869,6 +910,7 @@ def publish_response(
             bundle,
             generated_at=generated_at,
             verification_status="publishable",
+            candidate_source=candidate_source,
         )
     else:
         fallback = verifier_result.get("safe_fallback_response")
@@ -879,6 +921,7 @@ def publish_response(
             bundle,
             generated_at=generated_at,
             verification_status="fallback",
+            candidate_source=candidate_source,
             fallback_reason="; ".join(str(error) for error in verifier_result.get("verification_errors") or []),
         )
     receipt = record_receipt(
@@ -887,9 +930,11 @@ def publish_response(
         verifier_result=verifier_result,
         sqlite_path=sqlite_path,
         created_at=generated_at,
+        candidate_source=candidate_source,
     )
     return {
         "scenario_id": scenario_id,
+        "candidate_source": candidate_source,
         "proof_bundle": bundle,
         "candidate_response": candidate,
         "verifier_result": verifier_result,
@@ -917,6 +962,8 @@ def build_contract_read_model(
         "runtime_contract": {
             "runtime_mode": "verifier_only_no_model_invocation",
             "inputs": ["proof_bundle", "candidate_agent_response"],
+            "candidate_sources": list(CANDIDATE_SOURCES),
+            "active_controller_candidate_source": CANDIDATE_SOURCE_SHADOW_PILOT,
             "publishable_output": "concise human response with collapsed details and false protected authority",
             "fallback_output": "safe fallback response grounded in available proof",
             "receipt_required": True,
@@ -956,12 +1003,14 @@ def build_runtime_runs(
     read_model_root: Path = DEFAULT_READ_MODEL_ROOT,
     generated_at: str | None = None,
     sqlite_path: Path = DEFAULT_SQLITE_PATH,
+    candidate_source: str = CANDIDATE_SOURCE_DETERMINISTIC,
 ) -> list[dict[str, Any]]:
     generated_at = generated_at or utc_now()
     runs: list[dict[str, Any]] = []
     for scenario_id in SUPPORTED_SCENARIOS:
         result = publish_response(
             scenario_id,
+            candidate_source=candidate_source,
             generated_at=generated_at,
             sqlite_path=sqlite_path,
             read_model_root=read_model_root,
@@ -969,6 +1018,7 @@ def build_runtime_runs(
         runs.append(
             {
                 "scenario_id": scenario_id,
+                "candidate_source": str(result.get("candidate_source") or candidate_source),
                 "proof_bundle_id": str(result["proof_bundle"].get("proof_bundle_id") or ""),
                 "candidate_response_id": str(result["candidate_response"].get("response_id") or ""),
                 "verifier_status": str(result["verifier_result"].get("status") or ""),
@@ -1011,12 +1061,17 @@ def build_status_read_model(
         },
         "published_response_count": len(runs),
         "sqlite_row_count": row_count,
+        "candidate_sources": list(CANDIDATE_SOURCES),
+        "active_candidate_source": str(runs[0].get("candidate_source") or CANDIDATE_SOURCE_DETERMINISTIC) if runs else CANDIDATE_SOURCE_DETERMINISTIC,
+        "runtime_candidate_sources_observed": sorted({str(run.get("candidate_source") or CANDIDATE_SOURCE_DETERMINISTIC) for run in runs}),
         "runtime_runs": runs,
         "implementation_boundary": dict(PERFORMED_FLAGS),
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
         "machine_proof": {
             "contract_ready": contract["status"] == READY_STATUS,
             "all_scenarios_attempted": len(runs) == len(SUPPORTED_SCENARIOS),
+            "candidate_source_recorded": all(str(run.get("candidate_source") or "") in CANDIDATE_SOURCES for run in runs),
+            "future_live_lm_blocked": CANDIDATE_SOURCE_FUTURE_LIVE_LM_BLOCKED in CANDIDATE_SOURCES,
             "every_run_emitted_response": all(bool(run.get("published_response")) for run in runs),
             "sqlite_row_count_matches_published_response_count": row_count == len(runs),
             "safe_fallback_available": any(run.get("verification_status") == "fallback" for run in runs) or True,
@@ -1060,6 +1115,7 @@ def build_latest_read_model(
         "thread_ref": latest_thread_ref or str(status.get("thread_ref") or ""),
         "selected_card_id": str(latest_response.get("selected_card_id") or status.get("selected_card_id") or ""),
         "selected_action_id": str(latest_response.get("selected_action_id") or status.get("selected_action_id") or ""),
+        "candidate_source": str(latest_response.get("candidate_source") or status.get("active_candidate_source") or CANDIDATE_SOURCE_DETERMINISTIC),
         "expires_or_superseded_by": "",
         "stale_if_context_mismatch": True,
         "latest_response": latest_response,
@@ -1108,6 +1164,7 @@ def export_controller_integration_response(
     contract = build_contract_read_model(read_model_root=read_model_root, generated_at=generated_at)
     run = {
         "scenario_id": str(publish_result.get("scenario_id") or proof_bundle.get("scenario_id") or ""),
+        "candidate_source": str(publish_result.get("candidate_source") or published_response.get("candidate_source") or CANDIDATE_SOURCE_DETERMINISTIC),
         "proof_bundle_id": str(proof_bundle.get("proof_bundle_id") or ""),
         "candidate_response_id": str((publish_result.get("candidate_response") or {}).get("response_id") or ""),
         "verifier_status": str(verifier_result.get("status") or ""),
@@ -1128,6 +1185,8 @@ def export_controller_integration_response(
         "controller_integration_status": "PROOF_TO_RESPONSE_CONTROLLER_INTEGRATION_ACTIVE",
         "published_response_count": row_count,
         "sqlite_row_count": row_count,
+        "candidate_sources": list(CANDIDATE_SOURCES),
+        "active_candidate_source": str(run["candidate_source"]),
         "latest_response": published_response,
         "latest_receipt": receipt,
         "runtime_runs": [run],
@@ -1141,6 +1200,9 @@ def export_controller_integration_response(
             "contract_ready": contract.get("status") == READY_STATUS,
             "controller_event_updated_latest_response": bool(published_response),
             "latest_response_verification_status": str(published_response.get("verification_status") or ""),
+            "latest_candidate_source": str(run["candidate_source"]),
+            "candidate_source_recorded": str(run["candidate_source"]) in CANDIDATE_SOURCES,
+            "future_live_lm_blocked": True,
             "safe_fallback_available": str(published_response.get("verification_status") or "") == "fallback",
             **PERFORMED_FLAGS,
         },
@@ -1396,7 +1458,7 @@ def build_wiki(contract: Mapping[str, Any], status: Mapping[str, Any]) -> str:
     for run in status.get("runtime_runs") or []:
         response = run.get("published_response") if isinstance(run.get("published_response"), Mapping) else {}
         lines.append(
-            f"- `{run.get('scenario_id')}`: {response.get('headline')} -> `{run.get('verification_status')}`"
+            f"- `{run.get('scenario_id')}`: {response.get('headline')} -> `{run.get('verification_status')}` via `{run.get('candidate_source')}`"
         )
     lines.extend(
         [
@@ -1409,6 +1471,8 @@ def build_wiki(contract: Mapping[str, Any], status: Mapping[str, Any]) -> str:
             "",
             "## Boundary",
             "",
+            f"- Active candidate source: `{status.get('active_candidate_source', CANDIDATE_SOURCE_DETERMINISTIC)}`",
+            "- Supported candidate sources: `deterministic_fixture`, `shadow_pilot_candidate`, `future_live_lm_blocked`.",
             "- No live LM invocation.",
             "- No local model runtime connection.",
             "- No worker spawn.",

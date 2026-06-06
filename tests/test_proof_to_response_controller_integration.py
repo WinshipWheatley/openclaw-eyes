@@ -35,6 +35,7 @@ FIXTURE_READ_MODELS = {
     "operator_session_timeline.json",
     "proof_meter_normalization.json",
     "proof_to_response_lm_shadow_contract.json",
+    "proof_to_response_lm_shadow_pilot.json",
     "proof_to_response_lm_shadow_status.json",
     "proof_to_response_tdd_spec.json",
     "self_heal_repair_doctrine.json",
@@ -185,6 +186,8 @@ def test_capital_hilton_ask_why_updates_proof_to_response_latest(tmp_path):
     assert latest["thread_ref"] == "capital_hilton"
     assert latest["selected_card_id"] == "dynamic_card.finance.capital_hilton.payment_watch"
     assert latest["stale_if_context_mismatch"] is True
+    assert latest["candidate_source"] == runtime.CANDIDATE_SOURCE_SHADOW_PILOT
+    assert primary["candidate_source"] == runtime.CANDIDATE_SOURCE_SHADOW_PILOT
     assert latest["latest_response"]["headline"] == "Payment evidence needed"
     assert "payment evidence" in primary["body"].lower()
     assert "ledger stays untouched" in primary["body"].lower()
@@ -283,13 +286,13 @@ def test_live_arts_evidence_intake_updates_candidate_not_paid_response(tmp_path)
     )
 
     primary = receipt["proof_to_response"]
-    assert primary["headline"] == "Payment proof received"
-    assert "candidate evidence" in primary["body"]
+    assert primary["headline"] == "Evidence recorded"
+    assert "candidate payment-processing evidence" in primary["body"]
     assert "does not mark the invoice paid" in primary["body"]
     assert receipt["route_result"]["payment"]["paid"] is False
     assert latest["world_ref"] == "finance"
     assert latest["thread_ref"] == "live_arts_md"
-    assert latest["latest_response"]["headline"] == "Payment proof received"
+    assert latest["latest_response"]["headline"] == "Evidence recorded"
 
 
 def test_protected_coupa_ledger_email_request_gets_guardian_block(tmp_path):
@@ -308,7 +311,7 @@ def test_protected_coupa_ledger_email_request_gets_guardian_block(tmp_path):
     primary = receipt["proof_to_response"]
     assert primary["speaker_ref"] == "guardian"
     assert primary["headline"] == "Blocked until proof and approval"
-    assert "Protected action is blocked" in primary["body"]
+    assert "blocked until proof and approval" in primary["body"]
     assert primary["verification_status"] == "publishable"
     assert receipt["route_status"] == "PROTECTED_ACTION_STAGED_OR_BLOCKED"
     assert latest["latest_response"]["headline"] == "Blocked until proof and approval"

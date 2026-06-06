@@ -1780,6 +1780,7 @@ def _attach_proof_to_response(
     publish_result = proof_to_response_runtime.publish_response(
         scenario_id,
         candidate_response=candidate,
+        candidate_source=proof_to_response_runtime.CANDIDATE_SOURCE_SHADOW_PILOT,
         generated_at=generated_at,
         sqlite_path=runtime_sqlite_path,
         read_model_root=read_model_root,
@@ -1809,6 +1810,11 @@ def _attach_proof_to_response(
     receipt["proof_to_response_receipt"] = runtime_receipt
     receipt["proof_to_response_runtime_export"] = export_result
     receipt["proof_to_response_scenario_id"] = scenario_id
+    receipt["proof_to_response_candidate_source"] = str(
+        publish_result.get("candidate_source")
+        or primary_response.get("candidate_source")
+        or proof_to_response_runtime.CANDIDATE_SOURCE_SHADOW_PILOT
+    )
     receipt["proof_to_response_status"] = str(primary_response.get("verification_status") or "unavailable")
     receipt["dynamic_card_role"] = "support_display"
     receipt["details_collapsed"] = True
@@ -1818,6 +1824,9 @@ def _attach_proof_to_response(
             receipt["proof_refs"].append(ref)
     receipt["machine_proof"]["proof_to_response_primary_emitted"] = bool(primary_response)
     receipt["machine_proof"]["proof_to_response_verification_status"] = str(primary_response.get("verification_status") or "")
+    receipt["machine_proof"]["proof_to_response_candidate_source"] = receipt["proof_to_response_candidate_source"]
+    receipt["machine_proof"]["live_lm_invoked"] = False
+    receipt["machine_proof"]["local_model_runtime_connected"] = False
     receipt["machine_proof"]["details_collapsed"] = primary_response.get("details_collapsed") is not False
     receipt["machine_proof"]["dynamic_card_role"] = "support_display"
 

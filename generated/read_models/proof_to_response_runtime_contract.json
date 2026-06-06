@@ -52,7 +52,7 @@
     "Controls remain controller events and never grant protected authority.",
     "Details and proof stay collapsed by default."
   ],
-  "generated_at": "2026-06-06T22:04:55+00:00",
+  "generated_at": "2026-06-06T23:49:03+00:00",
   "implementation_boundary": {
     "business_action_performed": false,
     "coupa_submit_performed": false,
@@ -115,6 +115,15 @@
       "precondition_ref": "proof_to_response_lm_shadow_contract",
       "ready": true,
       "source_ref": "generated/read_models/proof_to_response_lm_shadow_contract.json"
+    },
+    {
+      "accepted_statuses": [
+        "PROOF_TO_RESPONSE_LM_SHADOW_PILOT_READY"
+      ],
+      "observed_status": "PROOF_TO_RESPONSE_LM_SHADOW_PILOT_READY",
+      "precondition_ref": "proof_to_response_lm_shadow_pilot",
+      "ready": true,
+      "source_ref": "generated/read_models/proof_to_response_lm_shadow_pilot.json"
     },
     {
       "accepted_statuses": [
@@ -193,6 +202,12 @@
   ],
   "read_model_id": "proof_to_response_runtime_contract",
   "runtime_contract": {
+    "active_controller_candidate_source": "shadow_pilot_candidate",
+    "candidate_sources": [
+      "deterministic_fixture",
+      "shadow_pilot_candidate",
+      "future_live_lm_blocked"
+    ],
     "fallback_output": "safe fallback response grounded in available proof",
     "inputs": [
       "proof_bundle",

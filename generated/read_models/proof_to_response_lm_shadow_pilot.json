@@ -33,7 +33,7 @@
     "primary_response": "concise_agent_text",
     "role": "support_display"
   },
-  "generated_at": "2026-06-06T23:32:40+00:00",
+  "generated_at": "2026-06-06T23:47:56+00:00",
   "implementation_boundary": {
     "business_action_performed": false,
     "coupa_submit_performed": false,
@@ -289,6 +289,7 @@
         "can_do_now": [
           "Attach payment evidence"
         ],
+        "candidate_source": "deterministic_fixture",
         "cannot_do_yet": [
           "paid marking",
           "ledger mutation",
@@ -311,7 +312,7 @@
         "email_send_performed": false,
         "external_llm_invoked": false,
         "fallback_reason": "",
-        "generated_at": "2026-06-06T23:32:40+00:00",
+        "generated_at": "2026-06-06T23:47:56+00:00",
         "git_push_performed": false,
         "headline": "Payment evidence needed",
         "incoming_authority_granted_accepted": false,
@@ -356,7 +357,7 @@
         "receipt_refs": [
           "universal_receipt:dynamic_card_emitted:e811c126f7bdf8d4"
         ],
-        "response_content_hash": "sha256:86743295201278c053eb5532524db0eebe661fa73d3f236d0f80514d30f435be",
+        "response_content_hash": "sha256:3632c026e3c926a5dd1b871dd23dee7553ee92d56e7c943749286926905e4427",
         "response_id": "proof_response:publishable:finance_capital_hilton_payment_watch",
         "schema_version": "proof_to_response_runtime_v0",
         "source_context": {
@@ -593,6 +594,7 @@
         "can_do_now": [
           "Stage follow-up"
         ],
+        "candidate_source": "deterministic_fixture",
         "cannot_do_yet": [
           "email send",
           "external system update"
@@ -614,7 +616,7 @@
         "email_send_performed": false,
         "external_llm_invoked": false,
         "fallback_reason": "",
-        "generated_at": "2026-06-06T23:32:40+00:00",
+        "generated_at": "2026-06-06T23:47:56+00:00",
         "git_push_performed": false,
         "headline": "Follow-up can be staged",
         "incoming_authority_granted_accepted": false,
@@ -657,7 +659,7 @@
         "receipt_refs": [
           "universal_receipt:package_staged:7901f9da098e3f3f"
         ],
-        "response_content_hash": "sha256:17db0c92601c8f7d4432a986282c1a78f5d5a77d38f06ecf2cf29dbc2e8820ac",
+        "response_content_hash": "sha256:f32a2cf4056d40230889fcab2447b4a426592e7b82ed1eaa8e77b58f64c70c85",
         "response_id": "proof_response:publishable:business_development_capital_hilton_followup",
         "schema_version": "proof_to_response_runtime_v0",
         "source_context": {
@@ -915,6 +917,7 @@
         "can_do_now": [
           "Verify arrival or attach stronger proof"
         ],
+        "candidate_source": "deterministic_fixture",
         "cannot_do_yet": [
           "paid marking",
           "ledger mutation"
@@ -936,7 +939,7 @@
         "email_send_performed": false,
         "external_llm_invoked": false,
         "fallback_reason": "",
-        "generated_at": "2026-06-06T23:32:40+00:00",
+        "generated_at": "2026-06-06T23:47:56+00:00",
         "git_push_performed": false,
         "headline": "Evidence recorded",
         "incoming_authority_granted_accepted": false,
@@ -982,7 +985,7 @@
         "receipt_refs": [
           "universal_receipt:evidence_recorded:d575c566537ac901"
         ],
-        "response_content_hash": "sha256:60e47e8b62b306502eccd7482a4d9e0321688475e2e3123cfd1376bd1830941b",
+        "response_content_hash": "sha256:1ad9088c90daa45f0738918b9a734621f4ffbd04422f452bcf4fb5d1e576d09e",
         "response_id": "proof_response:publishable:finance_live_arts_payment_evidence",
         "schema_version": "proof_to_response_runtime_v0",
         "source_context": {
@@ -1237,6 +1240,7 @@
         "can_do_now": [
           "Review packet"
         ],
+        "candidate_source": "deterministic_fixture",
         "cannot_do_yet": [
           "merge",
           "push",
@@ -1259,7 +1263,7 @@
         "email_send_performed": false,
         "external_llm_invoked": false,
         "fallback_reason": "",
-        "generated_at": "2026-06-06T23:32:40+00:00",
+        "generated_at": "2026-06-06T23:47:56+00:00",
         "git_push_performed": false,
         "headline": "Review packet is informational",
         "incoming_authority_granted_accepted": false,
@@ -1301,7 +1305,7 @@
         "receipt_refs": [
           "universal_receipt:review_decision_recorded:a8d1a6f2053629b9"
         ],
-        "response_content_hash": "sha256:a0a9dfc5ef30974fe10a8b394c4f8421a285f74d6d6ef0588d69279be2f75e1c",
+        "response_content_hash": "sha256:f877ad45eeb6cba417bbf2daea0004bd7b3e501c4e3fc842c7534f1a0f7c3900",
         "response_id": "proof_response:publishable:build_review_packet",
         "schema_version": "proof_to_response_runtime_v0",
         "source_context": {
@@ -1562,6 +1566,7 @@
         "can_do_now": [
           "Prepare approval"
         ],
+        "candidate_source": "deterministic_fixture",
         "cannot_do_yet": [
           "email send",
           "Coupa/browser action",
@@ -1585,7 +1590,7 @@
         "email_send_performed": false,
         "external_llm_invoked": false,
         "fallback_reason": "",
-        "generated_at": "2026-06-06T23:32:40+00:00",
+        "generated_at": "2026-06-06T23:47:56+00:00",
         "git_push_performed": false,
         "headline": "Blocked until proof and approval",
         "incoming_authority_granted_accepted": false,
@@ -1630,7 +1635,7 @@
         "receipt_refs": [
           "universal_receipt:gate_blocked:6c271847b98e5c34"
         ],
-        "response_content_hash": "sha256:f8ab8750ae51e5b573d13e4b65a5ac21191068bc76c77db3396989d661aaace0",
+        "response_content_hash": "sha256:28c30cc4bdccd48f82ddc4fa0b7c3c66597c456ac3cf21e41ddbf026fbb6b6ea",
         "response_id": "proof_response:publishable:protected_coupa_ledger_email_request",
         "schema_version": "proof_to_response_runtime_v0",
         "source_context": {
@@ -1926,6 +1931,7 @@
           "ask for proof",
           "show the blocked gate"
         ],
+        "candidate_source": "deterministic_fixture",
         "cannot_do_yet": [
           "paid marking",
           "ledger mutation",
@@ -1953,7 +1959,7 @@
         "email_send_performed": false,
         "external_llm_invoked": false,
         "fallback_reason": "",
-        "generated_at": "2026-06-06T23:32:40+00:00",
+        "generated_at": "2026-06-06T23:47:56+00:00",
         "git_push_performed": false,
         "headline": "Payment evidence is missing",
         "incoming_authority_granted_accepted": false,
@@ -2000,7 +2006,7 @@
           "generated/read_models/universal_receipt_envelope_status.json",
           "{'plain_rule': 'Do not claim repair/update success until validation passes and a receipt is recorded.', 'receipt_required': True, 'required_receipt_refs': ['receipt:payment_evidence_attached', 'receipt:payment_evidence_validated', 'receipt:paid_state_update_if_later_authorized'], 'success_claim_allowed_without_receipt': False, 'success_claim_requires_states': ['validation_passed', 'receipt_recorded'], 'validation_required': True}"
         ],
-        "response_content_hash": "sha256:111444c14cbc9d72c922732e8134cf875e515712535d52a8123bcc433465491c",
+        "response_content_hash": "sha256:e2b9515301c134c89aad14a0a9f425e140a55518b71b3d1060736bd76df8762a",
         "response_id": "proof_response:publishable:self_heal_missing_proof_for_payment",
         "schema_version": "proof_to_response_runtime_v0",
         "source_context": {
@@ -2139,7 +2145,7 @@
   "read_model_id": "proof_to_response_lm_shadow_pilot",
   "schema_version": "proof_to_response_lm_shadow_pilot_v0",
   "source_content_hashes": {
-    "pilot_runs": "sha256:377402b4de4e87e0836a525d96f17e959619475f57089e99ade84b576bb0587a",
+    "pilot_runs": "sha256:3bcffa254ba4fd9b73863be7ad19cd6d02ae4876d29a45b65733213f64f07912",
     "preconditions": "sha256:86310262f20040cd30c2d6f79af3751f9193b0d707eb1d72afc8db153725bdc7"
   },
   "source_refs": [

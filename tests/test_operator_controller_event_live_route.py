@@ -417,7 +417,7 @@ def test_live_attach_proof_routes_to_evidence_intake_without_marking_paid(tmp_pa
 
     receipt = _router_receipt(response)
     assert response["internal_status"] == controller_router.RESPONSE_READY
-    assert response["operator_headline"] == "Payment proof received"
+    assert response["operator_headline"] == "Evidence recorded"
     assert receipt["backend_route"] == "evidence_intake.record_candidate_evidence"
     assert receipt["route_result"]["privacy"]["privacy_class"] == "financial_sensitive"
     assert receipt["route_result"]["privacy"]["processing_location"] == "local_only"
