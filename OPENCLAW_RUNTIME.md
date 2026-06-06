@@ -8,8 +8,8 @@ Tool-specific files such as `AGENTS.md` may point here, but this file is the sou
 
 - Global machine defaults may exist in tool-specific locations such as `~/.codex/AGENTS.md`.
 - Tool adapter files in this repo may point here for automatic loading.
-- Read [USER.md](/home/openclaw/USER.md) for operator identity and communication preferences.
-- Read [CORE_ARCHITECTURE_PRINCIPLES.md](/home/openclaw/CORE_ARCHITECTURE_PRINCIPLES.md) before proposing new architecture, dependencies, integrations, or control layers.
+- Read [USER.md](USER.md) for operator identity and communication preferences.
+- Read `CORE_ARCHITECTURE_PRINCIPLES.md` when it exists in the current checkout before proposing new architecture, dependencies, integrations, or control layers.
 - Nested subsystem governance files may add local rules, but they must not weaken the safety or architecture rules here.
 
 ## Project Goal
@@ -34,7 +34,7 @@ Build OpenClaw for safety, power, economy, and bounded agentic execution.
 
 ## Safety And Authority
 
-- Use `python3 /home/openclaw/chief_approval_brain.py "plain English description"` before destructive, external, credential, force-git, billing, or unattended high-risk actions.
+- From the repo root, use `python3 chief_approval_brain.py "plain English description"` before destructive, external, credential, force-git, billing, or unattended high-risk actions.
 - Safe local reads, code edits, and test runs are normally in-bounds.
 - Never edit `.chief.env`, `.google-secrets/`, SSH keys, tokens, or credential files unless the task explicitly requires it and the approval path is satisfied.
 - Never create shadow systems for approvals, memory, task tracking, operator state, or integration state when a canonical system already exists.
