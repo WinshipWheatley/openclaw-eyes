@@ -26,6 +26,7 @@ def _seed_read_models(tmp_path: Path) -> Path:
         "dynamic_card_lifecycle_policy.json",
         "evidence_intake_status.json",
         "operator_action_payloads.json",
+        "objective_advancement_protocol.json",
         "system_question_answer_contract.json",
         "workroom_review_decision_status.json",
         "workroom_review_packet_index.json",
@@ -48,6 +49,7 @@ def _event_request(
     operator_text: str = "",
     artifact_ref: str = "",
     envelope_event_type: str | None = None,
+    extra_payload: dict | None = None,
 ) -> dict:
     payload = {
         "request_id": f"controller_event_test_{event_type}_{world}_{thread}",
@@ -64,6 +66,8 @@ def _event_request(
         "authority_requested": [],
         "authority_boundary": dict(router.AUTHORITY_BOUNDARY),
     }
+    if extra_payload:
+        payload.update(extra_payload)
     return operator_authority.attach_verified_authority_envelope(
         payload,
         operator_ref="operator:winship",

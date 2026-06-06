@@ -219,7 +219,7 @@
           "objective:finance:capital_hilton:payment_watch"
         ],
         "freshness_state": "current",
-        "generated_at": "2026-06-06T03:19:35+00:00",
+        "generated_at": "2026-06-06T04:14:10+00:00",
         "headline": "Request Payment Evidence",
         "next_safe_action": "Attach proof",
         "operator_attention_required": true,
@@ -249,7 +249,7 @@
       },
       "dynamic_card_ref": "dynamic_card.objective_advancement:e8e6c27284e602b2",
       "final_approval_required": true,
-      "generated_at": "2026-06-06T03:19:35+00:00",
+      "generated_at": "2026-06-06T04:14:10+00:00",
       "machine_proof": {
         "browser_access_performed": false,
         "business_action_performed": false,
@@ -434,7 +434,7 @@
           "objective:finance:live_arts_md:payment_evidence"
         ],
         "freshness_state": "current",
-        "generated_at": "2026-06-06T03:19:35+00:00",
+        "generated_at": "2026-06-06T04:14:10+00:00",
         "headline": "Evidence Recorded Waiting For Confirmation",
         "next_safe_action": "Review confirmation when payment proof is complete.",
         "operator_attention_required": false,
@@ -464,7 +464,7 @@
       },
       "dynamic_card_ref": "dynamic_card.objective_advancement:c61ce1b2576dbf15",
       "final_approval_required": true,
-      "generated_at": "2026-06-06T03:19:35+00:00",
+      "generated_at": "2026-06-06T04:14:10+00:00",
       "machine_proof": {
         "browser_access_performed": false,
         "business_action_performed": false,
@@ -648,7 +648,7 @@
           "objective:business_development:capital_hilton:followup"
         ],
         "freshness_state": "current",
-        "generated_at": "2026-06-06T03:19:35+00:00",
+        "generated_at": "2026-06-06T04:14:10+00:00",
         "headline": "Followup Draft Staged",
         "next_safe_action": "Review the staged follow-up draft.",
         "operator_attention_required": false,
@@ -678,7 +678,7 @@
       },
       "dynamic_card_ref": "dynamic_card.objective_advancement:19b6658d5d43ffd7",
       "final_approval_required": true,
-      "generated_at": "2026-06-06T03:19:35+00:00",
+      "generated_at": "2026-06-06T04:14:10+00:00",
       "machine_proof": {
         "browser_access_performed": false,
         "business_action_performed": false,
@@ -861,7 +861,7 @@
           "objective:build:review_packet"
         ],
         "freshness_state": "current",
-        "generated_at": "2026-06-06T03:19:35+00:00",
+        "generated_at": "2026-06-06T04:14:10+00:00",
         "headline": "Review Decision Ready To Record",
         "next_safe_action": "Record review decision",
         "operator_attention_required": false,
@@ -891,7 +891,7 @@
       },
       "dynamic_card_ref": "dynamic_card.objective_advancement:9d63b1c54b1ec1e8",
       "final_approval_required": true,
-      "generated_at": "2026-06-06T03:19:35+00:00",
+      "generated_at": "2026-06-06T04:14:10+00:00",
       "machine_proof": {
         "browser_access_performed": false,
         "business_action_performed": false,
@@ -1074,7 +1074,7 @@
           "objective:finance:st_annes:work_log_review"
         ],
         "freshness_state": "current",
-        "generated_at": "2026-06-06T03:19:35+00:00",
+        "generated_at": "2026-06-06T04:14:10+00:00",
         "headline": "Surface Work Log Review Choices",
         "next_safe_action": "Choose confirm, discard, edit, or mark test.",
         "operator_attention_required": false,
@@ -1104,7 +1104,7 @@
       },
       "dynamic_card_ref": "dynamic_card.objective_advancement:93f2fc1f5f0868ee",
       "final_approval_required": true,
-      "generated_at": "2026-06-06T03:19:35+00:00",
+      "generated_at": "2026-06-06T04:14:10+00:00",
       "machine_proof": {
         "browser_access_performed": false,
         "business_action_performed": false,
@@ -1286,7 +1286,7 @@
           "objective:unknown"
         ],
         "freshness_state": "current",
-        "generated_at": "2026-06-06T03:19:35+00:00",
+        "generated_at": "2026-06-06T04:14:10+00:00",
         "headline": "Needs Verification",
         "next_safe_action": "Tell me the lane or objective.",
         "operator_attention_required": true,
@@ -1316,7 +1316,7 @@
       },
       "dynamic_card_ref": "dynamic_card.objective_advancement:1073350fedf20865",
       "final_approval_required": true,
-      "generated_at": "2026-06-06T03:19:35+00:00",
+      "generated_at": "2026-06-06T04:14:10+00:00",
       "machine_proof": {
         "browser_access_performed": false,
         "business_action_performed": false,
@@ -1364,7 +1364,7 @@
       }
     }
   ],
-  "generated_at": "2026-06-06T03:19:35+00:00",
+  "generated_at": "2026-06-06T04:14:10+00:00",
   "machine_proof": {
     "all_examples_emit_dynamic_cards": true,
     "browser_access_performed": false,

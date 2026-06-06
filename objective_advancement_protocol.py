@@ -480,7 +480,7 @@ def advance_objective(context: Mapping[str, Any], *, generated_at: str | None = 
             generated_at=generated_at,
         )
 
-    if world == "build" and ("review" in thread or "packet" in thread):
+    if world == "build" and ("review" in thread or "packet" in thread or context.get("review_packet_id") or context.get("requested_review_action")):
         requested = str(context.get("requested_review_action") or "").strip()
         allowed = ["open_review_controls", "prepare_review_decision"]
         next_state = "REVIEW_CONTROLS_READY"

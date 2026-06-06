@@ -14,6 +14,7 @@ It is a controller layer, not a business executor.
 - Unknown events fail closed.
 - Missing deterministic action payload returns Needs verification.
 - Every route emits a receipt/ref and dynamic card response.
+- Objective advancement means next safe state or exact blocker; it never executes protected final actions.
 - No live external provider action and no business execution.
 - Protected actions are staged for approval/gate review or blocked; never directly sent, submitted, posted, marked paid, merged, or pushed.
 
@@ -22,18 +23,19 @@ It is a controller layer, not a business executor.
 - `ask_why` -> `system_question_answer.contextual_answer`: contextual answer only; no package staging unless explicitly required
 - `open_lane` -> `operator_action_payloads.navigate`: navigation card/action only
 - `attach_proof` -> `evidence_intake.record_candidate_evidence`: candidate evidence only; no paid or ledger mutation
+- `advance_objective|continue|stage_plan` -> `objective_advancement_protocol.advance_objective`: advance to next safe internal state or explain missing proof/approval; no protected final action
 - `approve|deny` -> `workroom_review_decision_consumer or approval_request_queue.stage_only`: decision/staging receipt only; no business execution
 - `request_rework|mark_informational` -> `workroom_review_decision_consumer.record_decision_only`: review decision receipt only; no merge or push
-- `do_it` -> `operator_action_payloads deterministic safe route`: safe internal route or protected action staged/blocked
+- `do_it` -> `operator_action_payloads deterministic safe route or objective_advancement_protocol when selected payload permits`: safe internal route, objective advancement, or protected action staged/blocked
 - `show_details` -> `dynamic_card_packet.proof_drawer`: proof/details card only
 
 ## Latest Receipt
 
-- Receipt: `operator_controller_event_router:38a3b33e1f02f081`
-- Event: `mark_informational`
-- Status: `ROUTED`
-- Backend route: `workroom_review_decision_consumer.record_decision_only`
-- Route ref: `review_packet.review_packet_c4ec166103f9aa35.mark_review_packet_informational`
+- Receipt: `operator_controller_event_router:413cd1cd39243c7a`
+- Event: `advance_objective`
+- Status: `NEEDS_PROOF`
+- Backend route: `objective_advancement_protocol.advance_objective`
+- Route ref: `objective:finance:capital_hilton:advance`
 
 ## Safety Boundary
 

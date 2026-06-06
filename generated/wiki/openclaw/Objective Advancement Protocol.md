@@ -1,7 +1,7 @@
 # Objective Advancement Protocol
 
 Status: `OBJECTIVE_ADVANCEMENT_PROTOCOL_READY`
-Generated: `2026-06-06T03:19:35+00:00`
+Generated: `2026-06-06T04:14:10+00:00`
 
 Objective advancement is the backend meaning behind Continue, Advance, Prepare it, Stage it, Handle what you can, What's missing?, and Next safe move.
 

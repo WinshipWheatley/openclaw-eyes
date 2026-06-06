@@ -32,6 +32,7 @@
   "controller_event_types": [
     "chat_goal",
     "do_it",
+    "advance_objective",
     "approve",
     "deny",
     "attach_proof",
@@ -45,6 +46,10 @@
     "show_details"
   ],
   "examples": [
+    {
+      "expected": "payment evidence needed with attach_proof suggestion; no ledger or paid mutation",
+      "name": "Finance / Capital Hilton advance_objective"
+    },
     {
       "expected": "payment-watch explanation",
       "name": "Finance / Capital Hilton ask_why"
@@ -66,7 +71,7 @@
       "name": "Protected Coupa submit do_it"
     }
   ],
-  "generated_at": "2026-06-05T17:38:57+00:00",
+  "generated_at": "2026-06-06T04:16:13+00:00",
   "machine_proof": {
     "authority_requested_does_not_imply_authority_granted": true,
     "business_action_performed": false,
@@ -138,6 +143,15 @@
     },
     {
       "accepted_statuses": [
+        "OBJECTIVE_ADVANCEMENT_PROTOCOL_READY"
+      ],
+      "observed_status": "OBJECTIVE_ADVANCEMENT_PROTOCOL_READY",
+      "precondition_ref": "objective_advancement_protocol",
+      "ready": true,
+      "source_ref": "generated/read_models/objective_advancement_protocol.json"
+    },
+    {
+      "accepted_statuses": [
         "CONTEXTUAL_SYSTEM_QUESTIONS_READY",
         "SYSTEM_QUESTION_ANSWER_V0_READY"
       ],
@@ -176,6 +190,11 @@
       "effect": "candidate evidence only; no paid or ledger mutation"
     },
     {
+      "backend_route": "objective_advancement_protocol.advance_objective",
+      "controller_event_type": "advance_objective|continue|stage_plan",
+      "effect": "advance to next safe internal state or explain missing proof/approval; no protected final action"
+    },
+    {
       "backend_route": "workroom_review_decision_consumer or approval_request_queue.stage_only",
       "controller_event_type": "approve|deny",
       "effect": "decision/staging receipt only; no business execution"
@@ -186,9 +205,9 @@
       "effect": "review decision receipt only; no merge or push"
     },
     {
-      "backend_route": "operator_action_payloads deterministic safe route",
+      "backend_route": "operator_action_payloads deterministic safe route or objective_advancement_protocol when selected payload permits",
       "controller_event_type": "do_it",
-      "effect": "safe internal route or protected action staged/blocked"
+      "effect": "safe internal route, objective advancement, or protected action staged/blocked"
     },
     {
       "backend_route": "dynamic_card_packet.proof_drawer",
@@ -204,6 +223,7 @@
     "Unknown events fail closed.",
     "Missing deterministic action payload returns Needs verification.",
     "Every route emits a receipt/ref and dynamic card response.",
+    "Objective advancement means next safe state or exact blocker; it never executes protected final actions.",
     "No live external provider action and no business execution.",
     "Protected actions are staged for approval/gate review or blocked; never directly sent, submitted, posted, marked paid, merged, or pushed."
   ],

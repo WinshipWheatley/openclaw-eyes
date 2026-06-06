@@ -19,6 +19,7 @@ from typing import Any, Mapping, Sequence
 
 import evidence_intake
 import first_class_operator_envelope as operator_authority
+import objective_advancement_protocol
 import workroom_review_decision_consumer
 
 
@@ -51,6 +52,7 @@ BLOCKED_WITH_REASON = "BLOCKED_WITH_REASON"
 EVENT_TYPES = (
     "chat_goal",
     "do_it",
+    "advance_objective",
     "approve",
     "deny",
     "attach_proof",
@@ -104,6 +106,10 @@ PRECONDITIONS = {
         "filename": "operator_action_payloads.json",
         "accepted_statuses": ("OPERATOR_ACTION_PAYLOADS_READY",),
     },
+    "objective_advancement_protocol": {
+        "filename": "objective_advancement_protocol.json",
+        "accepted_statuses": ("OBJECTIVE_ADVANCEMENT_PROTOCOL_READY",),
+    },
     "contextual_system_questions": {
         "filename": "system_question_answer_contract.json",
         "accepted_statuses": ("CONTEXTUAL_SYSTEM_QUESTIONS_READY", "SYSTEM_QUESTION_ANSWER_V0_READY"),
@@ -148,6 +154,15 @@ UNSAFE_TRUE_KEYS = set(operator_authority.UNSAFE_TRUE_KEYS) | set(evidence_intak
     "package_staged_without_operator_review",
     "approval_granted",
 }
+
+OBJECTIVE_ADVANCEMENT_EVENT_TYPES = {"advance_objective", "continue", "stage_plan"}
+OBJECTIVE_ADVANCEMENT_DO_IT_ACTION_IDS = {
+    "capital_hilton.payment.open_finance",
+    "capital_hilton.proposal.stage_followup",
+}
+OBJECTIVE_ADVANCEMENT_DO_IT_ACTION_PREFIXES = (
+    "review_packet.",
+)
 
 PROTECTED_TERMS = (
     "email",
@@ -1262,6 +1277,199 @@ def _route_show_details(
     return receipt
 
 
+
+def _selected_action_permits_objective_advancement(
+    read_model_root: Path,
+    event_type: str,
+    request: Mapping[str, Any],
+) -> bool:
+    if event_type != "do_it":
+        return False
+    selected_action_id = _canonical_action_id(str(request.get("selected_action_id") or ""))
+    if not selected_action_id:
+        return False
+    action = _action_payload_by_id(read_model_root, selected_action_id)
+    if not action or not _action_safe(action):
+        return False
+    action_id = str(action.get("action_id") or "")
+    if action_id in OBJECTIVE_ADVANCEMENT_DO_IT_ACTION_IDS:
+        return True
+    return any(action_id.startswith(prefix) for prefix in OBJECTIVE_ADVANCEMENT_DO_IT_ACTION_PREFIXES)
+
+
+def _class_a_approved(request: Mapping[str, Any]) -> bool:
+    if request.get("class_a_approved") is True or request.get("class_a_approval_present") is True:
+        return True
+    scope = request.get("class_a_approval_scope")
+    return isinstance(scope, Mapping) and scope.get("class_a_approval_present") is True
+
+
+def _objective_current_state(
+    *,
+    read_model_root: Path,
+    request: Mapping[str, Any],
+    world: str,
+    thread: str,
+) -> dict[str, Any]:
+    state = dict(request.get("current_state") or {}) if isinstance(request.get("current_state"), Mapping) else {}
+    root = _rooted(read_model_root)
+    if world == "finance" and thread == "capital_hilton":
+        status = _load_json(root / "capital_hilton_invoice_operator_run_status.json")
+        state.setdefault("invoice_submitted", bool(status.get("coupa_submitted") or status.get("coupa_submission_recorded")))
+        state.setdefault("coupa_processing", str(status.get("coupa_submission_status") or status.get("coupa_status_observed") or "").lower() == "processing")
+        state.setdefault("payment_evidence_present", bool(status.get("payment_received_recorded") or status.get("payment_evidence_present")))
+        state.setdefault("paid", bool(status.get("paid") is True))
+        state.setdefault("ledger_untouched", not bool(status.get("ledger_mutation_performed") or status.get("ledger_posting_performed")))
+        state.setdefault("source_status_ref", "generated/read_models/capital_hilton_invoice_operator_run_status.json")
+    elif world == "finance" and thread == "live_arts_md":
+        evidence_attached = bool(
+            state.get("evidence_attached")
+            or request.get("evidence_attached")
+            or request.get("artifact_ref")
+            or request.get("bridge_artifact_ref")
+            or request.get("artifact_path")
+        )
+        state.setdefault("evidence_attached", evidence_attached)
+        state.setdefault("paid", False)
+        state.setdefault("ledger_untouched", True)
+    elif world == "business_development" and thread == "capital_hilton":
+        proposal = _load_json(root / "capital_hilton_business_development_proposal.json")
+        state.setdefault("proposal_sent_recorded", bool(proposal.get("proposal_sent_recorded")))
+        state.setdefault("client_review_pending", bool(proposal.get("client_review_pending")))
+        state.setdefault("email_send_allowed", False)
+    return state
+
+
+def _objective_context_from_request(
+    request: Mapping[str, Any],
+    *,
+    read_model_root: Path,
+) -> dict[str, Any]:
+    action = _action_payload_by_id(read_model_root, str(request.get("selected_action_id") or ""))
+    payload = action.get("payload") if isinstance(action, Mapping) and isinstance(action.get("payload"), Mapping) else {}
+    world = str((action or {}).get("target_world_ref") or request.get("current_world_ref") or "").strip().lower()
+    thread = str((action or {}).get("target_thread_ref") or request.get("current_thread_ref") or "").strip().lower()
+    review_packet_id = _review_packet_id_from_request(request, action)
+    requested_review_action = str(payload.get("decision_action") or request.get("decision_action") or "")
+    state = _objective_current_state(read_model_root=read_model_root, request=request, world=world, thread=thread)
+    if review_packet_id:
+        state.setdefault("review_packet_id", review_packet_id)
+    action_label = str((action or {}).get("label") or "")
+    return {
+        "objective_ref": str(
+            request.get("objective_ref")
+            or payload.get("objective_ref")
+            or f"objective:{world or 'unknown'}:{thread or 'unknown'}:advance"
+        ),
+        "current_world_ref": world,
+        "current_thread_ref": thread,
+        "current_state": state,
+        "desired_outcome": str(request.get("desired_outcome") or request.get("operator_text") or action_label or "advance current objective safely"),
+        "selected_action_id": str((action or {}).get("action_id") or request.get("selected_action_id") or ""),
+        "selected_action_type": str((action or {}).get("action_type") or ""),
+        "selected_action_label": action_label,
+        "review_packet_id": review_packet_id,
+        "requested_review_action": requested_review_action,
+        "class_a_approved": _class_a_approved(request),
+    }
+
+
+def _adapt_objective_card_for_controller(
+    decision: Mapping[str, Any],
+    *,
+    event_type: str,
+) -> tuple[dict[str, Any], str]:
+    card = json.loads(json.dumps(decision.get("dynamic_card") or {}))
+    next_state = str(decision.get("next_safe_state") or "")
+    suggested_event = "continue"
+    card["controller_event_type"] = event_type
+    card["authority_boundary"] = dict(AUTHORITY_BOUNDARY)
+    card.setdefault("proof", {})["collapsed_by_default"] = True
+    card.setdefault("proof", {})["label"] = "Details"
+    card["machine_proof"] = _machine_proof(objective_advancement_response=True)
+
+    if next_state == "REQUEST_PAYMENT_EVIDENCE":
+        suggested_event = "attach_proof"
+        card["headline"] = "Payment evidence needed"
+        card["plain_summary"] = "I can't complete payment yet. Attach payment evidence before anything touches the ledger."
+        card["summary"] = card["plain_summary"]
+        card["next_safe_action"] = "Attach payment evidence."
+        card["status_label"] = "Payment evidence needed"
+    elif next_state == "EVIDENCE_RECORDED_WAITING_FOR_CONFIRMATION":
+        card["headline"] = "Evidence waiting for confirmation"
+        card["summary"] = str(card.get("plain_summary") or "")
+    elif next_state == "FOLLOWUP_DRAFT_STAGED":
+        card["headline"] = "Follow-up draft can be staged"
+        card["summary"] = str(card.get("plain_summary") or "")
+    elif next_state == "NEEDS_VERIFICATION":
+        card["headline"] = "Needs verification"
+        card["summary"] = str(card.get("plain_summary") or "")
+
+    slots = card.get("action_slots") if isinstance(card.get("action_slots"), list) else []
+    if slots:
+        primary = slots[0]
+        if isinstance(primary, dict):
+            primary["controller_event_type"] = suggested_event
+            primary["authority_boundary"] = dict(AUTHORITY_BOUNDARY)
+            if suggested_event == "attach_proof":
+                primary["label"] = "Attach payment evidence"
+    card["suggested_controller_event"] = suggested_event
+    card["actions"] = [slot for slot in slots if isinstance(slot, Mapping)]
+    return card, suggested_event
+
+
+def _route_objective_advancement(
+    request: Mapping[str, Any],
+    *,
+    read_model_root: Path,
+    receipt_id: str,
+    generated_at: str,
+    validation: Mapping[str, Any],
+) -> dict[str, Any]:
+    context = _objective_context_from_request(request, read_model_root=read_model_root)
+    decision = objective_advancement_protocol.advance_objective(context, generated_at=generated_at)
+    card, suggested_event = _adapt_objective_card_for_controller(
+        decision,
+        event_type=str(request.get("controller_event_type") or "advance_objective"),
+    )
+    route_status = "ROUTED"
+    if decision.get("blocked") is True:
+        route_status = "NEEDS_PROOF" if decision.get("missing_input") == "payment_evidence" else "NEEDS_VERIFICATION"
+    route_result = json.loads(json.dumps(decision))
+    route_result["suggested_controller_event"] = suggested_event
+    route_result["controller_route_status"] = route_status
+    if context.get("review_packet_id"):
+        route_result["review_packet_id"] = context["review_packet_id"]
+    route_result["class_a_approval_bypasses_guardian"] = False
+    receipt = _base_receipt(request, receipt_id=receipt_id, generated_at=generated_at, validation=validation)
+    receipt.update(
+        {
+            "route_status": route_status,
+            "raw_internal_status": RESPONSE_READY,
+            "backend_route": "objective_advancement_protocol.advance_objective",
+            "route_ref": str(decision.get("objective_ref") or ""),
+            "route_receipt_ref": str(decision.get("dynamic_card_ref") or ""),
+            "route_result": route_result,
+            "dynamic_card_response": card,
+            "proof_refs": list(decision.get("proof_refs") or card.get("proof", {}).get("read_model_refs") or []),
+            "machine_proof": _machine_proof(
+                objective_advancement_performed=True,
+                suggested_controller_event=suggested_event,
+                protected_final_action_blocked=True,
+                class_a_approval_bypasses_guardian=False,
+                payment_evidence_missing=decision.get("missing_input") == "payment_evidence",
+                ledger_mutation_performed=False,
+                paid_marking_performed=False,
+                coupa_access_performed=False,
+                browser_access_performed=False,
+                submit_performed=False,
+                merge_performed=False,
+                git_push_performed=False,
+            ),
+        }
+    )
+    return receipt
+
 def _route_action_payload(
     request: Mapping[str, Any],
     *,
@@ -1392,6 +1600,22 @@ def _route_event(
     artifact_lineage_sqlite_path: Path | None,
 ) -> dict[str, Any]:
     event_type = str(request.get("controller_event_type") or "")
+    if event_type in OBJECTIVE_ADVANCEMENT_EVENT_TYPES:
+        return _route_objective_advancement(
+            request,
+            read_model_root=read_model_root,
+            receipt_id=receipt_id,
+            generated_at=generated_at,
+            validation=validation,
+        )
+    if _selected_action_permits_objective_advancement(read_model_root, event_type, request):
+        return _route_objective_advancement(
+            request,
+            read_model_root=read_model_root,
+            receipt_id=receipt_id,
+            generated_at=generated_at,
+            validation=validation,
+        )
     if event_type == "ask_why":
         return _route_ask_why(
             request,
@@ -1715,6 +1939,11 @@ def build_contract_read_model(
             "effect": "candidate evidence only; no paid or ledger mutation",
         },
         {
+            "controller_event_type": "advance_objective|continue|stage_plan",
+            "backend_route": "objective_advancement_protocol.advance_objective",
+            "effect": "advance to next safe internal state or explain missing proof/approval; no protected final action",
+        },
+        {
             "controller_event_type": "approve|deny",
             "backend_route": "workroom_review_decision_consumer or approval_request_queue.stage_only",
             "effect": "decision/staging receipt only; no business execution",
@@ -1726,8 +1955,8 @@ def build_contract_read_model(
         },
         {
             "controller_event_type": "do_it",
-            "backend_route": "operator_action_payloads deterministic safe route",
-            "effect": "safe internal route or protected action staged/blocked",
+            "backend_route": "operator_action_payloads deterministic safe route or objective_advancement_protocol when selected payload permits",
+            "effect": "safe internal route, objective advancement, or protected action staged/blocked",
         },
         {
             "controller_event_type": "show_details",
@@ -1751,11 +1980,16 @@ def build_contract_read_model(
             "Unknown events fail closed.",
             "Missing deterministic action payload returns Needs verification.",
             "Every route emits a receipt/ref and dynamic card response.",
+            "Objective advancement means next safe state or exact blocker; it never executes protected final actions.",
             "No live external provider action and no business execution.",
             "Protected actions are staged for approval/gate review or blocked; never directly sent, submitted, posted, marked paid, merged, or pushed.",
         ],
         "route_table": route_table,
         "examples": [
+            {
+                "name": "Finance / Capital Hilton advance_objective",
+                "expected": "payment evidence needed with attach_proof suggestion; no ledger or paid mutation",
+            },
             {
                 "name": "Finance / Capital Hilton ask_why",
                 "expected": "payment-watch explanation",
@@ -1836,6 +2070,7 @@ def build_status_read_model(
             "router_ready": status == READY_STATUS,
             "live_route_consumes_operator_controller_event_request_v0": preconditions_ready,
             "mac_compact_controller_event_envelope_normalization_supported": True,
+            "objective_advancement_route_supported": True,
             "latest_dynamic_card_response_emitted": bool(latest and latest.get("dynamic_card_response")),
             "authority_requested_does_not_imply_authority_granted": True,
             "incoming_authority_granted_accepted": False,
