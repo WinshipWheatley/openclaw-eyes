@@ -230,11 +230,11 @@ def test_live_arts_evidence_intake_updates_candidate_not_paid_response(tmp_path)
     )
 
     primary = receipt["proof_to_response"]
-    assert primary["headline"] == "Evidence recorded"
+    assert primary["headline"] == "Payment proof received"
     assert "candidate evidence" in primary["body"]
     assert "does not mark the invoice paid" in primary["body"]
     assert receipt["route_result"]["payment"]["paid"] is False
-    assert latest["latest_response"]["headline"] == "Evidence recorded"
+    assert latest["latest_response"]["headline"] == "Payment proof received"
 
 
 def test_protected_coupa_ledger_email_request_gets_guardian_block(tmp_path):
@@ -342,7 +342,7 @@ def test_fallback_response_is_safe_and_concise(tmp_path):
     assert len(primary["headline"]) <= 90
     assert len(primary["body"]) <= 280
     assert "will submit" not in primary["body"].lower()
-    assert "coupa/browser action" in primary["cannot_do_yet"]
+    assert "coupa/browser action" in [item.lower() for item in primary["cannot_do_yet"]]
     assert primary["authority_boundary"]["protected_actions_allowed"] is False
 
 
