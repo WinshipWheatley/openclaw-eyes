@@ -1,0 +1,439 @@
+{
+  "allowed_first_pilot_scope": [
+    "finance_capital_hilton_payment_watch",
+    "business_development_capital_hilton_followup",
+    "finance_live_arts_md_evidence",
+    "build_informational_review",
+    "self_heal_repair_explanation"
+  ],
+  "authority_boundary": {
+    "authority_grant_allowed": false,
+    "browser_access_allowed": false,
+    "business_action_allowed": false,
+    "codex_desktop_operator_assist_allowed": false,
+    "coupa_allowed": false,
+    "credential_use_allowed": false,
+    "external_llm_allowed": false,
+    "external_provider_connect_allowed": false,
+    "git_push_allowed": false,
+    "gmail_allowed": false,
+    "ledger_mutation_allowed": false,
+    "live_lm_invocation_allowed": false,
+    "local_model_runtime_allowed": false,
+    "memory_promotion_allowed": false,
+    "merge_allowed": false,
+    "paid_marking_allowed": false,
+    "pdf_export_allowed": false,
+    "portal_submit_allowed": false,
+    "protected_actions_allowed": false,
+    "tool_execution_allowed": false,
+    "workbook_mutation_allowed": false,
+    "worker_spawn_allowed": false
+  },
+  "data_boundaries": {
+    "allowed_proof_bundle_fields": [
+      "proof_bundle_id",
+      "world_ref",
+      "thread_ref",
+      "objective_ref",
+      "operator_question",
+      "selected_card_ref",
+      "receipt_refs",
+      "read_model_refs",
+      "proof_refs",
+      "gate_refs",
+      "proof_meters",
+      "known_facts",
+      "unknowns",
+      "blocked_actions",
+      "allowed_response_controls",
+      "sensitive_detail_policy",
+      "privacy_class",
+      "excluded_context",
+      "response_speaker_ref",
+      "response_voice_mode"
+    ],
+    "excluded_fields_and_material": [
+      "raw_sensitive_details",
+      "operator_envelope",
+      "device_verification_material",
+      "session_verification_material",
+      "operator_device_secret_material",
+      "credentials_or_tokens",
+      "raw_bank_details",
+      "raw_prompt_dumps",
+      "source_workbook_bodies",
+      "attachment_file_bodies",
+      "browser_session_state",
+      "gmail_message_bodies",
+      "coupa_session_data"
+    ],
+    "financial_sensitive_policy": {
+      "allowed_summary": "redacted payment status, proof refs, receipt refs, and candidate-evidence labels only",
+      "raw_bank_details_allowed_to_model": false,
+      "redaction_required": true,
+      "required_privacy_class": "financial_sensitive/local_only"
+    },
+    "raw_prompt_policy": "no_raw_prompt_dumps_to_model",
+    "workbook_policy": "source_workbook_bodies_excluded; read-model summaries only"
+  },
+  "explicitly_blocked": [
+    "business_action_execution",
+    "tool_use",
+    "browser_gmail_coupa",
+    "ledger_workbook_mutation",
+    "pdf_export",
+    "paid_marking",
+    "worker_spawn",
+    "external_provider_call",
+    "memory_promotion_to_truth"
+  ],
+  "generated_at": "2026-06-07T00:04:04+00:00",
+  "implementation_boundary": {
+    "authority_grant_performed": false,
+    "browser_opened": false,
+    "business_action_performed": false,
+    "codex_desktop_operator_assist_invoked": false,
+    "coupa_opened": false,
+    "external_llm_invoked": false,
+    "external_provider_connected": false,
+    "git_push_performed": false,
+    "gmail_opened": false,
+    "ledger_mutation_performed": false,
+    "live_lm_invoked": false,
+    "local_model_runtime_connected": false,
+    "memory_promotion_performed": false,
+    "merge_performed": false,
+    "paid_marking_performed": false,
+    "pdf_export_performed": false,
+    "portal_submit_performed": false,
+    "tool_execution_performed": false,
+    "workbook_mutation_performed": false,
+    "worker_spawn_performed": false
+  },
+  "machine_proof": {
+    "authority_grant_performed": false,
+    "browser_opened": false,
+    "business_action_performed": false,
+    "codex_desktop_operator_assist_invoked": false,
+    "coupa_opened": false,
+    "external_llm_blocked_by_default": true,
+    "external_llm_invoked": false,
+    "external_provider_connected": false,
+    "gate_published": true,
+    "git_push_performed": false,
+    "gmail_opened": false,
+    "ledger_mutation_performed": false,
+    "live_lm_invoked": false,
+    "local_lm_shadow_only": true,
+    "local_model_runtime_connected": false,
+    "memory_promotion_performed": false,
+    "merge_performed": false,
+    "paid_marking_performed": false,
+    "pdf_export_performed": false,
+    "portal_submit_performed": false,
+    "preconditions_ready": true,
+    "ready_for_live_local_lm_pilot": false,
+    "tool_execution_performed": false,
+    "unsafe_true_grants": [],
+    "unsafe_true_grants_absent": true,
+    "verifier_required": true,
+    "workbook_mutation_performed": false,
+    "worker_spawn_performed": false
+  },
+  "model_harness_classes": [
+    {
+      "allowed_for_live_pilot": false,
+      "allowed_for_response_drafting": true,
+      "allowed_modes": [
+        "proof_to_response_shadow_only"
+      ],
+      "authority_boundary": {
+        "authority_grant_allowed": false,
+        "browser_access_allowed": false,
+        "business_action_allowed": false,
+        "codex_desktop_operator_assist_allowed": false,
+        "coupa_allowed": false,
+        "credential_use_allowed": false,
+        "external_llm_allowed": false,
+        "external_provider_connect_allowed": false,
+        "git_push_allowed": false,
+        "gmail_allowed": false,
+        "ledger_mutation_allowed": false,
+        "live_lm_invocation_allowed": false,
+        "local_model_runtime_allowed": false,
+        "memory_promotion_allowed": false,
+        "merge_allowed": false,
+        "paid_marking_allowed": false,
+        "pdf_export_allowed": false,
+        "portal_submit_allowed": false,
+        "protected_actions_allowed": false,
+        "tool_execution_allowed": false,
+        "workbook_mutation_allowed": false,
+        "worker_spawn_allowed": false
+      },
+      "business_execution_allowed": false,
+      "default_policy": "shadow_only_until_explicit_live_gate",
+      "display_name": "Local LLM Shadow Mode",
+      "model_harness_class": "local_llm_shadow_mode",
+      "required_before_live": [
+        "explicit_operator_approval",
+        "local_only_runtime_sandbox_receipt",
+        "proof_bundle_redaction_audit",
+        "verifier_fallback_receipt"
+      ]
+    },
+    {
+      "allowed_for_live_pilot": false,
+      "allowed_for_response_drafting": false,
+      "allowed_modes": [
+        "future_gated_only"
+      ],
+      "authority_boundary": {
+        "authority_grant_allowed": false,
+        "browser_access_allowed": false,
+        "business_action_allowed": false,
+        "codex_desktop_operator_assist_allowed": false,
+        "coupa_allowed": false,
+        "credential_use_allowed": false,
+        "external_llm_allowed": false,
+        "external_provider_connect_allowed": false,
+        "git_push_allowed": false,
+        "gmail_allowed": false,
+        "ledger_mutation_allowed": false,
+        "live_lm_invocation_allowed": false,
+        "local_model_runtime_allowed": false,
+        "memory_promotion_allowed": false,
+        "merge_allowed": false,
+        "paid_marking_allowed": false,
+        "pdf_export_allowed": false,
+        "portal_submit_allowed": false,
+        "protected_actions_allowed": false,
+        "tool_execution_allowed": false,
+        "workbook_mutation_allowed": false,
+        "worker_spawn_allowed": false
+      },
+      "business_execution_allowed": false,
+      "default_policy": "blocked_until_harness_receipt_and_operator_approval",
+      "display_name": "Future Local Open Model",
+      "model_harness_class": "future_local_open_model",
+      "required_before_live": [
+        "explicit_operator_approval",
+        "approved_local_model_identity",
+        "no_network_provider_receipt",
+        "bounded_context_window_receipt",
+        "verifier_fallback_receipt"
+      ]
+    },
+    {
+      "allowed_for_live_pilot": false,
+      "allowed_for_response_drafting": false,
+      "allowed_modes": [
+        "explicit_approval_only"
+      ],
+      "authority_boundary": {
+        "authority_grant_allowed": false,
+        "browser_access_allowed": false,
+        "business_action_allowed": false,
+        "codex_desktop_operator_assist_allowed": false,
+        "coupa_allowed": false,
+        "credential_use_allowed": false,
+        "external_llm_allowed": false,
+        "external_provider_connect_allowed": false,
+        "git_push_allowed": false,
+        "gmail_allowed": false,
+        "ledger_mutation_allowed": false,
+        "live_lm_invocation_allowed": false,
+        "local_model_runtime_allowed": false,
+        "memory_promotion_allowed": false,
+        "merge_allowed": false,
+        "paid_marking_allowed": false,
+        "pdf_export_allowed": false,
+        "portal_submit_allowed": false,
+        "protected_actions_allowed": false,
+        "tool_execution_allowed": false,
+        "workbook_mutation_allowed": false,
+        "worker_spawn_allowed": false
+      },
+      "business_execution_allowed": false,
+      "default_policy": "blocked_unless_explicitly_approved_for_this_gate",
+      "display_name": "Codex Desktop Operator Assist",
+      "model_harness_class": "codex_desktop_operator_assist",
+      "required_before_live": [
+        "explicit_operator_approval",
+        "surface_scope_receipt",
+        "proof_bundle_redaction_audit"
+      ]
+    },
+    {
+      "allowed_for_live_pilot": false,
+      "allowed_for_response_drafting": false,
+      "allowed_modes": [
+        "blocked_by_default"
+      ],
+      "authority_boundary": {
+        "authority_grant_allowed": false,
+        "browser_access_allowed": false,
+        "business_action_allowed": false,
+        "codex_desktop_operator_assist_allowed": false,
+        "coupa_allowed": false,
+        "credential_use_allowed": false,
+        "external_llm_allowed": false,
+        "external_provider_connect_allowed": false,
+        "git_push_allowed": false,
+        "gmail_allowed": false,
+        "ledger_mutation_allowed": false,
+        "live_lm_invocation_allowed": false,
+        "local_model_runtime_allowed": false,
+        "memory_promotion_allowed": false,
+        "merge_allowed": false,
+        "paid_marking_allowed": false,
+        "pdf_export_allowed": false,
+        "portal_submit_allowed": false,
+        "protected_actions_allowed": false,
+        "tool_execution_allowed": false,
+        "workbook_mutation_allowed": false,
+        "worker_spawn_allowed": false
+      },
+      "business_execution_allowed": false,
+      "default_policy": "blocked_by_default",
+      "display_name": "External LLM",
+      "model_harness_class": "external_llm_blocked_by_default",
+      "required_before_live": [
+        "new_explicit_provider_gate",
+        "privacy_review",
+        "operator_approval"
+      ]
+    }
+  ],
+  "preconditions": [
+    {
+      "accepted_statuses": [
+        "PROOF_TO_RESPONSE_SHADOW_PILOT_RUNTIME_READY"
+      ],
+      "active_candidate_source": "shadow_pilot_candidate",
+      "observed_status": "PROOF_TO_RESPONSE_SHADOW_PILOT_RUNTIME_READY",
+      "precondition_ref": "proof_to_response_shadow_pilot_runtime",
+      "ready": true,
+      "source_ref": "generated/read_models/proof_to_response_runtime_status.json"
+    },
+    {
+      "accepted_statuses": [
+        "PROOF_TO_RESPONSE_LM_SHADOW_PILOT_READY"
+      ],
+      "observed_status": "PROOF_TO_RESPONSE_LM_SHADOW_PILOT_READY",
+      "precondition_ref": "proof_to_response_lm_shadow_pilot",
+      "ready": true,
+      "source_ref": "generated/read_models/proof_to_response_lm_shadow_pilot.json"
+    },
+    {
+      "accepted_statuses": [
+        "PROOF_TO_RESPONSE_RUNTIME_READY"
+      ],
+      "observed_status": "PROOF_TO_RESPONSE_RUNTIME_READY",
+      "precondition_ref": "proof_to_response_runtime",
+      "ready": true,
+      "source_ref": "generated/read_models/proof_to_response_runtime_status.json"
+    },
+    {
+      "accepted_statuses": [
+        "GOLDILOCKS_GATE_CALIBRATION_READY"
+      ],
+      "observed_status": "GOLDILOCKS_GATE_CALIBRATION_READY",
+      "precondition_ref": "goldilocks_gate_calibration",
+      "ready": true,
+      "source_ref": "generated/read_models/goldilocks_gate_calibration.json"
+    },
+    {
+      "accepted_statuses": [
+        "SELF_HEAL_REPAIR_DOCTRINE_READY"
+      ],
+      "observed_status": "SELF_HEAL_REPAIR_DOCTRINE_READY",
+      "precondition_ref": "self_heal_repair_doctrine",
+      "ready": true,
+      "source_ref": "generated/read_models/self_heal_repair_doctrine.json"
+    },
+    {
+      "accepted_statuses": [
+        "HARNESS_PROVIDER_SELECTION_READY"
+      ],
+      "observed_status": "HARNESS_PROVIDER_SELECTION_READY",
+      "precondition_ref": "harness_provider_selection",
+      "ready": true,
+      "source_ref": "generated/read_models/harness_provider_selection_registry.json"
+    },
+    {
+      "accepted_statuses": [
+        "OPERATOR_CONTROLLER_PROTOCOL_READY"
+      ],
+      "observed_status": "OPERATOR_CONTROLLER_PROTOCOL_READY",
+      "precondition_ref": "operator_controller_protocol",
+      "ready": true,
+      "source_ref": "generated/read_models/operator_controller_protocol.json"
+    }
+  ],
+  "purpose": "Define the gate for any future local or explicitly approved model drafting proof-to-response text from bounded proof bundles.",
+  "read_model_id": "local_lm_proof_to_response_readiness_gate",
+  "readiness_decision": {
+    "blockers": [
+      "explicit_operator_approval_missing",
+      "approved_local_model_harness_receipt_missing",
+      "live_local_model_runtime_sandbox_receipt_missing"
+    ],
+    "next_safe_action": "Run another verifier-gated shadow/mock pilot or request explicit approval for a local-only model harness.",
+    "ready_for_live_local_lm_pilot": false
+  },
+  "required_audit_receipt_behavior": {
+    "candidate_source_recorded": true,
+    "proof_bundle_id_recorded": true,
+    "published_response_hash_recorded": true,
+    "receipt_refs_required": [
+      "candidate_source",
+      "proof_bundle_id",
+      "verifier_result",
+      "verification_errors",
+      "response_content_hash"
+    ],
+    "rejected_draft_reason_recorded": true,
+    "verifier_result_recorded": true
+  },
+  "required_verifier_behavior": {
+    "all_lm_drafts_pass_proof_to_response_verifier": true,
+    "bad_claims_recorded": true,
+    "blocked_claims": [
+      "unsupported_paid_sent_submitted_executed_claims",
+      "authority_grants",
+      "protected_action_promises",
+      "machine_contract_jargon",
+      "unproven_receipt_or_source_claims"
+    ],
+    "failed_drafts_publish_safe_fallback": true,
+    "no_authority_grants": true,
+    "no_machine_contract_jargon": true,
+    "no_protected_action_promises": true,
+    "unsafe_draft_text_published": false,
+    "verifier_ref": "proof_to_response_verifier.py"
+  },
+  "schema_version": "local_lm_proof_to_response_readiness_gate_v0",
+  "scope_boundary": {
+    "business_execution_allowed": false,
+    "details_collapsed_by_default": true,
+    "dynamic_cards_support_only": true,
+    "proof_to_response_only": true
+  },
+  "source_content_hashes": {
+    "data_boundaries": "sha256:20006b0bd41a066a6a478fba4feee8455e5354b75fd082ca1f16729981136f30",
+    "model_harness_classes": "sha256:641ba5b114ec4af00072baa94872ed435462835d6feaa2f9c5fdf50a0a760315",
+    "preconditions": "sha256:0348c205c7c4e8fc1fb4bd93eff34d9b2f1d2ec2eba3cb97fbf69db67d53b1fe"
+  },
+  "source_refs": [
+    "generated/read_models/proof_to_response_lm_shadow_pilot.json",
+    "generated/read_models/proof_to_response_runtime_status.json",
+    "generated/read_models/proof_to_response_latest.json",
+    "generated/read_models/goldilocks_gate_calibration.json",
+    "generated/read_models/self_heal_repair_doctrine.json",
+    "generated/read_models/harness_provider_selection_registry.json",
+    "generated/read_models/operator_controller_protocol.json"
+  ],
+  "status": "LOCAL_LM_PROOF_RESPONSE_READINESS_GATE_READY"
+}
