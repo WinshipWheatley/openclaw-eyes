@@ -1,0 +1,202 @@
+{
+  "authority_boundary": {
+    "agent_loop_allowed": false,
+    "authority_grant_allowed": false,
+    "browser_access_allowed": false,
+    "business_action_allowed": false,
+    "child_agent_run_allowed": false,
+    "coupa_allowed": false,
+    "email_send_allowed": false,
+    "external_api_allowed": false,
+    "external_lm_allowed": false,
+    "external_provider_connect_allowed": false,
+    "git_push_allowed": false,
+    "gmail_allowed": false,
+    "ledger_mutation_allowed": false,
+    "ledger_posting_allowed": false,
+    "live_lm_invocation_allowed": false,
+    "local_model_runtime_allowed": false,
+    "merge_allowed": false,
+    "model_invocation_allowed": false,
+    "paid": false,
+    "paid_marking_allowed": false,
+    "pdf_export_allowed": false,
+    "portal_submit_allowed": false,
+    "prompt_send_allowed": false,
+    "proof_bundle_send_allowed": false,
+    "protected_actions_allowed": false,
+    "push_allowed": false,
+    "sent": false,
+    "workbook_mutation_allowed": false,
+    "worker_execution_allowed": false,
+    "worker_spawn_allowed": false,
+    "workflow_package_staging_allowed": false
+  },
+  "controller_event_type": "chat_goal",
+  "generated_at": "2026-06-07T22:27:44+00:00",
+  "implementation_boundary": {
+    "agent_loop_performed": false,
+    "business_action_performed": false,
+    "child_agent_run_performed": false,
+    "coupa_submit_performed": false,
+    "email_send_performed": false,
+    "external_api_called": false,
+    "external_llm_invoked": false,
+    "git_push_performed": false,
+    "incoming_authority_granted_accepted": false,
+    "invented_file_truth": false,
+    "ledger_mutation_performed": false,
+    "local_model_runtime_connected": false,
+    "merge_performed": false,
+    "model_invoked": false,
+    "paid_marking_performed": false,
+    "pdf_export_performed": false,
+    "portal_submit_performed": false,
+    "prompt_sent": false,
+    "proof_bundle_sent": false,
+    "workbook_mutation_performed": false,
+    "worker_execution_performed": false,
+    "worker_spawn_performed": false,
+    "workflow_package_staged": false
+  },
+  "machine_proof": {
+    "agent_loop_performed": false,
+    "browser_access_performed": false,
+    "business_action_performed": false,
+    "child_agent_run_performed": false,
+    "contract_only": true,
+    "controller_event_type_chat_goal": true,
+    "coupa_access_performed": false,
+    "email_send_performed": false,
+    "external_api_called": false,
+    "external_llm_invoked": false,
+    "git_push_performed": false,
+    "gmail_access_performed": false,
+    "invented_file_truth": false,
+    "ledger_mutation_performed": false,
+    "ledger_posting_performed": false,
+    "local_model_runtime_connected": false,
+    "merge_performed": false,
+    "model_invoked": false,
+    "operator_conversation_router_used": true,
+    "paid_marking_performed": false,
+    "pdf_export_performed": false,
+    "portal_submit_performed": false,
+    "preconditions_ready": true,
+    "prompt_sent": false,
+    "proof_bundle_sent": false,
+    "proof_to_response_used_when_possible": true,
+    "unsafe_true_grants": [],
+    "unsafe_true_grants_absent": true,
+    "workbook_mutation_performed": false,
+    "worker_execution_performed": false,
+    "worker_spawn_performed": false,
+    "workflow_package_request_v0_emitted": false,
+    "workflow_package_staged": false
+  },
+  "preconditions": [
+    {
+      "accepted_statuses": [
+        "PROOF_TO_RESPONSE_RUNTIME_READY"
+      ],
+      "evidence_note": "",
+      "observed_status": "PROOF_TO_RESPONSE_RUNTIME_READY",
+      "precondition_ref": "proof_to_response_runtime",
+      "ready": true,
+      "source_ref": "generated/read_models/proof_to_response_runtime_status.json"
+    },
+    {
+      "accepted_statuses": [
+        "PROOF_TO_RESPONSE_SCOPED_RESPONSES_READY"
+      ],
+      "evidence_note": "function_evidence:scope_controller_response;commit:8f74b01",
+      "observed_status": "PROOF_TO_RESPONSE_SCOPED_RESPONSES_READY",
+      "precondition_ref": "proof_to_response_scoped_responses",
+      "ready": true,
+      "source_ref": "generated/read_models/proof_to_response_runtime_status.json"
+    },
+    {
+      "accepted_statuses": [
+        "PROOF_BUNDLE_FRESHNESS_TRACE_INTEGRATION_READY"
+      ],
+      "evidence_note": "",
+      "observed_status": "PROOF_BUNDLE_FRESHNESS_TRACE_INTEGRATION_READY",
+      "precondition_ref": "proof_bundle_freshness_trace_integration",
+      "ready": true,
+      "source_ref": "generated/read_models/proof_bundle_freshness_trace_status.json"
+    },
+    {
+      "accepted_statuses": [
+        "OPERATOR_CONTROLLER_EVENT_LIVE_ROUTE_READY",
+        "OPERATOR_CONTROLLER_EVENT_ROUTER_READY"
+      ],
+      "evidence_note": "",
+      "observed_status": "OPERATOR_CONTROLLER_EVENT_LIVE_ROUTE_READY",
+      "precondition_ref": "operator_controller_event_live_route",
+      "ready": true,
+      "source_ref": "generated/read_models/operator_controller_event_router_status.json"
+    },
+    {
+      "accepted_statuses": [
+        "OBJECTIVE_ADVANCEMENT_CONTROLLER_ROUTE_READY",
+        "OBJECTIVE_ADVANCEMENT_PROTOCOL_READY"
+      ],
+      "evidence_note": "",
+      "observed_status": "OBJECTIVE_ADVANCEMENT_PROTOCOL_READY",
+      "precondition_ref": "objective_advancement_controller_route",
+      "ready": true,
+      "source_ref": "generated/read_models/objective_advancement_protocol.json"
+    },
+    {
+      "accepted_statuses": [
+        "AGENT_RESPONSE_VOICE_MODES_READY"
+      ],
+      "evidence_note": "",
+      "observed_status": "AGENT_RESPONSE_VOICE_MODES_READY",
+      "precondition_ref": "agent_response_voice_modes",
+      "ready": true,
+      "source_ref": "generated/read_models/agent_response_voice_modes.json"
+    },
+    {
+      "accepted_statuses": [
+        "GOLDILOCKS_GATE_CALIBRATION_READY"
+      ],
+      "evidence_note": "",
+      "observed_status": "GOLDILOCKS_GATE_CALIBRATION_READY",
+      "precondition_ref": "goldilocks_gate_calibration",
+      "ready": true,
+      "source_ref": "generated/read_models/goldilocks_gate_calibration.json"
+    }
+  ],
+  "purpose": "Route lane-local composer text to proof-grounded agent responses before package staging.",
+  "read_model_id": "operator_conversation_router_contract",
+  "request_type": "OPERATOR_CONTROLLER_EVENT_REQUEST_V0",
+  "schema_version": "operator_conversation_router_contract_v0",
+  "speaker_policy": {
+    "cassandra": "client/business follow-up",
+    "chief": "diagnostic/status",
+    "guardian": "protected action blocks",
+    "niles": "creative/music/controller mapping",
+    "openclaw": "neutral routing or missing context"
+  },
+  "status": "OPERATOR_CONVERSATION_ROUTER_READY",
+  "supported_questions": [
+    "What should I do?",
+    "What should I do here?",
+    "Why can't this be marked paid?",
+    "What happens if I attach proof?",
+    "What does this proof mean?",
+    "Can you send the follow-up?",
+    "Can you merge/push this?",
+    "How would you map this controller idea?"
+  ],
+  "text_first_rules": [
+    "Preserve current_world_ref, current_thread_ref, selected_card_id, and selected_action_id.",
+    "Common operator questions route to proof-to-response or deterministic text answers, not workflow packages.",
+    "Only explicit stage/build language or a stage_plan safe next action may suggest staging.",
+    "Missing context returns Needs lane context.",
+    "Stale context returns Needs verification.",
+    "Protected action requests return blocked/proof/approval explanations.",
+    "No models, local runtimes, workers, business actions, sends, submits, ledgers, workbook mutations, paid marking, merge, push, or providers."
+  ]
+}

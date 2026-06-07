@@ -20,6 +20,7 @@ from typing import Any, Mapping, Sequence
 import evidence_intake
 import first_class_operator_envelope as operator_authority
 import objective_advancement_protocol
+import operator_conversation_router
 import proof_to_response_runtime
 import workroom_review_decision_consumer
 
@@ -1588,6 +1589,77 @@ def _route_action_payload(
     return receipt
 
 
+def _route_operator_conversation(
+    request: Mapping[str, Any],
+    *,
+    read_model_root: Path,
+    receipt_id: str,
+    generated_at: str,
+    validation: Mapping[str, Any],
+    proof_to_response_sqlite_path: Path | None = None,
+) -> dict[str, Any]:
+    conversation = operator_conversation_router.route_conversation_text(
+        request,
+        read_model_root=read_model_root,
+        sqlite_path=proof_to_response_sqlite_path or operator_conversation_router.DEFAULT_SQLITE_PATH,
+        generated_at=generated_at,
+    )
+    display = conversation.get("operator_display") if isinstance(conversation.get("operator_display"), Mapping) else {}
+    next_event = str(conversation.get("suggested_controller_event") or "show_details")
+    actions = []
+    next_safe_action = str(display.get("next_safe_action") or "Show details")
+    if next_safe_action:
+        actions.append(
+            {
+                "label": next_safe_action,
+                "controller_event_type": next_event,
+                "enabled": True,
+                "business_action": False,
+                "authority_boundary": dict(AUTHORITY_BOUNDARY),
+            }
+        )
+    route_status = str(conversation.get("route_status") or "TEXT_RESPONSE_READY")
+    card = _card_response(
+        receipt_id=receipt_id,
+        event_type="chat_goal",
+        headline=str(display.get("headline") or "OpenClaw response"),
+        summary=str(display.get("plain_summary") or "I routed this text through the conversation router."),
+        status_label=str(display.get("headline") or "Conversation"),
+        route_status="ROUTED" if route_status in {"TEXT_RESPONSE_READY", "PROTECTED_ACTION_BLOCKED_TEXT_RESPONSE", "STAGE_PLAN_TEXT_RESPONSE"} else "NEEDS_VERIFICATION",
+        current_world_ref=str(request.get("current_world_ref") or ""),
+        current_thread_ref=str(request.get("current_thread_ref") or ""),
+        actions=actions,
+        proof_refs=list(conversation.get("proof_refs") or []),
+        tone="blocked" if "BLOCKED" in route_status else "calm",
+    )
+    receipt = _base_receipt(request, receipt_id=receipt_id, generated_at=generated_at, validation=validation)
+    receipt.update(
+        {
+            "route_status": route_status,
+            "raw_internal_status": RESPONSE_READY,
+            "backend_route": "operator_conversation_router.route_conversation_text",
+            "route_ref": str(conversation.get("response_id") or ""),
+            "route_receipt_ref": str(conversation.get("proof_response", {}).get("response_id") or ""),
+            "route_result": conversation,
+            "dynamic_card_response": card,
+            "proof_refs": list(card["proof"]["proof_refs"]),
+            "machine_proof": _machine_proof(
+                operator_conversation_router_performed=True,
+                text_first_response=True,
+                package_staged=False,
+                workflow_package_staged=False,
+                workflow_package_request_v0_emitted=False,
+                model_invoked=False,
+                external_llm_invoked=False,
+                local_model_runtime_connected=False,
+                worker_spawn_performed=False,
+                business_action_performed=False,
+            ),
+        }
+    )
+    return receipt
+
+
 def _route_event(
     request: Mapping[str, Any],
     *,
@@ -1600,8 +1672,18 @@ def _route_event(
     validation: Mapping[str, Any],
     evidence_sqlite_path: Path,
     artifact_lineage_sqlite_path: Path | None,
+    proof_to_response_sqlite_path: Path | None = None,
 ) -> dict[str, Any]:
     event_type = str(request.get("controller_event_type") or "")
+    if event_type == "chat_goal":
+        return _route_operator_conversation(
+            request,
+            read_model_root=read_model_root,
+            receipt_id=receipt_id,
+            generated_at=generated_at,
+            validation=validation,
+            proof_to_response_sqlite_path=proof_to_response_sqlite_path,
+        )
     if event_type in OBJECTIVE_ADVANCEMENT_EVENT_TYPES:
         return _route_objective_advancement(
             request,
@@ -2094,6 +2176,7 @@ def route_controller_event(
             validation=validation,
             evidence_sqlite_path=evidence_sqlite_path,
             artifact_lineage_sqlite_path=artifact_lineage_sqlite_path,
+            proof_to_response_sqlite_path=proof_to_response_sqlite_path,
         )
 
     receipt["source_request_filename"] = source_request_filename
