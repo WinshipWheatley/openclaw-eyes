@@ -243,6 +243,7 @@ def build_pilot_proof_bundle(
     scenario_id: str,
     *,
     read_model_root: Path = DEFAULT_READ_MODEL_ROOT,
+    context_ref: str = "",
     raw_request: Mapping[str, Any] | None = None,
     model_draft: Mapping[str, Any] | None = None,
     creative_context: Mapping[str, Any] | None = None,
@@ -252,6 +253,7 @@ def build_pilot_proof_bundle(
     return bundles.build_redacted_proof_bundle(
         scenario_id,
         read_model_root=read_model_root,
+        context_ref=context_ref,
         raw_request=raw_request,
         model_draft=model_draft,
         creative_context=creative_context,

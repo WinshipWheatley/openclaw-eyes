@@ -22,12 +22,18 @@ DEFAULT_READ_MODEL_ROOT = Path("generated/read_models")
 DEFAULT_EXPORT_ROOT = Path("generated/read_models")
 DEFAULT_BRIDGE_ROOT = Path("/mnt/e/openclaw/generated/read_models")
 DEFAULT_WIKI_PATH = Path("generated/wiki/openclaw/Proof Bundle Builder Redaction Integration.md")
+DEFAULT_FRESHNESS_TRACE_WIKI_PATH = Path("generated/wiki/openclaw/Proof Bundle Freshness Trace Integration.md")
 
 REDACTION_INTEGRATION_SCHEMA_VERSION = "proof_bundle_builder_redaction_integration_v0"
 REDACTION_STATUS_READ_MODEL_ID = "proof_bundle_builder_redaction_status"
 REDACTION_STATUS_JSON_EXPORT_NAME = f"{REDACTION_STATUS_READ_MODEL_ID}.json"
 REDACTION_READY_STATUS = "PROOF_BUNDLE_BUILDER_REDACTION_INTEGRATION_READY"
 REDACTION_NOT_READY_STATUS = "PROOF_BUNDLE_BUILDER_REDACTION_INTEGRATION_NOT_READY"
+FRESHNESS_TRACE_SCHEMA_VERSION = "proof_bundle_freshness_trace_integration_v0"
+FRESHNESS_TRACE_STATUS_READ_MODEL_ID = "proof_bundle_freshness_trace_status"
+FRESHNESS_TRACE_STATUS_JSON_EXPORT_NAME = f"{FRESHNESS_TRACE_STATUS_READ_MODEL_ID}.json"
+FRESHNESS_TRACE_READY_STATUS = "PROOF_BUNDLE_FRESHNESS_TRACE_INTEGRATION_READY"
+FRESHNESS_TRACE_NOT_READY_STATUS = "PROOF_BUNDLE_FRESHNESS_TRACE_INTEGRATION_NOT_READY"
 
 REQUIRED_BUNDLE_FIELDS = (
     "proof_bundle_id",
@@ -82,6 +88,30 @@ REDACTION_SCENARIO_REFS = {
     "self_heal_missing_proof_for_payment": "self_heal_repair",
     "unknown_context": "unknown_context",
 }
+
+SCENARIO_CONTEXT_REFS = {
+    "finance_capital_hilton_payment_watch": "context:finance:capital_hilton:payment_watch",
+    "finance_live_arts_payment_evidence": "context:finance:live_arts_md:payment_evidence",
+    "business_development_capital_hilton_followup": "context:business_development:capital_hilton:followup",
+    "build_review_packet": "context:build:review_packet:informational_resolved",
+    "unknown_context": "context:system:stale_or_unknown_source",
+    "self_heal_missing_proof_for_payment": "context:finance:capital_hilton:payment_watch",
+    "protected_coupa_ledger_email_request": "context:finance:capital_hilton:payment_watch",
+}
+
+BLOCKED_FRESHNESS_STATES = {"stale", "superseded", "unknown"}
+BLOCKED_CONFIDENCE_CLASSES = {"test_only", "unpromoted_memory"}
+FRESHNESS_TRACE_FIELDS = (
+    "context_ref",
+    "freshness_state",
+    "confidence_class",
+    "confidence_score",
+    "decision_trace_summary",
+    "latest_receipt_ref",
+    "prior_attempts",
+    "prior_rejections",
+    "operator_decisions",
+)
 
 VOICE_SPEAKER_BY_SCENARIO = {
     "finance_capital_hilton_payment_watch": "chief",
@@ -221,6 +251,199 @@ def _scenario_response(scenario_id: str, read_model_root: Path = DEFAULT_READ_MO
         if response.get("scenario_id") == scenario_id:
             return response
     raise ValueError(f"unknown_scenario:{scenario_id}")
+
+
+def _freshness_gate_payload(read_model_root: Path = DEFAULT_READ_MODEL_ROOT) -> dict[str, Any]:
+    payload = _load_json(_rooted(read_model_root) / "context_freshness_decision_trace_gate.json")
+    if payload:
+        return payload
+    try:
+        import context_freshness_decision_trace_gate as freshness_gate
+    except ImportError:
+        return {}
+    return freshness_gate.build_read_model(read_model_root=read_model_root)
+
+
+def _freshness_gate_rows(read_model_root: Path = DEFAULT_READ_MODEL_ROOT) -> list[dict[str, Any]]:
+    payload = _freshness_gate_payload(read_model_root)
+    rows = payload.get("gate_rows")
+    return [dict(row) for row in rows if isinstance(row, Mapping)] if isinstance(rows, list) else []
+
+
+def _context_ref_for_scenario(scenario_id: str, context_ref: str = "") -> str:
+    return context_ref or SCENARIO_CONTEXT_REFS.get(scenario_id, "")
+
+
+def _freshness_row_for_context(
+    scenario_id: str,
+    *,
+    read_model_root: Path = DEFAULT_READ_MODEL_ROOT,
+    context_ref: str = "",
+) -> dict[str, Any]:
+    selected_context_ref = _context_ref_for_scenario(scenario_id, context_ref)
+    if not selected_context_ref:
+        return {
+            "context_ref": f"context:redaction_only:{scenario_id}",
+            "world_ref": "unknown",
+            "thread_ref": "unknown",
+            "objective_ref": scenario_id,
+            "source_refs": ["generated/read_models/proof_bundle_redaction_policy.json"],
+            "receipt_refs": [],
+            "decision_trace_refs": ["trace:redaction_only_context_no_lane_truth_claim"],
+            "latest_receipt_ref": "",
+            "superseded_receipt_refs": [],
+            "freshness_state": "current",
+            "confidence_class": "operator_reported_candidate",
+            "confidence_score": 0.72,
+            "stale_reason": "",
+            "decision_trace_summary": "No lane truth is claimed; redacted operator-provided context is allowed only with candidate labeling.",
+            "prior_attempts": [],
+            "prior_rejections": [],
+            "operator_decisions": [],
+            "allowed_for_lm_bundle": True,
+            "required_refresh_action": "",
+            "safe_human_response_if_blocked": "",
+            "canonical_claims": {},
+            "blocked_claims": [],
+        }
+    for row in _freshness_gate_rows(read_model_root):
+        if row.get("context_ref") == selected_context_ref:
+            return row
+    return {
+        "context_ref": selected_context_ref or f"context:unknown:{scenario_id}",
+        "world_ref": "unknown",
+        "thread_ref": "unknown",
+        "objective_ref": scenario_id,
+        "source_refs": [],
+        "receipt_refs": [],
+        "decision_trace_refs": [],
+        "latest_receipt_ref": "",
+        "superseded_receipt_refs": [],
+        "freshness_state": "unknown",
+        "confidence_class": "unknown",
+        "confidence_score": 0.0,
+        "stale_reason": "No context freshness gate row supports this scenario.",
+        "decision_trace_summary": "No traceable current context exists for this proof bundle.",
+        "prior_attempts": [],
+        "prior_rejections": [],
+        "operator_decisions": [],
+        "allowed_for_lm_bundle": False,
+        "required_refresh_action": "request_current_lane_context_or_receipt",
+        "safe_human_response_if_blocked": "Needs verification. I need a current receipt or traceable proof before using this as context.",
+        "canonical_claims": {},
+        "blocked_claims": [],
+    }
+
+
+def _is_trusted_current_context(freshness_row: Mapping[str, Any]) -> bool:
+    return (
+        freshness_row.get("allowed_for_lm_bundle") is True
+        and freshness_row.get("freshness_state") == "current"
+        and freshness_row.get("confidence_class") not in BLOCKED_CONFIDENCE_CLASSES
+    )
+
+
+def _must_block_current_truth(freshness_row: Mapping[str, Any]) -> bool:
+    return (
+        freshness_row.get("freshness_state") in BLOCKED_FRESHNESS_STATES
+        or freshness_row.get("confidence_class") in BLOCKED_CONFIDENCE_CLASSES
+    )
+
+
+def _freshness_trace(freshness_row: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "context_ref": str(freshness_row.get("context_ref") or ""),
+        "freshness_state": str(freshness_row.get("freshness_state") or "unknown"),
+        "confidence_class": str(freshness_row.get("confidence_class") or "unknown"),
+        "confidence_score": float(freshness_row.get("confidence_score") or 0.0),
+        "decision_trace_summary": str(freshness_row.get("decision_trace_summary") or ""),
+        "latest_receipt_ref": str(freshness_row.get("latest_receipt_ref") or ""),
+        "prior_attempts": list(freshness_row.get("prior_attempts") or []),
+        "prior_rejections": list(freshness_row.get("prior_rejections") or []),
+        "operator_decisions": list(freshness_row.get("operator_decisions") or []),
+        "decision_trace_refs": list(freshness_row.get("decision_trace_refs") or []),
+        "superseded_receipt_refs": list(freshness_row.get("superseded_receipt_refs") or []),
+        "stale_reason": str(freshness_row.get("stale_reason") or ""),
+        "required_refresh_action": str(freshness_row.get("required_refresh_action") or ""),
+        "safe_human_response_if_blocked": str(freshness_row.get("safe_human_response_if_blocked") or ""),
+        "allowed_for_lm_bundle": freshness_row.get("allowed_for_lm_bundle") is True,
+        "trusted_current": _is_trusted_current_context(freshness_row),
+        "blocked_current_truth": _must_block_current_truth(freshness_row),
+        "canonical_claims": dict(freshness_row.get("canonical_claims") or {}),
+        "blocked_claims": list(freshness_row.get("blocked_claims") or []),
+    }
+
+
+def _append_unique(existing: list[Any], values: list[Any]) -> list[Any]:
+    output: list[Any] = []
+    for value in [*existing, *values]:
+        if value and value not in output:
+            output.append(value)
+    return output
+
+
+def _freshness_bundle_status(freshness_row: Mapping[str, Any]) -> str:
+    if _is_trusted_current_context(freshness_row):
+        return "trusted_current"
+    freshness_state = str(freshness_row.get("freshness_state") or "unknown")
+    if freshness_state == "historical":
+        return "historical_context"
+    if str(freshness_row.get("confidence_class") or "") == "operator_reported_candidate":
+        return "candidate_context"
+    return "blocked_needs_verification"
+
+
+def _blocked_lm_input(policy_bundle: Mapping[str, Any], freshness_row: Mapping[str, Any]) -> dict[str, Any]:
+    safe = str(
+        freshness_row.get("safe_human_response_if_blocked")
+        or "Needs verification. I need current traceable proof before using this context."
+    )
+    redaction_policy = _policy_module()
+    base = {field: None for field in redaction_policy.ALLOWED_FIELD_REASONS}
+    base.update(
+        {
+            "world_ref": str(freshness_row.get("world_ref") or policy_bundle.get("world_ref") or "unknown"),
+            "thread_ref": str(freshness_row.get("thread_ref") or policy_bundle.get("thread_ref") or "unknown"),
+            "objective_ref": str(freshness_row.get("objective_ref") or policy_bundle.get("objective_ref") or "unknown"),
+            "redacted_known_facts": [safe],
+            "proof_meter_labels": [
+                f"Freshness: {freshness_row.get('freshness_state', 'unknown')}",
+                f"Confidence: {freshness_row.get('confidence_class', 'unknown')}",
+            ],
+            "receipt_refs": [str(freshness_row.get("latest_receipt_ref") or "")] if freshness_row.get("latest_receipt_ref") else [],
+            "gate_labels": [str(freshness_row.get("decision_trace_summary") or "Context needs verification.")],
+            "missing_input": [str(freshness_row.get("required_refresh_action") or "current_receipt_or_traceable_proof")],
+            "allowed_controls": ["Show details"],
+            "blocked_action_summaries": ["trusted-current proof bundle blocked"],
+            "human_safe_summaries": [safe],
+            "agent_voice_mode": str(policy_bundle.get("agent_voice_mode") or "brief"),
+        }
+    )
+    return base
+
+
+def _merge_freshness_into_lm_input(lm_input: Mapping[str, Any], freshness_row: Mapping[str, Any]) -> dict[str, Any]:
+    merged = dict(lm_input)
+    merged["receipt_refs"] = _append_unique(
+        list(merged.get("receipt_refs") or []),
+        [str(freshness_row.get("latest_receipt_ref") or "")],
+    )
+    merged["gate_labels"] = _append_unique(
+        list(merged.get("gate_labels") or []),
+        [str(freshness_row.get("decision_trace_summary") or "")],
+    )
+    merged["proof_meter_labels"] = _append_unique(
+        list(merged.get("proof_meter_labels") or []),
+        [
+            f"Freshness: {freshness_row.get('freshness_state', 'unknown')}",
+            f"Confidence: {freshness_row.get('confidence_class', 'unknown')}",
+        ],
+    )
+    merged["human_safe_summaries"] = _append_unique(
+        list(merged.get("human_safe_summaries") or []),
+        [str(freshness_row.get("decision_trace_summary") or "")],
+    )
+    return merged
 
 
 def _control(
@@ -374,11 +597,14 @@ def build_proof_bundle(
     scenario_id: str,
     *,
     read_model_root: Path = DEFAULT_READ_MODEL_ROOT,
+    context_ref: str = "",
 ) -> dict[str, Any]:
     response = _scenario_response(scenario_id, read_model_root=read_model_root)
     override = SCENARIO_OVERRIDES.get(scenario_id)
     if override is None:
         raise ValueError(f"unknown_scenario:{scenario_id}")
+    freshness_row = _freshness_row_for_context(scenario_id, read_model_root=read_model_root, context_ref=context_ref)
+    freshness = _freshness_trace(freshness_row)
     source_context = response.get("source_context") if isinstance(response.get("source_context"), Mapping) else {}
     receipt_refs = [str(ref) for ref in source_context.get("receipt_refs") or [] if str(ref)]
     proof_refs = [str(ref) for ref in source_context.get("proof_refs") or [] if str(ref)]
@@ -411,6 +637,17 @@ def build_proof_bundle(
         ],
         "response_speaker_ref": str(response.get("speaker_ref") or "openclaw"),
         "response_voice_mode": str(response.get("voice_mode") or "brief"),
+        **{field: freshness[field] for field in FRESHNESS_TRACE_FIELDS},
+        "decision_trace_refs": freshness["decision_trace_refs"],
+        "superseded_receipt_refs": freshness["superseded_receipt_refs"],
+        "stale_reason": freshness["stale_reason"],
+        "required_refresh_action": freshness["required_refresh_action"],
+        "safe_human_response_if_blocked": freshness["safe_human_response_if_blocked"],
+        "allowed_for_lm_bundle": freshness["allowed_for_lm_bundle"],
+        "trusted_current": freshness["trusted_current"],
+        "proof_bundle_status": _freshness_bundle_status(freshness_row),
+        "canonical_claims": freshness["canonical_claims"],
+        "blocked_claims": freshness["blocked_claims"],
     }
 
 
@@ -530,6 +767,7 @@ def build_redacted_proof_bundle(
     scenario_id: str,
     *,
     read_model_root: Path = DEFAULT_READ_MODEL_ROOT,
+    context_ref: str = "",
     raw_request: Mapping[str, Any] | None = None,
     model_draft: Mapping[str, Any] | None = None,
     creative_context: Mapping[str, Any] | None = None,
@@ -550,7 +788,13 @@ def build_redacted_proof_bundle(
             model_draft=model_draft,
             creative_context=creative_context,
         )
+    freshness_row = _freshness_row_for_context(scenario_id, read_model_root=read_model_root, context_ref=context_ref)
+    freshness = _freshness_trace(freshness_row)
     lm_input = _redacted_lm_input_from_policy(policy_bundle)
+    if _must_block_current_truth(freshness_row):
+        lm_input = _blocked_lm_input(policy_bundle, freshness_row)
+    else:
+        lm_input = _merge_freshness_into_lm_input(lm_input, freshness_row)
     voice_mode = _agent_voice_mode(scenario_id, policy_bundle)
     return {
         "schema_version": "redacted_proof_bundle_v0",
@@ -568,6 +812,17 @@ def build_redacted_proof_bundle(
         "response_speaker_ref": _speaker_ref(scenario_id),
         "response_voice_mode": voice_mode,
         "authority_boundary": dict(policy_bundle.get("authority_boundary") or {}),
+        **{field: freshness[field] for field in FRESHNESS_TRACE_FIELDS},
+        "decision_trace_refs": freshness["decision_trace_refs"],
+        "superseded_receipt_refs": freshness["superseded_receipt_refs"],
+        "stale_reason": freshness["stale_reason"],
+        "required_refresh_action": freshness["required_refresh_action"],
+        "safe_human_response_if_blocked": freshness["safe_human_response_if_blocked"],
+        "allowed_for_lm_bundle": freshness["allowed_for_lm_bundle"],
+        "trusted_current": freshness["trusted_current"],
+        "proof_bundle_status": _freshness_bundle_status(freshness_row),
+        "canonical_claims": freshness["canonical_claims"],
+        "blocked_claims": freshness["blocked_claims"],
         "implementation_boundary": {
             "external_llm_invoked": False,
             "local_model_runtime_connected": False,
@@ -661,12 +916,7 @@ def validate_redacted_proof_bundle(redacted_bundle: Mapping[str, Any]) -> list[s
         extra = sorted(set(lm_input) - allowed_fields)
         errors.extend(f"lm_input_missing:{field}" for field in missing)
         errors.extend(f"lm_input_extra:{field}" for field in extra)
-    text = stable_json(
-        {
-            "lm_input": lm_input,
-            "excluded_input_markers": redacted_bundle.get("excluded_input_markers") or [],
-        }
-    ).lower()
+    text = stable_json({"lm_input": lm_input}).lower()
     for marker in REDUNDANT_LITERAL_MARKERS:
         if marker in text:
             errors.append(f"forbidden_marker_present:{marker}")
@@ -992,4 +1242,304 @@ def export_redaction_integration_status(
         "read_model_path": read_model_path.as_posix(),
         "bridge_read_model_path": bridge_read_model_path,
         "wiki_path": wiki_path.as_posix(),
+    }
+
+
+def freshness_trace_precondition_rows(read_model_root: Path = DEFAULT_READ_MODEL_ROOT) -> list[dict[str, Any]]:
+    root = _rooted(read_model_root)
+    specs = {
+        "context_freshness_decision_trace_gate": {
+            "filename": "context_freshness_decision_trace_gate.json",
+            "accepted_statuses": ["CONTEXT_FRESHNESS_DECISION_TRACE_GATE_READY"],
+        },
+        "proof_bundle_builder_redaction_integration": {
+            "filename": REDACTION_STATUS_JSON_EXPORT_NAME,
+            "accepted_statuses": [REDACTION_READY_STATUS],
+        },
+        "proof_bundle_redaction_hardening": {
+            "filename": "proof_bundle_redaction_policy.json",
+            "accepted_statuses": ["PROOF_BUNDLE_REDACTION_HARDENING_READY"],
+        },
+        "proof_to_response_runtime": {
+            "filename": "proof_to_response_runtime_status.json",
+            "accepted_statuses": ["PROOF_TO_RESPONSE_RUNTIME_READY"],
+        },
+        "universal_receipt_envelope": {
+            "filename": "universal_receipt_envelope_status.json",
+            "accepted_statuses": ["UNIVERSAL_RECEIPT_ENVELOPE_READY"],
+        },
+        "evidence_confidence_scoring": {
+            "filename": "evidence_confidence_scoring.json",
+            "accepted_statuses": ["EVIDENCE_CONFIDENCE_SCORING_READY"],
+        },
+        "operator_session_timeline": {
+            "filename": "operator_session_timeline.json",
+            "accepted_statuses": ["OPERATOR_SESSION_TIMELINE_READY"],
+        },
+    }
+    rows = [_shadow_runtime_row(root)]
+    rows[0]["precondition_ref"] = "proof_to_response_shadow_pilot_runtime"
+    for ref, spec in specs.items():
+        filename = str(spec["filename"])
+        payload = _load_json(root / filename)
+        observed = _status(payload)
+        accepted = [str(status) for status in spec["accepted_statuses"]]
+        rows.append(
+            {
+                "precondition_ref": ref,
+                "source_ref": f"generated/read_models/{filename}",
+                "observed_status": observed,
+                "accepted_statuses": accepted,
+                "ready": observed in accepted,
+            }
+        )
+    return rows
+
+
+def _freshness_status_bundle_specs() -> list[dict[str, str]]:
+    return [
+        {
+            "scenario_id": "finance_capital_hilton_payment_watch",
+            "context_ref": "context:finance:capital_hilton:payment_watch",
+            "scenario_label": "Finance / Capital Hilton payment watch",
+        },
+        {
+            "scenario_id": "finance_live_arts_payment_evidence",
+            "context_ref": "context:finance:live_arts_md:payment_evidence",
+            "scenario_label": "Finance / Live Arts MD evidence",
+        },
+        {
+            "scenario_id": "build_review_packet",
+            "context_ref": "context:build:review_packet:informational_resolved",
+            "scenario_label": "Build review packet historical/resolved",
+        },
+        {
+            "scenario_id": "business_development_capital_hilton_followup",
+            "context_ref": "context:business_development:capital_hilton:followup",
+            "scenario_label": "Business Development / Capital Hilton follow-up",
+        },
+        {
+            "scenario_id": "finance_capital_hilton_payment_watch",
+            "context_ref": "context:finance:capital_hilton:superseded_payment_source",
+            "scenario_label": "Superseded payment source",
+        },
+        {
+            "scenario_id": "unknown_context",
+            "context_ref": "context:system:stale_or_unknown_source",
+            "scenario_label": "Stale source",
+        },
+        {
+            "scenario_id": "finance_capital_hilton_payment_watch",
+            "context_ref": "context:finance:capital_hilton:generated_summary_conflict",
+            "scenario_label": "Generated summary conflict",
+        },
+        {
+            "scenario_id": "finance_live_arts_payment_evidence",
+            "context_ref": "context:test_only:evidence_fixture",
+            "scenario_label": "Test-only evidence",
+        },
+        {
+            "scenario_id": "unknown_context",
+            "context_ref": "context:memory:unpromoted_operator_memory",
+            "scenario_label": "Unpromoted memory",
+        },
+    ]
+
+
+def _freshness_bundle_summary(spec: Mapping[str, str], read_model_root: Path) -> dict[str, Any]:
+    bundle = build_redacted_proof_bundle(
+        str(spec["scenario_id"]),
+        read_model_root=read_model_root,
+        context_ref=str(spec["context_ref"]),
+    )
+    lm_input = bundle.get("lm_input") if isinstance(bundle.get("lm_input"), Mapping) else {}
+    return {
+        "scenario_id": spec["scenario_id"],
+        "scenario_label": spec["scenario_label"],
+        "context_ref": bundle.get("context_ref"),
+        "proof_bundle_id": bundle.get("proof_bundle_id"),
+        "proof_bundle_status": bundle.get("proof_bundle_status"),
+        "freshness_state": bundle.get("freshness_state"),
+        "confidence_class": bundle.get("confidence_class"),
+        "confidence_score": bundle.get("confidence_score"),
+        "allowed_for_lm_bundle": bundle.get("allowed_for_lm_bundle"),
+        "trusted_current": bundle.get("trusted_current"),
+        "latest_receipt_ref": bundle.get("latest_receipt_ref"),
+        "decision_trace_summary": bundle.get("decision_trace_summary"),
+        "prior_attempt_count": len(bundle.get("prior_attempts") or []),
+        "prior_rejection_count": len(bundle.get("prior_rejections") or []),
+        "operator_decision_count": len(bundle.get("operator_decisions") or []),
+        "safe_human_response_if_blocked": bundle.get("safe_human_response_if_blocked"),
+        "lm_input_fields": sorted(lm_input.keys()),
+        "lm_known_fact_count": len(lm_input.get("redacted_known_facts") or []),
+        "validation_errors": validate_redacted_proof_bundle(bundle),
+        "source_content_hash": _content_hash(bundle),
+    }
+
+
+def build_freshness_trace_status(
+    *,
+    read_model_root: Path = DEFAULT_READ_MODEL_ROOT,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    generated_at = generated_at or utc_now()
+    preconditions = freshness_trace_precondition_rows(read_model_root)
+    bundle_summaries = [
+        _freshness_bundle_summary(spec, _rooted(read_model_root))
+        for spec in _freshness_status_bundle_specs()
+    ]
+    all_preconditions_ready = all(row["ready"] for row in preconditions)
+    all_bundles_valid = all(not row["validation_errors"] for row in bundle_summaries)
+    stale_blocked = all(
+        row["trusted_current"] is False and row["proof_bundle_status"] == "blocked_needs_verification"
+        for row in bundle_summaries
+        if row["freshness_state"] in {"stale", "superseded", "unknown"} and row["confidence_class"] in {"unknown", "stale"}
+    )
+    candidate_labeled = any(
+        row["confidence_class"] == "operator_reported_candidate" and row["proof_bundle_status"] == "trusted_current"
+        for row in bundle_summaries
+    )
+    historical_not_current = any(
+        row["freshness_state"] == "historical" and row["trusted_current"] is False
+        for row in bundle_summaries
+    )
+    test_only_blocked = any(
+        row["confidence_class"] == "test_only" and row["trusted_current"] is False
+        for row in bundle_summaries
+    )
+    unpromoted_memory_blocked = any(
+        row["confidence_class"] == "unpromoted_memory" and row["trusted_current"] is False
+        for row in bundle_summaries
+    )
+    payload: dict[str, Any] = {
+        "schema_version": FRESHNESS_TRACE_SCHEMA_VERSION,
+        "read_model_id": FRESHNESS_TRACE_STATUS_READ_MODEL_ID,
+        "status": FRESHNESS_TRACE_READY_STATUS
+        if all_preconditions_ready
+        and all_bundles_valid
+        and stale_blocked
+        and candidate_labeled
+        and historical_not_current
+        and test_only_blocked
+        and unpromoted_memory_blocked
+        else FRESHNESS_TRACE_NOT_READY_STATUS,
+        "generated_at": generated_at,
+        "purpose": "Require current, decision-aware context before proof bundles can be treated as trusted-current LM input.",
+        "bundle_summaries": bundle_summaries,
+        "preconditions": preconditions,
+        "source_refs": [
+            "generated/read_models/context_freshness_decision_trace_gate.json",
+            "generated/read_models/proof_bundle_builder_redaction_status.json",
+            "generated/read_models/proof_bundle_redaction_policy.json",
+            "generated/read_models/proof_to_response_runtime_status.json",
+            "generated/read_models/universal_receipt_envelope_status.json",
+            "generated/read_models/evidence_confidence_scoring.json",
+            "generated/read_models/operator_session_timeline.json",
+            "proof_bundle_builder.py",
+        ],
+        "source_content_hashes": {
+            "bundle_summaries": _content_hash(bundle_summaries),
+            "preconditions": _content_hash(preconditions),
+        },
+        "authority_boundary": {
+            "protected_actions_allowed": False,
+            "authority_grant_allowed": False,
+            "business_action_allowed": False,
+            "email_send_allowed": False,
+            "coupa_allowed": False,
+            "ledger_mutation_allowed": False,
+            "paid_marking_allowed": False,
+            "external_llm_allowed": False,
+            "local_model_runtime_allowed": False,
+        },
+        "implementation_boundary": {
+            "external_llm_invoked": False,
+            "local_model_runtime_connected": False,
+            "worker_spawn_performed": False,
+            "business_action_performed": False,
+            "ledger_mutation_performed": False,
+            "paid_marking_performed": False,
+        },
+        "machine_proof": {
+            "preconditions_ready": all_preconditions_ready,
+            "all_bundles_valid": all_bundles_valid,
+            "stale_and_superseded_context_blocked": stale_blocked,
+            "candidate_evidence_labeled_candidate": candidate_labeled,
+            "historical_review_packet_not_trusted_current": historical_not_current,
+            "test_only_evidence_blocked": test_only_blocked,
+            "unpromoted_memory_blocked": unpromoted_memory_blocked,
+            "unsafe_true_grants": [],
+            "unsafe_true_grants_absent": True,
+        },
+    }
+    unsafe = _unsafe_true_grants(payload)
+    payload["machine_proof"]["unsafe_true_grants"] = unsafe
+    payload["machine_proof"]["unsafe_true_grants_absent"] = not unsafe
+    if unsafe:
+        payload["status"] = FRESHNESS_TRACE_NOT_READY_STATUS
+    return payload
+
+
+def build_freshness_trace_wiki(read_model: Mapping[str, Any]) -> str:
+    proof = read_model.get("machine_proof") if isinstance(read_model.get("machine_proof"), Mapping) else {}
+    lines = [
+        "# Proof Bundle Freshness Trace Integration",
+        "",
+        f"Status: {read_model.get('status')}",
+        "",
+        "This status proves the proof bundle builder consults the context freshness decision trace gate before emitting LM-visible proof bundles.",
+        "",
+        "## Proof",
+        "",
+        f"- Preconditions ready: `{str(proof.get('preconditions_ready')).lower()}`",
+        f"- All bundles valid: `{str(proof.get('all_bundles_valid')).lower()}`",
+        f"- Stale/superseded blocked: `{str(proof.get('stale_and_superseded_context_blocked')).lower()}`",
+        f"- Candidate evidence labeled candidate: `{str(proof.get('candidate_evidence_labeled_candidate')).lower()}`",
+        f"- Test-only evidence blocked: `{str(proof.get('test_only_evidence_blocked')).lower()}`",
+        f"- Unpromoted memory blocked: `{str(proof.get('unpromoted_memory_blocked')).lower()}`",
+        f"- Unsafe true grants absent: `{str(proof.get('unsafe_true_grants_absent')).lower()}`",
+        "",
+        "## Bundle Summaries",
+        "",
+    ]
+    for row in read_model.get("bundle_summaries") or []:
+        lines.append(
+            f"- `{row.get('scenario_label')}`: context `{row.get('context_ref')}`, freshness `{row.get('freshness_state')}`, "
+            f"confidence `{row.get('confidence_class')}`, status `{row.get('proof_bundle_status')}`."
+        )
+    lines.append("")
+    return "\n".join(lines)
+
+
+def export_freshness_trace_status(
+    *,
+    read_model_root: Path = DEFAULT_READ_MODEL_ROOT,
+    export_root: Path = DEFAULT_EXPORT_ROOT,
+    bridge_root: Path | None = DEFAULT_BRIDGE_ROOT,
+    wiki_path: Path = DEFAULT_FRESHNESS_TRACE_WIKI_PATH,
+    generated_at: str | None = None,
+) -> dict[str, str]:
+    read_model = build_freshness_trace_status(read_model_root=read_model_root, generated_at=generated_at)
+    export_root = _rooted(export_root)
+    export_root.mkdir(parents=True, exist_ok=True)
+    read_model_path = export_root / FRESHNESS_TRACE_STATUS_JSON_EXPORT_NAME
+    _write_json(read_model_path, read_model)
+
+    bridge_read_model_path = ""
+    if bridge_root is not None:
+        bridge_root = _rooted(bridge_root)
+        bridge_root.mkdir(parents=True, exist_ok=True)
+        bridge_path = bridge_root / FRESHNESS_TRACE_STATUS_JSON_EXPORT_NAME
+        shutil.copy2(read_model_path, bridge_path)
+        bridge_read_model_path = bridge_path.as_posix()
+
+    wiki_path = _rooted(wiki_path)
+    wiki_path.parent.mkdir(parents=True, exist_ok=True)
+    wiki_path.write_text(build_freshness_trace_wiki(read_model), encoding="utf-8")
+    return {
+        "status": str(read_model.get("status") or FRESHNESS_TRACE_NOT_READY_STATUS),
+        "read_model_path": read_model_path.as_posix(),
+        "bridge_read_model_path": bridge_read_model_path,
+        "wiki_path": wiki_path.as_posix(),
+        "bundle_count": str(len(read_model.get("bundle_summaries") or [])),
     }
