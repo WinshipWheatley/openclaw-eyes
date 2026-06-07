@@ -16,6 +16,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping
 
+import proof_bundle_builder as bundles
 import proof_to_response_runtime as runtime
 
 
@@ -118,6 +119,14 @@ PRECONDITIONS = {
     "objective_advancement_controller_route": {
         "filename": "objective_advancement_protocol.json",
         "accepted_statuses": ["OBJECTIVE_ADVANCEMENT_CONTROLLER_ROUTE_READY", "OBJECTIVE_ADVANCEMENT_PROTOCOL_READY"],
+    },
+    "proof_bundle_redaction_policy": {
+        "filename": "proof_bundle_redaction_policy.json",
+        "accepted_statuses": ["PROOF_BUNDLE_REDACTION_HARDENING_READY"],
+    },
+    "agent_response_voice_modes": {
+        "filename": "agent_response_voice_modes.json",
+        "accepted_statuses": ["AGENT_RESPONSE_VOICE_MODES_READY"],
     },
 }
 
@@ -234,10 +243,19 @@ def build_pilot_proof_bundle(
     scenario_id: str,
     *,
     read_model_root: Path = DEFAULT_READ_MODEL_ROOT,
+    raw_request: Mapping[str, Any] | None = None,
+    model_draft: Mapping[str, Any] | None = None,
+    creative_context: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     if scenario_id not in PILOT_SCENARIOS:
         raise ValueError(f"unknown_pilot_scenario:{scenario_id}")
-    return runtime.build_or_load_proof_bundle(scenario_id, read_model_root=read_model_root)
+    return bundles.build_redacted_proof_bundle(
+        scenario_id,
+        read_model_root=read_model_root,
+        raw_request=raw_request,
+        model_draft=model_draft,
+        creative_context=creative_context,
+    )
 
 
 def _candidate_common(proof_bundle: Mapping[str, Any]) -> dict[str, Any]:
@@ -254,6 +272,17 @@ def _candidate_common(proof_bundle: Mapping[str, Any]) -> dict[str, Any]:
 def mock_lm_style_candidate_response(proof_bundle: Mapping[str, Any]) -> dict[str, Any]:
     scenario_id = str(proof_bundle.get("scenario_id") or "")
     common = _candidate_common(proof_bundle)
+    lm_input = proof_bundle.get("lm_input") if isinstance(proof_bundle.get("lm_input"), Mapping) else {}
+    if lm_input:
+        controls = {str(label) for label in lm_input.get("allowed_controls") or [] if str(label)}
+    else:
+        controls = {
+            str(control.get("label"))
+            for control in proof_bundle.get("allowed_response_controls") or []
+            if isinstance(control, Mapping) and control.get("label")
+        }
+    def control(label: str, fallback: str = "Show details") -> str:
+        return label if label in controls else fallback
     if scenario_id == "finance_capital_hilton_payment_watch":
         return {
             **common,
@@ -261,16 +290,16 @@ def mock_lm_style_candidate_response(proof_bundle: Mapping[str, Any]) -> dict[st
             "draft_body": "Coupa is processing. I can't mark this paid until payment evidence is attached. The ledger stays untouched.",
             "draft_next_step": "Attach payment evidence.",
             "claimed_facts": ["payment_evidence_missing", "coupa_processing", "ledger_untouched"],
-            "requested_controls": ["Attach payment evidence"],
+            "requested_controls": [control("Attach payment evidence")],
         }
     if scenario_id == "business_development_capital_hilton_followup":
         return {
             **common,
             "draft_headline": "Follow-up can be staged",
-            "draft_body": "I can stage a follow-up draft. I will not send it.",
+            "draft_body": "I can stage a follow-up draft with a warm client-aware tone. I will not send it.",
             "draft_next_step": "Stage follow-up",
             "claimed_facts": ["followup_stageable", "no_email_send"],
-            "requested_controls": ["Stage follow-up"],
+            "requested_controls": [control("Stage follow-up")],
         }
     if scenario_id == "finance_live_arts_payment_evidence":
         return {
@@ -279,7 +308,7 @@ def mock_lm_style_candidate_response(proof_bundle: Mapping[str, Any]) -> dict[st
             "draft_body": "This is candidate payment-processing evidence. It does not mark the invoice paid.",
             "draft_next_step": "Verify arrival or attach stronger proof",
             "claimed_facts": ["candidate_evidence_recorded", "not_paid_truth"],
-            "requested_controls": ["Verify arrival or attach stronger proof"],
+            "requested_controls": [control("Verify arrival")],
         }
     if scenario_id == "build_review_packet":
         return {
@@ -288,7 +317,7 @@ def mock_lm_style_candidate_response(proof_bundle: Mapping[str, Any]) -> dict[st
             "draft_body": "This review packet is informational. No merge and no push were performed.",
             "draft_next_step": "Review packet",
             "claimed_facts": ["review_packet_informational", "no_merge_or_push"],
-            "requested_controls": ["Review packet"],
+            "requested_controls": [control("Review packet")],
         }
     if scenario_id == "protected_coupa_ledger_email_request":
         return {
@@ -297,14 +326,14 @@ def mock_lm_style_candidate_response(proof_bundle: Mapping[str, Any]) -> dict[st
             "draft_body": "Protected finance action is blocked until proof and approval. No execution will happen.",
             "draft_next_step": "Prepare approval",
             "claimed_facts": ["protected_action_blocked", "proof_and_approval_required", "no_execution"],
-            "requested_controls": ["Prepare approval"],
+            "requested_controls": [control("Prepare approval")],
         }
     if scenario_id == "self_heal_missing_proof_for_payment":
         return {
             **common,
             "draft_headline": "Payment evidence is missing",
-            "draft_body": "Blocker: payment evidence is missing. Proof: payment watch refs do not prove paid state; I can hold the watch, but cannot mark paid or touch the ledger.",
-            "draft_next_step": "Attach payment proof",
+            "draft_body": "Blocker: payment evidence is missing. Proof: payment watch refs do not prove paid state; I can stage safe repair options, but cannot mark paid or touch the ledger.",
+            "draft_next_step": "Stage repair package",
             "claimed_facts": [
                 "repair_blocker_named",
                 "repair_proof_cited",
@@ -312,7 +341,7 @@ def mock_lm_style_candidate_response(proof_bundle: Mapping[str, Any]) -> dict[st
                 "cannot_do_yet_named",
                 "smallest_manual_step_named",
             ],
-            "requested_controls": ["Attach payment proof"],
+            "requested_controls": [control("Stage repair package")],
         }
     raise ValueError(f"unknown_pilot_scenario:{scenario_id}")
 
@@ -323,11 +352,12 @@ def _publish_candidate(
     *,
     generated_at: str,
 ) -> tuple[dict[str, Any], dict[str, Any], str]:
-    verifier_result = runtime.verify_candidate_response(candidate_response, proof_bundle)
+    verifier_bundle = bundles.redacted_bundle_for_verifier(proof_bundle)
+    verifier_result = runtime.verify_candidate_response(candidate_response, verifier_bundle)
     if verifier_result.get("publishable") is True:
         published = runtime._published_response_from_candidate(
             candidate_response,
-            proof_bundle,
+            verifier_bundle,
             generated_at=generated_at,
             verification_status="publishable",
         )
@@ -342,10 +372,10 @@ def _publish_candidate(
     fallback_reason = "; ".join(str(error) for error in verifier_result.get("verification_errors") or [])
     published = runtime._published_response_from_candidate(
         fallback,
-        proof_bundle,
-        generated_at=generated_at,
-        verification_status="fallback",
-        fallback_reason=fallback_reason,
+            verifier_bundle,
+            generated_at=generated_at,
+            verification_status="fallback",
+            fallback_reason=fallback_reason,
     )
     return dict(verifier_result), published, fallback_reason
 
@@ -374,6 +404,7 @@ def run_pilot_scenario(
         },
         "proof_bundle": proof_bundle,
         "candidate_response": candidate,
+        "redaction_validation_errors": bundles.validate_redacted_proof_bundle(proof_bundle),
         "verifier_result": verifier_result,
         "verifier_failure_reasons": list(verifier_result.get("verification_errors") or []),
         "publication_decision": "verified_text_published" if publishable else "safe_fallback_published",
@@ -383,9 +414,9 @@ def run_pilot_scenario(
         "primary_response_kind": "proof_to_response_text",
         "dynamic_card_role": "support_display",
         "dynamic_card_support": {
-            "selected_card_ref": str(proof_bundle.get("selected_card_ref") or ""),
+            "selected_card_ref": "redacted_proof_bundle",
             "details_collapsed": True,
-            "proof_meters_available": bool(proof_bundle.get("proof_meters")),
+            "proof_meters_available": bool((proof_bundle.get("lm_input") or {}).get("proof_meter_labels")),
         },
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
         "implementation_boundary": dict(PERFORMED_FLAGS),
