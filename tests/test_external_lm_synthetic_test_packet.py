@@ -55,7 +55,26 @@ def test_packet_is_ready_and_uses_only_synthetic_proof_bundle():
     assert bundle["raw_ocr_or_artifact_text_present"] is False
     assert bundle["paid"] is False
     assert bundle["ledger_untouched"] is True
+    assert bundle["canonical_fact_ids"] == list(packet.CANONICAL_SYNTHETIC_FACT_IDS)
     assert not _unsafe_true_grants(model)
+
+
+def test_synthetic_proof_bundle_includes_canonical_allowed_fact_ids():
+    model = packet.build_packet_read_model(generated_at=FIXED_NOW)
+    bundle = model["copy_paste_packet"]["synthetic_proof_bundle"]
+    fact_ids = [fact["fact_id"] for fact in bundle["proof_facts"]]
+
+    assert fact_ids == list(packet.CANONICAL_SYNTHETIC_FACT_IDS)
+    assert set(fact_ids) == {
+        "payment_evidence_missing",
+        "processor_processing",
+        "ledger_untouched",
+        "paid_false",
+        "no_email_sent",
+        "no_coupa_submit",
+        "no_ledger_mutation",
+        "no_paid_marking",
+    }
 
 
 def test_packet_contains_no_private_proof_paths_credentials_or_account_details():

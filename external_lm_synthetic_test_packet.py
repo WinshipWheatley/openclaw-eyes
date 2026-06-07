@@ -147,6 +147,51 @@ EXPECTED_RESPONSE = {
     "style": "concise human response, not a proof wall",
 }
 
+CANONICAL_SYNTHETIC_FACTS = [
+    {
+        "fact_id": "payment_evidence_missing",
+        "text": "Payment evidence is missing.",
+        "source_ref": "synthetic_fact:payment_evidence_missing",
+    },
+    {
+        "fact_id": "processor_processing",
+        "text": "The synthetic payment processor status says processing.",
+        "source_ref": "synthetic_fact:processor_processing",
+    },
+    {
+        "fact_id": "ledger_untouched",
+        "text": "The ledger is untouched.",
+        "source_ref": "synthetic_fact:ledger_untouched",
+    },
+    {
+        "fact_id": "paid_false",
+        "text": "Paid is false.",
+        "source_ref": "synthetic_fact:paid_false",
+    },
+    {
+        "fact_id": "no_email_sent",
+        "text": "No email was sent.",
+        "source_ref": "synthetic_fact:no_email_sent",
+    },
+    {
+        "fact_id": "no_coupa_submit",
+        "text": "No Coupa submit occurred.",
+        "source_ref": "synthetic_fact:no_coupa_submit",
+    },
+    {
+        "fact_id": "no_ledger_mutation",
+        "text": "No ledger mutation occurred.",
+        "source_ref": "synthetic_fact:no_ledger_mutation",
+    },
+    {
+        "fact_id": "no_paid_marking",
+        "text": "No paid marking occurred.",
+        "source_ref": "synthetic_fact:no_paid_marking",
+    },
+]
+
+CANONICAL_SYNTHETIC_FACT_IDS = tuple(fact["fact_id"] for fact in CANONICAL_SYNTHETIC_FACTS)
+
 
 def stable_json(payload: Any) -> str:
     return json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
@@ -254,32 +299,16 @@ def synthetic_proof_bundle() -> dict[str, Any]:
         "credentials_present": False,
         "raw_ocr_or_artifact_text_present": False,
         "internal_paths_present": False,
-        "proof_facts": [
-            {
-                "fact_id": "payment_evidence_missing",
-                "text": "Payment evidence is missing.",
-                "source_ref": "synthetic_fact:payment_evidence_missing",
-            },
-            {
-                "fact_id": "processor_processing",
-                "text": "The synthetic payment processor status says processing.",
-                "source_ref": "synthetic_fact:processor_processing",
-            },
-            {
-                "fact_id": "ledger_untouched",
-                "text": "The ledger is untouched.",
-                "source_ref": "synthetic_fact:ledger_untouched",
-            },
-            {
-                "fact_id": "paid_false",
-                "text": "Paid is false.",
-                "source_ref": "synthetic_fact:paid_false",
-            },
-        ],
+        "canonical_fact_ids": list(CANONICAL_SYNTHETIC_FACT_IDS),
+        "proof_facts": [dict(fact) for fact in CANONICAL_SYNTHETIC_FACTS],
         "payment_evidence_status": "missing",
         "payment_processor_status": "processing",
         "ledger_untouched": True,
         "paid": False,
+        "email_sent": False,
+        "coupa_submit_occurred": False,
+        "ledger_mutation_occurred": False,
+        "paid_marking_occurred": False,
         "allowed_response_controls": [
             {
                 "label": "Attach payment evidence",

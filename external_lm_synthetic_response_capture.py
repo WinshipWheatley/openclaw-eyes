@@ -129,7 +129,7 @@ VALID_SYNTHETIC_RESPONSE = {
     "missing_input": ["payment_evidence"],
     "can_do_now": ["Hold payment watch", "Ask for payment proof"],
     "cannot_do_yet": ["paid marking", "ledger mutation", "submit", "send"],
-    "claimed_facts": ["payment_evidence_missing", "processor_processing", "ledger_untouched", "paid_false"],
+    "claimed_facts": list(synthetic_packet.CANONICAL_SYNTHETIC_FACT_IDS),
     "requested_controls": ["Attach payment evidence"],
     "uncertainty_notes": [],
 }

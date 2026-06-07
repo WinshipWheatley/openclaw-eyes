@@ -34,7 +34,7 @@
     "synthetic_packet_ref": "generated/read_models/external_lm_synthetic_test_packet.json",
     "verifier": "proof_to_response_runtime.verify_candidate_response"
   },
-  "generated_at": "2026-06-07T20:15:04+00:00",
+  "generated_at": "2026-06-07T21:09:30+00:00",
   "implementation_boundary": {
     "browser_access_performed": false,
     "business_action_performed": false,
@@ -196,7 +196,11 @@
         "payment_evidence_missing",
         "processor_processing",
         "ledger_untouched",
-        "paid_false"
+        "paid_false",
+        "no_email_sent",
+        "no_coupa_submit",
+        "no_ledger_mutation",
+        "no_paid_marking"
       ],
       "details_collapsed": true,
       "draft_body": "Payment evidence is missing. The processor says processing, and the ledger stays untouched.",
@@ -210,7 +214,7 @@
       "requested_controls": [
         "Attach payment evidence"
       ],
-      "response_id": "proof_to_response_schema_adapter_candidate:bfb002026ae4bab9",
+      "response_id": "proof_to_response_schema_adapter_candidate:af9069eda6f1273c",
       "speaker_ref": "chief",
       "uncertainty_notes": []
     },
@@ -255,7 +259,11 @@
           "payment_evidence_missing",
           "processor_processing",
           "ledger_untouched",
-          "paid_false"
+          "paid_false",
+          "no_email_sent",
+          "no_coupa_submit",
+          "no_ledger_mutation",
+          "no_paid_marking"
         ],
         "details_collapsed": true,
         "draft_body": "Payment evidence is missing. The processor says processing, and the ledger stays untouched.",
@@ -269,7 +277,7 @@
         "requested_controls": [
           "Attach payment evidence"
         ],
-        "response_id": "proof_to_response_schema_adapter_candidate:bfb002026ae4bab9",
+        "response_id": "proof_to_response_schema_adapter_candidate:af9069eda6f1273c",
         "speaker_ref": "chief",
         "uncertainty_notes": []
       },
@@ -299,7 +307,7 @@
         "workbook_mutation_allowed": false,
         "worker_spawn_allowed": false
       },
-      "generated_at": "2026-06-07T20:15:04+00:00",
+      "generated_at": "2026-06-07T21:09:30+00:00",
       "machine_proof": {
         "browser_access_performed": false,
         "business_action_performed": false,
@@ -344,7 +352,7 @@
         "pdf_export_performed": false,
         "proof_bundle_id": "proof_bundle:external_lm_synthetic_response_capture:payment_watch",
         "publishable": true,
-        "response_id": "proof_to_response_schema_adapter_candidate:bfb002026ae4bab9",
+        "response_id": "proof_to_response_schema_adapter_candidate:af9069eda6f1273c",
         "rewrite_request": "",
         "safe_fallback_response": null,
         "status": "VERIFIED_FOR_SHADOW_PUBLISH",
@@ -387,7 +395,7 @@
     "capture_status": "verifier_pass",
     "failure_reasons": [],
     "finance_truth_mutation_performed": false,
-    "generated_at": "2026-06-07T20:15:04+00:00",
+    "generated_at": "2026-06-07T21:09:30+00:00",
     "implementation_boundary": {
       "browser_access_performed": false,
       "business_action_performed": false,
@@ -517,6 +525,34 @@
           "synthetic_fact:paid_false"
         ],
         "text": "Paid is false."
+      },
+      {
+        "fact_id": "no_email_sent",
+        "source_refs": [
+          "synthetic_fact:no_email_sent"
+        ],
+        "text": "No email was sent."
+      },
+      {
+        "fact_id": "no_coupa_submit",
+        "source_refs": [
+          "synthetic_fact:no_coupa_submit"
+        ],
+        "text": "No Coupa submit occurred."
+      },
+      {
+        "fact_id": "no_ledger_mutation",
+        "source_refs": [
+          "synthetic_fact:no_ledger_mutation"
+        ],
+        "text": "No ledger mutation occurred."
+      },
+      {
+        "fact_id": "no_paid_marking",
+        "source_refs": [
+          "synthetic_fact:no_paid_marking"
+        ],
+        "text": "No paid marking occurred."
       }
     ],
     "next_safe_action": "Attach payment evidence.",
@@ -536,7 +572,11 @@
       "synthetic_fact:payment_evidence_missing",
       "synthetic_fact:processor_processing",
       "synthetic_fact:ledger_untouched",
-      "synthetic_fact:paid_false"
+      "synthetic_fact:paid_false",
+      "synthetic_fact:no_email_sent",
+      "synthetic_fact:no_coupa_submit",
+      "synthetic_fact:no_ledger_mutation",
+      "synthetic_fact:no_paid_marking"
     ],
     "raw_ocr_or_artifact_text_present": false,
     "read_model_refs": [

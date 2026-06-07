@@ -25,7 +25,7 @@
     "worker_spawn_allowed": false
   },
   "copy_paste_packet": {
-    "copy_paste_prompt": "{\n  \"expected_next_step\": \"Attach payment evidence.\",\n  \"instructions\": [\n    \"Return JSON only.\",\n    \"No markdown.\",\n    \"No prose outside JSON.\",\n    \"No code fences.\",\n    \"Use only the synthetic proof bundle below.\",\n    \"Do not claim paid.\",\n    \"Do not claim sent.\",\n    \"Do not claim submitted.\",\n    \"Do not promise send, submit, browser, Coupa, paid marking, or ledger action.\",\n    \"Do not promise ledger updates or ledger posting.\",\n    \"Keep the response concise and human.\"\n  ],\n  \"json_only_response_schema\": {\n    \"additionalProperties\": false,\n    \"properties\": {\n      \"body\": {\n        \"description\": \"Concise response body grounded only in proof.\",\n        \"type\": \"string\"\n      },\n      \"can_do_now\": {\n        \"items\": {\n          \"type\": \"string\"\n        },\n        \"type\": \"array\"\n      },\n      \"cannot_do_yet\": {\n        \"items\": {\n          \"type\": \"string\"\n        },\n        \"type\": \"array\"\n      },\n      \"claimed_facts\": {\n        \"items\": {\n          \"type\": \"string\"\n        },\n        \"type\": \"array\"\n      },\n      \"headline\": {\n        \"description\": \"Short operator-facing headline.\",\n        \"type\": \"string\"\n      },\n      \"missing_input\": {\n        \"items\": {\n          \"type\": \"string\"\n        },\n        \"type\": \"array\"\n      },\n      \"next_step\": {\n        \"description\": \"One safe next step.\",\n        \"type\": \"string\"\n      },\n      \"requested_controls\": {\n        \"items\": {\n          \"type\": \"string\"\n        },\n        \"type\": \"array\"\n      },\n      \"uncertainty_notes\": {\n        \"items\": {\n          \"type\": \"string\"\n        },\n        \"type\": \"array\"\n      }\n    },\n    \"required\": [\n      \"headline\",\n      \"body\",\n      \"next_step\",\n      \"missing_input\",\n      \"can_do_now\",\n      \"cannot_do_yet\",\n      \"claimed_facts\",\n      \"requested_controls\",\n      \"uncertainty_notes\"\n    ],\n    \"title\": \"External LM synthetic proof-to-response draft\",\n    \"type\": \"object\"\n  },\n  \"synthetic_proof_bundle\": {\n    \"allowed_response_controls\": [\n      {\n        \"controller_event_type\": \"attach_proof\",\n        \"label\": \"Attach payment evidence\",\n        \"protected_actions_allowed\": false\n      }\n    ],\n    \"bank_or_account_details_present\": false,\n    \"blocked_actions\": [\n      \"mark_paid\",\n      \"ledger_mutation\",\n      \"ledger_post\",\n      \"portal_submit\",\n      \"coupa_submit\",\n      \"email_send\"\n    ],\n    \"bundle_kind\": \"synthetic_redacted_test_only\",\n    \"client_ref\": \"synthetic_hotel_account\",\n    \"credentials_present\": false,\n    \"internal_paths_present\": false,\n    \"ledger_untouched\": true,\n    \"next_safe_action\": \"Attach payment evidence.\",\n    \"paid\": false,\n    \"payment_evidence_status\": \"missing\",\n    \"payment_processor_status\": \"processing\",\n    \"privacy_class\": \"synthetic_only_no_private_proof\",\n    \"private_proof_present\": false,\n    \"proof_facts\": [\n      {\n        \"fact_id\": \"payment_evidence_missing\",\n        \"source_ref\": \"synthetic_fact:payment_evidence_missing\",\n        \"text\": \"Payment evidence is missing.\"\n      },\n      {\n        \"fact_id\": \"processor_processing\",\n        \"source_ref\": \"synthetic_fact:processor_processing\",\n        \"text\": \"The synthetic payment processor status says processing.\"\n      },\n      {\n        \"fact_id\": \"ledger_untouched\",\n        \"source_ref\": \"synthetic_fact:ledger_untouched\",\n        \"text\": \"The ledger is untouched.\"\n      },\n      {\n        \"fact_id\": \"paid_false\",\n        \"source_ref\": \"synthetic_fact:paid_false\",\n        \"text\": \"Paid is false.\"\n      }\n    ],\n    \"raw_ocr_or_artifact_text_present\": false,\n    \"real_client_data_present\": false,\n    \"scenario_id\": \"synthetic_finance_capital_hilton_shaped_payment_watch\",\n    \"scenario_shape\": \"capital_hilton_payment_watch\",\n    \"world_ref\": \"finance\"\n  },\n  \"warning\": \"Do not paste private proof. Use this synthetic packet only.\"\n}\n",
+    "copy_paste_prompt": "{\n  \"expected_next_step\": \"Attach payment evidence.\",\n  \"instructions\": [\n    \"Return JSON only.\",\n    \"No markdown.\",\n    \"No prose outside JSON.\",\n    \"No code fences.\",\n    \"Use only the synthetic proof bundle below.\",\n    \"Do not claim paid.\",\n    \"Do not claim sent.\",\n    \"Do not claim submitted.\",\n    \"Do not promise send, submit, browser, Coupa, paid marking, or ledger action.\",\n    \"Do not promise ledger updates or ledger posting.\",\n    \"Keep the response concise and human.\"\n  ],\n  \"json_only_response_schema\": {\n    \"additionalProperties\": false,\n    \"properties\": {\n      \"body\": {\n        \"description\": \"Concise response body grounded only in proof.\",\n        \"type\": \"string\"\n      },\n      \"can_do_now\": {\n        \"items\": {\n          \"type\": \"string\"\n        },\n        \"type\": \"array\"\n      },\n      \"cannot_do_yet\": {\n        \"items\": {\n          \"type\": \"string\"\n        },\n        \"type\": \"array\"\n      },\n      \"claimed_facts\": {\n        \"items\": {\n          \"type\": \"string\"\n        },\n        \"type\": \"array\"\n      },\n      \"headline\": {\n        \"description\": \"Short operator-facing headline.\",\n        \"type\": \"string\"\n      },\n      \"missing_input\": {\n        \"items\": {\n          \"type\": \"string\"\n        },\n        \"type\": \"array\"\n      },\n      \"next_step\": {\n        \"description\": \"One safe next step.\",\n        \"type\": \"string\"\n      },\n      \"requested_controls\": {\n        \"items\": {\n          \"type\": \"string\"\n        },\n        \"type\": \"array\"\n      },\n      \"uncertainty_notes\": {\n        \"items\": {\n          \"type\": \"string\"\n        },\n        \"type\": \"array\"\n      }\n    },\n    \"required\": [\n      \"headline\",\n      \"body\",\n      \"next_step\",\n      \"missing_input\",\n      \"can_do_now\",\n      \"cannot_do_yet\",\n      \"claimed_facts\",\n      \"requested_controls\",\n      \"uncertainty_notes\"\n    ],\n    \"title\": \"External LM synthetic proof-to-response draft\",\n    \"type\": \"object\"\n  },\n  \"synthetic_proof_bundle\": {\n    \"allowed_response_controls\": [\n      {\n        \"controller_event_type\": \"attach_proof\",\n        \"label\": \"Attach payment evidence\",\n        \"protected_actions_allowed\": false\n      }\n    ],\n    \"bank_or_account_details_present\": false,\n    \"blocked_actions\": [\n      \"mark_paid\",\n      \"ledger_mutation\",\n      \"ledger_post\",\n      \"portal_submit\",\n      \"coupa_submit\",\n      \"email_send\"\n    ],\n    \"bundle_kind\": \"synthetic_redacted_test_only\",\n    \"canonical_fact_ids\": [\n      \"payment_evidence_missing\",\n      \"processor_processing\",\n      \"ledger_untouched\",\n      \"paid_false\",\n      \"no_email_sent\",\n      \"no_coupa_submit\",\n      \"no_ledger_mutation\",\n      \"no_paid_marking\"\n    ],\n    \"client_ref\": \"synthetic_hotel_account\",\n    \"coupa_submit_occurred\": false,\n    \"credentials_present\": false,\n    \"email_sent\": false,\n    \"internal_paths_present\": false,\n    \"ledger_mutation_occurred\": false,\n    \"ledger_untouched\": true,\n    \"next_safe_action\": \"Attach payment evidence.\",\n    \"paid\": false,\n    \"paid_marking_occurred\": false,\n    \"payment_evidence_status\": \"missing\",\n    \"payment_processor_status\": \"processing\",\n    \"privacy_class\": \"synthetic_only_no_private_proof\",\n    \"private_proof_present\": false,\n    \"proof_facts\": [\n      {\n        \"fact_id\": \"payment_evidence_missing\",\n        \"source_ref\": \"synthetic_fact:payment_evidence_missing\",\n        \"text\": \"Payment evidence is missing.\"\n      },\n      {\n        \"fact_id\": \"processor_processing\",\n        \"source_ref\": \"synthetic_fact:processor_processing\",\n        \"text\": \"The synthetic payment processor status says processing.\"\n      },\n      {\n        \"fact_id\": \"ledger_untouched\",\n        \"source_ref\": \"synthetic_fact:ledger_untouched\",\n        \"text\": \"The ledger is untouched.\"\n      },\n      {\n        \"fact_id\": \"paid_false\",\n        \"source_ref\": \"synthetic_fact:paid_false\",\n        \"text\": \"Paid is false.\"\n      },\n      {\n        \"fact_id\": \"no_email_sent\",\n        \"source_ref\": \"synthetic_fact:no_email_sent\",\n        \"text\": \"No email was sent.\"\n      },\n      {\n        \"fact_id\": \"no_coupa_submit\",\n        \"source_ref\": \"synthetic_fact:no_coupa_submit\",\n        \"text\": \"No Coupa submit occurred.\"\n      },\n      {\n        \"fact_id\": \"no_ledger_mutation\",\n        \"source_ref\": \"synthetic_fact:no_ledger_mutation\",\n        \"text\": \"No ledger mutation occurred.\"\n      },\n      {\n        \"fact_id\": \"no_paid_marking\",\n        \"source_ref\": \"synthetic_fact:no_paid_marking\",\n        \"text\": \"No paid marking occurred.\"\n      }\n    ],\n    \"raw_ocr_or_artifact_text_present\": false,\n    \"real_client_data_present\": false,\n    \"scenario_id\": \"synthetic_finance_capital_hilton_shaped_payment_watch\",\n    \"scenario_shape\": \"capital_hilton_payment_watch\",\n    \"world_ref\": \"finance\"\n  },\n  \"warning\": \"Do not paste private proof. Use this synthetic packet only.\"\n}\n",
     "copy_paste_safety": {
       "bank_or_account_details_allowed": false,
       "internal_paths_allowed": false,
@@ -121,12 +121,26 @@
         "email_send"
       ],
       "bundle_kind": "synthetic_redacted_test_only",
+      "canonical_fact_ids": [
+        "payment_evidence_missing",
+        "processor_processing",
+        "ledger_untouched",
+        "paid_false",
+        "no_email_sent",
+        "no_coupa_submit",
+        "no_ledger_mutation",
+        "no_paid_marking"
+      ],
       "client_ref": "synthetic_hotel_account",
+      "coupa_submit_occurred": false,
       "credentials_present": false,
+      "email_sent": false,
       "internal_paths_present": false,
+      "ledger_mutation_occurred": false,
       "ledger_untouched": true,
       "next_safe_action": "Attach payment evidence.",
       "paid": false,
+      "paid_marking_occurred": false,
       "payment_evidence_status": "missing",
       "payment_processor_status": "processing",
       "privacy_class": "synthetic_only_no_private_proof",
@@ -151,6 +165,26 @@
           "fact_id": "paid_false",
           "source_ref": "synthetic_fact:paid_false",
           "text": "Paid is false."
+        },
+        {
+          "fact_id": "no_email_sent",
+          "source_ref": "synthetic_fact:no_email_sent",
+          "text": "No email was sent."
+        },
+        {
+          "fact_id": "no_coupa_submit",
+          "source_ref": "synthetic_fact:no_coupa_submit",
+          "text": "No Coupa submit occurred."
+        },
+        {
+          "fact_id": "no_ledger_mutation",
+          "source_ref": "synthetic_fact:no_ledger_mutation",
+          "text": "No ledger mutation occurred."
+        },
+        {
+          "fact_id": "no_paid_marking",
+          "source_ref": "synthetic_fact:no_paid_marking",
+          "text": "No paid marking occurred."
         }
       ],
       "raw_ocr_or_artifact_text_present": false,
@@ -189,7 +223,7 @@
     "Next step must map to an allowed safe control.",
     "Response must be concise and human-readable."
   ],
-  "generated_at": "2026-06-07T17:06:47+00:00",
+  "generated_at": "2026-06-07T21:09:30+00:00",
   "implementation_boundary": {
     "browser_access_performed": false,
     "business_action_performed": false,

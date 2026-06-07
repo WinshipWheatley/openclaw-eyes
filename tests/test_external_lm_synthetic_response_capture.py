@@ -19,7 +19,7 @@ def _valid_response(**overrides):
         "missing_input": ["payment_evidence"],
         "can_do_now": ["Hold payment watch", "Ask for payment proof"],
         "cannot_do_yet": ["paid marking", "ledger mutation", "submit", "send"],
-        "claimed_facts": ["payment_evidence_missing", "processor_processing", "ledger_untouched", "paid_false"],
+        "claimed_facts": list(capture.synthetic_packet.CANONICAL_SYNTHETIC_FACT_IDS),
         "requested_controls": ["Attach payment evidence"],
         "uncertainty_notes": [],
     }
@@ -59,6 +59,22 @@ def test_valid_synthetic_external_response_passes():
     assert not _unsafe_true_grants(result)
 
 
+def test_previously_pasted_synthetic_response_now_passes():
+    result = _capture(
+        _valid_response(
+            body="Payment evidence is missing. The processor is still processing, and the ledger stays untouched.",
+            can_do_now=["Hold payment watch", "Wait for payment evidence"],
+            cannot_do_yet=["Mark paid", "Update the ledger", "Submit anything", "Send anything"],
+        )
+    )
+
+    assert result["adapter_result"]["parse_status"] == "PARSED"
+    assert result["capture_status"] == capture.CAPTURE_STATUS_VERIFIER_PASS
+    assert result["verifier_pass"] is True
+    assert result["failure_reasons"] == []
+    assert result["adapted_candidate"]["claimed_facts"] == list(capture.synthetic_packet.CANONICAL_SYNTHETIC_FACT_IDS)
+
+
 def test_non_json_response_fails():
     result = capture.capture_manual_synthetic_response(
         "Payment evidence is missing; attach proof.",
@@ -94,6 +110,17 @@ def test_send_submit_ledger_claim_fails():
     reasons = "\n".join(result["failure_reasons"])
     assert "unsupported_completion_claim" in reasons
     assert "sent" in reasons or "submitted" in reasons or "ledger updated" in reasons
+
+
+def test_private_or_real_proof_field_is_schema_blocked():
+    payload = _valid_response(private_proof="real bank screenshot")
+    result = _capture(payload)
+
+    assert result["capture_status"] == capture.CAPTURE_STATUS_VERIFIER_FAIL
+    assert result["verifier_pass"] is False
+    assert result["adapter_result"]["parse_status"] == "SCHEMA_ERROR"
+    assert "adapter:unknown_field:private_proof" in result["failure_reasons"]
+    assert result["published_as_real_business_truth"] is False
 
 
 def test_protected_action_promise_fails():
