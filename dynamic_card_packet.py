@@ -154,9 +154,11 @@ ACTION_TYPES = (
     "navigate",
     "stage_package_request",
     "system_question",
+    "objective_advancement",
     "inspect_proof",
     "review_decision",
     "workbook_registration",
+    "record_payment_proof_intake",
     "explain_gate",
     "none",
 )
@@ -523,12 +525,17 @@ def _classify_ref(ref: str) -> str:
 
 
 def _controller_event_type_for_action(action: Mapping[str, Any]) -> str:
+    explicit = str(action.get("controller_event_type") or "").strip()
+    if explicit:
+        return explicit
     action_id = str(action.get("action_id") or "")
     action_type = str(action.get("action_type") or "none")
     if action_type == "navigate":
         return "open_lane"
     if action_type in {"system_question", "explain_gate"}:
         return "ask_why"
+    if action_type == "objective_advancement":
+        return "advance_objective"
     if "ask_what_this_means" in action_id:
         return "ask_why"
     if "show_details" in action_id:
@@ -647,6 +654,9 @@ def _action_from_payload(
         "action_id": str(source["action_id"]),
         "label": str(source.get("label") or source["action_id"]),
         "action_type": str(source.get("action_type") or "none"),
+        "controller_event_type": str(source.get("controller_event_type") or ""),
+        "control_scope": str(source.get("control_scope") or "lane"),
+        "text_response_preferred": source.get("text_response_preferred") is True,
         "enabled": enabled,
         "disabled_reason": None if enabled else str(disabled_reason),
         "payload_ref": action_payload_ref(str(source["action_id"])),
@@ -665,6 +675,9 @@ def _disabled_action(
         "action_id": action_id,
         "label": label,
         "action_type": action_type if action_type in ACTION_TYPES else "none",
+        "controller_event_type": "",
+        "control_scope": "none",
+        "text_response_preferred": False,
         "enabled": False,
         "disabled_reason": disabled_reason,
         "payload_ref": "",
@@ -728,6 +741,8 @@ def _empty_action_slot(
     controller_event_type: str = "show_details",
     label: str | None = None,
     disabled_reason: str | None = None,
+    control_scope: str = "none",
+    text_response_preferred: bool = False,
     proof_refs: list[str] | tuple[str, ...] = (),
 ) -> dict[str, Any]:
     if slot not in ACTION_SLOTS:
@@ -739,6 +754,8 @@ def _empty_action_slot(
         "label": label or f"No {slot.replace('_', ' ')} action",
         "enabled": False,
         "disabled_reason": disabled_reason or f"No {slot.replace('_', ' ')} action for this card.",
+        "control_scope": control_scope,
+        "text_response_preferred": bool(text_response_preferred),
         "requires_operator_envelope": True,
         "receipt_required": _receipt_required(controller_event_type),
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
@@ -759,6 +776,8 @@ def _action_slot_from_action(action: Mapping[str, Any], proof_refs: list[str] | 
         "label": str(action.get("label") or action.get("action_id") or "Action"),
         "enabled": enabled,
         "disabled_reason": None if enabled else str(disabled_reason),
+        "control_scope": str(action.get("control_scope") or "lane"),
+        "text_response_preferred": action.get("text_response_preferred") is True,
         "requires_operator_envelope": True,
         "receipt_required": _receipt_required(controller_event_type),
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
@@ -797,6 +816,7 @@ def _action_slots(
             controller_event_type="do_it",
             label=danger_label,
             disabled_reason=danger_reason,
+            control_scope="gate",
             proof_refs=proof_refs,
         ),
     }
@@ -947,7 +967,9 @@ def _capital_hilton_payment_watch_card(sources: Mapping[str, Mapping[str, Any]],
         priority=100,
         visible_by_default=True,
         actions=[
-            _action_from_payload(action_index, "capital_hilton.payment.open_finance"),
+            _action_from_payload(action_index, "capital_hilton.payment.ask_why"),
+            _action_from_payload(action_index, "capital_hilton.payment.advance_objective"),
+            _action_from_payload(action_index, "capital_hilton.payment.record_proof"),
         ],
         proof=_proof(
             proof_refs=proof_refs,
@@ -2073,6 +2095,8 @@ def build_contract_read_model(
             "Every visible card has trust, freshness, and lifecycle fields.",
             "Every card must have card_family.",
             "Every card must have fixed action_slots: primary, secondary, detail, dismiss, and danger_disabled.",
+            "Controller controls include control_scope so lane controls and gate details stay separate.",
+            "Lane-level text controls may set text_response_preferred=true.",
             "Proof is metering and detail drawer metadata, not primary UI.",
             "Every card must have trust_state.",
             "Every enabled action must reference an existing operator_action_payload.",

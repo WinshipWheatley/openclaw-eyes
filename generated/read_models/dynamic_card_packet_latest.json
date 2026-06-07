@@ -63,6 +63,7 @@
             "workbook_source_mutation_allowed": false,
             "worker_spawn_allowed": false
           },
+          "control_scope": "gate",
           "controller_event_type": "do_it",
           "disabled_reason": "Coupa submit is protected and unavailable from payment watch cards.",
           "enabled": false,
@@ -77,11 +78,12 @@
             "/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/capital_hilton_invoice_operator_run_report_20260601T221600Z.md"
           ],
           "receipt_required": true,
-          "requires_operator_envelope": true
+          "requires_operator_envelope": true,
+          "text_response_preferred": false
         },
         "detail": {
-          "action_id": "",
-          "action_payload_ref": "",
+          "action_id": "capital_hilton.payment.record_proof",
+          "action_payload_ref": "generated/read_models/operator_action_payloads.json#action_payloads.capital_hilton.payment.record_proof",
           "authority_boundary": {
             "agent_loop_allowed": false,
             "authority_grant_allowed": false,
@@ -110,10 +112,11 @@
             "workbook_source_mutation_allowed": false,
             "worker_spawn_allowed": false
           },
-          "controller_event_type": "show_details",
-          "disabled_reason": "No deterministic inspect-proof payload exists for this card.",
-          "enabled": false,
-          "label": "Show details",
+          "control_scope": "lane",
+          "controller_event_type": "attach_proof",
+          "disabled_reason": null,
+          "enabled": true,
+          "label": "Attach payment evidence",
           "proof_refs": [
             "generated/read_models/capital_hilton_invoice_operator_run_status.json",
             "generated/read_models/operator_action_payloads.json",
@@ -123,8 +126,9 @@
             "/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/capital_hilton_invoice_operator_run_receipt_20260601T221600Z.json",
             "/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/capital_hilton_invoice_operator_run_report_20260601T221600Z.md"
           ],
-          "receipt_required": false,
-          "requires_operator_envelope": true
+          "receipt_required": true,
+          "requires_operator_envelope": true,
+          "text_response_preferred": true
         },
         "dismiss": {
           "action_id": "",
@@ -157,6 +161,7 @@
             "workbook_source_mutation_allowed": false,
             "worker_spawn_allowed": false
           },
+          "control_scope": "none",
           "controller_event_type": "show_details",
           "disabled_reason": "Dismiss is a local client view preference; backend does not record dismissal from this packet.",
           "enabled": false,
@@ -171,11 +176,12 @@
             "/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/capital_hilton_invoice_operator_run_report_20260601T221600Z.md"
           ],
           "receipt_required": false,
-          "requires_operator_envelope": true
+          "requires_operator_envelope": true,
+          "text_response_preferred": false
         },
         "primary": {
-          "action_id": "capital_hilton.payment.open_finance",
-          "action_payload_ref": "generated/read_models/operator_action_payloads.json#action_payloads.capital_hilton.payment.open_finance",
+          "action_id": "capital_hilton.payment.ask_why",
+          "action_payload_ref": "generated/read_models/operator_action_payloads.json#action_payloads.capital_hilton.payment.ask_why",
           "authority_boundary": {
             "agent_loop_allowed": false,
             "authority_grant_allowed": false,
@@ -204,10 +210,11 @@
             "workbook_source_mutation_allowed": false,
             "worker_spawn_allowed": false
           },
-          "controller_event_type": "open_lane",
+          "control_scope": "lane",
+          "controller_event_type": "ask_why",
           "disabled_reason": null,
           "enabled": true,
-          "label": "Open Finance / Capital Hilton",
+          "label": "Ask why",
           "proof_refs": [
             "generated/read_models/capital_hilton_invoice_operator_run_status.json",
             "generated/read_models/operator_action_payloads.json",
@@ -218,11 +225,12 @@
             "/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/capital_hilton_invoice_operator_run_report_20260601T221600Z.md"
           ],
           "receipt_required": false,
-          "requires_operator_envelope": true
+          "requires_operator_envelope": true,
+          "text_response_preferred": true
         },
         "secondary": {
-          "action_id": "",
-          "action_payload_ref": "",
+          "action_id": "capital_hilton.payment.advance_objective",
+          "action_payload_ref": "generated/read_models/operator_action_payloads.json#action_payloads.capital_hilton.payment.advance_objective",
           "authority_boundary": {
             "agent_loop_allowed": false,
             "authority_grant_allowed": false,
@@ -251,10 +259,11 @@
             "workbook_source_mutation_allowed": false,
             "worker_spawn_allowed": false
           },
-          "controller_event_type": "show_details",
-          "disabled_reason": "No secondary action for this card.",
-          "enabled": false,
-          "label": "No secondary action",
+          "control_scope": "lane",
+          "controller_event_type": "advance_objective",
+          "disabled_reason": null,
+          "enabled": true,
+          "label": "Advance payment watch",
           "proof_refs": [
             "generated/read_models/capital_hilton_invoice_operator_run_status.json",
             "generated/read_models/operator_action_payloads.json",
@@ -265,18 +274,46 @@
             "/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/capital_hilton_invoice_operator_run_report_20260601T221600Z.md"
           ],
           "receipt_required": false,
-          "requires_operator_envelope": true
+          "requires_operator_envelope": true,
+          "text_response_preferred": true
         }
       },
       "actions": [
         {
-          "action_id": "capital_hilton.payment.open_finance",
-          "action_type": "navigate",
+          "action_id": "capital_hilton.payment.ask_why",
+          "action_type": "system_question",
           "business_action": false,
+          "control_scope": "lane",
+          "controller_event_type": "ask_why",
           "disabled_reason": null,
           "enabled": true,
-          "label": "Open Finance / Capital Hilton",
-          "payload_ref": "generated/read_models/operator_action_payloads.json#action_payloads.capital_hilton.payment.open_finance"
+          "label": "Ask why",
+          "payload_ref": "generated/read_models/operator_action_payloads.json#action_payloads.capital_hilton.payment.ask_why",
+          "text_response_preferred": true
+        },
+        {
+          "action_id": "capital_hilton.payment.advance_objective",
+          "action_type": "objective_advancement",
+          "business_action": false,
+          "control_scope": "lane",
+          "controller_event_type": "advance_objective",
+          "disabled_reason": null,
+          "enabled": true,
+          "label": "Advance payment watch",
+          "payload_ref": "generated/read_models/operator_action_payloads.json#action_payloads.capital_hilton.payment.advance_objective",
+          "text_response_preferred": true
+        },
+        {
+          "action_id": "capital_hilton.payment.record_proof",
+          "action_type": "record_payment_proof_intake",
+          "business_action": false,
+          "control_scope": "lane",
+          "controller_event_type": "attach_proof",
+          "disabled_reason": null,
+          "enabled": true,
+          "label": "Attach payment evidence",
+          "payload_ref": "generated/read_models/operator_action_payloads.json#action_payloads.capital_hilton.payment.record_proof",
+          "text_response_preferred": true
         }
       ],
       "attention_cost": "operator_attention",
@@ -394,11 +431,11 @@
       },
       "replacement_card_ref": "",
       "resolved_by_receipt_ref": "",
-      "source_content_hash": "sha256:fcd40e1c5c52f4bff5921aeaf5bdfdd0c8ea51fc9a57020c582a90765e26fcdb",
+      "source_content_hash": "sha256:9a0bfd808032e1531e257d6e8c9524f2bf004c96a9b3918b40970612c5f511c0",
       "source_generated_at": {
         "generated/read_models/capital_hilton_invoice_operator_run_status.json": "2026-06-01T22:28:55+00:00",
         "generated/read_models/lm_bounded_operator_orchestration_latest.json": "2026-06-04T03:01:19+00:00",
-        "generated/read_models/operator_action_payloads.json": "2026-06-03T20:56:13+00:00"
+        "generated/read_models/operator_action_payloads.json": "2026-06-07T02:25:07+00:00"
       },
       "source_read_model_refs": [
         "generated/read_models/capital_hilton_invoice_operator_run_status.json",
@@ -462,18 +499,20 @@
             "workbook_source_mutation_allowed": false,
             "worker_spawn_allowed": false
           },
+          "control_scope": "gate",
           "controller_event_type": "do_it",
           "disabled_reason": "Payment-processing evidence never marks paid or mutates the ledger.",
           "enabled": false,
           "label": "Mark paid",
           "proof_refs": [
             "generated/read_models/evidence_intake_status.json",
-            "artifact:evidence_intake_56cda4b43a6b7054",
-            "mission_control_drop:live_arts_md_payment_processing_screenshot_invoice_2026-1001",
+            "artifact:evidence_intake_66a81b39dbf34ce3",
+            "/private/tmp/openclaw-mission-control/screenshots/generic_controller_v3_clean_test_proof.png",
             "/home/openclaw/generated/system_knowledge/evidence_intake.sqlite"
           ],
           "receipt_required": true,
-          "requires_operator_envelope": true
+          "requires_operator_envelope": true,
+          "text_response_preferred": false
         },
         "detail": {
           "action_id": "evidence_intake.mark_as_test",
@@ -506,18 +545,20 @@
             "workbook_source_mutation_allowed": false,
             "worker_spawn_allowed": false
           },
+          "control_scope": "none",
           "controller_event_type": "mark_informational",
           "disabled_reason": "No deterministic operator_action_payload exists yet for evidence intake card actions.",
           "enabled": false,
           "label": "Mark as test",
           "proof_refs": [
             "generated/read_models/evidence_intake_status.json",
-            "artifact:evidence_intake_56cda4b43a6b7054",
-            "mission_control_drop:live_arts_md_payment_processing_screenshot_invoice_2026-1001",
+            "artifact:evidence_intake_66a81b39dbf34ce3",
+            "/private/tmp/openclaw-mission-control/screenshots/generic_controller_v3_clean_test_proof.png",
             "/home/openclaw/generated/system_knowledge/evidence_intake.sqlite"
           ],
           "receipt_required": true,
-          "requires_operator_envelope": true
+          "requires_operator_envelope": true,
+          "text_response_preferred": false
         },
         "dismiss": {
           "action_id": "",
@@ -550,18 +591,20 @@
             "workbook_source_mutation_allowed": false,
             "worker_spawn_allowed": false
           },
+          "control_scope": "none",
           "controller_event_type": "show_details",
           "disabled_reason": "Dismiss is a local client view preference; backend does not record dismissal from this packet.",
           "enabled": false,
           "label": "Dismiss",
           "proof_refs": [
             "generated/read_models/evidence_intake_status.json",
-            "artifact:evidence_intake_56cda4b43a6b7054",
-            "mission_control_drop:live_arts_md_payment_processing_screenshot_invoice_2026-1001",
+            "artifact:evidence_intake_66a81b39dbf34ce3",
+            "/private/tmp/openclaw-mission-control/screenshots/generic_controller_v3_clean_test_proof.png",
             "/home/openclaw/generated/system_knowledge/evidence_intake.sqlite"
           ],
           "receipt_required": false,
-          "requires_operator_envelope": true
+          "requires_operator_envelope": true,
+          "text_response_preferred": false
         },
         "primary": {
           "action_id": "evidence_intake.attach_to_lane",
@@ -594,18 +637,20 @@
             "workbook_source_mutation_allowed": false,
             "worker_spawn_allowed": false
           },
+          "control_scope": "none",
           "controller_event_type": "attach_proof",
           "disabled_reason": "No deterministic operator_action_payload exists yet for evidence intake card actions.",
           "enabled": false,
           "label": "Attach to lane",
           "proof_refs": [
             "generated/read_models/evidence_intake_status.json",
-            "artifact:evidence_intake_56cda4b43a6b7054",
-            "mission_control_drop:live_arts_md_payment_processing_screenshot_invoice_2026-1001",
+            "artifact:evidence_intake_66a81b39dbf34ce3",
+            "/private/tmp/openclaw-mission-control/screenshots/generic_controller_v3_clean_test_proof.png",
             "/home/openclaw/generated/system_knowledge/evidence_intake.sqlite"
           ],
           "receipt_required": true,
-          "requires_operator_envelope": true
+          "requires_operator_envelope": true,
+          "text_response_preferred": false
         },
         "secondary": {
           "action_id": "evidence_intake.ask_what_this_means",
@@ -638,18 +683,20 @@
             "workbook_source_mutation_allowed": false,
             "worker_spawn_allowed": false
           },
+          "control_scope": "none",
           "controller_event_type": "ask_why",
           "disabled_reason": "No deterministic operator_action_payload exists yet for evidence intake card actions.",
           "enabled": false,
           "label": "Ask what this means",
           "proof_refs": [
             "generated/read_models/evidence_intake_status.json",
-            "artifact:evidence_intake_56cda4b43a6b7054",
-            "mission_control_drop:live_arts_md_payment_processing_screenshot_invoice_2026-1001",
+            "artifact:evidence_intake_66a81b39dbf34ce3",
+            "/private/tmp/openclaw-mission-control/screenshots/generic_controller_v3_clean_test_proof.png",
             "/home/openclaw/generated/system_knowledge/evidence_intake.sqlite"
           ],
           "receipt_required": false,
-          "requires_operator_envelope": true
+          "requires_operator_envelope": true,
+          "text_response_preferred": false
         }
       },
       "actions": [
@@ -658,52 +705,64 @@
           "action_type": "none",
           "authority_granted_by_action": false,
           "business_action": false,
+          "control_scope": "none",
+          "controller_event_type": "",
           "disabled_reason": "No deterministic operator_action_payload exists yet for evidence intake card actions.",
           "enabled": false,
           "label": "Attach to lane",
           "operator_authority_envelope_contract_ref": "generated/read_models/first_class_operator_envelope_contract.json",
           "operator_authority_envelope_status_ref": "generated/read_models/first_class_operator_envelope_status.json",
           "payload_ref": "",
-          "requires_operator_authority_envelope": true
+          "requires_operator_authority_envelope": true,
+          "text_response_preferred": false
         },
         {
           "action_id": "evidence_intake.ask_what_this_means",
           "action_type": "none",
           "authority_granted_by_action": false,
           "business_action": false,
+          "control_scope": "none",
+          "controller_event_type": "",
           "disabled_reason": "No deterministic operator_action_payload exists yet for evidence intake card actions.",
           "enabled": false,
           "label": "Ask what this means",
           "operator_authority_envelope_contract_ref": "generated/read_models/first_class_operator_envelope_contract.json",
           "operator_authority_envelope_status_ref": "generated/read_models/first_class_operator_envelope_status.json",
           "payload_ref": "",
-          "requires_operator_authority_envelope": true
+          "requires_operator_authority_envelope": true,
+          "text_response_preferred": false
         },
         {
           "action_id": "evidence_intake.mark_as_test",
           "action_type": "none",
           "authority_granted_by_action": false,
           "business_action": false,
+          "control_scope": "none",
+          "controller_event_type": "",
           "disabled_reason": "No deterministic operator_action_payload exists yet for evidence intake card actions.",
           "enabled": false,
           "label": "Mark as test",
           "operator_authority_envelope_contract_ref": "generated/read_models/first_class_operator_envelope_contract.json",
           "operator_authority_envelope_status_ref": "generated/read_models/first_class_operator_envelope_status.json",
           "payload_ref": "",
-          "requires_operator_authority_envelope": true
+          "requires_operator_authority_envelope": true,
+          "text_response_preferred": false
         },
         {
           "action_id": "evidence_intake.show_details",
           "action_type": "none",
           "authority_granted_by_action": false,
           "business_action": false,
+          "control_scope": "none",
+          "controller_event_type": "",
           "disabled_reason": "No deterministic operator_action_payload exists yet for evidence intake card actions.",
           "enabled": false,
           "label": "Show details",
           "operator_authority_envelope_contract_ref": "generated/read_models/first_class_operator_envelope_contract.json",
           "operator_authority_envelope_status_ref": "generated/read_models/first_class_operator_envelope_status.json",
           "payload_ref": "",
-          "requires_operator_authority_envelope": true
+          "requires_operator_authority_envelope": true,
+          "text_response_preferred": false
         }
       ],
       "attention_cost": "operator_attention",
@@ -772,7 +831,7 @@
       "lifecycle_state": "waiting",
       "machine_contract_visible": false,
       "object_refs": [
-        "artifact:evidence_intake_56cda4b43a6b7054"
+        "artifact:evidence_intake_66a81b39dbf34ce3"
       ],
       "operator_attention_required": false,
       "operator_mode_visible": true,
@@ -781,8 +840,8 @@
       "priority": 97,
       "proof": {
         "artifact_refs": [
-          "artifact:evidence_intake_56cda4b43a6b7054",
-          "mission_control_drop:live_arts_md_payment_processing_screenshot_invoice_2026-1001"
+          "artifact:evidence_intake_66a81b39dbf34ce3",
+          "/private/tmp/openclaw-mission-control/screenshots/generic_controller_v3_clean_test_proof.png"
         ],
         "collapsed_by_default": true,
         "developer_proof_only": false,
@@ -790,8 +849,8 @@
         "label": "Details",
         "proof_refs": [
           "generated/read_models/evidence_intake_status.json",
-          "artifact:evidence_intake_56cda4b43a6b7054",
-          "mission_control_drop:live_arts_md_payment_processing_screenshot_invoice_2026-1001",
+          "artifact:evidence_intake_66a81b39dbf34ce3",
+          "/private/tmp/openclaw-mission-control/screenshots/generic_controller_v3_clean_test_proof.png",
           "/home/openclaw/generated/system_knowledge/evidence_intake.sqlite"
         ],
         "raw_detail_available": false,
@@ -803,7 +862,7 @@
         "request_refs": [],
         "response_refs": [],
         "sensitive_detail_policy": "financial_sensitive/local_only_redacted",
-        "source_content_hash": "sha256:812f08058bc85891c661c5e5143c85fbd62ae36f48222bc5d8b097b23f2820b2",
+        "source_content_hash": "sha256:8616607093f9b4736cdaee18dda62590a7bbce509341eaebbde07016171a4dbc",
         "sqlite_refs": [
           "/home/openclaw/generated/system_knowledge/evidence_intake.sqlite"
         ],
@@ -812,9 +871,9 @@
       },
       "replacement_card_ref": "",
       "resolved_by_receipt_ref": "",
-      "source_content_hash": "sha256:bf54a3be589a4d934819df500a30a466c338108093687eefea14780131e140dd",
+      "source_content_hash": "sha256:d583b367b92dc63745beb60f9d088de3828d60a176c22f00af921a2e017b5c0b",
       "source_generated_at": {
-        "generated/read_models/evidence_intake_status.json": "2026-06-05T04:07:26+00:00"
+        "generated/read_models/evidence_intake_status.json": "2026-06-05T18:44:27+00:00"
       },
       "source_read_model_refs": [
         "generated/read_models/evidence_intake_status.json"
@@ -829,7 +888,7 @@
       "superseded_by_card_ref": "",
       "supporting_lines": [
         "Evidence status: CANDIDATE_EVIDENCE_RECORDED.",
-        "Payment state: payment_processing_evidence_received.",
+        "Payment state: payment_proof_candidate.",
         "Candidate evidence does not mark paid or touch the ledger."
       ],
       "thread_ref": "live_arts_md",
@@ -837,7 +896,7 @@
       "trust_state": "operator_reported",
       "visibility_reason": "shown_by_lifecycle_policy",
       "visible_by_default": true,
-      "workflow_ref": "live_arts_md_payment_watch",
+      "workflow_ref": "live_arts_md_invoice_workflow",
       "world_ref": "finance"
     },
     {
@@ -874,6 +933,7 @@
             "workbook_source_mutation_allowed": false,
             "worker_spawn_allowed": false
           },
+          "control_scope": "gate",
           "controller_event_type": "do_it",
           "disabled_reason": "Protected actions require a separate backend gate and are not executable from this card.",
           "enabled": false,
@@ -884,7 +944,8 @@
             "generated/read_models/finance_thread_index.json"
           ],
           "receipt_required": true,
-          "requires_operator_envelope": true
+          "requires_operator_envelope": true,
+          "text_response_preferred": false
         },
         "detail": {
           "action_id": "",
@@ -917,6 +978,7 @@
             "workbook_source_mutation_allowed": false,
             "worker_spawn_allowed": false
           },
+          "control_scope": "none",
           "controller_event_type": "show_details",
           "disabled_reason": "No deterministic inspect-proof payload exists for this card.",
           "enabled": false,
@@ -927,7 +989,8 @@
             "generated/read_models/finance_thread_index.json"
           ],
           "receipt_required": false,
-          "requires_operator_envelope": true
+          "requires_operator_envelope": true,
+          "text_response_preferred": false
         },
         "dismiss": {
           "action_id": "",
@@ -960,6 +1023,7 @@
             "workbook_source_mutation_allowed": false,
             "worker_spawn_allowed": false
           },
+          "control_scope": "none",
           "controller_event_type": "show_details",
           "disabled_reason": "Dismiss is a local client view preference; backend does not record dismissal from this packet.",
           "enabled": false,
@@ -970,7 +1034,8 @@
             "generated/read_models/finance_thread_index.json"
           ],
           "receipt_required": false,
-          "requires_operator_envelope": true
+          "requires_operator_envelope": true,
+          "text_response_preferred": false
         },
         "primary": {
           "action_id": "capital_hilton.payment.open_finance",
@@ -1003,6 +1068,7 @@
             "workbook_source_mutation_allowed": false,
             "worker_spawn_allowed": false
           },
+          "control_scope": "lane",
           "controller_event_type": "open_lane",
           "disabled_reason": null,
           "enabled": true,
@@ -1013,7 +1079,8 @@
             "generated/read_models/finance_thread_index.json"
           ],
           "receipt_required": false,
-          "requires_operator_envelope": true
+          "requires_operator_envelope": true,
+          "text_response_preferred": false
         },
         "secondary": {
           "action_id": "",
@@ -1046,6 +1113,7 @@
             "workbook_source_mutation_allowed": false,
             "worker_spawn_allowed": false
           },
+          "control_scope": "none",
           "controller_event_type": "show_details",
           "disabled_reason": "No secondary action for this card.",
           "enabled": false,
@@ -1056,7 +1124,8 @@
             "generated/read_models/finance_thread_index.json"
           ],
           "receipt_required": false,
-          "requires_operator_envelope": true
+          "requires_operator_envelope": true,
+          "text_response_preferred": false
         }
       },
       "actions": [
@@ -1064,10 +1133,13 @@
           "action_id": "capital_hilton.payment.open_finance",
           "action_type": "navigate",
           "business_action": false,
+          "control_scope": "lane",
+          "controller_event_type": "",
           "disabled_reason": null,
           "enabled": true,
           "label": "Open Finance / Capital Hilton",
-          "payload_ref": "generated/read_models/operator_action_payloads.json#action_payloads.capital_hilton.payment.open_finance"
+          "payload_ref": "generated/read_models/operator_action_payloads.json#action_payloads.capital_hilton.payment.open_finance",
+          "text_response_preferred": false
         }
       ],
       "attention_cost": "operator_attention",
@@ -1240,6 +1312,7 @@
             "workbook_source_mutation_allowed": false,
             "worker_spawn_allowed": false
           },
+          "control_scope": "gate",
           "controller_event_type": "do_it",
           "disabled_reason": "Review decisions record local verdicts only; merge and push are not available from cards.",
           "enabled": false,
@@ -1250,7 +1323,8 @@
             "generated/read_models/spawned_worker_package_lifecycle.json#pc_backend_package_review"
           ],
           "receipt_required": true,
-          "requires_operator_envelope": true
+          "requires_operator_envelope": true,
+          "text_response_preferred": false
         },
         "detail": {
           "action_id": "review_packet.review_packet_c4ec166103f9aa35.mark_review_packet_informational",
@@ -1283,6 +1357,7 @@
             "workbook_source_mutation_allowed": false,
             "worker_spawn_allowed": false
           },
+          "control_scope": "lane",
           "controller_event_type": "mark_informational",
           "disabled_reason": null,
           "enabled": true,
@@ -1293,7 +1368,8 @@
             "generated/read_models/spawned_worker_package_lifecycle.json#pc_backend_package_review"
           ],
           "receipt_required": true,
-          "requires_operator_envelope": true
+          "requires_operator_envelope": true,
+          "text_response_preferred": false
         },
         "dismiss": {
           "action_id": "",
@@ -1326,6 +1402,7 @@
             "workbook_source_mutation_allowed": false,
             "worker_spawn_allowed": false
           },
+          "control_scope": "none",
           "controller_event_type": "show_details",
           "disabled_reason": "Dismiss is a local client view preference; backend does not record dismissal from this packet.",
           "enabled": false,
@@ -1336,7 +1413,8 @@
             "generated/read_models/spawned_worker_package_lifecycle.json#pc_backend_package_review"
           ],
           "receipt_required": false,
-          "requires_operator_envelope": true
+          "requires_operator_envelope": true,
+          "text_response_preferred": false
         },
         "primary": {
           "action_id": "review_packet.review_packet_c4ec166103f9aa35.approve_review_packet_for_record",
@@ -1369,6 +1447,7 @@
             "workbook_source_mutation_allowed": false,
             "worker_spawn_allowed": false
           },
+          "control_scope": "lane",
           "controller_event_type": "approve",
           "disabled_reason": null,
           "enabled": true,
@@ -1379,7 +1458,8 @@
             "generated/read_models/spawned_worker_package_lifecycle.json#pc_backend_package_review"
           ],
           "receipt_required": true,
-          "requires_operator_envelope": true
+          "requires_operator_envelope": true,
+          "text_response_preferred": false
         },
         "secondary": {
           "action_id": "review_packet.review_packet_c4ec166103f9aa35.request_review_packet_rework",
@@ -1412,6 +1492,7 @@
             "workbook_source_mutation_allowed": false,
             "worker_spawn_allowed": false
           },
+          "control_scope": "lane",
           "controller_event_type": "request_rework",
           "disabled_reason": null,
           "enabled": true,
@@ -1422,7 +1503,8 @@
             "generated/read_models/spawned_worker_package_lifecycle.json#pc_backend_package_review"
           ],
           "receipt_required": true,
-          "requires_operator_envelope": true
+          "requires_operator_envelope": true,
+          "text_response_preferred": false
         }
       },
       "actions": [
@@ -1430,28 +1512,37 @@
           "action_id": "review_packet.review_packet_c4ec166103f9aa35.approve_review_packet_for_record",
           "action_type": "review_decision",
           "business_action": false,
+          "control_scope": "lane",
+          "controller_event_type": "",
           "disabled_reason": null,
           "enabled": true,
           "label": "Approve for record",
-          "payload_ref": "generated/read_models/operator_action_payloads.json#action_payloads.review_packet.review_packet_c4ec166103f9aa35.approve_review_packet_for_record"
+          "payload_ref": "generated/read_models/operator_action_payloads.json#action_payloads.review_packet.review_packet_c4ec166103f9aa35.approve_review_packet_for_record",
+          "text_response_preferred": false
         },
         {
           "action_id": "review_packet.review_packet_c4ec166103f9aa35.request_review_packet_rework",
           "action_type": "review_decision",
           "business_action": false,
+          "control_scope": "lane",
+          "controller_event_type": "",
           "disabled_reason": null,
           "enabled": true,
           "label": "Request rework",
-          "payload_ref": "generated/read_models/operator_action_payloads.json#action_payloads.review_packet.review_packet_c4ec166103f9aa35.request_review_packet_rework"
+          "payload_ref": "generated/read_models/operator_action_payloads.json#action_payloads.review_packet.review_packet_c4ec166103f9aa35.request_review_packet_rework",
+          "text_response_preferred": false
         },
         {
           "action_id": "review_packet.review_packet_c4ec166103f9aa35.mark_review_packet_informational",
           "action_type": "review_decision",
           "business_action": false,
+          "control_scope": "lane",
+          "controller_event_type": "",
           "disabled_reason": null,
           "enabled": true,
           "label": "Mark informational",
-          "payload_ref": "generated/read_models/operator_action_payloads.json#action_payloads.review_packet.review_packet_c4ec166103f9aa35.mark_review_packet_informational"
+          "payload_ref": "generated/read_models/operator_action_payloads.json#action_payloads.review_packet.review_packet_c4ec166103f9aa35.mark_review_packet_informational",
+          "text_response_preferred": false
         }
       ],
       "attention_cost": "operator_attention",
@@ -1556,10 +1647,10 @@
       },
       "replacement_card_ref": "",
       "resolved_by_receipt_ref": "",
-      "source_content_hash": "sha256:099303d6f8309494f7e034ef3e7302bcfb61d221c866edd3d663e877a57b4664",
+      "source_content_hash": "sha256:47bb24d23a7d924a1cd58c4f526256b8fe21a4e580710bc5f4d2cc6b56a31dce",
       "source_generated_at": {
         "generated/read_models/spawned_worker_package_lifecycle.json#pc_backend_package_review": "",
-        "generated/read_models/workroom_review_decision_status.json": "2026-06-05T04:07:26+00:00",
+        "generated/read_models/workroom_review_decision_status.json": "2026-06-05T17:38:57+00:00",
         "generated/read_models/workroom_review_packet_index.json": "2026-06-03T12:07:06+00:00"
       },
       "source_read_model_refs": [
@@ -1624,6 +1715,7 @@
             "workbook_source_mutation_allowed": false,
             "worker_spawn_allowed": false
           },
+          "control_scope": "gate",
           "controller_event_type": "do_it",
           "disabled_reason": "Email send is protected and not available from proposal follow-up cards.",
           "enabled": false,
@@ -1636,7 +1728,8 @@
             "/mnt/e/openclaw/artifacts/proposals/capital_hilton/fight_weekend_2026/capital_hilton_proposal_email_sent_receipt_20260601T223704Z.json"
           ],
           "receipt_required": true,
-          "requires_operator_envelope": true
+          "requires_operator_envelope": true,
+          "text_response_preferred": false
         },
         "detail": {
           "action_id": "",
@@ -1669,6 +1762,7 @@
             "workbook_source_mutation_allowed": false,
             "worker_spawn_allowed": false
           },
+          "control_scope": "none",
           "controller_event_type": "show_details",
           "disabled_reason": "No deterministic inspect-proof payload exists for this card.",
           "enabled": false,
@@ -1681,7 +1775,8 @@
             "/mnt/e/openclaw/artifacts/proposals/capital_hilton/fight_weekend_2026/capital_hilton_proposal_email_sent_receipt_20260601T223704Z.json"
           ],
           "receipt_required": false,
-          "requires_operator_envelope": true
+          "requires_operator_envelope": true,
+          "text_response_preferred": false
         },
         "dismiss": {
           "action_id": "",
@@ -1714,6 +1809,7 @@
             "workbook_source_mutation_allowed": false,
             "worker_spawn_allowed": false
           },
+          "control_scope": "none",
           "controller_event_type": "show_details",
           "disabled_reason": "Dismiss is a local client view preference; backend does not record dismissal from this packet.",
           "enabled": false,
@@ -1726,7 +1822,8 @@
             "/mnt/e/openclaw/artifacts/proposals/capital_hilton/fight_weekend_2026/capital_hilton_proposal_email_sent_receipt_20260601T223704Z.json"
           ],
           "receipt_required": false,
-          "requires_operator_envelope": true
+          "requires_operator_envelope": true,
+          "text_response_preferred": false
         },
         "primary": {
           "action_id": "capital_hilton.proposal.stage_followup",
@@ -1759,6 +1856,7 @@
             "workbook_source_mutation_allowed": false,
             "worker_spawn_allowed": false
           },
+          "control_scope": "lane",
           "controller_event_type": "do_it",
           "disabled_reason": null,
           "enabled": true,
@@ -1771,7 +1869,8 @@
             "/mnt/e/openclaw/artifacts/proposals/capital_hilton/fight_weekend_2026/capital_hilton_proposal_email_sent_receipt_20260601T223704Z.json"
           ],
           "receipt_required": true,
-          "requires_operator_envelope": true
+          "requires_operator_envelope": true,
+          "text_response_preferred": false
         },
         "secondary": {
           "action_id": "",
@@ -1804,6 +1903,7 @@
             "workbook_source_mutation_allowed": false,
             "worker_spawn_allowed": false
           },
+          "control_scope": "none",
           "controller_event_type": "show_details",
           "disabled_reason": "No secondary action for this card.",
           "enabled": false,
@@ -1816,7 +1916,8 @@
             "/mnt/e/openclaw/artifacts/proposals/capital_hilton/fight_weekend_2026/capital_hilton_proposal_email_sent_receipt_20260601T223704Z.json"
           ],
           "receipt_required": false,
-          "requires_operator_envelope": true
+          "requires_operator_envelope": true,
+          "text_response_preferred": false
         }
       },
       "actions": [
@@ -1824,10 +1925,13 @@
           "action_id": "capital_hilton.proposal.stage_followup",
           "action_type": "stage_package_request",
           "business_action": false,
+          "control_scope": "lane",
+          "controller_event_type": "",
           "disabled_reason": null,
           "enabled": true,
           "label": "Stage proposal follow-up",
-          "payload_ref": "generated/read_models/operator_action_payloads.json#action_payloads.capital_hilton.proposal.stage_followup"
+          "payload_ref": "generated/read_models/operator_action_payloads.json#action_payloads.capital_hilton.proposal.stage_followup",
+          "text_response_preferred": false
         }
       ],
       "attention_cost": "operator_attention",
@@ -2000,6 +2104,7 @@
             "workbook_source_mutation_allowed": false,
             "worker_spawn_allowed": false
           },
+          "control_scope": "gate",
           "controller_event_type": "do_it",
           "disabled_reason": "Repair authority is not granted by a diagnostic card.",
           "enabled": false,
@@ -2009,7 +2114,8 @@
             "generated/read_models/operator_action_payloads.json"
           ],
           "receipt_required": true,
-          "requires_operator_envelope": true
+          "requires_operator_envelope": true,
+          "text_response_preferred": false
         },
         "detail": {
           "action_id": "",
@@ -2042,6 +2148,7 @@
             "workbook_source_mutation_allowed": false,
             "worker_spawn_allowed": false
           },
+          "control_scope": "none",
           "controller_event_type": "show_details",
           "disabled_reason": "No deterministic inspect-proof payload exists for this card.",
           "enabled": false,
@@ -2051,7 +2158,8 @@
             "generated/read_models/operator_action_payloads.json"
           ],
           "receipt_required": false,
-          "requires_operator_envelope": true
+          "requires_operator_envelope": true,
+          "text_response_preferred": false
         },
         "dismiss": {
           "action_id": "",
@@ -2084,6 +2192,7 @@
             "workbook_source_mutation_allowed": false,
             "worker_spawn_allowed": false
           },
+          "control_scope": "none",
           "controller_event_type": "show_details",
           "disabled_reason": "Dismiss is a local client view preference; backend does not record dismissal from this packet.",
           "enabled": false,
@@ -2093,7 +2202,8 @@
             "generated/read_models/operator_action_payloads.json"
           ],
           "receipt_required": false,
-          "requires_operator_envelope": true
+          "requires_operator_envelope": true,
+          "text_response_preferred": false
         },
         "primary": {
           "action_id": "chief_diagnostic.open",
@@ -2126,6 +2236,7 @@
             "workbook_source_mutation_allowed": false,
             "worker_spawn_allowed": false
           },
+          "control_scope": "lane",
           "controller_event_type": "open_lane",
           "disabled_reason": null,
           "enabled": true,
@@ -2135,7 +2246,8 @@
             "generated/read_models/operator_action_payloads.json"
           ],
           "receipt_required": false,
-          "requires_operator_envelope": true
+          "requires_operator_envelope": true,
+          "text_response_preferred": false
         },
         "secondary": {
           "action_id": "helm_question.hardwired_vs_spawned.ask",
@@ -2168,6 +2280,7 @@
             "workbook_source_mutation_allowed": false,
             "worker_spawn_allowed": false
           },
+          "control_scope": "lane",
           "controller_event_type": "ask_why",
           "disabled_reason": null,
           "enabled": true,
@@ -2177,7 +2290,8 @@
             "generated/read_models/operator_action_payloads.json"
           ],
           "receipt_required": false,
-          "requires_operator_envelope": true
+          "requires_operator_envelope": true,
+          "text_response_preferred": false
         }
       },
       "actions": [
@@ -2185,19 +2299,25 @@
           "action_id": "chief_diagnostic.open",
           "action_type": "navigate",
           "business_action": false,
+          "control_scope": "lane",
+          "controller_event_type": "",
           "disabled_reason": null,
           "enabled": true,
           "label": "Open Chief diagnostic",
-          "payload_ref": "generated/read_models/operator_action_payloads.json#action_payloads.chief_diagnostic.open"
+          "payload_ref": "generated/read_models/operator_action_payloads.json#action_payloads.chief_diagnostic.open",
+          "text_response_preferred": false
         },
         {
           "action_id": "helm_question.hardwired_vs_spawned.ask",
           "action_type": "system_question",
           "business_action": false,
+          "control_scope": "lane",
+          "controller_event_type": "",
           "disabled_reason": null,
           "enabled": true,
           "label": "What is the difference between Chief and a spawned worker?",
-          "payload_ref": "generated/read_models/operator_action_payloads.json#action_payloads.helm_question.hardwired_vs_spawned.ask"
+          "payload_ref": "generated/read_models/operator_action_payloads.json#action_payloads.helm_question.hardwired_vs_spawned.ask",
+          "text_response_preferred": false
         }
       ],
       "attention_cost": "operator_attention",
@@ -2300,10 +2420,10 @@
       },
       "replacement_card_ref": "",
       "resolved_by_receipt_ref": "",
-      "source_content_hash": "sha256:77fd16a4d0fc93d88dd993382a240e0c6a80003e30dde17f2bfa1b50137cc1c8",
+      "source_content_hash": "sha256:5b68b3a8360457f19fe65a9b93afe7fd4876bd40f97d5c45387c9fc79283744f",
       "source_generated_at": {
         "generated/read_models/chief_check_engine_diagnostic_package.json": "2026-05-20T04:07:48+00:00",
-        "generated/read_models/operator_action_payloads.json": "2026-06-03T20:56:13+00:00"
+        "generated/read_models/operator_action_payloads.json": "2026-06-07T02:25:07+00:00"
       },
       "source_read_model_refs": [
         "generated/read_models/chief_check_engine_diagnostic_package.json",
@@ -2364,6 +2484,7 @@
             "workbook_source_mutation_allowed": false,
             "worker_spawn_allowed": false
           },
+          "control_scope": "gate",
           "controller_event_type": "do_it",
           "disabled_reason": "Workbook body reads and mutations are protected and unavailable from metadata-registration cards.",
           "enabled": false,
@@ -2372,7 +2493,8 @@
             "generated/read_models/client_invoice_workbook_registry.json"
           ],
           "receipt_required": true,
-          "requires_operator_envelope": true
+          "requires_operator_envelope": true,
+          "text_response_preferred": false
         },
         "detail": {
           "action_id": "",
@@ -2405,6 +2527,7 @@
             "workbook_source_mutation_allowed": false,
             "worker_spawn_allowed": false
           },
+          "control_scope": "none",
           "controller_event_type": "show_details",
           "disabled_reason": "No deterministic inspect-proof payload exists for this card.",
           "enabled": false,
@@ -2413,7 +2536,8 @@
             "generated/read_models/client_invoice_workbook_registry.json"
           ],
           "receipt_required": false,
-          "requires_operator_envelope": true
+          "requires_operator_envelope": true,
+          "text_response_preferred": false
         },
         "dismiss": {
           "action_id": "",
@@ -2446,6 +2570,7 @@
             "workbook_source_mutation_allowed": false,
             "worker_spawn_allowed": false
           },
+          "control_scope": "none",
           "controller_event_type": "show_details",
           "disabled_reason": "Dismiss is a local client view preference; backend does not record dismissal from this packet.",
           "enabled": false,
@@ -2454,7 +2579,8 @@
             "generated/read_models/client_invoice_workbook_registry.json"
           ],
           "receipt_required": false,
-          "requires_operator_envelope": true
+          "requires_operator_envelope": true,
+          "text_response_preferred": false
         },
         "primary": {
           "action_id": "client_invoice_workbook.register",
@@ -2487,6 +2613,7 @@
             "workbook_source_mutation_allowed": false,
             "worker_spawn_allowed": false
           },
+          "control_scope": "lane",
           "controller_event_type": "do_it",
           "disabled_reason": null,
           "enabled": true,
@@ -2495,7 +2622,8 @@
             "generated/read_models/client_invoice_workbook_registry.json"
           ],
           "receipt_required": true,
-          "requires_operator_envelope": true
+          "requires_operator_envelope": true,
+          "text_response_preferred": false
         },
         "secondary": {
           "action_id": "",
@@ -2528,6 +2656,7 @@
             "workbook_source_mutation_allowed": false,
             "worker_spawn_allowed": false
           },
+          "control_scope": "none",
           "controller_event_type": "show_details",
           "disabled_reason": "No secondary action for this card.",
           "enabled": false,
@@ -2536,7 +2665,8 @@
             "generated/read_models/client_invoice_workbook_registry.json"
           ],
           "receipt_required": false,
-          "requires_operator_envelope": true
+          "requires_operator_envelope": true,
+          "text_response_preferred": false
         }
       },
       "actions": [
@@ -2544,10 +2674,13 @@
           "action_id": "client_invoice_workbook.register",
           "action_type": "workbook_registration",
           "business_action": false,
+          "control_scope": "lane",
+          "controller_event_type": "",
           "disabled_reason": null,
           "enabled": true,
           "label": "Register workbook",
-          "payload_ref": "generated/read_models/operator_action_payloads.json#action_payloads.client_invoice_workbook.register"
+          "payload_ref": "generated/read_models/operator_action_payloads.json#action_payloads.client_invoice_workbook.register",
+          "text_response_preferred": false
         }
       ],
       "attention_cost": "operator_attention",
@@ -2710,6 +2843,7 @@
             "workbook_source_mutation_allowed": false,
             "worker_spawn_allowed": false
           },
+          "control_scope": "gate",
           "controller_event_type": "do_it",
           "disabled_reason": "Coupa submit is protected; this card can only stage approval or explain the gate.",
           "enabled": false,
@@ -2720,7 +2854,8 @@
             "generated/read_models/operator_controller_protocol.json"
           ],
           "receipt_required": true,
-          "requires_operator_envelope": true
+          "requires_operator_envelope": true,
+          "text_response_preferred": false
         },
         "detail": {
           "action_id": "guardian_gate.coupa_submit.explain",
@@ -2753,6 +2888,7 @@
             "workbook_source_mutation_allowed": false,
             "worker_spawn_allowed": false
           },
+          "control_scope": "gate",
           "controller_event_type": "ask_why",
           "disabled_reason": null,
           "enabled": true,
@@ -2763,7 +2899,8 @@
             "generated/read_models/operator_controller_protocol.json"
           ],
           "receipt_required": false,
-          "requires_operator_envelope": true
+          "requires_operator_envelope": true,
+          "text_response_preferred": true
         },
         "dismiss": {
           "action_id": "",
@@ -2796,6 +2933,7 @@
             "workbook_source_mutation_allowed": false,
             "worker_spawn_allowed": false
           },
+          "control_scope": "none",
           "controller_event_type": "show_details",
           "disabled_reason": "Dismiss is a local client view preference; backend does not record dismissal from this packet.",
           "enabled": false,
@@ -2806,7 +2944,8 @@
             "generated/read_models/operator_controller_protocol.json"
           ],
           "receipt_required": false,
-          "requires_operator_envelope": true
+          "requires_operator_envelope": true,
+          "text_response_preferred": false
         },
         "primary": {
           "action_id": "guardian_gate.coupa_submit.stage_approval_request",
@@ -2839,6 +2978,7 @@
             "workbook_source_mutation_allowed": false,
             "worker_spawn_allowed": false
           },
+          "control_scope": "gate",
           "controller_event_type": "do_it",
           "disabled_reason": null,
           "enabled": true,
@@ -2849,7 +2989,8 @@
             "generated/read_models/operator_controller_protocol.json"
           ],
           "receipt_required": true,
-          "requires_operator_envelope": true
+          "requires_operator_envelope": true,
+          "text_response_preferred": false
         },
         "secondary": {
           "action_id": "guardian_gate.coupa_submit.open",
@@ -2882,6 +3023,7 @@
             "workbook_source_mutation_allowed": false,
             "worker_spawn_allowed": false
           },
+          "control_scope": "gate",
           "controller_event_type": "open_lane",
           "disabled_reason": null,
           "enabled": true,
@@ -2892,7 +3034,8 @@
             "generated/read_models/operator_controller_protocol.json"
           ],
           "receipt_required": false,
-          "requires_operator_envelope": true
+          "requires_operator_envelope": true,
+          "text_response_preferred": false
         }
       },
       "actions": [
@@ -2900,28 +3043,37 @@
           "action_id": "guardian_gate.coupa_submit.stage_approval_request",
           "action_type": "stage_package_request",
           "business_action": false,
+          "control_scope": "gate",
+          "controller_event_type": "",
           "disabled_reason": null,
           "enabled": true,
           "label": "Stage approval request",
-          "payload_ref": "generated/read_models/operator_action_payloads.json#action_payloads.guardian_gate.coupa_submit.stage_approval_request"
+          "payload_ref": "generated/read_models/operator_action_payloads.json#action_payloads.guardian_gate.coupa_submit.stage_approval_request",
+          "text_response_preferred": false
         },
         {
           "action_id": "guardian_gate.coupa_submit.open",
           "action_type": "navigate",
           "business_action": false,
+          "control_scope": "gate",
+          "controller_event_type": "",
           "disabled_reason": null,
           "enabled": true,
           "label": "Open relevant lane",
-          "payload_ref": "generated/read_models/operator_action_payloads.json#action_payloads.guardian_gate.coupa_submit.open"
+          "payload_ref": "generated/read_models/operator_action_payloads.json#action_payloads.guardian_gate.coupa_submit.open",
+          "text_response_preferred": false
         },
         {
           "action_id": "guardian_gate.coupa_submit.explain",
           "action_type": "explain_gate",
           "business_action": false,
+          "control_scope": "gate",
+          "controller_event_type": "ask_why",
           "disabled_reason": null,
           "enabled": true,
           "label": "Explain this gate",
-          "payload_ref": "generated/read_models/operator_action_payloads.json#action_payloads.guardian_gate.coupa_submit.explain"
+          "payload_ref": "generated/read_models/operator_action_payloads.json#action_payloads.guardian_gate.coupa_submit.explain",
+          "text_response_preferred": true
         }
       ],
       "attention_cost": "collapsed_history_or_proof",
@@ -3027,10 +3179,10 @@
       },
       "replacement_card_ref": "",
       "resolved_by_receipt_ref": "",
-      "source_content_hash": "sha256:69358ca68721dbb96f1b0b64accf4d2894b9bc383b7d2f14eedc1bd7df7ad42f",
+      "source_content_hash": "sha256:5fed136b1c2d862c8e77a21cfa6ef391b68d66aacc446d01b29e896b01b6d395",
       "source_generated_at": {
         "generated/read_models/gate_decision_ledger.json": "2026-06-05T04:07:25+00:00",
-        "generated/read_models/operator_action_payloads.json": "2026-06-03T20:56:13+00:00",
+        "generated/read_models/operator_action_payloads.json": "2026-06-07T02:25:07+00:00",
         "generated/read_models/operator_controller_protocol.json": "2026-06-04T21:45:00+00:00"
       },
       "source_read_model_refs": [
@@ -3095,6 +3247,7 @@
             "workbook_source_mutation_allowed": false,
             "worker_spawn_allowed": false
           },
+          "control_scope": "gate",
           "controller_event_type": "do_it",
           "disabled_reason": "Protected action execution is never available from a contextual answer card.",
           "enabled": false,
@@ -3105,7 +3258,8 @@
             "generated/read_models/system_question_answer_contract.json"
           ],
           "receipt_required": true,
-          "requires_operator_envelope": true
+          "requires_operator_envelope": true,
+          "text_response_preferred": false
         },
         "detail": {
           "action_id": "",
@@ -3138,6 +3292,7 @@
             "workbook_source_mutation_allowed": false,
             "worker_spawn_allowed": false
           },
+          "control_scope": "none",
           "controller_event_type": "show_details",
           "disabled_reason": "No deterministic inspect-proof payload exists for this card.",
           "enabled": false,
@@ -3148,7 +3303,8 @@
             "generated/read_models/system_question_answer_contract.json"
           ],
           "receipt_required": false,
-          "requires_operator_envelope": true
+          "requires_operator_envelope": true,
+          "text_response_preferred": false
         },
         "dismiss": {
           "action_id": "",
@@ -3181,6 +3337,7 @@
             "workbook_source_mutation_allowed": false,
             "worker_spawn_allowed": false
           },
+          "control_scope": "none",
           "controller_event_type": "show_details",
           "disabled_reason": "Dismiss is a local client view preference; backend does not record dismissal from this packet.",
           "enabled": false,
@@ -3191,7 +3348,8 @@
             "generated/read_models/system_question_answer_contract.json"
           ],
           "receipt_required": false,
-          "requires_operator_envelope": true
+          "requires_operator_envelope": true,
+          "text_response_preferred": false
         },
         "primary": {
           "action_id": "helm_question.safe_next.ask",
@@ -3224,6 +3382,7 @@
             "workbook_source_mutation_allowed": false,
             "worker_spawn_allowed": false
           },
+          "control_scope": "lane",
           "controller_event_type": "ask_why",
           "disabled_reason": null,
           "enabled": true,
@@ -3234,7 +3393,8 @@
             "generated/read_models/system_question_answer_contract.json"
           ],
           "receipt_required": false,
-          "requires_operator_envelope": true
+          "requires_operator_envelope": true,
+          "text_response_preferred": false
         },
         "secondary": {
           "action_id": "",
@@ -3267,6 +3427,7 @@
             "workbook_source_mutation_allowed": false,
             "worker_spawn_allowed": false
           },
+          "control_scope": "none",
           "controller_event_type": "show_details",
           "disabled_reason": "No secondary action for this card.",
           "enabled": false,
@@ -3277,7 +3438,8 @@
             "generated/read_models/system_question_answer_contract.json"
           ],
           "receipt_required": false,
-          "requires_operator_envelope": true
+          "requires_operator_envelope": true,
+          "text_response_preferred": false
         }
       },
       "actions": [
@@ -3285,10 +3447,13 @@
           "action_id": "helm_question.safe_next.ask",
           "action_type": "system_question",
           "business_action": false,
+          "control_scope": "lane",
+          "controller_event_type": "",
           "disabled_reason": null,
           "enabled": true,
           "label": "What is safe next?",
-          "payload_ref": "generated/read_models/operator_action_payloads.json#action_payloads.helm_question.safe_next.ask"
+          "payload_ref": "generated/read_models/operator_action_payloads.json#action_payloads.helm_question.safe_next.ask",
+          "text_response_preferred": false
         }
       ],
       "attention_cost": "operator_attention",
@@ -3461,6 +3626,7 @@
             "workbook_source_mutation_allowed": false,
             "worker_spawn_allowed": false
           },
+          "control_scope": "gate",
           "controller_event_type": "do_it",
           "disabled_reason": "Invoice inclusion, PDF export, email, ledger, and workbook mutation remain gated.",
           "enabled": false,
@@ -3469,7 +3635,8 @@
             "generated/read_models/st_annes_work_log_review_surface.json"
           ],
           "receipt_required": true,
-          "requires_operator_envelope": true
+          "requires_operator_envelope": true,
+          "text_response_preferred": false
         },
         "detail": {
           "action_id": "",
@@ -3502,6 +3669,7 @@
             "workbook_source_mutation_allowed": false,
             "worker_spawn_allowed": false
           },
+          "control_scope": "none",
           "controller_event_type": "show_details",
           "disabled_reason": "No deterministic inspect-proof payload exists for this card.",
           "enabled": false,
@@ -3510,7 +3678,8 @@
             "generated/read_models/st_annes_work_log_review_surface.json"
           ],
           "receipt_required": false,
-          "requires_operator_envelope": true
+          "requires_operator_envelope": true,
+          "text_response_preferred": false
         },
         "dismiss": {
           "action_id": "",
@@ -3543,6 +3712,7 @@
             "workbook_source_mutation_allowed": false,
             "worker_spawn_allowed": false
           },
+          "control_scope": "none",
           "controller_event_type": "show_details",
           "disabled_reason": "Dismiss is a local client view preference; backend does not record dismissal from this packet.",
           "enabled": false,
@@ -3551,7 +3721,8 @@
             "generated/read_models/st_annes_work_log_review_surface.json"
           ],
           "receipt_required": false,
-          "requires_operator_envelope": true
+          "requires_operator_envelope": true,
+          "text_response_preferred": false
         },
         "primary": {
           "action_id": "",
@@ -3584,6 +3755,7 @@
             "workbook_source_mutation_allowed": false,
             "worker_spawn_allowed": false
           },
+          "control_scope": "none",
           "controller_event_type": "show_details",
           "disabled_reason": "No primary action for this card.",
           "enabled": false,
@@ -3592,7 +3764,8 @@
             "generated/read_models/st_annes_work_log_review_surface.json"
           ],
           "receipt_required": false,
-          "requires_operator_envelope": true
+          "requires_operator_envelope": true,
+          "text_response_preferred": false
         },
         "secondary": {
           "action_id": "",
@@ -3625,6 +3798,7 @@
             "workbook_source_mutation_allowed": false,
             "worker_spawn_allowed": false
           },
+          "control_scope": "none",
           "controller_event_type": "show_details",
           "disabled_reason": "No secondary action for this card.",
           "enabled": false,
@@ -3633,7 +3807,8 @@
             "generated/read_models/st_annes_work_log_review_surface.json"
           ],
           "receipt_required": false,
-          "requires_operator_envelope": true
+          "requires_operator_envelope": true,
+          "text_response_preferred": false
         }
       },
       "actions": [],
@@ -3797,6 +3972,7 @@
             "workbook_source_mutation_allowed": false,
             "worker_spawn_allowed": false
           },
+          "control_scope": "gate",
           "controller_event_type": "do_it",
           "disabled_reason": "Resolved review receipts cannot merge, push, spawn workers, or execute business actions.",
           "enabled": false,
@@ -3805,10 +3981,11 @@
             "generated/read_models/workroom_review_decision_status.json",
             "generated/read_models/workroom_review_packet_index.json",
             "generated/read_models/workroom_review_decision_contract.json",
-            "workroom_review_decision_consumer:6789b934558a0457"
+            "workroom_review_decision_consumer:80dc2fab0833c207"
           ],
           "receipt_required": true,
-          "requires_operator_envelope": true
+          "requires_operator_envelope": true,
+          "text_response_preferred": false
         },
         "detail": {
           "action_id": "",
@@ -3841,6 +4018,7 @@
             "workbook_source_mutation_allowed": false,
             "worker_spawn_allowed": false
           },
+          "control_scope": "none",
           "controller_event_type": "show_details",
           "disabled_reason": "No deterministic inspect-proof payload exists for this card.",
           "enabled": false,
@@ -3849,10 +4027,11 @@
             "generated/read_models/workroom_review_decision_status.json",
             "generated/read_models/workroom_review_packet_index.json",
             "generated/read_models/workroom_review_decision_contract.json",
-            "workroom_review_decision_consumer:6789b934558a0457"
+            "workroom_review_decision_consumer:80dc2fab0833c207"
           ],
           "receipt_required": false,
-          "requires_operator_envelope": true
+          "requires_operator_envelope": true,
+          "text_response_preferred": false
         },
         "dismiss": {
           "action_id": "",
@@ -3885,6 +4064,7 @@
             "workbook_source_mutation_allowed": false,
             "worker_spawn_allowed": false
           },
+          "control_scope": "none",
           "controller_event_type": "show_details",
           "disabled_reason": "Dismiss is a local client view preference; backend does not record dismissal from this packet.",
           "enabled": false,
@@ -3893,10 +4073,11 @@
             "generated/read_models/workroom_review_decision_status.json",
             "generated/read_models/workroom_review_packet_index.json",
             "generated/read_models/workroom_review_decision_contract.json",
-            "workroom_review_decision_consumer:6789b934558a0457"
+            "workroom_review_decision_consumer:80dc2fab0833c207"
           ],
           "receipt_required": false,
-          "requires_operator_envelope": true
+          "requires_operator_envelope": true,
+          "text_response_preferred": false
         },
         "primary": {
           "action_id": "",
@@ -3929,6 +4110,7 @@
             "workbook_source_mutation_allowed": false,
             "worker_spawn_allowed": false
           },
+          "control_scope": "none",
           "controller_event_type": "show_details",
           "disabled_reason": "No primary action for this card.",
           "enabled": false,
@@ -3937,10 +4119,11 @@
             "generated/read_models/workroom_review_decision_status.json",
             "generated/read_models/workroom_review_packet_index.json",
             "generated/read_models/workroom_review_decision_contract.json",
-            "workroom_review_decision_consumer:6789b934558a0457"
+            "workroom_review_decision_consumer:80dc2fab0833c207"
           ],
           "receipt_required": false,
-          "requires_operator_envelope": true
+          "requires_operator_envelope": true,
+          "text_response_preferred": false
         },
         "secondary": {
           "action_id": "",
@@ -3973,6 +4156,7 @@
             "workbook_source_mutation_allowed": false,
             "worker_spawn_allowed": false
           },
+          "control_scope": "none",
           "controller_event_type": "show_details",
           "disabled_reason": "No secondary action for this card.",
           "enabled": false,
@@ -3981,10 +4165,11 @@
             "generated/read_models/workroom_review_decision_status.json",
             "generated/read_models/workroom_review_packet_index.json",
             "generated/read_models/workroom_review_decision_contract.json",
-            "workroom_review_decision_consumer:6789b934558a0457"
+            "workroom_review_decision_consumer:80dc2fab0833c207"
           ],
           "receipt_required": false,
-          "requires_operator_envelope": true
+          "requires_operator_envelope": true,
+          "text_response_preferred": false
         }
       },
       "actions": [],
@@ -4054,7 +4239,7 @@
       "lifecycle_state": "resolved",
       "machine_contract_visible": false,
       "object_refs": [
-        "workroom_review_decision_consumer:6789b934558a0457"
+        "workroom_review_decision_consumer:80dc2fab0833c207"
       ],
       "operator_attention_required": false,
       "operator_mode_visible": false,
@@ -4063,7 +4248,7 @@
       "priority": 12,
       "proof": {
         "artifact_refs": [
-          "workroom_review_decision_consumer:6789b934558a0457"
+          "workroom_review_decision_consumer:80dc2fab0833c207"
         ],
         "collapsed_by_default": true,
         "developer_proof_only": false,
@@ -4073,7 +4258,7 @@
           "generated/read_models/workroom_review_decision_status.json",
           "generated/read_models/workroom_review_packet_index.json",
           "generated/read_models/workroom_review_decision_contract.json",
-          "workroom_review_decision_consumer:6789b934558a0457"
+          "workroom_review_decision_consumer:80dc2fab0833c207"
         ],
         "raw_detail_available": false,
         "read_model_refs": [
@@ -4082,23 +4267,23 @@
           "generated/read_models/workroom_review_decision_contract.json"
         ],
         "receipt_refs": [
-          "workroom_review_decision_consumer:6789b934558a0457"
+          "workroom_review_decision_consumer:80dc2fab0833c207"
         ],
         "redacted_summary": "Review decision receipt is historical proof only; no execution authority is created.",
         "request_refs": [],
         "response_refs": [],
         "sensitive_detail_policy": "review_receipt_metadata_only",
-        "source_content_hash": "sha256:50ece30acba69c9e38f9564423eeb8f759b91ee9a0f73281b06fd397e885c486",
+        "source_content_hash": "sha256:6376844eead8b39dd77a353177930e30f676af7b5b74f2b8f771b3cf65572ba7",
         "sqlite_refs": [],
         "unsafe_scan_result": "clean",
         "validation_commands": []
       },
       "replacement_card_ref": "",
       "resolved_by_receipt_ref": "generated/read_models/workroom_review_decision_status.json",
-      "source_content_hash": "sha256:c1690ae7ca15d517e3fa6b74a2effa550ff9d715bdc82aed550196bacee5c3ed",
+      "source_content_hash": "sha256:adf747044a91ffec3295b3a1b37612eb66c0f582d90303a80c9c1caa17b553f3",
       "source_generated_at": {
         "generated/read_models/workroom_review_decision_contract.json": "",
-        "generated/read_models/workroom_review_decision_status.json": "2026-06-05T04:07:26+00:00",
+        "generated/read_models/workroom_review_decision_status.json": "2026-06-05T17:38:57+00:00",
         "generated/read_models/workroom_review_packet_index.json": "2026-06-03T12:07:06+00:00"
       },
       "source_read_model_refs": [
@@ -4163,6 +4348,7 @@
             "workbook_source_mutation_allowed": false,
             "worker_spawn_allowed": false
           },
+          "control_scope": "gate",
           "controller_event_type": "do_it",
           "disabled_reason": "Memory promotion is gated and unavailable from proof-only cards.",
           "enabled": false,
@@ -4172,7 +4358,8 @@
             "generated/read_models/evidence_intake_status.json"
           ],
           "receipt_required": true,
-          "requires_operator_envelope": true
+          "requires_operator_envelope": true,
+          "text_response_preferred": false
         },
         "detail": {
           "action_id": "",
@@ -4205,6 +4392,7 @@
             "workbook_source_mutation_allowed": false,
             "worker_spawn_allowed": false
           },
+          "control_scope": "none",
           "controller_event_type": "show_details",
           "disabled_reason": "No deterministic inspect-proof payload exists for this card.",
           "enabled": false,
@@ -4214,7 +4402,8 @@
             "generated/read_models/evidence_intake_status.json"
           ],
           "receipt_required": false,
-          "requires_operator_envelope": true
+          "requires_operator_envelope": true,
+          "text_response_preferred": false
         },
         "dismiss": {
           "action_id": "",
@@ -4247,6 +4436,7 @@
             "workbook_source_mutation_allowed": false,
             "worker_spawn_allowed": false
           },
+          "control_scope": "none",
           "controller_event_type": "show_details",
           "disabled_reason": "Dismiss is a local client view preference; backend does not record dismissal from this packet.",
           "enabled": false,
@@ -4256,7 +4446,8 @@
             "generated/read_models/evidence_intake_status.json"
           ],
           "receipt_required": false,
-          "requires_operator_envelope": true
+          "requires_operator_envelope": true,
+          "text_response_preferred": false
         },
         "primary": {
           "action_id": "",
@@ -4289,6 +4480,7 @@
             "workbook_source_mutation_allowed": false,
             "worker_spawn_allowed": false
           },
+          "control_scope": "none",
           "controller_event_type": "show_details",
           "disabled_reason": "No primary action for this card.",
           "enabled": false,
@@ -4298,7 +4490,8 @@
             "generated/read_models/evidence_intake_status.json"
           ],
           "receipt_required": false,
-          "requires_operator_envelope": true
+          "requires_operator_envelope": true,
+          "text_response_preferred": false
         },
         "secondary": {
           "action_id": "",
@@ -4331,6 +4524,7 @@
             "workbook_source_mutation_allowed": false,
             "worker_spawn_allowed": false
           },
+          "control_scope": "none",
           "controller_event_type": "show_details",
           "disabled_reason": "No secondary action for this card.",
           "enabled": false,
@@ -4340,7 +4534,8 @@
             "generated/read_models/evidence_intake_status.json"
           ],
           "receipt_required": false,
-          "requires_operator_envelope": true
+          "requires_operator_envelope": true,
+          "text_response_preferred": false
         }
       },
       "actions": [],
@@ -4444,10 +4639,10 @@
       },
       "replacement_card_ref": "",
       "resolved_by_receipt_ref": "",
-      "source_content_hash": "sha256:20b3ba09fb76dde60bf5db07a37c23753a931f1b92e1187b5a44d929c6e7349a",
+      "source_content_hash": "sha256:b97894be70d06f4258d1eee460111f8ea30c206997bfa844a39d639fbac86dbf",
       "source_generated_at": {
         "generated/read_models/evidence_confidence_scoring.json": "2026-06-03T12:39:21+00:00",
-        "generated/read_models/evidence_intake_status.json": "2026-06-05T04:07:26+00:00"
+        "generated/read_models/evidence_intake_status.json": "2026-06-05T18:44:27+00:00"
       },
       "source_read_model_refs": [
         "generated/read_models/evidence_confidence_scoring.json",
@@ -4509,18 +4704,20 @@
             "workbook_source_mutation_allowed": false,
             "worker_spawn_allowed": false
           },
+          "control_scope": "gate",
           "controller_event_type": "do_it",
           "disabled_reason": "Raw artifact body reads require a separate explicit gate.",
           "enabled": false,
           "label": "Read raw artifact",
           "proof_refs": [
             "generated/read_models/evidence_intake_status.json",
-            "artifact:evidence_intake_56cda4b43a6b7054",
-            "mission_control_drop:live_arts_md_payment_processing_screenshot_invoice_2026-1001",
+            "artifact:evidence_intake_66a81b39dbf34ce3",
+            "/private/tmp/openclaw-mission-control/screenshots/generic_controller_v3_clean_test_proof.png",
             "/home/openclaw/generated/system_knowledge/evidence_intake.sqlite"
           ],
           "receipt_required": true,
-          "requires_operator_envelope": true
+          "requires_operator_envelope": true,
+          "text_response_preferred": false
         },
         "detail": {
           "action_id": "",
@@ -4553,18 +4750,20 @@
             "workbook_source_mutation_allowed": false,
             "worker_spawn_allowed": false
           },
+          "control_scope": "none",
           "controller_event_type": "show_details",
           "disabled_reason": "No deterministic inspect-proof payload exists for this card.",
           "enabled": false,
           "label": "Show details",
           "proof_refs": [
             "generated/read_models/evidence_intake_status.json",
-            "artifact:evidence_intake_56cda4b43a6b7054",
-            "mission_control_drop:live_arts_md_payment_processing_screenshot_invoice_2026-1001",
+            "artifact:evidence_intake_66a81b39dbf34ce3",
+            "/private/tmp/openclaw-mission-control/screenshots/generic_controller_v3_clean_test_proof.png",
             "/home/openclaw/generated/system_knowledge/evidence_intake.sqlite"
           ],
           "receipt_required": false,
-          "requires_operator_envelope": true
+          "requires_operator_envelope": true,
+          "text_response_preferred": false
         },
         "dismiss": {
           "action_id": "",
@@ -4597,18 +4796,20 @@
             "workbook_source_mutation_allowed": false,
             "worker_spawn_allowed": false
           },
+          "control_scope": "none",
           "controller_event_type": "show_details",
           "disabled_reason": "Dismiss is a local client view preference; backend does not record dismissal from this packet.",
           "enabled": false,
           "label": "Dismiss",
           "proof_refs": [
             "generated/read_models/evidence_intake_status.json",
-            "artifact:evidence_intake_56cda4b43a6b7054",
-            "mission_control_drop:live_arts_md_payment_processing_screenshot_invoice_2026-1001",
+            "artifact:evidence_intake_66a81b39dbf34ce3",
+            "/private/tmp/openclaw-mission-control/screenshots/generic_controller_v3_clean_test_proof.png",
             "/home/openclaw/generated/system_knowledge/evidence_intake.sqlite"
           ],
           "receipt_required": false,
-          "requires_operator_envelope": true
+          "requires_operator_envelope": true,
+          "text_response_preferred": false
         },
         "primary": {
           "action_id": "",
@@ -4641,18 +4842,20 @@
             "workbook_source_mutation_allowed": false,
             "worker_spawn_allowed": false
           },
+          "control_scope": "none",
           "controller_event_type": "show_details",
           "disabled_reason": "No primary action for this card.",
           "enabled": false,
           "label": "No primary action",
           "proof_refs": [
             "generated/read_models/evidence_intake_status.json",
-            "artifact:evidence_intake_56cda4b43a6b7054",
-            "mission_control_drop:live_arts_md_payment_processing_screenshot_invoice_2026-1001",
+            "artifact:evidence_intake_66a81b39dbf34ce3",
+            "/private/tmp/openclaw-mission-control/screenshots/generic_controller_v3_clean_test_proof.png",
             "/home/openclaw/generated/system_knowledge/evidence_intake.sqlite"
           ],
           "receipt_required": false,
-          "requires_operator_envelope": true
+          "requires_operator_envelope": true,
+          "text_response_preferred": false
         },
         "secondary": {
           "action_id": "",
@@ -4685,18 +4888,20 @@
             "workbook_source_mutation_allowed": false,
             "worker_spawn_allowed": false
           },
+          "control_scope": "none",
           "controller_event_type": "show_details",
           "disabled_reason": "No secondary action for this card.",
           "enabled": false,
           "label": "No secondary action",
           "proof_refs": [
             "generated/read_models/evidence_intake_status.json",
-            "artifact:evidence_intake_56cda4b43a6b7054",
-            "mission_control_drop:live_arts_md_payment_processing_screenshot_invoice_2026-1001",
+            "artifact:evidence_intake_66a81b39dbf34ce3",
+            "/private/tmp/openclaw-mission-control/screenshots/generic_controller_v3_clean_test_proof.png",
             "/home/openclaw/generated/system_knowledge/evidence_intake.sqlite"
           ],
           "receipt_required": false,
-          "requires_operator_envelope": true
+          "requires_operator_envelope": true,
+          "text_response_preferred": false
         }
       },
       "actions": [],
@@ -4766,7 +4971,7 @@
       "lifecycle_state": "archived",
       "machine_contract_visible": false,
       "object_refs": [
-        "artifact:evidence_intake_56cda4b43a6b7054"
+        "artifact:evidence_intake_66a81b39dbf34ce3"
       ],
       "operator_attention_required": false,
       "operator_mode_visible": false,
@@ -4775,8 +4980,8 @@
       "priority": 9,
       "proof": {
         "artifact_refs": [
-          "artifact:evidence_intake_56cda4b43a6b7054",
-          "mission_control_drop:live_arts_md_payment_processing_screenshot_invoice_2026-1001"
+          "artifact:evidence_intake_66a81b39dbf34ce3",
+          "/private/tmp/openclaw-mission-control/screenshots/generic_controller_v3_clean_test_proof.png"
         ],
         "collapsed_by_default": true,
         "developer_proof_only": true,
@@ -4784,8 +4989,8 @@
         "label": "Details",
         "proof_refs": [
           "generated/read_models/evidence_intake_status.json",
-          "artifact:evidence_intake_56cda4b43a6b7054",
-          "mission_control_drop:live_arts_md_payment_processing_screenshot_invoice_2026-1001",
+          "artifact:evidence_intake_66a81b39dbf34ce3",
+          "/private/tmp/openclaw-mission-control/screenshots/generic_controller_v3_clean_test_proof.png",
           "/home/openclaw/generated/system_knowledge/evidence_intake.sqlite"
         ],
         "raw_detail_available": false,
@@ -4797,7 +5002,7 @@
         "request_refs": [],
         "response_refs": [],
         "sensitive_detail_policy": "financial_sensitive/local_only_redacted",
-        "source_content_hash": "sha256:812f08058bc85891c661c5e5143c85fbd62ae36f48222bc5d8b097b23f2820b2",
+        "source_content_hash": "sha256:8616607093f9b4736cdaee18dda62590a7bbce509341eaebbde07016171a4dbc",
         "sqlite_refs": [
           "/home/openclaw/generated/system_knowledge/evidence_intake.sqlite"
         ],
@@ -4806,9 +5011,9 @@
       },
       "replacement_card_ref": "",
       "resolved_by_receipt_ref": "",
-      "source_content_hash": "sha256:bf54a3be589a4d934819df500a30a466c338108093687eefea14780131e140dd",
+      "source_content_hash": "sha256:d583b367b92dc63745beb60f9d088de3828d60a176c22f00af921a2e017b5c0b",
       "source_generated_at": {
-        "generated/read_models/evidence_intake_status.json": "2026-06-05T04:07:26+00:00"
+        "generated/read_models/evidence_intake_status.json": "2026-06-05T18:44:27+00:00"
       },
       "source_read_model_refs": [
         "generated/read_models/evidence_intake_status.json"
@@ -4835,7 +5040,7 @@
       "world_ref": "artifact"
     }
   ],
-  "generated_at": "2026-06-05T04:09:44+00:00",
+  "generated_at": "2026-06-07T02:25:13+00:00",
   "history_card_count": 5,
   "machine_proof": {
     "action_slots_present": true,
@@ -4907,8 +5112,8 @@
     "worker_spawn_performed": false
   },
   "operator_attention_card_count": 6,
-  "packet_content_hash": "sha256:495cab4e4706866df4c49b02d13eacdacfd494d11fd42bf1e6a8ae1c645ece91",
-  "packet_id": "dynamic_card_packet:1b170f51d129",
+  "packet_content_hash": "sha256:795f8b5f38129f137310bf254fda5612289f40128b126a9b790179849fa9223f",
+  "packet_id": "dynamic_card_packet:d8ac342b6ff9",
   "packet_source_read_model_refs": [
     "generated/read_models/operator_runtime_chain_current_state_audit.json",
     "generated/read_models/operator_action_payloads.json",

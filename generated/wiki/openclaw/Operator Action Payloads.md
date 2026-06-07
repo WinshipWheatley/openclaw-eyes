@@ -6,19 +6,22 @@ This read-model gives Mac cards safe backend button payloads. It is a render/sta
 
 ## Counts
 
-- Payloads: `29`
+- Payloads: `31`
 - `explain_gate`: `5`
 - `navigate`: `8`
+- `objective_advancement`: `1`
 - `record_payment_proof_intake`: `1`
 - `review_decision`: `3`
 - `stage_package_request`: `6`
-- `system_question`: `5`
+- `system_question`: `6`
 - `workbook_registration`: `1`
 
 ## Payloads
 
+- `capital_hilton.payment.advance_objective` - Advance payment watch (objective_advancement, finance/capital_hilton)
+- `capital_hilton.payment.ask_why` - Ask why (system_question, finance/capital_hilton)
 - `capital_hilton.payment.open_finance` - Open Finance / Capital Hilton (navigate, finance/capital_hilton)
-- `capital_hilton.payment.record_proof` - Record payment proof (record_payment_proof_intake, finance/capital_hilton)
+- `capital_hilton.payment.record_proof` - Attach payment evidence (record_payment_proof_intake, finance/capital_hilton)
 - `capital_hilton.proposal.stage_followup` - Stage proposal follow-up (stage_package_request, business_development/capital_hilton)
 - `chief_diagnostic.open` - Open Chief diagnostic (navigate, system/chief_diagnostic)
 - `client_invoice_workbook.register` - Register workbook (workbook_registration, finance/capital_hilton)

@@ -55,7 +55,15 @@ def test_capital_hilton_payment_watch_has_no_enabled_coupa_or_ledger_action():
     card = _by_id(_latest())["dynamic_card.finance.capital_hilton.payment_watch"]
 
     assert card["card_family"] == "payment_watch_card"
-    assert card["action_slots"]["primary"]["controller_event_type"] == "open_lane"
+    assert card["action_slots"]["primary"]["controller_event_type"] == "ask_why"
+    assert card["action_slots"]["primary"]["control_scope"] == "lane"
+    assert card["action_slots"]["primary"]["text_response_preferred"] is True
+    assert card["action_slots"]["secondary"]["controller_event_type"] == "advance_objective"
+    assert card["action_slots"]["secondary"]["control_scope"] == "lane"
+    assert card["action_slots"]["secondary"]["text_response_preferred"] is True
+    assert card["action_slots"]["detail"]["controller_event_type"] == "attach_proof"
+    assert card["action_slots"]["detail"]["control_scope"] == "lane"
+    assert card["action_slots"]["detail"]["text_response_preferred"] is True
     assert card["action_slots"]["danger_disabled"]["enabled"] is False
     assert card["authority_boundary"]["coupa_allowed"] is False
     assert card["authority_boundary"]["ledger_mutation_allowed"] is False
@@ -63,6 +71,37 @@ def test_capital_hilton_payment_watch_has_no_enabled_coupa_or_ledger_action():
         text = f"{slot['action_id']} {slot['label']}".lower()
         assert "coupa" not in text
         assert "ledger" not in text
+
+
+def test_capital_hilton_payment_watch_exposes_lane_level_text_controls():
+    card = _by_id(_latest())["dynamic_card.finance.capital_hilton.payment_watch"]
+
+    controls = {
+        slot["controller_event_type"]: slot
+        for slot in card["action_slots"].values()
+        if slot["enabled"] is True
+    }
+
+    assert {"ask_why", "advance_objective", "attach_proof"} <= set(controls)
+    assert controls["ask_why"]["action_id"] == "capital_hilton.payment.ask_why"
+    assert controls["advance_objective"]["action_id"] == "capital_hilton.payment.advance_objective"
+    assert controls["attach_proof"]["action_id"] == "capital_hilton.payment.record_proof"
+    for event_type in ("ask_why", "advance_objective", "attach_proof"):
+        assert controls[event_type]["control_scope"] == "lane"
+        assert controls[event_type]["text_response_preferred"] is True
+        assert controls[event_type]["authority_boundary"]["coupa_allowed"] is False
+        assert controls[event_type]["authority_boundary"]["ledger_mutation_allowed"] is False
+
+
+def test_capital_hilton_coupa_gate_ask_why_is_gate_detail_control():
+    card = _by_id(_latest())["dynamic_card.finance.capital_hilton.approval_request.coupa_submit"]
+    detail = card["action_slots"]["detail"]
+
+    assert detail["controller_event_type"] == "ask_why"
+    assert detail["action_id"] == "guardian_gate.coupa_submit.explain"
+    assert detail["control_scope"] == "gate"
+    assert detail["text_response_preferred"] is True
+    assert card["visible_by_default"] is False
 
 
 def test_live_arts_evidence_receipt_waiting_operator_reported_not_paid():

@@ -222,6 +222,40 @@ def test_capital_hilton_ask_why_payment_watch_context_overrides_coupa_action_met
     assert latest["latest_response"]["headline"] == "Payment evidence needed"
 
 
+def test_capital_hilton_lane_level_controller_map_actions_return_payment_watch_text(tmp_path):
+    ask_receipt, ask_latest, _ask_bridge = _route(
+        tmp_path,
+        _controller_event_request(
+            event_type="ask_why",
+            world="finance",
+            thread="capital_hilton",
+            suffix="capital_hilton_lane_map_ask_why",
+            selected_card_id="dynamic_card.finance.capital_hilton.payment_watch",
+            selected_action_id="capital_hilton.payment.ask_why",
+            operator_text="Why am I here?",
+        ),
+    )
+    advance_receipt, advance_latest, _advance_bridge = _route(
+        tmp_path,
+        _controller_event_request(
+            event_type="advance_objective",
+            world="finance",
+            thread="capital_hilton",
+            suffix="capital_hilton_lane_map_advance",
+            selected_card_id="dynamic_card.finance.capital_hilton.payment_watch",
+            selected_action_id="capital_hilton.payment.advance_objective",
+            operator_text="Advance payment watch.",
+        ),
+    )
+
+    assert ask_receipt["proof_to_response"]["headline"] == "Payment evidence needed"
+    assert ask_receipt["proof_to_response"]["next_step"] == "Attach payment evidence."
+    assert ask_latest["latest_response"]["headline"] == "Payment evidence needed"
+    assert advance_receipt["route_result"]["suggested_controller_event"] == "attach_proof"
+    assert advance_receipt["proof_to_response"]["headline"] == "Payment evidence needed"
+    assert advance_latest["latest_response"]["headline"] == "Payment evidence needed"
+
+
 def test_capital_hilton_coupa_gate_ask_why_still_uses_gate_specific_response(tmp_path):
     receipt, latest, _bridge_latest = _route(
         tmp_path,

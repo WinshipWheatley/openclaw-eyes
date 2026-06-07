@@ -1,6 +1,8 @@
 {
-  "action_payload_count": 29,
+  "action_payload_count": 31,
   "action_payload_ids": [
+    "capital_hilton.payment.advance_objective",
+    "capital_hilton.payment.ask_why",
     "capital_hilton.payment.open_finance",
     "capital_hilton.payment.record_proof",
     "capital_hilton.proposal.stage_followup",
@@ -33,6 +35,151 @@
   ],
   "action_payloads": [
     {
+      "action_id": "capital_hilton.payment.advance_objective",
+      "action_type": "objective_advancement",
+      "authority_boundary": {
+        "agent_loop_allowed": false,
+        "browser_access_allowed": false,
+        "business_action_allowed": false,
+        "child_agent_run_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "external_action_allowed": false,
+        "git_push_allowed": false,
+        "gmail_allowed": false,
+        "ledger_mutation_allowed": false,
+        "ledger_posting_allowed": false,
+        "merge_allowed": false,
+        "paid": false,
+        "pdf_export_allowed": false,
+        "portal_submit_allowed": false,
+        "push_allowed": false,
+        "repair_authority_allowed": false,
+        "sent": false,
+        "spreadsheet_cell_read_allowed": false,
+        "workbook_body_read_allowed": false,
+        "workbook_mutation_allowed": false,
+        "workbook_open_allowed": false,
+        "workbook_source_mutation_allowed": false,
+        "worker_spawn_allowed": false
+      },
+      "business_action": false,
+      "control_scope": "lane",
+      "controller_event_type": "advance_objective",
+      "disabled_reason": null,
+      "enabled": true,
+      "label": "Advance payment watch",
+      "payload": {
+        "authority_boundary": {
+          "agent_loop_allowed": false,
+          "browser_access_allowed": false,
+          "business_action_allowed": false,
+          "child_agent_run_allowed": false,
+          "coupa_allowed": false,
+          "email_send_allowed": false,
+          "external_action_allowed": false,
+          "git_push_allowed": false,
+          "gmail_allowed": false,
+          "ledger_mutation_allowed": false,
+          "ledger_posting_allowed": false,
+          "merge_allowed": false,
+          "paid": false,
+          "pdf_export_allowed": false,
+          "portal_submit_allowed": false,
+          "push_allowed": false,
+          "repair_authority_allowed": false,
+          "sent": false,
+          "spreadsheet_cell_read_allowed": false,
+          "workbook_body_read_allowed": false,
+          "workbook_mutation_allowed": false,
+          "workbook_open_allowed": false,
+          "workbook_source_mutation_allowed": false,
+          "worker_spawn_allowed": false
+        },
+        "browser_access_allowed": false,
+        "client_ref": "capital_hilton",
+        "control_scope": "lane",
+        "coupa_allowed": false,
+        "expected_response_scenario": "finance_capital_hilton_payment_watch",
+        "ledger_mutation_allowed": false,
+        "next_safe_controller_event": "attach_proof",
+        "objective_ref": "objective:finance:capital_hilton:payment_watch",
+        "paid_marking_allowed": false,
+        "requires_payment_evidence": true,
+        "source_card_id": "dynamic_card.finance.capital_hilton.payment_watch",
+        "text_response_preferred": true,
+        "workflow_ref": "capital_hilton_invoice_payment_watch"
+      },
+      "proof_refs": [
+        "generated/read_models/capital_hilton_invoice_operator_run_status.json",
+        "/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/capital_hilton_invoice_operator_run_full_automation_report_20260601T222036Z.md",
+        "/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/2026-06-01/Invoice_Capital_Hilton_2026-06-01.pdf",
+        "/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/capital_hilton_invoice_operator_run_receipt_20260601T221600Z.json",
+        "/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/capital_hilton_invoice_operator_run_report_20260601T221600Z.md"
+      ],
+      "safe_to_render_button": true,
+      "target_thread_ref": "capital_hilton",
+      "target_world_ref": "finance",
+      "text_response_preferred": true
+    },
+    {
+      "action_id": "capital_hilton.payment.ask_why",
+      "action_type": "system_question",
+      "authority_boundary": {
+        "agent_loop_allowed": false,
+        "browser_access_allowed": false,
+        "business_action_allowed": false,
+        "child_agent_run_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "external_action_allowed": false,
+        "git_push_allowed": false,
+        "gmail_allowed": false,
+        "ledger_mutation_allowed": false,
+        "ledger_posting_allowed": false,
+        "merge_allowed": false,
+        "paid": false,
+        "pdf_export_allowed": false,
+        "portal_submit_allowed": false,
+        "push_allowed": false,
+        "repair_authority_allowed": false,
+        "sent": false,
+        "spreadsheet_cell_read_allowed": false,
+        "workbook_body_read_allowed": false,
+        "workbook_mutation_allowed": false,
+        "workbook_open_allowed": false,
+        "workbook_source_mutation_allowed": false,
+        "worker_spawn_allowed": false
+      },
+      "business_action": false,
+      "control_scope": "lane",
+      "controller_event_type": "ask_why",
+      "disabled_reason": null,
+      "enabled": true,
+      "label": "Ask why",
+      "payload": {
+        "client_ref": "capital_hilton",
+        "control_scope": "lane",
+        "expected_response_scenario": "finance_capital_hilton_payment_watch",
+        "question_id": "capital_hilton_payment_watch_lane",
+        "question_text": "Why am I here?",
+        "source_card_id": "dynamic_card.finance.capital_hilton.payment_watch",
+        "text_response_preferred": true,
+        "workflow_ref": "capital_hilton_invoice_payment_watch"
+      },
+      "proof_refs": [
+        "generated/read_models/capital_hilton_invoice_operator_run_status.json",
+        "/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/capital_hilton_invoice_operator_run_full_automation_report_20260601T222036Z.md",
+        "/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/2026-06-01/Invoice_Capital_Hilton_2026-06-01.pdf",
+        "/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/capital_hilton_invoice_operator_run_receipt_20260601T221600Z.json",
+        "/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/capital_hilton_invoice_operator_run_report_20260601T221600Z.md"
+      ],
+      "safe_to_render_button": true,
+      "target_thread_ref": "capital_hilton",
+      "target_world_ref": "finance",
+      "text_response_preferred": true
+    },
+    {
       "action_id": "capital_hilton.payment.open_finance",
       "action_type": "navigate",
       "authority_boundary": {
@@ -62,6 +209,8 @@
         "worker_spawn_allowed": false
       },
       "business_action": false,
+      "control_scope": "lane",
+      "controller_event_type": "",
       "disabled_reason": null,
       "enabled": true,
       "label": "Open Finance / Capital Hilton",
@@ -78,7 +227,8 @@
       ],
       "safe_to_render_button": true,
       "target_thread_ref": "capital_hilton",
-      "target_world_ref": "finance"
+      "target_world_ref": "finance",
+      "text_response_preferred": false
     },
     {
       "action_id": "capital_hilton.payment.record_proof",
@@ -110,10 +260,13 @@
         "worker_spawn_allowed": false
       },
       "business_action": false,
-      "disabled_reason": "Payment evidence has not been provided yet.",
-      "enabled": false,
-      "label": "Record payment proof",
+      "control_scope": "lane",
+      "controller_event_type": "attach_proof",
+      "disabled_reason": null,
+      "enabled": true,
+      "label": "Attach payment evidence",
       "payload": {
+        "artifact_required": true,
         "authority_boundary": {
           "agent_loop_allowed": false,
           "browser_access_allowed": false,
@@ -141,12 +294,16 @@
           "worker_spawn_allowed": false
         },
         "client_ref": "capital_hilton",
+        "control_scope": "lane",
+        "expected_response_scenario": "finance_capital_hilton_payment_watch",
         "ledger_mutation_allowed": false,
         "ledger_posting_allowed": false,
         "paid_marking_allowed": false,
         "request_type": "CAPITAL_HILTON_PAYMENT_PROOF_INTAKE_REQUEST_V0",
         "requires_payment_evidence": true,
+        "source_card_id": "dynamic_card.finance.capital_hilton.payment_watch",
         "source_surface": "mission_control",
+        "text_response_preferred": true,
         "workflow_ref": "capital_hilton_invoice_payment_watch"
       },
       "proof_refs": [
@@ -158,7 +315,8 @@
       ],
       "safe_to_render_button": true,
       "target_thread_ref": "capital_hilton",
-      "target_world_ref": "finance"
+      "target_world_ref": "finance",
+      "text_response_preferred": true
     },
     {
       "action_id": "capital_hilton.proposal.stage_followup",
@@ -190,6 +348,8 @@
         "worker_spawn_allowed": false
       },
       "business_action": false,
+      "control_scope": "lane",
+      "controller_event_type": "",
       "disabled_reason": null,
       "enabled": true,
       "label": "Stage proposal follow-up",
@@ -243,7 +403,8 @@
       ],
       "safe_to_render_button": true,
       "target_thread_ref": "capital_hilton",
-      "target_world_ref": "business_development"
+      "target_world_ref": "business_development",
+      "text_response_preferred": false
     },
     {
       "action_id": "chief_diagnostic.open",
@@ -275,6 +436,8 @@
         "worker_spawn_allowed": false
       },
       "business_action": false,
+      "control_scope": "lane",
+      "controller_event_type": "",
       "disabled_reason": null,
       "enabled": true,
       "label": "Open Chief diagnostic",
@@ -291,7 +454,8 @@
       ],
       "safe_to_render_button": true,
       "target_thread_ref": "chief_diagnostic",
-      "target_world_ref": "system"
+      "target_world_ref": "system",
+      "text_response_preferred": false
     },
     {
       "action_id": "client_invoice_workbook.register",
@@ -323,6 +487,8 @@
         "worker_spawn_allowed": false
       },
       "business_action": false,
+      "control_scope": "lane",
+      "controller_event_type": "",
       "disabled_reason": null,
       "enabled": true,
       "label": "Register workbook",
@@ -372,7 +538,8 @@
       ],
       "safe_to_render_button": true,
       "target_thread_ref": "capital_hilton",
-      "target_world_ref": "finance"
+      "target_world_ref": "finance",
+      "text_response_preferred": false
     },
     {
       "action_id": "guardian_gate.coupa_submit.explain",
@@ -404,10 +571,13 @@
         "worker_spawn_allowed": false
       },
       "business_action": false,
+      "control_scope": "gate",
+      "controller_event_type": "ask_why",
       "disabled_reason": null,
       "enabled": true,
       "label": "Explain this gate",
       "payload": {
+        "control_scope": "gate",
         "gate_ref": "coupa_submit",
         "plain_label": "Coupa submit locked",
         "safe_actions_only": true,
@@ -420,7 +590,8 @@
       ],
       "safe_to_render_button": true,
       "target_thread_ref": "guardian",
-      "target_world_ref": "system"
+      "target_world_ref": "system",
+      "text_response_preferred": true
     },
     {
       "action_id": "guardian_gate.coupa_submit.open",
@@ -452,10 +623,13 @@
         "worker_spawn_allowed": false
       },
       "business_action": false,
+      "control_scope": "gate",
+      "controller_event_type": "",
       "disabled_reason": null,
       "enabled": true,
       "label": "Open relevant lane",
       "payload": {
+        "control_scope": "gate",
         "gate_ref": "coupa_submit",
         "open_lane_only": true,
         "plain_label": "Coupa submit locked",
@@ -469,7 +643,8 @@
       ],
       "safe_to_render_button": true,
       "target_thread_ref": "capital_hilton",
-      "target_world_ref": "finance"
+      "target_world_ref": "finance",
+      "text_response_preferred": false
     },
     {
       "action_id": "guardian_gate.coupa_submit.stage_approval_request",
@@ -501,6 +676,8 @@
         "worker_spawn_allowed": false
       },
       "business_action": false,
+      "control_scope": "gate",
+      "controller_event_type": "",
       "disabled_reason": null,
       "enabled": true,
       "label": "Stage approval request",
@@ -533,6 +710,7 @@
           "workbook_source_mutation_allowed": false,
           "worker_spawn_allowed": false
         },
+        "control_scope": "gate",
         "forbidden_options": [
           "coupa_submit",
           "open_coupa_unattended",
@@ -557,7 +735,8 @@
       ],
       "safe_to_render_button": true,
       "target_thread_ref": "capital_hilton",
-      "target_world_ref": "finance"
+      "target_world_ref": "finance",
+      "text_response_preferred": false
     },
     {
       "action_id": "guardian_gate.ledger_post.explain",
@@ -589,10 +768,13 @@
         "worker_spawn_allowed": false
       },
       "business_action": false,
+      "control_scope": "gate",
+      "controller_event_type": "ask_why",
       "disabled_reason": null,
       "enabled": true,
       "label": "Explain this gate",
       "payload": {
+        "control_scope": "gate",
         "gate_ref": "ledger_post",
         "plain_label": "Ledger posting locked",
         "safe_actions_only": true,
@@ -605,7 +787,8 @@
       ],
       "safe_to_render_button": true,
       "target_thread_ref": "guardian",
-      "target_world_ref": "system"
+      "target_world_ref": "system",
+      "text_response_preferred": true
     },
     {
       "action_id": "guardian_gate.ledger_post.open",
@@ -637,10 +820,13 @@
         "worker_spawn_allowed": false
       },
       "business_action": false,
+      "control_scope": "gate",
+      "controller_event_type": "",
       "disabled_reason": null,
       "enabled": true,
       "label": "Open relevant lane",
       "payload": {
+        "control_scope": "gate",
         "gate_ref": "ledger_post",
         "open_lane_only": true,
         "plain_label": "Ledger posting locked",
@@ -654,7 +840,8 @@
       ],
       "safe_to_render_button": true,
       "target_thread_ref": "capital_hilton",
-      "target_world_ref": "finance"
+      "target_world_ref": "finance",
+      "text_response_preferred": false
     },
     {
       "action_id": "guardian_gate.ledger_post.stage_approval_request",
@@ -686,6 +873,8 @@
         "worker_spawn_allowed": false
       },
       "business_action": false,
+      "control_scope": "gate",
+      "controller_event_type": "",
       "disabled_reason": null,
       "enabled": true,
       "label": "Stage approval request",
@@ -718,6 +907,7 @@
           "workbook_source_mutation_allowed": false,
           "worker_spawn_allowed": false
         },
+        "control_scope": "gate",
         "forbidden_options": [
           "post_ledger",
           "mark_paid",
@@ -742,7 +932,8 @@
       ],
       "safe_to_render_button": true,
       "target_thread_ref": "capital_hilton",
-      "target_world_ref": "finance"
+      "target_world_ref": "finance",
+      "text_response_preferred": false
     },
     {
       "action_id": "guardian_gate.pdf_export.explain",
@@ -774,10 +965,13 @@
         "worker_spawn_allowed": false
       },
       "business_action": false,
+      "control_scope": "gate",
+      "controller_event_type": "ask_why",
       "disabled_reason": null,
       "enabled": true,
       "label": "Explain this gate",
       "payload": {
+        "control_scope": "gate",
         "gate_ref": "pdf_export",
         "plain_label": "PDF export locked",
         "safe_actions_only": true,
@@ -790,7 +984,8 @@
       ],
       "safe_to_render_button": true,
       "target_thread_ref": "guardian",
-      "target_world_ref": "system"
+      "target_world_ref": "system",
+      "text_response_preferred": true
     },
     {
       "action_id": "guardian_gate.pdf_export.open",
@@ -822,10 +1017,13 @@
         "worker_spawn_allowed": false
       },
       "business_action": false,
+      "control_scope": "gate",
+      "controller_event_type": "",
       "disabled_reason": null,
       "enabled": true,
       "label": "Open relevant lane",
       "payload": {
+        "control_scope": "gate",
         "gate_ref": "pdf_export",
         "open_lane_only": true,
         "plain_label": "PDF export locked",
@@ -839,7 +1037,8 @@
       ],
       "safe_to_render_button": true,
       "target_thread_ref": "st_annes",
-      "target_world_ref": "finance"
+      "target_world_ref": "finance",
+      "text_response_preferred": false
     },
     {
       "action_id": "guardian_gate.pdf_export.stage_approval_request",
@@ -871,6 +1070,8 @@
         "worker_spawn_allowed": false
       },
       "business_action": false,
+      "control_scope": "gate",
+      "controller_event_type": "",
       "disabled_reason": null,
       "enabled": true,
       "label": "Stage approval request",
@@ -903,6 +1104,7 @@
           "workbook_source_mutation_allowed": false,
           "worker_spawn_allowed": false
         },
+        "control_scope": "gate",
         "forbidden_options": [
           "export_pdf",
           "replace_pdf_without_lineage",
@@ -927,7 +1129,8 @@
       ],
       "safe_to_render_button": true,
       "target_thread_ref": "st_annes",
-      "target_world_ref": "finance"
+      "target_world_ref": "finance",
+      "text_response_preferred": false
     },
     {
       "action_id": "guardian_gate.send_email.explain",
@@ -959,10 +1162,13 @@
         "worker_spawn_allowed": false
       },
       "business_action": false,
+      "control_scope": "gate",
+      "controller_event_type": "ask_why",
       "disabled_reason": null,
       "enabled": true,
       "label": "Explain this gate",
       "payload": {
+        "control_scope": "gate",
         "gate_ref": "send_email",
         "plain_label": "Email send locked",
         "safe_actions_only": true,
@@ -975,7 +1181,8 @@
       ],
       "safe_to_render_button": true,
       "target_thread_ref": "guardian",
-      "target_world_ref": "system"
+      "target_world_ref": "system",
+      "text_response_preferred": true
     },
     {
       "action_id": "guardian_gate.send_email.open",
@@ -1007,10 +1214,13 @@
         "worker_spawn_allowed": false
       },
       "business_action": false,
+      "control_scope": "gate",
+      "controller_event_type": "",
       "disabled_reason": null,
       "enabled": true,
       "label": "Open relevant lane",
       "payload": {
+        "control_scope": "gate",
         "gate_ref": "send_email",
         "open_lane_only": true,
         "plain_label": "Email send locked",
@@ -1024,7 +1234,8 @@
       ],
       "safe_to_render_button": true,
       "target_thread_ref": "capital_hilton",
-      "target_world_ref": "finance"
+      "target_world_ref": "finance",
+      "text_response_preferred": false
     },
     {
       "action_id": "guardian_gate.send_email.stage_approval_request",
@@ -1056,6 +1267,8 @@
         "worker_spawn_allowed": false
       },
       "business_action": false,
+      "control_scope": "gate",
+      "controller_event_type": "",
       "disabled_reason": null,
       "enabled": true,
       "label": "Stage approval request",
@@ -1088,6 +1301,7 @@
           "workbook_source_mutation_allowed": false,
           "worker_spawn_allowed": false
         },
+        "control_scope": "gate",
         "forbidden_options": [
           "send_email",
           "open_gmail_without_operator",
@@ -1112,7 +1326,8 @@
       ],
       "safe_to_render_button": true,
       "target_thread_ref": "capital_hilton",
-      "target_world_ref": "finance"
+      "target_world_ref": "finance",
+      "text_response_preferred": false
     },
     {
       "action_id": "guardian_gate.workbook_mutation.explain",
@@ -1144,10 +1359,13 @@
         "worker_spawn_allowed": false
       },
       "business_action": false,
+      "control_scope": "gate",
+      "controller_event_type": "ask_why",
       "disabled_reason": null,
       "enabled": true,
       "label": "Explain this gate",
       "payload": {
+        "control_scope": "gate",
         "gate_ref": "workbook_mutation",
         "plain_label": "Excel mutation locked",
         "safe_actions_only": true,
@@ -1160,7 +1378,8 @@
       ],
       "safe_to_render_button": true,
       "target_thread_ref": "guardian",
-      "target_world_ref": "system"
+      "target_world_ref": "system",
+      "text_response_preferred": true
     },
     {
       "action_id": "guardian_gate.workbook_mutation.open",
@@ -1192,10 +1411,13 @@
         "worker_spawn_allowed": false
       },
       "business_action": false,
+      "control_scope": "gate",
+      "controller_event_type": "",
       "disabled_reason": null,
       "enabled": true,
       "label": "Open relevant lane",
       "payload": {
+        "control_scope": "gate",
         "gate_ref": "workbook_mutation",
         "open_lane_only": true,
         "plain_label": "Excel mutation locked",
@@ -1209,7 +1431,8 @@
       ],
       "safe_to_render_button": true,
       "target_thread_ref": "st_annes",
-      "target_world_ref": "finance"
+      "target_world_ref": "finance",
+      "text_response_preferred": false
     },
     {
       "action_id": "guardian_gate.workbook_mutation.stage_approval_request",
@@ -1241,6 +1464,8 @@
         "worker_spawn_allowed": false
       },
       "business_action": false,
+      "control_scope": "gate",
+      "controller_event_type": "",
       "disabled_reason": null,
       "enabled": true,
       "label": "Stage approval request",
@@ -1273,6 +1498,7 @@
           "workbook_source_mutation_allowed": false,
           "worker_spawn_allowed": false
         },
+        "control_scope": "gate",
         "forbidden_options": [
           "mutate_workbook",
           "open_excel_helper",
@@ -1297,7 +1523,8 @@
       ],
       "safe_to_render_button": true,
       "target_thread_ref": "st_annes",
-      "target_world_ref": "finance"
+      "target_world_ref": "finance",
+      "text_response_preferred": false
     },
     {
       "action_id": "helm_question.capital_hilton_invoice_block.ask",
@@ -1329,6 +1556,8 @@
         "worker_spawn_allowed": false
       },
       "business_action": false,
+      "control_scope": "lane",
+      "controller_event_type": "",
       "disabled_reason": null,
       "enabled": true,
       "label": "Why did Submit Capital Hilton invoice block?",
@@ -1353,7 +1582,8 @@
       ],
       "safe_to_render_button": true,
       "target_thread_ref": "capital_hilton",
-      "target_world_ref": "finance"
+      "target_world_ref": "finance",
+      "text_response_preferred": false
     },
     {
       "action_id": "helm_question.email_authority.ask",
@@ -1385,6 +1615,8 @@
         "worker_spawn_allowed": false
       },
       "business_action": false,
+      "control_scope": "lane",
+      "controller_event_type": "",
       "disabled_reason": null,
       "enabled": true,
       "label": "Can this send email?",
@@ -1409,7 +1641,8 @@
       ],
       "safe_to_render_button": true,
       "target_thread_ref": "guardian",
-      "target_world_ref": "system"
+      "target_world_ref": "system",
+      "text_response_preferred": false
     },
     {
       "action_id": "helm_question.hardwired_vs_spawned.ask",
@@ -1441,6 +1674,8 @@
         "worker_spawn_allowed": false
       },
       "business_action": false,
+      "control_scope": "lane",
+      "controller_event_type": "",
       "disabled_reason": null,
       "enabled": true,
       "label": "What is the difference between Chief and a spawned worker?",
@@ -1465,7 +1700,8 @@
       ],
       "safe_to_render_button": true,
       "target_thread_ref": "architecture",
-      "target_world_ref": "system"
+      "target_world_ref": "system",
+      "text_response_preferred": false
     },
     {
       "action_id": "helm_question.safe_next.ask",
@@ -1497,6 +1733,8 @@
         "worker_spawn_allowed": false
       },
       "business_action": false,
+      "control_scope": "lane",
+      "controller_event_type": "",
       "disabled_reason": null,
       "enabled": true,
       "label": "What is safe next?",
@@ -1521,7 +1759,8 @@
       ],
       "safe_to_render_button": true,
       "target_thread_ref": "capital_hilton",
-      "target_world_ref": "finance"
+      "target_world_ref": "finance",
+      "text_response_preferred": false
     },
     {
       "action_id": "helm_question.st_annes_church_sound.ask",
@@ -1553,6 +1792,8 @@
         "worker_spawn_allowed": false
       },
       "business_action": false,
+      "control_scope": "lane",
+      "controller_event_type": "",
       "disabled_reason": null,
       "enabled": true,
       "label": "Mark that I'm at church running sound.",
@@ -1577,7 +1818,8 @@
       ],
       "safe_to_render_button": true,
       "target_thread_ref": "st_annes",
-      "target_world_ref": "finance"
+      "target_world_ref": "finance",
+      "text_response_preferred": false
     },
     {
       "action_id": "review_packet.review_packet_c4ec166103f9aa35.approve_review_packet_for_record",
@@ -1609,6 +1851,8 @@
         "worker_spawn_allowed": false
       },
       "business_action": false,
+      "control_scope": "lane",
+      "controller_event_type": "",
       "disabled_reason": null,
       "enabled": true,
       "label": "Approve for record",
@@ -1658,7 +1902,8 @@
       ],
       "safe_to_render_button": true,
       "target_thread_ref": "build_openclaw_backend",
-      "target_world_ref": "build"
+      "target_world_ref": "build",
+      "text_response_preferred": false
     },
     {
       "action_id": "review_packet.review_packet_c4ec166103f9aa35.mark_review_packet_informational",
@@ -1690,6 +1935,8 @@
         "worker_spawn_allowed": false
       },
       "business_action": false,
+      "control_scope": "lane",
+      "controller_event_type": "",
       "disabled_reason": null,
       "enabled": true,
       "label": "Mark informational",
@@ -1739,7 +1986,8 @@
       ],
       "safe_to_render_button": true,
       "target_thread_ref": "build_openclaw_backend",
-      "target_world_ref": "build"
+      "target_world_ref": "build",
+      "text_response_preferred": false
     },
     {
       "action_id": "review_packet.review_packet_c4ec166103f9aa35.open",
@@ -1771,6 +2019,8 @@
         "worker_spawn_allowed": false
       },
       "business_action": false,
+      "control_scope": "lane",
+      "controller_event_type": "",
       "disabled_reason": null,
       "enabled": true,
       "label": "Open review packet",
@@ -1790,7 +2040,8 @@
       ],
       "safe_to_render_button": true,
       "target_thread_ref": "build_openclaw_backend",
-      "target_world_ref": "build"
+      "target_world_ref": "build",
+      "text_response_preferred": false
     },
     {
       "action_id": "review_packet.review_packet_c4ec166103f9aa35.request_review_packet_rework",
@@ -1822,6 +2073,8 @@
         "worker_spawn_allowed": false
       },
       "business_action": false,
+      "control_scope": "lane",
+      "controller_event_type": "",
       "disabled_reason": null,
       "enabled": true,
       "label": "Request rework",
@@ -1871,13 +2124,15 @@
       ],
       "safe_to_render_button": true,
       "target_thread_ref": "build_openclaw_backend",
-      "target_world_ref": "build"
+      "target_world_ref": "build",
+      "text_response_preferred": false
     }
   ],
   "action_types": [
     "navigate",
     "stage_package_request",
     "system_question",
+    "objective_advancement",
     "inspect_proof",
     "review_decision",
     "workbook_registration",
@@ -1911,7 +2166,7 @@
     "workbook_source_mutation_allowed": false,
     "worker_spawn_allowed": false
   },
-  "generated_at": "2026-06-03T20:56:13+00:00",
+  "generated_at": "2026-06-07T02:25:07+00:00",
   "machine_proof": {
     "actions_execute_nothing": true,
     "agent_loop_started": false,
@@ -1940,6 +2195,8 @@
   },
   "payload_index": {
     "client_ref:capital_hilton": [
+      "capital_hilton.payment.advance_objective",
+      "capital_hilton.payment.ask_why",
       "capital_hilton.payment.record_proof",
       "capital_hilton.proposal.stage_followup",
       "client_invoice_workbook.register"
@@ -1978,6 +2235,9 @@
     "question_id:capital_hilton_invoice_block": [
       "helm_question.capital_hilton_invoice_block.ask"
     ],
+    "question_id:capital_hilton_payment_watch_lane": [
+      "capital_hilton.payment.ask_why"
+    ],
     "question_id:email_authority": [
       "helm_question.email_authority.ask"
     ],
@@ -1997,6 +2257,8 @@
       "review_packet.review_packet_c4ec166103f9aa35.request_review_packet_rework"
     ],
     "workflow_ref:capital_hilton_invoice_payment_watch": [
+      "capital_hilton.payment.advance_objective",
+      "capital_hilton.payment.ask_why",
       "capital_hilton.payment.record_proof"
     ],
     "workflow_ref:capital_hilton_invoice_workflow": [

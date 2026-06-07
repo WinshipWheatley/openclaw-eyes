@@ -49,6 +49,7 @@ ACTION_TYPES = (
     "navigate",
     "stage_package_request",
     "system_question",
+    "objective_advancement",
     "inspect_proof",
     "review_decision",
     "workbook_registration",
@@ -189,6 +190,9 @@ def _action_payload(
     target_thread_ref: str = "",
     payload: Mapping[str, Any] | None = None,
     proof_refs: list[str] | tuple[str, ...] | None = None,
+    controller_event_type: str = "",
+    control_scope: str = "lane",
+    text_response_preferred: bool = False,
 ) -> dict[str, Any]:
     if action_type not in ACTION_TYPES:
         raise ValueError(f"unsupported action_type: {action_type}")
@@ -202,6 +206,9 @@ def _action_payload(
         "business_action": business_action,
         "target_world_ref": target_world_ref,
         "target_thread_ref": target_thread_ref,
+        "controller_event_type": controller_event_type,
+        "control_scope": control_scope,
+        "text_response_preferred": bool(text_response_preferred),
         "payload": dict(payload or {}),
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
         "proof_refs": list(dict.fromkeys(str(ref) for ref in proof_refs or [] if str(ref))),
@@ -249,20 +256,6 @@ def _approval_by_gate(queue: Mapping[str, Any]) -> dict[str, dict[str, Any]]:
             if gate_ref:
                 approvals[gate_ref] = dict(item)
     return approvals
-
-
-def _payment_evidence_present(invoice_status: Mapping[str, Any]) -> bool:
-    if invoice_status.get("payment_evidence_provided") is True:
-        return True
-    if invoice_status.get("payment_proof_recorded") is True:
-        return True
-    if str(invoice_status.get("payment_status") or "").upper() in {
-        "PAYMENT_EVIDENCE_PROVIDED",
-        "PAYMENT_PROOF_READY",
-        "PAID_PROOF_RECEIVED",
-    }:
-        return True
-    return False
 
 
 def _check_engine_actions(sources: Mapping[str, Mapping[str, Any]]) -> list[dict[str, Any]]:
@@ -354,7 +347,6 @@ def _review_packet_actions(sources: Mapping[str, Mapping[str, Any]]) -> list[dic
 def _capital_hilton_actions(sources: Mapping[str, Mapping[str, Any]]) -> list[dict[str, Any]]:
     proposal = sources.get("capital_hilton_business_development_proposal", {})
     invoice_status = sources.get("capital_hilton_invoice_operator_run_status", {})
-    payment_ready = _payment_evidence_present(invoice_status)
     proposal_refs = [
         "generated/read_models/capital_hilton_business_development_proposal.json",
         *_proof_refs(proposal.get("proof_refs")),
@@ -364,6 +356,54 @@ def _capital_hilton_actions(sources: Mapping[str, Mapping[str, Any]]) -> list[di
         *_proof_refs(invoice_status.get("proof_refs")),
     ]
     return [
+        _action_payload(
+            action_id="capital_hilton.payment.ask_why",
+            label="Ask why",
+            action_type="system_question",
+            target_world_ref="finance",
+            target_thread_ref="capital_hilton",
+            controller_event_type="ask_why",
+            control_scope="lane",
+            text_response_preferred=True,
+            payload={
+                "question_id": "capital_hilton_payment_watch_lane",
+                "question_text": "Why am I here?",
+                "workflow_ref": "capital_hilton_invoice_payment_watch",
+                "client_ref": "capital_hilton",
+                "text_response_preferred": True,
+                "control_scope": "lane",
+                "expected_response_scenario": "finance_capital_hilton_payment_watch",
+                "source_card_id": "dynamic_card.finance.capital_hilton.payment_watch",
+            },
+            proof_refs=invoice_refs,
+        ),
+        _action_payload(
+            action_id="capital_hilton.payment.advance_objective",
+            label="Advance payment watch",
+            action_type="objective_advancement",
+            target_world_ref="finance",
+            target_thread_ref="capital_hilton",
+            controller_event_type="advance_objective",
+            control_scope="lane",
+            text_response_preferred=True,
+            payload={
+                "objective_ref": "objective:finance:capital_hilton:payment_watch",
+                "workflow_ref": "capital_hilton_invoice_payment_watch",
+                "client_ref": "capital_hilton",
+                "next_safe_controller_event": "attach_proof",
+                "requires_payment_evidence": True,
+                "ledger_mutation_allowed": False,
+                "paid_marking_allowed": False,
+                "coupa_allowed": False,
+                "browser_access_allowed": False,
+                "text_response_preferred": True,
+                "control_scope": "lane",
+                "expected_response_scenario": "finance_capital_hilton_payment_watch",
+                "source_card_id": "dynamic_card.finance.capital_hilton.payment_watch",
+                "authority_boundary": dict(AUTHORITY_BOUNDARY),
+            },
+            proof_refs=invoice_refs,
+        ),
         _action_payload(
             action_id="capital_hilton.proposal.stage_followup",
             label="Stage proposal follow-up",
@@ -387,21 +427,28 @@ def _capital_hilton_actions(sources: Mapping[str, Mapping[str, Any]]) -> list[di
         ),
         _action_payload(
             action_id="capital_hilton.payment.record_proof",
-            label="Record payment proof",
+            label="Attach payment evidence",
             action_type="record_payment_proof_intake",
-            enabled=payment_ready,
-            disabled_reason=None if payment_ready else "Payment evidence has not been provided yet.",
+            enabled=True,
             target_world_ref="finance",
             target_thread_ref="capital_hilton",
+            controller_event_type="attach_proof",
+            control_scope="lane",
+            text_response_preferred=True,
             payload={
                 "request_type": "CAPITAL_HILTON_PAYMENT_PROOF_INTAKE_REQUEST_V0",
                 "source_surface": "mission_control",
                 "client_ref": "capital_hilton",
                 "workflow_ref": "capital_hilton_invoice_payment_watch",
                 "requires_payment_evidence": True,
+                "artifact_required": True,
                 "ledger_mutation_allowed": False,
                 "ledger_posting_allowed": False,
                 "paid_marking_allowed": False,
+                "text_response_preferred": True,
+                "control_scope": "lane",
+                "expected_response_scenario": "finance_capital_hilton_payment_watch",
+                "source_card_id": "dynamic_card.finance.capital_hilton.payment_watch",
                 "authority_boundary": dict(AUTHORITY_BOUNDARY),
             },
             proof_refs=invoice_refs,
@@ -466,10 +513,11 @@ def _guardian_actions(sources: Mapping[str, Mapping[str, Any]]) -> list[dict[str
         gate_payload = {
             "gate_ref": gate_ref,
             "plain_label": label,
-            "why_it_matters": str(item.get("why_it_matters") or ""),
-            "status": str(item.get("status") or ""),
-            "safe_actions_only": True,
-        }
+                "why_it_matters": str(item.get("why_it_matters") or ""),
+                "status": str(item.get("status") or ""),
+                "safe_actions_only": True,
+                "control_scope": "gate",
+            }
         actions.append(
             _action_payload(
                 action_id=f"guardian_gate.{gate_ref}.explain",
@@ -477,6 +525,9 @@ def _guardian_actions(sources: Mapping[str, Mapping[str, Any]]) -> list[dict[str
                 action_type="explain_gate",
                 target_world_ref="system",
                 target_thread_ref="guardian",
+                controller_event_type="ask_why",
+                control_scope="gate",
+                text_response_preferred=True,
                 payload=gate_payload,
                 proof_refs=proof_refs,
             )
@@ -488,6 +539,7 @@ def _guardian_actions(sources: Mapping[str, Mapping[str, Any]]) -> list[dict[str
                 action_type="navigate",
                 target_world_ref=world_ref,
                 target_thread_ref=thread_ref,
+                control_scope="gate",
                 payload={**gate_payload, "open_lane_only": True},
                 proof_refs=proof_refs,
             )
@@ -501,6 +553,7 @@ def _guardian_actions(sources: Mapping[str, Mapping[str, Any]]) -> list[dict[str
                     action_type="stage_package_request",
                     target_world_ref=str(approval.get("target_world_ref") or world_ref),
                     target_thread_ref=str(approval.get("target_thread_ref") or thread_ref),
+                    control_scope="gate",
                     payload={
                         **gate_payload,
                         "approval_request_id": str(approval.get("approval_request_id") or ""),

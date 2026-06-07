@@ -134,19 +134,44 @@ def test_business_development_followup_stages_draft_package_only_without_send():
     assert action["authority_boundary"]["email_send_allowed"] is False
 
 
-def test_payment_proof_action_is_future_gated_and_does_not_mutate_ledger():
+def test_payment_proof_attach_action_is_enabled_and_does_not_mutate_ledger():
     payload = _payload()
     action = _find(payload, action_id="capital_hilton.payment.record_proof")
     fallback = _find(payload, action_id="capital_hilton.payment.open_finance")
 
     assert action["action_type"] == "record_payment_proof_intake"
-    assert action["enabled"] is False
-    assert "Payment evidence" in action["disabled_reason"]
+    assert action["enabled"] is True
+    assert action["label"] == "Attach payment evidence"
+    assert action["controller_event_type"] == "attach_proof"
+    assert action["control_scope"] == "lane"
+    assert action["text_response_preferred"] is True
+    assert action["payload"]["artifact_required"] is True
     assert action["payload"]["ledger_mutation_allowed"] is False
     assert action["payload"]["ledger_posting_allowed"] is False
     assert action["authority_boundary"]["ledger_posting_allowed"] is False
     assert fallback["label"] == "Open Finance / Capital Hilton"
     assert fallback["action_type"] == "navigate"
+
+
+def test_capital_hilton_payment_watch_has_lane_level_text_controls():
+    payload = _payload()
+    ask = _find(payload, action_id="capital_hilton.payment.ask_why")
+    advance = _find(payload, action_id="capital_hilton.payment.advance_objective")
+    attach = _find(payload, action_id="capital_hilton.payment.record_proof")
+
+    assert ask["action_type"] == "system_question"
+    assert ask["controller_event_type"] == "ask_why"
+    assert advance["action_type"] == "objective_advancement"
+    assert advance["controller_event_type"] == "advance_objective"
+    assert advance["payload"]["next_safe_controller_event"] == "attach_proof"
+    assert attach["controller_event_type"] == "attach_proof"
+    for action in (ask, advance, attach):
+        assert action["target_world_ref"] == "finance"
+        assert action["target_thread_ref"] == "capital_hilton"
+        assert action["control_scope"] == "lane"
+        assert action["text_response_preferred"] is True
+        assert action["business_action"] is False
+        assert all(value is False for value in action["authority_boundary"].values())
 
 
 def test_workbook_registration_payload_and_explicit_request_processor_route(tmp_path, capsys):

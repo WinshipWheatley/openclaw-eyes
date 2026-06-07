@@ -39,9 +39,11 @@
       "navigate",
       "stage_package_request",
       "system_question",
+      "objective_advancement",
       "inspect_proof",
       "review_decision",
       "workbook_registration",
+      "record_payment_proof_intake",
       "explain_gate",
       "none"
     ],
@@ -227,10 +229,10 @@
       "dynamic_card.memory.payment_evidence_candidate",
       "dynamic_card.artifact.evidence_intake.proof_only"
     ],
-    "packet_id": "dynamic_card_packet:1b170f51d129",
+    "packet_id": "dynamic_card_packet:d8ac342b6ff9",
     "visible_card_count": 8
   },
-  "generated_at": "2026-06-05T04:09:44+00:00",
+  "generated_at": "2026-06-07T02:25:13+00:00",
   "latest_packet_ref": "generated/read_models/dynamic_card_packet_latest.json",
   "machine_proof": {
     "action_slots_present": true,
@@ -430,6 +432,8 @@
     "Every visible card has trust, freshness, and lifecycle fields.",
     "Every card must have card_family.",
     "Every card must have fixed action_slots: primary, secondary, detail, dismiss, and danger_disabled.",
+    "Controller controls include control_scope so lane controls and gate details stay separate.",
+    "Lane-level text controls may set text_response_preferred=true.",
     "Proof is metering and detail drawer metadata, not primary UI.",
     "Every card must have trust_state.",
     "Every enabled action must reference an existing operator_action_payload.",

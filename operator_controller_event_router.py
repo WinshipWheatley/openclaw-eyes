@@ -158,6 +158,7 @@ UNSAFE_TRUE_KEYS = set(operator_authority.UNSAFE_TRUE_KEYS) | set(evidence_intak
 
 OBJECTIVE_ADVANCEMENT_EVENT_TYPES = {"advance_objective", "continue", "stage_plan"}
 OBJECTIVE_ADVANCEMENT_DO_IT_ACTION_IDS = {
+    "capital_hilton.payment.advance_objective",
     "capital_hilton.payment.open_finance",
     "capital_hilton.proposal.stage_followup",
 }

@@ -184,7 +184,18 @@ def test_required_examples_are_populated(tmp_path):
 
 def test_capital_hilton_payment_watch_remains_clean(tmp_path):
     card = _card_by_family(_rail_payloads(tmp_path)["workflow_package_request_consumer"], "payment_watch_card")
+    enabled_events = {
+        slot["controller_event_type"]: slot
+        for slot in card["action_slots"].values()
+        if slot["enabled"] is True
+    }
 
+    assert {"ask_why", "advance_objective", "attach_proof"} <= set(enabled_events)
+    assert enabled_events["ask_why"]["control_scope"] == "lane"
+    assert enabled_events["advance_objective"]["control_scope"] == "lane"
+    assert enabled_events["attach_proof"]["control_scope"] == "lane"
+    assert enabled_events["ask_why"]["text_response_preferred"] is True
+    assert enabled_events["advance_objective"]["text_response_preferred"] is True
     assert card["authority_boundary"]["coupa_allowed"] is False
     assert card["authority_boundary"]["ledger_mutation_allowed"] is False
     assert card["action_slots"]["danger_disabled"]["enabled"] is False

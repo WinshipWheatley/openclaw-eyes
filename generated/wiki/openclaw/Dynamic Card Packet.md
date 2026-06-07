@@ -34,9 +34,9 @@ The Dynamic Card Packet is the backend-generated operator card surface for Missi
 - Visible by default: `true`
 
 Action slots:
-- `primary`: `open_lane` / `Open Finance / Capital Hilton` / enabled=`true`
-- `secondary`: `show_details` / `No secondary action` / enabled=`false`
-- `detail`: `show_details` / `Show details` / enabled=`false`
+- `primary`: `ask_why` / `Ask why` / enabled=`true`
+- `secondary`: `advance_objective` / `Advance payment watch` / enabled=`true`
+- `detail`: `attach_proof` / `Attach payment evidence` / enabled=`true`
 - `dismiss`: `show_details` / `Dismiss` / enabled=`false`
 - `danger_disabled`: `do_it` / `Submit in Coupa` / enabled=`false`
 
