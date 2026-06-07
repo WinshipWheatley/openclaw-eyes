@@ -1,0 +1,793 @@
+{
+  "approval_boundary_matched": true,
+  "approval_usage": {
+    "approval_ref": "generated/read_models/local_lm_proof_response_retry_operator_approval.json",
+    "marked_used": true,
+    "unused_before_run": true,
+    "used_receipt_ref": "approval_used_receipt"
+  },
+  "authority_boundary": {
+    "authority_grant_allowed": false,
+    "authority_granted": false,
+    "business_action_authority": false,
+    "future_repeated_invocations_allowed": false,
+    "protected_actions_allowed": false,
+    "tool_authority": false
+  },
+  "candidate_response": {},
+  "generated_at": "2026-06-07T21:50:26+00:00",
+  "implementation_boundary": {
+    "browser_opened": false,
+    "business_action_performed": false,
+    "coupa_opened": false,
+    "deterministic_verifier_ran": true,
+    "email_send_performed": false,
+    "external_provider_used": false,
+    "future_repeated_invocations_allowed": false,
+    "git_merge_performed": false,
+    "git_push_performed": false,
+    "gmail_opened": false,
+    "ledger_mutation_performed": false,
+    "local_ollama_invocation_attempted": true,
+    "memory_promotion_performed": false,
+    "operator_device_session_secret_sent": false,
+    "paid_marking_performed": false,
+    "pdf_export_performed": false,
+    "prompt_sent_to_local_model": true,
+    "raw_financial_proof_sent": false,
+    "redacted_proof_bundle_sent_to_local_model": true,
+    "repeated_invocation_performed": false,
+    "schema_adapter_ran": true,
+    "submit_performed": false,
+    "tool_authority": false,
+    "tool_execution_performed": false,
+    "workbook_mutation_performed": false,
+    "worker_spawn_performed": false
+  },
+  "invocation_attempt": {
+    "attempt_number": 1,
+    "attempted": true,
+    "model_name": "qwen3:8b-q4_K_M",
+    "returncode": 0,
+    "runtime_ref": "ollama",
+    "stderr_hash": "sha256:57dd2b2112655bb108847a4c78b3daf4e71eab086820e4f795fc7c0512584a9c",
+    "stderr_length": 11085,
+    "stdout_hash": "sha256:b003609fdbdaf548e0078b1d3893be24d0f2b6add86b17e48347f8860debbcf6",
+    "stdout_length": 2225,
+    "timed_out": false
+  },
+  "machine_proof": {
+    "approval_marked_used": true,
+    "approval_required": true,
+    "business_action_flags_false": true,
+    "external_provider_unused": true,
+    "fallback_path_available": true,
+    "forbidden_fields_absent": true,
+    "one_invocation_attempt_only": true,
+    "proof_bundle_redacted_and_freshness_gated": true,
+    "runtime_model_match_approval": true,
+    "schema_adapter_before_verifier": true,
+    "sqlite_row_count_matches_receipts": true,
+    "tool_authority_false": true,
+    "unsafe_true_grants_absent": true,
+    "verifier_gated_publication": true
+  },
+  "pipeline": {
+    "adapter_errors": [
+      "json_parse_error:Expecting value"
+    ],
+    "adapter_parse_status": "PARSE_ERROR",
+    "schema_adapter_runs_before_verifier": true,
+    "steps": [
+      "approval_check",
+      "redacted_freshness_bundle",
+      "json_only_prompt",
+      "local_ollama_invocation",
+      "schema_adapter",
+      "deterministic_verifier",
+      "publish_or_fallback",
+      "approval_used_receipt"
+    ],
+    "verifier_failure_reasons": [],
+    "verifier_ready": false
+  },
+  "preconditions": [
+    {
+      "accepted_statuses": [
+        "LOCAL_LM_PROOF_RESPONSE_RETRY_OPERATOR_APPROVAL_READY"
+      ],
+      "observed_status": "LOCAL_LM_PROOF_RESPONSE_RETRY_OPERATOR_APPROVAL_READY",
+      "precondition_ref": "local_lm_proof_response_retry_operator_approval",
+      "ready": true,
+      "source_ref": "generated/read_models/local_lm_proof_response_retry_operator_approval.json"
+    },
+    {
+      "accepted_statuses": [
+        "LOCAL_LM_PROOF_RESPONSE_RETRY_APPROVAL_PACKET_READY"
+      ],
+      "observed_status": "LOCAL_LM_PROOF_RESPONSE_RETRY_APPROVAL_PACKET_READY",
+      "precondition_ref": "local_lm_proof_response_retry_approval_packet",
+      "ready": true,
+      "source_ref": "generated/read_models/local_lm_proof_response_retry_approval_packet.json"
+    },
+    {
+      "accepted_statuses": [
+        "LOCAL_LM_PROOF_RESPONSE_PILOT_POSTMORTEM_READY"
+      ],
+      "observed_status": "LOCAL_LM_PROOF_RESPONSE_PILOT_POSTMORTEM_READY",
+      "precondition_ref": "local_lm_proof_response_pilot_postmortem",
+      "ready": true,
+      "source_ref": "generated/read_models/local_lm_proof_response_pilot_postmortem.json"
+    },
+    {
+      "accepted_statuses": [
+        "PROOF_TO_RESPONSE_SCHEMA_ADAPTER_READY"
+      ],
+      "observed_status": "PROOF_TO_RESPONSE_SCHEMA_ADAPTER_READY",
+      "precondition_ref": "proof_to_response_schema_adapter",
+      "ready": true,
+      "source_ref": "generated/read_models/proof_to_response_schema_adapter_status.json"
+    },
+    {
+      "accepted_statuses": [
+        "LOCAL_MODEL_SELECTION_FOR_PROOF_RESPONSE_READY"
+      ],
+      "observed_status": "LOCAL_MODEL_SELECTION_FOR_PROOF_RESPONSE_READY",
+      "precondition_ref": "local_model_selection_for_proof_response",
+      "ready": true,
+      "source_ref": "generated/read_models/local_model_selection_for_proof_response.json"
+    },
+    {
+      "accepted_statuses": [
+        "PROOF_BUNDLE_FRESHNESS_TRACE_INTEGRATION_READY"
+      ],
+      "observed_status": "PROOF_BUNDLE_FRESHNESS_TRACE_INTEGRATION_READY",
+      "precondition_ref": "proof_bundle_freshness_trace_integration",
+      "ready": true,
+      "source_ref": "generated/read_models/proof_bundle_freshness_trace_status.json"
+    },
+    {
+      "accepted_statuses": [
+        "PROOF_BUNDLE_BUILDER_REDACTION_INTEGRATION_READY"
+      ],
+      "observed_status": "PROOF_BUNDLE_BUILDER_REDACTION_INTEGRATION_READY",
+      "precondition_ref": "proof_bundle_builder_redaction_integration",
+      "ready": true,
+      "source_ref": "generated/read_models/proof_bundle_builder_redaction_status.json"
+    },
+    {
+      "accepted_statuses": [
+        "PROOF_TO_RESPONSE_RUNTIME_READY"
+      ],
+      "observed_status": "PROOF_TO_RESPONSE_RUNTIME_READY",
+      "precondition_ref": "proof_to_response_runtime",
+      "ready": true,
+      "source_ref": "generated/read_models/proof_to_response_runtime_status.json"
+    },
+    {
+      "accepted_statuses": [
+        "CONTEXT_FRESHNESS_DECISION_TRACE_GATE_READY"
+      ],
+      "observed_status": "CONTEXT_FRESHNESS_DECISION_TRACE_GATE_READY",
+      "precondition_ref": "context_freshness_decision_trace_gate",
+      "ready": true,
+      "source_ref": "generated/read_models/context_freshness_decision_trace_gate.json"
+    },
+    {
+      "accepted_statuses": [
+        "LOCAL_LM_PROOF_RESPONSE_INVOCATION_BOUNDARY_PACKET_READY"
+      ],
+      "observed_status": "LOCAL_LM_PROOF_RESPONSE_INVOCATION_BOUNDARY_PACKET_READY",
+      "precondition_ref": "local_lm_proof_response_invocation_boundary_packet",
+      "ready": true,
+      "source_ref": "generated/read_models/local_lm_proof_response_invocation_boundary_packet.json"
+    },
+    {
+      "accepted_statuses": [
+        "PROOF_TO_RESPONSE_SCOPED_RESPONSES_READY"
+      ],
+      "observed_status": "PROOF_TO_RESPONSE_SCOPED_RESPONSES_READY",
+      "precondition_ref": "proof_to_response_scoped_responses",
+      "ready": true,
+      "source_ref": "generated/read_models/proof_to_response_latest.json"
+    }
+  ],
+  "prompt_contract": {
+    "allowed_control_labels": [
+      "Attach payment evidence"
+    ],
+    "allowed_fact_ids": [
+      "payment_evidence_missing",
+      "coupa_processing",
+      "ledger_untouched"
+    ],
+    "control_naming_normalized_to_verifier_label": true,
+    "prompt_hash": "sha256:b760c546c440a92aeff2a799336fe534cdd24b302a4eaea70837ebf65666695f",
+    "prompt_mode": "json_only",
+    "schema_adapter_required": true,
+    "valid_example_hash": "sha256:a61d8ccea859e2ade2a3d195666279e60216b71be7ce18e526c1a6ef95b0997e",
+    "valid_example_included": true
+  },
+  "proof_to_response_latest": {
+    "authority_boundary": {
+      "protected_actions_allowed": false
+    },
+    "candidate_source": "local_ollama_one_time_retry_schema_adapter",
+    "details_collapsed": true,
+    "expires_or_superseded_by": "",
+    "generated_at": "2026-06-07T21:50:26+00:00",
+    "implementation_boundary": {
+      "browser_opened": false,
+      "business_action_performed": false,
+      "coupa_opened": false,
+      "coupa_submit_performed": false,
+      "email_send_performed": false,
+      "external_llm_invoked": false,
+      "external_provider_used": false,
+      "future_repeated_invocations_allowed": false,
+      "git_merge_performed": false,
+      "git_push_performed": false,
+      "gmail_opened": false,
+      "incoming_authority_granted_accepted": false,
+      "ledger_mutation_performed": false,
+      "local_model_runtime_connected": false,
+      "memory_promotion_performed": false,
+      "merge_performed": false,
+      "operator_device_session_secret_sent": false,
+      "paid_marking_performed": false,
+      "pdf_export_performed": false,
+      "portal_submit_performed": false,
+      "raw_financial_proof_sent": false,
+      "repeated_invocation_performed": false,
+      "submit_performed": false,
+      "tool_authority": false,
+      "tool_execution_performed": false,
+      "workbook_mutation_performed": false,
+      "worker_spawn_performed": false
+    },
+    "latest_receipt_ref": "local_lm_retry:fallback_receipt",
+    "latest_response": {
+      "authority_boundary": {
+        "protected_actions_allowed": false
+      },
+      "body": "I need stronger proof before I can publish a response.",
+      "business_action_performed": false,
+      "can_do_now": [
+        "Attach payment evidence",
+        "Open Finance / Capital Hilton"
+      ],
+      "candidate_source": "local_ollama_one_time_retry_schema_adapter",
+      "cannot_do_yet": [
+        "paid marking",
+        "ledger mutation",
+        "Coupa/browser action"
+      ],
+      "controls": [],
+      "coupa_submit_performed": false,
+      "details_collapsed": true,
+      "email_send_performed": false,
+      "external_llm_invoked": false,
+      "fallback_reason": "json_parse_error:Expecting value",
+      "generated_at": "2026-06-07T21:50:26+00:00",
+      "git_push_performed": false,
+      "headline": "Needs verification",
+      "incoming_authority_granted_accepted": false,
+      "ledger_mutation_performed": false,
+      "local_model_runtime_connected": false,
+      "merge_performed": false,
+      "missing_input": [
+        "payment evidence"
+      ],
+      "next_step": "Show details",
+      "paid_marking_performed": false,
+      "pdf_export_performed": false,
+      "portal_submit_performed": false,
+      "proof_meters": [
+        {
+          "human_label": "Truth: trusted/current"
+        },
+        {
+          "human_label": "Freshness: waiting external"
+        },
+        {
+          "human_label": "Risk: watch"
+        },
+        {
+          "human_label": "Freshness: current"
+        },
+        {
+          "human_label": "Confidence: receipt_backed"
+        }
+      ],
+      "proof_refs": [
+        "Truth: trusted/current",
+        "Freshness: waiting external",
+        "Risk: watch",
+        "Freshness: current",
+        "Confidence: receipt_backed"
+      ],
+      "receipt_refs": [
+        "receipt:capital_hilton_payment_watch",
+        "receipt:capital_hilton_payment_watch_current"
+      ],
+      "response_content_hash": "sha256:76b40810ea5f9457678c8eae7b24c8d672232128bb921fcf8a758e84c7c21834",
+      "response_id": "proof_response:fallback:finance_capital_hilton_payment_watch",
+      "schema_version": "proof_to_response_runtime_v0",
+      "source_context": {
+        "card_id": "redacted_proof_bundle",
+        "gate_refs": [
+          "No paid marking without payment evidence",
+          "Current receipt says Coupa is processing, payment evidence is missing, paid marking is not proven, and ledger remains untouched."
+        ],
+        "objective_ref": "capital_hilton_payment_watch",
+        "proof_refs": [
+          "Truth: trusted/current",
+          "Freshness: waiting external",
+          "Risk: watch",
+          "Freshness: current",
+          "Confidence: receipt_backed"
+        ],
+        "receipt_refs": [
+          "receipt:capital_hilton_payment_watch",
+          "receipt:capital_hilton_payment_watch_current"
+        ],
+        "thread_ref": "capital_hilton",
+        "world_ref": "finance"
+      },
+      "speaker_ref": "chief",
+      "verification_status": "fallback",
+      "voice_mode": "diagnostic",
+      "workbook_mutation_performed": false,
+      "worker_spawn_performed": false
+    },
+    "machine_proof": {
+      "browser_opened": false,
+      "business_action_performed": false,
+      "candidate_source": "local_ollama_one_time_retry_schema_adapter",
+      "coupa_opened": false,
+      "email_send_performed": false,
+      "external_provider_used": false,
+      "future_repeated_invocations_allowed": false,
+      "git_merge_performed": false,
+      "git_push_performed": false,
+      "gmail_opened": false,
+      "latest_context_scoped": true,
+      "latest_response_present": true,
+      "ledger_mutation_performed": false,
+      "memory_promotion_performed": false,
+      "operator_device_session_secret_sent": false,
+      "paid_marking_performed": false,
+      "pdf_export_performed": false,
+      "raw_financial_proof_sent": false,
+      "repeated_invocation_performed": false,
+      "stale_if_context_mismatch": true,
+      "submit_performed": false,
+      "tool_authority": false,
+      "tool_execution_performed": false,
+      "unsafe_true_grants": [],
+      "unsafe_true_grants_absent": true,
+      "workbook_mutation_performed": false,
+      "worker_spawn_performed": false
+    },
+    "proof_to_response_status": "fallback",
+    "proof_to_response_unavailable_reason": "",
+    "read_model_id": "proof_to_response_latest",
+    "schema_version": "proof_to_response_runtime_v0",
+    "selected_action_id": "local_lm_one_time_retry_schema_adapter",
+    "selected_card_id": "redacted_proof_bundle",
+    "source_request_id": "local_lm_one_time_retry_finance_capital_hilton_payment_watch:2026-06-07T21:50:26+00:00",
+    "source_response_path": "generated/read_models/local_lm_proof_response_one_time_retry.json",
+    "source_status_ref": "generated/read_models/local_lm_proof_response_one_time_retry.json",
+    "stale_if_context_mismatch": true,
+    "status": "PROOF_TO_RESPONSE_RUNTIME_READY",
+    "thread_ref": "capital_hilton",
+    "world_ref": "finance"
+  },
+  "publication_decision": "safe_fallback_published",
+  "published_response": {
+    "authority_boundary": {
+      "protected_actions_allowed": false
+    },
+    "body": "I need stronger proof before I can publish a response.",
+    "business_action_performed": false,
+    "can_do_now": [
+      "Attach payment evidence",
+      "Open Finance / Capital Hilton"
+    ],
+    "candidate_source": "local_ollama_one_time_retry_schema_adapter",
+    "cannot_do_yet": [
+      "paid marking",
+      "ledger mutation",
+      "Coupa/browser action"
+    ],
+    "controls": [],
+    "coupa_submit_performed": false,
+    "details_collapsed": true,
+    "email_send_performed": false,
+    "external_llm_invoked": false,
+    "fallback_reason": "json_parse_error:Expecting value",
+    "generated_at": "2026-06-07T21:50:26+00:00",
+    "git_push_performed": false,
+    "headline": "Needs verification",
+    "incoming_authority_granted_accepted": false,
+    "ledger_mutation_performed": false,
+    "local_model_runtime_connected": false,
+    "merge_performed": false,
+    "missing_input": [
+      "payment evidence"
+    ],
+    "next_step": "Show details",
+    "paid_marking_performed": false,
+    "pdf_export_performed": false,
+    "portal_submit_performed": false,
+    "proof_meters": [
+      {
+        "human_label": "Truth: trusted/current"
+      },
+      {
+        "human_label": "Freshness: waiting external"
+      },
+      {
+        "human_label": "Risk: watch"
+      },
+      {
+        "human_label": "Freshness: current"
+      },
+      {
+        "human_label": "Confidence: receipt_backed"
+      }
+    ],
+    "proof_refs": [
+      "Truth: trusted/current",
+      "Freshness: waiting external",
+      "Risk: watch",
+      "Freshness: current",
+      "Confidence: receipt_backed"
+    ],
+    "receipt_refs": [
+      "receipt:capital_hilton_payment_watch",
+      "receipt:capital_hilton_payment_watch_current"
+    ],
+    "response_content_hash": "sha256:76b40810ea5f9457678c8eae7b24c8d672232128bb921fcf8a758e84c7c21834",
+    "response_id": "proof_response:fallback:finance_capital_hilton_payment_watch",
+    "schema_version": "proof_to_response_runtime_v0",
+    "source_context": {
+      "card_id": "redacted_proof_bundle",
+      "gate_refs": [
+        "No paid marking without payment evidence",
+        "Current receipt says Coupa is processing, payment evidence is missing, paid marking is not proven, and ledger remains untouched."
+      ],
+      "objective_ref": "capital_hilton_payment_watch",
+      "proof_refs": [
+        "Truth: trusted/current",
+        "Freshness: waiting external",
+        "Risk: watch",
+        "Freshness: current",
+        "Confidence: receipt_backed"
+      ],
+      "receipt_refs": [
+        "receipt:capital_hilton_payment_watch",
+        "receipt:capital_hilton_payment_watch_current"
+      ],
+      "thread_ref": "capital_hilton",
+      "world_ref": "finance"
+    },
+    "speaker_ref": "chief",
+    "verification_status": "fallback",
+    "voice_mode": "diagnostic",
+    "workbook_mutation_performed": false,
+    "worker_spawn_performed": false
+  },
+  "read_model_id": "local_lm_proof_response_one_time_retry",
+  "receipts": [
+    {
+      "created_at": "2026-06-07T21:50:26+00:00",
+      "payload": {},
+      "payload_hash": "",
+      "proof_summary": "Operator approved one future local Qwen retry using the JSON-only schema adapter.",
+      "receipt_id": "local_lm_retry:operator_approval_receipt",
+      "receipt_ref": "operator_approval_receipt",
+      "receipt_status": "present",
+      "source_ref": "generated/read_models/local_lm_proof_response_retry_operator_approval.json"
+    },
+    {
+      "created_at": "2026-06-07T21:50:26+00:00",
+      "payload": {},
+      "payload_hash": "",
+      "proof_summary": "Invocation boundary limited the retry to local Ollama qwen3:8b-q4_K_M.",
+      "receipt_id": "local_lm_retry:model_invocation_boundary_receipt",
+      "receipt_ref": "model_invocation_boundary_receipt",
+      "receipt_status": "present",
+      "source_ref": "generated/read_models/local_lm_proof_response_invocation_boundary_packet.json"
+    },
+    {
+      "created_at": "2026-06-07T21:50:26+00:00",
+      "payload": {
+        "confidence_class": "receipt_backed",
+        "freshness_state": "current",
+        "lm_input_hash": "sha256:dfe2a2843327d269959e64ef14a812ab51a860fbeb8837231828720ca0c41e3b",
+        "proof_bundle_id": "redacted_proof_bundle:finance_capital_hilton_payment_watch",
+        "trusted_current": true
+      },
+      "payload_hash": "sha256:954fbe8d6e1cc632664a18971b1cbd4312db1c2e0d6de26d0ddcebd9de45faf9",
+      "proof_summary": "Redacted freshness-gated proof bundle was built and validated before invocation.",
+      "receipt_id": "local_lm_retry:redacted_freshness_gated_proof_bundle_receipt",
+      "receipt_ref": "redacted_freshness_gated_proof_bundle_receipt",
+      "receipt_status": "present",
+      "source_ref": "generated/read_models/proof_bundle_freshness_trace_status.json"
+    },
+    {
+      "created_at": "2026-06-07T21:50:26+00:00",
+      "payload": {
+        "prompt_hash": "sha256:b760c546c440a92aeff2a799336fe534cdd24b302a4eaea70837ebf65666695f",
+        "prompt_mode": "json_only"
+      },
+      "payload_hash": "sha256:91a8492d58f67c83f7e1d596c58339194c62837a7903007a6de2185b7cf763ba",
+      "proof_summary": "Prompt required JSON-only output and included the strict schema.",
+      "receipt_id": "local_lm_retry:json_only_prompt_receipt",
+      "receipt_ref": "json_only_prompt_receipt",
+      "receipt_status": "present",
+      "source_ref": ""
+    },
+    {
+      "created_at": "2026-06-07T21:50:26+00:00",
+      "payload": {
+        "valid_example_hash": "sha256:a61d8ccea859e2ade2a3d195666279e60216b71be7ce18e526c1a6ef95b0997e"
+      },
+      "payload_hash": "sha256:5d2a639aa8595cdecb4b15d159f6a9cfb8a81dee289cb35edef6c18dfe7c68ce",
+      "proof_summary": "Prompt included one verifier-aligned valid example.",
+      "receipt_id": "local_lm_retry:valid_example_included_receipt",
+      "receipt_ref": "valid_example_included_receipt",
+      "receipt_status": "present",
+      "source_ref": ""
+    },
+    {
+      "created_at": "2026-06-07T21:50:26+00:00",
+      "payload": {
+        "external_provider_used": false
+      },
+      "payload_hash": "sha256:7d736b16d31c034f874469c2a1574bf7a2ab4fdd1bc4d02c2033486bc76585e5",
+      "proof_summary": "No external provider path was used.",
+      "receipt_id": "local_lm_retry:no_external_provider_receipt",
+      "receipt_ref": "no_external_provider_receipt",
+      "receipt_status": "present",
+      "source_ref": ""
+    },
+    {
+      "created_at": "2026-06-07T21:50:26+00:00",
+      "payload": {
+        "tool_authority": false,
+        "tool_execution_performed": false
+      },
+      "payload_hash": "sha256:147c9d149b9490fb9ef0f8a88dc51d43554415dbe09721224fd10eb2cd5d5777",
+      "proof_summary": "The model had no tool authority.",
+      "receipt_id": "local_lm_retry:no_tool_authority_receipt",
+      "receipt_ref": "no_tool_authority_receipt",
+      "receipt_status": "present",
+      "source_ref": ""
+    },
+    {
+      "created_at": "2026-06-07T21:50:26+00:00",
+      "payload": {
+        "attempted": true,
+        "model_name": "qwen3:8b-q4_K_M",
+        "returncode": 0,
+        "runtime_ref": "ollama",
+        "timed_out": false
+      },
+      "payload_hash": "sha256:aa0ee1ae8ef1cb2dfbc9e9915a2d7065efc600981b217872d058c5b0e62d6718",
+      "proof_summary": "Exactly one local Ollama retry invocation attempt was recorded.",
+      "receipt_id": "local_lm_retry:model_invocation_attempt_receipt",
+      "receipt_ref": "model_invocation_attempt_receipt",
+      "receipt_status": "present",
+      "source_ref": ""
+    },
+    {
+      "created_at": "2026-06-07T21:50:26+00:00",
+      "payload": {
+        "adapter_errors": [
+          "json_parse_error:Expecting value"
+        ],
+        "parse_status": "PARSE_ERROR",
+        "verifier_ready": false
+      },
+      "payload_hash": "sha256:d713f8167a0b583f40868e7ef829c713ea7802719a06871d8a578b39f3c31870",
+      "proof_summary": "Schema adapter parse status: PARSE_ERROR.",
+      "receipt_id": "local_lm_retry:schema_adapter_receipt",
+      "receipt_ref": "schema_adapter_receipt",
+      "receipt_status": "present",
+      "source_ref": "generated/read_models/proof_to_response_schema_adapter_status.json"
+    },
+    {
+      "created_at": "2026-06-07T21:50:26+00:00",
+      "payload": {
+        "publishable": false,
+        "verification_errors": [
+          "json_parse_error:Expecting value"
+        ],
+        "verifier_id": "proof_to_response_schema_adapter_pre_verifier_block"
+      },
+      "payload_hash": "sha256:9bc6411b31d11661db4e5fc6149269bb3c8a54415b953532a20263f33ab87a9a",
+      "proof_summary": "Deterministic verifier result: fail.",
+      "receipt_id": "local_lm_retry:verifier_pass_fail_receipt",
+      "receipt_ref": "verifier_pass_fail_receipt",
+      "receipt_status": "present",
+      "source_ref": ""
+    },
+    {
+      "created_at": "2026-06-07T21:50:26+00:00",
+      "payload": {
+        "approval_used": true,
+        "future_repeated_invocations_allowed": false
+      },
+      "payload_hash": "sha256:8c21ae81b5897a10e317cb189a7a8b8a96b9aac22f194f38c6de6cd6fb538f86",
+      "proof_summary": "The one-time retry approval was consumed by this run.",
+      "receipt_id": "local_lm_retry:approval_used_receipt",
+      "receipt_ref": "approval_used_receipt",
+      "receipt_status": "present",
+      "source_ref": "generated/read_models/local_lm_proof_response_retry_operator_approval.json"
+    },
+    {
+      "created_at": "2026-06-07T21:50:26+00:00",
+      "payload": {
+        "fallback_reason": "json_parse_error:Expecting value",
+        "response_content_hash": "sha256:76b40810ea5f9457678c8eae7b24c8d672232128bb921fcf8a758e84c7c21834"
+      },
+      "payload_hash": "sha256:b2ea7ed8a68c9f0bfea2a9f38c0e3133b4b5f6fe9bfed5a9286d957449d274f8",
+      "proof_summary": "Adapter or verifier blocked the draft; safe fallback was published.",
+      "receipt_id": "local_lm_retry:fallback_receipt",
+      "receipt_ref": "fallback_receipt",
+      "receipt_status": "present",
+      "source_ref": ""
+    }
+  ],
+  "redacted_proof_bundle_summary": {
+    "allowed_for_lm_bundle": true,
+    "confidence_class": "receipt_backed",
+    "confidence_score": 0.95,
+    "decision_trace_summary": "Current receipt says Coupa is processing, payment evidence is missing, paid marking is not proven, and ledger remains untouched.",
+    "forbidden_fields_absent": true,
+    "freshness_state": "current",
+    "lm_input_hash": "sha256:dfe2a2843327d269959e64ef14a812ab51a860fbeb8837231828720ca0c41e3b",
+    "proof_bundle_id": "redacted_proof_bundle:finance_capital_hilton_payment_watch",
+    "redaction_validation_errors": [],
+    "trusted_current": true
+  },
+  "retry_scope": {
+    "attempt_count": 1,
+    "attempt_limit": 1,
+    "fallback": "mandatory_if_adapter_or_verifier_fails",
+    "input_scope": "redacted_freshness_gated_proof_bundle_only",
+    "lane": "finance/capital_hilton",
+    "model_name": "qwen3:8b-q4_K_M",
+    "model_ref": "local_model:ollama:qwen3_8b-q4_k_m",
+    "output_scope": "draft_proof_to_response_text_only",
+    "prompt_mode": "json_only",
+    "question": "What should I do here?",
+    "repeated_invocations_allowed": false,
+    "runtime_ref": "ollama",
+    "schema_adapter": "mandatory",
+    "valid_example_required": true,
+    "verifier": "mandatory"
+  },
+  "schema_adapter_result": {
+    "adapted_candidate": {},
+    "adapter_errors": [
+      "json_parse_error:Expecting value"
+    ],
+    "authority_boundary": {
+      "authority_grant_allowed": false,
+      "browser_access_allowed": false,
+      "business_action_allowed": false,
+      "coupa_allowed": false,
+      "email_send_allowed": false,
+      "external_lm_allowed": false,
+      "external_provider_connect_allowed": false,
+      "git_push_allowed": false,
+      "gmail_allowed": false,
+      "ledger_mutation_allowed": false,
+      "ledger_posting_allowed": false,
+      "live_lm_invocation_allowed": false,
+      "local_model_runtime_allowed": false,
+      "merge_allowed": false,
+      "model_invocation_allowed": false,
+      "paid": false,
+      "paid_marking_allowed": false,
+      "pdf_export_allowed": false,
+      "portal_submit_allowed": false,
+      "protected_actions_allowed": false,
+      "sent": false,
+      "workbook_mutation_allowed": false,
+      "worker_spawn_allowed": false
+    },
+    "generated_at": "2026-06-07T21:50:26+00:00",
+    "machine_proof": {
+      "browser_access_performed": false,
+      "business_action_performed": false,
+      "coupa_access_performed": false,
+      "email_send_performed": false,
+      "external_llm_invoked": false,
+      "external_provider_connected": false,
+      "git_push_performed": false,
+      "gmail_access_performed": false,
+      "json_only_adapter": true,
+      "ledger_mutation_performed": false,
+      "ledger_posting_performed": false,
+      "local_model_runtime_connected": false,
+      "merge_performed": false,
+      "model_invocation_performed": false,
+      "paid_marking_performed": false,
+      "pdf_export_performed": false,
+      "portal_submit_performed": false,
+      "proof_only_prompt_contract": true,
+      "truth_checks_not_loosened": true,
+      "unsafe_true_grants": [],
+      "unsafe_true_grants_absent": true,
+      "workbook_mutation_performed": false,
+      "worker_spawn_performed": false
+    },
+    "parse_status": "PARSE_ERROR",
+    "schema_version": "proof_to_response_schema_adapter_v0",
+    "verifier_failure_reasons": [],
+    "verifier_ready": false,
+    "verifier_result": {}
+  },
+  "schema_version": "local_lm_proof_response_one_time_retry_v0",
+  "source_refs": [
+    "generated/read_models/local_lm_proof_response_retry_operator_approval.json",
+    "generated/read_models/local_lm_proof_response_retry_approval_packet.json",
+    "generated/read_models/local_lm_proof_response_pilot_postmortem.json",
+    "generated/read_models/proof_to_response_schema_adapter_status.json",
+    "generated/read_models/local_model_selection_for_proof_response.json",
+    "generated/read_models/proof_bundle_freshness_trace_status.json",
+    "generated/read_models/proof_bundle_builder_redaction_status.json",
+    "generated/read_models/context_freshness_decision_trace_gate.json",
+    "generated/read_models/proof_to_response_runtime_status.json"
+  ],
+  "sqlite_ref": "/home/openclaw/generated/system_knowledge/local_lm_proof_response_one_time_retry.sqlite",
+  "sqlite_row_count": 12,
+  "status": "LOCAL_LM_PROOF_RESPONSE_ONE_TIME_RETRY_READY",
+  "unsafe_true_grants": [],
+  "verifier_result": {
+    "authority_boundary": {
+      "protected_actions_allowed": false
+    },
+    "business_action_performed": false,
+    "coupa_submit_performed": false,
+    "details_collapsed": true,
+    "email_send_performed": false,
+    "external_llm_invoked": false,
+    "git_push_performed": false,
+    "incoming_authority_granted_accepted": false,
+    "ledger_mutation_performed": false,
+    "local_model_runtime_connected": false,
+    "merge_performed": false,
+    "paid_marking_performed": false,
+    "pdf_export_performed": false,
+    "portal_submit_performed": false,
+    "proof_bundle_id": "redacted_proof_bundle:finance_capital_hilton_payment_watch",
+    "publishable": false,
+    "response_id": "",
+    "safe_fallback_response": {
+      "claimed_facts": [],
+      "draft_body": "I need stronger proof before I can publish a response.",
+      "draft_headline": "Needs verification",
+      "draft_next_step": "Show details",
+      "implied_actions": [],
+      "proof_bundle_id": "redacted_proof_bundle:finance_capital_hilton_payment_watch",
+      "requested_controls": [],
+      "response_id": "lm_shadow_response:fallback:finance_capital_hilton_payment_watch",
+      "speaker_ref": "chief",
+      "uncertainty_notes": [
+        "json_parse_error:Expecting value"
+      ]
+    },
+    "status": "BLOCKED_BY_SCHEMA_ADAPTER",
+    "verification_errors": [
+      "json_parse_error:Expecting value"
+    ],
+    "verifier_id": "proof_to_response_schema_adapter_pre_verifier_block",
+    "workbook_mutation_performed": false,
+    "worker_spawn_performed": false
+  }
+}

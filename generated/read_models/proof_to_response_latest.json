@@ -2,10 +2,10 @@
   "authority_boundary": {
     "protected_actions_allowed": false
   },
-  "candidate_source": "local_ollama_one_time_pilot",
+  "candidate_source": "local_ollama_one_time_retry_schema_adapter",
   "details_collapsed": true,
   "expires_or_superseded_by": "",
-  "generated_at": "2026-06-07T13:09:51+00:00",
+  "generated_at": "2026-06-07T21:50:26+00:00",
   "implementation_boundary": {
     "browser_opened": false,
     "business_action_performed": false,
@@ -35,7 +35,7 @@
     "workbook_mutation_performed": false,
     "worker_spawn_performed": false
   },
-  "latest_receipt_ref": "local_lm_pilot:fallback_receipt",
+  "latest_receipt_ref": "local_lm_retry:fallback_receipt",
   "latest_response": {
     "authority_boundary": {
       "protected_actions_allowed": false
@@ -46,7 +46,7 @@
       "Attach payment evidence",
       "Open Finance / Capital Hilton"
     ],
-    "candidate_source": "local_ollama_one_time_pilot",
+    "candidate_source": "local_ollama_one_time_retry_schema_adapter",
     "cannot_do_yet": [
       "paid marking",
       "ledger mutation",
@@ -57,8 +57,8 @@
     "details_collapsed": true,
     "email_send_performed": false,
     "external_llm_invoked": false,
-    "fallback_reason": "response_not_concise; required_phrase_missing:payment evidence; required_phrase_missing:ledger; next_step_not_allowed:",
-    "generated_at": "2026-06-07T13:09:51+00:00",
+    "fallback_reason": "json_parse_error:Expecting value",
+    "generated_at": "2026-06-07T21:50:26+00:00",
     "git_push_performed": false,
     "headline": "Needs verification",
     "incoming_authority_granted_accepted": false,
@@ -100,7 +100,7 @@
       "receipt:capital_hilton_payment_watch",
       "receipt:capital_hilton_payment_watch_current"
     ],
-    "response_content_hash": "sha256:d3e2431b293e9dd6de9666fa74a6a8d315ffed0b200034fe767df6ae1504d433",
+    "response_content_hash": "sha256:76b40810ea5f9457678c8eae7b24c8d672232128bb921fcf8a758e84c7c21834",
     "response_id": "proof_response:fallback:finance_capital_hilton_payment_watch",
     "schema_version": "proof_to_response_runtime_v0",
     "source_context": {
@@ -133,7 +133,7 @@
   "machine_proof": {
     "browser_opened": false,
     "business_action_performed": false,
-    "candidate_source": "local_ollama_one_time_pilot",
+    "candidate_source": "local_ollama_one_time_retry_schema_adapter",
     "coupa_opened": false,
     "email_send_performed": false,
     "external_provider_used": false,
@@ -163,11 +163,11 @@
   "proof_to_response_unavailable_reason": "",
   "read_model_id": "proof_to_response_latest",
   "schema_version": "proof_to_response_runtime_v0",
-  "selected_action_id": "local_lm_one_time_pilot",
+  "selected_action_id": "local_lm_one_time_retry_schema_adapter",
   "selected_card_id": "redacted_proof_bundle",
-  "source_request_id": "local_lm_one_time_pilot_finance_capital_hilton_payment_watch:2026-06-07T13:09:51+00:00",
-  "source_response_path": "generated/read_models/local_lm_proof_response_one_time_pilot.json",
-  "source_status_ref": "generated/read_models/local_lm_proof_response_one_time_pilot.json",
+  "source_request_id": "local_lm_one_time_retry_finance_capital_hilton_payment_watch:2026-06-07T21:50:26+00:00",
+  "source_response_path": "generated/read_models/local_lm_proof_response_one_time_retry.json",
+  "source_status_ref": "generated/read_models/local_lm_proof_response_one_time_retry.json",
   "stale_if_context_mismatch": true,
   "status": "PROOF_TO_RESPONSE_RUNTIME_READY",
   "thread_ref": "capital_hilton",
