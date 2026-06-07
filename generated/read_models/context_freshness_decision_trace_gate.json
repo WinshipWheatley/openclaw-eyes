@@ -1,0 +1,558 @@
+{
+  "authority_boundary": {
+    "authority_grant_allowed": false,
+    "authority_granted": false,
+    "browser_access_allowed": false,
+    "coupa_allowed": false,
+    "email_send_allowed": false,
+    "generated_summary_override_allowed": false,
+    "git_push_allowed": false,
+    "gmail_allowed": false,
+    "ledger_mutation_allowed": false,
+    "ledger_posting_allowed": false,
+    "merge_allowed": false,
+    "model_invocation_allowed": false,
+    "paid_marking_allowed": false,
+    "pdf_export_allowed": false,
+    "portal_submit_allowed": false,
+    "proof_bundle_builder_may_ignore_gate": false,
+    "protected_actions_allowed": false,
+    "stale_context_current_truth_allowed": false,
+    "test_only_primary_truth_allowed": false,
+    "unpromoted_memory_truth_allowed": false,
+    "workbook_mutation_allowed": false
+  },
+  "content_hash": "sha256:dee2da809b366192cd1646cfc585c4b743267cb74a1360fa30bb4ddd58e531c9",
+  "freshness_states": [
+    "current",
+    "waiting_external",
+    "historical",
+    "superseded",
+    "stale",
+    "unknown"
+  ],
+  "gate_rows": [
+    {
+      "allowed_for_lm_bundle": true,
+      "blocked_claims": [],
+      "canonical_claims": {
+        "coupa_state": "processing",
+        "ledger_state": "untouched",
+        "paid_status": "not_proven_false_until_payment_receipt_exists",
+        "payment_evidence": "missing"
+      },
+      "confidence_class": "receipt_backed",
+      "confidence_score": 0.95,
+      "context_ref": "context:finance:capital_hilton:payment_watch",
+      "decision_trace_refs": [
+        "gate:capital_hilton_payment_evidence_missing",
+        "gate:coupa_submit_protected_action"
+      ],
+      "decision_trace_summary": "Current receipt says Coupa is processing, payment evidence is missing, paid marking is not proven, and ledger remains untouched.",
+      "freshness_state": "current",
+      "latest_receipt_ref": "receipt:capital_hilton_payment_watch_current",
+      "lm_bundle_policy": {
+        "may_enter_as_current_truth": true,
+        "must_not_claim_paid_sent_submitted_without_receipt": true,
+        "must_not_override_receipts": true,
+        "must_preserve_confidence_label": false
+      },
+      "objective_ref": "objective:capital_hilton_payment_watch",
+      "operator_decisions": [
+        {
+          "decision_ref": "operator_decision:attach_payment_evidence_next",
+          "decision_summary": "Operator next safe control is Attach proof."
+        }
+      ],
+      "prior_attempts": [
+        {
+          "attempt_ref": "attempt:capital_hilton_payment_watch_ask_why",
+          "attempt_summary": "Operator asked why the lane remains on payment watch.",
+          "outcome": "lane_response_payment_evidence_needed"
+        }
+      ],
+      "prior_rejections": [
+        {
+          "attempt_ref": "attempt:capital_hilton_coupa_submit_without_payment_evidence",
+          "attempt_summary": "Protected Coupa/payment route was considered before payment evidence existed.",
+          "rejection_reason": "Payment proof missing and protected action approval absent.",
+          "what_changed": "Lane-level proof response now asks for payment evidence instead of treating Coupa gate text as primary."
+        }
+      ],
+      "receipt_refs": [
+        "receipt:capital_hilton_payment_watch_current",
+        "receipt:capital_hilton_ledger_untouched"
+      ],
+      "required_refresh_action": "",
+      "safe_human_response_if_blocked": "",
+      "source_refs": [
+        "generated/read_models/proof_to_response_latest.json",
+        "generated/read_models/gate_decision_ledger.json",
+        "generated/read_models/universal_receipt_envelope_status.json"
+      ],
+      "stale_reason": "",
+      "superseded_receipt_refs": [],
+      "thread_ref": "capital_hilton",
+      "world_ref": "finance"
+    },
+    {
+      "allowed_for_lm_bundle": true,
+      "blocked_claims": [],
+      "canonical_claims": {
+        "evidence_label": "operator_reported_candidate",
+        "paid_status": "not_proven",
+        "payment_processing_evidence": "candidate"
+      },
+      "confidence_class": "operator_reported_candidate",
+      "confidence_score": 0.72,
+      "context_ref": "context:finance:live_arts_md:payment_evidence",
+      "decision_trace_refs": [
+        "trace:live_arts_candidate_payment_processing_not_paid_truth"
+      ],
+      "decision_trace_summary": "Evidence intake recorded candidate payment-processing evidence; it is not paid truth.",
+      "freshness_state": "current",
+      "latest_receipt_ref": "receipt:live_arts_md_candidate_evidence_recorded",
+      "lm_bundle_policy": {
+        "may_enter_as_current_truth": true,
+        "must_not_claim_paid_sent_submitted_without_receipt": true,
+        "must_not_override_receipts": true,
+        "must_preserve_confidence_label": true
+      },
+      "objective_ref": "objective:live_arts_md_payment_processing_evidence",
+      "operator_decisions": [],
+      "prior_attempts": [],
+      "prior_rejections": [],
+      "receipt_refs": [
+        "receipt:live_arts_md_candidate_evidence_recorded"
+      ],
+      "required_refresh_action": "",
+      "safe_human_response_if_blocked": "",
+      "source_refs": [
+        "generated/read_models/evidence_intake_status.json",
+        "generated/read_models/evidence_confidence_scoring.json"
+      ],
+      "stale_reason": "",
+      "superseded_receipt_refs": [],
+      "thread_ref": "live_arts_md",
+      "world_ref": "finance"
+    },
+    {
+      "allowed_for_lm_bundle": false,
+      "blocked_claims": [],
+      "canonical_claims": {},
+      "confidence_class": "historical_resolved",
+      "confidence_score": 0.64,
+      "context_ref": "context:build:review_packet:informational_resolved",
+      "decision_trace_refs": [
+        "trace:workroom_review_decision_informational"
+      ],
+      "decision_trace_summary": "Review packet was marked informational/resolved and must not appear as active ready-for-review.",
+      "freshness_state": "historical",
+      "latest_receipt_ref": "receipt:build_review_packet_marked_informational",
+      "lm_bundle_policy": {
+        "may_enter_as_current_truth": false,
+        "must_not_claim_paid_sent_submitted_without_receipt": true,
+        "must_not_override_receipts": true,
+        "must_preserve_confidence_label": true
+      },
+      "objective_ref": "objective:build_review_packet",
+      "operator_decisions": [],
+      "prior_attempts": [],
+      "prior_rejections": [],
+      "receipt_refs": [
+        "receipt:build_review_packet_marked_informational"
+      ],
+      "required_refresh_action": "open_history_or_select_active_review_packet",
+      "safe_human_response_if_blocked": "This is historical context, not an active current item.",
+      "source_refs": [
+        "generated/read_models/workroom_review_decision_status.json",
+        "generated/read_models/dynamic_card_lifecycle_policy.json"
+      ],
+      "stale_reason": "",
+      "superseded_receipt_refs": [],
+      "thread_ref": "build_openclaw_backend",
+      "world_ref": "build"
+    },
+    {
+      "allowed_for_lm_bundle": true,
+      "blocked_claims": [],
+      "canonical_claims": {
+        "followup_action": "stage_draft_only",
+        "proposal_state": "current",
+        "send_authority": "not_granted"
+      },
+      "confidence_class": "receipt_backed",
+      "confidence_score": 0.95,
+      "context_ref": "context:business_development:capital_hilton:followup",
+      "decision_trace_refs": [
+        "trace:capital_hilton_followup_stage_only_no_send"
+      ],
+      "decision_trace_summary": "Latest proposal receipt supports follow-up staging; no send authority exists.",
+      "freshness_state": "current",
+      "latest_receipt_ref": "receipt:capital_hilton_followup_proposal_current",
+      "lm_bundle_policy": {
+        "may_enter_as_current_truth": true,
+        "must_not_claim_paid_sent_submitted_without_receipt": true,
+        "must_not_override_receipts": true,
+        "must_preserve_confidence_label": false
+      },
+      "objective_ref": "objective:capital_hilton_followup",
+      "operator_decisions": [],
+      "prior_attempts": [],
+      "prior_rejections": [],
+      "receipt_refs": [
+        "receipt:capital_hilton_followup_proposal_current"
+      ],
+      "required_refresh_action": "",
+      "safe_human_response_if_blocked": "",
+      "source_refs": [
+        "generated/read_models/proof_to_response_latest.json",
+        "generated/read_models/universal_receipt_envelope_status.json"
+      ],
+      "stale_reason": "",
+      "superseded_receipt_refs": [],
+      "thread_ref": "capital_hilton",
+      "world_ref": "business_development"
+    },
+    {
+      "allowed_for_lm_bundle": false,
+      "blocked_claims": [],
+      "canonical_claims": {},
+      "confidence_class": "stale",
+      "confidence_score": 0.2,
+      "context_ref": "context:finance:capital_hilton:superseded_payment_source",
+      "decision_trace_refs": [
+        "trace:superseded_by_latest_payment_watch_receipt"
+      ],
+      "decision_trace_summary": "Superseded receipt is retained for history only and cannot enter the LM bundle as current truth.",
+      "freshness_state": "superseded",
+      "latest_receipt_ref": "receipt:capital_hilton_payment_watch_current",
+      "lm_bundle_policy": {
+        "may_enter_as_current_truth": false,
+        "must_not_claim_paid_sent_submitted_without_receipt": true,
+        "must_not_override_receipts": true,
+        "must_preserve_confidence_label": false
+      },
+      "objective_ref": "objective:capital_hilton_payment_watch",
+      "operator_decisions": [],
+      "prior_attempts": [],
+      "prior_rejections": [],
+      "receipt_refs": [
+        "receipt:capital_hilton_old_payment_watch"
+      ],
+      "required_refresh_action": "refresh_from_latest_receipt",
+      "safe_human_response_if_blocked": "Needs verification. I need a current receipt or traceable proof before using this as context.",
+      "source_refs": [
+        "generated/read_models/older_payment_watch_summary.json"
+      ],
+      "stale_reason": "A newer payment-watch receipt supersedes this source.",
+      "superseded_receipt_refs": [
+        "receipt:capital_hilton_old_payment_watch"
+      ],
+      "thread_ref": "capital_hilton",
+      "world_ref": "finance"
+    },
+    {
+      "allowed_for_lm_bundle": false,
+      "blocked_claims": [],
+      "canonical_claims": {},
+      "confidence_class": "unknown",
+      "confidence_score": 0.0,
+      "context_ref": "context:system:stale_or_unknown_source",
+      "decision_trace_refs": [],
+      "decision_trace_summary": "Untraceable stale source must produce Needs verification instead of confident response text.",
+      "freshness_state": "stale",
+      "latest_receipt_ref": "",
+      "lm_bundle_policy": {
+        "may_enter_as_current_truth": false,
+        "must_not_claim_paid_sent_submitted_without_receipt": true,
+        "must_not_override_receipts": true,
+        "must_preserve_confidence_label": false
+      },
+      "objective_ref": "objective:unknown_context",
+      "operator_decisions": [],
+      "prior_attempts": [],
+      "prior_rejections": [],
+      "receipt_refs": [],
+      "required_refresh_action": "request_current_lane_context_or_receipt",
+      "safe_human_response_if_blocked": "Needs verification. I need a current receipt or traceable proof before using this as context.",
+      "source_refs": [
+        "generated/read_models/stale_generated_context.json"
+      ],
+      "stale_reason": "No current receipt, timeline event, or decision trace supports this context.",
+      "superseded_receipt_refs": [],
+      "thread_ref": "unknown",
+      "world_ref": "system"
+    },
+    {
+      "allowed_for_lm_bundle": true,
+      "blocked_claims": [
+        {
+          "blocked_by": "receipt:capital_hilton_payment_watch_current",
+          "claim_ref": "generated_summary_claim:capital_hilton_paid",
+          "claim_summary": "Generated summary claimed paid/currently closed."
+        }
+      ],
+      "canonical_claims": {
+        "ledger_state": "untouched",
+        "paid_status": "not_proven",
+        "payment_evidence": "missing"
+      },
+      "confidence_class": "receipt_backed",
+      "confidence_score": 0.95,
+      "context_ref": "context:finance:capital_hilton:generated_summary_conflict",
+      "decision_trace_refs": [
+        "trace:generated_summary_conflict_rejected"
+      ],
+      "decision_trace_summary": "A generated summary conflicted with the current receipt; receipt truth wins and the summary claim is blocked.",
+      "freshness_state": "current",
+      "latest_receipt_ref": "receipt:capital_hilton_payment_watch_current",
+      "lm_bundle_policy": {
+        "may_enter_as_current_truth": true,
+        "must_not_claim_paid_sent_submitted_without_receipt": true,
+        "must_not_override_receipts": true,
+        "must_preserve_confidence_label": false
+      },
+      "objective_ref": "objective:capital_hilton_payment_watch",
+      "operator_decisions": [],
+      "prior_attempts": [],
+      "prior_rejections": [
+        {
+          "attempt_ref": "generated_summary:capital_hilton_paid_claim",
+          "attempt_summary": "Generated summary suggested paid/safe-to-close.",
+          "rejection_reason": "No payment receipt or ledger evidence supports the claim.",
+          "what_changed": "Use current receipt: payment evidence missing and ledger untouched."
+        }
+      ],
+      "receipt_refs": [
+        "receipt:capital_hilton_payment_watch_current"
+      ],
+      "required_refresh_action": "",
+      "safe_human_response_if_blocked": "",
+      "source_refs": [
+        "generated/read_models/proof_to_response_latest.json",
+        "generated/read_models/generated_finance_summary.json"
+      ],
+      "stale_reason": "",
+      "superseded_receipt_refs": [],
+      "thread_ref": "capital_hilton",
+      "world_ref": "finance"
+    },
+    {
+      "allowed_for_lm_bundle": false,
+      "blocked_claims": [],
+      "canonical_claims": {},
+      "confidence_class": "test_only",
+      "confidence_score": 0.1,
+      "context_ref": "context:test_only:evidence_fixture",
+      "decision_trace_refs": [
+        "trace:test_only_not_primary_truth"
+      ],
+      "decision_trace_summary": "Test-only evidence may validate UI/test behavior but cannot be primary truth for LM proof bundles.",
+      "freshness_state": "unknown",
+      "latest_receipt_ref": "receipt:test_only_fixture_evidence",
+      "lm_bundle_policy": {
+        "may_enter_as_current_truth": false,
+        "must_not_claim_paid_sent_submitted_without_receipt": true,
+        "must_not_override_receipts": true,
+        "must_preserve_confidence_label": true
+      },
+      "objective_ref": "objective:test_only_evidence",
+      "operator_decisions": [],
+      "prior_attempts": [],
+      "prior_rejections": [],
+      "receipt_refs": [
+        "receipt:test_only_fixture_evidence"
+      ],
+      "required_refresh_action": "attach_live_receipt_backed_evidence",
+      "safe_human_response_if_blocked": "Needs verification. I need a current receipt or traceable proof before using this as context.",
+      "source_refs": [
+        "generated/read_models/evidence_confidence_scoring.json"
+      ],
+      "stale_reason": "Evidence is marked test-only.",
+      "superseded_receipt_refs": [],
+      "thread_ref": "test_fixture",
+      "world_ref": "system"
+    },
+    {
+      "allowed_for_lm_bundle": false,
+      "blocked_claims": [],
+      "canonical_claims": {},
+      "confidence_class": "unpromoted_memory",
+      "confidence_score": 0.0,
+      "context_ref": "context:memory:unpromoted_operator_memory",
+      "decision_trace_refs": [
+        "trace:memory_candidate_not_promoted"
+      ],
+      "decision_trace_summary": "Unpromoted memory can inform review only after promotion; it cannot become canonical truth in a proof bundle.",
+      "freshness_state": "unknown",
+      "latest_receipt_ref": "",
+      "lm_bundle_policy": {
+        "may_enter_as_current_truth": false,
+        "must_not_claim_paid_sent_submitted_without_receipt": true,
+        "must_not_override_receipts": true,
+        "must_preserve_confidence_label": false
+      },
+      "objective_ref": "objective:operator_memory_candidate",
+      "operator_decisions": [],
+      "prior_attempts": [],
+      "prior_rejections": [],
+      "receipt_refs": [],
+      "required_refresh_action": "request_memory_promotion_or_current_receipt",
+      "safe_human_response_if_blocked": "Needs verification. I need a current receipt or traceable proof before using this as context.",
+      "source_refs": [
+        "generated/read_models/memory_promotion_gate.json"
+      ],
+      "stale_reason": "Operator memory candidate has not been promoted to canonical truth.",
+      "superseded_receipt_refs": [],
+      "thread_ref": "memory",
+      "world_ref": "system"
+    }
+  ],
+  "generated_at": "2026-06-07T04:13:58+00:00",
+  "implementation_boundary": {
+    "browser_opened": false,
+    "coupa_opened": false,
+    "email_send_performed": false,
+    "external_provider_connected": false,
+    "git_push_performed": false,
+    "gmail_opened": false,
+    "ledger_mutation_performed": false,
+    "ledger_posting_performed": false,
+    "local_model_runtime_connected": false,
+    "merge_performed": false,
+    "model_invoked": false,
+    "paid_marking_performed": false,
+    "pdf_export_performed": false,
+    "portal_submit_performed": false,
+    "runtime_connected": false,
+    "submit_performed": false,
+    "workbook_mutation_performed": false,
+    "worker_spawn_performed": false
+  },
+  "machine_proof": {
+    "business_action_performed": false,
+    "contract_only": true,
+    "generated_summary_overrode_receipt": false,
+    "ledger_mutation_performed": false,
+    "model_invoked": false,
+    "paid_marking_performed": false,
+    "runtime_connected": false,
+    "stale_context_entered_as_current_truth": false,
+    "test_only_used_as_primary_truth": false,
+    "unpromoted_memory_used_as_truth": false,
+    "unsafe_true_grants_absent": true,
+    "worker_spawn_performed": false
+  },
+  "preconditions": [
+    {
+      "accepted_statuses": [
+        "PROOF_BUNDLE_REDACTION_HARDENING_READY"
+      ],
+      "observed_status": "PROOF_BUNDLE_REDACTION_HARDENING_READY",
+      "precondition_ref": "proof_bundle_redaction_hardening",
+      "ready": true,
+      "source_ref": "generated/read_models/proof_bundle_redaction_policy.json"
+    },
+    {
+      "accepted_statuses": [
+        "PROOF_BUNDLE_BUILDER_REDACTION_INTEGRATION_READY"
+      ],
+      "observed_status": "PROOF_BUNDLE_BUILDER_REDACTION_INTEGRATION_READY",
+      "precondition_ref": "proof_bundle_builder_redaction_integration",
+      "ready": true,
+      "source_ref": "generated/read_models/proof_bundle_builder_redaction_status.json"
+    },
+    {
+      "accepted_statuses": [
+        "PROOF_TO_RESPONSE_RUNTIME_READY"
+      ],
+      "observed_status": "PROOF_TO_RESPONSE_RUNTIME_READY",
+      "precondition_ref": "proof_to_response_runtime",
+      "ready": true,
+      "source_ref": "generated/read_models/proof_to_response_runtime_status.json"
+    },
+    {
+      "accepted_statuses": [
+        "UNIVERSAL_RECEIPT_ENVELOPE_READY"
+      ],
+      "observed_status": "UNIVERSAL_RECEIPT_ENVELOPE_READY",
+      "precondition_ref": "universal_receipt_envelope",
+      "ready": true,
+      "source_ref": "generated/read_models/universal_receipt_envelope_status.json"
+    },
+    {
+      "accepted_statuses": [
+        "OPERATOR_SESSION_TIMELINE_READY"
+      ],
+      "observed_status": "OPERATOR_SESSION_TIMELINE_READY",
+      "precondition_ref": "operator_session_timeline",
+      "ready": true,
+      "source_ref": "generated/read_models/operator_session_timeline.json"
+    },
+    {
+      "accepted_statuses": [
+        "EVIDENCE_CONFIDENCE_SCORING_READY"
+      ],
+      "observed_status": "EVIDENCE_CONFIDENCE_SCORING_READY",
+      "precondition_ref": "evidence_confidence_scoring",
+      "ready": true,
+      "source_ref": "generated/read_models/evidence_confidence_scoring.json"
+    },
+    {
+      "accepted_statuses": [
+        "DYNAMIC_CARD_LIFECYCLE_POLICY_READY"
+      ],
+      "observed_status": "DYNAMIC_CARD_LIFECYCLE_POLICY_READY",
+      "precondition_ref": "dynamic_card_lifecycle_policy",
+      "ready": true,
+      "source_ref": "generated/read_models/dynamic_card_lifecycle_policy.json"
+    },
+    {
+      "accepted_statuses": [
+        "MEMORY_PROMOTION_GATE_READY"
+      ],
+      "observed_status": "MEMORY_PROMOTION_GATE_READY",
+      "precondition_ref": "memory_promotion_gate",
+      "ready": true,
+      "source_ref": "generated/read_models/memory_promotion_gate.json"
+    }
+  ],
+  "purpose": "Prevent stale, superseded, generated-only, test-only, or untraceable context from entering future LM proof bundles as current truth.",
+  "read_model_id": "context_freshness_decision_trace_gate",
+  "rules": [
+    "Current receipts beat generated summaries.",
+    "Superseded receipts cannot enter proof bundles as current truth.",
+    "Generated summaries cannot override receipts.",
+    "Candidate/operator-reported evidence must be labeled as such.",
+    "Test-only evidence cannot be primary truth.",
+    "Stale sources produce Needs verification, not confident response text.",
+    "Prior attempts and rejections are included when relevant.",
+    "Operator memory is not canonical truth unless promoted.",
+    "If no current proof exists, proof bundle builder blocks or marks context unknown.",
+    "The LM must not receive stale context as if current."
+  ],
+  "schema_version": "context_freshness_decision_trace_gate_v0",
+  "source_content_hashes": {
+    "gate_rows": "sha256:4b14b5f32262ec1be2ef2c9743964930c43631ec45628216e2ca0b4ddd6f8212",
+    "preconditions": "sha256:735c91940a8460486060373a611eaa0872b3a0c5cd9da7c50f92e30ed63cc829"
+  },
+  "source_refs": [
+    "generated/read_models/proof_bundle_redaction_policy.json",
+    "generated/read_models/proof_bundle_builder_redaction_status.json",
+    "generated/read_models/proof_to_response_runtime_status.json",
+    "generated/read_models/universal_receipt_envelope_status.json",
+    "generated/read_models/operator_session_timeline.json",
+    "generated/read_models/evidence_confidence_scoring.json",
+    "generated/read_models/dynamic_card_lifecycle_policy.json",
+    "generated/read_models/memory_promotion_gate.json"
+  ],
+  "status": "CONTEXT_FRESHNESS_DECISION_TRACE_GATE_READY",
+  "summary": {
+    "allowed_for_lm_bundle_count": 4,
+    "blocked_or_historical_count": 5,
+    "contexts_total": 9,
+    "stale_or_superseded_count": 2
+  },
+  "unsafe_true_grants": []
+}
