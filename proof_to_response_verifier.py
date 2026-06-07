@@ -83,6 +83,8 @@ NEGATIVE_CONTEXTS_BY_COMPLETION = {
         "not paid",
         "no paid",
         "cannot mark paid",
+        "cannot mark this paid",
+        "cannot mark it paid",
         "not mark paid",
     ),
     "sent": (
