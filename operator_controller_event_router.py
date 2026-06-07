@@ -1712,18 +1712,64 @@ def _looks_protected_controller_request(request: Mapping[str, Any], receipt: Map
     )
 
 
+def _selected_capital_hilton_payment_watch_context(request: Mapping[str, Any], receipt: Mapping[str, Any]) -> bool:
+    refs = [
+        str(request.get("selected_card_id") or ""),
+        str(request.get("active_entity_ref") or ""),
+        str(receipt.get("selected_card_id") or ""),
+        str(receipt.get("active_entity_ref") or ""),
+    ]
+    for ref in (item.lower() for item in refs if item):
+        if ref in {
+            "dynamic_card.finance.capital_hilton.payment_watch",
+            "dynamic_card.finance.capital_hilton.contextual_question",
+        }:
+            return True
+        if "capital_hilton" in ref and "payment_watch" in ref and "approval_request" not in ref and "coupa_submit" not in ref:
+            return True
+        if "capital_hilton" in ref and "current_focus" in ref and "coupa_submit" not in ref:
+            return True
+    return False
+
+
+def _selected_coupa_gate_context(request: Mapping[str, Any], receipt: Mapping[str, Any]) -> bool:
+    refs = [
+        str(request.get("selected_card_id") or ""),
+        str(request.get("active_entity_ref") or ""),
+        str(receipt.get("selected_card_id") or ""),
+        str(receipt.get("active_entity_ref") or ""),
+        str(request.get("selected_action_id") or ""),
+        str(receipt.get("selected_action_id") or ""),
+        str(receipt.get("route_ref") or ""),
+    ]
+    text = " ".join(refs).lower()
+    return (
+        "guardian_gate.coupa_submit" in text
+        or "approval_request.coupa_submit" in text
+        or "capital_hilton_coupa_submit_gate" in text
+    )
+
+
 def _proof_to_response_scenario_id(request: Mapping[str, Any], receipt: Mapping[str, Any]) -> str:
     world = str(receipt.get("current_world_ref") or request.get("current_world_ref") or "").strip().lower()
     thread = str(receipt.get("current_thread_ref") or request.get("current_thread_ref") or "").strip().lower()
     event_type = str(receipt.get("controller_event_type") or request.get("controller_event_type") or "").strip()
-    if _looks_protected_controller_request(request, receipt):
-        return "protected_coupa_ledger_email_request"
     if event_type == "attach_proof" and world == "finance" and thread == "live_arts_md":
         return "finance_live_arts_payment_evidence"
     if world == "business_development" and thread == "capital_hilton":
         return "business_development_capital_hilton_followup"
     if world == "finance" and thread == "capital_hilton":
+        if event_type == "ask_why" and _selected_capital_hilton_payment_watch_context(request, receipt):
+            return "finance_capital_hilton_payment_watch"
+        if _selected_coupa_gate_context(request, receipt):
+            return "protected_coupa_ledger_email_request"
+        if event_type in OBJECTIVE_ADVANCEMENT_EVENT_TYPES and _selected_capital_hilton_payment_watch_context(request, receipt):
+            return "finance_capital_hilton_payment_watch"
+        if _looks_protected_controller_request(request, receipt):
+            return "protected_coupa_ledger_email_request"
         return "finance_capital_hilton_payment_watch"
+    if _looks_protected_controller_request(request, receipt):
+        return "protected_coupa_ledger_email_request"
     if world == "build" and "review" in str(receipt.get("backend_route") or ""):
         return "build_review_packet"
     if str(receipt.get("route_status") or "") == "NEEDS_LANE_CONTEXT":

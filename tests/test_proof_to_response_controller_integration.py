@@ -196,6 +196,53 @@ def test_capital_hilton_ask_why_updates_proof_to_response_latest(tmp_path):
     assert receipt["dynamic_card_response"]
 
 
+def test_capital_hilton_ask_why_payment_watch_context_overrides_coupa_action_metadata(tmp_path):
+    receipt, latest, _bridge_latest = _route(
+        tmp_path,
+        _controller_event_request(
+            event_type="ask_why",
+            world="finance",
+            thread="capital_hilton",
+            suffix="capital_hilton_lane_question_with_gate_metadata",
+            selected_card_id="dynamic_card.finance.capital_hilton.payment_watch",
+            selected_action_id="guardian_gate.coupa_submit.open",
+            operator_text="Why did Submit Capital Hilton invoice block?",
+        ),
+    )
+
+    primary = receipt["proof_to_response"]
+    assert receipt["proof_to_response_scenario_id"] == "finance_capital_hilton_payment_watch"
+    assert primary["headline"] == "Payment evidence needed"
+    assert "Coupa is processing" in primary["body"]
+    assert "payment evidence is attached" in primary["body"]
+    assert primary["next_step"] == "Attach payment evidence."
+    assert "Blocked until proof and approval" not in primary["headline"]
+    assert latest["world_ref"] == "finance"
+    assert latest["thread_ref"] == "capital_hilton"
+    assert latest["latest_response"]["headline"] == "Payment evidence needed"
+
+
+def test_capital_hilton_coupa_gate_ask_why_still_uses_gate_specific_response(tmp_path):
+    receipt, latest, _bridge_latest = _route(
+        tmp_path,
+        _controller_event_request(
+            event_type="ask_why",
+            world="finance",
+            thread="capital_hilton",
+            suffix="capital_hilton_gate_question",
+            selected_card_id="dynamic_card.finance.capital_hilton.approval_request.coupa_submit",
+            selected_action_id="guardian_gate.coupa_submit.explain",
+            operator_text="Why is this Coupa submit gate blocked?",
+        ),
+    )
+
+    primary = receipt["proof_to_response"]
+    assert receipt["proof_to_response_scenario_id"] == "protected_coupa_ledger_email_request"
+    assert primary["speaker_ref"] == "guardian"
+    assert primary["headline"] == "Blocked until proof and approval"
+    assert latest["latest_response"]["headline"] == "Blocked until proof and approval"
+
+
 def test_capital_hilton_advance_objective_updates_proof_to_response_latest(tmp_path):
     receipt, latest, _bridge_latest = _route(
         tmp_path,
