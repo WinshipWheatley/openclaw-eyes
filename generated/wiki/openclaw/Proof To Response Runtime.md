@@ -28,17 +28,17 @@ Verifier-only runtime for publishing concise agent responses from machine proof.
 
 ## Runtime Scenarios
 
-- `finance_capital_hilton_payment_watch`: Payment evidence needed -> `publishable` via `shadow_pilot_candidate`
+- `finance_capital_hilton_payment_watch`: Payment evidence needed -> `publishable` via `lm2_room_backed_worker_structured_output_retry`
 
 ## Receipt Store
 
 - SQLite: `generated/system_knowledge/proof_to_response_runtime.sqlite`
-- Published responses: `25`
-- SQLite rows: `25`
+- Published responses: `73`
+- SQLite rows: `73`
 
 ## Boundary
 
-- Active candidate source: `shadow_pilot_candidate`
+- Active candidate source: `lm2_room_backed_worker_structured_output_retry`
 - Supported candidate sources: `deterministic_fixture`, `shadow_pilot_candidate`, `future_live_lm_blocked`.
 - No live LM invocation.
 - No local model runtime connection.

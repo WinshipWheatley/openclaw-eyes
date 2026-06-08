@@ -31,11 +31,11 @@ It is a controller layer, not a business executor.
 
 ## Latest Receipt
 
-- Receipt: `operator_controller_event_router:413cd1cd39243c7a`
-- Event: `advance_objective`
-- Status: `NEEDS_PROOF`
-- Backend route: `objective_advancement_protocol.advance_objective`
-- Route ref: `objective:finance:capital_hilton:advance`
+- Receipt: `operator_controller_event_router:d47829435f0ab977`
+- Event: `chat_goal`
+- Status: `TEXT_RESPONSE_READY`
+- Backend route: `operator_conversation_router.route_conversation_text`
+- Route ref: `operator_conversation_router:a87d490528d9de85`
 
 ## Safety Boundary
 

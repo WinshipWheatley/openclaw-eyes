@@ -16,7 +16,7 @@
   },
   "client_ref": "st_annes",
   "event_count": 1,
-  "generated_at": "2026-06-02T05:30:00+00:00",
+  "generated_at": "2026-06-02T21:57:46+00:00",
   "machine_proof": {
     "authority_flags_all_false": true,
     "events_are_staging_only": true,
@@ -113,7 +113,8 @@
       "hygiene_notes": [
         "created_at_matches_validation_fixture_timestamp",
         "protected_text_hash_matches_known_smoke_instruction",
-        "separate_operator_business_confirmed_receipt_missing"
+        "separate_operator_business_confirmed_receipt_missing",
+        "operator_marked_as_test_only"
       ],
       "included_in_invoice_period": "2026-06",
       "invoice_inclusion_status": "NOT_INCLUDED_SMOKE_EVENT",
@@ -127,7 +128,7 @@
       "service_time": "",
       "source": "mission_control",
       "staging_status": "SMOKE_OR_TEST_EVENT",
-      "updated_at": "2026-06-02T05:30:00+00:00",
+      "updated_at": "2026-06-02T21:57:46+00:00",
       "workflow_ref": "st_annes_work_log_event"
     }
   ],

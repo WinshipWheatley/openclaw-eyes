@@ -1,16 +1,16 @@
 # OpenClaw Change Sentinel
 
 Summary:
-- Status: `NO_MATERIAL_CHANGE`.
-- Observed targets: 29.
-- Material changes: 0.
+- Status: `MATERIAL_CHANGE_DETECTED`.
+- Observed targets: 30.
+- Material changes: 2.
 - Chief queue candidates: 0 (not launched).
 - LM called: `False`.
 
 Hermes Summary:
-- What changed: No material change since the previous sentinel snapshot.
-- Why it matters: OpenClaw can keep using the current generated state.
-- Next: No action required; rerun on the next 20-minute cadence or manually when needed.
+- What changed: service_status:openclaw-request-response.service changed from 'active' to 'active'. service_restart_count:openclaw-request-response.service changed from '2' to '0'.
+- Why it matters: A deterministic target moved, drifted, or became unstable.
+- Next: Review the recommended actions before assigning any build or repair work.
 
 Observed Targets:
 - `input_read_model:reference_resolver` `INPUT_READ_MODEL` -> `NO_MATERIAL_CHANGE` `present`.
@@ -31,17 +31,22 @@ Observed Targets:
 - `read_model_mirror:estate_topology_registry_read_model_mirror` `READ_MODEL_MIRROR` -> `BRIDGE_STALE` `MISSING:False:False`.
 - `known_unknowns:unresolved` `KNOWN_UNKNOWN` -> `ACTION_REQUIRED` `6`.
 - `codex_web_artifacts:stale_or_unreachable` `CODEX_WEB_ARTIFACT` -> `ACTION_REQUIRED` `2`.
-- `workflow_state:live_arts_md_invoice_workflow` `WORKFLOW_STATE` -> `NO_MATERIAL_CHANGE` `sha256:2ba48386654f54498e222caa81793b6e9d0b2e1198f9db5680e0c057f77d8b06`.
-- `pdf_export_package:live_arts_md_invoice_workflow` `PDF_EXPORT_PACKAGE` -> `NO_MATERIAL_CHANGE` `PDF_EXPORT_PACKAGE_READY_FOR_MAC`.
+- `workflow_state:live_arts_md_invoice_workflow` `WORKFLOW_STATE` -> `NO_MATERIAL_CHANGE` `sha256:094372a0abf546aa3fd5a80d89cff417f69b94d73d8169d94fe2f0e4f0c80029`.
+- `pdf_export_package:live_arts_md_invoice_workflow` `PDF_EXPORT_PACKAGE` -> `NO_MATERIAL_CHANGE` `PDF_EXPORT_COMPLETED_CANDIDATE`.
+- `pdf_export_scope:live_arts_md_invoice_workflow` `PDF_EXPORT_SCOPE` -> `NO_MATERIAL_CHANGE` `SCOPED`.
 - `payment_watch:live_arts_md_invoice_workflow` `PAYMENT_WATCH` -> `NO_MATERIAL_CHANGE` `READINESS_ONLY_NOT_ACTIVE`.
-- `workflow_state:capital_hilton_invoice_workflow` `WORKFLOW_STATE` -> `NO_MATERIAL_CHANGE` `sha256:fb5d4a9bfdee073cb7527be0affbe86ad0214a9a6e9d7510a187822a81027223`.
+- `workflow_state:capital_hilton_invoice_workflow` `WORKFLOW_STATE` -> `NO_MATERIAL_CHANGE` `sha256:40f551d76024bb78c769840ed2e7bfe8f87931d8ac8dcfe9209c0647445d989a`.
 - `payment_watch:capital_hilton_invoice_workflow` `PAYMENT_WATCH` -> `NO_MATERIAL_CHANGE` `NOT_READY`.
 - `mac_heartbeat:sync_health` `MAC_HEARTBEAT` -> `BRIDGE_STALE` `stale_needs_mac_sync`.
-- `business_object_audit:freshness` `BUSINESS_OBJECT_AUDIT` -> `NO_MATERIAL_CHANGE` `FRESH`.
+- `business_object_audit:freshness` `BUSINESS_OBJECT_AUDIT` -> `BUSINESS_OBJECT_AUDIT_STALE` `STALE`.
 - `authority_semantics_registry:fingerprint` `AUTHORITY_SEMANTICS_REGISTRY` -> `NO_MATERIAL_CHANGE` `authority_semantics_v0`.
 - `lane_capability_harvest:recommendation` `LANE_CAPABILITY_HARVEST` -> `NO_MATERIAL_CHANGE` `finish_invoice_steel_thread_sequence`.
 - `service_status:openclaw-request-response.service` `SERVICE` -> `NO_MATERIAL_CHANGE` `active`.
 - `service_restart_count:openclaw-request-response.service` `SERVICE` -> `NO_MATERIAL_CHANGE` `0`.
+
+Material Changes:
+- `MATERIAL_CHANGE_DETECTED`: service_status:openclaw-request-response.service changed from 'active' to 'active'.
+- `MATERIAL_CHANGE_DETECTED`: service_restart_count:openclaw-request-response.service changed from '2' to '0'.
 
 Timer Proposal:
 - Proposed timer path: `~/.config/systemd/user/openclaw-change-sentinel.timer`.

@@ -28,26 +28,6 @@
   "capital_hilton_bundle": {
     "actionable_blockers": [
       {
-        "blocker_ref": "invoice_review_blocker:63fa5b43e1e21304",
-        "disabled_reason": "Generation/export authority intake is not wired yet.",
-        "operator_summary": "Generation/export authority is required before creating the selected invoice artifact.",
-        "primary_action": {
-          "action_kind": "export_selected_invoice_page",
-          "action_ref": "invoice_review_action:eb408f080e41b88f",
-          "disabled_reason": "This manual export authority path is not wired yet.",
-          "enabled": false,
-          "intended_use": "manual_operator_export_selected_invoice_page",
-          "label": "Export selected invoice page",
-          "no_cell_read": true,
-          "no_external_action": true,
-          "no_workbook_body_read": true
-        },
-        "proof_refs": [
-          "invoice_review:selected_record_invoice_artifact_generation_authority_required_receipt:7a4d0b2669c9fdbb"
-        ],
-        "status": "NOT_READY"
-      },
-      {
         "blocker_ref": "invoice_review_blocker:d288b9be7cc4171d",
         "disabled_reason": null,
         "operator_summary": "Coupa submission proof is still required.",
@@ -560,7 +540,6 @@
       "tool_execution_allowed": false
     },
     "blockers": [
-      "Generation/export authority is required before creating the selected invoice artifact.",
       "Coupa submission proof is still required.",
       "Which invoice page/period should OpenClaw prepare for Capital Hilton?",
       "OpenClaw needs the current invoice page/period before it can attach the Excel invoice.",
@@ -570,7 +549,7 @@
     ],
     "bundle_id": "invoice_review_bundle:capital_hilton:v0",
     "clara_email_draft": {
-      "body": "Hi Annette - I'm Clara Reid, helping Winship keep the Capital Hilton invoice details organized.\n\nI'm preparing the Excel invoice note for your records once Winship confirms the invoice file.\n\nBest,\nClara Reid",
+      "body": "Hi Annette - I'm Clara Reid, helping Winship keep the Capital Hilton invoice details organized.\n\nInvoice attachment: [confirmed Excel invoice for Annette's records].\nPeriod covered: [confirmed Capital Hilton invoice dates or period].\n\nBest,\nClara Reid",
       "draft_only": true,
       "selected_voice": "CLARA",
       "sent": false,
@@ -595,7 +574,7 @@
         "production_mutation_performed": false,
         "workbook_cell_read_performed": false
       },
-      "body": "Hi Annette - I'm Clara Reid, helping Winship keep the Capital Hilton invoice details organized.\n\nI'm preparing the Excel invoice note for your records once Winship confirms the invoice file.\n\nBest,\nClara Reid",
+      "body": "Hi Annette - I'm Clara Reid, helping Winship keep the Capital Hilton invoice details organized.\n\nInvoice attachment: [confirmed Excel invoice for Annette's records].\nPeriod covered: [confirmed Capital Hilton invoice dates or period].\n\nBest,\nClara Reid",
       "cc_recipients": [
         {
           "confirmation_status": "CANDIDATE_UNCONFIRMED",
@@ -619,9 +598,23 @@
         }
       ],
       "client_facing_body_has_backend_status_language": false,
+      "client_facing_draft_ready_for_approval": {
+        "blocked_by": [
+          "attachment_readiness",
+          "invoice_period_or_dates",
+          "recipient_confirmation",
+          "supplier_portal_submission_proof",
+          "clara_draft_receipt"
+        ],
+        "body": null,
+        "exact_email_ready_for_guardian_operator_approval": false,
+        "ready": false,
+        "status": "CLIENT_FACING_DRAFT_BLOCKED",
+        "subject": null
+      },
       "client_ref": "capital_hilton",
       "draft_only": true,
-      "draft_ref": "clara_invoice_email_draft:capital_hilton:334ae6db4782af14",
+      "draft_ref": "clara_invoice_email_draft:capital_hilton:fa51a8910f2b4196",
       "draft_status": "DRAFT_BLOCKED_PENDING_PREREQUISITES",
       "external_identity": "CLARA_REID",
       "first_contact_intro_policy_ref": "generated/read_models/client_comms_thread_rail.json#capital_hilton_first_contact_policy",
@@ -650,8 +643,48 @@
       "send_execution_status": "NOT_SENT",
       "send_readiness": "BLOCKED_PREREQUISITES",
       "sent": false,
+      "sent_email": {
+        "send_execution_receipt_ref": null,
+        "sent": false,
+        "status": "NOT_SENT"
+      },
       "subject": "Capital Hilton invoice",
       "supplier_portal_provider": "COUPA",
+      "target_client_email_blueprint": {
+        "body_template": "Hi Annette - I'm Clara Reid, helping Winship keep the Capital Hilton invoice details organized.\n\nInvoice attachment: [confirmed Excel invoice for Annette's records].\nPeriod covered: [confirmed Capital Hilton invoice dates or period].\n\nBest,\nClara Reid",
+        "gated_claims": [
+          {
+            "allowed": false,
+            "claim": "Excel invoice is attached for Annette's records.",
+            "claim_ref": "capital_hilton_excel_invoice_attached",
+            "required_receipt": "invoice_attachment_confirmed_receipt"
+          },
+          {
+            "allowed": false,
+            "claim": "Invoice period or performance dates are stated.",
+            "claim_ref": "capital_hilton_invoice_period_dates",
+            "required_receipt": "invoice_period_confirmed_receipt"
+          },
+          {
+            "allowed": false,
+            "claim": "Supplier portal invoice has been submitted.",
+            "claim_ref": "capital_hilton_portal_submission",
+            "required_receipt": "portal_invoice_submission_receipt",
+            "supplier_portal_provider": "COUPA"
+          }
+        ],
+        "purpose": "Target final client email blueprint with gated claims.",
+        "send_ready": false,
+        "status": "TARGET_BLUEPRINT_NOT_SEND_READY",
+        "subject_template": "Capital Hilton invoice",
+        "unresolved_slots": [
+          "attachment_readiness",
+          "invoice_period_or_dates",
+          "recipient_confirmation",
+          "supplier_portal_submission_proof",
+          "clara_draft_receipt"
+        ]
+      },
       "to_recipients": [
         {
           "confirmation_status": "CANDIDATE_UNCONFIRMED",
@@ -1082,37 +1115,8 @@
       "attachment_ready": false,
       "bridge_relative_ref": "generated/invoice_artifacts/capital_hilton_invoice_artifact_v0/WINSHIP_CAPITAL_HILTON_INVOICE_2026-05-25.xlsx",
       "display_name": "Capital Hilton Excel invoice candidate",
-      "generation_authority_required": true,
-      "generation_strategy": "MANUAL_EXPORT_OR_GOVERNED_LINK_REQUIRED",
-      "linkage_status": "GENERATION_AUTHORITY_REQUIRED",
+      "linkage_status": "NEEDS_REGENERATION_OR_LINK",
       "mac_visible_ref": "/Volumes/openclaw_e/generated/invoice_artifacts/capital_hilton_invoice_artifact_v0/WINSHIP_CAPITAL_HILTON_INVOICE_2026-05-25.xlsx",
-      "manual_operator_actions": [
-        {
-          "action_kind": "export_selected_invoice_page",
-          "action_ref": "invoice_review_action:eb408f080e41b88f",
-          "disabled_reason": "This manual export authority path is not wired yet.",
-          "enabled": false,
-          "intended_use": "manual_operator_export_selected_invoice_page",
-          "label": "Export selected invoice page",
-          "no_cell_read": true,
-          "no_external_action": true,
-          "no_workbook_body_read": true
-        },
-        {
-          "action_kind": "attach_generated_invoice_artifact",
-          "action_ref": "invoice_review_action:3d8b6c2b29dd8584",
-          "disabled_reason": "This artifact-link intake path is not wired yet.",
-          "enabled": false,
-          "intended_use": "manual_operator_link_generated_invoice_artifact",
-          "label": "Attach generated invoice artifact",
-          "no_cell_read": true,
-          "no_external_action": true,
-          "no_workbook_body_read": true
-        }
-      ],
-      "metadata_file_size": 1845,
-      "metadata_sha256": "44680845f750580f114cfc2d0cc8f06cd11dfb36c40fa555bbdcfbdef7d06eb4",
-      "metadata_status": "GENERATED_ARTIFACT_METADATA_VALID",
       "missing_linkage_receipts": [
         "active_workbook_confirmed_receipt",
         "invoice_record_selected_receipt",
@@ -1122,7 +1126,7 @@
       "pc_bridge_ref": "/mnt/e/openclaw/generated/invoice_artifacts/capital_hilton_invoice_artifact_v0/WINSHIP_CAPITAL_HILTON_INVOICE_2026-05-25.xlsx",
       "preview_available": true,
       "preview_ref": "generated/invoice_artifacts/capital_hilton_invoice_artifact_v0/WINSHIP_CAPITAL_HILTON_INVOICE_2026-05-25.xlsx",
-      "proof_status": "GENERATION_AUTHORITY_REQUIRED",
+      "proof_status": "GENERATED_INVOICE_ARTIFACT_CANDIDATE",
       "required_linkage_receipts": [
         "active_workbook_confirmed_receipt",
         "invoice_record_selected_receipt",
@@ -1130,7 +1134,7 @@
         "generated_invoice_artifact_linkage_receipt"
       ]
     },
-    "generated_at": "2026-05-28T00:00:00+00:00",
+    "generated_at": "2026-06-04T02:40:20+00:00",
     "guardian_approval_request": {
       "approval_ref": "guardian_invoice_review_approval:29a79c0aad435df9",
       "approval_required": true,
@@ -1238,7 +1242,7 @@
       "completion_receipt_still_required": "invoice_record_selected_receipt",
       "invoice_period_label": "May 2026",
       "invoice_period_state": "INVOICE_PERIOD_OPERATOR_CONFIRMED",
-      "invoice_record_label": "May tab / page 2",
+      "invoice_record_label": "Page 2",
       "invoice_record_state": "INVOICE_RECORD_OPERATOR_CONFIRMED",
       "no_cell_read": true,
       "no_workbook_body_read": true,
@@ -1256,7 +1260,7 @@
       "attachment_ready_requires_invoice_record_linkage": true,
       "clara_client_draft_body_status_free": true,
       "clara_draft_slot_present": true,
-      "content_hash": "sha256:cc0f98c4d752fbd8d4e8dbfa676981357aee7503fde28bce990af4409076b973",
+      "content_hash": "sha256:ab75664ded56d3b3dc400572dde93886950e83a05cc938ce1090d746f2e83f1f",
       "coupa_primary_before_email_success": true,
       "coupa_required_for_capital_hilton": true,
       "draft_does_not_imply_sent": true,
@@ -1264,8 +1268,8 @@
       "existing_artifact_without_invoice_record_linkage_is_candidate_only": true,
       "guardian_output_validation_does_not_imply_approval_request": true,
       "incomplete_timeline_steps_have_actions_or_disabled_reasons": true,
-      "last_action_completion_receipt_written": 0,
-      "last_action_underlying_blocker_completed": 0,
+      "last_action_completion_receipt_written": false,
+      "last_action_underlying_blocker_completed": false,
       "operator_approval_does_not_imply_execution": true,
       "operator_copy_jargon_free": true,
       "pdf_excel_generation_performed": false,
@@ -1489,7 +1493,7 @@
         },
         "proof_ref": null,
         "proof_refs": [
-          "invoice_review:selected_record_invoice_artifact_generation_authority_required_receipt:7a4d0b2669c9fdbb"
+          "invoice_review:supplier_portal_proof_intake_requested_receipt:5fa1a6da2836b48a"
         ],
         "receipt_ref": null,
         "required_receipts": [
@@ -1596,7 +1600,7 @@
         },
         "proof_ref": null,
         "proof_refs": [
-          "invoice_review:selected_record_invoice_artifact_generation_authority_required_receipt:7a4d0b2669c9fdbb"
+          "invoice_review:supplier_portal_proof_intake_requested_receipt:5fa1a6da2836b48a"
         ],
         "receipt_ref": null,
         "required_receipts": [
@@ -1738,7 +1742,7 @@
         },
         "proof_ref": null,
         "proof_refs": [
-          "invoice_review:selected_record_invoice_artifact_generation_authority_required_receipt:7a4d0b2669c9fdbb"
+          "invoice_review:supplier_portal_proof_intake_requested_receipt:5fa1a6da2836b48a"
         ],
         "receipt_ref": null,
         "required_receipts": [
@@ -1914,7 +1918,7 @@
         },
         "proof_ref": null,
         "proof_refs": [
-          "invoice_review:selected_record_invoice_artifact_generation_authority_required_receipt:7a4d0b2669c9fdbb"
+          "invoice_review:supplier_portal_proof_intake_requested_receipt:5fa1a6da2836b48a"
         ],
         "receipt_ref": null,
         "required_receipts": [
@@ -2260,19 +2264,19 @@
     "state_machine": {
       "completion_receipts_only_turn_steps_complete": true,
       "last_action_receipt": {
-        "action_kind": "regenerate_or_link_invoice_artifact",
+        "action_kind": "request_supplier_portal_submission_proof",
         "bundle_id": "invoice_review_bundle:capital_hilton:v0",
         "client_ref": "capital_hilton",
-        "completion_receipt_written": 0,
-        "external_action_performed": 0,
-        "generated_at": "2026-05-28T14:06:40.359225+00:00",
-        "receipt_event": "selected_record_invoice_artifact_generation_authority_required",
-        "receipt_id": "invoice_review:selected_record_invoice_artifact_generation_authority_required_receipt:7a4d0b2669c9fdbb",
-        "receipt_name": "selected_record_invoice_artifact_generation_authority_required_receipt",
+        "completion_receipt_written": false,
+        "external_action_performed": false,
+        "generated_at": "2026-06-04T02:40:20+00:00",
+        "receipt_event": "supplier_portal_proof_intake_requested",
+        "receipt_id": "invoice_review:supplier_portal_proof_intake_requested_receipt:5fa1a6da2836b48a",
+        "receipt_name": "supplier_portal_proof_intake_requested_receipt",
         "receipt_type": "invoice_review_action_progress_receipt",
-        "source_request_id": "capital_hilton_selected_invoice_artifact_generation_rail_v0",
-        "status": "GENERATION_AUTHORITY_REQUIRED",
-        "underlying_blocker_completed": 0,
+        "source_request_id": "capital_hilton_invoice_workflow_invoice_review_action_1780540836499_492ecca821a2",
+        "status": "REQUESTED",
+        "underlying_blocker_completed": false,
         "workflow_ref": "capital_hilton_invoice_workflow"
       },
       "schema_version": "invoice_review_state_machine_v0",
@@ -2288,23 +2292,23 @@
         "generated_artifact_metadata_hash": "44680845f750580f114cfc2d0cc8f06cd11dfb36c40fa555bbdcfbdef7d06eb4",
         "generated_artifact_metadata_size": 1845,
         "generated_artifact_metadata_status": "GENERATED_ARTIFACT_METADATA_VALID",
-        "generated_artifact_status": "GENERATION_AUTHORITY_REQUIRED",
+        "generated_artifact_status": "CANDIDATE_NEEDS_REGENERATION_OR_LINK",
         "generated_candidate_disposition": "should_regenerate_after_selection",
         "invoice_period_label": "May 2026",
         "invoice_period_status": "OPERATOR_CONFIRMED",
-        "invoice_record_label": "May tab / page 2",
+        "invoice_record_label": "Page 2",
         "invoice_record_selection_status": "OPERATOR_CONFIRMED",
-        "last_action_kind": "regenerate_or_link_invoice_artifact",
-        "last_receipt_id": "invoice_review:selected_record_invoice_artifact_generation_authority_required_receipt:7a4d0b2669c9fdbb",
-        "last_updated_at": "2026-05-28T14:06:40.359225+00:00",
+        "last_action_kind": "request_supplier_portal_submission_proof",
+        "last_receipt_id": "invoice_review:supplier_portal_proof_intake_requested_receipt:5fa1a6da2836b48a",
+        "last_updated_at": "2026-06-04T02:40:20+00:00",
         "ledger_tax_status": "NOT_READY",
         "operator_notes": null,
         "payment_watch_status": "NOT_READY",
         "recipient_confirmation_status": "REVIEW_REQUESTED_EMAILS_MISSING",
         "recipient_review_status": "NEEDS_CONTACT_CONFIRMATION",
-        "source_workbook_mac_path": null,
+        "source_workbook_mac_path": "/Users/hwinshipwheatley/Documents/Invoices/Invoice Clients/Invoice Capital Hilton Running.xlsx",
         "source_workbook_pc_path": null,
-        "source_workbook_ref": "workbook_ref:client_invoice:capital_hilton:capital_hilton_invoice_workflow:a1039befe485542d",
+        "source_workbook_ref": "operator_selected_workbook:6e850238d931e02f",
         "source_workbook_status": "CONFIRMED",
         "supplier_portal_proof_status": "PROOF_REQUESTED",
         "supplier_portal_provider": "COUPA",
@@ -2338,7 +2342,7 @@
     "workflow_ref": "capital_hilton_invoice_workflow"
   },
   "contract_status": "MISSION_CONTROL_APPROVAL_CARD_CONTRACT_NO_ACTIONS",
-  "generated_at": "2026-05-28T00:00:00+00:00",
+  "generated_at": "2026-06-04T02:40:20+00:00",
   "hidden_from_primary_ui": [
     "approval_ref",
     "button_ref",
@@ -2362,7 +2366,7 @@
     "capital_hilton_coupa_proof_required": true,
     "capital_hilton_has_review_bundle": true,
     "capital_hilton_supplier_portal_provider": "COUPA",
-    "content_hash": "sha256:643f99f7b9688fa1b6a623aa913a0e29906ea7f1f0ddf92586ad45b584eb56cf",
+    "content_hash": "sha256:3b06a4106d22c3f78265380588db7a6d607760e53d180aaec2c62782d6ef8ed5",
     "coupa_action_enabled": false,
     "non_coupa_client_does_not_require_coupa": true,
     "non_coupa_client_does_not_require_supplier_portal": true,
@@ -2393,7 +2397,7 @@
       "required": false,
       "status": "NOT_REQUIRED_BY_RECIPE"
     },
-    "generated_at": "2026-05-28T00:00:00+00:00",
+    "generated_at": "2026-06-04T02:40:20+00:00",
     "operator_copy": {
       "body": "This recipe does not require Coupa proof unless the client recipe is changed.",
       "headline": "Review the St. Anne's invoice package."

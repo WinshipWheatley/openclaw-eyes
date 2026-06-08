@@ -52,7 +52,7 @@
     "Controls remain controller events and never grant protected authority.",
     "Details and proof stay collapsed by default."
   ],
-  "generated_at": "2026-06-07T01:29:22+00:00",
+  "generated_at": "2026-06-08T14:01:09+00:00",
   "implementation_boundary": {
     "business_action_performed": false,
     "coupa_submit_performed": false,
@@ -206,7 +206,8 @@
     "candidate_sources": [
       "deterministic_fixture",
       "shadow_pilot_candidate",
-      "future_live_lm_blocked"
+      "future_live_lm_blocked",
+      "lm2_room_backed_worker_structured_output_retry"
     ],
     "fallback_output": "safe fallback response grounded in available proof",
     "inputs": [
@@ -222,6 +223,7 @@
   "status": "PROOF_TO_RESPONSE_RUNTIME_READY",
   "supported_scenarios": [
     "finance_capital_hilton_payment_watch",
+    "finance_capital_hilton_attach_proof_explanation",
     "finance_live_arts_payment_evidence",
     "business_development_capital_hilton_followup",
     "build_review_packet",

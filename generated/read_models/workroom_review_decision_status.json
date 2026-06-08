@@ -678,9 +678,648 @@
       "worker_ref_is_speaker": false,
       "worker_spawn_performed": false,
       "workflow_ref": "workroom_review_decision"
+    },
+    {
+      "authority_boundary": {
+        "agent_loop_allowed": false,
+        "browser_access_allowed": false,
+        "business_action_allowed": false,
+        "child_agent_run_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "external_llm_allowed": false,
+        "external_tool_connect_allowed": false,
+        "git_push_allowed": false,
+        "gmail_allowed": false,
+        "ledger_mutation_allowed": false,
+        "ledger_posting_allowed": false,
+        "merge_allowed": false,
+        "paid": false,
+        "paid_marking_allowed": false,
+        "pdf_export_allowed": false,
+        "portal_submit_allowed": false,
+        "sent": false,
+        "speaker_tool_grant_allowed": false,
+        "workbook_mutation_allowed": false,
+        "worker_spawn_allowed": false
+      },
+      "blockers": [],
+      "browser_access_performed": false,
+      "business_action_performed": false,
+      "business_state_mutation_performed": false,
+      "child_agent_run_performed": false,
+      "contract_receipt": {
+        "authority_boundary": {
+          "agent_loop_allowed": false,
+          "browser_access_allowed": false,
+          "business_action_allowed": false,
+          "child_agent_run_allowed": false,
+          "coupa_allowed": false,
+          "email_send_allowed": false,
+          "external_llm_allowed": false,
+          "external_tool_connect_allowed": false,
+          "git_push_allowed": false,
+          "gmail_allowed": false,
+          "ledger_mutation_allowed": false,
+          "ledger_posting_allowed": false,
+          "merge_allowed": false,
+          "paid": false,
+          "paid_marking_allowed": false,
+          "pdf_export_allowed": false,
+          "portal_submit_allowed": false,
+          "sent": false,
+          "speaker_tool_grant_allowed": false,
+          "workbook_mutation_allowed": false,
+          "worker_spawn_allowed": false
+        },
+        "blockers": [],
+        "business_action_performed": false,
+        "decision_accepted": true,
+        "decision_action": "mark_review_packet_informational",
+        "decision_effect": "review_closed_without_action",
+        "email_send_performed": false,
+        "generated_at": "2026-06-05T10:10:22+00:00",
+        "git_push_performed": false,
+        "informational_only": true,
+        "ledger_mutation_performed": false,
+        "merge_performed": false,
+        "next_safe_action": "Close the review as informational; no work or business action follows from this decision.",
+        "no_business_action": true,
+        "no_merge": true,
+        "no_push": true,
+        "operator_reviewed": true,
+        "proof_collapsed_by_default": true,
+        "reason": "Operator chose Mark informational in Mission Control Workrooms.",
+        "receipt_id": "workroom_review_decision:d6aa41efad16d106",
+        "receipt_type": "WORKROOM_REVIEW_DECISION_RECEIPT",
+        "review_closed": true,
+        "review_packet_id": "review_packet:c4ec166103f9aa35",
+        "rework_requested": false,
+        "schema_version": "workroom_review_decision_contract_v0",
+        "status": "MARKED_INFORMATIONAL",
+        "submit_performed": false,
+        "unsafe_true_grants": [],
+        "workbook_mutation_performed": false,
+        "worker_inherits_speaker_authority": false,
+        "worker_spawn_performed": false
+      },
+      "coupa_access_performed": false,
+      "decision_accepted": true,
+      "decision_action": "mark_review_packet_informational",
+      "decision_recorded": true,
+      "email_send_performed": false,
+      "generated_at": "2026-06-05T10:10:22+00:00",
+      "git_push_performed": false,
+      "gmail_access_performed": false,
+      "ledger_mutation_performed": false,
+      "merge_performed": false,
+      "next_safe_action": "No action needed.",
+      "no_business_action": true,
+      "no_merge": true,
+      "no_push": true,
+      "operator_display": {
+        "audience": "internal_operator",
+        "headline": "Review marked informational",
+        "next_safe_action": "No action needed.",
+        "plain_summary": "I recorded the review decision. No merge or push was performed.",
+        "primary_fact": "Worker ref remains pc_codex; speaker authority stays with Chief.",
+        "proof_caption": "Proof available.",
+        "proof_refs_collapsed": true,
+        "routing_reason": "normal review decision status",
+        "secondary_facts": [
+          "No merge or push performed.",
+          "No business action performed."
+        ],
+        "show_machine_details_by_default": false,
+        "speaker_ref": "chief",
+        "status_label": "Workroom review decision recorded",
+        "subheadline": "Decision receipt only.",
+        "tone": "calm",
+        "voice_mode": "diagnostic",
+        "voice_profile_ref": "agent_voice_profile:chief",
+        "why_it_matters": "Review decisions separate operator review from merge, push, and business action authority."
+      },
+      "operator_reviewed": true,
+      "paid_marking_performed": false,
+      "pdf_export_performed": false,
+      "preconditions": [
+        {
+          "observed_status": "WORKROOM_REVIEW_PACKET_INDEX_READY",
+          "precondition_ref": "workroom_review_packet_index",
+          "ready": true,
+          "required_status": "WORKROOM_REVIEW_PACKET_INDEX_READY",
+          "source_ref": "generated/read_models/workroom_review_packet_index.json"
+        },
+        {
+          "observed_status": "WORKROOM_REVIEW_DECISION_CONTRACT_READY",
+          "precondition_ref": "workroom_review_decision_contract",
+          "ready": true,
+          "required_status": "WORKROOM_REVIEW_DECISION_CONTRACT_READY",
+          "source_ref": "generated/read_models/workroom_review_decision_contract.json"
+        },
+        {
+          "observed_status": "PACKAGE_EVENT_INDEX_READY",
+          "precondition_ref": "package_event_index",
+          "ready": true,
+          "required_status": "PACKAGE_EVENT_INDEX_READY",
+          "source_ref": "generated/read_models/package_event_index.json"
+        }
+      ],
+      "proof_refs": [
+        "generated/read_models/workroom_review_packet_index.json",
+        "generated/read_models/workroom_review_decision_contract.json",
+        "generated/read_models/package_event_index.json",
+        "generated/read_models/workroom_review_decision_status.json",
+        "generated/read_models/spawned_worker_package_lifecycle.json#pc_backend_package_review"
+      ],
+      "proof_refs_collapsed": true,
+      "raw_internal_status": "RESPONSE_READY",
+      "read_model_paths": {
+        "bridge_status_path": "/mnt/e/openclaw/generated/read_models/workroom_review_decision_status.json",
+        "local_status_path": "/home/openclaw/generated/read_models/workroom_review_decision_status.json",
+        "wiki_path": "/home/openclaw/generated/wiki/openclaw/Workroom Review Decision Consumer.md"
+      },
+      "reason": "Operator chose Mark informational in Mission Control Workrooms.",
+      "receipt_id": "workroom_review_decision_consumer:cc9e1391d1ccf4a8",
+      "receipt_type": "WORKROOM_REVIEW_DECISION_CONSUMER_RECEIPT",
+      "request_id": "workroom_review_decision_mark_review_packet_informational_20260605T152446Z_87feadc5fa6d",
+      "request_type": "WORKROOM_REVIEW_DECISION_REQUEST_V0",
+      "response_primary_status": "Workroom review decision recorded",
+      "review_packet_found": true,
+      "review_packet_id": "review_packet:c4ec166103f9aa35",
+      "review_packet_summary": {
+        "business_action_performed": false,
+        "channel_ref": "build_openclaw_backend",
+        "files_changed": [
+          "example_backend_module.py",
+          "tests/test_example_backend_module.py"
+        ],
+        "human_summary": "PC_CODEX changed backend code and returned local validation proof for operator review.",
+        "merge_allowed": false,
+        "next_safe_action": "Review the packet and approve, request rework, or block by gate.",
+        "operator_decision_required": true,
+        "package_id": "pkg:example:backend_registry_patch",
+        "proof_collapsed_by_default": true,
+        "proof_refs": [
+          "generated/read_models/spawned_worker_package_lifecycle.json#pc_backend_package_review"
+        ],
+        "push_allowed": false,
+        "receipts": [],
+        "review_packet_id": "review_packet:c4ec166103f9aa35",
+        "screenshots": [],
+        "status": "REVIEW_PACKET_READY",
+        "tests_run": [
+          "pytest -q tests/test_example_backend_module.py"
+        ],
+        "unsafe_scan_result": {
+          "status": "PASS",
+          "unsafe_true_grants": []
+        },
+        "worker_inherits_speaker_authority": false,
+        "worker_ref": "pc_codex"
+      },
+      "schema_version": "workroom_review_decision_consumer_v0",
+      "source_request_filename": "mission_control_workroom_review_decision_workroom_review_decision_mark_review_packet_informational_20260605T152446Z_87feadc5fa6d.json",
+      "speaker_ref": "chief",
+      "status": "INFORMATIONAL_REVIEW_CLOSED",
+      "submit_performed": false,
+      "unsafe_true_grants": [],
+      "voice_mode": "diagnostic",
+      "voice_profile_ref": "agent_voice_profile:chief",
+      "workbook_mutation_performed": false,
+      "worker_ref": "pc_codex",
+      "worker_ref_is_speaker": false,
+      "worker_spawn_performed": false,
+      "workflow_ref": "workroom_review_decision"
+    },
+    {
+      "authority_boundary": {
+        "agent_loop_allowed": false,
+        "browser_access_allowed": false,
+        "business_action_allowed": false,
+        "child_agent_run_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "external_llm_allowed": false,
+        "external_tool_connect_allowed": false,
+        "git_push_allowed": false,
+        "gmail_allowed": false,
+        "ledger_mutation_allowed": false,
+        "ledger_posting_allowed": false,
+        "merge_allowed": false,
+        "paid": false,
+        "paid_marking_allowed": false,
+        "pdf_export_allowed": false,
+        "portal_submit_allowed": false,
+        "sent": false,
+        "speaker_tool_grant_allowed": false,
+        "workbook_mutation_allowed": false,
+        "worker_spawn_allowed": false
+      },
+      "blockers": [],
+      "browser_access_performed": false,
+      "business_action_performed": false,
+      "business_state_mutation_performed": false,
+      "child_agent_run_performed": false,
+      "contract_receipt": {
+        "authority_boundary": {
+          "agent_loop_allowed": false,
+          "browser_access_allowed": false,
+          "business_action_allowed": false,
+          "child_agent_run_allowed": false,
+          "coupa_allowed": false,
+          "email_send_allowed": false,
+          "external_llm_allowed": false,
+          "external_tool_connect_allowed": false,
+          "git_push_allowed": false,
+          "gmail_allowed": false,
+          "ledger_mutation_allowed": false,
+          "ledger_posting_allowed": false,
+          "merge_allowed": false,
+          "paid": false,
+          "paid_marking_allowed": false,
+          "pdf_export_allowed": false,
+          "portal_submit_allowed": false,
+          "sent": false,
+          "speaker_tool_grant_allowed": false,
+          "workbook_mutation_allowed": false,
+          "worker_spawn_allowed": false
+        },
+        "blockers": [],
+        "business_action_performed": false,
+        "decision_accepted": true,
+        "decision_action": "mark_review_packet_informational",
+        "decision_effect": "review_closed_without_action",
+        "email_send_performed": false,
+        "generated_at": "2026-06-05T17:28:15Z",
+        "git_push_performed": false,
+        "informational_only": true,
+        "ledger_mutation_performed": false,
+        "merge_performed": false,
+        "next_safe_action": "Close the review as informational; no work or business action follows from this decision.",
+        "no_business_action": true,
+        "no_merge": true,
+        "no_push": true,
+        "operator_reviewed": true,
+        "proof_collapsed_by_default": true,
+        "reason": "",
+        "receipt_id": "workroom_review_decision:5d5cde808b7c0c0d",
+        "receipt_type": "WORKROOM_REVIEW_DECISION_RECEIPT",
+        "review_closed": true,
+        "review_packet_id": "review_packet:c4ec166103f9aa35",
+        "rework_requested": false,
+        "schema_version": "workroom_review_decision_contract_v0",
+        "status": "MARKED_INFORMATIONAL",
+        "submit_performed": false,
+        "unsafe_true_grants": [],
+        "workbook_mutation_performed": false,
+        "worker_inherits_speaker_authority": false,
+        "worker_spawn_performed": false
+      },
+      "coupa_access_performed": false,
+      "decision_accepted": true,
+      "decision_action": "mark_review_packet_informational",
+      "decision_recorded": true,
+      "email_send_performed": false,
+      "generated_at": "2026-06-05T17:28:15Z",
+      "git_push_performed": false,
+      "gmail_access_performed": false,
+      "ledger_mutation_performed": false,
+      "merge_performed": false,
+      "next_safe_action": "No action needed.",
+      "no_business_action": true,
+      "no_merge": true,
+      "no_push": true,
+      "operator_display": {
+        "audience": "internal_operator",
+        "headline": "Review marked informational",
+        "next_safe_action": "No action needed.",
+        "plain_summary": "I recorded the review decision. No merge or push was performed.",
+        "primary_fact": "Worker ref remains pc_codex; speaker authority stays with Chief.",
+        "proof_caption": "Proof available.",
+        "proof_refs_collapsed": true,
+        "routing_reason": "normal review decision status",
+        "secondary_facts": [
+          "No merge or push performed.",
+          "No business action performed."
+        ],
+        "show_machine_details_by_default": false,
+        "speaker_ref": "chief",
+        "status_label": "Workroom review decision recorded",
+        "subheadline": "Decision receipt only.",
+        "tone": "calm",
+        "voice_mode": "diagnostic",
+        "voice_profile_ref": "agent_voice_profile:chief",
+        "why_it_matters": "Review decisions separate operator review from merge, push, and business action authority."
+      },
+      "operator_reviewed": true,
+      "paid_marking_performed": false,
+      "pdf_export_performed": false,
+      "preconditions": [
+        {
+          "observed_status": "WORKROOM_REVIEW_PACKET_INDEX_READY",
+          "precondition_ref": "workroom_review_packet_index",
+          "ready": true,
+          "required_status": "WORKROOM_REVIEW_PACKET_INDEX_READY",
+          "source_ref": "generated/read_models/workroom_review_packet_index.json"
+        },
+        {
+          "observed_status": "WORKROOM_REVIEW_DECISION_CONTRACT_READY",
+          "precondition_ref": "workroom_review_decision_contract",
+          "ready": true,
+          "required_status": "WORKROOM_REVIEW_DECISION_CONTRACT_READY",
+          "source_ref": "generated/read_models/workroom_review_decision_contract.json"
+        },
+        {
+          "observed_status": "PACKAGE_EVENT_INDEX_READY",
+          "precondition_ref": "package_event_index",
+          "ready": true,
+          "required_status": "PACKAGE_EVENT_INDEX_READY",
+          "source_ref": "generated/read_models/package_event_index.json"
+        }
+      ],
+      "proof_refs": [
+        "generated/read_models/workroom_review_packet_index.json",
+        "generated/read_models/workroom_review_decision_contract.json",
+        "generated/read_models/package_event_index.json",
+        "generated/read_models/workroom_review_decision_status.json",
+        "generated/read_models/spawned_worker_package_lifecycle.json#pc_backend_package_review"
+      ],
+      "proof_refs_collapsed": true,
+      "raw_internal_status": "RESPONSE_READY",
+      "read_model_paths": {
+        "bridge_status_path": "/mnt/e/openclaw/generated/read_models/workroom_review_decision_status.json",
+        "local_status_path": "/home/openclaw/generated/read_models/workroom_review_decision_status.json",
+        "wiki_path": "/home/openclaw/generated/wiki/openclaw/Workroom Review Decision Consumer.md"
+      },
+      "reason": "",
+      "receipt_id": "workroom_review_decision_consumer:0d00af1df50a279c",
+      "receipt_type": "WORKROOM_REVIEW_DECISION_CONSUMER_RECEIPT",
+      "request_id": "controller_event_workroom_review_dfaf160ec4413d17",
+      "request_type": "WORKROOM_REVIEW_DECISION_REQUEST_V0",
+      "response_primary_status": "Workroom review decision recorded",
+      "review_packet_found": true,
+      "review_packet_id": "review_packet:c4ec166103f9aa35",
+      "review_packet_summary": {
+        "business_action_performed": false,
+        "channel_ref": "build_openclaw_backend",
+        "files_changed": [
+          "example_backend_module.py",
+          "tests/test_example_backend_module.py"
+        ],
+        "human_summary": "PC_CODEX changed backend code and returned local validation proof for operator review.",
+        "merge_allowed": false,
+        "next_safe_action": "Review the packet and approve, request rework, or block by gate.",
+        "operator_decision_required": true,
+        "package_id": "pkg:example:backend_registry_patch",
+        "proof_collapsed_by_default": true,
+        "proof_refs": [
+          "generated/read_models/spawned_worker_package_lifecycle.json#pc_backend_package_review"
+        ],
+        "push_allowed": false,
+        "receipts": [],
+        "review_packet_id": "review_packet:c4ec166103f9aa35",
+        "screenshots": [],
+        "status": "REVIEW_PACKET_READY",
+        "tests_run": [
+          "pytest -q tests/test_example_backend_module.py"
+        ],
+        "unsafe_scan_result": {
+          "status": "PASS",
+          "unsafe_true_grants": []
+        },
+        "worker_inherits_speaker_authority": false,
+        "worker_ref": "pc_codex"
+      },
+      "schema_version": "workroom_review_decision_consumer_v0",
+      "source_request_filename": "controller_event_workroom_review_dfaf160ec4413d17.json",
+      "speaker_ref": "chief",
+      "status": "INFORMATIONAL_REVIEW_CLOSED",
+      "submit_performed": false,
+      "unsafe_true_grants": [],
+      "voice_mode": "diagnostic",
+      "voice_profile_ref": "agent_voice_profile:chief",
+      "workbook_mutation_performed": false,
+      "worker_ref": "pc_codex",
+      "worker_ref_is_speaker": false,
+      "worker_spawn_performed": false,
+      "workflow_ref": "workroom_review_decision"
+    },
+    {
+      "authority_boundary": {
+        "agent_loop_allowed": false,
+        "browser_access_allowed": false,
+        "business_action_allowed": false,
+        "child_agent_run_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "external_llm_allowed": false,
+        "external_tool_connect_allowed": false,
+        "git_push_allowed": false,
+        "gmail_allowed": false,
+        "ledger_mutation_allowed": false,
+        "ledger_posting_allowed": false,
+        "merge_allowed": false,
+        "paid": false,
+        "paid_marking_allowed": false,
+        "pdf_export_allowed": false,
+        "portal_submit_allowed": false,
+        "sent": false,
+        "speaker_tool_grant_allowed": false,
+        "workbook_mutation_allowed": false,
+        "worker_spawn_allowed": false
+      },
+      "blockers": [],
+      "browser_access_performed": false,
+      "business_action_performed": false,
+      "business_state_mutation_performed": false,
+      "child_agent_run_performed": false,
+      "contract_receipt": {
+        "authority_boundary": {
+          "agent_loop_allowed": false,
+          "browser_access_allowed": false,
+          "business_action_allowed": false,
+          "child_agent_run_allowed": false,
+          "coupa_allowed": false,
+          "email_send_allowed": false,
+          "external_llm_allowed": false,
+          "external_tool_connect_allowed": false,
+          "git_push_allowed": false,
+          "gmail_allowed": false,
+          "ledger_mutation_allowed": false,
+          "ledger_posting_allowed": false,
+          "merge_allowed": false,
+          "paid": false,
+          "paid_marking_allowed": false,
+          "pdf_export_allowed": false,
+          "portal_submit_allowed": false,
+          "sent": false,
+          "speaker_tool_grant_allowed": false,
+          "workbook_mutation_allowed": false,
+          "worker_spawn_allowed": false
+        },
+        "blockers": [],
+        "business_action_performed": false,
+        "decision_accepted": true,
+        "decision_action": "mark_review_packet_informational",
+        "decision_effect": "review_closed_without_action",
+        "email_send_performed": false,
+        "generated_at": "2026-06-05T17:38:57+00:00",
+        "git_push_performed": false,
+        "informational_only": true,
+        "ledger_mutation_performed": false,
+        "merge_performed": false,
+        "next_safe_action": "Close the review as informational; no work or business action follows from this decision.",
+        "no_business_action": true,
+        "no_merge": true,
+        "no_push": true,
+        "operator_reviewed": true,
+        "proof_collapsed_by_default": true,
+        "reason": "",
+        "receipt_id": "workroom_review_decision:971f68b837317999",
+        "receipt_type": "WORKROOM_REVIEW_DECISION_RECEIPT",
+        "review_closed": true,
+        "review_packet_id": "review_packet:c4ec166103f9aa35",
+        "rework_requested": false,
+        "schema_version": "workroom_review_decision_contract_v0",
+        "status": "MARKED_INFORMATIONAL",
+        "submit_performed": false,
+        "unsafe_true_grants": [],
+        "workbook_mutation_performed": false,
+        "worker_inherits_speaker_authority": false,
+        "worker_spawn_performed": false
+      },
+      "coupa_access_performed": false,
+      "decision_accepted": true,
+      "decision_action": "mark_review_packet_informational",
+      "decision_recorded": true,
+      "email_send_performed": false,
+      "generated_at": "2026-06-05T17:38:57+00:00",
+      "git_push_performed": false,
+      "gmail_access_performed": false,
+      "ledger_mutation_performed": false,
+      "merge_performed": false,
+      "next_safe_action": "No action needed.",
+      "no_business_action": true,
+      "no_merge": true,
+      "no_push": true,
+      "operator_display": {
+        "audience": "internal_operator",
+        "headline": "Review marked informational",
+        "next_safe_action": "No action needed.",
+        "plain_summary": "I recorded the review decision. No merge or push was performed.",
+        "primary_fact": "Worker ref remains pc_codex; speaker authority stays with Chief.",
+        "proof_caption": "Proof available.",
+        "proof_refs_collapsed": true,
+        "routing_reason": "normal review decision status",
+        "secondary_facts": [
+          "No merge or push performed.",
+          "No business action performed."
+        ],
+        "show_machine_details_by_default": false,
+        "speaker_ref": "chief",
+        "status_label": "Workroom review decision recorded",
+        "subheadline": "Decision receipt only.",
+        "tone": "calm",
+        "voice_mode": "diagnostic",
+        "voice_profile_ref": "agent_voice_profile:chief",
+        "why_it_matters": "Review decisions separate operator review from merge, push, and business action authority."
+      },
+      "operator_reviewed": true,
+      "paid_marking_performed": false,
+      "pdf_export_performed": false,
+      "preconditions": [
+        {
+          "observed_status": "WORKROOM_REVIEW_PACKET_INDEX_READY",
+          "precondition_ref": "workroom_review_packet_index",
+          "ready": true,
+          "required_status": "WORKROOM_REVIEW_PACKET_INDEX_READY",
+          "source_ref": "generated/read_models/workroom_review_packet_index.json"
+        },
+        {
+          "observed_status": "WORKROOM_REVIEW_DECISION_CONTRACT_READY",
+          "precondition_ref": "workroom_review_decision_contract",
+          "ready": true,
+          "required_status": "WORKROOM_REVIEW_DECISION_CONTRACT_READY",
+          "source_ref": "generated/read_models/workroom_review_decision_contract.json"
+        },
+        {
+          "observed_status": "PACKAGE_EVENT_INDEX_READY",
+          "precondition_ref": "package_event_index",
+          "ready": true,
+          "required_status": "PACKAGE_EVENT_INDEX_READY",
+          "source_ref": "generated/read_models/package_event_index.json"
+        }
+      ],
+      "proof_refs": [
+        "generated/read_models/workroom_review_packet_index.json",
+        "generated/read_models/workroom_review_decision_contract.json",
+        "generated/read_models/package_event_index.json",
+        "generated/read_models/workroom_review_decision_status.json",
+        "generated/read_models/spawned_worker_package_lifecycle.json#pc_backend_package_review"
+      ],
+      "proof_refs_collapsed": true,
+      "raw_internal_status": "RESPONSE_READY",
+      "read_model_paths": {
+        "bridge_status_path": "/mnt/e/openclaw/generated/read_models/workroom_review_decision_status.json",
+        "local_status_path": "/home/openclaw/generated/read_models/workroom_review_decision_status.json",
+        "wiki_path": "/home/openclaw/generated/wiki/openclaw/Workroom Review Decision Consumer.md"
+      },
+      "reason": "",
+      "receipt_id": "workroom_review_decision_consumer:80dc2fab0833c207",
+      "receipt_type": "WORKROOM_REVIEW_DECISION_CONSUMER_RECEIPT",
+      "request_id": "controller_event_workroom_review_deade8e395303a5f",
+      "request_type": "WORKROOM_REVIEW_DECISION_REQUEST_V0",
+      "response_primary_status": "Workroom review decision recorded",
+      "review_packet_found": true,
+      "review_packet_id": "review_packet:c4ec166103f9aa35",
+      "review_packet_summary": {
+        "business_action_performed": false,
+        "channel_ref": "build_openclaw_backend",
+        "files_changed": [
+          "example_backend_module.py",
+          "tests/test_example_backend_module.py"
+        ],
+        "human_summary": "PC_CODEX changed backend code and returned local validation proof for operator review.",
+        "merge_allowed": false,
+        "next_safe_action": "Review the packet and approve, request rework, or block by gate.",
+        "operator_decision_required": true,
+        "package_id": "pkg:example:backend_registry_patch",
+        "proof_collapsed_by_default": true,
+        "proof_refs": [
+          "generated/read_models/spawned_worker_package_lifecycle.json#pc_backend_package_review"
+        ],
+        "push_allowed": false,
+        "receipts": [],
+        "review_packet_id": "review_packet:c4ec166103f9aa35",
+        "screenshots": [],
+        "status": "REVIEW_PACKET_READY",
+        "tests_run": [
+          "pytest -q tests/test_example_backend_module.py"
+        ],
+        "unsafe_scan_result": {
+          "status": "PASS",
+          "unsafe_true_grants": []
+        },
+        "worker_inherits_speaker_authority": false,
+        "worker_ref": "pc_codex"
+      },
+      "schema_version": "workroom_review_decision_consumer_v0",
+      "source_request_filename": "controller_event_workroom_review_deade8e395303a5f.json",
+      "speaker_ref": "chief",
+      "status": "INFORMATIONAL_REVIEW_CLOSED",
+      "submit_performed": false,
+      "unsafe_true_grants": [],
+      "voice_mode": "diagnostic",
+      "voice_profile_ref": "agent_voice_profile:chief",
+      "workbook_mutation_performed": false,
+      "worker_ref": "pc_codex",
+      "worker_ref_is_speaker": false,
+      "worker_spawn_performed": false,
+      "workflow_ref": "workroom_review_decision"
     }
   ],
-  "decision_history_count": 3,
+  "decision_history_count": 6,
   "dynamic_card_packet_v1": {
     "authority_boundary": {
       "agent_loop_allowed": false,
@@ -1062,10 +1701,10 @@
         },
         "replacement_card_ref": "",
         "resolved_by_receipt_ref": "",
-        "source_content_hash": "sha256:3127096b1ba6ab96391e194be8b39fdab7195251718e0c03a6cbf747099ee997",
+        "source_content_hash": "sha256:71fcd8dce35c71c2d9c559f12dbc1b2701d745c11ff8764e205f0776430224f8",
         "source_generated_at": {
           "generated/read_models/spawned_worker_package_lifecycle.json#pc_backend_package_review": "",
-          "generated/read_models/workroom_review_decision_status.json": "2026-06-05T04:07:26+00:00",
+          "generated/read_models/workroom_review_decision_status.json": "2026-06-05T17:38:57+00:00",
           "generated/read_models/workroom_review_packet_index.json": "2026-06-03T12:07:06+00:00"
         },
         "source_read_model_refs": [
@@ -1138,7 +1777,7 @@
               "generated/read_models/workroom_review_decision_status.json",
               "generated/read_models/workroom_review_packet_index.json",
               "generated/read_models/workroom_review_decision_contract.json",
-              "workroom_review_decision_consumer:6789b934558a0457"
+              "workroom_review_decision_consumer:80dc2fab0833c207"
             ],
             "receipt_required": true,
             "requires_operator_envelope": true
@@ -1182,7 +1821,7 @@
               "generated/read_models/workroom_review_decision_status.json",
               "generated/read_models/workroom_review_packet_index.json",
               "generated/read_models/workroom_review_decision_contract.json",
-              "workroom_review_decision_consumer:6789b934558a0457"
+              "workroom_review_decision_consumer:80dc2fab0833c207"
             ],
             "receipt_required": false,
             "requires_operator_envelope": true
@@ -1226,7 +1865,7 @@
               "generated/read_models/workroom_review_decision_status.json",
               "generated/read_models/workroom_review_packet_index.json",
               "generated/read_models/workroom_review_decision_contract.json",
-              "workroom_review_decision_consumer:6789b934558a0457"
+              "workroom_review_decision_consumer:80dc2fab0833c207"
             ],
             "receipt_required": false,
             "requires_operator_envelope": true
@@ -1270,7 +1909,7 @@
               "generated/read_models/workroom_review_decision_status.json",
               "generated/read_models/workroom_review_packet_index.json",
               "generated/read_models/workroom_review_decision_contract.json",
-              "workroom_review_decision_consumer:6789b934558a0457"
+              "workroom_review_decision_consumer:80dc2fab0833c207"
             ],
             "receipt_required": false,
             "requires_operator_envelope": true
@@ -1314,7 +1953,7 @@
               "generated/read_models/workroom_review_decision_status.json",
               "generated/read_models/workroom_review_packet_index.json",
               "generated/read_models/workroom_review_decision_contract.json",
-              "workroom_review_decision_consumer:6789b934558a0457"
+              "workroom_review_decision_consumer:80dc2fab0833c207"
             ],
             "receipt_required": false,
             "requires_operator_envelope": true
@@ -1387,7 +2026,7 @@
         "lifecycle_state": "resolved",
         "machine_contract_visible": false,
         "object_refs": [
-          "workroom_review_decision_consumer:6789b934558a0457"
+          "workroom_review_decision_consumer:80dc2fab0833c207"
         ],
         "operator_attention_required": false,
         "operator_mode_visible": false,
@@ -1396,7 +2035,7 @@
         "priority": 12,
         "proof": {
           "artifact_refs": [
-            "workroom_review_decision_consumer:6789b934558a0457"
+            "workroom_review_decision_consumer:80dc2fab0833c207"
           ],
           "collapsed_by_default": true,
           "developer_proof_only": false,
@@ -1406,7 +2045,7 @@
             "generated/read_models/workroom_review_decision_status.json",
             "generated/read_models/workroom_review_packet_index.json",
             "generated/read_models/workroom_review_decision_contract.json",
-            "workroom_review_decision_consumer:6789b934558a0457"
+            "workroom_review_decision_consumer:80dc2fab0833c207"
           ],
           "raw_detail_available": false,
           "read_model_refs": [
@@ -1415,23 +2054,23 @@
             "generated/read_models/workroom_review_decision_contract.json"
           ],
           "receipt_refs": [
-            "workroom_review_decision_consumer:6789b934558a0457"
+            "workroom_review_decision_consumer:80dc2fab0833c207"
           ],
           "redacted_summary": "Review decision receipt is historical proof only; no execution authority is created.",
           "request_refs": [],
           "response_refs": [],
           "sensitive_detail_policy": "review_receipt_metadata_only",
-          "source_content_hash": "sha256:50ece30acba69c9e38f9564423eeb8f759b91ee9a0f73281b06fd397e885c486",
+          "source_content_hash": "sha256:6376844eead8b39dd77a353177930e30f676af7b5b74f2b8f771b3cf65572ba7",
           "sqlite_refs": [],
           "unsafe_scan_result": "clean",
           "validation_commands": []
         },
         "replacement_card_ref": "",
         "resolved_by_receipt_ref": "generated/read_models/workroom_review_decision_status.json",
-        "source_content_hash": "sha256:9806ab39148fcf37dfb68de4b7be25bbc113ee11ba4761b8c9454e534d29d096",
+        "source_content_hash": "sha256:e236b10288226be64b9a053f753c8e781f1ad3e87ff89f50e6ba0e472b697690",
         "source_generated_at": {
           "generated/read_models/workroom_review_decision_contract.json": "",
-          "generated/read_models/workroom_review_decision_status.json": "2026-06-05T04:07:26+00:00",
+          "generated/read_models/workroom_review_decision_status.json": "2026-06-05T17:38:57+00:00",
           "generated/read_models/workroom_review_packet_index.json": "2026-06-03T12:07:06+00:00"
         },
         "source_read_model_refs": [
@@ -1463,7 +2102,7 @@
         "world_ref": "build"
       }
     ],
-    "generated_at": "2026-06-05T04:07:26+00:00",
+    "generated_at": "2026-06-05T17:38:57+00:00",
     "legacy_fields_additive": true,
     "machine_proof": {
       "action_slots_present": true,
@@ -1479,8 +2118,8 @@
       "valid_v1_cards": true,
       "validation_errors": []
     },
-    "packet_content_hash": "sha256:bbdaa36aa357b485cff1ff9fb027750b8582012f87c5c5f868a88dc5537411a1",
-    "packet_id": "dynamic_card_packet:workroom_review_decision_consumer:5572689ec350",
+    "packet_content_hash": "sha256:d522e0d36a03fbf7ef2d3c92adb50925e6fcdcd732018f0d6a9b68b2fe579690",
+    "packet_id": "dynamic_card_packet:workroom_review_decision_consumer:51cf18255d98",
     "packet_source_read_model_refs": [
       "generated/read_models/operator_runtime_chain_current_state_audit.json",
       "generated/read_models/operator_action_payloads.json",
@@ -1521,7 +2160,7 @@
       "world_ref": "mission_control"
     }
   },
-  "generated_at": "2026-06-05T04:07:26+00:00",
+  "generated_at": "2026-06-05T17:38:57+00:00",
   "known_review_packet_count": 2,
   "last_decision": {
     "authority_boundary": {
@@ -1582,7 +2221,7 @@
       "decision_action": "mark_review_packet_informational",
       "decision_effect": "review_closed_without_action",
       "email_send_performed": false,
-      "generated_at": "2026-06-03T17:02:47+00:00",
+      "generated_at": "2026-06-05T17:38:57+00:00",
       "git_push_performed": false,
       "informational_only": true,
       "ledger_mutation_performed": false,
@@ -1593,8 +2232,8 @@
       "no_push": true,
       "operator_reviewed": true,
       "proof_collapsed_by_default": true,
-      "reason": "Operator chose Mark informational in Mission Control Workrooms.",
-      "receipt_id": "workroom_review_decision:0ec48b07282dec4d",
+      "reason": "",
+      "receipt_id": "workroom_review_decision:971f68b837317999",
       "receipt_type": "WORKROOM_REVIEW_DECISION_RECEIPT",
       "review_closed": true,
       "review_packet_id": "review_packet:c4ec166103f9aa35",
@@ -1612,7 +2251,7 @@
     "decision_action": "mark_review_packet_informational",
     "decision_recorded": true,
     "email_send_performed": false,
-    "generated_at": "2026-06-03T17:02:47+00:00",
+    "generated_at": "2026-06-05T17:38:57+00:00",
     "git_push_performed": false,
     "gmail_access_performed": false,
     "ledger_mutation_performed": false,
@@ -1683,10 +2322,10 @@
       "local_status_path": "/home/openclaw/generated/read_models/workroom_review_decision_status.json",
       "wiki_path": "/home/openclaw/generated/wiki/openclaw/Workroom Review Decision Consumer.md"
     },
-    "reason": "Operator chose Mark informational in Mission Control Workrooms.",
-    "receipt_id": "workroom_review_decision_consumer:6789b934558a0457",
+    "reason": "",
+    "receipt_id": "workroom_review_decision_consumer:80dc2fab0833c207",
     "receipt_type": "WORKROOM_REVIEW_DECISION_CONSUMER_RECEIPT",
-    "request_id": "workroom_review_decision_mark_review_packet_informational_20260603T155504Z_87feadc5fa6d",
+    "request_id": "controller_event_workroom_review_deade8e395303a5f",
     "request_type": "WORKROOM_REVIEW_DECISION_REQUEST_V0",
     "response_primary_status": "Workroom review decision recorded",
     "review_packet_found": true,
@@ -1723,7 +2362,7 @@
       "worker_ref": "pc_codex"
     },
     "schema_version": "workroom_review_decision_consumer_v0",
-    "source_request_filename": "mission_control_workroom_review_decision_workroom_review_decision_mark_review_packet_informational_20260603T155504Z_87feadc5fa6d.json",
+    "source_request_filename": "controller_event_workroom_review_deade8e395303a5f.json",
     "speaker_ref": "chief",
     "status": "INFORMATIONAL_REVIEW_CLOSED",
     "submit_performed": false,

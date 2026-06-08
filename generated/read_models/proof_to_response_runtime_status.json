@@ -1,5 +1,5 @@
 {
-  "active_candidate_source": "shadow_pilot_candidate",
+  "active_candidate_source": "lm2_room_backed_worker_structured_output_retry",
   "authority_boundary": {
     "authority_grant_allowed": false,
     "browser_access_allowed": false,
@@ -24,11 +24,12 @@
   "candidate_sources": [
     "deterministic_fixture",
     "shadow_pilot_candidate",
-    "future_live_lm_blocked"
+    "future_live_lm_blocked",
+    "lm2_room_backed_worker_structured_output_retry"
   ],
   "contract_ref": "generated/read_models/proof_to_response_runtime_contract.json",
   "controller_integration_status": "PROOF_TO_RESPONSE_CONTROLLER_INTEGRATION_ACTIVE",
-  "generated_at": "2026-06-07T01:29:22+00:00",
+  "generated_at": "2026-06-08T14:01:09+00:00",
   "implementation_boundary": {
     "business_action_performed": false,
     "coupa_submit_performed": false,
@@ -46,70 +47,12 @@
     "worker_spawn_performed": false
   },
   "latest_receipt": {
-    "action_not_taken": [
-      "live_lm_invocation",
-      "local_model_runtime_connection",
-      "worker_spawn",
-      "business_execution",
-      "email_send",
-      "Coupa_submit",
-      "ledger_mutation",
-      "paid_marking",
-      "workbook_mutation",
-      "PDF_export",
-      "git_push",
-      "merge"
-    ],
-    "action_taken": "published_verified_response",
-    "authority_boundary": {
-      "protected_actions_allowed": false
-    },
-    "business_action_performed": false,
-    "candidate_source": "shadow_pilot_candidate",
-    "coupa_submit_performed": false,
-    "created_at": "2026-06-07T01:29:22+00:00",
-    "email_send_performed": false,
-    "external_llm_invoked": false,
-    "git_push_performed": false,
-    "incoming_authority_granted_accepted": false,
-    "ledger_mutation_performed": false,
-    "local_model_runtime_connected": false,
-    "merge_performed": false,
-    "paid_marking_performed": false,
-    "pdf_export_performed": false,
-    "portal_submit_performed": false,
-    "proof_bundle_id": "proof_bundle:finance_capital_hilton_payment_watch",
-    "proof_refs": [
-      "generated/read_models/dynamic_card_packet_latest.json",
-      "generated/read_models/proof_meter_normalization.json",
-      "generated/read_models/objective_advancement_protocol.json"
-    ],
-    "read_model_refs": [
-      "generated/read_models/dynamic_card_packet_latest.json",
-      "generated/read_models/proof_meter_normalization.json",
-      "generated/read_models/universal_receipt_envelope_status.json",
-      "generated/read_models/operator_action_payloads.json",
-      "generated/read_models/objective_advancement_protocol.json",
-      "generated/read_models/proof_to_response_tdd_spec.json",
-      "generated/read_models/operator_controller_protocol.json"
-    ],
-    "receipt_id": "proof_to_response_receipt:finance_capital_hilton_payment_watch:74279b59ac11",
-    "receipt_refs": [
-      "universal_receipt:dynamic_card_emitted:e811c126f7bdf8d4"
-    ],
-    "receipt_type": "proof_to_response_published",
-    "response_content_hash": "sha256:8fc474591e756d3ca671206ab566b856c9b1937099a5feac574d2c13f63aed58",
-    "response_id": "proof_response:publishable:finance_capital_hilton_payment_watch",
-    "result_status": "publishable",
-    "source_request_id": "",
-    "thread_ref": "capital_hilton",
-    "validation_refs": [
-      "proof_to_response_verifier_v0",
-      "proof_to_response_verifier_v0"
-    ],
-    "workbook_mutation_performed": false,
-    "worker_spawn_performed": false,
-    "world_ref": "finance"
+    "approval_consumed": false,
+    "candidate_source": "lm2_room_backed_worker_structured_output_retry",
+    "model_call_performed": false,
+    "receipt_id": "lm2_structured_output_retry:published_response_hash_receipt",
+    "receipt_type": "proof_to_response_reused_existing_lm2_result",
+    "source_lm2_result_ref": "generated/read_models/lm2_room_backed_worker_structured_output_retry.json"
   },
   "latest_ref": "generated/read_models/proof_to_response_latest.json",
   "latest_response": {
@@ -118,77 +61,77 @@
     },
     "body": "Coupa is processing. I can't mark this paid until payment evidence is attached. The ledger stays untouched.",
     "can_do_now": [
-      "Attach payment evidence"
+      "attach_proof"
     ],
-    "candidate_source": "shadow_pilot_candidate",
+    "candidate_source": "lm2_room_backed_worker_structured_output_retry",
     "cannot_do_yet": [
       "paid marking",
       "ledger mutation",
       "Coupa/browser action"
     ],
-    "controller_event_type": "advance_objective",
+    "controller_event_type": "chat_goal",
     "controls": [
       {
-        "action_payload_ref": "generated/read_models/operator_action_payloads.json#action_payloads.capital_hilton.payment.record_proof",
+        "action_payload_ref": "",
         "authority_boundary": {
           "protected_actions_allowed": false
         },
         "controller_event_type": "attach_proof",
         "disabled_reason": "",
         "enabled": true,
-        "label": "Attach payment evidence"
+        "label": "attach_proof"
       }
     ],
     "details_collapsed": true,
     "fallback_reason": "",
-    "generated_at": "2026-06-07T01:29:22+00:00",
+    "generated_at": "2026-06-08T14:01:09+00:00",
     "headline": "Payment evidence needed",
     "missing_input": [
-      "payment arrival confirmation"
+      "payment evidence"
     ],
+    "model_call_performed": false,
     "next_step": "Attach payment evidence.",
-    "objective_ref": "objective:finance:capital_hilton:payment_watch",
+    "objective_ref": "capital_hilton_payment_watch",
     "proof_meters": [
       {
-        "card_id": "dynamic_card.finance.capital_hilton.payment_watch",
-        "meter_ref": "truth",
-        "meter_state": "trusted_current",
-        "opens_details": true,
-        "source_ref": "generated/read_models/proof_meter_normalization.json"
+        "human_label": "Truth: trusted/current"
       },
       {
-        "card_id": "dynamic_card.finance.capital_hilton.payment_watch",
-        "meter_ref": "authority",
-        "meter_state": "no_grant",
-        "opens_details": true,
-        "source_ref": "generated/read_models/proof_meter_normalization.json"
+        "human_label": "Freshness: waiting external"
       },
       {
-        "card_id": "dynamic_card.finance.capital_hilton.payment_watch",
-        "meter_ref": "risk",
-        "meter_state": "watch",
-        "opens_details": true,
-        "source_ref": "generated/read_models/proof_meter_normalization.json"
+        "human_label": "Risk: watch"
+      },
+      {
+        "human_label": "Freshness: current"
+      },
+      {
+        "human_label": "Confidence: receipt_backed"
       }
     ],
     "proof_refs": [
-      "generated/read_models/dynamic_card_packet_latest.json",
-      "generated/read_models/proof_meter_normalization.json",
-      "generated/read_models/objective_advancement_protocol.json"
+      "Truth: trusted/current",
+      "Freshness: waiting external",
+      "Risk: watch",
+      "Freshness: current",
+      "Confidence: receipt_backed"
     ],
     "receipt_refs": [
-      "universal_receipt:dynamic_card_emitted:e811c126f7bdf8d4"
+      "receipt:capital_hilton_payment_watch",
+      "receipt:capital_hilton_payment_watch_current"
     ],
-    "response_content_hash": "sha256:dec26527474949624bf619923f6a1791db34db8398bc2792c28dead68c1b6c06",
+    "response_content_hash": "sha256:5f5ea29a7aee069d97c633fa98a235a834e549d7e6b884245769d91e5a6eda5f",
     "response_id": "proof_response:publishable:finance_capital_hilton_payment_watch",
-    "selected_action_id": "",
-    "selected_card_id": "dynamic_card.finance.capital_hilton.payment_watch",
-    "source_request_id": "finance_payment_watch_advance_objective_smoke_20260607T012911Z",
-    "source_response_path": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_finance_payment_watch_advance_objective_smoke_20260607T012911Z.json",
+    "selected_action_id": "capital_hilton.payment.open_finance",
+    "selected_card_id": "dynamic_card.finance.capital_hilton.contextual_question",
+    "selected_model_backend": "ollama:qwen3:8b-q4_K_M",
+    "source_lm2_result_ref": "generated/read_models/lm2_room_backed_worker_structured_output_retry.json",
+    "source_request_id": "finance_chat_goal_capital_hilton_payment_open_finance_20260608T141012Z_f7078f004b7f",
+    "source_response_path": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_finance_chat_goal_capital_hilton_payment_open_finance_20260608T141012Z_f7078f004b7f.json",
     "speaker_ref": "chief",
     "thread_ref": "capital_hilton",
     "verification_status": "publishable",
-    "voice_mode": "operations",
+    "voice_mode": "diagnostic",
     "world_ref": "finance"
   },
   "machine_proof": {
@@ -202,7 +145,7 @@
     "future_live_lm_blocked": true,
     "git_push_performed": false,
     "incoming_authority_granted_accepted": false,
-    "latest_candidate_source": "shadow_pilot_candidate",
+    "latest_candidate_source": "lm2_room_backed_worker_structured_output_retry",
     "latest_response_verification_status": "publishable",
     "ledger_mutation_performed": false,
     "local_model_runtime_connected": false,
@@ -216,172 +159,114 @@
     "workbook_mutation_performed": false,
     "worker_spawn_performed": false
   },
-  "published_response_count": 25,
+  "published_response_count": 73,
   "read_model_id": "proof_to_response_runtime_status",
   "runtime_runs": [
     {
-      "candidate_response_id": "lm_shadow_pilot_candidate:finance_capital_hilton_payment_watch",
-      "candidate_source": "shadow_pilot_candidate",
-      "proof_bundle_id": "proof_bundle:finance_capital_hilton_payment_watch",
+      "candidate_response_id": "",
+      "candidate_source": "lm2_room_backed_worker_structured_output_retry",
+      "proof_bundle_id": "",
       "published_response": {
         "authority_boundary": {
           "protected_actions_allowed": false
         },
         "body": "Coupa is processing. I can't mark this paid until payment evidence is attached. The ledger stays untouched.",
         "can_do_now": [
-          "Attach payment evidence"
+          "attach_proof"
         ],
-        "candidate_source": "shadow_pilot_candidate",
+        "candidate_source": "lm2_room_backed_worker_structured_output_retry",
         "cannot_do_yet": [
           "paid marking",
           "ledger mutation",
           "Coupa/browser action"
         ],
-        "controller_event_type": "advance_objective",
+        "controller_event_type": "chat_goal",
         "controls": [
           {
-            "action_payload_ref": "generated/read_models/operator_action_payloads.json#action_payloads.capital_hilton.payment.record_proof",
+            "action_payload_ref": "",
             "authority_boundary": {
               "protected_actions_allowed": false
             },
             "controller_event_type": "attach_proof",
             "disabled_reason": "",
             "enabled": true,
-            "label": "Attach payment evidence"
+            "label": "attach_proof"
           }
         ],
         "details_collapsed": true,
         "fallback_reason": "",
-        "generated_at": "2026-06-07T01:29:22+00:00",
+        "generated_at": "2026-06-08T14:01:09+00:00",
         "headline": "Payment evidence needed",
         "missing_input": [
-          "payment arrival confirmation"
+          "payment evidence"
         ],
+        "model_call_performed": false,
         "next_step": "Attach payment evidence.",
-        "objective_ref": "objective:finance:capital_hilton:payment_watch",
+        "objective_ref": "capital_hilton_payment_watch",
         "proof_meters": [
           {
-            "card_id": "dynamic_card.finance.capital_hilton.payment_watch",
-            "meter_ref": "truth",
-            "meter_state": "trusted_current",
-            "opens_details": true,
-            "source_ref": "generated/read_models/proof_meter_normalization.json"
+            "human_label": "Truth: trusted/current"
           },
           {
-            "card_id": "dynamic_card.finance.capital_hilton.payment_watch",
-            "meter_ref": "authority",
-            "meter_state": "no_grant",
-            "opens_details": true,
-            "source_ref": "generated/read_models/proof_meter_normalization.json"
+            "human_label": "Freshness: waiting external"
           },
           {
-            "card_id": "dynamic_card.finance.capital_hilton.payment_watch",
-            "meter_ref": "risk",
-            "meter_state": "watch",
-            "opens_details": true,
-            "source_ref": "generated/read_models/proof_meter_normalization.json"
+            "human_label": "Risk: watch"
+          },
+          {
+            "human_label": "Freshness: current"
+          },
+          {
+            "human_label": "Confidence: receipt_backed"
           }
         ],
         "proof_refs": [
-          "generated/read_models/dynamic_card_packet_latest.json",
-          "generated/read_models/proof_meter_normalization.json",
-          "generated/read_models/objective_advancement_protocol.json"
+          "Truth: trusted/current",
+          "Freshness: waiting external",
+          "Risk: watch",
+          "Freshness: current",
+          "Confidence: receipt_backed"
         ],
         "receipt_refs": [
-          "universal_receipt:dynamic_card_emitted:e811c126f7bdf8d4"
+          "receipt:capital_hilton_payment_watch",
+          "receipt:capital_hilton_payment_watch_current"
         ],
-        "response_content_hash": "sha256:dec26527474949624bf619923f6a1791db34db8398bc2792c28dead68c1b6c06",
+        "response_content_hash": "sha256:5f5ea29a7aee069d97c633fa98a235a834e549d7e6b884245769d91e5a6eda5f",
         "response_id": "proof_response:publishable:finance_capital_hilton_payment_watch",
-        "selected_action_id": "",
-        "selected_card_id": "dynamic_card.finance.capital_hilton.payment_watch",
-        "source_request_id": "finance_payment_watch_advance_objective_smoke_20260607T012911Z",
-        "source_response_path": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_finance_payment_watch_advance_objective_smoke_20260607T012911Z.json",
+        "selected_action_id": "capital_hilton.payment.open_finance",
+        "selected_card_id": "dynamic_card.finance.capital_hilton.contextual_question",
+        "selected_model_backend": "ollama:qwen3:8b-q4_K_M",
+        "source_lm2_result_ref": "generated/read_models/lm2_room_backed_worker_structured_output_retry.json",
+        "source_request_id": "finance_chat_goal_capital_hilton_payment_open_finance_20260608T141012Z_f7078f004b7f",
+        "source_response_path": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_finance_chat_goal_capital_hilton_payment_open_finance_20260608T141012Z_f7078f004b7f.json",
         "speaker_ref": "chief",
         "thread_ref": "capital_hilton",
         "verification_status": "publishable",
-        "voice_mode": "operations",
+        "voice_mode": "diagnostic",
         "world_ref": "finance"
       },
       "receipt": {
-        "action_not_taken": [
-          "live_lm_invocation",
-          "local_model_runtime_connection",
-          "worker_spawn",
-          "business_execution",
-          "email_send",
-          "Coupa_submit",
-          "ledger_mutation",
-          "paid_marking",
-          "workbook_mutation",
-          "PDF_export",
-          "git_push",
-          "merge"
-        ],
-        "action_taken": "published_verified_response",
-        "authority_boundary": {
-          "protected_actions_allowed": false
-        },
-        "business_action_performed": false,
-        "candidate_source": "shadow_pilot_candidate",
-        "coupa_submit_performed": false,
-        "created_at": "2026-06-07T01:29:22+00:00",
-        "email_send_performed": false,
-        "external_llm_invoked": false,
-        "git_push_performed": false,
-        "incoming_authority_granted_accepted": false,
-        "ledger_mutation_performed": false,
-        "local_model_runtime_connected": false,
-        "merge_performed": false,
-        "paid_marking_performed": false,
-        "pdf_export_performed": false,
-        "portal_submit_performed": false,
-        "proof_bundle_id": "proof_bundle:finance_capital_hilton_payment_watch",
-        "proof_refs": [
-          "generated/read_models/dynamic_card_packet_latest.json",
-          "generated/read_models/proof_meter_normalization.json",
-          "generated/read_models/objective_advancement_protocol.json"
-        ],
-        "read_model_refs": [
-          "generated/read_models/dynamic_card_packet_latest.json",
-          "generated/read_models/proof_meter_normalization.json",
-          "generated/read_models/universal_receipt_envelope_status.json",
-          "generated/read_models/operator_action_payloads.json",
-          "generated/read_models/objective_advancement_protocol.json",
-          "generated/read_models/proof_to_response_tdd_spec.json",
-          "generated/read_models/operator_controller_protocol.json"
-        ],
-        "receipt_id": "proof_to_response_receipt:finance_capital_hilton_payment_watch:74279b59ac11",
-        "receipt_refs": [
-          "universal_receipt:dynamic_card_emitted:e811c126f7bdf8d4"
-        ],
-        "receipt_type": "proof_to_response_published",
-        "response_content_hash": "sha256:8fc474591e756d3ca671206ab566b856c9b1937099a5feac574d2c13f63aed58",
-        "response_id": "proof_response:publishable:finance_capital_hilton_payment_watch",
-        "result_status": "publishable",
-        "source_request_id": "",
-        "thread_ref": "capital_hilton",
-        "validation_refs": [
-          "proof_to_response_verifier_v0",
-          "proof_to_response_verifier_v0"
-        ],
-        "workbook_mutation_performed": false,
-        "worker_spawn_performed": false,
-        "world_ref": "finance"
+        "approval_consumed": false,
+        "candidate_source": "lm2_room_backed_worker_structured_output_retry",
+        "model_call_performed": false,
+        "receipt_id": "lm2_structured_output_retry:published_response_hash_receipt",
+        "receipt_type": "proof_to_response_reused_existing_lm2_result",
+        "source_lm2_result_ref": "generated/read_models/lm2_room_backed_worker_structured_output_retry.json"
       },
       "scenario_id": "finance_capital_hilton_payment_watch",
       "verification_errors": [],
       "verification_status": "publishable",
-      "verifier_status": "VERIFIED_FOR_SHADOW_PUBLISH"
+      "verifier_status": "VERIFIED_EXISTING_LM2_PROOF_RESPONSE_REUSED"
     }
   ],
   "schema_version": "proof_to_response_runtime_v0",
   "source_content_hashes": {
-    "contract": "sha256:01b581fdbbe1b3cf980a8fb90026550b50c5ca38d3e95a62ffab7d0fe714d745",
-    "latest_publish_result": "sha256:2fcb7f6230fac98f9f462fc10b26f7126b0812ef7e6c4406f8f5c837b365efac"
+    "contract": "sha256:653a5ccb7abc4016b6aea699e5c24894c72508de93f120161f4f9794af39bd32",
+    "latest_publish_result": "sha256:a6049bf4d15e2df3c55ccae8eaff1a63e59bd17bba910240be9b01feabd0bcd8"
   },
-  "source_request_id": "finance_payment_watch_advance_objective_smoke_20260607T012911Z",
-  "source_response_path": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_finance_payment_watch_advance_objective_smoke_20260607T012911Z.json",
+  "source_request_id": "finance_chat_goal_capital_hilton_payment_open_finance_20260608T141012Z_f7078f004b7f",
+  "source_response_path": "/mnt/e/openclaw/mission_control_responses/to_mac/openclaw_response_for_mac_finance_chat_goal_capital_hilton_payment_open_finance_20260608T141012Z_f7078f004b7f.json",
   "sqlite_ref": "generated/system_knowledge/proof_to_response_runtime.sqlite",
-  "sqlite_row_count": 25,
+  "sqlite_row_count": 73,
   "status": "PROOF_TO_RESPONSE_RUNTIME_READY"
 }
