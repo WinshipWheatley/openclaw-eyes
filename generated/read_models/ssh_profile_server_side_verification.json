@@ -1,0 +1,205 @@
+{
+  "schema_version": "ssh_profile_server_side_verification_v0",
+  "status": "SSH_PROFILE_SERVER_SIDE_VERIFICATION_READY",
+  "read_model_id": "ssh_profile_server_side_verification",
+  "verified_at": "2026-06-08T15:15:10-04:00",
+  "scope": "server_side_read_only_verification",
+  "summary": "Mac profiles hp and openclaw both resolve to the WSL/OpenClaw backend route on port 2222. openclaw-pc resolves to Windows OpenSSH on port 22 as Windows user openclawssh, so it is the wrong shell for /home/openclaw Codex backend work.",
+  "known_mac_side_resolution": [
+    {
+      "profile_name": "hp",
+      "mac_resolved_user": "openclaw",
+      "mac_resolved_host": "192.168.50.205",
+      "mac_resolved_port": 2222
+    },
+    {
+      "profile_name": "openclaw",
+      "mac_resolved_user": "openclaw",
+      "mac_resolved_host": "192.168.50.205",
+      "mac_resolved_port": 2222
+    },
+    {
+      "profile_name": "openclaw-pc",
+      "mac_resolved_user": "openclawssh",
+      "mac_resolved_host": "192.168.50.205",
+      "mac_resolved_port": 22
+    }
+  ],
+  "server_side_observations": {
+    "wsl_openclaw_environment": {
+      "whoami": "openclaw",
+      "hostname": "DESKTOP-HP",
+      "pwd": "/home/openclaw",
+      "bash_path": "/usr/bin/bash",
+      "uname": "Linux DESKTOP-HP 6.6.114.1-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Mon Dec 1 20:46:23 UTC 2025 x86_64 x86_64 x86_64 GNU/Linux",
+      "repo_toplevel": "/home/openclaw",
+      "repo_present": true,
+      "linux_user_record": "openclaw:x:1000:1000:,,,:/home/openclaw:/bin/bash",
+      "openclawssh_linux_user_exists": false
+    },
+    "port_2222_route": {
+      "windows_listener": "0.0.0.0:2222",
+      "windows_listener_process": "svchost",
+      "windows_listener_service": "iphlpsvc",
+      "windows_listener_service_display_name": "IP Helper",
+      "portproxy_mapping": "0.0.0.0:2222 -> 172.28.194.117:22",
+      "wsl_ssh_service": "ssh.service",
+      "wsl_ssh_status": "active_running",
+      "wsl_ssh_main_process": "/usr/sbin/sshd -D",
+      "wsl_ssh_listens_on": [
+        "0.0.0.0:22",
+        "[::]:22"
+      ],
+      "classification": "wsl_openclaw_backend"
+    },
+    "port_22_route": {
+      "windows_listener": "0.0.0.0:22 and [::]:22",
+      "windows_listener_process": "sshd",
+      "windows_service": "sshd",
+      "windows_service_display_name": "OpenSSH SSH Server",
+      "windows_service_status": "Running",
+      "windows_service_start_type": "Automatic",
+      "windows_service_path": "C:\\Windows\\System32\\OpenSSH\\sshd.exe",
+      "sshd_config_metadata": [
+        "AuthorizedKeysFile .ssh/authorized_keys",
+        "Subsystem sftp sftp-server.exe",
+        "Match Group administrators"
+      ],
+      "force_command_observed": false,
+      "default_shell_override_observed": false,
+      "observed_failure": "Codex commands landed in Windows shell: 'sh' is not recognized; '[' is not recognized.",
+      "classification": "windows_ssh_shell"
+    },
+    "windows_users_relevant_to_ssh": [
+      {
+        "name": "Open Claw",
+        "enabled": true,
+        "role": "normal_windows_account_observed_in_ssh_logs"
+      },
+      {
+        "name": "openclawssh",
+        "enabled": true,
+        "role": "windows_ssh_account_used_by_openclaw-pc"
+      },
+      {
+        "name": "Winship",
+        "enabled": true,
+        "role": "windows_account_present"
+      }
+    ],
+    "recent_ssh_log_summary": {
+      "mac_client_ip_observed": "192.168.50.181",
+      "port_22_windows_logins_observed": [
+        "open claw",
+        "openclawssh"
+      ],
+      "port_2222_wsl_logins_observed": [
+        "openclaw"
+      ],
+      "authorized_keys_contents_read": false,
+      "private_keys_read": false
+    }
+  },
+  "profiles": [
+    {
+      "profile_name": "openclaw",
+      "mac_resolved_user": "openclaw",
+      "mac_resolved_host": "192.168.50.205",
+      "mac_resolved_port": 2222,
+      "likely_shell": "/bin/bash via WSL sshd",
+      "likely_environment": "wsl_openclaw_backend",
+      "can_access_openclaw_repo": true,
+      "useful_for_codex_backend_work": true,
+      "useful_for_windows_side_admin": false,
+      "removal_risk": "high",
+      "recommendation": "Keep. Treat this as the canonical PC OpenClaw backend route for Codex Desktop."
+    },
+    {
+      "profile_name": "hp",
+      "mac_resolved_user": "openclaw",
+      "mac_resolved_host": "192.168.50.205",
+      "mac_resolved_port": 2222,
+      "likely_shell": "/bin/bash via WSL sshd",
+      "likely_environment": "duplicate_alias",
+      "can_access_openclaw_repo": true,
+      "useful_for_codex_backend_work": true,
+      "useful_for_windows_side_admin": false,
+      "removal_risk": "low",
+      "recommendation": "Duplicate of openclaw. Keep only if the shorter HP name is useful; otherwise ignore or remove after confirming Codex Desktop uses openclaw."
+    },
+    {
+      "profile_name": "openclaw-pc",
+      "mac_resolved_user": "openclawssh",
+      "mac_resolved_host": "192.168.50.205",
+      "mac_resolved_port": 22,
+      "likely_shell": "Windows OpenSSH default shell",
+      "likely_environment": "windows_ssh_shell",
+      "can_access_openclaw_repo": false,
+      "useful_for_codex_backend_work": false,
+      "useful_for_windows_side_admin": "unknown",
+      "removal_risk": "medium",
+      "recommendation": "Do not use for /home/openclaw backend work. It is safe to classify as broken for Codex Linux commands and old/wrong-target for OpenClaw backend use. Disable or ignore it in Mac Codex first; delete later only after confirming no Windows-side admin workflow depends on openclawssh over port 22."
+    }
+  ],
+  "canonical_openclaw_profile": "openclaw",
+  "windows_side_profile": "openclaw-pc",
+  "duplicate_profiles": [
+    {
+      "profile_name": "hp",
+      "duplicates": "openclaw",
+      "reason": "Same Mac-resolved user, host, and port: openclaw@192.168.50.205:2222."
+    }
+  ],
+  "removal_candidates": [
+    {
+      "profile_name": "openclaw-pc",
+      "candidate_type": "disable_or_remove_from_codex_desktop",
+      "confidence": "medium",
+      "reason": "It targets Windows OpenSSH on port 22 as openclawssh and previously failed Linux shell probes. It is not the /home/openclaw WSL route.",
+      "safe_removal_condition": "No Windows-side admin or file-management workflow depends on SSH user openclawssh over port 22."
+    },
+    {
+      "profile_name": "hp",
+      "candidate_type": "optional_duplicate_cleanup",
+      "confidence": "medium",
+      "reason": "It resolves to the same WSL route as openclaw.",
+      "safe_removal_condition": "Codex Desktop and personal scripts consistently use openclaw instead of hp."
+    }
+  ],
+  "removal_precautions": [
+    "Do not delete Windows users or SSH keys for this cleanup.",
+    "Disable or ignore openclaw-pc in Mac Codex Desktop before deleting the profile.",
+    "Keep openclaw as the canonical route for /home/openclaw work.",
+    "If Windows-side administration is ever needed, create or keep a clearly named Windows profile such as hp-windows instead of using it for OpenClaw backend work.",
+    "Retest from Mac after changes with: ssh openclaw 'whoami; hostname; pwd; command -v bash; cd /home/openclaw && git status --short'."
+  ],
+  "recommended_next_action": "Use openclaw for Codex Desktop PC backend work. Mark openclaw-pc as disabled/ignored in Codex Desktop first; remove it later only if no Windows-side workflow needs the openclawssh Windows account.",
+  "authority_boundary": {
+    "ssh_config_change_allowed": false,
+    "user_delete_allowed": false,
+    "key_delete_allowed": false,
+    "service_restart_allowed": false,
+    "firewall_change_allowed": false,
+    "codex_settings_change_allowed": false,
+    "runtime_mutation_allowed": false,
+    "git_push_allowed": false
+  },
+  "performed_actions": {
+    "ssh_config_changed": false,
+    "users_deleted": false,
+    "keys_deleted": false,
+    "services_restarted": false,
+    "firewall_changed": false,
+    "codex_settings_changed": false,
+    "runtime_mutated": false,
+    "git_push_performed": false
+  },
+  "proof_refs": [
+    "server:WSL whoami/hostname/pwd/bash/uname/git status readback",
+    "server:Windows Get-NetTCPConnection port 22 and 2222 readback",
+    "server:netsh interface portproxy show all readback",
+    "server:Windows OpenSSH service metadata readback",
+    "server:Windows local user metadata readback",
+    "server:WSL ssh.service status readback"
+  ]
+}
