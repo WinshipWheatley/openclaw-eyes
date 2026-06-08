@@ -2,10 +2,10 @@
   "authority_boundary": {
     "protected_actions_allowed": false
   },
-  "candidate_source": "lm2_room_backed_worker_one_time_pilot",
+  "candidate_source": "lm2_room_backed_worker_structured_output_retry",
   "details_collapsed": true,
   "expires_or_superseded_by": "",
-  "generated_at": "2026-06-08T02:04:26+00:00",
+  "generated_at": "2026-06-08T02:44:11+00:00",
   "implementation_boundary": {
     "additional_worker_spawn_performed": false,
     "browser_opened": false,
@@ -32,7 +32,7 @@
     "tool_execution_performed": false,
     "workbook_mutation_performed": false
   },
-  "latest_receipt_ref": "lm2_room_backed_worker_pilot:fallback_receipt",
+  "latest_receipt_ref": "lm2_structured_output_retry:published_response_hash_receipt",
   "latest_response": {
     "authority_boundary": {
       "protected_actions_allowed": false
@@ -42,7 +42,7 @@
     "can_do_now": [
       "attach_proof"
     ],
-    "candidate_source": "lm2_room_backed_worker_one_time_pilot",
+    "candidate_source": "lm2_room_backed_worker_structured_output_retry",
     "cannot_do_yet": [
       "paid marking",
       "ledger mutation",
@@ -64,8 +64,8 @@
     "details_collapsed": true,
     "email_send_performed": false,
     "external_llm_invoked": false,
-    "fallback_reason": "json_parse_error:Expecting value",
-    "generated_at": "2026-06-08T02:04:26+00:00",
+    "fallback_reason": "",
+    "generated_at": "2026-06-08T02:44:11+00:00",
     "git_push_performed": false,
     "headline": "Payment evidence needed",
     "incoming_authority_granted_accepted": false,
@@ -107,8 +107,8 @@
       "receipt:capital_hilton_payment_watch",
       "receipt:capital_hilton_payment_watch_current"
     ],
-    "response_content_hash": "sha256:cda5252019b36d935bb2a3d2faaa2368b90d4b2493c37396aab762606aeae4a4",
-    "response_id": "proof_response:fallback:finance_capital_hilton_payment_watch",
+    "response_content_hash": "sha256:cd8054e33b0f18dcb9d83caf730ab5ab31a76093bf98b9a4f28ea7873660e8ce",
+    "response_id": "proof_response:publishable:finance_capital_hilton_payment_watch",
     "schema_version": "proof_to_response_runtime_v0",
     "source_context": {
       "card_id": "redacted_proof_bundle",
@@ -132,7 +132,7 @@
       "world_ref": "finance"
     },
     "speaker_ref": "chief",
-    "verification_status": "fallback",
+    "verification_status": "publishable",
     "voice_mode": "diagnostic",
     "workbook_mutation_performed": false,
     "worker_spawn_performed": false
@@ -141,7 +141,7 @@
     "additional_worker_spawn_performed": false,
     "browser_opened": false,
     "business_action_performed": false,
-    "candidate_source": "lm2_room_backed_worker_one_time_pilot",
+    "candidate_source": "lm2_room_backed_worker_structured_output_retry",
     "coupa_opened": false,
     "duplicate_versions_equal_evidence_allowed": false,
     "email_send_performed": false,
@@ -169,15 +169,15 @@
     "unsafe_true_grants_absent": true,
     "workbook_mutation_performed": false
   },
-  "proof_to_response_status": "fallback",
+  "proof_to_response_status": "publishable",
   "proof_to_response_unavailable_reason": "",
   "read_model_id": "proof_to_response_latest",
   "schema_version": "proof_to_response_runtime_v0",
-  "selected_action_id": "lm2_room_backed_worker_one_time_pilot",
+  "selected_action_id": "lm2_room_backed_worker_structured_output_retry",
   "selected_card_id": "redacted_proof_bundle",
-  "source_request_id": "lm2_room_backed_worker_one_time_pilot_finance_capital_hilton_payment_watch:2026-06-08T02:04:26+00:00",
-  "source_response_path": "generated/read_models/lm2_room_backed_worker_one_time_pilot.json",
-  "source_status_ref": "generated/read_models/lm2_room_backed_worker_one_time_pilot.json",
+  "source_request_id": "lm2_room_backed_worker_structured_output_retry_finance_capital_hilton_payment_watch:2026-06-08T02:44:11+00:00",
+  "source_response_path": "generated/read_models/lm2_room_backed_worker_structured_output_retry.json",
+  "source_status_ref": "generated/read_models/lm2_room_backed_worker_structured_output_retry.json",
   "stale_if_context_mismatch": true,
   "status": "PROOF_TO_RESPONSE_RUNTIME_READY",
   "thread_ref": "capital_hilton",
