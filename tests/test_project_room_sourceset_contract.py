@@ -119,7 +119,7 @@ def test_superseded_sources_cannot_be_current_truth(tmp_path):
     generated = _source(read_model, "source:finance:capital_hilton:generated_payment_summary")
     version = next(row for row in read_model["duplicate_version_report"] if row["version_family_ref"] == "version_family:capital_hilton_payment_watch_summaries")
 
-    assert generated["freshness_state"] == "historical"
+    assert generated["freshness_state"] == "superseded"
     assert generated["confidence_class"] == "generated_summary"
     assert "current_truth" in generated["do_not_use_for"]
     assert version["likely_current_source_ref"] == "source:finance:capital_hilton:payment_watch_receipt"

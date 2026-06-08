@@ -42,7 +42,7 @@ The first step for serious work is to build the room: inventory sources, surface
 ## Source Inventory
 
 - `source:finance:capital_hilton:payment_watch_receipt` (current, receipt_backed): payment_processor_processing, paid_false, ledger_untouched, payment_evidence_missing
-- `source:finance:capital_hilton:generated_payment_summary` (historical, generated_summary): may_explain_payment_watch
+- `source:finance:capital_hilton:generated_payment_summary` (superseded, generated_summary): may_explain_payment_watch
 - `source:bd:capital_hilton:proposal_status` (current, receipt_backed): proposal_followup_state_known, draft_can_be_staged
 - `source:bd:capital_hilton:older_followup_note` (stale, unpromoted_memory): possible_followup_status
 - `source:build:review_packet_resolved` (historical, receipt_backed): review_packet_informational_or_resolved, prior_review_decision_exists

@@ -104,7 +104,7 @@
     "operator_decision_required",
     "unresolved"
   ],
-  "content_hash": "sha256:3b52f34aacb1879d1a85bc80c9bed2273208829a7e94d0e9bda7536307853338",
+  "content_hash": "sha256:352a2a13cce38d3f967f9b804e1e5a187d47bc99aeeb3e4d064319a6a3053af3",
   "core_doctrine": [
     "First prompt for serious work is not do the thing.",
     "First step is build the room.",
@@ -199,7 +199,7 @@
     "operator_review_required",
     "deletion_allowed"
   ],
-  "generated_at": "2026-06-08T00:56:25+00:00",
+  "generated_at": "2026-06-08T00:57:31+00:00",
   "implementation_boundary": {
     "browser_opened": false,
     "coupa_opened": false,
@@ -585,7 +585,7 @@
       ],
       "confidence_class": "receipt_backed",
       "date_claimed": "current",
-      "date_observed": "2026-06-08T00:56:25+00:00",
+      "date_observed": "2026-06-08T00:57:31+00:00",
       "do_not_use_for": [
         "mark_paid",
         "ledger_posting",
@@ -613,14 +613,14 @@
         "may_explain_payment_watch"
       ],
       "confidence_class": "generated_summary",
-      "date_claimed": "historical_or_support",
-      "date_observed": "2026-06-08T00:56:25+00:00",
+      "date_claimed": "superseded_by_current_receipt",
+      "date_observed": "2026-06-08T00:57:31+00:00",
       "do_not_use_for": [
         "current_truth",
         "paid_truth",
         "authority_decision"
       ],
-      "freshness_state": "historical",
+      "freshness_state": "superseded",
       "full_source_reference_only": true,
       "how_to_use": "Use only as supporting wording after receipt-backed facts are selected.",
       "limitations": [
@@ -642,7 +642,7 @@
       ],
       "confidence_class": "receipt_backed",
       "date_claimed": "current_if_latest_receipt_matches",
-      "date_observed": "2026-06-08T00:56:25+00:00",
+      "date_observed": "2026-06-08T00:57:31+00:00",
       "do_not_use_for": [
         "send_email",
         "external_submission"
@@ -669,7 +669,7 @@
       ],
       "confidence_class": "unpromoted_memory",
       "date_claimed": "unknown",
-      "date_observed": "2026-06-08T00:56:25+00:00",
+      "date_observed": "2026-06-08T00:57:31+00:00",
       "do_not_use_for": [
         "current_followup_truth",
         "send_authority"
@@ -696,7 +696,7 @@
       ],
       "confidence_class": "receipt_backed",
       "date_claimed": "historical_resolved",
-      "date_observed": "2026-06-08T00:56:25+00:00",
+      "date_observed": "2026-06-08T00:57:31+00:00",
       "do_not_use_for": [
         "active_review_work",
         "merge",
@@ -725,7 +725,7 @@
       ],
       "confidence_class": "operator_reported",
       "date_claimed": "current_if_operator_supplied",
-      "date_observed": "2026-06-08T00:56:25+00:00",
+      "date_observed": "2026-06-08T00:57:31+00:00",
       "do_not_use_for": [
         "finance_claims",
         "client_payment_proof"
@@ -753,7 +753,7 @@
       ],
       "confidence_class": "validation_backed",
       "date_claimed": "current_when_validation_matches",
-      "date_observed": "2026-06-08T00:56:25+00:00",
+      "date_observed": "2026-06-08T00:57:31+00:00",
       "do_not_use_for": [
         "auto_apply_repair",
         "worker_spawn",
@@ -782,7 +782,7 @@
       ],
       "confidence_class": "artifact_hash",
       "date_claimed": "current_preview_only",
-      "date_observed": "2026-06-08T00:56:25+00:00",
+      "date_observed": "2026-06-08T00:57:31+00:00",
       "do_not_use_for": [
         "dump_full_log",
         "broad_cleanup_authority"
@@ -810,7 +810,7 @@
       ],
       "confidence_class": "generated_summary",
       "date_claimed": "old",
-      "date_observed": "2026-06-08T00:56:25+00:00",
+      "date_observed": "2026-06-08T00:57:31+00:00",
       "do_not_use_for": [
         "current_truth",
         "final_synthesis"
