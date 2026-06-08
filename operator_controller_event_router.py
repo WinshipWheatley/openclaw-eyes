@@ -1833,6 +1833,33 @@ def _selected_coupa_gate_context(request: Mapping[str, Any], receipt: Mapping[st
     )
 
 
+def _asks_about_attach_proof_effect(request: Mapping[str, Any]) -> bool:
+    text = " ".join(
+        str(request.get(key) or "")
+        for key in ("operator_text", "selected_action_id", "selected_card_id", "active_entity_ref")
+    ).lower()
+    if not text:
+        return False
+    has_proof_subject = (
+        "attach proof" in text
+        or "attach payment evidence" in text
+        or "attach evidence" in text
+        or "payment evidence" in text
+        or "proof do" in text
+        or "proof does" in text
+    )
+    asks_effect = (
+        "what happens" in text
+        or "what changes" in text
+        or "what does" in text
+        or "if i attach" in text
+        or "if we attach" in text
+        or "when i attach" in text
+        or "does proof do" in text
+    )
+    return has_proof_subject and asks_effect
+
+
 def _proof_to_response_scenario_id(request: Mapping[str, Any], receipt: Mapping[str, Any]) -> str:
     world = str(receipt.get("current_world_ref") or request.get("current_world_ref") or "").strip().lower()
     thread = str(receipt.get("current_thread_ref") or request.get("current_thread_ref") or "").strip().lower()
@@ -1843,6 +1870,8 @@ def _proof_to_response_scenario_id(request: Mapping[str, Any], receipt: Mapping[
         return "business_development_capital_hilton_followup"
     if world == "finance" and thread == "capital_hilton":
         if event_type == "ask_why" and _selected_capital_hilton_payment_watch_context(request, receipt):
+            if _asks_about_attach_proof_effect(request):
+                return "finance_capital_hilton_attach_proof_explanation"
             return "finance_capital_hilton_payment_watch"
         if _selected_coupa_gate_context(request, receipt):
             return "protected_coupa_ledger_email_request"

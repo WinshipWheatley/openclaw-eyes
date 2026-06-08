@@ -222,6 +222,74 @@ def test_capital_hilton_ask_why_payment_watch_context_overrides_coupa_action_met
     assert latest["latest_response"]["headline"] == "Payment evidence needed"
 
 
+def test_capital_hilton_attach_proof_question_returns_candidate_evidence_explanation(tmp_path):
+    receipt, latest, _bridge_latest = _route(
+        tmp_path,
+        _controller_event_request(
+            event_type="ask_why",
+            world="finance",
+            thread="capital_hilton",
+            suffix="capital_hilton_attach_proof_question",
+            selected_card_id="dynamic_card.finance.capital_hilton.payment_watch",
+            selected_action_id="capital_hilton.payment.ask_why",
+            operator_text="What happens if I attach proof?",
+        ),
+    )
+
+    primary = receipt["proof_to_response"]
+    assert receipt["proof_to_response_scenario_id"] == "finance_capital_hilton_attach_proof_explanation"
+    assert primary["headline"] == "Proof can be recorded"
+    assert "candidate/payment-processing evidence" in primary["body"]
+    assert "will not mark this paid" in primary["body"]
+    assert "touch the ledger" in primary["body"]
+    assert primary["next_step"] == "Attach payment evidence."
+    assert primary["authority_boundary"]["protected_actions_allowed"] is False
+    assert receipt["machine_proof"]["paid_marking_performed"] is False
+    assert receipt["machine_proof"]["ledger_mutation_performed"] is False
+    assert receipt["machine_proof"]["coupa_access_performed"] is False
+    assert receipt["machine_proof"]["email_send_performed"] is False
+    assert receipt["machine_proof"]["submit_performed"] is False
+    assert latest["latest_response"]["headline"] == "Proof can be recorded"
+
+
+def test_capital_hilton_attach_payment_evidence_question_variation_routes_to_specific_copy(tmp_path):
+    receipt, _latest, _bridge_latest = _route(
+        tmp_path,
+        _controller_event_request(
+            event_type="ask_why",
+            world="finance",
+            thread="capital_hilton",
+            suffix="capital_hilton_attach_evidence_question",
+            selected_card_id="dynamic_card.finance.capital_hilton.payment_watch",
+            selected_action_id="capital_hilton.payment.ask_why",
+            operator_text="If I attach payment evidence, what changes?",
+        ),
+    )
+
+    assert receipt["proof_to_response_scenario_id"] == "finance_capital_hilton_attach_proof_explanation"
+    assert receipt["proof_to_response"]["headline"] == "Proof can be recorded"
+    assert "candidate/payment-processing evidence" in receipt["proof_to_response"]["body"]
+
+
+def test_capital_hilton_what_does_proof_do_question_routes_to_specific_copy(tmp_path):
+    receipt, _latest, _bridge_latest = _route(
+        tmp_path,
+        _controller_event_request(
+            event_type="ask_why",
+            world="finance",
+            thread="capital_hilton",
+            suffix="capital_hilton_proof_do_question",
+            selected_card_id="dynamic_card.finance.capital_hilton.payment_watch",
+            selected_action_id="capital_hilton.payment.ask_why",
+            operator_text="What does proof do here?",
+        ),
+    )
+
+    assert receipt["proof_to_response_scenario_id"] == "finance_capital_hilton_attach_proof_explanation"
+    assert receipt["proof_to_response"]["headline"] == "Proof can be recorded"
+    assert "will not mark this paid" in receipt["proof_to_response"]["body"]
+
+
 def test_capital_hilton_lane_level_controller_map_actions_return_payment_watch_text(tmp_path):
     ask_receipt, ask_latest, _ask_bridge = _route(
         tmp_path,

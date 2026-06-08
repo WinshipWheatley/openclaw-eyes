@@ -45,6 +45,22 @@ def test_valid_capital_hilton_candidate_publishes(tmp_path):
     assert "Coupa/browser action" in response["cannot_do_yet"]
 
 
+def test_capital_hilton_attach_proof_explanation_publishes_candidate_evidence_copy(tmp_path):
+    result = _publish("finance_capital_hilton_attach_proof_explanation", tmp_path=tmp_path)
+    response = result["published_response"]
+
+    assert result["verifier_result"]["publishable"] is True
+    assert response["verification_status"] == "publishable"
+    assert response["headline"] == "Proof can be recorded"
+    assert "candidate/payment-processing evidence" in response["body"]
+    assert "will not mark this paid" in response["body"]
+    assert "touch the ledger" in response["body"]
+    assert response["next_step"] == "Attach payment evidence."
+    assert response["authority_boundary"]["protected_actions_allowed"] is False
+    assert "paid marking" in response["cannot_do_yet"]
+    assert "ledger mutation" in response["cannot_do_yet"]
+
+
 def test_candidate_claiming_paid_fails(tmp_path):
     candidate = _candidate(draft_body="Payment evidence is missing. The invoice has been paid. The ledger stays untouched.")
     result = _publish(candidate=candidate, tmp_path=tmp_path)

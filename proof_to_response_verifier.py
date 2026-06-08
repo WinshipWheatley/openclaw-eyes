@@ -61,6 +61,10 @@ SAFE_NEGATIVE_CONTEXTS = (
     "no paid",
     "cannot mark paid",
     "cannot send",
+    "will not mark this paid",
+    "not mark this paid",
+    "not touch the ledger",
+    "will not touch the ledger",
     "no send",
     "not send",
     "nothing gets sent",
@@ -86,6 +90,8 @@ NEGATIVE_CONTEXTS_BY_COMPLETION = {
         "cannot mark this paid",
         "cannot mark it paid",
         "not mark paid",
+        "not mark this paid",
+        "will not mark this paid",
     ),
     "sent": (
         "cannot send",
@@ -272,6 +278,7 @@ def _required_phrase_errors(response: Mapping[str, Any], bundle: Mapping[str, An
     errors: list[str] = []
     required_by_scenario = {
         "finance_capital_hilton_payment_watch": ("payment evidence", "ledger"),
+        "finance_capital_hilton_attach_proof_explanation": ("candidate", "paid", "ledger"),
         "finance_live_arts_payment_evidence": ("evidence", "paid"),
         "business_development_capital_hilton_followup": ("stage", "send"),
         "build_review_packet": ("merge", "push"),

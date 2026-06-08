@@ -48,6 +48,7 @@ CANDIDATE_SOURCES = (
 
 SUPPORTED_SCENARIOS = (
     "finance_capital_hilton_payment_watch",
+    "finance_capital_hilton_attach_proof_explanation",
     "finance_live_arts_payment_evidence",
     "business_development_capital_hilton_followup",
     "build_review_packet",
@@ -362,6 +363,31 @@ def build_or_load_proof_bundle(
         return dict(proof_bundle)
     if scenario_id == "self_heal_missing_proof_for_payment":
         return _build_self_heal_payment_bundle(read_model_root)
+    if scenario_id == "finance_capital_hilton_attach_proof_explanation":
+        bundle = build_or_load_proof_bundle("finance_capital_hilton_payment_watch", read_model_root=read_model_root)
+        bundle["proof_bundle_id"] = "proof_bundle:finance_capital_hilton_attach_proof_explanation"
+        bundle["scenario_id"] = scenario_id
+        bundle["operator_question"] = "What happens if I attach payment proof?"
+        bundle["known_facts"] = [
+            _fact(
+                "proof_can_be_recorded",
+                "Attached payment evidence can be recorded as candidate/payment-processing evidence.",
+                ["generated/read_models/evidence_intake_status.json", "generated/read_models/universal_receipt_envelope_status.json"],
+            ),
+            _fact(
+                "candidate_evidence_not_paid_truth",
+                "Candidate/operator-reported payment-processing evidence does not mark the invoice paid.",
+                ["generated/read_models/proof_meter_normalization.json", "generated/read_models/universal_receipt_envelope_status.json"],
+            ),
+            _fact(
+                "ledger_untouched",
+                "The ledger remains untouched until payment is confirmed.",
+                ["generated/read_models/universal_receipt_envelope_status.json", "generated/read_models/objective_advancement_protocol.json"],
+            ),
+        ]
+        bundle["unknowns"] = ["confirmed_payment_arrival", "verified_payment_receipt"]
+        bundle["blocked_actions"] = ["mark_paid", "mutate_ledger", "submit_coupa", "send_email"]
+        return bundle
 
     bundle = bundles.build_proof_bundle(scenario_id, read_model_root=read_model_root)
     controls = list(bundle.get("allowed_response_controls") or [])
@@ -395,6 +421,15 @@ def fixture_candidate_response(proof_bundle: Mapping[str, Any]) -> dict[str, Any
             "draft_body": "Coupa is processing. I can't mark this paid until payment evidence is attached. The ledger stays untouched.",
             "draft_next_step": "Attach payment evidence.",
             "claimed_facts": ["payment_evidence_missing", "coupa_processing", "ledger_untouched"],
+            "requested_controls": ["Attach payment evidence"],
+        }
+    if scenario_id == "finance_capital_hilton_attach_proof_explanation":
+        return {
+            **common,
+            "draft_headline": "Proof can be recorded",
+            "draft_body": "If you attach payment evidence, I can record it as candidate/payment-processing evidence. I still will not mark this paid or touch the ledger until payment is confirmed.",
+            "draft_next_step": "Attach payment evidence.",
+            "claimed_facts": ["proof_can_be_recorded", "candidate_evidence_not_paid_truth", "ledger_untouched"],
             "requested_controls": ["Attach payment evidence"],
         }
     if scenario_id == "finance_live_arts_payment_evidence":
