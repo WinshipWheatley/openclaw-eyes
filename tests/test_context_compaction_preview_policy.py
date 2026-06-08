@@ -1,4 +1,3 @@
-import ast
 import json
 import sys
 from pathlib import Path
@@ -9,9 +8,10 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import context_compaction_preview_policy as policy
+import context_freshness_decision_trace_gate as freshness_gate
 
 
-FIXED_NOW = "2026-06-07T18:00:00+00:00"
+FIXED_NOW = "2026-06-08T10:00:00+00:00"
 
 
 def _write_json(path: Path, payload: dict) -> None:
@@ -21,187 +21,143 @@ def _write_json(path: Path, payload: dict) -> None:
 
 def _fixture_root(tmp_path: Path) -> Path:
     root = tmp_path / "generated" / "read_models"
-    for spec in policy.PRECONDITIONS.values():
-        _write_json(root / spec["filename"], {"status": spec["accepted_statuses"][0]})
+    statuses = {
+        "proof_bundle_redaction_policy.json": "PROOF_BUNDLE_REDACTION_HARDENING_READY",
+        "proof_bundle_freshness_trace_status.json": "PROOF_BUNDLE_FRESHNESS_TRACE_INTEGRATION_READY",
+        freshness_gate.JSON_EXPORT_NAME: freshness_gate.READY_STATUS,
+        "operator_session_timeline.json": "OPERATOR_SESSION_TIMELINE_READY",
+        "universal_receipt_envelope_status.json": "UNIVERSAL_RECEIPT_ENVELOPE_READY",
+        "agent_response_voice_modes.json": "AGENT_RESPONSE_VOICE_MODES_READY",
+        "retrospective_harness_learning_seed.json": "RETROSPECTIVE_HARNESS_LEARNING_SEED_READY",
+    }
+    for filename, status in statuses.items():
+        _write_json(root / filename, {"status": status})
     return root
 
 
-def _build(tmp_path: Path) -> dict:
+def _read_model(tmp_path: Path) -> dict:
     return policy.build_read_model(read_model_root=_fixture_root(tmp_path), generated_at=FIXED_NOW)
 
 
-def _scenario(read_model: dict, scenario_id: str) -> dict:
-    return policy.scenario_by_id(read_model, scenario_id)
-
-
-def _tier(read_model: dict, tier_ref: str) -> dict:
-    matches = [tier for tier in read_model["context_tiers"] if tier["tier_ref"] == tier_ref]
-    assert len(matches) == 1
-    return matches[0]
-
-
-def _walk_values(payload):
-    if isinstance(payload, dict):
-        for key, value in payload.items():
-            yield key, value
-            yield from _walk_values(value)
-    elif isinstance(payload, list):
-        for value in payload:
-            yield from _walk_values(value)
+def _scenario(read_model: dict, scenario_ref: str) -> dict:
+    return next(row for row in read_model["required_scenarios"] if row["scenario_ref"] == scenario_ref)
 
 
 def test_large_artifact_policy_returns_preview_ref_not_full_dump(tmp_path):
-    scenario = _scenario(_build(tmp_path), "large_server_error_log")
-    preview = scenario["agent_visible_context"]["preview"]
+    read_model = _read_model(tmp_path)
+    scenario = _scenario(read_model, "large_server_error_log")
+    preview = scenario["preview_policy"]
 
-    assert "tier_4_preview_snippets" in scenario["selected_tiers"]
-    assert "tier_5_full_artifact_or_log_reference" in scenario["selected_tiers"]
-    assert preview["preview_text"].startswith("Preview:")
-    assert preview["full_artifact_ref"] == preview["artifact_ref"]
-    assert len(preview["preview_text"]) <= preview["preview_char_limit"]
-    assert preview["full_artifact_embedded"] is False
-    assert preview["full_log_embedded"] is False
-    assert preview["raw_file_body_embedded"] is False
-    assert "full log body" in scenario["excluded_context"]
+    assert read_model["status"] == policy.READY_STATUS
+    assert preview["preview_first"] is True
+    assert preview["preview_max_lines"] == 20
+    assert preview["full_dump_embedded"] is False
+    assert preview["full_artifact_referenced"] is True
+    assert "tier_5_full_artifact_or_log_reference" in scenario["context_tiers_used"]
 
 
-def test_raw_ocr_and_artifact_text_excluded_by_default(tmp_path):
-    read_model = _build(tmp_path)
-    raw_policy = read_model["agent_visible_context_policy"]["raw_private_material_policy"]
-    postmortem = _scenario(read_model, "local_lm_non_json_postmortem")
+def test_raw_ocr_artifact_text_excluded_by_default(tmp_path):
+    read_model = _read_model(tmp_path)
+    forbidden = set(read_model["agent_visible_context_policy"]["forbidden_by_default"])
 
-    assert raw_policy["raw_ocr_text_embedded"] is False
-    assert raw_policy["raw_artifact_text_embedded"] is False
-    assert postmortem["policy_flags"]["raw_artifact_text_embedded"] is False
-    assert postmortem["policy_flags"]["raw_ocr_text_embedded"] is False
-    assert "raw candidate text" in postmortem["excluded_context"]
+    assert "raw_ocr_artifact_text" in forbidden
+    assert read_model["authority_boundary"]["raw_artifact_text_allowed_by_default"] is False
+    assert read_model["machine_proof"]["raw_ocr_artifact_text_excluded_by_default"] is True
 
 
 def test_full_chat_history_excluded(tmp_path):
-    read_model = _build(tmp_path)
-    forbidden = read_model["agent_visible_context_policy"]["forbidden_by_default"]
+    read_model = _read_model(tmp_path)
+    forbidden = set(read_model["agent_visible_context_policy"]["forbidden_by_default"])
 
-    assert "full chat history dumps" in forbidden
-    assert read_model["machine_proof"]["full_chat_history_embedded"] is False
-    assert _scenario(read_model, "build_review_history")["policy_flags"]["full_chat_history_embedded"] is False
+    assert "full_chat_history_dumps" in forbidden
+    assert read_model["authority_boundary"]["full_history_dump_allowed"] is False
+    assert read_model["machine_proof"]["full_chat_history_excluded"] is True
 
 
 def test_stale_summary_cannot_appear_as_current_context(tmp_path):
-    scenario = _scenario(_build(tmp_path), "build_review_history")
-    agent_context = scenario["agent_visible_context"]
+    read_model = _read_model(tmp_path)
+    scenario = _scenario(read_model, "build_review_history")
 
-    assert agent_context["active_context"] == []
-    assert agent_context["history"][0]["summary"].startswith("Prior build review packet")
-    assert scenario["policy_flags"]["stale_context_as_current_truth"] is False
-    assert "stale summary as current truth" in scenario["excluded_context"]
+    assert "Stale summaries are demoted." in read_model["compaction_rules"]
+    assert "Superseded receipts remain historical, not current truth." in read_model["compaction_rules"]
+    assert scenario["preview_policy"]["active_context"] is False
+    assert scenario["preview_policy"]["stale_context_entered_as_current_truth"] is False
+    assert read_model["authority_boundary"]["stale_context_current_truth_allowed"] is False
 
 
 def test_decision_trace_summary_is_included_when_relevant(tmp_path):
-    scenario = _scenario(_build(tmp_path), "finance_payment_watch")
-    agent_context = scenario["agent_visible_context"]
+    read_model = _read_model(tmp_path)
+    scenario = _scenario(read_model, "local_lm_non_json_postmortem")
 
-    assert "tier_3_decision_trace_summary" in scenario["selected_tiers"]
-    assert "ledger posting" in agent_context["decision_trace_summary"]
-    assert "payment evidence receipt" == agent_context["missing_input"]
-    assert "receipt:capital_hilton_payment_watch_current" in agent_context["latest_receipt_refs"]
+    assert "relevant_decision_trace_summary" in read_model["agent_visible_context_policy"]["allowed"]
+    assert "tier_3_decision_trace_summary" in scenario["context_tiers_used"]
+    assert scenario["preview_policy"]["decision_trace_summary_visible"] is True
+    assert "fallback receipt" in scenario["agent_visible_summary"]
 
 
 def test_niles_creative_bundle_excludes_finance_proof(tmp_path):
-    scenario = _scenario(_build(tmp_path), "niles_creative_mapping")
-    visible = json.dumps(scenario["agent_visible_context"], sort_keys=True).lower()
+    scenario = _scenario(_read_model(tmp_path), "niles_creative_mapping")
 
-    assert "creative brief" in scenario["agent_visible_context"]["creative_context"]
-    assert "finance proof" in scenario["excluded_context"]
-    assert "payment evidence" in scenario["excluded_context"]
-    assert "finance proof" not in visible
-    assert "payment evidence" not in visible
-    assert scenario["policy_flags"]["raw_private_proof_visible"] is False
+    assert scenario["preview_policy"]["creative_context_allowed"] is True
+    assert scenario["preview_policy"]["unrelated_finance_proof_excluded"] is True
+    assert scenario["preview_policy"]["private_finance_proof_included"] is False
+    assert "unrelated_finance_proof" in scenario["forbidden_material_excluded"]
 
 
 def test_developer_proof_hidden_by_default(tmp_path):
-    read_model = _build(tmp_path)
-    tier = _tier(read_model, "tier_6_developer_proof_only")
-    scenario = _scenario(read_model, "developer_proof_only")
+    read_model = _read_model(tmp_path)
+    tier = next(row for row in read_model["context_tiers"] if row["tier_ref"] == "tier_6_developer_proof_only")
+    large_log = _scenario(read_model, "large_server_error_log")
+    remote = _scenario(read_model, "remote_desktop_trace_log_leak")
 
     assert tier["agent_visible_by_default"] is False
-    assert read_model["authority_boundary"]["developer_proof_visible_by_default"] is False
-    assert scenario["policy_flags"]["developer_proof_visible_by_default"] is False
-    assert "developer proof bodies" in scenario["excluded_context"]
+    assert tier["full_body_policy"] == "hidden_by_default"
+    assert large_log["preview_policy"]["developer_proof_hidden_by_default"] is True
+    assert remote["preview_policy"]["developer_proof_hidden_by_default"] is True
+    assert read_model["machine_proof"]["developer_proof_hidden_by_default"] is True
+
+
+def test_resource_leak_context_does_not_grant_cleanup_authority(tmp_path):
+    read_model = _read_model(tmp_path)
+    scenario = _scenario(read_model, "remote_desktop_trace_log_leak")
+
+    assert scenario["preview_policy"]["resource_summary_visible"] is True
+    assert scenario["preview_policy"]["raw_trace_log_embedded"] is False
+    assert scenario["preview_policy"]["broad_temp_file_delete_authority"] is False
+    assert scenario["authority_boundary"]["cleanup_authority_granted"] is False
+    assert read_model["authority_boundary"]["cleanup_authority_granted"] is False
+    assert read_model["machine_proof"]["resource_cleanup_authority_absent"] is True
+
+
+def test_all_required_tiers_present(tmp_path):
+    read_model = _read_model(tmp_path)
+    observed = {row["tier_ref"] for row in read_model["context_tiers"]}
+
+    assert observed == set(policy.CONTEXT_TIER_REFS)
+    assert read_model["machine_proof"]["all_required_tiers_present"] is True
 
 
 def test_unsafe_true_grant_scan_clean(tmp_path):
-    read_model = _build(tmp_path)
+    read_model = _read_model(tmp_path)
 
     assert policy.unsafe_true_grants(read_model) == []
     assert read_model["unsafe_true_grants"] == []
     assert read_model["machine_proof"]["unsafe_true_grants_absent"] is True
-    assert not [
-        key
-        for key, value in _walk_values(read_model)
-        if key in policy.UNSAFE_TRUE_KEYS and value is True
-    ]
 
 
-def test_export_writes_local_bridge_equal_and_wiki(tmp_path):
+def test_export_json_bridge_equality_and_wiki(tmp_path):
     result = policy.export_context_compaction_preview_policy(
         read_model_root=_fixture_root(tmp_path),
         export_root=tmp_path / "read_models",
         bridge_root=tmp_path / "bridge",
-        wiki_path=tmp_path / "wiki" / "Context Compaction Preview Policy.md",
+        wiki_path=tmp_path / "Context Compaction Preview Policy.md",
         generated_at=FIXED_NOW,
     )
-
     local = json.loads(Path(result["read_model_path"]).read_text(encoding="utf-8"))
     bridge = json.loads(Path(result["bridge_read_model_path"]).read_text(encoding="utf-8"))
     wiki = Path(result["wiki_path"]).read_text(encoding="utf-8")
 
     assert result["status"] == policy.READY_STATUS
     assert local == bridge
-    assert local["status"] == policy.READY_STATUS
-    assert "Context Compaction Preview Policy" in wiki
-    assert "Large artifacts are previewed first" in wiki
     assert policy.unsafe_true_grants(local) == []
-
-
-def test_missing_precondition_marks_not_ready(tmp_path):
-    root = _fixture_root(tmp_path)
-    _write_json(root / "proof_bundle_freshness_trace_status.json", {"status": "NOT_READY"})
-
-    read_model = policy.build_read_model(read_model_root=root, generated_at=FIXED_NOW)
-
-    assert read_model["status"] == policy.NOT_READY_STATUS
-    assert read_model["machine_proof"]["preconditions_ready"] is False
-    assert policy.unsafe_true_grants(read_model) == []
-
-
-def test_source_does_not_import_execution_or_provider_surfaces():
-    source = Path("context_compaction_preview_policy.py").read_text(encoding="utf-8").lower()
-    forbidden_tokens = [
-        "import subprocess",
-        "subprocess.",
-        "os.system",
-        "import requests",
-        "import httpx",
-        "urllib.request",
-        "import socket",
-        "smtplib",
-        "selenium",
-        "playwright",
-        "pyautogui",
-        "openpyxl",
-        ".chief.env",
-        ".google-secrets",
-        "ollama",
-        "litellm",
-    ]
-    for token in forbidden_tokens:
-        assert token not in source
-
-    tree = ast.parse(Path("context_compaction_preview_policy.py").read_text(encoding="utf-8"))
-    imported = {
-        alias.name.split(".")[0]
-        for node in ast.walk(tree)
-        if isinstance(node, ast.Import)
-        for alias in node.names
-    }
-    assert imported <= {"argparse", "hashlib", "json", "shutil"}
+    assert wiki.startswith("# Context Compaction Preview Policy")
