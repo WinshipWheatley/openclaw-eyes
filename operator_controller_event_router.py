@@ -1867,6 +1867,10 @@ def _proof_to_response_scenario_id(request: Mapping[str, Any], receipt: Mapping[
     world = str(receipt.get("current_world_ref") or request.get("current_world_ref") or "").strip().lower()
     thread = str(receipt.get("current_thread_ref") or request.get("current_thread_ref") or "").strip().lower()
     event_type = str(receipt.get("controller_event_type") or request.get("controller_event_type") or "").strip()
+    route_result = receipt.get("route_result") if isinstance(receipt.get("route_result"), Mapping) else {}
+    routed_scenario_id = str(route_result.get("proof_to_response_scenario_id") or "").strip()
+    if event_type == "chat_goal" and routed_scenario_id:
+        return routed_scenario_id
     if event_type == "attach_proof" and world == "finance" and thread == "live_arts_md":
         return "finance_live_arts_payment_evidence"
     if world == "business_development" and thread == "capital_hilton":

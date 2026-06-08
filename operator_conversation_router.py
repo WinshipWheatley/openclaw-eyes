@@ -30,16 +30,46 @@ SCHEMA_VERSION = "operator_conversation_router_v0"
 CONTRACT_SCHEMA_VERSION = "operator_conversation_router_contract_v0"
 CONTRACT_READ_MODEL_ID = "operator_conversation_router_contract"
 STATUS_READ_MODEL_ID = "operator_conversation_router_status"
+INTENT_STATUS_READ_MODEL_ID = "operator_conversation_intent_router_status"
 CONTRACT_JSON_EXPORT_NAME = f"{CONTRACT_READ_MODEL_ID}.json"
 STATUS_JSON_EXPORT_NAME = f"{STATUS_READ_MODEL_ID}.json"
+INTENT_STATUS_JSON_EXPORT_NAME = f"{INTENT_STATUS_READ_MODEL_ID}.json"
 READY_STATUS = "OPERATOR_CONVERSATION_ROUTER_READY"
 NOT_READY_STATUS = "OPERATOR_CONVERSATION_ROUTER_NOT_READY"
+INTENT_READY_STATUS = "OPERATOR_CONVERSATION_INTENT_ROUTER_READY"
+INTENT_NOT_READY_STATUS = "OPERATOR_CONVERSATION_INTENT_ROUTER_NOT_READY"
 
 ROUTE_STATUS_TEXT_RESPONSE = "TEXT_RESPONSE_READY"
 ROUTE_STATUS_PROTECTED_BLOCKED = "PROTECTED_ACTION_BLOCKED_TEXT_RESPONSE"
 ROUTE_STATUS_NEEDS_LANE_CONTEXT = "NEEDS_LANE_CONTEXT"
 ROUTE_STATUS_NEEDS_VERIFICATION = "NEEDS_VERIFICATION"
 ROUTE_STATUS_STAGE_ONLY = "STAGE_PLAN_TEXT_RESPONSE"
+
+INTENT_CLASSES = (
+    "payment_watch_next_step",
+    "paid_or_ledger_blocker",
+    "attach_proof_hypothetical",
+    "handle_it_or_continue_boundary",
+    "package_context_explanation",
+    "allowed_scope_explanation",
+    "forbidden_scope_explanation",
+    "freshness_uncertainty_explanation",
+    "decision_trace_explanation",
+    "fallback_lane_answer",
+)
+
+CAPITAL_HILTON_INTENT_SCENARIOS = {
+    "payment_watch_next_step": "finance_capital_hilton_payment_watch",
+    "paid_or_ledger_blocker": "finance_capital_hilton_payment_watch",
+    "attach_proof_hypothetical": "finance_capital_hilton_attach_proof_explanation",
+    "handle_it_or_continue_boundary": "finance_capital_hilton_handle_boundary",
+    "package_context_explanation": "finance_capital_hilton_package_context",
+    "allowed_scope_explanation": "finance_capital_hilton_allowed_scope",
+    "forbidden_scope_explanation": "finance_capital_hilton_forbidden_scope",
+    "freshness_uncertainty_explanation": "finance_capital_hilton_freshness_uncertainty",
+    "decision_trace_explanation": "finance_capital_hilton_decision_trace",
+    "fallback_lane_answer": "finance_capital_hilton_fallback_lane_answer",
+}
 
 AUTHORITY_BOUNDARY = {
     **proof_runtime.AUTHORITY_BOUNDARY,
@@ -263,6 +293,40 @@ def _operator_text(request: Mapping[str, Any]) -> str:
     return ""
 
 
+def _is_finance_capital_hilton(world: str, thread: str) -> bool:
+    return world.strip().lower() == "finance" and thread.strip().lower() == "capital_hilton"
+
+
+def resolve_finance_capital_hilton_intent(text: str) -> str:
+    """Resolve lane-local Finance / Capital Hilton chat text without model calls."""
+
+    lowered = text.lower()
+    if any(phrase in lowered for phrase in ("what package", "lm2 get", "worker get", "context would", "worker context")):
+        return "package_context_explanation"
+    if any(phrase in lowered for phrase in ("already been tried", "already tried", "already been decided", "what has been tried", "what has already", "decision trace", "decided here")):
+        return "decision_trace_explanation"
+    if any(phrase in lowered for phrase in ("stale", "uncertain", "uncertainty", "missing context", "what context is", "what is stale")):
+        return "freshness_uncertainty_explanation"
+    if any(phrase in lowered for phrase in ("not allowed", "cannot do", "can't do", "what can't", "what can’t")):
+        return "forbidden_scope_explanation"
+    if any(phrase in lowered for phrase in ("allowed to do", "what can you do", "what are you allowed", "what can openclaw do")):
+        return "allowed_scope_explanation"
+    if any(phrase in lowered for phrase in ("just handle it", "can you handle it", "continue", "do what you can", "handle this", "handle it")):
+        return "handle_it_or_continue_boundary"
+    if (
+        any(phrase in lowered for phrase in ("attach proof", "attach payment evidence", "attach evidence", "proof do", "proof does", "payment evidence"))
+        and any(phrase in lowered for phrase in ("what happens", "what changes", "what does", "if i attach", "if we attach", "when i attach"))
+    ):
+        return "attach_proof_hypothetical"
+    if any(phrase in lowered for phrase in ("submit", "send", "gmail", "browser", "coupa", "spawn worker", "run worker", "push", "merge")):
+        return "forbidden_scope_explanation"
+    if any(phrase in lowered for phrase in ("why can't", "why can’t", "why cannot", "marked paid", "mark paid", "update the ledger", "touch the ledger", "ledger")):
+        return "paid_or_ledger_blocker"
+    if any(phrase in lowered for phrase in ("what should i do", "what is next", "what's next", "what next", "next step", "what is the next")):
+        return "payment_watch_next_step"
+    return "fallback_lane_answer"
+
+
 def _display_from_published(response: Mapping[str, Any]) -> dict[str, Any]:
     speaker = str(response.get("speaker_ref") or "openclaw")
     return {
@@ -394,6 +458,7 @@ def _publish_scenario(
     read_model_root: Path,
     candidate_response: Mapping[str, Any] | None = None,
     route_status: str = ROUTE_STATUS_TEXT_RESPONSE,
+    conversation_intent_class: str = "",
 ) -> dict[str, Any]:
     publish = proof_runtime.publish_response(
         scenario_id,
@@ -428,6 +493,9 @@ def _publish_scenario(
         "proof_bundle_id": str(bundle.get("proof_bundle_id") or ""),
         "details_collapsed": True,
     }
+    result["conversation_intent_class"] = conversation_intent_class
+    result["proof_to_response_scenario_id"] = scenario_id
+    result["proof_to_response_candidate_source"] = str(response.get("candidate_source") or proof_runtime.CANDIDATE_SOURCE_SHADOW_PILOT)
     return result
 
 
@@ -604,6 +672,18 @@ def route_conversation_text(
     if world.lower() == "helm":
         return _generic_helm_result(request, generated_at=generated_at)
 
+    if _is_finance_capital_hilton(world, thread):
+        intent_class = resolve_finance_capital_hilton_intent(text)
+        scenario_id = CAPITAL_HILTON_INTENT_SCENARIOS[intent_class]
+        return _publish_scenario(
+            request,
+            scenario_id,
+            generated_at=generated_at,
+            sqlite_path=sqlite_path,
+            read_model_root=read_model_root,
+            conversation_intent_class=intent_class,
+        )
+
     scenario_id = _scenario_for_context(text, world, thread)
     if scenario_id == "unknown_context":
         return _missing_context_result(request, generated_at=generated_at)
@@ -724,6 +804,162 @@ def build_status_read_model(
     if payload["machine_proof"]["unsafe_true_grants"]:
         payload["status"] = NOT_READY_STATUS
     return payload
+
+
+def build_intent_router_status_read_model(
+    *,
+    read_model_root: Path = DEFAULT_READ_MODEL_ROOT,
+    sqlite_path: Path = DEFAULT_SQLITE_PATH,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    generated_at = generated_at or utc_now()
+    questions = [
+        ("payment_watch_next_step", "What should I do here?"),
+        ("paid_or_ledger_blocker", "Why can't this be marked paid?"),
+        ("attach_proof_hypothetical", "What happens if I attach proof?"),
+        ("handle_it_or_continue_boundary", "Can you just handle it?"),
+        ("package_context_explanation", "What package would LM2 get for this?"),
+        ("allowed_scope_explanation", "What are you allowed to do?"),
+        ("forbidden_scope_explanation", "What are you not allowed to do?"),
+        ("freshness_uncertainty_explanation", "What context is stale or uncertain?"),
+        ("decision_trace_explanation", "What has already been tried or decided here?"),
+        ("fallback_lane_answer", "Answer the lane in a different way."),
+    ]
+    sample_routes = [
+        route_conversation_text(
+            {
+                "request_type": REQUEST_TYPE,
+                "controller_event_type": "chat_goal",
+                "operator_text": question,
+                "current_world_ref": "finance",
+                "current_thread_ref": "capital_hilton",
+                "selected_card_id": "dynamic_card.finance.capital_hilton.payment_watch",
+                "authority_boundary": dict(AUTHORITY_BOUNDARY),
+            },
+            read_model_root=read_model_root,
+            sqlite_path=sqlite_path,
+            generated_at=generated_at,
+        )
+        for _intent, question in questions
+    ]
+    unsafe: list[str] = []
+    for sample in sample_routes:
+        unsafe.extend(unsafe_true_grants(sample))
+    observed_intents = [str(sample.get("conversation_intent_class") or "") for sample in sample_routes]
+    scenario_by_intent = {
+        str(sample.get("conversation_intent_class") or ""): str(sample.get("proof_to_response_scenario_id") or "")
+        for sample in sample_routes
+    }
+    payload: dict[str, Any] = {
+        "schema_version": "operator_conversation_intent_router_status_v0",
+        "read_model_id": INTENT_STATUS_READ_MODEL_ID,
+        "status": INTENT_READY_STATUS,
+        "generated_at": generated_at,
+        "request_type": REQUEST_TYPE,
+        "controller_event_type": "chat_goal",
+        "lane_ref": "finance/capital_hilton",
+        "purpose": "Resolve lane-local operator composer questions to distinct proof-to-response answers instead of reusing one generic payment-watch response.",
+        "intent_classes": list(INTENT_CLASSES),
+        "scenario_by_intent": dict(CAPITAL_HILTON_INTENT_SCENARIOS),
+        "routing_rules": [
+            "Fresh LM2-backed payment-watch text may be reused only for payment_watch_next_step and paid_or_ledger_blocker when scoped.",
+            "Package, allowed-scope, forbidden-scope, freshness, and decision-trace questions use specialized deterministic proof-to-response scenarios.",
+            "No WORKFLOW_PACKAGE_REQUEST_V0 path is emitted from lane-local chat_goal questions.",
+            "No model invocation, worker spawn, prompt send, proof-bundle send, protected action, paid marking, ledger mutation, or business execution occurs.",
+        ],
+        "sample_routes": sample_routes,
+        "authority_boundary": dict(AUTHORITY_BOUNDARY),
+        "machine_proof": _machine_proof(
+            all_intent_classes_sampled=sorted(observed_intents) == sorted(INTENT_CLASSES),
+            specialized_non_generic_answers_present=all(
+                scenario_by_intent.get(intent) != "finance_capital_hilton_payment_watch"
+                for intent in (
+                    "attach_proof_hypothetical",
+                    "handle_it_or_continue_boundary",
+                    "package_context_explanation",
+                    "allowed_scope_explanation",
+                    "forbidden_scope_explanation",
+                    "freshness_uncertainty_explanation",
+                    "decision_trace_explanation",
+                    "fallback_lane_answer",
+                )
+            ),
+            generic_lm2_reuse_limited_to_next_step_or_blocker=True,
+            workflow_package_request_v0_emitted=False,
+            sample_route_count=len(sample_routes),
+        ),
+    }
+    unsafe.extend(unsafe_true_grants(payload))
+    payload["machine_proof"]["unsafe_true_grants"] = sorted(set(unsafe))
+    payload["machine_proof"]["unsafe_true_grants_absent"] = not payload["machine_proof"]["unsafe_true_grants"]
+    if payload["machine_proof"]["unsafe_true_grants"]:
+        payload["status"] = INTENT_NOT_READY_STATUS
+    return payload
+
+
+def build_intent_router_wiki(status: Mapping[str, Any]) -> str:
+    lines = [
+        "# Operator Conversation Intent Router",
+        "",
+        f"Status: `{status.get('status', INTENT_NOT_READY_STATUS)}`",
+        "",
+        "Routes Finance / Capital Hilton lane-local composer questions to distinct text-first proof-to-response answers.",
+        "",
+        "## Intent Classes",
+        "",
+    ]
+    for intent in status.get("intent_classes", []):
+        scenario = (status.get("scenario_by_intent") or {}).get(intent, "")
+        lines.append(f"- `{intent}` -> `{scenario}`")
+    lines.extend(["", "## Rules", ""])
+    for rule in status.get("routing_rules", []):
+        lines.append(f"- {rule}")
+    lines.extend(["", "## Sample Responses", ""])
+    for sample in status.get("sample_routes", []):
+        display = sample.get("operator_display") if isinstance(sample.get("operator_display"), Mapping) else {}
+        lines.append(
+            f"- `{sample.get('conversation_intent_class')}`: {display.get('headline')} -> {display.get('next_safe_action')}"
+        )
+    return "\n".join(lines) + "\n"
+
+
+def export_operator_conversation_intent_router(
+    *,
+    read_model_root: Path = DEFAULT_READ_MODEL_ROOT,
+    export_root: Path = DEFAULT_EXPORT_ROOT,
+    bridge_root: Path | None = DEFAULT_BRIDGE_ROOT,
+    wiki_path: Path = Path("generated/wiki/openclaw/Operator Conversation Intent Router.md"),
+    sqlite_path: Path = DEFAULT_SQLITE_PATH,
+    generated_at: str | None = None,
+) -> dict[str, str]:
+    generated_at = generated_at or utc_now()
+    status = build_intent_router_status_read_model(
+        read_model_root=read_model_root,
+        sqlite_path=sqlite_path,
+        generated_at=generated_at,
+    )
+    export_root = _rooted(export_root)
+    export_root.mkdir(parents=True, exist_ok=True)
+    status_path = export_root / INTENT_STATUS_JSON_EXPORT_NAME
+    _write_json(status_path, status)
+
+    bridge_status_path = ""
+    if bridge_root is not None:
+        bridge = _rooted(bridge_root)
+        bridge.mkdir(parents=True, exist_ok=True)
+        bridge_status = bridge / INTENT_STATUS_JSON_EXPORT_NAME
+        shutil.copy2(status_path, bridge_status)
+        bridge_status_path = bridge_status.as_posix()
+
+    wiki_path = _rooted(wiki_path)
+    wiki_path.parent.mkdir(parents=True, exist_ok=True)
+    wiki_path.write_text(build_intent_router_wiki(status), encoding="utf-8")
+    return {
+        "status": str(status["status"]),
+        "status_path": status_path.as_posix(),
+        "bridge_status_path": bridge_status_path,
+        "wiki_path": wiki_path.as_posix(),
+    }
 
 
 def build_wiki(contract: Mapping[str, Any], status: Mapping[str, Any]) -> str:

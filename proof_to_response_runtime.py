@@ -51,6 +51,13 @@ CANDIDATE_SOURCES = (
 SUPPORTED_SCENARIOS = (
     "finance_capital_hilton_payment_watch",
     "finance_capital_hilton_attach_proof_explanation",
+    "finance_capital_hilton_handle_boundary",
+    "finance_capital_hilton_package_context",
+    "finance_capital_hilton_allowed_scope",
+    "finance_capital_hilton_forbidden_scope",
+    "finance_capital_hilton_freshness_uncertainty",
+    "finance_capital_hilton_decision_trace",
+    "finance_capital_hilton_fallback_lane_answer",
     "finance_live_arts_payment_evidence",
     "business_development_capital_hilton_followup",
     "build_review_packet",
@@ -391,6 +398,77 @@ def build_or_load_proof_bundle(
         bundle["blocked_actions"] = ["mark_paid", "mutate_ledger", "submit_coupa", "send_email"]
         return bundle
 
+    if scenario_id in {
+        "finance_capital_hilton_handle_boundary",
+        "finance_capital_hilton_package_context",
+        "finance_capital_hilton_allowed_scope",
+        "finance_capital_hilton_forbidden_scope",
+        "finance_capital_hilton_freshness_uncertainty",
+        "finance_capital_hilton_decision_trace",
+        "finance_capital_hilton_fallback_lane_answer",
+    }:
+        bundle = build_or_load_proof_bundle("finance_capital_hilton_payment_watch", read_model_root=read_model_root)
+        bundle["proof_bundle_id"] = f"proof_bundle:{scenario_id}"
+        bundle["scenario_id"] = scenario_id
+        bundle["operator_question"] = scenario_id.replace("finance_capital_hilton_", "").replace("_", " ")
+        bundle["blocked_actions"] = ["mark_paid", "mutate_ledger", "submit_coupa", "send_email", "spawn_worker"]
+        extra_controls = {
+            "finance_capital_hilton_package_context": _control(
+                label="No worker action is needed unless you approve a bounded worker run",
+                controller_event_type="show_details",
+            ),
+            "finance_capital_hilton_fallback_lane_answer": _control(
+                label="Show details",
+                controller_event_type="show_details",
+            ),
+        }
+        if scenario_id in extra_controls:
+            bundle["allowed_response_controls"] = list(bundle.get("allowed_response_controls") or []) + [extra_controls[scenario_id]]
+        scenario_facts = {
+            "finance_capital_hilton_handle_boundary": [
+                _fact("safe_status_explanation_available", "OpenClaw can explain payment-watch status.", ["generated/read_models/proof_to_response_runtime_status.json"]),
+                _fact("candidate_evidence_can_be_recorded", "OpenClaw can accept and record candidate payment evidence if provided.", ["generated/read_models/evidence_intake_status.json"]),
+                _fact("protected_payment_actions_blocked", "Paid marking, ledger mutation, Coupa/browser access, submit, and send remain blocked.", ["generated/read_models/gate_decision_ledger.json"]),
+            ],
+            "finance_capital_hilton_package_context": [
+                _fact("room_backed_package_available", "A future LM2 run would receive a room-backed package, not a raw folder dump.", ["generated/read_models/project_room_package_compiler_integration.json"]),
+                _fact("redacted_context_only", "Only redacted payment-watch facts and bounded summaries are allowed.", ["generated/read_models/proof_bundle_freshness_trace_status.json"]),
+                _fact("private_context_excluded", "Finance proof, bank details, credential material, device auth material, OCR text, workbook/email/ledger bodies, and stale current-truth context are excluded.", ["generated/read_models/context_compaction_preview_policy.json"]),
+                _fact("worker_requires_approval", "No worker run is needed or allowed without explicit bounded approval.", ["generated/read_models/lm2_live_worker_pilot_boundary_packet.json"]),
+            ],
+            "finance_capital_hilton_allowed_scope": [
+                _fact("allowed_explain_status", "OpenClaw may explain current payment-watch status from proof.", ["generated/read_models/proof_to_response_runtime_status.json"]),
+                _fact("allowed_accept_candidate_evidence", "OpenClaw may accept candidate payment evidence if attached.", ["generated/read_models/evidence_intake_status.json"]),
+                _fact("allowed_prepare_next_proof_step", "OpenClaw may prepare the next proof step without protected action authority.", ["generated/read_models/operator_action_payloads.json"]),
+            ],
+            "finance_capital_hilton_forbidden_scope": [
+                _fact("paid_marking_blocked", "OpenClaw may not mark paid.", ["generated/read_models/gate_decision_ledger.json"]),
+                _fact("ledger_mutation_blocked", "OpenClaw may not mutate the ledger.", ["generated/read_models/universal_receipt_envelope_status.json"]),
+                _fact("external_actions_blocked", "OpenClaw may not open Coupa/browser/Gmail, send email, submit, mutate workbook/PDF, push, merge, or spawn workers without approval.", ["generated/read_models/operator_controller_protocol.json"]),
+            ],
+            "finance_capital_hilton_freshness_uncertainty": [
+                _fact("payment_watch_context_current", "Current lane context says Coupa is processing.", ["generated/read_models/context_freshness_decision_trace_gate.json"]),
+                _fact("payment_evidence_missing", "Payment evidence is missing.", ["generated/read_models/proof_bundle_freshness_trace_status.json"]),
+                _fact("candidate_evidence_needs_verification", "Candidate evidence remains candidate until verified.", ["generated/read_models/evidence_confidence_scoring.json"]),
+                _fact("stale_context_needs_verification", "Stale context must be labeled as needing verification.", ["generated/read_models/context_freshness_decision_trace_gate.json"]),
+            ],
+            "finance_capital_hilton_decision_trace": [
+                _fact("payment_watch_active", "Payment watch is active.", ["generated/read_models/operator_session_timeline.json"]),
+                _fact("paid_false", "Paid remains false.", ["generated/read_models/proof_bundle_freshness_trace_status.json"]),
+                _fact("ledger_untouched", "The ledger remains untouched.", ["generated/read_models/universal_receipt_envelope_status.json"]),
+                _fact("protected_actions_gated", "Protected Coupa and ledger actions stay gated.", ["generated/read_models/gate_decision_ledger.json"]),
+                _fact("lm2_response_reuse_scoped", "LM2-backed payment-watch text may be reused only when fresh and scoped to this lane.", ["generated/read_models/lm2_room_backed_worker_structured_output_retry.json"]),
+            ],
+            "finance_capital_hilton_fallback_lane_answer": [
+                _fact("fallback_lane_answer_available", "A safe fallback lane answer is available when the question is not recognized.", ["generated/read_models/proof_to_response_runtime_status.json"]),
+                _fact("payment_watch_still_safe_scope", "Payment-watch safe scope remains explanation and proof intake only.", ["generated/read_models/operator_controller_protocol.json"]),
+            ],
+        }
+        bundle["known_facts"] = scenario_facts[scenario_id]
+        if scenario_id in {"finance_capital_hilton_freshness_uncertainty", "finance_capital_hilton_fallback_lane_answer"}:
+            bundle["unknowns"] = ["confirmed_payment_arrival", "verified_payment_receipt"]
+        return bundle
+
     bundle = bundles.build_proof_bundle(scenario_id, read_model_root=read_model_root)
     controls = list(bundle.get("allowed_response_controls") or [])
     if scenario_id == "finance_capital_hilton_payment_watch":
@@ -429,10 +507,97 @@ def fixture_candidate_response(proof_bundle: Mapping[str, Any]) -> dict[str, Any
         return {
             **common,
             "draft_headline": "Proof can be recorded",
-            "draft_body": "If you attach payment evidence, I can record it as candidate/payment-processing evidence. I still will not mark this paid or touch the ledger until payment is confirmed.",
+            "draft_body": "If you attach payment evidence, I can record it as candidate/payment-processing evidence. It still will not mark this paid or touch the ledger; it does not mark paid, and the ledger stays untouched until payment is confirmed.",
             "draft_next_step": "Attach payment evidence.",
             "claimed_facts": ["proof_can_be_recorded", "candidate_evidence_not_paid_truth", "ledger_untouched"],
             "requested_controls": ["Attach payment evidence"],
+        }
+    if scenario_id == "finance_capital_hilton_handle_boundary":
+        return {
+            **common,
+            "draft_headline": "I can handle the safe part",
+            "draft_body": "I can explain the status, accept candidate payment evidence if you attach it, and prepare the next proof step. I cannot mark paid, touch the ledger, open Coupa/browser/Gmail, submit, or send.",
+            "draft_next_step": "Attach payment evidence.",
+            "claimed_facts": [
+                "safe_status_explanation_available",
+                "candidate_evidence_can_be_recorded",
+                "protected_payment_actions_blocked",
+            ],
+            "requested_controls": ["Attach payment evidence"],
+        }
+    if scenario_id == "finance_capital_hilton_package_context":
+        return {
+            **common,
+            "draft_headline": "LM2 would get bounded context",
+            "draft_body": "LM2 would get redacted facts, source inventory, missing context, decision trace, proof meters, controls, and JSON in a room-backed package. It would not get finance proof, bank info, credential material, device auth material, OCR, ledger/email/workbook bodies, or stale truth.",
+            "draft_next_step": "No worker action is needed unless you approve a bounded worker run.",
+            "claimed_facts": [
+                "room_backed_package_available",
+                "redacted_context_only",
+                "private_context_excluded",
+                "worker_requires_approval",
+            ],
+            "requested_controls": ["No worker action is needed unless you approve a bounded worker run"],
+        }
+    if scenario_id == "finance_capital_hilton_allowed_scope":
+        return {
+            **common,
+            "draft_headline": "Allowed: explain and collect proof",
+            "draft_body": "I can explain the current payment-watch status, answer from proof, accept candidate payment evidence, and prepare the next proof step. That does not grant protected action authority.",
+            "draft_next_step": "Attach payment evidence.",
+            "claimed_facts": [
+                "allowed_explain_status",
+                "allowed_accept_candidate_evidence",
+                "allowed_prepare_next_proof_step",
+            ],
+            "requested_controls": ["Attach payment evidence"],
+        }
+    if scenario_id == "finance_capital_hilton_forbidden_scope":
+        return {
+            **common,
+            "draft_headline": "Protected actions stay blocked",
+            "draft_body": "I cannot mark paid, mutate the ledger, open Coupa/browser/Gmail, send email, submit, mutate workbook/PDF, push, merge, or spawn a worker without approval.",
+            "draft_next_step": "Attach payment evidence.",
+            "claimed_facts": ["paid_marking_blocked", "ledger_mutation_blocked", "external_actions_blocked"],
+            "requested_controls": ["Attach payment evidence"],
+        }
+    if scenario_id == "finance_capital_hilton_freshness_uncertainty":
+        return {
+            **common,
+            "draft_headline": "Evidence is the uncertainty",
+            "draft_body": "The current lane says Coupa is processing, payment evidence is missing, paid remains false, and the ledger stays untouched. Any candidate evidence stays candidate until verified; stale context needs verification before I treat it as current.",
+            "draft_next_step": "Attach payment evidence.",
+            "claimed_facts": [
+                "payment_watch_context_current",
+                "payment_evidence_missing",
+                "candidate_evidence_needs_verification",
+                "stale_context_needs_verification",
+            ],
+            "requested_controls": ["Attach payment evidence"],
+        }
+    if scenario_id == "finance_capital_hilton_decision_trace":
+        return {
+            **common,
+            "draft_headline": "Payment watch is still active",
+            "draft_body": "Payment watch is active. Paid remains false, the ledger stays untouched, protected Coupa and ledger actions stay gated, and the prior LM2-backed payment-watch answer can be reused only when it is fresh and scoped to this lane.",
+            "draft_next_step": "Attach payment evidence.",
+            "claimed_facts": [
+                "payment_watch_active",
+                "paid_false",
+                "ledger_untouched",
+                "protected_actions_gated",
+                "lm2_response_reuse_scoped",
+            ],
+            "requested_controls": ["Attach payment evidence"],
+        }
+    if scenario_id == "finance_capital_hilton_fallback_lane_answer":
+        return {
+            **common,
+            "draft_headline": "Payment watch is the safe lane",
+            "draft_body": "I can answer payment-watch questions from current proof and keep protected actions blocked. Ask for next step, proof effects, scope, freshness, or decision trace.",
+            "draft_next_step": "Show details.",
+            "claimed_facts": ["fallback_lane_answer_available", "payment_watch_still_safe_scope"],
+            "requested_controls": ["Show details"],
         }
     if scenario_id == "finance_live_arts_payment_evidence":
         return {
