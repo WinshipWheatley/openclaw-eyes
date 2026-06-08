@@ -28,12 +28,19 @@ DEFAULT_EXPORT_ROOT = Path("generated/read_models")
 DEFAULT_BRIDGE_ROOT = Path("/mnt/e/openclaw/generated/read_models")
 DEFAULT_WIKI_PATH = Path("generated/wiki/openclaw/LM2 Live Worker Pilot Boundary Packet.md")
 DEFAULT_SQLITE_PATH = Path("generated/system_knowledge/lm2_live_worker_pilot_boundary_packet.sqlite")
+ROOM_BACKED_DEFAULT_WIKI_PATH = Path("generated/wiki/openclaw/LM2 Room Backed Worker Pilot Boundary.md")
+ROOM_BACKED_DEFAULT_SQLITE_PATH = Path("generated/system_knowledge/lm2_room_backed_worker_pilot_boundary.sqlite")
 
 SCHEMA_VERSION = "lm2_live_worker_pilot_boundary_packet_v0"
 READ_MODEL_ID = "lm2_live_worker_pilot_boundary_packet"
 JSON_EXPORT_NAME = f"{READ_MODEL_ID}.json"
 READY_STATUS = "LM2_LIVE_WORKER_PILOT_BOUNDARY_READY"
 NOT_READY_STATUS = "LM2_LIVE_WORKER_PILOT_BOUNDARY_NOT_READY"
+ROOM_BACKED_SCHEMA_VERSION = "lm2_room_backed_worker_pilot_boundary_v1"
+ROOM_BACKED_READ_MODEL_ID = "lm2_room_backed_worker_pilot_boundary"
+ROOM_BACKED_JSON_EXPORT_NAME = f"{ROOM_BACKED_READ_MODEL_ID}.json"
+ROOM_BACKED_READY_STATUS = "LM2_ROOM_BACKED_WORKER_PILOT_BOUNDARY_READY"
+ROOM_BACKED_NOT_READY_STATUS = "LM2_ROOM_BACKED_WORKER_PILOT_BOUNDARY_NOT_READY"
 PACKET_STATUS = "pending_operator_review"
 
 WORKER_CLASS = "lm2_bounded_worker"
@@ -87,6 +94,49 @@ PRECONDITIONS = {
     "operator_controller_protocol": {
         "filename": "operator_controller_protocol.json",
         "accepted_statuses": ("OPERATOR_CONTROLLER_PROTOCOL_READY",),
+    },
+}
+
+ROOM_BACKED_PRECONDITIONS = {
+    "lm2_live_worker_pilot_boundary": {
+        "filename": JSON_EXPORT_NAME,
+        "accepted_statuses": (READY_STATUS,),
+    },
+    "project_room_sourceset_contract": {
+        "filename": "project_room_sourceset_contract.json",
+        "accepted_statuses": ("PROJECT_ROOM_SOURCESET_CONTRACT_READY",),
+    },
+    "project_room_package_compiler_integration": {
+        "filename": "project_room_package_compiler_integration.json",
+        "accepted_statuses": ("PROJECT_ROOM_PACKAGE_COMPILER_INTEGRATION_READY",),
+    },
+    "context_compaction_preview_policy": {
+        "filename": "context_compaction_preview_policy.json",
+        "accepted_statuses": ("CONTEXT_COMPACTION_PREVIEW_POLICY_READY",),
+    },
+    "context_freshness_decision_trace_gate": {
+        "filename": "context_freshness_decision_trace_gate.json",
+        "accepted_statuses": ("CONTEXT_FRESHNESS_DECISION_TRACE_GATE_READY",),
+    },
+    "proof_bundle_freshness_trace_integration": {
+        "filename": bundles.FRESHNESS_TRACE_STATUS_JSON_EXPORT_NAME,
+        "accepted_statuses": (bundles.FRESHNESS_TRACE_READY_STATUS,),
+    },
+    "proof_bundle_builder_redaction_integration": {
+        "filename": bundles.REDACTION_STATUS_JSON_EXPORT_NAME,
+        "accepted_statuses": (bundles.REDACTION_READY_STATUS,),
+    },
+    "proof_to_response_schema_adapter": {
+        "filename": schema_adapter.STATUS_JSON_EXPORT_NAME,
+        "accepted_statuses": (schema_adapter.READY_STATUS,),
+    },
+    "universal_receipt_envelope": {
+        "filename": "universal_receipt_envelope_status.json",
+        "accepted_statuses": ("UNIVERSAL_RECEIPT_ENVELOPE_READY",),
+    },
+    "goldilocks_gate_calibration": {
+        "filename": "goldilocks_gate_calibration.json",
+        "accepted_statuses": ("GOLDILOCKS_GATE_CALIBRATION_READY",),
     },
 }
 
@@ -177,6 +227,12 @@ OPERATOR_DECISION_OPTIONS = (
     "reject_for_now",
 )
 
+ROOM_BACKED_OPERATOR_DECISION_OPTIONS = (
+    "approve_one_time_room_backed_lm2_worker_pilot",
+    "request_more_detail",
+    "reject_for_now",
+)
+
 EXPECTED_RESPONSE = {
     "headline": "Payment evidence needed",
     "body": "Coupa is processing. I can't mark this paid until payment evidence is attached. The ledger stays untouched.",
@@ -188,6 +244,100 @@ EXPECTED_RESPONSE = {
     "requested_controls": ["Attach payment evidence"],
     "uncertainty_notes": [],
 }
+
+ROOM_BACKED_EXPECTED_RESPONSE = {
+    "headline": "Payment evidence needed",
+    "body": "Coupa is processing. I can't mark this paid until payment evidence is attached. The ledger stays untouched.",
+    "next_step": "Attach payment evidence.",
+    "missing_input": ["payment_evidence"],
+    "can_do_now": ["explain the payment-watch state", "accept payment evidence"],
+    "cannot_do_yet": ["mark paid", "post to the ledger", "submit anything"],
+    "claimed_facts": ["payment_evidence_missing", "processor_processing", "ledger_untouched", "paid_false"],
+    "requested_controls": ["attach_proof"],
+    "uncertainty_notes": [],
+}
+
+ROOM_BACKED_PACKAGE_REQUIRED_REFS = (
+    "project_room_id",
+    "source_inventory_ref",
+    "conflict_log_ref",
+    "missing_context_ref",
+    "duplicate_report_ref",
+    "decision_trace_ref",
+    "freshness_gate_ref",
+    "compaction_policy_ref",
+    "redacted_proof_bundle_ref",
+    "authority_boundary_ref",
+    "receipt_requirement_ref",
+)
+
+ROOM_BACKED_ALLOWED_WORKER_INPUTS = (
+    "redacted_freshness_gated_proof_bundle",
+    "current_lane_summary",
+    "source_inventory_summary",
+    "missing_context_summary",
+    "decision_trace_summary",
+    "proof_meter_labels",
+    "allowed_controls",
+    "blocked_action_summaries",
+    "required_json_response_schema",
+    "one_valid_json_example",
+    "stop_conditions",
+)
+
+ROOM_BACKED_FORBIDDEN_WORKER_INPUTS = (
+    "raw_messy_folder_dump",
+    "full_logs_or_artifacts_by_default",
+    "raw_financial_proof",
+    "bank_or_account_details",
+    "credentials_or_tokens",
+    "operator_device_session_verification_secrets",
+    "raw_prompt_dumps",
+    "raw_ocr_or_artifact_text",
+    "workbook_email_or_ledger_bodies",
+    "hidden_machine_contracts",
+    "authority_granted_fields",
+    "stale_source_as_current_truth",
+    "duplicate_versions_as_equal_evidence",
+    "missing_context_as_permission_to_invent",
+)
+
+ROOM_BACKED_RECEIPTS_REQUIRED_BEFORE = (
+    "operator_approval_receipt",
+    "room_backed_package_receipt",
+    "project_room_readiness_receipt",
+    "worker_package_boundary_receipt",
+    "model_invocation_boundary_receipt",
+    "redacted_proof_bundle_receipt",
+    "no_external_provider_receipt",
+    "no_tool_authority_receipt",
+)
+
+ROOM_BACKED_RECEIPTS_REQUIRED_AFTER = (
+    "worker_started_receipt",
+    "model_invocation_attempt_receipt",
+    "raw_draft_captured_receipt",
+    "worker_stopped_receipt",
+    "verifier_pass_fail_receipt",
+    "published_response_hash_receipt_or_fallback_receipt",
+    "no_business_action_receipt",
+)
+
+ROOM_BACKED_STOP_CONDITIONS = (
+    "project_room_not_ready",
+    "source_inventory_missing",
+    "unresolved_critical_conflict",
+    "missing_context_blocks_supported_claim",
+    "freshness_stale_superseded_or_unknown",
+    "proof_bundle_contains_forbidden_field",
+    "model_returns_non_json",
+    "model_claims_paid_sent_submitted_or_executed",
+    "model_promises_protected_action",
+    "model_asks_for_hidden_private_context",
+    "model_attempts_tool_use",
+    "model_exceeds_one_attempt",
+    "verifier_fails",
+)
 
 AUTHORITY_BOUNDARY = {
     "invocation_allowed": False,
@@ -344,6 +494,187 @@ def precondition_rows(read_model_root: Path = DEFAULT_READ_MODEL_ROOT) -> list[d
             }
         )
     return rows
+
+
+def room_backed_precondition_rows(read_model_root: Path = DEFAULT_READ_MODEL_ROOT) -> list[dict[str, Any]]:
+    root = _rooted(read_model_root)
+    rows: list[dict[str, Any]] = []
+    for ref, spec in ROOM_BACKED_PRECONDITIONS.items():
+        filename = str(spec["filename"])
+        payload = _load_json(root / filename)
+        observed = _status(payload)
+        accepted = [str(status) for status in spec["accepted_statuses"]]
+        rows.append(
+            {
+                "precondition_ref": ref,
+                "source_ref": f"generated/read_models/{filename}",
+                "observed_status": observed,
+                "accepted_statuses": accepted,
+                "ready": observed in accepted,
+            }
+        )
+    return rows
+
+
+def build_room_backed_package() -> dict[str, Any]:
+    return {
+        "package_ref": "lm2_room_backed_package:finance_capital_hilton_payment_watch_response:v1",
+        "compiled_by_ref": "generated/read_models/project_room_package_compiler_integration.json",
+        "worker_class": WORKER_CLASS,
+        "runtime": RUNTIME_REF,
+        "model": MODEL_NAME,
+        "lane": PILOT_LANE,
+        "objective": OBJECTIVE_REF,
+        "question": QUESTION,
+        "mode": MODE,
+        "project_room_id": "finance_capital_hilton_payment_watch",
+        "source_inventory_ref": "source_inventory:finance_capital_hilton_payment_watch",
+        "conflict_log_ref": "conflict_log:finance_capital_hilton_payment_watch",
+        "missing_context_ref": "missing_context:finance_payment_evidence",
+        "duplicate_report_ref": "version_family:finance_payment_watch",
+        "decision_trace_ref": "decision_trace:finance_capital_hilton_payment_watch",
+        "freshness_gate_ref": "freshness_gate:receipt_current_or_needs_verification",
+        "compaction_policy_ref": "generated/read_models/context_compaction_preview_policy.json",
+        "redacted_proof_bundle_ref": "generated/read_models/proof_bundle_freshness_trace_status.json#finance_capital_hilton_payment_watch_redacted",
+        "authority_boundary_ref": "lm2_room_backed_worker_pilot_boundary:authority_boundary:v1",
+        "receipt_requirement_ref": "lm2_room_backed_worker_pilot_boundary:receipt_requirements:v1",
+        "project_room_required": True,
+        "project_room_ready_required": True,
+        "room_backed_package_required": True,
+        "current_proof_bundle_required": True,
+        "one_bounded_objective": True,
+        "synthesis_allowed": False,
+        "invocation_allowed": False,
+        "worker_spawn_allowed": False,
+        "proof_bundle_allowed": False,
+        "current_lane_summary": "Finance / Capital Hilton payment watch. Coupa is processing; payment evidence is missing; paid=false; ledger untouched.",
+        "source_inventory_summary": "Use the payment-watch receipt as current proof and generated summaries only as support.",
+        "missing_context_summary": "Payment evidence is missing and blocks paid/ledger claims.",
+        "decision_trace_summary": "Prior payment-watch lane/gate routing showed that safe text can still be wrong if scoped to the wrong lane.",
+        "proof_meter_labels": ["payment_evidence_missing", "processor_processing", "ledger_untouched", "paid_false"],
+        "allowed_controls": ["attach_proof"],
+        "blocked_action_summaries": ["mark paid", "post to the ledger", "submit anything"],
+        "required_json_response_schema": schema_adapter.strict_json_draft_schema(),
+        "one_valid_json_example": dict(ROOM_BACKED_EXPECTED_RESPONSE),
+        "stop_conditions": list(ROOM_BACKED_STOP_CONDITIONS),
+    }
+
+
+def build_room_backed_worker_input() -> dict[str, Any]:
+    return {
+        "allowed": list(ROOM_BACKED_ALLOWED_WORKER_INPUTS),
+        "forbidden": list(ROOM_BACKED_FORBIDDEN_WORKER_INPUTS),
+        "room_backed_package_required": True,
+        "loose_proof_bundle_allowed": False,
+        "raw_context_allowed": False,
+        "required_package_refs": list(ROOM_BACKED_PACKAGE_REQUIRED_REFS),
+        "package": build_room_backed_package(),
+    }
+
+
+def room_backed_required_receipt_rows(generated_at: str) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for phase, refs in {
+        "before_future_invocation": ROOM_BACKED_RECEIPTS_REQUIRED_BEFORE,
+        "after_future_invocation": ROOM_BACKED_RECEIPTS_REQUIRED_AFTER,
+    }.items():
+        for receipt_ref in refs:
+            rows.append(
+                {
+                    "record_id": f"lm2_room_backed_boundary:{phase}:{receipt_ref}",
+                    "record_kind": "receipt_requirement",
+                    "record_ref": receipt_ref,
+                    "phase": phase,
+                    "status": "required_future_receipt",
+                    "created_at": generated_at,
+                    "record_json": stable_json(
+                        {
+                            "receipt_ref": receipt_ref,
+                            "phase": phase,
+                            "required_before_invocation": phase == "before_future_invocation",
+                            "required_after_invocation": phase == "after_future_invocation",
+                        }
+                    ),
+                }
+            )
+    return rows
+
+
+def room_backed_boundary_records(generated_at: str, read_model: Mapping[str, Any]) -> list[dict[str, Any]]:
+    records = [
+        {
+            "record_id": "lm2_room_backed_boundary:package",
+            "record_kind": "room_backed_package",
+            "record_ref": str((read_model.get("room_backed_package") or {}).get("package_ref") or ""),
+            "phase": "boundary",
+            "status": "defined_not_invoked",
+            "created_at": generated_at,
+            "record_json": stable_json(read_model.get("room_backed_package") or {}),
+        },
+        {
+            "record_id": "lm2_room_backed_boundary:worker_input",
+            "record_kind": "worker_input_contract",
+            "record_ref": "room_backed_worker_input:v1",
+            "phase": "boundary",
+            "status": "defined_not_sent",
+            "created_at": generated_at,
+            "record_json": stable_json(read_model.get("worker_package_input") or {}),
+        },
+        {
+            "record_id": "lm2_room_backed_boundary:stop_conditions",
+            "record_kind": "stop_conditions",
+            "record_ref": "room_backed_stop_conditions:v1",
+            "phase": "boundary",
+            "status": "defined",
+            "created_at": generated_at,
+            "record_json": stable_json(read_model.get("stop_conditions") or []),
+        },
+    ]
+    records.extend(room_backed_required_receipt_rows(generated_at))
+    return records
+
+
+def room_backed_sqlite_schema() -> str:
+    return """
+CREATE TABLE IF NOT EXISTS lm2_room_backed_worker_pilot_boundary_records (
+  record_id TEXT PRIMARY KEY,
+  record_kind TEXT NOT NULL,
+  record_ref TEXT NOT NULL,
+  phase TEXT NOT NULL,
+  status TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  record_json TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_lm2_room_backed_boundary_kind ON lm2_room_backed_worker_pilot_boundary_records(record_kind);
+CREATE INDEX IF NOT EXISTS idx_lm2_room_backed_boundary_phase ON lm2_room_backed_worker_pilot_boundary_records(phase);
+"""
+
+
+def write_room_backed_sqlite(records: list[Mapping[str, Any]], sqlite_path: Path = ROOM_BACKED_DEFAULT_SQLITE_PATH) -> int:
+    path = _rooted(sqlite_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with sqlite3.connect(path) as conn:
+        conn.executescript(room_backed_sqlite_schema())
+        conn.execute("DELETE FROM lm2_room_backed_worker_pilot_boundary_records")
+        for row in records:
+            conn.execute(
+                """
+INSERT INTO lm2_room_backed_worker_pilot_boundary_records (
+  record_id, record_kind, record_ref, phase, status, created_at, record_json
+) VALUES (?, ?, ?, ?, ?, ?, ?)
+""",
+                (
+                    str(row.get("record_id") or ""),
+                    str(row.get("record_kind") or ""),
+                    str(row.get("record_ref") or ""),
+                    str(row.get("phase") or ""),
+                    str(row.get("status") or ""),
+                    str(row.get("created_at") or ""),
+                    str(row.get("record_json") or stable_json(row)),
+                ),
+            )
+        conn.commit()
+    return len(records)
 
 
 def required_receipt_rows(generated_at: str) -> list[dict[str, Any]]:
@@ -656,6 +987,209 @@ def export_lm2_live_worker_pilot_boundary_packet(
         "invocation_allowed": str(read_model.get("invocation_allowed")).lower(),
         "worker_spawn_allowed": str(read_model.get("worker_spawn_allowed")).lower(),
         "proof_bundle_allowed": str(read_model.get("proof_bundle_allowed")).lower(),
+        "read_model_path": read_model_path.as_posix(),
+        "bridge_read_model_path": bridge_read_model_path,
+        "wiki_path": wiki_path.as_posix(),
+        "sqlite_path": _rooted(sqlite_path).as_posix(),
+        "sqlite_row_count": str(read_model.get("sqlite_row_count") or 0),
+    }
+
+
+def build_room_backed_wiki(read_model: Mapping[str, Any]) -> str:
+    package = read_model.get("room_backed_package") if isinstance(read_model.get("room_backed_package"), Mapping) else {}
+    worker_input = read_model.get("worker_package_input") if isinstance(read_model.get("worker_package_input"), Mapping) else {}
+    lines = [
+        "# LM2 Room Backed Worker Pilot Boundary",
+        "",
+        f"Status: {read_model.get('status')}",
+        "",
+        "This is boundary/read-model work only. It requires a room-backed worker package before any future LM2 pilot and does not invoke LM2, connect Ollama, spawn a worker, send a prompt, or send a proof bundle.",
+        "",
+        "## Pilot Scope",
+        "",
+        f"- Worker class: `{read_model.get('worker_class')}`",
+        f"- Runtime: `{read_model.get('runtime')}`",
+        f"- Model: `{read_model.get('model')}`",
+        f"- Lane: `{read_model.get('lane')}`",
+        f"- Objective: `{read_model.get('objective')}`",
+        f"- Question: {read_model.get('question')}",
+        f"- Mode: `{read_model.get('mode')}`",
+        "",
+        "## Required Package Refs",
+        "",
+    ]
+    for ref in ROOM_BACKED_PACKAGE_REQUIRED_REFS:
+        lines.append(f"- `{ref}`: `{package.get(ref)}`")
+    lines.extend(["", "## Allowed Worker Input", ""])
+    for item in worker_input.get("allowed") or []:
+        lines.append(f"- `{item}`")
+    lines.extend(["", "## Forbidden Worker Input", ""])
+    for item in worker_input.get("forbidden") or []:
+        lines.append(f"- `{item}`")
+    lines.extend(["", "## Stop Conditions", ""])
+    for item in read_model.get("stop_conditions") or []:
+        lines.append(f"- `{item}`")
+    lines.extend(["", "## Rules", ""])
+    for item in read_model.get("rules") or []:
+        lines.append(f"- {item}")
+    lines.append("")
+    return "\n".join(lines)
+
+
+def build_room_backed_read_model(
+    *,
+    read_model_root: Path = DEFAULT_READ_MODEL_ROOT,
+    sqlite_path: Path = ROOM_BACKED_DEFAULT_SQLITE_PATH,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    generated_at = generated_at or utc_now()
+    preconditions = room_backed_precondition_rows(read_model_root)
+    package = build_room_backed_package()
+    worker_input = build_room_backed_worker_input()
+    required_refs_present = all(str(package.get(ref) or "") for ref in ROOM_BACKED_PACKAGE_REQUIRED_REFS)
+    allowed_input_set = set(worker_input["allowed"])
+    forbidden_input_set = set(worker_input["forbidden"])
+    stop_condition_set = set(ROOM_BACKED_STOP_CONDITIONS)
+    required_stop_conditions = {
+        "project_room_not_ready",
+        "source_inventory_missing",
+        "unresolved_critical_conflict",
+        "missing_context_blocks_supported_claim",
+        "freshness_stale_superseded_or_unknown",
+        "model_returns_non_json",
+        "model_claims_paid_sent_submitted_or_executed",
+        "model_promises_protected_action",
+        "model_attempts_tool_use",
+        "model_exceeds_one_attempt",
+        "verifier_fails",
+    }
+    payload: dict[str, Any] = {
+        "schema_version": ROOM_BACKED_SCHEMA_VERSION,
+        "read_model_id": ROOM_BACKED_READ_MODEL_ID,
+        "status": ROOM_BACKED_READY_STATUS,
+        "generated_at": generated_at,
+        "purpose": "Revise the LM2 live worker pilot boundary so any future LM2 worker receives a room-backed package, not a loose proof bundle or messy context.",
+        "worker_class": WORKER_CLASS,
+        "runtime": RUNTIME_REF,
+        "model": MODEL_NAME,
+        "lane": PILOT_LANE,
+        "world_ref": WORLD_REF,
+        "thread_ref": THREAD_REF,
+        "objective": OBJECTIVE_REF,
+        "question": QUESTION,
+        "mode": MODE,
+        "room_backed_package_required": True,
+        "project_room_ready_required": True,
+        "invocation_allowed": False,
+        "worker_spawn_allowed": False,
+        "proof_bundle_allowed": False,
+        "packet_status": PACKET_STATUS,
+        "room_backed_package": package,
+        "worker_package_input": worker_input,
+        "allowed_worker_inputs": list(ROOM_BACKED_ALLOWED_WORKER_INPUTS),
+        "forbidden_worker_inputs": list(ROOM_BACKED_FORBIDDEN_WORKER_INPUTS),
+        "worker_capabilities": build_worker_capabilities(),
+        "required_receipts": {
+            "before_future_invocation": list(ROOM_BACKED_RECEIPTS_REQUIRED_BEFORE),
+            "after_future_invocation": list(ROOM_BACKED_RECEIPTS_REQUIRED_AFTER),
+        },
+        "stop_conditions": list(ROOM_BACKED_STOP_CONDITIONS),
+        "expected_response_target": dict(ROOM_BACKED_EXPECTED_RESPONSE),
+        "operator_decision_options": list(ROOM_BACKED_OPERATOR_DECISION_OPTIONS),
+        "rules": [
+            "invocation_allowed=false",
+            "worker_spawn_allowed=false",
+            "proof_bundle_allowed=false",
+            "room_backed_package_required=true",
+            "project_room_ready_required=true",
+            "this packet is not approval",
+            "this packet does not run LM2",
+        ],
+        "preconditions": preconditions,
+        "source_refs": [row["source_ref"] for row in preconditions],
+        "authority_boundary": dict(AUTHORITY_BOUNDARY),
+        "implementation_boundary": dict(IMPLEMENTATION_BOUNDARY),
+    }
+    records = room_backed_boundary_records(generated_at, payload)
+    sqlite_row_count = write_room_backed_sqlite(records, sqlite_path=sqlite_path)
+    receipt_count_ok = sqlite_row_count == len(records)
+    preconditions_ready = all(row["ready"] for row in preconditions)
+    payload["sqlite_ref"] = _rooted(sqlite_path).as_posix()
+    payload["sqlite_row_count"] = sqlite_row_count
+    payload["sqlite_expected_row_count"] = len(records)
+    payload["machine_proof"] = {
+        "boundary_read_model_only": True,
+        "preconditions_ready": preconditions_ready,
+        "room_backed_package_required": True,
+        "project_room_ready_required": True,
+        "required_package_refs_present": required_refs_present,
+        "allowed_inputs_match_contract": allowed_input_set == set(ROOM_BACKED_ALLOWED_WORKER_INPUTS),
+        "forbidden_inputs_match_contract": forbidden_input_set == set(ROOM_BACKED_FORBIDDEN_WORKER_INPUTS),
+        "allowed_forbidden_inputs_disjoint": allowed_input_set.isdisjoint(forbidden_input_set),
+        "stop_conditions_complete": required_stop_conditions <= stop_condition_set,
+        "expected_response_target_present": payload["expected_response_target"] == ROOM_BACKED_EXPECTED_RESPONSE,
+        "invocation_disallowed": payload["invocation_allowed"] is False,
+        "worker_spawn_disallowed": payload["worker_spawn_allowed"] is False,
+        "loose_proof_bundle_disallowed": payload["proof_bundle_allowed"] is False,
+        "tool_authority_false": payload["authority_boundary"]["tool_authority"] is False,
+        "business_action_authority_false": payload["authority_boundary"]["business_action_authority"] is False,
+        "model_invocation_absent": payload["implementation_boundary"]["model_invoked"] is False,
+        "worker_spawn_absent": payload["implementation_boundary"]["worker_spawn_performed"] is False,
+        "prompt_send_absent": payload["implementation_boundary"]["prompt_sent"] is False,
+        "proof_bundle_send_absent": payload["implementation_boundary"]["proof_bundle_sent"] is False,
+        "sqlite_row_count_matches_records": receipt_count_ok,
+        "unsafe_true_grants_absent": True,
+    }
+    if not all(value is True for value in payload["machine_proof"].values()):
+        payload["status"] = ROOM_BACKED_NOT_READY_STATUS
+    unsafe = unsafe_true_grants(payload)
+    payload["unsafe_true_grants"] = unsafe
+    payload["machine_proof"]["unsafe_true_grants"] = unsafe
+    payload["machine_proof"]["unsafe_true_grants_absent"] = not unsafe
+    if unsafe:
+        payload["status"] = ROOM_BACKED_NOT_READY_STATUS
+    payload["source_content_hashes"] = {
+        "preconditions": _content_hash(preconditions),
+        "room_backed_package": _content_hash(package),
+        "worker_package_input": _content_hash(worker_input),
+        "records": _content_hash(records),
+    }
+    payload["content_hash"] = _content_hash({key: value for key, value in payload.items() if key != "content_hash"})
+    return payload
+
+
+def export_lm2_room_backed_worker_pilot_boundary(
+    *,
+    read_model_root: Path = DEFAULT_READ_MODEL_ROOT,
+    export_root: Path = DEFAULT_EXPORT_ROOT,
+    bridge_root: Path | None = DEFAULT_BRIDGE_ROOT,
+    wiki_path: Path = ROOM_BACKED_DEFAULT_WIKI_PATH,
+    sqlite_path: Path = ROOM_BACKED_DEFAULT_SQLITE_PATH,
+    generated_at: str | None = None,
+) -> dict[str, str]:
+    read_model = build_room_backed_read_model(
+        read_model_root=read_model_root,
+        sqlite_path=sqlite_path,
+        generated_at=generated_at,
+    )
+    export_root = _rooted(export_root)
+    export_root.mkdir(parents=True, exist_ok=True)
+    read_model_path = export_root / ROOM_BACKED_JSON_EXPORT_NAME
+    _write_json(read_model_path, read_model)
+
+    bridge_read_model_path = ""
+    if bridge_root is not None:
+        bridge_root = _rooted(bridge_root)
+        bridge_root.mkdir(parents=True, exist_ok=True)
+        bridge_path = bridge_root / ROOM_BACKED_JSON_EXPORT_NAME
+        shutil.copy2(read_model_path, bridge_path)
+        bridge_read_model_path = bridge_path.as_posix()
+
+    wiki_path = _rooted(wiki_path)
+    wiki_path.parent.mkdir(parents=True, exist_ok=True)
+    wiki_path.write_text(build_room_backed_wiki(read_model), encoding="utf-8")
+    return {
+        "status": str(read_model.get("status") or ROOM_BACKED_NOT_READY_STATUS),
         "read_model_path": read_model_path.as_posix(),
         "bridge_read_model_path": bridge_read_model_path,
         "wiki_path": wiki_path.as_posix(),
