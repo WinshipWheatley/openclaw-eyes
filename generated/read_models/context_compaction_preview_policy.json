@@ -1,0 +1,658 @@
+{
+  "agent_visible_context_policy": {
+    "allowed_by_default": [
+      "redacted current facts",
+      "current proof meter labels",
+      "latest receipt refs",
+      "relevant decision trace summary",
+      "missing input",
+      "blocked action summary",
+      "allowed next controls",
+      "preview snippets only when safe"
+    ],
+    "forbidden_by_default": [
+      "full logs",
+      "raw file bodies",
+      "raw email/Coupa/Gmail/browser content",
+      "raw OCR/artifact text",
+      "raw workbook/ledger bodies",
+      "credentials/secrets",
+      "operator/device/session verification material",
+      "full chat history dumps",
+      "stale context as current truth"
+    ],
+    "raw_private_material_policy": {
+      "credentials_visible": false,
+      "developer_proof_visible_by_default": false,
+      "full_chat_history_embedded": false,
+      "raw_artifact_text_embedded": false,
+      "raw_browser_body_embedded": false,
+      "raw_coupa_body_embedded": false,
+      "raw_email_body_embedded": false,
+      "raw_gmail_body_embedded": false,
+      "raw_ledger_body_embedded": false,
+      "raw_ocr_text_embedded": false,
+      "raw_workbook_body_embedded": false,
+      "secrets_visible": false,
+      "stale_context_as_current_truth": false
+    }
+  },
+  "authority_boundary": {
+    "authority_grant_allowed": false,
+    "browser_access_allowed": false,
+    "business_action_allowed": false,
+    "coupa_allowed": false,
+    "credential_use_allowed": false,
+    "developer_proof_visible_by_default": false,
+    "email_send_allowed": false,
+    "external_action_allowed": false,
+    "external_llm_allowed": false,
+    "full_chat_history_dump_allowed": false,
+    "git_push_allowed": false,
+    "gmail_allowed": false,
+    "ledger_mutation_allowed": false,
+    "ledger_posting_allowed": false,
+    "local_model_runtime_allowed": false,
+    "merge_allowed": false,
+    "model_invocation_allowed": false,
+    "paid_marking_allowed": false,
+    "pdf_export_allowed": false,
+    "portal_submit_allowed": false,
+    "protected_actions_allowed": false,
+    "raw_artifact_text_allowed": false,
+    "raw_ocr_text_allowed": false,
+    "raw_private_content_access_allowed": false,
+    "secret_access_allowed": false,
+    "stale_context_current_truth_allowed": false,
+    "submit_allowed": false,
+    "workbook_mutation_allowed": false,
+    "workbook_source_mutation_allowed": false,
+    "worker_spawn_allowed": false
+  },
+  "compaction_rules": [
+    {
+      "agent_context_tier": "tier_3_decision_trace_summary",
+      "compacted_output": "decision trace summary",
+      "input_class": "old controller responses",
+      "rule_ref": "controller_responses_to_decision_trace"
+    },
+    {
+      "agent_context_tier": "tier_2_current_receipts_and_proof_meters",
+      "compacted_output": "receipt refs and proof meter labels",
+      "input_class": "old tool outputs",
+      "rule_ref": "tool_outputs_to_receipts_and_proof"
+    },
+    {
+      "agent_context_tier": "tier_3_decision_trace_summary",
+      "compacted_output": "history or refresh-needed note",
+      "input_class": "stale or superseded summaries",
+      "rule_ref": "stale_summaries_demoted"
+    },
+    {
+      "agent_context_tier": "tier_5_full_artifact_or_log_reference",
+      "compacted_output": "historical receipt refs, not current truth",
+      "input_class": "superseded receipts",
+      "rule_ref": "superseded_receipts_historical"
+    },
+    {
+      "agent_context_tier": "tier_3_decision_trace_summary",
+      "compacted_output": "short lesson tied to decision trace",
+      "input_class": "resolved blockers, failed attempts, operator decisions",
+      "rule_ref": "preserve_high_signal_lessons"
+    },
+    {
+      "agent_context_tier": "tier_5_full_artifact_or_log_reference",
+      "compacted_output": "archive reference only",
+      "input_class": "low-signal chatter and obsolete status noise",
+      "rule_ref": "archive_low_signal_chatter"
+    }
+  ],
+  "content_hash": "sha256:cfb3af1cbc6a60090926c639f2380834e60c135cdfa8ee683e0035e606312fcb",
+  "context_tier_order": [
+    "tier_0_operator_request",
+    "tier_1_current_lane_summary",
+    "tier_2_current_receipts_and_proof_meters",
+    "tier_3_decision_trace_summary",
+    "tier_4_preview_snippets",
+    "tier_5_full_artifact_or_log_reference",
+    "tier_6_developer_proof_only"
+  ],
+  "context_tiers": [
+    {
+      "agent_visible_by_default": true,
+      "allowed_material": [
+        "current ask",
+        "explicit no-go boundaries",
+        "requested output/status"
+      ],
+      "compaction_behavior": "Never replace the active request with older summaries.",
+      "content_policy": "Exact current request summary, scoped constraints, and requested status only.",
+      "examples": [
+        "Task title",
+        "work root",
+        "validation checklist",
+        "commit permission"
+      ],
+      "forbidden_material": [
+        "full chat history",
+        "operator/device/session verification material"
+      ],
+      "purpose": "Preserve the current operator ask and explicit constraints.",
+      "rank": 0,
+      "tier_ref": "tier_0_operator_request"
+    },
+    {
+      "agent_visible_by_default": true,
+      "allowed_material": [
+        "redacted current facts",
+        "missing input",
+        "blocked action summary"
+      ],
+      "compaction_behavior": "Supersede old lane summaries when a newer receipt or decision trace exists.",
+      "content_policy": "Redacted current lane summary backed by receipts or decision trace.",
+      "examples": [
+        "Capital Hilton payment evidence missing",
+        "Niles creative mapping brief"
+      ],
+      "forbidden_material": [
+        "stale summaries as current truth",
+        "unrelated lanes"
+      ],
+      "purpose": "Give the agent the latest scoped lane facts without raw source bodies.",
+      "rank": 1,
+      "tier_ref": "tier_1_current_lane_summary"
+    },
+    {
+      "agent_visible_by_default": true,
+      "allowed_material": [
+        "latest receipt refs",
+        "current proof meter labels",
+        "confidence labels"
+      ],
+      "compaction_behavior": "Old tool outputs collapse into receipt and proof summaries.",
+      "content_policy": "Receipt refs, proof meter labels, confidence labels, and current blockers.",
+      "examples": [
+        "receipt:capital_hilton_payment_watch_current",
+        "payment evidence missing"
+      ],
+      "forbidden_material": [
+        "private payment proof",
+        "raw receipt internals",
+        "credential details"
+      ],
+      "purpose": "Expose proof state labels and receipt references, not private proof bodies.",
+      "rank": 2,
+      "tier_ref": "tier_2_current_receipts_and_proof_meters"
+    },
+    {
+      "agent_visible_by_default": true,
+      "allowed_material": [
+        "relevant decision trace summary",
+        "prior rejection reason",
+        "latest safe control"
+      ],
+      "compaction_behavior": "Old controller responses collapse into decision trace.",
+      "content_policy": "Short decision trace summary when it changes the next safe action.",
+      "examples": [
+        "Coupa submit blocked until payment proof exists"
+      ],
+      "forbidden_material": [
+        "old controller response dumps",
+        "irrelevant history"
+      ],
+      "purpose": "Explain relevant prior decisions and rejections without dumping old responses.",
+      "rank": 3,
+      "tier_ref": "tier_3_decision_trace_summary"
+    },
+    {
+      "agent_visible_by_default": true,
+      "allowed_material": [
+        "short preview snippets only when safe",
+        "line ranges",
+        "redacted excerpt"
+      ],
+      "compaction_behavior": "Large logs/files/artifacts become preview plus reference.",
+      "content_policy": "Bounded safe snippet with omission count and full artifact reference.",
+      "examples": [
+        "Last three sanitized traceback lines",
+        "first 240 safe characters"
+      ],
+      "forbidden_material": [
+        "raw OCR text",
+        "full logs",
+        "raw file bodies"
+      ],
+      "purpose": "Show only safe excerpts from large artifacts when a preview is useful.",
+      "rank": 4,
+      "tier_ref": "tier_4_preview_snippets"
+    },
+    {
+      "agent_visible_by_default": true,
+      "allowed_material": [
+        "full artifact refs",
+        "content hash",
+        "receipt refs"
+      ],
+      "compaction_behavior": "Full source stays out of model context until explicitly approved and allowed.",
+      "content_policy": "Reference, hash, path class, owner, and access instruction only.",
+      "examples": [
+        "logref:openclaw/server.err#lines=tail",
+        "artifact:postmortem:local_lm_non_json"
+      ],
+      "forbidden_material": [
+        "full artifact body",
+        "raw workbook body",
+        "raw ledger body"
+      ],
+      "purpose": "Keep full artifacts reachable by reference without embedding them.",
+      "rank": 5,
+      "tier_ref": "tier_5_full_artifact_or_log_reference"
+    },
+    {
+      "agent_visible_by_default": false,
+      "allowed_material": [
+        "developer-only proof refs",
+        "test fixture refs",
+        "internal validation notes"
+      ],
+      "compaction_behavior": "Hidden by default; surfaced only through a scoped developer proof request.",
+      "content_policy": "Developer proof refs and test internals are hidden unless a separate approved route asks for them.",
+      "examples": [
+        "test fixture proof id",
+        "debug harness receipt ref"
+      ],
+      "forbidden_material": [
+        "secrets",
+        "credentials",
+        "operator/device/session verification material"
+      ],
+      "purpose": "Retain verification material for developers/harnesses without exposing it to ordinary agents.",
+      "rank": 6,
+      "tier_ref": "tier_6_developer_proof_only"
+    }
+  ],
+  "generated_at": "2026-06-08T00:44:41+00:00",
+  "implementation_boundary": {
+    "browser_opened": false,
+    "coupa_opened": false,
+    "credential_use_performed": false,
+    "email_send_performed": false,
+    "external_llm_invoked": false,
+    "git_push_performed": false,
+    "gmail_opened": false,
+    "ledger_mutation_performed": false,
+    "ledger_posting_performed": false,
+    "local_model_runtime_connected": false,
+    "merge_performed": false,
+    "model_invoked": false,
+    "paid_marking_performed": false,
+    "pdf_export_performed": false,
+    "portal_submit_performed": false,
+    "secret_access_performed": false,
+    "submit_performed": false,
+    "workbook_mutation_performed": false,
+    "workbook_source_mutation_performed": false,
+    "worker_spawn_performed": false
+  },
+  "machine_proof": {
+    "browser_opened": false,
+    "business_action_performed": false,
+    "contract_only": true,
+    "coupa_opened": false,
+    "developer_proof_visible_by_default": false,
+    "email_send_performed": false,
+    "external_llm_invoked": false,
+    "full_chat_history_embedded": false,
+    "git_push_performed": false,
+    "gmail_opened": false,
+    "ledger_mutation_performed": false,
+    "ledger_posting_performed": false,
+    "local_model_runtime_connected": false,
+    "model_invoked": false,
+    "paid_marking_performed": false,
+    "pdf_export_performed": false,
+    "preconditions_ready": true,
+    "protected_action_performed": false,
+    "raw_artifact_text_embedded": false,
+    "raw_ocr_text_embedded": false,
+    "stale_context_as_current_truth": false,
+    "submit_performed": false,
+    "unsafe_true_grants": [],
+    "unsafe_true_grants_absent": true,
+    "workbook_mutation_performed": false,
+    "worker_spawn_performed": false
+  },
+  "preconditions": [
+    {
+      "accepted_statuses": [
+        "PROOF_BUNDLE_REDACTION_HARDENING_READY"
+      ],
+      "observed_status": "PROOF_BUNDLE_REDACTION_HARDENING_READY",
+      "precondition_ref": "proof_bundle_redaction_hardening",
+      "ready": true,
+      "source_ref": "generated/read_models/proof_bundle_redaction_policy.json"
+    },
+    {
+      "accepted_statuses": [
+        "PROOF_BUNDLE_FRESHNESS_TRACE_INTEGRATION_READY"
+      ],
+      "observed_status": "PROOF_BUNDLE_FRESHNESS_TRACE_INTEGRATION_READY",
+      "precondition_ref": "proof_bundle_freshness_trace_integration",
+      "ready": true,
+      "source_ref": "generated/read_models/proof_bundle_freshness_trace_status.json"
+    },
+    {
+      "accepted_statuses": [
+        "CONTEXT_FRESHNESS_DECISION_TRACE_GATE_READY"
+      ],
+      "observed_status": "CONTEXT_FRESHNESS_DECISION_TRACE_GATE_READY",
+      "precondition_ref": "context_freshness_decision_trace_gate",
+      "ready": true,
+      "source_ref": "generated/read_models/context_freshness_decision_trace_gate.json"
+    },
+    {
+      "accepted_statuses": [
+        "OPERATOR_SESSION_TIMELINE_READY"
+      ],
+      "observed_status": "OPERATOR_SESSION_TIMELINE_READY",
+      "precondition_ref": "operator_session_timeline",
+      "ready": true,
+      "source_ref": "generated/read_models/operator_session_timeline.json"
+    },
+    {
+      "accepted_statuses": [
+        "UNIVERSAL_RECEIPT_ENVELOPE_READY"
+      ],
+      "observed_status": "UNIVERSAL_RECEIPT_ENVELOPE_READY",
+      "precondition_ref": "universal_receipt_envelope",
+      "ready": true,
+      "source_ref": "generated/read_models/universal_receipt_envelope_status.json"
+    },
+    {
+      "accepted_statuses": [
+        "AGENT_RESPONSE_VOICE_MODES_READY"
+      ],
+      "observed_status": "AGENT_RESPONSE_VOICE_MODES_READY",
+      "precondition_ref": "agent_response_voice_modes",
+      "ready": true,
+      "source_ref": "generated/read_models/agent_response_voice_modes.json"
+    }
+  ],
+  "preview_rules": [
+    {
+      "default_action": "emit short preview/snippet and keep full artifact referenced",
+      "required_fields": [
+        "preview_text",
+        "full_artifact_ref",
+        "full_artifact_embedded"
+      ],
+      "requirement": "Large logs/files/artifacts are not dumped into model context.",
+      "rule_ref": "preview_large_artifacts_first"
+    },
+    {
+      "default_action": "include tier_5 reference with hash/receipt metadata only",
+      "required_fields": [
+        "artifact_ref",
+        "content_hash",
+        "receipt_ref"
+      ],
+      "requirement": "Full artifact remains referenced, not embedded.",
+      "rule_ref": "reference_not_embed_full_artifact"
+    },
+    {
+      "default_action": "ask for targeted proof or approval instead of loading raw source",
+      "required_fields": [
+        "needed_for",
+        "allowed_by_policy",
+        "requested_scope"
+      ],
+      "requirement": "Agent must ask/dig only when needed and allowed.",
+      "rule_ref": "dig_only_when_needed_and_allowed"
+    },
+    {
+      "default_action": "redacted summary plus reference",
+      "required_fields": [
+        "raw_ocr_text_embedded",
+        "raw_artifact_text_embedded"
+      ],
+      "requirement": "Raw OCR/artifact text is excluded unless explicitly approved.",
+      "rule_ref": "raw_ocr_artifact_text_excluded"
+    }
+  ],
+  "purpose": "Keep agent context high-signal, scoped, current, preview-first, and proof-backed without raw noisy dumps.",
+  "read_model_id": "context_compaction_preview_policy",
+  "scenarios": [
+    {
+      "agent_visible_context": {
+        "allowed_next_controls": [
+          "inspect referenced log if package allows",
+          "prepare repair proposal"
+        ],
+        "current_summary": "Server error log is available for scoped inspection by reference.",
+        "decision_trace_summary": "Prior tool output collapsed to the latest error summary and receipt.",
+        "preview": {
+          "artifact_class": "large_server_error_log",
+          "artifact_ref": "logref:openclaw/server_error_log:2026-06-07",
+          "content_hash": "sha256:e8874c095a517c2e2f57adc70a6351226b78d3479a9ceaa8993368fd09fa7e54",
+          "context_tiers": [
+            "tier_4_preview_snippets",
+            "tier_5_full_artifact_or_log_reference"
+          ],
+          "full_artifact_embedded": false,
+          "full_artifact_ref": "logref:openclaw/server_error_log:2026-06-07",
+          "full_log_embedded": false,
+          "omitted_chars": 0,
+          "preview_char_limit": 240,
+          "preview_text": "Preview: listener restart failed after deterministic config check; latest visible error points at missing route registration. Full log is referenced for scoped inspection.",
+          "raw_artifact_text_embedded": false,
+          "raw_file_body_embedded": false,
+          "raw_ocr_text_embedded": false,
+          "receipt_ref": "receipt:large_server_error_log_preview_created"
+        }
+      },
+      "context_goal": "Expose a safe diagnostic preview without dumping the full log.",
+      "excluded_context": [
+        "full log body",
+        "raw file body",
+        "credentials/secrets",
+        "operator/device/session verification material"
+      ],
+      "policy_flags": {
+        "full_chat_history_embedded": false,
+        "full_log_embedded": false,
+        "raw_file_body_embedded": false,
+        "stale_context_as_current_truth": false
+      },
+      "scenario_id": "large_server_error_log",
+      "selected_tiers": [
+        "tier_1_current_lane_summary",
+        "tier_3_decision_trace_summary",
+        "tier_4_preview_snippets",
+        "tier_5_full_artifact_or_log_reference"
+      ],
+      "title": "Large server/error log"
+    },
+    {
+      "agent_visible_context": {
+        "current_summary": "A prior local LM pilot produced non-JSON output; the stable context is the postmortem summary and receipt.",
+        "decision_trace_summary": "Raw model text is not reused as context; schema repair should use the summarized failure mode.",
+        "full_artifact_ref": "artifact:postmortem:local_lm_non_json",
+        "receipt_refs": [
+          "receipt:local_lm_non_json_postmortem_recorded"
+        ]
+      },
+      "context_goal": "Keep the useful failure lesson without embedding raw non-JSON output.",
+      "excluded_context": [
+        "raw candidate text",
+        "raw artifact body",
+        "runtime connection details"
+      ],
+      "policy_flags": {
+        "local_model_runtime_connected": false,
+        "model_invoked": false,
+        "raw_artifact_text_embedded": false,
+        "raw_ocr_text_embedded": false
+      },
+      "scenario_id": "local_lm_non_json_postmortem",
+      "selected_tiers": [
+        "tier_1_current_lane_summary",
+        "tier_2_current_receipts_and_proof_meters",
+        "tier_3_decision_trace_summary",
+        "tier_5_full_artifact_or_log_reference"
+      ],
+      "title": "Local LM non-JSON postmortem"
+    },
+    {
+      "agent_visible_context": {
+        "allowed_next_controls": [
+          "attach proof",
+          "stage ledger review packet"
+        ],
+        "current_summary": "Payment evidence is missing; ledger remains untouched; attach proof is the safe next control.",
+        "decision_trace_summary": "Coupa submit, ledger posting, and paid marking stay blocked until current proof and approval exist.",
+        "latest_receipt_refs": [
+          "receipt:capital_hilton_payment_watch_current"
+        ],
+        "missing_input": "payment evidence receipt",
+        "proof_meter_labels": [
+          "payment evidence missing",
+          "ledger untouched",
+          "paid not proven"
+        ]
+      },
+      "context_goal": "Provide current finance state and decision trace without private proof bodies.",
+      "excluded_context": [
+        "private payment proof body",
+        "raw bank details",
+        "raw ledger rows",
+        "raw workbook bodies"
+      ],
+      "policy_flags": {
+        "paid_marking_allowed": false,
+        "raw_ledger_body_embedded": false,
+        "raw_private_proof_visible": false,
+        "raw_workbook_body_embedded": false
+      },
+      "scenario_id": "finance_payment_watch",
+      "selected_tiers": [
+        "tier_1_current_lane_summary",
+        "tier_2_current_receipts_and_proof_meters",
+        "tier_3_decision_trace_summary"
+      ],
+      "title": "Finance payment watch"
+    },
+    {
+      "agent_visible_context": {
+        "active_context": [],
+        "decision_trace_summary": "Resolved review history is not current ready-for-review work.",
+        "history": [
+          {
+            "receipt_ref": "receipt:build_review_packet_marked_informational",
+            "summary": "Prior build review packet was resolved/informational and belongs under history."
+          }
+        ]
+      },
+      "context_goal": "Keep resolved review history available without making it active context.",
+      "excluded_context": [
+        "resolved review as active context",
+        "stale summary as current truth"
+      ],
+      "policy_flags": {
+        "full_chat_history_embedded": false,
+        "stale_context_as_current_truth": false
+      },
+      "scenario_id": "build_review_history",
+      "selected_tiers": [
+        "tier_3_decision_trace_summary",
+        "tier_5_full_artifact_or_log_reference"
+      ],
+      "title": "Build review history"
+    },
+    {
+      "agent_visible_context": {
+        "allowed_next_controls": [
+          "draft creative map",
+          "stage review artifact"
+        ],
+        "creative_context": [
+          "creative brief",
+          "mapping structure",
+          "approved style notes"
+        ],
+        "current_summary": "Niles creative mapping can include creative brief, style notes, and scoped references.",
+        "preview": {
+          "full_artifact_embedded": false,
+          "full_artifact_ref": "artifact:niles_creative_mapping_workspace",
+          "preview_text": "Creative map preview: theme nodes, audience notes, and safe reference labels only."
+        }
+      },
+      "context_goal": "Allow creative context while excluding unrelated finance proof.",
+      "excluded_context": [
+        "finance proof",
+        "payment evidence",
+        "ledger receipts",
+        "private finance artifacts"
+      ],
+      "policy_flags": {
+        "raw_ledger_body_embedded": false,
+        "raw_private_proof_visible": false,
+        "raw_workbook_body_embedded": false
+      },
+      "scenario_id": "niles_creative_mapping",
+      "selected_tiers": [
+        "tier_0_operator_request",
+        "tier_1_current_lane_summary",
+        "tier_4_preview_snippets"
+      ],
+      "title": "Niles creative mapping"
+    },
+    {
+      "agent_visible_context": {
+        "current_summary": "Developer proof exists as hidden support only.",
+        "developer_proof_ref": "developer-proof:hidden:test-fixture"
+      },
+      "context_goal": "Record that developer proof exists without showing it to ordinary agents.",
+      "excluded_context": [
+        "developer proof bodies",
+        "test fixture internals",
+        "session verification material"
+      ],
+      "policy_flags": {
+        "credentials_visible": false,
+        "developer_proof_visible_by_default": false,
+        "secrets_visible": false
+      },
+      "scenario_id": "developer_proof_only",
+      "selected_tiers": [
+        "tier_6_developer_proof_only"
+      ],
+      "title": "Developer proof only"
+    }
+  ],
+  "schema_version": "context_compaction_preview_policy_v0",
+  "source_content_hashes": {
+    "compaction_rules": "sha256:98aa87d478b739cfcae33d8e475ace6e9b101394a9b057b19f3c40d316a82163",
+    "preview_rules": "sha256:13f1242895daa24f48b0455094082fcd5026f2d6155c3ba9cf0663a98aec99c0",
+    "scenarios": "sha256:014c259251f9b785e8f97de2b93270ec8a37601d4bad2b31f961a4b6b442f5e1",
+    "tiers": "sha256:0cd6e6d6b15dc98cc4d0da7050fd346c39b178df1f75f829541f72b2cce639e7"
+  },
+  "source_refs": [
+    "generated/read_models/proof_bundle_redaction_policy.json",
+    "generated/read_models/proof_bundle_freshness_trace_status.json",
+    "generated/read_models/context_freshness_decision_trace_gate.json",
+    "generated/read_models/operator_session_timeline.json",
+    "generated/read_models/universal_receipt_envelope_status.json",
+    "generated/read_models/agent_response_voice_modes.json"
+  ],
+  "status": "CONTEXT_COMPACTION_PREVIEW_POLICY_READY",
+  "summary": {
+    "developer_proof_hidden_by_default": true,
+    "full_artifacts_referenced_not_embedded": true,
+    "full_chat_history_excluded_by_default": true,
+    "preview_first": true,
+    "raw_artifact_text_excluded_by_default": true,
+    "scenario_count": 6,
+    "tier_count": 7
+  },
+  "unsafe_true_grants": []
+}
