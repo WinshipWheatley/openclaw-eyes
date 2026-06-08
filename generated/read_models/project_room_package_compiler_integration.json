@@ -1,0 +1,816 @@
+{
+  "authority_boundary": {
+    "authority_grant_allowed": false,
+    "browser_access_allowed": false,
+    "business_action_allowed": false,
+    "coupa_allowed": false,
+    "email_send_allowed": false,
+    "external_lm_allowed": false,
+    "full_log_dump_allowed": false,
+    "git_push_allowed": false,
+    "gmail_allowed": false,
+    "ledger_mutation_allowed": false,
+    "ledger_posting_allowed": false,
+    "local_model_runtime_allowed": false,
+    "missing_context_invention_allowed": false,
+    "model_invocation_allowed": false,
+    "paid": false,
+    "paid_marking_allowed": false,
+    "pdf_export_allowed": false,
+    "portal_submit_allowed": false,
+    "raw_messy_folder_dump_allowed": false,
+    "sent": false,
+    "stale_source_current_truth_allowed": false,
+    "workbook_mutation_allowed": false,
+    "worker_execution_allowed": false,
+    "worker_spawn_allowed": false
+  },
+  "compiler_block_rules": [
+    "Block serious synthesis when source inventory is missing.",
+    "Block synthesis on unresolved critical conflicts.",
+    "Block unsupported claims when missing context is unresolved.",
+    "Block stale/superseded sources treated as current truth.",
+    "Block version-family work when duplicate/version report is missing.",
+    "Block repeated or failed work when decision trace is missing.",
+    "Block LM2 worker packages from raw folder dumps, full logs by default, stale truth, unreviewed duplicate weighting, and invention from missing context."
+  ],
+  "generated_at": "2026-06-08T01:14:08+00:00",
+  "implementation_boundary": {
+    "browser_opened": false,
+    "business_action_performed": false,
+    "coupa_opened": false,
+    "email_send_performed": false,
+    "external_provider_connected": false,
+    "git_push_performed": false,
+    "gmail_opened": false,
+    "ledger_mutation_performed": false,
+    "ledger_posting_performed": false,
+    "local_model_runtime_connected": false,
+    "model_invoked": false,
+    "paid_marking_performed": false,
+    "pdf_export_performed": false,
+    "portal_submit_performed": false,
+    "runtime_connected": false,
+    "workbook_mutation_performed": false,
+    "worker_execution_performed": false,
+    "worker_spawn_performed": false
+  },
+  "machine_proof": {
+    "all_blocks_return_human_next_safe_action": true,
+    "business_action_absent": true,
+    "contract_integration_only": true,
+    "lm2_raw_context_blocks_present": true,
+    "model_invocation_absent": true,
+    "preconditions_ready": true,
+    "project_room_refs_required_for_serious_packages": true,
+    "proof_to_response_may_use_current_proof_bundle_without_full_project_room": true,
+    "unsafe_true_grants_absent": true,
+    "worker_spawn_absent": true
+  },
+  "package_source_requirement_classifications": [
+    {
+      "bypass_allowed": true,
+      "package_type": "simple_answer",
+      "project_room_required": false,
+      "proof_bundle_required": false,
+      "repair_room_allowed": false,
+      "requirement_reason": "Trivial readback/system question may bypass project room when current proof supports the answer."
+    },
+    {
+      "bypass_allowed": true,
+      "package_type": "proof_to_response",
+      "project_room_required": false,
+      "proof_bundle_required": true,
+      "repair_room_allowed": false,
+      "requirement_reason": "Proof-to-response may use current proof bundle freshness/redaction without a full project room."
+    },
+    {
+      "bypass_allowed": false,
+      "package_type": "serious_synthesis",
+      "project_room_required": true,
+      "proof_bundle_required": false,
+      "repair_room_allowed": false,
+      "requirement_reason": "Serious synthesis packages require a project room."
+    },
+    {
+      "bypass_allowed": false,
+      "package_type": "client/business_draft",
+      "project_room_required": true,
+      "proof_bundle_required": false,
+      "repair_room_allowed": false,
+      "requirement_reason": "Client/business drafts require a project room when proposal/history or multiple sources are used."
+    },
+    {
+      "bypass_allowed": false,
+      "package_type": "code/build/repair",
+      "project_room_required": true,
+      "proof_bundle_required": false,
+      "repair_room_allowed": true,
+      "requirement_reason": "Code/build/repair packages require a project room or repair room before synthesis."
+    },
+    {
+      "bypass_allowed": false,
+      "package_type": "LM2 worker package",
+      "project_room_required": true,
+      "proof_bundle_required": true,
+      "repair_room_allowed": false,
+      "requirement_reason": "LM2 worker packages require a project/proof room unless explicitly trivial."
+    }
+  ],
+  "package_status_fields": [
+    "project_room_required",
+    "project_room_ready",
+    "synthesis_allowed",
+    "blocked_reason",
+    "next_safe_action"
+  ],
+  "preconditions": [
+    {
+      "accepted_statuses": [
+        "PROJECT_ROOM_SOURCESET_CONTRACT_READY"
+      ],
+      "observed_status": "PROJECT_ROOM_SOURCESET_CONTRACT_READY",
+      "precondition_ref": "project_room_sourceset_contract",
+      "ready": true,
+      "source_ref": "generated/read_models/project_room_sourceset_contract.json"
+    },
+    {
+      "accepted_statuses": [
+        "CONTEXT_COMPACTION_PREVIEW_POLICY_READY"
+      ],
+      "observed_status": "CONTEXT_COMPACTION_PREVIEW_POLICY_READY",
+      "precondition_ref": "context_compaction_preview_policy",
+      "ready": true,
+      "source_ref": "generated/read_models/context_compaction_preview_policy.json"
+    },
+    {
+      "accepted_statuses": [
+        "CONTEXT_FRESHNESS_DECISION_TRACE_GATE_READY"
+      ],
+      "observed_status": "CONTEXT_FRESHNESS_DECISION_TRACE_GATE_READY",
+      "precondition_ref": "context_freshness_decision_trace_gate",
+      "ready": true,
+      "source_ref": "generated/read_models/context_freshness_decision_trace_gate.json"
+    },
+    {
+      "accepted_statuses": [
+        "PROOF_BUNDLE_FRESHNESS_TRACE_INTEGRATION_READY"
+      ],
+      "observed_status": "PROOF_BUNDLE_FRESHNESS_TRACE_INTEGRATION_READY",
+      "precondition_ref": "proof_bundle_freshness_trace_integration",
+      "ready": true,
+      "source_ref": "generated/read_models/proof_bundle_freshness_trace_status.json"
+    },
+    {
+      "accepted_statuses": [
+        "RETROSPECTIVE_HARNESS_LEARNING_SEED_READY"
+      ],
+      "observed_status": "RETROSPECTIVE_HARNESS_LEARNING_SEED_READY",
+      "precondition_ref": "retrospective_harness_learning_seed",
+      "ready": true,
+      "source_ref": "generated/read_models/retrospective_harness_learning_seed.json"
+    },
+    {
+      "accepted_statuses": [
+        "WORKFLOW_COMPOSER_READY"
+      ],
+      "observed_status": "WORKFLOW_COMPOSER_READY",
+      "precondition_ref": "workflow_composer",
+      "ready": true,
+      "source_ref": "generated/read_models/workflow_composer_latest.json"
+    },
+    {
+      "accepted_statuses": [
+        "WORKER_PACKAGE_STAGING_READY"
+      ],
+      "observed_status": "WORKER_PACKAGE_STAGING_READY",
+      "precondition_ref": "worker_package_staging",
+      "ready": true,
+      "source_ref": "generated/read_models/worker_package_staging_status.json"
+    },
+    {
+      "accepted_statuses": [
+        "LM2_LIVE_WORKER_PILOT_BOUNDARY_READY"
+      ],
+      "observed_status": "LM2_LIVE_WORKER_PILOT_BOUNDARY_READY",
+      "precondition_ref": "lm2_live_worker_pilot_boundary",
+      "ready": true,
+      "source_ref": "generated/read_models/lm2_live_worker_pilot_boundary_packet.json"
+    },
+    {
+      "accepted_statuses": [
+        "UNIVERSAL_RECEIPT_ENVELOPE_READY"
+      ],
+      "observed_status": "UNIVERSAL_RECEIPT_ENVELOPE_READY",
+      "precondition_ref": "universal_receipt_envelope",
+      "ready": true,
+      "source_ref": "generated/read_models/universal_receipt_envelope_status.json"
+    },
+    {
+      "accepted_statuses": [
+        "GOLDILOCKS_GATE_CALIBRATION_READY"
+      ],
+      "observed_status": "GOLDILOCKS_GATE_CALIBRATION_READY",
+      "precondition_ref": "goldilocks_gate_calibration",
+      "ready": true,
+      "source_ref": "generated/read_models/goldilocks_gate_calibration.json"
+    }
+  ],
+  "purpose": "Require source rooms for serious workflow, worker, synthesis, and LM2 packages before synthesis or LM2 work.",
+  "read_model_id": "project_room_package_compiler_integration",
+  "required_examples": [
+    {
+      "business_boundaries": {
+        "ledger_mutation_allowed": false,
+        "paid_marking_allowed": false
+      },
+      "compiler_gate": {
+        "authority_boundary": {
+          "authority_grant_allowed": false,
+          "browser_access_allowed": false,
+          "business_action_allowed": false,
+          "coupa_allowed": false,
+          "email_send_allowed": false,
+          "external_lm_allowed": false,
+          "full_log_dump_allowed": false,
+          "git_push_allowed": false,
+          "gmail_allowed": false,
+          "ledger_mutation_allowed": false,
+          "ledger_posting_allowed": false,
+          "local_model_runtime_allowed": false,
+          "missing_context_invention_allowed": false,
+          "model_invocation_allowed": false,
+          "paid": false,
+          "paid_marking_allowed": false,
+          "pdf_export_allowed": false,
+          "portal_submit_allowed": false,
+          "raw_messy_folder_dump_allowed": false,
+          "sent": false,
+          "stale_source_current_truth_allowed": false,
+          "workbook_mutation_allowed": false,
+          "worker_execution_allowed": false,
+          "worker_spawn_allowed": false
+        },
+        "blocked_reason": "",
+        "blockers": [],
+        "classification": {
+          "bypass_allowed": true,
+          "package_type": "proof_to_response",
+          "project_room_required": false,
+          "proof_bundle_required": true,
+          "repair_room_allowed": false,
+          "requirement_reason": "Proof-to-response may use current proof bundle freshness/redaction without a full project room."
+        },
+        "current_proof_bundle_exists": true,
+        "decision_trace_exists": false,
+        "duplicate_report_exists": false,
+        "lm2_context_protections": {
+          "full_logs_artifacts_by_default_allowed": false,
+          "missing_context_invention_allowed": false,
+          "raw_messy_folder_dump_allowed": false,
+          "stale_source_current_truth_allowed": false,
+          "unreviewed_duplicates_equal_evidence_allowed": false
+        },
+        "missing_project_room_refs": [
+          "project_room_id",
+          "source_inventory_ref",
+          "conflict_log_ref",
+          "missing_context_ref",
+          "duplicate_report_ref",
+          "decision_trace_ref",
+          "freshness_gate_ref",
+          "compaction_policy_ref"
+        ],
+        "next_safe_action": "Explain payment evidence is missing and invite proof attachment; do not mark paid or touch ledger.",
+        "package_ref": "package:finance:capital_hilton_payment_watch",
+        "package_type": "proof_to_response",
+        "project_room_ready": true,
+        "project_room_required": false,
+        "proof_bundle_required": true,
+        "required_project_room_refs": {
+          "compaction_policy_ref": "",
+          "conflict_log_ref": "",
+          "decision_trace_ref": "",
+          "duplicate_report_ref": "",
+          "freshness_gate_ref": "",
+          "missing_context_ref": "",
+          "project_room_id": "",
+          "source_inventory_ref": ""
+        },
+        "source_inventory_exists": false,
+        "synthesis_allowed": true
+      },
+      "example_ref": "finance_capital_hilton_payment_watch",
+      "notes": [
+        "simple/proof-to-response route",
+        "current proof bundle required",
+        "no paid or ledger action"
+      ],
+      "package": {
+        "current_proof_bundle_exists": true,
+        "next_safe_action": "Explain payment evidence is missing and invite proof attachment; do not mark paid or touch ledger.",
+        "package_ref": "package:finance:capital_hilton_payment_watch",
+        "package_type": "proof_to_response"
+      },
+      "title": "Finance / Capital Hilton payment watch"
+    },
+    {
+      "compiler_gate": {
+        "authority_boundary": {
+          "authority_grant_allowed": false,
+          "browser_access_allowed": false,
+          "business_action_allowed": false,
+          "coupa_allowed": false,
+          "email_send_allowed": false,
+          "external_lm_allowed": false,
+          "full_log_dump_allowed": false,
+          "git_push_allowed": false,
+          "gmail_allowed": false,
+          "ledger_mutation_allowed": false,
+          "ledger_posting_allowed": false,
+          "local_model_runtime_allowed": false,
+          "missing_context_invention_allowed": false,
+          "model_invocation_allowed": false,
+          "paid": false,
+          "paid_marking_allowed": false,
+          "pdf_export_allowed": false,
+          "portal_submit_allowed": false,
+          "raw_messy_folder_dump_allowed": false,
+          "sent": false,
+          "stale_source_current_truth_allowed": false,
+          "workbook_mutation_allowed": false,
+          "worker_execution_allowed": false,
+          "worker_spawn_allowed": false
+        },
+        "blocked_reason": "unresolved_critical_conflict",
+        "blockers": [
+          "unresolved_critical_conflict"
+        ],
+        "classification": {
+          "bypass_allowed": false,
+          "package_type": "client/business_draft",
+          "project_room_required": true,
+          "proof_bundle_required": false,
+          "repair_room_allowed": false,
+          "requirement_reason": "Client/business drafts require a project room when proposal/history or multiple sources are used."
+        },
+        "current_proof_bundle_exists": false,
+        "decision_trace_exists": true,
+        "duplicate_report_exists": true,
+        "lm2_context_protections": {
+          "full_logs_artifacts_by_default_allowed": false,
+          "missing_context_invention_allowed": false,
+          "raw_messy_folder_dump_allowed": false,
+          "stale_source_current_truth_allowed": false,
+          "unreviewed_duplicates_equal_evidence_allowed": false
+        },
+        "missing_project_room_refs": [],
+        "next_safe_action": "Surface the conflict and request an operator decision.",
+        "package_ref": "package:bd:capital_hilton_followup",
+        "package_type": "client/business_draft",
+        "project_room_ready": false,
+        "project_room_required": true,
+        "proof_bundle_required": false,
+        "required_project_room_refs": {
+          "compaction_policy_ref": "generated/read_models/context_compaction_preview_policy.json",
+          "conflict_log_ref": "conflict_log:business_development_capital_hilton_followup",
+          "decision_trace_ref": "decision_trace:business_development_capital_hilton_followup",
+          "duplicate_report_ref": "duplicate_report:business_development_capital_hilton_followup",
+          "freshness_gate_ref": "generated/read_models/context_freshness_decision_trace_gate.json",
+          "missing_context_ref": "missing_context:business_development_capital_hilton_followup",
+          "project_room_id": "project_room:business_development_capital_hilton_followup",
+          "source_inventory_ref": "source_inventory:business_development_capital_hilton_followup"
+        },
+        "source_inventory_exists": true,
+        "synthesis_allowed": false
+      },
+      "example_ref": "business_development_capital_hilton_followup",
+      "notes": [
+        "proposal/history draft requires project room",
+        "conflict must be surfaced",
+        "no send authority"
+      ],
+      "package": {
+        "compaction_policy_ref": "generated/read_models/context_compaction_preview_policy.json",
+        "conflict_log_ref": "conflict_log:business_development_capital_hilton_followup",
+        "decision_trace_exists": true,
+        "decision_trace_ref": "decision_trace:business_development_capital_hilton_followup",
+        "duplicate_report_exists": true,
+        "duplicate_report_ref": "duplicate_report:business_development_capital_hilton_followup",
+        "freshness_gate_ref": "generated/read_models/context_freshness_decision_trace_gate.json",
+        "missing_context_ref": "missing_context:business_development_capital_hilton_followup",
+        "package_ref": "package:bd:capital_hilton_followup",
+        "package_type": "client/business_draft",
+        "project_room_id": "project_room:business_development_capital_hilton_followup",
+        "source_inventory_exists": true,
+        "source_inventory_ref": "source_inventory:business_development_capital_hilton_followup",
+        "unresolved_critical_conflict": true,
+        "uses_multiple_sources": true
+      },
+      "title": "Business Development / Capital Hilton follow-up"
+    },
+    {
+      "compiler_gate": {
+        "authority_boundary": {
+          "authority_grant_allowed": false,
+          "browser_access_allowed": false,
+          "business_action_allowed": false,
+          "coupa_allowed": false,
+          "email_send_allowed": false,
+          "external_lm_allowed": false,
+          "full_log_dump_allowed": false,
+          "git_push_allowed": false,
+          "gmail_allowed": false,
+          "ledger_mutation_allowed": false,
+          "ledger_posting_allowed": false,
+          "local_model_runtime_allowed": false,
+          "missing_context_invention_allowed": false,
+          "model_invocation_allowed": false,
+          "paid": false,
+          "paid_marking_allowed": false,
+          "pdf_export_allowed": false,
+          "portal_submit_allowed": false,
+          "raw_messy_folder_dump_allowed": false,
+          "sent": false,
+          "stale_source_current_truth_allowed": false,
+          "workbook_mutation_allowed": false,
+          "worker_execution_allowed": false,
+          "worker_spawn_allowed": false
+        },
+        "blocked_reason": "",
+        "blockers": [],
+        "classification": {
+          "bypass_allowed": false,
+          "package_type": "serious_synthesis",
+          "project_room_required": true,
+          "proof_bundle_required": false,
+          "repair_room_allowed": false,
+          "requirement_reason": "Serious synthesis packages require a project room."
+        },
+        "current_proof_bundle_exists": false,
+        "decision_trace_exists": true,
+        "duplicate_report_exists": true,
+        "lm2_context_protections": {
+          "full_logs_artifacts_by_default_allowed": false,
+          "missing_context_invention_allowed": false,
+          "raw_messy_folder_dump_allowed": false,
+          "stale_source_current_truth_allowed": false,
+          "unreviewed_duplicates_equal_evidence_allowed": false
+        },
+        "missing_project_room_refs": [],
+        "next_safe_action": "Summarize review history; keep resolved packet out of active work.",
+        "package_ref": "package:build:review_packet",
+        "package_type": "serious_synthesis",
+        "project_room_ready": true,
+        "project_room_required": true,
+        "proof_bundle_required": false,
+        "required_project_room_refs": {
+          "compaction_policy_ref": "generated/read_models/context_compaction_preview_policy.json",
+          "conflict_log_ref": "conflict_log:build_review_packet",
+          "decision_trace_ref": "decision_trace:build_review_packet",
+          "duplicate_report_ref": "duplicate_report:build_review_packet",
+          "freshness_gate_ref": "generated/read_models/context_freshness_decision_trace_gate.json",
+          "missing_context_ref": "missing_context:build_review_packet",
+          "project_room_id": "project_room:build_review_packet",
+          "source_inventory_ref": "source_inventory:build_review_packet"
+        },
+        "source_inventory_exists": true,
+        "synthesis_allowed": true
+      },
+      "example_ref": "build_review_packet",
+      "notes": [
+        "decision trace required",
+        "resolved packet remains history"
+      ],
+      "package": {
+        "compaction_policy_ref": "generated/read_models/context_compaction_preview_policy.json",
+        "conflict_log_ref": "conflict_log:build_review_packet",
+        "decision_trace_exists": true,
+        "decision_trace_ref": "decision_trace:build_review_packet",
+        "duplicate_report_exists": true,
+        "duplicate_report_ref": "duplicate_report:build_review_packet",
+        "freshness_gate_ref": "generated/read_models/context_freshness_decision_trace_gate.json",
+        "missing_context_ref": "missing_context:build_review_packet",
+        "next_safe_action": "Summarize review history; keep resolved packet out of active work.",
+        "package_ref": "package:build:review_packet",
+        "package_type": "serious_synthesis",
+        "project_room_id": "project_room:build_review_packet",
+        "repeated_or_failed_work": true,
+        "source_inventory_exists": true,
+        "source_inventory_ref": "source_inventory:build_review_packet"
+      },
+      "title": "Build review packet"
+    },
+    {
+      "compiler_gate": {
+        "authority_boundary": {
+          "authority_grant_allowed": false,
+          "browser_access_allowed": false,
+          "business_action_allowed": false,
+          "coupa_allowed": false,
+          "email_send_allowed": false,
+          "external_lm_allowed": false,
+          "full_log_dump_allowed": false,
+          "git_push_allowed": false,
+          "gmail_allowed": false,
+          "ledger_mutation_allowed": false,
+          "ledger_posting_allowed": false,
+          "local_model_runtime_allowed": false,
+          "missing_context_invention_allowed": false,
+          "model_invocation_allowed": false,
+          "paid": false,
+          "paid_marking_allowed": false,
+          "pdf_export_allowed": false,
+          "portal_submit_allowed": false,
+          "raw_messy_folder_dump_allowed": false,
+          "sent": false,
+          "stale_source_current_truth_allowed": false,
+          "workbook_mutation_allowed": false,
+          "worker_execution_allowed": false,
+          "worker_spawn_allowed": false
+        },
+        "blocked_reason": "missing_context_blocks_supported_claim",
+        "blockers": [
+          "missing_context_blocks_supported_claim"
+        ],
+        "classification": {
+          "bypass_allowed": false,
+          "package_type": "serious_synthesis",
+          "project_room_required": true,
+          "proof_bundle_required": false,
+          "repair_room_allowed": false,
+          "requirement_reason": "Serious synthesis packages require a project room."
+        },
+        "current_proof_bundle_exists": false,
+        "decision_trace_exists": true,
+        "duplicate_report_exists": true,
+        "lm2_context_protections": {
+          "full_logs_artifacts_by_default_allowed": false,
+          "missing_context_invention_allowed": false,
+          "raw_messy_folder_dump_allowed": false,
+          "stale_source_current_truth_allowed": false,
+          "unreviewed_duplicates_equal_evidence_allowed": false
+        },
+        "missing_project_room_refs": [],
+        "next_safe_action": "Name the missing context and avoid unsupported factual claims.",
+        "package_ref": "package:niles:controller_mapping_factual",
+        "package_type": "serious_synthesis",
+        "project_room_ready": false,
+        "project_room_required": true,
+        "proof_bundle_required": false,
+        "required_project_room_refs": {
+          "compaction_policy_ref": "generated/read_models/context_compaction_preview_policy.json",
+          "conflict_log_ref": "conflict_log:niles_music_controller_mapping",
+          "decision_trace_ref": "decision_trace:niles_music_controller_mapping",
+          "duplicate_report_ref": "duplicate_report:niles_music_controller_mapping",
+          "freshness_gate_ref": "generated/read_models/context_freshness_decision_trace_gate.json",
+          "missing_context_ref": "missing_context:niles_music_controller_mapping",
+          "project_room_id": "project_room:niles_music_controller_mapping",
+          "source_inventory_ref": "source_inventory:niles_music_controller_mapping"
+        },
+        "source_inventory_exists": true,
+        "synthesis_allowed": false
+      },
+      "creative_options_allowed": true,
+      "example_ref": "niles_controller_mapping",
+      "factual_mapping_allowed": false,
+      "notes": [
+        "target controller/software missing blocks factual mapping",
+        "creative options remain allowed"
+      ],
+      "package": {
+        "compaction_policy_ref": "generated/read_models/context_compaction_preview_policy.json",
+        "conflict_log_ref": "conflict_log:niles_music_controller_mapping",
+        "decision_trace_exists": true,
+        "decision_trace_ref": "decision_trace:niles_music_controller_mapping",
+        "duplicate_report_exists": true,
+        "duplicate_report_ref": "duplicate_report:niles_music_controller_mapping",
+        "freshness_gate_ref": "generated/read_models/context_freshness_decision_trace_gate.json",
+        "missing_context_blocks_supported_claim": true,
+        "missing_context_ref": "missing_context:niles_music_controller_mapping",
+        "package_ref": "package:niles:controller_mapping_factual",
+        "package_type": "serious_synthesis",
+        "project_room_id": "project_room:niles_music_controller_mapping",
+        "source_inventory_exists": true,
+        "source_inventory_ref": "source_inventory:niles_music_controller_mapping"
+      },
+      "title": "Niles / Music controller mapping"
+    },
+    {
+      "compiler_gate": {
+        "authority_boundary": {
+          "authority_grant_allowed": false,
+          "browser_access_allowed": false,
+          "business_action_allowed": false,
+          "coupa_allowed": false,
+          "email_send_allowed": false,
+          "external_lm_allowed": false,
+          "full_log_dump_allowed": false,
+          "git_push_allowed": false,
+          "gmail_allowed": false,
+          "ledger_mutation_allowed": false,
+          "ledger_posting_allowed": false,
+          "local_model_runtime_allowed": false,
+          "missing_context_invention_allowed": false,
+          "model_invocation_allowed": false,
+          "paid": false,
+          "paid_marking_allowed": false,
+          "pdf_export_allowed": false,
+          "portal_submit_allowed": false,
+          "raw_messy_folder_dump_allowed": false,
+          "sent": false,
+          "stale_source_current_truth_allowed": false,
+          "workbook_mutation_allowed": false,
+          "worker_execution_allowed": false,
+          "worker_spawn_allowed": false
+        },
+        "blocked_reason": "",
+        "blockers": [],
+        "classification": {
+          "bypass_allowed": false,
+          "package_type": "code/build/repair",
+          "project_room_required": true,
+          "proof_bundle_required": false,
+          "repair_room_allowed": true,
+          "requirement_reason": "Code/build/repair packages require a project room or repair room before synthesis."
+        },
+        "current_proof_bundle_exists": false,
+        "decision_trace_exists": true,
+        "duplicate_report_exists": true,
+        "lm2_context_protections": {
+          "full_logs_artifacts_by_default_allowed": false,
+          "missing_context_invention_allowed": false,
+          "raw_messy_folder_dump_allowed": false,
+          "stale_source_current_truth_allowed": false,
+          "unreviewed_duplicates_equal_evidence_allowed": false
+        },
+        "missing_project_room_refs": [],
+        "next_safe_action": "Propose repair package with validation and rollback plan; do not spawn workers.",
+        "package_ref": "package:self_heal:repair",
+        "package_type": "code/build/repair",
+        "project_room_ready": true,
+        "project_room_required": true,
+        "proof_bundle_required": false,
+        "required_project_room_refs": {
+          "compaction_policy_ref": "generated/read_models/context_compaction_preview_policy.json",
+          "conflict_log_ref": "conflict_log:self_heal_repair",
+          "decision_trace_ref": "decision_trace:self_heal_repair",
+          "duplicate_report_ref": "duplicate_report:self_heal_repair",
+          "freshness_gate_ref": "generated/read_models/context_freshness_decision_trace_gate.json",
+          "missing_context_ref": "missing_context:self_heal_repair",
+          "project_room_id": "project_room:self_heal_repair",
+          "source_inventory_ref": "source_inventory:self_heal_repair"
+        },
+        "source_inventory_exists": true,
+        "synthesis_allowed": true
+      },
+      "example_ref": "self_heal_repair",
+      "notes": [
+        "repair room required",
+        "blocker proof, validation plan, and rollback plan present"
+      ],
+      "package": {
+        "compaction_policy_ref": "generated/read_models/context_compaction_preview_policy.json",
+        "conflict_log_ref": "conflict_log:self_heal_repair",
+        "decision_trace_exists": true,
+        "decision_trace_ref": "decision_trace:self_heal_repair",
+        "duplicate_report_exists": true,
+        "duplicate_report_ref": "duplicate_report:self_heal_repair",
+        "freshness_gate_ref": "generated/read_models/context_freshness_decision_trace_gate.json",
+        "missing_context_ref": "missing_context:self_heal_repair",
+        "next_safe_action": "Propose repair package with validation and rollback plan; do not spawn workers.",
+        "package_ref": "package:self_heal:repair",
+        "package_type": "code/build/repair",
+        "project_room_id": "project_room:self_heal_repair",
+        "repeated_or_failed_work": true,
+        "rollback_plan_ref": "rollback_plan:self_heal_repair",
+        "source_inventory_exists": true,
+        "source_inventory_ref": "source_inventory:self_heal_repair",
+        "validation_plan_ref": "validation_plan:self_heal_repair"
+      },
+      "title": "Self-heal repair"
+    },
+    {
+      "compiler_gate": {
+        "authority_boundary": {
+          "authority_grant_allowed": false,
+          "browser_access_allowed": false,
+          "business_action_allowed": false,
+          "coupa_allowed": false,
+          "email_send_allowed": false,
+          "external_lm_allowed": false,
+          "full_log_dump_allowed": false,
+          "git_push_allowed": false,
+          "gmail_allowed": false,
+          "ledger_mutation_allowed": false,
+          "ledger_posting_allowed": false,
+          "local_model_runtime_allowed": false,
+          "missing_context_invention_allowed": false,
+          "model_invocation_allowed": false,
+          "paid": false,
+          "paid_marking_allowed": false,
+          "pdf_export_allowed": false,
+          "portal_submit_allowed": false,
+          "raw_messy_folder_dump_allowed": false,
+          "sent": false,
+          "stale_source_current_truth_allowed": false,
+          "workbook_mutation_allowed": false,
+          "worker_execution_allowed": false,
+          "worker_spawn_allowed": false
+        },
+        "blocked_reason": "",
+        "blockers": [],
+        "classification": {
+          "bypass_allowed": false,
+          "package_type": "LM2 worker package",
+          "project_room_required": true,
+          "proof_bundle_required": true,
+          "repair_room_allowed": false,
+          "requirement_reason": "LM2 worker packages require a project/proof room unless explicitly trivial."
+        },
+        "current_proof_bundle_exists": true,
+        "decision_trace_exists": true,
+        "duplicate_report_exists": true,
+        "lm2_context_protections": {
+          "full_logs_artifacts_by_default_allowed": false,
+          "missing_context_invention_allowed": false,
+          "raw_messy_folder_dump_allowed": false,
+          "stale_source_current_truth_allowed": false,
+          "unreviewed_duplicates_equal_evidence_allowed": false
+        },
+        "missing_project_room_refs": [],
+        "next_safe_action": "Compile a bounded LM2 pilot package with project/proof refs only; do not spawn a worker.",
+        "package_ref": "package:lm2:pilot_bounded_objective",
+        "package_type": "LM2 worker package",
+        "project_room_ready": true,
+        "project_room_required": true,
+        "proof_bundle_required": true,
+        "required_project_room_refs": {
+          "compaction_policy_ref": "generated/read_models/context_compaction_preview_policy.json",
+          "conflict_log_ref": "conflict_log:lm2_pilot_bounded_objective",
+          "decision_trace_ref": "decision_trace:lm2_pilot_bounded_objective",
+          "duplicate_report_ref": "duplicate_report:lm2_pilot_bounded_objective",
+          "freshness_gate_ref": "generated/read_models/context_freshness_decision_trace_gate.json",
+          "missing_context_ref": "missing_context:lm2_pilot_bounded_objective",
+          "project_room_id": "project_room:lm2_pilot_bounded_objective",
+          "source_inventory_ref": "source_inventory:lm2_pilot_bounded_objective"
+        },
+        "source_inventory_exists": true,
+        "synthesis_allowed": true
+      },
+      "example_ref": "lm2_pilot",
+      "notes": [
+        "project/proof room required",
+        "one bounded objective",
+        "no raw messy folder dump"
+      ],
+      "package": {
+        "compaction_policy_ref": "generated/read_models/context_compaction_preview_policy.json",
+        "conflict_log_ref": "conflict_log:lm2_pilot_bounded_objective",
+        "current_proof_bundle_exists": true,
+        "decision_trace_exists": true,
+        "decision_trace_ref": "decision_trace:lm2_pilot_bounded_objective",
+        "duplicate_report_exists": true,
+        "duplicate_report_ref": "duplicate_report:lm2_pilot_bounded_objective",
+        "freshness_gate_ref": "generated/read_models/context_freshness_decision_trace_gate.json",
+        "full_log_dump_included": false,
+        "missing_context_invented": false,
+        "missing_context_ref": "missing_context:lm2_pilot_bounded_objective",
+        "next_safe_action": "Compile a bounded LM2 pilot package with project/proof refs only; do not spawn a worker.",
+        "one_bounded_objective": true,
+        "package_ref": "package:lm2:pilot_bounded_objective",
+        "package_type": "LM2 worker package",
+        "project_room_id": "project_room:lm2_pilot_bounded_objective",
+        "raw_messy_folder_dump_included": false,
+        "source_inventory_exists": true,
+        "source_inventory_ref": "source_inventory:lm2_pilot_bounded_objective",
+        "unreviewed_duplicates_equal_evidence": false
+      },
+      "title": "LM2 pilot"
+    }
+  ],
+  "required_project_room_refs": [
+    "project_room_id",
+    "source_inventory_ref",
+    "conflict_log_ref",
+    "missing_context_ref",
+    "duplicate_report_ref",
+    "decision_trace_ref",
+    "freshness_gate_ref",
+    "compaction_policy_ref"
+  ],
+  "schema_version": "project_room_package_compiler_integration_v0",
+  "source_refs": [
+    "generated/read_models/project_room_sourceset_contract.json",
+    "generated/read_models/context_compaction_preview_policy.json",
+    "generated/read_models/context_freshness_decision_trace_gate.json",
+    "generated/read_models/proof_bundle_freshness_trace_status.json",
+    "generated/read_models/workflow_composer_latest.json",
+    "generated/read_models/worker_package_staging_status.json",
+    "generated/read_models/lm2_live_worker_pilot_boundary_packet.json",
+    "generated/read_models/universal_receipt_envelope_status.json",
+    "generated/read_models/goldilocks_gate_calibration.json"
+  ],
+  "status": "PROJECT_ROOM_PACKAGE_COMPILER_INTEGRATION_READY",
+  "unsafe_true_grants": []
+}

@@ -28,6 +28,11 @@ DEFAULT_SQLITE_PATH = Path("generated/system_knowledge/workflow_package_queue.sq
 SCHEMA_VERSION = "workflow_package_queue_v0"
 READ_MODEL_ID = "workflow_package_queue_contract"
 JSON_EXPORT_NAME = f"{READ_MODEL_ID}.json"
+PROJECT_ROOM_COMPILER_READ_MODEL_ID = "project_room_package_compiler_integration"
+PROJECT_ROOM_COMPILER_JSON_EXPORT_NAME = f"{PROJECT_ROOM_COMPILER_READ_MODEL_ID}.json"
+PROJECT_ROOM_COMPILER_WIKI_PATH = Path("generated/wiki/openclaw/Project Room Package Compiler Integration.md")
+PROJECT_ROOM_COMPILER_READY_STATUS = "PROJECT_ROOM_PACKAGE_COMPILER_INTEGRATION_READY"
+PROJECT_ROOM_COMPILER_NOT_READY_STATUS = "PROJECT_ROOM_PACKAGE_COMPILER_INTEGRATION_NOT_READY"
 
 SUPPORTED_PACKAGE_TYPES = (
     "st_annes_work_log_event",
@@ -97,6 +102,114 @@ OPERATOR_DISPLAY_FIELDS = (
     "show_machine_details_by_default",
 )
 
+PROJECT_ROOM_REQUIRED_REFS = (
+    "project_room_id",
+    "source_inventory_ref",
+    "conflict_log_ref",
+    "missing_context_ref",
+    "duplicate_report_ref",
+    "decision_trace_ref",
+    "freshness_gate_ref",
+    "compaction_policy_ref",
+)
+
+PROJECT_ROOM_COMPILER_PRECONDITIONS = {
+    "project_room_sourceset_contract": {
+        "filename": "project_room_sourceset_contract.json",
+        "accepted_statuses": ("PROJECT_ROOM_SOURCESET_CONTRACT_READY",),
+    },
+    "context_compaction_preview_policy": {
+        "filename": "context_compaction_preview_policy.json",
+        "accepted_statuses": ("CONTEXT_COMPACTION_PREVIEW_POLICY_READY",),
+    },
+    "context_freshness_decision_trace_gate": {
+        "filename": "context_freshness_decision_trace_gate.json",
+        "accepted_statuses": ("CONTEXT_FRESHNESS_DECISION_TRACE_GATE_READY",),
+    },
+    "proof_bundle_freshness_trace_integration": {
+        "filename": "proof_bundle_freshness_trace_status.json",
+        "accepted_statuses": ("PROOF_BUNDLE_FRESHNESS_TRACE_INTEGRATION_READY",),
+    },
+    "retrospective_harness_learning_seed": {
+        "filename": "retrospective_harness_learning_seed.json",
+        "accepted_statuses": ("RETROSPECTIVE_HARNESS_LEARNING_SEED_READY",),
+    },
+    "workflow_composer": {
+        "filename": "workflow_composer_latest.json",
+        "accepted_statuses": ("WORKFLOW_COMPOSER_READY",),
+    },
+    "worker_package_staging": {
+        "filename": "worker_package_staging_status.json",
+        "accepted_statuses": ("WORKER_PACKAGE_STAGING_READY",),
+    },
+    "lm2_live_worker_pilot_boundary": {
+        "filename": "lm2_live_worker_pilot_boundary_packet.json",
+        "accepted_statuses": ("LM2_LIVE_WORKER_PILOT_BOUNDARY_READY",),
+    },
+    "universal_receipt_envelope": {
+        "filename": "universal_receipt_envelope_status.json",
+        "accepted_statuses": ("UNIVERSAL_RECEIPT_ENVELOPE_READY",),
+    },
+    "goldilocks_gate_calibration": {
+        "filename": "goldilocks_gate_calibration.json",
+        "accepted_statuses": ("GOLDILOCKS_GATE_CALIBRATION_READY",),
+    },
+}
+
+PROJECT_ROOM_COMPILER_AUTHORITY_BOUNDARY = {
+    "model_invocation_allowed": False,
+    "local_model_runtime_allowed": False,
+    "external_lm_allowed": False,
+    "worker_spawn_allowed": False,
+    "worker_execution_allowed": False,
+    "business_action_allowed": False,
+    "email_send_allowed": False,
+    "gmail_allowed": False,
+    "browser_access_allowed": False,
+    "coupa_allowed": False,
+    "portal_submit_allowed": False,
+    "ledger_mutation_allowed": False,
+    "ledger_posting_allowed": False,
+    "paid_marking_allowed": False,
+    "workbook_mutation_allowed": False,
+    "pdf_export_allowed": False,
+    "git_push_allowed": False,
+    "authority_grant_allowed": False,
+    "raw_messy_folder_dump_allowed": False,
+    "full_log_dump_allowed": False,
+    "stale_source_current_truth_allowed": False,
+    "missing_context_invention_allowed": False,
+    "sent": False,
+    "paid": False,
+}
+
+PROJECT_ROOM_COMPILER_UNSAFE_TRUE_KEYS = set(PROJECT_ROOM_COMPILER_AUTHORITY_BOUNDARY) | {
+    "model_invoked",
+    "runtime_connected",
+    "local_model_runtime_connected",
+    "external_provider_connected",
+    "worker_spawn_performed",
+    "worker_execution_performed",
+    "business_action_performed",
+    "email_send_performed",
+    "gmail_opened",
+    "browser_opened",
+    "coupa_opened",
+    "portal_submit_performed",
+    "ledger_mutation_performed",
+    "ledger_posting_performed",
+    "paid_marking_performed",
+    "workbook_mutation_performed",
+    "pdf_export_performed",
+    "git_push_performed",
+    "authority_granted",
+    "raw_messy_folder_dump_included",
+    "full_log_dump_included",
+    "stale_source_as_current_truth",
+    "missing_context_invented",
+    "unreviewed_duplicates_equal_evidence",
+}
+
 
 @dataclass(frozen=True)
 class QueueConfig:
@@ -145,6 +258,245 @@ def protected_text_hash(source_text: str) -> str:
 
 def _now_or_fixed(value: str | None) -> str:
     return value or utc_now()
+
+
+def _load_read_model_json(path: Path) -> dict[str, Any]:
+    path = _rooted(path)
+    if not path.exists():
+        return {}
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return {}
+    return payload if isinstance(payload, dict) else {}
+
+
+def _observed_readiness(payload: Mapping[str, Any]) -> str:
+    return str(payload.get("status") or payload.get("readiness_status") or payload.get("contract_status") or "")
+
+
+def project_room_compiler_preconditions(read_model_root: Path = DEFAULT_EXPORT_ROOT) -> list[dict[str, Any]]:
+    root = _rooted(read_model_root)
+    rows: list[dict[str, Any]] = []
+    for ref, spec in PROJECT_ROOM_COMPILER_PRECONDITIONS.items():
+        filename = str(spec["filename"])
+        payload = _load_read_model_json(root / filename)
+        observed = _observed_readiness(payload)
+        accepted = [str(status) for status in spec["accepted_statuses"]]
+        rows.append(
+            {
+                "precondition_ref": ref,
+                "source_ref": f"generated/read_models/{filename}",
+                "observed_status": observed,
+                "accepted_statuses": accepted,
+                "ready": observed in accepted,
+            }
+        )
+    return rows
+
+
+def _walk_values(payload: Any):
+    if isinstance(payload, Mapping):
+        for key, value in payload.items():
+            yield str(key), value
+            yield from _walk_values(value)
+    elif isinstance(payload, list):
+        for value in payload:
+            yield from _walk_values(value)
+
+
+def project_room_compiler_unsafe_true_grants(payload: Mapping[str, Any]) -> list[str]:
+    return sorted(
+        {
+            key
+            for key, value in _walk_values(payload)
+            if key in PROJECT_ROOM_COMPILER_UNSAFE_TRUE_KEYS and value is True
+        }
+    )
+
+
+def classify_package_source_requirements(
+    package_type: str,
+    *,
+    uses_multiple_sources: bool = False,
+    explicitly_trivial: bool = False,
+) -> dict[str, Any]:
+    package_type = str(package_type)
+    if package_type == "simple_answer":
+        return {
+            "package_type": package_type,
+            "project_room_required": False,
+            "proof_bundle_required": False,
+            "repair_room_allowed": False,
+            "bypass_allowed": True,
+            "requirement_reason": "Trivial readback/system question may bypass project room when current proof supports the answer.",
+        }
+    if package_type == "proof_to_response":
+        return {
+            "package_type": package_type,
+            "project_room_required": False,
+            "proof_bundle_required": True,
+            "repair_room_allowed": False,
+            "bypass_allowed": True,
+            "requirement_reason": "Proof-to-response may use current proof bundle freshness/redaction without a full project room.",
+        }
+    if package_type == "client/business_draft":
+        required = bool(uses_multiple_sources)
+        return {
+            "package_type": package_type,
+            "project_room_required": required,
+            "proof_bundle_required": False,
+            "repair_room_allowed": False,
+            "bypass_allowed": not required,
+            "requirement_reason": "Client/business drafts require a project room when proposal/history or multiple sources are used.",
+        }
+    if package_type == "code/build/repair":
+        return {
+            "package_type": package_type,
+            "project_room_required": True,
+            "proof_bundle_required": False,
+            "repair_room_allowed": True,
+            "bypass_allowed": False,
+            "requirement_reason": "Code/build/repair packages require a project room or repair room before synthesis.",
+        }
+    if package_type == "LM2 worker package":
+        required = not explicitly_trivial
+        return {
+            "package_type": package_type,
+            "project_room_required": required,
+            "proof_bundle_required": required,
+            "repair_room_allowed": False,
+            "bypass_allowed": explicitly_trivial,
+            "requirement_reason": "LM2 worker packages require a project/proof room unless explicitly trivial.",
+        }
+    return {
+        "package_type": package_type,
+        "project_room_required": True,
+        "proof_bundle_required": False,
+        "repair_room_allowed": False,
+        "bypass_allowed": False,
+        "requirement_reason": "Serious synthesis packages require a project room.",
+    }
+
+
+def _required_ref_values(package: Mapping[str, Any]) -> dict[str, str]:
+    return {ref: str(package.get(ref) or "") for ref in PROJECT_ROOM_REQUIRED_REFS}
+
+
+def compile_project_room_package_gate(package: Mapping[str, Any]) -> dict[str, Any]:
+    package_type = str(package.get("package_type") or "serious_synthesis")
+    requirements = classify_package_source_requirements(
+        package_type,
+        uses_multiple_sources=bool(package.get("uses_multiple_sources")),
+        explicitly_trivial=bool(package.get("explicitly_trivial")),
+    )
+    required_refs = _required_ref_values(package)
+    missing_refs = [ref for ref, value in required_refs.items() if not value]
+    project_room_required = bool(requirements["project_room_required"])
+    proof_bundle_required = bool(requirements["proof_bundle_required"])
+    proof_bundle_ready = not proof_bundle_required or bool(package.get("current_proof_bundle_exists"))
+    source_inventory_exists = bool(package.get("source_inventory_exists")) or bool(required_refs["source_inventory_ref"])
+    duplicate_report_exists = bool(package.get("duplicate_report_exists")) or bool(required_refs["duplicate_report_ref"])
+    decision_trace_exists = bool(package.get("decision_trace_exists")) or bool(required_refs["decision_trace_ref"])
+    project_room_refs_present = not missing_refs
+    blockers: list[str] = []
+
+    if project_room_required and not project_room_refs_present:
+        blockers.append("project_room_refs_missing")
+    if project_room_required and not source_inventory_exists:
+        blockers.append("source_inventory_missing")
+    if proof_bundle_required and not proof_bundle_ready:
+        blockers.append("proof_bundle_missing_or_not_current")
+    if bool(package.get("unresolved_critical_conflict")):
+        blockers.append("unresolved_critical_conflict")
+    if bool(package.get("missing_context_blocks_supported_claim")):
+        blockers.append("missing_context_blocks_supported_claim")
+    if bool(package.get("stale_superseded_source_as_current")):
+        blockers.append("stale_or_superseded_source_treated_as_current")
+    if bool(package.get("version_families_exist")) and not duplicate_report_exists:
+        blockers.append("duplicate_report_missing")
+    if bool(package.get("repeated_or_failed_work")) and not decision_trace_exists:
+        blockers.append("decision_trace_missing")
+    if package_type == "code/build/repair" and not bool(package.get("validation_plan_ref")):
+        blockers.append("validation_plan_missing")
+    if package_type == "code/build/repair" and not bool(package.get("rollback_plan_ref")):
+        blockers.append("rollback_plan_missing")
+    if package_type == "LM2 worker package":
+        if bool(package.get("raw_messy_folder_dump_included")):
+            blockers.append("raw_messy_folder_dump_blocked")
+        if bool(package.get("full_log_dump_included")):
+            blockers.append("full_log_dump_blocked")
+        if bool(package.get("unreviewed_duplicates_equal_evidence")):
+            blockers.append("unreviewed_duplicates_equal_evidence_blocked")
+        if bool(package.get("missing_context_invented")):
+            blockers.append("missing_context_invention_blocked")
+        if not bool(package.get("one_bounded_objective")):
+            blockers.append("bounded_objective_missing")
+
+    project_room_ready = (
+        not project_room_required
+        or (
+            project_room_refs_present
+            and source_inventory_exists
+            and not bool(package.get("unresolved_critical_conflict"))
+            and not bool(package.get("missing_context_blocks_supported_claim"))
+            and not bool(package.get("stale_superseded_source_as_current"))
+            and (not bool(package.get("version_families_exist")) or duplicate_report_exists)
+            and (not bool(package.get("repeated_or_failed_work")) or decision_trace_exists)
+        )
+    )
+    synthesis_allowed = not blockers
+    if package_type == "proof_to_response" and proof_bundle_ready and not blockers:
+        synthesis_allowed = True
+    if package_type == "simple_answer" and not blockers:
+        synthesis_allowed = True
+    blocked_reason = ", ".join(blockers)
+    if not blockers:
+        next_safe_action = str(package.get("next_safe_action") or "Proceed within the approved source-room scope.")
+    elif "source_inventory_missing" in blockers:
+        next_safe_action = "Build the project room source inventory before synthesis."
+    elif "unresolved_critical_conflict" in blockers:
+        next_safe_action = "Surface the conflict and request an operator decision."
+    elif "missing_context_blocks_supported_claim" in blockers:
+        next_safe_action = "Name the missing context and avoid unsupported factual claims."
+    elif "duplicate_report_missing" in blockers:
+        next_safe_action = "Create the duplicate/version report before weighting sources."
+    elif "decision_trace_missing" in blockers:
+        next_safe_action = "Attach the decision trace before repeating failed work."
+    elif "project_room_refs_missing" in blockers:
+        next_safe_action = "Build the project room source inventory before synthesis."
+    elif "proof_bundle_missing_or_not_current" in blockers:
+        next_safe_action = "Attach a current proof bundle with freshness and redaction."
+    elif "validation_plan_missing" in blockers or "rollback_plan_missing" in blockers:
+        next_safe_action = "Add validation and rollback plans before proposing repair work."
+    else:
+        next_safe_action = "Remove blocked context and retry the package compile."
+    return {
+        "package_ref": str(package.get("package_ref") or package.get("package_id") or package_type),
+        "package_type": package_type,
+        "classification": requirements,
+        "project_room_required": project_room_required,
+        "proof_bundle_required": proof_bundle_required,
+        "project_room_ready": project_room_ready,
+        "synthesis_allowed": synthesis_allowed,
+        "blocked_reason": blocked_reason,
+        "next_safe_action": next_safe_action,
+        "required_project_room_refs": required_refs,
+        "missing_project_room_refs": missing_refs,
+        "source_inventory_exists": source_inventory_exists,
+        "duplicate_report_exists": duplicate_report_exists,
+        "decision_trace_exists": decision_trace_exists,
+        "current_proof_bundle_exists": bool(package.get("current_proof_bundle_exists")),
+        "lm2_context_protections": {
+            "raw_messy_folder_dump_allowed": False,
+            "full_logs_artifacts_by_default_allowed": False,
+            "stale_source_current_truth_allowed": False,
+            "unreviewed_duplicates_equal_evidence_allowed": False,
+            "missing_context_invention_allowed": False,
+        },
+        "authority_boundary": dict(PROJECT_ROOM_COMPILER_AUTHORITY_BOUNDARY),
+        "blockers": blockers,
+    }
 
 
 def _privacy_gate(source_text: str, source_surface: str) -> dict[str, Any]:
@@ -306,6 +658,46 @@ def _worker_result_status(package_status: str) -> str:
     if package_status in {"PERMISSION_REQUIRED", "ARTIFACT_REQUIRED", "PROVIDER_GATE_REQUIRED"}:
         return "NOOP_BLOCKED_BY_GATE"
     return "NOOP_RESULT_RECORDED"
+
+
+def _source_room_context_for_workflow(workflow_ref: str) -> dict[str, Any]:
+    if workflow_ref == "capital_hilton_invoice_operator_assist":
+        return {
+            "package_ref": workflow_ref,
+            "package_type": "proof_to_response",
+            "current_proof_bundle_exists": True,
+            "next_safe_action": "Explain the payment-watch state and request proof; do not mark paid or mutate ledger.",
+        }
+    if workflow_ref == "capital_hilton_proposal_followup":
+        return {
+            "package_ref": workflow_ref,
+            "package_type": "client/business_draft",
+            "uses_multiple_sources": True,
+            "project_room_id": "project_room:business_development_capital_hilton_followup",
+            "source_inventory_ref": "source_inventory:business_development_capital_hilton_followup",
+            "conflict_log_ref": "conflict_log:business_development_capital_hilton_followup",
+            "missing_context_ref": "missing_context:business_development_capital_hilton_followup",
+            "duplicate_report_ref": "duplicate_report:business_development_capital_hilton_followup",
+            "decision_trace_ref": "decision_trace:business_development_capital_hilton_followup",
+            "freshness_gate_ref": "generated/read_models/context_freshness_decision_trace_gate.json",
+            "compaction_policy_ref": "generated/read_models/context_compaction_preview_policy.json",
+            "source_inventory_exists": True,
+            "duplicate_report_exists": True,
+            "decision_trace_exists": True,
+            "unresolved_critical_conflict": True,
+        }
+    if workflow_ref == "st_annes_monthly_invoice_rollup":
+        return {
+            "package_ref": workflow_ref,
+            "package_type": "client/business_draft",
+            "uses_multiple_sources": True,
+            "source_inventory_exists": False,
+        }
+    return {
+        "package_ref": workflow_ref,
+        "package_type": "simple_answer",
+        "explicitly_trivial": True,
+    }
 
 
 def operator_display_for_package(
@@ -475,6 +867,7 @@ def create_package(
     package_id = "workflow_package:" + _short_hash(source_surface, protected_hash, workflow_ref, created_at)
     worker_ref = "noop_worker:" + workflow_ref
     result_status = _worker_result_status(status)
+    project_room_gate = compile_project_room_package_gate(_source_room_context_for_workflow(workflow_ref))
     business_action_gate = {
         "gate_ref": "business_action_gate:" + _short_hash(package_id),
         "status": "CLOSED",
@@ -503,6 +896,12 @@ def create_package(
         "authority_boundary": dict(AUTHORITY_BOUNDARY_DEFAULT),
         "operator_display": operator_display,
         "status": status,
+        "project_room_required": project_room_gate["project_room_required"],
+        "project_room_ready": project_room_gate["project_room_ready"],
+        "synthesis_allowed": project_room_gate["synthesis_allowed"],
+        "blocked_reason": project_room_gate["blocked_reason"],
+        "next_safe_action": project_room_gate["next_safe_action"],
+        "project_room_gate_result": project_room_gate,
         "created_at": created_at,
         "updated_at": created_at,
         "privacy_redundancy_evaluator": dict(PRIVACY_EVALUATOR_DEFAULT),
@@ -583,6 +982,12 @@ def build_contract_read_model(
             "authority_boundary",
             "operator_display",
             "status",
+            "project_room_required",
+            "project_room_ready",
+            "synthesis_allowed",
+            "blocked_reason",
+            "next_safe_action",
+            "project_room_gate_result",
             "created_at",
             "updated_at",
         ],
@@ -616,6 +1021,323 @@ def build_contract_read_model(
             "authority_flags_all_false": all(value is False for value in AUTHORITY_BOUNDARY_DEFAULT.values()),
             "unsafe_true_grants_absent": True,
         },
+    }
+
+
+def _project_room_refs(scenario_ref: str) -> dict[str, str]:
+    return {
+        "project_room_id": f"project_room:{scenario_ref}",
+        "source_inventory_ref": f"source_inventory:{scenario_ref}",
+        "conflict_log_ref": f"conflict_log:{scenario_ref}",
+        "missing_context_ref": f"missing_context:{scenario_ref}",
+        "duplicate_report_ref": f"duplicate_report:{scenario_ref}",
+        "decision_trace_ref": f"decision_trace:{scenario_ref}",
+        "freshness_gate_ref": "generated/read_models/context_freshness_decision_trace_gate.json",
+        "compaction_policy_ref": "generated/read_models/context_compaction_preview_policy.json",
+    }
+
+
+def project_room_compiler_requirement_examples() -> list[dict[str, Any]]:
+    examples = [
+        {
+            "example_ref": "finance_capital_hilton_payment_watch",
+            "title": "Finance / Capital Hilton payment watch",
+            "package": {
+                "package_ref": "package:finance:capital_hilton_payment_watch",
+                "package_type": "proof_to_response",
+                "current_proof_bundle_exists": True,
+                "next_safe_action": "Explain payment evidence is missing and invite proof attachment; do not mark paid or touch ledger.",
+            },
+            "business_boundaries": {
+                "paid_marking_allowed": False,
+                "ledger_mutation_allowed": False,
+            },
+            "notes": ["simple/proof-to-response route", "current proof bundle required", "no paid or ledger action"],
+        },
+        {
+            "example_ref": "business_development_capital_hilton_followup",
+            "title": "Business Development / Capital Hilton follow-up",
+            "package": {
+                **_project_room_refs("business_development_capital_hilton_followup"),
+                "package_ref": "package:bd:capital_hilton_followup",
+                "package_type": "client/business_draft",
+                "uses_multiple_sources": True,
+                "source_inventory_exists": True,
+                "duplicate_report_exists": True,
+                "decision_trace_exists": True,
+                "unresolved_critical_conflict": True,
+            },
+            "notes": ["proposal/history draft requires project room", "conflict must be surfaced", "no send authority"],
+        },
+        {
+            "example_ref": "build_review_packet",
+            "title": "Build review packet",
+            "package": {
+                **_project_room_refs("build_review_packet"),
+                "package_ref": "package:build:review_packet",
+                "package_type": "serious_synthesis",
+                "source_inventory_exists": True,
+                "duplicate_report_exists": True,
+                "decision_trace_exists": True,
+                "repeated_or_failed_work": True,
+                "next_safe_action": "Summarize review history; keep resolved packet out of active work.",
+            },
+            "notes": ["decision trace required", "resolved packet remains history"],
+        },
+        {
+            "example_ref": "niles_controller_mapping",
+            "title": "Niles / Music controller mapping",
+            "package": {
+                **_project_room_refs("niles_music_controller_mapping"),
+                "package_ref": "package:niles:controller_mapping_factual",
+                "package_type": "serious_synthesis",
+                "source_inventory_exists": True,
+                "duplicate_report_exists": True,
+                "decision_trace_exists": True,
+                "missing_context_blocks_supported_claim": True,
+            },
+            "creative_options_allowed": True,
+            "factual_mapping_allowed": False,
+            "notes": ["target controller/software missing blocks factual mapping", "creative options remain allowed"],
+        },
+        {
+            "example_ref": "self_heal_repair",
+            "title": "Self-heal repair",
+            "package": {
+                **_project_room_refs("self_heal_repair"),
+                "package_ref": "package:self_heal:repair",
+                "package_type": "code/build/repair",
+                "source_inventory_exists": True,
+                "duplicate_report_exists": True,
+                "decision_trace_exists": True,
+                "repeated_or_failed_work": True,
+                "validation_plan_ref": "validation_plan:self_heal_repair",
+                "rollback_plan_ref": "rollback_plan:self_heal_repair",
+                "next_safe_action": "Propose repair package with validation and rollback plan; do not spawn workers.",
+            },
+            "notes": ["repair room required", "blocker proof, validation plan, and rollback plan present"],
+        },
+        {
+            "example_ref": "lm2_pilot",
+            "title": "LM2 pilot",
+            "package": {
+                **_project_room_refs("lm2_pilot_bounded_objective"),
+                "package_ref": "package:lm2:pilot_bounded_objective",
+                "package_type": "LM2 worker package",
+                "source_inventory_exists": True,
+                "duplicate_report_exists": True,
+                "decision_trace_exists": True,
+                "current_proof_bundle_exists": True,
+                "one_bounded_objective": True,
+                "raw_messy_folder_dump_included": False,
+                "full_log_dump_included": False,
+                "unreviewed_duplicates_equal_evidence": False,
+                "missing_context_invented": False,
+                "next_safe_action": "Compile a bounded LM2 pilot package with project/proof refs only; do not spawn a worker.",
+            },
+            "notes": ["project/proof room required", "one bounded objective", "no raw messy folder dump"],
+        },
+    ]
+    compiled: list[dict[str, Any]] = []
+    for example in examples:
+        gate = compile_project_room_package_gate(example["package"])
+        compiled.append({**example, "compiler_gate": gate})
+    return compiled
+
+
+def build_project_room_package_compiler_integration_read_model(
+    *,
+    read_model_root: Path = DEFAULT_EXPORT_ROOT,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    generated_at = _now_or_fixed(generated_at)
+    preconditions = project_room_compiler_preconditions(read_model_root)
+    preconditions_ready = all(row["ready"] for row in preconditions)
+    classifications = [
+        classify_package_source_requirements("simple_answer"),
+        classify_package_source_requirements("proof_to_response"),
+        classify_package_source_requirements("serious_synthesis"),
+        classify_package_source_requirements("client/business_draft", uses_multiple_sources=True),
+        classify_package_source_requirements("code/build/repair"),
+        classify_package_source_requirements("LM2 worker package"),
+    ]
+    examples = project_room_compiler_requirement_examples()
+    classification_by_type = {row["package_type"]: row for row in classifications}
+    project_room_refs_required_for_serious_packages = all(
+        classification_by_type[package_type]["project_room_required"] is True
+        for package_type in ("serious_synthesis", "client/business_draft", "code/build/repair", "LM2 worker package")
+    )
+    proof_to_response_may_use_current_proof_bundle_without_full_project_room = (
+        classification_by_type["proof_to_response"]["project_room_required"] is False
+        and classification_by_type["proof_to_response"]["proof_bundle_required"] is True
+    )
+    lm2_probe = compile_project_room_package_gate(
+        {
+            "package_ref": "probe:lm2_raw_context_blocks",
+            "package_type": "LM2 worker package",
+            **_project_room_refs("lm2_probe"),
+            "source_inventory_exists": True,
+            "duplicate_report_exists": True,
+            "decision_trace_exists": True,
+            "current_proof_bundle_exists": True,
+            "one_bounded_objective": True,
+            "raw_messy_folder_dump_included": True,
+            "full_log_dump_included": True,
+            "unreviewed_duplicates_equal_evidence": True,
+            "missing_context_invented": True,
+            "stale_superseded_source_as_current": True,
+        }
+    )
+    lm2_raw_context_blocks_present = {
+        "raw_messy_folder_dump_blocked",
+        "full_log_dump_blocked",
+        "unreviewed_duplicates_equal_evidence_blocked",
+        "missing_context_invention_blocked",
+        "stale_or_superseded_source_treated_as_current",
+    }.issubset(set(lm2_probe["blockers"]))
+    payload: dict[str, Any] = {
+        "schema_version": "project_room_package_compiler_integration_v0",
+        "read_model_id": PROJECT_ROOM_COMPILER_READ_MODEL_ID,
+        "status": PROJECT_ROOM_COMPILER_READY_STATUS if preconditions_ready else PROJECT_ROOM_COMPILER_NOT_READY_STATUS,
+        "generated_at": generated_at,
+        "purpose": "Require source rooms for serious workflow, worker, synthesis, and LM2 packages before synthesis or LM2 work.",
+        "preconditions": preconditions,
+        "required_project_room_refs": list(PROJECT_ROOM_REQUIRED_REFS),
+        "package_source_requirement_classifications": classifications,
+        "compiler_block_rules": [
+            "Block serious synthesis when source inventory is missing.",
+            "Block synthesis on unresolved critical conflicts.",
+            "Block unsupported claims when missing context is unresolved.",
+            "Block stale/superseded sources treated as current truth.",
+            "Block version-family work when duplicate/version report is missing.",
+            "Block repeated or failed work when decision trace is missing.",
+            "Block LM2 worker packages from raw folder dumps, full logs by default, stale truth, unreviewed duplicate weighting, and invention from missing context.",
+        ],
+        "required_examples": examples,
+        "package_status_fields": [
+            "project_room_required",
+            "project_room_ready",
+            "synthesis_allowed",
+            "blocked_reason",
+            "next_safe_action",
+        ],
+        "authority_boundary": dict(PROJECT_ROOM_COMPILER_AUTHORITY_BOUNDARY),
+        "implementation_boundary": {
+            "model_invoked": False,
+            "runtime_connected": False,
+            "local_model_runtime_connected": False,
+            "external_provider_connected": False,
+            "worker_spawn_performed": False,
+            "worker_execution_performed": False,
+            "business_action_performed": False,
+            "email_send_performed": False,
+            "gmail_opened": False,
+            "browser_opened": False,
+            "coupa_opened": False,
+            "portal_submit_performed": False,
+            "ledger_mutation_performed": False,
+            "ledger_posting_performed": False,
+            "paid_marking_performed": False,
+            "workbook_mutation_performed": False,
+            "pdf_export_performed": False,
+            "git_push_performed": False,
+        },
+        "machine_proof": {
+            "contract_integration_only": True,
+            "model_invocation_absent": True,
+            "worker_spawn_absent": True,
+            "business_action_absent": True,
+            "preconditions_ready": preconditions_ready,
+            "project_room_refs_required_for_serious_packages": project_room_refs_required_for_serious_packages,
+            "proof_to_response_may_use_current_proof_bundle_without_full_project_room": proof_to_response_may_use_current_proof_bundle_without_full_project_room,
+            "lm2_raw_context_blocks_present": lm2_raw_context_blocks_present,
+            "all_blocks_return_human_next_safe_action": all(
+                bool(example["compiler_gate"]["next_safe_action"]) for example in examples
+            ),
+            "unsafe_true_grants_absent": True,
+        },
+        "source_refs": [
+            "generated/read_models/project_room_sourceset_contract.json",
+            "generated/read_models/context_compaction_preview_policy.json",
+            "generated/read_models/context_freshness_decision_trace_gate.json",
+            "generated/read_models/proof_bundle_freshness_trace_status.json",
+            "generated/read_models/workflow_composer_latest.json",
+            "generated/read_models/worker_package_staging_status.json",
+            "generated/read_models/lm2_live_worker_pilot_boundary_packet.json",
+            "generated/read_models/universal_receipt_envelope_status.json",
+            "generated/read_models/goldilocks_gate_calibration.json",
+        ],
+    }
+    unsafe = project_room_compiler_unsafe_true_grants(payload)
+    payload["unsafe_true_grants"] = unsafe
+    payload["machine_proof"]["unsafe_true_grants_absent"] = not unsafe
+    if not all(value is True for value in payload["machine_proof"].values()):
+        payload["status"] = PROJECT_ROOM_COMPILER_NOT_READY_STATUS
+    if unsafe:
+        payload["status"] = PROJECT_ROOM_COMPILER_NOT_READY_STATUS
+    return payload
+
+
+def build_project_room_package_compiler_wiki(read_model: Mapping[str, Any]) -> str:
+    lines = [
+        "# Project Room Package Compiler Integration",
+        "",
+        f"Status: `{read_model.get('status')}`",
+        "",
+        "Serious workflow, synthesis, repair, and LM2 packages must compile through source-room gates before synthesis or worker handoff.",
+        "",
+        "## Package Classes",
+        "",
+    ]
+    for row in read_model.get("package_source_requirement_classifications") or []:
+        lines.append(
+            f"- `{row['package_type']}`: project room `{str(row['project_room_required']).lower()}`, proof bundle `{str(row['proof_bundle_required']).lower()}`. {row['requirement_reason']}"
+        )
+    lines.extend(["", "## Block Rules", ""])
+    for rule in read_model.get("compiler_block_rules") or []:
+        lines.append(f"- {rule}")
+    lines.extend(["", "## Examples", ""])
+    for example in read_model.get("required_examples") or []:
+        gate = example["compiler_gate"]
+        status = "allowed" if gate["synthesis_allowed"] else "blocked"
+        lines.append(f"- `{example['example_ref']}`: {status}; next safe action: {gate['next_safe_action']}")
+    lines.extend(["", "## Boundary", ""])
+    lines.append("No model invocation, local runtime connection, worker spawn, business action, email, browser/Gmail/Coupa, ledger/workbook mutation, paid marking, submission, PDF export, or push is granted.")
+    return "\n".join(lines) + "\n"
+
+
+def export_project_room_package_compiler_integration(
+    *,
+    read_model_root: Path = DEFAULT_EXPORT_ROOT,
+    export_root: Path = DEFAULT_EXPORT_ROOT,
+    bridge_root: Path | None = DEFAULT_BRIDGE_EXPORT_ROOT,
+    wiki_path: Path = PROJECT_ROOM_COMPILER_WIKI_PATH,
+    generated_at: str | None = None,
+) -> dict[str, str]:
+    read_model = build_project_room_package_compiler_integration_read_model(
+        read_model_root=read_model_root,
+        generated_at=generated_at,
+    )
+    export_root = _rooted(export_root)
+    export_root.mkdir(parents=True, exist_ok=True)
+    read_model_path = export_root / PROJECT_ROOM_COMPILER_JSON_EXPORT_NAME
+    read_model_path.write_text(stable_json(read_model), encoding="utf-8")
+
+    bridge_read_model_path = ""
+    if bridge_root is not None:
+        bridge_root.mkdir(parents=True, exist_ok=True)
+        bridge_path = bridge_root / PROJECT_ROOM_COMPILER_JSON_EXPORT_NAME
+        bridge_path.write_text(stable_json(read_model), encoding="utf-8")
+        bridge_read_model_path = str(bridge_path)
+
+    wiki_path = _rooted(wiki_path)
+    wiki_path.parent.mkdir(parents=True, exist_ok=True)
+    wiki_path.write_text(build_project_room_package_compiler_wiki(read_model), encoding="utf-8")
+    return {
+        "status": str(read_model.get("status")),
+        "read_model_path": str(read_model_path),
+        "bridge_read_model_path": bridge_read_model_path,
+        "wiki_path": str(wiki_path),
     }
 
 
