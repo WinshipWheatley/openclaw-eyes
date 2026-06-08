@@ -44,6 +44,9 @@ CONTRACT_READ_MODEL_ID = "operator_controller_event_router_contract"
 STATUS_READ_MODEL_ID = "operator_controller_event_router_status"
 CONTRACT_JSON_EXPORT_NAME = f"{CONTRACT_READ_MODEL_ID}.json"
 STATUS_JSON_EXPORT_NAME = f"{STATUS_READ_MODEL_ID}.json"
+LM2_STRUCTURED_RETRY_READ_MODEL = "lm2_room_backed_worker_structured_output_retry.json"
+LM2_STRUCTURED_RETRY_REF = f"generated/read_models/{LM2_STRUCTURED_RETRY_READ_MODEL}"
+LM2_STRUCTURED_RETRY_BACKEND = "ollama:qwen3:8b-q4_K_M"
 
 READY_STATUS = "OPERATOR_CONTROLLER_EVENT_ROUTER_READY"
 NOT_READY_STATUS = "OPERATOR_CONTROLLER_EVENT_ROUTER_NOT_READY"
@@ -1889,6 +1892,100 @@ def _proof_to_response_scenario_id(request: Mapping[str, Any], receipt: Mapping[
     return ""
 
 
+def _lm2_retry_backend(payload: Mapping[str, Any]) -> str:
+    for key in ("structured_output_attempt", "invocation_result", "model_backend"):
+        candidate = payload.get(key)
+        if not isinstance(candidate, Mapping):
+            continue
+        runtime_ref = str(candidate.get("runtime_ref") or "ollama").strip() or "ollama"
+        model_name = str(candidate.get("model_name") or "").strip()
+        if model_name:
+            return f"{runtime_ref}:{model_name}"
+    return LM2_STRUCTURED_RETRY_BACKEND
+
+
+def _lm2_retry_is_stale(payload: Mapping[str, Any], latest: Mapping[str, Any]) -> bool:
+    stale_markers = (
+        payload.get("expires_or_superseded_by"),
+        payload.get("superseded_by"),
+        latest.get("expires_or_superseded_by"),
+        latest.get("superseded_by"),
+    )
+    if any(bool(marker) for marker in stale_markers):
+        return True
+    machine_proof = payload.get("machine_proof") if isinstance(payload.get("machine_proof"), Mapping) else {}
+    latest_machine_proof = latest.get("machine_proof") if isinstance(latest.get("machine_proof"), Mapping) else {}
+    return bool(
+        payload.get("stale") is True
+        or latest.get("stale") is True
+        or machine_proof.get("stale_source_current_truth_allowed") is True
+        or latest_machine_proof.get("stale_source_current_truth_allowed") is True
+    )
+
+
+def _matching_lm2_retry_publish_result(
+    request: Mapping[str, Any],
+    receipt: Mapping[str, Any],
+    *,
+    scenario_id: str,
+    read_model_root: Path,
+) -> dict[str, Any]:
+    event_type = str(receipt.get("controller_event_type") or request.get("controller_event_type") or "").strip()
+    if event_type != "chat_goal" or scenario_id != "finance_capital_hilton_payment_watch":
+        return {}
+
+    payload = _load_json(_rooted(read_model_root) / LM2_STRUCTURED_RETRY_READ_MODEL)
+    if not payload or payload.get("status") != "LM2_ROOM_BACKED_WORKER_STRUCTURED_OUTPUT_RETRY_READY":
+        return {}
+    latest = payload.get("proof_to_response_latest") if isinstance(payload.get("proof_to_response_latest"), Mapping) else {}
+    published = payload.get("published_response") if isinstance(payload.get("published_response"), Mapping) else {}
+    latest_response = latest.get("latest_response") if isinstance(latest.get("latest_response"), Mapping) else {}
+    source_response = dict(published or latest_response)
+    if not source_response:
+        return {}
+    if str(source_response.get("candidate_source") or "") != proof_to_response_runtime.CANDIDATE_SOURCE_LM2_ROOM_BACKED_STRUCTURED_RETRY:
+        return {}
+    if str(source_response.get("verification_status") or "") not in {"publishable", "verified"}:
+        return {}
+    if _lm2_retry_is_stale(payload, latest):
+        return {}
+
+    source_context = source_response.get("source_context") if isinstance(source_response.get("source_context"), Mapping) else {}
+    world_ref = str(source_context.get("world_ref") or latest.get("world_ref") or "").strip().lower()
+    thread_ref = str(source_context.get("thread_ref") or latest.get("thread_ref") or "").strip().lower()
+    objective_ref = str(source_context.get("objective_ref") or source_response.get("objective_ref") or "").strip().lower()
+    if world_ref != "finance" or thread_ref != "capital_hilton" or "payment_watch" not in objective_ref:
+        return {}
+
+    source_response["candidate_source"] = proof_to_response_runtime.CANDIDATE_SOURCE_LM2_ROOM_BACKED_STRUCTURED_RETRY
+    source_response["selected_model_backend"] = _lm2_retry_backend(payload)
+    source_response["model_call_performed"] = False
+    source_response["source_lm2_result_ref"] = LM2_STRUCTURED_RETRY_REF
+    source_response["source_response_path"] = LM2_STRUCTURED_RETRY_REF
+    return {
+        "scenario_id": scenario_id,
+        "candidate_source": proof_to_response_runtime.CANDIDATE_SOURCE_LM2_ROOM_BACKED_STRUCTURED_RETRY,
+        "proof_bundle": {},
+        "candidate_response": {},
+        "verifier_result": {
+            "status": "VERIFIED_EXISTING_LM2_PROOF_RESPONSE_REUSED",
+            "verification_errors": [],
+        },
+        "published_response": source_response,
+        "receipt": {
+            "receipt_id": str(latest.get("latest_receipt_ref") or payload.get("latest_receipt_ref") or "lm2_structured_output_retry:published_response_hash_receipt"),
+            "receipt_type": "proof_to_response_reused_existing_lm2_result",
+            "candidate_source": proof_to_response_runtime.CANDIDATE_SOURCE_LM2_ROOM_BACKED_STRUCTURED_RETRY,
+            "source_lm2_result_ref": LM2_STRUCTURED_RETRY_REF,
+            "model_call_performed": False,
+            "approval_consumed": False,
+        },
+        "source_lm2_result_ref": LM2_STRUCTURED_RETRY_REF,
+        "source_response_path": LM2_STRUCTURED_RETRY_REF,
+        "reused_existing_lm2_result": True,
+    }
+
+
 def _attach_proof_to_response(
     receipt: dict[str, Any],
     request: Mapping[str, Any],
@@ -1935,20 +2032,30 @@ def _attach_proof_to_response(
     candidate = request.get("proof_to_response_candidate")
     if not isinstance(candidate, Mapping):
         candidate = None
-    publish_result = proof_to_response_runtime.publish_response(
-        scenario_id,
-        candidate_response=candidate,
-        candidate_source=proof_to_response_runtime.CANDIDATE_SOURCE_SHADOW_PILOT,
-        generated_at=generated_at,
-        sqlite_path=runtime_sqlite_path,
+    publish_result = _matching_lm2_retry_publish_result(
+        request,
+        receipt,
+        scenario_id=scenario_id,
         read_model_root=read_model_root,
     )
+    lm2_reused = bool(publish_result.get("reused_existing_lm2_result"))
+    source_response_path = str(publish_result.get("source_response_path") or "")
+    if not publish_result:
+        publish_result = proof_to_response_runtime.publish_response(
+            scenario_id,
+            candidate_response=candidate,
+            candidate_source=proof_to_response_runtime.CANDIDATE_SOURCE_SHADOW_PILOT,
+            generated_at=generated_at,
+            sqlite_path=runtime_sqlite_path,
+            read_model_root=read_model_root,
+        )
     primary_response = proof_to_response_runtime.scope_controller_response(
         publish_result.get("published_response") if isinstance(publish_result.get("published_response"), Mapping) else {},
         source_request_id=source_request_id,
         controller_event_type=controller_event_type,
         selected_card_id=selected_card_id,
         selected_action_id=selected_action_id,
+        source_response_path=source_response_path,
         generated_at=generated_at,
     )
     scoped_publish_result = dict(publish_result)
@@ -1983,6 +2090,10 @@ def _attach_proof_to_response(
     receipt["machine_proof"]["proof_to_response_primary_emitted"] = bool(primary_response)
     receipt["machine_proof"]["proof_to_response_verification_status"] = str(primary_response.get("verification_status") or "")
     receipt["machine_proof"]["proof_to_response_candidate_source"] = receipt["proof_to_response_candidate_source"]
+    receipt["machine_proof"]["lm2_proof_response_reused"] = lm2_reused
+    receipt["machine_proof"]["source_lm2_result_ref"] = str(publish_result.get("source_lm2_result_ref") or "")
+    receipt["machine_proof"]["model_invoked"] = False
+    receipt["machine_proof"]["approval_consumed"] = False
     receipt["machine_proof"]["live_lm_invoked"] = False
     receipt["machine_proof"]["local_model_runtime_connected"] = False
     receipt["machine_proof"]["details_collapsed"] = primary_response.get("details_collapsed") is not False

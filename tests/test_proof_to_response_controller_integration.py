@@ -46,11 +46,28 @@ FIXTURE_READ_MODELS = {
 }
 
 
-def _seed_read_models(tmp_path: Path) -> Path:
+def _seed_read_models(
+    tmp_path: Path,
+    *,
+    include_lm2_retry: bool = False,
+    lm2_retry_overrides: dict | None = None,
+) -> Path:
     root = tmp_path / "read_models"
     root.mkdir(parents=True, exist_ok=True)
     for filename in sorted(FIXTURE_READ_MODELS):
         shutil.copy2(ROOT / "generated" / "read_models" / filename, root / filename)
+    if include_lm2_retry:
+        lm2_payload = json.loads(
+            (ROOT / "generated" / "read_models" / "lm2_room_backed_worker_structured_output_retry.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        if lm2_retry_overrides:
+            lm2_payload.update(lm2_retry_overrides)
+        (root / "lm2_room_backed_worker_structured_output_retry.json").write_text(
+            json.dumps(lm2_payload, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
     return root
 
 
@@ -110,8 +127,18 @@ def _controller_event_request(
     return request
 
 
-def _route(tmp_path: Path, request: dict) -> tuple[dict, dict, dict]:
-    read_model_root = _seed_read_models(tmp_path)
+def _route(
+    tmp_path: Path,
+    request: dict,
+    *,
+    include_lm2_retry: bool = False,
+    lm2_retry_overrides: dict | None = None,
+) -> tuple[dict, dict, dict]:
+    read_model_root = _seed_read_models(
+        tmp_path,
+        include_lm2_retry=include_lm2_retry,
+        lm2_retry_overrides=lm2_retry_overrides,
+    )
     receipt = router.route_controller_event(
         request,
         source_request_filename=f"{request['request_id']}.json",
@@ -322,6 +349,104 @@ def test_capital_hilton_lane_level_controller_map_actions_return_payment_watch_t
     assert advance_receipt["route_result"]["suggested_controller_event"] == "attach_proof"
     assert advance_receipt["proof_to_response"]["headline"] == "Payment evidence needed"
     assert advance_latest["latest_response"]["headline"] == "Payment evidence needed"
+
+
+def test_finance_capital_hilton_chat_goal_reuses_fresh_lm2_retry_response(tmp_path):
+    receipt, latest, bridge_latest = _route(
+        tmp_path,
+        _controller_event_request(
+            event_type="chat_goal",
+            world="finance",
+            thread="capital_hilton",
+            suffix="capital_hilton_chat_goal_lm2",
+            selected_card_id="dynamic_card.finance.capital_hilton.payment_watch",
+            operator_text="What should I do here?",
+        ),
+        include_lm2_retry=True,
+    )
+
+    primary = receipt["proof_to_response"]
+    assert latest == bridge_latest
+    assert primary["headline"] == "Payment evidence needed"
+    assert primary["body"] == "Coupa is processing. I can't mark this paid until payment evidence is attached. The ledger stays untouched."
+    assert primary["next_step"] == "Attach payment evidence."
+    assert primary["candidate_source"] == "lm2_room_backed_worker_structured_output_retry"
+    assert primary["selected_model_backend"] == "ollama:qwen3:8b-q4_K_M"
+    assert primary["model_call_performed"] is False
+    assert primary["source_lm2_result_ref"] == "generated/read_models/lm2_room_backed_worker_structured_output_retry.json"
+    assert primary["source_response_path"] == "generated/read_models/lm2_room_backed_worker_structured_output_retry.json"
+    assert receipt["proof_to_response_candidate_source"] == "lm2_room_backed_worker_structured_output_retry"
+    assert receipt["machine_proof"]["lm2_proof_response_reused"] is True
+    assert receipt["machine_proof"]["model_invoked"] is False
+    assert receipt["machine_proof"]["approval_consumed"] is False
+    assert latest["candidate_source"] == "lm2_room_backed_worker_structured_output_retry"
+    assert latest["latest_response"]["candidate_source"] == "lm2_room_backed_worker_structured_output_retry"
+    assert latest["latest_response"]["model_call_performed"] is False
+    assert latest["latest_response"]["selected_model_backend"] == "ollama:qwen3:8b-q4_K_M"
+
+
+def test_wrong_lane_lm2_retry_does_not_promote_to_business_development(tmp_path):
+    receipt, latest, _bridge_latest = _route(
+        tmp_path,
+        _controller_event_request(
+            event_type="chat_goal",
+            world="business_development",
+            thread="capital_hilton",
+            suffix="business_development_chat_goal_no_lm2_finance_reuse",
+            selected_card_id="dynamic_card.business_development.capital_hilton.proposal",
+            operator_text="What should I do here?",
+        ),
+        include_lm2_retry=True,
+    )
+
+    primary = receipt["proof_to_response"]
+    assert primary["candidate_source"] == runtime.CANDIDATE_SOURCE_SHADOW_PILOT
+    assert primary["headline"] == "Follow-up can be staged"
+    assert "payment evidence needed" not in primary["headline"].lower()
+    assert receipt["machine_proof"]["lm2_proof_response_reused"] is False
+    assert latest["candidate_source"] == runtime.CANDIDATE_SOURCE_SHADOW_PILOT
+
+
+def test_stale_lm2_retry_does_not_promote(tmp_path):
+    receipt, latest, _bridge_latest = _route(
+        tmp_path,
+        _controller_event_request(
+            event_type="chat_goal",
+            world="finance",
+            thread="capital_hilton",
+            suffix="capital_hilton_chat_goal_stale_lm2",
+            selected_card_id="dynamic_card.finance.capital_hilton.payment_watch",
+            operator_text="What is next?",
+        ),
+        include_lm2_retry=True,
+        lm2_retry_overrides={"expires_or_superseded_by": "receipt:newer_capital_hilton_payment_evidence"},
+    )
+
+    primary = receipt["proof_to_response"]
+    assert primary["candidate_source"] == runtime.CANDIDATE_SOURCE_SHADOW_PILOT
+    assert primary["headline"] == "Payment evidence needed"
+    assert receipt["machine_proof"]["lm2_proof_response_reused"] is False
+    assert latest["candidate_source"] == runtime.CANDIDATE_SOURCE_SHADOW_PILOT
+
+
+def test_chat_goal_falls_back_when_no_lm2_retry_exists(tmp_path):
+    receipt, latest, _bridge_latest = _route(
+        tmp_path,
+        _controller_event_request(
+            event_type="chat_goal",
+            world="finance",
+            thread="capital_hilton",
+            suffix="capital_hilton_chat_goal_no_lm2",
+            selected_card_id="dynamic_card.finance.capital_hilton.payment_watch",
+            operator_text="What should I do?",
+        ),
+    )
+
+    primary = receipt["proof_to_response"]
+    assert primary["candidate_source"] == runtime.CANDIDATE_SOURCE_SHADOW_PILOT
+    assert primary["headline"] == "Payment evidence needed"
+    assert receipt["machine_proof"]["lm2_proof_response_reused"] is False
+    assert latest["candidate_source"] == runtime.CANDIDATE_SOURCE_SHADOW_PILOT
 
 
 def test_capital_hilton_coupa_gate_ask_why_still_uses_gate_specific_response(tmp_path):
@@ -633,6 +758,45 @@ def test_processor_response_embeds_request_scoped_proof_to_response(tmp_path):
     assert latest == bridge_latest
     assert latest["source_response_path"] == response_path
     assert latest["latest_response"]["source_response_path"] == response_path
+
+
+def test_processor_mac_payload_uses_lm2_backend_metadata_without_new_model_call(tmp_path):
+    read_model_root = _seed_read_models(tmp_path, include_lm2_retry=True)
+    request = _controller_event_request(
+        event_type="chat_goal",
+        world="finance",
+        thread="capital_hilton",
+        suffix="processor_finance_lm2_chat_goal",
+        selected_card_id="dynamic_card.finance.capital_hilton.payment_watch",
+        operator_text="What should I do here?",
+    )
+    request_path = tmp_path / "mission_control_controller_event_request_processor_finance_lm2.json"
+    request_path.write_text(json.dumps(request, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    classification = processor.RequestClassification(
+        classification_id="test:proof_to_response_controller_lm2",
+        source_request_filename=request_path.name,
+        request_family="OPERATOR_CONTROLLER_EVENT_REQUEST",
+        selected_rail="operator_controller_event_router",
+        classification_reason="test",
+        future_supported=False,
+        next_safe_move="route controller event",
+    )
+    response = processor._process_operator_controller_event_request(
+        request_path,
+        request,
+        export_root=read_model_root,
+        generated_at=FIXED_NOW,
+        classification=classification,
+        route_decision={"selected_rail": "operator_controller_event_router"},
+    )
+    response_payload, _status_payload = processor.build_payloads(response, generated_at=FIXED_NOW)
+
+    assert response.proof_to_response["candidate_source"] == "lm2_room_backed_worker_structured_output_retry"
+    assert response_payload["selected_model_backend"] == "ollama:qwen3:8b-q4_K_M"
+    assert response_payload["proof_to_response"]["selected_model_backend"] == "ollama:qwen3:8b-q4_K_M"
+    assert response_payload["proof_to_response"]["model_call_performed"] is False
+    assert response_payload["machine_proof"]["model_call_performed"] is False
+    assert response_payload["machine_proof"]["local_model_call_performed"] is False
 
 
 def test_unsafe_true_grant_scan_clean(tmp_path):

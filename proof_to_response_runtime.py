@@ -40,10 +40,12 @@ NOT_READY_STATUS = "PROOF_TO_RESPONSE_RUNTIME_NOT_READY"
 CANDIDATE_SOURCE_DETERMINISTIC = "deterministic_fixture"
 CANDIDATE_SOURCE_SHADOW_PILOT = "shadow_pilot_candidate"
 CANDIDATE_SOURCE_FUTURE_LIVE_LM_BLOCKED = "future_live_lm_blocked"
+CANDIDATE_SOURCE_LM2_ROOM_BACKED_STRUCTURED_RETRY = "lm2_room_backed_worker_structured_output_retry"
 CANDIDATE_SOURCES = (
     CANDIDATE_SOURCE_DETERMINISTIC,
     CANDIDATE_SOURCE_SHADOW_PILOT,
     CANDIDATE_SOURCE_FUTURE_LIVE_LM_BLOCKED,
+    CANDIDATE_SOURCE_LM2_ROOM_BACKED_STRUCTURED_RETRY,
 )
 
 SUPPORTED_SCENARIOS = (
@@ -792,6 +794,9 @@ def scope_controller_response(
         "speaker_ref": str(published_response.get("speaker_ref") or "openclaw"),
         "voice_mode": str(published_response.get("voice_mode") or "brief"),
         "candidate_source": str(published_response.get("candidate_source") or CANDIDATE_SOURCE_DETERMINISTIC),
+        "selected_model_backend": str(published_response.get("selected_model_backend") or ""),
+        "model_call_performed": bool(published_response.get("model_call_performed") or False),
+        "source_lm2_result_ref": str(published_response.get("source_lm2_result_ref") or ""),
         "headline": str(published_response.get("headline") or ""),
         "body": str(published_response.get("body") or ""),
         "next_step": str(published_response.get("next_step") or ""),

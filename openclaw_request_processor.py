@@ -1783,6 +1783,24 @@ def _model_backend_selection_fields(
     response: OpenClawResponseForMac,
     layered_fields: Mapping[str, Any],
 ) -> dict[str, Any]:
+    proof_response = response.proof_to_response if isinstance(response.proof_to_response, Mapping) else {}
+    proof_backend = str(proof_response.get("selected_model_backend") or "").strip()
+    proof_candidate_source = str(proof_response.get("candidate_source") or "").strip()
+    if (
+        proof_backend
+        and proof_candidate_source == "lm2_room_backed_worker_structured_output_retry"
+        and proof_response.get("model_call_performed") is False
+    ):
+        return {
+            "selected_model_backend": proof_backend,
+            "selected_worker_type": "LOCAL_OLLAMA_REUSED_PROOF_RESPONSE",
+            "allowed_tools_plugins": (),
+            "model_selection_reason": (
+                "Existing verified room-backed LM2 proof-to-response output was reused for this scoped controller response; "
+                "no new model call, runtime connection, prompt send, or proof bundle send occurred."
+            ),
+            "credit_budget_policy": "No new model credits or local runtime call were used; the response cites an existing verified LM2 result.",
+        }
     detail = response.detail_disclosure if isinstance(response.detail_disclosure, Mapping) else {}
     interpreter = detail.get("deterministic_intent_interpreter") if isinstance(detail.get("deterministic_intent_interpreter"), Mapping) else {}
     if interpreter:
