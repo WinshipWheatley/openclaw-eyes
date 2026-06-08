@@ -164,13 +164,22 @@ def test_payment_watch_next_step_returns_payment_watch_answer(tmp_path):
 
 def test_paid_or_ledger_blocker_returns_blocker_explanation(tmp_path):
     result = _route_text(tmp_path, "Why can't this be marked paid?")
-    text = json.dumps(result).lower()
+    display = result["operator_display"]
+    text = display["plain_summary"].lower()
 
     assert result["conversation_intent_class"] == "paid_or_ledger_blocker"
+    assert result["resolved_intent_class"] == "paid_or_ledger_blocker"
+    assert result["resolved_intent_route"] == "finance_capital_hilton_paid_ledger_blocker"
+    assert result["intent_source"] == "backend_router"
+    assert result["proof_to_response_scenario_id"] == "finance_capital_hilton_paid_ledger_blocker"
+    assert display["headline"] == "Paid marking is blocked"
     assert "payment evidence" in text
     assert "mark this paid" in text
     assert "ledger" in text
+    assert display["next_safe_action"] == "Attach payment evidence."
     assert result["workflow_package_staged"] is False
+    assert result["machine_proof"]["paid_marking_performed"] is False
+    assert result["machine_proof"]["ledger_mutation_performed"] is False
 
 
 def test_attach_proof_hypothetical_returns_proof_can_be_recorded(tmp_path):
@@ -271,6 +280,28 @@ def test_controller_route_embeds_distinct_proof_response_for_package_question(tm
     assert "WORKFLOW_PACKAGE_REQUEST_V0" not in json.dumps(receipt)
 
 
+def test_controller_route_embeds_paid_blocker_intent_and_avoids_generic_lm2_reuse(tmp_path):
+    receipt = _route_controller(
+        tmp_path,
+        "Why can't this be marked paid?",
+        include_lm2_retry=True,
+        suffix="paid_blocker",
+    )
+    primary = receipt["proof_to_response"]
+
+    assert receipt["route_result"]["conversation_intent_class"] == "paid_or_ledger_blocker"
+    assert receipt["resolved_intent_class"] == "paid_or_ledger_blocker"
+    assert primary["resolved_intent_class"] == "paid_or_ledger_blocker"
+    assert primary["resolved_intent_route"] == "finance_capital_hilton_paid_ledger_blocker"
+    assert primary["headline"] == "Paid marking is blocked"
+    assert primary["body"] == "I'm missing payment evidence. Until payment is confirmed, I can't mark this paid or touch the ledger."
+    assert primary["candidate_source"] != proof_runtime.CANDIDATE_SOURCE_LM2_ROOM_BACKED_STRUCTURED_RETRY
+    assert primary["selected_model_backend"] == ""
+    assert primary["model_call_performed"] is False
+    assert receipt["machine_proof"]["lm2_proof_response_reused"] is False
+    assert receipt["machine_proof"]["model_invoked"] is False
+
+
 def test_controller_route_reuses_lm2_only_for_next_step_when_scoped(tmp_path):
     receipt = _route_controller(
         tmp_path,
@@ -284,6 +315,27 @@ def test_controller_route_reuses_lm2_only_for_next_step_when_scoped(tmp_path):
     assert receipt["proof_to_response"]["candidate_source"] == proof_runtime.CANDIDATE_SOURCE_LM2_ROOM_BACKED_STRUCTURED_RETRY
     assert receipt["machine_proof"]["lm2_proof_response_reused"] is True
     assert receipt["machine_proof"]["model_invoked"] is False
+
+
+def test_primary_copy_avoids_machine_terms_for_specialized_intents(tmp_path):
+    status = router.build_intent_router_status_read_model(
+        read_model_root=_seed_read_models(tmp_path),
+        sqlite_path=tmp_path / "proof_to_response.sqlite",
+        generated_at=FIXED_NOW,
+    )
+    forbidden_terms = ("json", "lm2-backed", "read model", "dynamic card", "machine contract")
+
+    for sample in status["sample_routes"]:
+        display = sample["operator_display"]
+        text = " ".join(
+            [
+                str(display.get("headline") or ""),
+                str(display.get("plain_summary") or ""),
+                str(display.get("next_safe_action") or ""),
+            ]
+        ).lower()
+        for term in forbidden_terms:
+            assert term not in text
 
 
 def test_intent_router_status_exports_bridge_equality_and_no_grants(tmp_path):
@@ -301,6 +353,10 @@ def test_intent_router_status_exports_bridge_equality_and_no_grants(tmp_path):
     bridge = json.loads(Path(result["bridge_status_path"]).read_text(encoding="utf-8"))
     assert local == bridge
     assert local["intent_classes"] == list(router.INTENT_CLASSES)
+    assert local["scenario_by_intent"]["paid_or_ledger_blocker"] == "finance_capital_hilton_paid_ledger_blocker"
+    assert local["machine_proof"]["paid_blocker_distinct_from_next_step"] is True
+    assert local["machine_proof"]["generic_lm2_reuse_limited_to_next_step"] is True
+    assert local["machine_proof"]["resolved_intent_observability_present"] is True
     assert local["machine_proof"]["workflow_package_request_v0_emitted"] is False
     assert not _unsafe_true_grants(local)
 

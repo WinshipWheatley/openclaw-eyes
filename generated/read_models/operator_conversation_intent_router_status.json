@@ -33,7 +33,7 @@
     "workflow_package_staging_allowed": false
   },
   "controller_event_type": "chat_goal",
-  "generated_at": "2026-06-08T16:21:34+00:00",
+  "generated_at": "2026-06-08T19:10:03+00:00",
   "intent_classes": [
     "payment_watch_next_step",
     "paid_or_ledger_blocker",
@@ -58,7 +58,7 @@
     "email_send_performed": false,
     "external_api_called": false,
     "external_llm_invoked": false,
-    "generic_lm2_reuse_limited_to_next_step_or_blocker": true,
+    "generic_lm2_reuse_limited_to_next_step": true,
     "git_push_performed": false,
     "gmail_access_performed": false,
     "invented_file_truth": false,
@@ -68,12 +68,14 @@
     "merge_performed": false,
     "model_invoked": false,
     "operator_conversation_router_used": true,
+    "paid_blocker_distinct_from_next_step": true,
     "paid_marking_performed": false,
     "pdf_export_performed": false,
     "portal_submit_performed": false,
     "prompt_sent": false,
     "proof_bundle_sent": false,
     "proof_to_response_used_when_possible": true,
+    "resolved_intent_observability_present": true,
     "sample_route_count": 10,
     "specialized_non_generic_answers_present": true,
     "unsafe_true_grants": [],
@@ -88,7 +90,8 @@
   "read_model_id": "operator_conversation_intent_router_status",
   "request_type": "OPERATOR_CONTROLLER_EVENT_REQUEST_V0",
   "routing_rules": [
-    "Fresh LM2-backed payment-watch text may be reused only for payment_watch_next_step and paid_or_ledger_blocker when scoped.",
+    "Fresh LM2 payment-watch text may be reused only for payment_watch_next_step when scoped.",
+    "Paid/ledger blocker questions use a distinct deterministic proof-to-response scenario unless a future scoped paid-blocker candidate exists.",
     "Package, allowed-scope, forbidden-scope, freshness, and decision-trace questions use specialized deterministic proof-to-response scenarios.",
     "No WORKFLOW_PACKAGE_REQUEST_V0 path is emitted from lane-local chat_goal questions.",
     "No model invocation, worker spawn, prompt send, proof-bundle send, protected action, paid marking, ledger mutation, or business execution occurs."
@@ -129,11 +132,14 @@
         "workflow_package_staging_allowed": false
       },
       "backend_route": "proof_to_response_runtime.publish_response",
+      "candidate_source": "deterministic_fixture",
       "conversation_intent_class": "payment_watch_next_step",
       "current_thread_ref": "capital_hilton",
       "current_world_ref": "finance",
-      "generated_at": "2026-06-08T16:21:34+00:00",
+      "generated_at": "2026-06-08T19:10:03+00:00",
       "input_controller_event_type": "chat_goal",
+      "intent_confidence": 1.0,
+      "intent_source": "backend_router",
       "machine_proof": {
         "agent_loop_performed": false,
         "browser_access_performed": false,
@@ -146,6 +152,7 @@
         "external_llm_invoked": false,
         "git_push_performed": false,
         "gmail_access_performed": false,
+        "intent_source": "backend_router",
         "invented_file_truth": false,
         "ledger_mutation_performed": false,
         "ledger_posting_performed": false,
@@ -162,6 +169,8 @@
         "proof_to_response_used": true,
         "proof_to_response_used_when_possible": true,
         "protected_action_blocked": false,
+        "resolved_intent_class": "payment_watch_next_step",
+        "resolved_intent_route": "finance_capital_hilton_payment_watch",
         "stale_context": false,
         "unsafe_true_grants": [],
         "unsafe_true_grants_absent": true,
@@ -171,6 +180,7 @@
         "workflow_package_request_v0_emitted": false,
         "workflow_package_staged": false
       },
+      "model_call_performed": false,
       "operator_display": {
         "headline": "Payment evidence needed",
         "next_safe_action": "Attach payment evidence.",
@@ -218,7 +228,7 @@
         "email_send_performed": false,
         "external_llm_invoked": false,
         "fallback_reason": "",
-        "generated_at": "2026-06-08T16:21:34+00:00",
+        "generated_at": "2026-06-08T19:10:03+00:00",
         "git_push_performed": false,
         "headline": "Payment evidence needed",
         "incoming_authority_granted_accepted": false,
@@ -263,7 +273,7 @@
         "receipt_refs": [
           "universal_receipt:dynamic_card_emitted:e811c126f7bdf8d4"
         ],
-        "response_content_hash": "sha256:c7f8b518e732ac587f8e396bba1cb0452d20d05293103f6e6ac1c0261e41a882",
+        "response_content_hash": "sha256:b16982efee72cf68b496a62b033ed25a283e41cf2d79430e29338e13661a5e65",
         "response_id": "proof_response:publishable:finance_capital_hilton_payment_watch",
         "schema_version": "proof_to_response_runtime_v0",
         "source_context": {
@@ -291,14 +301,16 @@
       "proof_to_response_receipt": {
         "details_collapsed": true,
         "proof_bundle_id": "proof_bundle:finance_capital_hilton_payment_watch",
-        "receipt_id": "proof_to_response_receipt:finance_capital_hilton_payment_watch:9c432b5bbdef",
+        "receipt_id": "proof_to_response_receipt:finance_capital_hilton_payment_watch:2d7d9a7581d5",
         "response_id": "proof_response:publishable:finance_capital_hilton_payment_watch",
         "scenario_id": "finance_capital_hilton_payment_watch",
         "verification_status": "publishable"
       },
       "proof_to_response_scenario_id": "finance_capital_hilton_payment_watch",
       "request_type": "OPERATOR_CONTROLLER_EVENT_REQUEST_V0",
-      "response_id": "operator_conversation_router:e3c43150d813bc2f",
+      "resolved_intent_class": "payment_watch_next_step",
+      "resolved_intent_route": "finance_capital_hilton_payment_watch",
+      "response_id": "operator_conversation_router:a43952b73f94180d",
       "route_notes": [
         "scenario_id:finance_capital_hilton_payment_watch"
       ],
@@ -306,6 +318,7 @@
       "schema_version": "operator_conversation_router_v0",
       "selected_action_id": "",
       "selected_card_id": "dynamic_card.finance.capital_hilton.payment_watch",
+      "selected_model_backend": "",
       "suggested_controller_event": "attach_proof",
       "workflow_package_staged": false,
       "workflow_request_type_emitted": ""
@@ -345,11 +358,14 @@
         "workflow_package_staging_allowed": false
       },
       "backend_route": "proof_to_response_runtime.publish_response",
+      "candidate_source": "deterministic_fixture",
       "conversation_intent_class": "paid_or_ledger_blocker",
       "current_thread_ref": "capital_hilton",
       "current_world_ref": "finance",
-      "generated_at": "2026-06-08T16:21:34+00:00",
+      "generated_at": "2026-06-08T19:10:03+00:00",
       "input_controller_event_type": "chat_goal",
+      "intent_confidence": 1.0,
+      "intent_source": "backend_router",
       "machine_proof": {
         "agent_loop_performed": false,
         "browser_access_performed": false,
@@ -362,6 +378,7 @@
         "external_llm_invoked": false,
         "git_push_performed": false,
         "gmail_access_performed": false,
+        "intent_source": "backend_router",
         "invented_file_truth": false,
         "ledger_mutation_performed": false,
         "ledger_posting_performed": false,
@@ -378,6 +395,8 @@
         "proof_to_response_used": true,
         "proof_to_response_used_when_possible": true,
         "protected_action_blocked": false,
+        "resolved_intent_class": "paid_or_ledger_blocker",
+        "resolved_intent_route": "finance_capital_hilton_paid_ledger_blocker",
         "stale_context": false,
         "unsafe_true_grants": [],
         "unsafe_true_grants_absent": true,
@@ -387,10 +406,11 @@
         "workflow_package_request_v0_emitted": false,
         "workflow_package_staged": false
       },
+      "model_call_performed": false,
       "operator_display": {
-        "headline": "Payment evidence needed",
+        "headline": "Paid marking is blocked",
         "next_safe_action": "Attach payment evidence.",
-        "plain_summary": "Coupa is processing. I can't mark this paid until payment evidence is attached. The ledger stays untouched.",
+        "plain_summary": "I'm missing payment evidence. Until payment is confirmed, I can't mark this paid or touch the ledger.",
         "proof_refs_collapsed": true,
         "speaker_ref": "chief",
         "voice_mode": "operations",
@@ -406,7 +426,7 @@
         "authority_boundary": {
           "protected_actions_allowed": false
         },
-        "body": "Coupa is processing. I can't mark this paid until payment evidence is attached. The ledger stays untouched.",
+        "body": "I'm missing payment evidence. Until payment is confirmed, I can't mark this paid or touch the ledger.",
         "business_action_performed": false,
         "can_do_now": [
           "Attach payment evidence"
@@ -415,7 +435,8 @@
         "cannot_do_yet": [
           "paid marking",
           "ledger mutation",
-          "Coupa/browser action"
+          "Coupa/browser action",
+          "email send"
         ],
         "controls": [
           {
@@ -434,15 +455,16 @@
         "email_send_performed": false,
         "external_llm_invoked": false,
         "fallback_reason": "",
-        "generated_at": "2026-06-08T16:21:34+00:00",
+        "generated_at": "2026-06-08T19:10:03+00:00",
         "git_push_performed": false,
-        "headline": "Payment evidence needed",
+        "headline": "Paid marking is blocked",
         "incoming_authority_granted_accepted": false,
         "ledger_mutation_performed": false,
         "local_model_runtime_connected": false,
         "merge_performed": false,
         "missing_input": [
-          "payment arrival confirmation"
+          "confirmed payment arrival",
+          "verified payment receipt"
         ],
         "next_step": "Attach payment evidence.",
         "paid_marking_performed": false,
@@ -479,8 +501,8 @@
         "receipt_refs": [
           "universal_receipt:dynamic_card_emitted:e811c126f7bdf8d4"
         ],
-        "response_content_hash": "sha256:c7f8b518e732ac587f8e396bba1cb0452d20d05293103f6e6ac1c0261e41a882",
-        "response_id": "proof_response:publishable:finance_capital_hilton_payment_watch",
+        "response_content_hash": "sha256:1d9284709bdc4fb31b41c21ef2902131f10c32025a9a5d63d57db2aea2ffe154",
+        "response_id": "proof_response:publishable:finance_capital_hilton_paid_ledger_blocker",
         "schema_version": "proof_to_response_runtime_v0",
         "source_context": {
           "card_id": "dynamic_card.finance.capital_hilton.payment_watch",
@@ -506,22 +528,25 @@
       "proof_to_response_candidate_source": "deterministic_fixture",
       "proof_to_response_receipt": {
         "details_collapsed": true,
-        "proof_bundle_id": "proof_bundle:finance_capital_hilton_payment_watch",
-        "receipt_id": "proof_to_response_receipt:finance_capital_hilton_payment_watch:9c432b5bbdef",
-        "response_id": "proof_response:publishable:finance_capital_hilton_payment_watch",
-        "scenario_id": "finance_capital_hilton_payment_watch",
+        "proof_bundle_id": "proof_bundle:finance_capital_hilton_paid_ledger_blocker",
+        "receipt_id": "proof_to_response_receipt:finance_capital_hilton_paid_ledger_blocker:25342551a257",
+        "response_id": "proof_response:publishable:finance_capital_hilton_paid_ledger_blocker",
+        "scenario_id": "finance_capital_hilton_paid_ledger_blocker",
         "verification_status": "publishable"
       },
-      "proof_to_response_scenario_id": "finance_capital_hilton_payment_watch",
+      "proof_to_response_scenario_id": "finance_capital_hilton_paid_ledger_blocker",
       "request_type": "OPERATOR_CONTROLLER_EVENT_REQUEST_V0",
-      "response_id": "operator_conversation_router:47b4e5f27aa24e77",
+      "resolved_intent_class": "paid_or_ledger_blocker",
+      "resolved_intent_route": "finance_capital_hilton_paid_ledger_blocker",
+      "response_id": "operator_conversation_router:22da1666da494794",
       "route_notes": [
-        "scenario_id:finance_capital_hilton_payment_watch"
+        "scenario_id:finance_capital_hilton_paid_ledger_blocker"
       ],
       "route_status": "TEXT_RESPONSE_READY",
       "schema_version": "operator_conversation_router_v0",
       "selected_action_id": "",
       "selected_card_id": "dynamic_card.finance.capital_hilton.payment_watch",
+      "selected_model_backend": "",
       "suggested_controller_event": "attach_proof",
       "workflow_package_staged": false,
       "workflow_request_type_emitted": ""
@@ -561,11 +586,14 @@
         "workflow_package_staging_allowed": false
       },
       "backend_route": "proof_to_response_runtime.publish_response",
+      "candidate_source": "deterministic_fixture",
       "conversation_intent_class": "attach_proof_hypothetical",
       "current_thread_ref": "capital_hilton",
       "current_world_ref": "finance",
-      "generated_at": "2026-06-08T16:21:34+00:00",
+      "generated_at": "2026-06-08T19:10:03+00:00",
       "input_controller_event_type": "chat_goal",
+      "intent_confidence": 1.0,
+      "intent_source": "backend_router",
       "machine_proof": {
         "agent_loop_performed": false,
         "browser_access_performed": false,
@@ -578,6 +606,7 @@
         "external_llm_invoked": false,
         "git_push_performed": false,
         "gmail_access_performed": false,
+        "intent_source": "backend_router",
         "invented_file_truth": false,
         "ledger_mutation_performed": false,
         "ledger_posting_performed": false,
@@ -594,6 +623,8 @@
         "proof_to_response_used": true,
         "proof_to_response_used_when_possible": true,
         "protected_action_blocked": false,
+        "resolved_intent_class": "attach_proof_hypothetical",
+        "resolved_intent_route": "finance_capital_hilton_attach_proof_explanation",
         "stale_context": false,
         "unsafe_true_grants": [],
         "unsafe_true_grants_absent": true,
@@ -603,6 +634,7 @@
         "workflow_package_request_v0_emitted": false,
         "workflow_package_staged": false
       },
+      "model_call_performed": false,
       "operator_display": {
         "headline": "Proof can be recorded",
         "next_safe_action": "Attach payment evidence.",
@@ -651,7 +683,7 @@
         "email_send_performed": false,
         "external_llm_invoked": false,
         "fallback_reason": "",
-        "generated_at": "2026-06-08T16:21:34+00:00",
+        "generated_at": "2026-06-08T19:10:03+00:00",
         "git_push_performed": false,
         "headline": "Proof can be recorded",
         "incoming_authority_granted_accepted": false,
@@ -697,7 +729,7 @@
         "receipt_refs": [
           "universal_receipt:dynamic_card_emitted:e811c126f7bdf8d4"
         ],
-        "response_content_hash": "sha256:21ed2c947dca6d468c81e66d915e2a7737fee73dc0e0149162c4a9005d41ca29",
+        "response_content_hash": "sha256:4dae49ebde26b03692524b600292939611420044dc18c98210d98c90cce24901",
         "response_id": "proof_response:publishable:finance_capital_hilton_attach_proof_explanation",
         "schema_version": "proof_to_response_runtime_v0",
         "source_context": {
@@ -725,14 +757,16 @@
       "proof_to_response_receipt": {
         "details_collapsed": true,
         "proof_bundle_id": "proof_bundle:finance_capital_hilton_attach_proof_explanation",
-        "receipt_id": "proof_to_response_receipt:finance_capital_hilton_attach_proof_explanation:0595f24006d2",
+        "receipt_id": "proof_to_response_receipt:finance_capital_hilton_attach_proof_explanation:02b495792858",
         "response_id": "proof_response:publishable:finance_capital_hilton_attach_proof_explanation",
         "scenario_id": "finance_capital_hilton_attach_proof_explanation",
         "verification_status": "publishable"
       },
       "proof_to_response_scenario_id": "finance_capital_hilton_attach_proof_explanation",
       "request_type": "OPERATOR_CONTROLLER_EVENT_REQUEST_V0",
-      "response_id": "operator_conversation_router:d6a409020d9899e5",
+      "resolved_intent_class": "attach_proof_hypothetical",
+      "resolved_intent_route": "finance_capital_hilton_attach_proof_explanation",
+      "response_id": "operator_conversation_router:6b1e06d300843536",
       "route_notes": [
         "scenario_id:finance_capital_hilton_attach_proof_explanation"
       ],
@@ -740,6 +774,7 @@
       "schema_version": "operator_conversation_router_v0",
       "selected_action_id": "",
       "selected_card_id": "dynamic_card.finance.capital_hilton.payment_watch",
+      "selected_model_backend": "",
       "suggested_controller_event": "attach_proof",
       "workflow_package_staged": false,
       "workflow_request_type_emitted": ""
@@ -779,11 +814,14 @@
         "workflow_package_staging_allowed": false
       },
       "backend_route": "proof_to_response_runtime.publish_response",
+      "candidate_source": "deterministic_fixture",
       "conversation_intent_class": "handle_it_or_continue_boundary",
       "current_thread_ref": "capital_hilton",
       "current_world_ref": "finance",
-      "generated_at": "2026-06-08T16:21:34+00:00",
+      "generated_at": "2026-06-08T19:10:03+00:00",
       "input_controller_event_type": "chat_goal",
+      "intent_confidence": 1.0,
+      "intent_source": "backend_router",
       "machine_proof": {
         "agent_loop_performed": false,
         "browser_access_performed": false,
@@ -796,6 +834,7 @@
         "external_llm_invoked": false,
         "git_push_performed": false,
         "gmail_access_performed": false,
+        "intent_source": "backend_router",
         "invented_file_truth": false,
         "ledger_mutation_performed": false,
         "ledger_posting_performed": false,
@@ -812,6 +851,8 @@
         "proof_to_response_used": true,
         "proof_to_response_used_when_possible": true,
         "protected_action_blocked": false,
+        "resolved_intent_class": "handle_it_or_continue_boundary",
+        "resolved_intent_route": "finance_capital_hilton_handle_boundary",
         "stale_context": false,
         "unsafe_true_grants": [],
         "unsafe_true_grants_absent": true,
@@ -821,6 +862,7 @@
         "workflow_package_request_v0_emitted": false,
         "workflow_package_staged": false
       },
+      "model_call_performed": false,
       "operator_display": {
         "headline": "I can handle the safe part",
         "next_safe_action": "Attach payment evidence.",
@@ -870,7 +912,7 @@
         "email_send_performed": false,
         "external_llm_invoked": false,
         "fallback_reason": "",
-        "generated_at": "2026-06-08T16:21:34+00:00",
+        "generated_at": "2026-06-08T19:10:03+00:00",
         "git_push_performed": false,
         "headline": "I can handle the safe part",
         "incoming_authority_granted_accepted": false,
@@ -915,7 +957,7 @@
         "receipt_refs": [
           "universal_receipt:dynamic_card_emitted:e811c126f7bdf8d4"
         ],
-        "response_content_hash": "sha256:2e40237c3eea2f0d554c5d3350efae6d7eaf2cdea58fee0af71d552510a323a3",
+        "response_content_hash": "sha256:ea33ce9869f0be1b9cc31302cfe6fff5729e1a57450c93afc5064804f662c00a",
         "response_id": "proof_response:publishable:finance_capital_hilton_handle_boundary",
         "schema_version": "proof_to_response_runtime_v0",
         "source_context": {
@@ -943,14 +985,16 @@
       "proof_to_response_receipt": {
         "details_collapsed": true,
         "proof_bundle_id": "proof_bundle:finance_capital_hilton_handle_boundary",
-        "receipt_id": "proof_to_response_receipt:finance_capital_hilton_handle_boundary:fba487ccc300",
+        "receipt_id": "proof_to_response_receipt:finance_capital_hilton_handle_boundary:3cfdea0a38f2",
         "response_id": "proof_response:publishable:finance_capital_hilton_handle_boundary",
         "scenario_id": "finance_capital_hilton_handle_boundary",
         "verification_status": "publishable"
       },
       "proof_to_response_scenario_id": "finance_capital_hilton_handle_boundary",
       "request_type": "OPERATOR_CONTROLLER_EVENT_REQUEST_V0",
-      "response_id": "operator_conversation_router:744b514ed96f37f6",
+      "resolved_intent_class": "handle_it_or_continue_boundary",
+      "resolved_intent_route": "finance_capital_hilton_handle_boundary",
+      "response_id": "operator_conversation_router:c7a0c50b0b3aaffb",
       "route_notes": [
         "scenario_id:finance_capital_hilton_handle_boundary"
       ],
@@ -958,6 +1002,7 @@
       "schema_version": "operator_conversation_router_v0",
       "selected_action_id": "",
       "selected_card_id": "dynamic_card.finance.capital_hilton.payment_watch",
+      "selected_model_backend": "",
       "suggested_controller_event": "attach_proof",
       "workflow_package_staged": false,
       "workflow_request_type_emitted": ""
@@ -997,11 +1042,14 @@
         "workflow_package_staging_allowed": false
       },
       "backend_route": "proof_to_response_runtime.publish_response",
+      "candidate_source": "deterministic_fixture",
       "conversation_intent_class": "package_context_explanation",
       "current_thread_ref": "capital_hilton",
       "current_world_ref": "finance",
-      "generated_at": "2026-06-08T16:21:34+00:00",
+      "generated_at": "2026-06-08T19:10:03+00:00",
       "input_controller_event_type": "chat_goal",
+      "intent_confidence": 1.0,
+      "intent_source": "backend_router",
       "machine_proof": {
         "agent_loop_performed": false,
         "browser_access_performed": false,
@@ -1014,6 +1062,7 @@
         "external_llm_invoked": false,
         "git_push_performed": false,
         "gmail_access_performed": false,
+        "intent_source": "backend_router",
         "invented_file_truth": false,
         "ledger_mutation_performed": false,
         "ledger_posting_performed": false,
@@ -1030,6 +1079,8 @@
         "proof_to_response_used": true,
         "proof_to_response_used_when_possible": true,
         "protected_action_blocked": false,
+        "resolved_intent_class": "package_context_explanation",
+        "resolved_intent_route": "finance_capital_hilton_package_context",
         "stale_context": false,
         "unsafe_true_grants": [],
         "unsafe_true_grants_absent": true,
@@ -1039,10 +1090,11 @@
         "workflow_package_request_v0_emitted": false,
         "workflow_package_staged": false
       },
+      "model_call_performed": false,
       "operator_display": {
         "headline": "LM2 would get bounded context",
         "next_safe_action": "No worker action is needed unless you approve a bounded worker run.",
-        "plain_summary": "LM2 would get redacted facts, source inventory, missing context, decision trace, proof meters, controls, and JSON in a room-backed package. It would not get finance proof, bank info, credential material, device auth material, OCR, ledger/email/workbook bodies, or stale truth.",
+        "plain_summary": "LM2 would get redacted facts, source inventory, missing context, decision trace, proof meters, and safe controls in a room-backed package. It would not get finance proof, bank info, credential material, device auth material, OCR, ledger/email/workbook bodies, or stale truth.",
         "proof_refs_collapsed": true,
         "speaker_ref": "chief",
         "voice_mode": "operations",
@@ -1058,7 +1110,7 @@
         "authority_boundary": {
           "protected_actions_allowed": false
         },
-        "body": "LM2 would get redacted facts, source inventory, missing context, decision trace, proof meters, controls, and JSON in a room-backed package. It would not get finance proof, bank info, credential material, device auth material, OCR, ledger/email/workbook bodies, or stale truth.",
+        "body": "LM2 would get redacted facts, source inventory, missing context, decision trace, proof meters, and safe controls in a room-backed package. It would not get finance proof, bank info, credential material, device auth material, OCR, ledger/email/workbook bodies, or stale truth.",
         "business_action_performed": false,
         "can_do_now": [
           "No worker action is needed unless you approve a bounded worker run"
@@ -1088,7 +1140,7 @@
         "email_send_performed": false,
         "external_llm_invoked": false,
         "fallback_reason": "",
-        "generated_at": "2026-06-08T16:21:34+00:00",
+        "generated_at": "2026-06-08T19:10:03+00:00",
         "git_push_performed": false,
         "headline": "LM2 would get bounded context",
         "incoming_authority_granted_accepted": false,
@@ -1133,7 +1185,7 @@
         "receipt_refs": [
           "universal_receipt:dynamic_card_emitted:e811c126f7bdf8d4"
         ],
-        "response_content_hash": "sha256:6a0d3085beb2032f1116bdd7ac566cd8e0068cc9c54fe57ac1ae287bfb1eff26",
+        "response_content_hash": "sha256:aa1525c0d7676aed8fbb154bf57ac99d02492ec6330f0fc9f524f102a073b8da",
         "response_id": "proof_response:publishable:finance_capital_hilton_package_context",
         "schema_version": "proof_to_response_runtime_v0",
         "source_context": {
@@ -1161,14 +1213,16 @@
       "proof_to_response_receipt": {
         "details_collapsed": true,
         "proof_bundle_id": "proof_bundle:finance_capital_hilton_package_context",
-        "receipt_id": "proof_to_response_receipt:finance_capital_hilton_package_context:9337e2e0021b",
+        "receipt_id": "proof_to_response_receipt:finance_capital_hilton_package_context:8e378002a73b",
         "response_id": "proof_response:publishable:finance_capital_hilton_package_context",
         "scenario_id": "finance_capital_hilton_package_context",
         "verification_status": "publishable"
       },
       "proof_to_response_scenario_id": "finance_capital_hilton_package_context",
       "request_type": "OPERATOR_CONTROLLER_EVENT_REQUEST_V0",
-      "response_id": "operator_conversation_router:168c14acce671451",
+      "resolved_intent_class": "package_context_explanation",
+      "resolved_intent_route": "finance_capital_hilton_package_context",
+      "response_id": "operator_conversation_router:1e7a6dde6a4a56a9",
       "route_notes": [
         "scenario_id:finance_capital_hilton_package_context"
       ],
@@ -1176,6 +1230,7 @@
       "schema_version": "operator_conversation_router_v0",
       "selected_action_id": "",
       "selected_card_id": "dynamic_card.finance.capital_hilton.payment_watch",
+      "selected_model_backend": "",
       "suggested_controller_event": "show_details",
       "workflow_package_staged": false,
       "workflow_request_type_emitted": ""
@@ -1215,11 +1270,14 @@
         "workflow_package_staging_allowed": false
       },
       "backend_route": "proof_to_response_runtime.publish_response",
+      "candidate_source": "deterministic_fixture",
       "conversation_intent_class": "allowed_scope_explanation",
       "current_thread_ref": "capital_hilton",
       "current_world_ref": "finance",
-      "generated_at": "2026-06-08T16:21:34+00:00",
+      "generated_at": "2026-06-08T19:10:03+00:00",
       "input_controller_event_type": "chat_goal",
+      "intent_confidence": 1.0,
+      "intent_source": "backend_router",
       "machine_proof": {
         "agent_loop_performed": false,
         "browser_access_performed": false,
@@ -1232,6 +1290,7 @@
         "external_llm_invoked": false,
         "git_push_performed": false,
         "gmail_access_performed": false,
+        "intent_source": "backend_router",
         "invented_file_truth": false,
         "ledger_mutation_performed": false,
         "ledger_posting_performed": false,
@@ -1248,6 +1307,8 @@
         "proof_to_response_used": true,
         "proof_to_response_used_when_possible": true,
         "protected_action_blocked": false,
+        "resolved_intent_class": "allowed_scope_explanation",
+        "resolved_intent_route": "finance_capital_hilton_allowed_scope",
         "stale_context": false,
         "unsafe_true_grants": [],
         "unsafe_true_grants_absent": true,
@@ -1257,6 +1318,7 @@
         "workflow_package_request_v0_emitted": false,
         "workflow_package_staged": false
       },
+      "model_call_performed": false,
       "operator_display": {
         "headline": "Allowed: explain and collect proof",
         "next_safe_action": "Attach payment evidence.",
@@ -1306,7 +1368,7 @@
         "email_send_performed": false,
         "external_llm_invoked": false,
         "fallback_reason": "",
-        "generated_at": "2026-06-08T16:21:34+00:00",
+        "generated_at": "2026-06-08T19:10:03+00:00",
         "git_push_performed": false,
         "headline": "Allowed: explain and collect proof",
         "incoming_authority_granted_accepted": false,
@@ -1351,7 +1413,7 @@
         "receipt_refs": [
           "universal_receipt:dynamic_card_emitted:e811c126f7bdf8d4"
         ],
-        "response_content_hash": "sha256:607a5719d4f269c8b696bfafa7f88d3577deb7cd5e03d2252493f5c7cc8b24b1",
+        "response_content_hash": "sha256:2f1472634378f7ab44cfe24e17373c1e016d463bd09ea05da08b44fc80f5c911",
         "response_id": "proof_response:publishable:finance_capital_hilton_allowed_scope",
         "schema_version": "proof_to_response_runtime_v0",
         "source_context": {
@@ -1379,14 +1441,16 @@
       "proof_to_response_receipt": {
         "details_collapsed": true,
         "proof_bundle_id": "proof_bundle:finance_capital_hilton_allowed_scope",
-        "receipt_id": "proof_to_response_receipt:finance_capital_hilton_allowed_scope:664acea8eaa3",
+        "receipt_id": "proof_to_response_receipt:finance_capital_hilton_allowed_scope:6d29ed908a82",
         "response_id": "proof_response:publishable:finance_capital_hilton_allowed_scope",
         "scenario_id": "finance_capital_hilton_allowed_scope",
         "verification_status": "publishable"
       },
       "proof_to_response_scenario_id": "finance_capital_hilton_allowed_scope",
       "request_type": "OPERATOR_CONTROLLER_EVENT_REQUEST_V0",
-      "response_id": "operator_conversation_router:af6d791f3c0d542b",
+      "resolved_intent_class": "allowed_scope_explanation",
+      "resolved_intent_route": "finance_capital_hilton_allowed_scope",
+      "response_id": "operator_conversation_router:6d0053a1674d5c09",
       "route_notes": [
         "scenario_id:finance_capital_hilton_allowed_scope"
       ],
@@ -1394,6 +1458,7 @@
       "schema_version": "operator_conversation_router_v0",
       "selected_action_id": "",
       "selected_card_id": "dynamic_card.finance.capital_hilton.payment_watch",
+      "selected_model_backend": "",
       "suggested_controller_event": "attach_proof",
       "workflow_package_staged": false,
       "workflow_request_type_emitted": ""
@@ -1433,11 +1498,14 @@
         "workflow_package_staging_allowed": false
       },
       "backend_route": "proof_to_response_runtime.publish_response",
+      "candidate_source": "deterministic_fixture",
       "conversation_intent_class": "forbidden_scope_explanation",
       "current_thread_ref": "capital_hilton",
       "current_world_ref": "finance",
-      "generated_at": "2026-06-08T16:21:34+00:00",
+      "generated_at": "2026-06-08T19:10:03+00:00",
       "input_controller_event_type": "chat_goal",
+      "intent_confidence": 1.0,
+      "intent_source": "backend_router",
       "machine_proof": {
         "agent_loop_performed": false,
         "browser_access_performed": false,
@@ -1450,6 +1518,7 @@
         "external_llm_invoked": false,
         "git_push_performed": false,
         "gmail_access_performed": false,
+        "intent_source": "backend_router",
         "invented_file_truth": false,
         "ledger_mutation_performed": false,
         "ledger_posting_performed": false,
@@ -1466,6 +1535,8 @@
         "proof_to_response_used": true,
         "proof_to_response_used_when_possible": true,
         "protected_action_blocked": false,
+        "resolved_intent_class": "forbidden_scope_explanation",
+        "resolved_intent_route": "finance_capital_hilton_forbidden_scope",
         "stale_context": false,
         "unsafe_true_grants": [],
         "unsafe_true_grants_absent": true,
@@ -1475,6 +1546,7 @@
         "workflow_package_request_v0_emitted": false,
         "workflow_package_staged": false
       },
+      "model_call_performed": false,
       "operator_display": {
         "headline": "Protected actions stay blocked",
         "next_safe_action": "Attach payment evidence.",
@@ -1524,7 +1596,7 @@
         "email_send_performed": false,
         "external_llm_invoked": false,
         "fallback_reason": "",
-        "generated_at": "2026-06-08T16:21:34+00:00",
+        "generated_at": "2026-06-08T19:10:03+00:00",
         "git_push_performed": false,
         "headline": "Protected actions stay blocked",
         "incoming_authority_granted_accepted": false,
@@ -1569,7 +1641,7 @@
         "receipt_refs": [
           "universal_receipt:dynamic_card_emitted:e811c126f7bdf8d4"
         ],
-        "response_content_hash": "sha256:63237e139c20faa3a4b09e6021fcdeda6b950490de79effddb02b164e80bf016",
+        "response_content_hash": "sha256:344095d22dde1dbaf971ddd365e7eefcfe4b2bcc196a587186685ef499ad9bd1",
         "response_id": "proof_response:publishable:finance_capital_hilton_forbidden_scope",
         "schema_version": "proof_to_response_runtime_v0",
         "source_context": {
@@ -1597,14 +1669,16 @@
       "proof_to_response_receipt": {
         "details_collapsed": true,
         "proof_bundle_id": "proof_bundle:finance_capital_hilton_forbidden_scope",
-        "receipt_id": "proof_to_response_receipt:finance_capital_hilton_forbidden_scope:bbfd0da5e55c",
+        "receipt_id": "proof_to_response_receipt:finance_capital_hilton_forbidden_scope:be4488d8f4e8",
         "response_id": "proof_response:publishable:finance_capital_hilton_forbidden_scope",
         "scenario_id": "finance_capital_hilton_forbidden_scope",
         "verification_status": "publishable"
       },
       "proof_to_response_scenario_id": "finance_capital_hilton_forbidden_scope",
       "request_type": "OPERATOR_CONTROLLER_EVENT_REQUEST_V0",
-      "response_id": "operator_conversation_router:c4f7ddec6e369fe9",
+      "resolved_intent_class": "forbidden_scope_explanation",
+      "resolved_intent_route": "finance_capital_hilton_forbidden_scope",
+      "response_id": "operator_conversation_router:1849d38874d5df6d",
       "route_notes": [
         "scenario_id:finance_capital_hilton_forbidden_scope"
       ],
@@ -1612,6 +1686,7 @@
       "schema_version": "operator_conversation_router_v0",
       "selected_action_id": "",
       "selected_card_id": "dynamic_card.finance.capital_hilton.payment_watch",
+      "selected_model_backend": "",
       "suggested_controller_event": "attach_proof",
       "workflow_package_staged": false,
       "workflow_request_type_emitted": ""
@@ -1651,11 +1726,14 @@
         "workflow_package_staging_allowed": false
       },
       "backend_route": "proof_to_response_runtime.publish_response",
+      "candidate_source": "deterministic_fixture",
       "conversation_intent_class": "freshness_uncertainty_explanation",
       "current_thread_ref": "capital_hilton",
       "current_world_ref": "finance",
-      "generated_at": "2026-06-08T16:21:34+00:00",
+      "generated_at": "2026-06-08T19:10:03+00:00",
       "input_controller_event_type": "chat_goal",
+      "intent_confidence": 1.0,
+      "intent_source": "backend_router",
       "machine_proof": {
         "agent_loop_performed": false,
         "browser_access_performed": false,
@@ -1668,6 +1746,7 @@
         "external_llm_invoked": false,
         "git_push_performed": false,
         "gmail_access_performed": false,
+        "intent_source": "backend_router",
         "invented_file_truth": false,
         "ledger_mutation_performed": false,
         "ledger_posting_performed": false,
@@ -1684,6 +1763,8 @@
         "proof_to_response_used": true,
         "proof_to_response_used_when_possible": true,
         "protected_action_blocked": false,
+        "resolved_intent_class": "freshness_uncertainty_explanation",
+        "resolved_intent_route": "finance_capital_hilton_freshness_uncertainty",
         "stale_context": false,
         "unsafe_true_grants": [],
         "unsafe_true_grants_absent": true,
@@ -1693,6 +1774,7 @@
         "workflow_package_request_v0_emitted": false,
         "workflow_package_staged": false
       },
+      "model_call_performed": false,
       "operator_display": {
         "headline": "Evidence is the uncertainty",
         "next_safe_action": "Attach payment evidence.",
@@ -1742,7 +1824,7 @@
         "email_send_performed": false,
         "external_llm_invoked": false,
         "fallback_reason": "",
-        "generated_at": "2026-06-08T16:21:34+00:00",
+        "generated_at": "2026-06-08T19:10:03+00:00",
         "git_push_performed": false,
         "headline": "Evidence is the uncertainty",
         "incoming_authority_granted_accepted": false,
@@ -1788,7 +1870,7 @@
         "receipt_refs": [
           "universal_receipt:dynamic_card_emitted:e811c126f7bdf8d4"
         ],
-        "response_content_hash": "sha256:b3d861f83d8e209cba60c4ae6efe017f4f140bebbbe16c9e54beee3a190007d0",
+        "response_content_hash": "sha256:45e20a43bf0379831e5216e2b06c1325784ee6c5a21a0aa55500baa1878db726",
         "response_id": "proof_response:publishable:finance_capital_hilton_freshness_uncertainty",
         "schema_version": "proof_to_response_runtime_v0",
         "source_context": {
@@ -1816,14 +1898,16 @@
       "proof_to_response_receipt": {
         "details_collapsed": true,
         "proof_bundle_id": "proof_bundle:finance_capital_hilton_freshness_uncertainty",
-        "receipt_id": "proof_to_response_receipt:finance_capital_hilton_freshness_uncertainty:28a2758372f4",
+        "receipt_id": "proof_to_response_receipt:finance_capital_hilton_freshness_uncertainty:4d813edc52cc",
         "response_id": "proof_response:publishable:finance_capital_hilton_freshness_uncertainty",
         "scenario_id": "finance_capital_hilton_freshness_uncertainty",
         "verification_status": "publishable"
       },
       "proof_to_response_scenario_id": "finance_capital_hilton_freshness_uncertainty",
       "request_type": "OPERATOR_CONTROLLER_EVENT_REQUEST_V0",
-      "response_id": "operator_conversation_router:52536198fc4bff27",
+      "resolved_intent_class": "freshness_uncertainty_explanation",
+      "resolved_intent_route": "finance_capital_hilton_freshness_uncertainty",
+      "response_id": "operator_conversation_router:f1775d59c1dc64d0",
       "route_notes": [
         "scenario_id:finance_capital_hilton_freshness_uncertainty"
       ],
@@ -1831,6 +1915,7 @@
       "schema_version": "operator_conversation_router_v0",
       "selected_action_id": "",
       "selected_card_id": "dynamic_card.finance.capital_hilton.payment_watch",
+      "selected_model_backend": "",
       "suggested_controller_event": "attach_proof",
       "workflow_package_staged": false,
       "workflow_request_type_emitted": ""
@@ -1870,11 +1955,14 @@
         "workflow_package_staging_allowed": false
       },
       "backend_route": "proof_to_response_runtime.publish_response",
+      "candidate_source": "deterministic_fixture",
       "conversation_intent_class": "decision_trace_explanation",
       "current_thread_ref": "capital_hilton",
       "current_world_ref": "finance",
-      "generated_at": "2026-06-08T16:21:34+00:00",
+      "generated_at": "2026-06-08T19:10:03+00:00",
       "input_controller_event_type": "chat_goal",
+      "intent_confidence": 1.0,
+      "intent_source": "backend_router",
       "machine_proof": {
         "agent_loop_performed": false,
         "browser_access_performed": false,
@@ -1887,6 +1975,7 @@
         "external_llm_invoked": false,
         "git_push_performed": false,
         "gmail_access_performed": false,
+        "intent_source": "backend_router",
         "invented_file_truth": false,
         "ledger_mutation_performed": false,
         "ledger_posting_performed": false,
@@ -1903,6 +1992,8 @@
         "proof_to_response_used": true,
         "proof_to_response_used_when_possible": true,
         "protected_action_blocked": false,
+        "resolved_intent_class": "decision_trace_explanation",
+        "resolved_intent_route": "finance_capital_hilton_decision_trace",
         "stale_context": false,
         "unsafe_true_grants": [],
         "unsafe_true_grants_absent": true,
@@ -1912,10 +2003,11 @@
         "workflow_package_request_v0_emitted": false,
         "workflow_package_staged": false
       },
+      "model_call_performed": false,
       "operator_display": {
         "headline": "Payment watch is still active",
         "next_safe_action": "Attach payment evidence.",
-        "plain_summary": "Payment watch is active. Paid remains false, the ledger stays untouched, protected Coupa and ledger actions stay gated, and the prior LM2-backed payment-watch answer can be reused only when it is fresh and scoped to this lane.",
+        "plain_summary": "Payment watch is active. Paid remains false, the ledger stays untouched, and protected Coupa and ledger actions stay gated. Prior payment-watch text can be reused only when it is fresh and scoped to this lane.",
         "proof_refs_collapsed": true,
         "speaker_ref": "chief",
         "voice_mode": "operations",
@@ -1931,7 +2023,7 @@
         "authority_boundary": {
           "protected_actions_allowed": false
         },
-        "body": "Payment watch is active. Paid remains false, the ledger stays untouched, protected Coupa and ledger actions stay gated, and the prior LM2-backed payment-watch answer can be reused only when it is fresh and scoped to this lane.",
+        "body": "Payment watch is active. Paid remains false, the ledger stays untouched, and protected Coupa and ledger actions stay gated. Prior payment-watch text can be reused only when it is fresh and scoped to this lane.",
         "business_action_performed": false,
         "can_do_now": [
           "Attach payment evidence"
@@ -1961,7 +2053,7 @@
         "email_send_performed": false,
         "external_llm_invoked": false,
         "fallback_reason": "",
-        "generated_at": "2026-06-08T16:21:34+00:00",
+        "generated_at": "2026-06-08T19:10:03+00:00",
         "git_push_performed": false,
         "headline": "Payment watch is still active",
         "incoming_authority_granted_accepted": false,
@@ -2006,7 +2098,7 @@
         "receipt_refs": [
           "universal_receipt:dynamic_card_emitted:e811c126f7bdf8d4"
         ],
-        "response_content_hash": "sha256:a1eebd96e0d2001b90a5c3a089352346ea0015ad18eaf736e196240ee185de55",
+        "response_content_hash": "sha256:e4e82eb024192935ec9d2bdf9fcbb15177459e890c2a4059508a9a92b8be0236",
         "response_id": "proof_response:publishable:finance_capital_hilton_decision_trace",
         "schema_version": "proof_to_response_runtime_v0",
         "source_context": {
@@ -2034,14 +2126,16 @@
       "proof_to_response_receipt": {
         "details_collapsed": true,
         "proof_bundle_id": "proof_bundle:finance_capital_hilton_decision_trace",
-        "receipt_id": "proof_to_response_receipt:finance_capital_hilton_decision_trace:54ae667a29df",
+        "receipt_id": "proof_to_response_receipt:finance_capital_hilton_decision_trace:1318df0755bb",
         "response_id": "proof_response:publishable:finance_capital_hilton_decision_trace",
         "scenario_id": "finance_capital_hilton_decision_trace",
         "verification_status": "publishable"
       },
       "proof_to_response_scenario_id": "finance_capital_hilton_decision_trace",
       "request_type": "OPERATOR_CONTROLLER_EVENT_REQUEST_V0",
-      "response_id": "operator_conversation_router:8e502c1e9ffefedf",
+      "resolved_intent_class": "decision_trace_explanation",
+      "resolved_intent_route": "finance_capital_hilton_decision_trace",
+      "response_id": "operator_conversation_router:4b7a79ea5cc09be6",
       "route_notes": [
         "scenario_id:finance_capital_hilton_decision_trace"
       ],
@@ -2049,6 +2143,7 @@
       "schema_version": "operator_conversation_router_v0",
       "selected_action_id": "",
       "selected_card_id": "dynamic_card.finance.capital_hilton.payment_watch",
+      "selected_model_backend": "",
       "suggested_controller_event": "attach_proof",
       "workflow_package_staged": false,
       "workflow_request_type_emitted": ""
@@ -2088,11 +2183,14 @@
         "workflow_package_staging_allowed": false
       },
       "backend_route": "proof_to_response_runtime.publish_response",
+      "candidate_source": "deterministic_fixture",
       "conversation_intent_class": "fallback_lane_answer",
       "current_thread_ref": "capital_hilton",
       "current_world_ref": "finance",
-      "generated_at": "2026-06-08T16:21:34+00:00",
+      "generated_at": "2026-06-08T19:10:03+00:00",
       "input_controller_event_type": "chat_goal",
+      "intent_confidence": 1.0,
+      "intent_source": "backend_router",
       "machine_proof": {
         "agent_loop_performed": false,
         "browser_access_performed": false,
@@ -2105,6 +2203,7 @@
         "external_llm_invoked": false,
         "git_push_performed": false,
         "gmail_access_performed": false,
+        "intent_source": "backend_router",
         "invented_file_truth": false,
         "ledger_mutation_performed": false,
         "ledger_posting_performed": false,
@@ -2121,6 +2220,8 @@
         "proof_to_response_used": true,
         "proof_to_response_used_when_possible": true,
         "protected_action_blocked": false,
+        "resolved_intent_class": "fallback_lane_answer",
+        "resolved_intent_route": "finance_capital_hilton_fallback_lane_answer",
         "stale_context": false,
         "unsafe_true_grants": [],
         "unsafe_true_grants_absent": true,
@@ -2130,6 +2231,7 @@
         "workflow_package_request_v0_emitted": false,
         "workflow_package_staged": false
       },
+      "model_call_performed": false,
       "operator_display": {
         "headline": "Payment watch is the safe lane",
         "next_safe_action": "Show details.",
@@ -2179,7 +2281,7 @@
         "email_send_performed": false,
         "external_llm_invoked": false,
         "fallback_reason": "",
-        "generated_at": "2026-06-08T16:21:34+00:00",
+        "generated_at": "2026-06-08T19:10:03+00:00",
         "git_push_performed": false,
         "headline": "Payment watch is the safe lane",
         "incoming_authority_granted_accepted": false,
@@ -2225,7 +2327,7 @@
         "receipt_refs": [
           "universal_receipt:dynamic_card_emitted:e811c126f7bdf8d4"
         ],
-        "response_content_hash": "sha256:0f825460ad6d924ea131ca8934125eaf2bdcc8c5c39255f6359091e1ae60fafa",
+        "response_content_hash": "sha256:a23f16f73263c78b4b3578264bfe651908cf2eed1332b3f02b8921fbb1241e03",
         "response_id": "proof_response:publishable:finance_capital_hilton_fallback_lane_answer",
         "schema_version": "proof_to_response_runtime_v0",
         "source_context": {
@@ -2253,14 +2355,16 @@
       "proof_to_response_receipt": {
         "details_collapsed": true,
         "proof_bundle_id": "proof_bundle:finance_capital_hilton_fallback_lane_answer",
-        "receipt_id": "proof_to_response_receipt:finance_capital_hilton_fallback_lane_answer:589b3beb0637",
+        "receipt_id": "proof_to_response_receipt:finance_capital_hilton_fallback_lane_answer:f457eb774c89",
         "response_id": "proof_response:publishable:finance_capital_hilton_fallback_lane_answer",
         "scenario_id": "finance_capital_hilton_fallback_lane_answer",
         "verification_status": "publishable"
       },
       "proof_to_response_scenario_id": "finance_capital_hilton_fallback_lane_answer",
       "request_type": "OPERATOR_CONTROLLER_EVENT_REQUEST_V0",
-      "response_id": "operator_conversation_router:afc02bcf2b9f79dc",
+      "resolved_intent_class": "fallback_lane_answer",
+      "resolved_intent_route": "finance_capital_hilton_fallback_lane_answer",
+      "response_id": "operator_conversation_router:866bf8fb163802ce",
       "route_notes": [
         "scenario_id:finance_capital_hilton_fallback_lane_answer"
       ],
@@ -2268,6 +2372,7 @@
       "schema_version": "operator_conversation_router_v0",
       "selected_action_id": "",
       "selected_card_id": "dynamic_card.finance.capital_hilton.payment_watch",
+      "selected_model_backend": "",
       "suggested_controller_event": "show_details",
       "workflow_package_staged": false,
       "workflow_request_type_emitted": ""
@@ -2282,9 +2387,9 @@
     "freshness_uncertainty_explanation": "finance_capital_hilton_freshness_uncertainty",
     "handle_it_or_continue_boundary": "finance_capital_hilton_handle_boundary",
     "package_context_explanation": "finance_capital_hilton_package_context",
-    "paid_or_ledger_blocker": "finance_capital_hilton_payment_watch",
+    "paid_or_ledger_blocker": "finance_capital_hilton_paid_ledger_blocker",
     "payment_watch_next_step": "finance_capital_hilton_payment_watch"
   },
-  "schema_version": "operator_conversation_intent_router_status_v0",
-  "status": "OPERATOR_CONVERSATION_INTENT_ROUTER_READY"
+  "schema_version": "operator_conversation_intent_router_status_v1",
+  "status": "OPERATOR_CONVERSATION_INTENT_ROUTER_V1_READY"
 }

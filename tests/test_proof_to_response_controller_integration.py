@@ -385,6 +385,37 @@ def test_finance_capital_hilton_chat_goal_reuses_fresh_lm2_retry_response(tmp_pa
     assert latest["latest_response"]["selected_model_backend"] == "ollama:qwen3:8b-q4_K_M"
 
 
+def test_finance_capital_hilton_paid_blocker_chat_goal_uses_distinct_deterministic_response(tmp_path):
+    receipt, latest, bridge_latest = _route(
+        tmp_path,
+        _controller_event_request(
+            event_type="chat_goal",
+            world="finance",
+            thread="capital_hilton",
+            suffix="capital_hilton_paid_blocker_chat_goal",
+            selected_card_id="dynamic_card.finance.capital_hilton.payment_watch",
+            operator_text="Why can't this be marked paid?",
+        ),
+        include_lm2_retry=True,
+    )
+
+    primary = receipt["proof_to_response"]
+    assert latest == bridge_latest
+    assert receipt["route_result"]["conversation_intent_class"] == "paid_or_ledger_blocker"
+    assert receipt["resolved_intent_class"] == "paid_or_ledger_blocker"
+    assert receipt["proof_to_response_scenario_id"] == "finance_capital_hilton_paid_ledger_blocker"
+    assert primary["resolved_intent_class"] == "paid_or_ledger_blocker"
+    assert primary["headline"] == "Paid marking is blocked"
+    assert primary["body"] == "I'm missing payment evidence. Until payment is confirmed, I can't mark this paid or touch the ledger."
+    assert primary["next_step"] == "Attach payment evidence."
+    assert primary["candidate_source"] == runtime.CANDIDATE_SOURCE_SHADOW_PILOT
+    assert primary["selected_model_backend"] == ""
+    assert primary["model_call_performed"] is False
+    assert receipt["machine_proof"]["lm2_proof_response_reused"] is False
+    assert latest["latest_response"]["headline"] == "Paid marking is blocked"
+    assert latest["latest_response"]["resolved_intent_class"] == "paid_or_ledger_blocker"
+
+
 def test_wrong_lane_lm2_retry_does_not_promote_to_business_development(tmp_path):
     receipt, latest, _bridge_latest = _route(
         tmp_path,

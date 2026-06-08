@@ -50,6 +50,7 @@ CANDIDATE_SOURCES = (
 
 SUPPORTED_SCENARIOS = (
     "finance_capital_hilton_payment_watch",
+    "finance_capital_hilton_paid_ledger_blocker",
     "finance_capital_hilton_attach_proof_explanation",
     "finance_capital_hilton_handle_boundary",
     "finance_capital_hilton_package_context",
@@ -398,6 +399,32 @@ def build_or_load_proof_bundle(
         bundle["blocked_actions"] = ["mark_paid", "mutate_ledger", "submit_coupa", "send_email"]
         return bundle
 
+    if scenario_id == "finance_capital_hilton_paid_ledger_blocker":
+        bundle = build_or_load_proof_bundle("finance_capital_hilton_payment_watch", read_model_root=read_model_root)
+        bundle["proof_bundle_id"] = "proof_bundle:finance_capital_hilton_paid_ledger_blocker"
+        bundle["scenario_id"] = scenario_id
+        bundle["operator_question"] = "Why can't this be marked paid?"
+        bundle["known_facts"] = [
+            _fact(
+                "payment_evidence_missing",
+                "Payment evidence is missing.",
+                ["generated/read_models/proof_bundle_freshness_trace_status.json"],
+            ),
+            _fact(
+                "paid_marking_blocked_until_confirmed",
+                "Paid marking stays blocked until payment is confirmed.",
+                ["generated/read_models/gate_decision_ledger.json", "generated/read_models/universal_receipt_envelope_status.json"],
+            ),
+            _fact(
+                "ledger_touch_blocked_until_confirmed",
+                "Ledger mutation stays blocked until payment is confirmed.",
+                ["generated/read_models/gate_decision_ledger.json", "generated/read_models/universal_receipt_envelope_status.json"],
+            ),
+        ]
+        bundle["unknowns"] = ["confirmed_payment_arrival", "verified_payment_receipt"]
+        bundle["blocked_actions"] = ["mark_paid", "mutate_ledger", "submit_coupa", "send_email"]
+        return bundle
+
     if scenario_id in {
         "finance_capital_hilton_handle_boundary",
         "finance_capital_hilton_package_context",
@@ -457,7 +484,7 @@ def build_or_load_proof_bundle(
                 _fact("paid_false", "Paid remains false.", ["generated/read_models/proof_bundle_freshness_trace_status.json"]),
                 _fact("ledger_untouched", "The ledger remains untouched.", ["generated/read_models/universal_receipt_envelope_status.json"]),
                 _fact("protected_actions_gated", "Protected Coupa and ledger actions stay gated.", ["generated/read_models/gate_decision_ledger.json"]),
-                _fact("lm2_response_reuse_scoped", "LM2-backed payment-watch text may be reused only when fresh and scoped to this lane.", ["generated/read_models/lm2_room_backed_worker_structured_output_retry.json"]),
+                _fact("lm2_response_reuse_scoped", "Payment-watch text may be reused only when fresh and scoped to this lane.", ["generated/read_models/lm2_room_backed_worker_structured_output_retry.json"]),
             ],
             "finance_capital_hilton_fallback_lane_answer": [
                 _fact("fallback_lane_answer_available", "A safe fallback lane answer is available when the question is not recognized.", ["generated/read_models/proof_to_response_runtime_status.json"]),
@@ -503,6 +530,19 @@ def fixture_candidate_response(proof_bundle: Mapping[str, Any]) -> dict[str, Any
             "claimed_facts": ["payment_evidence_missing", "coupa_processing", "ledger_untouched"],
             "requested_controls": ["Attach payment evidence"],
         }
+    if scenario_id == "finance_capital_hilton_paid_ledger_blocker":
+        return {
+            **common,
+            "draft_headline": "Paid marking is blocked",
+            "draft_body": "I'm missing payment evidence. Until payment is confirmed, I can't mark this paid or touch the ledger.",
+            "draft_next_step": "Attach payment evidence.",
+            "claimed_facts": [
+                "payment_evidence_missing",
+                "paid_marking_blocked_until_confirmed",
+                "ledger_touch_blocked_until_confirmed",
+            ],
+            "requested_controls": ["Attach payment evidence"],
+        }
     if scenario_id == "finance_capital_hilton_attach_proof_explanation":
         return {
             **common,
@@ -529,7 +569,7 @@ def fixture_candidate_response(proof_bundle: Mapping[str, Any]) -> dict[str, Any
         return {
             **common,
             "draft_headline": "LM2 would get bounded context",
-            "draft_body": "LM2 would get redacted facts, source inventory, missing context, decision trace, proof meters, controls, and JSON in a room-backed package. It would not get finance proof, bank info, credential material, device auth material, OCR, ledger/email/workbook bodies, or stale truth.",
+            "draft_body": "LM2 would get redacted facts, source inventory, missing context, decision trace, proof meters, and safe controls in a room-backed package. It would not get finance proof, bank info, credential material, device auth material, OCR, ledger/email/workbook bodies, or stale truth.",
             "draft_next_step": "No worker action is needed unless you approve a bounded worker run.",
             "claimed_facts": [
                 "room_backed_package_available",
@@ -579,7 +619,7 @@ def fixture_candidate_response(proof_bundle: Mapping[str, Any]) -> dict[str, Any
         return {
             **common,
             "draft_headline": "Payment watch is still active",
-            "draft_body": "Payment watch is active. Paid remains false, the ledger stays untouched, protected Coupa and ledger actions stay gated, and the prior LM2-backed payment-watch answer can be reused only when it is fresh and scoped to this lane.",
+            "draft_body": "Payment watch is active. Paid remains false, the ledger stays untouched, and protected Coupa and ledger actions stay gated. Prior payment-watch text can be reused only when it is fresh and scoped to this lane.",
             "draft_next_step": "Attach payment evidence.",
             "claimed_facts": [
                 "payment_watch_active",
@@ -722,6 +762,8 @@ def _runtime_adjusted_errors(candidate_response: Mapping[str, Any], errors: list
     adjusted = list(errors)
     if "can't mark this paid" in text or "can't mark it paid" in text:
         adjusted = [error for error in adjusted if error != "unsupported_completion_claim:is paid"]
+    if "can't mark this paid" in text and "touch the ledger" in text:
+        adjusted = [error for error in adjusted if error != "protected_action_promise:ledger_mutation"]
     return adjusted
 
 

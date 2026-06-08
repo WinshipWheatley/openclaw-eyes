@@ -2062,6 +2062,19 @@ def _attach_proof_to_response(
         source_response_path=source_response_path,
         generated_at=generated_at,
     )
+    route_result = receipt.get("route_result") if isinstance(receipt.get("route_result"), Mapping) else {}
+    resolved_intent_class = str(route_result.get("resolved_intent_class") or route_result.get("conversation_intent_class") or "")
+    resolved_intent_route = str(route_result.get("resolved_intent_route") or route_result.get("proof_to_response_scenario_id") or scenario_id)
+    intent_source = str(route_result.get("intent_source") or ("backend_router" if resolved_intent_class else ""))
+    intent_confidence = route_result.get("intent_confidence")
+    if resolved_intent_class:
+        primary_response["resolved_intent_class"] = resolved_intent_class
+        primary_response["resolved_intent_route"] = resolved_intent_route
+        primary_response["intent_source"] = intent_source
+        primary_response["intent_confidence"] = intent_confidence if isinstance(intent_confidence, (int, float)) else 1.0
+        primary_response["response_content_hash"] = proof_to_response_runtime._content_hash(
+            {k: v for k, v in primary_response.items() if k != "response_content_hash"}
+        )
     scoped_publish_result = dict(publish_result)
     scoped_publish_result["published_response"] = primary_response
     export_result = proof_to_response_runtime.export_controller_integration_response(
@@ -2079,11 +2092,19 @@ def _attach_proof_to_response(
     receipt["proof_to_response_receipt"] = runtime_receipt
     receipt["proof_to_response_runtime_export"] = export_result
     receipt["proof_to_response_scenario_id"] = scenario_id
+    if resolved_intent_class:
+        receipt["resolved_intent_class"] = resolved_intent_class
+        receipt["resolved_intent_route"] = resolved_intent_route
+        receipt["intent_source"] = intent_source
+        receipt["intent_confidence"] = primary_response.get("intent_confidence")
     receipt["proof_to_response_candidate_source"] = str(
         publish_result.get("candidate_source")
         or primary_response.get("candidate_source")
         or proof_to_response_runtime.CANDIDATE_SOURCE_SHADOW_PILOT
     )
+    receipt["candidate_source"] = receipt["proof_to_response_candidate_source"]
+    receipt["selected_model_backend"] = str(primary_response.get("selected_model_backend") or "")
+    receipt["model_call_performed"] = bool(primary_response.get("model_call_performed") or False)
     receipt["proof_to_response_status"] = str(primary_response.get("verification_status") or "unavailable")
     receipt["dynamic_card_role"] = "support_display"
     receipt["details_collapsed"] = True
@@ -2094,6 +2115,9 @@ def _attach_proof_to_response(
     receipt["machine_proof"]["proof_to_response_primary_emitted"] = bool(primary_response)
     receipt["machine_proof"]["proof_to_response_verification_status"] = str(primary_response.get("verification_status") or "")
     receipt["machine_proof"]["proof_to_response_candidate_source"] = receipt["proof_to_response_candidate_source"]
+    receipt["machine_proof"]["resolved_intent_class"] = resolved_intent_class
+    receipt["machine_proof"]["resolved_intent_route"] = resolved_intent_route
+    receipt["machine_proof"]["intent_source"] = intent_source
     receipt["machine_proof"]["lm2_proof_response_reused"] = lm2_reused
     receipt["machine_proof"]["source_lm2_result_ref"] = str(publish_result.get("source_lm2_result_ref") or "")
     receipt["machine_proof"]["model_invoked"] = False

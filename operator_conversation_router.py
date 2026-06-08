@@ -36,8 +36,8 @@ STATUS_JSON_EXPORT_NAME = f"{STATUS_READ_MODEL_ID}.json"
 INTENT_STATUS_JSON_EXPORT_NAME = f"{INTENT_STATUS_READ_MODEL_ID}.json"
 READY_STATUS = "OPERATOR_CONVERSATION_ROUTER_READY"
 NOT_READY_STATUS = "OPERATOR_CONVERSATION_ROUTER_NOT_READY"
-INTENT_READY_STATUS = "OPERATOR_CONVERSATION_INTENT_ROUTER_READY"
-INTENT_NOT_READY_STATUS = "OPERATOR_CONVERSATION_INTENT_ROUTER_NOT_READY"
+INTENT_READY_STATUS = "OPERATOR_CONVERSATION_INTENT_ROUTER_V1_READY"
+INTENT_NOT_READY_STATUS = "OPERATOR_CONVERSATION_INTENT_ROUTER_V1_NOT_READY"
 
 ROUTE_STATUS_TEXT_RESPONSE = "TEXT_RESPONSE_READY"
 ROUTE_STATUS_PROTECTED_BLOCKED = "PROTECTED_ACTION_BLOCKED_TEXT_RESPONSE"
@@ -60,7 +60,7 @@ INTENT_CLASSES = (
 
 CAPITAL_HILTON_INTENT_SCENARIOS = {
     "payment_watch_next_step": "finance_capital_hilton_payment_watch",
-    "paid_or_ledger_blocker": "finance_capital_hilton_payment_watch",
+    "paid_or_ledger_blocker": "finance_capital_hilton_paid_ledger_blocker",
     "attach_proof_hypothetical": "finance_capital_hilton_attach_proof_explanation",
     "handle_it_or_continue_boundary": "finance_capital_hilton_handle_boundary",
     "package_context_explanation": "finance_capital_hilton_package_context",
@@ -494,8 +494,18 @@ def _publish_scenario(
         "details_collapsed": True,
     }
     result["conversation_intent_class"] = conversation_intent_class
+    result["resolved_intent_class"] = conversation_intent_class
+    result["resolved_intent_route"] = scenario_id
+    result["intent_confidence"] = 1.0 if conversation_intent_class else 0.0
+    result["intent_source"] = "backend_router" if conversation_intent_class else ""
     result["proof_to_response_scenario_id"] = scenario_id
     result["proof_to_response_candidate_source"] = str(response.get("candidate_source") or proof_runtime.CANDIDATE_SOURCE_SHADOW_PILOT)
+    result["candidate_source"] = str(response.get("candidate_source") or proof_runtime.CANDIDATE_SOURCE_SHADOW_PILOT)
+    result["selected_model_backend"] = str(response.get("selected_model_backend") or "")
+    result["model_call_performed"] = bool(response.get("model_call_performed") or False)
+    result["machine_proof"]["resolved_intent_class"] = conversation_intent_class
+    result["machine_proof"]["resolved_intent_route"] = scenario_id
+    result["machine_proof"]["intent_source"] = result["intent_source"]
     return result
 
 
@@ -851,7 +861,7 @@ def build_intent_router_status_read_model(
         for sample in sample_routes
     }
     payload: dict[str, Any] = {
-        "schema_version": "operator_conversation_intent_router_status_v0",
+        "schema_version": "operator_conversation_intent_router_status_v1",
         "read_model_id": INTENT_STATUS_READ_MODEL_ID,
         "status": INTENT_READY_STATUS,
         "generated_at": generated_at,
@@ -862,7 +872,8 @@ def build_intent_router_status_read_model(
         "intent_classes": list(INTENT_CLASSES),
         "scenario_by_intent": dict(CAPITAL_HILTON_INTENT_SCENARIOS),
         "routing_rules": [
-            "Fresh LM2-backed payment-watch text may be reused only for payment_watch_next_step and paid_or_ledger_blocker when scoped.",
+            "Fresh LM2 payment-watch text may be reused only for payment_watch_next_step when scoped.",
+            "Paid/ledger blocker questions use a distinct deterministic proof-to-response scenario unless a future scoped paid-blocker candidate exists.",
             "Package, allowed-scope, forbidden-scope, freshness, and decision-trace questions use specialized deterministic proof-to-response scenarios.",
             "No WORKFLOW_PACKAGE_REQUEST_V0 path is emitted from lane-local chat_goal questions.",
             "No model invocation, worker spawn, prompt send, proof-bundle send, protected action, paid marking, ledger mutation, or business execution occurs.",
@@ -874,6 +885,7 @@ def build_intent_router_status_read_model(
             specialized_non_generic_answers_present=all(
                 scenario_by_intent.get(intent) != "finance_capital_hilton_payment_watch"
                 for intent in (
+                    "paid_or_ledger_blocker",
                     "attach_proof_hypothetical",
                     "handle_it_or_continue_boundary",
                     "package_context_explanation",
@@ -884,7 +896,17 @@ def build_intent_router_status_read_model(
                     "fallback_lane_answer",
                 )
             ),
-            generic_lm2_reuse_limited_to_next_step_or_blocker=True,
+            paid_blocker_distinct_from_next_step=(
+                scenario_by_intent.get("paid_or_ledger_blocker")
+                != scenario_by_intent.get("payment_watch_next_step")
+            ),
+            generic_lm2_reuse_limited_to_next_step=True,
+            resolved_intent_observability_present=all(
+                sample.get("resolved_intent_class") == sample.get("conversation_intent_class")
+                and bool(sample.get("resolved_intent_route"))
+                and sample.get("intent_source") == "backend_router"
+                for sample in sample_routes
+            ),
             workflow_package_request_v0_emitted=False,
             sample_route_count=len(sample_routes),
         ),

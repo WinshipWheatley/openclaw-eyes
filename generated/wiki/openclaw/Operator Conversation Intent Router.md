@@ -1,13 +1,13 @@
 # Operator Conversation Intent Router
 
-Status: `OPERATOR_CONVERSATION_INTENT_ROUTER_READY`
+Status: `OPERATOR_CONVERSATION_INTENT_ROUTER_V1_READY`
 
 Routes Finance / Capital Hilton lane-local composer questions to distinct text-first proof-to-response answers.
 
 ## Intent Classes
 
 - `payment_watch_next_step` -> `finance_capital_hilton_payment_watch`
-- `paid_or_ledger_blocker` -> `finance_capital_hilton_payment_watch`
+- `paid_or_ledger_blocker` -> `finance_capital_hilton_paid_ledger_blocker`
 - `attach_proof_hypothetical` -> `finance_capital_hilton_attach_proof_explanation`
 - `handle_it_or_continue_boundary` -> `finance_capital_hilton_handle_boundary`
 - `package_context_explanation` -> `finance_capital_hilton_package_context`
@@ -19,7 +19,8 @@ Routes Finance / Capital Hilton lane-local composer questions to distinct text-f
 
 ## Rules
 
-- Fresh LM2-backed payment-watch text may be reused only for payment_watch_next_step and paid_or_ledger_blocker when scoped.
+- Fresh LM2 payment-watch text may be reused only for payment_watch_next_step when scoped.
+- Paid/ledger blocker questions use a distinct deterministic proof-to-response scenario unless a future scoped paid-blocker candidate exists.
 - Package, allowed-scope, forbidden-scope, freshness, and decision-trace questions use specialized deterministic proof-to-response scenarios.
 - No WORKFLOW_PACKAGE_REQUEST_V0 path is emitted from lane-local chat_goal questions.
 - No model invocation, worker spawn, prompt send, proof-bundle send, protected action, paid marking, ledger mutation, or business execution occurs.
@@ -27,7 +28,7 @@ Routes Finance / Capital Hilton lane-local composer questions to distinct text-f
 ## Sample Responses
 
 - `payment_watch_next_step`: Payment evidence needed -> Attach payment evidence.
-- `paid_or_ledger_blocker`: Payment evidence needed -> Attach payment evidence.
+- `paid_or_ledger_blocker`: Paid marking is blocked -> Attach payment evidence.
 - `attach_proof_hypothetical`: Proof can be recorded -> Attach payment evidence.
 - `handle_it_or_continue_boundary`: I can handle the safe part -> Attach payment evidence.
 - `package_context_explanation`: LM2 would get bounded context -> No worker action is needed unless you approve a bounded worker run.
