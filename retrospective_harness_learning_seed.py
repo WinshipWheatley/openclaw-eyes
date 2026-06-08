@@ -82,6 +82,7 @@ TRAJECTORY_SOURCE_REFS = (
     "operator_session_timeline",
     "self_heal_repair_records",
     "stale_context_blocks",
+    "local_external_lm_synthetic_test_outcomes",
 )
 
 FAILURE_CLASS_REFS = (
@@ -95,6 +96,8 @@ FAILURE_CLASS_REFS = (
     "tool_not_allowed",
     "premature_completion",
     "repeated_work_without_new_proof",
+    "card_or_ui_dominance_over_text",
+    "context_scope_leak",
 )
 
 AUTHORITY_BOUNDARY = {
@@ -285,6 +288,12 @@ def trajectory_sources() -> list[dict[str, Any]]:
             "allowed_use": "Demote stale context and route toward refresh/verification.",
             "raw_history_policy": "preserve_gate_reason",
         },
+        {
+            "source_ref": "local_external_lm_synthetic_test_outcomes",
+            "description": "Synthetic local/external LM quality trials, postmortems, verifier outcomes, and fact-ID alignment checks.",
+            "allowed_use": "Learn from shape failures, proof-bundle mismatch, and verifier disagreement without invoking models from this seed.",
+            "raw_history_policy": "preserve_fixture_result_and_hide_raw_model_output",
+        },
     ]
 
 
@@ -300,6 +309,8 @@ def failure_classes() -> list[dict[str, Any]]:
         "tool_not_allowed": "A path needed or attempted a tool/runtime/resource outside the current authority boundary.",
         "premature_completion": "A task, response, or card marked work complete before proof, receipt, or validation supported completion.",
         "repeated_work_without_new_proof": "The system retried the same path without new evidence, changed context, or a new validation result.",
+        "card_or_ui_dominance_over_text": "A card, UI control, or machine contract became the primary operator response instead of concise proof-grounded text.",
+        "context_scope_leak": "A local path, stale lane, unrelated proof detail, or raw context crossed into a response or composer outside its allowed scope.",
     }
     return [
         {
@@ -365,7 +376,7 @@ def required_examples() -> list[dict[str, Any]]:
         },
         {
             "example_ref": "evidence_picker_file_path_leak_into_composer",
-            "failure_class": "overbroad_context",
+            "failure_class": "context_scope_leak",
             "issue_type": "privacy_context_boundary_issue",
             "truth_issue": False,
             "trajectory_sources": ["controller_events", "operator_session_timeline", "self_heal_repair_records"],
@@ -416,6 +427,28 @@ def required_examples() -> list[dict[str, Any]]:
             },
             "lesson": "Latest read models are support state, not truth, unless their context matches the active request.",
             "memory_status": "receipt_backed_lesson",
+        },
+        {
+            "example_ref": "external_synthetic_fact_id_mismatch",
+            "failure_class": "unsupported_claim",
+            "issue_type": "verifier_proof_bundle_alignment_issue",
+            "truth_issue": False,
+            "trajectory_sources": [
+                "proof_to_response_attempts",
+                "verifier_failures",
+                "local_external_lm_synthetic_test_outcomes",
+            ],
+            "decision_trace": {
+                "what_was_attempted": "An external synthetic proof-to-response fixture attempted to bind a generated fact reference to the proof bundle.",
+                "why_it_failed": "The verifier found the cited fact ID did not match the proof-bundle fact IDs, so the claim could not be grounded.",
+                "what_proof_said": "The proof bundle carried a different canonical fact ID than the response cited.",
+                "what_operator_decided": "Treat fact-ID mismatch as a verifier/proof-bundle alignment failure and block publication until IDs match.",
+                "what_receipt_was_recorded": "Synthetic verifier failure/postmortem receipt; no runtime publication receipt.",
+                "what_changed_afterward": "Candidate update requires fact-ID alignment checks before future adoption.",
+                "same_failure_recurred": "should_be_detected_by_fact_id_alignment_tests",
+            },
+            "lesson": "Verifier/proof-bundle alignment must fail closed when fact IDs mismatch; generated text cannot repair grounding.",
+            "memory_status": "synthetic_receipt_backed_lesson",
         },
         {
             "example_ref": "remote_desktop_trace_log_leak_self_heal",
@@ -469,6 +502,12 @@ def candidate_harness_updates(examples: list[dict[str, Any]]) -> list[dict[str, 
             "affected_component": "proof_to_response_runtime",
             "validation_plan": "Run Finance then Business Development smokes and assert latest matches the final lane.",
             "rollback_plan": "Ignore latest for Mac primary response and require response-scoped proof_to_response only.",
+        },
+        "external_synthetic_fact_id_mismatch": {
+            "proposed_fix": "Add fact-ID alignment checks between synthetic response claims and proof-bundle facts before publication.",
+            "affected_component": "proof_to_response_verifier",
+            "validation_plan": "Replay mismatched and matching synthetic fact-ID fixtures; assert mismatch blocks publication and matching IDs continue to normal verifier checks.",
+            "rollback_plan": "Disable synthetic fact-ID adoption and keep fallback receipts mandatory.",
         },
         "remote_desktop_trace_log_leak_self_heal": {
             "proposed_fix": "Summarize trace logs into blocker/proof/validation receipts and keep raw trace material behind developer proof.",
@@ -649,6 +688,26 @@ def build_read_model(
         else sqlite_summary(sqlite_path)
     )
     required_sqlite_rows = len(examples) + len(candidate_updates)
+    required_failure_classes_present = set(FAILURE_CLASS_REFS) == {str(row["failure_class"]) for row in failure_classes()}
+    required_trajectory_sources_present = set(TRAJECTORY_SOURCE_REFS) == {
+        str(source["source_ref"]) for source in trajectory_sources()
+    }
+    required_trace_fields = set(decision_trace_fields())
+    all_decision_traces_complete = all(
+        required_trace_fields <= set((example.get("decision_trace") or {}).keys()) for example in examples
+    )
+    all_candidate_updates_review_only = all(
+        update.get("operator_review_required") is True for update in candidate_updates
+    )
+    all_candidate_updates_auto_apply_false = all(
+        update.get("auto_apply_allowed") is False and update.get("candidate_update_auto_applied") is False
+        for update in candidate_updates
+    )
+    external_synthetic_fact_mismatch_recorded = any(
+        example.get("example_ref") == "external_synthetic_fact_id_mismatch"
+        and example.get("issue_type") == "verifier_proof_bundle_alignment_issue"
+        for example in examples
+    )
     payload: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
         "read_model_id": READ_MODEL_ID,
@@ -682,6 +741,7 @@ def build_read_model(
             "Candidate updates require operator review.",
             "Memory remains suspect until receipt/proof-backed.",
             "Context freshness beats generated summaries.",
+            "Positive validation is required before any future adoption.",
         ],
         "authority_boundary": AUTHORITY_BOUNDARY,
         "implementation_boundary": IMPLEMENTATION_BOUNDARY,
@@ -689,9 +749,13 @@ def build_read_model(
             "review_only_learning_seed": True,
             "model_invocation_absent": True,
             "live_self_optimization_absent": True,
-            "all_required_failure_classes_present": True,
-            "all_candidate_updates_review_only": True,
-            "all_candidate_updates_auto_apply_false": True,
+            "preconditions_ready": all(row.get("ready") is True for row in preconditions),
+            "all_required_failure_classes_present": required_failure_classes_present,
+            "all_required_trajectory_sources_present": required_trajectory_sources_present,
+            "all_decision_traces_complete": all_decision_traces_complete,
+            "external_synthetic_fact_mismatch_recorded": external_synthetic_fact_mismatch_recorded,
+            "all_candidate_updates_review_only": all_candidate_updates_review_only,
+            "all_candidate_updates_auto_apply_false": all_candidate_updates_auto_apply_false,
             "sqlite_row_count_matches_json": sqlite_info["sqlite_row_count"] == required_sqlite_rows,
             "unsafe_true_grants_absent": True,
         },
@@ -702,6 +766,16 @@ def build_read_model(
         },
     }
     if not all(row.get("ready") is True for row in preconditions):
+        payload["status"] = NOT_READY_STATUS
+    if not required_failure_classes_present:
+        payload["status"] = NOT_READY_STATUS
+    if not required_trajectory_sources_present:
+        payload["status"] = NOT_READY_STATUS
+    if not all_decision_traces_complete:
+        payload["status"] = NOT_READY_STATUS
+    if not external_synthetic_fact_mismatch_recorded:
+        payload["status"] = NOT_READY_STATUS
+    if not all_candidate_updates_review_only or not all_candidate_updates_auto_apply_false:
         payload["status"] = NOT_READY_STATUS
     if sqlite_info["sqlite_row_count"] != required_sqlite_rows:
         payload["status"] = NOT_READY_STATUS

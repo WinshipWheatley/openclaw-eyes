@@ -51,7 +51,7 @@
       "affected_component": "proof_bundle_builder",
       "auto_apply_allowed": false,
       "candidate_update_auto_applied": false,
-      "failure_class": "overbroad_context",
+      "failure_class": "context_scope_leak",
       "operator_review_required": true,
       "proposed_fix": "Normalize composer-visible evidence references to artifact refs and redacted summaries.",
       "proposed_update_ref": "retrospective_update:03:evidence_picker_file_path_leak_into_composer",
@@ -84,19 +84,31 @@
       "validation_plan": "Run Finance then Business Development smokes and assert latest matches the final lane."
     },
     {
+      "affected_component": "proof_to_response_verifier",
+      "auto_apply_allowed": false,
+      "candidate_update_auto_applied": false,
+      "failure_class": "unsupported_claim",
+      "operator_review_required": true,
+      "proposed_fix": "Add fact-ID alignment checks between synthetic response claims and proof-bundle facts before publication.",
+      "proposed_update_ref": "retrospective_update:06:external_synthetic_fact_id_mismatch",
+      "rollback_plan": "Disable synthetic fact-ID adoption and keep fallback receipts mandatory.",
+      "source_example_ref": "external_synthetic_fact_id_mismatch",
+      "validation_plan": "Replay mismatched and matching synthetic fact-ID fixtures; assert mismatch blocks publication and matching IDs continue to normal verifier checks."
+    },
+    {
       "affected_component": "self_heal_repair_doctrine",
       "auto_apply_allowed": false,
       "candidate_update_auto_applied": false,
       "failure_class": "tool_not_allowed",
       "operator_review_required": true,
       "proposed_fix": "Summarize trace logs into blocker/proof/validation receipts and keep raw trace material behind developer proof.",
-      "proposed_update_ref": "retrospective_update:06:remote_desktop_trace_log_leak_self_heal",
+      "proposed_update_ref": "retrospective_update:07:remote_desktop_trace_log_leak_self_heal",
       "rollback_plan": "Disable trace-log lesson promotion and require manual proof drawer inspection.",
       "source_example_ref": "remote_desktop_trace_log_leak_self_heal",
       "validation_plan": "Run a synthetic trace-log repair fixture and assert no raw path/session dump enters primary response."
     }
   ],
-  "content_hash": "sha256:3032377af2f2003d8b5b9574570dec370296b7528d445e45d73d81de65a84f52",
+  "content_hash": "sha256:e1c66086c91b22a0b7b4caeb9b0c705a1e2a737c3bb9d7775e9fcc19b2f27201",
   "context_maintenance_policy": {
     "high_signal_lessons_preserved": "Preserve failure class, proof, operator decision, receipt, validation, and recurrence signal.",
     "old_tool_output_logs_compacted": "Old tool output/logs should be compacted to high-signal blocker, validation, and receipt summaries.",
@@ -184,9 +196,23 @@
       "decision_trace_required": true,
       "definition": "The system retried the same path without new evidence, changed context, or a new validation result.",
       "failure_class": "repeated_work_without_new_proof"
+    },
+    {
+      "auto_apply_allowed": false,
+      "candidate_update_allowed": "review_only",
+      "decision_trace_required": true,
+      "definition": "A card, UI control, or machine contract became the primary operator response instead of concise proof-grounded text.",
+      "failure_class": "card_or_ui_dominance_over_text"
+    },
+    {
+      "auto_apply_allowed": false,
+      "candidate_update_allowed": "review_only",
+      "decision_trace_required": true,
+      "definition": "A local path, stale lane, unrelated proof detail, or raw context crossed into a response or composer outside its allowed scope.",
+      "failure_class": "context_scope_leak"
     }
   ],
-  "generated_at": "2026-06-08T00:38:43+00:00",
+  "generated_at": "2026-06-08T00:43:53+00:00",
   "implementation_boundary": {
     "browser_opened": false,
     "coupa_opened": false,
@@ -211,9 +237,13 @@
   "machine_proof": {
     "all_candidate_updates_auto_apply_false": true,
     "all_candidate_updates_review_only": true,
+    "all_decision_traces_complete": true,
     "all_required_failure_classes_present": true,
+    "all_required_trajectory_sources_present": true,
+    "external_synthetic_fact_mismatch_recorded": true,
     "live_self_optimization_absent": true,
     "model_invocation_absent": true,
+    "preconditions_ready": true,
     "review_only_learning_seed": true,
     "sqlite_row_count_matches_json": true,
     "unsafe_true_grants_absent": true
@@ -359,7 +389,7 @@
         "why_it_failed": "The composer needed a protected artifact ref or redacted summary, not a raw path that could expose private machine context."
       },
       "example_ref": "evidence_picker_file_path_leak_into_composer",
-      "failure_class": "overbroad_context",
+      "failure_class": "context_scope_leak",
       "issue_type": "privacy_context_boundary_issue",
       "lesson": "Composer and LM-visible context should receive proof refs and redacted summaries, not raw filesystem traces.",
       "memory_status": "operator_reported_needs_receipt_link",
@@ -416,6 +446,28 @@
     },
     {
       "decision_trace": {
+        "same_failure_recurred": "should_be_detected_by_fact_id_alignment_tests",
+        "what_changed_afterward": "Candidate update requires fact-ID alignment checks before future adoption.",
+        "what_operator_decided": "Treat fact-ID mismatch as a verifier/proof-bundle alignment failure and block publication until IDs match.",
+        "what_proof_said": "The proof bundle carried a different canonical fact ID than the response cited.",
+        "what_receipt_was_recorded": "Synthetic verifier failure/postmortem receipt; no runtime publication receipt.",
+        "what_was_attempted": "An external synthetic proof-to-response fixture attempted to bind a generated fact reference to the proof bundle.",
+        "why_it_failed": "The verifier found the cited fact ID did not match the proof-bundle fact IDs, so the claim could not be grounded."
+      },
+      "example_ref": "external_synthetic_fact_id_mismatch",
+      "failure_class": "unsupported_claim",
+      "issue_type": "verifier_proof_bundle_alignment_issue",
+      "lesson": "Verifier/proof-bundle alignment must fail closed when fact IDs mismatch; generated text cannot repair grounding.",
+      "memory_status": "synthetic_receipt_backed_lesson",
+      "trajectory_sources": [
+        "proof_to_response_attempts",
+        "verifier_failures",
+        "local_external_lm_synthetic_test_outcomes"
+      ],
+      "truth_issue": false
+    },
+    {
+      "decision_trace": {
         "same_failure_recurred": "unknown",
         "what_changed_afterward": "This seed classifies trace log handling as a self-heal resource boundary lesson.",
         "what_operator_decided": "Preserve high-signal blocker/validation lessons while hiding raw logs unless explicitly requested.",
@@ -443,7 +495,8 @@
     "This seed does not create live self-optimization.",
     "Candidate updates require operator review.",
     "Memory remains suspect until receipt/proof-backed.",
-    "Context freshness beats generated summaries."
+    "Context freshness beats generated summaries.",
+    "Positive validation is required before any future adoption."
   ],
   "schema_version": "retrospective_harness_learning_seed_v0",
   "selection_policy": {
@@ -492,10 +545,10 @@
   "sqlite_summary": {
     "sqlite_path": "/home/openclaw/generated/system_knowledge/retrospective_harness_learning_seed.sqlite",
     "sqlite_record_kind_counts": {
-      "candidate_harness_update": 6,
-      "required_example": 6
+      "candidate_harness_update": 7,
+      "required_example": 7
     },
-    "sqlite_row_count": 12
+    "sqlite_row_count": 14
   },
   "status": "RETROSPECTIVE_HARNESS_LEARNING_SEED_READY",
   "trajectory_sources": [
@@ -546,6 +599,12 @@
       "description": "Context freshness decisions that blocked stale, superseded, generated-only, or untraceable truth.",
       "raw_history_policy": "preserve_gate_reason",
       "source_ref": "stale_context_blocks"
+    },
+    {
+      "allowed_use": "Learn from shape failures, proof-bundle mismatch, and verifier disagreement without invoking models from this seed.",
+      "description": "Synthetic local/external LM quality trials, postmortems, verifier outcomes, and fact-ID alignment checks.",
+      "raw_history_policy": "preserve_fixture_result_and_hide_raw_model_output",
+      "source_ref": "local_external_lm_synthetic_test_outcomes"
     }
   ],
   "unsafe_true_grants": []

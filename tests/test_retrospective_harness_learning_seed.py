@@ -92,6 +92,27 @@ def test_stale_build_review_is_lifecycle_freshness_issue(tmp_path):
     assert "historical/resolved" in example["decision_trace"]["what_proof_said"]
 
 
+def test_evidence_picker_file_path_leak_is_context_scope_leak(tmp_path):
+    example = _example(_read_model(tmp_path), "evidence_picker_file_path_leak_into_composer")
+
+    assert example["failure_class"] == "context_scope_leak"
+    assert example["issue_type"] == "privacy_context_boundary_issue"
+    assert "raw path" in example["decision_trace"]["why_it_failed"]
+    assert "proof refs and redacted summaries" in example["lesson"]
+
+
+def test_external_synthetic_fact_mismatch_is_verifier_proof_bundle_alignment_issue(tmp_path):
+    example = _example(_read_model(tmp_path), "external_synthetic_fact_id_mismatch")
+
+    assert example["failure_class"] == "unsupported_claim"
+    assert example["issue_type"] == "verifier_proof_bundle_alignment_issue"
+    assert example["truth_issue"] is False
+    assert "fact ID" in example["decision_trace"]["why_it_failed"]
+    assert "proof-bundle" in example["decision_trace"]["why_it_failed"]
+    assert "Verifier/proof-bundle alignment" in example["lesson"]
+    assert "local_external_lm_synthetic_test_outcomes" in example["trajectory_sources"]
+
+
 def test_candidate_harness_updates_are_review_only(tmp_path):
     read_model = _read_model(tmp_path)
 
@@ -120,6 +141,8 @@ def test_required_trajectory_sources_exist(tmp_path):
     assert observed == set(seed.TRAJECTORY_SOURCE_REFS)
     assert read_model["rules"][0] == "This seed does not modify harness behavior automatically."
     assert "Context freshness beats generated summaries." in read_model["rules"]
+    assert "Positive validation is required before any future adoption." in read_model["rules"]
+    assert read_model["machine_proof"]["all_required_trajectory_sources_present"] is True
 
 
 def test_sqlite_row_count_matches_json(tmp_path):
