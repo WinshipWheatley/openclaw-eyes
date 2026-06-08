@@ -1,102 +1,78 @@
 {
   "authority_boundary": {
-    "authority_grant_allowed": false,
-    "authority_granted": false,
     "browser_access_allowed": false,
-    "business_action_allowed": false,
     "coupa_allowed": false,
     "duplicate_deletion_allowed": false,
     "email_send_allowed": false,
-    "full_log_dump_allowed": false,
-    "generated_summary_override_allowed": false,
+    "generated_summary_authority_allowed": false,
     "git_push_allowed": false,
     "gmail_allowed": false,
     "ledger_mutation_allowed": false,
-    "merge_allowed": false,
-    "missing_context_invention_allowed": false,
+    "local_model_runtime_allowed": false,
     "model_invocation_allowed": false,
     "paid_marking_allowed": false,
     "pdf_export_allowed": false,
     "portal_submit_allowed": false,
-    "protected_actions_allowed": false,
+    "protected_action_allowed": false,
     "silent_conflict_resolution_allowed": false,
-    "stale_context_current_truth_allowed": false,
-    "tool_authority_allowed": false,
+    "source_deletion_allowed": false,
     "workbook_mutation_allowed": false,
     "worker_spawn_allowed": false
   },
-  "authority_ranking": [
+  "authority_rankings": [
     {
-      "authority_ref": "current_receipts_and_hashes",
-      "outranks": [
+      "authority_ranking_ref": "authority_ranking:receipt_first",
+      "generated_summary_rule": "Generated summaries explain source material but never outrank receipts, originals, or current proof.",
+      "memory_rule": "Memory may suggest where to look, but memory is not truth until proof-backed in the room.",
+      "ranked_authority": [
+        "current_receipts_and_proof",
+        "operator_decisions_with_receipts",
+        "preserved_original_sources",
+        "current_source_inventory_rows",
         "generated_summaries",
         "memory_hints"
-      ],
-      "rank": 1
-    },
-    {
-      "authority_ref": "freshness_gate_rows",
-      "outranks": [
-        "stale_sources",
-        "old_versions"
-      ],
-      "rank": 2
-    },
-    {
-      "authority_ref": "operator_current_request",
-      "outranks": [
-        "old_chat_history"
-      ],
-      "rank": 3
-    },
-    {
-      "authority_ref": "generated_summaries",
-      "outranks": [
-        "unpromoted_memory"
-      ],
-      "rank": 4
-    },
-    {
-      "authority_ref": "memory_hints",
-      "outranks": [],
-      "rank": 5
+      ]
     }
   ],
   "conflict_log": [
     {
       "affected_claims": [
-        "proposal_followup_state_known",
-        "followup_ready_to_stage"
+        "proposal_current_status",
+        "follow_up_needed",
+        "follow_up_already_sent"
       ],
-      "conflict_ref": "conflict:bd_capital_hilton_followup_status",
-      "conflict_summary": "Current proposal/follow-up state and older memory hint may disagree.",
+      "conflict_ref": "conflict:bd_proposal_follow_up_status",
+      "conflict_summary": "Proposal status and follow-up status disagree or are not proven by the same current receipt.",
       "conflicting_source_refs": [
-        "source:bd:capital_hilton:proposal_status",
-        "source:bd:capital_hilton:older_followup_note"
+        "source:bd_proposal_state",
+        "source:bd_follow_up_state"
       ],
-      "likely_resolution": "Use latest receipt-backed proposal source; ask operator if follow-up state must be confirmed.",
+      "likely_resolution": "Ask for the current proposal/follow-up receipt or operator decision before final drafting.",
       "operator_decision_required": true,
+      "project_room_id": "business_development_capital_hilton_follow_up",
       "unresolved": true
     },
     {
       "affected_claims": [
-        "paid_status",
-        "ledger_state",
-        "payment_evidence_state"
+        "current_status",
+        "ready_to_package",
+        "safe_to_answer"
       ],
-      "conflict_ref": "conflict:finance_generated_summary_vs_receipt",
-      "conflict_summary": "Generated payment summaries may be stale or less precise than current payment-watch receipts.",
+      "conflict_ref": "conflict:stale_summary_vs_current_truth",
+      "conflict_summary": "Stale generated summary and older source version cannot establish current truth.",
       "conflicting_source_refs": [
-        "source:finance:capital_hilton:payment_watch_receipt",
-        "source:finance:capital_hilton:generated_payment_summary"
+        "source:stale_generated_summary",
+        "source:superseded_source_version"
       ],
-      "likely_resolution": "Current receipt wins; generated summary may only help phrase an explanation.",
-      "operator_decision_required": false,
-      "unresolved": false
+      "likely_resolution": "Attach a current receipt/source before any final synthesis.",
+      "operator_decision_required": true,
+      "project_room_id": "stale_source",
+      "unresolved": true
     }
   ],
   "conflict_log_fields": [
     "conflict_ref",
+    "project_room_id",
     "conflicting_source_refs",
     "conflict_summary",
     "affected_claims",
@@ -104,7 +80,7 @@
     "operator_decision_required",
     "unresolved"
   ],
-  "content_hash": "sha256:352a2a13cce38d3f967f9b804e1e5a187d47bc99aeeb3e4d064319a6a3053af3",
+  "content_hash": "sha256:9ac9797cf11a6052003bc78c17541246bf9ca540b489dd52a1a7a70607140a0d",
   "core_doctrine": [
     "First prompt for serious work is not do the thing.",
     "First step is build the room.",
@@ -116,82 +92,134 @@
     "Authority and freshness are explicit.",
     "Agent may not silently resolve contradictions.",
     "Memory is a hint, not truth.",
-    "Current receipts and proof beat generated summaries.",
-    "Large files and logs are previewed or referenced, not dumped into model context."
+    "Current receipts and proof beat generated summaries."
   ],
-  "decision_trace": {
-    "operator_decisions": [
-      "Require source inventory before synthesis.",
-      "Keep memory as hint, not truth.",
-      "Do not auto-delete duplicates or silently resolve contradictions."
-    ],
-    "prior_attempts": [
-      {
-        "attempt_ref": "attempt:finance_payment_watch_gate_copy",
-        "result": "wrong_lane_response",
-        "summary": "Protected Coupa gate explanation was shown as primary lane answer."
-      },
-      {
-        "attempt_ref": "attempt:local_qwen_non_json",
-        "result": "schema_prompt_issue",
-        "summary": "Local Qwen pilot failed JSON shape and published fallback."
-      }
-    ],
-    "receipts": [
-      "receipt:capital_hilton_payment_watch_current",
-      "receipt:workroom_review_decision_recorded",
-      "receipt:local_lm_fallback_published"
-    ],
-    "rejected_attempts": [
-      {
-        "attempt_ref": "attempt:mark_paid_without_payment_evidence",
-        "why_rejected": "Payment evidence missing and ledger proof absent."
-      },
-      {
-        "attempt_ref": "attempt:treat_resolved_build_packet_as_active",
-        "why_rejected": "Review packet was informational/resolved and belongs in history."
-      }
-    ],
-    "what_changed": [
-      "Payment watch response became lane-level.",
-      "Proof-to-response latest became request-scoped.",
-      "Context compaction policy requires preview/reference for large artifacts."
-    ],
-    "what_not_to_repeat": [
-      "Do not use protected gate copy as lane answer.",
-      "Do not treat generated summaries as receipts.",
-      "Do not dump logs, OCR, or raw chat history into agent context."
-    ]
-  },
-  "duplicate_version_report": [
+  "decision_trace_fields": [
+    "decision_trace_ref",
+    "project_room_id",
+    "prior_attempts",
+    "rejected_attempts",
+    "operator_decisions",
+    "receipts",
+    "what_changed",
+    "what_not_to_repeat"
+  ],
+  "decision_traces": [
     {
-      "candidate_source_refs": [
-        "source:finance:capital_hilton:payment_watch_receipt",
-        "source:finance:capital_hilton:generated_payment_summary"
+      "decision_trace_ref": "decision_trace:finance_capital_hilton_payment_watch",
+      "operator_decisions": [
+        "Payment evidence is required before paid or ledger action."
       ],
-      "confidence": "high",
-      "deletion_allowed": false,
-      "likely_current_source_ref": "source:finance:capital_hilton:payment_watch_receipt",
-      "older_or_superseded_refs": [
-        "source:finance:capital_hilton:generated_payment_summary"
+      "prior_attempts": [
+        "Payment-watch explanation and Coupa-gate routing attempts."
       ],
-      "operator_review_required": true,
-      "version_family_ref": "version_family:capital_hilton_payment_watch_summaries"
+      "project_room_id": "finance_capital_hilton_payment_watch",
+      "receipts": [
+        "proof_to_response_runtime_status",
+        "finance_payment_watch_receipt"
+      ],
+      "rejected_attempts": [
+        "Do not mark paid from Coupa processing or generated summary."
+      ],
+      "what_changed": "Room permits explanation and next-step wording only.",
+      "what_not_to_repeat": "Do not treat Coupa processing or summary copy as payment proof."
     },
     {
-      "candidate_source_refs": [
-        "source:build:review_packet_resolved"
+      "decision_trace_ref": "decision_trace:business_development_capital_hilton_follow_up",
+      "operator_decisions": [
+        "Surface proposal/follow-up disagreement before final drafting."
       ],
-      "confidence": "medium",
-      "deletion_allowed": false,
-      "likely_current_source_ref": "source:build:review_packet_resolved",
-      "older_or_superseded_refs": [],
-      "operator_review_required": true,
-      "version_family_ref": "version_family:build_review_packet_history"
+      "prior_attempts": [
+        "Follow-up context was routed through proof-to-response lane state."
+      ],
+      "project_room_id": "business_development_capital_hilton_follow_up",
+      "receipts": [
+        "operator_session_timeline",
+        "business_development_lane_receipt"
+      ],
+      "rejected_attempts": [
+        "Do not send or claim sent without send authority."
+      ],
+      "what_changed": "Conflict log now controls final synthesis and send authority.",
+      "what_not_to_repeat": "Do not silently resolve proposal/follow-up disagreement."
+    },
+    {
+      "decision_trace_ref": "decision_trace:build_review_packet",
+      "operator_decisions": [
+        "Resolved packet remains historical unless reopened by current receipt."
+      ],
+      "prior_attempts": [
+        "Resolved Build review packet was shown like active ready-for-review work."
+      ],
+      "project_room_id": "build_review_packet",
+      "receipts": [
+        "workroom_review_decision_status"
+      ],
+      "rejected_attempts": [
+        "Do not treat informational/resolved packet as active work."
+      ],
+      "what_changed": "Source room marks the packet historical and includes prior review decision.",
+      "what_not_to_repeat": "Do not let stale UI state dominate lifecycle receipts."
+    },
+    {
+      "decision_trace_ref": "decision_trace:niles_music_controller_mapping",
+      "operator_decisions": [
+        "Creative options are allowed; factual claims require source."
+      ],
+      "prior_attempts": [
+        "Creative music/controller mapping was discussed without a controller target source."
+      ],
+      "project_room_id": "niles_music_controller_mapping",
+      "receipts": [
+        "operator_session_timeline"
+      ],
+      "rejected_attempts": [
+        "Do not import unrelated finance proof or claim controller facts without source."
+      ],
+      "what_changed": "Niles room explicitly excludes unrelated finance proof.",
+      "what_not_to_repeat": "Do not mix worlds or use finance artifacts to support creative/controller claims."
+    },
+    {
+      "decision_trace_ref": "decision_trace:self_heal_repair",
+      "operator_decisions": [
+        "Repair packages may be proposed only with validation plan and rollback plan."
+      ],
+      "prior_attempts": [
+        "Self-heal diagnosis and validation failure records were captured."
+      ],
+      "project_room_id": "self_heal_repair",
+      "receipts": [
+        "self_heal_repair_doctrine",
+        "retrospective_harness_learning_seed"
+      ],
+      "rejected_attempts": [
+        "Do not execute repair or claim success without validation and receipt."
+      ],
+      "what_changed": "Room requires blocker proof, validation plan, prior attempts, and what not to repeat.",
+      "what_not_to_repeat": "Do not run black-box repair loops or hide validation failure."
+    },
+    {
+      "decision_trace_ref": "decision_trace:stale_source",
+      "operator_decisions": [
+        "Synthesis is blocked or marked Needs verification until current proof exists."
+      ],
+      "prior_attempts": [
+        "Older summaries and source versions appeared usable without fresh receipts."
+      ],
+      "project_room_id": "stale_source",
+      "receipts": [
+        "context_freshness_decision_trace_gate"
+      ],
+      "rejected_attempts": [
+        "Do not answer from stale source as current truth."
+      ],
+      "what_changed": "Room demotes stale and superseded material to history/support.",
+      "what_not_to_repeat": "Do not use stale summaries to bypass freshness gates."
     }
   ],
-  "duplicate_version_report_fields": [
+  "duplicate_report_fields": [
     "version_family_ref",
+    "project_room_id",
     "candidate_source_refs",
     "likely_current_source_ref",
     "older_or_superseded_refs",
@@ -199,35 +227,141 @@
     "operator_review_required",
     "deletion_allowed"
   ],
-  "generated_at": "2026-06-08T00:57:31+00:00",
+  "duplicate_version_report": [
+    {
+      "candidate_source_refs": [
+        "source:finance_payment_watch_state",
+        "source:finance_generated_summary"
+      ],
+      "confidence": "high",
+      "deletion_allowed": false,
+      "likely_current_source_ref": "source:finance_payment_watch_state",
+      "older_or_superseded_refs": [
+        "source:finance_generated_summary"
+      ],
+      "operator_review_required": true,
+      "project_room_id": "finance_capital_hilton_payment_watch",
+      "version_family_ref": "version_family:finance_payment_watch"
+    },
+    {
+      "candidate_source_refs": [
+        "source:bd_proposal_state",
+        "source:bd_follow_up_state"
+      ],
+      "confidence": "conflict_requires_review",
+      "deletion_allowed": false,
+      "likely_current_source_ref": "operator_decision_required",
+      "older_or_superseded_refs": [],
+      "operator_review_required": true,
+      "project_room_id": "business_development_capital_hilton_follow_up",
+      "version_family_ref": "version_family:bd_capital_hilton_follow_up"
+    },
+    {
+      "candidate_source_refs": [
+        "source:build_resolved_review_packet"
+      ],
+      "confidence": "high_historical",
+      "deletion_allowed": false,
+      "likely_current_source_ref": "source:build_resolved_review_packet",
+      "older_or_superseded_refs": [],
+      "operator_review_required": true,
+      "project_room_id": "build_review_packet",
+      "version_family_ref": "version_family:build_review_packet"
+    },
+    {
+      "candidate_source_refs": [
+        "source:niles_creative_notes"
+      ],
+      "confidence": "creative_context_only",
+      "deletion_allowed": false,
+      "likely_current_source_ref": "source:niles_creative_notes",
+      "older_or_superseded_refs": [],
+      "operator_review_required": true,
+      "project_room_id": "niles_music_controller_mapping",
+      "version_family_ref": "version_family:niles_music_controller_mapping"
+    },
+    {
+      "candidate_source_refs": [
+        "source:self_heal_blocker_proof",
+        "source:self_heal_validation_failure"
+      ],
+      "confidence": "high",
+      "deletion_allowed": false,
+      "likely_current_source_ref": "source:self_heal_blocker_proof",
+      "older_or_superseded_refs": [],
+      "operator_review_required": true,
+      "project_room_id": "self_heal_repair",
+      "version_family_ref": "version_family:self_heal_repair"
+    },
+    {
+      "candidate_source_refs": [
+        "source:stale_generated_summary",
+        "source:superseded_source_version"
+      ],
+      "confidence": "blocked_until_current_source",
+      "deletion_allowed": false,
+      "likely_current_source_ref": "current_source_missing",
+      "older_or_superseded_refs": [
+        "source:stale_generated_summary",
+        "source:superseded_source_version"
+      ],
+      "operator_review_required": true,
+      "project_room_id": "stale_source",
+      "version_family_ref": "version_family:stale_source"
+    }
+  ],
+  "freshness_gates": [
+    {
+      "blocked_state": "Needs verification",
+      "current_truth_requires": [
+        "source_inventory_row_exists",
+        "freshness_state_is_current_or_current_receipt",
+        "not_superseded",
+        "not_generated_summary_only",
+        "no_unresolved_conflict_for_claim"
+      ],
+      "freshness_gate_ref": "freshness_gate:receipt_current_or_needs_verification",
+      "stale_source_policy": "Synthesis is blocked or explicitly marked Needs verification when sources are stale, superseded, or untraceable."
+    }
+  ],
+  "generated_at": "2026-06-08T01:03:14+00:00",
   "implementation_boundary": {
     "browser_opened": false,
     "coupa_opened": false,
-    "duplicate_deletion_performed": false,
+    "duplicate_deleted": false,
     "email_send_performed": false,
-    "external_provider_connected": false,
     "git_push_performed": false,
     "gmail_opened": false,
     "ledger_mutation_performed": false,
     "local_model_runtime_connected": false,
-    "merge_performed": false,
     "model_invoked": false,
     "paid_marking_performed": false,
     "pdf_export_performed": false,
     "portal_submit_performed": false,
     "runtime_connected": false,
+    "source_deleted": false,
     "submit_performed": false,
     "workbook_mutation_performed": false,
     "worker_spawn_performed": false
   },
   "machine_proof": {
+    "all_required_scenarios_present": true,
+    "build_resolved_packet_remains_historical": true,
+    "conflict_log_fields_complete": true,
     "conflict_log_required_when_sources_disagree": true,
-    "contract_only": true,
     "current_receipts_outrank_generated_summaries": true,
-    "duplicates_not_deleted": true,
-    "large_artifacts_preview_or_reference_only": true,
+    "decision_trace_fields_complete": true,
+    "duplicate_report_does_not_delete_files": true,
+    "duplicate_report_fields_complete": true,
+    "finance_payment_watch_blocks_paid_ledger": true,
+    "live_action_absent": true,
     "missing_context_blocks_unsupported_claims": true,
+    "missing_context_fields_complete": true,
     "model_invocation_absent": true,
+    "niles_creative_room_excludes_unrelated_finance_proof": true,
+    "preconditions_ready": true,
+    "project_room_fields_complete": true,
+    "source_inventory_fields_complete": true,
     "source_inventory_required_before_synthesis": true,
     "sqlite_row_count_matches_json": true,
     "superseded_sources_cannot_be_current_truth": true,
@@ -235,6 +369,7 @@
   },
   "missing_context_fields": [
     "missing_context_ref",
+    "project_room_id",
     "gap_summary",
     "why_it_matters",
     "source_that_implies_gap",
@@ -244,27 +379,39 @@
   "missing_context_list": [
     {
       "gap_summary": "Payment evidence is missing.",
-      "missing_context_ref": "missing:finance_capital_hilton_payment_evidence",
-      "required_source_or_decision": "Attach receipt-backed payment evidence or keep payment watch.",
-      "safe_wording_if_unresolved": "Payment evidence is missing; ledger and paid state remain untouched.",
-      "source_that_implies_gap": "source:finance:capital_hilton:payment_watch_receipt",
-      "why_it_matters": "Without payment evidence, OpenClaw cannot mark paid or mutate ledger."
+      "missing_context_ref": "missing_context:finance_payment_evidence",
+      "project_room_id": "finance_capital_hilton_payment_watch",
+      "required_source_or_decision": "Attach payment evidence or an operator receipt proving payment.",
+      "safe_wording_if_unresolved": "Payment evidence is missing; I can explain the watch state and next step, but cannot mark paid.",
+      "source_that_implies_gap": "source:finance_payment_watch_state",
+      "why_it_matters": "Without payment proof, OpenClaw cannot claim paid, mutate a ledger, or complete a payment package."
     },
     {
-      "gap_summary": "Specific controller or software target may be absent.",
-      "missing_context_ref": "missing:niles_controller_or_software_target",
-      "required_source_or_decision": "Name controller/software target or accept generic creative options.",
-      "safe_wording_if_unresolved": "I can sketch creative mapping options, but I need the controller/software target for exact setup guidance.",
-      "source_that_implies_gap": "source:niles:music_controller_notes",
-      "why_it_matters": "Creative mapping can propose options, but factual setup claims need the target."
+      "gap_summary": "No send authority is present.",
+      "missing_context_ref": "missing_context:bd_send_authority",
+      "project_room_id": "business_development_capital_hilton_follow_up",
+      "required_source_or_decision": "Operator approval or send receipt.",
+      "safe_wording_if_unresolved": "I can prepare a draft or list missing context, but I cannot send it.",
+      "source_that_implies_gap": "source:bd_follow_up_state",
+      "why_it_matters": "A follow-up may be drafted inside the room but cannot be sent or represented as sent."
     },
     {
-      "gap_summary": "A stale source lacks a current receipt.",
-      "missing_context_ref": "missing:stale_source_refresh",
-      "required_source_or_decision": "Refresh source or mark output Needs verification.",
-      "safe_wording_if_unresolved": "Needs verification before I treat this as current.",
-      "source_that_implies_gap": "source:system:stale_prior_summary",
-      "why_it_matters": "Stale context cannot be current truth for synthesis."
+      "gap_summary": "Software/controller target is absent.",
+      "missing_context_ref": "missing_context:niles_controller_target",
+      "project_room_id": "niles_music_controller_mapping",
+      "required_source_or_decision": "Name the controller/software target or attach its source artifact.",
+      "safe_wording_if_unresolved": "I can offer creative mapping options and questions; I cannot make factual controller claims without a source.",
+      "source_that_implies_gap": "source:niles_creative_notes",
+      "why_it_matters": "Creative notes alone do not prove which controller, app, protocol, or integration target should be mapped."
+    },
+    {
+      "gap_summary": "Current source or receipt is missing.",
+      "missing_context_ref": "missing_context:stale_current_source",
+      "project_room_id": "stale_source",
+      "required_source_or_decision": "Attach current source, current receipt, or operator decision to proceed as historical only.",
+      "safe_wording_if_unresolved": "This source appears stale and needs verification before final synthesis.",
+      "source_that_implies_gap": "source:stale_generated_summary",
+      "why_it_matters": "Stale and superseded materials cannot support current truth or final work."
     }
   ],
   "preconditions": [
@@ -294,15 +441,6 @@
       "precondition_ref": "retrospective_harness_learning_seed",
       "ready": true,
       "source_ref": "generated/read_models/retrospective_harness_learning_seed.json"
-    },
-    {
-      "accepted_statuses": [
-        "CONTEXT_COMPACTION_PREVIEW_POLICY_READY"
-      ],
-      "observed_status": "CONTEXT_COMPACTION_PREVIEW_POLICY_READY",
-      "precondition_ref": "context_compaction_preview_policy",
-      "ready": true,
-      "source_ref": "generated/read_models/context_compaction_preview_policy.json"
     },
     {
       "accepted_statuses": [
@@ -355,204 +493,243 @@
     "decision_trace_ref",
     "authority_ranking_ref",
     "freshness_gate_ref",
-    "compaction_policy_ref",
     "allowed_next_steps",
     "blocked_next_steps",
     "synthesis_allowed"
   ],
-  "project_room_template": {
-    "allowed_next_steps": [
-      "inventory_sources",
-      "surface_conflicts",
-      "name_missing_context",
-      "prepare_safe_plan"
-    ],
-    "authority_ranking_ref": "authority_ranking:receipts_over_summaries",
-    "blocked_next_steps": [
-      "draft_final_output_without_inventory",
-      "silently_resolve_conflicts",
-      "invent_missing_context",
-      "delete_duplicates"
-    ],
-    "compaction_policy_ref": "generated/read_models/context_compaction_preview_policy.json",
-    "conflict_log_ref": "conflict_log:required_even_if_empty",
-    "decision_trace_ref": "decision_trace:required_even_if_empty",
-    "duplicate_report_ref": "duplicate_report:required_even_if_empty",
-    "freshness_gate_ref": "generated/read_models/context_freshness_decision_trace_gate.json",
-    "missing_context_ref": "missing_context:required_even_if_empty",
-    "objective_ref": "",
-    "project_room_id": "project_room:template",
-    "source_inventory_ref": "source_inventory:required",
-    "source_set_ref": "source_set:required_before_synthesis",
-    "synthesis_allowed": false,
-    "thread_ref": "",
-    "workspace_scope": "bounded_to_current_project_room",
-    "world_ref": ""
-  },
-  "purpose": "Define OpenClaw Project Room / Source Room contract so serious work starts with scoped source inventory, conflicts, missing context, versioning, freshness, and authority.",
-  "read_model_id": "project_room_sourceset_contract",
-  "required_scenarios": [
+  "project_rooms": [
     {
       "allowed_next_steps": [
-        "explain_payment_watch",
-        "ask_for_payment_evidence",
-        "attach_proof"
+        "explain payment-watch state",
+        "ask for payment evidence",
+        "stage next-step wording"
       ],
+      "authority_ranking_ref": "authority_ranking:receipt_first",
       "blocked_next_steps": [
-        "mark_paid",
-        "ledger_mutation",
-        "Coupa_submit"
+        "mark paid",
+        "mutate ledger",
+        "export PDF",
+        "read workbook cells as proof"
       ],
-      "ledger_action_allowed": false,
-      "mark_paid_allowed": false,
-      "missing_context_refs": [
-        "missing:finance_capital_hilton_payment_evidence"
+      "conflict_log_ref": "conflict_log:finance_capital_hilton_payment_watch",
+      "decision_trace_ref": "decision_trace:finance_capital_hilton_payment_watch",
+      "duplicate_report_ref": "version_family:finance_payment_watch",
+      "freshness_gate_ref": "freshness_gate:receipt_current_or_needs_verification",
+      "inventory_gate": "passed_with_limited_scope",
+      "missing_context_blocks": [
+        "paid claim",
+        "ledger action"
       ],
-      "scenario_ref": "finance_capital_hilton_payment_watch",
-      "source_room_contains": [
-        "payment_watch_state",
-        "Coupa_processing",
-        "paid_false",
-        "ledger_untouched"
-      ],
+      "missing_context_ref": "missing_context:finance_payment_evidence",
+      "objective_ref": "objective:finance_capital_hilton_payment_watch",
+      "project_room_id": "finance_capital_hilton_payment_watch",
+      "protected_authority": {
+        "ledger_action_allowed": false,
+        "paid_action_allowed": false,
+        "send_authority_granted": false
+      },
+      "source_disagreement_detected": false,
+      "source_inventory_ref": "source_inventory:finance_capital_hilton_payment_watch",
+      "source_set_ref": "source_set:finance_capital_hilton_payment_watch",
       "synthesis_allowed": true,
       "synthesis_scope": "explanation_and_next_step_only",
-      "thread_ref": "capital_hilton",
-      "world_ref": "finance"
+      "thread_ref": "thread:capital_hilton",
+      "workspace_scope": "Finance / Capital Hilton payment watch only.",
+      "world_ref": "world:finance"
     },
     {
       "allowed_next_steps": [
-        "surface_conflict",
-        "stage_followup_draft_after_resolution"
+        "surface proposal/follow-up conflict",
+        "ask for current receipt",
+        "draft only after source gate"
       ],
+      "authority_ranking_ref": "authority_ranking:receipt_first",
       "blocked_next_steps": [
-        "send_email",
-        "external_submit"
+        "send follow-up",
+        "claim follow-up sent",
+        "silently resolve status conflict"
       ],
-      "conflict_refs": [
-        "conflict:bd_capital_hilton_followup_status"
+      "conflict_log_ref": "conflict:bd_proposal_follow_up_status",
+      "decision_trace_ref": "decision_trace:business_development_capital_hilton_follow_up",
+      "duplicate_report_ref": "version_family:bd_capital_hilton_follow_up",
+      "freshness_gate_ref": "freshness_gate:receipt_current_or_needs_verification",
+      "inventory_gate": "blocked_by_unresolved_conflict",
+      "missing_context_blocks": [
+        "send claim",
+        "sent status claim"
       ],
-      "scenario_ref": "business_development_capital_hilton_followup",
-      "send_authority": false,
-      "source_room_contains": [
-        "proposal_followup_state"
-      ],
+      "missing_context_ref": "missing_context:bd_send_authority",
+      "objective_ref": "objective:business_development_capital_hilton_follow_up",
+      "project_room_id": "business_development_capital_hilton_follow_up",
+      "protected_authority": {
+        "ledger_action_allowed": false,
+        "paid_action_allowed": false,
+        "send_authority_granted": false
+      },
+      "source_disagreement_detected": true,
+      "source_inventory_ref": "source_inventory:business_development_capital_hilton_follow_up",
+      "source_set_ref": "source_set:business_development_capital_hilton_follow_up",
       "synthesis_allowed": false,
-      "synthesis_scope": "draft_or_explain_followup_only",
-      "thread_ref": "capital_hilton",
-      "world_ref": "business_development"
+      "synthesis_scope": "blocked_until_conflict_or_operator_decision_resolves",
+      "thread_ref": "thread:capital_hilton",
+      "workspace_scope": "Business Development / Capital Hilton proposal and follow-up state.",
+      "world_ref": "world:business_development"
     },
     {
-      "active_work_allowed": false,
       "allowed_next_steps": [
-        "summarize_history",
-        "show_review_receipt"
+        "summarize historical packet",
+        "cite prior review decision",
+        "ask if reopened"
       ],
+      "authority_ranking_ref": "authority_ranking:receipt_first",
       "blocked_next_steps": [
-        "merge",
-        "push",
-        "treat_as_active_ready_for_review"
+        "treat resolved packet as active work",
+        "show as ready-for-review"
       ],
-      "lifecycle_state": "historical_resolved",
-      "scenario_ref": "build_review_packet",
-      "source_room_contains": [
-        "informational_or_resolved_review_packet",
-        "prior_review_decision"
-      ],
+      "conflict_log_ref": "conflict_log:build_review_packet",
+      "decision_trace_ref": "decision_trace:build_review_packet",
+      "duplicate_report_ref": "version_family:build_review_packet",
+      "freshness_gate_ref": "freshness_gate:receipt_current_or_needs_verification",
+      "inventory_gate": "passed_with_historical_scope",
+      "missing_context_blocks": [],
+      "missing_context_ref": "missing_context:none",
+      "objective_ref": "objective:build_review_packet",
+      "project_room_id": "build_review_packet",
+      "protected_authority": {
+        "ledger_action_allowed": false,
+        "paid_action_allowed": false,
+        "send_authority_granted": false
+      },
+      "source_disagreement_detected": false,
+      "source_inventory_ref": "source_inventory:build_review_packet",
+      "source_set_ref": "source_set:build_review_packet",
       "synthesis_allowed": true,
       "synthesis_scope": "historical_summary_only",
-      "thread_ref": "build_openclaw_backend",
-      "world_ref": "build"
+      "thread_ref": "thread:review_packet",
+      "workspace_scope": "Build review packet lifecycle and prior review decision.",
+      "world_ref": "world:build"
     },
     {
       "allowed_next_steps": [
-        "offer_creative_options",
-        "ask_for_controller_or_software_target"
+        "offer creative options",
+        "ask for controller/software target"
       ],
+      "authority_ranking_ref": "authority_ranking:receipt_first",
       "blocked_next_steps": [
-        "make_unsourced_setup_claims",
-        "include_finance_proof"
+        "make factual controller claims",
+        "import unrelated finance proof",
+        "claim integration exists"
       ],
-      "missing_context_refs": [
-        "missing:niles_controller_or_software_target"
+      "conflict_log_ref": "conflict_log:niles_music_controller_mapping",
+      "decision_trace_ref": "decision_trace:niles_music_controller_mapping",
+      "duplicate_report_ref": "version_family:niles_music_controller_mapping",
+      "freshness_gate_ref": "freshness_gate:receipt_current_or_needs_verification",
+      "inventory_gate": "passed_with_creative_scope",
+      "missing_context_blocks": [
+        "factual controller claim",
+        "software integration claim"
       ],
-      "scenario_ref": "niles_music_controller_mapping",
-      "source_room_contains": [
-        "creative_notes",
-        "controller_target_if_supplied"
-      ],
+      "missing_context_ref": "missing_context:niles_controller_target",
+      "objective_ref": "objective:niles_music_controller_mapping",
+      "project_room_id": "niles_music_controller_mapping",
+      "protected_authority": {
+        "ledger_action_allowed": false,
+        "paid_action_allowed": false,
+        "send_authority_granted": false
+      },
+      "source_disagreement_detected": false,
+      "source_inventory_ref": "source_inventory:niles_music_controller_mapping",
+      "source_set_ref": "source_set:niles_music_controller_mapping",
       "synthesis_allowed": true,
-      "synthesis_scope": "creative_options_only_until_target_supplied",
-      "thread_ref": "niles_controller_mapping",
-      "unrelated_finance_proof_included": false,
-      "world_ref": "music"
+      "synthesis_scope": "creative_options_only",
+      "thread_ref": "thread:controller_mapping",
+      "workspace_scope": "Niles / Music creative notes and controller mapping only.",
+      "world_ref": "world:niles_music"
     },
     {
       "allowed_next_steps": [
-        "propose_repair_package",
-        "name_validation_plan",
-        "name_rollback_plan"
+        "propose repair package with validation plan",
+        "name blocker proof",
+        "include rollback plan"
       ],
+      "authority_ranking_ref": "authority_ranking:receipt_first",
       "blocked_next_steps": [
-        "auto_apply_repair",
-        "spawn_worker",
-        "restart_service_without_approval"
+        "execute repair",
+        "restart services",
+        "claim repair success without receipt"
       ],
-      "scenario_ref": "self_heal_repair",
-      "source_room_contains": [
-        "blocker_proof",
-        "validation_failure",
-        "prior_attempts"
+      "conflict_log_ref": "conflict_log:self_heal_repair",
+      "decision_trace_ref": "decision_trace:self_heal_repair",
+      "duplicate_report_ref": "version_family:self_heal_repair",
+      "freshness_gate_ref": "freshness_gate:receipt_current_or_needs_verification",
+      "inventory_gate": "passed_with_validation_plan_required",
+      "missing_context_blocks": [
+        "repair success claim"
       ],
+      "missing_context_ref": "missing_context:none",
+      "objective_ref": "objective:self_heal_repair",
+      "project_room_id": "self_heal_repair",
+      "protected_authority": {
+        "ledger_action_allowed": false,
+        "paid_action_allowed": false,
+        "send_authority_granted": false
+      },
+      "repair_package_requirements": [
+        "blocker proof",
+        "validation plan",
+        "rollback plan",
+        "receipt requirement"
+      ],
+      "source_disagreement_detected": false,
+      "source_inventory_ref": "source_inventory:self_heal_repair",
+      "source_set_ref": "source_set:self_heal_repair",
       "synthesis_allowed": true,
-      "synthesis_scope": "repair_package_with_validation_plan",
-      "thread_ref": "self_heal",
-      "world_ref": "system"
+      "synthesis_scope": "repair_package_proposal_only",
+      "thread_ref": "thread:self_heal",
+      "workspace_scope": "Self-heal diagnosis, prior attempts, blocker proof, and validation planning.",
+      "world_ref": "world:system_repair"
     },
     {
       "allowed_next_steps": [
-        "say_needs_verification",
-        "request_current_source_or_receipt"
+        "mark Needs verification",
+        "ask for current source",
+        "preserve originals as history"
       ],
+      "authority_ranking_ref": "authority_ranking:receipt_first",
       "blocked_next_steps": [
-        "treat_stale_source_as_current_truth",
-        "final_synthesis"
+        "final synthesis",
+        "current truth claim",
+        "delete older versions"
       ],
-      "missing_context_refs": [
-        "missing:stale_source_refresh"
+      "conflict_log_ref": "conflict:stale_summary_vs_current_truth",
+      "decision_trace_ref": "decision_trace:stale_source",
+      "duplicate_report_ref": "version_family:stale_source",
+      "freshness_gate_ref": "freshness_gate:receipt_current_or_needs_verification",
+      "inventory_gate": "blocked_by_stale_source",
+      "missing_context_blocks": [
+        "current truth claim",
+        "final answer"
       ],
-      "scenario_ref": "stale_source",
-      "source_room_contains": [
-        "stale_prior_summary"
-      ],
+      "missing_context_ref": "missing_context:stale_current_source",
+      "objective_ref": "objective:stale_source_handling",
+      "project_room_id": "stale_source",
+      "protected_authority": {
+        "ledger_action_allowed": false,
+        "paid_action_allowed": false,
+        "send_authority_granted": false
+      },
+      "source_disagreement_detected": true,
+      "source_inventory_ref": "source_inventory:stale_source",
+      "source_set_ref": "source_set:stale_source",
       "synthesis_allowed": false,
-      "synthesis_scope": "needs_verification_only",
-      "thread_ref": "stale_context",
-      "world_ref": "system"
-    },
-    {
-      "allowed_next_steps": [
-        "summarize_preview",
-        "ask_for_scoped_inspection_if_needed"
-      ],
-      "blocked_next_steps": [
-        "dump_full_log",
-        "read_raw_artifact_by_default"
-      ],
-      "full_source_dumped": false,
-      "full_source_reference_only": true,
-      "preview_available": true,
-      "scenario_ref": "large_artifact_log_source",
-      "source_room_contains": [
-        "large_log_reference",
-        "safe_preview"
-      ],
-      "synthesis_allowed": true,
-      "synthesis_scope": "diagnostic_preview_only",
-      "thread_ref": "diagnostics",
-      "world_ref": "system"
+      "synthesis_scope": "blocked_or_needs_verification",
+      "thread_ref": "thread:stale_source",
+      "workspace_scope": "Stale, superseded, or generated-only source material.",
+      "world_ref": "world:source_quality"
     }
   ],
+  "purpose": "Define the Project Room / Source Room contract for serious agent work before drafting, coding, packaging, or answering.",
+  "read_model_id": "project_room_sourceset_contract",
   "rules": [
     "Do not synthesize final output until source inventory exists.",
     "Do not treat old versions as current.",
@@ -560,12 +737,10 @@
     "Do not let duplicated docs overweight synthesis.",
     "Do not use missing context as permission to invent.",
     "Do not let generated summaries outrank receipts.",
-    "Do not dump full logs/files/artifacts into agent context by default.",
     "Project room may stage a package only after source room gates are satisfied."
   ],
   "schema_version": "project_room_sourceset_contract_v0",
   "source_content_hashes": {
-    "context_compaction_preview_policy": "sha256:9d2056dfab458154e7a5cbc77dde1450e783eeeacde0a0080c6d30a289b60699",
     "context_freshness_decision_trace_gate": "sha256:45433d452e816ccd346cf6285bca29e913787de50ef5d3ee96c3e9bd4ec4c4bd",
     "goldilocks_gate_calibration": "sha256:09346c60624850c1854fe34f3e5922e4f0f66bca45d84bcfdbb4755221130112",
     "operator_session_timeline": "sha256:eec340fe08bd84b784f62f433f78700efa13659955f5fcf84811c1f1d8bdbecf",
@@ -576,258 +751,280 @@
   },
   "source_inventory": [
     {
-      "apparent_authority": "current_receipt",
+      "apparent_authority": "current_receipts_and_proof",
       "claims_supported": [
-        "payment_processor_processing",
-        "paid_false",
-        "ledger_untouched",
-        "payment_evidence_missing"
+        "Coupa processing is still in progress.",
+        "paid=false",
+        "ledger untouched"
       ],
       "confidence_class": "receipt_backed",
-      "date_claimed": "current",
-      "date_observed": "2026-06-08T00:57:31+00:00",
+      "date_claimed": "current payment-watch state",
+      "date_observed": "2026-06-08T01:03:14+00:00",
       "do_not_use_for": [
-        "mark_paid",
-        "ledger_posting",
-        "Coupa_submit"
+        "mark paid",
+        "mutate ledger",
+        "export payment packet as complete"
       ],
-      "freshness_state": "current",
-      "full_source_reference_only": true,
-      "how_to_use": "Use for explanation and next safe step only.",
+      "freshness_state": "current_receipt",
+      "how_to_use": "Explain the payment-watch state and the smallest next step.",
       "limitations": [
-        "does_not_prove_paid",
-        "does_not_authorize_ledger_mutation"
+        "Does not prove payment completion.",
+        "Does not authorize ledger mutation."
       ],
-      "path_or_artifact_ref": "generated/read_models/proof_bundle_freshness_trace_status.json#finance_capital_hilton_payment_watch",
-      "preview_available": true,
+      "path_or_artifact_ref": "generated/read_models/proof_to_response_latest.json",
+      "project_room_id": "finance_capital_hilton_payment_watch",
       "receipt_refs": [
-        "receipt:capital_hilton_payment_watch_current"
+        "proof_to_response_runtime_status",
+        "finance_payment_watch_receipt"
       ],
-      "source_hash": "sha256:finance_capital_hilton_payment_watch_receipt",
-      "source_ref": "source:finance:capital_hilton:payment_watch_receipt",
-      "source_type": "receipt_backed_read_model"
+      "source_hash": "optional:future_source_inventory_hash",
+      "source_inventory_ref": "source_inventory:finance_capital_hilton_payment_watch",
+      "source_ref": "source:finance_payment_watch_state",
+      "source_type": "current_receipt_read_model"
     },
     {
-      "apparent_authority": "low_supporting_summary",
+      "apparent_authority": "generated_summaries",
       "claims_supported": [
-        "may_explain_payment_watch"
+        "May help locate the finance task."
       ],
-      "confidence_class": "generated_summary",
-      "date_claimed": "superseded_by_current_receipt",
-      "date_observed": "2026-06-08T00:57:31+00:00",
+      "confidence_class": "summary_only",
+      "date_claimed": "summary of finance lane",
+      "date_observed": "2026-06-08T01:03:14+00:00",
       "do_not_use_for": [
-        "current_truth",
-        "paid_truth",
-        "authority_decision"
+        "current truth",
+        "paid status",
+        "ledger status"
       ],
-      "freshness_state": "superseded",
-      "full_source_reference_only": true,
-      "how_to_use": "Use only as supporting wording after receipt-backed facts are selected.",
+      "freshness_state": "support_only",
+      "how_to_use": "Use only as a navigation hint after receipt-backed inventory rows are present.",
       "limitations": [
-        "cannot_override_current_receipt",
-        "cannot_prove_paid"
+        "Cannot override payment-watch receipts."
       ],
-      "path_or_artifact_ref": "generated/read_models/proof_to_response_latest.json#historical_summary",
-      "preview_available": true,
+      "path_or_artifact_ref": "generated/read_models/openclaw_request_processor_OPERATOR.md",
+      "project_room_id": "finance_capital_hilton_payment_watch",
       "receipt_refs": [],
-      "source_hash": "sha256:finance_capital_hilton_generated_summary",
-      "source_ref": "source:finance:capital_hilton:generated_payment_summary",
+      "source_hash": "",
+      "source_inventory_ref": "source_inventory:finance_capital_hilton_payment_watch",
+      "source_ref": "source:finance_generated_summary",
       "source_type": "generated_summary"
     },
     {
-      "apparent_authority": "route_read_model",
+      "apparent_authority": "current_receipts_and_proof",
       "claims_supported": [
-        "proposal_followup_state_known",
-        "draft_can_be_staged"
+        "Proposal exists.",
+        "Follow-up may be needed."
       ],
       "confidence_class": "receipt_backed",
-      "date_claimed": "current_if_latest_receipt_matches",
-      "date_observed": "2026-06-08T00:57:31+00:00",
+      "date_claimed": "proposal waiting for follow-up",
+      "date_observed": "2026-06-08T01:03:14+00:00",
       "do_not_use_for": [
-        "send_email",
-        "external_submission"
+        "send email",
+        "claim follow-up already sent"
       ],
-      "freshness_state": "current",
-      "full_source_reference_only": true,
-      "how_to_use": "Use to stage or explain follow-up draft workflow.",
+      "freshness_state": "current_receipt",
+      "how_to_use": "Use as one side of the proposal/follow-up state check.",
       "limitations": [
-        "does_not_authorize_send"
+        "Does not prove latest follow-up status or send authority."
       ],
-      "path_or_artifact_ref": "generated/read_models/objective_advancement_protocol.json#business_development_capital_hilton",
-      "preview_available": true,
+      "path_or_artifact_ref": "generated/read_models/proof_to_response_latest.json",
+      "project_room_id": "business_development_capital_hilton_follow_up",
       "receipt_refs": [
-        "receipt:bd_capital_hilton_followup_current"
+        "business_development_lane_receipt"
       ],
-      "source_hash": "sha256:bd_capital_hilton_proposal_status",
-      "source_ref": "source:bd:capital_hilton:proposal_status",
-      "source_type": "proposal_status_read_model"
-    },
-    {
-      "apparent_authority": "memory_hint",
-      "claims_supported": [
-        "possible_followup_status"
-      ],
-      "confidence_class": "unpromoted_memory",
-      "date_claimed": "unknown",
-      "date_observed": "2026-06-08T00:57:31+00:00",
-      "do_not_use_for": [
-        "current_followup_truth",
-        "send_authority"
-      ],
-      "freshness_state": "stale",
-      "full_source_reference_only": true,
-      "how_to_use": "Use only to ask for verification or flag conflict.",
-      "limitations": [
-        "may_disagree_with_current_proposal_status",
-        "not_canonical_truth"
-      ],
-      "path_or_artifact_ref": "memory:capital_hilton_followup_old_note",
-      "preview_available": false,
-      "receipt_refs": [],
       "source_hash": "",
-      "source_ref": "source:bd:capital_hilton:older_followup_note",
-      "source_type": "operator_memory_hint"
+      "source_inventory_ref": "source_inventory:business_development_capital_hilton_follow_up",
+      "source_ref": "source:bd_proposal_state",
+      "source_type": "proposal_status_receipt"
     },
     {
-      "apparent_authority": "review_decision_receipt",
+      "apparent_authority": "operator_decisions_with_receipts",
       "claims_supported": [
-        "review_packet_informational_or_resolved",
-        "prior_review_decision_exists"
+        "Follow-up state may disagree with proposal state."
       ],
-      "confidence_class": "receipt_backed",
-      "date_claimed": "historical_resolved",
-      "date_observed": "2026-06-08T00:57:31+00:00",
+      "confidence_class": "conflict_detected",
+      "date_claimed": "follow-up status unresolved",
+      "date_observed": "2026-06-08T01:03:14+00:00",
       "do_not_use_for": [
-        "active_review_work",
-        "merge",
-        "push"
+        "send authority",
+        "silent status resolution"
       ],
-      "freshness_state": "historical",
-      "full_source_reference_only": true,
-      "how_to_use": "Use as history and decision trace.",
+      "freshness_state": "needs_reconciliation",
+      "how_to_use": "Surface the disagreement before drafting a final follow-up.",
       "limitations": [
-        "not_active_ready_for_review"
+        "Requires operator decision or current send/follow-up receipt."
       ],
-      "path_or_artifact_ref": "generated/read_models/workroom_review_decision_status.json#review_packet_c4ec166103f9aa35",
-      "preview_available": true,
+      "path_or_artifact_ref": "generated/read_models/operator_session_timeline.json",
+      "project_room_id": "business_development_capital_hilton_follow_up",
       "receipt_refs": [
-        "receipt:workroom_review_decision_recorded"
+        "operator_session_timeline"
       ],
-      "source_hash": "sha256:build_review_packet_resolved",
-      "source_ref": "source:build:review_packet_resolved",
+      "source_hash": "",
+      "source_inventory_ref": "source_inventory:business_development_capital_hilton_follow_up",
+      "source_ref": "source:bd_follow_up_state",
+      "source_type": "timeline_event"
+    },
+    {
+      "apparent_authority": "operator_decisions_with_receipts",
+      "claims_supported": [
+        "Packet is informational/resolved.",
+        "Prior review decision exists."
+      ],
+      "confidence_class": "receipt_backed_history",
+      "date_claimed": "informational/resolved packet",
+      "date_observed": "2026-06-08T01:03:14+00:00",
+      "do_not_use_for": [
+        "active work queue",
+        "ready-for-review claim"
+      ],
+      "freshness_state": "historical_resolved",
+      "how_to_use": "Use as history and prior decision context.",
+      "limitations": [
+        "Not active ready-for-review work unless reopened by a current receipt."
+      ],
+      "path_or_artifact_ref": "generated/read_models/workroom_review_decision_status.json",
+      "project_room_id": "build_review_packet",
+      "receipt_refs": [
+        "workroom_review_decision_status"
+      ],
+      "source_hash": "",
+      "source_inventory_ref": "source_inventory:build_review_packet",
+      "source_ref": "source:build_resolved_review_packet",
       "source_type": "review_decision_receipt"
     },
     {
-      "apparent_authority": "operator_current_request",
+      "apparent_authority": "preserved_original_sources",
       "claims_supported": [
-        "creative_goal",
-        "controller_mapping_target_if_supplied"
+        "Creative options may be explored."
       ],
-      "confidence_class": "operator_reported",
-      "date_claimed": "current_if_operator_supplied",
-      "date_observed": "2026-06-08T00:57:31+00:00",
+      "confidence_class": "operator_context",
+      "date_claimed": "Niles music/controller idea space",
+      "date_observed": "2026-06-08T01:03:14+00:00",
       "do_not_use_for": [
-        "finance_claims",
-        "client_payment_proof"
+        "unrelated business proof",
+        "unsourced factual setup claims"
       ],
-      "freshness_state": "current",
-      "full_source_reference_only": false,
-      "how_to_use": "Use for creative options and Niles voice planning.",
+      "freshness_state": "usable_creative_context",
+      "how_to_use": "Generate creative options and questions about controller targets.",
       "limitations": [
-        "software_or_controller_target_may_be_missing",
-        "not_factual_finance_truth"
+        "Does not prove software integration, controller target, or factual system behavior."
       ],
-      "path_or_artifact_ref": "operator_supplied:creative_mapping_notes",
-      "preview_available": true,
-      "receipt_refs": [],
+      "path_or_artifact_ref": "generated/read_models/operator_session_timeline.json",
+      "project_room_id": "niles_music_controller_mapping",
+      "receipt_refs": [
+        "operator_session_timeline"
+      ],
       "source_hash": "",
-      "source_ref": "source:niles:music_controller_notes",
+      "source_inventory_ref": "source_inventory:niles_music_controller_mapping",
+      "source_ref": "source:niles_creative_notes",
       "source_type": "creative_notes"
     },
     {
-      "apparent_authority": "validation_result",
+      "apparent_authority": "current_receipts_and_proof",
       "claims_supported": [
-        "blocker_named",
-        "validation_failure_known",
-        "repair_package_needs_validation_plan"
+        "Blocker proof must be named.",
+        "Validation plan is required before repair package adoption."
       ],
-      "confidence_class": "validation_backed",
-      "date_claimed": "current_when_validation_matches",
-      "date_observed": "2026-06-08T00:57:31+00:00",
+      "confidence_class": "receipt_backed",
+      "date_claimed": "blocker proof and repair doctrine",
+      "date_observed": "2026-06-08T01:03:14+00:00",
       "do_not_use_for": [
-        "auto_apply_repair",
-        "worker_spawn",
-        "service_restart_without_approval"
+        "execute repair",
+        "restart services",
+        "delete files"
       ],
-      "freshness_state": "current",
-      "full_source_reference_only": true,
-      "how_to_use": "Use to propose a repair package with validation and rollback.",
+      "freshness_state": "current_receipt",
+      "how_to_use": "Propose a repair package with blocker proof, validation plan, rollback plan, and receipt requirement.",
       "limitations": [
-        "does_not_grant_service_restart_or_worker_spawn"
+        "Does not authorize live repair execution."
       ],
-      "path_or_artifact_ref": "generated/read_models/self_heal_repair_doctrine.json#repair_blocker",
-      "preview_available": true,
+      "path_or_artifact_ref": "generated/read_models/self_heal_repair_doctrine.json",
+      "project_room_id": "self_heal_repair",
       "receipt_refs": [
-        "receipt:self_heal_repair_blocker_recorded"
+        "self_heal_repair_doctrine"
       ],
-      "source_hash": "sha256:self_heal_repair_blocker_validation",
-      "source_ref": "source:self_heal:repair_blocker_validation",
-      "source_type": "repair_blocker_summary"
+      "source_hash": "",
+      "source_inventory_ref": "source_inventory:self_heal_repair",
+      "source_ref": "source:self_heal_blocker_proof",
+      "source_type": "repair_doctrine_read_model"
     },
     {
-      "apparent_authority": "diagnostic_artifact_reference",
+      "apparent_authority": "current_source_inventory_rows",
       "claims_supported": [
-        "error_log_exists",
-        "safe_preview_available"
+        "Prior attempts and validation failures must be preserved in decision trace."
       ],
-      "confidence_class": "artifact_hash",
-      "date_claimed": "current_preview_only",
-      "date_observed": "2026-06-08T00:57:31+00:00",
+      "confidence_class": "receipt_backed_lesson",
+      "date_claimed": "prior repair/validation failure lesson",
+      "date_observed": "2026-06-08T01:03:14+00:00",
       "do_not_use_for": [
-        "dump_full_log",
-        "broad_cleanup_authority"
+        "live self-optimization",
+        "black-box repair success claim"
       ],
-      "freshness_state": "current",
-      "full_source_reference_only": true,
-      "how_to_use": "Use preview/ref for diagnosis; request scoped inspection if needed.",
+      "freshness_state": "current_supporting_context",
+      "how_to_use": "Include prior attempts and what not to repeat in repair package planning.",
       "limitations": [
-        "full_log_not_embedded",
-        "raw_body_not_agent_visible"
+        "Cannot auto-apply a harness update."
       ],
-      "path_or_artifact_ref": "logref:openclaw:error_log:preview_only",
-      "preview_available": true,
+      "path_or_artifact_ref": "generated/read_models/retrospective_harness_learning_seed.json",
+      "project_room_id": "self_heal_repair",
       "receipt_refs": [
-        "receipt:large_log_preview_created"
+        "retrospective_harness_learning_seed"
       ],
-      "source_hash": "sha256:large_error_log_reference",
-      "source_ref": "source:system:large_error_log",
-      "source_type": "large_log_reference"
+      "source_hash": "",
+      "source_inventory_ref": "source_inventory:self_heal_repair",
+      "source_ref": "source:self_heal_validation_failure",
+      "source_type": "retrospective_failure_record"
     },
     {
-      "apparent_authority": "low_supporting_summary",
+      "apparent_authority": "generated_summaries",
       "claims_supported": [
-        "possible_prior_context"
+        "May indicate a past task existed."
       ],
-      "confidence_class": "generated_summary",
-      "date_claimed": "old",
-      "date_observed": "2026-06-08T00:57:31+00:00",
+      "confidence_class": "stale_summary",
+      "date_claimed": "older task state",
+      "date_observed": "2026-06-08T01:03:14+00:00",
       "do_not_use_for": [
-        "current_truth",
-        "final_synthesis"
+        "current truth",
+        "final answer",
+        "action package"
       ],
       "freshness_state": "stale",
-      "full_source_reference_only": true,
-      "how_to_use": "Use only to ask for verification.",
+      "how_to_use": "Mark Needs verification and request current source or receipt.",
       "limitations": [
-        "cannot_enter_as_current_truth",
-        "requires_refresh"
+        "Cannot be used as current truth.",
+        "Needs verification before synthesis."
       ],
-      "path_or_artifact_ref": "generated_summary:old_project_room_summary",
-      "preview_available": false,
+      "path_or_artifact_ref": "generated/read_models/openclaw_request_processor_OPERATOR.md",
+      "project_room_id": "stale_source",
       "receipt_refs": [],
       "source_hash": "",
-      "source_ref": "source:system:stale_prior_summary",
+      "source_inventory_ref": "source_inventory:stale_source",
+      "source_ref": "source:stale_generated_summary",
       "source_type": "generated_summary"
+    },
+    {
+      "apparent_authority": "preserved_original_sources",
+      "claims_supported": [
+        "Shows historical context."
+      ],
+      "confidence_class": "superseded_history",
+      "date_claimed": "older source family member",
+      "date_observed": "2026-06-08T01:03:14+00:00",
+      "do_not_use_for": [
+        "current truth",
+        "unreviewed final synthesis"
+      ],
+      "freshness_state": "superseded",
+      "how_to_use": "Preserve as history and compare against current source when available.",
+      "limitations": [
+        "Cannot outrank current receipts or current inventory rows."
+      ],
+      "path_or_artifact_ref": "docs/planning/launch_ladder/source_set_bridges/backend_data_contract_first_planning_slice_decision_20260505.md",
+      "project_room_id": "stale_source",
+      "receipt_refs": [],
+      "source_hash": "",
+      "source_inventory_ref": "source_inventory:stale_source",
+      "source_ref": "source:superseded_source_version",
+      "source_type": "older_source_version"
     }
   ],
   "source_inventory_fields": [
@@ -843,8 +1040,6 @@
     "limitations",
     "how_to_use",
     "do_not_use_for",
-    "preview_available",
-    "full_source_reference_only",
     "source_hash",
     "receipt_refs"
   ],
@@ -852,57 +1047,22 @@
     "generated/read_models/context_freshness_decision_trace_gate.json",
     "generated/read_models/proof_bundle_freshness_trace_status.json",
     "generated/read_models/retrospective_harness_learning_seed.json",
-    "generated/read_models/context_compaction_preview_policy.json",
     "generated/read_models/proof_bundle_redaction_policy.json",
     "generated/read_models/universal_receipt_envelope_status.json",
     "generated/read_models/operator_session_timeline.json",
     "generated/read_models/goldilocks_gate_calibration.json"
   ],
-  "source_room_gate_examples": {
-    "with_inventory_and_clear_gates": {
-      "authority_ranked": true,
-      "conflicts_logged": true,
-      "duplicates_reported": true,
-      "freshness_gate_applied": true,
-      "missing_context_named": true,
-      "source_inventory_exists": true,
-      "synthesis_allowed": true,
-      "synthesis_allowed_without_inventory": false,
-      "unresolved_blocking_context": false
-    },
-    "with_unresolved_blocking_context": {
-      "authority_ranked": true,
-      "conflicts_logged": true,
-      "duplicates_reported": true,
-      "freshness_gate_applied": true,
-      "missing_context_named": true,
-      "source_inventory_exists": true,
-      "synthesis_allowed": false,
-      "synthesis_allowed_without_inventory": false,
-      "unresolved_blocking_context": true
-    },
-    "without_inventory": {
-      "authority_ranked": true,
-      "conflicts_logged": true,
-      "duplicates_reported": true,
-      "freshness_gate_applied": true,
-      "missing_context_named": true,
-      "source_inventory_exists": false,
-      "synthesis_allowed": false,
-      "synthesis_allowed_without_inventory": false,
-      "unresolved_blocking_context": false
-    }
-  },
   "sqlite_summary": {
     "sqlite_path": "/home/openclaw/generated/system_knowledge/project_room_sourceset_contract.sqlite",
     "sqlite_record_kind_counts": {
       "conflict_log": 2,
-      "duplicate_version_report": 2,
-      "missing_context": 3,
-      "required_scenario": 7,
-      "source_inventory": 9
+      "decision_trace": 6,
+      "duplicate_version_report": 6,
+      "missing_context": 4,
+      "project_room": 6,
+      "source_inventory": 10
     },
-    "sqlite_row_count": 23
+    "sqlite_row_count": 34
   },
   "status": "PROJECT_ROOM_SOURCESET_CONTRACT_READY",
   "unsafe_true_grants": []

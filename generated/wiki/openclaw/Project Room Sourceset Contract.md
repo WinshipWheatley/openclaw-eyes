@@ -2,7 +2,7 @@
 
 Status: PROJECT_ROOM_SOURCESET_CONTRACT_READY
 
-The first step for serious work is to build the room: inventory sources, surface conflicts, name missing context, identify duplicate/version families, and apply freshness and authority before synthesis.
+This contract says serious OpenClaw work starts by building the room: source inventory first, conflicts and gaps surfaced before synthesis, and receipts outranking generated summaries.
 
 ## Core Doctrine
 
@@ -17,66 +17,48 @@ The first step for serious work is to build the room: inventory sources, surface
 - Agent may not silently resolve contradictions.
 - Memory is a hint, not truth.
 - Current receipts and proof beat generated summaries.
-- Large files and logs are previewed or referenced, not dumped into model context.
 
-## Project Room Fields
+## Rules
 
-- `project_room_id`
-- `objective_ref`
-- `world_ref`
-- `thread_ref`
-- `workspace_scope`
-- `source_set_ref`
-- `source_inventory_ref`
-- `conflict_log_ref`
-- `missing_context_ref`
-- `duplicate_report_ref`
-- `decision_trace_ref`
-- `authority_ranking_ref`
-- `freshness_gate_ref`
-- `compaction_policy_ref`
-- `allowed_next_steps`
-- `blocked_next_steps`
-- `synthesis_allowed`
+- Do not synthesize final output until source inventory exists.
+- Do not treat old versions as current.
+- Do not delete duplicates automatically.
+- Do not let duplicated docs overweight synthesis.
+- Do not use missing context as permission to invent.
+- Do not let generated summaries outrank receipts.
+- Project room may stage a package only after source room gates are satisfied.
 
-## Source Inventory
+## Project Rooms
 
-- `source:finance:capital_hilton:payment_watch_receipt` (current, receipt_backed): payment_processor_processing, paid_false, ledger_untouched, payment_evidence_missing
-- `source:finance:capital_hilton:generated_payment_summary` (superseded, generated_summary): may_explain_payment_watch
-- `source:bd:capital_hilton:proposal_status` (current, receipt_backed): proposal_followup_state_known, draft_can_be_staged
-- `source:bd:capital_hilton:older_followup_note` (stale, unpromoted_memory): possible_followup_status
-- `source:build:review_packet_resolved` (historical, receipt_backed): review_packet_informational_or_resolved, prior_review_decision_exists
-- `source:niles:music_controller_notes` (current, operator_reported): creative_goal, controller_mapping_target_if_supplied
-- `source:self_heal:repair_blocker_validation` (current, validation_backed): blocker_named, validation_failure_known, repair_package_needs_validation_plan
-- `source:system:large_error_log` (current, artifact_hash): error_log_exists, safe_preview_available
-- `source:system:stale_prior_summary` (stale, generated_summary): possible_prior_context
+- `finance_capital_hilton_payment_watch`: synthesis `true` (explanation_and_next_step_only); allowed: explain payment-watch state, ask for payment evidence, stage next-step wording; blocked: mark paid, mutate ledger, export PDF, read workbook cells as proof
+- `business_development_capital_hilton_follow_up`: synthesis `false` (blocked_until_conflict_or_operator_decision_resolves); allowed: surface proposal/follow-up conflict, ask for current receipt, draft only after source gate; blocked: send follow-up, claim follow-up sent, silently resolve status conflict
+- `build_review_packet`: synthesis `true` (historical_summary_only); allowed: summarize historical packet, cite prior review decision, ask if reopened; blocked: treat resolved packet as active work, show as ready-for-review
+- `niles_music_controller_mapping`: synthesis `true` (creative_options_only); allowed: offer creative options, ask for controller/software target; blocked: make factual controller claims, import unrelated finance proof, claim integration exists
+- `self_heal_repair`: synthesis `true` (repair_package_proposal_only); allowed: propose repair package with validation plan, name blocker proof, include rollback plan; blocked: execute repair, restart services, claim repair success without receipt
+- `stale_source`: synthesis `false` (blocked_or_needs_verification); allowed: mark Needs verification, ask for current source, preserve originals as history; blocked: final synthesis, current truth claim, delete older versions
 
 ## Conflicts
 
-- `conflict:bd_capital_hilton_followup_status`: Current proposal/follow-up state and older memory hint may disagree.
-- `conflict:finance_generated_summary_vs_receipt`: Generated payment summaries may be stale or less precise than current payment-watch receipts.
+- `conflict:bd_proposal_follow_up_status`: Proposal status and follow-up status disagree or are not proven by the same current receipt.
+- `conflict:stale_summary_vs_current_truth`: Stale generated summary and older source version cannot establish current truth.
 
 ## Missing Context
 
-- `missing:finance_capital_hilton_payment_evidence`: Payment evidence is missing. Safe wording: Payment evidence is missing; ledger and paid state remain untouched.
-- `missing:niles_controller_or_software_target`: Specific controller or software target may be absent. Safe wording: I can sketch creative mapping options, but I need the controller/software target for exact setup guidance.
-- `missing:stale_source_refresh`: A stale source lacks a current receipt. Safe wording: Needs verification before I treat this as current.
+- `missing_context:finance_payment_evidence`: Payment evidence is missing. Safe wording: Payment evidence is missing; I can explain the watch state and next step, but cannot mark paid.
+- `missing_context:bd_send_authority`: No send authority is present. Safe wording: I can prepare a draft or list missing context, but I cannot send it.
+- `missing_context:niles_controller_target`: Software/controller target is absent. Safe wording: I can offer creative mapping options and questions; I cannot make factual controller claims without a source.
+- `missing_context:stale_current_source`: Current source or receipt is missing. Safe wording: This source appears stale and needs verification before final synthesis.
 
-## Duplicate / Version Report
+## Duplicate / Version Families
 
-- `version_family:capital_hilton_payment_watch_summaries`: current `source:finance:capital_hilton:payment_watch_receipt`, deletion allowed `false`
-- `version_family:build_review_packet_history`: current `source:build:review_packet_resolved`, deletion allowed `false`
+- `version_family:finance_payment_watch`: likely current `source:finance_payment_watch_state`, deletion allowed `false`
+- `version_family:bd_capital_hilton_follow_up`: likely current `operator_decision_required`, deletion allowed `false`
+- `version_family:build_review_packet`: likely current `source:build_resolved_review_packet`, deletion allowed `false`
+- `version_family:niles_music_controller_mapping`: likely current `source:niles_creative_notes`, deletion allowed `false`
+- `version_family:self_heal_repair`: likely current `source:self_heal_blocker_proof`, deletion allowed `false`
+- `version_family:stale_source`: likely current `current_source_missing`, deletion allowed `false`
 
-## Required Scenarios
+## Authority
 
-- `finance_capital_hilton_payment_watch`: explanation_and_next_step_only
-- `business_development_capital_hilton_followup`: draft_or_explain_followup_only
-- `build_review_packet`: historical_summary_only
-- `niles_music_controller_mapping`: creative_options_only_until_target_supplied
-- `self_heal_repair`: repair_package_with_validation_plan
-- `stale_source`: needs_verification_only
-- `large_artifact_log_source`: diagnostic_preview_only
-
-## Boundary
-
-This contract is review/read-model work only. It does not invoke models, touch business systems, mutate ledgers/workbooks, mark paid, submit, push, or delete duplicates.
+- Authority order: current_receipts_and_proof > operator_decisions_with_receipts > preserved_original_sources > current_source_inventory_rows > generated_summaries > memory_hints
+- Current receipts/proof beat generated summaries and memory hints.

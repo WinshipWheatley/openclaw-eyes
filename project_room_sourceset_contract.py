@@ -1,10 +1,10 @@
-"""Project Room / Source Room contract V0.
+"""Project Room / Source Room sourceset contract V0.
 
-Defines the source-set contract OpenClaw must build before serious drafting,
-coding, packaging, or answering. The contract is generated/read-model/wiki/SQLite
-work only; it does not invoke models, connect runtimes, spawn workers, send
-email, open browser/Gmail/Coupa, mutate ledgers/workbooks, export PDFs, mark
-paid, submit, or push.
+This module publishes a deterministic contract for building a source room
+before serious OpenClaw work. It records source inventories, conflicts, missing
+context, duplicate/version families, decision traces, authority, and freshness.
+It does not invoke models, connect runtimes, spawn workers, touch business
+systems, mutate ledgers/workbooks, export PDFs, submit anything, or push git.
 """
 
 from __future__ import annotations
@@ -17,10 +17,6 @@ import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping
-
-import context_compaction_preview_policy as compaction_policy
-import context_freshness_decision_trace_gate as freshness_gate
-import proof_to_response_runtime
 
 
 ROOT = Path(__file__).resolve().parent
@@ -38,8 +34,8 @@ NOT_READY_STATUS = "PROJECT_ROOM_SOURCESET_CONTRACT_NOT_READY"
 
 PRECONDITIONS = {
     "context_freshness_decision_trace_gate": {
-        "filename": freshness_gate.JSON_EXPORT_NAME,
-        "accepted_statuses": (freshness_gate.READY_STATUS,),
+        "filename": "context_freshness_decision_trace_gate.json",
+        "accepted_statuses": ("CONTEXT_FRESHNESS_DECISION_TRACE_GATE_READY",),
     },
     "proof_bundle_freshness_trace_integration": {
         "filename": "proof_bundle_freshness_trace_status.json",
@@ -48,10 +44,6 @@ PRECONDITIONS = {
     "retrospective_harness_learning_seed": {
         "filename": "retrospective_harness_learning_seed.json",
         "accepted_statuses": ("RETROSPECTIVE_HARNESS_LEARNING_SEED_READY",),
-    },
-    "context_compaction_preview_policy": {
-        "filename": compaction_policy.JSON_EXPORT_NAME,
-        "accepted_statuses": (compaction_policy.READY_STATUS,),
     },
     "proof_bundle_redaction_hardening": {
         "filename": "proof_bundle_redaction_policy.json",
@@ -71,21 +63,6 @@ PRECONDITIONS = {
     },
 }
 
-CORE_DOCTRINE = (
-    "First prompt for serious work is not do the thing.",
-    "First step is build the room.",
-    "Originals are preserved.",
-    "Source inventory is created before synthesis.",
-    "Conflicts are surfaced before drafting.",
-    "Missing context is named before invention.",
-    "Duplicates and version families are identified before weighting.",
-    "Authority and freshness are explicit.",
-    "Agent may not silently resolve contradictions.",
-    "Memory is a hint, not truth.",
-    "Current receipts and proof beat generated summaries.",
-    "Large files and logs are previewed or referenced, not dumped into model context.",
-)
-
 PROJECT_ROOM_FIELDS = (
     "project_room_id",
     "objective_ref",
@@ -100,7 +77,6 @@ PROJECT_ROOM_FIELDS = (
     "decision_trace_ref",
     "authority_ranking_ref",
     "freshness_gate_ref",
-    "compaction_policy_ref",
     "allowed_next_steps",
     "blocked_next_steps",
     "synthesis_allowed",
@@ -119,14 +95,13 @@ SOURCE_INVENTORY_FIELDS = (
     "limitations",
     "how_to_use",
     "do_not_use_for",
-    "preview_available",
-    "full_source_reference_only",
     "source_hash",
     "receipt_refs",
 )
 
 CONFLICT_LOG_FIELDS = (
     "conflict_ref",
+    "project_room_id",
     "conflicting_source_refs",
     "conflict_summary",
     "affected_claims",
@@ -137,6 +112,7 @@ CONFLICT_LOG_FIELDS = (
 
 MISSING_CONTEXT_FIELDS = (
     "missing_context_ref",
+    "project_room_id",
     "gap_summary",
     "why_it_matters",
     "source_that_implies_gap",
@@ -146,6 +122,7 @@ MISSING_CONTEXT_FIELDS = (
 
 DUPLICATE_REPORT_FIELDS = (
     "version_family_ref",
+    "project_room_id",
     "candidate_source_refs",
     "likely_current_source_ref",
     "older_or_superseded_refs",
@@ -154,38 +131,75 @@ DUPLICATE_REPORT_FIELDS = (
     "deletion_allowed",
 )
 
+DECISION_TRACE_FIELDS = (
+    "decision_trace_ref",
+    "project_room_id",
+    "prior_attempts",
+    "rejected_attempts",
+    "operator_decisions",
+    "receipts",
+    "what_changed",
+    "what_not_to_repeat",
+)
+
+REQUIRED_SCENARIOS = (
+    "finance_capital_hilton_payment_watch",
+    "business_development_capital_hilton_follow_up",
+    "build_review_packet",
+    "niles_music_controller_mapping",
+    "self_heal_repair",
+    "stale_source",
+)
+
+CORE_DOCTRINE = (
+    "First prompt for serious work is not do the thing.",
+    "First step is build the room.",
+    "Originals are preserved.",
+    "Source inventory is created before synthesis.",
+    "Conflicts are surfaced before drafting.",
+    "Missing context is named before invention.",
+    "Duplicates and version families are identified before weighting.",
+    "Authority and freshness are explicit.",
+    "Agent may not silently resolve contradictions.",
+    "Memory is a hint, not truth.",
+    "Current receipts and proof beat generated summaries.",
+)
+
+RULES = (
+    "Do not synthesize final output until source inventory exists.",
+    "Do not treat old versions as current.",
+    "Do not delete duplicates automatically.",
+    "Do not let duplicated docs overweight synthesis.",
+    "Do not use missing context as permission to invent.",
+    "Do not let generated summaries outrank receipts.",
+    "Project room may stage a package only after source room gates are satisfied.",
+)
+
 AUTHORITY_BOUNDARY = {
-    "protected_actions_allowed": False,
-    "authority_granted": False,
-    "authority_grant_allowed": False,
     "model_invocation_allowed": False,
+    "local_model_runtime_allowed": False,
     "worker_spawn_allowed": False,
-    "tool_authority_allowed": False,
-    "business_action_allowed": False,
     "email_send_allowed": False,
     "gmail_allowed": False,
     "browser_access_allowed": False,
     "coupa_allowed": False,
     "portal_submit_allowed": False,
     "ledger_mutation_allowed": False,
-    "paid_marking_allowed": False,
     "workbook_mutation_allowed": False,
     "pdf_export_allowed": False,
-    "git_push_allowed": False,
-    "merge_allowed": False,
+    "paid_marking_allowed": False,
+    "source_deletion_allowed": False,
     "duplicate_deletion_allowed": False,
     "silent_conflict_resolution_allowed": False,
-    "missing_context_invention_allowed": False,
-    "generated_summary_override_allowed": False,
-    "stale_context_current_truth_allowed": False,
-    "full_log_dump_allowed": False,
+    "generated_summary_authority_allowed": False,
+    "protected_action_allowed": False,
+    "git_push_allowed": False,
 }
 
 IMPLEMENTATION_BOUNDARY = {
     "model_invoked": False,
     "runtime_connected": False,
     "local_model_runtime_connected": False,
-    "external_provider_connected": False,
     "worker_spawn_performed": False,
     "email_send_performed": False,
     "gmail_opened": False,
@@ -193,35 +207,34 @@ IMPLEMENTATION_BOUNDARY = {
     "coupa_opened": False,
     "portal_submit_performed": False,
     "ledger_mutation_performed": False,
-    "paid_marking_performed": False,
     "workbook_mutation_performed": False,
     "pdf_export_performed": False,
+    "paid_marking_performed": False,
     "submit_performed": False,
+    "source_deleted": False,
+    "duplicate_deleted": False,
     "git_push_performed": False,
-    "merge_performed": False,
-    "duplicate_deletion_performed": False,
 }
 
 UNSAFE_TRUE_KEYS = (
     set(AUTHORITY_BOUNDARY)
     | set(IMPLEMENTATION_BOUNDARY)
-    | set(freshness_gate.UNSAFE_TRUE_KEYS)
-    | set(compaction_policy.UNSAFE_TRUE_KEYS)
-    | set(proof_to_response_runtime.UNSAFE_TRUE_KEYS)
     | {
-        "paid",
-        "sent",
-        "submitted",
-        "executed",
-        "mark_paid_allowed",
-        "ledger_action_allowed",
-        "send_authority",
+        "authority_granted",
+        "protected_action_performed",
+        "final_output_synthesized_without_inventory",
+        "generated_summary_outranked_receipt",
+        "superseded_source_current_truth",
+        "unsupported_claim_allowed",
+        "silent_conflict_resolution_performed",
         "deletion_allowed",
-        "synthesis_allowed_without_inventory",
-        "old_version_current_truth_allowed",
-        "duplicated_docs_overweight_allowed",
-        "full_source_dumped",
-        "unrelated_finance_proof_included",
+        "send_authority_granted",
+        "paid_action_allowed",
+        "ledger_action_allowed",
+        "business_action_performed",
+        "submitted",
+        "sent",
+        "paid",
     }
 )
 
@@ -239,7 +252,7 @@ def _rooted(path: Path | str) -> Path:
     return path if path.is_absolute() else ROOT / path
 
 
-def _load_json(path: Path) -> dict[str, Any]:
+def _load_json(path: Path | str) -> dict[str, Any]:
     path = _rooted(path)
     if not path.exists():
         return {}
@@ -250,7 +263,8 @@ def _load_json(path: Path) -> dict[str, Any]:
     return payload if isinstance(payload, dict) else {}
 
 
-def _write_json(path: Path, payload: Mapping[str, Any]) -> None:
+def _write_json(path: Path | str, payload: Mapping[str, Any]) -> None:
+    path = _rooted(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(stable_json(payload), encoding="utf-8")
 
@@ -274,7 +288,7 @@ def unsafe_true_grants(payload: Mapping[str, Any]) -> list[str]:
 
 
 def _status(payload: Mapping[str, Any]) -> str:
-    return str(payload.get("readiness_status") or payload.get("status") or payload.get("contract_status") or "")
+    return str(payload.get("status") or payload.get("readiness_status") or payload.get("contract_status") or "")
 
 
 def precondition_rows(read_model_root: Path = DEFAULT_READ_MODEL_ROOT) -> list[dict[str, Any]]:
@@ -297,220 +311,277 @@ def precondition_rows(read_model_root: Path = DEFAULT_READ_MODEL_ROOT) -> list[d
     return rows
 
 
-def project_room_template() -> dict[str, Any]:
+def authority_rankings() -> list[dict[str, Any]]:
+    return [
+        {
+            "authority_ranking_ref": "authority_ranking:receipt_first",
+            "ranked_authority": [
+                "current_receipts_and_proof",
+                "operator_decisions_with_receipts",
+                "preserved_original_sources",
+                "current_source_inventory_rows",
+                "generated_summaries",
+                "memory_hints",
+            ],
+            "generated_summary_rule": "Generated summaries explain source material but never outrank receipts, originals, or current proof.",
+            "memory_rule": "Memory may suggest where to look, but memory is not truth until proof-backed in the room.",
+        }
+    ]
+
+
+def freshness_gates() -> list[dict[str, Any]]:
+    return [
+        {
+            "freshness_gate_ref": "freshness_gate:receipt_current_or_needs_verification",
+            "current_truth_requires": [
+                "source_inventory_row_exists",
+                "freshness_state_is_current_or_current_receipt",
+                "not_superseded",
+                "not_generated_summary_only",
+                "no_unresolved_conflict_for_claim",
+            ],
+            "blocked_state": "Needs verification",
+            "stale_source_policy": "Synthesis is blocked or explicitly marked Needs verification when sources are stale, superseded, or untraceable.",
+        }
+    ]
+
+
+def _source(
+    *,
+    inventory_ref: str,
+    room_id: str,
+    source_ref: str,
+    artifact: str,
+    source_type: str,
+    observed: str,
+    claimed: str,
+    authority: str,
+    freshness: str,
+    confidence: str,
+    claims: list[str],
+    limitations: list[str],
+    how_to_use: str,
+    do_not_use_for: list[str],
+    receipts: list[str],
+    source_hash: str = "",
+) -> dict[str, Any]:
     return {
-        "project_room_id": "project_room:template",
-        "objective_ref": "",
-        "world_ref": "",
-        "thread_ref": "",
-        "workspace_scope": "bounded_to_current_project_room",
-        "source_set_ref": "source_set:required_before_synthesis",
-        "source_inventory_ref": "source_inventory:required",
-        "conflict_log_ref": "conflict_log:required_even_if_empty",
-        "missing_context_ref": "missing_context:required_even_if_empty",
-        "duplicate_report_ref": "duplicate_report:required_even_if_empty",
-        "decision_trace_ref": "decision_trace:required_even_if_empty",
-        "authority_ranking_ref": "authority_ranking:receipts_over_summaries",
-        "freshness_gate_ref": "generated/read_models/context_freshness_decision_trace_gate.json",
-        "compaction_policy_ref": "generated/read_models/context_compaction_preview_policy.json",
-        "allowed_next_steps": ["inventory_sources", "surface_conflicts", "name_missing_context", "prepare_safe_plan"],
-        "blocked_next_steps": ["draft_final_output_without_inventory", "silently_resolve_conflicts", "invent_missing_context", "delete_duplicates"],
-        "synthesis_allowed": False,
+        "source_inventory_ref": inventory_ref,
+        "project_room_id": room_id,
+        "source_ref": source_ref,
+        "path_or_artifact_ref": artifact,
+        "source_type": source_type,
+        "date_observed": observed,
+        "date_claimed": claimed,
+        "apparent_authority": authority,
+        "freshness_state": freshness,
+        "confidence_class": confidence,
+        "claims_supported": claims,
+        "limitations": limitations,
+        "how_to_use": how_to_use,
+        "do_not_use_for": do_not_use_for,
+        "source_hash": source_hash,
+        "receipt_refs": receipts,
     }
 
 
 def source_inventory(generated_at: str) -> list[dict[str, Any]]:
     return [
-        {
-            "source_ref": "source:finance:capital_hilton:payment_watch_receipt",
-            "path_or_artifact_ref": "generated/read_models/proof_bundle_freshness_trace_status.json#finance_capital_hilton_payment_watch",
-            "source_type": "receipt_backed_read_model",
-            "date_observed": generated_at,
-            "date_claimed": "current",
-            "apparent_authority": "current_receipt",
-            "freshness_state": "current",
-            "confidence_class": "receipt_backed",
-            "claims_supported": ["payment_processor_processing", "paid_false", "ledger_untouched", "payment_evidence_missing"],
-            "limitations": ["does_not_prove_paid", "does_not_authorize_ledger_mutation"],
-            "how_to_use": "Use for explanation and next safe step only.",
-            "do_not_use_for": ["mark_paid", "ledger_posting", "Coupa_submit"],
-            "preview_available": True,
-            "full_source_reference_only": True,
-            "source_hash": "sha256:finance_capital_hilton_payment_watch_receipt",
-            "receipt_refs": ["receipt:capital_hilton_payment_watch_current"],
-        },
-        {
-            "source_ref": "source:finance:capital_hilton:generated_payment_summary",
-            "path_or_artifact_ref": "generated/read_models/proof_to_response_latest.json#historical_summary",
-            "source_type": "generated_summary",
-            "date_observed": generated_at,
-            "date_claimed": "superseded_by_current_receipt",
-            "apparent_authority": "low_supporting_summary",
-            "freshness_state": "superseded",
-            "confidence_class": "generated_summary",
-            "claims_supported": ["may_explain_payment_watch"],
-            "limitations": ["cannot_override_current_receipt", "cannot_prove_paid"],
-            "how_to_use": "Use only as supporting wording after receipt-backed facts are selected.",
-            "do_not_use_for": ["current_truth", "paid_truth", "authority_decision"],
-            "preview_available": True,
-            "full_source_reference_only": True,
-            "source_hash": "sha256:finance_capital_hilton_generated_summary",
-            "receipt_refs": [],
-        },
-        {
-            "source_ref": "source:bd:capital_hilton:proposal_status",
-            "path_or_artifact_ref": "generated/read_models/objective_advancement_protocol.json#business_development_capital_hilton",
-            "source_type": "proposal_status_read_model",
-            "date_observed": generated_at,
-            "date_claimed": "current_if_latest_receipt_matches",
-            "apparent_authority": "route_read_model",
-            "freshness_state": "current",
-            "confidence_class": "receipt_backed",
-            "claims_supported": ["proposal_followup_state_known", "draft_can_be_staged"],
-            "limitations": ["does_not_authorize_send"],
-            "how_to_use": "Use to stage or explain follow-up draft workflow.",
-            "do_not_use_for": ["send_email", "external_submission"],
-            "preview_available": True,
-            "full_source_reference_only": True,
-            "source_hash": "sha256:bd_capital_hilton_proposal_status",
-            "receipt_refs": ["receipt:bd_capital_hilton_followup_current"],
-        },
-        {
-            "source_ref": "source:bd:capital_hilton:older_followup_note",
-            "path_or_artifact_ref": "memory:capital_hilton_followup_old_note",
-            "source_type": "operator_memory_hint",
-            "date_observed": generated_at,
-            "date_claimed": "unknown",
-            "apparent_authority": "memory_hint",
-            "freshness_state": "stale",
-            "confidence_class": "unpromoted_memory",
-            "claims_supported": ["possible_followup_status"],
-            "limitations": ["may_disagree_with_current_proposal_status", "not_canonical_truth"],
-            "how_to_use": "Use only to ask for verification or flag conflict.",
-            "do_not_use_for": ["current_followup_truth", "send_authority"],
-            "preview_available": False,
-            "full_source_reference_only": True,
-            "source_hash": "",
-            "receipt_refs": [],
-        },
-        {
-            "source_ref": "source:build:review_packet_resolved",
-            "path_or_artifact_ref": "generated/read_models/workroom_review_decision_status.json#review_packet_c4ec166103f9aa35",
-            "source_type": "review_decision_receipt",
-            "date_observed": generated_at,
-            "date_claimed": "historical_resolved",
-            "apparent_authority": "review_decision_receipt",
-            "freshness_state": "historical",
-            "confidence_class": "receipt_backed",
-            "claims_supported": ["review_packet_informational_or_resolved", "prior_review_decision_exists"],
-            "limitations": ["not_active_ready_for_review"],
-            "how_to_use": "Use as history and decision trace.",
-            "do_not_use_for": ["active_review_work", "merge", "push"],
-            "preview_available": True,
-            "full_source_reference_only": True,
-            "source_hash": "sha256:build_review_packet_resolved",
-            "receipt_refs": ["receipt:workroom_review_decision_recorded"],
-        },
-        {
-            "source_ref": "source:niles:music_controller_notes",
-            "path_or_artifact_ref": "operator_supplied:creative_mapping_notes",
-            "source_type": "creative_notes",
-            "date_observed": generated_at,
-            "date_claimed": "current_if_operator_supplied",
-            "apparent_authority": "operator_current_request",
-            "freshness_state": "current",
-            "confidence_class": "operator_reported",
-            "claims_supported": ["creative_goal", "controller_mapping_target_if_supplied"],
-            "limitations": ["software_or_controller_target_may_be_missing", "not_factual_finance_truth"],
-            "how_to_use": "Use for creative options and Niles voice planning.",
-            "do_not_use_for": ["finance_claims", "client_payment_proof"],
-            "preview_available": True,
-            "full_source_reference_only": False,
-            "source_hash": "",
-            "receipt_refs": [],
-        },
-        {
-            "source_ref": "source:self_heal:repair_blocker_validation",
-            "path_or_artifact_ref": "generated/read_models/self_heal_repair_doctrine.json#repair_blocker",
-            "source_type": "repair_blocker_summary",
-            "date_observed": generated_at,
-            "date_claimed": "current_when_validation_matches",
-            "apparent_authority": "validation_result",
-            "freshness_state": "current",
-            "confidence_class": "validation_backed",
-            "claims_supported": ["blocker_named", "validation_failure_known", "repair_package_needs_validation_plan"],
-            "limitations": ["does_not_grant_service_restart_or_worker_spawn"],
-            "how_to_use": "Use to propose a repair package with validation and rollback.",
-            "do_not_use_for": ["auto_apply_repair", "worker_spawn", "service_restart_without_approval"],
-            "preview_available": True,
-            "full_source_reference_only": True,
-            "source_hash": "sha256:self_heal_repair_blocker_validation",
-            "receipt_refs": ["receipt:self_heal_repair_blocker_recorded"],
-        },
-        {
-            "source_ref": "source:system:large_error_log",
-            "path_or_artifact_ref": "logref:openclaw:error_log:preview_only",
-            "source_type": "large_log_reference",
-            "date_observed": generated_at,
-            "date_claimed": "current_preview_only",
-            "apparent_authority": "diagnostic_artifact_reference",
-            "freshness_state": "current",
-            "confidence_class": "artifact_hash",
-            "claims_supported": ["error_log_exists", "safe_preview_available"],
-            "limitations": ["full_log_not_embedded", "raw_body_not_agent_visible"],
-            "how_to_use": "Use preview/ref for diagnosis; request scoped inspection if needed.",
-            "do_not_use_for": ["dump_full_log", "broad_cleanup_authority"],
-            "preview_available": True,
-            "full_source_reference_only": True,
-            "source_hash": "sha256:large_error_log_reference",
-            "receipt_refs": ["receipt:large_log_preview_created"],
-        },
-        {
-            "source_ref": "source:system:stale_prior_summary",
-            "path_or_artifact_ref": "generated_summary:old_project_room_summary",
-            "source_type": "generated_summary",
-            "date_observed": generated_at,
-            "date_claimed": "old",
-            "apparent_authority": "low_supporting_summary",
-            "freshness_state": "stale",
-            "confidence_class": "generated_summary",
-            "claims_supported": ["possible_prior_context"],
-            "limitations": ["cannot_enter_as_current_truth", "requires_refresh"],
-            "how_to_use": "Use only to ask for verification.",
-            "do_not_use_for": ["current_truth", "final_synthesis"],
-            "preview_available": False,
-            "full_source_reference_only": True,
-            "source_hash": "",
-            "receipt_refs": [],
-        },
+        _source(
+            inventory_ref="source_inventory:finance_capital_hilton_payment_watch",
+            room_id="finance_capital_hilton_payment_watch",
+            source_ref="source:finance_payment_watch_state",
+            artifact="generated/read_models/proof_to_response_latest.json",
+            source_type="current_receipt_read_model",
+            observed=generated_at,
+            claimed="current payment-watch state",
+            authority="current_receipts_and_proof",
+            freshness="current_receipt",
+            confidence="receipt_backed",
+            claims=["Coupa processing is still in progress.", "paid=false", "ledger untouched"],
+            limitations=["Does not prove payment completion.", "Does not authorize ledger mutation."],
+            how_to_use="Explain the payment-watch state and the smallest next step.",
+            do_not_use_for=["mark paid", "mutate ledger", "export payment packet as complete"],
+            receipts=["proof_to_response_runtime_status", "finance_payment_watch_receipt"],
+            source_hash="optional:future_source_inventory_hash",
+        ),
+        _source(
+            inventory_ref="source_inventory:finance_capital_hilton_payment_watch",
+            room_id="finance_capital_hilton_payment_watch",
+            source_ref="source:finance_generated_summary",
+            artifact="generated/read_models/openclaw_request_processor_OPERATOR.md",
+            source_type="generated_summary",
+            observed=generated_at,
+            claimed="summary of finance lane",
+            authority="generated_summaries",
+            freshness="support_only",
+            confidence="summary_only",
+            claims=["May help locate the finance task."],
+            limitations=["Cannot override payment-watch receipts."],
+            how_to_use="Use only as a navigation hint after receipt-backed inventory rows are present.",
+            do_not_use_for=["current truth", "paid status", "ledger status"],
+            receipts=[],
+        ),
+        _source(
+            inventory_ref="source_inventory:business_development_capital_hilton_follow_up",
+            room_id="business_development_capital_hilton_follow_up",
+            source_ref="source:bd_proposal_state",
+            artifact="generated/read_models/proof_to_response_latest.json",
+            source_type="proposal_status_receipt",
+            observed=generated_at,
+            claimed="proposal waiting for follow-up",
+            authority="current_receipts_and_proof",
+            freshness="current_receipt",
+            confidence="receipt_backed",
+            claims=["Proposal exists.", "Follow-up may be needed."],
+            limitations=["Does not prove latest follow-up status or send authority."],
+            how_to_use="Use as one side of the proposal/follow-up state check.",
+            do_not_use_for=["send email", "claim follow-up already sent"],
+            receipts=["business_development_lane_receipt"],
+        ),
+        _source(
+            inventory_ref="source_inventory:business_development_capital_hilton_follow_up",
+            room_id="business_development_capital_hilton_follow_up",
+            source_ref="source:bd_follow_up_state",
+            artifact="generated/read_models/operator_session_timeline.json",
+            source_type="timeline_event",
+            observed=generated_at,
+            claimed="follow-up status unresolved",
+            authority="operator_decisions_with_receipts",
+            freshness="needs_reconciliation",
+            confidence="conflict_detected",
+            claims=["Follow-up state may disagree with proposal state."],
+            limitations=["Requires operator decision or current send/follow-up receipt."],
+            how_to_use="Surface the disagreement before drafting a final follow-up.",
+            do_not_use_for=["send authority", "silent status resolution"],
+            receipts=["operator_session_timeline"],
+        ),
+        _source(
+            inventory_ref="source_inventory:build_review_packet",
+            room_id="build_review_packet",
+            source_ref="source:build_resolved_review_packet",
+            artifact="generated/read_models/workroom_review_decision_status.json",
+            source_type="review_decision_receipt",
+            observed=generated_at,
+            claimed="informational/resolved packet",
+            authority="operator_decisions_with_receipts",
+            freshness="historical_resolved",
+            confidence="receipt_backed_history",
+            claims=["Packet is informational/resolved.", "Prior review decision exists."],
+            limitations=["Not active ready-for-review work unless reopened by a current receipt."],
+            how_to_use="Use as history and prior decision context.",
+            do_not_use_for=["active work queue", "ready-for-review claim"],
+            receipts=["workroom_review_decision_status"],
+        ),
+        _source(
+            inventory_ref="source_inventory:niles_music_controller_mapping",
+            room_id="niles_music_controller_mapping",
+            source_ref="source:niles_creative_notes",
+            artifact="generated/read_models/operator_session_timeline.json",
+            source_type="creative_notes",
+            observed=generated_at,
+            claimed="Niles music/controller idea space",
+            authority="preserved_original_sources",
+            freshness="usable_creative_context",
+            confidence="operator_context",
+            claims=["Creative options may be explored."],
+            limitations=["Does not prove software integration, controller target, or factual system behavior."],
+            how_to_use="Generate creative options and questions about controller targets.",
+            do_not_use_for=["unrelated business proof", "unsourced factual setup claims"],
+            receipts=["operator_session_timeline"],
+        ),
+        _source(
+            inventory_ref="source_inventory:self_heal_repair",
+            room_id="self_heal_repair",
+            source_ref="source:self_heal_blocker_proof",
+            artifact="generated/read_models/self_heal_repair_doctrine.json",
+            source_type="repair_doctrine_read_model",
+            observed=generated_at,
+            claimed="blocker proof and repair doctrine",
+            authority="current_receipts_and_proof",
+            freshness="current_receipt",
+            confidence="receipt_backed",
+            claims=["Blocker proof must be named.", "Validation plan is required before repair package adoption."],
+            limitations=["Does not authorize live repair execution."],
+            how_to_use="Propose a repair package with blocker proof, validation plan, rollback plan, and receipt requirement.",
+            do_not_use_for=["execute repair", "restart services", "delete files"],
+            receipts=["self_heal_repair_doctrine"],
+        ),
+        _source(
+            inventory_ref="source_inventory:self_heal_repair",
+            room_id="self_heal_repair",
+            source_ref="source:self_heal_validation_failure",
+            artifact="generated/read_models/retrospective_harness_learning_seed.json",
+            source_type="retrospective_failure_record",
+            observed=generated_at,
+            claimed="prior repair/validation failure lesson",
+            authority="current_source_inventory_rows",
+            freshness="current_supporting_context",
+            confidence="receipt_backed_lesson",
+            claims=["Prior attempts and validation failures must be preserved in decision trace."],
+            limitations=["Cannot auto-apply a harness update."],
+            how_to_use="Include prior attempts and what not to repeat in repair package planning.",
+            do_not_use_for=["live self-optimization", "black-box repair success claim"],
+            receipts=["retrospective_harness_learning_seed"],
+        ),
+        _source(
+            inventory_ref="source_inventory:stale_source",
+            room_id="stale_source",
+            source_ref="source:stale_generated_summary",
+            artifact="generated/read_models/openclaw_request_processor_OPERATOR.md",
+            source_type="generated_summary",
+            observed=generated_at,
+            claimed="older task state",
+            authority="generated_summaries",
+            freshness="stale",
+            confidence="stale_summary",
+            claims=["May indicate a past task existed."],
+            limitations=["Cannot be used as current truth.", "Needs verification before synthesis."],
+            how_to_use="Mark Needs verification and request current source or receipt.",
+            do_not_use_for=["current truth", "final answer", "action package"],
+            receipts=[],
+        ),
+        _source(
+            inventory_ref="source_inventory:stale_source",
+            room_id="stale_source",
+            source_ref="source:superseded_source_version",
+            artifact="docs/planning/launch_ladder/source_set_bridges/backend_data_contract_first_planning_slice_decision_20260505.md",
+            source_type="older_source_version",
+            observed=generated_at,
+            claimed="older source family member",
+            authority="preserved_original_sources",
+            freshness="superseded",
+            confidence="superseded_history",
+            claims=["Shows historical context."],
+            limitations=["Cannot outrank current receipts or current inventory rows."],
+            how_to_use="Preserve as history and compare against current source when available.",
+            do_not_use_for=["current truth", "unreviewed final synthesis"],
+            receipts=[],
+        ),
     ]
 
 
 def conflict_log() -> list[dict[str, Any]]:
     return [
         {
-            "conflict_ref": "conflict:bd_capital_hilton_followup_status",
-            "conflicting_source_refs": [
-                "source:bd:capital_hilton:proposal_status",
-                "source:bd:capital_hilton:older_followup_note",
-            ],
-            "conflict_summary": "Current proposal/follow-up state and older memory hint may disagree.",
-            "affected_claims": ["proposal_followup_state_known", "followup_ready_to_stage"],
-            "likely_resolution": "Use latest receipt-backed proposal source; ask operator if follow-up state must be confirmed.",
+            "conflict_ref": "conflict:bd_proposal_follow_up_status",
+            "project_room_id": "business_development_capital_hilton_follow_up",
+            "conflicting_source_refs": ["source:bd_proposal_state", "source:bd_follow_up_state"],
+            "conflict_summary": "Proposal status and follow-up status disagree or are not proven by the same current receipt.",
+            "affected_claims": ["proposal_current_status", "follow_up_needed", "follow_up_already_sent"],
+            "likely_resolution": "Ask for the current proposal/follow-up receipt or operator decision before final drafting.",
             "operator_decision_required": True,
             "unresolved": True,
         },
         {
-            "conflict_ref": "conflict:finance_generated_summary_vs_receipt",
-            "conflicting_source_refs": [
-                "source:finance:capital_hilton:payment_watch_receipt",
-                "source:finance:capital_hilton:generated_payment_summary",
-            ],
-            "conflict_summary": "Generated payment summaries may be stale or less precise than current payment-watch receipts.",
-            "affected_claims": ["paid_status", "ledger_state", "payment_evidence_state"],
-            "likely_resolution": "Current receipt wins; generated summary may only help phrase an explanation.",
-            "operator_decision_required": False,
-            "unresolved": False,
+            "conflict_ref": "conflict:stale_summary_vs_current_truth",
+            "project_room_id": "stale_source",
+            "conflicting_source_refs": ["source:stale_generated_summary", "source:superseded_source_version"],
+            "conflict_summary": "Stale generated summary and older source version cannot establish current truth.",
+            "affected_claims": ["current_status", "ready_to_package", "safe_to_answer"],
+            "likely_resolution": "Attach a current receipt/source before any final synthesis.",
+            "operator_decision_required": True,
+            "unresolved": True,
         },
     ]
 
@@ -518,28 +589,40 @@ def conflict_log() -> list[dict[str, Any]]:
 def missing_context_list() -> list[dict[str, Any]]:
     return [
         {
-            "missing_context_ref": "missing:finance_capital_hilton_payment_evidence",
+            "missing_context_ref": "missing_context:finance_payment_evidence",
+            "project_room_id": "finance_capital_hilton_payment_watch",
             "gap_summary": "Payment evidence is missing.",
-            "why_it_matters": "Without payment evidence, OpenClaw cannot mark paid or mutate ledger.",
-            "source_that_implies_gap": "source:finance:capital_hilton:payment_watch_receipt",
-            "required_source_or_decision": "Attach receipt-backed payment evidence or keep payment watch.",
-            "safe_wording_if_unresolved": "Payment evidence is missing; ledger and paid state remain untouched.",
+            "why_it_matters": "Without payment proof, OpenClaw cannot claim paid, mutate a ledger, or complete a payment package.",
+            "source_that_implies_gap": "source:finance_payment_watch_state",
+            "required_source_or_decision": "Attach payment evidence or an operator receipt proving payment.",
+            "safe_wording_if_unresolved": "Payment evidence is missing; I can explain the watch state and next step, but cannot mark paid.",
         },
         {
-            "missing_context_ref": "missing:niles_controller_or_software_target",
-            "gap_summary": "Specific controller or software target may be absent.",
-            "why_it_matters": "Creative mapping can propose options, but factual setup claims need the target.",
-            "source_that_implies_gap": "source:niles:music_controller_notes",
-            "required_source_or_decision": "Name controller/software target or accept generic creative options.",
-            "safe_wording_if_unresolved": "I can sketch creative mapping options, but I need the controller/software target for exact setup guidance.",
+            "missing_context_ref": "missing_context:bd_send_authority",
+            "project_room_id": "business_development_capital_hilton_follow_up",
+            "gap_summary": "No send authority is present.",
+            "why_it_matters": "A follow-up may be drafted inside the room but cannot be sent or represented as sent.",
+            "source_that_implies_gap": "source:bd_follow_up_state",
+            "required_source_or_decision": "Operator approval or send receipt.",
+            "safe_wording_if_unresolved": "I can prepare a draft or list missing context, but I cannot send it.",
         },
         {
-            "missing_context_ref": "missing:stale_source_refresh",
-            "gap_summary": "A stale source lacks a current receipt.",
-            "why_it_matters": "Stale context cannot be current truth for synthesis.",
-            "source_that_implies_gap": "source:system:stale_prior_summary",
-            "required_source_or_decision": "Refresh source or mark output Needs verification.",
-            "safe_wording_if_unresolved": "Needs verification before I treat this as current.",
+            "missing_context_ref": "missing_context:niles_controller_target",
+            "project_room_id": "niles_music_controller_mapping",
+            "gap_summary": "Software/controller target is absent.",
+            "why_it_matters": "Creative notes alone do not prove which controller, app, protocol, or integration target should be mapped.",
+            "source_that_implies_gap": "source:niles_creative_notes",
+            "required_source_or_decision": "Name the controller/software target or attach its source artifact.",
+            "safe_wording_if_unresolved": "I can offer creative mapping options and questions; I cannot make factual controller claims without a source.",
+        },
+        {
+            "missing_context_ref": "missing_context:stale_current_source",
+            "project_room_id": "stale_source",
+            "gap_summary": "Current source or receipt is missing.",
+            "why_it_matters": "Stale and superseded materials cannot support current truth or final work.",
+            "source_that_implies_gap": "source:stale_generated_summary",
+            "required_source_or_decision": "Attach current source, current receipt, or operator decision to proceed as historical only.",
+            "safe_wording_if_unresolved": "This source appears stale and needs verification before final synthesis.",
         },
     ]
 
@@ -547,209 +630,442 @@ def missing_context_list() -> list[dict[str, Any]]:
 def duplicate_version_report() -> list[dict[str, Any]]:
     return [
         {
-            "version_family_ref": "version_family:capital_hilton_payment_watch_summaries",
-            "candidate_source_refs": [
-                "source:finance:capital_hilton:payment_watch_receipt",
-                "source:finance:capital_hilton:generated_payment_summary",
-            ],
-            "likely_current_source_ref": "source:finance:capital_hilton:payment_watch_receipt",
-            "older_or_superseded_refs": ["source:finance:capital_hilton:generated_payment_summary"],
+            "version_family_ref": "version_family:finance_payment_watch",
+            "project_room_id": "finance_capital_hilton_payment_watch",
+            "candidate_source_refs": ["source:finance_payment_watch_state", "source:finance_generated_summary"],
+            "likely_current_source_ref": "source:finance_payment_watch_state",
+            "older_or_superseded_refs": ["source:finance_generated_summary"],
             "confidence": "high",
             "operator_review_required": True,
             "deletion_allowed": False,
         },
         {
-            "version_family_ref": "version_family:build_review_packet_history",
-            "candidate_source_refs": ["source:build:review_packet_resolved"],
-            "likely_current_source_ref": "source:build:review_packet_resolved",
+            "version_family_ref": "version_family:bd_capital_hilton_follow_up",
+            "project_room_id": "business_development_capital_hilton_follow_up",
+            "candidate_source_refs": ["source:bd_proposal_state", "source:bd_follow_up_state"],
+            "likely_current_source_ref": "operator_decision_required",
             "older_or_superseded_refs": [],
-            "confidence": "medium",
+            "confidence": "conflict_requires_review",
+            "operator_review_required": True,
+            "deletion_allowed": False,
+        },
+        {
+            "version_family_ref": "version_family:build_review_packet",
+            "project_room_id": "build_review_packet",
+            "candidate_source_refs": ["source:build_resolved_review_packet"],
+            "likely_current_source_ref": "source:build_resolved_review_packet",
+            "older_or_superseded_refs": [],
+            "confidence": "high_historical",
+            "operator_review_required": True,
+            "deletion_allowed": False,
+        },
+        {
+            "version_family_ref": "version_family:niles_music_controller_mapping",
+            "project_room_id": "niles_music_controller_mapping",
+            "candidate_source_refs": ["source:niles_creative_notes"],
+            "likely_current_source_ref": "source:niles_creative_notes",
+            "older_or_superseded_refs": [],
+            "confidence": "creative_context_only",
+            "operator_review_required": True,
+            "deletion_allowed": False,
+        },
+        {
+            "version_family_ref": "version_family:self_heal_repair",
+            "project_room_id": "self_heal_repair",
+            "candidate_source_refs": ["source:self_heal_blocker_proof", "source:self_heal_validation_failure"],
+            "likely_current_source_ref": "source:self_heal_blocker_proof",
+            "older_or_superseded_refs": [],
+            "confidence": "high",
+            "operator_review_required": True,
+            "deletion_allowed": False,
+        },
+        {
+            "version_family_ref": "version_family:stale_source",
+            "project_room_id": "stale_source",
+            "candidate_source_refs": ["source:stale_generated_summary", "source:superseded_source_version"],
+            "likely_current_source_ref": "current_source_missing",
+            "older_or_superseded_refs": ["source:stale_generated_summary", "source:superseded_source_version"],
+            "confidence": "blocked_until_current_source",
             "operator_review_required": True,
             "deletion_allowed": False,
         },
     ]
 
 
-def decision_trace() -> dict[str, Any]:
-    return {
-        "prior_attempts": [
-            {
-                "attempt_ref": "attempt:finance_payment_watch_gate_copy",
-                "summary": "Protected Coupa gate explanation was shown as primary lane answer.",
-                "result": "wrong_lane_response",
-            },
-            {
-                "attempt_ref": "attempt:local_qwen_non_json",
-                "summary": "Local Qwen pilot failed JSON shape and published fallback.",
-                "result": "schema_prompt_issue",
-            },
-        ],
-        "rejected_attempts": [
-            {
-                "attempt_ref": "attempt:mark_paid_without_payment_evidence",
-                "why_rejected": "Payment evidence missing and ledger proof absent.",
-            },
-            {
-                "attempt_ref": "attempt:treat_resolved_build_packet_as_active",
-                "why_rejected": "Review packet was informational/resolved and belongs in history.",
-            },
-        ],
-        "operator_decisions": [
-            "Require source inventory before synthesis.",
-            "Keep memory as hint, not truth.",
-            "Do not auto-delete duplicates or silently resolve contradictions.",
-        ],
-        "receipts": [
-            "receipt:capital_hilton_payment_watch_current",
-            "receipt:workroom_review_decision_recorded",
-            "receipt:local_lm_fallback_published",
-        ],
-        "what_changed": [
-            "Payment watch response became lane-level.",
-            "Proof-to-response latest became request-scoped.",
-            "Context compaction policy requires preview/reference for large artifacts.",
-        ],
-        "what_not_to_repeat": [
-            "Do not use protected gate copy as lane answer.",
-            "Do not treat generated summaries as receipts.",
-            "Do not dump logs, OCR, or raw chat history into agent context.",
-        ],
-    }
-
-
-def authority_ranking() -> list[dict[str, Any]]:
+def decision_traces() -> list[dict[str, Any]]:
     return [
-        {"rank": 1, "authority_ref": "current_receipts_and_hashes", "outranks": ["generated_summaries", "memory_hints"]},
-        {"rank": 2, "authority_ref": "freshness_gate_rows", "outranks": ["stale_sources", "old_versions"]},
-        {"rank": 3, "authority_ref": "operator_current_request", "outranks": ["old_chat_history"]},
-        {"rank": 4, "authority_ref": "generated_summaries", "outranks": ["unpromoted_memory"]},
-        {"rank": 5, "authority_ref": "memory_hints", "outranks": []},
+        {
+            "decision_trace_ref": "decision_trace:finance_capital_hilton_payment_watch",
+            "project_room_id": "finance_capital_hilton_payment_watch",
+            "prior_attempts": ["Payment-watch explanation and Coupa-gate routing attempts."],
+            "rejected_attempts": ["Do not mark paid from Coupa processing or generated summary."],
+            "operator_decisions": ["Payment evidence is required before paid or ledger action."],
+            "receipts": ["proof_to_response_runtime_status", "finance_payment_watch_receipt"],
+            "what_changed": "Room permits explanation and next-step wording only.",
+            "what_not_to_repeat": "Do not treat Coupa processing or summary copy as payment proof.",
+        },
+        {
+            "decision_trace_ref": "decision_trace:business_development_capital_hilton_follow_up",
+            "project_room_id": "business_development_capital_hilton_follow_up",
+            "prior_attempts": ["Follow-up context was routed through proof-to-response lane state."],
+            "rejected_attempts": ["Do not send or claim sent without send authority."],
+            "operator_decisions": ["Surface proposal/follow-up disagreement before final drafting."],
+            "receipts": ["operator_session_timeline", "business_development_lane_receipt"],
+            "what_changed": "Conflict log now controls final synthesis and send authority.",
+            "what_not_to_repeat": "Do not silently resolve proposal/follow-up disagreement.",
+        },
+        {
+            "decision_trace_ref": "decision_trace:build_review_packet",
+            "project_room_id": "build_review_packet",
+            "prior_attempts": ["Resolved Build review packet was shown like active ready-for-review work."],
+            "rejected_attempts": ["Do not treat informational/resolved packet as active work."],
+            "operator_decisions": ["Resolved packet remains historical unless reopened by current receipt."],
+            "receipts": ["workroom_review_decision_status"],
+            "what_changed": "Source room marks the packet historical and includes prior review decision.",
+            "what_not_to_repeat": "Do not let stale UI state dominate lifecycle receipts.",
+        },
+        {
+            "decision_trace_ref": "decision_trace:niles_music_controller_mapping",
+            "project_room_id": "niles_music_controller_mapping",
+            "prior_attempts": ["Creative music/controller mapping was discussed without a controller target source."],
+            "rejected_attempts": ["Do not import unrelated finance proof or claim controller facts without source."],
+            "operator_decisions": ["Creative options are allowed; factual claims require source."],
+            "receipts": ["operator_session_timeline"],
+            "what_changed": "Niles room explicitly excludes unrelated finance proof.",
+            "what_not_to_repeat": "Do not mix worlds or use finance artifacts to support creative/controller claims.",
+        },
+        {
+            "decision_trace_ref": "decision_trace:self_heal_repair",
+            "project_room_id": "self_heal_repair",
+            "prior_attempts": ["Self-heal diagnosis and validation failure records were captured."],
+            "rejected_attempts": ["Do not execute repair or claim success without validation and receipt."],
+            "operator_decisions": ["Repair packages may be proposed only with validation plan and rollback plan."],
+            "receipts": ["self_heal_repair_doctrine", "retrospective_harness_learning_seed"],
+            "what_changed": "Room requires blocker proof, validation plan, prior attempts, and what not to repeat.",
+            "what_not_to_repeat": "Do not run black-box repair loops or hide validation failure.",
+        },
+        {
+            "decision_trace_ref": "decision_trace:stale_source",
+            "project_room_id": "stale_source",
+            "prior_attempts": ["Older summaries and source versions appeared usable without fresh receipts."],
+            "rejected_attempts": ["Do not answer from stale source as current truth."],
+            "operator_decisions": ["Synthesis is blocked or marked Needs verification until current proof exists."],
+            "receipts": ["context_freshness_decision_trace_gate"],
+            "what_changed": "Room demotes stale and superseded material to history/support.",
+            "what_not_to_repeat": "Do not use stale summaries to bypass freshness gates.",
+        },
     ]
 
 
-def source_room_gate_status(
-    *,
-    inventory_exists: bool,
-    conflicts_logged: bool,
-    missing_context_named: bool,
-    duplicates_reported: bool,
-    freshness_gate_applied: bool,
-    authority_ranked: bool,
-    unresolved_blocking_context: bool,
-) -> dict[str, Any]:
-    gates_pass = all(
-        [
-            inventory_exists,
-            conflicts_logged,
-            missing_context_named,
-            duplicates_reported,
-            freshness_gate_applied,
-            authority_ranked,
-            not unresolved_blocking_context,
-        ]
-    )
-    return {
-        "source_inventory_exists": inventory_exists,
-        "conflicts_logged": conflicts_logged,
-        "missing_context_named": missing_context_named,
-        "duplicates_reported": duplicates_reported,
-        "freshness_gate_applied": freshness_gate_applied,
-        "authority_ranked": authority_ranked,
-        "unresolved_blocking_context": unresolved_blocking_context,
-        "synthesis_allowed": gates_pass,
-        "synthesis_allowed_without_inventory": gates_pass and not inventory_exists,
+def project_rooms() -> list[dict[str, Any]]:
+    common_authority = "authority_ranking:receipt_first"
+    common_freshness = "freshness_gate:receipt_current_or_needs_verification"
+    base_protected = {
+        "send_authority_granted": False,
+        "paid_action_allowed": False,
+        "ledger_action_allowed": False,
     }
-
-
-def required_scenarios() -> list[dict[str, Any]]:
     return [
         {
-            "scenario_ref": "finance_capital_hilton_payment_watch",
-            "world_ref": "finance",
-            "thread_ref": "capital_hilton",
-            "source_room_contains": ["payment_watch_state", "Coupa_processing", "paid_false", "ledger_untouched"],
-            "missing_context_refs": ["missing:finance_capital_hilton_payment_evidence"],
+            "project_room_id": "finance_capital_hilton_payment_watch",
+            "objective_ref": "objective:finance_capital_hilton_payment_watch",
+            "world_ref": "world:finance",
+            "thread_ref": "thread:capital_hilton",
+            "workspace_scope": "Finance / Capital Hilton payment watch only.",
+            "source_set_ref": "source_set:finance_capital_hilton_payment_watch",
+            "source_inventory_ref": "source_inventory:finance_capital_hilton_payment_watch",
+            "conflict_log_ref": "conflict_log:finance_capital_hilton_payment_watch",
+            "missing_context_ref": "missing_context:finance_payment_evidence",
+            "duplicate_report_ref": "version_family:finance_payment_watch",
+            "decision_trace_ref": "decision_trace:finance_capital_hilton_payment_watch",
+            "authority_ranking_ref": common_authority,
+            "freshness_gate_ref": common_freshness,
+            "allowed_next_steps": ["explain payment-watch state", "ask for payment evidence", "stage next-step wording"],
+            "blocked_next_steps": ["mark paid", "mutate ledger", "export PDF", "read workbook cells as proof"],
+            "synthesis_allowed": True,
             "synthesis_scope": "explanation_and_next_step_only",
-            "synthesis_allowed": True,
-            "allowed_next_steps": ["explain_payment_watch", "ask_for_payment_evidence", "attach_proof"],
-            "blocked_next_steps": ["mark_paid", "ledger_mutation", "Coupa_submit"],
-            "mark_paid_allowed": False,
-            "ledger_action_allowed": False,
+            "inventory_gate": "passed_with_limited_scope",
+            "source_disagreement_detected": False,
+            "missing_context_blocks": ["paid claim", "ledger action"],
+            "protected_authority": dict(base_protected),
         },
         {
-            "scenario_ref": "business_development_capital_hilton_followup",
-            "world_ref": "business_development",
-            "thread_ref": "capital_hilton",
-            "source_room_contains": ["proposal_followup_state"],
-            "conflict_refs": ["conflict:bd_capital_hilton_followup_status"],
-            "synthesis_scope": "draft_or_explain_followup_only",
+            "project_room_id": "business_development_capital_hilton_follow_up",
+            "objective_ref": "objective:business_development_capital_hilton_follow_up",
+            "world_ref": "world:business_development",
+            "thread_ref": "thread:capital_hilton",
+            "workspace_scope": "Business Development / Capital Hilton proposal and follow-up state.",
+            "source_set_ref": "source_set:business_development_capital_hilton_follow_up",
+            "source_inventory_ref": "source_inventory:business_development_capital_hilton_follow_up",
+            "conflict_log_ref": "conflict:bd_proposal_follow_up_status",
+            "missing_context_ref": "missing_context:bd_send_authority",
+            "duplicate_report_ref": "version_family:bd_capital_hilton_follow_up",
+            "decision_trace_ref": "decision_trace:business_development_capital_hilton_follow_up",
+            "authority_ranking_ref": common_authority,
+            "freshness_gate_ref": common_freshness,
+            "allowed_next_steps": ["surface proposal/follow-up conflict", "ask for current receipt", "draft only after source gate"],
+            "blocked_next_steps": ["send follow-up", "claim follow-up sent", "silently resolve status conflict"],
             "synthesis_allowed": False,
-            "allowed_next_steps": ["surface_conflict", "stage_followup_draft_after_resolution"],
-            "blocked_next_steps": ["send_email", "external_submit"],
-            "send_authority": False,
+            "synthesis_scope": "blocked_until_conflict_or_operator_decision_resolves",
+            "inventory_gate": "blocked_by_unresolved_conflict",
+            "source_disagreement_detected": True,
+            "missing_context_blocks": ["send claim", "sent status claim"],
+            "protected_authority": dict(base_protected),
         },
         {
-            "scenario_ref": "build_review_packet",
-            "world_ref": "build",
-            "thread_ref": "build_openclaw_backend",
-            "source_room_contains": ["informational_or_resolved_review_packet", "prior_review_decision"],
+            "project_room_id": "build_review_packet",
+            "objective_ref": "objective:build_review_packet",
+            "world_ref": "world:build",
+            "thread_ref": "thread:review_packet",
+            "workspace_scope": "Build review packet lifecycle and prior review decision.",
+            "source_set_ref": "source_set:build_review_packet",
+            "source_inventory_ref": "source_inventory:build_review_packet",
+            "conflict_log_ref": "conflict_log:build_review_packet",
+            "missing_context_ref": "missing_context:none",
+            "duplicate_report_ref": "version_family:build_review_packet",
+            "decision_trace_ref": "decision_trace:build_review_packet",
+            "authority_ranking_ref": common_authority,
+            "freshness_gate_ref": common_freshness,
+            "allowed_next_steps": ["summarize historical packet", "cite prior review decision", "ask if reopened"],
+            "blocked_next_steps": ["treat resolved packet as active work", "show as ready-for-review"],
+            "synthesis_allowed": True,
             "synthesis_scope": "historical_summary_only",
-            "synthesis_allowed": True,
-            "lifecycle_state": "historical_resolved",
-            "active_work_allowed": False,
-            "allowed_next_steps": ["summarize_history", "show_review_receipt"],
-            "blocked_next_steps": ["merge", "push", "treat_as_active_ready_for_review"],
+            "inventory_gate": "passed_with_historical_scope",
+            "source_disagreement_detected": False,
+            "missing_context_blocks": [],
+            "protected_authority": dict(base_protected),
         },
         {
-            "scenario_ref": "niles_music_controller_mapping",
-            "world_ref": "music",
-            "thread_ref": "niles_controller_mapping",
-            "source_room_contains": ["creative_notes", "controller_target_if_supplied"],
-            "missing_context_refs": ["missing:niles_controller_or_software_target"],
-            "synthesis_scope": "creative_options_only_until_target_supplied",
+            "project_room_id": "niles_music_controller_mapping",
+            "objective_ref": "objective:niles_music_controller_mapping",
+            "world_ref": "world:niles_music",
+            "thread_ref": "thread:controller_mapping",
+            "workspace_scope": "Niles / Music creative notes and controller mapping only.",
+            "source_set_ref": "source_set:niles_music_controller_mapping",
+            "source_inventory_ref": "source_inventory:niles_music_controller_mapping",
+            "conflict_log_ref": "conflict_log:niles_music_controller_mapping",
+            "missing_context_ref": "missing_context:niles_controller_target",
+            "duplicate_report_ref": "version_family:niles_music_controller_mapping",
+            "decision_trace_ref": "decision_trace:niles_music_controller_mapping",
+            "authority_ranking_ref": common_authority,
+            "freshness_gate_ref": common_freshness,
+            "allowed_next_steps": ["offer creative options", "ask for controller/software target"],
+            "blocked_next_steps": ["make factual controller claims", "import unrelated finance proof", "claim integration exists"],
             "synthesis_allowed": True,
-            "unrelated_finance_proof_included": False,
-            "allowed_next_steps": ["offer_creative_options", "ask_for_controller_or_software_target"],
-            "blocked_next_steps": ["make_unsourced_setup_claims", "include_finance_proof"],
+            "synthesis_scope": "creative_options_only",
+            "inventory_gate": "passed_with_creative_scope",
+            "source_disagreement_detected": False,
+            "missing_context_blocks": ["factual controller claim", "software integration claim"],
+            "protected_authority": dict(base_protected),
         },
         {
-            "scenario_ref": "self_heal_repair",
-            "world_ref": "system",
-            "thread_ref": "self_heal",
-            "source_room_contains": ["blocker_proof", "validation_failure", "prior_attempts"],
-            "synthesis_scope": "repair_package_with_validation_plan",
+            "project_room_id": "self_heal_repair",
+            "objective_ref": "objective:self_heal_repair",
+            "world_ref": "world:system_repair",
+            "thread_ref": "thread:self_heal",
+            "workspace_scope": "Self-heal diagnosis, prior attempts, blocker proof, and validation planning.",
+            "source_set_ref": "source_set:self_heal_repair",
+            "source_inventory_ref": "source_inventory:self_heal_repair",
+            "conflict_log_ref": "conflict_log:self_heal_repair",
+            "missing_context_ref": "missing_context:none",
+            "duplicate_report_ref": "version_family:self_heal_repair",
+            "decision_trace_ref": "decision_trace:self_heal_repair",
+            "authority_ranking_ref": common_authority,
+            "freshness_gate_ref": common_freshness,
+            "allowed_next_steps": ["propose repair package with validation plan", "name blocker proof", "include rollback plan"],
+            "blocked_next_steps": ["execute repair", "restart services", "claim repair success without receipt"],
             "synthesis_allowed": True,
-            "allowed_next_steps": ["propose_repair_package", "name_validation_plan", "name_rollback_plan"],
-            "blocked_next_steps": ["auto_apply_repair", "spawn_worker", "restart_service_without_approval"],
+            "synthesis_scope": "repair_package_proposal_only",
+            "inventory_gate": "passed_with_validation_plan_required",
+            "source_disagreement_detected": False,
+            "missing_context_blocks": ["repair success claim"],
+            "protected_authority": dict(base_protected),
+            "repair_package_requirements": ["blocker proof", "validation plan", "rollback plan", "receipt requirement"],
         },
         {
-            "scenario_ref": "stale_source",
-            "world_ref": "system",
-            "thread_ref": "stale_context",
-            "source_room_contains": ["stale_prior_summary"],
-            "missing_context_refs": ["missing:stale_source_refresh"],
-            "synthesis_scope": "needs_verification_only",
+            "project_room_id": "stale_source",
+            "objective_ref": "objective:stale_source_handling",
+            "world_ref": "world:source_quality",
+            "thread_ref": "thread:stale_source",
+            "workspace_scope": "Stale, superseded, or generated-only source material.",
+            "source_set_ref": "source_set:stale_source",
+            "source_inventory_ref": "source_inventory:stale_source",
+            "conflict_log_ref": "conflict:stale_summary_vs_current_truth",
+            "missing_context_ref": "missing_context:stale_current_source",
+            "duplicate_report_ref": "version_family:stale_source",
+            "decision_trace_ref": "decision_trace:stale_source",
+            "authority_ranking_ref": common_authority,
+            "freshness_gate_ref": common_freshness,
+            "allowed_next_steps": ["mark Needs verification", "ask for current source", "preserve originals as history"],
+            "blocked_next_steps": ["final synthesis", "current truth claim", "delete older versions"],
             "synthesis_allowed": False,
-            "allowed_next_steps": ["say_needs_verification", "request_current_source_or_receipt"],
-            "blocked_next_steps": ["treat_stale_source_as_current_truth", "final_synthesis"],
-        },
-        {
-            "scenario_ref": "large_artifact_log_source",
-            "world_ref": "system",
-            "thread_ref": "diagnostics",
-            "source_room_contains": ["large_log_reference", "safe_preview"],
-            "synthesis_scope": "diagnostic_preview_only",
-            "synthesis_allowed": True,
-            "preview_available": True,
-            "full_source_reference_only": True,
-            "full_source_dumped": False,
-            "allowed_next_steps": ["summarize_preview", "ask_for_scoped_inspection_if_needed"],
-            "blocked_next_steps": ["dump_full_log", "read_raw_artifact_by_default"],
+            "synthesis_scope": "blocked_or_needs_verification",
+            "inventory_gate": "blocked_by_stale_source",
+            "source_disagreement_detected": True,
+            "missing_context_blocks": ["current truth claim", "final answer"],
+            "protected_authority": dict(base_protected),
         },
     ]
 
 
-def _init_sqlite(sqlite_path: Path) -> None:
+def _group_inventory(inventory_rows: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
+    grouped: dict[str, list[dict[str, Any]]] = {}
+    for row in inventory_rows:
+        grouped.setdefault(str(row["source_inventory_ref"]), []).append(row)
+    return grouped
+
+
+def source_inventory_required_before_synthesis(read_model: Mapping[str, Any]) -> bool:
+    grouped = _group_inventory(list(read_model.get("source_inventory") or []))
+    for room in read_model.get("project_rooms") or []:
+        if room.get("synthesis_allowed") is True:
+            ref = str(room.get("source_inventory_ref") or "")
+            if not ref or not grouped.get(ref):
+                return False
+            if str(room.get("inventory_gate") or "").startswith("blocked"):
+                return False
+    return True
+
+
+def conflict_log_required_when_sources_disagree(read_model: Mapping[str, Any]) -> bool:
+    disagreement_rooms = {
+        str(room["project_room_id"])
+        for room in read_model.get("project_rooms") or []
+        if room.get("source_disagreement_detected") is True
+    }
+    conflict_rooms = {str(conflict["project_room_id"]) for conflict in read_model.get("conflict_log") or []}
+    return disagreement_rooms <= conflict_rooms
+
+
+def missing_context_blocks_unsupported_claims(read_model: Mapping[str, Any]) -> bool:
+    rooms = {str(room["project_room_id"]): room for room in read_model.get("project_rooms") or []}
+    for gap in read_model.get("missing_context_list") or []:
+        room = rooms.get(str(gap.get("project_room_id") or ""))
+        if not room:
+            return False
+        blocked = " ".join(str(step).lower() for step in room.get("blocked_next_steps") or [])
+        safe = str(gap.get("safe_wording_if_unresolved") or "").lower()
+        if "cannot" not in safe and "needs verification" not in safe:
+            return False
+        if not blocked:
+            return False
+    return True
+
+
+def duplicate_report_does_not_delete_files(read_model: Mapping[str, Any]) -> bool:
+    return all(report.get("deletion_allowed") is False for report in read_model.get("duplicate_version_report") or [])
+
+
+def current_receipts_outrank_generated_summaries(read_model: Mapping[str, Any]) -> bool:
+    ranking = (read_model.get("authority_rankings") or [{}])[0].get("ranked_authority") or []
+    try:
+        receipt_index = ranking.index("current_receipts_and_proof")
+        summary_index = ranking.index("generated_summaries")
+    except ValueError:
+        return False
+    if receipt_index > summary_index:
+        return False
+    for source in read_model.get("source_inventory") or []:
+        if source.get("apparent_authority") == "generated_summaries":
+            forbidden = {str(item).lower() for item in source.get("do_not_use_for") or []}
+            if "current truth" not in forbidden:
+                return False
+    return True
+
+
+def superseded_sources_cannot_be_current_truth(read_model: Mapping[str, Any]) -> bool:
+    for source in read_model.get("source_inventory") or []:
+        if source.get("freshness_state") in {"stale", "superseded"}:
+            forbidden = {str(item).lower() for item in source.get("do_not_use_for") or []}
+            if "current truth" not in forbidden:
+                return False
+    for report in read_model.get("duplicate_version_report") or []:
+        if report.get("likely_current_source_ref") in set(report.get("older_or_superseded_refs") or []):
+            return False
+    return True
+
+
+def build_resolved_packet_remains_historical(read_model: Mapping[str, Any]) -> bool:
+    build_sources = [
+        source for source in read_model.get("source_inventory") or [] if source.get("project_room_id") == "build_review_packet"
+    ]
+    build_room = next(
+        (room for room in read_model.get("project_rooms") or [] if room.get("project_room_id") == "build_review_packet"),
+        {},
+    )
+    blocked = " ".join(str(step).lower() for step in build_room.get("blocked_next_steps") or [])
+    return any(source.get("freshness_state") == "historical_resolved" for source in build_sources) and "active" in blocked
+
+
+def finance_payment_watch_blocks_paid_ledger(read_model: Mapping[str, Any]) -> bool:
+    room = next(
+        (
+            row
+            for row in read_model.get("project_rooms") or []
+            if row.get("project_room_id") == "finance_capital_hilton_payment_watch"
+        ),
+        {},
+    )
+    blocked = " ".join(str(step).lower() for step in room.get("blocked_next_steps") or [])
+    sources = [
+        row
+        for row in read_model.get("source_inventory") or []
+        if row.get("project_room_id") == "finance_capital_hilton_payment_watch"
+    ]
+    claims = " ".join(" ".join(str(claim).lower() for claim in source.get("claims_supported") or []) for source in sources)
+    protected = room.get("protected_authority") or {}
+    return (
+        "mark paid" in blocked
+        and "mutate ledger" in blocked
+        and "paid=false" in claims
+        and "ledger untouched" in claims
+        and protected.get("paid_action_allowed") is False
+        and protected.get("ledger_action_allowed") is False
+    )
+
+
+def niles_creative_room_excludes_unrelated_finance_proof(read_model: Mapping[str, Any]) -> bool:
+    niles_sources = [
+        source for source in read_model.get("source_inventory") or [] if source.get("project_room_id") == "niles_music_controller_mapping"
+    ]
+    source_refs = [
+        {
+            "source_ref": source.get("source_ref"),
+            "path_or_artifact_ref": source.get("path_or_artifact_ref"),
+            "source_type": source.get("source_type"),
+            "receipt_refs": source.get("receipt_refs"),
+        }
+        for source in niles_sources
+    ]
+    text = stable_json(source_refs).lower()
+    return all(token not in text for token in ("finance", "payment", "coupa", "ledger"))
+
+
+def _artifact_rows(read_model: Mapping[str, Any], generated_at: str) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for key, ref_key, kind in (
+        ("project_rooms", "project_room_id", "project_room"),
+        ("source_inventory", "source_ref", "source_inventory"),
+        ("conflict_log", "conflict_ref", "conflict_log"),
+        ("missing_context_list", "missing_context_ref", "missing_context"),
+        ("duplicate_version_report", "version_family_ref", "duplicate_version_report"),
+        ("decision_traces", "decision_trace_ref", "decision_trace"),
+    ):
+        for record in read_model.get(key) or []:
+            rows.append(
+                {
+                    "record_id": str(record[ref_key]),
+                    "record_kind": kind,
+                    "project_room_id": str(record.get("project_room_id") or record.get("project_room_id") or record[ref_key]),
+                    "source_ref": str(record.get("source_ref") or record.get("source_set_ref") or record[ref_key]),
+                    "created_at": generated_at,
+                    "record_json": stable_json(record),
+                }
+            )
+    return rows
+
+
+def _init_sqlite(sqlite_path: Path | str) -> None:
     sqlite_path = _rooted(sqlite_path)
     sqlite_path.parent.mkdir(parents=True, exist_ok=True)
     with sqlite3.connect(sqlite_path) as conn:
@@ -759,9 +1075,8 @@ def _init_sqlite(sqlite_path: Path) -> None:
 CREATE TABLE project_room_sourceset_records (
   record_id TEXT PRIMARY KEY,
   record_kind TEXT NOT NULL,
+  project_room_id TEXT NOT NULL,
   source_ref TEXT NOT NULL,
-  current_truth_allowed INTEGER NOT NULL,
-  deletion_allowed INTEGER NOT NULL,
   created_at TEXT NOT NULL,
   record_json TEXT NOT NULL
 )
@@ -770,93 +1085,38 @@ CREATE TABLE project_room_sourceset_records (
         conn.commit()
 
 
-def write_sqlite_records(
-    *,
-    sqlite_path: Path,
-    inventory: list[dict[str, Any]],
-    conflicts: list[dict[str, Any]],
-    missing: list[dict[str, Any]],
-    duplicates: list[dict[str, Any]],
-    scenarios: list[dict[str, Any]],
-    generated_at: str,
-) -> dict[str, Any]:
+def write_sqlite_records(sqlite_path: Path | str, read_model: Mapping[str, Any], generated_at: str) -> dict[str, Any]:
     sqlite_path = _rooted(sqlite_path)
+    rows = _artifact_rows(read_model, generated_at)
     _init_sqlite(sqlite_path)
-    rows: list[dict[str, Any]] = []
-    for item in inventory:
-        rows.append(
-            {
-                "record_id": str(item["source_ref"]),
-                "record_kind": "source_inventory",
-                "source_ref": str(item["source_ref"]),
-                "current_truth_allowed": 1 if item["freshness_state"] == "current" and item["confidence_class"] != "generated_summary" else 0,
-                "deletion_allowed": 0,
-                "created_at": generated_at,
-                "record_json": stable_json(item),
-            }
-        )
-    for item in conflicts:
-        rows.append(
-            {
-                "record_id": str(item["conflict_ref"]),
-                "record_kind": "conflict_log",
-                "source_ref": ",".join(item["conflicting_source_refs"]),
-                "current_truth_allowed": 0,
-                "deletion_allowed": 0,
-                "created_at": generated_at,
-                "record_json": stable_json(item),
-            }
-        )
-    for item in missing:
-        rows.append(
-            {
-                "record_id": str(item["missing_context_ref"]),
-                "record_kind": "missing_context",
-                "source_ref": str(item["source_that_implies_gap"]),
-                "current_truth_allowed": 0,
-                "deletion_allowed": 0,
-                "created_at": generated_at,
-                "record_json": stable_json(item),
-            }
-        )
-    for item in duplicates:
-        rows.append(
-            {
-                "record_id": str(item["version_family_ref"]),
-                "record_kind": "duplicate_version_report",
-                "source_ref": str(item["likely_current_source_ref"]),
-                "current_truth_allowed": 0,
-                "deletion_allowed": 0,
-                "created_at": generated_at,
-                "record_json": stable_json(item),
-            }
-        )
-    for item in scenarios:
-        rows.append(
-            {
-                "record_id": str(item["scenario_ref"]),
-                "record_kind": "required_scenario",
-                "source_ref": str(item["thread_ref"]),
-                "current_truth_allowed": 0,
-                "deletion_allowed": 0,
-                "created_at": generated_at,
-                "record_json": stable_json(item),
-            }
-        )
     with sqlite3.connect(sqlite_path) as conn:
         conn.executemany(
             """
 INSERT INTO project_room_sourceset_records (
-  record_id, record_kind, source_ref, current_truth_allowed,
-  deletion_allowed, created_at, record_json
+  record_id, record_kind, project_room_id, source_ref, created_at, record_json
 ) VALUES (
-  :record_id, :record_kind, :source_ref, :current_truth_allowed,
-  :deletion_allowed, :created_at, :record_json
+  :record_id, :record_kind, :project_room_id, :source_ref, :created_at, :record_json
 )
 """,
             rows,
         )
         conn.commit()
+        counts = conn.execute(
+            "SELECT record_kind, COUNT(*) FROM project_room_sourceset_records GROUP BY record_kind ORDER BY record_kind"
+        ).fetchall()
+        total = conn.execute("SELECT COUNT(*) FROM project_room_sourceset_records").fetchone()[0]
+    return {
+        "sqlite_path": sqlite_path.as_posix(),
+        "sqlite_row_count": int(total),
+        "sqlite_record_kind_counts": {str(kind): int(count) for kind, count in counts},
+    }
+
+
+def sqlite_summary(sqlite_path: Path | str = DEFAULT_SQLITE_PATH) -> dict[str, Any]:
+    sqlite_path = _rooted(sqlite_path)
+    if not sqlite_path.exists():
+        return {"sqlite_path": sqlite_path.as_posix(), "sqlite_row_count": 0, "sqlite_record_kind_counts": {}}
+    with sqlite3.connect(sqlite_path) as conn:
         total = conn.execute("SELECT COUNT(*) FROM project_room_sourceset_records").fetchone()[0]
         counts = conn.execute(
             "SELECT record_kind, COUNT(*) FROM project_room_sourceset_records GROUP BY record_kind ORDER BY record_kind"
@@ -868,6 +1128,45 @@ INSERT INTO project_room_sourceset_records (
     }
 
 
+def _rows_have_fields(rows: list[Mapping[str, Any]], required_fields: tuple[str, ...]) -> bool:
+    required = set(required_fields)
+    return all(required <= set(row.keys()) for row in rows)
+
+
+def _base_payload(read_model_root: Path, generated_at: str) -> dict[str, Any]:
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "read_model_id": READ_MODEL_ID,
+        "status": READY_STATUS,
+        "generated_at": generated_at,
+        "purpose": "Define the Project Room / Source Room contract for serious agent work before drafting, coding, packaging, or answering.",
+        "preconditions": precondition_rows(read_model_root),
+        "core_doctrine": list(CORE_DOCTRINE),
+        "rules": list(RULES),
+        "project_room_fields": list(PROJECT_ROOM_FIELDS),
+        "source_inventory_fields": list(SOURCE_INVENTORY_FIELDS),
+        "conflict_log_fields": list(CONFLICT_LOG_FIELDS),
+        "missing_context_fields": list(MISSING_CONTEXT_FIELDS),
+        "duplicate_report_fields": list(DUPLICATE_REPORT_FIELDS),
+        "decision_trace_fields": list(DECISION_TRACE_FIELDS),
+        "authority_rankings": authority_rankings(),
+        "freshness_gates": freshness_gates(),
+        "project_rooms": project_rooms(),
+        "source_inventory": source_inventory(generated_at),
+        "conflict_log": conflict_log(),
+        "missing_context_list": missing_context_list(),
+        "duplicate_version_report": duplicate_version_report(),
+        "decision_traces": decision_traces(),
+        "authority_boundary": AUTHORITY_BOUNDARY,
+        "implementation_boundary": IMPLEMENTATION_BOUNDARY,
+        "source_refs": [f"generated/read_models/{spec['filename']}" for spec in PRECONDITIONS.values()],
+        "source_content_hashes": {
+            ref: _content_hash(_load_json(_rooted(read_model_root) / str(spec["filename"])))
+            for ref, spec in PRECONDITIONS.items()
+        },
+    }
+
+
 def build_read_model(
     *,
     read_model_root: Path = DEFAULT_READ_MODEL_ROOT,
@@ -876,122 +1175,38 @@ def build_read_model(
     write_sqlite: bool = True,
 ) -> dict[str, Any]:
     generated_at = generated_at or utc_now()
-    preconditions = precondition_rows(read_model_root)
-    inventory = source_inventory(generated_at)
-    conflicts = conflict_log()
-    missing = missing_context_list()
-    duplicates = duplicate_version_report()
-    trace = decision_trace()
-    scenarios = required_scenarios()
+    payload = _base_payload(read_model_root, generated_at)
+    expected_sqlite_rows = len(_artifact_rows(payload, generated_at))
     sqlite_info = (
-        write_sqlite_records(
-            sqlite_path=sqlite_path,
-            inventory=inventory,
-            conflicts=conflicts,
-            missing=missing,
-            duplicates=duplicates,
-            scenarios=scenarios,
-            generated_at=generated_at,
-        )
-        if write_sqlite
-        else {"sqlite_path": _rooted(sqlite_path).as_posix(), "sqlite_row_count": 0, "sqlite_record_kind_counts": {}}
+        write_sqlite_records(sqlite_path, payload, generated_at) if write_sqlite else sqlite_summary(sqlite_path)
     )
-    required_sqlite_rows = len(inventory) + len(conflicts) + len(missing) + len(duplicates) + len(scenarios)
-    payload: dict[str, Any] = {
-        "schema_version": SCHEMA_VERSION,
-        "read_model_id": READ_MODEL_ID,
-        "status": READY_STATUS,
-        "generated_at": generated_at,
-        "purpose": "Define OpenClaw Project Room / Source Room contract so serious work starts with scoped source inventory, conflicts, missing context, versioning, freshness, and authority.",
-        "core_doctrine": list(CORE_DOCTRINE),
-        "project_room_fields": list(PROJECT_ROOM_FIELDS),
-        "project_room_template": project_room_template(),
-        "source_inventory_fields": list(SOURCE_INVENTORY_FIELDS),
-        "source_inventory": inventory,
-        "conflict_log_fields": list(CONFLICT_LOG_FIELDS),
-        "conflict_log": conflicts,
-        "missing_context_fields": list(MISSING_CONTEXT_FIELDS),
-        "missing_context_list": missing,
-        "duplicate_version_report_fields": list(DUPLICATE_REPORT_FIELDS),
-        "duplicate_version_report": duplicates,
-        "decision_trace": trace,
-        "authority_ranking": authority_ranking(),
-        "source_room_gate_examples": {
-            "without_inventory": source_room_gate_status(
-                inventory_exists=False,
-                conflicts_logged=True,
-                missing_context_named=True,
-                duplicates_reported=True,
-                freshness_gate_applied=True,
-                authority_ranked=True,
-                unresolved_blocking_context=False,
-            ),
-            "with_inventory_and_clear_gates": source_room_gate_status(
-                inventory_exists=True,
-                conflicts_logged=True,
-                missing_context_named=True,
-                duplicates_reported=True,
-                freshness_gate_applied=True,
-                authority_ranked=True,
-                unresolved_blocking_context=False,
-            ),
-            "with_unresolved_blocking_context": source_room_gate_status(
-                inventory_exists=True,
-                conflicts_logged=True,
-                missing_context_named=True,
-                duplicates_reported=True,
-                freshness_gate_applied=True,
-                authority_ranked=True,
-                unresolved_blocking_context=True,
-            ),
-        },
-        "rules": [
-            "Do not synthesize final output until source inventory exists.",
-            "Do not treat old versions as current.",
-            "Do not delete duplicates automatically.",
-            "Do not let duplicated docs overweight synthesis.",
-            "Do not use missing context as permission to invent.",
-            "Do not let generated summaries outrank receipts.",
-            "Do not dump full logs/files/artifacts into agent context by default.",
-            "Project room may stage a package only after source room gates are satisfied.",
-        ],
-        "required_scenarios": scenarios,
-        "preconditions": preconditions,
-        "sqlite_summary": sqlite_info,
-        "source_refs": [
-            "generated/read_models/context_freshness_decision_trace_gate.json",
-            "generated/read_models/proof_bundle_freshness_trace_status.json",
-            "generated/read_models/retrospective_harness_learning_seed.json",
-            "generated/read_models/context_compaction_preview_policy.json",
-            "generated/read_models/proof_bundle_redaction_policy.json",
-            "generated/read_models/universal_receipt_envelope_status.json",
-            "generated/read_models/operator_session_timeline.json",
-            "generated/read_models/goldilocks_gate_calibration.json",
-        ],
-        "authority_boundary": AUTHORITY_BOUNDARY,
-        "implementation_boundary": IMPLEMENTATION_BOUNDARY,
-        "machine_proof": {
-            "contract_only": True,
-            "model_invocation_absent": True,
-            "source_inventory_required_before_synthesis": True,
-            "conflict_log_required_when_sources_disagree": True,
-            "missing_context_blocks_unsupported_claims": True,
-            "duplicates_not_deleted": True,
-            "current_receipts_outrank_generated_summaries": True,
-            "superseded_sources_cannot_be_current_truth": True,
-            "large_artifacts_preview_or_reference_only": True,
-            "sqlite_row_count_matches_json": sqlite_info["sqlite_row_count"] == required_sqlite_rows,
-            "unsafe_true_grants_absent": True,
-        },
-        "source_content_hashes": {
-            row["precondition_ref"]: _content_hash(_load_json(_rooted(read_model_root) / str(PRECONDITIONS[row["precondition_ref"]]["filename"])))
-            for row in preconditions
-            if row["precondition_ref"] in PRECONDITIONS
-        },
+    payload["sqlite_summary"] = sqlite_info
+    machine_proof = {
+        "preconditions_ready": all(row.get("ready") is True for row in payload["preconditions"]),
+        "project_room_fields_complete": _rows_have_fields(payload["project_rooms"], PROJECT_ROOM_FIELDS),
+        "source_inventory_fields_complete": _rows_have_fields(payload["source_inventory"], SOURCE_INVENTORY_FIELDS),
+        "conflict_log_fields_complete": _rows_have_fields(payload["conflict_log"], CONFLICT_LOG_FIELDS),
+        "missing_context_fields_complete": _rows_have_fields(payload["missing_context_list"], MISSING_CONTEXT_FIELDS),
+        "duplicate_report_fields_complete": _rows_have_fields(payload["duplicate_version_report"], DUPLICATE_REPORT_FIELDS),
+        "decision_trace_fields_complete": _rows_have_fields(payload["decision_traces"], DECISION_TRACE_FIELDS),
+        "all_required_scenarios_present": {room["project_room_id"] for room in payload["project_rooms"]}
+        == set(REQUIRED_SCENARIOS),
+        "source_inventory_required_before_synthesis": source_inventory_required_before_synthesis(payload),
+        "conflict_log_required_when_sources_disagree": conflict_log_required_when_sources_disagree(payload),
+        "missing_context_blocks_unsupported_claims": missing_context_blocks_unsupported_claims(payload),
+        "duplicate_report_does_not_delete_files": duplicate_report_does_not_delete_files(payload),
+        "current_receipts_outrank_generated_summaries": current_receipts_outrank_generated_summaries(payload),
+        "superseded_sources_cannot_be_current_truth": superseded_sources_cannot_be_current_truth(payload),
+        "build_resolved_packet_remains_historical": build_resolved_packet_remains_historical(payload),
+        "finance_payment_watch_blocks_paid_ledger": finance_payment_watch_blocks_paid_ledger(payload),
+        "niles_creative_room_excludes_unrelated_finance_proof": niles_creative_room_excludes_unrelated_finance_proof(payload),
+        "sqlite_row_count_matches_json": sqlite_info["sqlite_row_count"] == expected_sqlite_rows,
+        "model_invocation_absent": True,
+        "live_action_absent": True,
+        "unsafe_true_grants_absent": True,
     }
-    if not all(row.get("ready") is True for row in preconditions):
-        payload["status"] = NOT_READY_STATUS
-    if sqlite_info["sqlite_row_count"] != required_sqlite_rows:
+    payload["machine_proof"] = machine_proof
+    if not all(value is True for value in machine_proof.values()):
         payload["status"] = NOT_READY_STATUS
     unsafe = unsafe_true_grants(payload)
     payload["unsafe_true_grants"] = unsafe
@@ -1008,33 +1223,39 @@ def build_wiki(read_model: Mapping[str, Any]) -> str:
         "",
         f"Status: {read_model.get('status')}",
         "",
-        "The first step for serious work is to build the room: inventory sources, surface conflicts, name missing context, identify duplicate/version families, and apply freshness and authority before synthesis.",
+        "This contract says serious OpenClaw work starts by building the room: source inventory first, conflicts and gaps surfaced before synthesis, and receipts outranking generated summaries.",
         "",
         "## Core Doctrine",
         "",
     ]
     for item in read_model.get("core_doctrine") or []:
         lines.append(f"- {item}")
-    lines.extend(["", "## Project Room Fields", ""])
-    for item in read_model.get("project_room_fields") or []:
-        lines.append(f"- `{item}`")
-    lines.extend(["", "## Source Inventory", ""])
-    for source in read_model.get("source_inventory") or []:
-        lines.append(f"- `{source['source_ref']}` ({source['freshness_state']}, {source['confidence_class']}): {', '.join(source['claims_supported'])}")
+    lines.extend(["", "## Rules", ""])
+    for item in read_model.get("rules") or []:
+        lines.append(f"- {item}")
+    lines.extend(["", "## Project Rooms", ""])
+    for room in read_model.get("project_rooms") or []:
+        lines.append(
+            f"- `{room['project_room_id']}`: synthesis `{str(room['synthesis_allowed']).lower()}` "
+            f"({room['synthesis_scope']}); allowed: {', '.join(room['allowed_next_steps'])}; "
+            f"blocked: {', '.join(room['blocked_next_steps'])}"
+        )
     lines.extend(["", "## Conflicts", ""])
     for conflict in read_model.get("conflict_log") or []:
         lines.append(f"- `{conflict['conflict_ref']}`: {conflict['conflict_summary']}")
     lines.extend(["", "## Missing Context", ""])
-    for missing in read_model.get("missing_context_list") or []:
-        lines.append(f"- `{missing['missing_context_ref']}`: {missing['gap_summary']} Safe wording: {missing['safe_wording_if_unresolved']}")
-    lines.extend(["", "## Duplicate / Version Report", ""])
+    for gap in read_model.get("missing_context_list") or []:
+        lines.append(f"- `{gap['missing_context_ref']}`: {gap['gap_summary']} Safe wording: {gap['safe_wording_if_unresolved']}")
+    lines.extend(["", "## Duplicate / Version Families", ""])
     for report in read_model.get("duplicate_version_report") or []:
-        lines.append(f"- `{report['version_family_ref']}`: current `{report['likely_current_source_ref']}`, deletion allowed `{str(report['deletion_allowed']).lower()}`")
-    lines.extend(["", "## Required Scenarios", ""])
-    for scenario in read_model.get("required_scenarios") or []:
-        lines.append(f"- `{scenario['scenario_ref']}`: {scenario['synthesis_scope']}")
-    lines.extend(["", "## Boundary", ""])
-    lines.append("This contract is review/read-model work only. It does not invoke models, touch business systems, mutate ledgers/workbooks, mark paid, submit, push, or delete duplicates.")
+        lines.append(
+            f"- `{report['version_family_ref']}`: likely current `{report['likely_current_source_ref']}`, "
+            f"deletion allowed `{str(report['deletion_allowed']).lower()}`"
+        )
+    lines.extend(["", "## Authority", ""])
+    ranking = (read_model.get("authority_rankings") or [{}])[0]
+    lines.append("- Authority order: " + " > ".join(ranking.get("ranked_authority") or []))
+    lines.append("- Current receipts/proof beat generated summaries and memory hints.")
     lines.append("")
     return "\n".join(lines)
 
