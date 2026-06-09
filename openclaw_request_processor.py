@@ -34,6 +34,7 @@ import guardian_output_gate
 import invoice_review_action_request_handler
 import local_surface_request_contract
 import operator_file_metadata_intake
+import global_run_mode_context
 import operator_controller_event_router
 import openclaw_request_router
 import proof_to_response_runtime
@@ -708,7 +709,11 @@ def is_evidence_intake_request(raw_request: Mapping[str, Any]) -> bool:
 
 
 def is_operator_controller_event_request(raw_request: Mapping[str, Any]) -> bool:
-    return str(raw_request.get("request_type") or raw_request.get("kind") or raw_request.get("type") or "").strip().upper() == operator_controller_event_router.REQUEST_TYPE
+    request_type = str(raw_request.get("request_type") or raw_request.get("kind") or raw_request.get("type") or "").strip().upper()
+    return request_type in {
+        operator_controller_event_router.REQUEST_TYPE,
+        global_run_mode_context.RUN_MODE_SET_REQUEST_SCHEMA,
+    }
 
 
 def _valid_publication_source_request_id(value: object) -> bool:

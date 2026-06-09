@@ -1129,6 +1129,8 @@ def _receipt_count(sqlite_path: Path) -> int:
     con = sqlite3.connect(sqlite_path)
     try:
         return int(con.execute("select count(*) from proof_to_response_receipts").fetchone()[0])
+    except sqlite3.OperationalError:
+        return 0
     finally:
         con.close()
 

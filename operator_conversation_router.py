@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 import capability_authority_loop
+import global_run_mode_context
 import proof_to_response_runtime as proof_runtime
 
 
@@ -381,6 +382,7 @@ def _machine_proof(**overrides: Any) -> dict[str, Any]:
 
 def _base_result(request: Mapping[str, Any], *, generated_at: str) -> dict[str, Any]:
     context = _context(request)
+    run_mode_context = request.get("run_mode_context") if isinstance(request.get("run_mode_context"), Mapping) else global_run_mode_context.default_run_mode_context(generated_at=generated_at)
     return {
         "schema_version": SCHEMA_VERSION,
         "response_id": "operator_conversation_router:" + _short_hash({"request": request, "generated_at": generated_at}),
@@ -395,6 +397,10 @@ def _base_result(request: Mapping[str, Any], *, generated_at: str) -> dict[str, 
         "workflow_package_staged": False,
         "workflow_request_type_emitted": "",
         "suggested_controller_event": "show_details",
+        "run_mode_context": dict(run_mode_context),
+        "run_mode": str(run_mode_context.get("run_mode") or global_run_mode_context.PRODUCTION),
+        "test_run_id": str(run_mode_context.get("test_run_id") or ""),
+        "test_marker": str(run_mode_context.get("test_marker") or ""),
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
         "proof_refs": ["generated/read_models/operator_conversation_router_status.json"],
         "machine_proof": _machine_proof(),
@@ -634,11 +640,13 @@ def _generic_helm_result(request: Mapping[str, Any], *, generated_at: str) -> di
 
 def _capability_gap_result(request: Mapping[str, Any], *, generated_at: str, sqlite_path: Path) -> dict[str, Any]:
     context = _context(request)
+    run_mode_context = request.get("run_mode_context") if isinstance(request.get("run_mode_context"), Mapping) else global_run_mode_context.default_run_mode_context(generated_at=generated_at)
     response = capability_authority_loop.build_email_lookup_gap_response(
         _operator_text(request),
         world_ref=context["world"],
         thread_ref=context["thread"],
         project_ref=str(request.get("target_project_ref") or request.get("target_client_ref") or ""),
+        run_mode_context=run_mode_context,
         generated_at=generated_at,
     )
     store_receipt = capability_authority_loop.persist_active_authority_request(
@@ -773,6 +781,52 @@ def _draft_only_fallback_result(request: Mapping[str, Any], *, generated_at: str
     )
 
 
+def _test_dry_run_action_result(
+    request: Mapping[str, Any],
+    *,
+    generated_at: str,
+    sqlite_path: Path,
+    action_kind: str,
+    target_ref: str,
+) -> dict[str, Any]:
+    run_mode_context = request.get("run_mode_context") if isinstance(request.get("run_mode_context"), Mapping) else global_run_mode_context.default_run_mode_context(generated_at=generated_at)
+    receipt = global_run_mode_context.build_test_execution_receipt(
+        sqlite_path,
+        run_mode_context=run_mode_context,
+        action_kind=action_kind,
+        target_ref=target_ref,
+        generated_at=generated_at,
+    )
+    if run_mode_context.get("run_mode") == global_run_mode_context.TEST_DRY_RUN:
+        headline = "Dry-run test receipt recorded"
+        summary = "This is a test dry-run response. No external service, production write, email send, ledger, Coupa, workbook, or PDF action happened."
+        next_action = "Review the dry-run receipt."
+    else:
+        headline = "Test adapter blocked"
+        summary = "Production mode cannot use test adapters or test-only artifacts as proof."
+        next_action = "Switch to test mode first."
+    result = _text_result(
+        request,
+        generated_at=generated_at,
+        route_status=ROUTE_STATUS_TEXT_RESPONSE if run_mode_context.get("run_mode") == global_run_mode_context.TEST_DRY_RUN else ROUTE_STATUS_NEEDS_VERIFICATION,
+        backend_route="global_run_mode_context.test_execution_receipt",
+        display=_custom_display(
+            speaker_ref="guardian",
+            voice_mode="safety",
+            headline=headline,
+            summary=summary,
+            next_safe_action=next_action,
+        ),
+        proof_refs=["generated/read_models/global_run_mode_context.json"],
+        suggested_controller_event="show_details",
+        route_notes=[f"test_execution:{action_kind}", str(receipt.get("status") or "")],
+    )
+    result["test_execution_receipt"] = receipt
+    result["machine_proof"]["test_execution_receipt_emitted"] = True
+    result["machine_proof"]["production_action_performed"] = False
+    return result
+
+
 def _scenario_for_context(text: str, world: str, thread: str) -> str:
     lowered = text.lower()
     world = world.lower()
@@ -821,6 +875,23 @@ def route_conversation_text(
         return _stale_context_result(request, generated_at=generated_at)
     if capability_authority_loop.classify_authority_grant_intent(text)["is_authority_grant_intent"]:
         return _authority_grant_result(request, generated_at=generated_at, sqlite_path=sqlite_path)
+    run_mode_context = request.get("run_mode_context") if isinstance(request.get("run_mode_context"), Mapping) else global_run_mode_context.default_run_mode_context(generated_at=generated_at)
+    if run_mode_context.get("run_mode") == global_run_mode_context.TEST_DRY_RUN and "sqlite" in lowered and "test" in lowered:
+        return _test_dry_run_action_result(
+            request,
+            generated_at=generated_at,
+            sqlite_path=sqlite_path,
+            action_kind="test_sqlite_write",
+            target_ref=f"{world}/{thread}",
+        )
+    if "winshiplive@gmail.com" in lowered and ("email" in lowered or "mail" in lowered):
+        return _test_dry_run_action_result(
+            request,
+            generated_at=generated_at,
+            sqlite_path=sqlite_path,
+            action_kind="dry_run_email_receipt",
+            target_ref="winshiplive@gmail.com",
+        )
     if "draft" in lowered and any(phrase in lowered for phrase in ("what i should ask", "what to ask", "follow-up", "follow up", "message")):
         return _draft_only_fallback_result(request, generated_at=generated_at)
     if capability_authority_loop.detects_read_only_email_lookup_intent(text, world_ref=world, thread_ref=thread):

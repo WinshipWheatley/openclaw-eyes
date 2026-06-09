@@ -27,16 +27,19 @@
   "controller_action_types": [
     "chat_goal",
     "do_it",
+    "advance_objective",
     "approve",
     "deny",
     "attach_proof",
     "ask_why",
     "open_lane",
     "stage_plan",
+    "continue",
     "request_rework",
     "mark_informational",
     "stop_hold_cancel",
-    "show_details"
+    "show_details",
+    "set_run_mode"
   ],
   "device_classes": [
     "mac",
@@ -44,7 +47,7 @@
     "iphone",
     "unknown"
   ],
-  "generated_at": "2026-06-04T21:15:00+00:00",
+  "generated_at": "2026-06-09T01:15:51+00:00",
   "machine_proof": {
     "authority_grant_performed": false,
     "backend_only_authority_fields_documented": true,
@@ -102,7 +105,8 @@
   "request_envelope_keys": [
     "operator_authority_envelope",
     "first_class_operator_envelope",
-    "operator_controller_envelope"
+    "operator_controller_envelope",
+    "operator_envelope"
   ],
   "required_envelope_fields": [
     "envelope_id",

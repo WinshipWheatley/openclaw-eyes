@@ -16,6 +16,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
+import global_run_mode_context
 
 ROOT = Path(__file__).resolve().parent
 DEFAULT_EXPORT_ROOT = Path("generated/read_models")
@@ -207,10 +208,14 @@ def build_capability_gap(
     reason: str,
     requested_for_lane: str,
     requested_for_project: str = "",
+    run_mode_context: Mapping[str, Any] | None = None,
     generated_at: str | None = None,
 ) -> dict[str, Any]:
     generated_at = generated_at or utc_now()
+    run_context = dict(run_mode_context or global_run_mode_context.default_run_mode_context(generated_at=generated_at))
     scope = scope_from_context(*(requested_for_lane.split("/", 1) + [""])[:2], project_ref=requested_for_project)
+    scope["run_mode"] = str(run_context.get("run_mode") or global_run_mode_context.PRODUCTION)
+    scope["test_run_id"] = str(run_context.get("test_run_id") or "")
     gap = {
         "schema_version": CAPABILITY_GAP_SCHEMA,
         "gap_id": capability_gap_id(capability_id, scope, reason),
@@ -219,6 +224,7 @@ def build_capability_gap(
         "reason": reason,
         "requested_for_lane": requested_for_lane,
         "requested_for_project": requested_for_project,
+        "requested_scope": dict(scope),
         "allowed_if_granted": list(READ_ONLY_EMAIL_ACTIONS),
         "prohibited_always": list(PROHIBITED_EMAIL_ACTIONS),
         "proof_needed": [
@@ -238,6 +244,8 @@ def build_capability_gap(
         "safe_fallback_available": True,
         "safe_fallback_kind": "draft_only_followup_or_checklist",
         "created_at": generated_at,
+        "run_mode_context": run_context,
+        "test_artifact_marker": str(run_context.get("test_marker") or ""),
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
     }
     gap["unsafe_true_grants"] = unsafe_true_grants(gap)
@@ -256,6 +264,8 @@ def build_authority_request(
 ) -> dict[str, Any]:
     generated_at = generated_at or utc_now()
     scope = dict(requested_scope or {})
+    if not scope:
+        scope = dict(gap.get("requested_scope") or {})
     if not scope:
         lane = str(gap.get("requested_for_lane") or "")
         world, _, thread = lane.partition("/")
@@ -598,17 +608,21 @@ def build_email_lookup_gap_response(
     world_ref: str,
     thread_ref: str,
     project_ref: str = "",
+    run_mode_context: Mapping[str, Any] | None = None,
     generated_at: str | None = None,
 ) -> dict[str, Any]:
     generated_at = generated_at or utc_now()
+    run_context = dict(run_mode_context or global_run_mode_context.default_run_mode_context(generated_at=generated_at))
     lane = f"{world_ref}/{thread_ref}".strip("/")
     gap = build_capability_gap(
         reason="answer requires checking scoped email evidence",
         requested_for_lane=lane,
         requested_for_project=project_ref,
+        run_mode_context=run_context,
         generated_at=generated_at,
     )
     authority_request = build_authority_request(gap, generated_at=generated_at)
+    dry_run_prefix = "Dry-run: " if run_context.get("run_mode") == global_run_mode_context.TEST_DRY_RUN else ""
     return {
         "response_status": "CAPABILITY_GAP_AUTHORITY_REQUEST_READY",
         "capability_gap": gap,
@@ -617,9 +631,9 @@ def build_email_lookup_gap_response(
             "speaker_ref": "guardian",
             "voice_profile_ref": "agent_voice_profile:guardian",
             "voice_mode": "safety",
-            "headline": "Read-only email lookup unavailable",
+            "headline": f"{dry_run_prefix}Read-only email lookup unavailable",
             "plain_summary": (
-                "I don't have read-only email lookup yet. Grant read-only email lookup for "
+                f"{dry_run_prefix}I don't have read-only email lookup yet. Grant read-only email lookup for "
                 f"{lane or 'this lane'}? This would not allow sending, deleting, browser/Gmail UI, "
                 "ledger, paid, or Coupa actions."
             ),
@@ -634,6 +648,7 @@ def build_email_lookup_gap_response(
         },
         "workflow_package_request_v0_emitted": False,
         "raw_authority_granted_trusted": False,
+        "run_mode_context": run_context,
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
         "created_at": generated_at,
         "operator_text_hash": f"sha256:{hashlib.sha256(operator_text.encode('utf-8')).hexdigest()}",

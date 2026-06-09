@@ -88,6 +88,7 @@ CONTROLLER_ACTION_TYPES = (
     "mark_informational",
     "stop_hold_cancel",
     "show_details",
+    "set_run_mode",
 )
 
 PROTECTED_AUTHORITY_REQUESTS = {

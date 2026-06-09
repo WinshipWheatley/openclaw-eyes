@@ -29,7 +29,7 @@
     "CAPABILITY_BUILD_REQUEST_V0",
     "CAPABILITY_ACTIVATION_RECEIPT_V0"
   ],
-  "generated_at": "2026-06-09T00:32:46+00:00",
+  "generated_at": "2026-06-09T01:15:51+00:00",
   "read_model_id": "first_class_capability_authority_loop",
   "rules": [
     "Capability gaps are reusable objects, not lane-specific fallback copy.",
@@ -65,7 +65,7 @@
       "workbook_mutation_allowed": false
     },
     "authority_grant_created": true,
-    "created_at": "2026-06-09T00:32:46+00:00",
+    "created_at": "2026-06-09T01:15:51+00:00",
     "denied_actions": [
       "send_email",
       "delete_email",
@@ -82,7 +82,7 @@
       "git_merge"
     ],
     "expiration_scope": "session_or_until_revoked",
-    "grant_id": "operator_authority_grant:93f5a2c102ce31a8",
+    "grant_id": "operator_authority_grant:19fdcbc2c6ecafd2",
     "granted_actions": [
       "search_relevant_email_evidence",
       "read_relevant_email_evidence",
@@ -90,14 +90,16 @@
     ],
     "granted_capability_id": "read_only_email_lookup",
     "granted_scope": {
+      "run_mode": "production",
       "target_project_ref": "",
       "target_thread_ref": "capital_hilton",
-      "target_world_ref": "finance"
+      "target_world_ref": "finance",
+      "test_run_id": ""
     },
     "operator_confirmation_text": "OK, I grant you access to do that.",
     "raw_authority_granted_trusted": false,
-    "receipt_ref": "receipt:2aa30dfb78423320",
-    "request_id": "operator_authority_request:481f0759daaf8dc9",
+    "receipt_ref": "receipt:ef4c128aeacdcdd2",
+    "request_id": "operator_authority_request:05ef31dd80ee5ab8",
     "schema_version": "OPERATOR_AUTHORITY_GRANT_V0",
     "unsafe_true_grants": [],
     "verifier_status": "VERIFIER_READABLE_SCOPED_GRANT"
@@ -190,9 +192,9 @@
         "can_request_build": true,
         "capability_id": "read_only_email_lookup",
         "capability_label": "Read-only email lookup",
-        "created_at": "2026-06-09T00:32:46+00:00",
+        "created_at": "2026-06-09T01:15:51+00:00",
         "freshness_requirement": "current relevant email evidence only",
-        "gap_id": "capability_gap:8105f299454424de",
+        "gap_id": "capability_gap:733a2c3664b78829",
         "privacy_boundary": {
           "no_private_data_external_model": true,
           "private_email_body_external_send_allowed": false,
@@ -222,12 +224,66 @@
         "reason": "answer requires checking scoped email evidence",
         "requested_for_lane": "finance/capital_hilton",
         "requested_for_project": "",
+        "requested_scope": {
+          "run_mode": "production",
+          "target_project_ref": "",
+          "target_thread_ref": "capital_hilton",
+          "target_world_ref": "finance",
+          "test_run_id": ""
+        },
+        "run_mode_context": {
+          "allowed_test_capabilities": [],
+          "allowlisted_recipients": [],
+          "authority_boundary": {
+            "authority_granted_from_raw_text_allowed": false,
+            "browser_access_allowed": false,
+            "business_email_send_allowed": false,
+            "coupa_submit_allowed": false,
+            "git_push_allowed": false,
+            "gmail_ui_allowed": false,
+            "lm2_tool_expansion_allowed": false,
+            "merge_allowed": false,
+            "paid": false,
+            "paid_marking_allowed": false,
+            "production_ledger_mutation_allowed": false,
+            "production_pdf_export_allowed": false,
+            "production_workbook_mutation_allowed": false,
+            "secrets_storage_allowed": false,
+            "sent": false
+          },
+          "created_at": "2026-06-09T01:15:51+00:00",
+          "denied_actions": [
+            "business_email_send",
+            "gmail_ui",
+            "browser_or_safari",
+            "coupa_submit",
+            "mark_paid",
+            "production_ledger_mutation",
+            "production_workbook_mutation",
+            "production_pdf_export",
+            "git_push",
+            "git_merge",
+            "lm2_tool_expansion",
+            "raw_authority_granted_trust"
+          ],
+          "expires_at": "",
+          "initiated_by_operator": false,
+          "live_external_effects_allowed": false,
+          "operator_session_id": "",
+          "run_mode": "production",
+          "schema_version": "RUN_MODE_CONTEXT_V0",
+          "source": "backend_default",
+          "test_marker": "",
+          "test_mode": false,
+          "test_run_id": ""
+        },
         "safe_fallback_available": true,
         "safe_fallback_kind": "draft_only_followup_or_checklist",
         "schema_version": "CAPABILITY_GAP_V0",
+        "test_artifact_marker": "",
         "unsafe_true_grants": []
       },
-      "created_at": "2026-06-09T00:32:46+00:00",
+      "created_at": "2026-06-09T01:15:51+00:00",
       "operator_authority_request": {
         "authority_boundary": {
           "browser_access_allowed": false,
@@ -252,7 +308,7 @@
           "sent": false,
           "workbook_mutation_allowed": false
         },
-        "created_at": "2026-06-09T00:32:46+00:00",
+        "created_at": "2026-06-09T01:15:51+00:00",
         "denied_actions": [
           "send_email",
           "delete_email",
@@ -269,9 +325,9 @@
           "git_merge"
         ],
         "duration_scope": "session_or_until_revoked",
-        "generated_from_gap_id": "capability_gap:8105f299454424de",
+        "generated_from_gap_id": "capability_gap:733a2c3664b78829",
         "human_summary": "Grant read-only email lookup for this lane only.",
-        "request_id": "operator_authority_request:481f0759daaf8dc9",
+        "request_id": "operator_authority_request:05ef31dd80ee5ab8",
         "requested_actions": [
           "search_relevant_email_evidence",
           "read_relevant_email_evidence",
@@ -279,9 +335,11 @@
         ],
         "requested_capability_id": "read_only_email_lookup",
         "requested_scope": {
+          "run_mode": "production",
           "target_project_ref": "",
           "target_thread_ref": "capital_hilton",
-          "target_world_ref": "finance"
+          "target_world_ref": "finance",
+          "test_run_id": ""
         },
         "requires_explicit_operator_grant": true,
         "risk_summary": "This allows scoped search/read of relevant email evidence only. It does not allow sending, deleting, archiving, mark-read, browser/Gmail UI, ledger, paid, Coupa, workbook, PDF, push, or merge actions.",
@@ -300,6 +358,52 @@
       "operator_text_hash": "sha256:aafb197815607f27b6fde6667f166f21b6fdc8b83b8ee6a36aeaeb4c8cfce295",
       "raw_authority_granted_trusted": false,
       "response_status": "CAPABILITY_GAP_AUTHORITY_REQUEST_READY",
+      "run_mode_context": {
+        "allowed_test_capabilities": [],
+        "allowlisted_recipients": [],
+        "authority_boundary": {
+          "authority_granted_from_raw_text_allowed": false,
+          "browser_access_allowed": false,
+          "business_email_send_allowed": false,
+          "coupa_submit_allowed": false,
+          "git_push_allowed": false,
+          "gmail_ui_allowed": false,
+          "lm2_tool_expansion_allowed": false,
+          "merge_allowed": false,
+          "paid": false,
+          "paid_marking_allowed": false,
+          "production_ledger_mutation_allowed": false,
+          "production_pdf_export_allowed": false,
+          "production_workbook_mutation_allowed": false,
+          "secrets_storage_allowed": false,
+          "sent": false
+        },
+        "created_at": "2026-06-09T01:15:51+00:00",
+        "denied_actions": [
+          "business_email_send",
+          "gmail_ui",
+          "browser_or_safari",
+          "coupa_submit",
+          "mark_paid",
+          "production_ledger_mutation",
+          "production_workbook_mutation",
+          "production_pdf_export",
+          "git_push",
+          "git_merge",
+          "lm2_tool_expansion",
+          "raw_authority_granted_trust"
+        ],
+        "expires_at": "",
+        "initiated_by_operator": false,
+        "live_external_effects_allowed": false,
+        "operator_session_id": "",
+        "run_mode": "production",
+        "schema_version": "RUN_MODE_CONTEXT_V0",
+        "source": "backend_default",
+        "test_marker": "",
+        "test_mode": false,
+        "test_run_id": ""
+      },
       "safe_fallback": {
         "can_claim_email_checked": false,
         "can_prepare_draft": true,
@@ -365,9 +469,9 @@
         "can_request_build": true,
         "capability_id": "read_only_email_lookup",
         "capability_label": "Read-only email lookup",
-        "created_at": "2026-06-09T00:32:46+00:00",
+        "created_at": "2026-06-09T01:15:51+00:00",
         "freshness_requirement": "current relevant email evidence only",
-        "gap_id": "capability_gap:34043eeaf4cbae5a",
+        "gap_id": "capability_gap:4712ac04f7fbe4aa",
         "privacy_boundary": {
           "no_private_data_external_model": true,
           "private_email_body_external_send_allowed": false,
@@ -397,12 +501,66 @@
         "reason": "answer requires checking scoped email evidence",
         "requested_for_lane": "finance/live_arts_md",
         "requested_for_project": "",
+        "requested_scope": {
+          "run_mode": "production",
+          "target_project_ref": "",
+          "target_thread_ref": "live_arts_md",
+          "target_world_ref": "finance",
+          "test_run_id": ""
+        },
+        "run_mode_context": {
+          "allowed_test_capabilities": [],
+          "allowlisted_recipients": [],
+          "authority_boundary": {
+            "authority_granted_from_raw_text_allowed": false,
+            "browser_access_allowed": false,
+            "business_email_send_allowed": false,
+            "coupa_submit_allowed": false,
+            "git_push_allowed": false,
+            "gmail_ui_allowed": false,
+            "lm2_tool_expansion_allowed": false,
+            "merge_allowed": false,
+            "paid": false,
+            "paid_marking_allowed": false,
+            "production_ledger_mutation_allowed": false,
+            "production_pdf_export_allowed": false,
+            "production_workbook_mutation_allowed": false,
+            "secrets_storage_allowed": false,
+            "sent": false
+          },
+          "created_at": "2026-06-09T01:15:51+00:00",
+          "denied_actions": [
+            "business_email_send",
+            "gmail_ui",
+            "browser_or_safari",
+            "coupa_submit",
+            "mark_paid",
+            "production_ledger_mutation",
+            "production_workbook_mutation",
+            "production_pdf_export",
+            "git_push",
+            "git_merge",
+            "lm2_tool_expansion",
+            "raw_authority_granted_trust"
+          ],
+          "expires_at": "",
+          "initiated_by_operator": false,
+          "live_external_effects_allowed": false,
+          "operator_session_id": "",
+          "run_mode": "production",
+          "schema_version": "RUN_MODE_CONTEXT_V0",
+          "source": "backend_default",
+          "test_marker": "",
+          "test_mode": false,
+          "test_run_id": ""
+        },
         "safe_fallback_available": true,
         "safe_fallback_kind": "draft_only_followup_or_checklist",
         "schema_version": "CAPABILITY_GAP_V0",
+        "test_artifact_marker": "",
         "unsafe_true_grants": []
       },
-      "created_at": "2026-06-09T00:32:46+00:00",
+      "created_at": "2026-06-09T01:15:51+00:00",
       "operator_authority_request": {
         "authority_boundary": {
           "browser_access_allowed": false,
@@ -427,7 +585,7 @@
           "sent": false,
           "workbook_mutation_allowed": false
         },
-        "created_at": "2026-06-09T00:32:46+00:00",
+        "created_at": "2026-06-09T01:15:51+00:00",
         "denied_actions": [
           "send_email",
           "delete_email",
@@ -444,9 +602,9 @@
           "git_merge"
         ],
         "duration_scope": "session_or_until_revoked",
-        "generated_from_gap_id": "capability_gap:34043eeaf4cbae5a",
+        "generated_from_gap_id": "capability_gap:4712ac04f7fbe4aa",
         "human_summary": "Grant read-only email lookup for this lane only.",
-        "request_id": "operator_authority_request:9433e1fb3819a032",
+        "request_id": "operator_authority_request:2ea373d6c498df9c",
         "requested_actions": [
           "search_relevant_email_evidence",
           "read_relevant_email_evidence",
@@ -454,9 +612,11 @@
         ],
         "requested_capability_id": "read_only_email_lookup",
         "requested_scope": {
+          "run_mode": "production",
           "target_project_ref": "",
           "target_thread_ref": "live_arts_md",
-          "target_world_ref": "finance"
+          "target_world_ref": "finance",
+          "test_run_id": ""
         },
         "requires_explicit_operator_grant": true,
         "risk_summary": "This allows scoped search/read of relevant email evidence only. It does not allow sending, deleting, archiving, mark-read, browser/Gmail UI, ledger, paid, Coupa, workbook, PDF, push, or merge actions.",
@@ -475,6 +635,52 @@
       "operator_text_hash": "sha256:950b5bcb0f7edcf36f2cd94601da2b817cdd3d5c94736046524ddbd135bc9ea5",
       "raw_authority_granted_trusted": false,
       "response_status": "CAPABILITY_GAP_AUTHORITY_REQUEST_READY",
+      "run_mode_context": {
+        "allowed_test_capabilities": [],
+        "allowlisted_recipients": [],
+        "authority_boundary": {
+          "authority_granted_from_raw_text_allowed": false,
+          "browser_access_allowed": false,
+          "business_email_send_allowed": false,
+          "coupa_submit_allowed": false,
+          "git_push_allowed": false,
+          "gmail_ui_allowed": false,
+          "lm2_tool_expansion_allowed": false,
+          "merge_allowed": false,
+          "paid": false,
+          "paid_marking_allowed": false,
+          "production_ledger_mutation_allowed": false,
+          "production_pdf_export_allowed": false,
+          "production_workbook_mutation_allowed": false,
+          "secrets_storage_allowed": false,
+          "sent": false
+        },
+        "created_at": "2026-06-09T01:15:51+00:00",
+        "denied_actions": [
+          "business_email_send",
+          "gmail_ui",
+          "browser_or_safari",
+          "coupa_submit",
+          "mark_paid",
+          "production_ledger_mutation",
+          "production_workbook_mutation",
+          "production_pdf_export",
+          "git_push",
+          "git_merge",
+          "lm2_tool_expansion",
+          "raw_authority_granted_trust"
+        ],
+        "expires_at": "",
+        "initiated_by_operator": false,
+        "live_external_effects_allowed": false,
+        "operator_session_id": "",
+        "run_mode": "production",
+        "schema_version": "RUN_MODE_CONTEXT_V0",
+        "source": "backend_default",
+        "test_marker": "",
+        "test_mode": false,
+        "test_run_id": ""
+      },
       "safe_fallback": {
         "can_claim_email_checked": false,
         "can_prepare_draft": true,
@@ -540,9 +746,9 @@
         "can_request_build": true,
         "capability_id": "read_only_email_lookup",
         "capability_label": "Read-only email lookup",
-        "created_at": "2026-06-09T00:32:46+00:00",
+        "created_at": "2026-06-09T01:15:51+00:00",
         "freshness_requirement": "current relevant email evidence only",
-        "gap_id": "capability_gap:bc7edf963561b28d",
+        "gap_id": "capability_gap:5d3aeef1a0e46bd8",
         "privacy_boundary": {
           "no_private_data_external_model": true,
           "private_email_body_external_send_allowed": false,
@@ -572,12 +778,66 @@
         "reason": "answer requires checking scoped email evidence",
         "requested_for_lane": "finance/st_annes",
         "requested_for_project": "",
+        "requested_scope": {
+          "run_mode": "production",
+          "target_project_ref": "",
+          "target_thread_ref": "st_annes",
+          "target_world_ref": "finance",
+          "test_run_id": ""
+        },
+        "run_mode_context": {
+          "allowed_test_capabilities": [],
+          "allowlisted_recipients": [],
+          "authority_boundary": {
+            "authority_granted_from_raw_text_allowed": false,
+            "browser_access_allowed": false,
+            "business_email_send_allowed": false,
+            "coupa_submit_allowed": false,
+            "git_push_allowed": false,
+            "gmail_ui_allowed": false,
+            "lm2_tool_expansion_allowed": false,
+            "merge_allowed": false,
+            "paid": false,
+            "paid_marking_allowed": false,
+            "production_ledger_mutation_allowed": false,
+            "production_pdf_export_allowed": false,
+            "production_workbook_mutation_allowed": false,
+            "secrets_storage_allowed": false,
+            "sent": false
+          },
+          "created_at": "2026-06-09T01:15:51+00:00",
+          "denied_actions": [
+            "business_email_send",
+            "gmail_ui",
+            "browser_or_safari",
+            "coupa_submit",
+            "mark_paid",
+            "production_ledger_mutation",
+            "production_workbook_mutation",
+            "production_pdf_export",
+            "git_push",
+            "git_merge",
+            "lm2_tool_expansion",
+            "raw_authority_granted_trust"
+          ],
+          "expires_at": "",
+          "initiated_by_operator": false,
+          "live_external_effects_allowed": false,
+          "operator_session_id": "",
+          "run_mode": "production",
+          "schema_version": "RUN_MODE_CONTEXT_V0",
+          "source": "backend_default",
+          "test_marker": "",
+          "test_mode": false,
+          "test_run_id": ""
+        },
         "safe_fallback_available": true,
         "safe_fallback_kind": "draft_only_followup_or_checklist",
         "schema_version": "CAPABILITY_GAP_V0",
+        "test_artifact_marker": "",
         "unsafe_true_grants": []
       },
-      "created_at": "2026-06-09T00:32:46+00:00",
+      "created_at": "2026-06-09T01:15:51+00:00",
       "operator_authority_request": {
         "authority_boundary": {
           "browser_access_allowed": false,
@@ -602,7 +862,7 @@
           "sent": false,
           "workbook_mutation_allowed": false
         },
-        "created_at": "2026-06-09T00:32:46+00:00",
+        "created_at": "2026-06-09T01:15:51+00:00",
         "denied_actions": [
           "send_email",
           "delete_email",
@@ -619,9 +879,9 @@
           "git_merge"
         ],
         "duration_scope": "session_or_until_revoked",
-        "generated_from_gap_id": "capability_gap:bc7edf963561b28d",
+        "generated_from_gap_id": "capability_gap:5d3aeef1a0e46bd8",
         "human_summary": "Grant read-only email lookup for this lane only.",
-        "request_id": "operator_authority_request:9adf437657e93693",
+        "request_id": "operator_authority_request:1f0fd175df02c20c",
         "requested_actions": [
           "search_relevant_email_evidence",
           "read_relevant_email_evidence",
@@ -629,9 +889,11 @@
         ],
         "requested_capability_id": "read_only_email_lookup",
         "requested_scope": {
+          "run_mode": "production",
           "target_project_ref": "",
           "target_thread_ref": "st_annes",
-          "target_world_ref": "finance"
+          "target_world_ref": "finance",
+          "test_run_id": ""
         },
         "requires_explicit_operator_grant": true,
         "risk_summary": "This allows scoped search/read of relevant email evidence only. It does not allow sending, deleting, archiving, mark-read, browser/Gmail UI, ledger, paid, Coupa, workbook, PDF, push, or merge actions.",
@@ -650,6 +912,52 @@
       "operator_text_hash": "sha256:a010d05b3d395c6ef92b7bd15e49dc88b842b1ed440c78a3a0c56ccc505f4711",
       "raw_authority_granted_trusted": false,
       "response_status": "CAPABILITY_GAP_AUTHORITY_REQUEST_READY",
+      "run_mode_context": {
+        "allowed_test_capabilities": [],
+        "allowlisted_recipients": [],
+        "authority_boundary": {
+          "authority_granted_from_raw_text_allowed": false,
+          "browser_access_allowed": false,
+          "business_email_send_allowed": false,
+          "coupa_submit_allowed": false,
+          "git_push_allowed": false,
+          "gmail_ui_allowed": false,
+          "lm2_tool_expansion_allowed": false,
+          "merge_allowed": false,
+          "paid": false,
+          "paid_marking_allowed": false,
+          "production_ledger_mutation_allowed": false,
+          "production_pdf_export_allowed": false,
+          "production_workbook_mutation_allowed": false,
+          "secrets_storage_allowed": false,
+          "sent": false
+        },
+        "created_at": "2026-06-09T01:15:51+00:00",
+        "denied_actions": [
+          "business_email_send",
+          "gmail_ui",
+          "browser_or_safari",
+          "coupa_submit",
+          "mark_paid",
+          "production_ledger_mutation",
+          "production_workbook_mutation",
+          "production_pdf_export",
+          "git_push",
+          "git_merge",
+          "lm2_tool_expansion",
+          "raw_authority_granted_trust"
+        ],
+        "expires_at": "",
+        "initiated_by_operator": false,
+        "live_external_effects_allowed": false,
+        "operator_session_id": "",
+        "run_mode": "production",
+        "schema_version": "RUN_MODE_CONTEXT_V0",
+        "source": "backend_default",
+        "test_marker": "",
+        "test_mode": false,
+        "test_run_id": ""
+      },
       "safe_fallback": {
         "can_claim_email_checked": false,
         "can_prepare_draft": true,

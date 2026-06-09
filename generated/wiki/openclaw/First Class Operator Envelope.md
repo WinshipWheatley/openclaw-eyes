@@ -17,7 +17,7 @@ Incoming requests may ask for `authority_requested`, but only backend gates may 
 
 ## Latest Example
 
-- Envelope: `operator_authority_envelope:6112cf73aef206d9`
+- Envelope: `operator_authority_envelope:065e0281f88cad6f`
 - Device: `mac` / `device:macbook`
 - Surface: `card`
 - Action: `show_details`

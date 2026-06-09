@@ -21,7 +21,7 @@
   },
   "bridge_contract_ref": "/mnt/e/openclaw/generated/read_models/first_class_operator_envelope_contract.json",
   "bridge_status_ref": "/mnt/e/openclaw/generated/read_models/first_class_operator_envelope_status.json",
-  "generated_at": "2026-06-04T21:15:00+00:00",
+  "generated_at": "2026-06-09T01:15:51+00:00",
   "latest_record": {
     "approval_receipt_ref": "",
     "authority_boundary": {
@@ -76,15 +76,15 @@
       "authority_requested": [],
       "blockers": [],
       "controller_action_type": "show_details",
-      "created_at": "2026-06-04T21:15:00+00:00",
+      "created_at": "2026-06-09T01:15:51+00:00",
       "current_thread_ref": "live_arts_md",
       "current_world_ref": "finance",
       "device_class": "mac",
       "device_ref": "device:macbook",
       "device_verified": true,
-      "envelope_id": "operator_authority_envelope:6112cf73aef206d9",
+      "envelope_id": "operator_authority_envelope:065e0281f88cad6f",
       "envelope_key": "operator_authority_envelope",
-      "expected_request_hash": "sha256:2502b0fbc96871886822382f714b8c91e02e9fb8e98818326da5561d02edcf97",
+      "expected_request_hash": "sha256:6fc920462a9fa9e7dd371592aef11a1dd806ec675579ded02c8d15ead18a4051",
       "gate_decision_ref": "",
       "incoming_authority_granted_accepted": false,
       "incoming_backend_only_fields": [],
@@ -125,7 +125,7 @@
         "session:first-class-envelope-example"
       ],
       "rejected_reasons": [],
-      "request_hash": "sha256:2502b0fbc96871886822382f714b8c91e02e9fb8e98818326da5561d02edcf97",
+      "request_hash": "sha256:6fc920462a9fa9e7dd371592aef11a1dd806ec675579ded02c8d15ead18a4051",
       "request_hash_checked": true,
       "schema_version": "first_class_operator_envelope_v0",
       "session_ref": "session:first-class-envelope-example",
@@ -136,7 +136,7 @@
       "verified": true
     },
     "gate_decision_ref": "",
-    "generated_at": "2026-06-04T21:15:00+00:00",
+    "generated_at": "2026-06-09T01:15:51+00:00",
     "machine_proof": {
       "authority_granted_empty_until_backend_gate": true,
       "authority_granted_produced_only_by_backend_gates": true,

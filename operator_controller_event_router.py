@@ -19,6 +19,7 @@ from typing import Any, Mapping, Sequence
 
 import evidence_intake
 import first_class_operator_envelope as operator_authority
+import global_run_mode_context
 import objective_advancement_protocol
 import operator_conversation_router
 import proof_to_response_runtime
@@ -69,6 +70,7 @@ EVENT_TYPES = (
     "mark_informational",
     "stop_hold_cancel",
     "show_details",
+    "set_run_mode",
 )
 
 WORKROOM_DECISION_BY_EVENT = {
@@ -565,6 +567,11 @@ def normalize_controller_event_request(
     read_model_root: Path = DEFAULT_READ_MODEL_ROOT,
 ) -> dict[str, Any]:
     request = dict(raw_request)
+    if str(request.get("request_type") or request.get("kind") or request.get("type") or "").strip().upper() == global_run_mode_context.RUN_MODE_SET_REQUEST_SCHEMA:
+        request["_original_request_type"] = global_run_mode_context.RUN_MODE_SET_REQUEST_SCHEMA
+        request["request_type"] = REQUEST_TYPE
+        request.setdefault("controller_event_type", global_run_mode_context.RUN_MODE_SET_EVENT_TYPE)
+        request.setdefault("controller_action_type", global_run_mode_context.RUN_MODE_SET_EVENT_TYPE)
     context = _request_context(request)
     event = _request_event(request)
     if not request.get("request_type"):
@@ -583,6 +590,16 @@ def normalize_controller_event_request(
         request["controller_action_type"] = event_type
     _apply_context_from_read_models(request, read_model_root=read_model_root)
     _normalize_controller_envelope(request)
+    if request.get("_original_request_type") == global_run_mode_context.RUN_MODE_SET_REQUEST_SCHEMA:
+        normalization = _mapping(request.get("_controller_event_envelope_normalization"))
+        normalization.update(
+            {
+                "applied": True,
+                "source": "run_mode_set_request_envelope_normalization",
+                "request_hash_enforcement": "deferred_for_run_mode_set_request_normalization",
+            }
+        )
+        request["_controller_event_envelope_normalization"] = normalization
     return request
 
 
@@ -590,8 +607,16 @@ def _validate_controller_event(request: Mapping[str, Any]) -> dict[str, Any]:
     blockers: list[str] = []
     rejected_reasons: list[str] = []
     event_type = str(request.get("controller_event_type") or "").strip()
+    requested_scope = str(request.get("requested_scope") or "").strip().lower()
+    lane_context_required = event_type != global_run_mode_context.RUN_MODE_SET_EVENT_TYPE or requested_scope not in {
+        "session",
+        "global",
+    }
     normalization = _mapping(request.get("_controller_event_envelope_normalization"))
-    enforce_request_hash = normalization.get("request_hash_enforcement") != "deferred_for_compact_mac_dispatcher_hash"
+    enforce_request_hash = normalization.get("request_hash_enforcement") not in {
+        "deferred_for_compact_mac_dispatcher_hash",
+        "deferred_for_run_mode_set_request_normalization",
+    }
     envelope_result = operator_authority.validate_operator_authority_envelope(
         request,
         enforce_request_hash=enforce_request_hash,
@@ -599,9 +624,9 @@ def _validate_controller_event(request: Mapping[str, Any]) -> dict[str, Any]:
 
     if str(request.get("request_type") or "") != REQUEST_TYPE:
         blockers.append("request_type_invalid")
-    if not str(request.get("current_world_ref") or "").strip():
+    if lane_context_required and not str(request.get("current_world_ref") or "").strip():
         blockers.append("current_world_ref_missing")
-    if not str(request.get("current_thread_ref") or "").strip():
+    if lane_context_required and not str(request.get("current_thread_ref") or "").strip():
         blockers.append("current_thread_ref_missing")
     if not _boundary_all_false(request.get("authority_boundary")):
         blockers.append("authority_boundary_not_all_false")
@@ -848,6 +873,25 @@ def _request_id(request: Mapping[str, Any]) -> str:
     return str(request.get("request_id") or request.get("source_request_id") or "operator_controller_event_request")
 
 
+def _request_run_mode_context(request: Mapping[str, Any], generated_at: str) -> dict[str, Any]:
+    context = request.get("run_mode_context")
+    if isinstance(context, Mapping):
+        return dict(context)
+    return global_run_mode_context.default_run_mode_context(
+        source="backend_default",
+        generated_at=generated_at,
+    )
+
+
+def _attach_card_run_mode(card: dict[str, Any], run_mode_context: Mapping[str, Any]) -> dict[str, Any]:
+    context = dict(run_mode_context)
+    card["run_mode_context"] = context
+    card["run_mode"] = str(context.get("run_mode") or global_run_mode_context.PRODUCTION)
+    card["test_run_id"] = str(context.get("test_run_id") or "")
+    card["test_marker"] = str(context.get("test_marker") or "")
+    return card
+
+
 def _base_receipt(
     request: Mapping[str, Any],
     *,
@@ -856,6 +900,7 @@ def _base_receipt(
     validation: Mapping[str, Any],
 ) -> dict[str, Any]:
     event_type = str(request.get("controller_event_type") or "")
+    run_mode_context = _request_run_mode_context(request, generated_at)
     return {
         "schema_version": SCHEMA_VERSION,
         "receipt_type": "OPERATOR_CONTROLLER_EVENT_ROUTER_RECEIPT",
@@ -870,6 +915,10 @@ def _base_receipt(
         "selected_card_id": str(request.get("selected_card_id") or ""),
         "selected_action_id": _canonical_action_id(str(request.get("selected_action_id") or "")),
         "operator_text": str(request.get("operator_text") or ""),
+        "run_mode_context": run_mode_context,
+        "run_mode": str(run_mode_context.get("run_mode") or global_run_mode_context.PRODUCTION),
+        "test_run_id": str(run_mode_context.get("test_run_id") or ""),
+        "test_marker": str(run_mode_context.get("test_marker") or ""),
         "authority_requested": _as_list(request.get("authority_requested")),
         "authority_granted": [],
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
@@ -927,6 +976,7 @@ def _blocked_receipt(
         current_thread_ref=str(request.get("current_thread_ref") or ""),
         tone="blocked",
     )
+    _attach_card_run_mode(card, receipt["run_mode_context"])
     receipt["dynamic_card_response"] = card
     receipt["proof_refs"] = list(card["proof"]["proof_refs"])
     receipt["machine_proof"] = _machine_proof(
@@ -1652,6 +1702,7 @@ def _route_operator_conversation(
                 if isinstance(conversation["capability_authority"].get("capability_gap"), Mapping)
                 else ""
             )
+    _attach_card_run_mode(card, conversation.get("run_mode_context") if isinstance(conversation.get("run_mode_context"), Mapping) else _request_run_mode_context(request, generated_at))
     receipt = _base_receipt(request, receipt_id=receipt_id, generated_at=generated_at, validation=validation)
     receipt.update(
         {
@@ -1680,6 +1731,77 @@ def _route_operator_conversation(
     return receipt
 
 
+def _route_run_mode_set(
+    request: Mapping[str, Any],
+    *,
+    router_sqlite_path: Path,
+    receipt_id: str,
+    generated_at: str,
+    validation: Mapping[str, Any],
+) -> dict[str, Any]:
+    result = global_run_mode_context.handle_run_mode_set_request(
+        router_sqlite_path,
+        request,
+        generated_at=generated_at,
+    )
+    run_mode_context = result.get("run_mode_context") if isinstance(result.get("run_mode_context"), Mapping) else {}
+    request_with_mode = dict(request)
+    request_with_mode["run_mode_context"] = run_mode_context
+    status = str(result.get("status") or "RUN_MODE_SET_BLOCKED")
+    blocked = status != "RUN_MODE_SET"
+    state = result.get("run_mode_state") if isinstance(result.get("run_mode_state"), Mapping) else {}
+    active_mode = str(state.get("active_run_mode") or run_mode_context.get("run_mode") or global_run_mode_context.PRODUCTION)
+    card = _card_response(
+        receipt_id=receipt_id,
+        event_type=global_run_mode_context.RUN_MODE_SET_EVENT_TYPE,
+        headline="Run mode change blocked" if blocked else "Run mode set",
+        summary=(
+            "The requested run-mode change was blocked because explicit test-live authority and allowlists are required."
+            if blocked
+            else f"OpenClaw is now in {active_mode} for the requested scope."
+        ),
+        status_label="Blocked" if blocked else "Run mode",
+        route_status="BLOCKED" if blocked else "ROUTED",
+        current_world_ref=str(request.get("current_world_ref") or ""),
+        current_thread_ref=str(request.get("current_thread_ref") or ""),
+        proof_refs=[
+            "generated/read_models/global_run_mode_context.json",
+            "generated/read_models/operator_controller_event_router_status.json",
+        ],
+        tone="blocked" if blocked else "calm",
+    )
+    _attach_card_run_mode(card, run_mode_context or _request_run_mode_context(request_with_mode, generated_at))
+    receipt = _base_receipt(
+        request_with_mode,
+        receipt_id=receipt_id,
+        generated_at=generated_at,
+        validation=validation,
+    )
+    receipt.update(
+        {
+            "route_status": status,
+            "raw_internal_status": BLOCKED_WITH_REASON if blocked else RESPONSE_READY,
+            "backend_route": "global_run_mode_context.handle_run_mode_set_request",
+            "route_ref": str(state.get("state_ref") or ""),
+            "route_receipt_ref": str(state.get("receipt_ref") or ""),
+            "route_result": result,
+            "run_mode_state": state,
+            "run_mode_transition_receipt": dict(result.get("transition_receipt") or {}),
+            "dynamic_card_response": card,
+            "proof_refs": list(card["proof"]["proof_refs"]),
+            "machine_proof": _machine_proof(
+                dynamic_card_response_emitted=True,
+                production_default_preserved=active_mode == global_run_mode_context.PRODUCTION,
+                test_live_requires_explicit_authority=True,
+                incoming_authority_granted_accepted=False,
+                business_action_performed=False,
+                live_external_provider_action_performed=False,
+            ),
+        }
+    )
+    return receipt
+
+
 def _route_event(
     request: Mapping[str, Any],
     *,
@@ -1693,8 +1815,17 @@ def _route_event(
     evidence_sqlite_path: Path,
     artifact_lineage_sqlite_path: Path | None,
     proof_to_response_sqlite_path: Path | None = None,
+    router_sqlite_path: Path = DEFAULT_SQLITE_PATH,
 ) -> dict[str, Any]:
     event_type = str(request.get("controller_event_type") or "")
+    if event_type == global_run_mode_context.RUN_MODE_SET_EVENT_TYPE:
+        return _route_run_mode_set(
+            request,
+            router_sqlite_path=router_sqlite_path,
+            receipt_id=receipt_id,
+            generated_at=generated_at,
+            validation=validation,
+        )
     if event_type == "chat_goal":
         return _route_operator_conversation(
             request,
@@ -2359,19 +2490,56 @@ def route_controller_event(
             blocker="unknown_controller_event_type",
         )
     else:
-        receipt = _route_event(
-            request,
-            read_model_root=read_model_root,
-            export_root=export_root,
-            bridge_root=bridge_root,
-            workroom_wiki_path=workroom_wiki_path,
-            receipt_id=receipt_id,
-            generated_at=generated_at,
-            validation=validation,
-            evidence_sqlite_path=evidence_sqlite_path,
-            artifact_lineage_sqlite_path=artifact_lineage_sqlite_path,
-            proof_to_response_sqlite_path=proof_to_response_sqlite_path,
-        )
+        event_type = str(request.get("controller_event_type") or "")
+        if event_type != global_run_mode_context.RUN_MODE_SET_EVENT_TYPE:
+            run_mode_context = global_run_mode_context.resolve_run_mode_context(
+                sqlite_path,
+                request,
+                generated_at=generated_at,
+            )
+            request["run_mode_context"] = run_mode_context
+            if run_mode_context.get("resolution_status") == "rejected":
+                blockers = list(run_mode_context.get("blockers") or [])
+                receipt = _blocked_receipt(
+                    request,
+                    receipt_id=receipt_id,
+                    generated_at=generated_at,
+                    validation=validation,
+                    route_status="RUN_MODE_CONTEXT_REJECTED",
+                    headline="Run mode blocked",
+                    summary="This request conflicts with the backend run-mode state or contains a test-only marker in production.",
+                    blocker=blockers[0] if blockers else "run_mode_context_rejected",
+                )
+            else:
+                receipt = _route_event(
+                    request,
+                    read_model_root=read_model_root,
+                    export_root=export_root,
+                    bridge_root=bridge_root,
+                    workroom_wiki_path=workroom_wiki_path,
+                    receipt_id=receipt_id,
+                    generated_at=generated_at,
+                    validation=validation,
+                    evidence_sqlite_path=evidence_sqlite_path,
+                    artifact_lineage_sqlite_path=artifact_lineage_sqlite_path,
+                    proof_to_response_sqlite_path=proof_to_response_sqlite_path,
+                    router_sqlite_path=sqlite_path,
+                )
+        else:
+            receipt = _route_event(
+                request,
+                read_model_root=read_model_root,
+                export_root=export_root,
+                bridge_root=bridge_root,
+                workroom_wiki_path=workroom_wiki_path,
+                receipt_id=receipt_id,
+                generated_at=generated_at,
+                validation=validation,
+                evidence_sqlite_path=evidence_sqlite_path,
+                artifact_lineage_sqlite_path=artifact_lineage_sqlite_path,
+                proof_to_response_sqlite_path=proof_to_response_sqlite_path,
+                router_sqlite_path=sqlite_path,
+            )
 
     receipt["source_request_filename"] = source_request_filename
     _attach_proof_to_response(
@@ -2449,6 +2617,11 @@ def build_contract_read_model(
             "controller_event_type": "show_details",
             "backend_route": "dynamic_card_packet.proof_drawer",
             "effect": "proof/details card only",
+        },
+        {
+            "controller_event_type": "set_run_mode",
+            "backend_route": "global_run_mode_context.handle_run_mode_set_request",
+            "effect": "backend-persisted run-mode state and transition receipt only; no business execution",
         },
     ]
     payload = {
