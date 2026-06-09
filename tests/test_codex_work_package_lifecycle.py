@@ -210,7 +210,7 @@ def test_result_ingestion_rejects_secret_like_strings(tmp_path):
     assert "secret_like_string_detected" in result["validation_receipt"]["validation_errors"]
 
 
-def test_validation_passed_result_updates_package_state(tmp_path):
+def test_validation_passed_result_holds_activation_until_connector_configured(tmp_path):
     _, grant, _ = _start_and_grant(tmp_path)
     result = lifecycle.ingest_worker_result(
         _valid_result(grant["codex_work_package"], grant["make_it_so_authority_grant"]),
@@ -218,11 +218,13 @@ def test_validation_passed_result_updates_package_state(tmp_path):
         generated_at=FIXED_NOW,
     )
 
-    assert result["package_state"]["state"] == lifecycle.STATE_ACTIVATED
+    assert result["package_state"]["state"] == lifecycle.STATE_VALIDATION_PASSED
     assert result["validation_receipt"]["validation_status"] == "validation_passed"
+    assert result["activation_decision"]["decision"] == "blocked"
+    assert result["activation_decision"]["connector_configured"] is False
 
 
-def test_activation_decision_only_activates_if_tests_and_scans_pass(tmp_path):
+def test_activation_decision_requires_tests_scans_and_connector_setup(tmp_path):
     _, grant, _ = _start_and_grant(tmp_path)
     failed = lifecycle.ingest_worker_result(
         _valid_result(grant["codex_work_package"], grant["make_it_so_authority_grant"], unsafe_scan_summary={"passed": False, "hits": ["push"]}),
@@ -236,10 +238,12 @@ def test_activation_decision_only_activates_if_tests_and_scans_pass(tmp_path):
     )
 
     assert failed["activation_decision"]["decision"] == "blocked"
-    assert passed["activation_decision"]["decision"] == "activate"
+    assert passed["activation_decision"]["decision"] == "blocked"
+    assert passed["activation_decision"]["production_ready"] is False
+    assert "connector setup" in passed["activation_decision"]["reason"].lower()
 
 
-def test_capability_registry_updates_only_after_valid_result(tmp_path):
+def test_capability_registry_records_human_setup_until_connector_configured(tmp_path):
     _, grant, _ = _start_and_grant(tmp_path)
     lifecycle.ingest_worker_result(
         _valid_result(grant["codex_work_package"], grant["make_it_so_authority_grant"]),
@@ -251,7 +255,7 @@ def test_capability_registry_updates_only_after_valid_result(tmp_path):
         row = con.execute("select status from capability_registry where capability_id = ?", ("read_only_email_lookup",)).fetchone()
     finally:
         con.close()
-    assert row[0] == "production_ready"
+    assert row[0] == "human_setup_required"
 
 
 def test_read_only_email_lookup_package_does_not_grant_protected_email_or_browser(tmp_path):

@@ -19,6 +19,7 @@ from typing import Any, Mapping, Sequence
 import capability_authority_loop
 import codex_work_package_lifecycle
 import global_run_mode_context
+import read_only_email_lookup_connector
 import test_effect_adapters
 
 
@@ -643,9 +644,11 @@ def start_email_lookup_objective(
 ) -> dict[str, Any]:
     generated_at = generated_at or utc_now()
     scope = _scope(world_ref, thread_ref, project_ref)
+    connector_status = read_only_email_lookup_connector.get_connector_status(generated_at=generated_at)
+    connector_setup = read_only_email_lookup_connector.build_setup_requirement(connector_status, generated_at=generated_at)
     with _connect(sqlite_path) as conn:
         registry = _load_registry(conn, READ_ONLY_EMAIL_LOOKUP, scope)
-        if registry and registry.get("status") in {"production_ready", "test_passed"}:
+        if registry and registry.get("status") in {"production_ready", "test_passed"} and connector_status.get("configured") is True:
             receipt_objective = build_objective_request(
                 operator_goal_text=operator_text,
                 requested_outcome="answer from active read-only email lookup",
@@ -662,6 +665,7 @@ def start_email_lookup_objective(
                 "response_status": "CAPABILITY_ALREADY_APPROVED",
                 "objective_request": receipt_objective,
                 "capability_registry": registry,
+                "email_connector_status": connector_status,
                 "operator_display": {
                     "speaker_ref": "chief",
                     "headline": "Capability is ready",
@@ -677,26 +681,48 @@ def start_email_lookup_objective(
                 str(existing.get("objective_id") or ""),
                 sqlite_path=_lifecycle_sqlite_path(sqlite_path),
             )
-            blocker = build_blocker(
-                existing,
-                blocker_kind="missing_capability",
-                human_summary="Read-only email lookup is still not active for this scope.",
-                required_next_input="Review the queued Codex package lifecycle or complete the recorded human setup blocker.",
-                can_be_solved_by_make_it_so=True,
-                already_explained=True,
-                generated_at=generated_at,
-            )
+            if connector_status.get("configured") is False and str(existing.get("status") or "") == STATUS_HUMAN_SETUP_REQUIRED:
+                blocker = read_only_email_lookup_connector.produce_missing_credential_blocker(
+                    existing,
+                    connector_status,
+                    generated_at=generated_at,
+                )
+                blocker["already_explained"] = True
+                headline = "Connector setup needed"
+                summary = (
+                    "The read-only email lookup boundary exists, but production lookup still needs an external "
+                    "gmail.readonly connector or credential setup. No email was checked."
+                )
+                next_action = "Configure the read-only Gmail connector outside the repo."
+            else:
+                blocker = build_blocker(
+                    existing,
+                    blocker_kind="missing_capability",
+                    human_summary="Read-only email lookup is still not active for this scope.",
+                    required_next_input="Review the queued Codex package lifecycle or complete the recorded human setup blocker.",
+                    can_be_solved_by_make_it_so=True,
+                    already_explained=True,
+                    generated_at=generated_at,
+                )
+                headline = "Objective still waiting"
+                summary = (
+                    "I already recorded the missing read-only email lookup capability for this scope. If Make-It-So "
+                    "was granted, review the queued Codex package lifecycle and setup blocker."
+                )
+                next_action = "Review package lifecycle status."
             return {
                 "schema_version": SCHEMA_VERSION,
                 "response_status": "OBJECTIVE_STATUS_READY",
                 "objective_request": existing,
                 "objective_blocker": blocker,
                 "codex_work_package_lifecycle": lifecycle_status,
+                "email_connector_status": connector_status,
+                "email_connector_setup_requirement": connector_setup,
                 "operator_display": {
                     "speaker_ref": "chief",
-                    "headline": "Objective still waiting",
-                    "plain_summary": "I already recorded the missing read-only email lookup capability for this scope. If Make-It-So was granted, review the queued Codex package lifecycle and setup blocker.",
-                    "next_safe_action": "Review package lifecycle status.",
+                    "headline": headline,
+                    "plain_summary": summary,
+                    "next_safe_action": next_action,
                     "proof_refs_collapsed": True,
                 },
                 "authority_boundary": dict(AUTHORITY_BOUNDARY),
@@ -743,6 +769,8 @@ def start_email_lookup_objective(
         "objective_blocker": blocker,
         "make_it_so_authority_request": make_request,
         "capability_authority": capability_gap,
+        "email_connector_status": connector_status,
+        "email_connector_setup_requirement": connector_setup,
         "operator_display": {
             "speaker_ref": "chief",
             "headline": "Make-it-so authority needed",
@@ -773,6 +801,8 @@ def handle_make_it_so_grant(
             "authority_boundary": dict(AUTHORITY_BOUNDARY),
         }
     scope = _scope(world_ref, thread_ref, project_ref) if world_ref or thread_ref or project_ref else None
+    connector_status = read_only_email_lookup_connector.get_connector_status(generated_at=generated_at)
+    connector_setup = read_only_email_lookup_connector.build_setup_requirement(connector_status, generated_at=generated_at)
     with _connect(sqlite_path) as conn:
         active = _load_active_make_request(conn, scope)
         if not active:
@@ -795,8 +825,8 @@ def handle_make_it_so_grant(
         human_blocker = build_blocker(
             objective,
             blocker_kind="missing_connector",
-            human_summary="A safe read-only email connector/credential setup is required. I will not store secrets in the repo.",
-            required_next_input="Configure a safe read-only email connector or OS/keychain-backed credential outside the repo.",
+            human_summary="A safe read-only Gmail connector/credential setup is required. I will not store secrets in the repo.",
+            required_next_input="Configure the read-only Gmail connector outside the repo with gmail.readonly scope.",
             can_be_solved_by_make_it_so=False,
             requires_human_secret_or_external_login=True,
             already_explained=False,
@@ -852,6 +882,8 @@ def handle_make_it_so_grant(
         "codex_work_package": package,
         "codex_work_package_lifecycle": lifecycle_status,
         "objective_blocker": human_blocker,
+        "email_connector_status": connector_status,
+        "email_connector_setup_requirement": connector_setup,
         "objective_execution_receipt": receipt,
         "operator_display": {
             "speaker_ref": "chief",

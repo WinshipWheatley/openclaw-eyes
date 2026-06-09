@@ -311,6 +311,7 @@ def _make_it_so_next_step(route_result: Mapping[str, Any], request: Mapping[str,
     if (
         str(latest_result.get("capability_status") or "") == "human_setup_required"
         or str(latest_result.get("blocker_kind") or "") == "missing_read_only_email_connector"
+        or str(blocker.get("blocker_kind") or "") == "missing_read_only_email_connector"
         or (state.get("state") == "validation_passed" and activation.get("decision") == "blocked" and activation.get("production_ready") is False)
     ):
         return build_next_step(

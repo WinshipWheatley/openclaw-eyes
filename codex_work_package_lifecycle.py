@@ -20,6 +20,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
+import read_only_email_lookup_connector
+
 
 ROOT = Path(__file__).resolve().parent
 DEFAULT_EXPORT_ROOT = Path("generated/read_models")
@@ -698,8 +700,20 @@ def build_activation_decision(
     unsafe_scan = result.get("unsafe_scan_summary") if isinstance(result.get("unsafe_scan_summary"), Mapping) else {}
     unsafe_scan_passed = unsafe_scan.get("passed") is True
     denied_preserved = not result.get("denied_actions_reported")
-    production_ready = tests_passed and unsafe_scan_passed and denied_preserved and str(result.get("capability_status") or "") == "production_ready"
+    requested_production_ready = str(result.get("capability_status") or "") == "production_ready"
+    connector_status: dict[str, Any] = {}
+    connector_configured = True
+    if str(state.get("capability_id") or "") == read_only_email_lookup_connector.CAPABILITY_ID:
+        connector_status = read_only_email_lookup_connector.get_connector_status(generated_at=generated_at)
+        connector_configured = connector_status.get("configured") is True
+    production_ready = tests_passed and unsafe_scan_passed and denied_preserved and requested_production_ready and connector_configured
     decision = "activate" if production_ready else "blocked"
+    if requested_production_ready and not connector_configured:
+        reason = "Read-only email connector setup is still missing; production activation is held for human setup."
+    elif production_ready:
+        reason = "Validated worker result is safe to activate."
+    else:
+        reason = "Validation, scan, or authority boundary is incomplete."
     return {
         "schema_version": ACTIVATION_DECISION_SCHEMA,
         "decision_id": f"capability_activation_decision:{_short_hash(state.get('package_id'), decision, generated_at)}",
@@ -710,9 +724,11 @@ def build_activation_decision(
         "unsafe_scan_passed": unsafe_scan_passed,
         "denied_actions_preserved": denied_preserved,
         "production_ready": production_ready,
+        "connector_configured": connector_configured,
+        "email_connector_status": connector_status,
         "activation_scope": dict((state.get("package_json") or {}).get("scope") or {}) if isinstance(state.get("package_json"), Mapping) else {},
         "decision": decision,
-        "reason": "Validated worker result is safe to activate." if production_ready else "Validation, scan, or authority boundary is incomplete.",
+        "reason": reason,
         "receipt_ref": str(validation_receipt.get("validation_id") or ""),
         "created_at": generated_at,
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
@@ -761,7 +777,12 @@ def _store_activation(conn: sqlite3.Connection, decision: Mapping[str, Any]) -> 
 def _store_registry(conn: sqlite3.Connection, state: Mapping[str, Any], decision: Mapping[str, Any], *, generated_at: str) -> None:
     package = state.get("package_json") if isinstance(state.get("package_json"), Mapping) else {}
     scope = package.get("scope") if isinstance(package.get("scope"), Mapping) else {}
-    status = "production_ready" if decision.get("decision") == "activate" else "build_requested"
+    if decision.get("decision") == "activate":
+        status = "production_ready"
+    elif str(state.get("capability_id") or "") == read_only_email_lookup_connector.CAPABILITY_ID and decision.get("connector_configured") is False:
+        status = "human_setup_required"
+    else:
+        status = "build_requested"
     registry = {
         "schema_version": "OPERATOR_CAPABILITY_REGISTRY_V0",
         "capability_id": str(state.get("capability_id") or ""),
@@ -780,6 +801,7 @@ def _store_registry(conn: sqlite3.Connection, state: Mapping[str, Any], decision
         "last_production_receipt": "",
         "revoked_at": "",
         "updated_at": generated_at,
+        "email_connector_status": decision.get("email_connector_status") if isinstance(decision.get("email_connector_status"), Mapping) else {},
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
     }
     conn.execute(
@@ -874,7 +896,7 @@ def ingest_worker_result(
         _store_result(conn, result)
         _store_validation(conn, validation)
         _store_activation(conn, decision)
-        if decision["decision"] == "activate":
+        if decision["decision"] == "activate" or (not errors and decision.get("connector_configured") is False):
             _store_registry(conn, new_state, decision, generated_at=generated_at)
         queue = build_package_queue(_all_states(conn), generated_at=generated_at)
         _store_queue(conn, queue)

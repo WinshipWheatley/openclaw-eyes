@@ -302,7 +302,7 @@ def test_capability_registry_records_status_transitions(tmp_path):
     assert row[0] == make_loop.STATUS_TEST_PASSED
 
 
-def test_same_ready_capability_does_not_ask_again_in_same_scope(tmp_path):
+def test_ready_registry_without_connector_does_not_bypass_connector_gate(tmp_path):
     db = tmp_path / "loop.sqlite"
     scope = {"target_world_ref": "finance", "target_thread_ref": "capital_hilton", "target_project_ref": ""}
     with sqlite3.connect(db) as con:
@@ -326,8 +326,10 @@ def test_same_ready_capability_does_not_ask_again_in_same_scope(tmp_path):
         generated_at=FIXED_NOW,
     )
 
-    assert result["response_status"] == "CAPABILITY_ALREADY_APPROVED"
-    assert "make_it_so_authority_request" not in result
+    assert result["response_status"] == "MAKE_IT_SO_AUTHORITY_REQUEST_READY"
+    assert result["email_connector_status"]["configured"] is False
+    assert result["email_connector_setup_requirement"]["no_repo_secret_policy"] is True
+    assert result["capability_requirement"]["production_available"] is False
 
 
 def test_read_email_grant_does_not_grant_send_or_ledger_or_test_live_production_authority(tmp_path):
