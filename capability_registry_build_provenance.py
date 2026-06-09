@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 import openclaw_plugin_contract
+import authority_secret_custody
 
 
 ROOT = Path(__file__).resolve().parent
@@ -523,6 +524,7 @@ def build_package_plan(
     *,
     requested_objective: str,
     required_capabilities: Sequence[str],
+    credential_required_for: Sequence[str] = (),
     lane_context: Mapping[str, Any] | None = None,
     sqlite_path: Path = DEFAULT_SQLITE_PATH,
     generated_at: str | None = None,
@@ -560,13 +562,50 @@ def build_package_plan(
         "selected_implementations": selected_implementations,
         "maturity_status": maturity_rows,
         "denied_actions": list(DEFAULT_DENIED_ACTIONS),
-        "authority_required": ["scoped authority per capability before live use"],
+        "authority_required": [
+            "scoped authority envelope before live data access",
+            "separate production authority before write/send/submit/paid/ledger actions",
+            "separate unattended run envelope before scheduled execution",
+        ],
+        "credential_handle_requirements": [
+            {
+                "capability_id": capability_id,
+                "required_object": authority_secret_custody.CREDENTIAL_HANDLE_SCHEMA,
+                "lease_required": authority_secret_custody.CREDENTIAL_LEASE_SCHEMA,
+                "raw_secret_storage_allowed": False,
+            }
+            for capability_id in credential_required_for
+        ],
+        "authority_envelope_requirements": [
+            {
+                "capability_id": capability_id,
+                "required_object": authority_secret_custody.AUTHORITY_ENVELOPE_SCHEMA,
+                "live_data_access_allowed_default": False,
+                "production_action_allowed_default": False,
+                "external_service_access_allowed_default": False,
+            }
+            for capability_id in required_capabilities
+        ],
+        "policy_gate_refs": [
+            {
+                "schema_version": authority_secret_custody.POLICY_GATE_SCHEMA,
+                "blocked_actions": list(DEFAULT_DENIED_ACTIONS),
+                "status": "planned_gate_only",
+            }
+        ],
         "redaction_policy_refs": ["proof_bundle_redaction_policy_v0"],
         "freshness_policy_refs": ["OPENCLAW_PLUGIN_CONTRACT_V0.freshness_policy"],
-        "receipt_requirements": ["capability_resolution_event", "capability_build_request_or_reuse_receipt"],
+        "receipt_requirements": [
+            "capability_resolution_event",
+            "capability_build_request_or_reuse_receipt",
+            "authority_envelope_receipt_before_live_use",
+            "credential_lease_receipt_before_credential_use",
+        ],
         "missing_capabilities": missing,
         "recommended_next_safe_step": "Mature existing fixture capabilities before any live access request." if not missing else "Create scoped build requests for missing capabilities.",
         "execution_performed": False,
+        "live_action_enabled": False,
+        "credential_secret_material_included": False,
         "created_at": generated_at,
     }
 
