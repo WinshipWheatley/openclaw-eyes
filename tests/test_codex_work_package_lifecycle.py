@@ -35,15 +35,16 @@ def _start_and_grant(tmp_path):
 
 
 def _valid_result(package, grant, **extra):
+    validation_commands = list(package.get("validation_commands") or ["python3 -m py_compile make_it_so_objective_loop.py"])
     result = {
         "schema_version": lifecycle.PACKAGE_RESULT_SCHEMA,
         "package_id": package["package_id"],
         "worker_kind": "manual_codex_handoff",
         "status": "completed",
         "authority_grant_ref": grant["grant_id"],
-        "files_changed": ["make_it_so_objective_loop.py", "tests/test_make_it_so_objective_loop.py"],
-        "commands_run": ["python3 -m py_compile make_it_so_objective_loop.py"],
-        "validation_run": ["python3 -m py_compile make_it_so_objective_loop.py"],
+        "files_changed": ["read_only_email_lookup_connector.py", "tests/test_read_only_email_lookup_connector.py"],
+        "commands_run": validation_commands,
+        "validation_run": validation_commands,
         "unsafe_scan_summary": {"passed": True, "hits": []},
         "commit_hash": "",
         "blocker_summary": "",

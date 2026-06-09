@@ -136,6 +136,32 @@ def test_make_it_so_with_active_request_creates_grant_plan_package_and_receipt(t
     assert grant["objective_execution_receipt"]["schema_version"] == make_loop.EXECUTION_RECEIPT_SCHEMA
 
 
+def test_read_only_email_connector_package_scope_allows_connector_boundary_files(tmp_path):
+    db = tmp_path / "loop.sqlite"
+    make_loop.start_email_lookup_objective(
+        "Have we received any emails from Annette?",
+        world_ref="finance",
+        thread_ref="capital_hilton",
+        sqlite_path=db,
+        generated_at=FIXED_NOW,
+    )
+    result = make_loop.handle_make_it_so_grant(
+        "Make it so.",
+        world_ref="finance",
+        thread_ref="capital_hilton",
+        sqlite_path=db,
+        generated_at=FIXED_NOW,
+    )
+    package = result["codex_work_package"]
+
+    assert "read_only_email_lookup_connector.py" in package["allowed_file_paths"]
+    assert "tests/test_read_only_email_lookup_connector.py" in package["allowed_file_paths"]
+    assert "python3 -m pytest tests/test_read_only_email_lookup_connector.py -q" in package["validation_commands"]
+    assert "python3 -m json.tool generated/read_models/read_only_email_lookup_connector.json" in package["validation_commands"]
+    assert "git push" in package["denied_commands"]
+    assert "send email" in package["denied_commands"]
+
+
 def test_make_it_so_with_no_active_request_creates_no_authority(tmp_path):
     result = make_loop.handle_make_it_so_grant(
         "Make it so.",

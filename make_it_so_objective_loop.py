@@ -564,33 +564,53 @@ def build_enablement_plan(
 
 def build_codex_work_package(objective: Mapping[str, Any], grant: Mapping[str, Any], *, generated_at: str | None = None) -> dict[str, Any]:
     generated_at = generated_at or utc_now()
-    return {
-        "schema_version": CODEX_WORK_PACKAGE_SCHEMA,
-        "package_id": f"codex_work_package:{_short_hash(objective['objective_id'], grant.get('grant_id'), generated_at)}",
-        "objective_id": objective["objective_id"],
-        "capability_id": objective["capability_id"],
-        "worktree_root": "/home/openclaw",
-        "allowed_file_paths": [
+    capability_id = str(objective["capability_id"])
+    if capability_id == READ_ONLY_EMAIL_LOOKUP:
+        allowed_paths = [
+            "read_only_email_lookup_connector.py",
+            "tests/test_read_only_email_lookup_connector.py",
+            "make_it_so_objective_loop.py",
+            "tests/test_make_it_so_objective_loop.py",
+            "active_next_step_policy.py",
+            "tests/test_active_next_step_policy.py",
+            "codex_work_package_lifecycle.py",
+            "tests/test_codex_work_package_lifecycle.py",
+            "generated/read_models/read_only_email_lookup_connector.json",
+            "generated/wiki/openclaw/Read Only Email Lookup Connector.md",
+            "generated/system_knowledge/",
+        ]
+        validation_commands = [
+            "python3 -m py_compile read_only_email_lookup_connector.py make_it_so_objective_loop.py active_next_step_policy.py codex_work_package_lifecycle.py",
+            "python3 -m pytest tests/test_read_only_email_lookup_connector.py -q",
+            "python3 -m pytest tests/test_make_it_so_objective_loop.py::test_read_only_email_connector_package_scope_allows_connector_boundary_files -q",
+            "python3 -m json.tool generated/read_models/read_only_email_lookup_connector.json",
+            "git diff --check",
+        ]
+    else:
+        allowed_paths = [
             "make_it_so_objective_loop.py",
             "tests/test_make_it_so_objective_loop.py",
             "generated/read_models/",
             "generated/wiki/openclaw/",
             "generated/system_knowledge/",
-        ],
+        ]
+        validation_commands = [
+            "python3 -m py_compile make_it_so_objective_loop.py",
+            "python3 -m pytest tests/test_make_it_so_objective_loop.py -q",
+            "python3 -m json.tool generated/read_models/make_it_so_objective_loop.json",
+            "git diff --check",
+        ]
+    return {
+        "schema_version": CODEX_WORK_PACKAGE_SCHEMA,
+        "package_id": f"codex_work_package:{_short_hash(objective['objective_id'], grant.get('grant_id'), generated_at)}",
+        "objective_id": objective["objective_id"],
+        "capability_id": capability_id,
+        "worktree_root": "/home/openclaw",
+        "allowed_file_paths": allowed_paths,
         "denied_file_paths": ["business ledger", "production workbooks", "production PDFs", "credentials", "secrets"],
-        "allowed_commands": [
-            "python3 -m py_compile make_it_so_objective_loop.py",
-            "python3 -m pytest tests/test_make_it_so_objective_loop.py -q",
-            "python3 -m json.tool generated/read_models/make_it_so_objective_loop.json",
-            "git diff --check",
-        ],
+        "allowed_commands": validation_commands,
         "denied_commands": ["git push", "git merge", "open browser", "open Gmail", "send email", "submit Coupa", "invoke external model", "spawn worker"],
-        "validation_commands": [
-            "python3 -m py_compile make_it_so_objective_loop.py",
-            "python3 -m pytest tests/test_make_it_so_objective_loop.py -q",
-            "python3 -m json.tool generated/read_models/make_it_so_objective_loop.json",
-            "git diff --check",
-        ],
+        "validation_commands": validation_commands,
         "unsafe_scan": "required",
         "run_mode": str(objective.get("run_mode") or global_run_mode_context.PRODUCTION),
         "authority_grant_ref": str(grant.get("grant_id") or ""),
