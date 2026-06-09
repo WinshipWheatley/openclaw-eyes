@@ -663,10 +663,10 @@ def unsupported_email_lookup_claims(response: Mapping[str, Any]) -> list[str]:
     claim_phrases = {
         "email_checked": ("checked email", "checked gmail", "looked in gmail", "searched your inbox"),
         "email_received": ("email was received", "received an email", "annette replied", "glenn acknowledged"),
-        "draft_sent": ("draft sent", "i sent", "sent the follow-up"),
-        "contact_saved": ("contact saved", "saved the contact"),
-        "paid": ("marked paid", "is paid", "has been paid"),
-        "ledger_updated": ("ledger updated", "updated the ledger", "posted to ledger"),
+        "draft_sent": ("draft sent", "draft was sent", "i sent", "sent the follow-up"),
+        "contact_saved": ("contact saved", "saved the contact", "the contact was saved"),
+        "paid_marked": ("marked paid", "paid was marked", "is paid", "has been paid"),
+        "ledger_updated": ("ledger updated", "ledger was updated", "updated the ledger", "posted to ledger"),
     }
     negatives = ("cannot", "can't", "not", "no ", "did not", "do not", "stays untouched", "remains untouched")
     failures: list[str] = []

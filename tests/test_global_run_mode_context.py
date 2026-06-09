@@ -152,8 +152,8 @@ def test_controller_events_resolve_against_active_backend_run_mode(tmp_path):
     receipt = _route(_controller_request("Have we received any emails from Annette?"), tmp_path)
 
     assert receipt["run_mode"] == run_mode.TEST_DRY_RUN
-    assert receipt["route_status"] == "CAPABILITY_GAP_AUTHORITY_REQUEST_READY"
-    assert receipt["route_result"]["capability_authority"]["capability_gap"]["run_mode_context"]["run_mode"] == run_mode.TEST_DRY_RUN
+    assert receipt["route_status"] == "MAKE_IT_SO_AUTHORITY_REQUEST_READY"
+    assert receipt["route_result"]["make_it_so_objective"]["capability_authority"]["capability_gap"]["run_mode_context"]["run_mode"] == run_mode.TEST_DRY_RUN
 
 
 def test_test_dry_run_response_carries_run_mode_context(tmp_path):
@@ -315,7 +315,7 @@ def test_mac_style_controller_fixture_produces_run_mode_aware_response(tmp_path)
     assert receipt["request_type"] == controller_router.REQUEST_TYPE
     assert receipt["run_mode"] == run_mode.PRODUCTION
     assert receipt["dynamic_card_response"]["run_mode"] == run_mode.PRODUCTION
-    assert receipt["route_status"] == "CAPABILITY_GAP_AUTHORITY_REQUEST_READY"
+    assert receipt["route_status"] == "MAKE_IT_SO_AUTHORITY_REQUEST_READY"
     assert receipt["route_result"]["workflow_request_type_emitted"] == ""
 
 
@@ -327,8 +327,8 @@ def test_existing_email_lookup_scenarios_still_use_shared_capability_gap(tmp_pat
     ]
     for text, world, thread in cases:
         receipt = _route(_controller_request(text, world=world, thread=thread), tmp_path)
-        assert receipt["route_status"] == "CAPABILITY_GAP_AUTHORITY_REQUEST_READY"
-        assert receipt["route_result"]["capability_authority"]["capability_gap"]["capability_id"] == capability_loop.READ_ONLY_EMAIL_LOOKUP
+        assert receipt["route_status"] == "MAKE_IT_SO_AUTHORITY_REQUEST_READY"
+        assert receipt["route_result"]["make_it_so_objective"]["capability_authority"]["capability_gap"]["capability_id"] == capability_loop.READ_ONLY_EMAIL_LOOKUP
         assert receipt["route_result"]["workflow_request_type_emitted"] == ""
 
 

@@ -2161,10 +2161,11 @@ def _attach_proof_to_response(
         receipt["proof_to_response_status"] = "unavailable:no_dynamic_card_response"
         return
     route_result = receipt.get("route_result") if isinstance(receipt.get("route_result"), Mapping) else {}
-    if str(route_result.get("backend_route") or "").startswith("capability_authority_loop."):
-        receipt["primary_response_kind"] = "capability_authority"
-        receipt["proof_to_response_status"] = "not_applicable:capability_authority_route"
-        receipt["proof_to_response_unavailable_reason"] = "capability_gap_or_authority_grant_is_structured_route_result"
+    backend_route = str(route_result.get("backend_route") or "")
+    if backend_route.startswith("capability_authority_loop.") or backend_route.startswith("make_it_so_objective_loop."):
+        receipt["primary_response_kind"] = "make_it_so_objective" if backend_route.startswith("make_it_so_objective_loop.") else "capability_authority"
+        receipt["proof_to_response_status"] = "not_applicable:structured_authority_route"
+        receipt["proof_to_response_unavailable_reason"] = "capability_gap_or_make_it_so_route_is_structured_route_result"
         receipt["dynamic_card_role"] = "primary_display"
         receipt["details_collapsed"] = True
         receipt["machine_proof"]["proof_to_response_bypassed_for_capability_authority"] = True

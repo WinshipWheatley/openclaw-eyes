@@ -360,9 +360,9 @@ def test_existing_email_capability_gap_scenarios_still_pass(tmp_path):
             "authority_boundary": dict(operator_conversation_router.AUTHORITY_BOUNDARY),
         }
         result = operator_conversation_router.route_conversation_text(request, sqlite_path=tmp_path / "conversation.sqlite", generated_at=FIXED_NOW)
-        assert result["route_status"] == operator_conversation_router.ROUTE_STATUS_CAPABILITY_GAP
+        assert result["route_status"] == operator_conversation_router.ROUTE_STATUS_MAKE_IT_SO_AUTHORITY_REQUEST
         assert result["workflow_request_type_emitted"] == ""
-        assert result["capability_authority"]["capability_gap"]["capability_id"] == capability_authority_loop.READ_ONLY_EMAIL_LOOKUP
+        assert result["make_it_so_objective"]["capability_authority"]["capability_gap"]["capability_id"] == capability_authority_loop.READ_ONLY_EMAIL_LOOKUP
 
 
 def test_unsafe_true_grant_scan_clean_for_adapter_outputs(tmp_path):
