@@ -1660,7 +1660,12 @@ def _route_operator_conversation(
     display = conversation.get("operator_display") if isinstance(conversation.get("operator_display"), Mapping) else {}
     next_event = str(conversation.get("suggested_controller_event") or "show_details")
     actions = []
-    next_safe_action = str(display.get("next_safe_action") or "Show details")
+    primary_next_step = conversation.get("primary_next_step") if isinstance(conversation.get("primary_next_step"), Mapping) else {}
+    next_safe_action = str(primary_next_step.get("label") or display.get("next_safe_action") or "Show details")
+    if primary_next_step.get("next_step_kind") == "request_authority":
+        next_event = "make_it_so"
+    elif primary_next_step.get("next_step_kind") in {"pick_up_work_package", "configure_connector", "provide_proof"}:
+        next_event = "show_details"
     if next_safe_action:
         actions.append(
             {
@@ -1692,6 +1697,9 @@ def _route_operator_conversation(
         proof_refs=list(conversation.get("proof_refs") or []),
         tone="blocked" if "BLOCKED" in route_status else "calm",
     )
+    if primary_next_step:
+        card["primary_next_step"] = dict(primary_next_step)
+        card["next_step_status_receipt"] = dict(conversation.get("next_step_status_receipt") or {})
     if isinstance(conversation.get("capability_authority"), Mapping):
         card["capability_authority"] = dict(conversation["capability_authority"])
         request_obj = conversation["capability_authority"].get("operator_authority_request")

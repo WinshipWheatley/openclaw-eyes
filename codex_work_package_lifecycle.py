@@ -531,13 +531,24 @@ def load_lifecycle_for_objective(objective_id: str, *, sqlite_path: Path = DEFAU
         if not row:
             return {}
         state = json.loads(row["state_json"])
+        package_id = str(state.get("package_id") or "")
         queue_row = conn.execute("SELECT queue_json FROM package_queue ORDER BY updated_at DESC LIMIT 1").fetchone()
         bridge_row = conn.execute("SELECT status_json FROM worker_bridge_status ORDER BY updated_at DESC LIMIT 1").fetchone()
+        result_row = conn.execute(
+            "SELECT result_json FROM package_results WHERE package_id = ? ORDER BY submitted_at DESC LIMIT 1",
+            (package_id,),
+        ).fetchone()
+        activation_row = conn.execute(
+            "SELECT decision_json FROM activation_decisions WHERE package_id = ? ORDER BY created_at DESC LIMIT 1",
+            (package_id,),
+        ).fetchone()
     return {
         "schema_version": SCHEMA_VERSION,
         "package_state": state,
         "package_queue": json.loads(queue_row["queue_json"]) if queue_row else {},
         "worker_bridge_status": json.loads(bridge_row["status_json"]) if bridge_row else {},
+        "latest_package_result": json.loads(result_row["result_json"]) if result_row else {},
+        "latest_activation_decision": json.loads(activation_row["decision_json"]) if activation_row else {},
         "package_files": state.get("package_files") if isinstance(state.get("package_files"), Mapping) else {},
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
     }

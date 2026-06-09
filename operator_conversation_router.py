@@ -15,6 +15,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
+import active_next_step_policy
 import capability_authority_loop
 import global_run_mode_context
 import make_it_so_objective_loop
@@ -451,6 +452,21 @@ def _text_result(
     return result
 
 
+def _with_active_next_step(
+    result: Mapping[str, Any],
+    request: Mapping[str, Any],
+    *,
+    generated_at: str,
+    sqlite_path: Path,
+) -> dict[str, Any]:
+    return active_next_step_policy.attach_next_step(
+        result,
+        request=request,
+        sqlite_path=sqlite_path,
+        generated_at=generated_at,
+    )
+
+
 def _suggested_event_from_response(response: Mapping[str, Any]) -> str:
     controls = response.get("controls") if isinstance(response.get("controls"), list) else []
     for control in controls:
@@ -521,7 +537,7 @@ def _publish_scenario(
     result["machine_proof"]["resolved_intent_class"] = conversation_intent_class
     result["machine_proof"]["resolved_intent_route"] = scenario_id
     result["machine_proof"]["intent_source"] = result["intent_source"]
-    return result
+    return _with_active_next_step(result, request, generated_at=generated_at, sqlite_path=sqlite_path)
 
 
 def _capital_hilton_attach_proof_candidate(bundle: Mapping[str, Any]) -> dict[str, Any]:
@@ -691,7 +707,7 @@ def _capability_gap_result(request: Mapping[str, Any], *, generated_at: str, sql
     result["machine_proof"]["unsafe_true_grants_absent"] = not unsafe
     if unsafe:
         result["route_status"] = ROUTE_STATUS_NEEDS_VERIFICATION
-    return result
+    return _with_active_next_step(result, request, generated_at=generated_at, sqlite_path=sqlite_path)
 
 
 def _make_it_so_objective_result(request: Mapping[str, Any], *, generated_at: str, sqlite_path: Path) -> dict[str, Any]:
@@ -747,7 +763,7 @@ def _make_it_so_objective_result(request: Mapping[str, Any], *, generated_at: st
     result["machine_proof"]["unsafe_true_grants_absent"] = not unsafe
     if unsafe:
         result["route_status"] = ROUTE_STATUS_NEEDS_VERIFICATION
-    return result
+    return _with_active_next_step(result, request, generated_at=generated_at, sqlite_path=sqlite_path)
 
 
 def _make_it_so_grant_result(request: Mapping[str, Any], *, generated_at: str, sqlite_path: Path) -> dict[str, Any]:
@@ -797,7 +813,7 @@ def _make_it_so_grant_result(request: Mapping[str, Any], *, generated_at: str, s
     result["machine_proof"]["unsafe_true_grants_absent"] = not unsafe
     if unsafe:
         result["route_status"] = ROUTE_STATUS_NEEDS_VERIFICATION
-    return result
+    return _with_active_next_step(result, request, generated_at=generated_at, sqlite_path=sqlite_path)
 
 
 def _authority_grant_result(request: Mapping[str, Any], *, generated_at: str, sqlite_path: Path) -> dict[str, Any]:
@@ -874,8 +890,8 @@ def _authority_grant_result(request: Mapping[str, Any], *, generated_at: str, sq
     return result
 
 
-def _draft_only_fallback_result(request: Mapping[str, Any], *, generated_at: str) -> dict[str, Any]:
-    return _text_result(
+def _draft_only_fallback_result(request: Mapping[str, Any], *, generated_at: str, sqlite_path: Path) -> dict[str, Any]:
+    result = _text_result(
         request,
         generated_at=generated_at,
         route_status=ROUTE_STATUS_TEXT_RESPONSE,
@@ -891,6 +907,7 @@ def _draft_only_fallback_result(request: Mapping[str, Any], *, generated_at: str
         suggested_controller_event="stage_plan",
         route_notes=["safe_fallback:draft_only_no_send_no_email_lookup"],
     )
+    return _with_active_next_step(result, request, generated_at=generated_at, sqlite_path=sqlite_path)
 
 
 def _test_dry_run_action_result(
@@ -947,7 +964,7 @@ def _test_dry_run_action_result(
     result["machine_proof"]["test_execution_receipt_emitted"] = True
     result["machine_proof"]["test_effect_adapter_used"] = True
     result["machine_proof"]["production_action_performed"] = False
-    return result
+    return _with_active_next_step(result, request, generated_at=generated_at, sqlite_path=sqlite_path)
 
 
 def _scenario_for_context(text: str, world: str, thread: str) -> str:
@@ -977,6 +994,64 @@ def _protected_request(text: str) -> bool:
     return any(term in lowered for term in PROTECTED_TERMS)
 
 
+def _no_active_next_step_result(request: Mapping[str, Any], *, generated_at: str, sqlite_path: Path) -> dict[str, Any]:
+    result = _text_result(
+        request,
+        generated_at=generated_at,
+        route_status=ROUTE_STATUS_NEEDS_VERIFICATION,
+        backend_route="active_next_step_policy.no_active_next_step",
+        display=_custom_display(
+            speaker_ref="guardian",
+            voice_mode="safety",
+            headline="Active next step needed",
+            summary="I can only do that against an active scoped next step. I will not infer broad authority.",
+            next_safe_action="Name the objective and scope.",
+        ),
+        proof_refs=["generated/read_models/active_next_step_policy.json"],
+        suggested_controller_event="chat_goal",
+        route_notes=["active_next_step_missing", "raw_authority_granted_not_accepted"],
+    )
+    result["machine_proof"]["make_it_so_authority_grant_compiled"] = False
+    return _with_active_next_step(result, request, generated_at=generated_at, sqlite_path=sqlite_path)
+
+
+def _resolve_active_next_step_result(request: Mapping[str, Any], *, generated_at: str, sqlite_path: Path) -> dict[str, Any]:
+    ctx = _context(request)
+    active = active_next_step_policy.load_active_next_step(
+        sqlite_path,
+        world_ref=ctx["world"],
+        thread_ref=ctx["thread"],
+        project_ref=str(request.get("target_project_ref") or request.get("target_client_ref") or ""),
+    )
+    if not active:
+        return _no_active_next_step_result(request, generated_at=generated_at, sqlite_path=sqlite_path)
+    if active.get("next_step_kind") == "request_authority" and active.get("required_capability_id") == make_it_so_objective_loop.READ_ONLY_EMAIL_LOOKUP:
+        grant_request = dict(request)
+        grant_request["operator_text"] = "Make it so."
+        result = _make_it_so_grant_result(grant_request, generated_at=generated_at, sqlite_path=sqlite_path)
+        result["resolved_active_next_step"] = dict(active)
+        result["machine_proof"]["active_next_step_resolved"] = True
+        return result
+    result = _text_result(
+        request,
+        generated_at=generated_at,
+        route_status=ROUTE_STATUS_TEXT_RESPONSE,
+        backend_route="active_next_step_policy.resolve_active_next_step",
+        display=_custom_display(
+            speaker_ref="openclaw",
+            voice_mode="brief",
+            headline="Next step selected",
+            summary=str(active.get("human_summary") or "I found the active next step for this lane."),
+            next_safe_action=str(active.get("label") or "Show details"),
+        ),
+        proof_refs=["generated/read_models/active_next_step_policy.json"],
+        suggested_controller_event="show_details",
+        route_notes=["active_next_step_resolved"],
+    )
+    result["resolved_active_next_step"] = dict(active)
+    result["machine_proof"]["active_next_step_resolved"] = True
+    return _with_active_next_step(result, request, generated_at=generated_at, sqlite_path=sqlite_path)
+
 def route_conversation_text(
     raw_request: Mapping[str, Any],
     *,
@@ -997,6 +1072,8 @@ def route_conversation_text(
         return _missing_context_result(request, generated_at=generated_at)
     if ctx["freshness_state"] in {"stale", "superseded", "unknown"}:
         return _stale_context_result(request, generated_at=generated_at)
+    if active_next_step_policy.resolution_intent(text):
+        return _resolve_active_next_step_result(request, generated_at=generated_at, sqlite_path=sqlite_path)
     if make_it_so_objective_loop.make_it_so_grant_intent(text):
         return _make_it_so_grant_result(request, generated_at=generated_at, sqlite_path=sqlite_path)
     if capability_authority_loop.classify_authority_grant_intent(text)["is_authority_grant_intent"]:
@@ -1018,7 +1095,7 @@ def route_conversation_text(
             target_ref="winshiplive@gmail.com",
         )
     if "draft" in lowered and any(phrase in lowered for phrase in ("what i should ask", "what to ask", "follow-up", "follow up", "message")):
-        return _draft_only_fallback_result(request, generated_at=generated_at)
+        return _draft_only_fallback_result(request, generated_at=generated_at, sqlite_path=sqlite_path)
     if capability_authority_loop.detects_read_only_email_lookup_intent(text, world_ref=world, thread_ref=thread):
         return _make_it_so_objective_result(request, generated_at=generated_at, sqlite_path=sqlite_path)
     if ("merge" in lowered or "push" in lowered) and (world.lower() == "build" or "workroom" in thread.lower()):
