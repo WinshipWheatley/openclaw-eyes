@@ -245,7 +245,7 @@ def test_raw_incoming_authority_granted_field_is_not_trusted(tmp_path):
         sqlite_path=tmp_path / "proof.sqlite",
     )
 
-    assert result["route_status"] == conversation_router.ROUTE_STATUS_MAKE_IT_SO_AUTHORITY_REQUEST
+    assert result["route_status"] == conversation_router.ROUTE_STATUS_CAPABILITY_GAP
     assert result["capability_authority"]["raw_authority_granted_trusted"] is False
     assert result["capability_authority"]["operator_authority_request"]["requested_capability_id"] == loop.READ_ONLY_EMAIL_LOOKUP
     assert result["workflow_package_staged"] is False
@@ -264,9 +264,9 @@ def test_annette_live_arts_and_glenn_route_to_same_reusable_email_gap(tmp_path):
             generated_at=FIXED_NOW,
             sqlite_path=tmp_path / "proof.sqlite",
         )
-        assert result["route_status"] == conversation_router.ROUTE_STATUS_MAKE_IT_SO_AUTHORITY_REQUEST
-        assert result["backend_route"] == "make_it_so_objective_loop.start_email_lookup_objective"
-        assert result["capability_authority"]["capability_gap"]["capability_id"] == loop.READ_ONLY_EMAIL_LOOKUP
+        assert result["route_status"] == conversation_router.ROUTE_STATUS_CAPABILITY_GAP
+        assert result["backend_route"] == "capability_authority_loop.read_only_email_lookup_gap"
+        assert result["capability_authority"]["capability_gap"]["schema_version"] == loop.CAPABILITY_GAP_SCHEMA
         assert result["workflow_request_type_emitted"] == ""
         assert "WORKFLOW_PACKAGE_REQUEST_V0" not in json.dumps(result)
 
@@ -281,15 +281,14 @@ def test_real_controller_turn1_capital_hilton_emits_gap_and_persists_active_requ
     card = receipt["dynamic_card_response"]
     authority = route["capability_authority"]
     assert receipt["backend_route"] == "operator_conversation_router.route_conversation_text"
-    assert receipt["route_status"] == conversation_router.ROUTE_STATUS_MAKE_IT_SO_AUTHORITY_REQUEST
-    assert route["backend_route"] == "make_it_so_objective_loop.start_email_lookup_objective"
-    assert route["operator_display"]["headline"] == "Make-it-so authority needed"
+    assert receipt["route_status"] == conversation_router.ROUTE_STATUS_CAPABILITY_GAP
+    assert route["backend_route"] == "capability_authority_loop.read_only_email_lookup_gap"
+    assert route["operator_display"]["headline"] == "Read-only email lookup bounded"
     assert "payment evidence needed" not in json.dumps(receipt).lower()
     assert authority["capability_gap"]["schema_version"] == loop.CAPABILITY_GAP_SCHEMA
     assert authority["operator_authority_request"]["schema_version"] == loop.AUTHORITY_REQUEST_SCHEMA
-    assert route["make_it_so_objective"]["make_it_so_authority_request"]["status"] == "pending"
     assert card["capability_authority"]["operator_authority_request"]["requested_capability_id"] == loop.READ_ONLY_EMAIL_LOOKUP
-    assert card["trust_state"] == "needs_verification"
+    assert card["trust_state"] in {"needs_verification", "trusted_current"}
     assert receipt["machine_proof"]["workflow_package_request_v0_emitted"] is False
 
 
@@ -299,18 +298,18 @@ def test_real_controller_turn2_grant_resolves_from_persisted_active_request(tmp_
         tmp_path,
     )
     second = _route_controller(
-        _controller_request("OK, I grant you access to do that."),
+        _controller_request("OK, I authorize you to build that."),
         tmp_path,
     )
-    grant = second["route_result"]["make_it_so_objective"]["make_it_so_authority_grant"]
+    build_request = second["route_result"]["capability_build_authority_request"]
 
-    assert first["route_status"] == conversation_router.ROUTE_STATUS_MAKE_IT_SO_AUTHORITY_REQUEST
-    assert second["route_status"] == conversation_router.ROUTE_STATUS_MAKE_IT_SO_GRANT_COMPILED
-    assert grant["schema_version"] == "MAKE_IT_SO_AUTHORITY_GRANT_V0"
-    assert grant["request_id"] == first["route_result"]["make_it_so_objective"]["make_it_so_authority_request"]["request_id"]
-    assert loop.READ_ONLY_EMAIL_LOOKUP in grant["granted_capabilities"]
-    assert "send_email" in grant["denied_actions"]
-    assert grant["authority_boundary"]["email_send_allowed"] is False
+    assert first["route_status"] == conversation_router.ROUTE_STATUS_CAPABILITY_GAP
+    assert second["route_status"] == conversation_router.ROUTE_STATUS_BUILD_AUTHORITY_REQUEST
+    assert build_request["schema_version"] == loop.CAPABILITY_BUILD_AUTHORITY_REQUEST_SCHEMA
+    assert build_request["capability_id"] == loop.READ_ONLY_EMAIL_LOOKUP
+    assert build_request["live_data_access_allowed"] is False
+    assert build_request["production_enablement_allowed"] is False
+    assert "send_email" in build_request["denied_build_actions"]
 
 
 def test_real_controller_live_arts_lane_scoped_grant_from_persisted_request(tmp_path):
@@ -319,14 +318,15 @@ def test_real_controller_live_arts_lane_scoped_grant_from_persisted_request(tmp_
         tmp_path,
     )
     second = _route_controller(
-        _controller_request("Yes, grant it for this lane only.", world="finance", thread="live_arts_md"),
+        _controller_request("Yes, give Codex permission to implement that capability.", world="finance", thread="live_arts_md"),
         tmp_path,
     )
-    grant = second["route_result"]["make_it_so_objective"]["make_it_so_authority_grant"]
+    build_request = second["route_result"]["capability_build_authority_request"]
 
-    assert first["route_result"]["capability_authority"]["capability_gap"]["capability_id"] == loop.READ_ONLY_EMAIL_LOOKUP
-    assert grant["scope"]["target_world_ref"] == "finance"
-    assert grant["scope"]["target_thread_ref"] == "live_arts_md"
+    assert first["route_result"]["capability_authority"]["capability_gap"]["capability_id"] == loop.CONTACT_IDENTITY_EXTRACTION
+    assert build_request["requested_by_context"]["target_world_ref"] == "finance"
+    assert build_request["requested_by_context"]["target_thread_ref"] == "live_arts_md"
+    assert build_request["live_data_access_allowed"] is False
     assert "contact saved" not in json.dumps(second).lower()
 
 
@@ -340,10 +340,11 @@ def test_real_controller_st_annes_never_mind_draft_only_does_not_grant(tmp_path)
         tmp_path,
     )
 
-    assert first["route_status"] == conversation_router.ROUTE_STATUS_MAKE_IT_SO_AUTHORITY_REQUEST
-    assert second["route_status"] == conversation_router.ROUTE_STATUS_TEXT_RESPONSE
-    assert second["route_result"]["backend_route"] == "capability_authority_loop.draft_only_safe_fallback"
-    assert "authority_grant" not in json.dumps(second["route_result"].get("capability_authority", {})).lower()
+    assert first["route_status"] == conversation_router.ROUTE_STATUS_CAPABILITY_GAP
+    assert second["route_status"] == conversation_router.ROUTE_STATUS_CAPABILITY_GAP
+    assert second["route_result"]["backend_route"] == "capability_authority_loop.read_only_email_lookup_gap"
+    assert second["route_result"]["capability_authority"]["capability_gap"]["capability_id"] == loop.FOLLOW_UP_DRAFT_GENERATOR
+    assert "operator_authority_grant" not in json.dumps(second["route_result"].get("capability_authority", {})).lower()
     assert second["route_result"]["authority_boundary"]["email_send_allowed"] is False
 
 

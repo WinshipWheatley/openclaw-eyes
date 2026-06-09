@@ -34,9 +34,13 @@ CAPABILITY_GAP_SCHEMA = "CAPABILITY_GAP_V0"
 AUTHORITY_REQUEST_SCHEMA = "OPERATOR_AUTHORITY_REQUEST_V0"
 AUTHORITY_GRANT_SCHEMA = "OPERATOR_AUTHORITY_GRANT_V0"
 CAPABILITY_BUILD_REQUEST_SCHEMA = "CAPABILITY_BUILD_REQUEST_V0"
+CAPABILITY_BUILD_AUTHORITY_REQUEST_SCHEMA = "CAPABILITY_BUILD_AUTHORITY_REQUEST_V0"
 CAPABILITY_ACTIVATION_RECEIPT_SCHEMA = "CAPABILITY_ACTIVATION_RECEIPT_V0"
 
-READ_ONLY_EMAIL_LOOKUP = "read_only_email_lookup"
+READ_ONLY_EMAIL_LOOKUP = "openclaw.read_only_email_lookup"
+FOLLOW_UP_DRAFT_GENERATOR = "openclaw.follow_up_draft_generator"
+CONTACT_IDENTITY_EXTRACTION = "openclaw.contact_identity_extraction"
+PAYMENT_UNCERTAINTY_SUMMARIZER = "openclaw.payment_uncertainty_summarizer"
 
 READ_ONLY_EMAIL_ACTIONS = (
     "search_relevant_email_evidence",
@@ -56,6 +60,26 @@ PROHIBITED_EMAIL_ACTIONS = (
     "mutate_ledger",
     "mutate_workbook",
     "export_pdf",
+    "git_push",
+    "git_merge",
+)
+
+COMMON_DENIED_ACTIONS = (
+    "send_email",
+    "delete_email",
+    "archive_email",
+    "mark_email_read",
+    "open_gmail_ui",
+    "open_browser",
+    "mutate_contacts",
+    "promote_contact_memory",
+    "infer_identity_without_proof",
+    "coupa_submit",
+    "mark_paid",
+    "mutate_ledger",
+    "mutate_workbook",
+    "export_pdf",
+    "claim_receipt_without_evidence",
     "git_push",
     "git_merge",
 )
@@ -117,6 +141,37 @@ EMAIL_LOOKUP_TERMS = (
     "accountant",
 )
 
+FOLLOW_UP_DRAFT_TERMS = (
+    "draft",
+    "follow-up",
+    "follow up",
+    "note to",
+    "what should i ask",
+    "write a payment follow-up",
+    "write a payment follow up",
+)
+
+CONTACT_IDENTITY_TERMS = (
+    "knows her name",
+    "name, email",
+    "email, and role",
+    "new accountant",
+    "record this contact",
+    "save this contact",
+    "contact details",
+)
+
+PAYMENT_UNCERTAINTY_TERMS = (
+    "expected payment",
+    "expected an april check",
+    "have not received",
+    "haven't received",
+    "summarize what we know",
+    "what proof would resolve",
+    "combined check",
+    "assume",
+)
+
 EMAIL_LOOKUP_CONTEXT_TERMS = (
     "annette",
     "capital hilton",
@@ -140,7 +195,79 @@ GRANT_INTENT_PHRASES = (
     "you can build that capability",
     "grant access",
     "grant it",
+    "ok, grant access to build that",
+    "authorize you to build",
+    "permission to implement",
+    "make the system able",
 )
+
+BUILD_AUTHORITY_INTENT_PHRASES = (
+    "grant access to build",
+    "build the email lookup capability",
+    "authorize you to build",
+    "permission to implement",
+    "permission to build",
+    "make the system able",
+    "yes, make the system able",
+    "ok, i authorize you to build that",
+    "ok, grant access to build that",
+)
+
+CAPABILITY_SPECS: dict[str, dict[str, Any]] = {
+    READ_ONLY_EMAIL_LOOKUP: {
+        "label": "Read-only email lookup",
+        "blocked_reason": "read-only email lookup is not available with verified scoped authority in this lane",
+        "required_authority": "scoped read-only email lookup build authority, then separate live read-only email access authority",
+        "allowed_now": ["use pasted or attached email evidence", "prepare a draft-only follow-up"],
+        "safe_alternative_now": "Paste or attach the relevant email evidence.",
+        "next_safe_step": "Paste or attach the email evidence, or authorize a scoped read-only email lookup build request.",
+        "proof_or_context_needed": ["operator-provided email evidence", "scoped build request", "later live read-only authority grant"],
+        "denied_actions": [
+            "send_email",
+            "delete_email",
+            "archive_email",
+            "mark_email_read",
+            "open_gmail_ui",
+            "open_browser",
+            "mutate_contacts",
+            "claim_receipt_without_evidence",
+        ],
+        "operator_message": "I don't have read-only email lookup yet. I don't have read-only email lookup access yet, so I can't check Gmail or claim whether a reply exists. Paste or attach the email evidence, or authorize a scoped read-only email lookup build request.",
+    },
+    FOLLOW_UP_DRAFT_GENERATOR: {
+        "label": "Follow-up draft generator",
+        "blocked_reason": "live sending and mailbox access are denied; draft-only text is allowed",
+        "required_authority": "send authority is required for delivery; no live send authority is present",
+        "allowed_now": ["draft text for operator review"],
+        "safe_alternative_now": "Prepare draft text only for operator review.",
+        "next_safe_step": "Review the draft before any separate send path.",
+        "proof_or_context_needed": ["operator-provided recipient/context", "separate send authority before delivery"],
+        "denied_actions": ["send_email", "add_recipients_silently", "open_gmail_ui", "open_browser", "coupa_submit", "mark_paid", "mutate_ledger"],
+        "operator_message": "I can draft a follow-up for review only. I will not send it, open Gmail, claim delivery, submit anything, mark paid, or mutate the ledger.",
+    },
+    CONTACT_IDENTITY_EXTRACTION: {
+        "label": "Contact identity extraction",
+        "blocked_reason": "verified source proof and separate memory/contact-promotion authority are required before permanent contact promotion",
+        "required_authority": "verified contact proof plus explicit memory/contact-promotion authority",
+        "allowed_now": ["record a candidate contact note from operator-provided details"],
+        "safe_alternative_now": "Paste or attach the source email, or provide exact contact details.",
+        "next_safe_step": "Paste or attach source proof for the contact details.",
+        "proof_or_context_needed": ["source email or exact operator-provided contact details", "contact-promotion authority"],
+        "denied_actions": ["open_gmail_ui", "open_browser", "gmail_lookup", "promote_contact_memory", "mutate_contacts", "infer_identity_without_proof"],
+        "operator_message": "I can hold this as a candidate contact note only. I will not fabricate her name, email, or role, and I will not permanently save contact memory without verified proof and separate authority.",
+    },
+    PAYMENT_UNCERTAINTY_SUMMARIZER: {
+        "label": "Payment uncertainty summarizer",
+        "blocked_reason": "payment status cannot be confirmed without proof; summary-only handling is allowed",
+        "required_authority": "payment evidence is required before paid marking or ledger mutation",
+        "allowed_now": ["summarize known facts, assumptions, and proof needed"],
+        "safe_alternative_now": "Separate known facts, assumptions, and proof needed.",
+        "next_safe_step": "Verify acknowledgment or payment evidence.",
+        "proof_or_context_needed": ["payment acknowledgment", "check receipt", "ledger-safe payment proof"],
+        "denied_actions": ["mark_paid", "mutate_ledger", "claim_check_received_without_proof", "confirm_payment_without_proof"],
+        "operator_message": "I can summarize what is known, what is assumed, and what proof would resolve it. I will not mark paid, mutate the ledger, or claim a check was received without proof.",
+    },
+}
 
 
 def stable_json(payload: Any) -> str:
@@ -198,6 +325,28 @@ def detects_read_only_email_lookup_intent(text: str, *, world_ref: str = "", thr
     )
 
 
+def detect_capability_intent(text: str, *, world_ref: str = "", thread_ref: str = "") -> str:
+    lowered = " ".join([str(text or ""), world_ref, thread_ref]).lower()
+    if any(term in lowered for term in CONTACT_IDENTITY_TERMS):
+        return CONTACT_IDENTITY_EXTRACTION
+    if any(term in lowered for term in PAYMENT_UNCERTAINTY_TERMS):
+        return PAYMENT_UNCERTAINTY_SUMMARIZER
+    draft_only = any(term in lowered for term in FOLLOW_UP_DRAFT_TERMS) and any(
+        target in lowered for target in ("annette", "glenn", "accountant", "payment", "email", "note")
+    )
+    lookup_dependency = any(
+        phrase in lowered
+        for phrase in ("received", "replied", "reply", "check gmail", "check my email", "look in gmail", "acknowledge", "acknowledged")
+    )
+    if draft_only and not lookup_dependency:
+        return FOLLOW_UP_DRAFT_GENERATOR
+    if detects_read_only_email_lookup_intent(text, world_ref=world_ref, thread_ref=thread_ref):
+        return READ_ONLY_EMAIL_LOOKUP
+    if draft_only:
+        return FOLLOW_UP_DRAFT_GENERATOR
+    return ""
+
+
 def capability_gap_id(capability_id: str, scope: Mapping[str, Any], reason: str) -> str:
     return f"capability_gap:{_short_hash(capability_id, scope, reason)}"
 
@@ -216,17 +365,39 @@ def build_capability_gap(
     scope = scope_from_context(*(requested_for_lane.split("/", 1) + [""])[:2], project_ref=requested_for_project)
     scope["run_mode"] = str(run_context.get("run_mode") or global_run_mode_context.PRODUCTION)
     scope["test_run_id"] = str(run_context.get("test_run_id") or "")
+    spec = CAPABILITY_SPECS.get(capability_id, CAPABILITY_SPECS[READ_ONLY_EMAIL_LOOKUP])
     gap = {
         "schema_version": CAPABILITY_GAP_SCHEMA,
         "gap_id": capability_gap_id(capability_id, scope, reason),
         "capability_id": capability_id,
-        "capability_label": "Read-only email lookup",
+        "capability_label": spec["label"],
+        "requested_intent": reason,
+        "lane_context": dict(scope),
+        "blocked_reason": spec["blocked_reason"],
+        "required_authority": spec["required_authority"],
+        "allowed_now": list(spec["allowed_now"]),
+        "denied_actions": list(dict.fromkeys(spec["denied_actions"] + list(COMMON_DENIED_ACTIONS))),
+        "safe_alternative_now": spec["safe_alternative_now"],
+        "next_safe_step": spec["next_safe_step"],
+        "can_request_build": capability_id == READ_ONLY_EMAIL_LOOKUP,
+        "can_request_live_authority": False,
+        "proof_or_context_needed": list(spec["proof_or_context_needed"]),
+        "freshness_status": "not_checked_no_live_access",
+        "operator_message": spec["operator_message"],
+        "details": {
+            "developer_refs": [
+                "capability_authority_loop.py",
+                "operator_conversation_router.py",
+                "openclaw_plugin_contract.py",
+            ],
+            "raw_authority_granted_trusted": False,
+        },
         "reason": reason,
         "requested_for_lane": requested_for_lane,
         "requested_for_project": requested_for_project,
         "requested_scope": dict(scope),
         "allowed_if_granted": list(READ_ONLY_EMAIL_ACTIONS),
-        "prohibited_always": list(PROHIBITED_EMAIL_ACTIONS),
+        "prohibited_always": list(dict.fromkeys(spec["denied_actions"] + list(COMMON_DENIED_ACTIONS))),
         "proof_needed": [
             "scoped operator authority grant",
             "connector or local adapter activation receipt",
@@ -239,8 +410,7 @@ def build_capability_gap(
             "receipt_required": True,
             "no_private_data_external_model": True,
         },
-        "can_request_access": True,
-        "can_request_build": True,
+        "can_request_access": False,
         "safe_fallback_available": True,
         "safe_fallback_kind": "draft_only_followup_or_checklist",
         "created_at": generated_at,
@@ -403,13 +573,13 @@ def load_active_authority_request(
             SELECT request_json
             FROM active_authority_requests
             WHERE status = 'pending'
-              AND capability_id = ?
+              AND (? = '' OR capability_id = ?)
               AND (? = '' OR target_world_ref = ?)
               AND (? = '' OR target_thread_ref = ?)
             ORDER BY updated_at DESC, created_at DESC
             LIMIT 1
             """,
-            (capability_id, world_ref, world_ref, thread_ref, thread_ref),
+            (capability_id, capability_id, world_ref, world_ref, thread_ref, thread_ref),
         ).fetchone()
     if not row:
         return None
@@ -473,13 +643,20 @@ def persist_authority_grant(
 def classify_authority_grant_intent(text: str) -> dict[str, Any]:
     lowered = str(text or "").lower()
     is_grant = any(phrase in lowered for phrase in GRANT_INTENT_PHRASES)
-    is_build = "build" in lowered or "wire" in lowered or "add connector" in lowered
+    is_build = any(phrase in lowered for phrase in BUILD_AUTHORITY_INTENT_PHRASES) or "build" in lowered or "wire" in lowered or "add connector" in lowered
     is_data_access = "email" in lowered or "access" in lowered or "that" in lowered or "this" in lowered
     return {
         "is_authority_grant_intent": is_grant,
         "requests_build_authority": is_build,
         "requests_data_access_authority": is_data_access and not is_build,
     }
+
+
+def classify_build_authority_request_intent(text: str) -> bool:
+    lowered = str(text or "").lower()
+    return any(phrase in lowered for phrase in BUILD_AUTHORITY_INTENT_PHRASES) or (
+        ("build" in lowered or "implement" in lowered) and any(term in lowered for term in ("capability", "that", "email lookup", "read-only email"))
+    )
 
 
 def _is_active_authority_request(value: Any) -> bool:
@@ -576,6 +753,96 @@ def build_capability_build_request(
     return request
 
 
+def build_capability_build_authority_request(
+    *,
+    capability_id: str,
+    requested_by_context: Mapping[str, Any],
+    prior_capability_gap: Mapping[str, Any] | None = None,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    generated_at = generated_at or utc_now()
+    spec = CAPABILITY_SPECS.get(capability_id, CAPABILITY_SPECS[READ_ONLY_EMAIL_LOOKUP])
+    build_goal = f"Implement first-class {spec['label']} capability behind tests and authority gates."
+    scope = dict(requested_by_context)
+    request = {
+        "schema_version": CAPABILITY_BUILD_AUTHORITY_REQUEST_SCHEMA,
+        "request_id": f"capability_build_authority_request:{_short_hash(capability_id, scope, generated_at)}",
+        "capability_id": capability_id,
+        "build_goal": build_goal,
+        "requested_by_context": scope,
+        "allowed_build_actions": [
+            "inspect_repo_local_contracts",
+            "edit_code_inside_declared_scope",
+            "add_or_update_tests",
+            "add_fixture_descriptors",
+            "run_local_targeted_tests",
+            "write_local_receipts_or_read_models",
+        ],
+        "denied_build_actions": list(
+            dict.fromkeys(
+                [
+                    "live_gmail_access",
+                    "open_gmail_ui",
+                    "open_browser",
+                    "send_email",
+                    "delete_email",
+                    "archive_email",
+                    "mark_email_read",
+                    "coupa_access",
+                    "coupa_submit",
+                    "mark_paid",
+                    "mutate_ledger",
+                    "mutate_workbook",
+                    "export_pdf",
+                    "run_excel",
+                    "invoke_external_model",
+                    "invoke_local_model",
+                    "git_push",
+                    "git_merge",
+                    "production_enablement",
+                    "store_secret_in_repo",
+                ]
+            )
+        ),
+        "allowed_paths_or_repo_scope": [
+            "capability_authority_loop.py",
+            "operator_conversation_router.py",
+            "openclaw_plugin_contract.py",
+            "tests/test_capability_gap_build_authority.py",
+            "tests/test_openclaw_plugin_contract.py",
+        ],
+        "test_mode_required": True,
+        "production_enablement_allowed": False,
+        "live_data_access_allowed": False,
+        "external_services_allowed": False,
+        "required_tests": [
+            "capability gap routing tests",
+            "build-authority request tests",
+            "raw authority text ignored test",
+            "plugin contract validator tests",
+        ],
+        "required_receipts": [
+            "git diff --check",
+            "git diff --cached --check",
+            "staged unsafe scan explanation",
+        ],
+        "required_review": "operator review of scoped build request before implementation or production enablement",
+        "expiry": "single_use_this_capability_build_scope_only",
+        "operator_confirmation_required": True,
+        "prior_capability_gap_id": str((prior_capability_gap or {}).get("gap_id") or ""),
+        "operator_message": (
+            f"I can create a scoped build request for {spec['label']}. "
+            "That allows code and test work only, not live Gmail access, sending, Coupa, paid marking, or ledger changes."
+        ),
+        "next_safe_step": "Review and approve the build request scope.",
+        "raw_authority_granted_trusted": False,
+        "authority_boundary": dict(AUTHORITY_BOUNDARY),
+        "created_at": generated_at,
+    }
+    request["unsafe_true_grants"] = unsafe_true_grants(request)
+    return request
+
+
 def build_activation_receipt(
     *,
     capability_id: str,
@@ -614,8 +881,10 @@ def build_email_lookup_gap_response(
     generated_at = generated_at or utc_now()
     run_context = dict(run_mode_context or global_run_mode_context.default_run_mode_context(generated_at=generated_at))
     lane = f"{world_ref}/{thread_ref}".strip("/")
+    capability_id = detect_capability_intent(operator_text, world_ref=world_ref, thread_ref=thread_ref) or READ_ONLY_EMAIL_LOOKUP
     gap = build_capability_gap(
-        reason="answer requires checking scoped email evidence",
+        capability_id=capability_id,
+        reason=operator_text,
         requested_for_lane=lane,
         requested_for_project=project_ref,
         run_mode_context=run_context,
@@ -623,6 +892,12 @@ def build_email_lookup_gap_response(
     )
     authority_request = build_authority_request(gap, generated_at=generated_at)
     dry_run_prefix = "Dry-run: " if run_context.get("run_mode") == global_run_mode_context.TEST_DRY_RUN else ""
+    spec = CAPABILITY_SPECS.get(capability_id, CAPABILITY_SPECS[READ_ONLY_EMAIL_LOOKUP])
+    build_path_note = (
+        " Grant read-only email lookup only through a scoped build/live authority path."
+        if capability_id == READ_ONLY_EMAIL_LOOKUP
+        else ""
+    )
     return {
         "response_status": "CAPABILITY_GAP_AUTHORITY_REQUEST_READY",
         "capability_gap": gap,
@@ -631,18 +906,14 @@ def build_email_lookup_gap_response(
             "speaker_ref": "guardian",
             "voice_profile_ref": "agent_voice_profile:guardian",
             "voice_mode": "safety",
-            "headline": f"{dry_run_prefix}Read-only email lookup unavailable",
-            "plain_summary": (
-                f"{dry_run_prefix}I don't have read-only email lookup yet. Grant read-only email lookup for "
-                f"{lane or 'this lane'}? This would not allow sending, deleting, browser/Gmail UI, "
-                "ledger, paid, or Coupa actions."
-            ),
-            "next_safe_action": "Grant scoped read-only email lookup, or ask me to draft a follow-up without checking email.",
+            "headline": f"{dry_run_prefix}{spec['label']} bounded",
+            "plain_summary": f"{dry_run_prefix}{gap['operator_message']}{build_path_note}",
+            "next_safe_action": gap["next_safe_step"],
             "proof_refs_collapsed": True,
         },
         "safe_fallback": {
             "fallback_kind": "draft_only_followup_or_checklist",
-            "can_prepare_draft": True,
+            "can_prepare_draft": capability_id in {READ_ONLY_EMAIL_LOOKUP, FOLLOW_UP_DRAFT_GENERATOR},
             "can_send": False,
             "can_claim_email_checked": False,
         },

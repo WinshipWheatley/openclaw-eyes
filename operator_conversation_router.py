@@ -51,6 +51,7 @@ ROUTE_STATUS_NEEDS_VERIFICATION = "NEEDS_VERIFICATION"
 ROUTE_STATUS_STAGE_ONLY = "STAGE_PLAN_TEXT_RESPONSE"
 ROUTE_STATUS_CAPABILITY_GAP = "CAPABILITY_GAP_AUTHORITY_REQUEST_READY"
 ROUTE_STATUS_AUTHORITY_GRANT_COMPILED = "AUTHORITY_GRANT_COMPILED"
+ROUTE_STATUS_BUILD_AUTHORITY_REQUEST = "CAPABILITY_BUILD_AUTHORITY_REQUEST_READY"
 ROUTE_STATUS_MAKE_IT_SO_AUTHORITY_REQUEST = "MAKE_IT_SO_AUTHORITY_REQUEST_READY"
 ROUTE_STATUS_MAKE_IT_SO_GRANT_COMPILED = "MAKE_IT_SO_GRANT_COMPILED"
 
@@ -826,6 +827,7 @@ def _authority_grant_result(request: Mapping[str, Any], *, generated_at: str, sq
     if not isinstance(active, Mapping):
         active = capability_authority_loop.load_active_authority_request(
             sqlite_path,
+            capability_id="",
             world_ref=context["world"],
             thread_ref=context["thread"],
         )
@@ -888,6 +890,106 @@ def _authority_grant_result(request: Mapping[str, Any], *, generated_at: str, sq
     if unsafe:
         result["route_status"] = ROUTE_STATUS_NEEDS_VERIFICATION
     return result
+
+
+def _build_authority_request_result(request: Mapping[str, Any], *, generated_at: str, sqlite_path: Path) -> dict[str, Any]:
+    context = _context(request)
+    active = request.get("active_authority_request")
+    active_source = "request_payload" if isinstance(active, Mapping) else ""
+    if not isinstance(active, Mapping):
+        active = capability_authority_loop.load_active_authority_request(
+            sqlite_path,
+            capability_id="",
+            world_ref=context["world"],
+            thread_ref=context["thread"],
+        )
+        active_source = "persisted_sqlite" if isinstance(active, Mapping) else "none"
+
+    capability_id = ""
+    prior_gap: dict[str, Any] = {}
+    if isinstance(active, Mapping):
+        capability_id = str(active.get("requested_capability_id") or "")
+    if not capability_id:
+        capability_id = capability_authority_loop.detect_capability_intent(
+            _operator_text(request),
+            world_ref=context["world"],
+            thread_ref=context["thread"],
+        )
+    if not capability_id:
+        display = _custom_display(
+            speaker_ref="guardian",
+            voice_mode="safety",
+            headline="Capability needed",
+            summary="I can create a scoped build request, but I need to know which missing capability it is for. I will not infer live access from this text.",
+            next_safe_action="Name the capability to build.",
+        )
+        result = _text_result(
+            request,
+            generated_at=generated_at,
+            route_status=ROUTE_STATUS_NEEDS_VERIFICATION,
+            backend_route="capability_authority_loop.build_capability_build_authority_request",
+            display=display,
+            proof_refs=["generated/read_models/first_class_capability_authority_loop.json"],
+            suggested_controller_event="chat_goal",
+            route_notes=["build_authority_request_needs_capability", "raw_authority_granted_not_accepted"],
+        )
+        result["machine_proof"]["raw_authority_granted_trusted"] = False
+        return result
+
+    build_request = capability_authority_loop.build_capability_build_authority_request(
+        capability_id=capability_id,
+        requested_by_context={
+            "target_world_ref": context["world"],
+            "target_thread_ref": context["thread"],
+            "source_request_id": str(request.get("request_id") or request.get("source_request_id") or ""),
+            "active_authority_request_source": active_source,
+        },
+        prior_capability_gap=prior_gap,
+        generated_at=generated_at,
+    )
+    display = _custom_display(
+        speaker_ref="guardian",
+        voice_mode="safety",
+        headline="Build request scoped",
+        summary=str(build_request["operator_message"]),
+        next_safe_action=str(build_request["next_safe_step"]),
+    )
+    result = _text_result(
+        request,
+        generated_at=generated_at,
+        route_status=ROUTE_STATUS_BUILD_AUTHORITY_REQUEST,
+        backend_route="capability_authority_loop.build_capability_build_authority_request",
+        display=display,
+        proof_refs=["generated/read_models/first_class_capability_authority_loop.json"],
+        suggested_controller_event="show_details",
+        route_notes=["capability_build_authority_request", "build_permission_only", "raw_authority_granted_not_accepted"],
+    )
+    result["capability_build_authority_request"] = build_request
+    result["capability_authority"] = {
+        "capability_build_authority_request": build_request,
+        "active_authority_request_source": active_source,
+        "raw_authority_granted_trusted": False,
+    }
+    result["machine_proof"].update(
+        {
+            "capability_build_authority_request_emitted": True,
+            "live_data_access_allowed": False,
+            "production_enablement_allowed": False,
+            "external_services_allowed": False,
+            "gmail_access_performed": False,
+            "email_send_performed": False,
+            "coupa_access_performed": False,
+            "paid_marking_performed": False,
+            "ledger_mutation_performed": False,
+            "raw_authority_granted_trusted": False,
+        }
+    )
+    unsafe = unsafe_true_grants(result)
+    result["machine_proof"]["unsafe_true_grants"] = unsafe
+    result["machine_proof"]["unsafe_true_grants_absent"] = not unsafe
+    if unsafe:
+        result["route_status"] = ROUTE_STATUS_NEEDS_VERIFICATION
+    return _with_active_next_step(result, request, generated_at=generated_at, sqlite_path=sqlite_path)
 
 
 def _draft_only_fallback_result(request: Mapping[str, Any], *, generated_at: str, sqlite_path: Path) -> dict[str, Any]:
@@ -1074,6 +1176,8 @@ def route_conversation_text(
         return _stale_context_result(request, generated_at=generated_at)
     if active_next_step_policy.resolution_intent(text):
         return _resolve_active_next_step_result(request, generated_at=generated_at, sqlite_path=sqlite_path)
+    if capability_authority_loop.classify_build_authority_request_intent(text):
+        return _build_authority_request_result(request, generated_at=generated_at, sqlite_path=sqlite_path)
     if make_it_so_objective_loop.make_it_so_grant_intent(text):
         return _make_it_so_grant_result(request, generated_at=generated_at, sqlite_path=sqlite_path)
     if capability_authority_loop.classify_authority_grant_intent(text)["is_authority_grant_intent"]:
@@ -1094,10 +1198,9 @@ def route_conversation_text(
             action_kind="dry_run_email_receipt",
             target_ref="winshiplive@gmail.com",
         )
-    if "draft" in lowered and any(phrase in lowered for phrase in ("what i should ask", "what to ask", "follow-up", "follow up", "message")):
-        return _draft_only_fallback_result(request, generated_at=generated_at, sqlite_path=sqlite_path)
-    if capability_authority_loop.detects_read_only_email_lookup_intent(text, world_ref=world, thread_ref=thread):
-        return _make_it_so_objective_result(request, generated_at=generated_at, sqlite_path=sqlite_path)
+    capability_intent = capability_authority_loop.detect_capability_intent(text, world_ref=world, thread_ref=thread)
+    if capability_intent:
+        return _capability_gap_result(request, generated_at=generated_at, sqlite_path=sqlite_path)
     if ("merge" in lowered or "push" in lowered) and (world.lower() == "build" or "workroom" in thread.lower()):
         return _protected_merge_result(request, generated_at=generated_at)
     if world.lower() in {"music", "niles"} or "controller idea" in lowered or "map this controller" in lowered:
