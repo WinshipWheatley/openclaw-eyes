@@ -15,6 +15,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
+import capability_authority_loop
 import proof_to_response_runtime as proof_runtime
 
 
@@ -44,6 +45,8 @@ ROUTE_STATUS_PROTECTED_BLOCKED = "PROTECTED_ACTION_BLOCKED_TEXT_RESPONSE"
 ROUTE_STATUS_NEEDS_LANE_CONTEXT = "NEEDS_LANE_CONTEXT"
 ROUTE_STATUS_NEEDS_VERIFICATION = "NEEDS_VERIFICATION"
 ROUTE_STATUS_STAGE_ONLY = "STAGE_PLAN_TEXT_RESPONSE"
+ROUTE_STATUS_CAPABILITY_GAP = "CAPABILITY_GAP_AUTHORITY_REQUEST_READY"
+ROUTE_STATUS_AUTHORITY_GRANT_COMPILED = "AUTHORITY_GRANT_COMPILED"
 
 INTENT_CLASSES = (
     "payment_watch_next_step",
@@ -629,6 +632,98 @@ def _generic_helm_result(request: Mapping[str, Any], *, generated_at: str) -> di
     )
 
 
+def _capability_gap_result(request: Mapping[str, Any], *, generated_at: str) -> dict[str, Any]:
+    context = _context(request)
+    response = capability_authority_loop.build_email_lookup_gap_response(
+        _operator_text(request),
+        world_ref=context["world"],
+        thread_ref=context["thread"],
+        project_ref=str(request.get("target_project_ref") or request.get("target_client_ref") or ""),
+        generated_at=generated_at,
+    )
+    result = _text_result(
+        request,
+        generated_at=generated_at,
+        route_status=ROUTE_STATUS_CAPABILITY_GAP,
+        backend_route="capability_authority_loop.read_only_email_lookup_gap",
+        display=response["operator_display"],
+        proof_refs=[
+            "generated/read_models/first_class_capability_authority_loop.json",
+            "generated/read_models/gate_decision_ledger.json",
+        ],
+        suggested_controller_event="grant_authority",
+        route_notes=["capability_gap:read_only_email_lookup", "incoming_raw_authority_not_trusted"],
+    )
+    result["capability_authority"] = response
+    result["machine_proof"].update(
+        {
+            "capability_gap_emitted": True,
+            "operator_authority_request_emitted": True,
+            "raw_authority_granted_trusted": False,
+            "workflow_package_request_v0_emitted": False,
+        }
+    )
+    unsafe = unsafe_true_grants(result)
+    result["machine_proof"]["unsafe_true_grants"] = unsafe
+    result["machine_proof"]["unsafe_true_grants_absent"] = not unsafe
+    if unsafe:
+        result["route_status"] = ROUTE_STATUS_NEEDS_VERIFICATION
+    return result
+
+
+def _authority_grant_result(request: Mapping[str, Any], *, generated_at: str) -> dict[str, Any]:
+    active = request.get("active_authority_request")
+    if not isinstance(active, Mapping):
+        active = request.get("operator_authority_request")
+    grant = capability_authority_loop.compile_authority_grant(
+        _operator_text(request),
+        active_authority_request=active if isinstance(active, Mapping) else None,
+        generated_at=generated_at,
+    )
+    if grant.get("authority_grant_created") is True:
+        display = _custom_display(
+            speaker_ref="guardian",
+            voice_mode="safety",
+            headline="Scoped authority recorded",
+            summary="I compiled a verifier-readable read-only authority grant for the active request. Protected actions remain denied.",
+            next_safe_action="Activate or build the capability only through the next gated step.",
+        )
+        status = ROUTE_STATUS_AUTHORITY_GRANT_COMPILED
+    else:
+        display = _custom_display(
+            speaker_ref="guardian",
+            voice_mode="safety",
+            headline="Active authority request needed",
+            summary="I can only compile a grant against an active authority request. I will not treat plain text as open-ended access.",
+            next_safe_action="Open the pending authority request or ask again in the relevant lane.",
+        )
+        status = ROUTE_STATUS_NEEDS_VERIFICATION
+    result = _text_result(
+        request,
+        generated_at=generated_at,
+        route_status=status,
+        backend_route="capability_authority_loop.compile_authority_grant",
+        display=display,
+        proof_refs=["generated/read_models/first_class_capability_authority_loop.json"],
+        suggested_controller_event="show_details",
+        route_notes=["authority_grant_compiler", "raw_authority_granted_not_accepted"],
+    )
+    result["capability_authority"] = {"operator_authority_grant": grant}
+    result["machine_proof"].update(
+        {
+            "authority_grant_compiled": grant.get("authority_grant_created") is True,
+            "raw_authority_granted_trusted": False,
+            "workflow_package_request_v0_emitted": False,
+        }
+    )
+    unsafe = unsafe_true_grants(result)
+    result["machine_proof"]["unsafe_true_grants"] = unsafe
+    result["machine_proof"]["unsafe_true_grants_absent"] = not unsafe
+    if unsafe:
+        result["route_status"] = ROUTE_STATUS_NEEDS_VERIFICATION
+    return result
+
+
 def _scenario_for_context(text: str, world: str, thread: str) -> str:
     lowered = text.lower()
     world = world.lower()
@@ -675,6 +770,10 @@ def route_conversation_text(
         return _missing_context_result(request, generated_at=generated_at)
     if ctx["freshness_state"] in {"stale", "superseded", "unknown"}:
         return _stale_context_result(request, generated_at=generated_at)
+    if capability_authority_loop.classify_authority_grant_intent(text)["is_authority_grant_intent"]:
+        return _authority_grant_result(request, generated_at=generated_at)
+    if capability_authority_loop.detects_read_only_email_lookup_intent(text, world_ref=world, thread_ref=thread):
+        return _capability_gap_result(request, generated_at=generated_at)
     if ("merge" in lowered or "push" in lowered) and (world.lower() == "build" or "workroom" in thread.lower()):
         return _protected_merge_result(request, generated_at=generated_at)
     if world.lower() in {"music", "niles"} or "controller idea" in lowered or "map this controller" in lowered:
