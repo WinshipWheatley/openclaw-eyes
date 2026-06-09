@@ -29,12 +29,14 @@
     "CAPABILITY_BUILD_REQUEST_V0",
     "CAPABILITY_ACTIVATION_RECEIPT_V0"
   ],
-  "generated_at": "2026-06-09T00:15:06+00:00",
+  "generated_at": "2026-06-09T00:32:46+00:00",
   "read_model_id": "first_class_capability_authority_loop",
   "rules": [
     "Capability gaps are reusable objects, not lane-specific fallback copy.",
     "Incoming raw authority_granted fields are never trusted.",
     "Natural-language grants only compile against an active authority request.",
+    "Active authority requests persist in SQLite so the next controller turn can resolve scoped grants after service restart.",
+    "Capability-authority routes stay primary and do not receive generic payment-watch proof-to-response overlays.",
     "Build permission and data-access permission are separate.",
     "Read-only email lookup does not allow sending, deleting, archiving, mark-read, browser/Gmail UI, ledger, paid, Coupa, workbook, PDF, push, or merge actions."
   ],
@@ -63,7 +65,7 @@
       "workbook_mutation_allowed": false
     },
     "authority_grant_created": true,
-    "created_at": "2026-06-09T00:15:06+00:00",
+    "created_at": "2026-06-09T00:32:46+00:00",
     "denied_actions": [
       "send_email",
       "delete_email",
@@ -80,7 +82,7 @@
       "git_merge"
     ],
     "expiration_scope": "session_or_until_revoked",
-    "grant_id": "operator_authority_grant:4cad7101643146b3",
+    "grant_id": "operator_authority_grant:93f5a2c102ce31a8",
     "granted_actions": [
       "search_relevant_email_evidence",
       "read_relevant_email_evidence",
@@ -94,7 +96,7 @@
     },
     "operator_confirmation_text": "OK, I grant you access to do that.",
     "raw_authority_granted_trusted": false,
-    "receipt_ref": "receipt:943077b53b6c5bbe",
+    "receipt_ref": "receipt:2aa30dfb78423320",
     "request_id": "operator_authority_request:481f0759daaf8dc9",
     "schema_version": "OPERATOR_AUTHORITY_GRANT_V0",
     "unsafe_true_grants": [],
@@ -188,7 +190,7 @@
         "can_request_build": true,
         "capability_id": "read_only_email_lookup",
         "capability_label": "Read-only email lookup",
-        "created_at": "2026-06-09T00:15:06+00:00",
+        "created_at": "2026-06-09T00:32:46+00:00",
         "freshness_requirement": "current relevant email evidence only",
         "gap_id": "capability_gap:8105f299454424de",
         "privacy_boundary": {
@@ -225,7 +227,7 @@
         "schema_version": "CAPABILITY_GAP_V0",
         "unsafe_true_grants": []
       },
-      "created_at": "2026-06-09T00:15:06+00:00",
+      "created_at": "2026-06-09T00:32:46+00:00",
       "operator_authority_request": {
         "authority_boundary": {
           "browser_access_allowed": false,
@@ -250,7 +252,7 @@
           "sent": false,
           "workbook_mutation_allowed": false
         },
-        "created_at": "2026-06-09T00:15:06+00:00",
+        "created_at": "2026-06-09T00:32:46+00:00",
         "denied_actions": [
           "send_email",
           "delete_email",
@@ -363,7 +365,7 @@
         "can_request_build": true,
         "capability_id": "read_only_email_lookup",
         "capability_label": "Read-only email lookup",
-        "created_at": "2026-06-09T00:15:06+00:00",
+        "created_at": "2026-06-09T00:32:46+00:00",
         "freshness_requirement": "current relevant email evidence only",
         "gap_id": "capability_gap:34043eeaf4cbae5a",
         "privacy_boundary": {
@@ -400,7 +402,7 @@
         "schema_version": "CAPABILITY_GAP_V0",
         "unsafe_true_grants": []
       },
-      "created_at": "2026-06-09T00:15:06+00:00",
+      "created_at": "2026-06-09T00:32:46+00:00",
       "operator_authority_request": {
         "authority_boundary": {
           "browser_access_allowed": false,
@@ -425,7 +427,7 @@
           "sent": false,
           "workbook_mutation_allowed": false
         },
-        "created_at": "2026-06-09T00:15:06+00:00",
+        "created_at": "2026-06-09T00:32:46+00:00",
         "denied_actions": [
           "send_email",
           "delete_email",
@@ -538,7 +540,7 @@
         "can_request_build": true,
         "capability_id": "read_only_email_lookup",
         "capability_label": "Read-only email lookup",
-        "created_at": "2026-06-09T00:15:06+00:00",
+        "created_at": "2026-06-09T00:32:46+00:00",
         "freshness_requirement": "current relevant email evidence only",
         "gap_id": "capability_gap:bc7edf963561b28d",
         "privacy_boundary": {
@@ -575,7 +577,7 @@
         "schema_version": "CAPABILITY_GAP_V0",
         "unsafe_true_grants": []
       },
-      "created_at": "2026-06-09T00:15:06+00:00",
+      "created_at": "2026-06-09T00:32:46+00:00",
       "operator_authority_request": {
         "authority_boundary": {
           "browser_access_allowed": false,
@@ -600,7 +602,7 @@
           "sent": false,
           "workbook_mutation_allowed": false
         },
-        "created_at": "2026-06-09T00:15:06+00:00",
+        "created_at": "2026-06-09T00:32:46+00:00",
         "denied_actions": [
           "send_email",
           "delete_email",

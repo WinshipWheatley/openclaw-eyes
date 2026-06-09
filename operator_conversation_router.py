@@ -632,13 +632,20 @@ def _generic_helm_result(request: Mapping[str, Any], *, generated_at: str) -> di
     )
 
 
-def _capability_gap_result(request: Mapping[str, Any], *, generated_at: str) -> dict[str, Any]:
+def _capability_gap_result(request: Mapping[str, Any], *, generated_at: str, sqlite_path: Path) -> dict[str, Any]:
     context = _context(request)
     response = capability_authority_loop.build_email_lookup_gap_response(
         _operator_text(request),
         world_ref=context["world"],
         thread_ref=context["thread"],
         project_ref=str(request.get("target_project_ref") or request.get("target_client_ref") or ""),
+        generated_at=generated_at,
+    )
+    store_receipt = capability_authority_loop.persist_active_authority_request(
+        sqlite_path,
+        authority_request=response["operator_authority_request"],
+        capability_gap=response["capability_gap"],
+        source_request_ref=str(request.get("request_id") or request.get("source_request_id") or ""),
         generated_at=generated_at,
     )
     result = _text_result(
@@ -654,11 +661,13 @@ def _capability_gap_result(request: Mapping[str, Any], *, generated_at: str) -> 
         suggested_controller_event="grant_authority",
         route_notes=["capability_gap:read_only_email_lookup", "incoming_raw_authority_not_trusted"],
     )
+    response["active_authority_request_receipt"] = store_receipt
     result["capability_authority"] = response
     result["machine_proof"].update(
         {
             "capability_gap_emitted": True,
             "operator_authority_request_emitted": True,
+            "active_authority_request_stored": store_receipt.get("status") == "pending",
             "raw_authority_granted_trusted": False,
             "workflow_package_request_v0_emitted": False,
         }
@@ -671,16 +680,32 @@ def _capability_gap_result(request: Mapping[str, Any], *, generated_at: str) -> 
     return result
 
 
-def _authority_grant_result(request: Mapping[str, Any], *, generated_at: str) -> dict[str, Any]:
+def _authority_grant_result(request: Mapping[str, Any], *, generated_at: str, sqlite_path: Path) -> dict[str, Any]:
+    context = _context(request)
     active = request.get("active_authority_request")
+    active_source = "request_payload" if isinstance(active, Mapping) else ""
     if not isinstance(active, Mapping):
         active = request.get("operator_authority_request")
+        active_source = "request_payload" if isinstance(active, Mapping) else active_source
+    if not isinstance(active, Mapping):
+        active = capability_authority_loop.load_active_authority_request(
+            sqlite_path,
+            world_ref=context["world"],
+            thread_ref=context["thread"],
+        )
+        active_source = "persisted_sqlite" if isinstance(active, Mapping) else "none"
     grant = capability_authority_loop.compile_authority_grant(
         _operator_text(request),
         active_authority_request=active if isinstance(active, Mapping) else None,
         generated_at=generated_at,
     )
+    store_receipt: dict[str, Any] = {}
     if grant.get("authority_grant_created") is True:
+        store_receipt = capability_authority_loop.persist_authority_grant(
+            sqlite_path,
+            authority_grant=grant,
+            generated_at=generated_at,
+        )
         display = _custom_display(
             speaker_ref="guardian",
             voice_mode="safety",
@@ -708,10 +733,15 @@ def _authority_grant_result(request: Mapping[str, Any], *, generated_at: str) ->
         suggested_controller_event="show_details",
         route_notes=["authority_grant_compiler", "raw_authority_granted_not_accepted"],
     )
-    result["capability_authority"] = {"operator_authority_grant": grant}
+    result["capability_authority"] = {
+        "operator_authority_grant": grant,
+        "active_authority_request_source": active_source,
+        "authority_grant_store_receipt": store_receipt,
+    }
     result["machine_proof"].update(
         {
             "authority_grant_compiled": grant.get("authority_grant_created") is True,
+            "authority_grant_stored": store_receipt.get("stored") is True,
             "raw_authority_granted_trusted": False,
             "workflow_package_request_v0_emitted": False,
         }
@@ -722,6 +752,25 @@ def _authority_grant_result(request: Mapping[str, Any], *, generated_at: str) ->
     if unsafe:
         result["route_status"] = ROUTE_STATUS_NEEDS_VERIFICATION
     return result
+
+
+def _draft_only_fallback_result(request: Mapping[str, Any], *, generated_at: str) -> dict[str, Any]:
+    return _text_result(
+        request,
+        generated_at=generated_at,
+        route_status=ROUTE_STATUS_TEXT_RESPONSE,
+        backend_route="capability_authority_loop.draft_only_safe_fallback",
+        display=_custom_display(
+            speaker_ref="cassandra",
+            voice_mode="client_safe",
+            headline="Draft-only fallback",
+            summary="I can draft what to ask for review, but I will not check email or send anything from here.",
+            next_safe_action="Draft the question for review.",
+        ),
+        proof_refs=["generated/read_models/first_class_capability_authority_loop.json"],
+        suggested_controller_event="stage_plan",
+        route_notes=["safe_fallback:draft_only_no_send_no_email_lookup"],
+    )
 
 
 def _scenario_for_context(text: str, world: str, thread: str) -> str:
@@ -771,9 +820,11 @@ def route_conversation_text(
     if ctx["freshness_state"] in {"stale", "superseded", "unknown"}:
         return _stale_context_result(request, generated_at=generated_at)
     if capability_authority_loop.classify_authority_grant_intent(text)["is_authority_grant_intent"]:
-        return _authority_grant_result(request, generated_at=generated_at)
+        return _authority_grant_result(request, generated_at=generated_at, sqlite_path=sqlite_path)
+    if "draft" in lowered and any(phrase in lowered for phrase in ("what i should ask", "what to ask", "follow-up", "follow up", "message")):
+        return _draft_only_fallback_result(request, generated_at=generated_at)
     if capability_authority_loop.detects_read_only_email_lookup_intent(text, world_ref=world, thread_ref=thread):
-        return _capability_gap_result(request, generated_at=generated_at)
+        return _capability_gap_result(request, generated_at=generated_at, sqlite_path=sqlite_path)
     if ("merge" in lowered or "push" in lowered) and (world.lower() == "build" or "workroom" in thread.lower()):
         return _protected_merge_result(request, generated_at=generated_at)
     if world.lower() in {"music", "niles"} or "controller idea" in lowered or "map this controller" in lowered:

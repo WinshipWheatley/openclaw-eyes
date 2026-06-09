@@ -117,6 +117,22 @@ NEGATIVE_CONTEXTS_BY_COMPLETION = {
         "ledger was not changed",
         "no ledger",
     ),
+    "email": (
+        "cannot check email",
+        "can't check email",
+        "not checked email",
+        "no email checked",
+        "do not have read-only email lookup",
+        "don't have read-only email lookup",
+        "email lookup unavailable",
+    ),
+    "contact": (
+        "cannot identify",
+        "not identified",
+        "no contact saved",
+        "not save contact",
+        "cannot save contact",
+    ),
 }
 
 UNSAFE_COMPLETION_PHRASES = (
@@ -133,6 +149,17 @@ UNSAFE_COMPLETION_PHRASES = (
     "executed",
     "ledger updated",
     "ledger changed",
+    "checked email",
+    "checked gmail",
+    "searched your inbox",
+    "email was received",
+    "received an email",
+    "annette replied",
+    "accountant identified",
+    "glenn acknowledged",
+    "draft sent",
+    "contact saved",
+    "coupa submitted",
 )
 
 COMPLETION_PHRASE_CATEGORIES = {
@@ -149,6 +176,17 @@ COMPLETION_PHRASE_CATEGORIES = {
     "executed": "executed",
     "ledger updated": "ledger",
     "ledger changed": "ledger",
+    "checked email": "email",
+    "checked gmail": "email",
+    "searched your inbox": "email",
+    "email was received": "email",
+    "received an email": "email",
+    "annette replied": "email",
+    "accountant identified": "contact",
+    "glenn acknowledged": "email",
+    "draft sent": "sent",
+    "contact saved": "contact",
+    "coupa submitted": "submitted",
 }
 
 PROMISE_PHRASES_BY_ACTION = {

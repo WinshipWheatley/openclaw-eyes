@@ -138,6 +138,7 @@ GRANT_INTENT_PHRASES = (
     "authorize this",
     "you can build that capability",
     "grant access",
+    "grant it",
 )
 
 
@@ -276,6 +277,187 @@ def build_authority_request(
     }
     request["unsafe_true_grants"] = unsafe_true_grants(request)
     return request
+
+
+def _ensure_authority_state_tables(conn: sqlite3.Connection) -> None:
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS proof_to_response_receipts (
+            receipt_id text primary key,
+            created_at text not null,
+            scenario_id text not null,
+            proof_bundle_id text not null,
+            response_id text not null,
+            verification_status text not null,
+            fallback_reason text not null,
+            response_content_hash text not null,
+            receipt_json text not null
+        )
+        """
+    )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS active_authority_requests (
+          request_id TEXT PRIMARY KEY,
+          capability_id TEXT NOT NULL,
+          target_world_ref TEXT NOT NULL,
+          target_thread_ref TEXT NOT NULL,
+          status TEXT NOT NULL,
+          source_request_ref TEXT NOT NULL,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          request_json TEXT NOT NULL,
+          gap_json TEXT NOT NULL
+        )
+        """
+    )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS operator_authority_grants (
+          grant_id TEXT PRIMARY KEY,
+          request_id TEXT NOT NULL,
+          capability_id TEXT NOT NULL,
+          target_world_ref TEXT NOT NULL,
+          target_thread_ref TEXT NOT NULL,
+          created_at TEXT NOT NULL,
+          grant_json TEXT NOT NULL
+        )
+        """
+    )
+
+
+def persist_active_authority_request(
+    sqlite_path: Path,
+    *,
+    authority_request: Mapping[str, Any],
+    capability_gap: Mapping[str, Any],
+    source_request_ref: str,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    generated_at = generated_at or utc_now()
+    request_id = str(authority_request.get("request_id") or "")
+    scope = authority_request.get("requested_scope") if isinstance(authority_request.get("requested_scope"), Mapping) else {}
+    world = str(scope.get("target_world_ref") or "")
+    thread = str(scope.get("target_thread_ref") or "")
+    capability_id = str(authority_request.get("requested_capability_id") or "")
+    sqlite_path = _rooted(sqlite_path)
+    sqlite_path.parent.mkdir(parents=True, exist_ok=True)
+    with sqlite3.connect(sqlite_path) as conn:
+        _ensure_authority_state_tables(conn)
+        conn.execute(
+            """
+            INSERT OR REPLACE INTO active_authority_requests
+              (request_id, capability_id, target_world_ref, target_thread_ref, status, source_request_ref,
+               created_at, updated_at, request_json, gap_json)
+            VALUES (?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?)
+            """,
+            (
+                request_id,
+                capability_id,
+                world,
+                thread,
+                source_request_ref,
+                generated_at,
+                generated_at,
+                stable_json(authority_request),
+                stable_json(capability_gap),
+            ),
+        )
+    return {
+        "receipt_type": "ACTIVE_AUTHORITY_REQUEST_STORED",
+        "request_id": request_id,
+        "capability_id": capability_id,
+        "target_world_ref": world,
+        "target_thread_ref": thread,
+        "status": "pending",
+        "sqlite_path": sqlite_path.as_posix(),
+        "created_at": generated_at,
+        "authority_boundary": dict(AUTHORITY_BOUNDARY),
+    }
+
+
+def load_active_authority_request(
+    sqlite_path: Path,
+    *,
+    capability_id: str = READ_ONLY_EMAIL_LOOKUP,
+    world_ref: str = "",
+    thread_ref: str = "",
+) -> dict[str, Any] | None:
+    sqlite_path = _rooted(sqlite_path)
+    if not sqlite_path.exists():
+        return None
+    with sqlite3.connect(sqlite_path) as conn:
+        _ensure_authority_state_tables(conn)
+        row = conn.execute(
+            """
+            SELECT request_json
+            FROM active_authority_requests
+            WHERE status = 'pending'
+              AND capability_id = ?
+              AND (? = '' OR target_world_ref = ?)
+              AND (? = '' OR target_thread_ref = ?)
+            ORDER BY updated_at DESC, created_at DESC
+            LIMIT 1
+            """,
+            (capability_id, world_ref, world_ref, thread_ref, thread_ref),
+        ).fetchone()
+    if not row:
+        return None
+    try:
+        payload = json.loads(str(row[0]))
+    except json.JSONDecodeError:
+        return None
+    return payload if isinstance(payload, dict) else None
+
+
+def persist_authority_grant(
+    sqlite_path: Path,
+    *,
+    authority_grant: Mapping[str, Any],
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    generated_at = generated_at or utc_now()
+    if authority_grant.get("schema_version") != AUTHORITY_GRANT_SCHEMA or authority_grant.get("authority_grant_created") is not True:
+        return {
+            "receipt_type": "AUTHORITY_GRANT_NOT_STORED",
+            "stored": False,
+            "reason": "not a created authority grant",
+            "authority_boundary": dict(AUTHORITY_BOUNDARY),
+        }
+    scope = authority_grant.get("granted_scope") if isinstance(authority_grant.get("granted_scope"), Mapping) else {}
+    request_id = str(authority_grant.get("request_id") or "")
+    grant_id = str(authority_grant.get("grant_id") or "")
+    capability_id = str(authority_grant.get("granted_capability_id") or "")
+    world = str(scope.get("target_world_ref") or "")
+    thread = str(scope.get("target_thread_ref") or "")
+    sqlite_path = _rooted(sqlite_path)
+    sqlite_path.parent.mkdir(parents=True, exist_ok=True)
+    with sqlite3.connect(sqlite_path) as conn:
+        _ensure_authority_state_tables(conn)
+        conn.execute(
+            "UPDATE active_authority_requests SET status = 'granted', updated_at = ? WHERE request_id = ?",
+            (generated_at, request_id),
+        )
+        conn.execute(
+            """
+            INSERT OR REPLACE INTO operator_authority_grants
+              (grant_id, request_id, capability_id, target_world_ref, target_thread_ref, created_at, grant_json)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (grant_id, request_id, capability_id, world, thread, generated_at, stable_json(authority_grant)),
+        )
+    return {
+        "receipt_type": "OPERATOR_AUTHORITY_GRANT_STORED",
+        "stored": True,
+        "grant_id": grant_id,
+        "request_id": request_id,
+        "capability_id": capability_id,
+        "target_world_ref": world,
+        "target_thread_ref": thread,
+        "sqlite_path": sqlite_path.as_posix(),
+        "created_at": generated_at,
+        "authority_boundary": dict(AUTHORITY_BOUNDARY),
+    }
 
 
 def classify_authority_grant_intent(text: str) -> dict[str, Any]:
@@ -531,6 +713,8 @@ def build_contract_read_model(*, generated_at: str | None = None) -> dict[str, A
             "Capability gaps are reusable objects, not lane-specific fallback copy.",
             "Incoming raw authority_granted fields are never trusted.",
             "Natural-language grants only compile against an active authority request.",
+            "Active authority requests persist in SQLite so the next controller turn can resolve scoped grants after service restart.",
+            "Capability-authority routes stay primary and do not receive generic payment-watch proof-to-response overlays.",
             "Build permission and data-access permission are separate.",
             "Read-only email lookup does not allow sending, deleting, archiving, mark-read, browser/Gmail UI, ledger, paid, Coupa, workbook, PDF, push, or merge actions.",
         ],
@@ -546,6 +730,7 @@ def _write_sqlite(sqlite_path: Path, payload: Mapping[str, Any]) -> None:
     sqlite_path = _rooted(sqlite_path)
     sqlite_path.parent.mkdir(parents=True, exist_ok=True)
     with sqlite3.connect(sqlite_path) as conn:
+        _ensure_authority_state_tables(conn)
         conn.execute(
             """
             CREATE TABLE IF NOT EXISTS capability_authority_loop (
@@ -588,6 +773,8 @@ def build_wiki(payload: Mapping[str, Any]) -> str:
             "- Missing email evidence emits `CAPABILITY_GAP_V0`.",
             "- The gap emits `OPERATOR_AUTHORITY_REQUEST_V0` for scoped read-only email lookup.",
             "- Natural-language confirmation compiles `OPERATOR_AUTHORITY_GRANT_V0` only when an active request exists.",
+            "- Active requests are stored in SQLite for the next controller turn.",
+            "- Capability-authority route output remains the primary display; generic proof-to-response overlays do not replace it.",
             "- Build permission remains separate from data-access permission.",
             "- Denied actions preserve send/delete/archive/mark-read/browser/Gmail UI/Coupa/ledger/paid/workbook/PDF/push/merge blocks.",
         ]

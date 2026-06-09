@@ -17,5 +17,7 @@ Defines the reusable path from missing capability to scoped authority request, d
 - Missing email evidence emits `CAPABILITY_GAP_V0`.
 - The gap emits `OPERATOR_AUTHORITY_REQUEST_V0` for scoped read-only email lookup.
 - Natural-language confirmation compiles `OPERATOR_AUTHORITY_GRANT_V0` only when an active request exists.
+- Active requests are stored in SQLite for the next controller turn.
+- Capability-authority route output remains the primary display; generic proof-to-response overlays do not replace it.
 - Build permission remains separate from data-access permission.
 - Denied actions preserve send/delete/archive/mark-read/browser/Gmail UI/Coupa/ledger/paid/workbook/PDF/push/merge blocks.

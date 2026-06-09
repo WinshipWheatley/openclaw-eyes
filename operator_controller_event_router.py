@@ -1622,19 +1622,36 @@ def _route_operator_conversation(
             }
         )
     route_status = str(conversation.get("route_status") or "TEXT_RESPONSE_READY")
+    routed_conversation_statuses = {
+        "TEXT_RESPONSE_READY",
+        "PROTECTED_ACTION_BLOCKED_TEXT_RESPONSE",
+        "STAGE_PLAN_TEXT_RESPONSE",
+        "CAPABILITY_GAP_AUTHORITY_REQUEST_READY",
+        "AUTHORITY_GRANT_COMPILED",
+    }
     card = _card_response(
         receipt_id=receipt_id,
         event_type="chat_goal",
         headline=str(display.get("headline") or "OpenClaw response"),
         summary=str(display.get("plain_summary") or "I routed this text through the conversation router."),
         status_label=str(display.get("headline") or "Conversation"),
-        route_status="ROUTED" if route_status in {"TEXT_RESPONSE_READY", "PROTECTED_ACTION_BLOCKED_TEXT_RESPONSE", "STAGE_PLAN_TEXT_RESPONSE"} else "NEEDS_VERIFICATION",
+        route_status="ROUTED" if route_status in routed_conversation_statuses else "NEEDS_VERIFICATION",
         current_world_ref=str(request.get("current_world_ref") or ""),
         current_thread_ref=str(request.get("current_thread_ref") or ""),
         actions=actions,
         proof_refs=list(conversation.get("proof_refs") or []),
         tone="blocked" if "BLOCKED" in route_status else "calm",
     )
+    if isinstance(conversation.get("capability_authority"), Mapping):
+        card["capability_authority"] = dict(conversation["capability_authority"])
+        request_obj = conversation["capability_authority"].get("operator_authority_request")
+        if isinstance(request_obj, Mapping):
+            card["authority_request_ref"] = str(request_obj.get("request_id") or "")
+            card["capability_gap_ref"] = str(
+                (conversation["capability_authority"].get("capability_gap") or {}).get("gap_id")
+                if isinstance(conversation["capability_authority"].get("capability_gap"), Mapping)
+                else ""
+            )
     receipt = _base_receipt(request, receipt_id=receipt_id, generated_at=generated_at, validation=validation)
     receipt.update(
         {
@@ -2012,6 +2029,16 @@ def _attach_proof_to_response(
     if not receipt.get("dynamic_card_response"):
         receipt["proof_to_response_status"] = "unavailable:no_dynamic_card_response"
         return
+    route_result = receipt.get("route_result") if isinstance(receipt.get("route_result"), Mapping) else {}
+    if str(route_result.get("backend_route") or "").startswith("capability_authority_loop."):
+        receipt["primary_response_kind"] = "capability_authority"
+        receipt["proof_to_response_status"] = "not_applicable:capability_authority_route"
+        receipt["proof_to_response_unavailable_reason"] = "capability_gap_or_authority_grant_is_structured_route_result"
+        receipt["dynamic_card_role"] = "primary_display"
+        receipt["details_collapsed"] = True
+        receipt["machine_proof"]["proof_to_response_bypassed_for_capability_authority"] = True
+        receipt["machine_proof"]["proof_to_response_primary_emitted"] = False
+        return
     scenario_id = _proof_to_response_scenario_id(request, receipt)
     if not scenario_id:
         export_result = proof_to_response_runtime.export_unavailable_controller_response(
@@ -2062,7 +2089,6 @@ def _attach_proof_to_response(
         source_response_path=source_response_path,
         generated_at=generated_at,
     )
-    route_result = receipt.get("route_result") if isinstance(receipt.get("route_result"), Mapping) else {}
     resolved_intent_class = str(route_result.get("resolved_intent_class") or route_result.get("conversation_intent_class") or "")
     resolved_intent_route = str(route_result.get("resolved_intent_route") or route_result.get("proof_to_response_scenario_id") or scenario_id)
     intent_source = str(route_result.get("intent_source") or ("backend_router" if resolved_intent_class else ""))
