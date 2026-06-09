@@ -1,0 +1,90 @@
+{
+  "allowed_test_claims": [
+    "production_rejection_guard_worked",
+    "test_dry_run_recorded",
+    "test_live_email_sent_to_allowlisted_recipient",
+    "test_sqlite_write_recorded",
+    "test_workspace_copy_created"
+  ],
+  "authority_boundary": {
+    "authority_granted_from_raw_text_allowed": false,
+    "browser_access_allowed": false,
+    "business_email_send_allowed": false,
+    "coupa_submit_allowed": false,
+    "git_push_allowed": false,
+    "gmail_ui_allowed": false,
+    "lm2_tool_expansion_allowed": false,
+    "merge_allowed": false,
+    "paid": false,
+    "paid_marking_allowed": false,
+    "production_ledger_mutation_allowed": false,
+    "production_pdf_export_allowed": false,
+    "production_workbook_mutation_allowed": false,
+    "secrets_storage_allowed": false,
+    "sent": false
+  },
+  "contracts": [
+    "TEST_EFFECT_REQUEST_V0",
+    "TEST_EFFECT_RECEIPT_V0",
+    "TEST_TARGET_REDIRECT_V0",
+    "TEST_WORKSPACE_ARTIFACT_V0",
+    "TEST_EXECUTION_AUTHORITY_V0"
+  ],
+  "effect_kinds": [
+    "email_send",
+    "file_workspace_copy",
+    "file_write",
+    "logic_project_copy",
+    "sqlite_write"
+  ],
+  "email_adapter": {
+    "allowlisted_recipient": "winshiplive@gmail.com",
+    "body_marker": "OPENCLAW_TEST_ONLY_DO_NOT_USE_AS_PROOF_V0",
+    "live_status_without_transport": "TEST_ADAPTER_MISSING",
+    "max_live_email_sends_per_test_run_id": 1,
+    "real_transport_configured": false,
+    "subject_prefix": "[OPENCLAW TEST]"
+  },
+  "generated_at": "2026-06-09T01:39:59+00:00",
+  "machine_proof": {
+    "browser_open_enabled": false,
+    "coupa_submit_enabled": false,
+    "external_model_enabled": false,
+    "gmail_ui_open_enabled": false,
+    "lm2_tool_expansion_enabled": false,
+    "paid_marking_enabled": false,
+    "production_email_send_enabled": false,
+    "production_ledger_mutation_enabled": false,
+    "production_pdf_export_enabled": false,
+    "production_workbook_mutation_enabled": false,
+    "push_merge_enabled": false,
+    "raw_authority_granted_trusted": false
+  },
+  "production_rejected_claims": [
+    "annette_replied",
+    "client_was_emailed",
+    "contact_saved_as_verified",
+    "coupa_submitted",
+    "email_sent_to_client",
+    "glenn_acknowledged",
+    "ledger_updated",
+    "live_arts_accountant_identified",
+    "paid",
+    "production_file_updated",
+    "production_pdf_updated",
+    "production_workbook_updated"
+  ],
+  "read_model_id": "test_effect_adapters",
+  "run_mode_behavior": {
+    "production": "test effect requests and test markers are blocked from production proof",
+    "test_dry_run": "dry-run receipts only; no external effects",
+    "test_live": "controlled test effects only with explicit test authority, marker, allowlist, and receipts"
+  },
+  "schema_version": "test_effect_adapters_v0",
+  "status": "OPENCLAW_TEST_EFFECT_ADAPTERS_READY",
+  "workspace_adapter": {
+    "launch_logic_pro_allowed": false,
+    "logic_copy_suffix": "__OPENCLAW_TEST__<test_run_id>.logicx",
+    "workspace_root": "/tmp/openclaw-mission-control/test_workspaces"
+  }
+}

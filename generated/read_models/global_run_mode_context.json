@@ -24,7 +24,7 @@
     "TEST_ARTIFACT_PRODUCTION_REJECTION_V0"
   ],
   "default_run_mode": "production",
-  "generated_at": "2026-06-09T01:15:51+00:00",
+  "generated_at": "2026-06-09T01:39:59+00:00",
   "global_test_marker": "OPENCLAW_TEST_ONLY_DO_NOT_USE_AS_PROOF_V0",
   "production_rejection_policy": {
     "blocked_claims": [

@@ -563,7 +563,9 @@ def production_claim_accepts_artifact(artifact: Mapping[str, Any], claim_kind: s
         return claim_kind in {
             "test_mode_dry_run_completed",
             "test_sqlite_write_completed",
+            "test_workspace_copy_created",
             "live_test_email_accepted_for_allowlisted_recipient",
+            "test_live_email_sent_to_allowlisted_recipient",
             "production_rejection_guard_worked",
         }
     return True

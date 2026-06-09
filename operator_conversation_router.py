@@ -17,6 +17,7 @@ from typing import Any, Mapping, Sequence
 
 import capability_authority_loop
 import global_run_mode_context
+import test_effect_adapters
 import proof_to_response_runtime as proof_runtime
 
 
@@ -790,11 +791,19 @@ def _test_dry_run_action_result(
     target_ref: str,
 ) -> dict[str, Any]:
     run_mode_context = request.get("run_mode_context") if isinstance(request.get("run_mode_context"), Mapping) else global_run_mode_context.default_run_mode_context(generated_at=generated_at)
-    receipt = global_run_mode_context.build_test_execution_receipt(
-        sqlite_path,
+    effect_kind = test_effect_adapters.SQLITE_WRITE if action_kind == "test_sqlite_write" else test_effect_adapters.EMAIL_SEND
+    effect_request = test_effect_adapters.build_test_effect_request(
+        effect_kind=effect_kind,
         run_mode_context=run_mode_context,
-        action_kind=action_kind,
-        target_ref=target_ref,
+        target=target_ref,
+        payload_summary=action_kind,
+        requested_by="operator_conversation_router",
+        requested_scope={"target_world_ref": str(request.get("current_world_ref") or ""), "target_thread_ref": str(request.get("current_thread_ref") or "")},
+        generated_at=generated_at,
+    )
+    receipt = test_effect_adapters.execute_test_effect(
+        effect_request,
+        sqlite_path=sqlite_path,
         generated_at=generated_at,
     )
     if run_mode_context.get("run_mode") == global_run_mode_context.TEST_DRY_RUN:
@@ -822,7 +831,10 @@ def _test_dry_run_action_result(
         route_notes=[f"test_execution:{action_kind}", str(receipt.get("status") or "")],
     )
     result["test_execution_receipt"] = receipt
+    result["test_effect_request"] = effect_request
+    result["test_effect_receipt"] = receipt
     result["machine_proof"]["test_execution_receipt_emitted"] = True
+    result["machine_proof"]["test_effect_adapter_used"] = True
     result["machine_proof"]["production_action_performed"] = False
     return result
 

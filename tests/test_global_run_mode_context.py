@@ -161,7 +161,7 @@ def test_test_dry_run_response_carries_run_mode_context(tmp_path):
     receipt = _route(_controller_request("Write a test SQLite row for this dry run."), tmp_path)
 
     assert receipt["run_mode"] == run_mode.TEST_DRY_RUN
-    assert receipt["route_result"]["test_execution_receipt"]["status"] == "DRY_RUN_ONLY"
+    assert receipt["route_result"]["test_execution_receipt"]["status"] == "DRY_RUN_RECORDED"
     assert receipt["route_result"]["test_execution_receipt"]["production_write_performed"] is False
     assert receipt["dynamic_card_response"]["run_mode_context"]["test_marker"] == run_mode.TEST_MARKER
 
@@ -343,7 +343,7 @@ def test_unsafe_true_grant_scan_clean_for_representative_outputs(tmp_path):
     dry_receipt = _route(_controller_request("Send a dry-run email to winshiplive@gmail.com."), tmp_path)
     capability_receipt = _route(_controller_request("Have we received any emails from Annette?"), tmp_path)
 
-    assert dry_receipt["route_result"]["test_execution_receipt"]["status"] == "DRY_RUN_ONLY"
+    assert dry_receipt["route_result"]["test_execution_receipt"]["status"] == "DRY_RUN_RECORDED"
     assert dry_receipt["route_result"]["test_execution_receipt"]["email_send_performed"] is False
     assert capability_receipt["route_result"]["workflow_request_type_emitted"] == ""
     assert not _unsafe_true_grants(dry_receipt)
