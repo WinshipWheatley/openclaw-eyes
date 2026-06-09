@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 import capability_authority_loop
+import codex_work_package_lifecycle
 import global_run_mode_context
 import test_effect_adapters
 
@@ -243,6 +244,13 @@ def _connect(sqlite_path: Path) -> sqlite3.Connection:
     conn.row_factory = sqlite3.Row
     _ensure_tables(conn)
     return conn
+
+
+def _lifecycle_sqlite_path(sqlite_path: Path) -> Path:
+    path = Path(sqlite_path)
+    if path == DEFAULT_SQLITE_PATH:
+        return codex_work_package_lifecycle.DEFAULT_SQLITE_PATH
+    return path.with_name("codex_work_package_lifecycle.sqlite")
 
 
 def _scope_key(scope: Mapping[str, Any]) -> str:
@@ -569,9 +577,19 @@ def build_codex_work_package(objective: Mapping[str, Any], grant: Mapping[str, A
             "generated/system_knowledge/",
         ],
         "denied_file_paths": ["business ledger", "production workbooks", "production PDFs", "credentials", "secrets"],
-        "allowed_commands": ["python3 -m pytest focused tests", "python3 -m py_compile changed files", "git diff --check"],
+        "allowed_commands": [
+            "python3 -m py_compile make_it_so_objective_loop.py",
+            "python3 -m pytest tests/test_make_it_so_objective_loop.py -q",
+            "python3 -m json.tool generated/read_models/make_it_so_objective_loop.json",
+            "git diff --check",
+        ],
         "denied_commands": ["git push", "git merge", "open browser", "open Gmail", "send email", "submit Coupa", "invoke external model", "spawn worker"],
-        "validation_commands": ["pytest", "py_compile", "json parse", "unsafe scan"],
+        "validation_commands": [
+            "python3 -m py_compile make_it_so_objective_loop.py",
+            "python3 -m pytest tests/test_make_it_so_objective_loop.py -q",
+            "python3 -m json.tool generated/read_models/make_it_so_objective_loop.json",
+            "git diff --check",
+        ],
         "unsafe_scan": "required",
         "run_mode": str(objective.get("run_mode") or global_run_mode_context.PRODUCTION),
         "authority_grant_ref": str(grant.get("grant_id") or ""),
@@ -655,11 +673,15 @@ def start_email_lookup_objective(
             }
         existing = _load_objective(conn, READ_ONLY_EMAIL_LOOKUP, scope)
         if existing:
+            lifecycle_status = codex_work_package_lifecycle.load_lifecycle_for_objective(
+                str(existing.get("objective_id") or ""),
+                sqlite_path=_lifecycle_sqlite_path(sqlite_path),
+            )
             blocker = build_blocker(
                 existing,
                 blocker_kind="missing_capability",
                 human_summary="Read-only email lookup is still not active for this scope.",
-                required_next_input="Grant make-it-so authority or complete the recorded human setup blocker.",
+                required_next_input="Review the queued Codex package lifecycle or complete the recorded human setup blocker.",
                 can_be_solved_by_make_it_so=True,
                 already_explained=True,
                 generated_at=generated_at,
@@ -669,11 +691,12 @@ def start_email_lookup_objective(
                 "response_status": "OBJECTIVE_STATUS_READY",
                 "objective_request": existing,
                 "objective_blocker": blocker,
+                "codex_work_package_lifecycle": lifecycle_status,
                 "operator_display": {
                     "speaker_ref": "chief",
                     "headline": "Objective still waiting",
-                    "plain_summary": "I already recorded the missing read-only email lookup capability for this scope. It is waiting on make-it-so authority or the recorded setup blocker.",
-                    "next_safe_action": "Grant make-it-so authority or review the setup blocker.",
+                    "plain_summary": "I already recorded the missing read-only email lookup capability for this scope. If Make-It-So was granted, review the queued Codex package lifecycle and setup blocker.",
+                    "next_safe_action": "Review package lifecycle status.",
                     "proof_refs_collapsed": True,
                 },
                 "authority_boundary": dict(AUTHORITY_BOUNDARY),
@@ -813,19 +836,28 @@ def handle_make_it_so_grant(
             objective["lane"],
         )
         conn.commit()
+    lifecycle_status = codex_work_package_lifecycle.queue_codex_work_package(
+        package,
+        objective=objective,
+        authority_grant=grant,
+        enablement_plan=plan,
+        sqlite_path=_lifecycle_sqlite_path(sqlite_path),
+        generated_at=generated_at,
+    )
     return {
         "schema_version": SCHEMA_VERSION,
         "response_status": "MAKE_IT_SO_GRANT_COMPILED",
         "make_it_so_authority_grant": grant,
         "capability_enablement_plan": plan,
         "codex_work_package": package,
+        "codex_work_package_lifecycle": lifecycle_status,
         "objective_blocker": human_blocker,
         "objective_execution_receipt": receipt,
         "operator_display": {
             "speaker_ref": "chief",
-            "headline": "Make-it-so plan created",
-            "plain_summary": "I created the scoped enablement plan and bounded Codex work package. The true blocker is safe read-only email connector setup outside the repo.",
-            "next_safe_action": human_blocker["required_next_input"],
+            "headline": "Codex package queued",
+            "plain_summary": "I created the scoped enablement plan and queued the bounded Codex package. The package files are ready for manual handoff, but no approved worker bridge automation is configured.",
+            "next_safe_action": "Review the manual handoff package or configure an approved Codex worker bridge.",
             "proof_refs_collapsed": True,
         },
         "authority_boundary": dict(AUTHORITY_BOUNDARY),

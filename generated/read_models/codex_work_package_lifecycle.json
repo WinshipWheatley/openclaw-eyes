@@ -1,0 +1,82 @@
+{
+  "active_objectives": [],
+  "authority_boundary": {
+    "authority_granted_from_raw_text_allowed": false,
+    "browser_access_allowed": false,
+    "coupa_allowed": false,
+    "email_send_allowed": false,
+    "external_model_allowed": false,
+    "git_push_allowed": false,
+    "gmail_allowed": false,
+    "gmail_ui_allowed": false,
+    "ledger_mutation_allowed": false,
+    "ledger_posting_allowed": false,
+    "lm2_tool_expansion_allowed": false,
+    "merge_allowed": false,
+    "paid": false,
+    "paid_marking_allowed": false,
+    "pdf_export_allowed": false,
+    "portal_submit_allowed": false,
+    "sent": false,
+    "workbook_mutation_allowed": false,
+    "worker_spawn_allowed": false
+  },
+  "blocked_packages": [],
+  "capability_registry": [],
+  "contracts": [
+    "CODEX_WORK_PACKAGE_STATE_V0",
+    "CODEX_WORK_PACKAGE_QUEUE_V0",
+    "CODEX_WORKER_BRIDGE_STATUS_V0",
+    "CODEX_WORK_PACKAGE_CLAIM_V0",
+    "CODEX_WORK_PACKAGE_RESULT_V0",
+    "CAPABILITY_ACTIVATION_DECISION_V0"
+  ],
+  "generated_at": "2026-06-09T02:31:29+00:00",
+  "package_queue": {
+    "active_package_count": 0,
+    "allowed_worker_kinds": [
+      "codex_desktop",
+      "codex_vscode",
+      "codex_cli_if_available",
+      "manual_codex_handoff"
+    ],
+    "authority_boundary": {
+      "authority_granted_from_raw_text_allowed": false,
+      "browser_access_allowed": false,
+      "coupa_allowed": false,
+      "email_send_allowed": false,
+      "external_model_allowed": false,
+      "git_push_allowed": false,
+      "gmail_allowed": false,
+      "gmail_ui_allowed": false,
+      "ledger_mutation_allowed": false,
+      "ledger_posting_allowed": false,
+      "lm2_tool_expansion_allowed": false,
+      "merge_allowed": false,
+      "paid": false,
+      "paid_marking_allowed": false,
+      "pdf_export_allowed": false,
+      "portal_submit_allowed": false,
+      "sent": false,
+      "workbook_mutation_allowed": false,
+      "worker_spawn_allowed": false
+    },
+    "denied_worker_kinds": [
+      "unbounded_shell",
+      "external_llm_worker",
+      "lm2_tool_expansion",
+      "business_action_executor"
+    ],
+    "package_refs": [],
+    "queue_id": "codex_work_package_queue:make_it_so",
+    "receipt_ref": "codex_work_package_queue_receipt:cec45db6ed2a4437",
+    "schema_version": "CODEX_WORK_PACKAGE_QUEUE_V0",
+    "updated_at": "2026-06-09T02:31:29+00:00",
+    "worktree_root": "/home/openclaw"
+  },
+  "queued_packages": [],
+  "read_model_id": "codex_work_package_lifecycle",
+  "schema_version": "codex_work_package_lifecycle_v0",
+  "status": "OPENCLAW_CODEX_WORK_PACKAGE_LIFECYCLE_READY",
+  "worker_bridge_statuses": []
+}
