@@ -16,3 +16,10 @@ Defines the governed boundary for `read_only_email_lookup`.
 
 ## Denied
 - Send, draft/compose, delete, archive, mark read/unread, label mutation, Gmail UI/browser, Coupa, paid, ledger, workbook/PDF, push/merge, model/tool expansion, and repo secrets.
+
+## Existing Broker Candidate
+- Classification: `RESTRICTABLE_BROKER`
+- Candidate: `/home/openclaw/google_broker_readonly_wrapper.py`
+- Live bridge allowed: `False`
+- Fixture/readback mode may be used for test-only redacted evidence.
+- Production live bridge remains disabled until denied scopes and repo-local credential paths are removed.

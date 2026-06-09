@@ -127,6 +127,10 @@ CREDENTIAL_ENV_VARS = (
 )
 KEYCHAIN_REF_ENV_VAR = "OPENCLAW_READ_ONLY_EMAIL_LOOKUP_KEYCHAIN_REF"
 OPERATOR_CONFIG_ENV_VAR = "OPENCLAW_READ_ONLY_EMAIL_LOOKUP_CONFIG_PATH"
+BROKER_WRAPPER_ENV_VAR = "OPENCLAW_READ_ONLY_EMAIL_LOOKUP_BROKER_WRAPPER_PATH"
+BROKER_RUNTIME_DIR_ENV_VAR = "OPENCLAW_READ_ONLY_EMAIL_LOOKUP_BROKER_RUNTIME_DIR"
+DEFAULT_BROKER_WRAPPER_PATH = ROOT / "google_broker_readonly_wrapper.py"
+DEFAULT_BROKER_RUNTIME_DIR = Path("/home/openclaw_external/openclaw-runtime")
 
 
 def stable_json(payload: Any) -> str:
@@ -203,10 +207,139 @@ def validate_requested_scopes(scopes: Sequence[str]) -> dict[str, Any]:
     }
 
 
+def _safe_read_code_file(path: Path) -> str:
+    try:
+        if not path.exists() or not path.is_file():
+            return ""
+        return path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return ""
+
+
+def discover_existing_gmail_broker_candidate(
+    *,
+    env: Mapping[str, str] | None = None,
+    wrapper_path: str | Path | None = None,
+    runtime_dir: str | Path | None = None,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    """Classify the existing local Google broker without reading credentials.
+
+    The legacy broker is only a candidate source. This function reads source
+    code and policy files, never token/credential files, and fails closed when
+    broader scopes or repo-local credential paths are detected.
+    """
+    generated_at = generated_at or utc_now()
+    env_map = dict(os.environ if env is None else env)
+    wrapper = Path(
+        wrapper_path
+        or env_map.get(BROKER_WRAPPER_ENV_VAR)
+        or DEFAULT_BROKER_WRAPPER_PATH
+    )
+    runtime = Path(
+        runtime_dir
+        or env_map.get(BROKER_RUNTIME_DIR_ENV_VAR)
+        or DEFAULT_BROKER_RUNTIME_DIR
+    )
+    if not wrapper.is_absolute():
+        wrapper = ROOT / wrapper
+    broker = runtime / "google_access_broker.py"
+    policy = runtime / "google_access_policy.py"
+
+    wrapper_source = _safe_read_code_file(wrapper)
+    broker_source = _safe_read_code_file(broker)
+    policy_source = _safe_read_code_file(policy)
+    local_broker_source = _safe_read_code_file(ROOT / "google_access_broker.py")
+    combined = "\n".join((wrapper_source, broker_source, policy_source, local_broker_source))
+
+    found = bool(wrapper_source or broker_source or policy_source or local_broker_source)
+    supported_metadata = "google.gmail.read.metadata" in combined
+    fixture_readback_available = all(
+        token in wrapper_source
+        for token in ("GOOGLE_READ_ONLY_FIXTURE", "gmail_metadata", "_fixture_broker_result")
+    )
+    wrapper_blocks_write = all(
+        token in wrapper_source
+        for token in ("BLOCKED_WRITE_CAPABILITY", "BLOCKED_BODY_READ", "Gmail send is blocked")
+    )
+    denied_scope_refs = sorted(scope for scope in FORBIDDEN_GMAIL_SCOPES if scope in combined)
+    credential_paths_inside_repo = sorted(
+        path
+        for path in (
+            "/home/openclaw/.google-secrets/credentials.json",
+            "/home/openclaw/.google-secrets/token.json",
+            "/home/openclaw/.google-secrets",
+        )
+        if path in combined
+    )
+    send_or_mutation_refs = sorted(
+        ref
+        for ref in (
+            "_exec_gmail_send",
+            "_exec_gmail_draft_create",
+            "_exec_calendar_delete",
+            "service.users().messages().send",
+            "service.users().drafts().create",
+        )
+        if ref in combined
+    )
+
+    safe_direct = (
+        found
+        and supported_metadata
+        and wrapper_blocks_write
+        and not denied_scope_refs
+        and not credential_paths_inside_repo
+        and not send_or_mutation_refs
+    )
+    if safe_direct:
+        classification = "SAFE_READ_ONLY_BROKER"
+    elif found and supported_metadata and wrapper_blocks_write:
+        classification = "RESTRICTABLE_BROKER"
+    elif found:
+        classification = "UNSAFE_BROKER"
+    else:
+        classification = "GMAIL_BROKER_NOT_FOUND"
+
+    live_bridge_allowed = classification == "SAFE_READ_ONLY_BROKER"
+    return {
+        "schema_version": "GMAIL_BROKER_CANDIDATE_V0",
+        "candidate_id": "existing_google_broker_readonly_wrapper",
+        "classification": classification,
+        "candidate_path": str(wrapper),
+        "runtime_dir": str(runtime),
+        "broker_path": str(broker),
+        "policy_path": str(policy),
+        "runtime_language": "python" if found else "unknown",
+        "invocation_method": "python wrapper fixture/readback; live subprocess bridge disabled unless safe direct checks pass",
+        "allowed_scopes": [READ_ONLY_GMAIL_SCOPE],
+        "denied_scope_refs_found": denied_scope_refs,
+        "credential_paths_inside_repo": credential_paths_inside_repo,
+        "send_or_mutation_refs_found": send_or_mutation_refs,
+        "supported_metadata_read": supported_metadata,
+        "fixture_readback_available": fixture_readback_available,
+        "wrapper_blocks_write_and_body": wrapper_blocks_write,
+        "safe_read_only_direct": safe_direct,
+        "live_bridge_allowed": live_bridge_allowed,
+        "usable_for_read_only_lookup": bool(found and supported_metadata),
+        "integration_effort": "small_adapter_scope_restriction_required" if classification == "RESTRICTABLE_BROKER" else "none" if safe_direct else "not_recommended",
+        "credential_file_read": False,
+        "secret_material_loaded": False,
+        "external_call_performed": False,
+        "created_at": generated_at,
+        "notes": [
+            "Source code was inspected; credential/token contents were not read.",
+            "Production live bridge is disabled while denied scopes, send/draft executors, or repo-local credential paths are present.",
+            "Fixture mode may be used for test evidence only and never proves production email facts.",
+        ],
+    }
+
+
 def get_connector_status(
     *,
     env: Mapping[str, str] | None = None,
     operator_config_path: str = "",
+    include_broker_discovery: bool = False,
     generated_at: str | None = None,
 ) -> dict[str, Any]:
     generated_at = generated_at or utc_now()
@@ -253,7 +386,7 @@ def get_connector_status(
             ]
         )
 
-    return {
+    status = {
         "schema_version": EMAIL_CONNECTOR_STATUS_SCHEMA,
         "connector_id": "email_connector:gmail_readonly_v0",
         "capability_id": CAPABILITY_ID,
@@ -269,6 +402,12 @@ def get_connector_status(
         "credential_file_read": False,
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
     }
+    if include_broker_discovery:
+        status["existing_broker_candidate"] = discover_existing_gmail_broker_candidate(
+            env=env_map,
+            generated_at=generated_at,
+        )
+    return status
 
 
 def build_setup_requirement(status: Mapping[str, Any], *, generated_at: str | None = None) -> dict[str, Any]:
@@ -427,6 +566,48 @@ def redact_email_evidence(message: Mapping[str, Any], *, proof_scope: Mapping[st
     )
 
 
+def _existing_broker_fixture_messages(
+    candidate: Mapping[str, Any],
+    *,
+    generated_at: str,
+) -> list[dict[str, Any]]:
+    if not candidate.get("fixture_readback_available"):
+        return []
+    try:
+        import google_broker_readonly_wrapper as wrapper
+
+        payload = wrapper.build_from_fixture("gmail_metadata", generated_at=generated_at)
+    except Exception:
+        return []
+
+    readback = payload.get("readback") if isinstance(payload, Mapping) else {}
+    tokenized = readback.get("tokenized_results") if isinstance(readback, Mapping) else []
+    messages: list[dict[str, Any]] = []
+    for index, item in enumerate(tokenized or [], start=1):
+        if not isinstance(item, Mapping):
+            continue
+        messages.append(
+            {
+                "message_id": str(item.get("result_ref") or f"broker_fixture_message_{index}"),
+                "thread_id": str(item.get("tokenized_message_ref") or ""),
+                "from": str(item.get("tokenized_display_name") or "redacted"),
+                "to": "redacted",
+                "subject": str(item.get("tokenized_subject") or "redacted broker fixture subject"),
+                "date": "",
+                "snippet": str(item.get("tokenized_snippet") or "redacted broker fixture snippet"),
+                "body": "",
+            }
+        )
+    return messages
+
+
+def _add_broker_context(result: dict[str, Any], candidate: Mapping[str, Any] | None) -> dict[str, Any]:
+    if candidate:
+        result["existing_broker_candidate"] = dict(candidate)
+        result["broker_live_bridge_allowed"] = bool(candidate.get("live_bridge_allowed"))
+    return result
+
+
 def produce_missing_credential_blocker(
     objective: Mapping[str, Any],
     connector_status: Mapping[str, Any],
@@ -477,10 +658,13 @@ def perform_read_only_lookup(
     connector_status: Mapping[str, Any] | None = None,
     authority_grant: Mapping[str, Any] | None = None,
     fixture_messages: Sequence[Mapping[str, Any]] | None = None,
+    existing_broker_candidate: Mapping[str, Any] | None = None,
+    use_existing_broker_fixture: bool = False,
     generated_at: str | None = None,
 ) -> dict[str, Any]:
     generated_at = generated_at or utc_now()
     status = dict(connector_status or get_connector_status(generated_at=generated_at))
+    broker_candidate = existing_broker_candidate or status.get("existing_broker_candidate")
     run_mode = str(request.get("run_mode") or "production")
     proof_scope = request.get("lane") if isinstance(request.get("lane"), Mapping) else {}
 
@@ -491,13 +675,13 @@ def perform_read_only_lookup(
             "participant_hints": list(request.get("participant_hints") or []),
             "max_results": int(request.get("max_results") or 10),
         }
-        return result
+        return _add_broker_context(result, broker_candidate)
 
     authority = validate_authority_for_lookup(request, authority_grant)
     if not authority["valid"]:
         result = _base_lookup_result(request, status="BLOCKED_BY_AUTHORITY", generated_at=generated_at)
         result["blocker_reason"] = authority["reason"]
-        return result
+        return _add_broker_context(result, broker_candidate)
 
     if run_mode == "test_live" and fixture_messages:
         summaries = [
@@ -514,23 +698,44 @@ def perform_read_only_lookup(
         result["evidence_summaries"] = summaries
         result["evidence_refs"] = [str(item["evidence_id"]) for item in summaries]
         result["test_fixture_used"] = True
-        return result
+        return _add_broker_context(result, broker_candidate)
+
+    if run_mode == "test_live" and use_existing_broker_fixture:
+        candidate = broker_candidate or discover_existing_gmail_broker_candidate(generated_at=generated_at)
+        fixture_messages = _existing_broker_fixture_messages(candidate, generated_at=generated_at)
+        if fixture_messages:
+            summaries = [
+                summarize_email_evidence(
+                    message,
+                    matched_terms=list(request.get("search_terms") or []),
+                    proof_scope=proof_scope,
+                    generated_at=generated_at,
+                )
+                for message in fixture_messages[: int(request.get("max_results") or 10)]
+            ]
+            result = _base_lookup_result(request, status="LOOKUP_TEST_FIXTURE_USED", generated_at=generated_at)
+            result["result_count"] = len(summaries)
+            result["evidence_summaries"] = summaries
+            result["evidence_refs"] = [str(item["evidence_id"]) for item in summaries]
+            result["test_fixture_used"] = True
+            result["existing_broker_fixture_used"] = True
+            return _add_broker_context(result, candidate)
 
     if not status.get("configured"):
         result = _base_lookup_result(request, status="CONNECTOR_MISSING_CREDENTIAL", generated_at=generated_at)
         result["connector_status"] = status
         result["setup_requirement"] = build_setup_requirement(status, generated_at=generated_at)
-        return result
+        return _add_broker_context(result, broker_candidate)
 
     result = _base_lookup_result(request, status="CONNECTOR_READY", generated_at=generated_at)
     result["connector_status"] = status
     result["lookup_transport_note"] = "Credential boundary is configured; live Gmail lookup remains separately validated before LOOKUP_COMPLETED is emitted."
-    return result
+    return _add_broker_context(result, broker_candidate)
 
 
 def build_contract_read_model(*, generated_at: str | None = None) -> dict[str, Any]:
     generated_at = generated_at or utc_now()
-    status = get_connector_status(generated_at=generated_at)
+    status = get_connector_status(generated_at=generated_at, include_broker_discovery=True)
     setup = build_setup_requirement(status, generated_at=generated_at)
     return {
         "schema_version": SCHEMA_VERSION,
@@ -546,6 +751,7 @@ def build_contract_read_model(*, generated_at: str | None = None) -> dict[str, A
         ],
         "capability_id": CAPABILITY_ID,
         "connector_status": status,
+        "existing_broker_candidate": status.get("existing_broker_candidate"),
         "setup_requirement": setup,
         "requested_scopes": requested_gmail_scopes(),
         "forbidden_scopes": list(FORBIDDEN_GMAIL_SCOPES),
@@ -553,7 +759,9 @@ def build_contract_read_model(*, generated_at: str | None = None) -> dict[str, A
         "policy": [
             "Production lookup requires scoped read_only_email_lookup authority.",
             "Credentials must live outside the repo or in OS keychain references.",
+            "Existing Google broker code is classified before use and live bridge remains disabled when denied scopes or repo-local credentials are detected.",
             "Dry run never accesses real email.",
+            "Existing broker fixture mode may support test-only redacted evidence; it never proves production email facts.",
             "Evidence summaries are redacted and raw bodies are unavailable by default.",
             "This connector never sends, drafts, deletes, archives, marks read, opens Gmail UI/browser, or mutates business state.",
         ],
@@ -572,6 +780,18 @@ def build_contract_read_model(*, generated_at: str | None = None) -> dict[str, A
 
 
 def build_wiki(payload: Mapping[str, Any]) -> str:
+    candidate = payload.get("existing_broker_candidate") or {}
+    candidate_lines: list[str] = []
+    if isinstance(candidate, Mapping) and candidate:
+        candidate_lines = [
+            "## Existing Broker Candidate",
+            f"- Classification: `{candidate.get('classification')}`",
+            f"- Candidate: `{candidate.get('candidate_path')}`",
+            f"- Live bridge allowed: `{candidate.get('live_bridge_allowed')}`",
+            "- Fixture/readback mode may be used for test-only redacted evidence.",
+            "- Production live bridge remains disabled until denied scopes and repo-local credential paths are removed.",
+            "",
+        ]
     return "\n".join(
         [
             "# Read Only Email Lookup Connector",
@@ -593,6 +813,7 @@ def build_wiki(payload: Mapping[str, Any]) -> str:
             "## Denied",
             "- Send, draft/compose, delete, archive, mark read/unread, label mutation, Gmail UI/browser, Coupa, paid, ledger, workbook/PDF, push/merge, model/tool expansion, and repo secrets.",
             "",
+            *candidate_lines,
         ]
     )
 

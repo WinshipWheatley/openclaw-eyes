@@ -22,7 +22,148 @@
     "worker_spawn_allowed": false
   },
   "blocked_packages": [],
-  "capability_registry": [],
+  "capability_registry": [
+    {
+      "allowed_actions": [],
+      "approved_scopes": [],
+      "authority_boundary": {
+        "authority_granted_from_raw_text_allowed": false,
+        "browser_access_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "external_model_allowed": false,
+        "git_push_allowed": false,
+        "gmail_allowed": false,
+        "gmail_ui_allowed": false,
+        "ledger_mutation_allowed": false,
+        "ledger_posting_allowed": false,
+        "lm2_tool_expansion_allowed": false,
+        "merge_allowed": false,
+        "paid": false,
+        "paid_marking_allowed": false,
+        "pdf_export_allowed": false,
+        "portal_submit_allowed": false,
+        "sent": false,
+        "workbook_mutation_allowed": false,
+        "worker_spawn_allowed": false
+      },
+      "capability_id": "read_only_email_lookup",
+      "denied_actions": [
+        "send_email",
+        "delete_email",
+        "archive_email",
+        "mark_email_read",
+        "open_gmail_ui",
+        "open_browser",
+        "open_safari",
+        "coupa_submit",
+        "mark_paid",
+        "mutate_ledger",
+        "mutate_workbook",
+        "export_pdf",
+        "git_push",
+        "git_merge",
+        "spawn_worker",
+        "invoke_external_model",
+        "lm2_tool_expansion",
+        "store_secret_in_repo"
+      ],
+      "email_connector_status": {
+        "authority_boundary": {
+          "authority_granted_from_raw_text_allowed": false,
+          "browser_access_allowed": false,
+          "coupa_allowed": false,
+          "email_archive_allowed": false,
+          "email_compose_allowed": false,
+          "email_delete_allowed": false,
+          "email_label_mutation_allowed": false,
+          "email_mark_read_allowed": false,
+          "email_send_allowed": false,
+          "external_model_allowed": false,
+          "git_push_allowed": false,
+          "gmail_allowed": false,
+          "gmail_ui_allowed": false,
+          "ledger_mutation_allowed": false,
+          "ledger_posting_allowed": false,
+          "lm2_tool_expansion_allowed": false,
+          "merge_allowed": false,
+          "paid": false,
+          "paid_marking_allowed": false,
+          "pdf_export_allowed": false,
+          "portal_submit_allowed": false,
+          "sent": false,
+          "workbook_mutation_allowed": false,
+          "worker_spawn_allowed": false
+        },
+        "capability_id": "read_only_email_lookup",
+        "configured": false,
+        "connector_id": "email_connector:gmail_readonly_v0",
+        "credential_file_read": false,
+        "credential_source": "none",
+        "denied_actions": [
+          "send_email",
+          "compose_email",
+          "create_email_draft",
+          "delete_email",
+          "archive_email",
+          "mark_email_read",
+          "mark_email_unread",
+          "modify_email_labels",
+          "open_gmail_ui",
+          "open_browser",
+          "scrape_browser_session",
+          "coupa_submit",
+          "mark_paid",
+          "mutate_ledger",
+          "mutate_workbook",
+          "export_pdf",
+          "git_push",
+          "git_merge",
+          "spawn_worker",
+          "invoke_external_model",
+          "lm2_tool_expansion",
+          "store_secret_in_repo"
+        ],
+        "denied_scopes": [
+          "https://www.googleapis.com/auth/gmail.modify",
+          "https://www.googleapis.com/auth/gmail.compose",
+          "https://www.googleapis.com/auth/gmail.send",
+          "https://mail.google.com/"
+        ],
+        "last_check_at": "2026-06-09T04:27:19+00:00",
+        "missing_setup": [
+          "Configure an OS keychain reference or private credential file outside the repo.",
+          "Grant only https://www.googleapis.com/auth/gmail.readonly.",
+          "Do not place client secrets, access tokens, or refresh tokens in the repo."
+        ],
+        "receipt_ref": "email_connector_status_receipt:dcf006ffb47fb555",
+        "schema_version": "EMAIL_CONNECTOR_STATUS_V0",
+        "scopes": [
+          "https://www.googleapis.com/auth/gmail.readonly"
+        ],
+        "secret_material_loaded": false
+      },
+      "last_production_receipt": "",
+      "last_test_receipt": "codex_work_package_validation:dee9c77ba392dc5c",
+      "required_receipts": [
+        "codex_work_package_validation:dee9c77ba392dc5c"
+      ],
+      "required_verifier_checks": [
+        "validation_passed",
+        "unsafe_scan_passed",
+        "denied_actions_preserved"
+      ],
+      "revoked_at": "",
+      "run_mode_behavior": {
+        "production": "requires separate data-access authority and proof receipts",
+        "test_dry_run": "dry-run receipts only",
+        "test_live": "test authority only; never production authority"
+      },
+      "schema_version": "OPERATOR_CAPABILITY_REGISTRY_V0",
+      "status": "human_setup_required",
+      "updated_at": "2026-06-09T04:27:19+00:00"
+    }
+  ],
   "contracts": [
     "CODEX_WORK_PACKAGE_STATE_V0",
     "CODEX_WORK_PACKAGE_QUEUE_V0",
@@ -31,9 +172,9 @@
     "CODEX_WORK_PACKAGE_RESULT_V0",
     "CAPABILITY_ACTIVATION_DECISION_V0"
   ],
-  "generated_at": "2026-06-09T02:31:29+00:00",
+  "generated_at": "2026-06-09T04:27:28+00:00",
   "package_queue": {
-    "active_package_count": 0,
+    "active_package_count": 2,
     "allowed_worker_kinds": [
       "codex_desktop",
       "codex_vscode",
@@ -67,16 +208,56 @@
       "lm2_tool_expansion",
       "business_action_executor"
     ],
-    "package_refs": [],
+    "package_refs": [
+      "codex_work_package:c78f07928e9e08f1",
+      "codex_work_package:df78b5c829f637bd"
+    ],
     "queue_id": "codex_work_package_queue:make_it_so",
-    "receipt_ref": "codex_work_package_queue_receipt:cec45db6ed2a4437",
+    "receipt_ref": "codex_work_package_queue_receipt:389d28a99cdab6d6",
     "schema_version": "CODEX_WORK_PACKAGE_QUEUE_V0",
-    "updated_at": "2026-06-09T02:31:29+00:00",
+    "updated_at": "2026-06-09T04:27:19+00:00",
     "worktree_root": "/home/openclaw"
   },
   "queued_packages": [],
   "read_model_id": "codex_work_package_lifecycle",
   "schema_version": "codex_work_package_lifecycle_v0",
   "status": "OPENCLAW_CODEX_WORK_PACKAGE_LIFECYCLE_READY",
-  "worker_bridge_statuses": []
+  "worker_bridge_statuses": [
+    {
+      "authority_boundary": {
+        "authority_granted_from_raw_text_allowed": false,
+        "browser_access_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "external_model_allowed": false,
+        "git_push_allowed": false,
+        "gmail_allowed": false,
+        "gmail_ui_allowed": false,
+        "ledger_mutation_allowed": false,
+        "ledger_posting_allowed": false,
+        "lm2_tool_expansion_allowed": false,
+        "merge_allowed": false,
+        "paid": false,
+        "paid_marking_allowed": false,
+        "pdf_export_allowed": false,
+        "portal_submit_allowed": false,
+        "sent": false,
+        "workbook_mutation_allowed": false,
+        "worker_spawn_allowed": false
+      },
+      "available": true,
+      "bridge_id": "codex_worker_bridge:manual_codex_handoff",
+      "claim_path": "/tmp/openclaw-mission-control/codex_work_packages/codex_work_package_c78f07928e9e08f1",
+      "human_setup_required": true,
+      "last_seen": "2026-06-09T04:27:19+00:00",
+      "limitations": [
+        "No approved programmatic Codex Desktop or VS Code Codex bridge is configured.",
+        "Manual handoff files are available for an operator-approved Codex worker.",
+        "No package is executed by this lifecycle."
+      ],
+      "result_path": "/tmp/openclaw-mission-control/codex_work_packages/codex_work_package_c78f07928e9e08f1/results",
+      "schema_version": "CODEX_WORKER_BRIDGE_STATUS_V0",
+      "worker_kind": "manual_codex_handoff"
+    }
+  ]
 }

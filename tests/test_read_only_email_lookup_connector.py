@@ -320,3 +320,62 @@ def test_connector_payload_has_no_unsafe_true_grants():
     )
 
     assert _unsafe_true_grants(result) == []
+
+
+def test_existing_gmail_broker_discovery_classifies_wrapper_as_restrictable_not_direct_safe():
+    candidate = connector.discover_existing_gmail_broker_candidate()
+
+    assert candidate["classification"] == "RESTRICTABLE_BROKER"
+    assert candidate["candidate_path"].endswith("google_broker_readonly_wrapper.py")
+    assert candidate["runtime_language"] == "python"
+    assert candidate["fixture_readback_available"] is True
+    assert candidate["live_bridge_allowed"] is False
+    assert candidate["safe_read_only_direct"] is False
+    assert connector.READ_ONLY_GMAIL_SCOPE in candidate["allowed_scopes"]
+    assert "https://www.googleapis.com/auth/gmail.compose" in candidate["denied_scope_refs_found"]
+    assert candidate["credential_paths_inside_repo"]
+
+
+def test_existing_broker_candidate_is_reported_in_connector_status_without_reading_credentials():
+    status = connector.get_connector_status(env={}, generated_at=FIXED_NOW, include_broker_discovery=True)
+
+    assert status["configured"] is False
+    assert status["credential_file_read"] is False
+    assert status["secret_material_loaded"] is False
+    assert status["existing_broker_candidate"]["classification"] == "RESTRICTABLE_BROKER"
+    assert status["existing_broker_candidate"]["live_bridge_allowed"] is False
+
+
+def test_test_live_can_use_existing_broker_fixture_without_real_email_access():
+    result = connector.perform_read_only_lookup(
+        _lookup_request(run_mode="test_live"),
+        connector_status=connector.get_connector_status(env={}, generated_at=FIXED_NOW),
+        authority_grant=_authority(),
+        existing_broker_candidate=connector.discover_existing_gmail_broker_candidate(),
+        use_existing_broker_fixture=True,
+        generated_at=FIXED_NOW,
+    )
+
+    assert result["status"] == "LOOKUP_TEST_FIXTURE_USED"
+    assert result["existing_broker_fixture_used"] is True
+    assert result["real_email_access_performed"] is False
+    assert result["email_checked"] is False
+    assert result["result_count"] >= 1
+    assert result["evidence_summaries"][0]["raw_body_available"] is False
+    assert "Fixture metadata subject" not in json.dumps(result)
+
+
+def test_production_with_authority_refuses_restrictable_broker_live_bridge_without_safe_credential():
+    result = connector.perform_read_only_lookup(
+        _lookup_request(run_mode="production"),
+        connector_status=connector.get_connector_status(env={}, generated_at=FIXED_NOW),
+        authority_grant=_authority(),
+        existing_broker_candidate=connector.discover_existing_gmail_broker_candidate(),
+        generated_at=FIXED_NOW,
+    )
+
+    assert result["status"] == "CONNECTOR_MISSING_CREDENTIAL"
+    assert result["existing_broker_candidate"]["classification"] == "RESTRICTABLE_BROKER"
+    assert result["broker_live_bridge_allowed"] is False
+    assert result["email_checked"] is False
+    assert result["real_email_access_performed"] is False
