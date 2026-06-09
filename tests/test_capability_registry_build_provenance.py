@@ -210,7 +210,14 @@ def test_openclaw_plugin_contract_fixture_ids_match_registry_seed():
     descriptors = copy.deepcopy(openclaw_plugin_contract.fixture_descriptors())
     assert set(descriptors) == set(openclaw_plugin_contract.FIXTURE_PLUGIN_IDS)
     assert set(descriptors) == {
+        "openclaw.google_workspace_broker",
         loop.READ_ONLY_EMAIL_LOOKUP,
+        "openclaw.gmail_metadata_read",
+        "openclaw.gmail_body_read",
+        "openclaw.gmail_draft_generator",
+        "openclaw.gmail_send_mail",
+        "openclaw.contacts_readonly_lookup",
+        "openclaw.calendar_event_manager",
         loop.FOLLOW_UP_DRAFT_GENERATOR,
         loop.CONTACT_IDENTITY_EXTRACTION,
         loop.PAYMENT_UNCERTAINTY_SUMMARIZER,

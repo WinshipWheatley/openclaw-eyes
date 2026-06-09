@@ -26,11 +26,19 @@ UNATTENDED_RUN_ENVELOPE_SCHEMA = "UNATTENDED_RUN_ENVELOPE_V0"
 POLICY_GATE_SCHEMA = "POLICY_GATE_V0"
 
 DEFAULT_DENIED_ACTIONS = (
+    "ambient_mailbox_scan",
+    "compose_email",
     "send_email",
+    "create_email_draft",
     "delete_email",
     "archive_email",
     "mark_email_read",
+    "modify_email_labels",
+    "contacts_read",
+    "calendar_access",
+    "calendar_mutation",
     "mutate_contacts",
+    "promote_contact_memory",
     "open_browser",
     "open_gmail_ui",
     "coupa_submit",
@@ -40,6 +48,78 @@ DEFAULT_DENIED_ACTIONS = (
     "export_pdf",
     "run_excel",
     "trust_raw_authority_granted",
+)
+
+GOOGLE_WORKSPACE_BROKER_CREDENTIAL_HANDLE_ID = "credential.google_workspace_broker.current"
+GOOGLE_WORKSPACE_BROKER_CAPABILITY_ID = "openclaw.google_workspace_broker"
+READ_ONLY_EMAIL_LOOKUP_CAPABILITY_ID = "openclaw.read_only_email_lookup"
+
+GOOGLE_WORKSPACE_BROKER_ALLOWED_CAPABILITY_IDS = (
+    GOOGLE_WORKSPACE_BROKER_CAPABILITY_ID,
+    "openclaw.gmail_metadata_read",
+    "openclaw.gmail_body_read",
+    "openclaw.gmail_draft_generator",
+    "openclaw.gmail_send_mail",
+    "openclaw.contacts_readonly_lookup",
+    "openclaw.calendar_event_manager",
+    READ_ONLY_EMAIL_LOOKUP_CAPABILITY_ID,
+)
+
+GOOGLE_WORKSPACE_BROKER_DENIED_ACTIONS = (
+    "ambient_mailbox_scan",
+    "google_workspace_broker_ambient_use",
+    "gmail_send_without_send_authority",
+    "gmail_draft_creation_without_draft_authority",
+    "compose_email",
+    "send_email",
+    "create_email_draft",
+    "delete_email",
+    "archive_email",
+    "mark_email_read",
+    "modify_email_labels",
+    "contacts_read",
+    "contact_mutation",
+    "mutate_contacts",
+    "contact_memory_promotion",
+    "promote_contact_memory",
+    "calendar_access",
+    "calendar_mutation",
+    "calendar_mutation_without_calendar_authority",
+    "calendar_write_without_action_authority",
+    "calendar_delete_without_action_authority",
+    "paid_marking",
+    "mark_paid",
+    "ledger_mutation",
+    "mutate_ledger",
+    "coupa_submit",
+    "open_browser",
+    "open_gmail_ui",
+    "trust_raw_authority_granted",
+)
+
+GOOGLE_WORKSPACE_BROKER_READONLY_ALLOWED_USE = (
+    "scoped_gmail_search",
+    "scoped_gmail_read",
+    "scoped_gmail_metadata_read",
+    "receipt_creation",
+    "redacted_summary",
+)
+
+GOOGLE_WORKSPACE_BROKER_READONLY_DENIED_USE = (
+    "compose_email",
+    "send_email",
+    "create_email_draft",
+    "delete_email",
+    "archive_email",
+    "mark_email_read",
+    "modify_email_labels",
+    "contacts_read",
+    "calendar_access",
+    "mutate_contacts",
+    "promote_contact_memory",
+    "mark_paid",
+    "mutate_ledger",
+    "coupa_submit",
 )
 
 SECRET_FIELD_NAMES = {
@@ -90,6 +170,17 @@ def _loads(value: Any) -> Any:
         return json.loads(str(value))
     except json.JSONDecodeError:
         return None
+
+
+def _dedupe(values: Sequence[str]) -> list[str]:
+    seen: set[str] = set()
+    result: list[str] = []
+    for value in values:
+        item = str(value)
+        if item not in seen:
+            seen.add(item)
+            result.append(item)
+    return result
 
 
 def _walk_keys(payload: Any):
@@ -436,6 +527,272 @@ def create_credential_handle(
         handle["status"] = "invalid"
         handle["validation_errors"] = errors
     return handle
+
+
+def google_workspace_broker_credential_handle(*, generated_at: str | None = None) -> dict[str, Any]:
+    """Return the registered broad Google Workspace broker handle.
+
+    This is metadata only. It records the private runtime reference and candidate
+    capabilities, while keeping all action authority behind envelopes, leases,
+    policy gates, and verifier receipts.
+    """
+    denied = _dedupe((*DEFAULT_DENIED_ACTIONS, *GOOGLE_WORKSPACE_BROKER_DENIED_ACTIONS))
+    return create_credential_handle(
+        credential_handle_id=GOOGLE_WORKSPACE_BROKER_CREDENTIAL_HANDLE_ID,
+        credential_label="Google Workspace broker credential",
+        credential_kind="google_workspace_oauth",
+        vault_provider="private_runtime_ref",
+        vault_ref="private_runtime_ref:redacted/google_workspace_broker/current",
+        allowed_capability_ids=GOOGLE_WORKSPACE_BROKER_ALLOWED_CAPABILITY_IDS,
+        allowed_actions=[
+            "request_task_specific_authority_envelope",
+            "request_scoped_credential_lease",
+            "verify_policy_gate_receipts",
+            "emit_redacted_receipt",
+        ],
+        denied_actions=denied,
+        rotation_policy="preserve_existing_broker_material_rotate_outside_openclaw",
+        status="registered_handle_only_policy_gated",
+        generated_at=generated_at,
+        credential_secret_material_included=False,
+        credential_handle_existence_implies_use_authority=False,
+        capability_use_constraints={
+            GOOGLE_WORKSPACE_BROKER_CAPABILITY_ID: "task_specific_authority_envelope_and_credential_lease_required",
+            READ_ONLY_EMAIL_LOOKUP_CAPABILITY_ID: "scoped_read_only_credential_lease_required",
+            "openclaw.gmail_metadata_read": "query_scope_and_credential_lease_required",
+            "openclaw.gmail_body_read": "stronger_body_read_authority_and_credential_lease_required",
+            "openclaw.gmail_draft_generator": "draft_authority_required_send_denied",
+            "openclaw.gmail_send_mail": "class_c_style_send_authority_required_disabled_by_default",
+            "openclaw.contacts_readonly_lookup": "contact_read_authority_required_promotion_denied",
+            "openclaw.calendar_event_manager": "calendar_action_split_authority_required",
+        },
+        live_execution_authorized=False,
+    )
+
+
+def google_workspace_broker_policy_gates(*, generated_at: str | None = None) -> list[dict[str, Any]]:
+    common_unlock = ["authority_envelope", "credential_lease", "verifier_receipt"]
+    return [
+        create_policy_gate(
+            gate_id="policy.google_workspace_broker_no_ambient_use",
+            gate_label="Google Workspace broker no ambient use",
+            blocked_actions=["google_workspace_broker_ambient_use", "ambient_mailbox_scan", "ambient_calendar_or_contact_access"],
+            reason="The broad broker credential cannot be used without task-specific authority and a scoped lease.",
+            unlock_requirements=common_unlock,
+            allowed_alternatives=["Review scoped lease request", "Use pasted operator-provided evidence"],
+            permanently_denied=False,
+            authority_required=AUTHORITY_ENVELOPE_SCHEMA,
+            verifier_required="google_workspace_broker_scope_verifier",
+            receipt_required="google_workspace_broker_lease_receipt",
+            operator_message="Review a scoped Google Workspace broker lease before any use.",
+            details_message="OAuth scope presence is only credential capability, not action authority.",
+            generated_at=generated_at,
+        ),
+        create_policy_gate(
+            gate_id="policy.gmail_compose_scope_does_not_imply_send",
+            gate_label="Gmail compose scope does not imply send",
+            blocked_actions=["send_email", "gmail_send_without_send_authority"],
+            reason="OAuth compose scope is insufficient for send authority.",
+            unlock_requirements=common_unlock,
+            allowed_alternatives=["Create a draft under draft authority", "Request Class C-style send authority"],
+            permanently_denied=False,
+            authority_required=AUTHORITY_ENVELOPE_SCHEMA,
+            verifier_required="gmail_compose_send_split_verifier",
+            receipt_required="gmail_send_authority_receipt",
+            operator_message="Compose scope is not send permission.",
+            details_message="Send remains separated from compose/draft authority and disabled by default.",
+            generated_at=generated_at,
+        ),
+        create_policy_gate(
+            gate_id="policy.gmail_draft_does_not_imply_send",
+            gate_label="Gmail draft does not imply send",
+            blocked_actions=["send_email", "gmail_send_without_send_authority"],
+            reason="Draft creation authority does not authorize dispatch.",
+            unlock_requirements=common_unlock,
+            allowed_alternatives=["Leave draft for review", "Request separate send authority"],
+            permanently_denied=False,
+            authority_required=AUTHORITY_ENVELOPE_SCHEMA,
+            verifier_required="gmail_draft_send_split_verifier",
+            receipt_required="gmail_draft_or_send_split_receipt",
+            operator_message="Draft authority stops at draft creation.",
+            details_message="Sending requires a separate high-authority envelope and receipt.",
+            generated_at=generated_at,
+        ),
+        create_policy_gate(
+            gate_id="policy.contacts_read_does_not_imply_memory_promotion",
+            gate_label="Contacts read does not imply memory promotion",
+            blocked_actions=["promote_contact_memory", "contact_memory_promotion", "mutate_contacts"],
+            reason="Contact read authority cannot mutate contacts or promote memory.",
+            unlock_requirements=common_unlock,
+            allowed_alternatives=["Return redacted contact lookup receipt", "Request separate memory promotion approval"],
+            permanently_denied=False,
+            authority_required=AUTHORITY_ENVELOPE_SCHEMA,
+            verifier_required="contacts_read_memory_promotion_split_verifier",
+            receipt_required="contacts_readonly_receipt",
+            operator_message="Contacts read is not contact memory promotion.",
+            details_message="Contact mutation and memory promotion remain denied without separate explicit authority.",
+            generated_at=generated_at,
+        ),
+        create_policy_gate(
+            gate_id="policy.calendar_events_scope_requires_action_split",
+            gate_label="Calendar events scope requires action split",
+            blocked_actions=[
+                "calendar_write_without_action_authority",
+                "calendar_delete_without_action_authority",
+                "calendar_mutation_without_calendar_authority",
+            ],
+            reason="Calendar read, write, and delete authority must be split by action.",
+            unlock_requirements=common_unlock,
+            allowed_alternatives=["Request calendar read-only authority", "Request explicit calendar mutation authority"],
+            permanently_denied=False,
+            authority_required=AUTHORITY_ENVELOPE_SCHEMA,
+            verifier_required="calendar_action_split_verifier",
+            receipt_required="calendar_action_split_receipt",
+            operator_message="Calendar actions need separate read/write/delete authority.",
+            details_message="Calendar mutation is denied unless the requested action is explicitly authorized.",
+            generated_at=generated_at,
+        ),
+        create_policy_gate(
+            gate_id="policy.gmail_readonly_lookup_requires_scoped_lease",
+            gate_label="Gmail read-only lookup requires scoped lease",
+            blocked_actions=["read_only_email_lookup_without_scoped_lease", "ambient_mailbox_scan"],
+            reason="Read-only lookup may use the broker only through an adapter-enforced scoped lease.",
+            unlock_requirements=common_unlock,
+            allowed_alternatives=["Review scoped read-only Gmail lookup lease", "Use a future dedicated read-only credential"],
+            permanently_denied=False,
+            authority_required=AUTHORITY_ENVELOPE_SCHEMA,
+            verifier_required="google_workspace_broker_readonly_lease_verifier",
+            receipt_required="gmail_readonly_lookup_lease_receipt",
+            operator_message="Review the scoped read-only Gmail lease before lookup.",
+            details_message="The lease must name objective scope, expiry, receipts, and denied actions.",
+            generated_at=generated_at,
+        ),
+    ]
+
+
+def create_google_workspace_broker_readonly_lease(
+    *,
+    credential_handle: Mapping[str, Any],
+    authority_envelope: Mapping[str, Any],
+    objective_scope: Mapping[str, Any],
+    allow_bounded_body_read: bool = False,
+    expires_at: str,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    allowed_use = list(GOOGLE_WORKSPACE_BROKER_READONLY_ALLOWED_USE)
+    if allow_bounded_body_read:
+        allowed_use.append("bounded_gmail_body_read")
+    lease = create_credential_lease(
+        credential_handle=credential_handle,
+        authority_envelope=authority_envelope,
+        capability_id=READ_ONLY_EMAIL_LOOKUP_CAPABILITY_ID,
+        allowed_use=_dedupe(allowed_use),
+        denied_use=GOOGLE_WORKSPACE_BROKER_READONLY_DENIED_USE,
+        adapter_ref="adapter:google_workspace_broker.readonly_lease_verifier",
+        expires_at=expires_at,
+        receipt_requirements=[
+            "credential_use_receipt",
+            "authority_envelope_ref",
+            "lease_verifier_receipt",
+            "redacted_email_lookup_summary",
+        ],
+        generated_at=generated_at,
+    )
+    if lease.get("lease_created") is True:
+        lease.update(
+            {
+                "objective_scope": dict(objective_scope),
+                "task_scope": dict(objective_scope),
+                "allowed_scope": "scoped Gmail search/read only for named objective",
+                "lease_verifier_ref": "google_workspace_broker_readonly_lease_verifier",
+                "live_execution_authorized": False,
+                "no_execution_performed": True,
+            }
+        )
+    return lease
+
+
+def verify_google_workspace_broker_readonly_lease(
+    lease: Mapping[str, Any],
+    *,
+    credential_handle: Mapping[str, Any] | None,
+    authority_envelope: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    errors: list[str] = []
+    if not lease or lease.get("schema_version") != CREDENTIAL_LEASE_SCHEMA or lease.get("lease_created") is not True:
+        errors.append("valid_credential_lease_required")
+    if not credential_handle or credential_handle.get("credential_handle_id") != GOOGLE_WORKSPACE_BROKER_CREDENTIAL_HANDLE_ID:
+        errors.append("broker_credential_handle_required")
+    if credential_handle and credential_handle.get("credential_handle_existence_implies_use_authority") is not False:
+        errors.append("handle_must_not_imply_use_authority")
+    if not authority_envelope:
+        errors.append("authority_envelope_required")
+    elif authority_envelope.get("schema_version") != AUTHORITY_ENVELOPE_SCHEMA:
+        errors.append("authority_envelope_required")
+    else:
+        if lease.get("authority_envelope_id") != authority_envelope.get("envelope_id"):
+            errors.append("authority_envelope_id_mismatch")
+        if READ_ONLY_EMAIL_LOOKUP_CAPABILITY_ID not in (authority_envelope.get("capability_ids") or []):
+            errors.append("read_only_lookup_authority_required")
+        if GOOGLE_WORKSPACE_BROKER_CREDENTIAL_HANDLE_ID not in (authority_envelope.get("credential_handles_allowed") or []):
+            errors.append("broker_credential_handle_not_allowed_by_envelope")
+        if not authority_envelope.get("receipt_requirements"):
+            errors.append("authority_receipt_requirements_required")
+    if lease.get("credential_handle_id") != GOOGLE_WORKSPACE_BROKER_CREDENTIAL_HANDLE_ID:
+        errors.append("credential_handle_id_mismatch")
+    if lease.get("capability_id") != READ_ONLY_EMAIL_LOOKUP_CAPABILITY_ID:
+        errors.append("capability_id_must_be_read_only_email_lookup")
+    if not lease.get("expires_at"):
+        errors.append("expiry_required")
+    if not lease.get("receipt_requirements"):
+        errors.append("receipt_requirements_required")
+    if not lease.get("objective_scope") and not lease.get("task_scope"):
+        errors.append("task_lane_objective_scope_required")
+
+    allowed_use = set(lease.get("allowed_use") or [])
+    denied_use = set(lease.get("denied_use") or [])
+    required_allowed = {"scoped_gmail_search", "scoped_gmail_metadata_read", "receipt_creation", "redacted_summary"}
+    missing_allowed = sorted(required_allowed - allowed_use)
+    if missing_allowed:
+        errors.append(f"allowed_use_missing:{','.join(missing_allowed)}")
+    forbidden_allowed = sorted(allowed_use & set(GOOGLE_WORKSPACE_BROKER_READONLY_DENIED_USE))
+    if forbidden_allowed:
+        errors.append(f"forbidden_allowed_use:{','.join(forbidden_allowed)}")
+    missing_denied = sorted(set(GOOGLE_WORKSPACE_BROKER_READONLY_DENIED_USE) - denied_use)
+    if missing_denied:
+        errors.append(f"denied_use_missing:{','.join(missing_denied)}")
+
+    return {
+        "schema_version": "GOOGLE_WORKSPACE_BROKER_READONLY_LEASE_VERDICT_V0",
+        "valid": not errors,
+        "validation_errors": errors,
+        "verified_credential_handle_id": lease.get("credential_handle_id"),
+        "verified_capability_id": lease.get("capability_id"),
+        "allowed_use": sorted(allowed_use),
+        "denied_use": sorted(denied_use),
+        "live_execution_authorized": False,
+        "no_execution_performed": True,
+    }
+
+
+def seed_google_workspace_broker_credential(
+    *,
+    sqlite_path: Path = DEFAULT_SQLITE_PATH,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    handle = google_workspace_broker_credential_handle(generated_at=generated_at)
+    gate_refs = []
+    persist_object(handle, sqlite_path=sqlite_path, reason="seed_google_workspace_broker_credential_handle")
+    for gate in google_workspace_broker_policy_gates(generated_at=generated_at):
+        persist_object(gate, sqlite_path=sqlite_path, reason="seed_google_workspace_broker_policy_gate")
+        gate_refs.append(gate["gate_id"])
+    return {
+        "seeded": True,
+        "credential_handle_id": handle["credential_handle_id"],
+        "policy_gate_ids": gate_refs,
+        "secret_material_included": False,
+        "created_at": generated_at or utc_now(),
+    }
 
 
 def create_credential_lease(

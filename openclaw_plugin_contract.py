@@ -15,7 +15,14 @@ from typing import Any, Mapping
 SCHEMA_VERSION = "OPENCLAW_PLUGIN_CONTRACT_V0"
 
 FIXTURE_PLUGIN_IDS = (
+    "openclaw.google_workspace_broker",
     "openclaw.read_only_email_lookup",
+    "openclaw.gmail_metadata_read",
+    "openclaw.gmail_body_read",
+    "openclaw.gmail_draft_generator",
+    "openclaw.gmail_send_mail",
+    "openclaw.contacts_readonly_lookup",
+    "openclaw.calendar_event_manager",
     "openclaw.follow_up_draft_generator",
     "openclaw.contact_identity_extraction",
     "openclaw.payment_uncertainty_summarizer",
@@ -112,11 +119,143 @@ def _base_descriptor(plugin_id: str, label: str, allowed_actions: list[str], den
 
 def fixture_descriptors() -> dict[str, dict[str, Any]]:
     descriptors = {
+        "openclaw.google_workspace_broker": _base_descriptor(
+            "openclaw.google_workspace_broker",
+            "Google Workspace broker",
+            ["request_task_specific_authority_envelope", "request_scoped_credential_lease", "emit_redacted_receipt"],
+            [
+                "ambient_mailbox_scan",
+                "google_workspace_broker_ambient_use",
+                "send_email",
+                "create_email_draft",
+                "delete_email",
+                "archive_email",
+                "mark_email_read",
+                "mutate_contacts",
+                "promote_contact_memory",
+                "calendar_mutation_without_calendar_authority",
+                "mark_paid",
+                "mutate_ledger",
+                "coupa_submit",
+            ],
+        ),
         "openclaw.read_only_email_lookup": _base_descriptor(
             "openclaw.read_only_email_lookup",
             "Read-only email lookup",
             ["search_fixture_email_metadata", "summarize_fixture_email_evidence"],
-            ["send_email", "open_gmail_ui", "open_browser", "delete_email", "archive_email", "mark_email_read", "mutate_contacts"],
+            [
+                "compose_email",
+                "send_email",
+                "create_email_draft",
+                "open_gmail_ui",
+                "open_browser",
+                "delete_email",
+                "archive_email",
+                "mark_email_read",
+                "mutate_contacts",
+                "promote_contact_memory",
+                "calendar_access",
+                "contacts_read",
+            ],
+        ),
+        "openclaw.gmail_metadata_read": _base_descriptor(
+            "openclaw.gmail_metadata_read",
+            "Gmail metadata read",
+            ["scoped_gmail_metadata_search", "emit_redacted_metadata_receipt"],
+            [
+                "read_raw_email_body_without_body_authority",
+                "compose_email",
+                "send_email",
+                "create_email_draft",
+                "delete_email",
+                "archive_email",
+                "mark_email_read",
+                "mutate_contacts",
+                "calendar_access",
+            ],
+        ),
+        "openclaw.gmail_body_read": _base_descriptor(
+            "openclaw.gmail_body_read",
+            "Gmail body read",
+            ["bounded_gmail_body_read", "emit_redacted_body_receipt"],
+            [
+                "ambient_mailbox_scan",
+                "compose_email",
+                "send_email",
+                "create_email_draft",
+                "delete_email",
+                "archive_email",
+                "mark_email_read",
+                "mutate_contacts",
+                "calendar_access",
+            ],
+        ),
+        "openclaw.gmail_draft_generator": _base_descriptor(
+            "openclaw.gmail_draft_generator",
+            "Gmail draft generator",
+            ["create_review_only_gmail_draft", "emit_draft_receipt"],
+            [
+                "send_email",
+                "gmail_send_without_send_authority",
+                "delete_email",
+                "archive_email",
+                "mark_email_read",
+                "mutate_contacts",
+                "calendar_access",
+                "mark_paid",
+                "mutate_ledger",
+                "coupa_submit",
+            ],
+        ),
+        "openclaw.gmail_send_mail": _base_descriptor(
+            "openclaw.gmail_send_mail",
+            "Gmail send mail",
+            ["prepare_class_c_send_authority_packet"],
+            [
+                "send_email",
+                "send_without_class_c_authority",
+                "send_without_operator_review",
+                "delete_email",
+                "archive_email",
+                "mark_email_read",
+                "mutate_contacts",
+                "calendar_access",
+                "mark_paid",
+                "mutate_ledger",
+                "coupa_submit",
+            ],
+        ),
+        "openclaw.contacts_readonly_lookup": _base_descriptor(
+            "openclaw.contacts_readonly_lookup",
+            "Contacts read-only lookup",
+            ["scoped_contacts_readonly_lookup", "emit_redacted_contact_receipt"],
+            [
+                "mutate_contacts",
+                "promote_contact_memory",
+                "contact_memory_promotion",
+                "send_email",
+                "create_email_draft",
+                "calendar_access",
+                "mark_paid",
+                "mutate_ledger",
+                "coupa_submit",
+            ],
+        ),
+        "openclaw.calendar_event_manager": _base_descriptor(
+            "openclaw.calendar_event_manager",
+            "Calendar event manager",
+            ["classify_calendar_event_action", "emit_calendar_action_split_receipt"],
+            [
+                "calendar_write_without_action_authority",
+                "calendar_delete_without_action_authority",
+                "calendar_mutation_without_calendar_authority",
+                "send_email",
+                "create_email_draft",
+                "mutate_contacts",
+                "mark_paid",
+                "mutate_ledger",
+                "coupa_submit",
+            ],
         ),
         "openclaw.follow_up_draft_generator": _base_descriptor(
             "openclaw.follow_up_draft_generator",
@@ -143,6 +282,59 @@ def fixture_descriptors() -> dict[str, dict[str, Any]]:
             ["trust_raw_authority_granted", "accept_unredacted_secret", "enable_production_side_effects"],
         ),
     }
+    descriptors["openclaw.google_workspace_broker"].update(
+        {
+            "credential_backed": True,
+            "policy_gated": True,
+            "not_ambient_production_use": True,
+            "actor_policy_restrictions": {
+                "policy_gated_actors": ["cassandra"],
+                "denied_actors": ["chief"],
+                "notes": "Existing Chief/Cassandra boundaries are preserved for this fixture.",
+            },
+        }
+    )
+    for capability_id in (
+        "openclaw.google_workspace_broker",
+        "openclaw.gmail_metadata_read",
+        "openclaw.gmail_body_read",
+        "openclaw.gmail_draft_generator",
+        "openclaw.gmail_send_mail",
+        "openclaw.contacts_readonly_lookup",
+        "openclaw.calendar_event_manager",
+    ):
+        descriptors[capability_id]["required_authority"].update(
+            {
+                "requires_task_specific_authority_envelope": True,
+                "requires_credential_lease": True,
+                "credential_handle_existence_implies_use_authority": False,
+            }
+        )
+        descriptors[capability_id]["policy_gated"] = True
+        descriptors[capability_id]["credential_candidates"] = ["credential.google_workspace_broker.current"]
+        descriptors[capability_id]["live_lookup_enabled_by_default"] = False
+
+    descriptors["openclaw.read_only_email_lookup"].update(
+        {
+            "policy_gated": True,
+            "credential_candidates": [
+                "future_dedicated_readonly_gmail_credential",
+                "credential.google_workspace_broker.current",
+            ],
+            "credential_candidate_relationships": {
+                "future_dedicated_readonly_gmail_credential": "preferred_dedicated_readonly_only_material_when_available",
+                "credential.google_workspace_broker.current": "candidate_dependency_only_scoped_readonly_lease_required",
+            },
+            "live_lookup_enabled_by_default": False,
+        }
+    )
+    descriptors["openclaw.read_only_email_lookup"]["required_authority"].update(
+        {
+            "requires_task_specific_authority_envelope": True,
+            "requires_credential_lease": True,
+            "credential_handle_existence_implies_use_authority": False,
+        }
+    )
     return {key: copy.deepcopy(value) for key, value in descriptors.items()}
 
 

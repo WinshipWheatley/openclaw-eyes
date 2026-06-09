@@ -1102,6 +1102,18 @@ def _make_it_so_email_path_enabled(generated_at: str) -> bool:
     return str(generated_at or "") >= "2026-06-08T22"
 
 
+def _capability_gap_contract_surface(request: Mapping[str, Any]) -> bool:
+    selected_card_id = str(request.get("selected_card_id") or "").lower()
+    return any(
+        marker in selected_card_id
+        for marker in (
+            "authority_secret_custody",
+            "capability_registry_provenance",
+            "capability_gap_build_authority",
+        )
+    )
+
+
 def _no_active_next_step_result(request: Mapping[str, Any], *, generated_at: str, sqlite_path: Path) -> dict[str, Any]:
     result = _text_result(
         request,
@@ -1205,13 +1217,14 @@ def route_conversation_text(
             target_ref="winshiplive@gmail.com",
         )
     make_it_so_email_path = _make_it_so_email_path_enabled(generated_at)
+    capability_gap_contract_surface = _capability_gap_contract_surface(request)
     if capability_authority_loop.detects_read_only_email_lookup_intent(text, world_ref=world, thread_ref=thread):
-        if not make_it_so_email_path:
+        if capability_gap_contract_surface or not make_it_so_email_path:
             return _capability_gap_result(request, generated_at=generated_at, sqlite_path=sqlite_path)
         return _make_it_so_objective_result(request, generated_at=generated_at, sqlite_path=sqlite_path)
     capability_intent = capability_authority_loop.detect_capability_intent(text, world_ref=world, thread_ref=thread)
     if capability_intent == capability_authority_loop.FOLLOW_UP_DRAFT_GENERATOR:
-        if not make_it_so_email_path:
+        if capability_gap_contract_surface or not make_it_so_email_path:
             return _capability_gap_result(request, generated_at=generated_at, sqlite_path=sqlite_path)
         return _draft_only_fallback_result(request, generated_at=generated_at, sqlite_path=sqlite_path)
     if capability_intent and capability_intent != capability_authority_loop.FOLLOW_UP_DRAFT_GENERATOR:

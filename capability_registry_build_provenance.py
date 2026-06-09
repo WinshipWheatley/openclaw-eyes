@@ -47,9 +47,19 @@ PROTECTED_MATURITIES = {"live_write_ready", "production_ready"}
 
 DEFAULT_DENIED_ACTIONS = (
     "live_gmail_access",
+    "compose_email",
     "open_gmail_ui",
     "open_browser",
+    "create_email_draft",
     "send_email",
+    "delete_email",
+    "archive_email",
+    "mark_email_read",
+    "contacts_read",
+    "calendar_access",
+    "calendar_mutation",
+    "mutate_contacts",
+    "promote_contact_memory",
     "coupa_access",
     "coupa_submit",
     "mark_paid",
@@ -59,6 +69,8 @@ DEFAULT_DENIED_ACTIONS = (
     "run_excel",
     "trust_raw_authority_granted",
 )
+
+READ_ONLY_EMAIL_LOOKUP_CAPABILITY_ID = "openclaw.read_only_email_lookup"
 
 
 def stable_json(payload: Any) -> str:
@@ -108,7 +120,31 @@ def connect(sqlite_path: Path = DEFAULT_SQLITE_PATH) -> sqlite3.Connection:
     return conn
 
 
+def _table_columns(conn: sqlite3.Connection, table_name: str) -> set[str]:
+    rows = conn.execute(f"PRAGMA table_info({table_name})").fetchall()
+    return {str(row[1]) for row in rows}
+
+
+def _table_exists(conn: sqlite3.Connection, table_name: str) -> bool:
+    row = conn.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?", (table_name,)).fetchone()
+    return row is not None
+
+
+def _preserve_incompatible_capability_registry(conn: sqlite3.Connection) -> None:
+    if not _table_exists(conn, "capability_registry"):
+        return
+    columns = _table_columns(conn, "capability_registry")
+    if "capability_label" in columns:
+        return
+    legacy_name = "capability_registry_operator_scope_legacy"
+    if not _table_exists(conn, legacy_name):
+        conn.execute(f"ALTER TABLE capability_registry RENAME TO {legacy_name}")
+    else:
+        conn.execute("DROP TABLE capability_registry")
+
+
 def ensure_schema(conn: sqlite3.Connection) -> None:
+    _preserve_incompatible_capability_registry(conn)
     conn.executescript(
         """
         CREATE TABLE IF NOT EXISTS capability_registry (
@@ -520,6 +556,13 @@ def insert_build_receipt(
     }
 
 
+def _readonly_lookup_lease_requirement(requested_objective: str) -> str:
+    lowered = str(requested_objective or "").lower()
+    if "annette" in lowered and "capital hilton" in lowered:
+        return "broker read-only credential lease scoped to Annette / Capital Hilton"
+    return "broker read-only credential lease scoped to requested objective"
+
+
 def build_package_plan(
     *,
     requested_objective: str,
@@ -533,6 +576,9 @@ def build_package_plan(
     selected_implementations: list[dict[str, Any]] = []
     missing: list[str] = []
     maturity_rows: list[dict[str, Any]] = []
+    available_credential_candidates: dict[str, list[str]] = {}
+    required_authority_by_capability: dict[str, str] = {}
+    required_leases: dict[str, str] = {}
     for capability_id in required_capabilities:
         resolution = resolve_capability(
             capability_id,
@@ -555,6 +601,27 @@ def build_package_plan(
                 "safe_next_step": resolution["safe_next_step"],
             }
         )
+        if capability_id == READ_ONLY_EMAIL_LOOKUP_CAPABILITY_ID:
+            available_credential_candidates[capability_id] = [
+                authority_secret_custody.GOOGLE_WORKSPACE_BROKER_CREDENTIAL_HANDLE_ID
+            ]
+            required_authority_by_capability[capability_id] = "scoped read-only Gmail lookup envelope"
+            required_leases[capability_id] = _readonly_lookup_lease_requirement(requested_objective)
+        else:
+            required_authority_by_capability[capability_id] = "scoped authority envelope before live data access"
+            if capability_id in credential_required_for:
+                required_leases[capability_id] = "scoped credential lease required before credential use"
+    broker_policy_gates = [
+        {
+            "schema_version": gate["schema_version"],
+            "gate_id": gate["gate_id"],
+            "blocked_actions": gate["blocked_actions"],
+            "status": "planned_gate_only",
+        }
+        for gate in authority_secret_custody.google_workspace_broker_policy_gates(generated_at=generated_at)
+        if READ_ONLY_EMAIL_LOOKUP_CAPABILITY_ID in required_capabilities
+    ]
+    readonly_broker_plan = READ_ONLY_EMAIL_LOOKUP_CAPABILITY_ID in required_capabilities and READ_ONLY_EMAIL_LOOKUP_CAPABILITY_ID in credential_required_for
     return {
         "schema_version": CAPABILITY_PACKAGE_PLAN_SCHEMA,
         "requested_objective": requested_objective,
@@ -567,12 +634,16 @@ def build_package_plan(
             "separate production authority before write/send/submit/paid/ledger actions",
             "separate unattended run envelope before scheduled execution",
         ],
+        "required_authority": required_authority_by_capability,
+        "available_credential_candidates": available_credential_candidates,
+        "required_leases": required_leases,
         "credential_handle_requirements": [
             {
                 "capability_id": capability_id,
                 "required_object": authority_secret_custody.CREDENTIAL_HANDLE_SCHEMA,
                 "lease_required": authority_secret_custody.CREDENTIAL_LEASE_SCHEMA,
                 "raw_secret_storage_allowed": False,
+                "available_candidate_handle_ids": available_credential_candidates.get(capability_id, []),
             }
             for capability_id in credential_required_for
         ],
@@ -592,7 +663,7 @@ def build_package_plan(
                 "blocked_actions": list(DEFAULT_DENIED_ACTIONS),
                 "status": "planned_gate_only",
             }
-        ],
+        ] + broker_policy_gates,
         "redaction_policy_refs": ["proof_bundle_redaction_policy_v0"],
         "freshness_policy_refs": ["OPENCLAW_PLUGIN_CONTRACT_V0.freshness_policy"],
         "receipt_requirements": [
@@ -602,7 +673,14 @@ def build_package_plan(
             "credential_lease_receipt_before_credential_use",
         ],
         "missing_capabilities": missing,
-        "recommended_next_safe_step": "Mature existing fixture capabilities before any live access request." if not missing else "Create scoped build requests for missing capabilities.",
+        "recommended_next_safe_step": (
+            "Review scoped read-only Gmail lookup lease."
+            if readonly_broker_plan
+            else "Mature existing fixture capabilities before any live access request."
+            if not missing
+            else "Create scoped build requests for missing capabilities."
+        ),
+        "execution_notes": ["No execution occurred."],
         "execution_performed": False,
         "live_action_enabled": False,
         "credential_secret_material_included": False,

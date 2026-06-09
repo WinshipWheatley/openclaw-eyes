@@ -1,5 +1,6 @@
 *
 !/.gitignore
+!/requirements-gmail-readonly.txt
 
 # ALLOWLIST MODEL: everything is blocked by * above.
 # Only explicitly listed !file entries are tracked.

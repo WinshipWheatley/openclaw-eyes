@@ -38,7 +38,7 @@ CAPABILITY_BUILD_REQUEST_SCHEMA = "CAPABILITY_BUILD_REQUEST_V0"
 CAPABILITY_BUILD_AUTHORITY_REQUEST_SCHEMA = "CAPABILITY_BUILD_AUTHORITY_REQUEST_V0"
 CAPABILITY_ACTIVATION_RECEIPT_SCHEMA = "CAPABILITY_ACTIVATION_RECEIPT_V0"
 
-READ_ONLY_EMAIL_LOOKUP = "read_only_email_lookup"
+READ_ONLY_EMAIL_LOOKUP = "openclaw.read_only_email_lookup"
 FOLLOW_UP_DRAFT_GENERATOR = "openclaw.follow_up_draft_generator"
 CONTACT_IDENTITY_EXTRACTION = "openclaw.contact_identity_extraction"
 PAYMENT_UNCERTAINTY_SUMMARIZER = "openclaw.payment_uncertainty_summarizer"
@@ -318,11 +318,41 @@ def scope_from_context(world_ref: str, thread_ref: str, project_ref: str = "") -
 
 
 def detects_read_only_email_lookup_intent(text: str, *, world_ref: str = "", thread_ref: str = "") -> bool:
-    lowered = " ".join([text, world_ref, thread_ref]).lower()
-    if not any(term in lowered for term in EMAIL_LOOKUP_TERMS):
+    text_lowered = str(text or "").lower()
+    lane_lowered = " ".join([world_ref, thread_ref]).lower()
+    if not any(term in text_lowered for term in EMAIL_LOOKUP_TERMS):
         return False
-    return any(term in lowered for term in EMAIL_LOOKUP_CONTEXT_TERMS) or any(
-        phrase in lowered for phrase in ("check my email", "look in gmail", "received any emails", "find the email")
+    explicit_lookup_phrases = (
+        "check my email",
+        "check gmail",
+        "look in gmail",
+        "received any emails",
+        "find the email",
+        "search email",
+        "read email",
+        "has replied",
+        "replied",
+        "reply",
+    )
+    if any(phrase in text_lowered for phrase in explicit_lookup_phrases):
+        return True
+    lookup_action_terms = (
+        "check",
+        "look",
+        "find",
+        "search",
+        "read",
+        "received",
+        "reply",
+        "replied",
+        "responded",
+        "acknowledge",
+        "acknowledged",
+    )
+    if any(term in text_lowered for term in EMAIL_LOOKUP_CONTEXT_TERMS) and any(action in text_lowered for action in lookup_action_terms):
+        return True
+    return any(term in lane_lowered for term in EMAIL_LOOKUP_CONTEXT_TERMS) and any(
+        phrase in text_lowered for phrase in ("received", "acknowledge", "acknowledged", "payment update")
     )
 
 
