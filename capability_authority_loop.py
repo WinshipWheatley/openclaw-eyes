@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 import global_run_mode_context
+import capability_registry_build_provenance
 
 ROOT = Path(__file__).resolve().parent
 DEFAULT_EXPORT_ROOT = Path("generated/read_models")
@@ -758,16 +759,49 @@ def build_capability_build_authority_request(
     capability_id: str,
     requested_by_context: Mapping[str, Any],
     prior_capability_gap: Mapping[str, Any] | None = None,
+    sqlite_path: Path | None = None,
     generated_at: str | None = None,
 ) -> dict[str, Any]:
     generated_at = generated_at or utc_now()
     spec = CAPABILITY_SPECS.get(capability_id, CAPABILITY_SPECS[READ_ONLY_EMAIL_LOOKUP])
-    build_goal = f"Implement first-class {spec['label']} capability behind tests and authority gates."
     scope = dict(requested_by_context)
+    resolution = capability_registry_build_provenance.resolve_capability(
+        capability_id,
+        requested_intent=str(scope.get("operator_text") or spec["label"]),
+        lane_context=scope,
+        sqlite_path=sqlite_path or capability_registry_build_provenance.DEFAULT_SQLITE_PATH,
+        persist=sqlite_path is not None,
+        generated_at=generated_at,
+    )
+    selected_resolution = str(resolution.get("selected_resolution") or "")
+    if selected_resolution == "mature_existing":
+        build_goal = f"Mature existing first-class {spec['label']} capability in test/shadow mode behind authority gates."
+        operator_resolution_message = (
+            f"I found an existing {spec['label']} descriptor or fixture, but it is not mature enough for scoped live use. "
+            "I can create a build request to mature that existing capability in test/shadow mode."
+        )
+    elif selected_resolution == "build_new":
+        build_goal = f"Implement new first-class {spec['label']} test/shadow capability behind authority gates."
+        operator_resolution_message = (
+            f"I do not find an existing {spec['label']} capability. "
+            "I can create a scoped build request for a new test/shadow capability."
+        )
+    elif selected_resolution == "conflict":
+        build_goal = f"Resolve capability identity conflict before building {spec['label']}."
+        operator_resolution_message = "I found overlapping capability records. Review and consolidate before creating a redundant build."
+    elif selected_resolution == "blocked":
+        build_goal = f"Resolve blocked {spec['label']} capability state before building."
+        operator_resolution_message = "The capability is blocked or deprecated; resolve that state before building."
+    else:
+        build_goal = f"Reuse existing {spec['label']} capability only after request-specific authority checks."
+        operator_resolution_message = f"{spec['label']} exists, but request-specific authority still controls whether it can be used."
     request = {
         "schema_version": CAPABILITY_BUILD_AUTHORITY_REQUEST_SCHEMA,
         "request_id": f"capability_build_authority_request:{_short_hash(capability_id, scope, generated_at)}",
         "capability_id": capability_id,
+        "source_resolution_id": str(resolution.get("resolution_id") or ""),
+        "selected_resolution": selected_resolution,
+        "capability_resolution": resolution,
         "build_goal": build_goal,
         "requested_by_context": scope,
         "allowed_build_actions": [
@@ -831,7 +865,7 @@ def build_capability_build_authority_request(
         "operator_confirmation_required": True,
         "prior_capability_gap_id": str((prior_capability_gap or {}).get("gap_id") or ""),
         "operator_message": (
-            f"I can create a scoped build request for {spec['label']}. "
+            f"{operator_resolution_message} "
             "That allows code and test work only, not live Gmail access, sending, Coupa, paid marking, or ledger changes."
         ),
         "next_safe_step": "Review and approve the build request scope.",
@@ -840,6 +874,12 @@ def build_capability_build_authority_request(
         "created_at": generated_at,
     }
     request["unsafe_true_grants"] = unsafe_true_grants(request)
+    if sqlite_path is not None:
+        capability_registry_build_provenance.persist_build_request(
+            request,
+            sqlite_path=sqlite_path,
+            status="pending_review",
+        )
     return request
 
 

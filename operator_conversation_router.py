@@ -943,8 +943,10 @@ def _build_authority_request_result(request: Mapping[str, Any], *, generated_at:
             "target_thread_ref": context["thread"],
             "source_request_id": str(request.get("request_id") or request.get("source_request_id") or ""),
             "active_authority_request_source": active_source,
+            "operator_text": _operator_text(request),
         },
         prior_capability_gap=prior_gap,
+        sqlite_path=sqlite_path,
         generated_at=generated_at,
     )
     display = _custom_display(
