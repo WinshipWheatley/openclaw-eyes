@@ -29,7 +29,9 @@ READ_MODEL_ID = "read_only_email_lookup_connector"
 JSON_EXPORT_NAME = f"{READ_MODEL_ID}.json"
 READY_STATUS = "OPENCLAW_READ_ONLY_EMAIL_LOOKUP_CONNECTOR_READY"
 
-CAPABILITY_ID = "read_only_email_lookup"
+LEGACY_CAPABILITY_ID = "read_only_email_lookup"
+CAPABILITY_ID = "openclaw.read_only_email_lookup"
+CAPABILITY_ALIASES = {CAPABILITY_ID, LEGACY_CAPABILITY_ID}
 
 READ_ONLY_EMAIL_LOOKUP_REQUEST_SCHEMA = "READ_ONLY_EMAIL_LOOKUP_REQUEST_V0"
 READ_ONLY_EMAIL_LOOKUP_RESULT_SCHEMA = "READ_ONLY_EMAIL_LOOKUP_RESULT_V0"
@@ -523,10 +525,11 @@ def validate_authority_for_lookup(request: Mapping[str, Any], authority_grant: M
     if not isinstance(authority_grant, Mapping):
         return {"valid": False, "reason": "missing_scoped_read_only_email_authority", "authority_required": True}
     capability = str(authority_grant.get("granted_capability_id") or "")
-    if not capability and CAPABILITY_ID in set(map(str, authority_grant.get("granted_capabilities") or [])):
+    granted_capabilities = set(map(str, authority_grant.get("granted_capabilities") or []))
+    if not capability and granted_capabilities & CAPABILITY_ALIASES:
         capability = CAPABILITY_ID
     actions = set(map(str, authority_grant.get("granted_actions") or authority_grant.get("granted_enablement_actions") or []))
-    if capability != CAPABILITY_ID:
+    if capability not in CAPABILITY_ALIASES:
         return {"valid": False, "reason": "authority_wrong_capability", "authority_required": True}
     if not {"search_relevant_email_evidence", "read_relevant_email_evidence"} <= actions:
         return {"valid": False, "reason": "authority_missing_read_actions", "authority_required": True}

@@ -424,7 +424,7 @@ def test_read_email_grant_does_not_grant_send_or_ledger_or_test_live_production_
     )
     grant = result["make_it_so_authority_grant"]
 
-    assert "read_only_email_lookup" in grant["granted_capabilities"]
+    assert capability_authority_loop.READ_ONLY_EMAIL_LOOKUP in grant["granted_capabilities"]
     assert "send_email" in grant["denied_actions"]
     assert "mutate_ledger" in grant["denied_actions"]
     assert "test authority does not become production authority" in json.dumps(result).lower()

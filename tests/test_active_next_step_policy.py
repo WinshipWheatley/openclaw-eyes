@@ -7,6 +7,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import active_next_step_policy
+import capability_authority_loop
 import codex_work_package_lifecycle
 import operator_conversation_router
 
@@ -80,7 +81,7 @@ def test_missing_email_lookup_response_includes_active_make_it_so_next_step(tmp_
     assert step["next_step_kind"] == "request_authority"
     assert step["actor"] == "operator"
     assert step["actionability"] == "needs_operator_authority"
-    assert step["required_capability_id"] == "read_only_email_lookup"
+    assert step["required_capability_id"] == capability_authority_loop.READ_ONLY_EMAIL_LOOKUP
     assert "Make it so" in step["exact_operator_input_needed"]
     assert result["next_step_status_receipt"]["schema_version"] == active_next_step_policy.STATUS_RECEIPT_SCHEMA
 
@@ -95,7 +96,7 @@ def test_annette_live_arts_and_glenn_share_email_lookup_active_next_step(tmp_pat
     for text, world, thread in cases:
         result = _route(text, tmp_path / thread, world=world, thread=thread)
         step = result["primary_next_step"]
-        assert step["required_capability_id"] == "read_only_email_lookup"
+        assert step["required_capability_id"] == capability_authority_loop.READ_ONLY_EMAIL_LOOKUP
         assert step["next_step_kind"] == "request_authority"
         assert result["workflow_request_type_emitted"] == ""
 

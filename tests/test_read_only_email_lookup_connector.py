@@ -87,6 +87,15 @@ def test_connector_status_reports_not_configured_without_external_credential():
     assert status["authority_boundary"]["email_send_allowed"] is False
 
 
+def test_authority_accepts_legacy_short_capability_id_for_existing_grants():
+    grant = _authority()
+    grant["granted_capability_id"] = connector.LEGACY_CAPABILITY_ID
+
+    verdict = connector.validate_authority_for_lookup(_lookup_request(), grant)
+
+    assert verdict["valid"] is True
+
+
 def test_missing_credential_setup_requirement_contract_is_precise_and_no_repo_secret():
     status = connector.get_connector_status(env={}, generated_at=FIXED_NOW)
     requirement = connector.build_setup_requirement(status, generated_at=FIXED_NOW)
