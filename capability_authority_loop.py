@@ -38,7 +38,7 @@ CAPABILITY_BUILD_REQUEST_SCHEMA = "CAPABILITY_BUILD_REQUEST_V0"
 CAPABILITY_BUILD_AUTHORITY_REQUEST_SCHEMA = "CAPABILITY_BUILD_AUTHORITY_REQUEST_V0"
 CAPABILITY_ACTIVATION_RECEIPT_SCHEMA = "CAPABILITY_ACTIVATION_RECEIPT_V0"
 
-READ_ONLY_EMAIL_LOOKUP = "openclaw.read_only_email_lookup"
+READ_ONLY_EMAIL_LOOKUP = "read_only_email_lookup"
 FOLLOW_UP_DRAFT_GENERATOR = "openclaw.follow_up_draft_generator"
 CONTACT_IDENTITY_EXTRACTION = "openclaw.contact_identity_extraction"
 PAYMENT_UNCERTAINTY_SUMMARIZER = "openclaw.payment_uncertainty_summarizer"
@@ -917,11 +917,12 @@ def build_email_lookup_gap_response(
     project_ref: str = "",
     run_mode_context: Mapping[str, Any] | None = None,
     generated_at: str | None = None,
+    force_read_only_email_lookup: bool = False,
 ) -> dict[str, Any]:
     generated_at = generated_at or utc_now()
     run_context = dict(run_mode_context or global_run_mode_context.default_run_mode_context(generated_at=generated_at))
     lane = f"{world_ref}/{thread_ref}".strip("/")
-    capability_id = detect_capability_intent(operator_text, world_ref=world_ref, thread_ref=thread_ref) or READ_ONLY_EMAIL_LOOKUP
+    capability_id = READ_ONLY_EMAIL_LOOKUP if force_read_only_email_lookup else detect_capability_intent(operator_text, world_ref=world_ref, thread_ref=thread_ref) or READ_ONLY_EMAIL_LOOKUP
     gap = build_capability_gap(
         capability_id=capability_id,
         reason=operator_text,

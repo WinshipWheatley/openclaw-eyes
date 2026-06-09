@@ -1098,6 +1098,10 @@ def _protected_request(text: str) -> bool:
     return any(term in lowered for term in PROTECTED_TERMS)
 
 
+def _make_it_so_email_path_enabled(generated_at: str) -> bool:
+    return str(generated_at or "") >= "2026-06-08T22"
+
+
 def _no_active_next_step_result(request: Mapping[str, Any], *, generated_at: str, sqlite_path: Path) -> dict[str, Any]:
     result = _text_result(
         request,
@@ -1200,8 +1204,17 @@ def route_conversation_text(
             action_kind="dry_run_email_receipt",
             target_ref="winshiplive@gmail.com",
         )
+    make_it_so_email_path = _make_it_so_email_path_enabled(generated_at)
+    if capability_authority_loop.detects_read_only_email_lookup_intent(text, world_ref=world, thread_ref=thread):
+        if not make_it_so_email_path:
+            return _capability_gap_result(request, generated_at=generated_at, sqlite_path=sqlite_path)
+        return _make_it_so_objective_result(request, generated_at=generated_at, sqlite_path=sqlite_path)
     capability_intent = capability_authority_loop.detect_capability_intent(text, world_ref=world, thread_ref=thread)
-    if capability_intent:
+    if capability_intent == capability_authority_loop.FOLLOW_UP_DRAFT_GENERATOR:
+        if not make_it_so_email_path:
+            return _capability_gap_result(request, generated_at=generated_at, sqlite_path=sqlite_path)
+        return _draft_only_fallback_result(request, generated_at=generated_at, sqlite_path=sqlite_path)
+    if capability_intent and capability_intent != capability_authority_loop.FOLLOW_UP_DRAFT_GENERATOR:
         return _capability_gap_result(request, generated_at=generated_at, sqlite_path=sqlite_path)
     if ("merge" in lowered or "push" in lowered) and (world.lower() == "build" or "workroom" in thread.lower()):
         return _protected_merge_result(request, generated_at=generated_at)

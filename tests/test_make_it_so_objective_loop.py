@@ -156,7 +156,7 @@ def test_read_only_email_connector_package_scope_allows_connector_boundary_files
 
     assert "read_only_email_lookup_connector.py" in package["allowed_file_paths"]
     assert "tests/test_read_only_email_lookup_connector.py" in package["allowed_file_paths"]
-    assert "python3 -m pytest tests/test_read_only_email_lookup_connector.py -q" in package["validation_commands"]
+    assert "python3 -m pytest tests/test_read_only_email_lookup_connector.py -q -s" in package["validation_commands"]
     assert "python3 -m json.tool generated/read_models/read_only_email_lookup_connector.json" in package["validation_commands"]
     assert "git push" in package["denied_commands"]
     assert "send email" in package["denied_commands"]
@@ -356,6 +356,54 @@ def test_ready_registry_without_connector_does_not_bypass_connector_gate(tmp_pat
     assert result["email_connector_status"]["configured"] is False
     assert result["email_connector_setup_requirement"]["no_repo_secret_policy"] is True
     assert result["capability_requirement"]["production_available"] is False
+
+
+def test_ready_registry_with_unvalidated_connector_does_not_route_to_lookup(tmp_path, monkeypatch):
+    db = tmp_path / "loop.sqlite"
+    scope = {"target_world_ref": "finance", "target_thread_ref": "capital_hilton", "target_project_ref": ""}
+    with sqlite3.connect(db) as con:
+        make_loop._ensure_tables(con)
+        make_loop._store_registry(
+            con,
+            make_loop._registry_record(
+                capability_id=make_loop.READ_ONLY_EMAIL_LOOKUP,
+                status="production_ready",
+                scope=scope,
+                generated_at=FIXED_NOW,
+            ),
+            scope,
+        )
+        con.commit()
+
+    def unvalidated_status(*, generated_at=None):
+        return {
+            "schema_version": "EMAIL_CONNECTOR_STATUS_V0",
+            "connector_id": "email_connector:gmail_readonly_v0",
+            "capability_id": make_loop.READ_ONLY_EMAIL_LOOKUP,
+            "configured": True,
+            "setup_status": "credential_present_unvalidated",
+            "granted_scopes_status": "unknown",
+            "validated_readonly": False,
+            "missing_setup": [],
+            "denied_scopes": ["https://www.googleapis.com/auth/gmail.send"],
+            "denied_actions": ["send_email"],
+            "receipt_ref": "email_connector_status_receipt:test",
+        }
+
+    monkeypatch.setattr(make_loop.read_only_email_lookup_connector, "get_connector_status", unvalidated_status)
+
+    result = make_loop.start_email_lookup_objective(
+        "Have we received any emails from Annette?",
+        world_ref="finance",
+        thread_ref="capital_hilton",
+        sqlite_path=db,
+        generated_at=FIXED_NOW,
+    )
+
+    assert result["response_status"] == "MAKE_IT_SO_AUTHORITY_REQUEST_READY"
+    assert result["email_connector_status"]["configured"] is True
+    assert result["email_connector_status"]["validated_readonly"] is False
+    assert result["operator_display"]["next_safe_action"] == "Say: Make it so."
 
 
 def test_read_email_grant_does_not_grant_send_or_ledger_or_test_live_production_authority(tmp_path):

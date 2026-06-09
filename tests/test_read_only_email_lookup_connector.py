@@ -160,6 +160,56 @@ def test_production_lookup_with_authority_but_no_credential_returns_connector_bl
     assert result["real_email_access_performed"] is False
 
 
+def test_production_lookup_with_credential_but_unvalidated_scope_is_blocked(tmp_path):
+    credential = tmp_path / "private" / "credentials.json"
+    credential.parent.mkdir()
+    credential.write_text("not inspected", encoding="utf-8")
+    status = connector.get_connector_status(
+        env={"OPENCLAW_GMAIL_READONLY_CREDENTIAL_PATH": str(credential)},
+        generated_at=FIXED_NOW,
+    )
+
+    result = connector.perform_read_only_lookup(
+        _lookup_request(run_mode="production"),
+        connector_status=status,
+        authority_grant=_authority(),
+        generated_at=FIXED_NOW,
+    )
+
+    assert status["configured"] is True
+    assert status["setup_status"] == "credential_present_unvalidated"
+    assert result["status"] == "CONNECTOR_SCOPE_UNVALIDATED"
+    assert result["blocker_reason"] == "gmail_readonly_scope_not_validated"
+    assert result["email_checked"] is False
+    assert result["real_email_access_performed"] is False
+
+
+def test_production_lookup_with_validated_scope_and_authority_reaches_ready_boundary():
+    status = connector.get_connector_status(
+        env={
+            "OPENCLAW_GMAIL_READONLY_SETUP_STATUS": "validated_readonly",
+            "OPENCLAW_GMAIL_READONLY_GRANTED_SCOPES_STATUS": "readonly_only",
+            "OPENCLAW_READ_ONLY_EMAIL_LOOKUP_CREDENTIAL_FILE": "/tmp/openclaw-private/credentials.json",
+        },
+        generated_at=FIXED_NOW,
+    )
+    status["configured"] = True
+
+    result = connector.perform_read_only_lookup(
+        _lookup_request(run_mode="production"),
+        connector_status=status,
+        authority_grant=_authority(),
+        generated_at=FIXED_NOW,
+    )
+
+    assert status["setup_status"] == "validated_readonly"
+    assert status["validated_readonly"] is True
+    assert result["status"] == "CONNECTOR_READY"
+    assert result["connector_scope_validated"] is True
+    assert result["email_checked"] is False
+    assert result["real_email_access_performed"] is False
+
+
 def test_connector_only_requests_gmail_readonly_and_denies_write_scopes():
     scopes = connector.requested_gmail_scopes()
 

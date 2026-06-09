@@ -29,7 +29,7 @@
     "CAPABILITY_BUILD_REQUEST_V0",
     "CAPABILITY_ACTIVATION_RECEIPT_V0"
   ],
-  "generated_at": "2026-06-09T01:15:51+00:00",
+  "generated_at": "2026-06-09T16:42:50+00:00",
   "read_model_id": "first_class_capability_authority_loop",
   "rules": [
     "Capability gaps are reusable objects, not lane-specific fallback copy.",
@@ -65,7 +65,7 @@
       "workbook_mutation_allowed": false
     },
     "authority_grant_created": true,
-    "created_at": "2026-06-09T01:15:51+00:00",
+    "created_at": "2026-06-09T16:42:50+00:00",
     "denied_actions": [
       "send_email",
       "delete_email",
@@ -73,6 +73,10 @@
       "mark_email_read",
       "open_gmail_ui",
       "open_browser",
+      "mutate_contacts",
+      "claim_receipt_without_evidence",
+      "promote_contact_memory",
+      "infer_identity_without_proof",
       "coupa_submit",
       "mark_paid",
       "mutate_ledger",
@@ -82,7 +86,7 @@
       "git_merge"
     ],
     "expiration_scope": "session_or_until_revoked",
-    "grant_id": "operator_authority_grant:19fdcbc2c6ecafd2",
+    "grant_id": "operator_authority_grant:b8eb112b41ba574b",
     "granted_actions": [
       "search_relevant_email_evidence",
       "read_relevant_email_evidence",
@@ -98,8 +102,8 @@
     },
     "operator_confirmation_text": "OK, I grant you access to do that.",
     "raw_authority_granted_trusted": false,
-    "receipt_ref": "receipt:ef4c128aeacdcdd2",
-    "request_id": "operator_authority_request:05ef31dd80ee5ab8",
+    "receipt_ref": "receipt:9e3f51c67b0db743",
+    "request_id": "operator_authority_request:cee0942759295e6e",
     "schema_version": "OPERATOR_AUTHORITY_GRANT_V0",
     "unsafe_true_grants": [],
     "verifier_status": "VERIFIER_READABLE_SCOPED_GRANT"
@@ -165,6 +169,10 @@
           "read_relevant_email_evidence",
           "summarize_relevant_email_evidence_with_receipt"
         ],
+        "allowed_now": [
+          "use pasted or attached email evidence",
+          "prepare a draft-only follow-up"
+        ],
         "authority_boundary": {
           "browser_access_allowed": false,
           "business_action_allowed": false,
@@ -188,13 +196,52 @@
           "sent": false,
           "workbook_mutation_allowed": false
         },
-        "can_request_access": true,
+        "blocked_reason": "read-only email lookup is not available with verified scoped authority in this lane",
+        "can_request_access": false,
         "can_request_build": true,
+        "can_request_live_authority": false,
         "capability_id": "read_only_email_lookup",
         "capability_label": "Read-only email lookup",
-        "created_at": "2026-06-09T01:15:51+00:00",
+        "created_at": "2026-06-09T16:42:50+00:00",
+        "denied_actions": [
+          "send_email",
+          "delete_email",
+          "archive_email",
+          "mark_email_read",
+          "open_gmail_ui",
+          "open_browser",
+          "mutate_contacts",
+          "claim_receipt_without_evidence",
+          "promote_contact_memory",
+          "infer_identity_without_proof",
+          "coupa_submit",
+          "mark_paid",
+          "mutate_ledger",
+          "mutate_workbook",
+          "export_pdf",
+          "git_push",
+          "git_merge"
+        ],
+        "details": {
+          "developer_refs": [
+            "capability_authority_loop.py",
+            "operator_conversation_router.py",
+            "openclaw_plugin_contract.py"
+          ],
+          "raw_authority_granted_trusted": false
+        },
         "freshness_requirement": "current relevant email evidence only",
-        "gap_id": "capability_gap:733a2c3664b78829",
+        "freshness_status": "not_checked_no_live_access",
+        "gap_id": "capability_gap:a0e370536bd9f528",
+        "lane_context": {
+          "run_mode": "production",
+          "target_project_ref": "",
+          "target_thread_ref": "capital_hilton",
+          "target_world_ref": "finance",
+          "test_run_id": ""
+        },
+        "next_safe_step": "Paste or attach the email evidence, or authorize a scoped read-only email lookup build request.",
+        "operator_message": "I don't have read-only email lookup yet. I don't have read-only email lookup access yet, so I can't check Gmail or claim whether a reply exists. Paste or attach the email evidence, or authorize a scoped read-only email lookup build request.",
         "privacy_boundary": {
           "no_private_data_external_model": true,
           "private_email_body_external_send_allowed": false,
@@ -208,6 +255,10 @@
           "mark_email_read",
           "open_gmail_ui",
           "open_browser",
+          "mutate_contacts",
+          "claim_receipt_without_evidence",
+          "promote_contact_memory",
+          "infer_identity_without_proof",
           "coupa_submit",
           "mark_paid",
           "mutate_ledger",
@@ -221,9 +272,15 @@
           "connector or local adapter activation receipt",
           "read-only email search/read receipt"
         ],
-        "reason": "answer requires checking scoped email evidence",
+        "proof_or_context_needed": [
+          "operator-provided email evidence",
+          "scoped build request",
+          "later live read-only authority grant"
+        ],
+        "reason": "Have we received any emails from Annette? If not, make a follow-up email for tomorrow.",
         "requested_for_lane": "finance/capital_hilton",
         "requested_for_project": "",
+        "requested_intent": "Have we received any emails from Annette? If not, make a follow-up email for tomorrow.",
         "requested_scope": {
           "run_mode": "production",
           "target_project_ref": "",
@@ -231,6 +288,7 @@
           "target_world_ref": "finance",
           "test_run_id": ""
         },
+        "required_authority": "scoped read-only email lookup build authority, then separate live read-only email access authority",
         "run_mode_context": {
           "allowed_test_capabilities": [],
           "allowlisted_recipients": [],
@@ -251,7 +309,7 @@
             "secrets_storage_allowed": false,
             "sent": false
           },
-          "created_at": "2026-06-09T01:15:51+00:00",
+          "created_at": "2026-06-09T16:42:50+00:00",
           "denied_actions": [
             "business_email_send",
             "gmail_ui",
@@ -277,13 +335,14 @@
           "test_mode": false,
           "test_run_id": ""
         },
+        "safe_alternative_now": "Paste or attach the relevant email evidence.",
         "safe_fallback_available": true,
         "safe_fallback_kind": "draft_only_followup_or_checklist",
         "schema_version": "CAPABILITY_GAP_V0",
         "test_artifact_marker": "",
         "unsafe_true_grants": []
       },
-      "created_at": "2026-06-09T01:15:51+00:00",
+      "created_at": "2026-06-09T16:42:50+00:00",
       "operator_authority_request": {
         "authority_boundary": {
           "browser_access_allowed": false,
@@ -308,7 +367,7 @@
           "sent": false,
           "workbook_mutation_allowed": false
         },
-        "created_at": "2026-06-09T01:15:51+00:00",
+        "created_at": "2026-06-09T16:42:50+00:00",
         "denied_actions": [
           "send_email",
           "delete_email",
@@ -316,6 +375,10 @@
           "mark_email_read",
           "open_gmail_ui",
           "open_browser",
+          "mutate_contacts",
+          "claim_receipt_without_evidence",
+          "promote_contact_memory",
+          "infer_identity_without_proof",
           "coupa_submit",
           "mark_paid",
           "mutate_ledger",
@@ -325,9 +388,9 @@
           "git_merge"
         ],
         "duration_scope": "session_or_until_revoked",
-        "generated_from_gap_id": "capability_gap:733a2c3664b78829",
+        "generated_from_gap_id": "capability_gap:a0e370536bd9f528",
         "human_summary": "Grant read-only email lookup for this lane only.",
-        "request_id": "operator_authority_request:05ef31dd80ee5ab8",
+        "request_id": "operator_authority_request:cee0942759295e6e",
         "requested_actions": [
           "search_relevant_email_evidence",
           "read_relevant_email_evidence",
@@ -347,9 +410,9 @@
         "unsafe_true_grants": []
       },
       "operator_display": {
-        "headline": "Read-only email lookup unavailable",
-        "next_safe_action": "Grant scoped read-only email lookup, or ask me to draft a follow-up without checking email.",
-        "plain_summary": "I don't have read-only email lookup yet. Grant read-only email lookup for finance/capital_hilton? This would not allow sending, deleting, browser/Gmail UI, ledger, paid, or Coupa actions.",
+        "headline": "Read-only email lookup bounded",
+        "next_safe_action": "Paste or attach the email evidence, or authorize a scoped read-only email lookup build request.",
+        "plain_summary": "I don't have read-only email lookup yet. I don't have read-only email lookup access yet, so I can't check Gmail or claim whether a reply exists. Paste or attach the email evidence, or authorize a scoped read-only email lookup build request. Grant read-only email lookup only through a scoped build/live authority path.",
         "proof_refs_collapsed": true,
         "speaker_ref": "guardian",
         "voice_mode": "safety",
@@ -378,7 +441,7 @@
           "secrets_storage_allowed": false,
           "sent": false
         },
-        "created_at": "2026-06-09T01:15:51+00:00",
+        "created_at": "2026-06-09T16:42:50+00:00",
         "denied_actions": [
           "business_email_send",
           "gmail_ui",
@@ -442,6 +505,9 @@
           "read_relevant_email_evidence",
           "summarize_relevant_email_evidence_with_receipt"
         ],
+        "allowed_now": [
+          "record a candidate contact note from operator-provided details"
+        ],
         "authority_boundary": {
           "browser_access_allowed": false,
           "business_action_allowed": false,
@@ -465,13 +531,53 @@
           "sent": false,
           "workbook_mutation_allowed": false
         },
-        "can_request_access": true,
-        "can_request_build": true,
-        "capability_id": "read_only_email_lookup",
-        "capability_label": "Read-only email lookup",
-        "created_at": "2026-06-09T01:15:51+00:00",
+        "blocked_reason": "verified source proof and separate memory/contact-promotion authority are required before permanent contact promotion",
+        "can_request_access": false,
+        "can_request_build": false,
+        "can_request_live_authority": false,
+        "capability_id": "openclaw.contact_identity_extraction",
+        "capability_label": "Contact identity extraction",
+        "created_at": "2026-06-09T16:42:50+00:00",
+        "denied_actions": [
+          "open_gmail_ui",
+          "open_browser",
+          "gmail_lookup",
+          "promote_contact_memory",
+          "mutate_contacts",
+          "infer_identity_without_proof",
+          "send_email",
+          "delete_email",
+          "archive_email",
+          "mark_email_read",
+          "coupa_submit",
+          "mark_paid",
+          "mutate_ledger",
+          "mutate_workbook",
+          "export_pdf",
+          "claim_receipt_without_evidence",
+          "git_push",
+          "git_merge"
+        ],
+        "details": {
+          "developer_refs": [
+            "capability_authority_loop.py",
+            "operator_conversation_router.py",
+            "openclaw_plugin_contract.py"
+          ],
+          "raw_authority_granted_trusted": false
+        },
         "freshness_requirement": "current relevant email evidence only",
-        "gap_id": "capability_gap:4712ac04f7fbe4aa",
+        "freshness_status": "not_checked_no_live_access",
+        "gap_id": "capability_gap:de873265cd438208",
+        "lane_context": {
+          "run_mode": "production",
+          "target_project_ref": "",
+          "target_thread_ref": "live_arts_md",
+          "target_world_ref": "finance",
+          "test_run_id": ""
+        },
+        "next_safe_step": "Paste or attach source proof for the contact details.",
+        "operator_message": "I can hold this as a candidate contact note only. I will not fabricate her name, email, or role, and I will not permanently save contact memory without verified proof and separate authority.",
         "privacy_boundary": {
           "no_private_data_external_model": true,
           "private_email_body_external_send_allowed": false,
@@ -479,17 +585,22 @@
           "scope_limited_search_required": true
         },
         "prohibited_always": [
+          "open_gmail_ui",
+          "open_browser",
+          "gmail_lookup",
+          "promote_contact_memory",
+          "mutate_contacts",
+          "infer_identity_without_proof",
           "send_email",
           "delete_email",
           "archive_email",
           "mark_email_read",
-          "open_gmail_ui",
-          "open_browser",
           "coupa_submit",
           "mark_paid",
           "mutate_ledger",
           "mutate_workbook",
           "export_pdf",
+          "claim_receipt_without_evidence",
           "git_push",
           "git_merge"
         ],
@@ -498,9 +609,14 @@
           "connector or local adapter activation receipt",
           "read-only email search/read receipt"
         ],
-        "reason": "answer requires checking scoped email evidence",
+        "proof_or_context_needed": [
+          "source email or exact operator-provided contact details",
+          "contact-promotion authority"
+        ],
+        "reason": "Can you check my email and see the new accountant's name, email, and role?",
         "requested_for_lane": "finance/live_arts_md",
         "requested_for_project": "",
+        "requested_intent": "Can you check my email and see the new accountant's name, email, and role?",
         "requested_scope": {
           "run_mode": "production",
           "target_project_ref": "",
@@ -508,6 +624,7 @@
           "target_world_ref": "finance",
           "test_run_id": ""
         },
+        "required_authority": "verified contact proof plus explicit memory/contact-promotion authority",
         "run_mode_context": {
           "allowed_test_capabilities": [],
           "allowlisted_recipients": [],
@@ -528,7 +645,7 @@
             "secrets_storage_allowed": false,
             "sent": false
           },
-          "created_at": "2026-06-09T01:15:51+00:00",
+          "created_at": "2026-06-09T16:42:50+00:00",
           "denied_actions": [
             "business_email_send",
             "gmail_ui",
@@ -554,13 +671,14 @@
           "test_mode": false,
           "test_run_id": ""
         },
+        "safe_alternative_now": "Paste or attach the source email, or provide exact contact details.",
         "safe_fallback_available": true,
         "safe_fallback_kind": "draft_only_followup_or_checklist",
         "schema_version": "CAPABILITY_GAP_V0",
         "test_artifact_marker": "",
         "unsafe_true_grants": []
       },
-      "created_at": "2026-06-09T01:15:51+00:00",
+      "created_at": "2026-06-09T16:42:50+00:00",
       "operator_authority_request": {
         "authority_boundary": {
           "browser_access_allowed": false,
@@ -585,32 +703,37 @@
           "sent": false,
           "workbook_mutation_allowed": false
         },
-        "created_at": "2026-06-09T01:15:51+00:00",
+        "created_at": "2026-06-09T16:42:50+00:00",
         "denied_actions": [
+          "open_gmail_ui",
+          "open_browser",
+          "gmail_lookup",
+          "promote_contact_memory",
+          "mutate_contacts",
+          "infer_identity_without_proof",
           "send_email",
           "delete_email",
           "archive_email",
           "mark_email_read",
-          "open_gmail_ui",
-          "open_browser",
           "coupa_submit",
           "mark_paid",
           "mutate_ledger",
           "mutate_workbook",
           "export_pdf",
+          "claim_receipt_without_evidence",
           "git_push",
           "git_merge"
         ],
         "duration_scope": "session_or_until_revoked",
-        "generated_from_gap_id": "capability_gap:4712ac04f7fbe4aa",
+        "generated_from_gap_id": "capability_gap:de873265cd438208",
         "human_summary": "Grant read-only email lookup for this lane only.",
-        "request_id": "operator_authority_request:2ea373d6c498df9c",
+        "request_id": "operator_authority_request:2ef78f965250c0ed",
         "requested_actions": [
           "search_relevant_email_evidence",
           "read_relevant_email_evidence",
           "summarize_relevant_email_evidence_with_receipt"
         ],
-        "requested_capability_id": "read_only_email_lookup",
+        "requested_capability_id": "openclaw.contact_identity_extraction",
         "requested_scope": {
           "run_mode": "production",
           "target_project_ref": "",
@@ -624,9 +747,9 @@
         "unsafe_true_grants": []
       },
       "operator_display": {
-        "headline": "Read-only email lookup unavailable",
-        "next_safe_action": "Grant scoped read-only email lookup, or ask me to draft a follow-up without checking email.",
-        "plain_summary": "I don't have read-only email lookup yet. Grant read-only email lookup for finance/live_arts_md? This would not allow sending, deleting, browser/Gmail UI, ledger, paid, or Coupa actions.",
+        "headline": "Contact identity extraction bounded",
+        "next_safe_action": "Paste or attach source proof for the contact details.",
+        "plain_summary": "I can hold this as a candidate contact note only. I will not fabricate her name, email, or role, and I will not permanently save contact memory without verified proof and separate authority.",
         "proof_refs_collapsed": true,
         "speaker_ref": "guardian",
         "voice_mode": "safety",
@@ -655,7 +778,7 @@
           "secrets_storage_allowed": false,
           "sent": false
         },
-        "created_at": "2026-06-09T01:15:51+00:00",
+        "created_at": "2026-06-09T16:42:50+00:00",
         "denied_actions": [
           "business_email_send",
           "gmail_ui",
@@ -683,7 +806,7 @@
       },
       "safe_fallback": {
         "can_claim_email_checked": false,
-        "can_prepare_draft": true,
+        "can_prepare_draft": false,
         "can_send": false,
         "fallback_kind": "draft_only_followup_or_checklist"
       },
@@ -719,6 +842,10 @@
           "read_relevant_email_evidence",
           "summarize_relevant_email_evidence_with_receipt"
         ],
+        "allowed_now": [
+          "use pasted or attached email evidence",
+          "prepare a draft-only follow-up"
+        ],
         "authority_boundary": {
           "browser_access_allowed": false,
           "business_action_allowed": false,
@@ -742,13 +869,52 @@
           "sent": false,
           "workbook_mutation_allowed": false
         },
-        "can_request_access": true,
+        "blocked_reason": "read-only email lookup is not available with verified scoped authority in this lane",
+        "can_request_access": false,
         "can_request_build": true,
+        "can_request_live_authority": false,
         "capability_id": "read_only_email_lookup",
         "capability_label": "Read-only email lookup",
-        "created_at": "2026-06-09T01:15:51+00:00",
+        "created_at": "2026-06-09T16:42:50+00:00",
+        "denied_actions": [
+          "send_email",
+          "delete_email",
+          "archive_email",
+          "mark_email_read",
+          "open_gmail_ui",
+          "open_browser",
+          "mutate_contacts",
+          "claim_receipt_without_evidence",
+          "promote_contact_memory",
+          "infer_identity_without_proof",
+          "coupa_submit",
+          "mark_paid",
+          "mutate_ledger",
+          "mutate_workbook",
+          "export_pdf",
+          "git_push",
+          "git_merge"
+        ],
+        "details": {
+          "developer_refs": [
+            "capability_authority_loop.py",
+            "operator_conversation_router.py",
+            "openclaw_plugin_contract.py"
+          ],
+          "raw_authority_granted_trusted": false
+        },
         "freshness_requirement": "current relevant email evidence only",
-        "gap_id": "capability_gap:5d3aeef1a0e46bd8",
+        "freshness_status": "not_checked_no_live_access",
+        "gap_id": "capability_gap:3655a004661e1163",
+        "lane_context": {
+          "run_mode": "production",
+          "target_project_ref": "",
+          "target_thread_ref": "st_annes",
+          "target_world_ref": "finance",
+          "test_run_id": ""
+        },
+        "next_safe_step": "Paste or attach the email evidence, or authorize a scoped read-only email lookup build request.",
+        "operator_message": "I don't have read-only email lookup yet. I don't have read-only email lookup access yet, so I can't check Gmail or claim whether a reply exists. Paste or attach the email evidence, or authorize a scoped read-only email lookup build request.",
         "privacy_boundary": {
           "no_private_data_external_model": true,
           "private_email_body_external_send_allowed": false,
@@ -762,6 +928,10 @@
           "mark_email_read",
           "open_gmail_ui",
           "open_browser",
+          "mutate_contacts",
+          "claim_receipt_without_evidence",
+          "promote_contact_memory",
+          "infer_identity_without_proof",
           "coupa_submit",
           "mark_paid",
           "mutate_ledger",
@@ -775,9 +945,15 @@
           "connector or local adapter activation receipt",
           "read-only email search/read receipt"
         ],
-        "reason": "answer requires checking scoped email evidence",
+        "proof_or_context_needed": [
+          "operator-provided email evidence",
+          "scoped build request",
+          "later live read-only authority grant"
+        ],
+        "reason": "Did Glenn acknowledge the invoice or payment timing?",
         "requested_for_lane": "finance/st_annes",
         "requested_for_project": "",
+        "requested_intent": "Did Glenn acknowledge the invoice or payment timing?",
         "requested_scope": {
           "run_mode": "production",
           "target_project_ref": "",
@@ -785,6 +961,7 @@
           "target_world_ref": "finance",
           "test_run_id": ""
         },
+        "required_authority": "scoped read-only email lookup build authority, then separate live read-only email access authority",
         "run_mode_context": {
           "allowed_test_capabilities": [],
           "allowlisted_recipients": [],
@@ -805,7 +982,7 @@
             "secrets_storage_allowed": false,
             "sent": false
           },
-          "created_at": "2026-06-09T01:15:51+00:00",
+          "created_at": "2026-06-09T16:42:50+00:00",
           "denied_actions": [
             "business_email_send",
             "gmail_ui",
@@ -831,13 +1008,14 @@
           "test_mode": false,
           "test_run_id": ""
         },
+        "safe_alternative_now": "Paste or attach the relevant email evidence.",
         "safe_fallback_available": true,
         "safe_fallback_kind": "draft_only_followup_or_checklist",
         "schema_version": "CAPABILITY_GAP_V0",
         "test_artifact_marker": "",
         "unsafe_true_grants": []
       },
-      "created_at": "2026-06-09T01:15:51+00:00",
+      "created_at": "2026-06-09T16:42:50+00:00",
       "operator_authority_request": {
         "authority_boundary": {
           "browser_access_allowed": false,
@@ -862,7 +1040,7 @@
           "sent": false,
           "workbook_mutation_allowed": false
         },
-        "created_at": "2026-06-09T01:15:51+00:00",
+        "created_at": "2026-06-09T16:42:50+00:00",
         "denied_actions": [
           "send_email",
           "delete_email",
@@ -870,6 +1048,10 @@
           "mark_email_read",
           "open_gmail_ui",
           "open_browser",
+          "mutate_contacts",
+          "claim_receipt_without_evidence",
+          "promote_contact_memory",
+          "infer_identity_without_proof",
           "coupa_submit",
           "mark_paid",
           "mutate_ledger",
@@ -879,9 +1061,9 @@
           "git_merge"
         ],
         "duration_scope": "session_or_until_revoked",
-        "generated_from_gap_id": "capability_gap:5d3aeef1a0e46bd8",
+        "generated_from_gap_id": "capability_gap:3655a004661e1163",
         "human_summary": "Grant read-only email lookup for this lane only.",
-        "request_id": "operator_authority_request:1f0fd175df02c20c",
+        "request_id": "operator_authority_request:704f7058c133a7bf",
         "requested_actions": [
           "search_relevant_email_evidence",
           "read_relevant_email_evidence",
@@ -901,9 +1083,9 @@
         "unsafe_true_grants": []
       },
       "operator_display": {
-        "headline": "Read-only email lookup unavailable",
-        "next_safe_action": "Grant scoped read-only email lookup, or ask me to draft a follow-up without checking email.",
-        "plain_summary": "I don't have read-only email lookup yet. Grant read-only email lookup for finance/st_annes? This would not allow sending, deleting, browser/Gmail UI, ledger, paid, or Coupa actions.",
+        "headline": "Read-only email lookup bounded",
+        "next_safe_action": "Paste or attach the email evidence, or authorize a scoped read-only email lookup build request.",
+        "plain_summary": "I don't have read-only email lookup yet. I don't have read-only email lookup access yet, so I can't check Gmail or claim whether a reply exists. Paste or attach the email evidence, or authorize a scoped read-only email lookup build request. Grant read-only email lookup only through a scoped build/live authority path.",
         "proof_refs_collapsed": true,
         "speaker_ref": "guardian",
         "voice_mode": "safety",
@@ -932,7 +1114,7 @@
           "secrets_storage_allowed": false,
           "sent": false
         },
-        "created_at": "2026-06-09T01:15:51+00:00",
+        "created_at": "2026-06-09T16:42:50+00:00",
         "denied_actions": [
           "business_email_send",
           "gmail_ui",

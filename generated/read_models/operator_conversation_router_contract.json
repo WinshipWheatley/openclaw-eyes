@@ -33,7 +33,7 @@
     "workflow_package_staging_allowed": false
   },
   "controller_event_type": "chat_goal",
-  "generated_at": "2026-06-07T22:27:44+00:00",
+  "generated_at": "2026-06-09T16:42:50+00:00",
   "implementation_boundary": {
     "agent_loop_performed": false,
     "business_action_performed": false,
@@ -72,6 +72,7 @@
     "external_llm_invoked": false,
     "git_push_performed": false,
     "gmail_access_performed": false,
+    "incoming_raw_authority_granted_accepted": false,
     "invented_file_truth": false,
     "ledger_mutation_performed": false,
     "ledger_posting_performed": false,
@@ -86,6 +87,7 @@
     "prompt_sent": false,
     "proof_bundle_sent": false,
     "proof_to_response_used_when_possible": true,
+    "raw_authority_granted_trusted": false,
     "unsafe_true_grants": [],
     "unsafe_true_grants_absent": true,
     "workbook_mutation_performed": false,

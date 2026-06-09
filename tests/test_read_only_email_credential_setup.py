@@ -30,12 +30,15 @@ def test_external_credential_and_token_paths_are_accepted_structurally(tmp_path)
 
     result = validator.validate_setup(env_file=env_file, repo_root=tmp_path / "repo")
 
-    assert result["setup_status"] == "credential_present_unvalidated"
+    assert result["setup_status"] == "credential_validation_blocked"
+    assert result["validator_dependency_status"] == "VALIDATOR_DEPENDENCY_MISSING"
+    assert result["granted_scopes_status"] == "unknown"
     assert result["credential_path_external"] is True
     assert result["token_path_external"] is True
     assert result["denied_scopes_present"] == "unknown"
-    assert result["oauth_consent_required"] is True
-    assert result["connector_status"]["configured"] is False
+    assert result["oauth_consent_required"] is False
+    assert result["connector_status"]["configured"] is True
+    assert result["connector_status"]["validated_readonly"] is False
 
 
 def test_repo_local_google_secrets_paths_are_rejected(tmp_path):
@@ -53,7 +56,7 @@ def test_repo_local_google_secrets_paths_are_rejected(tmp_path):
 
     result = validator.validate_setup(env_file=env_file, repo_root=repo)
 
-    assert result["setup_status"] == "blocked"
+    assert result["setup_status"] == "credential_validation_blocked"
     assert result["credential_path_external"] is False
     assert result["token_path_external"] is False
     assert "credential_path_inside_repo" in result["blockers"]
@@ -75,7 +78,7 @@ def test_env_file_inside_repo_is_rejected(tmp_path):
 
     result = validator.validate_setup(env_file=env_file, repo_root=repo)
 
-    assert result["setup_status"] == "blocked"
+    assert result["setup_status"] == "credential_validation_blocked"
     assert result["env_file_external"] is False
     assert "env_file_inside_repo" in result["blockers"]
 
@@ -91,7 +94,8 @@ def test_missing_token_is_unvalidated_not_crash(tmp_path):
 
     result = validator.validate_setup(env_file=env_file, repo_root=tmp_path / "repo")
 
-    assert result["setup_status"] == "token_missing"
+    assert result["setup_status"] == "oauth_human_consent_required"
+    assert result["granted_scopes_status"] == "oauth_human_consent_required"
     assert result["credential_path_external"] is True
     assert result["token_path_external"] is False
     assert "token_missing" in result["blockers"]

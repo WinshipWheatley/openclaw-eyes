@@ -58,6 +58,19 @@ def test_lm_draft_claiming_paid_fails():
     assert any(error.startswith("unsupported_completion_claim") for error in result["verification_errors"])
 
 
+def test_lm_draft_claiming_annette_did_not_reply_fails_without_lookup_evidence():
+    bundle = _bundle()
+    draft = _draft(
+        bundle,
+        body="Payment evidence is still missing. Annette did not reply. The ledger stays untouched.",
+    )
+
+    result = verifier.verify_lm_shadow_response(draft, bundle)
+
+    assert result["publishable"] is False
+    assert "unsupported_completion_claim:annette did not reply" in result["verification_errors"]
+
+
 def test_lm_draft_claiming_email_sent_fails_without_receipt():
     bundle = bundles.build_proof_bundle("business_development_capital_hilton_followup")
     draft = {

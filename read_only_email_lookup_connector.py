@@ -121,10 +121,18 @@ UNSAFE_TRUE_KEYS = set(AUTHORITY_BOUNDARY) | {
 }
 
 CREDENTIAL_ENV_VARS = (
+    "OPENCLAW_GMAIL_READONLY_CREDENTIAL_PATH",
     "OPENCLAW_READ_ONLY_EMAIL_LOOKUP_CREDENTIAL_FILE",
     "OPENCLAW_READ_ONLY_GMAIL_CREDENTIAL_FILE",
     "OPENCLAW_READONLY_GMAIL_CREDENTIAL_FILE",
 )
+TOKEN_ENV_VARS = (
+    "OPENCLAW_GMAIL_READONLY_TOKEN_PATH",
+    "OPENCLAW_READ_ONLY_EMAIL_LOOKUP_TOKEN_FILE",
+    "OPENCLAW_READ_ONLY_GMAIL_TOKEN_FILE",
+)
+SETUP_STATUS_ENV_VAR = "OPENCLAW_GMAIL_READONLY_SETUP_STATUS"
+GRANTED_SCOPES_STATUS_ENV_VAR = "OPENCLAW_GMAIL_READONLY_GRANTED_SCOPES_STATUS"
 KEYCHAIN_REF_ENV_VAR = "OPENCLAW_READ_ONLY_EMAIL_LOOKUP_KEYCHAIN_REF"
 OPERATOR_CONFIG_ENV_VAR = "OPENCLAW_READ_ONLY_EMAIL_LOOKUP_CONFIG_PATH"
 BROKER_WRAPPER_ENV_VAR = "OPENCLAW_READ_ONLY_EMAIL_LOOKUP_BROKER_WRAPPER_PATH"
@@ -386,12 +394,31 @@ def get_connector_status(
             ]
         )
 
+    setup_status = str(env_map.get(SETUP_STATUS_ENV_VAR) or "").strip()
+    granted_scopes_status = str(env_map.get(GRANTED_SCOPES_STATUS_ENV_VAR) or "").strip()
+    if not setup_status:
+        setup_status = "credential_present_unvalidated" if configured else "human_setup_required"
+    if not granted_scopes_status:
+        granted_scopes_status = "unknown"
+    validated_readonly = setup_status == "validated_readonly" and granted_scopes_status == "readonly_only"
+    token_present = False
+    for name in TOKEN_ENV_VARS:
+        path_value = str(env_map.get(name) or "").strip()
+        if path_value and _path_outside_repo(path_value) and _path_exists_without_read(path_value):
+            token_present = True
+            break
+
     status = {
         "schema_version": EMAIL_CONNECTOR_STATUS_SCHEMA,
         "connector_id": "email_connector:gmail_readonly_v0",
         "capability_id": CAPABILITY_ID,
         "configured": configured,
         "credential_source": credential_source,
+        "setup_status": setup_status,
+        "granted_scopes_status": granted_scopes_status,
+        "validated_readonly": validated_readonly,
+        "token_file_present": token_present,
+        "scope_validation_required": not validated_readonly,
         "scopes": requested_gmail_scopes(),
         "denied_scopes": list(FORBIDDEN_GMAIL_SCOPES),
         "missing_setup": missing_setup,
@@ -727,8 +754,20 @@ def perform_read_only_lookup(
         result["setup_requirement"] = build_setup_requirement(status, generated_at=generated_at)
         return _add_broker_context(result, broker_candidate)
 
+    if not (
+        status.get("validated_readonly") is True
+        and str(status.get("setup_status") or "") == "validated_readonly"
+        and str(status.get("granted_scopes_status") or "") == "readonly_only"
+    ):
+        result = _base_lookup_result(request, status="CONNECTOR_SCOPE_UNVALIDATED", generated_at=generated_at)
+        result["blocker_reason"] = "gmail_readonly_scope_not_validated"
+        result["connector_status"] = status
+        result["active_next_step"] = "Run Gmail readonly scope validator before lookup."
+        return _add_broker_context(result, broker_candidate)
+
     result = _base_lookup_result(request, status="CONNECTOR_READY", generated_at=generated_at)
     result["connector_status"] = status
+    result["connector_scope_validated"] = True
     result["lookup_transport_note"] = "Credential boundary is configured; live Gmail lookup remains separately validated before LOOKUP_COMPLETED is emitted."
     return _add_broker_context(result, broker_candidate)
 

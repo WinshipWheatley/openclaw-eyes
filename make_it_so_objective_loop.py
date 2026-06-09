@@ -581,8 +581,8 @@ def build_codex_work_package(objective: Mapping[str, Any], grant: Mapping[str, A
         ]
         validation_commands = [
             "python3 -m py_compile read_only_email_lookup_connector.py make_it_so_objective_loop.py active_next_step_policy.py codex_work_package_lifecycle.py",
-            "python3 -m pytest tests/test_read_only_email_lookup_connector.py -q",
-            "python3 -m pytest tests/test_make_it_so_objective_loop.py::test_read_only_email_connector_package_scope_allows_connector_boundary_files -q",
+            "python3 -m pytest tests/test_read_only_email_lookup_connector.py -q -s",
+            "python3 -m pytest tests/test_make_it_so_objective_loop.py::test_read_only_email_connector_package_scope_allows_connector_boundary_files -q -s",
             "python3 -m json.tool generated/read_models/read_only_email_lookup_connector.json",
             "git diff --check",
         ]
@@ -668,7 +668,12 @@ def start_email_lookup_objective(
     connector_setup = read_only_email_lookup_connector.build_setup_requirement(connector_status, generated_at=generated_at)
     with _connect(sqlite_path) as conn:
         registry = _load_registry(conn, READ_ONLY_EMAIL_LOOKUP, scope)
-        if registry and registry.get("status") in {"production_ready", "test_passed"} and connector_status.get("configured") is True:
+        if (
+            registry
+            and registry.get("status") in {"production_ready", "test_passed"}
+            and connector_status.get("configured") is True
+            and connector_status.get("validated_readonly") is True
+        ):
             receipt_objective = build_objective_request(
                 operator_goal_text=operator_text,
                 requested_outcome="answer from active read-only email lookup",
@@ -780,6 +785,7 @@ def start_email_lookup_objective(
         project_ref=project_ref,
         run_mode_context=run_mode_context,
         generated_at=generated_at,
+        force_read_only_email_lookup=True,
     )
     return {
         "schema_version": SCHEMA_VERSION,
