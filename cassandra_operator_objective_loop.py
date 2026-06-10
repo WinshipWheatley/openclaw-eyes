@@ -52,6 +52,14 @@ STATUS_COMPLETE = "complete"
 STATUS_WAITING_MAC_LOCAL_ACTION_RESULT = "waiting_for_mac_local_action_result"
 STATUS_MAC_LOCAL_ACTION_COMPLETE = "mac_local_action_complete"
 
+MAC_LOCAL_SHADOW_RESULT_NEXT_SAFE_STEP = (
+    "Mac Apple Mail live adapter is not enabled. Next: approve/build selected-message metadata proof harness if needed."
+)
+MAC_LOCAL_SHADOW_RESULT_OPERATOR_ANSWER = (
+    "Cassandra received the Mac shadow result. The Mac bridge is working, but live Apple Mail execution is not enabled. "
+    "No email was read, drafted, sent, or mutated. Next: build or approve the selected-message metadata proof harness."
+)
+
 DENIED_ACTIONS = (
     "compose_email",
     "send_email",
@@ -165,6 +173,13 @@ def _excerpt(text: str, limit: int = 180) -> str:
     if len(clean) <= limit:
         return clean
     return clean[: limit - 3].rstrip() + "..."
+
+
+def _next_timestamp(value: str) -> str:
+    try:
+        return (datetime.fromisoformat(value) + timedelta(seconds=1)).isoformat(timespec="seconds")
+    except ValueError:
+        return value
 
 
 def _connect(sqlite_path: Path | str = DEFAULT_SQLITE_PATH) -> sqlite3.Connection:
@@ -576,6 +591,16 @@ def _load_objective(conn: sqlite3.Connection, objective_id: str) -> dict[str, An
     ).fetchone()
     if not row:
         raise ValueError(f"unknown objective_id: {objective_id}")
+    return json.loads(row["objective_json"])
+
+
+def _maybe_load_objective(conn: sqlite3.Connection, objective_id: str) -> dict[str, Any] | None:
+    row = conn.execute(
+        "SELECT objective_json FROM cassandra_operator_objectives WHERE objective_id = ?",
+        (objective_id,),
+    ).fetchone()
+    if not row:
+        return None
     return json.loads(row["objective_json"])
 
 
@@ -1040,6 +1065,161 @@ def record_mac_local_action_result(
         "objective": objective,
         "bridge_record": bridge_record,
         "machine_proof": dict(AUTHORITY_BOUNDARY),
+    }
+
+
+def _mac_local_result_machine_proof() -> dict[str, Any]:
+    proof = dict(AUTHORITY_BOUNDARY)
+    proof.update(
+        {
+            "apple_mail_called": False,
+            "apple_mail_automation_invoked": False,
+            "mailbox_mutation_allowed": False,
+            "mailbox_mutation_performed": False,
+            "mail_body_read_allowed": False,
+            "mail_body_read_performed": False,
+            "mail_draft_create_allowed": False,
+            "mail_draft_created": False,
+            "mail_send_allowed": False,
+            "email_send_performed": False,
+        }
+    )
+    return proof
+
+
+def ingest_mac_local_action_result_file(
+    result_path: Path | str,
+    *,
+    sqlite_path: Path | str = DEFAULT_SQLITE_PATH,
+    mac_bridge_sqlite_path: Path | str = mac_local_action_bridge.DEFAULT_SQLITE_PATH,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    generated_at = generated_at or utc_now()
+    path = Path(result_path)
+    if not path.exists():
+        bridge_record = mac_local_action_bridge.ingest_mac_local_action_result_file(
+            path,
+            sqlite_path=mac_bridge_sqlite_path,
+            generated_at=generated_at,
+        )
+        return {
+            "schema_version": "CASSANDRA_MAC_LOCAL_ACTION_RESULT_FILE_INGESTION_V0",
+            "response_status": "MAC_LOCAL_ACTION_RESULT_FILE_MISSING",
+            "result_file_found": False,
+            "result_path": path.as_posix(),
+            "objective_updated": False,
+            "orphan_result": True,
+            "bridge_record": bridge_record,
+            "operator_reply": "Mac local action result file was not found.",
+            "next_safe_step": "Wait for the Mac-local action result.",
+            "machine_proof": _mac_local_result_machine_proof(),
+        }
+
+    result = mac_local_action_bridge.load_mac_local_action_result_file(path)
+    objective_id = str(result.get("objective_id") or "")
+    with _connect(sqlite_path) as conn:
+        objective = _maybe_load_objective(conn, objective_id) if objective_id else None
+
+    request = objective.get("mac_local_action_request") if isinstance(objective, Mapping) and isinstance(objective.get("mac_local_action_request"), Mapping) else None
+    bridge_record = mac_local_action_bridge.ingest_mac_local_action_result_file(
+        path,
+        sqlite_path=mac_bridge_sqlite_path,
+        request=request,
+        generated_at=generated_at,
+    )
+    result_status = str(result.get("status") or "")
+    receipt_ref = str(result.get("receipt_ref") or f"mac_local_action_receipt:{_short_hash(objective_id, generated_at)}")
+    is_shadow = result_status in mac_local_action_bridge.SAFE_SHADOW_RESULT_STATUSES
+    proof = _mac_local_result_machine_proof()
+
+    if not objective:
+        response_status = (
+            "MAC_LOCAL_ACTION_ORPHAN_SHADOW_RESULT_RECORDED"
+            if bridge_record.get("response_status") == "MAC_LOCAL_ACTION_RESULT_RECORDED" and is_shadow
+            else str(bridge_record.get("response_status") or "MAC_LOCAL_ACTION_RESULT_BLOCKED")
+        )
+        return {
+            "schema_version": "CASSANDRA_MAC_LOCAL_ACTION_RESULT_FILE_INGESTION_V0",
+            "response_status": response_status,
+            "result_file_found": True,
+            "result_path": path.as_posix(),
+            "request_id": str(result.get("request_id") or ""),
+            "objective_id": objective_id,
+            "result_status": result_status,
+            "mutation_performed": bool(result.get("mutation_performed") is True),
+            "raw_body_exposed": bool(result.get("raw_body_exposed") is True),
+            "denied_actions_confirmed": list(result.get("denied_actions_confirmed") or []),
+            "persisted_to_sqlite": bridge_record.get("response_status") == "MAC_LOCAL_ACTION_RESULT_RECORDED",
+            "objective_updated": False,
+            "orphan_result": True,
+            "bridge_record": bridge_record,
+            "operator_reply": MAC_LOCAL_SHADOW_RESULT_OPERATOR_ANSWER if is_shadow else "Mac local action result was recorded without an attached objective.",
+            "next_safe_step": MAC_LOCAL_SHADOW_RESULT_NEXT_SAFE_STEP if is_shadow else "Attach the Mac-local action result to an objective if needed.",
+            "machine_proof": proof,
+        }
+
+    with _connect(sqlite_path) as conn:
+        current = _load_objective(conn, objective_id)
+        conn.execute(
+            """
+            INSERT OR REPLACE INTO objective_receipts
+              (objective_id, receipt_ref, receipt_kind, status, receipt_json)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (objective_id, receipt_ref, "mac_local_action_result", result_status, stable_json(result)),
+        )
+        current["receipts"] = _dedupe([*current.get("receipts", []), receipt_ref])
+        current["mac_local_action_result"] = result
+        current["updated_at"] = generated_at
+        if bridge_record.get("response_status") != "MAC_LOCAL_ACTION_RESULT_RECORDED":
+            current["objective_status"] = STATUS_BLOCKED
+            current["safe_next_step"] = "Review the Mac-local action result verifier errors."
+            decision = "mac_local_action_result_rejected"
+            response_status = "MAC_LOCAL_ACTION_RESULT_BLOCKED"
+        elif is_shadow:
+            current["objective_status"] = STATUS_WAITING_MAC_LOCAL_ACTION_RESULT
+            current["current_step"] = "mac_local_action_result"
+            current["safe_next_step"] = MAC_LOCAL_SHADOW_RESULT_NEXT_SAFE_STEP
+            decision = "mac_local_action_shadow_result_recorded"
+            response_status = "MAC_LOCAL_ACTION_SHADOW_RESULT_RECORDED"
+        else:
+            current["objective_status"] = STATUS_MAC_LOCAL_ACTION_COMPLETE
+            current["current_step"] = "mac_local_action_result"
+            current["safe_next_step"] = str(result.get("next_safe_step") or "Review the Mac-local action result.")
+            decision = "mac_local_action_result_recorded"
+            response_status = "MAC_LOCAL_ACTION_RESULT_ACCEPTED"
+        _store_objective(conn, current)
+        _store_event(
+            conn,
+            objective_id=objective_id,
+            channel="mac_local_action_bridge",
+            message_ref=str(result.get("request_id") or ""),
+            decision=decision,
+            status_transition=str(current["objective_status"]),
+            receipt_ref=receipt_ref,
+            generated_at=_next_timestamp(generated_at),
+        )
+        conn.commit()
+
+    return {
+        "schema_version": "CASSANDRA_MAC_LOCAL_ACTION_RESULT_FILE_INGESTION_V0",
+        "response_status": response_status,
+        "result_file_found": True,
+        "result_path": path.as_posix(),
+        "request_id": str(result.get("request_id") or ""),
+        "objective_id": objective_id,
+        "result_status": result_status,
+        "mutation_performed": bool(result.get("mutation_performed") is True),
+        "raw_body_exposed": bool(result.get("raw_body_exposed") is True),
+        "denied_actions_confirmed": list(result.get("denied_actions_confirmed") or []),
+        "persisted_to_sqlite": bridge_record.get("response_status") == "MAC_LOCAL_ACTION_RESULT_RECORDED",
+        "objective_updated": response_status != "MAC_LOCAL_ACTION_RESULT_BLOCKED",
+        "orphan_result": False,
+        "objective": current,
+        "bridge_record": bridge_record,
+        "operator_reply": MAC_LOCAL_SHADOW_RESULT_OPERATOR_ANSWER if is_shadow else "Cassandra received the Mac local action result.",
+        "next_safe_step": str(current.get("safe_next_step") or ""),
+        "machine_proof": proof,
     }
 
 

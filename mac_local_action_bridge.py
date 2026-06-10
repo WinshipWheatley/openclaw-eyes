@@ -84,6 +84,12 @@ RESULT_REQUIRED_FIELDS = (
     "created_at",
 )
 
+SAFE_SHADOW_RESULT_STATUSES = (
+    "shadow_ready_no_live_action",
+    "shadow_ready",
+    "dry_run_ready_no_live_action",
+)
+
 DENIED_ACTIONS = (
     "apple_mail_direct_pc_execution",
     "apple_mail_automation_without_mac_local_permission",
@@ -450,32 +456,47 @@ def write_mac_local_action_request(
 
 
 def validate_mac_local_action_result(result: Mapping[str, Any], *, request: Mapping[str, Any] | None = None) -> dict[str, Any]:
-    errors = [f"missing required field: {field}" for field in RESULT_REQUIRED_FIELDS if field not in result]
-    if result.get("schema_version") != MAC_LOCAL_ACTION_RESULT_SCHEMA:
+    payload = normalize_mac_local_action_result(result)
+    errors = [f"missing required field: {field}" for field in RESULT_REQUIRED_FIELDS if field not in payload]
+    if payload.get("schema_version") != MAC_LOCAL_ACTION_RESULT_SCHEMA:
         errors.append("schema_version must be MAC_LOCAL_ACTION_RESULT_V0")
-    if result.get("local_broker") != APPLE_MAIL_LOCAL_BROKER:
+    if payload.get("local_broker") != APPLE_MAIL_LOCAL_BROKER:
         errors.append("local_broker must be openclaw.apple_mail_local_broker")
     if request:
-        if result.get("request_id") != request.get("request_id"):
+        if payload.get("request_id") != request.get("request_id"):
             errors.append("request_id_mismatch")
-        if result.get("objective_id") != request.get("objective_id"):
+        if payload.get("objective_id") != request.get("objective_id"):
             errors.append("objective_id_mismatch")
-    if result.get("mutation_performed") is True:
+    if payload.get("mutation_performed") is not False:
         errors.append("mutation_performed_must_be_false_for_initial_bridge")
-    if result.get("raw_body_exposed") is True:
+    if payload.get("raw_body_exposed") is not False:
         errors.append("raw_body_exposed_requires_separate_body_authority")
-    denied_confirmed = set(map(str, result.get("denied_actions_confirmed") or []))
+    denied_confirmed = set(map(str, payload.get("denied_actions_confirmed") or []))
     if "apple_mail_send_without_exact_payload_authority" not in denied_confirmed:
         errors.append("send_denial_confirmation_required")
     return {
         "schema_version": "MAC_LOCAL_ACTION_RESULT_VERDICT_V0",
         "valid": not errors,
         "validation_errors": errors,
-        "request_id": str(result.get("request_id") or ""),
-        "objective_id": str(result.get("objective_id") or ""),
-        "mutation_performed": bool(result.get("mutation_performed") is True),
-        "raw_body_exposed": bool(result.get("raw_body_exposed") is True),
+        "request_id": str(payload.get("request_id") or ""),
+        "objective_id": str(payload.get("objective_id") or ""),
+        "mutation_performed": bool(payload.get("mutation_performed") is True),
+        "raw_body_exposed": bool(payload.get("raw_body_exposed") is True),
     }
+
+
+def normalize_mac_local_action_result(result: Mapping[str, Any]) -> dict[str, Any]:
+    payload = dict(result)
+    payload.setdefault("error_code", None)
+    return payload
+
+
+def load_mac_local_action_result_file(result_path: Path | str) -> dict[str, Any]:
+    path = Path(result_path)
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError("Mac local action result file must contain a JSON object")
+    return normalize_mac_local_action_result(payload)
 
 
 def record_mac_local_action_result(
@@ -485,8 +506,9 @@ def record_mac_local_action_result(
     request: Mapping[str, Any] | None = None,
     generated_at: str | None = None,
 ) -> dict[str, Any]:
-    generated_at = generated_at or str(result.get("created_at") or utc_now())
-    verdict = validate_mac_local_action_result(result, request=request)
+    payload = normalize_mac_local_action_result(result)
+    generated_at = generated_at or str(payload.get("created_at") or utc_now())
+    verdict = validate_mac_local_action_result(payload, request=request)
     if not verdict["valid"]:
         return {"response_status": "MAC_LOCAL_ACTION_RESULT_REJECTED", "verdict": verdict, "machine_proof": dict(AUTHORITY_BOUNDARY)}
     with connect(sqlite_path) as conn:
@@ -497,21 +519,21 @@ def record_mac_local_action_result(
             VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
             (
-                str(result["request_id"]),
-                str(result["objective_id"]),
-                str(result["local_broker"]),
-                str(result["status"]),
-                str(result["receipt_ref"]),
+                str(payload["request_id"]),
+                str(payload["objective_id"]),
+                str(payload["local_broker"]),
+                str(payload["status"]),
+                str(payload["receipt_ref"]),
                 generated_at,
-                stable_json(dict(result)),
+                stable_json(payload),
             ),
         )
         event = {
-            "event_id": "mac_local_action_event:" + _short_hash(result["request_id"], "result", generated_at),
-            "request_id": str(result["request_id"]),
-            "objective_id": str(result["objective_id"]),
+            "event_id": "mac_local_action_event:" + _short_hash(payload["request_id"], "result", generated_at),
+            "request_id": str(payload["request_id"]),
+            "objective_id": str(payload["objective_id"]),
             "event_type": "result_recorded",
-            "status": str(result["status"]),
+            "status": str(payload["status"]),
             "created_at": generated_at,
             "authority_boundary": dict(AUTHORITY_BOUNDARY),
         }
@@ -525,6 +547,58 @@ def record_mac_local_action_result(
         )
         conn.commit()
     return {"response_status": "MAC_LOCAL_ACTION_RESULT_RECORDED", "verdict": verdict, "event": event, "machine_proof": dict(AUTHORITY_BOUNDARY)}
+
+
+def ingest_mac_local_action_result_file(
+    result_path: Path | str,
+    *,
+    sqlite_path: Path | str = DEFAULT_SQLITE_PATH,
+    request: Mapping[str, Any] | None = None,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    path = Path(result_path)
+    if not path.exists():
+        return {
+            "response_status": "MAC_LOCAL_ACTION_RESULT_FILE_MISSING",
+            "result_file_found": False,
+            "result_path": path.as_posix(),
+            "orphan_result": request is None,
+            "machine_proof": dict(AUTHORITY_BOUNDARY),
+        }
+    result = load_mac_local_action_result_file(path)
+    record = record_mac_local_action_result(
+        result,
+        sqlite_path=sqlite_path,
+        request=request,
+        generated_at=generated_at,
+    )
+    record.update(
+        {
+            "result_file_found": True,
+            "result_path": path.as_posix(),
+            "orphan_result": request is None,
+            "request_id": str(result.get("request_id") or ""),
+            "objective_id": str(result.get("objective_id") or ""),
+            "result_status": str(result.get("status") or ""),
+            "mutation_performed": bool(result.get("mutation_performed") is True),
+            "raw_body_exposed": bool(result.get("raw_body_exposed") is True),
+            "denied_actions_confirmed": list(result.get("denied_actions_confirmed") or []),
+            "result": result,
+        }
+    )
+    proof = dict(record.get("machine_proof") or AUTHORITY_BOUNDARY)
+    proof.update(
+        {
+            "apple_mail_called": False,
+            "apple_mail_automation_invoked": False,
+            "mailbox_mutation_allowed": False,
+            "mail_body_read_allowed": False,
+            "mail_draft_create_allowed": False,
+            "mail_send_allowed": False,
+        }
+    )
+    record["machine_proof"] = proof
+    return record
 
 
 def build_package_plan_for_text(

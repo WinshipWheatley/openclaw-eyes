@@ -49,6 +49,38 @@ def _valid_result(request):
     }
 
 
+def _shadow_result(*, request_id="mac_local_action_request:shadow_annette_capital_hilton_v0", objective_id="objective:cassandra_annette_capital_hilton_shadow_v0"):
+    return {
+        "schema_version": bridge.MAC_LOCAL_ACTION_RESULT_SCHEMA,
+        "request_id": request_id,
+        "objective_id": objective_id,
+        "local_broker": bridge.APPLE_MAIL_LOCAL_BROKER,
+        "status": "shadow_ready_no_live_action",
+        "result_summary": "Shadow Apple Mail local action result created. No live Apple Mail action was performed.",
+        "redacted_outputs": [
+            {
+                "kind": "shadow_mac_local_action",
+                "capability": bridge.APPLE_MAIL_SCOPED_METADATA_SEARCH,
+                "scope": "Annette / Capital Hilton / payment follow-up metadata search only",
+            }
+        ],
+        "receipt_ref": "mac_local_action_shadow_receipt:mac_local_action_request_shadow_annette_capital_hilton_v0",
+        "denied_actions_confirmed": [
+            "apple_mail_body_read_without_body_authority",
+            "apple_mail_draft_create_without_draft_authority",
+            "apple_mail_send_without_exact_payload_authority",
+            "mailbox_archive",
+            "mailbox_delete",
+            "mailbox_label_or_folder_mutation",
+            "mailbox_mark_read",
+        ],
+        "mutation_performed": False,
+        "raw_body_exposed": False,
+        "next_safe_step": "Enable or approve the Mac Apple Mail local adapter when ready.",
+        "created_at": FIXED_NOW,
+    }
+
+
 def _json_text(value):
     return json.dumps(value, sort_keys=True).lower()
 
@@ -139,6 +171,99 @@ def test_result_ingestion_updates_objective_only_from_mac_local_action_result(tm
     with sqlite3.connect(tmp_path / "mac_bridge.sqlite") as conn:
         row = conn.execute("SELECT status, receipt_ref FROM mac_local_action_results WHERE request_id = ?", (request["request_id"],)).fetchone()
     assert row == ("completed", "mac_local_action_receipt:test")
+
+
+def test_shadow_result_file_ingestion_records_orphan_without_live_execution(tmp_path):
+    result_path = tmp_path / "mac_local_action_result_shadow.json"
+    result_path.write_text(json.dumps(_shadow_result(), sort_keys=True), encoding="utf-8")
+
+    ingestion = bridge.ingest_mac_local_action_result_file(
+        result_path,
+        sqlite_path=tmp_path / "mac_bridge.sqlite",
+        generated_at=FIXED_NOW,
+    )
+
+    assert ingestion["result_file_found"] is True
+    assert ingestion["response_status"] == "MAC_LOCAL_ACTION_RESULT_RECORDED"
+    assert ingestion["orphan_result"] is True
+    assert ingestion["result_status"] == "shadow_ready_no_live_action"
+    assert ingestion["mutation_performed"] is False
+    assert ingestion["raw_body_exposed"] is False
+    assert ingestion["machine_proof"]["apple_mail_called"] is False
+    assert ingestion["machine_proof"]["mailbox_mutation_allowed"] is False
+
+    with sqlite3.connect(tmp_path / "mac_bridge.sqlite") as conn:
+        row = conn.execute(
+            "SELECT status, receipt_ref FROM mac_local_action_results WHERE request_id = ?",
+            ("mac_local_action_request:shadow_annette_capital_hilton_v0",),
+        ).fetchone()
+    assert row == (
+        "shadow_ready_no_live_action",
+        "mac_local_action_shadow_receipt:mac_local_action_request_shadow_annette_capital_hilton_v0",
+    )
+
+
+def test_shadow_result_updates_objective_event_without_marking_complete(tmp_path):
+    routed = _route(tmp_path)
+    objective_id = routed["objective"]["objective_id"]
+    request = routed["mac_local_action_request"]
+    result_path = tmp_path / "mac_local_action_result_shadow.json"
+    result_path.write_text(
+        json.dumps(
+            _shadow_result(request_id=request["request_id"], objective_id=objective_id),
+            sort_keys=True,
+        ),
+        encoding="utf-8",
+    )
+
+    ingestion = objective_loop.ingest_mac_local_action_result_file(
+        result_path,
+        sqlite_path=tmp_path / "objectives.sqlite",
+        mac_bridge_sqlite_path=tmp_path / "mac_bridge.sqlite",
+        generated_at=FIXED_NOW,
+    )
+
+    assert ingestion["response_status"] == "MAC_LOCAL_ACTION_SHADOW_RESULT_RECORDED"
+    assert ingestion["objective_updated"] is True
+    assert ingestion["orphan_result"] is False
+    assert ingestion["objective"]["objective_status"] == objective_loop.STATUS_WAITING_MAC_LOCAL_ACTION_RESULT
+    assert ingestion["objective"]["safe_next_step"] == (
+        "Mac Apple Mail live adapter is not enabled. Next: approve/build selected-message metadata proof harness if needed."
+    )
+    assert ingestion["machine_proof"]["apple_mail_called"] is False
+    assert ingestion["machine_proof"]["mailbox_mutation_performed"] is False
+
+    with sqlite3.connect(tmp_path / "objectives.sqlite") as conn:
+        row = conn.execute(
+            "SELECT decision, status_transition FROM objective_events WHERE objective_id = ? ORDER BY created_at DESC LIMIT 1",
+            (objective_id,),
+        ).fetchone()
+    assert row == ("mac_local_action_shadow_result_recorded", objective_loop.STATUS_WAITING_MAC_LOCAL_ACTION_RESULT)
+
+
+def test_shadow_result_requires_no_mutation_no_raw_body_and_denied_actions(tmp_path):
+    mutation = bridge.record_mac_local_action_result(
+        {**_shadow_result(), "mutation_performed": True},
+        sqlite_path=tmp_path / "mac_bridge.sqlite",
+        generated_at=FIXED_NOW,
+    )
+    raw_body = bridge.record_mac_local_action_result(
+        {**_shadow_result(), "raw_body_exposed": True},
+        sqlite_path=tmp_path / "mac_bridge.sqlite",
+        generated_at=FIXED_NOW,
+    )
+    missing_denials = bridge.record_mac_local_action_result(
+        {**_shadow_result(), "denied_actions_confirmed": []},
+        sqlite_path=tmp_path / "mac_bridge.sqlite",
+        generated_at=FIXED_NOW,
+    )
+
+    assert mutation["response_status"] == "MAC_LOCAL_ACTION_RESULT_REJECTED"
+    assert "mutation_performed_must_be_false_for_initial_bridge" in mutation["verdict"]["validation_errors"]
+    assert raw_body["response_status"] == "MAC_LOCAL_ACTION_RESULT_REJECTED"
+    assert "raw_body_exposed_requires_separate_body_authority" in raw_body["verdict"]["validation_errors"]
+    assert missing_denials["response_status"] == "MAC_LOCAL_ACTION_RESULT_REJECTED"
+    assert "send_denial_confirmation_required" in missing_denials["verdict"]["validation_errors"]
 
 
 def test_raw_authority_granted_text_is_ignored_for_mac_local_request(tmp_path):
