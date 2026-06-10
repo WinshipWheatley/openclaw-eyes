@@ -56,6 +56,7 @@ from capability_registry import get_actor, registry_context_for_query
 from business_ops_packet import assemble_business_ops_packet, BusinessOpsPacket
 from business_ops_intent import classify_business_ops_intent
 from hitl_pending_store import propose_action as _hitl_propose
+from cassandra_custom_tools import handle_operator_objective as _handle_operator_objective
 from cassandra_pii_hooks import (
     tokenize_prompt as _pii_tokenize,
     rehydrate_reply as _pii_rehydrate_reply,
@@ -5554,6 +5555,7 @@ def _call_hidden_extract_classify_json(prompt: str, *, validation_label: str) ->
 # ── Main handler ──────────────────────────────────────────────────────────────
 
 def handle(text: str, session: dict | None = None) -> list[str]:
+    session_meta = dict(session or {})
     # --- Explicit Gmail inbox queries: force live Gmail read, bypass LLM and context blending ---
     inbox_list_patterns = [
         "any new emails", "list my 5 newest unread inbox emails with sender and subject only",
@@ -5591,6 +5593,32 @@ def handle(text: str, session: dict | None = None) -> list[str]:
         save_state(state)
         _log_conversation(text, [date_awareness_reply], route="date_awareness", metadata={"event_id": event_id})
         return [date_awareness_reply]
+
+    objective_result = _handle_operator_objective(
+        query,
+        source_channel="telegram",
+        source_message_ref=str(session_meta.get("source_message_id") or session_meta.get("message_id") or ""),
+        lane_context={
+            "target_world_ref": "operator_comms",
+            "target_thread_ref": "cassandra",
+            "source_channel": "telegram",
+        },
+    )
+    if objective_result is not None:
+        reply = [str(objective_result["operator_reply"])]
+        save_state(state)
+        _log_conversation(
+            text,
+            reply,
+            route="cassandra_operator_objective",
+            metadata={
+                "event_id": event_id,
+                "objective_id": objective_result["objective"]["objective_id"],
+                "gmail_lookup_performed": False,
+                "email_send_performed": False,
+            },
+        )
+        return reply
 
     # Check for email capability in the packet
     has_email_cap = any(c.domain == "email" for c in ops_packet.permitted_capabilities)
@@ -5662,7 +5690,6 @@ def handle(text: str, session: dict | None = None) -> list[str]:
     Main Cassandra conversational handler.
     Returns a list of Telegram-ready reply strings.
     """
-    session_meta = dict(session or {})
     if not session_meta.get("skip_followup_check"):
         process_pending_followups()
 

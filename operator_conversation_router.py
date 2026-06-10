@@ -17,6 +17,7 @@ from typing import Any, Mapping, Sequence
 
 import active_next_step_policy
 import capability_authority_loop
+import cassandra_operator_objective_loop
 import global_run_mode_context
 import make_it_so_objective_loop
 import test_effect_adapters
@@ -54,6 +55,7 @@ ROUTE_STATUS_AUTHORITY_GRANT_COMPILED = "AUTHORITY_GRANT_COMPILED"
 ROUTE_STATUS_BUILD_AUTHORITY_REQUEST = "CAPABILITY_BUILD_AUTHORITY_REQUEST_READY"
 ROUTE_STATUS_MAKE_IT_SO_AUTHORITY_REQUEST = "MAKE_IT_SO_AUTHORITY_REQUEST_READY"
 ROUTE_STATUS_MAKE_IT_SO_GRANT_COMPILED = "MAKE_IT_SO_GRANT_COMPILED"
+ROUTE_STATUS_CASSANDRA_OBJECTIVE_WAITING = "CASSANDRA_OBJECTIVE_WAITING_FOR_LOOKUP_AUTHORITY"
 
 INTENT_CLASSES = (
     "payment_watch_next_step",
@@ -767,6 +769,67 @@ def _make_it_so_objective_result(request: Mapping[str, Any], *, generated_at: st
     return _with_active_next_step(result, request, generated_at=generated_at, sqlite_path=sqlite_path)
 
 
+def _cassandra_operator_objective_result(request: Mapping[str, Any], *, generated_at: str, sqlite_path: Path) -> dict[str, Any]:
+    context = _context(request)
+    response = cassandra_operator_objective_loop.route_cassandra_objective_message(
+        _operator_text(request),
+        source_channel="mac_app",
+        source_message_ref=str(request.get("request_id") or request.get("source_request_id") or ""),
+        lane_context={
+            "target_world_ref": context["world"],
+            "target_thread_ref": context["thread"],
+            "selected_card_id": context["selected_card_id"],
+        },
+        sqlite_path=sqlite_path,
+        generated_at=generated_at,
+    )
+    display = _custom_display(
+        speaker_ref="cassandra",
+        voice_mode="client_safe",
+        headline="Gated objective ready",
+        summary=(
+            "I can handle this as a gated Cassandra objective. First I need scoped metadata "
+            "lookup approval. If no reply is found, I'll draft the follow-up and stop for "
+            "review before sending."
+        ),
+        next_safe_action="Approve scoped lookup.",
+    )
+    result = _text_result(
+        request,
+        generated_at=generated_at,
+        route_status=ROUTE_STATUS_CASSANDRA_OBJECTIVE_WAITING,
+        backend_route="cassandra_operator_objective_loop.route_cassandra_objective_message",
+        display=display,
+        proof_refs=[
+            "generated/read_models/authority_secret_custody.json",
+            "generated/read_models/first_class_capability_authority_loop.json",
+        ],
+        suggested_controller_event="review_scoped_lookup_authority",
+        route_notes=["cassandra_operator_objective:gated_email_followup", "incoming_raw_authority_not_trusted"],
+    )
+    result["cassandra_operator_objective"] = response
+    result["machine_proof"].update(
+        {
+            "cassandra_operator_objective_created": response.get("recognized") is True,
+            "gmail_lookup_performed": False,
+            "gmail_body_read_performed": False,
+            "gmail_draft_created": False,
+            "email_send_performed": False,
+            "scheduled_send_created": False,
+            "calendar_api_called": False,
+            "contacts_api_called": False,
+            "broad_broker_ambient_use": False,
+            "raw_authority_granted_trusted": False,
+        }
+    )
+    unsafe = unsafe_true_grants(result)
+    result["machine_proof"]["unsafe_true_grants"] = unsafe
+    result["machine_proof"]["unsafe_true_grants_absent"] = not unsafe
+    if unsafe:
+        result["route_status"] = ROUTE_STATUS_NEEDS_VERIFICATION
+    return _with_active_next_step(result, request, generated_at=generated_at, sqlite_path=sqlite_path)
+
+
 def _make_it_so_grant_result(request: Mapping[str, Any], *, generated_at: str, sqlite_path: Path) -> dict[str, Any]:
     context = _context(request)
     run_mode_context = request.get("run_mode_context") if isinstance(request.get("run_mode_context"), Mapping) else global_run_mode_context.default_run_mode_context(generated_at=generated_at)
@@ -1216,6 +1279,8 @@ def route_conversation_text(
             action_kind="dry_run_email_receipt",
             target_ref="winshiplive@gmail.com",
         )
+    if cassandra_operator_objective_loop.detects_make_it_so_email_objective(text):
+        return _cassandra_operator_objective_result(request, generated_at=generated_at, sqlite_path=sqlite_path)
     make_it_so_email_path = _make_it_so_email_path_enabled(generated_at)
     capability_gap_contract_surface = _capability_gap_contract_surface(request)
     if capability_authority_loop.detects_read_only_email_lookup_intent(text, world_ref=world, thread_ref=thread):
