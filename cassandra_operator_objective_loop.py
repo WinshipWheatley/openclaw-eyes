@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 import authority_secret_custody as custody
+import mac_local_action_bridge
 
 
 ROOT = Path(__file__).resolve().parent
@@ -48,6 +49,8 @@ STATUS_SCHEDULED = "scheduled"
 STATUS_SENT = "sent"
 STATUS_BLOCKED = "blocked"
 STATUS_COMPLETE = "complete"
+STATUS_WAITING_MAC_LOCAL_ACTION_RESULT = "waiting_for_mac_local_action_result"
+STATUS_MAC_LOCAL_ACTION_COMPLETE = "mac_local_action_complete"
 
 DENIED_ACTIONS = (
     "compose_email",
@@ -90,6 +93,13 @@ AUTHORITY_BOUNDARY = {
     "token_exposed": False,
     "secret_exposed": False,
     "raw_authority_granted_trusted": False,
+    "pc_apple_mail_execution_allowed": False,
+    "apple_mail_called": False,
+    "apple_mail_automation_invoked": False,
+    "mailbox_mutation_allowed": False,
+    "mail_body_read_allowed": False,
+    "mail_draft_create_allowed": False,
+    "mail_send_allowed": False,
 }
 
 STEP_TYPES = (
@@ -594,6 +604,153 @@ def _operator_reply() -> str:
     )
 
 
+
+def _mac_local_operator_reply() -> str:
+    return (
+        "Cassandra needs the Mac to perform this Apple Mail action. I queued a scoped "
+        "Mac-local action request.\n\n"
+        "Next safe step: wait for the Mac-local action result. No Apple Mail action has run on PC."
+    )
+
+
+def build_mac_local_action_objective(
+    original_user_text: str,
+    *,
+    source_channel: str,
+    source_message_ref: str = "",
+    lane_context: Mapping[str, Any] | None = None,
+    requested_by_operator: str = "operator:winship",
+    mac_result_queue: Path | str = mac_local_action_bridge.DEFAULT_RESULT_QUEUE,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    generated_at = generated_at or utc_now()
+    clean_text = _strip_cassandra_prefix(original_user_text)
+    context = dict(lane_context or {})
+    counterparty = _extract_counterparty(clean_text)
+    organization = _extract_organization(clean_text, context)
+    context.setdefault("organization", organization)
+    context.setdefault("counterparty", counterparty)
+    context.setdefault("objective_lane", "mac-local Apple Mail action")
+    capability = mac_local_action_bridge.capability_for_text(clean_text)
+    objective_id = "cassandra_operator_objective:" + _short_hash(clean_text, source_channel, context, requested_by_operator, "mac_local_action")
+    input_scope = mac_local_action_bridge.build_input_scope(clean_text, context)
+    request = mac_local_action_bridge.build_mac_local_action_request(
+        objective_id=objective_id,
+        source_channel=source_channel,
+        requested_by_actor="Cassandra",
+        requested_capability=capability,
+        lane_context=context,
+        input_scope=input_scope,
+        authority_envelope_ref="authority_envelope:pending_mac_local_action_scope",
+        local_permission_ref=None,
+        result_queue=mac_result_queue,
+        generated_at=generated_at,
+    )
+    steps = [
+        _step(
+            "mac_local_action_request",
+            "queued_for_mac",
+            capability_ids=[mac_local_action_bridge.APPLE_MAIL_LOCAL_BROKER, capability],
+            required_request_schema=mac_local_action_bridge.MAC_LOCAL_ACTION_REQUEST_SCHEMA,
+            required_executor="mac_local",
+            request_id=request["request_id"],
+            allowed_actions=list(request["allowed_actions"]),
+            denied_actions=list(request["denied_actions"]),
+        ),
+        _step(
+            "mac_local_action_result",
+            "waiting_for_mac_result",
+            required_result_schema=mac_local_action_bridge.MAC_LOCAL_ACTION_RESULT_SCHEMA,
+            reply_to_result_path=request["reply_to_result_path"],
+        ),
+    ]
+    return {
+        "schema_version": CASSANDRA_OPERATOR_OBJECTIVE_SCHEMA,
+        "objective_id": objective_id,
+        "actor": "Cassandra",
+        "requested_by_operator": requested_by_operator,
+        "source_channel": source_channel,
+        "source_message_ref": source_message_ref,
+        "original_user_text": clean_text,
+        "lane_context": context,
+        "client_or_counterparty": counterparty,
+        "objective_summary": f"Ask the Mac to perform a scoped Apple Mail local action for {counterparty} / {organization}.",
+        "intended_outcome": "Queue a Mac-local action request, wait for a receipt-backed result, and avoid PC-side Apple Mail execution.",
+        "current_step": "mac_local_action_request",
+        "objective_status": STATUS_WAITING_MAC_LOCAL_ACTION_RESULT,
+        "steps": steps,
+        "authority_refs": [request["authority_envelope_ref"]],
+        "credential_lease_refs": [],
+        "receipts": [],
+        "proof_refs": [request["request_id"]],
+        "denied_actions": _dedupe([*DENIED_ACTIONS, *request["denied_actions"]]),
+        "safe_next_step": "Wait for the Mac-local action result.",
+        "mac_local_action_request": request,
+        "package_plan": mac_local_action_bridge.build_package_plan_for_text(
+            clean_text,
+            source_channel=source_channel,
+            objective_id=objective_id,
+            lane_context=context,
+            generated_at=generated_at,
+        ),
+        "created_at": generated_at,
+        "updated_at": generated_at,
+        "machine_proof": dict(AUTHORITY_BOUNDARY),
+    }
+
+
+def route_mac_local_action_objective_message(
+    text: str,
+    *,
+    source_channel: str,
+    source_message_ref: str = "",
+    lane_context: Mapping[str, Any] | None = None,
+    sqlite_path: Path | str = DEFAULT_SQLITE_PATH,
+    mac_bridge_sqlite_path: Path | str = mac_local_action_bridge.DEFAULT_SQLITE_PATH,
+    mac_request_queue: Path | str = mac_local_action_bridge.DEFAULT_REQUEST_QUEUE,
+    mac_result_queue: Path | str = mac_local_action_bridge.DEFAULT_RESULT_QUEUE,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    generated_at = generated_at or utc_now()
+    objective = build_mac_local_action_objective(
+        text,
+        source_channel=source_channel,
+        source_message_ref=source_message_ref,
+        lane_context=lane_context,
+        mac_result_queue=mac_result_queue,
+        generated_at=generated_at,
+    )
+    queued = mac_local_action_bridge.write_mac_local_action_request(
+        objective["mac_local_action_request"],
+        request_queue=mac_request_queue,
+        sqlite_path=mac_bridge_sqlite_path,
+        generated_at=generated_at,
+    )
+    objective["mac_local_action_request"] = queued["request"]
+    objective["proof_refs"] = _dedupe([*objective.get("proof_refs", []), queued["request_path"]])
+    _persist_objective(objective, sqlite_path, generated_at=generated_at, decision="mac_local_action_request_queued")
+    proof = dict(AUTHORITY_BOUNDARY)
+    proof.update(
+        {
+            "mac_local_action_request_created": True,
+            "pc_apple_mail_execution_performed": False,
+            "mailbox_mutation_performed": False,
+            "raw_body_exposed": False,
+        }
+    )
+    return {
+        "schema_version": "CASSANDRA_OPERATOR_OBJECTIVE_ROUTE_V0",
+        "recognized": True,
+        "response_status": "CASSANDRA_OBJECTIVE_WAITING_FOR_MAC_LOCAL_ACTION",
+        "operator_reply": _mac_local_operator_reply(),
+        "next_safe_step": objective["safe_next_step"],
+        "objective": objective,
+        "mac_local_action_request": queued["request"],
+        "mac_local_action_request_path": queued["request_path"],
+        "package_plan": objective["package_plan"],
+        "machine_proof": proof,
+    }
+
 def route_cassandra_objective_message(
     text: str,
     *,
@@ -601,9 +758,24 @@ def route_cassandra_objective_message(
     source_message_ref: str = "",
     lane_context: Mapping[str, Any] | None = None,
     sqlite_path: Path | str = DEFAULT_SQLITE_PATH,
+    mac_bridge_sqlite_path: Path | str = mac_local_action_bridge.DEFAULT_SQLITE_PATH,
+    mac_request_queue: Path | str = mac_local_action_bridge.DEFAULT_REQUEST_QUEUE,
+    mac_result_queue: Path | str = mac_local_action_bridge.DEFAULT_RESULT_QUEUE,
     generated_at: str | None = None,
 ) -> dict[str, Any]:
     generated_at = generated_at or utc_now()
+    if source_channel == "telegram" and mac_local_action_bridge.detects_apple_mail_local_request(text):
+        return route_mac_local_action_objective_message(
+            text,
+            source_channel=source_channel,
+            source_message_ref=source_message_ref,
+            lane_context=lane_context,
+            sqlite_path=sqlite_path,
+            mac_bridge_sqlite_path=mac_bridge_sqlite_path,
+            mac_request_queue=mac_request_queue,
+            mac_result_queue=mac_result_queue,
+            generated_at=generated_at,
+        )
     if not detects_make_it_so_email_objective(text):
         return {
             "schema_version": "CASSANDRA_OPERATOR_OBJECTIVE_ROUTE_V0",
@@ -805,6 +977,68 @@ def record_lookup_receipt(
         "response_status": response_status,
         "objective": objective,
         "text_followup_draft": draft,
+        "machine_proof": dict(AUTHORITY_BOUNDARY),
+    }
+
+
+def record_mac_local_action_result(
+    objective_id: str,
+    *,
+    mac_result: Mapping[str, Any],
+    sqlite_path: Path | str = DEFAULT_SQLITE_PATH,
+    mac_bridge_sqlite_path: Path | str = mac_local_action_bridge.DEFAULT_SQLITE_PATH,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    generated_at = generated_at or utc_now()
+    if mac_result.get("schema_version") != mac_local_action_bridge.MAC_LOCAL_ACTION_RESULT_SCHEMA:
+        raise ValueError("MAC_LOCAL_ACTION_RESULT_V0 is required")
+    with _connect(sqlite_path) as conn:
+        objective = _load_objective(conn, objective_id)
+        request = objective.get("mac_local_action_request") if isinstance(objective.get("mac_local_action_request"), Mapping) else {}
+        bridge_record = mac_local_action_bridge.record_mac_local_action_result(
+            mac_result,
+            sqlite_path=mac_bridge_sqlite_path,
+            request=request,
+            generated_at=generated_at,
+        )
+        receipt_ref = str(mac_result.get("receipt_ref") or f"mac_local_action_receipt:{_short_hash(objective_id, generated_at)}")
+        conn.execute(
+            """
+            INSERT OR REPLACE INTO objective_receipts
+              (objective_id, receipt_ref, receipt_kind, status, receipt_json)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (objective_id, receipt_ref, "mac_local_action_result", str(mac_result.get("status") or ""), stable_json(dict(mac_result))),
+        )
+        objective["receipts"] = _dedupe([*objective.get("receipts", []), receipt_ref])
+        if bridge_record.get("response_status") == "MAC_LOCAL_ACTION_RESULT_RECORDED":
+            objective["objective_status"] = STATUS_MAC_LOCAL_ACTION_COMPLETE
+            objective["current_step"] = "mac_local_action_result"
+            objective["safe_next_step"] = str(mac_result.get("next_safe_step") or "Review the Mac-local action result.")
+            decision = "mac_local_action_result_recorded"
+        else:
+            objective["objective_status"] = STATUS_BLOCKED
+            objective["safe_next_step"] = "Review the Mac-local action result verifier errors."
+            decision = "mac_local_action_result_rejected"
+        objective["mac_local_action_result"] = dict(mac_result)
+        objective["updated_at"] = generated_at
+        _store_objective(conn, objective)
+        _store_event(
+            conn,
+            objective_id=objective_id,
+            channel="mac_local_action_bridge",
+            message_ref=str(mac_result.get("request_id") or ""),
+            decision=decision,
+            status_transition=str(objective["objective_status"]),
+            receipt_ref=receipt_ref,
+            generated_at=generated_at,
+        )
+        conn.commit()
+    return {
+        "schema_version": "CASSANDRA_MAC_LOCAL_ACTION_RESULT_CONTINUATION_V0",
+        "response_status": "MAC_LOCAL_ACTION_RESULT_ACCEPTED" if objective["objective_status"] == STATUS_MAC_LOCAL_ACTION_COMPLETE else "MAC_LOCAL_ACTION_RESULT_BLOCKED",
+        "objective": objective,
+        "bridge_record": bridge_record,
         "machine_proof": dict(AUTHORITY_BOUNDARY),
     }
 

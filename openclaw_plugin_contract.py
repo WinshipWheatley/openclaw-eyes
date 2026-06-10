@@ -23,6 +23,13 @@ FIXTURE_PLUGIN_IDS = (
     "openclaw.gmail_send_mail",
     "openclaw.contacts_readonly_lookup",
     "openclaw.calendar_event_manager",
+    "openclaw.apple_mail_local_broker",
+    "openclaw.apple_mail_selected_message_metadata_read",
+    "openclaw.apple_mail_scoped_metadata_search",
+    "openclaw.apple_mail_selected_message_body_read",
+    "openclaw.apple_mail_text_draft_preview",
+    "openclaw.apple_mail_draft_create",
+    "openclaw.apple_mail_send",
     "openclaw.follow_up_draft_generator",
     "openclaw.contact_identity_extraction",
     "openclaw.payment_uncertainty_summarizer",
@@ -257,6 +264,56 @@ def fixture_descriptors() -> dict[str, dict[str, Any]]:
                 "coupa_submit",
             ],
         ),
+
+        "openclaw.apple_mail_local_broker": _base_descriptor(
+            "openclaw.apple_mail_local_broker",
+            "Apple Mail local broker",
+            ["queue_mac_local_action_request", "emit_mac_local_action_receipt"],
+            [
+                "pc_direct_apple_mail_execution",
+                "ambient_mailbox_scan",
+                "read_raw_email_body_without_body_authority",
+                "create_mail_draft",
+                "send_email",
+                "mailbox_mutation",
+            ],
+        ),
+        "openclaw.apple_mail_selected_message_metadata_read": _base_descriptor(
+            "openclaw.apple_mail_selected_message_metadata_read",
+            "Apple Mail selected-message metadata read",
+            ["selected_message_metadata_only", "emit_redacted_metadata_receipt"],
+            ["read_message_body", "create_mail_draft", "send_email", "mailbox_mutation"],
+        ),
+        "openclaw.apple_mail_scoped_metadata_search": _base_descriptor(
+            "openclaw.apple_mail_scoped_metadata_search",
+            "Apple Mail scoped metadata search",
+            ["scoped_mail_metadata_search", "emit_redacted_metadata_receipt"],
+            ["read_message_body", "background_scan_without_unattended_envelope", "create_mail_draft", "send_email", "mailbox_mutation"],
+        ),
+        "openclaw.apple_mail_selected_message_body_read": _base_descriptor(
+            "openclaw.apple_mail_selected_message_body_read",
+            "Apple Mail selected-message body read",
+            ["selected_message_body_read_after_authority", "emit_redacted_body_receipt"],
+            ["create_mail_draft", "send_email", "mailbox_mutation"],
+        ),
+        "openclaw.apple_mail_text_draft_preview": _base_descriptor(
+            "openclaw.apple_mail_text_draft_preview",
+            "Apple Mail text draft preview",
+            ["text_only_draft_preview", "emit_draft_preview_receipt"],
+            ["create_mail_draft", "send_email", "mailbox_mutation"],
+        ),
+        "openclaw.apple_mail_draft_create": _base_descriptor(
+            "openclaw.apple_mail_draft_create",
+            "Apple Mail draft create",
+            ["request_mail_app_draft_create_authority", "emit_draft_create_receipt"],
+            ["send_email", "mailbox_delete", "mailbox_archive", "mailbox_mark_read"],
+        ),
+        "openclaw.apple_mail_send": _base_descriptor(
+            "openclaw.apple_mail_send",
+            "Apple Mail send",
+            ["request_exact_payload_send_authority", "emit_send_or_blocker_receipt"],
+            ["send_email", "send_without_exact_payload_authority", "mailbox_mutation"],
+        ),
         "openclaw.follow_up_draft_generator": _base_descriptor(
             "openclaw.follow_up_draft_generator",
             "Follow-up draft generator",
@@ -328,6 +385,26 @@ def fixture_descriptors() -> dict[str, dict[str, Any]]:
             "live_lookup_enabled_by_default": False,
         }
     )
+    for capability_id in (
+        "openclaw.apple_mail_local_broker",
+        "openclaw.apple_mail_selected_message_metadata_read",
+        "openclaw.apple_mail_scoped_metadata_search",
+        "openclaw.apple_mail_selected_message_body_read",
+        "openclaw.apple_mail_text_draft_preview",
+        "openclaw.apple_mail_draft_create",
+        "openclaw.apple_mail_send",
+    ):
+        descriptors[capability_id]["package_targets"] = ["mac_surface_action", "deterministic_python_adapter"]
+        descriptors[capability_id]["required_authority"].update(
+            {
+                "requires_mac_local_action_request": True,
+                "requires_mac_local_permission_receipt": True,
+                "raw_authority_granted_trusted": False,
+            }
+        )
+        descriptors[capability_id]["policy_gated"] = True
+        descriptors[capability_id]["live_lookup_enabled_by_default"] = False
+
     descriptors["openclaw.read_only_email_lookup"]["required_authority"].update(
         {
             "requires_task_specific_authority_envelope": True,

@@ -71,6 +71,15 @@ DEFAULT_DENIED_ACTIONS = (
 )
 
 READ_ONLY_EMAIL_LOOKUP_CAPABILITY_ID = "openclaw.read_only_email_lookup"
+APPLE_MAIL_CAPABILITY_IDS = {
+    "openclaw.apple_mail_local_broker",
+    "openclaw.apple_mail_selected_message_metadata_read",
+    "openclaw.apple_mail_scoped_metadata_search",
+    "openclaw.apple_mail_selected_message_body_read",
+    "openclaw.apple_mail_text_draft_preview",
+    "openclaw.apple_mail_draft_create",
+    "openclaw.apple_mail_send",
+}
 
 
 def stable_json(payload: Any) -> str:
@@ -579,6 +588,7 @@ def build_package_plan(
     available_credential_candidates: dict[str, list[str]] = {}
     required_authority_by_capability: dict[str, str] = {}
     required_leases: dict[str, str] = {}
+    required_executors: dict[str, str] = {}
     for capability_id in required_capabilities:
         resolution = resolve_capability(
             capability_id,
@@ -607,6 +617,11 @@ def build_package_plan(
             ]
             required_authority_by_capability[capability_id] = "scoped read-only Gmail lookup envelope"
             required_leases[capability_id] = _readonly_lookup_lease_requirement(requested_objective)
+        elif capability_id in APPLE_MAIL_CAPABILITY_IDS:
+            required_authority_by_capability[capability_id] = "scoped Mac-local action request authority"
+            required_executors[capability_id] = "mac_local"
+            if capability_id in credential_required_for:
+                required_leases[capability_id] = "Mac-local permission receipt required on target Mac before execution"
         else:
             required_authority_by_capability[capability_id] = "scoped authority envelope before live data access"
             if capability_id in credential_required_for:
@@ -637,6 +652,15 @@ def build_package_plan(
         "required_authority": required_authority_by_capability,
         "available_credential_candidates": available_credential_candidates,
         "required_leases": required_leases,
+        "required_executors": required_executors,
+        "mac_local_action_bridge": {
+            "required": bool(required_executors),
+            "request_schema": "MAC_LOCAL_ACTION_REQUEST_V0",
+            "result_schema": "MAC_LOCAL_ACTION_RESULT_V0",
+            "pc_to_mac_request_queue": "/mnt/e/openclaw/mac_local_action_requests/to_mac",
+            "mac_to_pc_result_queue": "/mnt/e/openclaw/mac_local_action_results/from_mac",
+            "production_execution_on_pc_allowed": False,
+        },
         "credential_handle_requirements": [
             {
                 "capability_id": capability_id,

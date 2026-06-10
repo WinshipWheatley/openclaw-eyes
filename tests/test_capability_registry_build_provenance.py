@@ -218,8 +218,33 @@ def test_openclaw_plugin_contract_fixture_ids_match_registry_seed():
         "openclaw.gmail_send_mail",
         "openclaw.contacts_readonly_lookup",
         "openclaw.calendar_event_manager",
+        "openclaw.apple_mail_local_broker",
+        "openclaw.apple_mail_selected_message_metadata_read",
+        "openclaw.apple_mail_scoped_metadata_search",
+        "openclaw.apple_mail_selected_message_body_read",
+        "openclaw.apple_mail_text_draft_preview",
+        "openclaw.apple_mail_draft_create",
+        "openclaw.apple_mail_send",
         loop.FOLLOW_UP_DRAFT_GENERATOR,
         loop.CONTACT_IDENTITY_EXTRACTION,
         loop.PAYMENT_UNCERTAINTY_SUMMARIZER,
         "openclaw.verifier_proof_checker",
     }
+
+
+def test_package_plan_identifies_apple_mail_capability_as_mac_local_executor(tmp_path):
+    plan = registry.build_package_plan(
+        requested_objective="Cassandra, check Apple Mail for Annette at Capital Hilton",
+        required_capabilities=["openclaw.apple_mail_scoped_metadata_search"],
+        lane_context={"target_world_ref": "finance", "target_thread_ref": "capital_hilton"},
+        sqlite_path=tmp_path / "capabilities.sqlite",
+        generated_at=FIXED_NOW,
+    )
+
+    assert plan["schema_version"] == registry.CAPABILITY_PACKAGE_PLAN_SCHEMA
+    assert plan["required_executors"] == {"openclaw.apple_mail_scoped_metadata_search": "mac_local"}
+    assert plan["mac_local_action_bridge"]["required"] is True
+    assert plan["mac_local_action_bridge"]["request_schema"] == "MAC_LOCAL_ACTION_REQUEST_V0"
+    assert plan["mac_local_action_bridge"]["result_schema"] == "MAC_LOCAL_ACTION_RESULT_V0"
+    assert plan["mac_local_action_bridge"]["production_execution_on_pc_allowed"] is False
+    assert plan["required_authority"]["openclaw.apple_mail_scoped_metadata_search"] == "scoped Mac-local action request authority"
