@@ -16,6 +16,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
+import ar_counterparty_contact_operations as ar_ops
 import authority_secret_custody as custody
 import mac_local_action_bridge
 
@@ -276,6 +277,10 @@ def detects_make_it_so_email_objective(text: str) -> bool:
     followup = any(term in lowered for term in ("follow up", "follow-up", "followup", "send a follow", "send it", "send a reply"))
     review_first = any(term in lowered for term in ("show me the draft", "show the draft", "before you send", "before sending", "review", "don't send until", "do not send until"))
     return email_lookup and followup and review_first
+
+
+def detects_ar_counterparty_objective(text: str) -> bool:
+    return ar_ops.detects_ar_counterparty_intent(text)
 
 
 def _strip_cassandra_prefix(text: str) -> str:
@@ -776,6 +781,160 @@ def route_mac_local_action_objective_message(
         "machine_proof": proof,
     }
 
+
+def _ar_operator_reply(ar_plan: Mapping[str, Any]) -> str:
+    contact = ar_plan.get("contact") if isinstance(ar_plan.get("contact"), Mapping) else {}
+    account = ar_plan.get("account") if isinstance(ar_plan.get("account"), Mapping) else {}
+    return (
+        "I can handle this as a gated AR contact objective. "
+        f"I resolved {contact.get('display_name', 'the contact')} as the payment contact for "
+        f"{account.get('account_label', 'the account')}. "
+        f"Next safe step: {ar_plan.get('next_safe_step')}"
+    )
+
+
+def _ar_objective_status(ar_plan: Mapping[str, Any]) -> str:
+    intent = str(ar_plan.get("intent") or "")
+    required_authority = str(ar_plan.get("required_authority") or "")
+    if required_authority == "single_message_body_read_authority":
+        return STATUS_WAITING_BODY_READ_AUTHORITY
+    if intent == "payment_followup":
+        return STATUS_WAITING_LOOKUP_AUTHORITY
+    if intent == "invoice_send":
+        return STATUS_WAITING_SEND_AUTHORITY
+    if intent == "email_watch":
+        return STATUS_WAITING_UNATTENDED_RUN_AUTHORITY
+    if intent == "email_followup":
+        return STATUS_DRAFT_READY_FOR_REVIEW
+    return STATUS_PLANNING
+
+
+def build_ar_counterparty_objective(
+    original_user_text: str,
+    *,
+    ar_plan: Mapping[str, Any],
+    source_channel: str,
+    source_message_ref: str = "",
+    lane_context: Mapping[str, Any] | None = None,
+    requested_by_operator: str = "operator:winship",
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    generated_at = generated_at or utc_now()
+    clean_text = _strip_cassandra_prefix(original_user_text)
+    account = ar_plan.get("account") if isinstance(ar_plan.get("account"), Mapping) else {}
+    contact = ar_plan.get("contact") if isinstance(ar_plan.get("contact"), Mapping) else {}
+    objective_id = "cassandra_operator_objective:" + _short_hash(
+        clean_text,
+        source_channel,
+        account.get("account_id"),
+        contact.get("contact_id"),
+        requested_by_operator,
+        "ar_contact_operations",
+    )
+    status = _ar_objective_status(ar_plan)
+    context = dict(lane_context or {})
+    context.setdefault("objective_lane", "accounts receivable contact operations")
+    context.setdefault("account_id", account.get("account_id"))
+    context.setdefault("contact_id", contact.get("contact_id"))
+    steps = [
+        _step(
+            "ar_contact_profile_resolution",
+            "complete",
+            capability_ids=["ar_contact_profile_resolution"],
+            account_id=account.get("account_id"),
+            contact_id=contact.get("contact_id"),
+            relationship_status=list(contact.get("relationship_status") or []),
+        ),
+        _step(
+            "ar_policy_next_authority",
+            "waiting_for_authority" if "authority" in str(ar_plan.get("required_authority") or "") else "ready_for_review",
+            required_authority=ar_plan.get("required_authority"),
+            next_safe_step=ar_plan.get("next_safe_step"),
+            denied_actions=list(ar_plan.get("denied_actions") or []),
+        ),
+        _step(
+            "ar_receipt",
+            "pending",
+            required_receipts=["policy_resolution_receipt", "authority_or_blocker_receipt"],
+        ),
+    ]
+    return {
+        "schema_version": CASSANDRA_OPERATOR_OBJECTIVE_SCHEMA,
+        "objective_id": objective_id,
+        "actor": "Cassandra",
+        "requested_by_operator": requested_by_operator,
+        "source_channel": source_channel,
+        "source_message_ref": source_message_ref,
+        "original_user_text": clean_text,
+        "lane_context": context,
+        "client_or_counterparty": contact.get("display_name") or account.get("account_label") or "specified AR counterparty",
+        "objective_summary": (
+            f"Handle AR contact operations for {account.get('account_label', 'the account')} "
+            f"through {contact.get('display_name', 'the resolved contact')}."
+        ),
+        "intended_outcome": "Resolve the AR contact, identify the one next gated action, and preserve send/body/watch locks.",
+        "current_step": "ar_policy_next_authority",
+        "objective_status": status,
+        "steps": steps,
+        "authority_refs": [],
+        "credential_lease_refs": [],
+        "receipts": [],
+        "proof_refs": [str(ar_plan.get("metadata_receipt_path") or "")] if ar_plan.get("metadata_receipt_path") else [],
+        "denied_actions": list(ar_plan.get("denied_actions") or DENIED_ACTIONS),
+        "safe_next_step": str(ar_plan.get("next_safe_step") or "Review the AR contact objective."),
+        "ar_plan": dict(ar_plan),
+        "package_plan": dict(ar_plan.get("package_plan") or {}),
+        "created_at": generated_at,
+        "updated_at": generated_at,
+        "machine_proof": dict(ar_plan.get("machine_proof") or AUTHORITY_BOUNDARY),
+    }
+
+
+def route_ar_counterparty_objective_message(
+    text: str,
+    *,
+    source_channel: str,
+    source_message_ref: str = "",
+    lane_context: Mapping[str, Any] | None = None,
+    sqlite_path: Path | str = DEFAULT_SQLITE_PATH,
+    ar_sqlite_path: Path | str = ar_ops.DEFAULT_SQLITE_PATH,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    generated_at = generated_at or utc_now()
+    ar_sqlite_path = ar_sqlite_path or ar_ops.DEFAULT_SQLITE_PATH
+    ar_plan = ar_ops.plan_ar_counterparty_action(text, sqlite_path=ar_sqlite_path, generated_at=generated_at)
+    if not ar_plan.get("recognized"):
+        return {
+            "schema_version": "CASSANDRA_OPERATOR_OBJECTIVE_ROUTE_V0",
+            "recognized": False,
+            "response_status": "NOT_CASSANDRA_AR_OBJECTIVE",
+            "ar_plan": ar_plan,
+            "machine_proof": dict(AUTHORITY_BOUNDARY),
+        }
+    objective = build_ar_counterparty_objective(
+        text,
+        ar_plan=ar_plan,
+        source_channel=source_channel,
+        source_message_ref=source_message_ref,
+        lane_context=lane_context,
+        generated_at=generated_at,
+    )
+    _persist_objective(objective, sqlite_path, generated_at=generated_at, decision="ar_contact_objective_planned")
+    proof = dict(AUTHORITY_BOUNDARY)
+    proof.update(dict(ar_plan.get("machine_proof") or {}))
+    return {
+        "schema_version": "CASSANDRA_OPERATOR_OBJECTIVE_ROUTE_V0",
+        "recognized": True,
+        "response_status": "CASSANDRA_AR_OBJECTIVE_PLANNED",
+        "operator_reply": _ar_operator_reply(ar_plan),
+        "next_safe_step": objective["safe_next_step"],
+        "objective": objective,
+        "ar_plan": ar_plan,
+        "package_plan": ar_plan.get("package_plan"),
+        "machine_proof": proof,
+    }
+
+
 def route_cassandra_objective_message(
     text: str,
     *,
@@ -783,6 +942,7 @@ def route_cassandra_objective_message(
     source_message_ref: str = "",
     lane_context: Mapping[str, Any] | None = None,
     sqlite_path: Path | str = DEFAULT_SQLITE_PATH,
+    ar_sqlite_path: Path | str = ar_ops.DEFAULT_SQLITE_PATH,
     mac_bridge_sqlite_path: Path | str = mac_local_action_bridge.DEFAULT_SQLITE_PATH,
     mac_request_queue: Path | str = mac_local_action_bridge.DEFAULT_REQUEST_QUEUE,
     mac_result_queue: Path | str = mac_local_action_bridge.DEFAULT_RESULT_QUEUE,
@@ -801,29 +961,39 @@ def route_cassandra_objective_message(
             mac_result_queue=mac_result_queue,
             generated_at=generated_at,
         )
-    if not detects_make_it_so_email_objective(text):
+    if detects_make_it_so_email_objective(text):
+        objective = build_cassandra_operator_objective(
+            text,
+            source_channel=source_channel,
+            source_message_ref=source_message_ref,
+            lane_context=lane_context,
+            generated_at=generated_at,
+        )
+        _persist_objective(objective, sqlite_path, generated_at=generated_at, decision="objective_created_waiting_for_lookup_authority")
         return {
             "schema_version": "CASSANDRA_OPERATOR_OBJECTIVE_ROUTE_V0",
-            "recognized": False,
-            "response_status": "NOT_CASSANDRA_OPERATOR_OBJECTIVE",
+            "recognized": True,
+            "response_status": "CASSANDRA_OBJECTIVE_WAITING_FOR_LOOKUP_AUTHORITY",
+            "operator_reply": _operator_reply(),
+            "next_safe_step": objective["safe_next_step"],
+            "objective": objective,
+            "authority_request": objective["lookup_authority_request"],
             "machine_proof": dict(AUTHORITY_BOUNDARY),
         }
-    objective = build_cassandra_operator_objective(
-        text,
-        source_channel=source_channel,
-        source_message_ref=source_message_ref,
-        lane_context=lane_context,
-        generated_at=generated_at,
-    )
-    _persist_objective(objective, sqlite_path, generated_at=generated_at, decision="objective_created_waiting_for_lookup_authority")
+    if detects_ar_counterparty_objective(text):
+        return route_ar_counterparty_objective_message(
+            text,
+            source_channel=source_channel,
+            source_message_ref=source_message_ref,
+            lane_context=lane_context,
+            sqlite_path=sqlite_path,
+            ar_sqlite_path=ar_sqlite_path,
+            generated_at=generated_at,
+        )
     return {
         "schema_version": "CASSANDRA_OPERATOR_OBJECTIVE_ROUTE_V0",
-        "recognized": True,
-        "response_status": "CASSANDRA_OBJECTIVE_WAITING_FOR_LOOKUP_AUTHORITY",
-        "operator_reply": _operator_reply(),
-        "next_safe_step": objective["safe_next_step"],
-        "objective": objective,
-        "authority_request": objective["lookup_authority_request"],
+        "recognized": False,
+        "response_status": "NOT_CASSANDRA_OPERATOR_OBJECTIVE",
         "machine_proof": dict(AUTHORITY_BOUNDARY),
     }
 

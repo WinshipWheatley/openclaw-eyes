@@ -56,6 +56,7 @@ ROUTE_STATUS_BUILD_AUTHORITY_REQUEST = "CAPABILITY_BUILD_AUTHORITY_REQUEST_READY
 ROUTE_STATUS_MAKE_IT_SO_AUTHORITY_REQUEST = "MAKE_IT_SO_AUTHORITY_REQUEST_READY"
 ROUTE_STATUS_MAKE_IT_SO_GRANT_COMPILED = "MAKE_IT_SO_GRANT_COMPILED"
 ROUTE_STATUS_CASSANDRA_OBJECTIVE_WAITING = "CASSANDRA_OBJECTIVE_WAITING_FOR_LOOKUP_AUTHORITY"
+ROUTE_STATUS_CASSANDRA_AR_OBJECTIVE_PLANNED = "CASSANDRA_AR_OBJECTIVE_PLANNED"
 
 INTENT_CLASSES = (
     "payment_watch_next_step",
@@ -781,31 +782,47 @@ def _cassandra_operator_objective_result(request: Mapping[str, Any], *, generate
             "selected_card_id": context["selected_card_id"],
         },
         sqlite_path=sqlite_path,
+        ar_sqlite_path=str(request.get("ar_sqlite_path") or ""),
         generated_at=generated_at,
     )
-    display = _custom_display(
-        speaker_ref="cassandra",
-        voice_mode="client_safe",
-        headline="Gated objective ready",
-        summary=(
-            "I can handle this as a gated Cassandra objective. First I need scoped metadata "
-            "lookup approval. If no reply is found, I'll draft the follow-up and stop for "
-            "review before sending."
-        ),
-        next_safe_action="Approve scoped lookup.",
-    )
+    if response.get("response_status") == ROUTE_STATUS_CASSANDRA_AR_OBJECTIVE_PLANNED:
+        display = _custom_display(
+            speaker_ref="cassandra",
+            voice_mode="client_safe",
+            headline="AR objective ready",
+            summary=str(response.get("operator_reply") or "I resolved the AR contact policy and found the next gated step."),
+            next_safe_action=str(response.get("next_safe_step") or "Review the AR objective."),
+        )
+        route_status = ROUTE_STATUS_CASSANDRA_AR_OBJECTIVE_PLANNED
+        suggested_controller_event = "review_ar_contact_next_authority"
+        route_notes = ["cassandra_operator_objective:ar_contact_operations", "incoming_raw_authority_not_trusted"]
+    else:
+        display = _custom_display(
+            speaker_ref="cassandra",
+            voice_mode="client_safe",
+            headline="Gated objective ready",
+            summary=(
+                "I can handle this as a gated Cassandra objective. First I need scoped metadata "
+                "lookup approval. If no reply is found, I'll draft the follow-up and stop for "
+                "review before sending."
+            ),
+            next_safe_action="Approve scoped lookup.",
+        )
+        route_status = ROUTE_STATUS_CASSANDRA_OBJECTIVE_WAITING
+        suggested_controller_event = "review_scoped_lookup_authority"
+        route_notes = ["cassandra_operator_objective:gated_email_followup", "incoming_raw_authority_not_trusted"]
     result = _text_result(
         request,
         generated_at=generated_at,
-        route_status=ROUTE_STATUS_CASSANDRA_OBJECTIVE_WAITING,
+        route_status=route_status,
         backend_route="cassandra_operator_objective_loop.route_cassandra_objective_message",
         display=display,
         proof_refs=[
             "generated/read_models/authority_secret_custody.json",
             "generated/read_models/first_class_capability_authority_loop.json",
         ],
-        suggested_controller_event="review_scoped_lookup_authority",
-        route_notes=["cassandra_operator_objective:gated_email_followup", "incoming_raw_authority_not_trusted"],
+        suggested_controller_event=suggested_controller_event,
+        route_notes=route_notes,
     )
     result["cassandra_operator_objective"] = response
     result["machine_proof"].update(
@@ -1280,6 +1297,8 @@ def route_conversation_text(
             target_ref="winshiplive@gmail.com",
         )
     if cassandra_operator_objective_loop.detects_make_it_so_email_objective(text):
+        return _cassandra_operator_objective_result(request, generated_at=generated_at, sqlite_path=sqlite_path)
+    if cassandra_operator_objective_loop.detects_ar_counterparty_objective(text):
         return _cassandra_operator_objective_result(request, generated_at=generated_at, sqlite_path=sqlite_path)
     make_it_so_email_path = _make_it_so_email_path_enabled(generated_at)
     capability_gap_contract_surface = _capability_gap_contract_surface(request)
