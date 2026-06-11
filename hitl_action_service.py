@@ -267,10 +267,10 @@ def _default_dispatcher(action_type: str) -> Callable[[dict], Mapping[str, Any] 
 
 
 def _dispatch_exact_gmail_send_to_cassandra(action: dict) -> Mapping[str, Any]:
-    """Build the Cassandra exact-send decision without touching Gmail/broker."""
+    """Route exact-send approval into Cassandra's reviewed exact-send gate."""
     import cassandra_operator_objective_loop as objective_loop
 
-    return objective_loop.build_exact_send_approval_decision_from_operator_action(action)
+    return objective_loop.run_exact_send_operator_action_routeback(action)
 
 
 def _build_decision_receipt(

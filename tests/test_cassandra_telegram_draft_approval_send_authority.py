@@ -1794,3 +1794,172 @@ def test_operator_action_contract_is_reusable_for_second_action_type(monkeypatch
     assert action["payload"]["approval_buttons"] == ["Approve", "Deny", "Why now?"]
     assert action["payload"]["typed_fallback_reply_code"] == created["action_id"][:4]
     assert "Action type: open_local_file" in message
+
+
+def test_default_hitl_dispatcher_calls_cassandra_exact_send_routeback(monkeypatch, tmp_path):
+    hitl_action_service, _hitl_store, _hitl_notification_service = _isolate_hitl_store(monkeypatch, tmp_path)
+    _db, _objective, request, _draft, packet, bundle = _future_exact_send_packet(tmp_path)
+    created = objective_loop.register_exact_send_operator_action_approval(
+        packet,
+        authority_envelope=bundle["authority_envelope"],
+        credential_lease=bundle["credential_lease"],
+        generated_at=FIXED_NOW,
+    )
+    calls = []
+
+    def fake_routeback(action):
+        calls.append(action)
+        return {
+            "schema_version": "EXACT_SEND_HITL_ROUTEBACK_RESULT_V0",
+            "response_status": "EXACT_SEND_LIVE_TRANSPORT_SUCCESS_RECEIPT_WRITTEN",
+            "request_id": request["request_id"],
+            "execution_performed": False,
+            "gmail_api_called": False,
+            "email_send_performed": False,
+        }
+
+    monkeypatch.setattr(objective_loop, "run_exact_send_operator_action_routeback", fake_routeback)
+
+    ok = hitl_action_service.approve_action(created["action_id"], approved_by="winship")
+    action = hitl_action_service.get_pending_action(created["action_id"])
+
+    assert ok is True
+    assert calls and calls[0]["action_type"] == "exact_gmail_send"
+    assert action["decision_receipt"]["dispatch_status"] == "dispatched"
+    assert action["decision_receipt"]["dispatch_result"]["schema_version"] == "EXACT_SEND_HITL_ROUTEBACK_RESULT_V0"
+
+
+def test_exact_send_operator_action_routeback_executes_with_fake_broker(monkeypatch, tmp_path):
+    hitl_action_service, hitl_store, _hitl_notification_service = _isolate_hitl_store(monkeypatch, tmp_path)
+    db, objective, request, _draft, packet, bundle = _future_exact_send_packet(tmp_path)
+    created = objective_loop.register_exact_send_operator_action_approval(
+        packet,
+        authority_envelope=bundle["authority_envelope"],
+        credential_lease=bundle["credential_lease"],
+        generated_at=FIXED_NOW,
+    )
+    hitl_store.update_action_status(created["action_id"], "APPROVED", approved_by="winship")
+    action = hitl_action_service.get_pending_action(created["action_id"])
+    fake = objective_loop.FakeBrokerGmailSendTransport()
+
+    result = objective_loop.run_exact_send_operator_action_routeback(
+        action,
+        sqlite_path=db,
+        receipt_dir=tmp_path / "routeback_receipts",
+        transport=fake,
+        live_transport_enabled=True,
+        generated_at="2026-06-10T19:46:00+00:00",
+    )
+    receipt_path = Path(result["terminal_receipt_path"])
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+
+    assert result["response_status"] == "EXACT_SEND_LIVE_TRANSPORT_SUCCESS_RECEIPT_WRITTEN"
+    assert result["execution_performed"] is True
+    assert receipt["request_id"] == request["request_id"]
+    assert receipt["fixture_only_transport"] is True
+    assert receipt["fake_broker_called"] is True
+    assert receipt["gmail_api_called"] is False
+    assert receipt["email_send_performed"] is True
+    assert fake.calls and fake.calls[0]["params"]["exact_send_request_id"] == request["request_id"]
+
+
+def test_exact_send_operator_action_routeback_refuses_denied_expired_replay_and_wrong_type(monkeypatch, tmp_path):
+    hitl_action_service, hitl_store, _hitl_notification_service = _isolate_hitl_store(monkeypatch, tmp_path)
+
+    # Denied action: no execution.
+    denied_db, _denied_objective, _denied_request, _draft, denied_packet, denied_bundle = _future_exact_send_packet(tmp_path / "denied")
+    denied = objective_loop.register_exact_send_operator_action_approval(
+        denied_packet,
+        authority_envelope=denied_bundle["authority_envelope"],
+        credential_lease=denied_bundle["credential_lease"],
+        generated_at=FIXED_NOW,
+    )
+    hitl_store.update_action_status(denied["action_id"], "DENIED", denied_reason="operator_denied")
+    denied_fake = objective_loop.FakeBrokerGmailSendTransport()
+    denied_result = objective_loop.run_exact_send_operator_action_routeback(
+        hitl_action_service.get_pending_action(denied["action_id"]),
+        sqlite_path=denied_db,
+        receipt_dir=tmp_path / "denied_receipts",
+        transport=denied_fake,
+        live_transport_enabled=True,
+        generated_at="2026-06-10T19:46:00+00:00",
+    )
+
+    # Expired action: refusal before fake broker.
+    expired_db, _expired_objective, _expired_request, _draft, expired_packet, expired_bundle = _future_exact_send_packet(tmp_path / "expired")
+    expired = objective_loop.register_exact_send_operator_action_approval(
+        expired_packet,
+        authority_envelope=expired_bundle["authority_envelope"],
+        credential_lease=expired_bundle["credential_lease"],
+        generated_at=FIXED_NOW,
+    )
+    hitl_store.update_action_status(expired["action_id"], "APPROVED", approved_by="winship")
+    expired_fake = objective_loop.FakeBrokerGmailSendTransport()
+    expired_result = objective_loop.run_exact_send_operator_action_routeback(
+        hitl_action_service.get_pending_action(expired["action_id"]),
+        sqlite_path=expired_db,
+        receipt_dir=tmp_path / "expired_receipts",
+        transport=expired_fake,
+        live_transport_enabled=True,
+        generated_at="2100-06-10T19:46:00+00:00",
+    )
+
+    # Replay: first succeeds, second refuses without duplicate fake call.
+    replay_db, _replay_objective, _replay_request, _draft, replay_packet, replay_bundle = _future_exact_send_packet(tmp_path / "replay")
+    replay = objective_loop.register_exact_send_operator_action_approval(
+        replay_packet,
+        authority_envelope=replay_bundle["authority_envelope"],
+        credential_lease=replay_bundle["credential_lease"],
+        generated_at=FIXED_NOW,
+    )
+    hitl_store.update_action_status(replay["action_id"], "APPROVED", approved_by="winship")
+    replay_fake = objective_loop.FakeBrokerGmailSendTransport()
+    first = objective_loop.run_exact_send_operator_action_routeback(
+        hitl_action_service.get_pending_action(replay["action_id"]),
+        sqlite_path=replay_db,
+        receipt_dir=tmp_path / "replay_receipts",
+        transport=replay_fake,
+        live_transport_enabled=True,
+        generated_at="2026-06-10T19:46:00+00:00",
+    )
+    second = objective_loop.run_exact_send_operator_action_routeback(
+        hitl_action_service.get_pending_action(replay["action_id"]),
+        sqlite_path=replay_db,
+        receipt_dir=tmp_path / "replay_receipts",
+        transport=replay_fake,
+        live_transport_enabled=True,
+        generated_at="2026-06-10T19:47:00+00:00",
+    )
+
+    wrong = hitl_action_service.create_operator_action_approval_request(
+        action_type="open_local_file",
+        owner_agent="niles",
+        owner_objective_id="objective:wrong",
+        request_id="operator_action_request:wrong",
+        summary="Open a file",
+        payload={"path": "/tmp/example.md"},
+        risk_warning="No mutation.",
+        expires_at=FUTURE_EXACT_SEND_EXPIRES_AT,
+        route_back={"type": "local_action_bridge_open"},
+    )
+    hitl_store.update_action_status(wrong["action_id"], "APPROVED", approved_by="winship")
+    wrong_fake = objective_loop.FakeBrokerGmailSendTransport()
+    wrong_result = objective_loop.run_exact_send_operator_action_routeback(
+        hitl_action_service.get_pending_action(wrong["action_id"]),
+        sqlite_path=denied_db,
+        receipt_dir=tmp_path / "wrong_type_receipts",
+        transport=wrong_fake,
+        live_transport_enabled=True,
+        generated_at="2026-06-10T19:46:00+00:00",
+    )
+
+    assert denied_result["refusal_reason"] == "operator_action_not_approved"
+    assert denied_fake.calls == []
+    assert expired_result["refusal_reason"] == "expired_request"
+    assert expired_fake.calls == []
+    assert first["response_status"] == "EXACT_SEND_LIVE_TRANSPORT_SUCCESS_RECEIPT_WRITTEN"
+    assert second["response_status"] == "EXACT_SEND_LIVE_TRANSPORT_REFUSED"
+    assert second["refusal_reason"] == "replay_detected"
+    assert len(replay_fake.calls) == 1
+    assert wrong_result["refusal_reason"] == "wrong_action_type"
+    assert wrong_fake.calls == []

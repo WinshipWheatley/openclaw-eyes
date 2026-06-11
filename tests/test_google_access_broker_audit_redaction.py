@@ -95,3 +95,39 @@ def test_broker_audit_redacts_body_text_and_message_body(tmp_path, monkeypatch):
     assert "message_body" not in params
     assert "message_body" not in params["metadata"]
     assert params["metadata"]["payload_hash"].startswith("sha256:")
+
+
+def test_exact_send_gate_context_skips_second_broker_approval_prompt(monkeypatch):
+    calls = []
+
+    def approval_prompt(*args, **kwargs):
+        calls.append((args, kwargs))
+        raise AssertionError("broker should not request a second approval for exact-send gate context")
+
+    monkeypatch.setattr(broker, "_request_approval", approval_prompt)
+    monkeypatch.setattr(broker, "_is_configured", lambda: False)
+
+    result = broker.call(
+        "cassandra",
+        "google.gmail.send",
+        {
+            "to": "annette@example.com",
+            "subject": "Fixture",
+            "body": "Fixture body",
+            "idempotency_key": "exact_send_authority_request:fixture",
+            "exact_send_request_id": "exact_send_authority_request:fixture",
+            "approval_context": {
+                "exact_send_gate": True,
+                "request_id": "exact_send_authority_request:fixture",
+                "idempotency_key": "exact_send_authority_request:fixture",
+                "objective_id": "cassandra_operator_objective:fixture",
+                "payload_hash": "sha256:" + ("a" * 64),
+                "authority_refs": ["authority_envelope:fixture"],
+                "credential_lease_refs": ["credential_lease:fixture"],
+            },
+        },
+    )
+
+    assert calls == []
+    assert result["ok"] is False
+    assert "credentials not configured" in result["error"].lower()

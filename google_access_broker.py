@@ -211,6 +211,29 @@ def _request_approval(action: str, tier: int, approval_context: dict | None = No
         return False
 
 
+def _exact_send_gate_context_verified(
+    agent: str,
+    capability: str,
+    params: Mapping[str, Any],
+) -> bool:
+    """True when Cassandra's exact-send gate already verified human approval."""
+    if agent.lower() != "cassandra" or capability != "google.gmail.send":
+        return False
+    context = params.get("approval_context")
+    if not isinstance(context, Mapping):
+        return False
+    request_id = str(params.get("exact_send_request_id") or context.get("request_id") or "")
+    idempotency_key = str(params.get("idempotency_key") or context.get("idempotency_key") or "")
+    return bool(
+        context.get("exact_send_gate") is True
+        and request_id
+        and idempotency_key == request_id
+        and context.get("payload_hash")
+        and context.get("authority_refs")
+        and context.get("credential_lease_refs")
+    )
+
+
 # ── Capability executors ──────────────────────────────────────────────────────
 # Each executor receives live credentials and capability-specific params.
 # Returns {"ok": bool, "data": any, "error": str}.
@@ -839,6 +862,7 @@ def call(agent: str, capability: str, params: dict | None = None) -> dict:
 
     # 2. Approval gate (Class B and C only)
     #    Class A reads auto-proceed — gating would make reads unusable.
+    exact_send_gate_verified = _exact_send_gate_context_verified(agent, capability, params)
     if approval_class == "B":
         action = f"Google broker: {agent} → {capability}"
         if not _request_approval(action, tier=1, approval_context=params.get("approval_context")):
@@ -846,7 +870,7 @@ def call(agent: str, capability: str, params: dict | None = None) -> dict:
             return {"ok": False, "data": None, "error": "denied at L1 approval gate"}
     elif approval_class == "C":
         action = f"Google broker: {agent} → {capability}"
-        if not _request_approval(action, tier=2, approval_context=params.get("approval_context")):
+        if not exact_send_gate_verified and not _request_approval(action, tier=2, approval_context=params.get("approval_context")):
             _audit(agent, capability, params, False, "denied at L2")
             return {"ok": False, "data": None, "error": "denied at L2 approval gate"}
 

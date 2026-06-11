@@ -2338,6 +2338,94 @@ def build_exact_send_approval_decision_from_operator_action(
     }
 
 
+def run_exact_send_operator_action_routeback(
+    action: Mapping[str, Any],
+    *,
+    sqlite_path: Path | str = DEFAULT_SQLITE_PATH,
+    receipt_dir: Path | str | None = None,
+    transport: Any = None,
+    live_transport_enabled: bool = True,
+    live_db_execution_policy: str = EXACT_SEND_LIVE_DB_POLICY_FRESH_EXACT_APPROVAL_ONLY,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    """Route an approved HITL exact-send action into Cassandra's exact-send gate."""
+    generated_at = generated_at or utc_now()
+    action_id = str(action.get("action_id") or "")
+    action_type = str(action.get("action_type") or "")
+    payload = action.get("payload") if isinstance(action.get("payload"), Mapping) else {}
+    route_back = payload.get("route_back") if isinstance(payload.get("route_back"), Mapping) else {}
+    request_id = str(payload.get("request_id") or action.get("idempotency_key") or "")
+    objective_id = str(payload.get("owner_objective_id") or route_back.get("objective_id") or "")
+    if receipt_dir is None:
+        safe_request = re.sub(r"[^A-Za-z0-9_.:-]+", "_", request_id or action_id or "unknown")
+        receipt_dir = Path("/tmp/openclaw-mission-control/exact_send_hitl_routeback_v0") / safe_request
+
+    def refused(reason: str) -> dict[str, Any]:
+        receipt = _exact_send_refusal_receipt(
+            schema_version=EXACT_SEND_LIVE_TRANSPORT_REFUSAL_RECEIPT_SCHEMA,
+            response_status="EXACT_SEND_LIVE_TRANSPORT_REFUSED",
+            reason=reason,
+            request_id=request_id,
+            objective_id=objective_id,
+            generated_at=generated_at,
+            transport_mode="operator_action_routeback",
+            broker_agent=GOOGLE_BROKER_AGENT_CASSANDRA,
+            broker_capability=GOOGLE_GMAIL_SEND_BROKER_CAPABILITY,
+            broker_called=False,
+            fake_broker_called=False,
+        )
+        receipt_path = _write_exact_send_receipt(receipt_dir, "exact_send_hitl_routeback_refusal_receipt", receipt)
+        return {
+            "schema_version": "EXACT_SEND_HITL_ROUTEBACK_RESULT_V0",
+            "response_status": "EXACT_SEND_HITL_ROUTEBACK_REFUSED",
+            "refusal_reason": reason,
+            "operator_action_id": action_id,
+            "request_id": request_id,
+            "objective_id": objective_id,
+            "receipt": receipt,
+            "refusal_receipt_path": receipt_path.as_posix(),
+            "execution_performed": False,
+            "gmail_api_called": False,
+            "email_send_performed": False,
+        }
+
+    if action_type != "exact_gmail_send":
+        return refused("wrong_action_type")
+    if str(action.get("status") or "") != "APPROVED":
+        return refused("operator_action_not_approved")
+    if not request_id or str(action.get("idempotency_key") or request_id) != request_id:
+        return refused("request_id_idempotency_mismatch")
+    if route_back.get("type") != "cassandra_exact_send_executor":
+        return refused("route_back_not_cassandra_exact_send_executor")
+
+    approval_decision = build_exact_send_approval_decision_from_operator_action(
+        action,
+        generated_at=generated_at,
+    )
+    if transport is None:
+        transport = GovernedGmailBrokerSendTransport(live_transport_enabled=live_transport_enabled)
+    result = run_exact_send_live_transport_gate(
+        sqlite_path=sqlite_path,
+        objective_id=objective_id,
+        approval_decision=approval_decision,
+        receipt_dir=receipt_dir,
+        transport=transport,
+        live_transport_enabled=live_transport_enabled,
+        live_db_execution_policy=live_db_execution_policy,
+        generated_at=generated_at,
+    )
+    return {
+        "schema_version": "EXACT_SEND_HITL_ROUTEBACK_RESULT_V0",
+        "response_status": str(result.get("response_status") or ""),
+        "operator_action_id": action_id,
+        "request_id": request_id,
+        "objective_id": objective_id,
+        "approval_decision": approval_decision,
+        **result,
+        "guardian_calls_gmail_or_broker_directly": False,
+    }
+
+
 def _extract_request_ids(text: str) -> list[str]:
     ids: list[str] = []
     for match in re.finditer(r"exact_send_authority_request:[A-Za-z0-9_.:-]+", str(text or "")):
