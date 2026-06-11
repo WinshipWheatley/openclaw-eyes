@@ -1866,6 +1866,8 @@ def parse_exact_send_approval(
         "payload_hash": str(review_packet.get("payload_hash") or ""),
         "supplied_payload_hash": supplied_hash,
         "expires_at": str(review_packet.get("expires_at") or ""),
+        "approval_parser": "parse_exact_send_approval",
+        "parser_provenance": "parse_exact_send_approval",
         "created_at": generated_at,
         "raw_authority_granted_trusted": False,
         "execution_performed": False,
@@ -1943,6 +1945,8 @@ def _load_exact_send_execution_state(
     recipient = str(artifact.get("recipient") or "")
     subject = str(artifact.get("subject") or "")
     body = str(artifact.get("body") or "")
+    request_recipient = str(request.get("recipient") or "")
+    request_subject = str(request.get("subject") or "")
     if not recipient or not subject or not body:
         return None, {
             "reason": "stored_draft_body_missing",
@@ -1950,6 +1954,24 @@ def _load_exact_send_execution_state(
             "objective_id": objective_id,
             "recipient": recipient or str(request.get("recipient") or ""),
             "subject": subject or str(request.get("subject") or ""),
+            "expected_payload_hash": str(request.get("payload_hash") or ""),
+        }
+    if request_recipient and request_recipient != recipient:
+        return None, {
+            "reason": "request_recipient_artifact_recipient_mismatch",
+            "request_id": request_id,
+            "objective_id": objective_id,
+            "recipient": request_recipient,
+            "subject": request_subject or subject,
+            "expected_payload_hash": str(request.get("payload_hash") or ""),
+        }
+    if request_subject and request_subject != subject:
+        return None, {
+            "reason": "request_subject_artifact_subject_mismatch",
+            "request_id": request_id,
+            "objective_id": objective_id,
+            "recipient": request_recipient or recipient,
+            "subject": request_subject,
             "expected_payload_hash": str(request.get("payload_hash") or ""),
         }
     observed_hash = _payload_hash(recipient=recipient, subject=subject, body=body)
@@ -1983,8 +2005,8 @@ def _load_exact_send_execution_state(
         "draft_artifact": artifact,
         "request_id": request_id,
         "objective_id": objective_id,
-        "recipient": str(request.get("recipient") or recipient),
-        "subject": str(request.get("subject") or subject),
+        "recipient": recipient,
+        "subject": subject,
         "body": body,
         "payload_hash": expected_hash,
         "observed_payload_hash": observed_hash,
@@ -2375,8 +2397,8 @@ class GovernedGmailBrokerSendTransport(DisabledGmailExactSendTransport):
         if broker_call is None:
             broker_module = __import__("google_access_broker")
             broker_call = getattr(broker_module, "call")
-        result = broker_call(self.broker_agent, self.broker_capability, broker_params)
         self.broker_called = True
+        result = broker_call(self.broker_agent, self.broker_capability, broker_params)
         ok = bool(isinstance(result, Mapping) and result.get("ok") is True)
         return {
             "ok": ok,
@@ -2388,6 +2410,7 @@ class GovernedGmailBrokerSendTransport(DisabledGmailExactSendTransport):
             "credential_lease_refs": list(credential_lease_refs),
             "broker_called": True,
             "fake_broker_called": False,
+            "live_broker_called": True,
             "gmail_api_called": ok,
             "email_send_performed": ok,
             "live_transport_enabled": True,
@@ -2443,6 +2466,7 @@ class FakeBrokerGmailSendTransport(GovernedGmailBrokerSendTransport):
             },
         }
         self.calls.append(call)
+        self.broker_called = True
         if callable(self.before_result):
             self.before_result(dict(payload), self)
         if self.mode == "exception":
@@ -2457,8 +2481,9 @@ class FakeBrokerGmailSendTransport(GovernedGmailBrokerSendTransport):
                 "credential_handle_id": self.credential_handle_id,
                 "authority_refs": list(authority_refs),
                 "credential_lease_refs": list(credential_lease_refs),
-                "broker_called": False,
+                "broker_called": True,
                 "fake_broker_called": True,
+                "live_broker_called": False,
                 "gmail_api_called": False,
                 "email_send_performed": False,
                 "live_transport_enabled": True,
@@ -2476,8 +2501,9 @@ class FakeBrokerGmailSendTransport(GovernedGmailBrokerSendTransport):
                 "credential_handle_id": self.credential_handle_id,
                 "authority_refs": list(authority_refs),
                 "credential_lease_refs": list(credential_lease_refs),
-                "broker_called": False,
+                "broker_called": True,
                 "fake_broker_called": True,
+                "live_broker_called": False,
                 "gmail_api_called": False,
                 "email_send_performed": False,
                 "live_transport_enabled": True,
@@ -2494,8 +2520,9 @@ class FakeBrokerGmailSendTransport(GovernedGmailBrokerSendTransport):
                 "credential_handle_id": self.credential_handle_id,
                 "authority_refs": list(authority_refs),
                 "credential_lease_refs": list(credential_lease_refs),
-                "broker_called": False,
+                "broker_called": True,
                 "fake_broker_called": True,
+                "live_broker_called": False,
                 "gmail_api_called": False,
                 "email_send_performed": False,
                 "live_transport_enabled": True,
@@ -2516,8 +2543,9 @@ class FakeBrokerGmailSendTransport(GovernedGmailBrokerSendTransport):
             "credential_handle_id": self.credential_handle_id,
             "authority_refs": list(authority_refs),
             "credential_lease_refs": list(credential_lease_refs),
-            "broker_called": False,
+            "broker_called": True,
             "fake_broker_called": True,
+            "live_broker_called": False,
             "gmail_api_called": False,
             "email_send_performed": True,
             "live_transport_enabled": True,
@@ -2651,7 +2679,12 @@ def _exact_send_terminal_receipt(
         "fixture_only_transport": fixture_only_transport,
         "broker_called": bool(transport_result.get("broker_called")),
         "fake_broker_called": bool(transport_result.get("fake_broker_called")),
-        "live_broker_called": bool(transport_result.get("broker_called")),
+        "live_broker_called": bool(
+            transport_result.get(
+                "live_broker_called",
+                bool(transport_result.get("broker_called")) and not bool(transport_result.get("fake_broker_called")),
+            )
+        ),
         "live_transport_enabled": True,
         "live_transport_constructed": True,
         "execution_performed": bool(transport_result.get("email_send_performed")),
@@ -2678,6 +2711,7 @@ def run_exact_send_live_transport_gate(
     generated_at: str | None = None,
 ) -> dict[str, Any]:
     generated_at = generated_at or utc_now()
+    execution_observed_at = utc_now()
     request_id = str(approval_decision.get("expected_request_id") or approval_decision.get("request_id") or "")
 
     def refuse(
@@ -2729,6 +2763,14 @@ def run_exact_send_live_transport_gate(
             "machine_proof": dict(AUTHORITY_BOUNDARY),
         }
 
+    if (
+        str(approval_decision.get("schema_version") or "") != EXACT_SEND_APPROVAL_DECISION_SCHEMA
+        or str(approval_decision.get("approval_parser") or "") != "parse_exact_send_approval"
+        or str(approval_decision.get("parser_provenance") or "") != "parse_exact_send_approval"
+    ):
+        return refuse("approval_parser_provenance_required")
+    if str(approval_decision.get("expected_request_id") or "") != str(approval_decision.get("request_id") or ""):
+        return refuse("approval_request_id_binding_required")
     if not approval_decision.get("approved"):
         return refuse(str(approval_decision.get("reason") or "approval_not_valid"))
 
@@ -2747,7 +2789,7 @@ def run_exact_send_live_transport_gate(
                 conn,
                 objective_id=objective_id,
                 approval_decision=approval_decision,
-                generated_at=generated_at,
+                generated_at=execution_observed_at,
             )
             if error:
                 conn.rollback()
@@ -2887,6 +2929,7 @@ def run_exact_send_live_transport_gate(
                 "credential_lease_refs": credential_lease_refs,
                 "broker_called": bool(getattr(transport, "broker_called", False)),
                 "fake_broker_called": bool(getattr(transport, "calls", [])),
+                "live_broker_called": bool(getattr(transport, "broker_called", False)) and not bool(getattr(transport, "calls", [])),
                 "gmail_api_called": False,
                 "email_send_performed": False,
                 "payload_hash": str(state.get("payload_hash") or ""),
