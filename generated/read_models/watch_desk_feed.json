@@ -1,0 +1,119 @@
+{
+  "authority_boundary": {
+    "approval_semantics_added": false,
+    "card_family_added": false,
+    "live_listener_wiring_allowed": false,
+    "live_notification_allowed": false,
+    "read_only_aggregation": true,
+    "runtime_database_mutation_allowed": false,
+    "source_read_model_mutation_allowed": false,
+    "source_task_mutation_allowed": false
+  },
+  "feed_items": [
+    {
+      "item_id": "cassandra_ar:reply_path_failure_tasks:open",
+      "lane": "cassandra_ar",
+      "one_next_safe_action": "Run bounded local diagnosis from existing proof and keep live listener wiring blocked.",
+      "plain_line": "2 Cassandra failure tasks open for reply-path diagnosis.",
+      "push_allowed": false,
+      "push_candidate": true,
+      "push_class": "failure",
+      "source_receipt_ref": "polish_loop/tasks/chief-cassandra-failure-20260610T205623.md#generated_by",
+      "state_hash": "sha256:c1dc24841f62664fb8100b85000fb539d5949754320f72792b17a9d04eca5674",
+      "urgency": "blocked"
+    },
+    {
+      "item_id": "cassandra_ar:cassandra_draft_capital_hilton_invoice_followup_v0:authority_waiting",
+      "lane": "cassandra_ar",
+      "one_next_safe_action": "Review the existing draft readback and keep external delivery blocked until the existing approval path is used.",
+      "plain_line": "Cassandra has a draft waiting for operator send-authority review.",
+      "push_allowed": false,
+      "push_candidate": true,
+      "push_class": "approval_waiting",
+      "source_receipt_ref": "generated/read_models/cassandra_draft_worker_readback.json#readback",
+      "state_hash": "sha256:12e2c30e7d0adbdb82c4535c45f08af6f494485a9a42945e75a34d8a5d32affb",
+      "urgency": "needs_operator"
+    },
+    {
+      "item_id": "guardian_approval:approval_request_queue:pending",
+      "lane": "guardian_approval",
+      "one_next_safe_action": "Review the existing approval queue and choose the next recorded decision there.",
+      "plain_line": "7 approval requests waiting for operator review.",
+      "push_allowed": false,
+      "push_candidate": true,
+      "push_class": "approval_waiting",
+      "source_receipt_ref": "generated/read_models/approval_request_queue.json#pending",
+      "state_hash": "sha256:642923110df38a2f5abb85f3842c6d1a164981df8b5ff372ce8b758f631b9db1",
+      "urgency": "needs_operator"
+    },
+    {
+      "item_id": "mac_sync:read_model_mirror:stale",
+      "lane": "mac_sync",
+      "one_next_safe_action": "Use the existing sync lifecycle; do not patch source read models by hand.",
+      "plain_line": "Mac sync read model is stale or mismatched (448 missing, 7 hash mismatches).",
+      "push_allowed": false,
+      "push_candidate": false,
+      "push_class": "on_demand",
+      "source_receipt_ref": "generated/read_models/sync_health.json#mirror_status",
+      "state_hash": "sha256:3e7224cf71acc710fec4ce9333dbbbadee30a0786ce57e20588779d6b2cffda6",
+      "urgency": "watch"
+    }
+  ],
+  "generated_at": "2026-06-11T03:07:21+00:00",
+  "item_count": 4,
+  "machine_proof": {
+    "all_items_have_source_receipt_ref": true,
+    "live_listener_modified": false,
+    "live_notifications_sent": false,
+    "push_allowed_false_for_all_items": true,
+    "push_candidates_limited_to_approval_waiting_and_failure": true,
+    "raw_private_body_copied": false,
+    "runtime_databases_written": false,
+    "source_models_written": false
+  },
+  "mode": "fixture_read_model_only_no_live_mutation",
+  "new_push_candidate_count": 3,
+  "new_push_candidates": [
+    {
+      "item_id": "cassandra_ar:reply_path_failure_tasks:open",
+      "lane": "cassandra_ar",
+      "push_allowed": false,
+      "source_receipt_ref": "polish_loop/tasks/chief-cassandra-failure-20260610T205623.md#generated_by",
+      "state_hash": "sha256:c1dc24841f62664fb8100b85000fb539d5949754320f72792b17a9d04eca5674",
+      "urgency": "blocked"
+    },
+    {
+      "item_id": "cassandra_ar:cassandra_draft_capital_hilton_invoice_followup_v0:authority_waiting",
+      "lane": "cassandra_ar",
+      "push_allowed": false,
+      "source_receipt_ref": "generated/read_models/cassandra_draft_worker_readback.json#readback",
+      "state_hash": "sha256:12e2c30e7d0adbdb82c4535c45f08af6f494485a9a42945e75a34d8a5d32affb",
+      "urgency": "needs_operator"
+    },
+    {
+      "item_id": "guardian_approval:approval_request_queue:pending",
+      "lane": "guardian_approval",
+      "push_allowed": false,
+      "source_receipt_ref": "generated/read_models/approval_request_queue.json#pending",
+      "state_hash": "sha256:642923110df38a2f5abb85f3842c6d1a164981df8b5ff372ce8b758f631b9db1",
+      "urgency": "needs_operator"
+    }
+  ],
+  "push_policy": {
+    "dedupe_key": "item_id + state_hash",
+    "eligible_classes": [
+      "approval_waiting",
+      "failure"
+    ],
+    "everything_else": "on_demand",
+    "live_push_allowed": false
+  },
+  "read_model_id": "watch_desk_feed",
+  "schema_version": "watch_desk_feed_v0",
+  "source_receipt_refs": [
+    "generated/read_models/approval_request_queue.json#pending",
+    "generated/read_models/cassandra_draft_worker_readback.json#readback",
+    "generated/read_models/sync_health.json#mirror_status",
+    "polish_loop/tasks/chief-cassandra-failure-20260610T205623.md#generated_by"
+  ]
+}
