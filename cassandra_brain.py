@@ -2268,6 +2268,9 @@ def _detect_future_action_intent(text: str) -> bool:
     scheduling queries.
     """
     t = text.lower()
+    # Draft approval messages contain "follow up" in their body but are NOT reminder requests
+    if any(phrase in t for phrase in ("draft is approved", "draft approved", "prepare the send authority", "send authority request")):
+        return False
     if any(phrase in t for phrase in _FUTURE_ACTION_PHRASES):
         return True
     # Require both a time word and an action verb to match indirect patterns

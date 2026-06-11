@@ -279,6 +279,13 @@ def detects_make_it_so_email_objective(text: str) -> bool:
     return email_lookup and followup and review_first
 
 
+def detects_draft_approval_send_authority(text: str) -> bool:
+    lowered = str(text or "").lower()
+    draft_approval = any(phrase in lowered for phrase in ("draft is approved", "approved with this exact text", "draft approved"))
+    send_authority = any(phrase in lowered for phrase in ("prepare the send authority", "send authority request", "do not send until", "exact send request", "don't send until"))
+    return draft_approval and send_authority
+
+
 def detects_ar_counterparty_objective(text: str) -> bool:
     return ar_ops.detects_ar_counterparty_intent(text)
 
@@ -934,6 +941,132 @@ def route_ar_counterparty_objective_message(
         "machine_proof": proof,
     }
 
+def extract_approved_draft_payload(text: str) -> dict[str, Any]:
+    recipient_match = re.search(r"([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})", text)
+    recipient = recipient_match.group(1) if recipient_match else ""
+
+    subject_match = re.search(r"Subject:\s*([^\n]+)", text, re.IGNORECASE)
+    subject = subject_match.group(1).strip() if subject_match else ""
+
+    body = ""
+    if subject_match:
+        parts = text[subject_match.end():].split("Prepare the send", 1)
+        if len(parts) == 1:
+            parts = text[subject_match.end():].split("do not send", 1)
+        if len(parts) == 1:
+            parts = text[subject_match.end():].split("Do not send", 1)
+        body = parts[0].strip()
+
+    return {
+        "recipient": recipient,
+        "subject": subject,
+        "body": body,
+        "payload_hash": _payload_hash(recipient=recipient, subject=subject, body=body),
+    }
+
+
+def route_draft_approval_to_send_authority(
+    text: str,
+    *,
+    objective_id: str | None = None,
+    source_channel: str,
+    source_message_ref: str = "",
+    lane_context: Mapping[str, Any] | None = None,
+    sqlite_path: Path | str = DEFAULT_SQLITE_PATH,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    generated_at = generated_at or utc_now()
+    payload = extract_approved_draft_payload(text)
+
+    with _connect(sqlite_path) as conn:
+        objective = None
+        if objective_id:
+            objective = _maybe_load_objective(conn, objective_id)
+        if not objective:
+            cursor = conn.execute(
+                "SELECT objective_json FROM cassandra_operator_objectives WHERE objective_status = ?",
+                (STATUS_DRAFT_READY_FOR_REVIEW,)
+            )
+            row = cursor.fetchone()
+            if row:
+                objective = json.loads(row["objective_json"])
+
+        if not objective:
+            obj_id = "cassandra_operator_objective:" + _short_hash(text, source_channel, generated_at)
+            objective = {
+                "schema_version": CASSANDRA_OPERATOR_OBJECTIVE_SCHEMA,
+                "objective_id": obj_id,
+                "actor": "Cassandra",
+                "requested_by_operator": "operator:winship",
+                "source_channel": source_channel,
+                "source_message_ref": source_message_ref,
+                "original_user_text": text,
+                "lane_context": dict(lane_context or {}),
+                "client_or_counterparty": "specified counterparty",
+                "objective_summary": "Prepare exact send authority request.",
+                "intended_outcome": "Draft approved, requesting exact send authority.",
+                "current_step": "optional_email_send",
+                "objective_status": STATUS_WAITING_SEND_AUTHORITY,
+                "steps": [],
+                "authority_refs": [],
+                "credential_lease_refs": [],
+                "receipts": [],
+                "proof_refs": [],
+                "denied_actions": list(DENIED_ACTIONS),
+                "safe_next_step": "Review exact send/scheduled-send authority request.",
+                "created_at": generated_at,
+                "updated_at": generated_at,
+                "machine_proof": dict(AUTHORITY_BOUNDARY),
+            }
+            obj_id = objective["objective_id"]
+        else:
+            obj_id = objective["objective_id"]
+            objective["objective_status"] = STATUS_WAITING_SEND_AUTHORITY
+            objective["current_step"] = "optional_email_send"
+            objective["safe_next_step"] = "Review exact send/scheduled-send authority request."
+            objective["updated_at"] = generated_at
+
+        request = build_exact_send_authority_request(
+            objective_id=obj_id,
+            draft=payload,
+            operator_text=text,
+            generated_at=generated_at,
+        )
+        objective["send_authority_request"] = request
+
+        _store_objective(conn, objective)
+        _store_event(
+            conn,
+            objective_id=obj_id,
+            channel=source_channel,
+            message_ref=source_message_ref,
+            decision="draft_approved_send_authority_prepared",
+            status_transition=STATUS_WAITING_SEND_AUTHORITY,
+            receipt_ref=str(request.get("request_id") or ""),
+            generated_at=generated_at,
+        )
+        conn.commit()
+
+    proof = dict(AUTHORITY_BOUNDARY)
+    proof.update({
+        "email_send_performed": False,
+        "gmail_draft_created": False,
+        "scheduled_send_created": False,
+        "calendar_api_called": False,
+        "contacts_api_called": False,
+        "broad_broker_ambient_use": False,
+    })
+
+    return {
+        "schema_version": "CASSANDRA_OPERATOR_OBJECTIVE_ROUTE_V0",
+        "recognized": True,
+        "response_status": "CASSANDRA_OBJECTIVE_DRAFT_APPROVED_PREPARE_SEND_AUTHORITY",
+        "operator_reply": f"I prepared the send authority request for {payload['recipient']}. Nothing has been sent. Next: approve the exact send request.",
+        "send_authority_request": request,
+        "objective": objective,
+        "machine_proof": proof,
+    }
+
 
 def route_cassandra_objective_message(
     text: str,
@@ -959,6 +1092,15 @@ def route_cassandra_objective_message(
             mac_bridge_sqlite_path=mac_bridge_sqlite_path,
             mac_request_queue=mac_request_queue,
             mac_result_queue=mac_result_queue,
+            generated_at=generated_at,
+        )
+    if detects_draft_approval_send_authority(text):
+        return route_draft_approval_to_send_authority(
+            text,
+            source_channel=source_channel,
+            source_message_ref=source_message_ref,
+            lane_context=lane_context,
+            sqlite_path=sqlite_path,
             generated_at=generated_at,
         )
     if detects_make_it_so_email_objective(text):
