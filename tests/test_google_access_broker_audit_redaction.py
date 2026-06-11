@@ -131,3 +131,63 @@ def test_exact_send_gate_context_skips_second_broker_approval_prompt(monkeypatch
     assert calls == []
     assert result["ok"] is False
     assert "credentials not configured" in result["error"].lower()
+
+
+def test_gmail_broker_runtime_dependency_preflight_imports_without_credentials():
+    readiness = broker.check_gmail_broker_runtime_dependencies()
+
+    assert readiness["ok"] is True
+    assert "googleapiclient.discovery" in readiness["checked_modules"]
+    assert readiness["credentials_read"] is False
+    assert readiness["google_api_called"] is False
+
+
+def test_gmail_broker_readiness_reports_missing_dependency_before_approval_or_credentials(monkeypatch):
+    approval_calls = []
+    configured_calls = []
+
+    def fake_import(module_name):
+        if module_name == "googleapiclient.discovery":
+            raise ModuleNotFoundError("No module named 'googleapiclient'")
+        return object()
+
+    def approval_prompt(*args, **kwargs):
+        approval_calls.append((args, kwargs))
+        return False
+
+    def configured():
+        configured_calls.append(True)
+        return False
+
+    monkeypatch.setattr(broker, "_import_runtime_dependency", fake_import)
+    monkeypatch.setattr(broker, "_request_approval", approval_prompt)
+    monkeypatch.setattr(broker, "_is_configured", configured)
+
+    result = broker.call(
+        "cassandra",
+        "google.gmail.send",
+        {
+            "to": "annette@example.com",
+            "subject": "Fixture",
+            "body": "Fixture body",
+            "idempotency_key": "exact_send_authority_request:fixture",
+            "exact_send_request_id": "exact_send_authority_request:fixture",
+            "approval_context": {
+                "exact_send_gate": True,
+                "request_id": "exact_send_authority_request:fixture",
+                "idempotency_key": "exact_send_authority_request:fixture",
+                "objective_id": "cassandra_operator_objective:fixture",
+                "payload_hash": "sha256:" + ("a" * 64),
+                "authority_refs": ["authority_envelope:fixture"],
+                "credential_lease_refs": ["credential_lease:fixture"],
+            },
+        },
+    )
+
+    assert result["ok"] is False
+    assert "missing gmail broker runtime dependencies" in result["error"].lower()
+    assert result["data"]["missing"][0]["module"] == "googleapiclient.discovery"
+    assert result["data"]["credentials_read"] is False
+    assert result["data"]["google_api_called"] is False
+    assert approval_calls == []
+    assert configured_calls == []

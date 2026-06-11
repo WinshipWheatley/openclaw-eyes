@@ -46,6 +46,7 @@ Public API:
 
 import json
 import sys
+import importlib
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Mapping
@@ -134,6 +135,12 @@ _AUDIT_APPROVAL_CONTEXT_KEEP_KEYS = {
     "exact_send_gate",
 }
 
+_GMAIL_BROKER_RUNTIME_IMPORTS = (
+    "googleapiclient.discovery",
+    "google.oauth2.credentials",
+    "google.auth.transport.requests",
+)
+
 
 def _redact_audit_value(value: Any) -> Any:
     if isinstance(value, Mapping):
@@ -209,6 +216,33 @@ def _request_approval(action: str, tier: int, approval_context: dict | None = No
     except ImportError:
         print("[google_broker] approval gate unavailable — defaulting to deny", flush=True)
         return False
+
+
+def _import_runtime_dependency(module_name: str):
+    return importlib.import_module(module_name)
+
+
+def check_gmail_broker_runtime_dependencies() -> dict:
+    """Import Gmail broker runtime modules without loading credentials."""
+    missing: list[dict[str, str]] = []
+    for module_name in _GMAIL_BROKER_RUNTIME_IMPORTS:
+        try:
+            _import_runtime_dependency(module_name)
+        except Exception as exc:
+            missing.append(
+                {
+                    "module": module_name,
+                    "error_type": type(exc).__name__,
+                    "error": str(exc),
+                }
+            )
+    return {
+        "ok": not missing,
+        "checked_modules": list(_GMAIL_BROKER_RUNTIME_IMPORTS),
+        "missing": missing,
+        "credentials_read": False,
+        "google_api_called": False,
+    }
 
 
 def _exact_send_gate_context_verified(
@@ -857,6 +891,14 @@ def call(agent: str, capability: str, params: dict | None = None) -> dict:
         msg = f"{agent} is not permitted to call {capability}"
         _audit(agent, capability, params, False, msg)
         return {"ok": False, "data": None, "error": msg}
+
+    if capability.startswith("google.gmail."):
+        readiness = check_gmail_broker_runtime_dependencies()
+        if not readiness["ok"]:
+            missing = ", ".join(item["module"] for item in readiness["missing"])
+            msg = f"missing Gmail broker runtime dependencies: {missing}"
+            _audit(agent, capability, params, False, msg)
+            return {"ok": False, "data": readiness, "error": msg}
 
     approval_class = get_class(agent, capability)
 
