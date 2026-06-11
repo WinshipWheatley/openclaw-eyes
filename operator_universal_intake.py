@@ -24,6 +24,12 @@ JSON_EXPORT_NAME = "operator_intake_events.json"
 
 SUPPORTED_SURFACES = (
     "telegram",
+    "cassandra_direct",
+    "niles_direct",
+    "chief_direct",
+    "hermes_direct",
+    "guardian_direct",
+    "watch_desk_direct",
     "mac_composer",
     "voice_stt",
     "watch_desk",
@@ -36,6 +42,7 @@ SUPPORTED_ACTION_TYPES = (
     "gig_event_log",
     "identity_signature_preference",
     "agent_lane_request",
+    "approval_gated_action_request",
 )
 
 WATCH_DESK_LANES = {
@@ -104,6 +111,131 @@ SURFACE_WIRING_STATUS = {
     "telegram_live_listener_restart_required": True,
     "mac_composer_callable_contract": True,
     "mac_composer_live_bridge": False,
+    "direct_niles_surface_live": False,
+    "direct_chief_surface_live": False,
+    "direct_hermes_surface_live": False,
+}
+
+AGENT_EXECUTION_MODE_REGISTRY_V0 = {
+    "cassandra": {
+        "agent_id": "cassandra",
+        "lane": "cassandra_ar",
+        "execution_mode": "live_listener",
+        "direct_surface_available": True,
+        "fallback_route_available": True,
+        "spawn_supported": False,
+        "route_back_supported": True,
+        "approval_required_for_spawn": False,
+        "receipt_required": True,
+        "current_status": "wired",
+        "surface_kind": "telegram_cassandra_route_hook",
+        "calls_universal_intake": True,
+        "fallback_surface": "telegram",
+        "live_direct_endpoint": True,
+        "safe_next_step": "Use Cassandra Telegram or local API intake for routed requests.",
+    },
+    "niles": {
+        "agent_id": "niles",
+        "lane": "niles_creative",
+        "execution_mode": "spawned_worker",
+        "direct_surface_available": False,
+        "fallback_route_available": True,
+        "spawn_supported": True,
+        "route_back_supported": True,
+        "approval_required_for_spawn": False,
+        "receipt_required": True,
+        "current_status": "partial",
+        "surface_kind": "spawned_worker_packet_only",
+        "calls_universal_intake": True,
+        "fallback_surface": "cassandra_or_mac_composer",
+        "live_direct_endpoint": False,
+        "safe_next_step": "Create a scoped Niles work packet through Cassandra or Mac composer; do not touch DAW/session files.",
+    },
+    "chief": {
+        "agent_id": "chief",
+        "lane": "chief_runtime",
+        "execution_mode": "hardcoded_route",
+        "direct_surface_available": False,
+        "fallback_route_available": True,
+        "spawn_supported": True,
+        "route_back_supported": True,
+        "approval_required_for_spawn": False,
+        "receipt_required": True,
+        "current_status": "partial",
+        "surface_kind": "status_route_or_work_packet",
+        "calls_universal_intake": True,
+        "fallback_surface": "cassandra_or_mac_composer",
+        "live_direct_endpoint": False,
+        "safe_next_step": "Create a Chief status/build work packet or use existing status read models.",
+    },
+    "hermes": {
+        "agent_id": "hermes",
+        "lane": "hermes",
+        "execution_mode": "sidecar_adapter",
+        "direct_surface_available": False,
+        "fallback_route_available": True,
+        "spawn_supported": False,
+        "route_back_supported": True,
+        "approval_required_for_spawn": False,
+        "receipt_required": True,
+        "current_status": "partial",
+        "surface_kind": "adapter_protocol_boundary",
+        "calls_universal_intake": True,
+        "fallback_surface": "cassandra_or_mac_composer",
+        "live_direct_endpoint": False,
+        "safe_next_step": "Route only adapter health or protocol-boundary checks; do not assign business ownership.",
+    },
+    "guardian": {
+        "agent_id": "guardian",
+        "lane": "guardian_approval",
+        "execution_mode": "human_approval",
+        "direct_surface_available": False,
+        "fallback_route_available": True,
+        "spawn_supported": False,
+        "route_back_supported": True,
+        "approval_required_for_spawn": False,
+        "receipt_required": True,
+        "current_status": "deferred",
+        "surface_kind": "human_authority_lane",
+        "calls_universal_intake": True,
+        "fallback_surface": "cassandra_or_mac_composer",
+        "live_direct_endpoint": False,
+        "safe_next_step": "Capture approve, deny, or why-now decisions only; Guardian never executes the business action.",
+    },
+    "watch desk": {
+        "agent_id": "watch desk",
+        "lane": "chief_runtime",
+        "execution_mode": "logical_only",
+        "direct_surface_available": False,
+        "fallback_route_available": True,
+        "spawn_supported": False,
+        "route_back_supported": False,
+        "approval_required_for_spawn": False,
+        "receipt_required": True,
+        "current_status": "not_wired",
+        "surface_kind": "logical_lane_only",
+        "calls_universal_intake": True,
+        "fallback_surface": "cassandra_or_mac_composer",
+        "live_direct_endpoint": False,
+        "safe_next_step": "Record the request and report that the Watch Desk executor is not wired.",
+    },
+    "mac_composer": {
+        "agent_id": "mac_composer",
+        "lane": "chief_runtime",
+        "execution_mode": "hardcoded_route",
+        "direct_surface_available": True,
+        "fallback_route_available": True,
+        "spawn_supported": False,
+        "route_back_supported": True,
+        "approval_required_for_spawn": False,
+        "receipt_required": True,
+        "current_status": "partial",
+        "surface_kind": "mac_composer_callable_contract",
+        "calls_universal_intake": True,
+        "fallback_surface": "mac_composer",
+        "live_direct_endpoint": False,
+        "safe_next_step": "Use the callable contract locally; the live bridge remains off.",
+    },
 }
 
 AUTHORITY_BOUNDARY = {
@@ -192,6 +324,106 @@ def _clean_phrase(value: str) -> str:
     return value.strip().strip(" .!?;:")
 
 
+def _agent_display_name(agent_id: str) -> str:
+    if agent_id == "mac_composer":
+        return "Mac composer"
+    if agent_id == "watch_desk":
+        agent_id = "watch desk"
+    if agent_id in AGENT_LANE_REGISTRY_V0:
+        return str(AGENT_LANE_REGISTRY_V0[agent_id]["display_name"])
+    return agent_id.replace("_", " ").title()
+
+
+def _resolve_agent_id(value: str) -> str:
+    normalized = _clean_phrase(value).lower().replace("-", " ").replace("_", " ")
+    if normalized in {"mac composer", "mission control composer"}:
+        return "mac_composer"
+    if normalized in {"watch desk", "watchdesk"}:
+        return "watch desk"
+    return AGENT_LANE_ALIASES.get(normalized, normalized.replace(" ", "_"))
+
+
+def agent_execution_mode_status(agent_id: str) -> dict[str, Any]:
+    resolved = _resolve_agent_id(agent_id)
+    status = dict(AGENT_EXECUTION_MODE_REGISTRY_V0.get(resolved) or {})
+    if not status:
+        status = {
+            "agent_id": resolved,
+            "lane": "chief_runtime",
+            "execution_mode": "logical_only",
+            "direct_surface_available": False,
+            "fallback_route_available": False,
+            "spawn_supported": False,
+            "route_back_supported": False,
+            "approval_required_for_spawn": False,
+            "receipt_required": True,
+            "current_status": "not_wired",
+            "surface_kind": "unknown_agent",
+            "calls_universal_intake": False,
+            "fallback_surface": "cassandra_or_mac_composer",
+            "live_direct_endpoint": False,
+            "safe_next_step": "Use Cassandra or Mac composer until this agent lane is registered.",
+        }
+    status["agent_id"] = resolved
+    status["display_name"] = _agent_display_name(resolved)
+    return status
+
+
+def _execution_status_for_agent(agent_id: str) -> dict[str, Any]:
+    status = agent_execution_mode_status(agent_id)
+    required_fields = (
+        "agent_id",
+        "lane",
+        "execution_mode",
+        "direct_surface_available",
+        "fallback_route_available",
+        "spawn_supported",
+        "route_back_supported",
+        "approval_required_for_spawn",
+        "receipt_required",
+        "current_status",
+    )
+    return {key: status[key] for key in required_fields}
+
+
+def _extract_addressed_agent(raw_text: str) -> dict[str, str]:
+    match = re.match(r"^\s*([A-Za-z][A-Za-z ]{1,24})\s*,\s*(.+?)\s*$", raw_text, flags=re.IGNORECASE | re.DOTALL)
+    if not match:
+        return {"requested_agent": "", "agent_id": "", "request_text": _clean_phrase(_normalized_text(raw_text))}
+    requested_agent = _clean_phrase(match.group(1))
+    agent_id = AGENT_LANE_ALIASES.get(requested_agent.lower()) or (
+        "mac_composer" if requested_agent.lower() in {"mac composer", "mission control composer"} else ""
+    )
+    return {
+        "requested_agent": requested_agent,
+        "agent_id": agent_id,
+        "request_text": _clean_phrase(_normalized_text(match.group(2))),
+    }
+
+
+def _surface_receiving_agent(surface: str, receiving_agent_id: str | None = None) -> str:
+    if receiving_agent_id:
+        return _resolve_agent_id(receiving_agent_id)
+    return {
+        "telegram": "cassandra",
+        "cassandra_direct": "cassandra",
+        "niles_direct": "niles",
+        "chief_direct": "chief",
+        "hermes_direct": "hermes",
+        "guardian_direct": "guardian",
+        "watch_desk_direct": "watch desk",
+        "mac_composer": "mac_composer",
+    }.get(surface, "")
+
+
+def _confidence_label(score: float) -> str:
+    if score >= 0.8:
+        return "high"
+    if score >= 0.55:
+        return "medium"
+    return "low"
+
+
 def _today_date(received_at_utc: str | None) -> str:
     return _parse_datetime(received_at_utc).date().isoformat()
 
@@ -245,13 +477,78 @@ def _base_parse_result() -> dict[str, Any]:
     }
 
 
-def _agent_lane_request(raw_text: str) -> dict[str, Any] | None:
-    match = re.match(r"^\s*([A-Za-z][A-Za-z ]{1,24})\s*,\s*(.+?)\s*$", raw_text, flags=re.IGNORECASE | re.DOTALL)
-    if not match:
+def _recipient_label(request_text: str) -> str:
+    match = re.search(r"\b(?:to|with|about)\s+([A-Z][A-Za-z0-9 .'-]+?)(?:\s+about\b|\.?$)", request_text)
+    if match:
+        return _clean_phrase(match.group(1))
+    return ""
+
+
+def _approval_gated_action_request(raw_text: str) -> dict[str, Any] | None:
+    addressed = _extract_addressed_agent(raw_text)
+    request_text = addressed["request_text"]
+    lower = request_text.lower()
+    send_like = bool(re.search(r"\b(send|email|message|reply|draft)\b", lower))
+    follow_up_like = bool(re.search(r"\bfollow[- ]?up\b", lower) or re.search(r"\bfollow\s+up\b", lower))
+    outbound_target = bool(re.search(r"\b(to|with)\s+[A-Z][A-Za-z0-9 .'-]+", request_text)) or "annette" in lower
+    invoice_context = "invoice" in lower or "client" in lower or "ar" in lower
+    if not ((send_like and outbound_target) or (follow_up_like and (outbound_target or invoice_context))):
         return None
-    requested_agent = _clean_phrase(match.group(1))
-    agent_id = AGENT_LANE_ALIASES.get(requested_agent.lower())
-    request_text = _clean_phrase(_normalized_text(match.group(2)))
+
+    recipient = _recipient_label(request_text) or ("Annette" if "annette" in lower else "")
+    execution_status = _execution_status_for_agent("cassandra")
+    fields: dict[str, Any] = {
+        "agent_id": "cassandra",
+        "agent_display_name": "Cassandra",
+        "request_text": request_text,
+        "requested_external_action": "outbound_followup_or_send",
+        "recipient_label": recipient,
+        "guardian_approval_required": True,
+        "approval_request_created": False,
+        "approval_packet_created": False,
+        "email_sent": False,
+        "gmail_draft_created": False,
+        "external_action_allowed": False,
+        "live_execution_allowed": False,
+        "agent_registry_ref": "AGENT_LANE_REGISTRY_V0:cassandra",
+        "agent_execution": execution_status,
+        "execution_mode": execution_status["execution_mode"],
+        "direct_surface_available": execution_status["direct_surface_available"],
+        "fallback_route_available": execution_status["fallback_route_available"],
+        "spawn_supported": execution_status["spawn_supported"],
+        "route_back_supported": execution_status["route_back_supported"],
+        "approval_required_for_spawn": execution_status["approval_required_for_spawn"],
+        "receipt_required": execution_status["receipt_required"],
+        "current_status": execution_status["current_status"],
+    }
+    if addressed["agent_id"]:
+        fields["addressed_agent"] = addressed["agent_id"]
+    return {
+        "parsed": {
+            "action_type": "approval_gated_action_request",
+            "lane": "cassandra_ar",
+            "fields": fields,
+            "confidence": 0.87,
+        },
+        "risk_tier": "high",
+        "normalized_summary": "Cassandra outbound action request staged for Guardian approval. No email sent.",
+        "needs_clarification": [],
+        "referent_refs": [],
+        "proposed_actions": [
+            "record_local_approval_gated_request_receipt",
+            "guardian_approval_required_before_execution",
+        ],
+        "stop_condition": "guardian_approval_required",
+    }
+
+
+def _agent_lane_request(raw_text: str) -> dict[str, Any] | None:
+    addressed = _extract_addressed_agent(raw_text)
+    if not addressed["requested_agent"]:
+        return None
+    requested_agent = addressed["requested_agent"]
+    agent_id = addressed["agent_id"]
+    request_text = addressed["request_text"]
     if not agent_id:
         return {
             "parsed": {
@@ -274,6 +571,7 @@ def _agent_lane_request(raw_text: str) -> dict[str, Any] | None:
         }
 
     lane_spec = AGENT_LANE_REGISTRY_V0[agent_id]
+    execution_status = _execution_status_for_agent(agent_id)
     fields: dict[str, Any] = {
         "agent_id": agent_id,
         "agent_display_name": lane_spec["display_name"],
@@ -282,6 +580,15 @@ def _agent_lane_request(raw_text: str) -> dict[str, Any] | None:
         "external_action_allowed": False,
         "live_execution_allowed": False,
         "agent_registry_ref": f"AGENT_LANE_REGISTRY_V0:{agent_id}",
+        "agent_execution": execution_status,
+        "execution_mode": execution_status["execution_mode"],
+        "direct_surface_available": execution_status["direct_surface_available"],
+        "fallback_route_available": execution_status["fallback_route_available"],
+        "spawn_supported": execution_status["spawn_supported"],
+        "route_back_supported": execution_status["route_back_supported"],
+        "approval_required_for_spawn": execution_status["approval_required_for_spawn"],
+        "receipt_required": execution_status["receipt_required"],
+        "current_status": execution_status["current_status"],
     }
     lower_request = request_text.lower()
     if agent_id == "niles":
@@ -340,6 +647,34 @@ def _agent_lane_request(raw_text: str) -> dict[str, Any] | None:
     }
 
 
+def _implicit_agent_lane_request(raw_text: str) -> dict[str, Any] | None:
+    addressed = _extract_addressed_agent(raw_text)
+    if addressed["requested_agent"]:
+        return None
+    request_text = addressed["request_text"]
+    lower = request_text.lower()
+    if re.search(r"\b(prep|prepare|plan|organize)\b.*\b(live set|setlist|set notes|song|session|struna|fundo)\b", lower) or re.search(
+        r"\b(open|review|find)\b.*\b(fundo|struna|song|session|setlist)\b", lower
+    ):
+        agent_id = "niles"
+        confidence = 0.84
+    elif re.search(r"\b(what broke|build|test|harness|system status|runtime|priority|architecture)\b", lower):
+        agent_id = "chief"
+        confidence = 0.84
+    elif re.search(r"\b(bridge|adapter|protocol|connector|route[- ]back|tool wrapper)\b", lower):
+        agent_id = "hermes"
+        confidence = 0.84
+    else:
+        return None
+    parsed = _agent_lane_request(f"{_agent_display_name(agent_id)}, {request_text}")
+    if parsed is None:
+        return None
+    parsed["parsed"]["confidence"] = confidence
+    parsed["parsed"]["fields"]["implicit_owner_inference"] = True
+    parsed["parsed"]["fields"]["original_request_text"] = request_text
+    return parsed
+
+
 def parse_operator_intake_text(
     raw_text: str,
     *,
@@ -354,9 +689,17 @@ def parse_operator_intake_text(
     text = _normalized_text(raw_text)
     lower = text.lower()
 
+    approval_gated = _approval_gated_action_request(text)
+    if approval_gated is not None:
+        return approval_gated
+
     agent_lane = _agent_lane_request(text)
     if agent_lane is not None:
         return agent_lane
+
+    implicit_agent_lane = _implicit_agent_lane_request(text)
+    if implicit_agent_lane is not None:
+        return implicit_agent_lane
 
     sign_match = re.search(r"\bsign\s+(this|that|it)\s+as\s+(.+?)\.?$", text, flags=re.IGNORECASE)
     if sign_match:
@@ -601,10 +944,13 @@ def _safe_action_for(action_type: str) -> str:
         "gig_event_log": "record_local_gig_event_receipt",
         "identity_signature_preference": "record_local_identity_preference_stage",
         "agent_lane_request": "record_local_agent_lane_request_receipt",
+        "approval_gated_action_request": "record_local_approval_gated_request_receipt",
     }.get(action_type, "")
 
 
 def format_operator_intake_reply(event: Mapping[str, Any]) -> str:
+    if event.get("operator_visible_reply"):
+        return str(event["operator_visible_reply"])
     if event.get("watch_desk_items"):
         item = event["watch_desk_items"][0]
         if isinstance(item, Mapping) and item.get("plain_line"):
@@ -612,8 +958,12 @@ def format_operator_intake_reply(event: Mapping[str, Any]) -> str:
     action_type = str(event.get("parsed", {}).get("action_type") or "")
     if action_type == "identity_signature_preference" and event.get("needs_clarification"):
         return f"{event['normalized_summary']} No external action taken."
+    if action_type == "identity_signature_preference":
+        return _watch_plain_line(event)
     if action_type == "agent_lane_request":
         return str(event.get("normalized_summary") or "Agent lane request staged locally.")
+    if action_type == "approval_gated_action_request":
+        return str(event.get("normalized_summary") or "Action request logged for Guardian-gated review.")
     return str(event.get("normalized_summary") or "I need one more detail before I can log that.")
 
 
@@ -637,6 +987,8 @@ def _watch_plain_line(event: Mapping[str, Any]) -> str:
         return f"Staged identity preference: use {fields['requested_identity']} locally."
     if action_type == "agent_lane_request":
         return str(event.get("normalized_summary") or "Agent lane request staged locally.")
+    if action_type == "approval_gated_action_request":
+        return "Guardian approval required before execution: outbound action request logged locally."
     return "Operator intake needs clarification."
 
 
@@ -650,6 +1002,152 @@ def _watch_lane(lane: str) -> str:
     if lane == "chief_identity":
         return "chief_runtime"
     return "chief_runtime"
+
+
+def _owner_for_parsed(parsed_result: Mapping[str, Any]) -> tuple[str, str]:
+    parsed = parsed_result["parsed"]
+    action_type = str(parsed["action_type"])
+    lane = str(parsed["lane"])
+    fields = parsed.get("fields") if isinstance(parsed.get("fields"), Mapping) else {}
+    if action_type == "approval_gated_action_request":
+        return "cassandra", "cassandra_ar"
+    if action_type in {"income_payment_log", "expense_log", "gig_event_log"}:
+        return "cassandra", "cassandra_ar"
+    if action_type == "identity_signature_preference":
+        return "chief", "chief_runtime"
+    if action_type == "agent_lane_request":
+        if fields.get("route_status") == "unknown_agent":
+            return "", "chief_runtime"
+        agent_id = str(fields.get("agent_id") or "")
+        if agent_id:
+            return agent_id, str(_execution_status_for_agent(agent_id)["lane"])
+    if lane == "hermes":
+        return "hermes", "hermes"
+    if lane == "niles_creative":
+        return "niles", "niles_creative"
+    if lane in {"chief_runtime", "chief_identity"}:
+        return "chief", "chief_runtime"
+    if lane in {"cassandra_ar", "cassandra_finance", "cassandra_business/niles_context"}:
+        return "cassandra", "cassandra_ar"
+    if lane == "guardian_approval":
+        return "guardian", "guardian_approval"
+    return "", _watch_lane(lane)
+
+
+def _route_decision(
+    *,
+    raw_text: str,
+    parsed_result: Mapping[str, Any],
+    surface: str,
+    receiving_agent_id: str | None = None,
+) -> dict[str, Any]:
+    parsed = parsed_result["parsed"]
+    addressed = _extract_addressed_agent(raw_text)
+    addressed_agent = addressed["agent_id"]
+    receiving_agent = _surface_receiving_agent(surface, receiving_agent_id)
+    owner_agent, owner_lane = _owner_for_parsed(parsed_result)
+    if not owner_agent and addressed_agent:
+        owner_agent = addressed_agent
+        owner_lane = str(_execution_status_for_agent(owner_agent)["lane"])
+    if not owner_agent and receiving_agent and receiving_agent != "mac_composer":
+        owner_agent = receiving_agent
+        owner_lane = str(_execution_status_for_agent(owner_agent)["lane"])
+
+    score = float(parsed.get("confidence") or 0.0)
+    confidence = (
+        "low"
+        if str(parsed["action_type"]) == "unknown" or "known_agent_lane" in parsed_result.get("needs_clarification", [])
+        else _confidence_label(score)
+    )
+    routed_from = receiving_agent or addressed_agent
+    routed_to = owner_agent
+    execution_status = _execution_status_for_agent(owner_agent) if owner_agent else _execution_status_for_agent("")
+
+    if confidence == "low":
+        handoff_reason = "route_confidence_low_clarification_required"
+    elif addressed_agent and addressed_agent != owner_agent:
+        handoff_reason = (
+            f"{_agent_display_name(addressed_agent)} was named, but the request belongs to "
+            f"{_agent_display_name(owner_agent)} by content or authority boundary."
+        )
+    elif routed_from and routed_to and routed_from != routed_to and routed_from != "mac_composer":
+        handoff_reason = (
+            f"{_agent_display_name(routed_from)} received a {_agent_display_name(routed_to)} intent; "
+            f"patched to {_agent_display_name(routed_to)}."
+        )
+    elif routed_from == "mac_composer" and routed_to:
+        handoff_reason = "Mac composer submitted neutral intake; owner inferred by content."
+    elif addressed_agent and addressed_agent == owner_agent:
+        handoff_reason = "explicit_agent_request_matched_owner_lane"
+    elif routed_to:
+        handoff_reason = "owner_inferred_by_content"
+    else:
+        handoff_reason = "owner_not_confident"
+
+    return {
+        "received_surface": surface,
+        "addressed_agent": addressed_agent,
+        "addressed_agent_label": addressed["requested_agent"],
+        "inferred_owner_agent": owner_agent,
+        "inferred_owner_lane": owner_lane,
+        "route_confidence": confidence,
+        "route_confidence_score": score,
+        "routed_from_agent": routed_from,
+        "routed_to_agent": routed_to,
+        "handoff_reason": handoff_reason,
+        "execution_mode": execution_status["execution_mode"],
+        "agent_execution": execution_status,
+    }
+
+
+def _approval_required_for(parsed_result: Mapping[str, Any]) -> bool:
+    parsed = parsed_result["parsed"]
+    fields = parsed.get("fields") if isinstance(parsed.get("fields"), Mapping) else {}
+    return str(parsed["action_type"]) == "approval_gated_action_request" or bool(
+        fields.get("guardian_approval_required")
+    )
+
+
+def _operator_visible_reply(event: Mapping[str, Any]) -> str:
+    action_type = str(event.get("parsed", {}).get("action_type") or "")
+    owner = str(event.get("routed_to_agent") or event.get("inferred_owner_agent") or "")
+    routed_from = str(event.get("routed_from_agent") or "")
+    confidence = str(event.get("route_confidence") or "")
+    execution_mode = str(event.get("execution_mode") or "")
+    if event.get("needs_clarification"):
+        if "known_agent_lane" in event.get("needs_clarification", []):
+            return str(event.get("normalized_summary") or "I need a known agent lane before routing that.")
+        if action_type == "identity_signature_preference":
+            return format_operator_intake_reply({key: value for key, value in event.items() if key != "operator_visible_reply"})
+    if confidence == "low":
+        if "known_agent_lane" in event.get("needs_clarification", []):
+            return str(event.get("normalized_summary") or "I need a known agent lane before routing that.")
+        return "I need one detail before routing that: what kind of action is it?"
+    if event.get("approval_required"):
+        return (
+            "That's a Cassandra outbound action. I logged it for Cassandra; "
+            "Guardian approval is required before execution."
+        )
+    if execution_mode == "logical_only":
+        return f"{_agent_display_name(owner)} lane recognized; executor is not wired yet. I recorded the request."
+    if routed_from == "mac_composer" and action_type == "identity_signature_preference":
+        return format_operator_intake_reply({key: value for key, value in event.items() if key != "operator_visible_reply"})
+    if routed_from and owner and routed_from != owner:
+        if owner == "cassandra":
+            if action_type in {"income_payment_log", "expense_log", "gig_event_log"}:
+                return "That's a Cassandra finance item. I logged it there."
+            return "That's a Cassandra operations item. I staged it for Cassandra."
+        if owner == "niles":
+            return "That's a Niles creative prep request. I staged it for Niles."
+        if owner == "chief":
+            return "That's a Chief/system review request. I routed it to Chief."
+        if owner == "hermes":
+            return "That's a Hermes adapter/protocol check. I staged it for Hermes."
+        if owner == "guardian":
+            return "That needs Guardian approval before execution."
+    if action_type in {"income_payment_log", "expense_log", "gig_event_log", "identity_signature_preference"}:
+        return _watch_plain_line(event)
+    return format_operator_intake_reply({key: value for key, value in event.items() if key != "operator_visible_reply"})
 
 
 def _build_watch_item(event: Mapping[str, Any], receipt_ref: str) -> dict[str, Any]:
@@ -666,6 +1164,16 @@ def _build_watch_item(event: Mapping[str, Any], receipt_ref: str) -> dict[str, A
         "source_receipt_ref": receipt_ref,
         "one_next_safe_action": "Review the local receipt; keep external mutation behind the existing approval spine.",
         "push_class": "on_demand",
+        "received_surface": event.get("received_surface", ""),
+        "addressed_agent": event.get("addressed_agent", ""),
+        "inferred_owner_agent": event.get("inferred_owner_agent", ""),
+        "inferred_owner_lane": event.get("inferred_owner_lane", ""),
+        "route_confidence": event.get("route_confidence", ""),
+        "routed_from_agent": event.get("routed_from_agent", ""),
+        "routed_to_agent": event.get("routed_to_agent", ""),
+        "handoff_reason": event.get("handoff_reason", ""),
+        "execution_mode": event.get("execution_mode", ""),
+        "operator_visible_reply": event.get("operator_visible_reply", ""),
     }
 
 
@@ -678,8 +1186,20 @@ def _receipt_payload(event: Mapping[str, Any], created_at_utc: str) -> dict[str,
         "lane": parsed["lane"],
         "normalized_summary": event["normalized_summary"],
         "parsed_fields": parsed["fields"],
+        "received_surface": event.get("received_surface", ""),
+        "addressed_agent": event.get("addressed_agent", ""),
+        "inferred_owner_agent": event.get("inferred_owner_agent", ""),
+        "inferred_owner_lane": event.get("inferred_owner_lane", ""),
+        "route_confidence": event.get("route_confidence", ""),
+        "routed_from_agent": event.get("routed_from_agent", ""),
+        "routed_to_agent": event.get("routed_to_agent", ""),
+        "handoff_reason": event.get("handoff_reason", ""),
+        "execution_mode": event.get("execution_mode", ""),
+        "agent_execution": event.get("agent_execution", {}),
+        "operator_visible_reply": event.get("operator_visible_reply", ""),
         "safe_actions_taken": event["safe_actions_taken"],
-        "approval_required": False,
+        "receipt_refs": event.get("receipt_refs", []),
+        "approval_required": bool(event.get("approval_required")),
         "external_calls_performed": False,
         "mutation_scope": "local_read_model_or_receipt_only",
         "created_at_utc": created_at_utc,
@@ -693,7 +1213,10 @@ def _write_receipt(event: Mapping[str, Any], *, receipt_root: str | Path, create
     action_type = str(event["parsed"]["action_type"])
     filename = f"{_safe_filename(str(event['intake_id']))}_{_safe_filename(action_type)}_receipt.json"
     path = root / filename
-    path.write_text(stable_json(_receipt_payload(event, created_at_utc)), encoding="utf-8")
+    receipt_ref = f"{path.as_posix()}#receipt"
+    receipt_event = dict(event)
+    receipt_event["receipt_refs"] = [receipt_ref]
+    path.write_text(stable_json(_receipt_payload(receipt_event, created_at_utc)), encoding="utf-8")
     return {
         "receipt_id": f"operator_intake_receipt:{_sha256_text(path.as_posix())[:16]}",
         "path": path.as_posix(),
@@ -718,6 +1241,10 @@ def _load_read_model(read_model_root: str | Path) -> dict[str, Any]:
             "watch_desk_items": [],
             "supported_action_types": list(SUPPORTED_ACTION_TYPES),
             "surface_wiring_status": dict(SURFACE_WIRING_STATUS),
+            "agent_execution_modes": {
+                agent_id: agent_execution_mode_status(agent_id)
+                for agent_id in AGENT_EXECUTION_MODE_REGISTRY_V0
+            },
             "authority_boundary": dict(AUTHORITY_BOUNDARY),
         }
     payload = json.loads(path.read_text(encoding="utf-8"))
@@ -753,6 +1280,10 @@ def _write_read_model(event: Mapping[str, Any], *, read_model_root: str | Path, 
             "watch_desk_items": watch_items[:100],
             "supported_action_types": list(SUPPORTED_ACTION_TYPES),
             "surface_wiring_status": dict(SURFACE_WIRING_STATUS),
+            "agent_execution_modes": {
+                agent_id: agent_execution_mode_status(agent_id)
+                for agent_id in AGENT_EXECUTION_MODE_REGISTRY_V0
+            },
             "authority_boundary": dict(AUTHORITY_BOUNDARY),
         }
     )
@@ -767,6 +1298,7 @@ def process_operator_intake(
     operator: str = "Winship",
     received_at_utc: str | None = None,
     session_context: Mapping[str, Any] | None = None,
+    receiving_agent_id: str | None = None,
     read_model_root: str | Path = DEFAULT_EXPORT_ROOT,
     receipt_root: str | Path = DEFAULT_RECEIPT_ROOT,
 ) -> dict[str, Any]:
@@ -780,11 +1312,18 @@ def process_operator_intake(
         received_at_utc=received,
         session_context=session_context,
     )
+    route_decision = _route_decision(
+        raw_text=raw_text,
+        parsed_result=parsed_result,
+        surface=surface,
+        receiving_agent_id=receiving_agent_id,
+    )
     text_hash = "sha256:" + _sha256_text(_normalized_text(raw_text))
     intake_id = _row_id("operator_intake", surface, operator, received, text_hash)
     local_text_allowed = surface == "local_cli"
     action_type = str(parsed_result["parsed"]["action_type"])
     safe_action = _safe_action_for(action_type)
+    approval_required = _approval_required_for(parsed_result)
     clarifications = set(parsed_result["needs_clarification"])
     blocking_clarification = action_type == "unknown" or bool(
         clarifications.intersection({"referent:this", "referent:that", "referent:it"})
@@ -797,6 +1336,7 @@ def process_operator_intake(
         "intake_id": intake_id,
         "received_at_utc": received,
         "surface": surface,
+        "received_surface": route_decision["received_surface"],
         "operator": operator,
         "normalized_summary": parsed_result["normalized_summary"],
         "parsed": parsed_result["parsed"],
@@ -805,13 +1345,26 @@ def process_operator_intake(
         "referent_refs": parsed_result["referent_refs"],
         "proposed_actions": parsed_result["proposed_actions"],
         "safe_actions_taken": [safe_action] if should_write_local_receipt else [],
-        "approval_required": False,
+        "approval_required": approval_required,
         "receipts": [],
+        "receipt_refs": [],
         "watch_desk_items": [],
         "stop_condition": parsed_result["stop_condition"],
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
         "raw_text_stored": local_text_allowed,
+        "addressed_agent": route_decision["addressed_agent"],
+        "addressed_agent_label": route_decision["addressed_agent_label"],
+        "inferred_owner_agent": route_decision["inferred_owner_agent"],
+        "inferred_owner_lane": route_decision["inferred_owner_lane"],
+        "route_confidence": route_decision["route_confidence"],
+        "route_confidence_score": route_decision["route_confidence_score"],
+        "routed_from_agent": route_decision["routed_from_agent"],
+        "routed_to_agent": route_decision["routed_to_agent"],
+        "handoff_reason": route_decision["handoff_reason"],
+        "execution_mode": route_decision["execution_mode"],
+        "agent_execution": route_decision["agent_execution"],
     }
+    event["operator_visible_reply"] = _operator_visible_reply(event)
     if local_text_allowed:
         event["raw_text"] = raw_text
     else:
@@ -823,8 +1376,12 @@ def process_operator_intake(
         receipt_ref = f"{receipt['path']}#receipt"
         watch_item = _build_watch_item(event, receipt_ref)
         event["receipts"] = [receipt]
+        event["receipt_refs"] = [receipt_ref]
         event["watch_desk_items"] = [watch_item]
-        event["stop_condition"] = "local_receipt_written"
+        if approval_required:
+            event["stop_condition"] = "guardian_approval_required_local_receipt_written"
+        else:
+            event["stop_condition"] = "local_receipt_written"
         _write_read_model(event, read_model_root=read_model_root, generated_at=created_at)
 
     return event
@@ -837,6 +1394,7 @@ def process_operator_intake_batch(
     operator: str = "Winship",
     received_at_utc: str | None = None,
     session_context: Mapping[str, Any] | None = None,
+    receiving_agent_id: str | None = None,
     read_model_root: str | Path = DEFAULT_EXPORT_ROOT,
     receipt_root: str | Path = DEFAULT_RECEIPT_ROOT,
 ) -> list[dict[str, Any]]:
@@ -854,6 +1412,7 @@ def process_operator_intake_batch(
             operator=operator,
             received_at_utc=received,
             session_context=local_context,
+            receiving_agent_id=receiving_agent_id,
             read_model_root=read_model_root,
             receipt_root=receipt_root,
         )
@@ -892,6 +1451,12 @@ def _surface_response_from_events(
     )
     action_types = [str(event.get("parsed", {}).get("action_type") or "") for event in events]
     lanes = [str(event.get("parsed", {}).get("lane") or "") for event in events]
+    risk_tiers = [str(event.get("risk_tier") or "low") for event in events]
+    approval_required = any(bool(event.get("approval_required")) for event in events)
+    execution_modes = sorted({str(event.get("execution_mode") or "") for event in events if event.get("execution_mode")})
+    owner_agents = sorted(
+        {str(event.get("inferred_owner_agent") or "") for event in events if event.get("inferred_owner_agent")}
+    )
     primary = events[0]
     reply_text = "\n".join(reply for reply in replies if reply)
     return {
@@ -906,13 +1471,25 @@ def _surface_response_from_events(
         "action_types": action_types,
         "lane": "multi_lane" if len(set(lanes)) > 1 else lanes[0],
         "lanes": lanes,
-        "risk_tier": "low",
+        "risk_tier": "high" if "high" in risk_tiers else "low",
+        "received_surface": primary.get("received_surface", surface),
+        "addressed_agent": primary.get("addressed_agent", ""),
+        "inferred_owner_agent": primary.get("inferred_owner_agent", ""),
+        "inferred_owner_lane": primary.get("inferred_owner_lane", ""),
+        "route_confidence": primary.get("route_confidence", ""),
+        "routed_from_agent": primary.get("routed_from_agent", ""),
+        "routed_to_agent": primary.get("routed_to_agent", ""),
+        "handoff_reason": primary.get("handoff_reason", ""),
+        "execution_mode": primary.get("execution_mode", ""),
+        "execution_modes": execution_modes,
+        "owner_agents": owner_agents,
+        "agent_execution": primary.get("agent_execution", {}),
         "reply": reply_text,
         "reply_text": reply_text,
         "missing_fields": missing_fields,
         "event": dict(primary),
         "events": [dict(event) for event in events],
-        "approval_required": False,
+        "approval_required": approval_required,
         "external_calls_performed": False,
         "safety_flags": dict(AUTHORITY_BOUNDARY),
     }
@@ -925,6 +1502,7 @@ def try_process_surface_operator_intake(
     operator: str = "Winship",
     received_at_utc: str | None = None,
     session_context: Mapping[str, Any] | None = None,
+    receiving_agent_id: str | None = None,
     read_model_root: str | Path = DEFAULT_EXPORT_ROOT,
     receipt_root: str | Path = DEFAULT_RECEIPT_ROOT,
 ) -> dict[str, Any] | None:
@@ -936,6 +1514,7 @@ def try_process_surface_operator_intake(
         operator=operator,
         received_at_utc=received_at_utc,
         session_context=session_context,
+        receiving_agent_id=receiving_agent_id,
         read_model_root=read_model_root,
         receipt_root=receipt_root,
     )
@@ -957,30 +1536,242 @@ def process_mac_composer_operator_intake(
         operator=operator,
         received_at_utc=received_at_utc,
         session_context=session_context,
+        receiving_agent_id="mac_composer",
         read_model_root=read_model_root,
         receipt_root=receipt_root,
     )
     if routed is not None:
         return routed
-    parsed = parse_operator_intake_text(raw_text, received_at_utc=received_at_utc, session_context=session_context)
+    event = process_operator_intake(
+        raw_text=raw_text,
+        surface="mac_composer",
+        operator=operator,
+        received_at_utc=received_at_utc,
+        session_context=session_context,
+        receiving_agent_id="mac_composer",
+        read_model_root=read_model_root,
+        receipt_root=receipt_root,
+    )
     return {
         "schema_version": "operator_intake_surface_response_v0",
         "handled": False,
         "surface": "mac_composer",
-        "action_type": parsed["parsed"]["action_type"],
-        "lane": parsed["parsed"]["lane"],
-        "risk_tier": parsed["risk_tier"],
-        "reply": parsed["normalized_summary"],
-        "reply_text": parsed["normalized_summary"],
+        "action_type": event["parsed"]["action_type"],
+        "lane": event["parsed"]["lane"],
+        "risk_tier": event["risk_tier"],
+        "received_surface": event["received_surface"],
+        "addressed_agent": event["addressed_agent"],
+        "inferred_owner_agent": event["inferred_owner_agent"],
+        "inferred_owner_lane": event["inferred_owner_lane"],
+        "route_confidence": event["route_confidence"],
+        "routed_from_agent": event["routed_from_agent"],
+        "routed_to_agent": event["routed_to_agent"],
+        "handoff_reason": event["handoff_reason"],
+        "execution_mode": event["execution_mode"],
+        "agent_execution": event["agent_execution"],
+        "reply": event["operator_visible_reply"],
+        "reply_text": event["operator_visible_reply"],
         "intake_event_refs": [],
         "receipt_refs": [],
         "watch_desk_refs": [],
-        "needs_clarification": parsed["needs_clarification"],
-        "missing_fields": parsed["needs_clarification"],
-        "approval_required": False,
+        "event": event,
+        "events": [event],
+        "needs_clarification": event["needs_clarification"],
+        "missing_fields": event["needs_clarification"],
+        "approval_required": event["approval_required"],
         "external_calls_performed": False,
         "safety_flags": dict(AUTHORITY_BOUNDARY),
     }
+
+
+def infer_agent_lane_target(raw_text: str, *, default_agent_id: str = "") -> dict[str, Any]:
+    """Infer the intended agent lane without executing or writing anything."""
+
+    text = _normalized_text(raw_text)
+    parsed = parse_operator_intake_text(text)
+    owner_agent, owner_lane = _owner_for_parsed(parsed)
+    resolved_default = _resolve_agent_id(default_agent_id) if default_agent_id else ""
+    if not owner_agent and resolved_default in AGENT_EXECUTION_MODE_REGISTRY_V0:
+        owner_agent = resolved_default
+        owner_lane = str(_execution_status_for_agent(resolved_default)["lane"])
+    addressed = _extract_addressed_agent(text)
+    basis = "explicit_agent_prefix" if addressed["agent_id"] and addressed["agent_id"] == owner_agent else "content_inference"
+    if str(parsed["parsed"]["action_type"]) == "unknown":
+        basis = "unknown"
+    confidence = float(parsed["parsed"].get("confidence") or 0.0)
+    return {
+        "agent_id": owner_agent,
+        "lane": owner_lane,
+        "basis": basis,
+        "confidence": confidence,
+        "route_confidence": _confidence_label(confidence),
+    }
+
+
+def direct_agent_surface_status(agent_id: str) -> dict[str, Any]:
+    status = agent_execution_mode_status(agent_id)
+    if status.get("agent_id") == "mac_composer":
+        surface_status = "CALLABLE_CONTRACT_ONLY"
+    elif status.get("current_status") == "wired" or status.get("direct_surface_available"):
+        surface_status = "WIRED"
+    elif status.get("fallback_route_available"):
+        surface_status = "FALLBACK_ONLY"
+    else:
+        surface_status = "NOT_WIRED"
+    status["surface_status"] = surface_status
+    status["live_direct_endpoint"] = bool(status.get("live_direct_endpoint"))
+    return status
+
+
+def build_agent_surface_parity_report() -> dict[str, Any]:
+    agent_ids = ("cassandra", "niles", "chief", "hermes", "guardian", "watch desk", "mac_composer")
+    surfaces = {agent_id: direct_agent_surface_status(agent_id) for agent_id in agent_ids}
+    return {
+        "schema_version": "agent_surface_parity_report_v0",
+        "agents": surfaces,
+        "surfaces": surfaces,
+        "live_surfaces_found": [
+            agent_id for agent_id, surface in surfaces.items() if surface["execution_mode"] == "live_listener"
+        ],
+        "callable_contract_surfaces": [agent_id for agent_id, surface in surfaces.items() if agent_id == "mac_composer"],
+        "direct_surfaces_wired": {
+            agent_id: bool(surface["direct_surface_available"]) for agent_id, surface in surfaces.items()
+        },
+        "fallback_routes_available": {
+            agent_id: bool(surface["fallback_route_available"]) for agent_id, surface in surfaces.items()
+        },
+        "spawn_supported": {agent_id: bool(surface["spawn_supported"]) for agent_id, surface in surfaces.items()},
+        "execution_modes": {agent_id: surface["execution_mode"] for agent_id, surface in surfaces.items()},
+        "logical_only_surfaces": [
+            agent_id for agent_id, surface in surfaces.items() if surface["execution_mode"] == "logical_only"
+        ],
+        "sidecar_adapter_lanes": [
+            agent_id for agent_id, surface in surfaces.items() if surface["execution_mode"] == "sidecar_adapter"
+        ],
+        "human_approval_lanes": [
+            agent_id for agent_id, surface in surfaces.items() if surface["execution_mode"] == "human_approval"
+        ],
+        "authority_boundary": dict(AUTHORITY_BOUNDARY),
+    }
+
+
+def _direct_surface_for_agent(agent_id: str) -> str:
+    if agent_id == "cassandra":
+        return "telegram"
+    if agent_id == "mac_composer":
+        return "mac_composer"
+    return f"{agent_id.replace(' ', '_')}_direct"
+
+
+def _direct_response_status(response: Mapping[str, Any], status: Mapping[str, Any]) -> str:
+    if response.get("route_confidence") == "low":
+        return "CLARIFICATION_REQUIRED"
+    routed_from = str(response.get("routed_from_agent") or "")
+    routed_to = str(response.get("routed_to_agent") or "")
+    if routed_from and routed_to and routed_from != routed_to:
+        return "PATCHED_TO_OWNER"
+    if not status.get("direct_surface_available") and status.get("fallback_route_available"):
+        return "ROUTED_VIA_FALLBACK"
+    return "ROUTED"
+
+
+def _augment_direct_response(
+    response: dict[str, Any],
+    *,
+    resolved: str,
+    status: Mapping[str, Any],
+    target: Mapping[str, Any],
+) -> dict[str, Any]:
+    response["schema_version"] = "operator_intake_direct_surface_response_v0"
+    response["agent_id"] = resolved
+    response["surface_status"] = status["surface_status"]
+    response["direct_surface_available"] = bool(status["direct_surface_available"])
+    response["fallback_route_available"] = bool(status["fallback_route_available"])
+    response["spawn_supported"] = bool(status["spawn_supported"])
+    response["route_back_supported"] = bool(status["route_back_supported"])
+    response["target_agent_id"] = target["agent_id"]
+    response["target_lane"] = target["lane"]
+    response["target_basis"] = target["basis"]
+    response["routing_status"] = _direct_response_status(response, status)
+    response["wrong_agent_recovery"] = bool(
+        response.get("routed_from_agent")
+        and response.get("routed_to_agent")
+        and response.get("routed_from_agent") != response.get("routed_to_agent")
+    )
+    response["safe_next_step"] = status["safe_next_step"]
+    return response
+
+
+def process_direct_agent_surface_operator_intake(
+    raw_text: str,
+    *,
+    agent_id: str,
+    operator: str = "Winship",
+    received_at_utc: str | None = None,
+    session_context: Mapping[str, Any] | None = None,
+    read_model_root: str | Path = DEFAULT_EXPORT_ROOT,
+    receipt_root: str | Path = DEFAULT_RECEIPT_ROOT,
+) -> dict[str, Any]:
+    """Classify a direct-agent context without pretending unwired agents are live listeners."""
+
+    resolved = _resolve_agent_id(agent_id)
+    status = direct_agent_surface_status(resolved)
+    target = infer_agent_lane_target(raw_text, default_agent_id=resolved)
+    surface = _direct_surface_for_agent(resolved)
+    routed = try_process_surface_operator_intake(
+        raw_text,
+        surface=surface,
+        operator=operator,
+        received_at_utc=received_at_utc,
+        session_context=session_context,
+        receiving_agent_id=resolved,
+        read_model_root=read_model_root,
+        receipt_root=receipt_root,
+    )
+    if routed is not None:
+        return _augment_direct_response(dict(routed), resolved=resolved, status=status, target=target)
+
+    event = process_operator_intake(
+        raw_text=raw_text,
+        surface=surface,
+        operator=operator,
+        received_at_utc=received_at_utc,
+        session_context=session_context,
+        receiving_agent_id=resolved,
+        read_model_root=read_model_root,
+        receipt_root=receipt_root,
+    )
+    response = {
+        "schema_version": "operator_intake_direct_surface_response_v0",
+        "handled": False,
+        "surface": surface,
+        "intake_id": event["intake_id"],
+        "intake_event_refs": [],
+        "receipt_refs": [],
+        "watch_desk_refs": [],
+        "action_type": event["parsed"]["action_type"],
+        "lane": event["parsed"]["lane"],
+        "risk_tier": event["risk_tier"],
+        "received_surface": event["received_surface"],
+        "addressed_agent": event["addressed_agent"],
+        "inferred_owner_agent": event["inferred_owner_agent"],
+        "inferred_owner_lane": event["inferred_owner_lane"],
+        "route_confidence": event["route_confidence"],
+        "routed_from_agent": event["routed_from_agent"],
+        "routed_to_agent": event["routed_to_agent"],
+        "handoff_reason": event["handoff_reason"],
+        "execution_mode": event["execution_mode"],
+        "agent_execution": event["agent_execution"],
+        "reply": event["operator_visible_reply"],
+        "reply_text": event["operator_visible_reply"],
+        "missing_fields": event["needs_clarification"],
+        "event": event,
+        "events": [event],
+        "approval_required": event["approval_required"],
+        "external_calls_performed": False,
+        "safety_flags": dict(AUTHORITY_BOUNDARY),
+    }
+    return _augment_direct_response(response, resolved=resolved, status=status, target=target)
 
 
 def load_operator_intake_read_model(*, read_model_root: str | Path = DEFAULT_EXPORT_ROOT) -> dict[str, Any]:

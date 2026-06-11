@@ -5,8 +5,11 @@ from operator_universal_intake import (
     AGENT_LANE_REGISTRY_V0,
     JSON_EXPORT_NAME,
     SUPPORTED_ACTION_TYPES,
+    agent_execution_mode_status,
+    build_agent_surface_parity_report,
     is_universal_operator_intake_candidate,
     parse_operator_intake_text,
+    process_direct_agent_surface_operator_intake,
     process_operator_intake_batch,
     process_mac_composer_operator_intake,
     process_operator_intake,
@@ -60,13 +63,25 @@ def test_low_risk_income_writes_receipt_read_model_and_watch_item(tmp_path):
     read_model_path = tmp_path / "read_models" / JSON_EXPORT_NAME
 
     assert result["approval_required"] is False
+    assert result["received_surface"] == "local_cli"
+    assert result["addressed_agent"] == ""
+    assert result["inferred_owner_agent"] == "cassandra"
+    assert result["inferred_owner_lane"] == "cassandra_ar"
+    assert result["route_confidence"] == "high"
+    assert result["routed_to_agent"] == "cassandra"
+    assert result["execution_mode"] == "live_listener"
+    assert result["operator_visible_reply"] == "Logged income: $900 from Live Arts MD. Missing: invoice/project link, payment method."
     assert result["receipts"]
+    assert result["receipt_refs"] == [f"{result['receipts'][0]['path']}#receipt"]
     assert Path(result["receipts"][0]["path"]).is_file()
     assert read_model_path.is_file()
     receipt = json.loads(Path(result["receipts"][0]["path"]).read_text(encoding="utf-8"))
     assert receipt["external_calls_performed"] is False
     assert receipt["approval_required"] is False
     assert receipt["parsed_fields"]["invoice_marked_paid"] is False
+    assert receipt["inferred_owner_agent"] == "cassandra"
+    assert receipt["execution_mode"] == "live_listener"
+    assert receipt["receipt_refs"] == result["receipt_refs"]
     assert receipt["mutation_scope"] == "local_read_model_or_receipt_only"
 
     read_model = json.loads(read_model_path.read_text(encoding="utf-8"))
@@ -158,6 +173,7 @@ def test_no_external_or_approval_side_effects_for_supported_local_events(tmp_pat
         "gig_event_log",
         "identity_signature_preference",
         "agent_lane_request",
+        "approval_gated_action_request",
     }
 
 
@@ -171,15 +187,70 @@ def test_agent_lane_registry_v0_contains_required_daytime_lanes():
     assert "send email without Guardian approval" in AGENT_LANE_REGISTRY_V0["cassandra"]["must_not"]
 
 
+def test_agent_execution_mode_registry_classifies_live_spawned_sidecar_logical_and_guardian():
+    cassandra = agent_execution_mode_status("cassandra")
+    niles = agent_execution_mode_status("niles")
+    chief = agent_execution_mode_status("chief")
+    hermes = agent_execution_mode_status("hermes")
+    guardian = agent_execution_mode_status("guardian")
+    watch_desk = agent_execution_mode_status("watch desk")
+    mac_composer = agent_execution_mode_status("mac_composer")
+
+    assert cassandra["execution_mode"] == "live_listener"
+    assert cassandra["direct_surface_available"] is True
+    assert cassandra["current_status"] == "wired"
+    assert niles["execution_mode"] == "spawned_worker"
+    assert niles["direct_surface_available"] is False
+    assert niles["spawn_supported"] is True
+    assert chief["execution_mode"] == "hardcoded_route"
+    assert hermes["execution_mode"] == "sidecar_adapter"
+    assert guardian["execution_mode"] == "human_approval"
+    assert guardian["spawn_supported"] is False
+    assert watch_desk["execution_mode"] == "logical_only"
+    assert watch_desk["current_status"] == "not_wired"
+    assert mac_composer["execution_mode"] == "hardcoded_route"
+    assert mac_composer["current_status"] == "partial"
+
+    report = build_agent_surface_parity_report()
+    assert report["live_surfaces_found"] == ["cassandra"]
+    assert report["direct_surfaces_wired"]["niles"] is False
+    assert report["fallback_routes_available"]["hermes"] is True
+    assert report["execution_modes"]["watch desk"] == "logical_only"
+
+
 def test_agent_addressed_messages_route_to_expected_lanes_without_external_calls(tmp_path):
     examples = [
-        ("Niles, prep my live set notes.", "niles_creative", "Niles prep request staged: live set notes. No DAW action taken."),
-        ("Chief, what broke?", "chief_runtime", "Chief check request staged: what broke. No external action taken."),
-        ("Hermes, check the bridge.", "hermes", "Hermes bridge check staged: bridge. No external action taken."),
-        ("Cassandra, follow up with Annette.", "cassandra_ar", "Cassandra request staged: follow up with Annette. No email action taken."),
+        (
+            "Niles, prep my live set notes.",
+            "niles_creative",
+            "niles",
+            "spawned_worker",
+            "That's a Niles creative prep request. I staged it for Niles.",
+        ),
+        (
+            "Chief, what broke?",
+            "chief_runtime",
+            "chief",
+            "hardcoded_route",
+            "That's a Chief/system review request. I routed it to Chief.",
+        ),
+        (
+            "Hermes, check the bridge.",
+            "hermes",
+            "hermes",
+            "sidecar_adapter",
+            "That's a Hermes adapter/protocol check. I staged it for Hermes.",
+        ),
+        (
+            "Cassandra, log client context.",
+            "cassandra_ar",
+            "cassandra",
+            "live_listener",
+            "Cassandra request staged: log client context. No email action taken.",
+        ),
     ]
 
-    for text, lane, reply in examples:
+    for text, lane, owner_agent, execution_mode, reply in examples:
         routed = try_process_surface_operator_intake(
             text,
             surface="telegram",
@@ -190,11 +261,187 @@ def test_agent_addressed_messages_route_to_expected_lanes_without_external_calls
         assert routed is not None
         assert routed["action_type"] == "agent_lane_request"
         assert routed["lane"] == lane
+        assert routed["inferred_owner_agent"] == owner_agent
+        assert routed["routed_from_agent"] == "cassandra"
+        assert routed["routed_to_agent"] == owner_agent
+        assert routed["execution_mode"] == execution_mode
         assert routed["reply_text"] == reply
         assert routed["approval_required"] is False
         assert routed["external_calls_performed"] is False
         assert routed["event"]["authority_boundary"]["approval_request_created"] is False
         assert routed["event"]["authority_boundary"]["gmail_or_broker_called"] is False
+
+
+def test_direct_intended_niles_request_routes_with_spawned_mode_but_no_fake_live_surface(tmp_path):
+    routed = process_direct_agent_surface_operator_intake(
+        "Niles, prep my live set notes.",
+        agent_id="niles",
+        received_at_utc=FIXED_NOW,
+        read_model_root=tmp_path / "read_models",
+        receipt_root=tmp_path / "receipts",
+    )
+
+    assert routed["handled"] is True
+    assert routed["direct_surface_available"] is False
+    assert routed["surface_status"] == "FALLBACK_ONLY"
+    assert routed["routing_status"] == "ROUTED_VIA_FALLBACK"
+    assert routed["inferred_owner_agent"] == "niles"
+    assert routed["routed_from_agent"] == "niles"
+    assert routed["routed_to_agent"] == "niles"
+    assert routed["execution_mode"] == "spawned_worker"
+    assert routed["event"]["parsed"]["fields"]["daw_action_taken"] is False
+    assert routed["event"]["authority_boundary"]["daw_or_media_session_mutated"] is False
+
+
+def test_wrong_agent_chief_finance_request_patches_to_cassandra_receipt(tmp_path):
+    routed = process_direct_agent_surface_operator_intake(
+        "I got paid $900 from Live Arts MD.",
+        agent_id="chief",
+        received_at_utc=FIXED_NOW,
+        read_model_root=tmp_path / "read_models",
+        receipt_root=tmp_path / "receipts",
+    )
+
+    assert routed["handled"] is True
+    assert routed["routing_status"] == "PATCHED_TO_OWNER"
+    assert routed["wrong_agent_recovery"] is True
+    assert routed["routed_from_agent"] == "chief"
+    assert routed["routed_to_agent"] == "cassandra"
+    assert routed["inferred_owner_agent"] == "cassandra"
+    assert routed["reply_text"] == "That's a Cassandra finance item. I logged it there."
+    assert routed["receipt_refs"]
+    receipt = json.loads(Path(routed["receipt_refs"][0].split("#", 1)[0]).read_text(encoding="utf-8"))
+    assert receipt["received_surface"] == "chief_direct"
+    assert receipt["routed_from_agent"] == "chief"
+    assert receipt["routed_to_agent"] == "cassandra"
+    assert receipt["approval_required"] is False
+
+
+def test_wrong_agent_cassandra_creative_request_patches_to_niles_without_daw_mutation(tmp_path):
+    routed = try_process_surface_operator_intake(
+        "Niles, prep my live set notes.",
+        surface="telegram",
+        received_at_utc=FIXED_NOW,
+        read_model_root=tmp_path / "read_models",
+        receipt_root=tmp_path / "receipts",
+    )
+
+    assert routed is not None
+    assert routed["routed_from_agent"] == "cassandra"
+    assert routed["routed_to_agent"] == "niles"
+    assert routed["inferred_owner_agent"] == "niles"
+    assert routed["execution_mode"] == "spawned_worker"
+    assert routed["reply_text"] == "That's a Niles creative prep request. I staged it for Niles."
+    assert routed["event"]["parsed"]["fields"]["daw_action_taken"] is False
+    assert routed["event"]["authority_boundary"]["daw_or_media_session_mutated"] is False
+
+
+def test_wrong_agent_niles_outbound_followup_patches_to_cassandra_and_requires_guardian(tmp_path):
+    routed = process_direct_agent_surface_operator_intake(
+        "Follow up with Annette about the invoice.",
+        agent_id="niles",
+        received_at_utc=FIXED_NOW,
+        read_model_root=tmp_path / "read_models",
+        receipt_root=tmp_path / "receipts",
+    )
+
+    assert routed["handled"] is True
+    assert routed["action_type"] == "approval_gated_action_request"
+    assert routed["risk_tier"] == "high"
+    assert routed["routing_status"] == "PATCHED_TO_OWNER"
+    assert routed["routed_from_agent"] == "niles"
+    assert routed["routed_to_agent"] == "cassandra"
+    assert routed["approval_required"] is True
+    assert "Guardian approval is required" in routed["reply_text"]
+    assert routed["event"]["parsed"]["fields"]["email_sent"] is False
+    assert routed["event"]["parsed"]["fields"]["gmail_draft_created"] is False
+    assert routed["event"]["authority_boundary"]["approval_request_created"] is False
+
+
+def test_wrong_agent_hermes_build_status_patches_to_chief(tmp_path):
+    routed = process_direct_agent_surface_operator_intake(
+        "What broke in the build?",
+        agent_id="hermes",
+        received_at_utc=FIXED_NOW,
+        read_model_root=tmp_path / "read_models",
+        receipt_root=tmp_path / "receipts",
+    )
+
+    assert routed["handled"] is True
+    assert routed["routing_status"] == "PATCHED_TO_OWNER"
+    assert routed["routed_from_agent"] == "hermes"
+    assert routed["routed_to_agent"] == "chief"
+    assert routed["execution_mode"] == "hardcoded_route"
+    assert routed["reply_text"] == "That's a Chief/system review request. I routed it to Chief."
+
+
+def test_ambiguous_direct_request_creates_clarification_event_without_receipt(tmp_path):
+    routed = process_direct_agent_surface_operator_intake(
+        "Can you handle that thing?",
+        agent_id="chief",
+        received_at_utc=FIXED_NOW,
+        read_model_root=tmp_path / "read_models",
+        receipt_root=tmp_path / "receipts",
+    )
+
+    assert routed["handled"] is False
+    assert routed["routing_status"] == "CLARIFICATION_REQUIRED"
+    assert routed["route_confidence"] == "low"
+    assert routed["event"]["safe_actions_taken"] == []
+    assert routed["receipt_refs"] == []
+    assert "one detail" in routed["reply_text"]
+    assert not (tmp_path / "read_models" / JSON_EXPORT_NAME).exists()
+
+
+def test_high_risk_send_request_logs_guardian_gated_receipt_without_approval_or_email(tmp_path):
+    routed = try_process_surface_operator_intake(
+        "Send this to Annette.",
+        surface="telegram",
+        received_at_utc=FIXED_NOW,
+        read_model_root=tmp_path / "read_models",
+        receipt_root=tmp_path / "receipts",
+    )
+
+    assert routed is not None
+    assert routed["action_type"] == "approval_gated_action_request"
+    assert routed["risk_tier"] == "high"
+    assert routed["inferred_owner_agent"] == "cassandra"
+    assert routed["routed_from_agent"] == "cassandra"
+    assert routed["routed_to_agent"] == "cassandra"
+    assert routed["approval_required"] is True
+    assert routed["external_calls_performed"] is False
+    assert routed["receipt_refs"]
+    receipt = json.loads(Path(routed["receipt_refs"][0].split("#", 1)[0]).read_text(encoding="utf-8"))
+    assert receipt["approval_required"] is True
+    assert receipt["authority_boundary"]["approval_request_created"] is False
+    assert receipt["parsed_fields"]["email_sent"] is False
+    assert receipt["parsed_fields"]["gmail_draft_created"] is False
+
+
+def test_sidecar_adapter_and_logical_only_routes_are_explicit(tmp_path):
+    hermes = try_process_surface_operator_intake(
+        "Hermes, check the bridge.",
+        surface="telegram",
+        received_at_utc=FIXED_NOW,
+        read_model_root=tmp_path / "read_models",
+        receipt_root=tmp_path / "receipts",
+    )
+    watch = try_process_surface_operator_intake(
+        "Watch Desk, show what needs me.",
+        surface="telegram",
+        received_at_utc=FIXED_NOW,
+        read_model_root=tmp_path / "read_models",
+        receipt_root=tmp_path / "receipts",
+    )
+
+    assert hermes is not None
+    assert hermes["inferred_owner_agent"] == "hermes"
+    assert hermes["execution_mode"] == "sidecar_adapter"
+    assert hermes["agent_execution"]["direct_surface_available"] is False
+    assert watch is not None
+    assert watch["inferred_owner_agent"] == "watch desk"
+    assert watch["execution_mode"] == "logical_only"
+    assert "executor is not wired" in watch["reply_text"]
 
 
 def test_unknown_agent_asks_clarification_without_receipt_or_read_model(tmp_path):
@@ -367,7 +614,11 @@ def test_mac_composer_callable_contract_handles_niles_creative_prep(tmp_path):
     assert response["surface"] == "mac_composer"
     assert response["lane"] == "niles_creative"
     assert response["action_type"] == "agent_lane_request"
-    assert response["reply_text"] == "Niles prep request staged: live set notes. No DAW action taken."
+    assert response["inferred_owner_agent"] == "niles"
+    assert response["routed_from_agent"] == "mac_composer"
+    assert response["routed_to_agent"] == "niles"
+    assert response["execution_mode"] == "spawned_worker"
+    assert response["reply_text"] == "That's a Niles creative prep request. I staged it for Niles."
     assert response["event"]["authority_boundary"]["daw_or_media_session_mutated"] is False
     assert response["event"]["raw_text_stored"] is False
 
