@@ -65,6 +65,7 @@
 !operator_action.py
 !operator_action_event_journal.py
 !operator_action_inbox.py
+!operator_universal_intake.py
 !project_capsule.py
 !legacy_repo_intake.py
 !module_registry.py
@@ -827,6 +828,7 @@
 !tests/test_operator_action.py
 !tests/test_operator_action_event_journal.py
 !tests/test_operator_action_inbox.py
+!tests/test_operator_universal_intake.py
 !tests/test_capital_hilton_business_development_proposal.py
 !tests/test_capital_hilton_actionable_review_packet.py
 !tests/test_capital_hilton_review_packet_approval.py

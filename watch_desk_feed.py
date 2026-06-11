@@ -39,6 +39,7 @@ CASSANDRA_DRAFT_REF = "generated/read_models/cassandra_draft_worker_readback.jso
 SYNC_HEALTH_REF = "generated/read_models/sync_health.json"
 SERVICE_KEEPER_REF = "generated/read_models/openclaw_service_keeper_status.json"
 PROOF_TO_RESPONSE_REF = "generated/read_models/proof_to_response_latest.json"
+OPERATOR_INTAKE_REF = "generated/read_models/operator_intake_events.json"
 
 
 def utc_now() -> str:
@@ -344,6 +345,42 @@ def _proof_to_response_item(status: Mapping[str, Any]) -> dict[str, Any] | None:
     )
 
 
+def _operator_intake_items(read_model: Mapping[str, Any]) -> list[dict[str, Any]]:
+    items = read_model.get("watch_desk_items")
+    if not isinstance(items, list):
+        return []
+
+    feed_items: list[dict[str, Any]] = []
+    for item in items:
+        if not isinstance(item, Mapping):
+            continue
+        item_id = str(item.get("item_id") or "")
+        plain_line = str(item.get("plain_line") or "").strip()
+        source_receipt_ref = str(item.get("source_receipt_ref") or "").strip()
+        if not item_id or not plain_line or not source_receipt_ref:
+            continue
+        feed_items.append(
+            _new_item(
+                item_id=item_id,
+                lane=str(item.get("lane") or "chief_runtime"),
+                urgency=str(item.get("urgency") or "watch"),
+                plain_line=plain_line,
+                source_receipt_ref=source_receipt_ref,
+                one_next_safe_action=str(
+                    item.get("one_next_safe_action")
+                    or "Review the local intake receipt before any external action."
+                ),
+                state={
+                    "intake_id": str(item.get("intake_id") or ""),
+                    "action_type": str(item.get("action_type") or ""),
+                    "source_receipt_ref": source_receipt_ref,
+                },
+                push_class=str(item.get("push_class") or "on_demand"),
+            )
+        )
+    return feed_items
+
+
 def _dedupe_items(items: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
     deduped: dict[str, dict[str, Any]] = {}
     for item in items:
@@ -408,7 +445,8 @@ def build_watch_desk_feed(
         _service_keeper_item(_load_json(read_root / "openclaw_service_keeper_status.json")),
         _proof_to_response_item(_load_json(read_root / "proof_to_response_latest.json")),
     ]
-    feed_items = _dedupe_items(item for item in candidate_items if item is not None)
+    operator_intake_items = _operator_intake_items(_load_json(read_root / Path(OPERATOR_INTAKE_REF).name))
+    feed_items = _dedupe_items([item for item in candidate_items if item is not None] + operator_intake_items)
     source_refs = sorted({item["source_receipt_ref"] for item in feed_items})
     new_candidates = _push_candidates(feed_items, previous_item_states)
 
