@@ -2279,6 +2279,28 @@ def _detect_future_action_intent(text: str) -> bool:
     return has_time and has_verb
 
 
+def _detect_send_authority_prepared_status_echo(text: str) -> bool:
+    """True for Cassandra's own send-authority-prepared operator status line."""
+    normalized = " ".join(str(text or "").lower().split())
+    return all(
+        phrase in normalized
+        for phrase in (
+            "prepared the send authority request",
+            "nothing has been sent",
+            "approve the exact send request",
+        )
+    )
+
+
+def _handle_send_authority_prepared_status_echo(text: str) -> str:
+    match = re.search(r"send authority request for\s+([^\s,;]+@[^\s,;]+)", str(text or ""), re.IGNORECASE)
+    recipient = match.group(1).rstrip(".") if match else "the recipient"
+    return (
+        f"The send-authority request for {recipient} is already prepared. "
+        "Nothing has been sent. Next: review and approve the exact send request only if it matches what you want."
+    )
+
+
 def _handle_future_action_queue_request(text: str, sender_chat_id: object | None = None) -> str | None:
     """Enqueue a future-action reminder. Returns reply string or None if not a match."""
     if not _detect_future_action_intent(text):
@@ -5619,6 +5641,22 @@ def handle(text: str, session: dict | None = None) -> list[str]:
                 "objective_id": objective_result["objective"]["objective_id"],
                 "gmail_lookup_performed": False,
                 "email_send_performed": False,
+            },
+        )
+        return reply
+
+    if _detect_send_authority_prepared_status_echo(query):
+        reply = [_handle_send_authority_prepared_status_echo(query)]
+        save_state(state)
+        _log_conversation(
+            text,
+            reply,
+            route="cassandra_operator_objective_status_echo",
+            metadata={
+                "event_id": event_id,
+                "gmail_lookup_performed": False,
+                "email_send_performed": False,
+                "gmail_draft_created": False,
             },
         )
         return reply

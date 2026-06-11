@@ -141,6 +141,41 @@ def test_cassandra_handler_routes_telegram_text_to_objective_before_live_gmail(m
     assert "Approve the scoped metadata lookup" in replies[0]
 
 
+def test_cassandra_status_echo_does_not_fall_through_to_model(monkeypatch):
+    status_text = (
+        "I prepared the send authority request for Annette.Sunga@hilton.com. "
+        "Nothing has been sent. Next: approve the exact send request."
+    )
+    logged = {}
+
+    monkeypatch.setattr(cassandra_brain, "record_cassandra_packet_event", lambda query, packet: "event:test")
+    monkeypatch.setattr(cassandra_brain, "load_state", lambda: dict(cassandra_brain._DEFAULT_STATE))
+    monkeypatch.setattr(cassandra_brain, "save_state", lambda state: None)
+    monkeypatch.setattr(cassandra_brain, "answer_date_awareness_query", lambda query: None)
+
+    def fail_call(*args, **kwargs):
+        raise AssertionError("status echo should not call the model")
+
+    def capture_log(user_text, replies, route="llm", metadata=None):
+        logged["route"] = route
+        logged["replies"] = replies
+        logged["metadata"] = metadata or {}
+
+    monkeypatch.setattr(cassandra_brain, "_call", fail_call)
+    monkeypatch.setattr(cassandra_brain, "_log_conversation", capture_log)
+
+    replies = cassandra_brain.handle(
+        status_text,
+        session={"skip_followup_check": True, "source_message_id": "telegram:update:status-echo"},
+    )
+
+    assert len(replies) == 1
+    assert "already prepared" in replies[0]
+    assert "Nothing has been sent" in replies[0]
+    assert logged["route"] == "cassandra_operator_objective_status_echo"
+    assert logged["metadata"]["email_send_performed"] is False
+
+
 def test_objective_planner_preserves_full_lookup_draft_review_send_schedule_intent(tmp_path):
     result = objective_loop.route_cassandra_objective_message(
         ANNETTE_TEXT,
