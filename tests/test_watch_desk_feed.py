@@ -25,7 +25,24 @@ def _write_task(path: Path, body: str) -> Path:
     return path
 
 
-def _build(read_model_root: Path, task_root: Path | None = None, previous=None) -> dict:
+def _write_empty_intake(read_model_root: Path) -> None:
+    path = read_model_root / "operator_intake_events.json"
+    if path.exists():
+        return
+    _write_json(
+        path,
+        {
+            "schema_version": "operator_intake_events_read_model_v0",
+            "generated_at": FIXED_NOW,
+            "events": [],
+            "watch_desk_items": [],
+        },
+    )
+
+
+def _build(read_model_root: Path, task_root: Path | None = None, previous=None, *, intake_stub: bool = True) -> dict:
+    if intake_stub:
+        _write_empty_intake(read_model_root)
     return feed.build_watch_desk_feed(
         read_model_root=read_model_root,
         task_root=task_root or read_model_root / "tasks",
@@ -44,6 +61,68 @@ def _pending_approval_queue() -> dict:
                 "plain_summary": "Do not copy this unsafe private raw body: winship@example.test",
             }
         ]
+    }
+
+
+def _intake_event(
+    *,
+    intake_id: str = "operator_intake:test",
+    action_type: str = "income_payment_log",
+    lane: str = "cassandra_finance",
+    surface: str = "local_cli",
+    receipt_path: str = "/tmp/openclaw-mission-control/receipts/operator_intake_test_receipt.json",
+    received_at: str = "2026-06-10T21:00:00+00:00",
+    summary: str = "Logged income: $900 from Live Arts MD.",
+    watch_item: bool = False,
+) -> dict:
+    event = {
+        "schema_version": "OPERATOR_INTAKE_EVENT_V0",
+        "intake_id": intake_id,
+        "surface": surface,
+        "received_at_utc": received_at,
+        "normalized_summary": summary,
+        "parsed": {
+            "action_type": action_type,
+            "lane": lane,
+            "fields": {},
+        },
+        "receipts": [
+            {
+                "path": receipt_path,
+                "receipt_id": "operator_intake_receipt:test",
+            }
+        ],
+        "watch_desk_items": [],
+        "raw_text": "This raw source body must not be copied.",
+        "raw_text_stored": True,
+    }
+    if watch_item:
+        event["watch_desk_items"] = [
+            {
+                "item_id": f"operator_intake:{intake_id}",
+                "intake_id": intake_id,
+                "action_type": action_type,
+                "lane": "cassandra_ar",
+                "urgency": "watch",
+                "plain_line": summary,
+                "source_receipt_ref": f"{receipt_path}#receipt",
+                "one_next_safe_action": "Review the local receipt; keep external mutation behind the existing approval spine.",
+                "push_class": "on_demand",
+            }
+        ]
+    return event
+
+
+def _operator_intake_read_model(events: list[dict], *, generated_at: str = FIXED_NOW) -> dict:
+    watch_items = []
+    for event in events:
+        watch_items.extend(event.get("watch_desk_items", []))
+    return {
+        "schema_version": "operator_intake_events_read_model_v0",
+        "generated_at": generated_at,
+        "events": events,
+        "event_count": len(events),
+        "watch_desk_items": watch_items,
     }
 
 
@@ -204,6 +283,132 @@ generated_at: 2026-06-10T20:56:23.068137
     assert "plain_summary" not in rendered
     assert "operator_message" not in rendered
     assert '"body_text"' not in rendered
+
+
+def test_recent_local_safe_intake_events_appear_in_watch_desk(tmp_path):
+    events = [
+        _intake_event(
+            intake_id="operator_intake:income",
+            action_type="income_payment_log",
+            lane="cassandra_finance",
+            summary="Logged income: $900 from Live Arts MD.",
+        ),
+        _intake_event(
+            intake_id="operator_intake:expense",
+            action_type="expense_log",
+            lane="cassandra_finance",
+            summary="Logged expense: $106 Claude Code Fable 5 as software.",
+            receipt_path="/tmp/openclaw-mission-control/receipts/operator_intake_expense_receipt.json",
+        ),
+        _intake_event(
+            intake_id="operator_intake:gig",
+            action_type="gig_event_log",
+            lane="cassandra_business/niles_context",
+            summary="Logged gig: St. Anne's on 2026-06-11.",
+            receipt_path="/tmp/openclaw-mission-control/receipts/operator_intake_gig_receipt.json",
+        ),
+        _intake_event(
+            intake_id="operator_intake:preference",
+            action_type="identity_signature_preference",
+            lane="chief_identity",
+            summary="Staged identity preference: use Winship locally.",
+            receipt_path="/tmp/openclaw-mission-control/receipts/operator_intake_preference_receipt.json",
+        ),
+    ]
+    _write_json(tmp_path / "operator_intake_events.json", _operator_intake_read_model(events))
+
+    payload = _build(tmp_path, intake_stub=False)
+    by_id = {item["item_id"]: item for item in payload["feed_items"]}
+
+    assert payload["source_freshness"]["operator_intake_events"]["status"] == "fresh"
+    assert by_id["operator_intake:operator_intake:income"]["lane"] == "cassandra_ar"
+    assert by_id["operator_intake:operator_intake:expense"]["lane"] == "cassandra_ar"
+    assert by_id["operator_intake:operator_intake:gig"]["lane"] == "niles_creative"
+    assert by_id["operator_intake:operator_intake:preference"]["lane"] == "chief_runtime"
+    assert all(item["push_allowed"] is False for item in by_id.values())
+
+
+def test_feed_regenerates_after_new_local_intake_event(tmp_path):
+    first = _intake_event(intake_id="operator_intake:first", summary="Logged income: $900 from Live Arts MD.")
+    _write_json(tmp_path / "operator_intake_events.json", _operator_intake_read_model([first]))
+    first_payload = _build(tmp_path, intake_stub=False)
+
+    second = _intake_event(
+        intake_id="operator_intake:second",
+        action_type="expense_log",
+        summary="Logged expense: $106 Claude Code Fable 5 as software.",
+        receipt_path="/tmp/openclaw-mission-control/receipts/operator_intake_second_receipt.json",
+        received_at="2026-06-10T21:05:00+00:00",
+    )
+    _write_json(tmp_path / "operator_intake_events.json", _operator_intake_read_model([second, first]))
+    second_payload = _build(tmp_path, intake_stub=False)
+
+    assert first_payload["item_count"] == 1
+    assert second_payload["item_count"] == 2
+    assert {item["item_id"] for item in second_payload["feed_items"]} == {
+        "operator_intake:operator_intake:first",
+        "operator_intake:operator_intake:second",
+    }
+
+
+def test_feed_points_to_telegram_receipt_when_surface_is_telegram(tmp_path):
+    receipt_path = "/tmp/openclaw-mission-control/telegram/local_receipts/operator_intake_telegram_receipt.json"
+    event = _intake_event(
+        intake_id="operator_intake:telegram",
+        surface="telegram",
+        receipt_path=receipt_path,
+        summary="Logged income: $900 from Live Arts MD.",
+    )
+    _write_json(tmp_path / "operator_intake_events.json", _operator_intake_read_model([event]))
+
+    payload = _build(tmp_path, intake_stub=False)
+    item = payload["feed_items"][0]
+
+    assert item["item_id"] == "operator_intake:operator_intake:telegram"
+    assert item["source_receipt_ref"] == f"{receipt_path}#receipt"
+    assert item["state_hash"]
+    assert item["push_allowed"] is False
+
+
+def test_no_duplicate_when_intake_event_and_top_level_watch_item_overlap(tmp_path):
+    event = _intake_event(
+        intake_id="operator_intake:dedupe",
+        summary="Logged income: $900 from Live Arts MD.",
+        watch_item=True,
+    )
+    _write_json(tmp_path / "operator_intake_events.json", _operator_intake_read_model([event]))
+
+    first = _build(tmp_path, intake_stub=False)
+    second = _build(tmp_path, intake_stub=False)
+
+    assert [item["item_id"] for item in first["feed_items"]] == ["operator_intake:operator_intake:dedupe"]
+    assert [item["item_id"] for item in second["feed_items"]] == ["operator_intake:operator_intake:dedupe"]
+    assert first["feed_items"][0]["state_hash"] == second["feed_items"][0]["state_hash"]
+
+
+def test_stale_or_missing_operator_intake_read_model_warns_without_crashing(tmp_path):
+    missing = _build(tmp_path, intake_stub=False)
+
+    assert missing["item_count"] == 1
+    assert missing["feed_items"][0]["item_id"] == "chief_runtime:operator_intake_events:missing"
+    assert missing["feed_items"][0]["urgency"] == "watch"
+    assert missing["source_freshness"]["operator_intake_events"]["status"] == "missing"
+
+    stale_event = _intake_event(
+        intake_id="operator_intake:stale",
+        received_at="2026-06-10T21:05:00+00:00",
+    )
+    _write_json(
+        tmp_path / "operator_intake_events.json",
+        _operator_intake_read_model([stale_event], generated_at="2026-06-10T21:00:00+00:00"),
+    )
+    stale = _build(tmp_path, intake_stub=False)
+
+    assert "operator_intake:operator_intake:stale" in {item["item_id"] for item in stale["feed_items"]}
+    assert "chief_runtime:operator_intake_events:source_stale" in {
+        item["item_id"] for item in stale["feed_items"]
+    }
+    assert stale["source_freshness"]["operator_intake_events"]["status"] == "source_stale"
 
 
 def test_source_does_not_import_live_listener_runtime_db_network_or_model_tools():

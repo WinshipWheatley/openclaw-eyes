@@ -33,6 +33,12 @@ LANES = (
 )
 URGENCIES = ("info", "watch", "needs_operator", "blocked", "urgent")
 PUSH_ELIGIBLE_CLASSES = ("approval_waiting", "failure")
+SUPPORTED_INTAKE_ACTION_TYPES = (
+    "income_payment_log",
+    "expense_log",
+    "gig_event_log",
+    "identity_signature_preference",
+)
 
 APPROVAL_QUEUE_REF = "generated/read_models/approval_request_queue.json"
 CASSANDRA_DRAFT_REF = "generated/read_models/cassandra_draft_worker_readback.json"
@@ -87,6 +93,21 @@ def _safe_int(value: Any) -> int:
     return 0
 
 
+def _parse_iso_datetime(value: Any) -> datetime | None:
+    if not isinstance(value, str) or not value.strip():
+        return None
+    text = value.strip()
+    if text.endswith("Z"):
+        text = f"{text[:-1]}+00:00"
+    try:
+        parsed = datetime.fromisoformat(text)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
 def _display_path(path: Path) -> str:
     try:
         return path.resolve().relative_to(Path.cwd().resolve()).as_posix()
@@ -115,13 +136,14 @@ def _new_item(
     one_next_safe_action: str,
     state: Mapping[str, Any],
     push_class: str,
+    occurred_at: str = "",
 ) -> dict[str, Any]:
     if lane not in LANES:
         lane = "chief_runtime"
     if urgency not in URGENCIES:
         urgency = "watch"
     push_candidate = push_class in PUSH_ELIGIBLE_CLASSES
-    return {
+    item = {
         "item_id": item_id,
         "lane": lane,
         "urgency": urgency,
@@ -133,6 +155,9 @@ def _new_item(
         "push_candidate": push_candidate,
         "push_class": push_class,
     }
+    if occurred_at:
+        item["occurred_at"] = occurred_at
+    return item
 
 
 def _approval_queue_item(queue: Mapping[str, Any]) -> dict[str, Any] | None:
@@ -345,40 +370,233 @@ def _proof_to_response_item(status: Mapping[str, Any]) -> dict[str, Any] | None:
     )
 
 
-def _operator_intake_items(read_model: Mapping[str, Any]) -> list[dict[str, Any]]:
-    items = read_model.get("watch_desk_items")
-    if not isinstance(items, list):
-        return []
+def _watch_lane(lane: Any) -> str:
+    lane_text = str(lane or "").strip()
+    if lane_text in LANES:
+        return lane_text
+    if lane_text == "cassandra_finance":
+        return "cassandra_ar"
+    if lane_text == "cassandra_business/niles_context":
+        return "niles_creative"
+    if lane_text == "chief_identity":
+        return "chief_runtime"
+    return "chief_runtime"
+
+
+def _safe_intake_summary(event: Mapping[str, Any], action_type: str) -> str:
+    summary = str(event.get("normalized_summary") or "").strip()
+    if summary:
+        return summary
+    labels = {
+        "income_payment_log": "Logged income/payment intake event.",
+        "expense_log": "Logged expense intake event.",
+        "gig_event_log": "Logged gig intake event.",
+        "identity_signature_preference": "Staged identity preference locally.",
+    }
+    return labels.get(action_type, "Operator intake event logged locally.")
+
+
+def _receipt_ref_from_event(event: Mapping[str, Any]) -> str:
+    receipts = event.get("receipts")
+    if not isinstance(receipts, list):
+        return ""
+    for receipt in receipts:
+        if not isinstance(receipt, Mapping):
+            continue
+        path = str(receipt.get("path") or "").strip()
+        if path:
+            return path if "#" in path else f"{path}#receipt"
+        receipt_id = str(receipt.get("receipt_id") or "").strip()
+        if receipt_id:
+            return f"{receipt_id}#receipt"
+    return ""
+
+
+def _operator_item_from_mapping(
+    item: Mapping[str, Any],
+    *,
+    fallback_event: Mapping[str, Any] | None = None,
+) -> dict[str, Any] | None:
+    item_id = str(item.get("item_id") or "").strip()
+    intake_id = str(item.get("intake_id") or (fallback_event or {}).get("intake_id") or "").strip()
+    action_type = str(item.get("action_type") or "").strip()
+    plain_line = str(item.get("plain_line") or "").strip()
+    source_receipt_ref = str(item.get("source_receipt_ref") or "").strip()
+    occurred_at = str((fallback_event or {}).get("received_at_utc") or item.get("occurred_at") or "").strip()
+    if not item_id and intake_id:
+        item_id = f"operator_intake:{intake_id}"
+    if not source_receipt_ref and fallback_event:
+        source_receipt_ref = _receipt_ref_from_event(fallback_event)
+    if not plain_line and fallback_event:
+        parsed = fallback_event.get("parsed") if isinstance(fallback_event.get("parsed"), Mapping) else {}
+        action_type = action_type or str(parsed.get("action_type") or "")
+        plain_line = _safe_intake_summary(fallback_event, action_type)
+    if not item_id or not plain_line or not source_receipt_ref:
+        return None
+    fallback_parsed = fallback_event.get("parsed") if fallback_event and isinstance(fallback_event.get("parsed"), Mapping) else {}
+
+    return _new_item(
+        item_id=item_id,
+        lane=_watch_lane(item.get("lane") or fallback_parsed.get("lane")),
+        urgency=str(item.get("urgency") or "watch"),
+        plain_line=plain_line,
+        source_receipt_ref=source_receipt_ref,
+        one_next_safe_action=str(
+            item.get("one_next_safe_action")
+            or "Review the local intake receipt before any external action."
+        ),
+        state={
+            "intake_id": intake_id,
+            "action_type": action_type,
+            "source_receipt_ref": source_receipt_ref,
+            "surface": str((fallback_event or {}).get("surface") or ""),
+            "received_at_utc": occurred_at,
+        },
+        push_class=str(item.get("push_class") or "on_demand"),
+        occurred_at=occurred_at,
+    )
+
+
+def _operator_item_from_event(event: Mapping[str, Any]) -> dict[str, Any] | None:
+    parsed = event.get("parsed") if isinstance(event.get("parsed"), Mapping) else {}
+    action_type = str(parsed.get("action_type") or "").strip()
+    if action_type not in SUPPORTED_INTAKE_ACTION_TYPES:
+        return None
+    receipt_ref = _receipt_ref_from_event(event)
+    if not receipt_ref:
+        return None
+    intake_id = str(event.get("intake_id") or "").strip()
+    if not intake_id:
+        return None
+    item = {
+        "item_id": f"operator_intake:{intake_id}",
+        "intake_id": intake_id,
+        "action_type": action_type,
+        "lane": _watch_lane(parsed.get("lane")),
+        "urgency": "watch",
+        "plain_line": _safe_intake_summary(event, action_type),
+        "source_receipt_ref": receipt_ref,
+        "one_next_safe_action": "Review the local receipt; keep external mutation behind the existing approval spine.",
+        "push_class": "on_demand",
+    }
+    return _operator_item_from_mapping(item, fallback_event=event)
+
+
+def _operator_intake_freshness(
+    read_model: Mapping[str, Any],
+    *,
+    feed_generated_at: str,
+) -> dict[str, Any]:
+    if not read_model:
+        return {
+            "status": "missing",
+            "source_ref": f"{OPERATOR_INTAKE_REF}#missing",
+            "source_generated_at": "",
+            "latest_event_at": "",
+            "event_count": 0,
+        }
+    events = read_model.get("events")
+    event_rows = [event for event in events if isinstance(event, Mapping)] if isinstance(events, list) else []
+    source_generated_at = str(read_model.get("generated_at") or "").strip()
+    latest_event_at = ""
+    latest_event_dt = None
+    for event in event_rows:
+        event_dt = _parse_iso_datetime(event.get("received_at_utc"))
+        if event_dt and (latest_event_dt is None or event_dt > latest_event_dt):
+            latest_event_dt = event_dt
+            latest_event_at = str(event.get("received_at_utc") or "")
+
+    source_dt = _parse_iso_datetime(source_generated_at)
+    feed_dt = _parse_iso_datetime(feed_generated_at)
+    status = "fresh"
+    if event_rows and source_dt is None:
+        status = "source_generated_at_missing"
+    elif latest_event_dt and source_dt and latest_event_dt > source_dt:
+        status = "source_stale"
+    elif source_dt and feed_dt and source_dt > feed_dt:
+        status = "feed_stale"
+    elif not event_rows:
+        status = "empty"
+
+    return {
+        "status": status,
+        "source_ref": f"{OPERATOR_INTAKE_REF}#generated_at",
+        "source_generated_at": source_generated_at,
+        "latest_event_at": latest_event_at,
+        "event_count": len(event_rows),
+    }
+
+
+def _operator_intake_warning_item(freshness: Mapping[str, Any]) -> dict[str, Any] | None:
+    status = str(freshness.get("status") or "")
+    if status in {"fresh", "empty"}:
+        return None
+    source_ref = str(freshness.get("source_ref") or f"{OPERATOR_INTAKE_REF}#generated_at")
+    lines = {
+        "missing": "Universal Operator Intake read model is missing; recent local-safe intake may not be visible.",
+        "source_generated_at_missing": "Universal Operator Intake read model has events but no generated_at timestamp.",
+        "source_stale": "Universal Operator Intake read model appears older than its latest event.",
+        "feed_stale": "Watch Desk feed was generated before the latest Universal Operator Intake read model.",
+    }
+    return _new_item(
+        item_id=f"chief_runtime:operator_intake_events:{status}",
+        lane="chief_runtime",
+        urgency="watch",
+        plain_line=lines.get(status, "Universal Operator Intake freshness needs review."),
+        source_receipt_ref=source_ref,
+        one_next_safe_action="Regenerate the local Watch Desk feed from existing read models; do not call external systems.",
+        state={
+            "status": status,
+            "source_generated_at": str(freshness.get("source_generated_at") or ""),
+            "latest_event_at": str(freshness.get("latest_event_at") or ""),
+            "event_count": int(freshness.get("event_count") or 0),
+        },
+        push_class="on_demand",
+    )
+
+
+def _operator_intake_items(
+    read_model: Mapping[str, Any],
+    *,
+    feed_generated_at: str,
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    if not read_model:
+        freshness = _operator_intake_freshness(read_model, feed_generated_at=feed_generated_at)
+        warning = _operator_intake_warning_item(freshness)
+        return ([warning] if warning else []), freshness
 
     feed_items: list[dict[str, Any]] = []
-    for item in items:
-        if not isinstance(item, Mapping):
-            continue
-        item_id = str(item.get("item_id") or "")
-        plain_line = str(item.get("plain_line") or "").strip()
-        source_receipt_ref = str(item.get("source_receipt_ref") or "").strip()
-        if not item_id or not plain_line or not source_receipt_ref:
-            continue
-        feed_items.append(
-            _new_item(
-                item_id=item_id,
-                lane=str(item.get("lane") or "chief_runtime"),
-                urgency=str(item.get("urgency") or "watch"),
-                plain_line=plain_line,
-                source_receipt_ref=source_receipt_ref,
-                one_next_safe_action=str(
-                    item.get("one_next_safe_action")
-                    or "Review the local intake receipt before any external action."
-                ),
-                state={
-                    "intake_id": str(item.get("intake_id") or ""),
-                    "action_type": str(item.get("action_type") or ""),
-                    "source_receipt_ref": source_receipt_ref,
-                },
-                push_class=str(item.get("push_class") or "on_demand"),
-            )
-        )
-    return feed_items
+    events = read_model.get("events")
+    event_rows = [event for event in events if isinstance(event, Mapping)] if isinstance(events, list) else []
+    event_by_intake_id = {
+        str(event.get("intake_id") or ""): event for event in event_rows if str(event.get("intake_id") or "")
+    }
+    for event in event_rows:
+        event_items = event.get("watch_desk_items")
+        if isinstance(event_items, list):
+            for item in event_items:
+                if isinstance(item, Mapping):
+                    converted = _operator_item_from_mapping(item, fallback_event=event)
+                    if converted:
+                        feed_items.append(converted)
+        fallback = _operator_item_from_event(event)
+        if fallback:
+            feed_items.append(fallback)
+
+    top_items = read_model.get("watch_desk_items")
+    if isinstance(top_items, list):
+        for item in top_items:
+            if isinstance(item, Mapping):
+                intake_id = str(item.get("intake_id") or "").strip()
+                converted = _operator_item_from_mapping(item, fallback_event=event_by_intake_id.get(intake_id))
+                if converted:
+                    feed_items.append(converted)
+
+    freshness = _operator_intake_freshness(read_model, feed_generated_at=feed_generated_at)
+    warning = _operator_intake_warning_item(freshness)
+    if warning:
+        feed_items.append(warning)
+    return feed_items, freshness
 
 
 def _dedupe_items(items: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -445,7 +663,10 @@ def build_watch_desk_feed(
         _service_keeper_item(_load_json(read_root / "openclaw_service_keeper_status.json")),
         _proof_to_response_item(_load_json(read_root / "proof_to_response_latest.json")),
     ]
-    operator_intake_items = _operator_intake_items(_load_json(read_root / Path(OPERATOR_INTAKE_REF).name))
+    operator_intake_items, operator_intake_freshness = _operator_intake_items(
+        _load_json(read_root / Path(OPERATOR_INTAKE_REF).name),
+        feed_generated_at=generated_at,
+    )
     feed_items = _dedupe_items([item for item in candidate_items if item is not None] + operator_intake_items)
     source_refs = sorted({item["source_receipt_ref"] for item in feed_items})
     new_candidates = _push_candidates(feed_items, previous_item_states)
@@ -460,6 +681,9 @@ def build_watch_desk_feed(
         "source_receipt_refs": source_refs,
         "new_push_candidates": new_candidates,
         "new_push_candidate_count": len(new_candidates),
+        "source_freshness": {
+            "operator_intake_events": operator_intake_freshness,
+        },
         "push_policy": {
             "live_push_allowed": False,
             "eligible_classes": list(PUSH_ELIGIBLE_CLASSES),
@@ -482,6 +706,8 @@ def build_watch_desk_feed(
             "live_listener_modified": False,
             "live_notifications_sent": False,
             "raw_private_body_copied": False,
+            "operator_intake_read_model_checked": True,
+            "external_calls_performed": False,
             "all_items_have_source_receipt_ref": all(bool(item["source_receipt_ref"]) for item in feed_items),
             "push_allowed_false_for_all_items": all(item["push_allowed"] is False for item in feed_items),
             "push_candidates_limited_to_approval_waiting_and_failure": all(
