@@ -70,6 +70,10 @@ def test_low_risk_income_writes_receipt_read_model_and_watch_item(tmp_path):
     assert result["route_confidence"] == "high"
     assert result["routed_to_agent"] == "cassandra"
     assert result["execution_mode"] == "live_listener"
+    assert result["direct_surface_available"] is True
+    assert result["fallback_route_available"] is True
+    assert result["spawn_supported"] is False
+    assert result["route_back_supported"] is True
     assert result["operator_visible_reply"] == "Logged income: $900 from Live Arts MD. Missing: invoice/project link, payment method."
     assert result["receipts"]
     assert result["receipt_refs"] == [f"{result['receipts'][0]['path']}#receipt"]
@@ -81,12 +85,18 @@ def test_low_risk_income_writes_receipt_read_model_and_watch_item(tmp_path):
     assert receipt["parsed_fields"]["invoice_marked_paid"] is False
     assert receipt["inferred_owner_agent"] == "cassandra"
     assert receipt["execution_mode"] == "live_listener"
+    assert receipt["direct_surface_available"] is True
+    assert receipt["fallback_route_available"] is True
+    assert receipt["spawn_supported"] is False
+    assert receipt["route_back_supported"] is True
     assert receipt["receipt_refs"] == result["receipt_refs"]
     assert receipt["mutation_scope"] == "local_read_model_or_receipt_only"
 
     read_model = json.loads(read_model_path.read_text(encoding="utf-8"))
     assert read_model["event_count"] == 1
     assert read_model["events"][0]["parsed"]["fields"]["amount"] == 900
+    assert read_model["events"][0]["direct_surface_available"] is True
+    assert read_model["events"][0]["fallback_route_available"] is True
     assert read_model["events"][0]["safe_actions_taken"] == ["record_local_income_payment_receipt"]
 
     feed = build_watch_desk_feed(read_model_root=tmp_path / "read_models", task_root=tmp_path / "tasks")
@@ -274,7 +284,7 @@ def test_agent_addressed_messages_route_to_expected_lanes_without_external_calls
 
 def test_direct_intended_niles_request_routes_with_spawned_mode_but_no_fake_live_surface(tmp_path):
     routed = process_direct_agent_surface_operator_intake(
-        "Niles, prep my live set notes.",
+        "prep my live set notes.",
         agent_id="niles",
         received_at_utc=FIXED_NOW,
         read_model_root=tmp_path / "read_models",
@@ -289,6 +299,11 @@ def test_direct_intended_niles_request_routes_with_spawned_mode_but_no_fake_live
     assert routed["routed_from_agent"] == "niles"
     assert routed["routed_to_agent"] == "niles"
     assert routed["execution_mode"] == "spawned_worker"
+    assert routed["event"]["addressed_agent"] == ""
+    assert routed["event"]["direct_surface_available"] is False
+    assert routed["event"]["fallback_route_available"] is True
+    assert routed["event"]["spawn_supported"] is True
+    assert routed["event"]["route_back_supported"] is True
     assert routed["event"]["parsed"]["fields"]["daw_action_taken"] is False
     assert routed["event"]["authority_boundary"]["daw_or_media_session_mutated"] is False
 
@@ -621,6 +636,28 @@ def test_mac_composer_callable_contract_handles_niles_creative_prep(tmp_path):
     assert response["reply_text"] == "That's a Niles creative prep request. I staged it for Niles."
     assert response["event"]["authority_boundary"]["daw_or_media_session_mutated"] is False
     assert response["event"]["raw_text_stored"] is False
+
+
+def test_mac_composer_callable_contract_routes_finance_to_cassandra(tmp_path):
+    response = process_mac_composer_operator_intake(
+        "I got paid $900 from Live Arts MD.",
+        received_at_utc=FIXED_NOW,
+        read_model_root=tmp_path / "read_models",
+        receipt_root=tmp_path / "receipts",
+    )
+
+    assert response["schema_version"] == "operator_intake_surface_response_v0"
+    assert response["handled"] is True
+    assert response["surface"] == "mac_composer"
+    assert response["action_type"] == "income_payment_log"
+    assert response["inferred_owner_agent"] == "cassandra"
+    assert response["routed_from_agent"] == "mac_composer"
+    assert response["routed_to_agent"] == "cassandra"
+    assert response["execution_mode"] == "live_listener"
+    assert response["approval_required"] is False
+    assert response["event"]["parsed"]["fields"]["invoice_marked_paid"] is False
+    assert response["event"]["authority_boundary"]["external_calls_performed"] is False
+    assert response["receipt_refs"]
 
 
 def test_cassandra_handler_routes_operator_telegram_text_to_universal_intake(monkeypatch, tmp_path):
