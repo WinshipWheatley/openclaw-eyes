@@ -106,6 +106,13 @@ def _add_send_authority_refs(db, objective_id):
     _store_objective_json(db, objective)
 
 
+def _set_send_authority_refs(db, objective_id, *, authority_refs=None, credential_lease_refs=None):
+    objective = _load_objective_from_db(db, objective_id)
+    objective["authority_refs"] = list(authority_refs or [])
+    objective["credential_lease_refs"] = list(credential_lease_refs or [])
+    _store_objective_json(db, objective)
+
+
 # ── Phase 5 Test 1: Draft approval routes to send-authority, not reminder ────
 
 def test_detects_draft_approval_send_authority():
@@ -716,7 +723,8 @@ def test_exact_send_live_transport_gate_is_disabled_and_schema_only(tmp_path):
     assert would_run_receipt["broker_called"] is False
     assert would_run_receipt["fake_broker_called"] is True
     assert would_run_receipt["email_send_performed"] is False
-    assert fake.calls and fake.calls[0]["broker_capability"] == "google.gmail.send"
+    assert len(fake.calls) == 1
+    assert fake.calls[0]["broker_capability"] == "google.gmail.send"
     assert success_shape["schema_version"] == "EXACT_SEND_FUTURE_LIVE_SUCCESS_RECEIPT_V0"
     assert success_shape["schema_only"] is True
     assert success_shape["broker_capability"] == "google.gmail.send"
@@ -748,6 +756,194 @@ def test_disabled_gmail_exact_send_transport_refuses_without_broker_call():
     assert result["broker_called"] is False
     assert result["gmail_api_called"] is False
     assert result["email_send_performed"] is False
+
+
+def test_governed_broker_transport_is_disabled_by_default():
+    """The real governed broker transport exists but does not call the broker by default."""
+    transport = objective_loop.GovernedGmailBrokerSendTransport()
+    result = transport.send_exact_payload(
+        {
+            "request_id": "exact_send_authority_request:fixture",
+            "objective_id": "cassandra_operator_objective:fixture",
+            "recipient": "Annette.Sunga@hilton.com",
+            "subject": "Follow-up on Winship invoice",
+            "body": "fixture body",
+            "payload_hash": "sha256:" + ("2" * 64),
+        },
+        authority_refs=["authority_envelope:fixture"],
+        credential_lease_refs=["credential_lease:fixture"],
+    )
+
+    assert result["ok"] is False
+    assert result["reason"] == "gmail_transport_disabled"
+    assert result["broker_capability"] == "google.gmail.send"
+    assert result["broker_called"] is False
+    assert result["gmail_api_called"] is False
+    assert result["email_send_performed"] is False
+
+
+def test_live_gate_refuses_unallowlisted_transport_before_body_handoff(tmp_path):
+    """Arbitrary fixture-like transports are refused before receiving stored body text."""
+    class WrongTransport:
+        fixture_only = True
+        live_transport = True
+
+        def __init__(self):
+            self.calls = []
+
+        def send_exact_payload(self, payload, **kwargs):
+            self.calls.append(payload)
+            raise AssertionError("unallowlisted transport must not receive payload")
+
+    db, objective, request, _draft, packet = _fixture_request(tmp_path)
+    _add_send_authority_refs(db, objective["objective_id"])
+    decision = objective_loop.parse_exact_send_approval(
+        f"Approve exact send request {request['request_id']}",
+        packet,
+        generated_at="2026-06-10T19:45:00+00:00",
+    )
+    wrong = WrongTransport()
+
+    result = objective_loop.run_exact_send_live_transport_gate(
+        sqlite_path=db,
+        objective_id=objective["objective_id"],
+        approval_decision=decision,
+        receipt_dir=tmp_path / "receipts",
+        transport=wrong,
+        live_transport_enabled=True,
+        generated_at="2026-06-10T19:46:00+00:00",
+    )
+
+    assert result["response_status"] == "EXACT_SEND_LIVE_TRANSPORT_REFUSED"
+    assert result["refusal_reason"] == "allowlisted_gmail_transport_required"
+    assert wrong.calls == []
+
+
+def test_live_gate_requires_authority_and_credential_lease_refs_independently(tmp_path):
+    """Authority refs and credential lease refs are both mandatory before broker handoff."""
+    db, objective, request, _draft, packet = _fixture_request(tmp_path)
+    decision = objective_loop.parse_exact_send_approval(
+        f"Approve exact send request {request['request_id']}",
+        packet,
+        generated_at="2026-06-10T19:45:00+00:00",
+    )
+
+    missing_authority_fake = objective_loop.FakeBrokerGmailSendTransport()
+    _set_send_authority_refs(
+        db,
+        objective["objective_id"],
+        authority_refs=[],
+        credential_lease_refs=["credential_lease:fixture_exact_send"],
+    )
+    missing_authority = objective_loop.run_exact_send_live_transport_gate(
+        sqlite_path=db,
+        objective_id=objective["objective_id"],
+        approval_decision=decision,
+        receipt_dir=tmp_path / "receipts",
+        transport=missing_authority_fake,
+        live_transport_enabled=True,
+        generated_at="2026-06-10T19:46:00+00:00",
+    )
+
+    missing_lease_fake = objective_loop.FakeBrokerGmailSendTransport()
+    _set_send_authority_refs(
+        db,
+        objective["objective_id"],
+        authority_refs=["authority_envelope:fixture_exact_send"],
+        credential_lease_refs=[],
+    )
+    missing_lease = objective_loop.run_exact_send_live_transport_gate(
+        sqlite_path=db,
+        objective_id=objective["objective_id"],
+        approval_decision=decision,
+        receipt_dir=tmp_path / "receipts",
+        transport=missing_lease_fake,
+        live_transport_enabled=True,
+        generated_at="2026-06-10T19:47:00+00:00",
+    )
+
+    assert missing_authority["refusal_reason"] == "authority_and_credential_lease_refs_required"
+    assert missing_lease["refusal_reason"] == "authority_and_credential_lease_refs_required"
+    assert missing_authority_fake.calls == []
+    assert missing_lease_fake.calls == []
+
+
+def test_live_gate_refuses_hash_expiry_and_replay_before_fake_broker_call(tmp_path):
+    """Payload mismatch, expiry, and replay all stop before the fake broker receives a payload."""
+    mismatch_db, mismatch_objective, mismatch_request, _mismatch_draft, mismatch_packet = _fixture_request(tmp_path / "mismatch")
+    _add_send_authority_refs(mismatch_db, mismatch_objective["objective_id"])
+    stored = _load_objective_from_db(mismatch_db, mismatch_objective["objective_id"])
+    artifact_ref = stored["send_authority_request"]["approved_draft_artifact_ref"]
+    stored["approved_send_draft_artifacts"][artifact_ref]["body"] += "\nChanged in stored artifact."
+    stored["approved_send_draft_artifact"] = stored["approved_send_draft_artifacts"][artifact_ref]
+    _store_objective_json(mismatch_db, stored)
+    mismatch_decision = objective_loop.parse_exact_send_approval(
+        f"Approve exact send request {mismatch_request['request_id']}",
+        mismatch_packet,
+        generated_at="2026-06-10T19:45:00+00:00",
+    )
+    mismatch_fake = objective_loop.FakeBrokerGmailSendTransport()
+    mismatch = objective_loop.run_exact_send_live_transport_gate(
+        sqlite_path=mismatch_db,
+        objective_id=mismatch_objective["objective_id"],
+        approval_decision=mismatch_decision,
+        receipt_dir=tmp_path / "receipts",
+        transport=mismatch_fake,
+        live_transport_enabled=True,
+        generated_at="2026-06-10T19:46:00+00:00",
+    )
+
+    expired_db, expired_objective, expired_request, _expired_draft, expired_packet = _fixture_request(tmp_path / "expired")
+    _add_send_authority_refs(expired_db, expired_objective["objective_id"])
+    expired_decision = objective_loop.parse_exact_send_approval(
+        f"Approve exact send request {expired_request['request_id']}",
+        expired_packet,
+        generated_at="2026-06-10T19:45:00+00:00",
+    )
+    expired_fake = objective_loop.FakeBrokerGmailSendTransport()
+    expired = objective_loop.run_exact_send_live_transport_gate(
+        sqlite_path=expired_db,
+        objective_id=expired_objective["objective_id"],
+        approval_decision=expired_decision,
+        receipt_dir=tmp_path / "receipts",
+        transport=expired_fake,
+        live_transport_enabled=True,
+        generated_at="2026-06-10T20:01:00+00:00",
+    )
+
+    replay_db, replay_objective, replay_request, replay_draft, replay_packet = _fixture_request(tmp_path / "replay")
+    _add_send_authority_refs(replay_db, replay_objective["objective_id"])
+    replay_decision = objective_loop.parse_exact_send_approval(
+        f"Approve exact send request {replay_request['request_id']}",
+        replay_packet,
+        generated_at="2026-06-10T19:45:00+00:00",
+    )
+    objective_loop.run_exact_send_dry_run_executor(
+        sqlite_path=replay_db,
+        objective_id=replay_objective["objective_id"],
+        approval_decision=replay_decision,
+        draft=replay_draft,
+        receipt_dir=tmp_path / "receipts",
+        transport=FakeDryRunTransport(),
+        generated_at="2026-06-10T19:46:00+00:00",
+    )
+    replay_fake = objective_loop.FakeBrokerGmailSendTransport()
+    replay = objective_loop.run_exact_send_live_transport_gate(
+        sqlite_path=replay_db,
+        objective_id=replay_objective["objective_id"],
+        approval_decision=replay_decision,
+        receipt_dir=tmp_path / "receipts",
+        transport=replay_fake,
+        live_transport_enabled=True,
+        generated_at="2026-06-10T19:47:00+00:00",
+    )
+
+    assert mismatch["refusal_reason"] == "payload_hash_mismatch"
+    assert expired["refusal_reason"] == "expired_request"
+    assert replay["refusal_reason"] == "replay_detected"
+    assert mismatch_fake.calls == []
+    assert expired_fake.calls == []
+    assert replay_fake.calls == []
 
 
 def test_live_objective_db_guard_catches_default_relative_and_symlink(tmp_path):

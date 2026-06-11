@@ -2256,6 +2256,7 @@ class DisabledGmailExactSendTransport:
     live_transport = True
     live_transport_enabled = False
     fixture_only = False
+    allowlisted_exact_send_transport = False
     uses_governed_broker_pattern = True
     broker_agent = GOOGLE_BROKER_AGENT_CASSANDRA
     broker_capability = GOOGLE_GMAIL_SEND_BROKER_CAPABILITY
@@ -2294,13 +2295,91 @@ class DisabledGmailExactSendTransport:
         }
 
 
-class FakeBrokerGmailSendTransport(DisabledGmailExactSendTransport):
+class GovernedGmailBrokerSendTransport(DisabledGmailExactSendTransport):
+    """Allowlisted exact-send transport for the governed Google broker."""
+
+    allowlisted_exact_send_transport = True
+
+    def __init__(self, *, live_transport_enabled: bool = False, broker_call: Any = None) -> None:
+        super().__init__(live_transport_enabled=live_transport_enabled)
+        self._broker_call = broker_call
+
+    def send_exact_payload(
+        self,
+        payload: Mapping[str, Any],
+        *,
+        authority_refs: Sequence[str] = (),
+        credential_lease_refs: Sequence[str] = (),
+    ) -> dict[str, Any]:
+        if not authority_refs or not credential_lease_refs:
+            return {
+                "ok": False,
+                "reason": "authority_and_credential_lease_refs_required",
+                "broker_called": False,
+                "fake_broker_called": False,
+                "gmail_api_called": False,
+                "email_send_performed": False,
+                "live_transport_enabled": bool(self.live_transport_enabled),
+            }
+        if not self.live_transport_enabled:
+            return {
+                "ok": False,
+                "reason": "gmail_transport_disabled",
+                "broker_agent": self.broker_agent,
+                "broker_capability": self.broker_capability,
+                "credential_handle_id": self.credential_handle_id,
+                "broker_called": False,
+                "fake_broker_called": False,
+                "gmail_api_called": False,
+                "email_send_performed": False,
+                "live_transport_enabled": False,
+                "payload_hash": str(payload.get("payload_hash") or ""),
+            }
+        broker_params = {
+            "to": str(payload.get("recipient") or ""),
+            "subject": str(payload.get("subject") or ""),
+            "body": str(payload.get("body") or ""),
+            "approval_context": {
+                "request_id": str(payload.get("request_id") or ""),
+                "objective_id": str(payload.get("objective_id") or ""),
+                "payload_hash": str(payload.get("payload_hash") or ""),
+                "authority_refs": list(authority_refs),
+                "credential_lease_refs": list(credential_lease_refs),
+                "exact_send_gate": True,
+            },
+        }
+        broker_call = self._broker_call
+        if broker_call is None:
+            broker_module = __import__("google_access_broker")
+            broker_call = getattr(broker_module, "call")
+        result = broker_call(self.broker_agent, self.broker_capability, broker_params)
+        self.broker_called = True
+        ok = bool(isinstance(result, Mapping) and result.get("ok") is True)
+        return {
+            "ok": ok,
+            "reason": "broker_send_completed" if ok else str((result or {}).get("error") or (result or {}).get("reason") or "broker_send_failed"),
+            "broker_agent": self.broker_agent,
+            "broker_capability": self.broker_capability,
+            "credential_handle_id": self.credential_handle_id,
+            "authority_refs": list(authority_refs),
+            "credential_lease_refs": list(credential_lease_refs),
+            "broker_called": True,
+            "fake_broker_called": False,
+            "gmail_api_called": ok,
+            "email_send_performed": ok,
+            "live_transport_enabled": True,
+            "payload_hash": str(payload.get("payload_hash") or ""),
+            "broker_result": dict(result or {}) if isinstance(result, Mapping) else {},
+        }
+
+
+class FakeBrokerGmailSendTransport(GovernedGmailBrokerSendTransport):
     """Fixture-only fake for exact-send tests; it never calls the real broker."""
 
     fixture_only = True
 
     def __init__(self) -> None:
-        super().__init__(live_transport_enabled=True)
+        super().__init__(live_transport_enabled=True, broker_call=None)
         self.calls: list[dict[str, Any]] = []
 
     def send_exact_payload(
@@ -2349,6 +2428,10 @@ class FakeBrokerGmailSendTransport(DisabledGmailExactSendTransport):
             "live_transport_enabled": True,
             "payload_hash": str(payload.get("payload_hash") or ""),
         }
+
+
+def _is_allowlisted_exact_send_transport(transport: Any) -> bool:
+    return type(transport) in {GovernedGmailBrokerSendTransport, FakeBrokerGmailSendTransport}
 
 
 def build_future_live_send_success_receipt_shape(
@@ -2491,7 +2574,7 @@ def run_exact_send_live_transport_gate(
                 authority_refs=list(state.get("authority_refs") or []),
                 credential_lease_refs=list(state.get("credential_lease_refs") or []),
             )
-        constructed = transport is not None and getattr(transport, "fixture_only", False) is True
+        constructed = transport is not None and _is_allowlisted_exact_send_transport(transport)
         if not live_transport_enabled:
             return refuse(
                 "live_transport_disabled",
@@ -2506,9 +2589,9 @@ def run_exact_send_live_transport_gate(
             )
         authority_refs = list(state.get("authority_refs") or [])
         credential_lease_refs = list(state.get("credential_lease_refs") or [])
-        if transport is None or getattr(transport, "fixture_only", False) is not True:
+        if transport is None or not _is_allowlisted_exact_send_transport(transport):
             return refuse(
-                "future_live_transport_requires_fake_fixture_transport",
+                "allowlisted_gmail_transport_required",
                 objective_ref=str(state.get("objective_id") or ""),
                 recipient=str(state.get("recipient") or ""),
                 subject=str(state.get("subject") or ""),
