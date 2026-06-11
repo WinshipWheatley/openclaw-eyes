@@ -386,6 +386,34 @@ def test_no_duplicate_when_intake_event_and_top_level_watch_item_overlap(tmp_pat
     assert first["feed_items"][0]["state_hash"] == second["feed_items"][0]["state_hash"]
 
 
+def test_intake_watch_item_preserves_skill_owner_missing_fields_and_info_push_class(tmp_path):
+    event = _intake_event(
+        intake_id="operator_intake:skill",
+        summary="Logged income: $900 from Live Arts MD. Missing: invoice/project link, payment method.",
+        watch_item=True,
+    )
+    event["watch_desk_items"][0].update(
+        {
+            "skill_id": "operator_skill:income_payment_log:v0",
+            "owner_agent": "cassandra",
+            "owner_lane": "cassandra_ar",
+            "missing_fields": ["invoice/project link", "payment method"],
+            "push_class": "info",
+        }
+    )
+    _write_json(tmp_path / "operator_intake_events.json", _operator_intake_read_model([event]))
+
+    payload = _build(tmp_path, intake_stub=False)
+    item = payload["feed_items"][0]
+
+    assert item["skill_id"] == "operator_skill:income_payment_log:v0"
+    assert item["owner_agent"] == "cassandra"
+    assert item["owner_lane"] == "cassandra_ar"
+    assert item["missing_fields"] == ["invoice/project link", "payment method"]
+    assert item["push_class"] == "info"
+    assert item["push_candidate"] is False
+
+
 def test_stale_or_missing_operator_intake_read_model_warns_without_crashing(tmp_path):
     missing = _build(tmp_path, intake_stub=False)
 

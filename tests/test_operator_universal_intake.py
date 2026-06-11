@@ -16,6 +16,12 @@ from operator_universal_intake import (
     split_operator_intake_text,
     try_process_surface_operator_intake,
 )
+from operator_skill_registry import (
+    LOCAL_LOG_SKILL_ACTION_TYPES,
+    get_operator_skill,
+    operator_skill_reference_data_needs_manifest,
+    operator_skill_rows,
+)
 from watch_desk_feed import build_watch_desk_feed
 
 
@@ -90,18 +96,34 @@ def test_low_risk_income_writes_receipt_read_model_and_watch_item(tmp_path):
     assert receipt["spawn_supported"] is False
     assert receipt["route_back_supported"] is True
     assert receipt["receipt_refs"] == result["receipt_refs"]
-    assert receipt["mutation_scope"] == "local_read_model_or_receipt_only"
+    assert receipt["schema_version"] == "income_payment_log_receipt_v0"
+    assert receipt["skill_id"] == "operator_skill:income_payment_log:v0"
+    assert receipt["owner_agent"] == "cassandra"
+    assert receipt["owner_lane"] == "cassandra_ar"
+    assert receipt["source_surface"] == "local_cli"
+    assert receipt["invoice_marked_paid"] is False
+    assert receipt["cross_link_refs"] == []
+    assert receipt["mutation_scope"] == "local_receipt_read_model_only"
 
     read_model = json.loads(read_model_path.read_text(encoding="utf-8"))
     assert read_model["event_count"] == 1
+    assert read_model["operator_skill_schema_version"] == "OPERATOR_SKILL_V0"
+    assert len(read_model["operator_skill_rows"]) == 4
     assert read_model["events"][0]["parsed"]["fields"]["amount"] == 900
     assert read_model["events"][0]["direct_surface_available"] is True
     assert read_model["events"][0]["fallback_route_available"] is True
     assert read_model["events"][0]["safe_actions_taken"] == ["record_local_income_payment_receipt"]
 
     feed = build_watch_desk_feed(read_model_root=tmp_path / "read_models", task_root=tmp_path / "tasks")
+    item = next(item for item in feed["feed_items"] if item["plain_line"].startswith("Logged income"))
     plain_lines = [item["plain_line"] for item in feed["feed_items"]]
     assert "Logged income: $900 from Live Arts MD. Missing: invoice/project link, payment method." in plain_lines
+    assert item["source_receipt_ref"] == result["receipt_refs"][0]
+    assert item["action_type"] == "income_payment_log"
+    assert item["owner_agent"] == "cassandra"
+    assert item["owner_lane"] == "cassandra_ar"
+    assert item["missing_fields"] == ["invoice/project link", "payment method"]
+    assert item["push_class"] == "info"
 
 
 def test_ambiguous_sign_this_asks_for_referent_and_does_not_mutate(tmp_path):
@@ -141,6 +163,74 @@ def test_expense_log_labels_category_without_tax_advice(tmp_path):
     assert fields["category_label"] == "AI tools/software"
     assert fields["tax_advice_given"] is False
     assert "tax advice" not in result["normalized_summary"].lower()
+
+
+def test_expense_log_links_to_recent_gig_when_venue_context_is_present(tmp_path):
+    gig = _process(tmp_path, "I did a St. Anne's gig tonight.")
+    expense = _process(
+        tmp_path,
+        "I spent $20 on St. Anne's parking.",
+        session_context={"recent_gigs": [gig]},
+    )
+
+    fields = expense["parsed"]["fields"]
+    assert fields["associated_gig_intake_id"] == gig["intake_id"]
+    assert fields["associated_gig_date"] == "2026-06-11"
+    assert gig["intake_id"] in expense["cross_link_refs"]
+    receipt = json.loads(Path(expense["receipt_refs"][0].split("#", 1)[0]).read_text(encoding="utf-8"))
+    assert gig["intake_id"] in receipt["cross_link_refs"]
+    assert receipt["tax_advice_given"] is False
+
+
+def test_operator_skill_registry_has_four_local_rows_and_unknown_is_blocked():
+    rows = operator_skill_rows()
+    by_action = {row["action_type"]: row for row in rows}
+
+    assert tuple(by_action) == LOCAL_LOG_SKILL_ACTION_TYPES
+    assert set(by_action) == {
+        "income_payment_log",
+        "expense_log",
+        "gig_event_log",
+        "identity_signature_preference",
+    }
+    for row in rows:
+        assert row["schema_version"] == "OPERATOR_SKILL_V0"
+        assert row["external"] is False
+        assert row["approval_action"] is None
+        assert row["must_not"]
+        assert row["receipt_schema"] == f"{row['action_type']}_receipt_v0"
+        assert row["push_class"] == "info"
+
+    unknown = get_operator_skill("unknown_future_action")
+    assert unknown["risk_tier"] == "high"
+    assert unknown["external"] is True
+    assert unknown["blocked"] is True
+    assert "default unknown action to low risk" in unknown["must_not"]
+
+
+def test_operator_skill_reference_data_manifest_is_placeholder_only():
+    manifest = operator_skill_reference_data_needs_manifest()
+
+    assert manifest["schema_version"] == "operator_skill_reference_data_needs_v0"
+    assert manifest["private_data_ingested"] is False
+    assert manifest["secrets_requested"] is False
+    assert manifest["raw_bank_tax_legal_docs_ingested"] is False
+    assert manifest["private_music_media_session_files_ingested"] is False
+    assert "rate card" in manifest["missing_reference_data"]
+    assert "tax category labels" in manifest["missing_reference_data"]
+
+
+def test_income_missing_amount_clarifies_without_receipt_or_paid_claim(tmp_path):
+    result = _process(tmp_path, "I got paid for the Hilton gig.")
+
+    assert result["parsed"]["action_type"] == "income_payment_log"
+    assert result["needs_clarification"] == ["amount"]
+    assert result["parsed"]["fields"]["amount"] is None
+    assert result["parsed"]["fields"]["invoice_marked_paid"] is False
+    assert result["safe_actions_taken"] == []
+    assert result["receipts"] == []
+    assert result["watch_desk_items"] == []
+    assert not (tmp_path / "read_models" / JSON_EXPORT_NAME).exists()
 
 
 def test_unknown_low_confidence_input_only_requests_clarification(tmp_path):
@@ -524,6 +614,12 @@ def test_multi_intent_message_splits_and_writes_stable_child_receipts(tmp_path):
     assert payment_fields["associated_gig_date"] == "2026-06-11"
     assert events[1]["parsed"]["fields"]["invoice_marked_paid"] is False
     assert events[2]["parsed"]["fields"]["tax_advice_given"] is False
+    assert events[0]["batch_group_id"].startswith("operator_intake_group:")
+    assert events[0]["cross_link_refs"]
+    assert events[1]["intake_id"] in events[0]["cross_link_refs"]
+    assert events[0]["intake_id"] in events[1]["cross_link_refs"]
+    receipt = json.loads(Path(events[1]["receipt_refs"][0].split("#", 1)[0]).read_text(encoding="utf-8"))
+    assert events[0]["intake_id"] in receipt["cross_link_refs"]
 
     read_model = json.loads((tmp_path / "read_models" / JSON_EXPORT_NAME).read_text(encoding="utf-8"))
     assert read_model["event_count"] == 3
@@ -532,6 +628,28 @@ def test_multi_intent_message_splits_and_writes_stable_child_receipts(tmp_path):
     assert "Logged gig: St. Anne's on 2026-06-11. Missing: payment amount?" in plain_lines
     assert "Logged income: $1250 from St. Anne's. Missing: invoice/project link, payment method." in plain_lines
     assert "Logged expense: $106 Claude Code Fable 5 as AI tools/software." in plain_lines
+
+
+def test_repeated_same_local_skill_intake_reuses_receipt_and_does_not_spam_watch_desk(tmp_path):
+    first = _process(tmp_path, "I got paid $900 from Live Arts MD.")
+    second = process_operator_intake(
+        raw_text="I got paid $900 from Live Arts MD.",
+        surface="local_cli",
+        operator="Winship",
+        received_at_utc="2026-06-11T23:59:00+00:00",
+        read_model_root=tmp_path / "read_models",
+        receipt_root=tmp_path / "receipts",
+    )
+
+    assert second["duplicate_detected"] is True
+    assert second["duplicate_of_intake_id"] == first["intake_id"]
+    assert second["receipt_refs"] == first["receipt_refs"]
+    assert second["safe_actions_taken"] == ["reuse_existing_local_receipt_ref"]
+    read_model = json.loads((tmp_path / "read_models" / JSON_EXPORT_NAME).read_text(encoding="utf-8"))
+    assert read_model["event_count"] == 1
+    feed = build_watch_desk_feed(read_model_root=tmp_path / "read_models", task_root=tmp_path / "tasks")
+    income_items = [item for item in feed["feed_items"] if item.get("action_type") == "income_payment_log"]
+    assert len(income_items) == 1
 
 
 def test_surface_response_for_multi_intent_exposes_mac_contract_refs(tmp_path):

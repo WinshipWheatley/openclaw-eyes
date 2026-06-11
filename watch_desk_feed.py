@@ -435,7 +435,7 @@ def _operator_item_from_mapping(
         return None
     fallback_parsed = fallback_event.get("parsed") if fallback_event and isinstance(fallback_event.get("parsed"), Mapping) else {}
 
-    return _new_item(
+    feed_item = _new_item(
         item_id=item_id,
         lane=_watch_lane(item.get("lane") or fallback_parsed.get("lane")),
         urgency=str(item.get("urgency") or "watch"),
@@ -455,6 +455,12 @@ def _operator_item_from_mapping(
         push_class=str(item.get("push_class") or "on_demand"),
         occurred_at=occurred_at,
     )
+    for key in ("owner_agent", "owner_lane", "skill_id", "action_type", "missing_fields"):
+        if key in item:
+            feed_item[key] = item[key]
+        elif fallback_event and key in fallback_event:
+            feed_item[key] = fallback_event[key]
+    return feed_item
 
 
 def _operator_item_from_event(event: Mapping[str, Any]) -> dict[str, Any] | None:
@@ -477,7 +483,11 @@ def _operator_item_from_event(event: Mapping[str, Any]) -> dict[str, Any] | None
         "plain_line": _safe_intake_summary(event, action_type),
         "source_receipt_ref": receipt_ref,
         "one_next_safe_action": "Review the local receipt; keep external mutation behind the existing approval spine.",
-        "push_class": "on_demand",
+        "push_class": "info",
+        "owner_agent": str(event.get("owner_agent") or event.get("inferred_owner_agent") or ""),
+        "owner_lane": str(event.get("owner_lane") or event.get("inferred_owner_lane") or ""),
+        "skill_id": str(event.get("skill_id") or ""),
+        "missing_fields": list(event.get("needs_clarification", [])),
     }
     return _operator_item_from_mapping(item, fallback_event=event)
 

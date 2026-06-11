@@ -14,6 +14,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping
 
+from operator_skill_registry import (
+    LOCAL_LOG_SKILL_ACTION_TYPES,
+    get_operator_skill,
+    operator_skill_reference_data_needs_manifest,
+    operator_skill_rows,
+)
+
 
 ROOT = Path(__file__).resolve().parent
 OPERATOR_INTAKE_SCHEMA_VERSION = "OPERATOR_INTAKE_EVENT_V0"
@@ -44,6 +51,7 @@ SUPPORTED_ACTION_TYPES = (
     "agent_lane_request",
     "approval_gated_action_request",
 )
+LOCAL_OPERATOR_SKILL_ACTION_TYPES = set(LOCAL_LOG_SKILL_ACTION_TYPES)
 
 WATCH_DESK_LANES = {
     "cassandra_ar",
@@ -277,6 +285,10 @@ def _row_id(prefix: str, *parts: object) -> str:
     return f"{prefix}:{digest[:20]}"
 
 
+def _stable_compact_json(payload: Any) -> str:
+    return json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False, default=str)
+
+
 def _safe_filename(value: str) -> str:
     return re.sub(r"[^A-Za-z0-9_.-]+", "_", value).strip("_")
 
@@ -440,6 +452,56 @@ def _date_fields(text: str, received_at_utc: str | None) -> dict[str, str]:
     return {"event_date": _today_date(received_at_utc), "date_basis": "default_received_date"}
 
 
+def _local_skill_idempotency_date(action_type: str, fields: Mapping[str, Any], received_at_utc: str) -> str:
+    if action_type == "gig_event_log" and fields.get("event_date"):
+        return str(fields["event_date"])
+    if fields.get("associated_gig_date"):
+        return str(fields["associated_gig_date"])
+    return _parse_datetime(received_at_utc).date().isoformat()
+
+
+def _operator_skill_for_action(action_type: str) -> dict[str, Any]:
+    return get_operator_skill(action_type)
+
+
+def _local_skill_intake_id(
+    *,
+    action_type: str,
+    fields: Mapping[str, Any],
+    raw_text: str,
+    surface: str,
+    operator: str,
+    received_at_utc: str,
+) -> str:
+    skill = _operator_skill_for_action(action_type)
+    if action_type not in LOCAL_OPERATOR_SKILL_ACTION_TYPES or skill.get("external"):
+        text_hash = "sha256:" + _sha256_text(_normalized_text(raw_text))
+        return _row_id("operator_intake", surface, operator, received_at_utc, text_hash)
+    idempotency_date = _local_skill_idempotency_date(action_type, fields, received_at_utc)
+    return _row_id(
+        "operator_intake",
+        skill["skill_id"],
+        surface,
+        operator,
+        idempotency_date,
+        _normalized_text(raw_text),
+        _stable_compact_json(fields),
+    )
+
+
+def _existing_event_by_id(read_model_root: str | Path, intake_id: str) -> dict[str, Any] | None:
+    payload = _load_read_model(read_model_root)
+    for item in payload.get("events", []):
+        if isinstance(item, Mapping) and item.get("intake_id") == intake_id:
+            return dict(item)
+    return None
+
+
+def _skill_required_missing(skill: Mapping[str, Any], clarifications: set[str]) -> set[str]:
+    required = {str(field) for field in skill.get("required_fields", [])}
+    return required.intersection(clarifications)
+
+
 def _recent_gig_match(payer: str, session_context: Mapping[str, Any] | None) -> dict[str, Any] | None:
     if not session_context or not _mentions_st_annes(payer):
         return None
@@ -458,6 +520,34 @@ def _recent_gig_match(payer: str, session_context: Mapping[str, Any] | None) -> 
                 "associated_gig_date": str(fields.get("event_date") or candidate.get("event_date") or ""),
             }
     return None
+
+
+def _latest_recent_gig(session_context: Mapping[str, Any] | None) -> dict[str, Any] | None:
+    if not session_context:
+        return None
+    recent = session_context.get("recent_gigs")
+    if not isinstance(recent, list):
+        return None
+    for candidate in reversed(recent):
+        if isinstance(candidate, Mapping):
+            parsed = candidate.get("parsed") if isinstance(candidate.get("parsed"), Mapping) else {}
+            if parsed.get("action_type") == "gig_event_log":
+                fields = parsed.get("fields") if isinstance(parsed.get("fields"), Mapping) else {}
+                return {
+                    "associated_gig_intake_id": str(candidate.get("intake_id") or ""),
+                    "associated_gig_date": str(fields.get("event_date") or candidate.get("event_date") or ""),
+                }
+    return None
+
+
+def _initial_cross_link_refs(parsed_result: Mapping[str, Any]) -> list[str]:
+    refs = [str(ref) for ref in parsed_result.get("referent_refs", []) if str(ref)]
+    fields = parsed_result.get("parsed", {}).get("fields")
+    if isinstance(fields, Mapping):
+        associated = str(fields.get("associated_gig_intake_id") or "")
+        if associated and associated not in refs:
+            refs.append(associated)
+    return refs
 
 
 def _base_parse_result() -> dict[str, Any]:
@@ -749,6 +839,35 @@ def parse_operator_intake_text(
             "stop_condition": "local_receipt_written",
         }
 
+    income_missing_amount = re.search(r"\b(?:got\s+)?paid\s+for\s+(.+)$", text, flags=re.IGNORECASE)
+    if income_missing_amount:
+        context_label = _clean_phrase(income_missing_amount.group(1))
+        fields: dict[str, Any] = {
+            "context_label": context_label,
+            "amount": None,
+            "currency": "USD",
+            "local_receipt_only": True,
+            "invoice_marked_paid": False,
+            "external_ledger_mutated": False,
+            "missing": ["amount", "payer", "payment method"],
+        }
+        if _mentions_st_annes(context_label):
+            fields["payer"] = "St. Anne's"
+        return {
+            "parsed": {
+                "action_type": "income_payment_log",
+                "lane": "cassandra_finance",
+                "fields": fields,
+                "confidence": 0.82,
+            },
+            "risk_tier": "low",
+            "normalized_summary": "Need payment amount before logging income.",
+            "needs_clarification": ["amount"],
+            "referent_refs": [],
+            "proposed_actions": ["clarify_income_payment_amount"],
+            "stop_condition": "clarification_required",
+        }
+
     income_match = re.search(r"\b(?:got\s+)?paid\s+\$?([\d,]+(?:\.\d+)?)\s+from\s+(.+)$", text, flags=re.IGNORECASE)
     if income_match:
         amount = _amount_value(income_match.group(1))
@@ -782,7 +901,7 @@ def parse_operator_intake_text(
             "stop_condition": "local_receipt_written",
         }
 
-    expense_match = re.search(r"\bspent\s+\$?([\d,]+(?:\.\d+)?)\s+on\s+(.+?)(?:[.!?]|$)", text, flags=re.IGNORECASE)
+    expense_match = re.search(r"\bspent\s+\$?([\d,]+(?:\.\d+)?)\s+on\s+(.+)$", text, flags=re.IGNORECASE)
     if expense_match:
         amount = _amount_value(expense_match.group(1))
         purchase = _clean_phrase(expense_match.group(2))
@@ -793,20 +912,24 @@ def parse_operator_intake_text(
             vendor = "Claude Code"
             product = "Fable 5" if "fable 5" in purchase.lower() else purchase
             category = "AI tools/software"
+        association = _latest_recent_gig(session_context) if _mentions_st_annes(purchase) else None
+        fields: dict[str, Any] = {
+            "amount": amount,
+            "currency": "USD",
+            "vendor": vendor,
+            "product_or_service": product,
+            "purchase_label": purchase,
+            "category_label": category,
+            "local_receipt_only": True,
+            "tax_advice_given": False,
+        }
+        if association:
+            fields.update(association)
         return {
             "parsed": {
                 "action_type": "expense_log",
                 "lane": "cassandra_finance",
-                "fields": {
-                    "amount": amount,
-                    "currency": "USD",
-                    "vendor": vendor,
-                    "product_or_service": product,
-                    "purchase_label": purchase,
-                    "category_label": category,
-                    "local_receipt_only": True,
-                    "tax_advice_given": False,
-                },
+                "fields": fields,
                 "confidence": 0.89,
             },
             "risk_tier": "low",
@@ -1133,6 +1256,11 @@ def _operator_visible_reply(event: Mapping[str, Any]) -> str:
             return str(event.get("normalized_summary") or "I need a known agent lane before routing that.")
         if action_type == "identity_signature_preference":
             return format_operator_intake_reply({key: value for key, value in event.items() if key != "operator_visible_reply"})
+        fields = event.get("parsed", {}).get("fields") if isinstance(event.get("parsed"), Mapping) else {}
+        if action_type == "income_payment_log" and isinstance(fields, Mapping) and fields.get("amount") is None:
+            return str(event.get("normalized_summary") or "Need payment amount before logging income.")
+        if action_type == "unknown":
+            return "I need one detail before routing that: what kind of action is it?"
     if confidence == "low":
         if "known_agent_lane" in event.get("needs_clarification", []):
             return str(event.get("normalized_summary") or "I need a known agent lane before routing that.")
@@ -1168,16 +1296,21 @@ def _build_watch_item(event: Mapping[str, Any], receipt_ref: str) -> dict[str, A
     parsed = event["parsed"]
     action_type = str(parsed["action_type"])
     lane = str(parsed["lane"])
+    skill = event.get("operator_skill") if isinstance(event.get("operator_skill"), Mapping) else _operator_skill_for_action(action_type)
     return {
         "item_id": f"operator_intake:{event['intake_id']}",
         "intake_id": event["intake_id"],
         "action_type": action_type,
-        "lane": _watch_lane(lane),
+        "skill_id": event.get("skill_id", skill.get("skill_id", "")),
+        "owner_agent": event.get("owner_agent") or event.get("inferred_owner_agent", ""),
+        "owner_lane": event.get("owner_lane") or event.get("inferred_owner_lane", ""),
+        "lane": str(skill.get("watch_desk_lane") or _watch_lane(lane)),
         "urgency": "watch",
         "plain_line": _watch_plain_line(event),
         "source_receipt_ref": receipt_ref,
+        "missing_fields": list(event.get("needs_clarification", [])),
         "one_next_safe_action": "Review the local receipt; keep external mutation behind the existing approval spine.",
-        "push_class": "on_demand",
+        "push_class": str(skill.get("push_class") or "on_demand"),
         "received_surface": event.get("received_surface", ""),
         "addressed_agent": event.get("addressed_agent", ""),
         "inferred_owner_agent": event.get("inferred_owner_agent", ""),
@@ -1197,13 +1330,23 @@ def _build_watch_item(event: Mapping[str, Any], receipt_ref: str) -> dict[str, A
 
 def _receipt_payload(event: Mapping[str, Any], created_at_utc: str) -> dict[str, Any]:
     parsed = event["parsed"]
+    action_type = str(parsed["action_type"])
+    skill = event.get("operator_skill") if isinstance(event.get("operator_skill"), Mapping) else _operator_skill_for_action(action_type)
     return {
-        "schema_version": "operator_intake_receipt_v0",
+        "schema_version": skill.get("receipt_schema") or "operator_intake_receipt_v0",
         "intake_id": event["intake_id"],
-        "action_type": parsed["action_type"],
+        "skill_id": event.get("skill_id") or skill.get("skill_id", ""),
+        "action_type": action_type,
+        "owner_agent": event.get("owner_agent") or skill.get("owner_agent", ""),
+        "owner_lane": event.get("owner_lane") or skill.get("owner_lane", ""),
         "lane": parsed["lane"],
         "normalized_summary": event["normalized_summary"],
         "parsed_fields": parsed["fields"],
+        "required_fields": list(skill.get("required_fields", [])),
+        "optional_fields": list(skill.get("optional_fields", [])),
+        "must_not": list(skill.get("must_not", [])),
+        "reference_data_needed": list(skill.get("reference_data_needed", [])),
+        "source_surface": event.get("surface", ""),
         "received_surface": event.get("received_surface", ""),
         "addressed_agent": event.get("addressed_agent", ""),
         "inferred_owner_agent": event.get("inferred_owner_agent", ""),
@@ -1223,8 +1366,14 @@ def _receipt_payload(event: Mapping[str, Any], created_at_utc: str) -> dict[str,
         "receipt_refs": event.get("receipt_refs", []),
         "approval_required": bool(event.get("approval_required")),
         "external_calls_performed": False,
-        "mutation_scope": "local_read_model_or_receipt_only",
+        "invoice_marked_paid": bool(parsed.get("fields", {}).get("invoice_marked_paid", False)),
+        "tax_advice_given": bool(parsed.get("fields", {}).get("tax_advice_given", False)),
+        "mutation_scope": "local_receipt_read_model_only",
         "created_at_utc": created_at_utc,
+        "cross_link_refs": list(event.get("cross_link_refs", [])),
+        "duplicate_detected": bool(event.get("duplicate_detected", False)),
+        "duplicate_of_intake_id": event.get("duplicate_of_intake_id", ""),
+        "idempotency_key": event.get("idempotency_key", ""),
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
     }
 
@@ -1262,6 +1411,9 @@ def _load_read_model(read_model_root: str | Path) -> dict[str, Any]:
             "latest_receipts": [],
             "watch_desk_items": [],
             "supported_action_types": list(SUPPORTED_ACTION_TYPES),
+            "operator_skill_schema_version": "OPERATOR_SKILL_V0",
+            "operator_skill_rows": operator_skill_rows(),
+            "operator_skill_reference_data_needs": operator_skill_reference_data_needs_manifest(),
             "surface_wiring_status": dict(SURFACE_WIRING_STATUS),
             "agent_execution_modes": {
                 agent_id: agent_execution_mode_status(agent_id)
@@ -1301,6 +1453,9 @@ def _write_read_model(event: Mapping[str, Any], *, read_model_root: str | Path, 
             "latest_receipts": receipts[:50],
             "watch_desk_items": watch_items[:100],
             "supported_action_types": list(SUPPORTED_ACTION_TYPES),
+            "operator_skill_schema_version": "OPERATOR_SKILL_V0",
+            "operator_skill_rows": operator_skill_rows(),
+            "operator_skill_reference_data_needs": operator_skill_reference_data_needs_manifest(),
             "surface_wiring_status": dict(SURFACE_WIRING_STATUS),
             "agent_execution_modes": {
                 agent_id: agent_execution_mode_status(agent_id)
@@ -1341,15 +1496,38 @@ def process_operator_intake(
         receiving_agent_id=receiving_agent_id,
     )
     text_hash = "sha256:" + _sha256_text(_normalized_text(raw_text))
-    intake_id = _row_id("operator_intake", surface, operator, received, text_hash)
     local_text_allowed = surface == "local_cli"
     action_type = str(parsed_result["parsed"]["action_type"])
+    parsed_fields = parsed_result["parsed"].get("fields") if isinstance(parsed_result["parsed"].get("fields"), Mapping) else {}
+    skill = _operator_skill_for_action(action_type)
+    intake_id = _local_skill_intake_id(
+        action_type=action_type,
+        fields=parsed_fields,
+        raw_text=raw_text,
+        surface=surface,
+        operator=operator,
+        received_at_utc=received,
+    )
+    idempotency_key = _sha256_text(
+        "|".join(
+            [
+                str(skill.get("skill_id", "")),
+                surface,
+                operator,
+                _local_skill_idempotency_date(action_type, parsed_fields, received),
+                _normalized_text(raw_text),
+                _stable_compact_json(parsed_fields),
+            ]
+        )
+    )
     safe_action = _safe_action_for(action_type)
     approval_required = _approval_required_for(parsed_result)
     clarifications = set(parsed_result["needs_clarification"])
+    missing_required = _skill_required_missing(skill, clarifications)
     blocking_clarification = action_type == "unknown" or bool(
         clarifications.intersection({"referent:this", "referent:that", "referent:it"})
         or "known_agent_lane" in clarifications
+        or missing_required
     )
     should_write_local_receipt = action_type in SUPPORTED_ACTION_TYPES and safe_action and not blocking_clarification
 
@@ -1365,6 +1543,7 @@ def process_operator_intake(
         "risk_tier": parsed_result["risk_tier"],
         "needs_clarification": parsed_result["needs_clarification"],
         "referent_refs": parsed_result["referent_refs"],
+        "cross_link_refs": _initial_cross_link_refs(parsed_result),
         "proposed_actions": parsed_result["proposed_actions"],
         "safe_actions_taken": [safe_action] if should_write_local_receipt else [],
         "approval_required": approval_required,
@@ -1389,6 +1568,16 @@ def process_operator_intake(
         "spawn_supported": route_decision["agent_execution"]["spawn_supported"],
         "route_back_supported": route_decision["agent_execution"]["route_back_supported"],
         "agent_execution": route_decision["agent_execution"],
+        "operator_skill": skill,
+        "skill_id": skill.get("skill_id", ""),
+        "receipt_schema": skill.get("receipt_schema", ""),
+        "owner_agent": skill.get("owner_agent", route_decision["inferred_owner_agent"]),
+        "owner_lane": skill.get("owner_lane", route_decision["inferred_owner_lane"]),
+        "safe_local_action": skill.get("safe_local_action", safe_action),
+        "approval_action": skill.get("approval_action"),
+        "watch_desk_lane": skill.get("watch_desk_lane", _watch_lane(str(parsed_result["parsed"]["lane"]))),
+        "push_class": skill.get("push_class", "on_demand"),
+        "idempotency_key": "sha256:" + idempotency_key,
     }
     event["operator_visible_reply"] = _operator_visible_reply(event)
     if local_text_allowed:
@@ -1397,6 +1586,22 @@ def process_operator_intake(
         event["raw_text_ref"] = text_hash
 
     if should_write_local_receipt:
+        existing = _existing_event_by_id(read_model_root, intake_id)
+        if existing and existing.get("receipts"):
+            event["duplicate_detected"] = True
+            event["duplicate_of_intake_id"] = intake_id
+            event["receipts"] = [receipt for receipt in existing.get("receipts", []) if isinstance(receipt, Mapping)]
+            event["receipt_refs"] = [
+                f"{receipt['path']}#receipt"
+                for receipt in event["receipts"]
+                if isinstance(receipt, Mapping) and receipt.get("path")
+            ]
+            event["watch_desk_items"] = [
+                item for item in existing.get("watch_desk_items", []) if isinstance(item, Mapping)
+            ]
+            event["safe_actions_taken"] = ["reuse_existing_local_receipt_ref"]
+            event["stop_condition"] = "duplicate_local_receipt_reused"
+            return event
         created_at = utc_now()
         receipt = _write_receipt(event, receipt_root=receipt_root, created_at_utc=created_at)
         receipt_ref = f"{receipt['path']}#receipt"
@@ -1445,6 +1650,33 @@ def process_operator_intake_batch(
         events.append(event)
         if event["parsed"]["action_type"] == "gig_event_log":
             recent_gigs.append(event)
+    linked_events = [event for event in events if event.get("receipts")]
+    if len(linked_events) > 1:
+        group_id = _row_id("operator_intake_group", surface, operator, received, _normalized_text(raw_text))
+        for event in linked_events:
+            if event.get("duplicate_detected"):
+                continue
+            link_refs = {
+                str(ref)
+                for ref in event.get("cross_link_refs", [])
+                if str(ref)
+            }
+            for other in linked_events:
+                if other["intake_id"] == event["intake_id"]:
+                    continue
+                link_refs.add(str(other["intake_id"]))
+                for receipt_ref in other.get("receipt_refs", []):
+                    if str(receipt_ref):
+                        link_refs.add(str(receipt_ref))
+            event["batch_group_id"] = group_id
+            event["cross_link_refs"] = sorted(link_refs)
+            created_at = utc_now()
+            receipt = _write_receipt(event, receipt_root=receipt_root, created_at_utc=created_at)
+            receipt_ref = f"{receipt['path']}#receipt"
+            event["receipts"] = [receipt]
+            event["receipt_refs"] = [receipt_ref]
+            event["watch_desk_items"] = [_build_watch_item(event, receipt_ref)]
+            _write_read_model(event, read_model_root=read_model_root, generated_at=created_at)
     return events
 
 
