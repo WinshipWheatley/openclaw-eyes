@@ -1506,3 +1506,291 @@ def test_exact_send_live_transport_has_no_real_gmail_client_import():
     assert "credentials.json" not in source
     assert "os.environ" not in source
     assert "smtplib" not in source
+
+
+def _isolate_hitl_store(monkeypatch, tmp_path):
+    import hitl_action_service
+    import hitl_pending_store
+    import hitl_notification_service
+
+    monkeypatch.setattr(hitl_pending_store, "HITL_STATE_PATH", tmp_path / "hitl_pending_state.json")
+    monkeypatch.setattr(hitl_pending_store, "HITL_AUDIT_LOG", tmp_path / "hitl_audit.jsonl")
+    monkeypatch.setattr(hitl_pending_store, "_shadow_cassandra_hitl_proposal", lambda *args, **kwargs: None)
+    monkeypatch.setattr(hitl_pending_store, "_shadow_cassandra_hitl_decision", lambda *args, **kwargs: None)
+    monkeypatch.setattr(hitl_notification_service, "_notify_secret", lambda: b"fixture-hitl-secret")
+    monkeypatch.setattr(hitl_notification_service, "_audit_notify", lambda *args, **kwargs: None)
+    monkeypatch.setattr(hitl_notification_service, "_maybe_send_no_pending_confirmation", lambda: None)
+    hitl_action_service.clear_action_dispatchers_for_tests()
+    return hitl_action_service, hitl_pending_store, hitl_notification_service
+
+
+def _future_exact_send_packet(tmp_path):
+    db, objective, request, draft, _packet = _fixture_request(tmp_path)
+    objective = _load_objective_from_db(db, objective["objective_id"])
+    request = dict(objective["send_authority_request"])
+    request["expires_at"] = FUTURE_EXACT_SEND_EXPIRES_AT
+    objective["send_authority_request"] = request
+    _store_objective_json(db, objective)
+    bundle = objective_loop.create_exact_send_scoped_authority(
+        request,
+        generated_at=FIXED_NOW,
+        expires_at=FUTURE_EXACT_SEND_EXPIRES_AT,
+    )
+    objective, verdict = objective_loop.attach_exact_send_authority_refs(
+        objective,
+        authority_envelope=bundle["authority_envelope"],
+        credential_lease=bundle["credential_lease"],
+    )
+    assert verdict["valid"] is True
+    _store_objective_json(db, objective)
+    packet = objective_loop.build_exact_send_review_packet(
+        objective["send_authority_request"],
+        draft=draft,
+        expires_at=FUTURE_EXACT_SEND_EXPIRES_AT,
+        generated_at=FIXED_NOW,
+    )
+    return db, objective, request, draft, packet, bundle
+
+
+def test_exact_send_registers_real_hitl_guardian_operator_action(monkeypatch, tmp_path):
+    hitl_action_service, _hitl_store, hitl_notification_service = _isolate_hitl_store(monkeypatch, tmp_path)
+    _db, objective, request, _draft, packet, bundle = _future_exact_send_packet(tmp_path)
+
+    created = objective_loop.register_exact_send_operator_action_approval(
+        packet,
+        authority_envelope=bundle["authority_envelope"],
+        credential_lease=bundle["credential_lease"],
+        generated_at=FIXED_NOW,
+    )
+    action = hitl_action_service.get_pending_action(created["action_id"])
+    message = hitl_notification_service.format_notification(action)
+    keyboard = hitl_notification_service._build_keyboard(created["action_id"])
+
+    assert created["operator_action_created"] is True
+    assert created["action_type"] == "exact_gmail_send"
+    assert action["action_type"] == "exact_gmail_send"
+    assert action["idempotency_key"] == request["request_id"]
+    assert action["payload"]["schema_version"] == "OPERATOR_ACTION_APPROVAL_REQUEST_V0"
+    assert action["payload"]["owner_agent"] == "cassandra"
+    assert action["payload"]["owner_objective_id"] == objective["objective_id"]
+    assert action["payload"]["payload"]["recipient"] == "Annette.Sunga@hilton.com"
+    assert action["payload"]["payload"]["subject"] == "Follow-up on Winship invoice"
+    assert action["payload"]["payload"]["payload_hash"] == request["payload_hash"]
+    assert action["payload"]["payload"]["body_stored_in_hitl_queue"] is False
+    assert action["payload"]["route_back"]["type"] == "cassandra_exact_send_executor"
+    assert action["payload"]["approval_buttons"] == ["Approve", "Deny", "Why now?"]
+    assert action["payload"]["typed_fallback_reply_code"] == created["action_id"][:4]
+    assert "No pending approval requests" not in message
+    assert "Recipient: Annette.Sunga@hilton.com" in message
+    labels = [button["text"] for row in keyboard["inline_keyboard"] for button in row]
+    assert labels == ["Approve", "Deny", "Why now?"]
+    assert created["execution_performed"] is False
+    assert created["email_send_performed"] is False
+
+
+def test_guardian_callback_approve_routes_exact_send_to_fake_cassandra_executor(monkeypatch, tmp_path):
+    hitl_action_service, _hitl_store, hitl_notification_service = _isolate_hitl_store(monkeypatch, tmp_path)
+    db, objective, request, _draft, packet, bundle = _future_exact_send_packet(tmp_path)
+    created = objective_loop.register_exact_send_operator_action_approval(
+        packet,
+        authority_envelope=bundle["authority_envelope"],
+        credential_lease=bundle["credential_lease"],
+        generated_at=FIXED_NOW,
+    )
+    calls = []
+
+    def fake_executor(action):
+        decision = objective_loop.build_exact_send_approval_decision_from_operator_action(
+            action,
+            generated_at=FIXED_NOW,
+        )
+        calls.append(decision)
+        result = objective_loop.run_exact_send_live_transport_gate(
+            sqlite_path=db,
+            objective_id=objective["objective_id"],
+            approval_decision=decision,
+            receipt_dir=tmp_path / "receipts",
+            transport=objective_loop.FakeBrokerGmailSendTransport(),
+            live_transport_enabled=True,
+            generated_at="2026-06-10T19:46:00+00:00",
+        )
+        assert result["execution_performed"] is True
+        assert result["receipt"]["fixture_only_transport"] is True
+        assert result["receipt"]["gmail_api_called"] is False
+        return {
+            "executor": "fake_cassandra_exact_send_executor",
+            "response_status": result["response_status"],
+            "execution_performed": False,
+            "gmail_api_called": False,
+            "email_send_performed": False,
+        }
+
+    hitl_action_service.register_action_dispatcher("exact_gmail_send", fake_executor)
+    keyboard = hitl_notification_service._build_keyboard(created["action_id"])
+    approve_callback = keyboard["inline_keyboard"][0][0]["callback_data"]
+
+    reply = hitl_notification_service.process_callback(approve_callback, approved_by="winship")
+    action = hitl_action_service.get_pending_action(created["action_id"])
+
+    assert reply == f"[Approved] {created['action_id']}"
+    assert calls and calls[0]["request_id"] == request["request_id"]
+    assert calls[0]["approval_parser"] == "operator_action_approval_request"
+    assert action["status"] == "APPROVED"
+    assert action["decision_receipt"]["decision"] == "approved"
+    assert action["decision_receipt"]["dispatch_status"] == "dispatched"
+    assert action["decision_receipt"]["dispatch_result"]["executor"] == "fake_cassandra_exact_send_executor"
+    assert action["decision_receipt"]["dispatch_result"]["gmail_api_called"] is False
+    assert action["decision_receipt"]["dispatch_result"]["email_send_performed"] is False
+
+
+def test_guardian_callback_deny_records_receipt_and_does_not_execute(monkeypatch, tmp_path):
+    hitl_action_service, _hitl_store, hitl_notification_service = _isolate_hitl_store(monkeypatch, tmp_path)
+    _db, _objective, _request, _draft, packet, bundle = _future_exact_send_packet(tmp_path)
+    created = objective_loop.register_exact_send_operator_action_approval(
+        packet,
+        authority_envelope=bundle["authority_envelope"],
+        credential_lease=bundle["credential_lease"],
+        generated_at=FIXED_NOW,
+    )
+    calls = []
+    hitl_action_service.register_action_dispatcher("exact_gmail_send", lambda action: calls.append(action))
+    keyboard = hitl_notification_service._build_keyboard(created["action_id"])
+    deny_callback = keyboard["inline_keyboard"][0][1]["callback_data"]
+
+    reply = hitl_notification_service.process_callback(deny_callback, approved_by="winship")
+    action = hitl_action_service.get_pending_action(created["action_id"])
+
+    assert reply == f"[Denied] {created['action_id']}"
+    assert calls == []
+    assert action["status"] == "DENIED"
+    assert action["decision_receipt"]["decision"] == "denied"
+    assert action["decision_receipt"]["dispatch_status"] == "not_dispatched_denied"
+    assert action["decision_receipt"]["execution_performed"] is False
+
+
+def test_guardian_callback_replay_and_wrong_id_refuse(monkeypatch, tmp_path):
+    hitl_action_service, _hitl_store, hitl_notification_service = _isolate_hitl_store(monkeypatch, tmp_path)
+    _db, _objective, _request, _draft, packet, bundle = _future_exact_send_packet(tmp_path)
+    created = objective_loop.register_exact_send_operator_action_approval(
+        packet,
+        authority_envelope=bundle["authority_envelope"],
+        credential_lease=bundle["credential_lease"],
+        generated_at=FIXED_NOW,
+    )
+    hitl_action_service.register_action_dispatcher(
+        "exact_gmail_send",
+        lambda action: {"executor": "fake", "execution_performed": False, "gmail_api_called": False, "email_send_performed": False},
+    )
+    callback = hitl_notification_service._build_keyboard(created["action_id"])["inline_keyboard"][0][0]["callback_data"]
+
+    first = hitl_notification_service.process_callback(callback, approved_by="winship")
+    replay = hitl_notification_service.process_callback(callback, approved_by="winship")
+    wrong_token = hitl_notification_service.generate_token("WRONG123", "Y")
+    wrong = hitl_notification_service.process_callback(f"HITL:{wrong_token}", approved_by="winship")
+
+    assert first == f"[Approved] {created['action_id']}"
+    assert replay == f"[Error] {created['action_id']}: action_not_found_or_terminal"
+    assert wrong == "[Error] WRONG123: action_not_found_or_terminal"
+
+
+def test_typed_fallback_reply_code_resolves_pending_exact_send_action(monkeypatch, tmp_path):
+    hitl_action_service, _hitl_store, hitl_notification_service = _isolate_hitl_store(monkeypatch, tmp_path)
+    _db, _objective, request, _draft, packet, bundle = _future_exact_send_packet(tmp_path)
+    created = objective_loop.register_exact_send_operator_action_approval(
+        packet,
+        authority_envelope=bundle["authority_envelope"],
+        credential_lease=bundle["credential_lease"],
+        generated_at=FIXED_NOW,
+    )
+    calls = []
+    hitl_action_service.register_action_dispatcher(
+        "exact_gmail_send",
+        lambda action: calls.append(objective_loop.build_exact_send_approval_decision_from_operator_action(action, generated_at=FIXED_NOW))
+        or {"executor": "fake", "execution_performed": False, "gmail_api_called": False, "email_send_performed": False},
+    )
+
+    result = hitl_notification_service.handle_typed_reply(
+        f"{created['typed_fallback_reply_code']} 1",
+        approved_by="winship",
+    )
+    second = hitl_notification_service.handle_typed_reply(
+        f"{created['typed_fallback_reply_code']} 1",
+        approved_by="winship",
+    )
+
+    assert result["handled"] is True
+    assert result["ok"] is True
+    assert result["reply"] == f"[Approved] {created['action_id']}"
+    assert "No pending approval requests" not in result["reply"]
+    assert calls and calls[0]["request_id"] == request["request_id"]
+    assert second["handled"] is False
+    assert second["error"] == "no_pending_hitl_approval"
+
+
+def test_pending_hitl_typed_fallback_does_not_fall_through_to_no_pending(monkeypatch, tmp_path):
+    _hitl_action_service, _hitl_store, hitl_notification_service = _isolate_hitl_store(monkeypatch, tmp_path)
+    _db, _objective, _request, _draft, packet, bundle = _future_exact_send_packet(tmp_path)
+    objective_loop.register_exact_send_operator_action_approval(
+        packet,
+        authority_envelope=bundle["authority_envelope"],
+        credential_lease=bundle["credential_lease"],
+        generated_at=FIXED_NOW,
+    )
+
+    result = hitl_notification_service.handle_typed_reply("wrong thing", approved_by="winship")
+
+    assert result["handled"] is True
+    assert result["ok"] is False
+    assert "Pending HITL approval" in result["reply"]
+    assert "No pending approval requests" not in result["reply"]
+
+
+def test_expired_exact_send_does_not_register_operator_action(monkeypatch, tmp_path):
+    hitl_action_service, _hitl_store, _hitl_notification_service = _isolate_hitl_store(monkeypatch, tmp_path)
+    _db, _objective, request, draft, packet = _fixture_request(tmp_path)
+    bundle = objective_loop.create_exact_send_scoped_authority(
+        {**request, "expires_at": "2026-06-10T19:00:00+00:00"},
+        generated_at=FIXED_NOW,
+        expires_at="2026-06-10T19:00:00+00:00",
+    )
+    expired_packet = {
+        **packet,
+        "body": draft["body"],
+        "expires_at": "2026-06-10T19:00:00+00:00",
+    }
+
+    result = objective_loop.register_exact_send_operator_action_approval(
+        expired_packet,
+        authority_envelope=bundle["authority_envelope"],
+        credential_lease=bundle["credential_lease"],
+        generated_at="2026-06-10T19:30:00+00:00",
+    )
+
+    assert result["operator_action_created"] is False
+    assert result["refusal_reason"] == "expired_request"
+    assert hitl_action_service.list_pending_actions() == []
+
+
+def test_operator_action_contract_is_reusable_for_second_action_type(monkeypatch, tmp_path):
+    hitl_action_service, _hitl_store, hitl_notification_service = _isolate_hitl_store(monkeypatch, tmp_path)
+
+    created = hitl_action_service.create_operator_action_approval_request(
+        action_type="open_local_file",
+        owner_agent="niles",
+        owner_objective_id="objective:fixture",
+        request_id="operator_action_request:fixture_open_file",
+        summary="Open a selected local file.",
+        payload={"path": "/tmp/fixture.md", "mutation_allowed": False},
+        risk_warning="This only opens a selected file and does not edit it.",
+        expires_at="2099-06-10T20:00:00+00:00",
+        route_back={"type": "local_action_bridge_open"},
+        ttl_seconds=3600,
+    )
+    action = hitl_action_service.get_pending_action(created["action_id"])
+    message = hitl_notification_service.format_notification(action)
+
+    assert action["action_type"] == "open_local_file"
+    assert action["payload"]["schema_version"] == "OPERATOR_ACTION_APPROVAL_REQUEST_V0"
+    assert action["payload"]["approval_buttons"] == ["Approve", "Deny", "Why now?"]
+    assert action["payload"]["typed_fallback_reply_code"] == created["action_id"][:4]
+    assert "Action type: open_local_file" in message

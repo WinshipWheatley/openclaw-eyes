@@ -124,7 +124,7 @@ async def handle_callback_query(update: Update, context: ContextTypes.DEFAULT_TY
     decision_token, approval_id_from_cb = callback_data.split(":", 1)
 
     # ── HITL Action Approve/Deny (pending HITL action queue) ─────────────────
-    if decision_token == "HITL":
+    if decision_token in {"HITL", "HITL_WHY"}:
         from hitl_notification_service import process_callback as _hitl_cb
         _approved_by = str(update.effective_user.id) if update.effective_user else "operator"
         _result = _hitl_cb(callback_data, approved_by=_approved_by)
@@ -223,6 +223,16 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     from chief_approval_brain import (
         record_decision, has_pending_approval, _load_pending, parse_reply_code,
     )
+
+    from hitl_notification_service import handle_typed_reply as _hitl_typed_reply
+
+    _hitl_result = _hitl_typed_reply(
+        text,
+        approved_by=str(update.effective_user.id) if update.effective_user else "operator",
+    )
+    if _hitl_result.get("handled"):
+        await update.message.reply_text(str(_hitl_result.get("reply") or "HITL reply handled."))
+        return
 
     if not has_pending_approval():
         await update.message.reply_text("✅ No pending approval requests.")

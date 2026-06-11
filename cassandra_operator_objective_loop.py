@@ -33,6 +33,7 @@ EXACT_SEND_AUTHORITY_REQUEST_SCHEMA = "EXACT_SEND_AUTHORITY_REQUEST_V0"
 EXACT_SEND_REVIEW_PACKET_SCHEMA = "EXACT_SEND_REVIEW_PACKET_V0"
 EXACT_SEND_APPROVAL_DECISION_SCHEMA = "EXACT_SEND_APPROVAL_DECISION_V0"
 EXACT_SEND_GUARDIAN_APPROVAL_REQUEST_SCHEMA = "EXACT_SEND_GUARDIAN_APPROVAL_REQUEST_V0"
+OPERATOR_ACTION_APPROVAL_REQUEST_SCHEMA = "OPERATOR_ACTION_APPROVAL_REQUEST_V0"
 EXACT_SEND_DRY_RUN_RECEIPT_SCHEMA = "EXACT_SEND_DRY_RUN_RECEIPT_V0"
 EXACT_SEND_REFUSAL_RECEIPT_SCHEMA = "EXACT_SEND_REFUSAL_RECEIPT_V0"
 EXACT_SEND_LIVE_TRANSPORT_REFUSAL_RECEIPT_SCHEMA = "EXACT_SEND_LIVE_TRANSPORT_REFUSAL_RECEIPT_V0"
@@ -2177,6 +2178,166 @@ def build_exact_send_guardian_approval_request(
     }
 
 
+def _ttl_seconds_until(expires_at: str, *, generated_at: str | None = None) -> int:
+    expiry = _parse_timestamp(expires_at)
+    observed = _parse_timestamp(generated_at) or datetime.now(timezone.utc)
+    if not expiry:
+        return 0
+    return max(0, int((expiry - observed).total_seconds()))
+
+
+def register_exact_send_operator_action_approval(
+    review_packet: Mapping[str, Any],
+    *,
+    authority_envelope: Mapping[str, Any],
+    credential_lease: Mapping[str, Any],
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    """Register an exact Gmail send as a real HITL/Guardian operator action.
+
+    The existing HITL queue receives only metadata needed for approval routing.
+    Raw body text remains in the exact-send review packet/artifact, not the
+    broad pending-action queue.
+    """
+    generated_at = generated_at or utc_now()
+    request_id = str(review_packet.get("request_id") or "")
+    objective_id = str(review_packet.get("objective_id") or "")
+    payload_hash = str(review_packet.get("payload_hash") or "")
+    expires_at = str(review_packet.get("expires_at") or "")
+    authority_request = {
+        "request_id": request_id,
+        "objective_id": objective_id,
+        "recipient": str(review_packet.get("recipient") or ""),
+        "subject": str(review_packet.get("subject") or ""),
+        "payload_hash": payload_hash,
+        "capability_id": GMAIL_SEND_MAIL,
+    }
+    if _timestamp_expired(expires_at, generated_at=generated_at):
+        return {
+            "schema_version": OPERATOR_ACTION_APPROVAL_REQUEST_SCHEMA,
+            "operator_action_created": False,
+            "response_status": "OPERATOR_ACTION_APPROVAL_REQUEST_REFUSED",
+            "refusal_reason": "expired_request",
+            "request_id": request_id,
+            "objective_id": objective_id,
+            "payload_hash": payload_hash,
+            "execution_performed": False,
+            "gmail_draft_created": False,
+            "email_send_performed": False,
+        }
+    scope_verdict = verify_exact_send_authority_scope(authority_envelope, credential_lease, authority_request)
+    if not scope_verdict["valid"]:
+        return {
+            "schema_version": OPERATOR_ACTION_APPROVAL_REQUEST_SCHEMA,
+            "operator_action_created": False,
+            "response_status": "OPERATOR_ACTION_APPROVAL_REQUEST_REFUSED",
+            "refusal_reason": "invalid_send_authority_scope",
+            "scope_verdict": scope_verdict,
+            "request_id": request_id,
+            "objective_id": objective_id,
+            "payload_hash": payload_hash,
+            "execution_performed": False,
+            "gmail_draft_created": False,
+            "email_send_performed": False,
+        }
+    import hitl_action_service
+
+    exact_payload = {
+        "recipient": str(review_packet.get("recipient") or ""),
+        "subject": str(review_packet.get("subject") or ""),
+        "payload_hash": payload_hash,
+        "request_id": request_id,
+        "objective_id": objective_id,
+        "expires_at": expires_at,
+        "authority_envelope_ref": str(authority_envelope.get("envelope_id") or ""),
+        "credential_lease_ref": str(credential_lease.get("lease_id") or ""),
+        "approved_draft_artifact_ref": str(review_packet.get("approved_draft_artifact_ref") or ""),
+        "review_packet_ref": str(review_packet.get("packet_id") or ""),
+        "body_stored_in_hitl_queue": False,
+    }
+    ttl_seconds = _ttl_seconds_until(expires_at, generated_at=generated_at)
+    created = hitl_action_service.create_operator_action_approval_request(
+        action_type=hitl_action_service.ACTION_TYPE_EXACT_GMAIL_SEND,
+        owner_agent="cassandra",
+        owner_objective_id=objective_id,
+        request_id=request_id,
+        summary=f"Exact Gmail send to {exact_payload['recipient']} with reviewed subject.",
+        payload=exact_payload,
+        risk_warning="This approval sends exactly one email if the Cassandra exact-send gate executes it.",
+        expires_at=expires_at,
+        route_back={
+            "type": "cassandra_exact_send_executor",
+            "objective_id": objective_id,
+            "request_id": request_id,
+            "executor_must_use_reviewed_gate": True,
+            "guardian_calls_gmail_or_broker_directly": False,
+        },
+        ttl_seconds=ttl_seconds,
+    )
+    return {
+        **created,
+        "operator_action_created": True,
+        "response_status": "OPERATOR_ACTION_APPROVAL_REQUEST_CREATED",
+        "exact_send_request_id": request_id,
+        "objective_id": objective_id,
+        "recipient": exact_payload["recipient"],
+        "subject": exact_payload["subject"],
+        "payload_hash": payload_hash,
+        "expires_at": expires_at,
+        "authority_envelope_ref": exact_payload["authority_envelope_ref"],
+        "credential_lease_ref": exact_payload["credential_lease_ref"],
+        "guardian_delivered": False,
+        "execution_performed": False,
+        "gmail_draft_created": False,
+        "email_send_performed": False,
+        "authority_boundary": dict(AUTHORITY_BOUNDARY),
+    }
+
+
+def build_exact_send_approval_decision_from_operator_action(
+    action: Mapping[str, Any],
+    *,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    """Convert an approved HITL operator action into an exact-send decision."""
+    generated_at = generated_at or utc_now()
+    payload = action.get("payload") if isinstance(action.get("payload"), Mapping) else {}
+    exact_payload = payload.get("payload") if isinstance(payload.get("payload"), Mapping) else {}
+    request_id = str(payload.get("request_id") or exact_payload.get("request_id") or action.get("idempotency_key") or "")
+    objective_id = str(payload.get("owner_objective_id") or exact_payload.get("objective_id") or "")
+    payload_hash = str(exact_payload.get("payload_hash") or "")
+    expires_at = str(exact_payload.get("expires_at") or payload.get("expires_at") or "")
+    approved = bool(action.get("status") == "APPROVED" and request_id and payload_hash)
+    reason = "approved_via_operator_action" if approved else "operator_action_not_approved_or_incomplete"
+    if approved and _timestamp_expired(expires_at, generated_at=generated_at):
+        approved = False
+        reason = "expired_request"
+    return {
+        "schema_version": EXACT_SEND_APPROVAL_DECISION_SCHEMA,
+        "approved": approved,
+        "reason": reason,
+        "request_id": request_id,
+        "expected_request_id": request_id,
+        "objective_id": objective_id,
+        "payload_hash": payload_hash,
+        "supplied_payload_hash": payload_hash,
+        "expires_at": expires_at,
+        "approval_parser": "operator_action_approval_request",
+        "parser_provenance": OPERATOR_ACTION_APPROVAL_REQUEST_SCHEMA,
+        "operator_action_id": str(action.get("action_id") or ""),
+        "approval_source": "guardian_hitl_action_queue",
+        "approved_by": str(action.get("approved_by") or ""),
+        "approved_at": str(action.get("approved_at") or ""),
+        "execution_performed": False,
+        "gmail_draft_created": False,
+        "email_send_performed": False,
+        "calendar_api_called": False,
+        "contacts_api_called": False,
+        "created_at": generated_at,
+        "authority_boundary": dict(AUTHORITY_BOUNDARY),
+    }
+
+
 def _extract_request_ids(text: str) -> list[str]:
     ids: list[str] = []
     for match in re.finditer(r"exact_send_authority_request:[A-Za-z0-9_.:-]+", str(text or "")):
@@ -3140,10 +3301,17 @@ def run_exact_send_live_transport_gate(
             "machine_proof": dict(AUTHORITY_BOUNDARY),
         }
 
+    parser_pair = (
+        str(approval_decision.get("approval_parser") or ""),
+        str(approval_decision.get("parser_provenance") or ""),
+    )
+    allowed_parser_pairs = {
+        ("parse_exact_send_approval", "parse_exact_send_approval"),
+        ("operator_action_approval_request", OPERATOR_ACTION_APPROVAL_REQUEST_SCHEMA),
+    }
     if (
         str(approval_decision.get("schema_version") or "") != EXACT_SEND_APPROVAL_DECISION_SCHEMA
-        or str(approval_decision.get("approval_parser") or "") != "parse_exact_send_approval"
-        or str(approval_decision.get("parser_provenance") or "") != "parse_exact_send_approval"
+        or parser_pair not in allowed_parser_pairs
     ):
         return refuse("approval_parser_provenance_required")
     if str(approval_decision.get("expected_request_id") or "") != str(approval_decision.get("request_id") or ""):

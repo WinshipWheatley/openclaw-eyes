@@ -62,7 +62,7 @@ _HIGH_RISK_TYPES: frozenset[str] = frozenset({
     "invoice_send", "refund", "charge",
 })
 _MEDIUM_RISK_TYPES: frozenset[str] = frozenset({
-    "email_send", "sms", "social_post", "calendar_write",
+    "email_send", "exact_gmail_send", "sms", "social_post", "calendar_write",
 })
 
 
@@ -167,7 +167,10 @@ def _build_keyboard(action_id: str) -> dict:
             [
                 {"text": "Approve", "callback_data": f"HITL:{approve_token}"},
                 {"text": "Deny",    "callback_data": f"HITL:{deny_token}"},
-            ]
+            ],
+            [
+                {"text": "Why now?", "callback_data": f"HITL_WHY:{action_id}"},
+            ],
         ]
     }
 
@@ -185,6 +188,63 @@ def _payload_preview(payload: dict, max_chars: int = 200) -> str:
     return preview
 
 
+def _reply_code(action_id: str) -> str:
+    return str(action_id or "")[:4].upper()
+
+
+def _operator_action_payload(action: dict) -> dict | None:
+    payload = action.get("payload")
+    if not isinstance(payload, dict):
+        return None
+    if payload.get("schema_version") == _svc.OPERATOR_ACTION_APPROVAL_REQUEST_SCHEMA:
+        return payload
+    return None
+
+
+def _format_operator_action_notification(action: dict, payload: dict) -> str:
+    action_id = action["action_id"]
+    a_type = action.get("action_type", payload.get("action_type", "unknown"))
+    exact_payload = payload.get("payload") if isinstance(payload.get("payload"), dict) else {}
+    code = str(payload.get("typed_fallback_reply_code") or _reply_code(action_id))
+    lines = [
+        "HITL ACTION PENDING",
+        f"Action ID: {action_id}",
+        f"Action type: {a_type}",
+        f"Owner: {payload.get('owner_agent', action.get('source_agent', 'unknown'))}",
+        f"Objective: {payload.get('owner_objective_id', '')}",
+        f"Request: {payload.get('request_id', action.get('idempotency_key', ''))}",
+        f"Summary: {payload.get('summary', '')}",
+        f"Risk: {_risk_level(str(a_type))}",
+        f"Warning: {payload.get('risk_warning', '')}",
+        f"Expires: {payload.get('expires_at', action.get('expires_at', 'unknown'))}",
+    ]
+    if a_type == _svc.ACTION_TYPE_EXACT_GMAIL_SEND:
+        lines.extend(
+            [
+                f"Recipient: {exact_payload.get('recipient', '')}",
+                f"Subject: {exact_payload.get('subject', '')}",
+                f"Payload hash: {exact_payload.get('payload_hash', '')}",
+                f"Authority envelope: {exact_payload.get('authority_envelope_ref', '')}",
+                f"Credential lease: {exact_payload.get('credential_lease_ref', '')}",
+                f"Body stored in HITL queue: {str(exact_payload.get('body_stored_in_hitl_queue', False)).lower()}",
+            ]
+        )
+        body_preview = str(exact_payload.get("body_preview") or "")
+        if body_preview:
+            lines.extend(["Body preview:", body_preview])
+    else:
+        lines.append(f"Payload: {_payload_preview(exact_payload or payload)}")
+    lines.extend(
+        [
+            "",
+            "Use the buttons below, or reply with:",
+            f"{code} 1 to approve",
+            f"{code} 2 to deny",
+        ]
+    )
+    return "\n".join(lines)
+
+
 def format_notification(action: dict) -> str:
     """Format a human-readable Telegram notification for a pending action."""
     action_id = action["action_id"]
@@ -198,6 +258,10 @@ def format_notification(action: dict) -> str:
     normalized_amount = action.get("normalized_amount")
     super_flag_limit = action.get("super_flag_limit")
     hard_limit = action.get("hard_limit")
+
+    operator_payload = _operator_action_payload(action)
+    if operator_payload is not None:
+        return _format_operator_action_notification(action, operator_payload)
 
     approve_token = generate_token(action_id, "Y")
     deny_token = generate_token(action_id, "N")
@@ -306,6 +370,8 @@ def process_callback(callback_data: str, *, approved_by: str = "operator") -> st
     Validates the token, applies the decision, and returns a short operator-
     visible status string suitable for editing the original Telegram message.
     """
+    if callback_data.startswith("HITL_WHY:"):
+        return explain_pending_action(callback_data[len("HITL_WHY:"):])
     if not callback_data.startswith("HITL:"):
         return "[Error] Not a HITL callback."
 
@@ -319,6 +385,106 @@ def process_callback(callback_data: str, *, approved_by: str = "operator") -> st
     error = result.get("error", "unknown")
     action_id = result.get("action_id") or "?"
     return f"[Error] {action_id}: {error}"
+
+
+def explain_pending_action(action_id: str) -> str:
+    """Return a compact 'Why now?' explanation for a pending HITL action."""
+    action = _svc.get_pending_action(action_id)
+    if not action or action.get("status") != WAITING_FOR_APPROVAL:
+        return "[Expired] No matching pending HITL approval."
+    payload = _operator_action_payload(action) or {}
+    summary = str(payload.get("summary") or action.get("action_type") or "Pending action")
+    warning = str(payload.get("risk_warning") or "This action requires explicit operator approval.")
+    route_back = payload.get("route_back") if isinstance(payload.get("route_back"), dict) else {}
+    return "\n".join(
+        [
+            "Why now?",
+            f"Action ID: {action_id}",
+            f"Summary: {summary}",
+            f"Warning: {warning}",
+            f"Route back: {route_back.get('type', route_back.get('handler', 'action dispatcher'))}",
+            "Approving records your decision and hands the action back to its owning executor.",
+        ]
+    )
+
+
+def _parse_typed_decision(text: str, action: dict) -> tuple[str | None, str | None]:
+    payload = _operator_action_payload(action) or {}
+    code = str(payload.get("typed_fallback_reply_code") or _reply_code(action.get("action_id", ""))).upper()
+    parts = str(text or "").strip().split()
+    if len(parts) < 2:
+        return None, "reply_code_required"
+    if parts[0].upper() != code:
+        return None, "wrong_reply_code"
+    raw_decision = parts[1].strip().lower().rstrip(".")
+    approve = {"1", "y", "yes", "approve", "approved"}
+    deny = {"2", "n", "no", "deny", "denied"}
+    if raw_decision in approve:
+        return "Y", None
+    if raw_decision in deny:
+        return "N", None
+    return None, "invalid_reply_decision"
+
+
+def handle_typed_reply(text: str, *, approved_by: str = "operator") -> dict:
+    """Apply a typed CODE DECISION reply against pending HITL action records."""
+    pending = _svc.list_pending_actions(status=WAITING_FOR_APPROVAL)
+    if not pending:
+        return {"handled": False, "ok": False, "error": "no_pending_hitl_approval", "reply": ""}
+
+    wrong_code_seen = False
+    for action in pending:
+        decision, error = _parse_typed_decision(text, action)
+        if decision is None:
+            wrong_code_seen = wrong_code_seen or error == "wrong_reply_code"
+            if error == "wrong_reply_code":
+                continue
+            code = (_operator_action_payload(action) or {}).get("typed_fallback_reply_code") or _reply_code(action.get("action_id", ""))
+            return {
+                "handled": True,
+                "ok": False,
+                "error": error,
+                "action_id": action.get("action_id"),
+                "reply": f"Pending HITL approval. Reply with {code} 1 to approve or {code} 2 to deny.",
+            }
+        if decision == "Y":
+            ok = _svc.approve_action(action["action_id"], approved_by=approved_by)
+            label = "Approved" if ok else "Rejected"
+        else:
+            ok = _svc.deny_action(action["action_id"], reason="typed_fallback_deny")
+            label = "Denied" if ok else "Rejected"
+        if ok:
+            _audit_notify(
+                action["action_id"],
+                "typed_reply_applied",
+                {"decision": decision, "approved_by": approved_by},
+            )
+            return {
+                "handled": True,
+                "ok": True,
+                "action_id": action["action_id"],
+                "decision": decision,
+                "reply": f"[{label}] {action['action_id']}",
+            }
+        return {
+            "handled": True,
+            "ok": False,
+            "action_id": action["action_id"],
+            "decision": decision,
+            "error": "action_not_found_or_terminal",
+            "reply": f"[Error] {action['action_id']}: action_not_found_or_terminal",
+        }
+
+    codes = [
+        str((_operator_action_payload(action) or {}).get("typed_fallback_reply_code") or _reply_code(action.get("action_id", "")))
+        for action in pending[:5]
+    ]
+    return {
+        "handled": True,
+        "ok": False,
+        "error": "wrong_reply_code" if wrong_code_seen else "reply_code_required",
+        "reply": "Pending HITL approval. Reply with one of these codes: " + ", ".join(codes),
+    }
 
 
 def handle_callback(raw_token: str, *, approved_by: str = "operator") -> dict:

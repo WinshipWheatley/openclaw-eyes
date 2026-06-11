@@ -461,6 +461,62 @@ def update_action_status(
     return True
 
 
+def update_action_payload(action_id: str, payload: dict) -> bool:
+    """
+    Replace the payload for an existing action without changing its status.
+
+    Used by higher-level approval wrappers that need the store-generated
+    action_id before they can finish a human-facing envelope, for example a
+    short typed fallback reply code. This does not approve, deny, or execute.
+    """
+    if not isinstance(payload, dict):
+        raise ValueError("payload must be a dict")
+
+    state = _load_state()
+    record = state.get(action_id)
+    if record is None:
+        return False
+
+    record["payload"] = payload
+    state[action_id] = record
+    _save_state(state)
+    _audit({**record, "event": "payload_updated"})
+    return True
+
+
+def record_action_decision_receipt(action_id: str, decision_receipt: dict) -> bool:
+    """
+    Attach a decision receipt to an action record without changing status.
+
+    Receipts are metadata about the Guardian/operator decision and route-back
+    outcome. They are not execution authority by themselves.
+    """
+    if not isinstance(decision_receipt, dict):
+        raise ValueError("decision_receipt must be a dict")
+
+    state = _load_state()
+    record = state.get(action_id)
+    if record is None:
+        return False
+
+    record["decision_receipt"] = decision_receipt
+    payload = record.get("payload")
+    if isinstance(payload, dict):
+        payload = dict(payload)
+        payload["decision_receipt"] = decision_receipt
+        record["payload"] = payload
+    state[action_id] = record
+    _save_state(state)
+    _audit(
+        {
+            **record,
+            "event": "decision_receipt_recorded",
+            "decision_receipt_status": decision_receipt.get("status"),
+        }
+    )
+    return True
+
+
 def expire_stale_actions() -> int:
     """
     Scan all WAITING_FOR_APPROVAL records and expire those past their TTL.
