@@ -2,12 +2,15 @@ import json
 from pathlib import Path
 
 from operator_universal_intake import (
+    AGENT_LANE_REGISTRY_V0,
     JSON_EXPORT_NAME,
     SUPPORTED_ACTION_TYPES,
     is_universal_operator_intake_candidate,
     parse_operator_intake_text,
+    process_operator_intake_batch,
     process_mac_composer_operator_intake,
     process_operator_intake,
+    split_operator_intake_text,
     try_process_surface_operator_intake,
 )
 from watch_desk_feed import build_watch_desk_feed
@@ -154,7 +157,119 @@ def test_no_external_or_approval_side_effects_for_supported_local_events(tmp_pat
         "expense_log",
         "gig_event_log",
         "identity_signature_preference",
+        "agent_lane_request",
     }
+
+
+def test_agent_lane_registry_v0_contains_required_daytime_lanes():
+    assert set(AGENT_LANE_REGISTRY_V0) == {"cassandra", "niles", "chief", "hermes", "guardian", "watch desk"}
+    assert AGENT_LANE_REGISTRY_V0["cassandra"]["watch_lane"] == "cassandra_ar"
+    assert AGENT_LANE_REGISTRY_V0["niles"]["watch_lane"] == "niles_creative"
+    assert AGENT_LANE_REGISTRY_V0["chief"]["watch_lane"] == "chief_runtime"
+    assert AGENT_LANE_REGISTRY_V0["hermes"]["watch_lane"] == "hermes"
+    assert AGENT_LANE_REGISTRY_V0["guardian"]["watch_lane"] == "guardian_approval"
+    assert "send email without Guardian approval" in AGENT_LANE_REGISTRY_V0["cassandra"]["must_not"]
+
+
+def test_agent_addressed_messages_route_to_expected_lanes_without_external_calls(tmp_path):
+    examples = [
+        ("Niles, prep my live set notes.", "niles_creative", "Niles prep request staged: live set notes. No DAW action taken."),
+        ("Chief, what broke?", "chief_runtime", "Chief check request staged: what broke. No external action taken."),
+        ("Hermes, check the bridge.", "hermes", "Hermes bridge check staged: bridge. No external action taken."),
+        ("Cassandra, follow up with Annette.", "cassandra_ar", "Cassandra request staged: follow up with Annette. No email action taken."),
+    ]
+
+    for text, lane, reply in examples:
+        routed = try_process_surface_operator_intake(
+            text,
+            surface="telegram",
+            received_at_utc=FIXED_NOW,
+            read_model_root=tmp_path / "read_models",
+            receipt_root=tmp_path / "receipts",
+        )
+        assert routed is not None
+        assert routed["action_type"] == "agent_lane_request"
+        assert routed["lane"] == lane
+        assert routed["reply_text"] == reply
+        assert routed["approval_required"] is False
+        assert routed["external_calls_performed"] is False
+        assert routed["event"]["authority_boundary"]["approval_request_created"] is False
+        assert routed["event"]["authority_boundary"]["gmail_or_broker_called"] is False
+
+
+def test_unknown_agent_asks_clarification_without_receipt_or_read_model(tmp_path):
+    routed = try_process_surface_operator_intake(
+        "Zephyr, check the thing.",
+        surface="telegram",
+        received_at_utc=FIXED_NOW,
+        read_model_root=tmp_path / "read_models",
+        receipt_root=tmp_path / "receipts",
+    )
+
+    assert routed is not None
+    assert routed["handled"] is True
+    assert routed["event"]["needs_clarification"] == ["known_agent_lane"]
+    assert routed["receipt_refs"] == []
+    assert routed["watch_desk_refs"] == []
+    assert "don't know an active lane" in routed["reply_text"]
+    assert not (tmp_path / "read_models" / JSON_EXPORT_NAME).exists()
+
+
+def test_multi_intent_message_splits_and_writes_stable_child_receipts(tmp_path):
+    text = "I did a St. Anne's gig tonight, got paid $1250 from St. Anne's, and spent $106 on Claude Code Fable 5."
+
+    assert split_operator_intake_text(text) == [
+        "I did a St. Anne's gig tonight",
+        "got paid $1250 from St. Anne's",
+        "spent $106 on Claude Code Fable 5",
+    ]
+
+    events = process_operator_intake_batch(
+        raw_text=text,
+        surface="local_cli",
+        received_at_utc=FIXED_NOW,
+        read_model_root=tmp_path / "read_models",
+        receipt_root=tmp_path / "receipts",
+    )
+
+    assert [event["parsed"]["action_type"] for event in events] == [
+        "gig_event_log",
+        "income_payment_log",
+        "expense_log",
+    ]
+    assert all(event["receipts"] for event in events)
+    payment_fields = events[1]["parsed"]["fields"]
+    assert payment_fields["associated_gig_intake_id"] == events[0]["intake_id"]
+    assert payment_fields["associated_gig_date"] == "2026-06-11"
+    assert events[1]["parsed"]["fields"]["invoice_marked_paid"] is False
+    assert events[2]["parsed"]["fields"]["tax_advice_given"] is False
+
+    read_model = json.loads((tmp_path / "read_models" / JSON_EXPORT_NAME).read_text(encoding="utf-8"))
+    assert read_model["event_count"] == 3
+    feed = build_watch_desk_feed(read_model_root=tmp_path / "read_models", task_root=tmp_path / "tasks")
+    plain_lines = [item["plain_line"] for item in feed["feed_items"]]
+    assert "Logged gig: St. Anne's on 2026-06-11. Missing: payment amount?" in plain_lines
+    assert "Logged income: $1250 from St. Anne's. Missing: invoice/project link, payment method." in plain_lines
+    assert "Logged expense: $106 Claude Code Fable 5 as AI tools/software." in plain_lines
+
+
+def test_surface_response_for_multi_intent_exposes_mac_contract_refs(tmp_path):
+    routed = try_process_surface_operator_intake(
+        "I did a St. Anne's gig tonight, got paid $1250 from St. Anne's, and spent $106 on Claude Code Fable 5.",
+        surface="telegram",
+        received_at_utc=FIXED_NOW,
+        read_model_root=tmp_path / "read_models",
+        receipt_root=tmp_path / "receipts",
+    )
+
+    assert routed is not None
+    assert routed["action_type"] == "multi_intent"
+    assert routed["action_types"] == ["gig_event_log", "income_payment_log", "expense_log"]
+    assert len(routed["intake_event_refs"]) == 3
+    assert len(routed["receipt_refs"]) == 3
+    assert len(routed["watch_desk_refs"]) == 3
+    assert "Logged gig: St. Anne's on 2026-06-11." in routed["reply_text"]
+    assert routed["safety_flags"]["external_calls_performed"] is False
 
 
 def test_telegram_style_phrases_route_to_universal_intake(tmp_path):
@@ -178,6 +293,7 @@ def test_telegram_style_phrases_route_to_universal_intake(tmp_path):
         assert reply_part in routed["reply"]
         assert routed["approval_required"] is False
         assert routed["external_calls_performed"] is False
+        assert routed["reply_text"] == routed["reply"]
 
 
 def test_telegram_sign_this_routes_to_clarification_not_mutation(tmp_path):
@@ -230,8 +346,30 @@ def test_mac_composer_callable_contract_routes_fixture_text(tmp_path):
     assert response["surface"] == "mac_composer"
     assert response["action_type"] == "identity_signature_preference"
     assert response["reply"] == "Staged identity preference: use Clara Reid locally."
+    assert response["reply_text"] == response["reply"]
+    assert response["intake_event_refs"]
+    assert response["receipt_refs"]
+    assert response["watch_desk_refs"]
     assert response["approval_required"] is False
     assert response["external_calls_performed"] is False
+
+
+def test_mac_composer_callable_contract_handles_niles_creative_prep(tmp_path):
+    response = process_mac_composer_operator_intake(
+        "Niles, prep my live set notes.",
+        received_at_utc=FIXED_NOW,
+        read_model_root=tmp_path / "read_models",
+        receipt_root=tmp_path / "receipts",
+    )
+
+    assert response["schema_version"] == "operator_intake_surface_response_v0"
+    assert response["handled"] is True
+    assert response["surface"] == "mac_composer"
+    assert response["lane"] == "niles_creative"
+    assert response["action_type"] == "agent_lane_request"
+    assert response["reply_text"] == "Niles prep request staged: live set notes. No DAW action taken."
+    assert response["event"]["authority_boundary"]["daw_or_media_session_mutated"] is False
+    assert response["event"]["raw_text_stored"] is False
 
 
 def test_cassandra_handler_routes_operator_telegram_text_to_universal_intake(monkeypatch, tmp_path):

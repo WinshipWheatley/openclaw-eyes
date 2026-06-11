@@ -35,7 +35,68 @@ SUPPORTED_ACTION_TYPES = (
     "expense_log",
     "gig_event_log",
     "identity_signature_preference",
+    "agent_lane_request",
 )
+
+WATCH_DESK_LANES = {
+    "cassandra_ar",
+    "chief_runtime",
+    "niles_creative",
+    "mac_sync",
+    "guardian_approval",
+    "hermes",
+}
+
+AGENT_LANE_REGISTRY_V0 = {
+    "cassandra": {
+        "display_name": "Cassandra",
+        "watch_lane": "cassandra_ar",
+        "owns": "business ops, AR, client follow-up, income/payment/expense/gig logs, executive continuity",
+        "must_not": ("mark invoices paid", "send email without Guardian approval", "mutate external ledgers"),
+    },
+    "niles": {
+        "display_name": "Niles",
+        "watch_lane": "niles_creative",
+        "owns": "music/creative/audio lane, song/session notes, setlist prep, Struna/Fundo context, creative prep",
+        "must_not": ("mutate DAW/session/media files", "export/bounce/publish", "scan private media without scope"),
+    },
+    "chief": {
+        "display_name": "Chief",
+        "watch_lane": "chief_runtime",
+        "owns": "routing, proof harness, build tasks, system ops, priority decisions",
+        "must_not": ("bypass Guardian", "execute external actions without authority"),
+    },
+    "hermes": {
+        "display_name": "Hermes",
+        "watch_lane": "hermes",
+        "owns": "adapter/protocol/bridge boundary and route-back mechanics",
+        "must_not": ("own business logic", "hold raw secrets", "execute live bridges"),
+    },
+    "guardian": {
+        "display_name": "Guardian",
+        "watch_lane": "guardian_approval",
+        "owns": "approval authority only",
+        "must_not": ("execute business logic", "send email", "mutate operator state"),
+    },
+    "watch desk": {
+        "display_name": "Watch Desk",
+        "watch_lane": "chief_runtime",
+        "owns": "what needs me projection",
+        "must_not": ("mutate state", "create approvals", "execute actions"),
+    },
+}
+
+AGENT_LANE_ALIASES = {
+    "cassandra": "cassandra",
+    "cass": "cassandra",
+    "niles": "niles",
+    "producer": "niles",
+    "chief": "chief",
+    "hermes": "hermes",
+    "guardian": "guardian",
+    "watch desk": "watch desk",
+    "watchdesk": "watch desk",
+}
 
 SURFACE_WIRING_STATUS = {
     "local_api": True,
@@ -184,6 +245,101 @@ def _base_parse_result() -> dict[str, Any]:
     }
 
 
+def _agent_lane_request(raw_text: str) -> dict[str, Any] | None:
+    match = re.match(r"^\s*([A-Za-z][A-Za-z ]{1,24})\s*,\s*(.+?)\s*$", raw_text, flags=re.IGNORECASE | re.DOTALL)
+    if not match:
+        return None
+    requested_agent = _clean_phrase(match.group(1))
+    agent_id = AGENT_LANE_ALIASES.get(requested_agent.lower())
+    request_text = _clean_phrase(_normalized_text(match.group(2)))
+    if not agent_id:
+        return {
+            "parsed": {
+                "action_type": "agent_lane_request",
+                "lane": "chief_runtime",
+                "fields": {
+                    "requested_agent": requested_agent,
+                    "request_text": request_text,
+                    "route_status": "unknown_agent",
+                    "external_action_allowed": False,
+                },
+                "confidence": 0.83,
+            },
+            "risk_tier": "low",
+            "normalized_summary": f"I don't know an active lane named {requested_agent}.",
+            "needs_clarification": ["known_agent_lane"],
+            "referent_refs": [],
+            "proposed_actions": ["clarify_agent_lane"],
+            "stop_condition": "clarification_required",
+        }
+
+    lane_spec = AGENT_LANE_REGISTRY_V0[agent_id]
+    fields: dict[str, Any] = {
+        "agent_id": agent_id,
+        "agent_display_name": lane_spec["display_name"],
+        "request_text": request_text,
+        "route_status": "staged",
+        "external_action_allowed": False,
+        "live_execution_allowed": False,
+        "agent_registry_ref": f"AGENT_LANE_REGISTRY_V0:{agent_id}",
+    }
+    lower_request = request_text.lower()
+    if agent_id == "niles":
+        topic = request_text
+        prep_match = re.search(r"\bprep\s+(?:my\s+)?(.+)", request_text, flags=re.IGNORECASE)
+        if prep_match:
+            topic = _clean_phrase(prep_match.group(1))
+        fields.update(
+            {
+                "creative_context_request": topic,
+                "daw_action_taken": False,
+                "media_or_session_mutated": False,
+            }
+        )
+        summary = f"Niles prep request staged: {topic}. No DAW action taken."
+    elif agent_id == "chief":
+        intent = "what broke" if "broke" in lower_request else request_text
+        fields.update({"chief_request_type": "runtime_or_priority_check", "request_label": intent})
+        summary = f"Chief check request staged: {intent}. No external action taken."
+    elif agent_id == "hermes":
+        bridge_check = "bridge" if "bridge" in lower_request else request_text
+        fields.update({"bridge_context": bridge_check, "business_logic_owner": False})
+        summary = f"Hermes bridge check staged: {bridge_check}. No external action taken."
+    elif agent_id == "cassandra":
+        target_match = re.search(r"\b(?:with|for)\s+([A-Za-z0-9 .'-]+)$", request_text, flags=re.IGNORECASE)
+        target = _clean_phrase(target_match.group(1)) if target_match else request_text
+        fields.update(
+            {
+                "business_ops_request": request_text,
+                "target_label": target,
+                "email_action_taken": False,
+                "invoice_marked_paid": False,
+            }
+        )
+        summary = f"Cassandra request staged: {request_text}. No email action taken."
+    elif agent_id == "guardian":
+        fields.update({"approval_created": False, "approval_decision_made": False})
+        summary = f"Guardian review request staged: {request_text}. No approval created."
+    else:
+        fields.update({"projection_request": request_text, "source_state_mutated": False})
+        summary = f"Watch Desk request staged: {request_text}. No state mutation taken."
+
+    return {
+        "parsed": {
+            "action_type": "agent_lane_request",
+            "lane": lane_spec["watch_lane"],
+            "fields": fields,
+            "confidence": 0.88,
+        },
+        "risk_tier": "low",
+        "normalized_summary": summary,
+        "needs_clarification": [],
+        "referent_refs": [],
+        "proposed_actions": ["record_local_agent_lane_request_receipt"],
+        "stop_condition": "local_receipt_written",
+    }
+
+
 def parse_operator_intake_text(
     raw_text: str,
     *,
@@ -197,6 +353,10 @@ def parse_operator_intake_text(
 
     text = _normalized_text(raw_text)
     lower = text.lower()
+
+    agent_lane = _agent_lane_request(text)
+    if agent_lane is not None:
+        return agent_lane
 
     sign_match = re.search(r"\bsign\s+(this|that|it)\s+as\s+(.+?)\.?$", text, flags=re.IGNORECASE)
     if sign_match:
@@ -341,6 +501,50 @@ def parse_operator_intake_text(
     return _base_parse_result()
 
 
+def split_operator_intake_text(raw_text: str) -> list[str]:
+    text = _normalized_text(raw_text)
+    if not text:
+        return []
+    marker = re.compile(
+        r"\b(?:i\s+did\s+a|did\s+a|i\s+played|played|i\s+got\s+paid|got\s+paid|paid\s+\$|"
+        r"i\s+spent|spent\s+\$)\b",
+        flags=re.IGNORECASE,
+    )
+    matches = list(marker.finditer(text))
+    if len(matches) < 2:
+        return [text]
+    parts: list[str] = []
+    for index, match in enumerate(matches):
+        start = match.start()
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
+        part = text[start:end]
+        part = re.sub(r"^\s*(?:and|then|,)\s+", "", part, flags=re.IGNORECASE)
+        part = re.sub(r"(?:,?\s+and|,?\s+then)\s*$", "", part, flags=re.IGNORECASE)
+        part = part.strip(" ,;.")
+        if part:
+            parts.append(part)
+    return parts or [text]
+
+
+def parse_operator_intake_texts(
+    raw_text: str,
+    *,
+    received_at_utc: str | None = None,
+    session_context: Mapping[str, Any] | None = None,
+) -> list[dict[str, Any]]:
+    parts = split_operator_intake_text(raw_text)
+    parsed_items: list[dict[str, Any]] = []
+    local_context: dict[str, Any] = dict(session_context or {})
+    recent_gigs = list(local_context.get("recent_gigs") or [])
+    local_context["recent_gigs"] = recent_gigs
+    for part in parts:
+        parsed = parse_operator_intake_text(part, received_at_utc=received_at_utc, session_context=local_context)
+        parsed_items.append({"raw_text": part, "parsed_result": parsed})
+        if parsed["parsed"]["action_type"] == "gig_event_log":
+            recent_gigs.append({"parsed": parsed["parsed"], "intake_id": ""})
+    return parsed_items
+
+
 def _excluded_route_text(raw_text: str) -> bool:
     lowered = _lower_text(raw_text)
     exact_send_or_guardian_terms = (
@@ -378,10 +582,16 @@ def is_universal_operator_intake_candidate(raw_text: str) -> bool:
 
     if not raw_text or not raw_text.strip() or _excluded_route_text(raw_text):
         return False
-    parsed = parse_operator_intake_text(raw_text)
-    action_type = str(parsed["parsed"]["action_type"])
-    confidence = float(parsed["parsed"].get("confidence") or 0)
-    return action_type in SUPPORTED_ACTION_TYPES and confidence >= 0.8
+    parsed_items = parse_operator_intake_texts(raw_text)
+    if not parsed_items:
+        return False
+    for item in parsed_items:
+        parsed = item["parsed_result"]
+        action_type = str(parsed["parsed"]["action_type"])
+        confidence = float(parsed["parsed"].get("confidence") or 0)
+        if action_type not in SUPPORTED_ACTION_TYPES or confidence < 0.8:
+            return False
+    return True
 
 
 def _safe_action_for(action_type: str) -> str:
@@ -390,6 +600,7 @@ def _safe_action_for(action_type: str) -> str:
         "expense_log": "record_local_expense_receipt",
         "gig_event_log": "record_local_gig_event_receipt",
         "identity_signature_preference": "record_local_identity_preference_stage",
+        "agent_lane_request": "record_local_agent_lane_request_receipt",
     }.get(action_type, "")
 
 
@@ -401,6 +612,8 @@ def format_operator_intake_reply(event: Mapping[str, Any]) -> str:
     action_type = str(event.get("parsed", {}).get("action_type") or "")
     if action_type == "identity_signature_preference" and event.get("needs_clarification"):
         return f"{event['normalized_summary']} No external action taken."
+    if action_type == "agent_lane_request":
+        return str(event.get("normalized_summary") or "Agent lane request staged locally.")
     return str(event.get("normalized_summary") or "I need one more detail before I can log that.")
 
 
@@ -422,10 +635,14 @@ def _watch_plain_line(event: Mapping[str, Any]) -> str:
         return f"Logged gig: {fields['venue']} on {fields['event_date']}. Missing: payment amount?"
     if action_type == "identity_signature_preference":
         return f"Staged identity preference: use {fields['requested_identity']} locally."
+    if action_type == "agent_lane_request":
+        return str(event.get("normalized_summary") or "Agent lane request staged locally.")
     return "Operator intake needs clarification."
 
 
 def _watch_lane(lane: str) -> str:
+    if lane in WATCH_DESK_LANES:
+        return lane
     if lane == "cassandra_finance":
         return "cassandra_ar"
     if lane == "cassandra_business/niles_context":
@@ -571,6 +788,7 @@ def process_operator_intake(
     clarifications = set(parsed_result["needs_clarification"])
     blocking_clarification = action_type == "unknown" or bool(
         clarifications.intersection({"referent:this", "referent:that", "referent:it"})
+        or "known_agent_lane" in clarifications
     )
     should_write_local_receipt = action_type in SUPPORTED_ACTION_TYPES and safe_action and not blocking_clarification
 
@@ -612,6 +830,94 @@ def process_operator_intake(
     return event
 
 
+def process_operator_intake_batch(
+    *,
+    raw_text: str,
+    surface: str = "local_cli",
+    operator: str = "Winship",
+    received_at_utc: str | None = None,
+    session_context: Mapping[str, Any] | None = None,
+    read_model_root: str | Path = DEFAULT_EXPORT_ROOT,
+    receipt_root: str | Path = DEFAULT_RECEIPT_ROOT,
+) -> list[dict[str, Any]]:
+    if surface not in SUPPORTED_SURFACES:
+        raise ValueError(f"unsupported surface: {surface}")
+    received = _canonical_received_at(received_at_utc)
+    local_context: dict[str, Any] = dict(session_context or {})
+    recent_gigs = list(local_context.get("recent_gigs") or [])
+    local_context["recent_gigs"] = recent_gigs
+    events: list[dict[str, Any]] = []
+    for part in split_operator_intake_text(raw_text):
+        event = process_operator_intake(
+            raw_text=part,
+            surface=surface,
+            operator=operator,
+            received_at_utc=received,
+            session_context=local_context,
+            read_model_root=read_model_root,
+            receipt_root=receipt_root,
+        )
+        events.append(event)
+        if event["parsed"]["action_type"] == "gig_event_log":
+            recent_gigs.append(event)
+    return events
+
+
+def _surface_response_from_events(
+    *,
+    surface: str,
+    events: list[Mapping[str, Any]],
+) -> dict[str, Any]:
+    replies = [format_operator_intake_reply(event) for event in events]
+    event_refs = [str(event["intake_id"]) for event in events]
+    receipt_refs = [
+        f"{receipt['path']}#receipt"
+        for event in events
+        for receipt in event.get("receipts", [])
+        if isinstance(receipt, Mapping) and receipt.get("path")
+    ]
+    watch_refs = [
+        str(item["item_id"])
+        for event in events
+        for item in event.get("watch_desk_items", [])
+        if isinstance(item, Mapping) and item.get("item_id")
+    ]
+    missing_fields = sorted(
+        {
+            str(missing)
+            for event in events
+            for missing in event.get("needs_clarification", [])
+            if str(missing)
+        }
+    )
+    action_types = [str(event.get("parsed", {}).get("action_type") or "") for event in events]
+    lanes = [str(event.get("parsed", {}).get("lane") or "") for event in events]
+    primary = events[0]
+    reply_text = "\n".join(reply for reply in replies if reply)
+    return {
+        "schema_version": "operator_intake_surface_response_v0",
+        "handled": True,
+        "surface": surface,
+        "intake_id": primary["intake_id"],
+        "intake_event_refs": event_refs,
+        "receipt_refs": receipt_refs,
+        "watch_desk_refs": watch_refs,
+        "action_type": "multi_intent" if len(set(action_types)) > 1 else action_types[0],
+        "action_types": action_types,
+        "lane": "multi_lane" if len(set(lanes)) > 1 else lanes[0],
+        "lanes": lanes,
+        "risk_tier": "low",
+        "reply": reply_text,
+        "reply_text": reply_text,
+        "missing_fields": missing_fields,
+        "event": dict(primary),
+        "events": [dict(event) for event in events],
+        "approval_required": False,
+        "external_calls_performed": False,
+        "safety_flags": dict(AUTHORITY_BOUNDARY),
+    }
+
+
 def try_process_surface_operator_intake(
     raw_text: str,
     *,
@@ -624,7 +930,7 @@ def try_process_surface_operator_intake(
 ) -> dict[str, Any] | None:
     if not is_universal_operator_intake_candidate(raw_text):
         return None
-    event = process_operator_intake(
+    events = process_operator_intake_batch(
         raw_text=raw_text,
         surface=surface,
         operator=operator,
@@ -633,19 +939,7 @@ def try_process_surface_operator_intake(
         read_model_root=read_model_root,
         receipt_root=receipt_root,
     )
-    return {
-        "schema_version": "operator_intake_surface_response_v0",
-        "handled": True,
-        "surface": surface,
-        "intake_id": event["intake_id"],
-        "action_type": event["parsed"]["action_type"],
-        "lane": event["parsed"]["lane"],
-        "risk_tier": event["risk_tier"],
-        "reply": format_operator_intake_reply(event),
-        "event": event,
-        "approval_required": False,
-        "external_calls_performed": False,
-    }
+    return _surface_response_from_events(surface=surface, events=events)
 
 
 def process_mac_composer_operator_intake(
@@ -677,9 +971,15 @@ def process_mac_composer_operator_intake(
         "lane": parsed["parsed"]["lane"],
         "risk_tier": parsed["risk_tier"],
         "reply": parsed["normalized_summary"],
+        "reply_text": parsed["normalized_summary"],
+        "intake_event_refs": [],
+        "receipt_refs": [],
+        "watch_desk_refs": [],
         "needs_clarification": parsed["needs_clarification"],
+        "missing_fields": parsed["needs_clarification"],
         "approval_required": False,
         "external_calls_performed": False,
+        "safety_flags": dict(AUTHORITY_BOUNDARY),
     }
 
 
