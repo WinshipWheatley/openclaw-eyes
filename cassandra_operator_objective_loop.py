@@ -15,6 +15,7 @@ import sqlite3
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Mapping, Sequence
+from zoneinfo import ZoneInfo
 
 import ar_counterparty_contact_operations as ar_ops
 import authority_secret_custody as custody
@@ -31,6 +32,7 @@ APPROVED_SEND_DRAFT_ARTIFACT_SCHEMA = "APPROVED_SEND_DRAFT_ARTIFACT_V0"
 EXACT_SEND_AUTHORITY_REQUEST_SCHEMA = "EXACT_SEND_AUTHORITY_REQUEST_V0"
 EXACT_SEND_REVIEW_PACKET_SCHEMA = "EXACT_SEND_REVIEW_PACKET_V0"
 EXACT_SEND_APPROVAL_DECISION_SCHEMA = "EXACT_SEND_APPROVAL_DECISION_V0"
+EXACT_SEND_GUARDIAN_APPROVAL_REQUEST_SCHEMA = "EXACT_SEND_GUARDIAN_APPROVAL_REQUEST_V0"
 EXACT_SEND_DRY_RUN_RECEIPT_SCHEMA = "EXACT_SEND_DRY_RUN_RECEIPT_V0"
 EXACT_SEND_REFUSAL_RECEIPT_SCHEMA = "EXACT_SEND_REFUSAL_RECEIPT_V0"
 EXACT_SEND_LIVE_TRANSPORT_REFUSAL_RECEIPT_SCHEMA = "EXACT_SEND_LIVE_TRANSPORT_REFUSAL_RECEIPT_V0"
@@ -125,6 +127,58 @@ AUTHORITY_BOUNDARY = {
     "mail_draft_create_allowed": False,
     "mail_send_allowed": False,
 }
+
+EXACT_SEND_AUTHORITY_DENIED_ACTIONS = (
+    "send_without_exact_guardian_approval",
+    "send_after_expiry",
+    "send_different_recipient",
+    "send_different_subject",
+    "send_different_body",
+    "send_different_payload_hash",
+    "attachments",
+    "create_email_draft",
+    "compose_email",
+    "delete_email",
+    "archive_email",
+    "mark_email_read",
+    "modify_email_labels",
+    "contacts_read",
+    "calendar_access",
+    "calendar_mutation",
+    "mutate_contacts",
+    "promote_contact_memory",
+    "paid_marking",
+    "mark_paid",
+    "ledger_mutation",
+    "mutate_ledger",
+    "coupa_submit",
+    "open_browser",
+    "open_gmail_ui",
+    "trust_raw_authority_granted",
+    "broad_google_workspace_broker_ambient_use",
+)
+
+EXACT_SEND_CREDENTIAL_DENIED_USE = (
+    "send_without_exact_guardian_approval",
+    "send_after_expiry",
+    "send_different_payload",
+    "send_different_recipient",
+    "send_different_subject",
+    "attachments",
+    "compose_email",
+    "create_email_draft",
+    "delete_email",
+    "archive_email",
+    "mark_email_read",
+    "modify_email_labels",
+    "contacts_read",
+    "calendar_access",
+    "mutate_contacts",
+    "promote_contact_memory",
+    "mark_paid",
+    "mutate_ledger",
+    "coupa_submit",
+)
 
 STEP_TYPES = (
     "scoped_email_metadata_lookup",
@@ -1798,6 +1852,329 @@ def build_exact_send_review_packet(
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
     }
     return packet
+
+
+def _format_timestamp_utc(value: str) -> str:
+    parsed = _parse_timestamp(value) or datetime.now(timezone.utc)
+    return parsed.astimezone(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+
+
+def _format_timestamp_local(value: str, timezone_name: str = "America/New_York") -> str:
+    parsed = _parse_timestamp(value) or datetime.now(timezone.utc)
+    return parsed.astimezone(ZoneInfo(timezone_name)).isoformat(timespec="seconds")
+
+
+def create_exact_send_scoped_authority(
+    authority_request: Mapping[str, Any],
+    *,
+    generated_at: str | None = None,
+    expires_at: str | None = None,
+) -> dict[str, Any]:
+    """Create metadata-only authority and lease records for one exact Gmail send.
+
+    This does not approve or execute the send. It only creates scoped refs that
+    a later Guardian approval and exact-send gate can bind to.
+    """
+    generated_at = generated_at or utc_now()
+    request_id = str(authority_request.get("request_id") or "")
+    objective_id = str(authority_request.get("objective_id") or "")
+    payload_hash = str(authority_request.get("payload_hash") or "")
+    expires_at = str(expires_at or authority_request.get("expires_at") or _default_exact_send_expires_at(generated_at))
+    recipient = str(authority_request.get("recipient") or "")
+    subject = str(authority_request.get("subject") or "")
+    max_scope = {
+        "exact_send_request_id": request_id,
+        "objective_id": objective_id,
+        "recipient": recipient,
+        "subject": subject,
+        "payload_hash": payload_hash,
+        "one_time_only": True,
+        "attachments_allowed": False,
+    }
+    envelope = custody.create_authority_envelope(
+        operator_id="operator:winship",
+        device_id="device:guardian_operator_surface",
+        confirmation_method="guardian_exact_send_approval_pending",
+        confirmation_receipt_ref="pending_guardian_exact_send_approval:" + _short_hash(request_id, payload_hash, generated_at),
+        requested_objective=f"Authorize one exact Gmail send for {request_id}.",
+        capability_ids=[GMAIL_SEND_MAIL],
+        allowed_actions=[
+            "send_exact_single_gmail_message_after_guardian_approval",
+            "write_exact_send_terminal_receipt",
+        ],
+        denied_actions=EXACT_SEND_AUTHORITY_DENIED_ACTIONS,
+        credential_handles_allowed=[GOOGLE_WORKSPACE_BROKER_CREDENTIAL_HANDLE_ID],
+        live_data_access_allowed=False,
+        production_action_allowed=True,
+        external_service_access_allowed=True,
+        unattended_allowed=False,
+        one_time_or_reusable="one_time",
+        max_scope=max_scope,
+        expires_at=expires_at,
+        receipt_requirements=[
+            "exact_send_guardian_approval_receipt",
+            "exact_payload_hash_verifier",
+            "exact_send_terminal_receipt",
+        ],
+        status="pending_guardian_approval",
+        generated_at=generated_at,
+    )
+    handle = custody.google_workspace_broker_credential_handle(generated_at=generated_at)
+    lease = custody.create_credential_lease(
+        credential_handle=handle,
+        authority_envelope=envelope,
+        capability_id=GMAIL_SEND_MAIL,
+        allowed_use=[
+            "gmail_send_exact_single_message_after_guardian_approval",
+            f"exact_send_request_id:{request_id}",
+            f"payload_hash:{payload_hash}",
+            f"recipient:{recipient}",
+        ],
+        denied_use=EXACT_SEND_CREDENTIAL_DENIED_USE,
+        adapter_ref="adapter:google_workspace_broker.exact_send_gate",
+        expires_at=expires_at,
+        receipt_requirements=[
+            "exact_send_guardian_approval_receipt",
+            "authority_envelope_ref",
+            "exact_send_terminal_receipt",
+        ],
+        generated_at=generated_at,
+    )
+    if lease.get("lease_created") is True:
+        lease.update(
+            {
+                "objective_scope": dict(max_scope),
+                "task_scope": dict(max_scope),
+                "allowed_scope": "one exact Gmail send only after Guardian approval",
+                "lease_verifier_ref": "google_workspace_broker_exact_send_lease_verifier",
+                "guardian_approval_required": True,
+                "live_execution_authorized": False,
+                "no_execution_performed": True,
+            }
+        )
+    return {
+        "schema_version": "EXACT_SEND_SCOPED_AUTHORITY_BUNDLE_V0",
+        "authority_envelope": envelope,
+        "credential_handle": handle,
+        "credential_lease": lease,
+        "request_id": request_id,
+        "objective_id": objective_id,
+        "payload_hash": payload_hash,
+        "expires_at": expires_at,
+        "created_at": generated_at,
+        "execution_performed": False,
+        "gmail_draft_created": False,
+        "email_send_performed": False,
+        "authority_boundary": dict(AUTHORITY_BOUNDARY),
+    }
+
+
+def verify_exact_send_authority_scope(
+    authority_envelope: Mapping[str, Any],
+    credential_lease: Mapping[str, Any],
+    authority_request: Mapping[str, Any],
+) -> dict[str, Any]:
+    errors: list[str] = []
+    request_id = str(authority_request.get("request_id") or "")
+    payload_hash = str(authority_request.get("payload_hash") or "")
+    if str(authority_request.get("capability_id") or GMAIL_SEND_MAIL) != GMAIL_SEND_MAIL:
+        errors.append("request_capability_must_be_gmail_send")
+    if not authority_envelope or authority_envelope.get("schema_version") != custody.AUTHORITY_ENVELOPE_SCHEMA:
+        errors.append("authority_envelope_required")
+    else:
+        capability_ids = set(authority_envelope.get("capability_ids") or [])
+        if GMAIL_SEND_MAIL not in capability_ids:
+            errors.append("authority_envelope_not_scoped_for_gmail_send")
+        if GMAIL_BODY_READ in capability_ids:
+            errors.append("body_read_authority_cannot_authorize_send")
+        if GOOGLE_WORKSPACE_BROKER_CREDENTIAL_HANDLE_ID not in set(authority_envelope.get("credential_handles_allowed") or []):
+            errors.append("broker_credential_handle_not_allowed_by_envelope")
+        max_scope = authority_envelope.get("max_scope") if isinstance(authority_envelope.get("max_scope"), Mapping) else {}
+        if request_id and str(max_scope.get("exact_send_request_id") or "") != request_id:
+            errors.append("authority_envelope_request_id_mismatch")
+        if payload_hash and str(max_scope.get("payload_hash") or "") != payload_hash:
+            errors.append("authority_envelope_payload_hash_mismatch")
+        if authority_envelope.get("production_action_allowed") is not True:
+            errors.append("authority_envelope_send_action_not_marked_production_scoped")
+        if authority_envelope.get("external_service_access_allowed") is not True:
+            errors.append("authority_envelope_external_service_not_scoped")
+    if not credential_lease or credential_lease.get("schema_version") != custody.CREDENTIAL_LEASE_SCHEMA or credential_lease.get("lease_created") is not True:
+        errors.append("valid_credential_lease_required")
+    else:
+        if credential_lease.get("capability_id") != GMAIL_SEND_MAIL:
+            errors.append("credential_lease_not_scoped_for_gmail_send")
+        if credential_lease.get("capability_id") == GMAIL_BODY_READ:
+            errors.append("body_read_credential_lease_cannot_authorize_send")
+        if authority_envelope and credential_lease.get("authority_envelope_id") != authority_envelope.get("envelope_id"):
+            errors.append("credential_lease_authority_envelope_mismatch")
+        allowed_use = set(credential_lease.get("allowed_use") or [])
+        if request_id and f"exact_send_request_id:{request_id}" not in allowed_use:
+            errors.append("credential_lease_request_id_scope_missing")
+        if payload_hash and f"payload_hash:{payload_hash}" not in allowed_use:
+            errors.append("credential_lease_payload_hash_scope_missing")
+    return {
+        "schema_version": "EXACT_SEND_AUTHORITY_SCOPE_VERDICT_V0",
+        "valid": not errors,
+        "validation_errors": errors,
+        "request_id": request_id,
+        "payload_hash": payload_hash,
+        "authority_envelope_id": str(authority_envelope.get("envelope_id") or "") if authority_envelope else "",
+        "credential_lease_id": str(credential_lease.get("lease_id") or "") if credential_lease else "",
+        "authority_envelope_valid_for_send": not any(error.startswith("authority_envelope") or error == "body_read_authority_cannot_authorize_send" for error in errors),
+        "credential_lease_valid_for_send": not any(error.startswith("credential_lease") or error in {"valid_credential_lease_required", "body_read_credential_lease_cannot_authorize_send"} for error in errors),
+        "execution_performed": False,
+        "gmail_draft_created": False,
+        "email_send_performed": False,
+        "authority_boundary": dict(AUTHORITY_BOUNDARY),
+    }
+
+
+def attach_exact_send_authority_refs(
+    objective: Mapping[str, Any],
+    *,
+    authority_envelope: Mapping[str, Any],
+    credential_lease: Mapping[str, Any],
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    updated = dict(objective)
+    request = dict(updated.get("send_authority_request") or {})
+    verdict = verify_exact_send_authority_scope(authority_envelope, credential_lease, request)
+    if not verdict["valid"]:
+        return updated, verdict
+    authority_ref = str(authority_envelope.get("envelope_id") or "")
+    lease_ref = str(credential_lease.get("lease_id") or "")
+    updated["authority_refs"] = [authority_ref]
+    updated["credential_lease_refs"] = [lease_ref]
+    request.update(
+        {
+            "authority_envelope_ref": authority_ref,
+            "credential_lease_ref": lease_ref,
+            "authority_refs": [authority_ref],
+            "credential_lease_refs": [lease_ref],
+            "send_authority_scope_verdict": verdict,
+            "fresh_exact_approval_required": True,
+            "guardian_approval_required": True,
+            "execution_performed": False,
+        }
+    )
+    updated["send_authority_request"] = request
+    return updated, verdict
+
+
+def build_exact_send_guardian_approval_request(
+    review_packet: Mapping[str, Any],
+    *,
+    authority_envelope: Mapping[str, Any],
+    credential_lease: Mapping[str, Any],
+    generated_at: str | None = None,
+    local_timezone: str = "America/New_York",
+) -> dict[str, Any]:
+    generated_at = generated_at or utc_now()
+    request_id = str(review_packet.get("request_id") or "")
+    payload_hash = str(review_packet.get("payload_hash") or "")
+    expires_at = str(review_packet.get("expires_at") or "")
+    authority_request = {
+        "request_id": request_id,
+        "objective_id": str(review_packet.get("objective_id") or ""),
+        "recipient": str(review_packet.get("recipient") or ""),
+        "subject": str(review_packet.get("subject") or ""),
+        "payload_hash": payload_hash,
+        "capability_id": GMAIL_SEND_MAIL,
+    }
+    if _timestamp_expired(expires_at, generated_at=generated_at):
+        return {
+            "schema_version": EXACT_SEND_GUARDIAN_APPROVAL_REQUEST_SCHEMA,
+            "request_created": False,
+            "response_status": "EXACT_SEND_GUARDIAN_APPROVAL_REQUEST_REFUSED",
+            "refusal_reason": "expired_request",
+            "exact_send_request_id": request_id,
+            "objective_id": str(review_packet.get("objective_id") or ""),
+            "payload_hash": payload_hash,
+            "expires_at_utc": _format_timestamp_utc(expires_at),
+            "expires_at_local": _format_timestamp_local(expires_at, local_timezone),
+            "guardian_delivered": False,
+            "execution_performed": False,
+            "gmail_draft_created": False,
+            "email_send_performed": False,
+            "authority_boundary": dict(AUTHORITY_BOUNDARY),
+        }
+    scope_verdict = verify_exact_send_authority_scope(authority_envelope, credential_lease, authority_request)
+    if not scope_verdict["valid"]:
+        return {
+            "schema_version": EXACT_SEND_GUARDIAN_APPROVAL_REQUEST_SCHEMA,
+            "request_created": False,
+            "response_status": "EXACT_SEND_GUARDIAN_APPROVAL_REQUEST_REFUSED",
+            "refusal_reason": "invalid_send_authority_scope",
+            "scope_verdict": scope_verdict,
+            "exact_send_request_id": request_id,
+            "objective_id": str(review_packet.get("objective_id") or ""),
+            "payload_hash": payload_hash,
+            "expires_at_utc": _format_timestamp_utc(expires_at),
+            "expires_at_local": _format_timestamp_local(expires_at, local_timezone),
+            "guardian_delivered": False,
+            "execution_performed": False,
+            "gmail_draft_created": False,
+            "email_send_performed": False,
+            "authority_boundary": dict(AUTHORITY_BOUNDARY),
+        }
+    approval_phrase = str(review_packet.get("approval_phrase") or f"Approve exact send request {request_id}")
+    expires_utc = _format_timestamp_utc(expires_at)
+    expires_local = _format_timestamp_local(expires_at, local_timezone)
+    recipient = str(review_packet.get("recipient") or "")
+    subject = str(review_packet.get("subject") or "")
+    body = str(review_packet.get("body") or "")
+    guardian_request_id = "exact_send_guardian_approval_request:" + _short_hash(request_id, payload_hash, expires_at)
+    message_text = (
+        "EXACT SEND APPROVAL REQUIRED\n\n"
+        "Warning: approval sends exactly one email if granted.\n\n"
+        f"Guardian approval request id: {guardian_request_id}\n"
+        f"Exact send request id: {request_id}\n"
+        f"Objective id: {review_packet.get('objective_id')}\n"
+        f"Recipient: {recipient}\n"
+        f"Subject: {subject}\n"
+        f"Payload hash: {payload_hash}\n"
+        f"Expires UTC: {expires_utc}\n"
+        f"Expires {local_timezone}: {expires_local}\n"
+        f"Authority envelope: {authority_envelope.get('envelope_id')}\n"
+        f"Credential lease: {credential_lease.get('lease_id')}\n\n"
+        "Exact body:\n"
+        f"{body}\n\n"
+        "Approve with exact phrase:\n"
+        f"{approval_phrase}\n\n"
+        "Deny by replying: Deny exact send request "
+        f"{request_id}"
+    )
+    return {
+        "schema_version": EXACT_SEND_GUARDIAN_APPROVAL_REQUEST_SCHEMA,
+        "request_created": True,
+        "response_status": "EXACT_SEND_GUARDIAN_APPROVAL_REQUEST_CREATED",
+        "guardian_approval_request_id": guardian_request_id,
+        "exact_send_request_id": request_id,
+        "objective_id": str(review_packet.get("objective_id") or ""),
+        "recipient": recipient,
+        "subject": subject,
+        "body": body,
+        "payload_hash": payload_hash,
+        "expires_at_utc": expires_utc,
+        "expires_at_local": expires_local,
+        "local_timezone": local_timezone,
+        "authority_envelope_id": str(authority_envelope.get("envelope_id") or ""),
+        "credential_lease_id": str(credential_lease.get("lease_id") or ""),
+        "approval_phrase": approval_phrase,
+        "deny_phrase": f"Deny exact send request {request_id}",
+        "button_labels": ["Approve", "Deny", "Why now?"],
+        "warning": "This approval sends exactly one email if granted.",
+        "message_text": message_text,
+        "scope_verdict": scope_verdict,
+        "guardian_delivery_authorized": False,
+        "guardian_delivered": False,
+        "execution_performed": False,
+        "gmail_draft_created": False,
+        "email_send_performed": False,
+        "calendar_api_called": False,
+        "contacts_api_called": False,
+        "created_at": generated_at,
+        "authority_boundary": dict(AUTHORITY_BOUNDARY),
+    }
 
 
 def _extract_request_ids(text: str) -> list[str]:

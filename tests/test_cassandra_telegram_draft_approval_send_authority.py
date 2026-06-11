@@ -382,6 +382,129 @@ def test_exact_send_review_packet_contains_fixture_payload_for_operator_review(t
     assert packet["email_send_performed"] is False
 
 
+def test_exact_send_scope_rejects_body_read_authority_and_lease(tmp_path):
+    """Body-read authority and leases cannot be reused for exact send."""
+    _db, _objective, request, _draft, _packet = _fixture_request(tmp_path)
+    body_read_envelope = objective_loop.custody.create_authority_envelope(
+        operator_id="operator:winship",
+        device_id="device:test",
+        confirmation_method="fixture_test",
+        confirmation_receipt_ref="receipt:test_body_read",
+        requested_objective="Read one Gmail body.",
+        capability_ids=[objective_loop.GMAIL_BODY_READ],
+        allowed_actions=["read_body_for_single_matched_gmail_message"],
+        credential_handles_allowed=[objective_loop.GOOGLE_WORKSPACE_BROKER_CREDENTIAL_HANDLE_ID],
+        expires_at=FUTURE_EXACT_SEND_EXPIRES_AT,
+        status="active",
+        generated_at=FIXED_NOW,
+    )
+    body_read_lease = objective_loop.custody.create_credential_lease(
+        credential_handle=objective_loop.custody.google_workspace_broker_credential_handle(generated_at=FIXED_NOW),
+        authority_envelope=body_read_envelope,
+        capability_id=objective_loop.GMAIL_BODY_READ,
+        allowed_use=["gmail_body_read_single_matched_message"],
+        denied_use=objective_loop.custody.GOOGLE_WORKSPACE_BROKER_READONLY_DENIED_USE,
+        adapter_ref="adapter:google_workspace_broker.readonly_lease_verifier",
+        expires_at=FUTURE_EXACT_SEND_EXPIRES_AT,
+        generated_at=FIXED_NOW,
+    )
+
+    verdict = objective_loop.verify_exact_send_authority_scope(
+        body_read_envelope,
+        body_read_lease,
+        request,
+    )
+
+    assert verdict["valid"] is False
+    assert "authority_envelope_not_scoped_for_gmail_send" in verdict["validation_errors"]
+    assert "body_read_authority_cannot_authorize_send" in verdict["validation_errors"]
+    assert "credential_lease_not_scoped_for_gmail_send" in verdict["validation_errors"]
+    assert "body_read_credential_lease_cannot_authorize_send" in verdict["validation_errors"]
+    assert verdict["execution_performed"] is False
+    assert verdict["email_send_performed"] is False
+
+
+def test_exact_send_guardian_request_requires_send_scoped_authority_and_lease(tmp_path):
+    """Guardian packet creation requires fresh send-scoped refs and preserves exact payload binding."""
+    _db, objective, request, draft, _packet = _fixture_request(tmp_path)
+    bundle = objective_loop.create_exact_send_scoped_authority(
+        request,
+        generated_at=FIXED_NOW,
+        expires_at=FUTURE_EXACT_SEND_EXPIRES_AT,
+    )
+    scoped_objective, verdict = objective_loop.attach_exact_send_authority_refs(
+        objective,
+        authority_envelope=bundle["authority_envelope"],
+        credential_lease=bundle["credential_lease"],
+    )
+    scoped_request = scoped_objective["send_authority_request"]
+    packet = objective_loop.build_exact_send_review_packet(
+        scoped_request,
+        draft=draft,
+        expires_at=FUTURE_EXACT_SEND_EXPIRES_AT,
+        generated_at=FIXED_NOW,
+    )
+    guardian = objective_loop.build_exact_send_guardian_approval_request(
+        packet,
+        authority_envelope=bundle["authority_envelope"],
+        credential_lease=bundle["credential_lease"],
+        generated_at=FIXED_NOW,
+    )
+
+    assert verdict["valid"] is True
+    assert verdict["authority_envelope_valid_for_send"] is True
+    assert verdict["credential_lease_valid_for_send"] is True
+    assert scoped_request["authority_envelope_ref"] == bundle["authority_envelope"]["envelope_id"]
+    assert scoped_request["credential_lease_ref"] == bundle["credential_lease"]["lease_id"]
+    assert guardian["schema_version"] == "EXACT_SEND_GUARDIAN_APPROVAL_REQUEST_V0"
+    assert guardian["request_created"] is True
+    assert guardian["recipient"] == "Annette.Sunga@hilton.com"
+    assert guardian["subject"] == "Follow-up on Winship invoice"
+    assert guardian["body"] == draft["body"]
+    assert guardian["payload_hash"] == request["payload_hash"]
+    assert guardian["exact_send_request_id"] == request["request_id"]
+    assert guardian["objective_id"] == objective["objective_id"]
+    assert guardian["authority_envelope_id"] == bundle["authority_envelope"]["envelope_id"]
+    assert guardian["credential_lease_id"] == bundle["credential_lease"]["lease_id"]
+    assert guardian["expires_at_utc"] == "2099-06-10T20:00:00Z"
+    assert guardian["expires_at_local"].endswith("-04:00")
+    assert guardian["approval_phrase"] == f"Approve exact send request {request['request_id']}"
+    assert "This approval sends exactly one email if granted." == guardian["warning"]
+    assert guardian["guardian_delivered"] is False
+    assert guardian["execution_performed"] is False
+    assert guardian["gmail_draft_created"] is False
+    assert guardian["email_send_performed"] is False
+
+
+def test_expired_exact_send_request_does_not_create_guardian_prompt(tmp_path):
+    """Expired exact-send packets fail closed before a Guardian approval prompt is created."""
+    _db, _objective, request, draft, packet = _fixture_request(tmp_path)
+    bundle = objective_loop.create_exact_send_scoped_authority(
+        {**request, "expires_at": "2026-06-10T19:00:00+00:00"},
+        generated_at=FIXED_NOW,
+        expires_at="2026-06-10T19:00:00+00:00",
+    )
+    expired_packet = {
+        **packet,
+        "body": draft["body"],
+        "expires_at": "2026-06-10T19:00:00+00:00",
+    }
+
+    guardian = objective_loop.build_exact_send_guardian_approval_request(
+        expired_packet,
+        authority_envelope=bundle["authority_envelope"],
+        credential_lease=bundle["credential_lease"],
+        generated_at="2026-06-10T19:30:00+00:00",
+    )
+
+    assert guardian["request_created"] is False
+    assert guardian["response_status"] == "EXACT_SEND_GUARDIAN_APPROVAL_REQUEST_REFUSED"
+    assert guardian["refusal_reason"] == "expired_request"
+    assert guardian["guardian_delivered"] is False
+    assert guardian["execution_performed"] is False
+    assert guardian["email_send_performed"] is False
+
+
 def test_exact_send_approval_parser_accepts_bound_request_id(tmp_path):
     """Approval must be explicitly bound to the exact send-authority request id."""
     _db, _objective, request, _draft, packet = _fixture_request(tmp_path)
