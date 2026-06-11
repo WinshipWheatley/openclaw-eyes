@@ -113,6 +113,16 @@ def _set_send_authority_refs(db, objective_id, *, authority_refs=None, credentia
     _store_objective_json(db, objective)
 
 
+def _load_execution_attempt_from_db(db, request_id):
+    with sqlite3.connect(db) as conn:
+        conn.row_factory = sqlite3.Row
+        row = conn.execute(
+            "SELECT * FROM exact_send_execution_attempts WHERE request_id = ?",
+            (request_id,),
+        ).fetchone()
+    return dict(row) if row else None
+
+
 # ── Phase 5 Test 1: Draft approval routes to send-authority, not reminder ────
 
 def test_detects_draft_approval_send_authority():
@@ -729,6 +739,7 @@ def test_exact_send_live_transport_gate_fake_success_writes_terminal_receipt(tmp
     assert fake_success_receipt["credential_lease_refs"] == ["credential_lease:fixture_exact_send"]
     assert fake_success_receipt["broker_capability"] == "google.gmail.send"
     assert fake_success_receipt["credential_handle_id"] == objective_loop.GOOGLE_WORKSPACE_BROKER_CREDENTIAL_HANDLE_ID
+    assert fake_success_receipt["idempotency_key"] == request["request_id"]
     assert fake_success_receipt["message_id"].startswith("fake-gmail-message:")
     assert fake_success_receipt["live_transport_constructed"] is True
     assert fake_success_receipt["broker_called"] is False
@@ -740,6 +751,12 @@ def test_exact_send_live_transport_gate_fake_success_writes_terminal_receipt(tmp
     assert len(fake.calls) == 1
     assert fake.calls[0]["broker_capability"] == "google.gmail.send"
     assert "body" not in fake.calls[0]["params"]
+    assert fake.calls[0]["params"]["idempotency_key"] == request["request_id"]
+    assert fake.calls[0]["params"]["exact_send_request_id"] == request["request_id"]
+    assert fake.calls[0]["params"]["approval_context"]["idempotency_key"] == request["request_id"]
+    attempt = _load_execution_attempt_from_db(db, request["request_id"])
+    assert attempt["status"] == "success"
+    assert attempt["idempotency_key"] == request["request_id"]
     replay_fake = objective_loop.FakeBrokerGmailSendTransport()
     replay = objective_loop.run_exact_send_live_transport_gate(
         sqlite_path=db,
@@ -758,6 +775,134 @@ def test_exact_send_live_transport_gate_fake_success_writes_terminal_receipt(tmp
     assert success_shape["broker_capability"] == "google.gmail.send"
     assert success_shape["execution_performed"] is False
     assert success_shape["email_send_performed"] is False
+
+
+def test_exact_send_gate_marks_in_flight_before_fake_broker_handoff(tmp_path):
+    """The request is consumed in SQLite before the fake broker receives the body."""
+    db, objective, request, _draft, packet = _fixture_request(tmp_path)
+    _add_send_authority_refs(db, objective["objective_id"])
+    decision = objective_loop.parse_exact_send_approval(
+        f"Approve exact send request {request['request_id']}",
+        packet,
+        generated_at="2026-06-10T19:45:00+00:00",
+    )
+    observed = {}
+
+    def observe_in_flight(payload, _transport):
+        observed["payload_hash"] = payload["payload_hash"]
+        attempt = _load_execution_attempt_from_db(db, request["request_id"])
+        observed["attempt_status"] = attempt["status"]
+        observed["attempt_idempotency_key"] = attempt["idempotency_key"]
+
+    fake = objective_loop.FakeBrokerGmailSendTransport(before_result=observe_in_flight)
+    result = objective_loop.run_exact_send_live_transport_gate(
+        sqlite_path=db,
+        objective_id=objective["objective_id"],
+        approval_decision=decision,
+        receipt_dir=tmp_path / "receipts",
+        transport=fake,
+        live_transport_enabled=True,
+        generated_at="2026-06-10T19:46:00+00:00",
+    )
+
+    assert result["response_status"] == "EXACT_SEND_LIVE_TRANSPORT_SUCCESS_RECEIPT_WRITTEN"
+    assert observed["payload_hash"] == request["payload_hash"]
+    assert observed["attempt_status"] == "in_flight"
+    assert observed["attempt_idempotency_key"] == request["request_id"]
+    assert _load_execution_attempt_from_db(db, request["request_id"])["status"] == "success"
+
+
+def test_exact_send_gate_refuses_nested_race_while_first_attempt_in_flight(tmp_path):
+    """A second process sees in-flight state and cannot blind-retry the same request."""
+    db, objective, request, _draft, packet = _fixture_request(tmp_path)
+    _add_send_authority_refs(db, objective["objective_id"])
+    decision = objective_loop.parse_exact_send_approval(
+        f"Approve exact send request {request['request_id']}",
+        packet,
+        generated_at="2026-06-10T19:45:00+00:00",
+    )
+    nested = {}
+
+    def run_nested_attempt(_payload, _transport):
+        nested_fake = objective_loop.FakeBrokerGmailSendTransport()
+        nested["result"] = objective_loop.run_exact_send_live_transport_gate(
+            sqlite_path=db,
+            objective_id=objective["objective_id"],
+            approval_decision=decision,
+            receipt_dir=tmp_path / "receipts",
+            transport=nested_fake,
+            live_transport_enabled=True,
+            generated_at="2026-06-10T19:46:30+00:00",
+        )
+        nested["calls"] = list(nested_fake.calls)
+
+    fake = objective_loop.FakeBrokerGmailSendTransport(before_result=run_nested_attempt)
+    result = objective_loop.run_exact_send_live_transport_gate(
+        sqlite_path=db,
+        objective_id=objective["objective_id"],
+        approval_decision=decision,
+        receipt_dir=tmp_path / "receipts",
+        transport=fake,
+        live_transport_enabled=True,
+        generated_at="2026-06-10T19:46:00+00:00",
+    )
+
+    assert result["response_status"] == "EXACT_SEND_LIVE_TRANSPORT_SUCCESS_RECEIPT_WRITTEN"
+    assert nested["result"]["response_status"] == "EXACT_SEND_LIVE_TRANSPORT_REFUSED"
+    assert nested["result"]["refusal_reason"] == "execution_in_flight_requires_reconciliation"
+    assert nested["calls"] == []
+
+
+def test_exact_send_gate_terminal_receipts_for_exception_timeout_and_ambiguous(tmp_path):
+    """Every fake broker attempt gets a terminal receipt and blocks blind retry."""
+    expected = {
+        "exception": "EXACT_SEND_LIVE_TRANSPORT_EXCEPTION_RECEIPT_WRITTEN",
+        "timeout": "EXACT_SEND_LIVE_TRANSPORT_TIMEOUT_RECEIPT_WRITTEN",
+        "ambiguous": "EXACT_SEND_LIVE_TRANSPORT_AMBIGUOUS_RECEIPT_WRITTEN",
+    }
+    for mode, response_status in expected.items():
+        db, objective, request, _draft, packet = _fixture_request(tmp_path / mode)
+        _add_send_authority_refs(db, objective["objective_id"])
+        decision = objective_loop.parse_exact_send_approval(
+            f"Approve exact send request {request['request_id']}",
+            packet,
+            generated_at="2026-06-10T19:45:00+00:00",
+        )
+        fake = objective_loop.FakeBrokerGmailSendTransport(mode=mode)
+
+        result = objective_loop.run_exact_send_live_transport_gate(
+            sqlite_path=db,
+            objective_id=objective["objective_id"],
+            approval_decision=decision,
+            receipt_dir=tmp_path / "receipts",
+            transport=fake,
+            live_transport_enabled=True,
+            generated_at="2026-06-10T19:46:00+00:00",
+        )
+        receipt = json.loads(Path(result["terminal_receipt_path"]).read_text(encoding="utf-8"))
+        retry_fake = objective_loop.FakeBrokerGmailSendTransport()
+        retry = objective_loop.run_exact_send_live_transport_gate(
+            sqlite_path=db,
+            objective_id=objective["objective_id"],
+            approval_decision=decision,
+            receipt_dir=tmp_path / "receipts",
+            transport=retry_fake,
+            live_transport_enabled=True,
+            generated_at="2026-06-10T19:47:00+00:00",
+        )
+
+        assert result["response_status"] == response_status
+        assert receipt["terminal_outcome"] == mode
+        assert receipt["attempt_status"] == mode
+        assert receipt["requires_reconciliation"] is True
+        assert receipt["idempotency_key"] == request["request_id"]
+        assert receipt["broker_called"] is False
+        assert receipt["gmail_api_called"] is False
+        assert receipt["email_send_performed"] is False
+        assert _load_execution_attempt_from_db(db, request["request_id"])["status"] == mode
+        assert retry["response_status"] == "EXACT_SEND_LIVE_TRANSPORT_REFUSED"
+        assert retry["refusal_reason"] == "terminal_attempt_requires_reconciliation"
+        assert retry_fake.calls == []
 
 
 def test_disabled_gmail_exact_send_transport_refuses_without_broker_call():
@@ -808,6 +953,41 @@ def test_governed_broker_transport_is_disabled_by_default():
     assert result["broker_called"] is False
     assert result["gmail_api_called"] is False
     assert result["email_send_performed"] is False
+
+
+def test_governed_broker_transport_passes_request_id_as_idempotency_metadata():
+    """Injected broker calls receive request_id as explicit idempotency metadata."""
+    calls = []
+
+    def fake_broker(agent, capability, params):
+        calls.append((agent, capability, params))
+        return {"ok": True, "data": {"message_id": "fixture-message-id", "thread_id": "fixture-thread-id"}, "error": ""}
+
+    request_id = "exact_send_authority_request:fixture"
+    transport = objective_loop.GovernedGmailBrokerSendTransport(
+        live_transport_enabled=True,
+        broker_call=fake_broker,
+    )
+    result = transport.send_exact_payload(
+        {
+            "request_id": request_id,
+            "objective_id": "cassandra_operator_objective:fixture",
+            "recipient": "Annette.Sunga@hilton.com",
+            "subject": "Follow-up on Winship invoice",
+            "body": "fixture body",
+            "payload_hash": "sha256:" + ("3" * 64),
+        },
+        authority_refs=["authority_envelope:fixture"],
+        credential_lease_refs=["credential_lease:fixture"],
+    )
+
+    assert result["ok"] is True
+    assert result["broker_called"] is True
+    assert calls[0][0] == "cassandra"
+    assert calls[0][1] == "google.gmail.send"
+    assert calls[0][2]["idempotency_key"] == request_id
+    assert calls[0][2]["exact_send_request_id"] == request_id
+    assert calls[0][2]["approval_context"]["idempotency_key"] == request_id
 
 
 def test_live_gate_refuses_unallowlisted_transport_before_body_handoff(tmp_path):
@@ -984,6 +1164,53 @@ def test_live_objective_db_guard_catches_default_relative_and_symlink(tmp_path):
 
     assert objective_loop._is_live_objective_db(objective_loop.DEFAULT_SQLITE_PATH)
     assert objective_loop._is_live_objective_db(live_path)
+
+
+def test_live_gate_explicitly_blocks_obsolete_annette_request_on_live_db(tmp_path):
+    """The old Annette request remains blocked even if live execution policy is explicitly passed."""
+    live_path = objective_loop.ROOT / objective_loop.DEFAULT_SQLITE_PATH
+    if not live_path.exists():
+        return
+    result = objective_loop.run_exact_send_live_transport_gate(
+        sqlite_path=live_path,
+        objective_id="cassandra_operator_objective:5c8cfd7f7d50f40e",
+        approval_decision={
+            "approved": True,
+            "expected_request_id": "exact_send_authority_request:b20f03418d9b24a2",
+            "request_id": "exact_send_authority_request:b20f03418d9b24a2",
+            "objective_id": "cassandra_operator_objective:5c8cfd7f7d50f40e",
+        },
+        receipt_dir=tmp_path / "receipts",
+        transport=objective_loop.FakeBrokerGmailSendTransport(),
+        live_transport_enabled=True,
+        live_db_execution_policy=objective_loop.EXACT_SEND_LIVE_DB_POLICY_FRESH_EXACT_APPROVAL_ONLY,
+        generated_at="2026-06-10T19:46:00+00:00",
+    )
+
+    assert result["response_status"] == "EXACT_SEND_LIVE_TRANSPORT_REFUSED"
+    assert result["refusal_reason"] == "obsolete_live_request_refused"
+
+
+def test_old_live_annette_request_read_only_snapshot_untouched():
+    """Read-only live proof: the obsolete Annette request remains pending and unexecuted."""
+    live_path = objective_loop.ROOT / objective_loop.DEFAULT_SQLITE_PATH
+    if not live_path.exists():
+        return
+    uri = f"file:{live_path.as_posix()}?mode=ro"
+    with sqlite3.connect(uri, uri=True) as conn:
+        row = conn.execute(
+            "SELECT objective_status, updated_at, objective_json FROM cassandra_operator_objectives WHERE objective_id = ?",
+            ("cassandra_operator_objective:5c8cfd7f7d50f40e",),
+        ).fetchone()
+    if not row:
+        return
+    objective = json.loads(row[2])
+    request = objective.get("send_authority_request") or {}
+    assert row[0] == "waiting_for_send_authority"
+    assert row[1] == "2026-06-11T02:21:46+00:00"
+    assert request.get("request_id") == "exact_send_authority_request:b20f03418d9b24a2"
+    assert request.get("execution_performed") is False
+    assert (objective.get("machine_proof") or {}).get("email_send_performed") is False
 
 
 def test_exact_send_live_transport_has_no_real_gmail_client_import():

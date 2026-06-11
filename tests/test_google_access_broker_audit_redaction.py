@@ -36,6 +36,7 @@ def test_broker_audit_redacts_gmail_send_body_param(tmp_path, monkeypatch):
             "body": EMAIL_BODY,
             "approval_context": {
                 "request_id": "exact_send_authority_request:fixture",
+                "idempotency_key": "exact_send_authority_request:fixture",
                 "objective_id": "cassandra_operator_objective:fixture",
                 "payload_hash": "sha256:" + ("a" * 64),
                 "authority_refs": ["authority_envelope:fixture"],
@@ -60,6 +61,7 @@ def test_broker_audit_redacts_gmail_send_body_param(tmp_path, monkeypatch):
     assert "body" not in params
     assert params["approval_context_redacted"] is True
     assert params["approval_context"]["request_id"] == "exact_send_authority_request:fixture"
+    assert params["approval_context"]["idempotency_key"] == "exact_send_authority_request:fixture"
     assert params["approval_context"]["payload_hash"].startswith("sha256:")
     assert params["approval_context"]["authority_refs"] == ["authority_envelope:fixture"]
     assert params["approval_context"]["credential_lease_refs"] == ["credential_lease:fixture"]

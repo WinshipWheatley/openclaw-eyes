@@ -121,6 +121,7 @@ def _load_credentials():
 _AUDIT_BODY_PARAM_KEYS = {"body", "body_text", "message_body"}
 _AUDIT_APPROVAL_CONTEXT_KEEP_KEYS = {
     "request_id",
+    "idempotency_key",
     "objective_id",
     "payload_hash",
     "body_hash",

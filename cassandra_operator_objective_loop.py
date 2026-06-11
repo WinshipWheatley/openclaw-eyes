@@ -47,6 +47,11 @@ GMAIL_DRAFT_GENERATOR = "openclaw.gmail_draft_generator"
 GMAIL_SEND_MAIL = "openclaw.gmail_send_mail"
 GOOGLE_GMAIL_SEND_BROKER_CAPABILITY = "google.gmail.send"
 GOOGLE_BROKER_AGENT_CASSANDRA = "cassandra"
+EXACT_SEND_LIVE_DB_POLICY_FIXTURE_ONLY = "fixture_only"
+EXACT_SEND_LIVE_DB_POLICY_FRESH_EXACT_APPROVAL_ONLY = "fresh_exact_approval_only"
+OBSOLETE_EXACT_SEND_REQUEST_IDS = frozenset({
+    "exact_send_authority_request:b20f03418d9b24a2",
+})
 
 STATUS_PLANNING = "planning"
 STATUS_WAITING_LOOKUP_AUTHORITY = "waiting_for_lookup_authority"
@@ -2001,6 +2006,20 @@ def _ensure_exact_send_fixture_tables(conn: sqlite3.Connection) -> None:
         )
         """
     )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS exact_send_execution_attempts (
+          request_id TEXT PRIMARY KEY,
+          objective_id TEXT NOT NULL,
+          status TEXT NOT NULL,
+          idempotency_key TEXT NOT NULL,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          terminal_receipt_ref TEXT NOT NULL DEFAULT '',
+          receipt_json TEXT NOT NULL
+        )
+        """
+    )
 
 
 def _write_exact_send_receipt(receipt_dir: Path | str, prefix: str, receipt: Mapping[str, Any]) -> Path:
@@ -2340,10 +2359,13 @@ class GovernedGmailBrokerSendTransport(DisabledGmailExactSendTransport):
             "to": str(payload.get("recipient") or ""),
             "subject": str(payload.get("subject") or ""),
             "body": str(payload.get("body") or ""),
+            "idempotency_key": str(payload.get("request_id") or ""),
+            "exact_send_request_id": str(payload.get("request_id") or ""),
             "approval_context": {
                 "request_id": str(payload.get("request_id") or ""),
                 "objective_id": str(payload.get("objective_id") or ""),
                 "payload_hash": str(payload.get("payload_hash") or ""),
+                "idempotency_key": str(payload.get("request_id") or ""),
                 "authority_refs": list(authority_refs),
                 "credential_lease_refs": list(credential_lease_refs),
                 "exact_send_gate": True,
@@ -2381,9 +2403,11 @@ class FakeBrokerGmailSendTransport(GovernedGmailBrokerSendTransport):
 
     fixture_only = True
 
-    def __init__(self) -> None:
+    def __init__(self, *, mode: str = "success", before_result: Any = None) -> None:
         super().__init__(live_transport_enabled=True, broker_call=None)
         self.calls: list[dict[str, Any]] = []
+        self.mode = mode
+        self.before_result = before_result
 
     def send_exact_payload(
         self,
@@ -2409,13 +2433,76 @@ class FakeBrokerGmailSendTransport(GovernedGmailBrokerSendTransport):
                 "to": str(payload.get("recipient") or ""),
                 "subject": str(payload.get("subject") or ""),
                 "body_hash_only": str(payload.get("payload_hash") or ""),
+                "idempotency_key": str(payload.get("request_id") or ""),
+                "exact_send_request_id": str(payload.get("request_id") or ""),
                 "approval_context": {
                     "request_id": str(payload.get("request_id") or ""),
                     "objective_id": str(payload.get("objective_id") or ""),
+                    "idempotency_key": str(payload.get("request_id") or ""),
                 },
             },
         }
         self.calls.append(call)
+        if callable(self.before_result):
+            self.before_result(dict(payload), self)
+        if self.mode == "exception":
+            raise RuntimeError("fixture broker exception before definitive send result")
+        if self.mode == "timeout":
+            return {
+                "ok": False,
+                "reason": "broker_timeout",
+                "timeout": True,
+                "broker_agent": self.broker_agent,
+                "broker_capability": self.broker_capability,
+                "credential_handle_id": self.credential_handle_id,
+                "authority_refs": list(authority_refs),
+                "credential_lease_refs": list(credential_lease_refs),
+                "broker_called": False,
+                "fake_broker_called": True,
+                "gmail_api_called": False,
+                "email_send_performed": False,
+                "live_transport_enabled": True,
+                "payload_hash": str(payload.get("payload_hash") or ""),
+                "idempotency_key": str(payload.get("request_id") or ""),
+                "fixture_only": True,
+            }
+        if self.mode == "ambiguous":
+            return {
+                "ok": None,
+                "reason": "broker_result_ambiguous",
+                "ambiguous": True,
+                "broker_agent": self.broker_agent,
+                "broker_capability": self.broker_capability,
+                "credential_handle_id": self.credential_handle_id,
+                "authority_refs": list(authority_refs),
+                "credential_lease_refs": list(credential_lease_refs),
+                "broker_called": False,
+                "fake_broker_called": True,
+                "gmail_api_called": False,
+                "email_send_performed": False,
+                "live_transport_enabled": True,
+                "payload_hash": str(payload.get("payload_hash") or ""),
+                "idempotency_key": str(payload.get("request_id") or ""),
+                "fixture_only": True,
+            }
+        if self.mode == "failure":
+            return {
+                "ok": False,
+                "reason": "fake_broker_failure",
+                "broker_agent": self.broker_agent,
+                "broker_capability": self.broker_capability,
+                "credential_handle_id": self.credential_handle_id,
+                "authority_refs": list(authority_refs),
+                "credential_lease_refs": list(credential_lease_refs),
+                "broker_called": False,
+                "fake_broker_called": True,
+                "gmail_api_called": False,
+                "email_send_performed": False,
+                "live_transport_enabled": True,
+                "payload_hash": str(payload.get("payload_hash") or ""),
+                "idempotency_key": str(payload.get("request_id") or ""),
+                "fixture_only": True,
+            }
         message_id = "fake-gmail-message:" + _short_hash(
             payload.get("request_id"),
             payload.get("payload_hash"),
@@ -2435,6 +2522,7 @@ class FakeBrokerGmailSendTransport(GovernedGmailBrokerSendTransport):
             "email_send_performed": True,
             "live_transport_enabled": True,
             "payload_hash": str(payload.get("payload_hash") or ""),
+            "idempotency_key": str(payload.get("request_id") or ""),
             "message_id": message_id,
             "thread_id": "",
             "fixture_only": True,
@@ -2443,6 +2531,37 @@ class FakeBrokerGmailSendTransport(GovernedGmailBrokerSendTransport):
 
 def _is_allowlisted_exact_send_transport(transport: Any) -> bool:
     return type(transport) in {GovernedGmailBrokerSendTransport, FakeBrokerGmailSendTransport}
+
+
+def _exact_send_terminal_outcome(transport_result: Mapping[str, Any]) -> str:
+    if str(transport_result.get("exception_type") or ""):
+        return "exception"
+    reason = str(transport_result.get("reason") or "").lower()
+    if transport_result.get("ok") is True:
+        return "success"
+    if transport_result.get("timeout") is True or "timeout" in reason:
+        return "timeout"
+    if transport_result.get("ambiguous") is True or transport_result.get("ok") not in {True, False}:
+        return "ambiguous"
+    return "failure"
+
+
+def _exact_send_terminal_response_status(outcome: str) -> str:
+    return {
+        "success": "EXACT_SEND_LIVE_TRANSPORT_SUCCESS_RECEIPT_WRITTEN",
+        "failure": "EXACT_SEND_LIVE_TRANSPORT_FAILURE_RECEIPT_WRITTEN",
+        "exception": "EXACT_SEND_LIVE_TRANSPORT_EXCEPTION_RECEIPT_WRITTEN",
+        "timeout": "EXACT_SEND_LIVE_TRANSPORT_TIMEOUT_RECEIPT_WRITTEN",
+        "ambiguous": "EXACT_SEND_LIVE_TRANSPORT_AMBIGUOUS_RECEIPT_WRITTEN",
+    }.get(outcome, "EXACT_SEND_LIVE_TRANSPORT_FAILURE_RECEIPT_WRITTEN")
+
+
+def _exact_send_prior_attempt_refusal_reason(status: str) -> str:
+    if status == "success":
+        return "replay_detected"
+    if status == "in_flight":
+        return "execution_in_flight_requires_reconciliation"
+    return "terminal_attempt_requires_reconciliation"
 
 
 def build_future_live_send_success_receipt_shape(
@@ -2493,22 +2612,22 @@ def _exact_send_terminal_receipt(
     generated_at: str,
     fixture_only_transport: bool,
 ) -> dict[str, Any]:
-    transport_ok = bool(transport_result.get("ok") is True)
-    response_status = (
-        "EXACT_SEND_LIVE_TRANSPORT_SUCCESS_RECEIPT_WRITTEN"
-        if transport_ok
-        else "EXACT_SEND_LIVE_TRANSPORT_FAILURE_RECEIPT_WRITTEN"
-    )
+    terminal_outcome = _exact_send_terminal_outcome(transport_result)
+    transport_ok = terminal_outcome == "success"
+    response_status = _exact_send_terminal_response_status(terminal_outcome)
+    idempotency_key = str(transport_result.get("idempotency_key") or request_id)
     return {
         "schema_version": EXACT_SEND_LIVE_TRANSPORT_TERMINAL_RECEIPT_SCHEMA,
         "receipt_id": "exact_send_live_transport_terminal_receipt:" + _short_hash(
             request_id,
             state.get("payload_hash"),
+            terminal_outcome,
             transport_result.get("message_id"),
             generated_at,
         ),
         "response_status": response_status,
         "request_id": request_id,
+        "idempotency_key": idempotency_key,
         "objective_id": objective_id,
         "recipient": str(state.get("recipient") or ""),
         "subject": str(state.get("subject") or ""),
@@ -2522,8 +2641,13 @@ def _exact_send_terminal_receipt(
         "credential_handle_id": str(transport_result.get("credential_handle_id") or GOOGLE_WORKSPACE_BROKER_CREDENTIAL_HANDLE_ID),
         "message_id": str(transport_result.get("message_id") or ""),
         "thread_id": str(transport_result.get("thread_id") or ""),
+        "terminal_outcome": terminal_outcome,
+        "attempt_status": terminal_outcome,
         "transport_ok": transport_ok,
         "transport_reason": str(transport_result.get("reason") or ""),
+        "exception_type": str(transport_result.get("exception_type") or ""),
+        "exception_message": str(transport_result.get("exception_message") or ""),
+        "requires_reconciliation": terminal_outcome in {"failure", "exception", "timeout", "ambiguous"},
         "fixture_only_transport": fixture_only_transport,
         "broker_called": bool(transport_result.get("broker_called")),
         "fake_broker_called": bool(transport_result.get("fake_broker_called")),
@@ -2550,6 +2674,7 @@ def run_exact_send_live_transport_gate(
     receipt_dir: Path | str,
     transport: Any = None,
     live_transport_enabled: bool = False,
+    live_db_execution_policy: str = EXACT_SEND_LIVE_DB_POLICY_FIXTURE_ONLY,
     generated_at: str | None = None,
 ) -> dict[str, Any]:
     generated_at = generated_at or utc_now()
@@ -2604,86 +2729,136 @@ def run_exact_send_live_transport_gate(
             "machine_proof": dict(AUTHORITY_BOUNDARY),
         }
 
-    if _is_live_objective_db(sqlite_path):
-        return refuse("live_objective_db_refused")
     if not approval_decision.get("approved"):
         return refuse(str(approval_decision.get("reason") or "approval_not_valid"))
 
+    live_db = _is_live_objective_db(sqlite_path)
+    if live_db and live_db_execution_policy != EXACT_SEND_LIVE_DB_POLICY_FRESH_EXACT_APPROVAL_ONLY:
+        return refuse("live_objective_db_refused")
+    if live_db and request_id in OBSOLETE_EXACT_SEND_REQUEST_IDS:
+        return refuse("obsolete_live_request_refused")
+
     with _connect(sqlite_path) as conn:
         _ensure_exact_send_fixture_tables(conn)
-        state, error = _load_exact_send_execution_state(
-            conn,
-            objective_id=objective_id,
-            approval_decision=approval_decision,
-            generated_at=generated_at,
-        )
-        if error:
-            return refuse(
-                str(error.get("reason") or "stored_request_invalid"),
-                objective_ref=str(error.get("objective_id") or objective_id),
-                recipient=str(error.get("recipient") or ""),
-                subject=str(error.get("subject") or ""),
-                expected=str(error.get("expected_payload_hash") or ""),
-                observed=str(error.get("observed_payload_hash") or ""),
-                supplied=str(error.get("supplied_payload_hash") or ""),
+        conn.commit()
+        conn.execute("BEGIN IMMEDIATE")
+        try:
+            state, error = _load_exact_send_execution_state(
+                conn,
+                objective_id=objective_id,
+                approval_decision=approval_decision,
+                generated_at=generated_at,
             )
-        assert state is not None
-        replay = conn.execute(
-            "SELECT request_id FROM exact_send_fixture_executions WHERE request_id = ?",
-            (request_id,),
-        ).fetchone()
-        if replay:
-            return refuse(
-                "replay_detected",
-                objective_ref=str(state.get("objective_id") or ""),
-                recipient=str(state.get("recipient") or ""),
-                subject=str(state.get("subject") or ""),
-                expected=str(state.get("payload_hash") or ""),
-                observed=str(state.get("observed_payload_hash") or ""),
-                authority_refs=list(state.get("authority_refs") or []),
-                credential_lease_refs=list(state.get("credential_lease_refs") or []),
+            if error:
+                conn.rollback()
+                return refuse(
+                    str(error.get("reason") or "stored_request_invalid"),
+                    objective_ref=str(error.get("objective_id") or objective_id),
+                    recipient=str(error.get("recipient") or ""),
+                    subject=str(error.get("subject") or ""),
+                    expected=str(error.get("expected_payload_hash") or ""),
+                    observed=str(error.get("observed_payload_hash") or ""),
+                    supplied=str(error.get("supplied_payload_hash") or ""),
+                )
+            assert state is not None
+            replay = conn.execute(
+                "SELECT request_id FROM exact_send_fixture_executions WHERE request_id = ?",
+                (request_id,),
+            ).fetchone()
+            if replay:
+                conn.rollback()
+                return refuse(
+                    "replay_detected",
+                    objective_ref=str(state.get("objective_id") or ""),
+                    recipient=str(state.get("recipient") or ""),
+                    subject=str(state.get("subject") or ""),
+                    expected=str(state.get("payload_hash") or ""),
+                    observed=str(state.get("observed_payload_hash") or ""),
+                    authority_refs=list(state.get("authority_refs") or []),
+                    credential_lease_refs=list(state.get("credential_lease_refs") or []),
+                )
+            prior_attempt = conn.execute(
+                "SELECT status FROM exact_send_execution_attempts WHERE request_id = ?",
+                (request_id,),
+            ).fetchone()
+            if prior_attempt:
+                conn.rollback()
+                return refuse(
+                    _exact_send_prior_attempt_refusal_reason(str(prior_attempt["status"] or "")),
+                    objective_ref=str(state.get("objective_id") or ""),
+                    recipient=str(state.get("recipient") or ""),
+                    subject=str(state.get("subject") or ""),
+                    expected=str(state.get("payload_hash") or ""),
+                    observed=str(state.get("observed_payload_hash") or ""),
+                    authority_refs=list(state.get("authority_refs") or []),
+                    credential_lease_refs=list(state.get("credential_lease_refs") or []),
+                )
+            constructed = transport is not None and _is_allowlisted_exact_send_transport(transport)
+            if not live_transport_enabled:
+                conn.rollback()
+                return refuse(
+                    "live_transport_disabled",
+                    objective_ref=str(state.get("objective_id") or ""),
+                    recipient=str(state.get("recipient") or ""),
+                    subject=str(state.get("subject") or ""),
+                    expected=str(state.get("payload_hash") or ""),
+                    observed=str(state.get("observed_payload_hash") or ""),
+                    authority_refs=list(state.get("authority_refs") or []),
+                    credential_lease_refs=list(state.get("credential_lease_refs") or []),
+                    live_transport_constructed=constructed,
+                )
+            authority_refs = list(state.get("authority_refs") or [])
+            credential_lease_refs = list(state.get("credential_lease_refs") or [])
+            if transport is None or not _is_allowlisted_exact_send_transport(transport):
+                conn.rollback()
+                return refuse(
+                    "allowlisted_gmail_transport_required",
+                    objective_ref=str(state.get("objective_id") or ""),
+                    recipient=str(state.get("recipient") or ""),
+                    subject=str(state.get("subject") or ""),
+                    expected=str(state.get("payload_hash") or ""),
+                    observed=str(state.get("observed_payload_hash") or ""),
+                    authority_refs=authority_refs,
+                    credential_lease_refs=credential_lease_refs,
+                    live_transport_constructed=constructed,
+                    live_transport_enabled_flag=True,
+                )
+            if not authority_refs or not credential_lease_refs:
+                conn.rollback()
+                return refuse(
+                    "authority_and_credential_lease_refs_required",
+                    objective_ref=str(state.get("objective_id") or ""),
+                    recipient=str(state.get("recipient") or ""),
+                    subject=str(state.get("subject") or ""),
+                    expected=str(state.get("payload_hash") or ""),
+                    observed=str(state.get("observed_payload_hash") or ""),
+                    authority_refs=authority_refs,
+                    credential_lease_refs=credential_lease_refs,
+                    live_transport_constructed=constructed,
+                    live_transport_enabled_flag=True,
+                )
+            in_flight_receipt = {
+                "schema_version": "EXACT_SEND_EXECUTION_ATTEMPT_IN_FLIGHT_V0",
+                "request_id": request_id,
+                "idempotency_key": request_id,
+                "objective_id": objective_id,
+                "status": "in_flight",
+                "payload_hash": str(state.get("payload_hash") or ""),
+                "created_at": generated_at,
+                "authority_boundary": dict(AUTHORITY_BOUNDARY),
+            }
+            conn.execute(
+                """
+                INSERT INTO exact_send_execution_attempts
+                  (request_id, objective_id, status, idempotency_key, created_at, updated_at, terminal_receipt_ref, receipt_json)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (request_id, objective_id, "in_flight", request_id, generated_at, generated_at, "", stable_json(in_flight_receipt)),
             )
-        constructed = transport is not None and _is_allowlisted_exact_send_transport(transport)
-        if not live_transport_enabled:
-            return refuse(
-                "live_transport_disabled",
-                objective_ref=str(state.get("objective_id") or ""),
-                recipient=str(state.get("recipient") or ""),
-                subject=str(state.get("subject") or ""),
-                expected=str(state.get("payload_hash") or ""),
-                observed=str(state.get("observed_payload_hash") or ""),
-                authority_refs=list(state.get("authority_refs") or []),
-                credential_lease_refs=list(state.get("credential_lease_refs") or []),
-                live_transport_constructed=constructed,
-            )
-        authority_refs = list(state.get("authority_refs") or [])
-        credential_lease_refs = list(state.get("credential_lease_refs") or [])
-        if transport is None or not _is_allowlisted_exact_send_transport(transport):
-            return refuse(
-                "allowlisted_gmail_transport_required",
-                objective_ref=str(state.get("objective_id") or ""),
-                recipient=str(state.get("recipient") or ""),
-                subject=str(state.get("subject") or ""),
-                expected=str(state.get("payload_hash") or ""),
-                observed=str(state.get("observed_payload_hash") or ""),
-                authority_refs=authority_refs,
-                credential_lease_refs=credential_lease_refs,
-                live_transport_constructed=constructed,
-                live_transport_enabled_flag=True,
-            )
-        if not authority_refs or not credential_lease_refs:
-            return refuse(
-                "authority_and_credential_lease_refs_required",
-                objective_ref=str(state.get("objective_id") or ""),
-                recipient=str(state.get("recipient") or ""),
-                subject=str(state.get("subject") or ""),
-                expected=str(state.get("payload_hash") or ""),
-                observed=str(state.get("observed_payload_hash") or ""),
-                authority_refs=authority_refs,
-                credential_lease_refs=credential_lease_refs,
-                live_transport_constructed=constructed,
-                live_transport_enabled_flag=True,
-            )
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
         broker_payload = {
             "request_id": request_id,
             "objective_id": objective_id,
@@ -2693,11 +2868,30 @@ def run_exact_send_live_transport_gate(
             "payload_hash": str(state.get("payload_hash") or ""),
             "expires_at": str(state.get("expires_at") or ""),
         }
-        transport_result = transport.send_exact_payload(
-            broker_payload,
-            authority_refs=authority_refs,
-            credential_lease_refs=credential_lease_refs,
-        )
+        try:
+            transport_result = transport.send_exact_payload(
+                broker_payload,
+                authority_refs=authority_refs,
+                credential_lease_refs=credential_lease_refs,
+            )
+        except Exception as exc:
+            transport_result = {
+                "ok": False,
+                "reason": "transport_exception",
+                "exception_type": type(exc).__name__,
+                "exception_message": _excerpt(str(exc), limit=160),
+                "broker_agent": GOOGLE_BROKER_AGENT_CASSANDRA,
+                "broker_capability": GOOGLE_GMAIL_SEND_BROKER_CAPABILITY,
+                "credential_handle_id": GOOGLE_WORKSPACE_BROKER_CREDENTIAL_HANDLE_ID,
+                "authority_refs": authority_refs,
+                "credential_lease_refs": credential_lease_refs,
+                "broker_called": bool(getattr(transport, "broker_called", False)),
+                "fake_broker_called": bool(getattr(transport, "calls", [])),
+                "gmail_api_called": False,
+                "email_send_performed": False,
+                "payload_hash": str(state.get("payload_hash") or ""),
+                "idempotency_key": request_id,
+            }
         terminal_receipt = _exact_send_terminal_receipt(
             request_id=request_id,
             objective_id=objective_id,
@@ -2709,18 +2903,24 @@ def run_exact_send_live_transport_gate(
         receipt_prefix = (
             "exact_send_live_transport_success_receipt"
             if terminal_receipt["transport_ok"]
-            else "exact_send_live_transport_failure_receipt"
+            else f"exact_send_live_transport_{terminal_receipt['terminal_outcome']}_receipt"
         )
         terminal_receipt_path = _write_exact_send_receipt(receipt_dir, receipt_prefix, terminal_receipt)
-        if terminal_receipt["transport_ok"]:
-            conn.execute(
-                """
-                INSERT INTO exact_send_fixture_executions
-                  (request_id, objective_id, created_at, receipt_json)
-                VALUES (?, ?, ?, ?)
-                """,
-                (request_id, objective_id, generated_at, stable_json(terminal_receipt)),
-            )
+        conn.execute("BEGIN IMMEDIATE")
+        conn.execute(
+            """
+            UPDATE exact_send_execution_attempts
+            SET status = ?, updated_at = ?, terminal_receipt_ref = ?, receipt_json = ?
+            WHERE request_id = ?
+            """,
+            (
+                str(terminal_receipt.get("attempt_status") or terminal_receipt.get("terminal_outcome") or "failure"),
+                generated_at,
+                str(terminal_receipt.get("receipt_id") or ""),
+                stable_json(terminal_receipt),
+                request_id,
+            ),
+        )
         conn.execute(
             """
             INSERT OR REPLACE INTO objective_receipts
@@ -2731,18 +2931,14 @@ def run_exact_send_live_transport_gate(
                 objective_id,
                 str(terminal_receipt.get("receipt_id") or ""),
                 "exact_send_live_transport_terminal",
-                "success_recorded" if terminal_receipt["transport_ok"] else "failure_recorded",
+                f"{terminal_receipt['terminal_outcome']}_recorded",
                 stable_json(terminal_receipt),
             ),
         )
         conn.commit()
         return {
             "schema_version": "EXACT_SEND_LIVE_TRANSPORT_GATE_RESULT_V0",
-            "response_status": (
-                "EXACT_SEND_LIVE_TRANSPORT_SUCCESS_RECEIPT_WRITTEN"
-                if terminal_receipt["transport_ok"]
-                else "EXACT_SEND_LIVE_TRANSPORT_FAILURE_RECEIPT_WRITTEN"
-            ),
+            "response_status": str(terminal_receipt["response_status"]),
             "receipt": terminal_receipt,
             "terminal_receipt_path": terminal_receipt_path.as_posix(),
             "execution_performed": bool(terminal_receipt["execution_performed"]),
