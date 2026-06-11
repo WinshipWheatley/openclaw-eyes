@@ -5,6 +5,7 @@ send-authority preparation instead of being misclassified as reminder or
 unsupported-time-format requests.
 """
 import json
+import sqlite3
 import sys
 from pathlib import Path
 
@@ -45,6 +46,18 @@ class FakeDryRunTransport:
         }
 
 
+class FakeLiveTransport:
+    live_transport = True
+    fixture_only = True
+
+    def __init__(self):
+        self.calls = []
+
+    def send_exact_payload(self, payload):
+        self.calls.append(payload)
+        return {"sent": True}
+
+
 def _fixture_request(tmp_path):
     db = tmp_path / "objective.sqlite"
     result = objective_loop.route_cassandra_objective_message(
@@ -63,10 +76,27 @@ def _fixture_request(tmp_path):
     packet = objective_loop.build_exact_send_review_packet(
         request,
         draft=draft,
-        expires_at="2026-06-10T20:30:00+00:00",
         generated_at=FIXED_NOW,
     )
     return db, result["objective"], request, draft, packet
+
+
+def _load_objective_from_db(db, objective_id):
+    with sqlite3.connect(db) as conn:
+        row = conn.execute(
+            "SELECT objective_json FROM cassandra_operator_objectives WHERE objective_id = ?",
+            (objective_id,),
+        ).fetchone()
+    return json.loads(row[0])
+
+
+def _store_objective_json(db, objective):
+    with sqlite3.connect(db) as conn:
+        conn.execute(
+            "UPDATE cassandra_operator_objectives SET objective_json = ? WHERE objective_id = ?",
+            (objective_loop.stable_json(objective), objective["objective_id"]),
+        )
+        conn.commit()
 
 
 # ── Phase 5 Test 1: Draft approval routes to send-authority, not reminder ────
@@ -303,7 +333,9 @@ def test_exact_send_review_packet_contains_fixture_payload_for_operator_review(t
     assert packet["body"] == draft["body"]
     assert packet["payload_hash"] == request["payload_hash"]
     assert packet["observed_payload_hash"] == request["payload_hash"]
-    assert packet["expires_at"] == "2026-06-10T20:30:00+00:00"
+    assert request["expires_at"] == "2026-06-10T20:00:00+00:00"
+    assert packet["expires_at"] == request["expires_at"]
+    assert packet["approved_draft_artifact_ref"] == request["approved_draft_artifact_ref"]
     assert "refuse_wrong_request_id" in packet["refusal_options"]
     assert packet["execution_performed"] is False
     assert packet["gmail_draft_created"] is False
@@ -390,6 +422,9 @@ def test_exact_send_dry_run_executor_writes_receipt_for_stored_hash_match(tmp_pa
     assert receipt["schema_version"] == "EXACT_SEND_DRY_RUN_RECEIPT_V0"
     assert receipt["request_id"] == request["request_id"]
     assert receipt["payload_hash"] == request["payload_hash"]
+    assert receipt["expires_at"] == request["expires_at"]
+    assert receipt["approved_draft_artifact_ref"] == request["approved_draft_artifact_ref"]
+    assert receipt["stored_body_loaded"] is True
     assert receipt["execution_performed"] is False
     assert receipt["gmail_api_called"] is False
     assert receipt["gmail_draft_created"] is False
@@ -399,7 +434,7 @@ def test_exact_send_dry_run_executor_writes_receipt_for_stored_hash_match(tmp_pa
 
 
 def test_exact_send_dry_run_refuses_hash_mismatch_and_supplied_hash_divergence(tmp_path):
-    """Changed body or operator-supplied divergent hash prevents dry-run consumption."""
+    """Caller body cannot override stored body; stored corruption still refuses."""
     db, objective, request, draft, packet = _fixture_request(tmp_path)
     valid_decision = objective_loop.parse_exact_send_approval(
         f"Approve exact send request {request['request_id']}",
@@ -407,7 +442,7 @@ def test_exact_send_dry_run_refuses_hash_mismatch_and_supplied_hash_divergence(t
         generated_at="2026-06-10T19:45:00+00:00",
     )
 
-    changed_body = objective_loop.run_exact_send_dry_run_executor(
+    caller_changed_body = objective_loop.run_exact_send_dry_run_executor(
         sqlite_path=db,
         objective_id=objective["objective_id"],
         approval_decision=valid_decision,
@@ -416,23 +451,53 @@ def test_exact_send_dry_run_refuses_hash_mismatch_and_supplied_hash_divergence(t
         transport=FakeDryRunTransport(),
         generated_at="2026-06-10T19:46:00+00:00",
     )
+    caller_changed_receipt = json.loads(Path(caller_changed_body["dry_run_receipt_path"]).read_text(encoding="utf-8"))
+
+    mismatch_db, mismatch_objective, mismatch_request, mismatch_draft, mismatch_packet = _fixture_request(tmp_path / "mismatch")
+    stored = _load_objective_from_db(mismatch_db, mismatch_objective["objective_id"])
+    artifact_ref = stored["send_authority_request"]["approved_draft_artifact_ref"]
+    stored["approved_send_draft_artifacts"][artifact_ref]["body"] += "\nChanged in stored artifact."
+    stored["approved_send_draft_artifact"] = stored["approved_send_draft_artifacts"][artifact_ref]
+    _store_objective_json(mismatch_db, stored)
+    mismatch_decision = objective_loop.parse_exact_send_approval(
+        f"Approve exact send request {mismatch_request['request_id']}",
+        mismatch_packet,
+        generated_at="2026-06-10T19:45:00+00:00",
+    )
+    stored_changed_body = objective_loop.run_exact_send_dry_run_executor(
+        sqlite_path=mismatch_db,
+        objective_id=mismatch_objective["objective_id"],
+        approval_decision=mismatch_decision,
+        draft=mismatch_draft,
+        receipt_dir=tmp_path / "receipts",
+        transport=FakeDryRunTransport(),
+        generated_at="2026-06-10T19:46:00+00:00",
+    )
+    supplied_db, supplied_objective, supplied_request, supplied_draft, supplied_packet = _fixture_request(tmp_path / "supplied")
+    supplied_decision = objective_loop.parse_exact_send_approval(
+        f"Approve exact send request {supplied_request['request_id']}",
+        supplied_packet,
+        generated_at="2026-06-10T19:45:00+00:00",
+    )
     divergent_hash_decision = {
-        **valid_decision,
+        **supplied_decision,
         "supplied_payload_hash": "sha256:" + ("0" * 64),
     }
     supplied_hash = objective_loop.run_exact_send_dry_run_executor(
-        sqlite_path=db,
-        objective_id=objective["objective_id"],
+        sqlite_path=supplied_db,
+        objective_id=supplied_objective["objective_id"],
         approval_decision=divergent_hash_decision,
-        draft=draft,
+        draft=supplied_draft,
         receipt_dir=tmp_path / "receipts",
         transport=FakeDryRunTransport(),
         generated_at="2026-06-10T19:47:00+00:00",
     )
 
-    assert changed_body["response_status"] == "EXACT_SEND_DRY_RUN_REFUSED"
-    assert changed_body["refusal_reason"] == "payload_hash_mismatch"
-    assert Path(changed_body["refusal_receipt_path"]).exists()
+    assert caller_changed_body["response_status"] == "EXACT_SEND_DRY_RUN_RECEIPT_WRITTEN"
+    assert caller_changed_receipt["caller_draft_ignored"] is True
+    assert stored_changed_body["response_status"] == "EXACT_SEND_DRY_RUN_REFUSED"
+    assert stored_changed_body["refusal_reason"] == "payload_hash_mismatch"
+    assert Path(stored_changed_body["refusal_receipt_path"]).exists()
     assert supplied_hash["response_status"] == "EXACT_SEND_DRY_RUN_REFUSED"
     assert supplied_hash["refusal_reason"] == "supplied_hash_mismatch"
     assert Path(supplied_hash["refusal_receipt_path"]).exists()
@@ -454,7 +519,7 @@ def test_exact_send_dry_run_refuses_expired_replay_and_missing_authority(tmp_pat
         draft=draft,
         receipt_dir=tmp_path / "receipts",
         transport=FakeDryRunTransport(),
-        generated_at="2026-06-10T19:46:00+00:00",
+        generated_at="2026-06-10T20:01:00+00:00",
     )
     missing_authority = objective_loop.run_exact_send_dry_run_executor(
         sqlite_path=db,
@@ -524,3 +589,120 @@ def test_exact_send_dry_run_blocks_live_db_and_requires_fake_transport(tmp_path)
     assert live_db["refusal_reason"] == "live_objective_db_refused"
     assert no_transport["response_status"] == "EXACT_SEND_DRY_RUN_REFUSED"
     assert no_transport["refusal_reason"] == "dry_run_transport_required"
+
+
+def test_exact_send_executor_refuses_missing_expiry_and_wrong_ids(tmp_path):
+    """Stored expiry, request id, and objective id are required at execution time."""
+    missing_db, missing_objective, missing_request, missing_draft, missing_packet = _fixture_request(tmp_path / "missing")
+    stored = _load_objective_from_db(missing_db, missing_objective["objective_id"])
+    stored["send_authority_request"].pop("expires_at")
+    _store_objective_json(missing_db, stored)
+    missing_decision = objective_loop.parse_exact_send_approval(
+        f"Approve exact send request {missing_request['request_id']}",
+        missing_packet,
+        generated_at="2026-06-10T19:45:00+00:00",
+    )
+    missing_expiry = objective_loop.run_exact_send_dry_run_executor(
+        sqlite_path=missing_db,
+        objective_id=missing_objective["objective_id"],
+        approval_decision=missing_decision,
+        draft=missing_draft,
+        receipt_dir=tmp_path / "receipts",
+        transport=FakeDryRunTransport(),
+        generated_at="2026-06-10T19:46:00+00:00",
+    )
+
+    wrong_db, wrong_objective, wrong_request, wrong_draft, wrong_packet = _fixture_request(tmp_path / "wrong")
+    wrong_decision = objective_loop.parse_exact_send_approval(
+        f"Approve exact send request {wrong_request['request_id']}",
+        wrong_packet,
+        generated_at="2026-06-10T19:45:00+00:00",
+    )
+    wrong_request_id = objective_loop.run_exact_send_dry_run_executor(
+        sqlite_path=wrong_db,
+        objective_id=wrong_objective["objective_id"],
+        approval_decision={**wrong_decision, "expected_request_id": "exact_send_authority_request:wrong"},
+        draft=wrong_draft,
+        receipt_dir=tmp_path / "receipts",
+        transport=FakeDryRunTransport(),
+        generated_at="2026-06-10T19:46:00+00:00",
+    )
+    wrong_objective_id = objective_loop.run_exact_send_dry_run_executor(
+        sqlite_path=wrong_db,
+        objective_id="cassandra_operator_objective:wrong",
+        approval_decision=wrong_decision,
+        draft=wrong_draft,
+        receipt_dir=tmp_path / "receipts",
+        transport=FakeDryRunTransport(),
+        generated_at="2026-06-10T19:46:00+00:00",
+    )
+
+    assert missing_expiry["response_status"] == "EXACT_SEND_DRY_RUN_REFUSED"
+    assert missing_expiry["refusal_reason"] == "missing_or_invalid_expiry"
+    assert wrong_request_id["response_status"] == "EXACT_SEND_DRY_RUN_REFUSED"
+    assert wrong_request_id["refusal_reason"] == "wrong_request_id"
+    assert wrong_objective_id["response_status"] == "EXACT_SEND_DRY_RUN_REFUSED"
+    assert wrong_objective_id["refusal_reason"] == "wrong_objective_id"
+
+
+def test_exact_send_live_transport_gate_is_disabled_and_schema_only(tmp_path):
+    """Live transport can be shaped and fake-injected, but it still refuses before any send."""
+    db, objective, request, _draft, packet = _fixture_request(tmp_path)
+    decision = objective_loop.parse_exact_send_approval(
+        f"Approve exact send request {request['request_id']}",
+        packet,
+        generated_at="2026-06-10T19:45:00+00:00",
+    )
+    disabled = objective_loop.run_exact_send_live_transport_gate(
+        sqlite_path=db,
+        objective_id=objective["objective_id"],
+        approval_decision=decision,
+        receipt_dir=tmp_path / "receipts",
+        transport=None,
+        live_transport_enabled=False,
+        generated_at="2026-06-10T19:46:00+00:00",
+    )
+    fake = FakeLiveTransport()
+    would_run = objective_loop.run_exact_send_live_transport_gate(
+        sqlite_path=db,
+        objective_id=objective["objective_id"],
+        approval_decision=decision,
+        receipt_dir=tmp_path / "receipts",
+        transport=fake,
+        live_transport_enabled=True,
+        generated_at="2026-06-10T19:47:00+00:00",
+    )
+    success_shape = objective_loop.build_future_live_send_success_receipt_shape(
+        request_id=request["request_id"],
+        objective_id=objective["objective_id"],
+        recipient=request["recipient"],
+        subject=request["subject"],
+        payload_hash=request["payload_hash"],
+        generated_at="2026-06-10T19:48:00+00:00",
+    )
+
+    disabled_receipt = json.loads(Path(disabled["refusal_receipt_path"]).read_text(encoding="utf-8"))
+    would_run_receipt = json.loads(Path(would_run["refusal_receipt_path"]).read_text(encoding="utf-8"))
+    assert disabled["refusal_reason"] == "live_transport_disabled"
+    assert disabled_receipt["schema_version"] == "EXACT_SEND_LIVE_TRANSPORT_REFUSAL_RECEIPT_V0"
+    assert disabled_receipt["execution_performed"] is False
+    assert disabled_receipt["gmail_api_called"] is False
+    assert disabled_receipt["email_send_performed"] is False
+    assert would_run["refusal_reason"] == "live_send_would_run_refused_pending_review"
+    assert would_run_receipt["live_transport_constructed"] is True
+    assert would_run_receipt["email_send_performed"] is False
+    assert fake.calls == []
+    assert success_shape["schema_version"] == "EXACT_SEND_FUTURE_LIVE_SUCCESS_RECEIPT_V0"
+    assert success_shape["schema_only"] is True
+    assert success_shape["execution_performed"] is False
+    assert success_shape["email_send_performed"] is False
+
+
+def test_exact_send_live_transport_has_no_real_gmail_client_import():
+    """The disabled live transport seam must not import or construct Gmail clients."""
+    source = (ROOT / "cassandra_operator_objective_loop.py").read_text(encoding="utf-8")
+
+    assert "googleapiclient" not in source
+    assert "google.oauth" not in source
+    assert "from google" not in source
+    assert ".users().messages().send" not in source
