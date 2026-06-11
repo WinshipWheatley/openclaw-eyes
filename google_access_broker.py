@@ -48,6 +48,7 @@ import json
 import sys
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Any, Mapping
 from zoneinfo import ZoneInfo
 
 
@@ -117,6 +118,58 @@ def _load_credentials():
 
 # ── Audit logging ─────────────────────────────────────────────────────────────
 
+_AUDIT_BODY_PARAM_KEYS = {"body", "body_text", "message_body"}
+_AUDIT_APPROVAL_CONTEXT_KEEP_KEYS = {
+    "request_id",
+    "objective_id",
+    "payload_hash",
+    "body_hash",
+    "authority_refs",
+    "credential_lease_refs",
+    "authority_envelope_ref",
+    "authority_envelope_id",
+    "credential_lease_ref",
+    "credential_lease_id",
+    "exact_send_gate",
+}
+
+
+def _redact_audit_value(value: Any) -> Any:
+    if isinstance(value, Mapping):
+        return {
+            str(k): _redact_audit_value(v)
+            for k, v in value.items()
+            if str(k) not in _AUDIT_BODY_PARAM_KEYS
+        }
+    if isinstance(value, list):
+        return [_redact_audit_value(item) for item in value]
+    return value
+
+
+def _redact_approval_context(value: Any) -> dict:
+    if not isinstance(value, Mapping):
+        return {"redacted": True}
+    return {
+        key: _redact_audit_value(value[key])
+        for key in _AUDIT_APPROVAL_CONTEXT_KEEP_KEYS
+        if key in value
+    }
+
+
+def _redact_audit_params(params: Mapping[str, Any]) -> dict:
+    redacted = {}
+    for key, value in params.items():
+        key_str = str(key)
+        if key_str in _AUDIT_BODY_PARAM_KEYS:
+            continue
+        if key_str == "approval_context":
+            redacted[key_str] = _redact_approval_context(value)
+            redacted["approval_context_redacted"] = True
+            continue
+        redacted[key_str] = _redact_audit_value(value)
+    return redacted
+
+
 def _audit(agent: str, capability: str, params: dict,
            result_ok: bool, error: str = "") -> None:
     """Append one JSONL line to the Google access audit log."""
@@ -124,7 +177,7 @@ def _audit(agent: str, capability: str, params: dict,
         "ts":         datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "agent":      agent,
         "capability": capability,
-        "params":     {k: v for k, v in params.items() if k not in {"body_text", "approval_context"}},
+        "params":     _redact_audit_params(params),
         "ok":         result_ok,
         "error":      error,
     }

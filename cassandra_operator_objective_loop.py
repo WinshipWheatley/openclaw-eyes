@@ -34,6 +34,7 @@ EXACT_SEND_APPROVAL_DECISION_SCHEMA = "EXACT_SEND_APPROVAL_DECISION_V0"
 EXACT_SEND_DRY_RUN_RECEIPT_SCHEMA = "EXACT_SEND_DRY_RUN_RECEIPT_V0"
 EXACT_SEND_REFUSAL_RECEIPT_SCHEMA = "EXACT_SEND_REFUSAL_RECEIPT_V0"
 EXACT_SEND_LIVE_TRANSPORT_REFUSAL_RECEIPT_SCHEMA = "EXACT_SEND_LIVE_TRANSPORT_REFUSAL_RECEIPT_V0"
+EXACT_SEND_LIVE_TRANSPORT_TERMINAL_RECEIPT_SCHEMA = "EXACT_SEND_LIVE_TRANSPORT_TERMINAL_RECEIPT_V0"
 EXACT_SEND_FUTURE_LIVE_SUCCESS_RECEIPT_SCHEMA = "EXACT_SEND_FUTURE_LIVE_SUCCESS_RECEIPT_V0"
 UNATTENDED_REQUIREMENT_SCHEMA = "CASSANDRA_UNATTENDED_SEND_REQUIREMENT_V0"
 
@@ -2369,6 +2370,8 @@ class GovernedGmailBrokerSendTransport(DisabledGmailExactSendTransport):
             "email_send_performed": ok,
             "live_transport_enabled": True,
             "payload_hash": str(payload.get("payload_hash") or ""),
+            "message_id": str(((result or {}).get("data") or {}).get("message_id") or "") if isinstance(result, Mapping) else "",
+            "thread_id": str(((result or {}).get("data") or {}).get("thread_id") or "") if isinstance(result, Mapping) else "",
             "broker_result": dict(result or {}) if isinstance(result, Mapping) else {},
         }
 
@@ -2413,9 +2416,14 @@ class FakeBrokerGmailSendTransport(GovernedGmailBrokerSendTransport):
             },
         }
         self.calls.append(call)
+        message_id = "fake-gmail-message:" + _short_hash(
+            payload.get("request_id"),
+            payload.get("payload_hash"),
+            payload.get("recipient"),
+        )
         return {
-            "ok": False,
-            "reason": "fake_broker_would_call_only",
+            "ok": True,
+            "reason": "fake_broker_send_recorded",
             "broker_agent": self.broker_agent,
             "broker_capability": self.broker_capability,
             "credential_handle_id": self.credential_handle_id,
@@ -2424,9 +2432,12 @@ class FakeBrokerGmailSendTransport(GovernedGmailBrokerSendTransport):
             "broker_called": False,
             "fake_broker_called": True,
             "gmail_api_called": False,
-            "email_send_performed": False,
+            "email_send_performed": True,
             "live_transport_enabled": True,
             "payload_hash": str(payload.get("payload_hash") or ""),
+            "message_id": message_id,
+            "thread_id": "",
+            "fixture_only": True,
         }
 
 
@@ -2469,6 +2480,64 @@ def build_future_live_send_success_receipt_shape(
         "live_transport_constructed": False,
         "created_at": generated_at,
         "requires_future_review": True,
+        "authority_boundary": dict(AUTHORITY_BOUNDARY),
+    }
+
+
+def _exact_send_terminal_receipt(
+    *,
+    request_id: str,
+    objective_id: str,
+    state: Mapping[str, Any],
+    transport_result: Mapping[str, Any],
+    generated_at: str,
+    fixture_only_transport: bool,
+) -> dict[str, Any]:
+    transport_ok = bool(transport_result.get("ok") is True)
+    response_status = (
+        "EXACT_SEND_LIVE_TRANSPORT_SUCCESS_RECEIPT_WRITTEN"
+        if transport_ok
+        else "EXACT_SEND_LIVE_TRANSPORT_FAILURE_RECEIPT_WRITTEN"
+    )
+    return {
+        "schema_version": EXACT_SEND_LIVE_TRANSPORT_TERMINAL_RECEIPT_SCHEMA,
+        "receipt_id": "exact_send_live_transport_terminal_receipt:" + _short_hash(
+            request_id,
+            state.get("payload_hash"),
+            transport_result.get("message_id"),
+            generated_at,
+        ),
+        "response_status": response_status,
+        "request_id": request_id,
+        "objective_id": objective_id,
+        "recipient": str(state.get("recipient") or ""),
+        "subject": str(state.get("subject") or ""),
+        "payload_hash": str(state.get("payload_hash") or ""),
+        "observed_payload_hash": str(state.get("observed_payload_hash") or ""),
+        "expires_at": str(state.get("expires_at") or ""),
+        "authority_refs": list(state.get("authority_refs") or []),
+        "credential_lease_refs": list(state.get("credential_lease_refs") or []),
+        "broker_agent": str(transport_result.get("broker_agent") or GOOGLE_BROKER_AGENT_CASSANDRA),
+        "broker_capability": str(transport_result.get("broker_capability") or GOOGLE_GMAIL_SEND_BROKER_CAPABILITY),
+        "credential_handle_id": str(transport_result.get("credential_handle_id") or GOOGLE_WORKSPACE_BROKER_CREDENTIAL_HANDLE_ID),
+        "message_id": str(transport_result.get("message_id") or ""),
+        "thread_id": str(transport_result.get("thread_id") or ""),
+        "transport_ok": transport_ok,
+        "transport_reason": str(transport_result.get("reason") or ""),
+        "fixture_only_transport": fixture_only_transport,
+        "broker_called": bool(transport_result.get("broker_called")),
+        "fake_broker_called": bool(transport_result.get("fake_broker_called")),
+        "live_broker_called": bool(transport_result.get("broker_called")),
+        "live_transport_enabled": True,
+        "live_transport_constructed": True,
+        "execution_performed": bool(transport_result.get("email_send_performed")),
+        "dry_run_transport_called": False,
+        "gmail_api_called": bool(transport_result.get("gmail_api_called")),
+        "gmail_draft_created": False,
+        "email_send_performed": bool(transport_result.get("email_send_performed")),
+        "calendar_api_called": False,
+        "contacts_api_called": False,
+        "created_at": generated_at,
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
     }
 
@@ -2629,20 +2698,56 @@ def run_exact_send_live_transport_gate(
             authority_refs=authority_refs,
             credential_lease_refs=credential_lease_refs,
         )
-        return refuse(
-            "live_send_would_run_refused_pending_review",
-            objective_ref=str(state.get("objective_id") or ""),
-            recipient=str(state.get("recipient") or ""),
-            subject=str(state.get("subject") or ""),
-            expected=str(state.get("payload_hash") or ""),
-            observed=str(state.get("observed_payload_hash") or ""),
-            authority_refs=authority_refs,
-            credential_lease_refs=credential_lease_refs,
-            live_transport_constructed=True,
-            live_transport_enabled_flag=True,
-            broker_called=bool((transport_result or {}).get("broker_called")),
-            fake_broker_called=bool((transport_result or {}).get("fake_broker_called")),
+        terminal_receipt = _exact_send_terminal_receipt(
+            request_id=request_id,
+            objective_id=objective_id,
+            state=state,
+            transport_result=dict(transport_result or {}) if isinstance(transport_result, Mapping) else {},
+            generated_at=generated_at,
+            fixture_only_transport=bool(getattr(transport, "fixture_only", False)),
         )
+        receipt_prefix = (
+            "exact_send_live_transport_success_receipt"
+            if terminal_receipt["transport_ok"]
+            else "exact_send_live_transport_failure_receipt"
+        )
+        terminal_receipt_path = _write_exact_send_receipt(receipt_dir, receipt_prefix, terminal_receipt)
+        if terminal_receipt["transport_ok"]:
+            conn.execute(
+                """
+                INSERT INTO exact_send_fixture_executions
+                  (request_id, objective_id, created_at, receipt_json)
+                VALUES (?, ?, ?, ?)
+                """,
+                (request_id, objective_id, generated_at, stable_json(terminal_receipt)),
+            )
+        conn.execute(
+            """
+            INSERT OR REPLACE INTO objective_receipts
+              (objective_id, receipt_ref, receipt_kind, status, receipt_json)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (
+                objective_id,
+                str(terminal_receipt.get("receipt_id") or ""),
+                "exact_send_live_transport_terminal",
+                "success_recorded" if terminal_receipt["transport_ok"] else "failure_recorded",
+                stable_json(terminal_receipt),
+            ),
+        )
+        conn.commit()
+        return {
+            "schema_version": "EXACT_SEND_LIVE_TRANSPORT_GATE_RESULT_V0",
+            "response_status": (
+                "EXACT_SEND_LIVE_TRANSPORT_SUCCESS_RECEIPT_WRITTEN"
+                if terminal_receipt["transport_ok"]
+                else "EXACT_SEND_LIVE_TRANSPORT_FAILURE_RECEIPT_WRITTEN"
+            ),
+            "receipt": terminal_receipt,
+            "terminal_receipt_path": terminal_receipt_path.as_posix(),
+            "execution_performed": bool(terminal_receipt["execution_performed"]),
+            "machine_proof": dict(AUTHORITY_BOUNDARY),
+        }
 
 
 def handle_draft_review_message(

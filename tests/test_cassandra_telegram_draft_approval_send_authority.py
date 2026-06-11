@@ -659,8 +659,8 @@ def test_exact_send_executor_refuses_missing_expiry_and_wrong_ids(tmp_path):
     assert wrong_objective_id["refusal_reason"] == "wrong_objective_id"
 
 
-def test_exact_send_live_transport_gate_is_disabled_and_schema_only(tmp_path):
-    """Live transport can be shaped and fake-injected, but it still refuses before any send."""
+def test_exact_send_live_transport_gate_fake_success_writes_terminal_receipt(tmp_path):
+    """Fake broker success is terminal only after all exact send gates pass."""
     db, objective, request, _draft, packet = _fixture_request(tmp_path)
     decision = objective_loop.parse_exact_send_approval(
         f"Approve exact send request {request['request_id']}",
@@ -687,7 +687,7 @@ def test_exact_send_live_transport_gate_is_disabled_and_schema_only(tmp_path):
     )
     _add_send_authority_refs(db, objective["objective_id"])
     fake = objective_loop.FakeBrokerGmailSendTransport()
-    would_run = objective_loop.run_exact_send_live_transport_gate(
+    fake_success = objective_loop.run_exact_send_live_transport_gate(
         sqlite_path=db,
         objective_id=objective["objective_id"],
         approval_decision=decision,
@@ -707,7 +707,7 @@ def test_exact_send_live_transport_gate_is_disabled_and_schema_only(tmp_path):
 
     disabled_receipt = json.loads(Path(disabled["refusal_receipt_path"]).read_text(encoding="utf-8"))
     no_refs_receipt = json.loads(Path(no_refs["refusal_receipt_path"]).read_text(encoding="utf-8"))
-    would_run_receipt = json.loads(Path(would_run["refusal_receipt_path"]).read_text(encoding="utf-8"))
+    fake_success_receipt = json.loads(Path(fake_success["terminal_receipt_path"]).read_text(encoding="utf-8"))
     assert disabled["refusal_reason"] == "live_transport_disabled"
     assert disabled_receipt["schema_version"] == "EXACT_SEND_LIVE_TRANSPORT_REFUSAL_RECEIPT_V0"
     assert disabled_receipt["execution_performed"] is False
@@ -718,13 +718,41 @@ def test_exact_send_live_transport_gate_is_disabled_and_schema_only(tmp_path):
     assert disabled_receipt["email_send_performed"] is False
     assert no_refs["refusal_reason"] == "authority_and_credential_lease_refs_required"
     assert no_refs_receipt["broker_called"] is False
-    assert would_run["refusal_reason"] == "live_send_would_run_refused_pending_review"
-    assert would_run_receipt["live_transport_constructed"] is True
-    assert would_run_receipt["broker_called"] is False
-    assert would_run_receipt["fake_broker_called"] is True
-    assert would_run_receipt["email_send_performed"] is False
+    assert fake_success["response_status"] == "EXACT_SEND_LIVE_TRANSPORT_SUCCESS_RECEIPT_WRITTEN"
+    assert fake_success_receipt["schema_version"] == "EXACT_SEND_LIVE_TRANSPORT_TERMINAL_RECEIPT_V0"
+    assert fake_success_receipt["request_id"] == request["request_id"]
+    assert fake_success_receipt["objective_id"] == objective["objective_id"]
+    assert fake_success_receipt["recipient"] == request["recipient"]
+    assert fake_success_receipt["subject"] == request["subject"]
+    assert fake_success_receipt["payload_hash"] == request["payload_hash"]
+    assert fake_success_receipt["authority_refs"] == ["authority_envelope:fixture_exact_send"]
+    assert fake_success_receipt["credential_lease_refs"] == ["credential_lease:fixture_exact_send"]
+    assert fake_success_receipt["broker_capability"] == "google.gmail.send"
+    assert fake_success_receipt["credential_handle_id"] == objective_loop.GOOGLE_WORKSPACE_BROKER_CREDENTIAL_HANDLE_ID
+    assert fake_success_receipt["message_id"].startswith("fake-gmail-message:")
+    assert fake_success_receipt["live_transport_constructed"] is True
+    assert fake_success_receipt["broker_called"] is False
+    assert fake_success_receipt["live_broker_called"] is False
+    assert fake_success_receipt["fake_broker_called"] is True
+    assert fake_success_receipt["gmail_api_called"] is False
+    assert fake_success_receipt["email_send_performed"] is True
+    assert fake_success_receipt["fixture_only_transport"] is True
     assert len(fake.calls) == 1
     assert fake.calls[0]["broker_capability"] == "google.gmail.send"
+    assert "body" not in fake.calls[0]["params"]
+    replay_fake = objective_loop.FakeBrokerGmailSendTransport()
+    replay = objective_loop.run_exact_send_live_transport_gate(
+        sqlite_path=db,
+        objective_id=objective["objective_id"],
+        approval_decision=decision,
+        receipt_dir=tmp_path / "receipts",
+        transport=replay_fake,
+        live_transport_enabled=True,
+        generated_at="2026-06-10T19:49:30+00:00",
+    )
+    assert replay["response_status"] == "EXACT_SEND_LIVE_TRANSPORT_REFUSED"
+    assert replay["refusal_reason"] == "replay_detected"
+    assert replay_fake.calls == []
     assert success_shape["schema_version"] == "EXACT_SEND_FUTURE_LIVE_SUCCESS_RECEIPT_V0"
     assert success_shape["schema_only"] is True
     assert success_shape["broker_capability"] == "google.gmail.send"
