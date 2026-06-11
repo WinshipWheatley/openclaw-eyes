@@ -44,6 +44,8 @@ GMAIL_METADATA_READ = "openclaw.gmail_metadata_read"
 GMAIL_BODY_READ = "openclaw.gmail_body_read"
 GMAIL_DRAFT_GENERATOR = "openclaw.gmail_draft_generator"
 GMAIL_SEND_MAIL = "openclaw.gmail_send_mail"
+GOOGLE_GMAIL_SEND_BROKER_CAPABILITY = "google.gmail.send"
+GOOGLE_BROKER_AGENT_CASSANDRA = "cassandra"
 
 STATUS_PLANNING = "planning"
 STATUS_WAITING_LOOKUP_AUTHORITY = "waiting_for_lookup_authority"
@@ -221,9 +223,18 @@ def _default_exact_send_expires_at(generated_at: str) -> str:
 
 
 def _is_live_objective_db(sqlite_path: Path | str) -> bool:
-    path = _rooted(sqlite_path).resolve(strict=False)
-    live_path = _rooted(DEFAULT_SQLITE_PATH).resolve(strict=False)
-    return path == live_path
+    candidate = _rooted(sqlite_path)
+    live_path = _rooted(DEFAULT_SQLITE_PATH)
+    try:
+        if candidate.resolve(strict=False) == live_path.resolve(strict=False):
+            return True
+        if candidate.exists() and live_path.exists() and candidate.samefile(live_path):
+            return True
+    except FileNotFoundError:
+        return False
+    except OSError:
+        return True
+    return False
 
 
 def _connect(sqlite_path: Path | str = DEFAULT_SQLITE_PATH) -> sqlite3.Connection:
@@ -2017,6 +2028,11 @@ def _exact_send_refusal_receipt(
     credential_lease_refs: Sequence[str] = (),
     transport_mode: str = "fixture_dry_run",
     live_transport_constructed: bool = False,
+    live_transport_enabled: bool = False,
+    broker_agent: str = "",
+    broker_capability: str = "",
+    broker_called: bool = False,
+    fake_broker_called: bool = False,
 ) -> dict[str, Any]:
     receipt = {
         "schema_version": schema_version,
@@ -2033,6 +2049,11 @@ def _exact_send_refusal_receipt(
         "authority_refs": list(authority_refs),
         "credential_lease_refs": list(credential_lease_refs),
         "transport_mode": transport_mode,
+        "broker_agent": broker_agent,
+        "broker_capability": broker_capability,
+        "broker_called": broker_called,
+        "fake_broker_called": fake_broker_called,
+        "live_transport_enabled": live_transport_enabled,
         "execution_performed": False,
         "dry_run_transport_called": False,
         "live_transport_constructed": live_transport_constructed,
@@ -2229,6 +2250,107 @@ class DisabledExactSendLiveTransport:
         raise RuntimeError("exact send live transport is disabled")
 
 
+class DisabledGmailExactSendTransport:
+    """Disabled Gmail adapter using the governed broker route as metadata only."""
+
+    live_transport = True
+    live_transport_enabled = False
+    fixture_only = False
+    uses_governed_broker_pattern = True
+    broker_agent = GOOGLE_BROKER_AGENT_CASSANDRA
+    broker_capability = GOOGLE_GMAIL_SEND_BROKER_CAPABILITY
+    credential_handle_id = GOOGLE_WORKSPACE_BROKER_CREDENTIAL_HANDLE_ID
+
+    def __init__(self, *, live_transport_enabled: bool = False) -> None:
+        self.live_transport_enabled = live_transport_enabled
+        self.broker_called = False
+
+    def send_exact_payload(
+        self,
+        payload: Mapping[str, Any],
+        *,
+        authority_refs: Sequence[str] = (),
+        credential_lease_refs: Sequence[str] = (),
+    ) -> dict[str, Any]:
+        if not authority_refs or not credential_lease_refs:
+            reason = "authority_and_credential_lease_refs_required"
+        elif not self.live_transport_enabled:
+            reason = "gmail_transport_disabled"
+        else:
+            reason = "gmail_transport_requires_future_reviewed_broker_call"
+        return {
+            "ok": False,
+            "reason": reason,
+            "broker_agent": self.broker_agent,
+            "broker_capability": self.broker_capability,
+            "credential_handle_id": self.credential_handle_id,
+            "authority_refs": list(authority_refs),
+            "credential_lease_refs": list(credential_lease_refs),
+            "broker_called": False,
+            "gmail_api_called": False,
+            "email_send_performed": False,
+            "live_transport_enabled": bool(self.live_transport_enabled),
+            "payload_hash": str(payload.get("payload_hash") or ""),
+        }
+
+
+class FakeBrokerGmailSendTransport(DisabledGmailExactSendTransport):
+    """Fixture-only fake for exact-send tests; it never calls the real broker."""
+
+    fixture_only = True
+
+    def __init__(self) -> None:
+        super().__init__(live_transport_enabled=True)
+        self.calls: list[dict[str, Any]] = []
+
+    def send_exact_payload(
+        self,
+        payload: Mapping[str, Any],
+        *,
+        authority_refs: Sequence[str] = (),
+        credential_lease_refs: Sequence[str] = (),
+    ) -> dict[str, Any]:
+        if not authority_refs or not credential_lease_refs:
+            return {
+                "ok": False,
+                "reason": "authority_and_credential_lease_refs_required",
+                "broker_called": False,
+                "fake_broker_called": False,
+                "gmail_api_called": False,
+                "email_send_performed": False,
+                "live_transport_enabled": True,
+            }
+        call = {
+            "broker_agent": self.broker_agent,
+            "broker_capability": self.broker_capability,
+            "params": {
+                "to": str(payload.get("recipient") or ""),
+                "subject": str(payload.get("subject") or ""),
+                "body_hash_only": str(payload.get("payload_hash") or ""),
+                "approval_context": {
+                    "request_id": str(payload.get("request_id") or ""),
+                    "objective_id": str(payload.get("objective_id") or ""),
+                },
+            },
+        }
+        self.calls.append(call)
+        return {
+            "ok": False,
+            "reason": "fake_broker_would_call_only",
+            "broker_agent": self.broker_agent,
+            "broker_capability": self.broker_capability,
+            "credential_handle_id": self.credential_handle_id,
+            "authority_refs": list(authority_refs),
+            "credential_lease_refs": list(credential_lease_refs),
+            "broker_called": False,
+            "fake_broker_called": True,
+            "gmail_api_called": False,
+            "email_send_performed": False,
+            "live_transport_enabled": True,
+            "payload_hash": str(payload.get("payload_hash") or ""),
+        }
+
+
 def build_future_live_send_success_receipt_shape(
     *,
     request_id: str,
@@ -2253,6 +2375,10 @@ def build_future_live_send_success_receipt_shape(
         "payload_hash": payload_hash,
         "authority_refs": list(authority_refs),
         "credential_lease_refs": list(credential_lease_refs),
+        "broker_agent": GOOGLE_BROKER_AGENT_CASSANDRA,
+        "broker_capability": GOOGLE_GMAIL_SEND_BROKER_CAPABILITY,
+        "credential_handle_id": GOOGLE_WORKSPACE_BROKER_CREDENTIAL_HANDLE_ID,
+        "broker_called": False,
         "execution_performed": False,
         "gmail_api_called": False,
         "gmail_draft_created": False,
@@ -2289,6 +2415,9 @@ def run_exact_send_live_transport_gate(
         authority_refs: Sequence[str] = (),
         credential_lease_refs: Sequence[str] = (),
         live_transport_constructed: bool = False,
+        live_transport_enabled_flag: bool = False,
+        broker_called: bool = False,
+        fake_broker_called: bool = False,
     ) -> dict[str, Any]:
         receipt = _exact_send_refusal_receipt(
             schema_version=EXACT_SEND_LIVE_TRANSPORT_REFUSAL_RECEIPT_SCHEMA,
@@ -2306,6 +2435,11 @@ def run_exact_send_live_transport_gate(
             credential_lease_refs=credential_lease_refs,
             transport_mode="disabled_live_transport",
             live_transport_constructed=live_transport_constructed,
+            live_transport_enabled=live_transport_enabled_flag,
+            broker_agent=GOOGLE_BROKER_AGENT_CASSANDRA,
+            broker_capability=GOOGLE_GMAIL_SEND_BROKER_CAPABILITY,
+            broker_called=broker_called,
+            fake_broker_called=fake_broker_called,
         )
         receipt_path = _write_exact_send_receipt(receipt_dir, "exact_send_live_transport_refusal_receipt", receipt)
         return {
@@ -2370,6 +2504,8 @@ def run_exact_send_live_transport_gate(
                 credential_lease_refs=list(state.get("credential_lease_refs") or []),
                 live_transport_constructed=constructed,
             )
+        authority_refs = list(state.get("authority_refs") or [])
+        credential_lease_refs = list(state.get("credential_lease_refs") or [])
         if transport is None or getattr(transport, "fixture_only", False) is not True:
             return refuse(
                 "future_live_transport_requires_fake_fixture_transport",
@@ -2378,10 +2514,38 @@ def run_exact_send_live_transport_gate(
                 subject=str(state.get("subject") or ""),
                 expected=str(state.get("payload_hash") or ""),
                 observed=str(state.get("observed_payload_hash") or ""),
-                authority_refs=list(state.get("authority_refs") or []),
-                credential_lease_refs=list(state.get("credential_lease_refs") or []),
+                authority_refs=authority_refs,
+                credential_lease_refs=credential_lease_refs,
                 live_transport_constructed=constructed,
+                live_transport_enabled_flag=True,
             )
+        if not authority_refs or not credential_lease_refs:
+            return refuse(
+                "authority_and_credential_lease_refs_required",
+                objective_ref=str(state.get("objective_id") or ""),
+                recipient=str(state.get("recipient") or ""),
+                subject=str(state.get("subject") or ""),
+                expected=str(state.get("payload_hash") or ""),
+                observed=str(state.get("observed_payload_hash") or ""),
+                authority_refs=authority_refs,
+                credential_lease_refs=credential_lease_refs,
+                live_transport_constructed=constructed,
+                live_transport_enabled_flag=True,
+            )
+        broker_payload = {
+            "request_id": request_id,
+            "objective_id": objective_id,
+            "recipient": str(state.get("recipient") or ""),
+            "subject": str(state.get("subject") or ""),
+            "body": str(state.get("body") or ""),
+            "payload_hash": str(state.get("payload_hash") or ""),
+            "expires_at": str(state.get("expires_at") or ""),
+        }
+        transport_result = transport.send_exact_payload(
+            broker_payload,
+            authority_refs=authority_refs,
+            credential_lease_refs=credential_lease_refs,
+        )
         return refuse(
             "live_send_would_run_refused_pending_review",
             objective_ref=str(state.get("objective_id") or ""),
@@ -2389,9 +2553,12 @@ def run_exact_send_live_transport_gate(
             subject=str(state.get("subject") or ""),
             expected=str(state.get("payload_hash") or ""),
             observed=str(state.get("observed_payload_hash") or ""),
-            authority_refs=list(state.get("authority_refs") or []),
-            credential_lease_refs=list(state.get("credential_lease_refs") or []),
+            authority_refs=authority_refs,
+            credential_lease_refs=credential_lease_refs,
             live_transport_constructed=True,
+            live_transport_enabled_flag=True,
+            broker_called=bool((transport_result or {}).get("broker_called")),
+            fake_broker_called=bool((transport_result or {}).get("fake_broker_called")),
         )
 
 

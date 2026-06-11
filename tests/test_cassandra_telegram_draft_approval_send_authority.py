@@ -99,6 +99,13 @@ def _store_objective_json(db, objective):
         conn.commit()
 
 
+def _add_send_authority_refs(db, objective_id):
+    objective = _load_objective_from_db(db, objective_id)
+    objective["authority_refs"] = ["authority_envelope:fixture_exact_send"]
+    objective["credential_lease_refs"] = ["credential_lease:fixture_exact_send"]
+    _store_objective_json(db, objective)
+
+
 # ── Phase 5 Test 1: Draft approval routes to send-authority, not reminder ────
 
 def test_detects_draft_approval_send_authority():
@@ -662,7 +669,17 @@ def test_exact_send_live_transport_gate_is_disabled_and_schema_only(tmp_path):
         live_transport_enabled=False,
         generated_at="2026-06-10T19:46:00+00:00",
     )
-    fake = FakeLiveTransport()
+    no_refs = objective_loop.run_exact_send_live_transport_gate(
+        sqlite_path=db,
+        objective_id=objective["objective_id"],
+        approval_decision=decision,
+        receipt_dir=tmp_path / "receipts",
+        transport=objective_loop.FakeBrokerGmailSendTransport(),
+        live_transport_enabled=True,
+        generated_at="2026-06-10T19:47:00+00:00",
+    )
+    _add_send_authority_refs(db, objective["objective_id"])
+    fake = objective_loop.FakeBrokerGmailSendTransport()
     would_run = objective_loop.run_exact_send_live_transport_gate(
         sqlite_path=db,
         objective_id=objective["objective_id"],
@@ -670,7 +687,7 @@ def test_exact_send_live_transport_gate_is_disabled_and_schema_only(tmp_path):
         receipt_dir=tmp_path / "receipts",
         transport=fake,
         live_transport_enabled=True,
-        generated_at="2026-06-10T19:47:00+00:00",
+        generated_at="2026-06-10T19:48:00+00:00",
     )
     success_shape = objective_loop.build_future_live_send_success_receipt_shape(
         request_id=request["request_id"],
@@ -678,24 +695,71 @@ def test_exact_send_live_transport_gate_is_disabled_and_schema_only(tmp_path):
         recipient=request["recipient"],
         subject=request["subject"],
         payload_hash=request["payload_hash"],
-        generated_at="2026-06-10T19:48:00+00:00",
+        generated_at="2026-06-10T19:49:00+00:00",
     )
 
     disabled_receipt = json.loads(Path(disabled["refusal_receipt_path"]).read_text(encoding="utf-8"))
+    no_refs_receipt = json.loads(Path(no_refs["refusal_receipt_path"]).read_text(encoding="utf-8"))
     would_run_receipt = json.loads(Path(would_run["refusal_receipt_path"]).read_text(encoding="utf-8"))
     assert disabled["refusal_reason"] == "live_transport_disabled"
     assert disabled_receipt["schema_version"] == "EXACT_SEND_LIVE_TRANSPORT_REFUSAL_RECEIPT_V0"
     assert disabled_receipt["execution_performed"] is False
+    assert disabled_receipt["broker_capability"] == "google.gmail.send"
+    assert disabled_receipt["broker_called"] is False
+    assert disabled_receipt["live_transport_enabled"] is False
     assert disabled_receipt["gmail_api_called"] is False
     assert disabled_receipt["email_send_performed"] is False
+    assert no_refs["refusal_reason"] == "authority_and_credential_lease_refs_required"
+    assert no_refs_receipt["broker_called"] is False
     assert would_run["refusal_reason"] == "live_send_would_run_refused_pending_review"
     assert would_run_receipt["live_transport_constructed"] is True
+    assert would_run_receipt["broker_called"] is False
+    assert would_run_receipt["fake_broker_called"] is True
     assert would_run_receipt["email_send_performed"] is False
-    assert fake.calls == []
+    assert fake.calls and fake.calls[0]["broker_capability"] == "google.gmail.send"
     assert success_shape["schema_version"] == "EXACT_SEND_FUTURE_LIVE_SUCCESS_RECEIPT_V0"
     assert success_shape["schema_only"] is True
+    assert success_shape["broker_capability"] == "google.gmail.send"
     assert success_shape["execution_performed"] is False
     assert success_shape["email_send_performed"] is False
+
+
+def test_disabled_gmail_exact_send_transport_refuses_without_broker_call():
+    """The Gmail adapter names the broker route but never calls it while disabled."""
+    transport = objective_loop.DisabledGmailExactSendTransport()
+    result = transport.send_exact_payload(
+        {
+            "request_id": "exact_send_authority_request:fixture",
+            "objective_id": "cassandra_operator_objective:fixture",
+            "recipient": "Annette.Sunga@hilton.com",
+            "subject": "Follow-up on Winship invoice",
+            "body": "fixture body",
+            "payload_hash": "sha256:" + ("1" * 64),
+        },
+        authority_refs=["authority_envelope:fixture"],
+        credential_lease_refs=["credential_lease:fixture"],
+    )
+
+    assert result["ok"] is False
+    assert result["reason"] == "gmail_transport_disabled"
+    assert result["broker_agent"] == "cassandra"
+    assert result["broker_capability"] == "google.gmail.send"
+    assert result["credential_handle_id"] == objective_loop.GOOGLE_WORKSPACE_BROKER_CREDENTIAL_HANDLE_ID
+    assert result["broker_called"] is False
+    assert result["gmail_api_called"] is False
+    assert result["email_send_performed"] is False
+
+
+def test_live_objective_db_guard_catches_default_relative_and_symlink(tmp_path):
+    """The live DB guard catches canonical, relative, and symlink references."""
+    live_path = objective_loop.ROOT / objective_loop.DEFAULT_SQLITE_PATH
+    symlink_path = tmp_path / "live_objective.sqlite"
+    if live_path.exists():
+        symlink_path.symlink_to(live_path)
+        assert objective_loop._is_live_objective_db(symlink_path)
+
+    assert objective_loop._is_live_objective_db(objective_loop.DEFAULT_SQLITE_PATH)
+    assert objective_loop._is_live_objective_db(live_path)
 
 
 def test_exact_send_live_transport_has_no_real_gmail_client_import():
@@ -706,3 +770,9 @@ def test_exact_send_live_transport_has_no_real_gmail_client_import():
     assert "google.oauth" not in source
     assert "from google" not in source
     assert ".users().messages().send" not in source
+    assert "from_authorized_user_file" not in source
+    assert ".google-secrets" not in source
+    assert "token.json" not in source
+    assert "credentials.json" not in source
+    assert "os.environ" not in source
+    assert "smtplib" not in source
