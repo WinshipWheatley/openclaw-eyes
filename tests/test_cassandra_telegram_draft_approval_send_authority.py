@@ -30,6 +30,45 @@ DRAFT_APPROVAL_TEXT = (
 )
 
 
+class FakeDryRunTransport:
+    live_transport = False
+
+    def __init__(self):
+        self.calls = []
+
+    def record_dry_run(self, payload):
+        self.calls.append(payload)
+        return {
+            "transport": "fake_dry_run",
+            "accepted": True,
+            "live_api_called": False,
+        }
+
+
+def _fixture_request(tmp_path):
+    db = tmp_path / "objective.sqlite"
+    result = objective_loop.route_cassandra_objective_message(
+        DRAFT_APPROVAL_TEXT,
+        source_channel="telegram",
+        source_message_ref="telegram_msg_exact_gate",
+        lane_context={
+            "target_world_ref": "operator_comms",
+            "target_thread_ref": "cassandra",
+        },
+        sqlite_path=db,
+        generated_at=FIXED_NOW,
+    )
+    draft = objective_loop.extract_approved_draft_payload(DRAFT_APPROVAL_TEXT)
+    request = result["send_authority_request"]
+    packet = objective_loop.build_exact_send_review_packet(
+        request,
+        draft=draft,
+        expires_at="2026-06-10T20:30:00+00:00",
+        generated_at=FIXED_NOW,
+    )
+    return db, result["objective"], request, draft, packet
+
+
 # ── Phase 5 Test 1: Draft approval routes to send-authority, not reminder ────
 
 def test_detects_draft_approval_send_authority():
@@ -251,3 +290,237 @@ def test_no_unsafe_true_grants_in_draft_approval_result(tmp_path):
 
     grants = _unsafe_true_grants(result)
     assert not grants, f"Unsafe true grants found: {grants}"
+
+
+def test_exact_send_review_packet_contains_fixture_payload_for_operator_review(tmp_path):
+    """Review packet exposes only the approved text-only draft payload and no execution grant."""
+    _db, _objective, request, draft, packet = _fixture_request(tmp_path)
+
+    assert packet["schema_version"] == "EXACT_SEND_REVIEW_PACKET_V0"
+    assert packet["request_id"] == request["request_id"]
+    assert packet["recipient"] == "Annette.Sunga@hilton.com"
+    assert packet["subject"] == "Follow-up on Winship invoice"
+    assert packet["body"] == draft["body"]
+    assert packet["payload_hash"] == request["payload_hash"]
+    assert packet["observed_payload_hash"] == request["payload_hash"]
+    assert packet["expires_at"] == "2026-06-10T20:30:00+00:00"
+    assert "refuse_wrong_request_id" in packet["refusal_options"]
+    assert packet["execution_performed"] is False
+    assert packet["gmail_draft_created"] is False
+    assert packet["email_send_performed"] is False
+
+
+def test_exact_send_approval_parser_accepts_bound_request_id(tmp_path):
+    """Approval must be explicitly bound to the exact send-authority request id."""
+    _db, _objective, request, _draft, packet = _fixture_request(tmp_path)
+
+    decision = objective_loop.parse_exact_send_approval(
+        f"Approve exact send request {request['request_id']}",
+        packet,
+        generated_at="2026-06-10T19:45:00+00:00",
+    )
+
+    assert decision["schema_version"] == "EXACT_SEND_APPROVAL_DECISION_V0"
+    assert decision["approved"] is True
+    assert decision["reason"] == "approved"
+    assert decision["request_id"] == request["request_id"]
+    assert decision["payload_hash"] == request["payload_hash"]
+    assert decision["execution_performed"] is False
+
+
+def test_exact_send_approval_parser_refuses_ambiguous_wrong_expired_and_replay(tmp_path):
+    """Ambiguous approvals, wrong ids, expired packets, and replayed ids fail closed."""
+    _db, _objective, request, _draft, packet = _fixture_request(tmp_path)
+
+    ambiguous = objective_loop.parse_exact_send_approval(
+        "Looks good, send it.",
+        packet,
+        generated_at="2026-06-10T19:45:00+00:00",
+    )
+    wrong_id = objective_loop.parse_exact_send_approval(
+        "Approve exact send request exact_send_authority_request:wrongid",
+        packet,
+        generated_at="2026-06-10T19:45:00+00:00",
+    )
+    expired = objective_loop.parse_exact_send_approval(
+        f"Approve exact send request {request['request_id']}",
+        packet,
+        generated_at="2026-06-10T20:31:00+00:00",
+    )
+    replay = objective_loop.parse_exact_send_approval(
+        f"Approve exact send request {request['request_id']}",
+        packet,
+        generated_at="2026-06-10T19:45:00+00:00",
+        consumed_request_ids=[request["request_id"]],
+    )
+
+    assert ambiguous["approved"] is False
+    assert ambiguous["reason"] == "ambiguous_approval"
+    assert wrong_id["approved"] is False
+    assert wrong_id["reason"] == "wrong_request_id"
+    assert expired["approved"] is False
+    assert expired["reason"] == "expired_request"
+    assert replay["approved"] is False
+    assert replay["reason"] == "replay_detected"
+
+
+def test_exact_send_dry_run_executor_writes_receipt_for_stored_hash_match(tmp_path):
+    """A valid exact approval produces only a fixture dry-run receipt."""
+    db, objective, request, draft, packet = _fixture_request(tmp_path)
+    decision = objective_loop.parse_exact_send_approval(
+        f"Approve exact send request {request['request_id']} payload hash: {request['payload_hash']}",
+        packet,
+        generated_at="2026-06-10T19:45:00+00:00",
+    )
+    transport = FakeDryRunTransport()
+
+    result = objective_loop.run_exact_send_dry_run_executor(
+        sqlite_path=db,
+        objective_id=objective["objective_id"],
+        approval_decision=decision,
+        draft=draft,
+        receipt_dir=tmp_path / "receipts",
+        transport=transport,
+        generated_at="2026-06-10T19:46:00+00:00",
+    )
+
+    receipt_path = Path(result["dry_run_receipt_path"])
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    assert result["response_status"] == "EXACT_SEND_DRY_RUN_RECEIPT_WRITTEN"
+    assert receipt["schema_version"] == "EXACT_SEND_DRY_RUN_RECEIPT_V0"
+    assert receipt["request_id"] == request["request_id"]
+    assert receipt["payload_hash"] == request["payload_hash"]
+    assert receipt["execution_performed"] is False
+    assert receipt["gmail_api_called"] is False
+    assert receipt["gmail_draft_created"] is False
+    assert receipt["email_send_performed"] is False
+    assert receipt["live_transport_constructed"] is False
+    assert transport.calls and transport.calls[0]["payload_hash"] == request["payload_hash"]
+
+
+def test_exact_send_dry_run_refuses_hash_mismatch_and_supplied_hash_divergence(tmp_path):
+    """Changed body or operator-supplied divergent hash prevents dry-run consumption."""
+    db, objective, request, draft, packet = _fixture_request(tmp_path)
+    valid_decision = objective_loop.parse_exact_send_approval(
+        f"Approve exact send request {request['request_id']}",
+        packet,
+        generated_at="2026-06-10T19:45:00+00:00",
+    )
+
+    changed_body = objective_loop.run_exact_send_dry_run_executor(
+        sqlite_path=db,
+        objective_id=objective["objective_id"],
+        approval_decision=valid_decision,
+        draft={**draft, "body": draft["body"] + "\nChanged."},
+        receipt_dir=tmp_path / "receipts",
+        transport=FakeDryRunTransport(),
+        generated_at="2026-06-10T19:46:00+00:00",
+    )
+    divergent_hash_decision = {
+        **valid_decision,
+        "supplied_payload_hash": "sha256:" + ("0" * 64),
+    }
+    supplied_hash = objective_loop.run_exact_send_dry_run_executor(
+        sqlite_path=db,
+        objective_id=objective["objective_id"],
+        approval_decision=divergent_hash_decision,
+        draft=draft,
+        receipt_dir=tmp_path / "receipts",
+        transport=FakeDryRunTransport(),
+        generated_at="2026-06-10T19:47:00+00:00",
+    )
+
+    assert changed_body["response_status"] == "EXACT_SEND_DRY_RUN_REFUSED"
+    assert changed_body["refusal_reason"] == "payload_hash_mismatch"
+    assert Path(changed_body["refusal_receipt_path"]).exists()
+    assert supplied_hash["response_status"] == "EXACT_SEND_DRY_RUN_REFUSED"
+    assert supplied_hash["refusal_reason"] == "supplied_hash_mismatch"
+    assert Path(supplied_hash["refusal_receipt_path"]).exists()
+
+
+def test_exact_send_dry_run_refuses_expired_replay_and_missing_authority(tmp_path):
+    """Expiry, double-send replay, and absent authority all fail closed."""
+    db, objective, request, draft, packet = _fixture_request(tmp_path)
+    decision = objective_loop.parse_exact_send_approval(
+        f"Approve exact send request {request['request_id']}",
+        packet,
+        generated_at="2026-06-10T19:45:00+00:00",
+    )
+    expired_decision = {**decision, "expires_at": "2026-06-10T19:00:00+00:00"}
+    expired = objective_loop.run_exact_send_dry_run_executor(
+        sqlite_path=db,
+        objective_id=objective["objective_id"],
+        approval_decision=expired_decision,
+        draft=draft,
+        receipt_dir=tmp_path / "receipts",
+        transport=FakeDryRunTransport(),
+        generated_at="2026-06-10T19:46:00+00:00",
+    )
+    missing_authority = objective_loop.run_exact_send_dry_run_executor(
+        sqlite_path=db,
+        objective_id=objective["objective_id"],
+        approval_decision={**decision, "approved": False, "reason": "ambiguous_approval"},
+        draft=draft,
+        receipt_dir=tmp_path / "receipts",
+        transport=FakeDryRunTransport(),
+        generated_at="2026-06-10T19:47:00+00:00",
+    )
+
+    first = objective_loop.run_exact_send_dry_run_executor(
+        sqlite_path=db,
+        objective_id=objective["objective_id"],
+        approval_decision=decision,
+        draft=draft,
+        receipt_dir=tmp_path / "receipts",
+        transport=FakeDryRunTransport(),
+        generated_at="2026-06-10T19:48:00+00:00",
+    )
+    replay = objective_loop.run_exact_send_dry_run_executor(
+        sqlite_path=db,
+        objective_id=objective["objective_id"],
+        approval_decision=decision,
+        draft=draft,
+        receipt_dir=tmp_path / "receipts",
+        transport=FakeDryRunTransport(),
+        generated_at="2026-06-10T19:49:00+00:00",
+    )
+
+    assert expired["refusal_reason"] == "expired_request"
+    assert missing_authority["refusal_reason"] == "ambiguous_approval"
+    assert first["response_status"] == "EXACT_SEND_DRY_RUN_RECEIPT_WRITTEN"
+    assert replay["response_status"] == "EXACT_SEND_DRY_RUN_REFUSED"
+    assert replay["refusal_reason"] == "replay_detected"
+
+
+def test_exact_send_dry_run_blocks_live_db_and_requires_fake_transport(tmp_path):
+    """Executor cannot use the live objective DB path or proceed without injected dry-run transport."""
+    db, objective, request, draft, packet = _fixture_request(tmp_path)
+    decision = objective_loop.parse_exact_send_approval(
+        f"Approve exact send request {request['request_id']}",
+        packet,
+        generated_at="2026-06-10T19:45:00+00:00",
+    )
+
+    live_db = objective_loop.run_exact_send_dry_run_executor(
+        sqlite_path=objective_loop.DEFAULT_SQLITE_PATH,
+        objective_id=objective["objective_id"],
+        approval_decision=decision,
+        draft=draft,
+        receipt_dir=tmp_path / "receipts",
+        transport=FakeDryRunTransport(),
+        generated_at="2026-06-10T19:46:00+00:00",
+    )
+    no_transport = objective_loop.run_exact_send_dry_run_executor(
+        sqlite_path=db,
+        objective_id=objective["objective_id"],
+        approval_decision=decision,
+        draft=draft,
+        receipt_dir=tmp_path / "receipts",
+        transport=None,
+        generated_at="2026-06-10T19:47:00+00:00",
+    )
+
+    assert live_db["response_status"] == "EXACT_SEND_DRY_RUN_REFUSED"
+    assert live_db["refusal_reason"] == "live_objective_db_refused"
+    assert no_transport["response_status"] == "EXACT_SEND_DRY_RUN_REFUSED"
+    assert no_transport["refusal_reason"] == "dry_run_transport_required"

@@ -28,6 +28,10 @@ CASSANDRA_OPERATOR_OBJECTIVE_SCHEMA = "CASSANDRA_OPERATOR_OBJECTIVE_V0"
 LOOKUP_AUTHORITY_REQUEST_SCHEMA = "CASSANDRA_LOOKUP_AUTHORITY_REQUEST_V0"
 TEXT_FOLLOWUP_DRAFT_SCHEMA = "TEXT_FOLLOWUP_DRAFT_V0"
 EXACT_SEND_AUTHORITY_REQUEST_SCHEMA = "EXACT_SEND_AUTHORITY_REQUEST_V0"
+EXACT_SEND_REVIEW_PACKET_SCHEMA = "EXACT_SEND_REVIEW_PACKET_V0"
+EXACT_SEND_APPROVAL_DECISION_SCHEMA = "EXACT_SEND_APPROVAL_DECISION_V0"
+EXACT_SEND_DRY_RUN_RECEIPT_SCHEMA = "EXACT_SEND_DRY_RUN_RECEIPT_V0"
+EXACT_SEND_REFUSAL_RECEIPT_SCHEMA = "EXACT_SEND_REFUSAL_RECEIPT_V0"
 UNATTENDED_REQUIREMENT_SCHEMA = "CASSANDRA_UNATTENDED_SEND_REQUIREMENT_V0"
 
 READ_ONLY_EMAIL_LOOKUP = custody.READ_ONLY_EMAIL_LOOKUP_CAPABILITY_ID
@@ -181,6 +185,37 @@ def _next_timestamp(value: str) -> str:
         return (datetime.fromisoformat(value) + timedelta(seconds=1)).isoformat(timespec="seconds")
     except ValueError:
         return value
+
+
+def _parse_timestamp(value: str | None) -> datetime | None:
+    if not value:
+        return None
+    normalized = str(value).strip()
+    if not normalized:
+        return None
+    if normalized.endswith("Z"):
+        normalized = normalized[:-1] + "+00:00"
+    try:
+        parsed = datetime.fromisoformat(normalized)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed
+
+
+def _timestamp_expired(expires_at: str | None, *, generated_at: str | None = None) -> bool:
+    expiry = _parse_timestamp(expires_at)
+    if expiry is None:
+        return False
+    observed = _parse_timestamp(generated_at) or datetime.now(timezone.utc)
+    return observed > expiry
+
+
+def _is_live_objective_db(sqlite_path: Path | str) -> bool:
+    path = _rooted(sqlite_path).resolve(strict=False)
+    live_path = _rooted(DEFAULT_SQLITE_PATH).resolve(strict=False)
+    return path == live_path
 
 
 def _connect(sqlite_path: Path | str = DEFAULT_SQLITE_PATH) -> sqlite3.Connection:
@@ -1633,6 +1668,335 @@ def verify_exact_payload_authority(authority_request: Mapping[str, Any], *, draf
         "observed_payload_hash": observed,
         "email_send_performed": False,
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
+    }
+
+
+def build_exact_send_review_packet(
+    authority_request: Mapping[str, Any],
+    *,
+    draft: Mapping[str, Any],
+    expires_at: str | None = None,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    generated_at = generated_at or utc_now()
+    if expires_at is None:
+        parsed = _parse_timestamp(generated_at)
+        expires_at = ((parsed or datetime.now(timezone.utc)) + timedelta(minutes=30)).isoformat(timespec="seconds")
+    observed_hash = _payload_hash(
+        recipient=str(draft.get("recipient") or ""),
+        subject=str(draft.get("subject") or ""),
+        body=str(draft.get("body") or ""),
+    )
+    packet = {
+        "schema_version": EXACT_SEND_REVIEW_PACKET_SCHEMA,
+        "packet_id": "exact_send_review_packet:" + _short_hash(authority_request.get("request_id"), observed_hash, expires_at),
+        "request_id": str(authority_request.get("request_id") or ""),
+        "objective_id": str(authority_request.get("objective_id") or ""),
+        "recipient": str(authority_request.get("recipient") or draft.get("recipient") or ""),
+        "subject": str(authority_request.get("subject") or draft.get("subject") or ""),
+        "body": str(draft.get("body") or ""),
+        "payload_hash": str(authority_request.get("payload_hash") or ""),
+        "observed_payload_hash": observed_hash,
+        "body_hash": str(authority_request.get("body_hash") or ""),
+        "expires_at": expires_at,
+        "approval_phrase": f"Approve exact send request {authority_request.get('request_id')}",
+        "refusal_options": [
+            "refuse_wrong_request_id",
+            "refuse_payload_hash_mismatch",
+            "refuse_supplied_hash_divergence",
+            "refuse_expired_request",
+            "refuse_ambiguous_approval",
+            "refuse_replay_or_double_send",
+            "refuse_live_transport",
+        ],
+        "review_only": True,
+        "execution_performed": False,
+        "gmail_draft_created": False,
+        "email_send_performed": False,
+        "created_at": generated_at,
+        "authority_boundary": dict(AUTHORITY_BOUNDARY),
+    }
+    return packet
+
+
+def _extract_request_ids(text: str) -> list[str]:
+    ids: list[str] = []
+    for match in re.finditer(r"exact_send_authority_request:[A-Za-z0-9_.:-]+", str(text or "")):
+        ids.append(match.group(0).rstrip(".,;:!?)]}"))
+    return ids
+
+
+def _extract_supplied_payload_hash(text: str) -> str:
+    match = re.search(r"(?:payload[_ -]?hash|hash)\s*[:=]\s*(sha256:[0-9a-fA-F]{64})", str(text or ""))
+    return match.group(1).lower() if match else ""
+
+
+def parse_exact_send_approval(
+    text: str,
+    review_packet: Mapping[str, Any],
+    *,
+    generated_at: str | None = None,
+    consumed_request_ids: Sequence[str] = (),
+) -> dict[str, Any]:
+    generated_at = generated_at or utc_now()
+    expected_id = str(review_packet.get("request_id") or "")
+    lowered = str(text or "").lower()
+    exact_phrase_present = any(
+        phrase in lowered
+        for phrase in (
+            "approve exact send request",
+            "approved exact send request",
+            "approve exact send",
+            "approved exact send",
+        )
+    )
+    request_ids = _extract_request_ids(text)
+    supplied_hash = _extract_supplied_payload_hash(text)
+    reason = ""
+    approved = True
+
+    if not exact_phrase_present or not request_ids:
+        approved = False
+        reason = "ambiguous_approval"
+    elif len(set(request_ids)) != 1:
+        approved = False
+        reason = "ambiguous_approval"
+    elif request_ids[0] != expected_id:
+        approved = False
+        reason = "wrong_request_id"
+    elif _timestamp_expired(str(review_packet.get("expires_at") or ""), generated_at=generated_at):
+        approved = False
+        reason = "expired_request"
+    elif expected_id in {str(item) for item in consumed_request_ids}:
+        approved = False
+        reason = "replay_detected"
+
+    if approved:
+        reason = "approved"
+
+    return {
+        "schema_version": EXACT_SEND_APPROVAL_DECISION_SCHEMA,
+        "approved": approved,
+        "reason": reason,
+        "request_id": request_ids[0] if request_ids else "",
+        "expected_request_id": expected_id,
+        "review_packet_id": str(review_packet.get("packet_id") or ""),
+        "payload_hash": str(review_packet.get("payload_hash") or ""),
+        "supplied_payload_hash": supplied_hash,
+        "expires_at": str(review_packet.get("expires_at") or ""),
+        "created_at": generated_at,
+        "raw_authority_granted_trusted": False,
+        "execution_performed": False,
+        "authority_boundary": dict(AUTHORITY_BOUNDARY),
+    }
+
+
+def _ensure_exact_send_fixture_tables(conn: sqlite3.Connection) -> None:
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS exact_send_fixture_executions (
+          request_id TEXT PRIMARY KEY,
+          objective_id TEXT NOT NULL,
+          created_at TEXT NOT NULL,
+          receipt_json TEXT NOT NULL
+        )
+        """
+    )
+
+
+def _write_exact_send_receipt(receipt_dir: Path | str, prefix: str, receipt: Mapping[str, Any]) -> Path:
+    path = Path(receipt_dir)
+    path.mkdir(parents=True, exist_ok=True)
+    receipt_id = str(receipt.get("receipt_id") or _short_hash(receipt))
+    receipt_path = path / f"{prefix}_{receipt_id.replace(':', '_')}.json"
+    receipt_path.write_text(stable_json(dict(receipt)), encoding="utf-8")
+    return receipt_path
+
+
+def _exact_send_refusal_receipt(
+    *,
+    reason: str,
+    request_id: str,
+    objective_id: str,
+    generated_at: str,
+    expected_payload_hash: str = "",
+    observed_payload_hash: str = "",
+    supplied_payload_hash: str = "",
+) -> dict[str, Any]:
+    receipt = {
+        "schema_version": EXACT_SEND_REFUSAL_RECEIPT_SCHEMA,
+        "receipt_id": "exact_send_refusal_receipt:" + _short_hash(reason, request_id, generated_at),
+        "response_status": "EXACT_SEND_DRY_RUN_REFUSED",
+        "reason": reason,
+        "request_id": request_id,
+        "objective_id": objective_id,
+        "expected_payload_hash": expected_payload_hash,
+        "observed_payload_hash": observed_payload_hash,
+        "supplied_payload_hash": supplied_payload_hash,
+        "execution_performed": False,
+        "dry_run_transport_called": False,
+        "live_transport_constructed": False,
+        "gmail_api_called": False,
+        "gmail_draft_created": False,
+        "email_send_performed": False,
+        "calendar_api_called": False,
+        "contacts_api_called": False,
+        "created_at": generated_at,
+        "authority_boundary": dict(AUTHORITY_BOUNDARY),
+    }
+    return receipt
+
+
+def run_exact_send_dry_run_executor(
+    *,
+    sqlite_path: Path | str,
+    objective_id: str,
+    approval_decision: Mapping[str, Any],
+    draft: Mapping[str, Any],
+    receipt_dir: Path | str,
+    transport: Any = None,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    generated_at = generated_at or utc_now()
+    request_id = str(approval_decision.get("expected_request_id") or approval_decision.get("request_id") or "")
+
+    def refuse(reason: str, *, objective_ref: str = "", expected: str = "", observed: str = "", supplied: str = "") -> dict[str, Any]:
+        receipt = _exact_send_refusal_receipt(
+            reason=reason,
+            request_id=request_id,
+            objective_id=objective_ref or objective_id,
+            generated_at=generated_at,
+            expected_payload_hash=expected,
+            observed_payload_hash=observed,
+            supplied_payload_hash=supplied,
+        )
+        receipt_path = _write_exact_send_receipt(receipt_dir, "exact_send_refusal_receipt", receipt)
+        return {
+            "schema_version": "EXACT_SEND_DRY_RUN_EXECUTOR_RESULT_V0",
+            "response_status": "EXACT_SEND_DRY_RUN_REFUSED",
+            "refusal_reason": reason,
+            "receipt": receipt,
+            "refusal_receipt_path": receipt_path.as_posix(),
+            "execution_performed": False,
+            "machine_proof": dict(AUTHORITY_BOUNDARY),
+        }
+
+    if _is_live_objective_db(sqlite_path):
+        return refuse("live_objective_db_refused")
+    if not approval_decision.get("approved"):
+        return refuse(str(approval_decision.get("reason") or "approval_not_valid"))
+    if _timestamp_expired(str(approval_decision.get("expires_at") or ""), generated_at=generated_at):
+        return refuse("expired_request")
+    if transport is None:
+        return refuse("dry_run_transport_required")
+    if getattr(transport, "live_transport", False) is True:
+        return refuse("live_transport_refused")
+    record_dry_run = getattr(transport, "record_dry_run", None)
+    dry_run_send = getattr(transport, "dry_run_send", None)
+    if not callable(record_dry_run) and not callable(dry_run_send):
+        return refuse("dry_run_transport_required")
+
+    with _connect(sqlite_path) as conn:
+        _ensure_exact_send_fixture_tables(conn)
+        objective = _load_objective(conn, objective_id)
+        request = objective.get("send_authority_request") if isinstance(objective.get("send_authority_request"), Mapping) else {}
+        stored_request_id = str(request.get("request_id") or "")
+        if request_id != stored_request_id:
+            return refuse("wrong_request_id", objective_ref=str(objective.get("objective_id") or ""))
+        replay = conn.execute(
+            "SELECT request_id FROM exact_send_fixture_executions WHERE request_id = ?",
+            (request_id,),
+        ).fetchone()
+        if replay:
+            return refuse("replay_detected", objective_ref=str(objective.get("objective_id") or ""))
+
+        expected_hash = str(request.get("payload_hash") or "")
+        observed_hash = _payload_hash(
+            recipient=str(draft.get("recipient") or ""),
+            subject=str(draft.get("subject") or ""),
+            body=str(draft.get("body") or ""),
+        )
+        supplied_hash = str(approval_decision.get("supplied_payload_hash") or "")
+        if supplied_hash and supplied_hash != expected_hash:
+            return refuse(
+                "supplied_hash_mismatch",
+                objective_ref=str(objective.get("objective_id") or ""),
+                expected=expected_hash,
+                observed=observed_hash,
+                supplied=supplied_hash,
+            )
+        if expected_hash != observed_hash:
+            return refuse(
+                "payload_hash_mismatch",
+                objective_ref=str(objective.get("objective_id") or ""),
+                expected=expected_hash,
+                observed=observed_hash,
+                supplied=supplied_hash,
+            )
+
+        dry_run_payload = {
+            "request_id": request_id,
+            "objective_id": objective_id,
+            "recipient": str(request.get("recipient") or ""),
+            "subject": str(request.get("subject") or ""),
+            "body": str(draft.get("body") or ""),
+            "payload_hash": expected_hash,
+        }
+        if callable(record_dry_run):
+            transport_result = record_dry_run(dict(dry_run_payload))
+        else:
+            transport_result = dry_run_send(dict(dry_run_payload))
+
+        receipt = {
+            "schema_version": EXACT_SEND_DRY_RUN_RECEIPT_SCHEMA,
+            "receipt_id": "exact_send_dry_run_receipt:" + _short_hash(request_id, expected_hash, generated_at),
+            "response_status": "EXACT_SEND_DRY_RUN_RECEIPT_WRITTEN",
+            "request_id": request_id,
+            "objective_id": objective_id,
+            "recipient": str(request.get("recipient") or ""),
+            "subject": str(request.get("subject") or ""),
+            "payload_hash": expected_hash,
+            "observed_payload_hash": observed_hash,
+            "transport_result": dict(transport_result or {}) if isinstance(transport_result, Mapping) else {},
+            "request_consumed_in_fixture": True,
+            "live_request_touched": False,
+            "execution_performed": False,
+            "dry_run_transport_called": True,
+            "live_transport_constructed": False,
+            "gmail_api_called": False,
+            "gmail_draft_created": False,
+            "email_send_performed": False,
+            "calendar_api_called": False,
+            "contacts_api_called": False,
+            "created_at": generated_at,
+            "authority_boundary": dict(AUTHORITY_BOUNDARY),
+        }
+        receipt_path = _write_exact_send_receipt(receipt_dir, "exact_send_dry_run_receipt", receipt)
+        conn.execute(
+            """
+            INSERT INTO exact_send_fixture_executions
+              (request_id, objective_id, created_at, receipt_json)
+            VALUES (?, ?, ?, ?)
+            """,
+            (request_id, objective_id, generated_at, stable_json(receipt)),
+        )
+        conn.execute(
+            """
+            INSERT OR REPLACE INTO objective_receipts
+              (objective_id, receipt_ref, receipt_kind, status, receipt_json)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (objective_id, str(receipt.get("receipt_id") or ""), "exact_send_dry_run", "dry_run_recorded", stable_json(receipt)),
+        )
+        conn.commit()
+
+    return {
+        "schema_version": "EXACT_SEND_DRY_RUN_EXECUTOR_RESULT_V0",
+        "response_status": "EXACT_SEND_DRY_RUN_RECEIPT_WRITTEN",
+        "receipt": receipt,
+        "dry_run_receipt_path": receipt_path.as_posix(),
+        "execution_performed": False,
+        "machine_proof": dict(AUTHORITY_BOUNDARY),
     }
 
 
