@@ -408,6 +408,25 @@ def test_ambiguous_direct_request_creates_clarification_event_without_receipt(tm
     assert not (tmp_path / "read_models" / JSON_EXPORT_NAME).exists()
 
 
+def test_telegram_ambiguous_handoff_request_returns_clarification_without_receipt(tmp_path):
+    routed = try_process_surface_operator_intake(
+        "Can you handle that thing?",
+        surface="telegram",
+        received_at_utc=FIXED_NOW,
+        read_model_root=tmp_path / "read_models",
+        receipt_root=tmp_path / "receipts",
+    )
+
+    assert routed is not None
+    assert routed["handled"] is False
+    assert routed["route_confidence"] == "low"
+    assert routed["event"]["parsed"]["action_type"] == "unknown"
+    assert routed["event"]["safe_actions_taken"] == []
+    assert routed["receipt_refs"] == []
+    assert "one detail" in routed["reply_text"]
+    assert not (tmp_path / "read_models" / JSON_EXPORT_NAME).exists()
+
+
 def test_high_risk_send_request_logs_guardian_gated_receipt_without_approval_or_email(tmp_path):
     routed = try_process_surface_operator_intake(
         "Send this to Annette.",

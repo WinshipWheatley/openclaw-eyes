@@ -937,6 +937,20 @@ def is_universal_operator_intake_candidate(raw_text: str) -> bool:
     return True
 
 
+def is_operator_intake_clarification_candidate(raw_text: str) -> bool:
+    """Return True for narrow ambiguous handoff phrases that should get a safe clarification reply."""
+
+    if not raw_text or not raw_text.strip() or _excluded_route_text(raw_text):
+        return False
+    lowered = _lower_text(raw_text).strip(" .!?")
+    return bool(
+        re.fullmatch(
+            r"(?:can|could|would)\s+you\s+handle\s+(?:that|this)(?:\s+thing)?",
+            lowered,
+        )
+    )
+
+
 def _safe_action_for(action_type: str) -> str:
     return {
         "income_payment_log": "record_local_income_payment_receipt",
@@ -1522,7 +1536,9 @@ def try_process_surface_operator_intake(
     read_model_root: str | Path = DEFAULT_EXPORT_ROOT,
     receipt_root: str | Path = DEFAULT_RECEIPT_ROOT,
 ) -> dict[str, Any] | None:
-    if not is_universal_operator_intake_candidate(raw_text):
+    candidate = is_universal_operator_intake_candidate(raw_text)
+    clarification_candidate = is_operator_intake_clarification_candidate(raw_text)
+    if not candidate and not clarification_candidate:
         return None
     events = process_operator_intake_batch(
         raw_text=raw_text,
@@ -1534,7 +1550,10 @@ def try_process_surface_operator_intake(
         read_model_root=read_model_root,
         receipt_root=receipt_root,
     )
-    return _surface_response_from_events(surface=surface, events=events)
+    response = _surface_response_from_events(surface=surface, events=events)
+    if clarification_candidate and not candidate:
+        response["handled"] = False
+    return response
 
 
 def process_mac_composer_operator_intake(
