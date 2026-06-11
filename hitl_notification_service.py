@@ -86,11 +86,15 @@ def _notify_secret() -> bytes:
 # ── Risk classification ───────────────────────────────────────────────────────
 
 def _risk_level(action_type: str) -> str:
+    return _svc.risk_tier_for_action_type(str(action_type or "")).upper()
+
+
+def _legacy_risk_level(action_type: str) -> str:
     if action_type in _HIGH_RISK_TYPES:
         return "HIGH"
     if action_type in _MEDIUM_RISK_TYPES:
         return "MEDIUM"
-    return "LOW"
+    return "HIGH"
 
 
 # ── Token helpers ─────────────────────────────────────────────────────────────
@@ -206,6 +210,9 @@ def _format_operator_action_notification(action: dict, payload: dict) -> str:
     a_type = action.get("action_type", payload.get("action_type", "unknown"))
     exact_payload = payload.get("payload") if isinstance(payload.get("payload"), dict) else {}
     code = str(payload.get("typed_fallback_reply_code") or _reply_code(action_id))
+    risk = str(payload.get("risk_tier") or _svc.risk_tier_for_action_type(str(a_type))).upper()
+    authority_refs = payload.get("authority_refs") if isinstance(payload.get("authority_refs"), list) else []
+    credential_lease_refs = payload.get("credential_lease_refs") if isinstance(payload.get("credential_lease_refs"), list) else []
     lines = [
         "HITL ACTION PENDING",
         f"Action ID: {action_id}",
@@ -214,9 +221,11 @@ def _format_operator_action_notification(action: dict, payload: dict) -> str:
         f"Objective: {payload.get('owner_objective_id', '')}",
         f"Request: {payload.get('request_id', action.get('idempotency_key', ''))}",
         f"Summary: {payload.get('summary', '')}",
-        f"Risk: {_risk_level(str(a_type))}",
+        f"Risk: {risk}",
         f"Warning: {payload.get('risk_warning', '')}",
         f"Expires: {payload.get('expires_at', action.get('expires_at', 'unknown'))}",
+        f"Authority refs: {len(authority_refs)}",
+        f"Credential lease refs: {len(credential_lease_refs)}",
     ]
     if a_type == _svc.ACTION_TYPE_EXACT_GMAIL_SEND:
         lines.extend(

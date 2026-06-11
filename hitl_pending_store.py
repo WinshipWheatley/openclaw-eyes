@@ -58,6 +58,7 @@ EXPIRED              = "EXPIRED"
 FAILED               = "FAILED"
 
 _TERMINAL_STATUSES = {APPROVED, DENIED, EXPIRED, FAILED}
+_DISPATCH_TERMINAL_STATUSES = {"succeeded", "failed", "blocked", "expired"}
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 
@@ -174,6 +175,43 @@ def _is_expired(record: dict) -> bool:
         return datetime.now() >= expires_at
     except Exception:
         return False
+
+
+def _default_execution_result(
+    *,
+    status: str,
+    owner_agent: str,
+    receipt_ref: str = "",
+    executed_at: str = "",
+    terminal: bool = False,
+) -> dict:
+    return {
+        "status": status,
+        "receipt_ref": receipt_ref,
+        "executed_at": executed_at,
+        "owner_agent": owner_agent,
+        "terminal": terminal,
+    }
+
+
+def _default_approved_dispatch(status: str = "not_approved") -> dict:
+    return {
+        "status": status,
+        "queued_at": "",
+        "started_at": "",
+        "finished_at": "",
+        "attempts": 0,
+        "last_error": "",
+        "terminal": False,
+    }
+
+
+def _sync_payload_execution_result(record: dict) -> None:
+    payload = record.get("payload")
+    if isinstance(payload, dict):
+        payload = dict(payload)
+        payload["execution_result"] = dict(record.get("execution_result") or {})
+        record["payload"] = payload
 
 
 def _env_float(name: str, default: float) -> float:
@@ -350,7 +388,14 @@ def create_pending_action(
         "approved_by":    None,
         "approved_at":    None,
         "denied_reason":  denied_reason,
+        "approved_dispatch": _default_approved_dispatch(),
+        "execution_result": _default_execution_result(
+            status="pending_approval" if initial_status == WAITING_FOR_APPROVAL else "not_dispatched",
+            owner_agent=source_agent,
+            terminal=initial_status in {DENIED, EXPIRED, FAILED},
+        ),
     }
+    _sync_payload_execution_result(record)
 
     state[action_id] = record
     _save_state(state)
@@ -441,24 +486,190 @@ def update_action_status(
         return False
 
     prev_status = record["status"]
+
+    if new_status == APPROVED and _is_expired(record):
+        record["status"] = EXPIRED
+        record["execution_result"] = _default_execution_result(
+            status="expired",
+            owner_agent=str(record.get("source_agent") or ""),
+            executed_at=_iso_now(),
+            terminal=True,
+        )
+        record["approved_dispatch"] = {
+            **_default_approved_dispatch("expired"),
+            "finished_at": record["execution_result"]["executed_at"],
+            "terminal": True,
+        }
+        _sync_payload_execution_result(record)
+        state[action_id] = record
+        _save_state(state)
+        _audit({**record, "event": f"transition:{prev_status}->EXPIRED"})
+        _shadow_cassandra_hitl_decision(record, EXPIRED)
+        return False
+
     record["status"] = new_status
 
     if new_status == APPROVED:
         record["approved_by"] = approved_by or "operator"
         record["approved_at"] = _iso_now()
+        record["approved_dispatch"] = {
+            **_default_approved_dispatch("pending"),
+            "queued_at": record["approved_at"],
+        }
+        record["execution_result"] = _default_execution_result(
+            status="pending_dispatch",
+            owner_agent=str(record.get("source_agent") or ""),
+            terminal=False,
+        )
     elif new_status == DENIED:
         record["denied_reason"] = denied_reason or ""
+        record["execution_result"] = _default_execution_result(
+            status="denied",
+            owner_agent=str(record.get("source_agent") or ""),
+            executed_at=_iso_now(),
+            terminal=True,
+        )
     elif new_status == EXPIRED:
-        pass  # timestamps already set at creation
+        record["execution_result"] = _default_execution_result(
+            status="expired",
+            owner_agent=str(record.get("source_agent") or ""),
+            executed_at=_iso_now(),
+            terminal=True,
+        )
     elif new_status == FAILED:
-        pass
+        record["execution_result"] = _default_execution_result(
+            status="failed",
+            owner_agent=str(record.get("source_agent") or ""),
+            executed_at=_iso_now(),
+            terminal=True,
+        )
 
+    _sync_payload_execution_result(record)
     state[action_id] = record
     _save_state(state)
     _audit({**record, "event": f"transition:{prev_status}->{new_status}"})
     if new_status in {APPROVED, DENIED, EXPIRED}:
         _shadow_cassandra_hitl_decision(record, new_status)
     return True
+
+
+def mark_action_dispatch_in_progress(action_id: str) -> bool:
+    """Persist that an approved action is entering executor handoff."""
+    state = _load_state()
+    record = state.get(action_id)
+    if record is None or record.get("status") != APPROVED:
+        return False
+
+    dispatch = record.get("approved_dispatch") if isinstance(record.get("approved_dispatch"), dict) else {}
+    if dispatch.get("status") in _DISPATCH_TERMINAL_STATUSES:
+        return False
+    if _is_expired(record):
+        record["approved_dispatch"] = {
+            **dict(dispatch),
+            "status": "expired",
+            "finished_at": _iso_now(),
+            "terminal": True,
+        }
+        record["execution_result"] = _default_execution_result(
+            status="expired",
+            owner_agent=str(record.get("source_agent") or ""),
+            executed_at=record["approved_dispatch"]["finished_at"],
+            terminal=True,
+        )
+        _sync_payload_execution_result(record)
+        state[action_id] = record
+        _save_state(state)
+        _audit({**record, "event": "dispatch_expired"})
+        return False
+
+    attempts = int(dispatch.get("attempts") or 0) + 1
+    started_at = _iso_now()
+    record["approved_dispatch"] = {
+        **_default_approved_dispatch("in_progress"),
+        **dict(dispatch),
+        "status": "in_progress",
+        "started_at": started_at,
+        "attempts": attempts,
+        "terminal": False,
+    }
+    record["execution_result"] = _default_execution_result(
+        status="in_progress",
+        owner_agent=str(record.get("source_agent") or ""),
+        executed_at="",
+        terminal=False,
+    )
+    _sync_payload_execution_result(record)
+    state[action_id] = record
+    _save_state(state)
+    _audit({**record, "event": "dispatch_in_progress"})
+    return True
+
+
+def record_action_execution_result(action_id: str, execution_result: dict) -> bool:
+    """Attach a generic execution result to an approved action record."""
+    if not isinstance(execution_result, dict):
+        raise ValueError("execution_result must be a dict")
+
+    state = _load_state()
+    record = state.get(action_id)
+    if record is None:
+        return False
+
+    status = str(execution_result.get("status") or "unknown")
+    terminal = bool(execution_result.get("terminal", True))
+    executed_at = str(execution_result.get("executed_at") or _iso_now())
+    normalized = {
+        "status": status,
+        "receipt_ref": str(execution_result.get("receipt_ref") or ""),
+        "executed_at": executed_at,
+        "owner_agent": str(execution_result.get("owner_agent") or record.get("source_agent") or ""),
+        "terminal": terminal,
+    }
+    for key, value in execution_result.items():
+        if key not in normalized:
+            normalized[str(key)] = value
+
+    dispatch_status = {
+        "success": "succeeded",
+        "succeeded": "succeeded",
+        "sent": "succeeded",
+        "failed": "failed",
+        "failure": "failed",
+        "exception": "failed",
+        "blocked": "blocked",
+        "expired": "expired",
+        "reconciliation_required": "failed",
+    }.get(status, "failed" if terminal else "pending")
+    dispatch = record.get("approved_dispatch") if isinstance(record.get("approved_dispatch"), dict) else {}
+    record["approved_dispatch"] = {
+        **_default_approved_dispatch(dispatch_status),
+        **dict(dispatch),
+        "status": dispatch_status,
+        "finished_at": executed_at if terminal else str(dispatch.get("finished_at") or ""),
+        "terminal": terminal,
+    }
+    record["execution_result"] = normalized
+    _sync_payload_execution_result(record)
+    state[action_id] = record
+    _save_state(state)
+    _audit({**record, "event": "execution_result_recorded"})
+    return True
+
+
+def list_actions_ready_for_dispatch() -> list[dict]:
+    """Return APPROVED actions with durable pending dispatch jobs."""
+    state = _load_state()
+    ready: list[dict] = []
+    for record in state.values():
+        if record.get("status") != APPROVED:
+            continue
+        dispatch = record.get("approved_dispatch") if isinstance(record.get("approved_dispatch"), dict) else {}
+        execution_result = record.get("execution_result") if isinstance(record.get("execution_result"), dict) else {}
+        if execution_result.get("terminal") is True:
+            continue
+        if dispatch.get("status") in {"pending"}:
+            ready.append(record)
+    return ready
 
 
 def update_action_payload(action_id: str, payload: dict) -> bool:
