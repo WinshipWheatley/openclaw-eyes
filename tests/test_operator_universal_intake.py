@@ -113,6 +113,7 @@ def test_low_risk_income_writes_receipt_read_model_and_watch_item(tmp_path):
     assert read_model["events"][0]["direct_surface_available"] is True
     assert read_model["events"][0]["fallback_route_available"] is True
     assert read_model["events"][0]["safe_actions_taken"] == ["record_local_income_payment_receipt"]
+    assert (tmp_path / "read_models" / "watch_desk_feed.json").exists()
 
     feed = build_watch_desk_feed(read_model_root=tmp_path / "read_models", task_root=tmp_path / "tasks")
     item = next(item for item in feed["feed_items"] if item["plain_line"].startswith("Logged income"))
@@ -236,7 +237,7 @@ def test_income_missing_amount_clarifies_without_receipt_or_paid_claim(tmp_path)
 def test_unknown_low_confidence_input_only_requests_clarification(tmp_path):
     result = _process(tmp_path, "Handle that confusing thing.")
 
-    assert result["parsed"]["action_type"] == "unknown"
+    assert result["parsed"]["action_type"] == "operator_clarification_event"
     assert result["parsed"]["confidence"] < 0.5
     assert result["needs_clarification"] == ["action_type"]
     assert result["safe_actions_taken"] == []
@@ -274,6 +275,7 @@ def test_no_external_or_approval_side_effects_for_supported_local_events(tmp_pat
         "identity_signature_preference",
         "agent_lane_request",
         "approval_gated_action_request",
+        "operator_clarification_event",
     }
 
 
@@ -480,7 +482,7 @@ def test_wrong_agent_hermes_build_status_patches_to_chief(tmp_path):
     assert routed["reply_text"] == "That's a Chief/system review request. I routed it to Chief."
 
 
-def test_ambiguous_direct_request_creates_clarification_event_without_receipt(tmp_path):
+def test_ambiguous_direct_request_creates_clarification_proof_without_execution(tmp_path):
     routed = process_direct_agent_surface_operator_intake(
         "Can you handle that thing?",
         agent_id="chief",
@@ -492,13 +494,27 @@ def test_ambiguous_direct_request_creates_clarification_event_without_receipt(tm
     assert routed["handled"] is False
     assert routed["routing_status"] == "CLARIFICATION_REQUIRED"
     assert routed["route_confidence"] == "low"
+    assert routed["action_type"] == "operator_clarification_event"
+    assert routed["approval_required"] is False
+    assert routed["external_calls_performed"] is False
     assert routed["event"]["safe_actions_taken"] == []
-    assert routed["receipt_refs"] == []
+    assert routed["event"]["stop_condition"] == "clarification_proof_written"
+    assert routed["receipt_refs"]
+    assert routed["watch_desk_refs"]
     assert "one detail" in routed["reply_text"]
-    assert not (tmp_path / "read_models" / JSON_EXPORT_NAME).exists()
+    read_model_path = tmp_path / "read_models" / JSON_EXPORT_NAME
+    assert read_model_path.exists()
+    read_model = json.loads(read_model_path.read_text(encoding="utf-8"))
+    assert read_model["events"][0]["parsed"]["action_type"] == "operator_clarification_event"
+    assert read_model["events"][0]["approval_required"] is False
+    receipt = json.loads(Path(routed["receipt_refs"][0].split("#", 1)[0]).read_text(encoding="utf-8"))
+    assert receipt["schema_version"] == "operator_clarification_event_receipt_v0"
+    assert receipt["safe_actions_taken"] == []
+    assert receipt["external_calls_performed"] is False
+    assert receipt["approval_required"] is False
 
 
-def test_telegram_ambiguous_handoff_request_returns_clarification_without_receipt(tmp_path):
+def test_telegram_ambiguous_handoff_request_persists_clarification_proof(tmp_path):
     routed = try_process_surface_operator_intake(
         "Can you handle that thing?",
         surface="telegram",
@@ -510,11 +526,27 @@ def test_telegram_ambiguous_handoff_request_returns_clarification_without_receip
     assert routed is not None
     assert routed["handled"] is False
     assert routed["route_confidence"] == "low"
-    assert routed["event"]["parsed"]["action_type"] == "unknown"
+    assert routed["event"]["parsed"]["action_type"] == "operator_clarification_event"
     assert routed["event"]["safe_actions_taken"] == []
-    assert routed["receipt_refs"] == []
+    assert routed["receipt_refs"]
+    assert routed["watch_desk_refs"]
+    assert routed["approval_required"] is False
+    assert routed["external_calls_performed"] is False
     assert "one detail" in routed["reply_text"]
-    assert not (tmp_path / "read_models" / JSON_EXPORT_NAME).exists()
+    assert (tmp_path / "read_models" / JSON_EXPORT_NAME).exists()
+    assert (tmp_path / "read_models" / "watch_desk_feed.json").exists()
+
+    repeated = try_process_surface_operator_intake(
+        "Can you handle that thing?",
+        surface="telegram",
+        received_at_utc="2026-06-11T23:10:00+00:00",
+        read_model_root=tmp_path / "read_models",
+        receipt_root=tmp_path / "receipts",
+    )
+    assert repeated is not None
+    assert repeated["receipt_refs"] == routed["receipt_refs"]
+    read_model = json.loads((tmp_path / "read_models" / JSON_EXPORT_NAME).read_text(encoding="utf-8"))
+    assert read_model["event_count"] == 1
 
 
 def test_high_risk_send_request_logs_guardian_gated_receipt_without_approval_or_email(tmp_path):
@@ -834,6 +866,67 @@ def test_cassandra_handler_routes_operator_telegram_text_to_universal_intake(mon
     assert logged["metadata"]["action_type"] == "income_payment_log"
     assert logged["metadata"]["approval_required"] is False
     assert logged["metadata"]["external_calls_performed"] is False
+    assert logged["metadata"]["route_confidence"] == "high"
+    assert logged["metadata"]["inferred_owner_agent"] == "cassandra"
+    assert logged["metadata"]["routed_to_agent"] == "cassandra"
+    assert logged["metadata"]["receipt_refs"]
+    receipt = json.loads(Path(logged["metadata"]["receipt_refs"][0].split("#", 1)[0]).read_text(encoding="utf-8"))
+    assert logged["metadata"]["approval_required"] == receipt["approval_required"]
+    assert logged["metadata"]["watch_desk_refs"]
+
+
+def test_cassandra_handler_logs_high_risk_universal_intake_approval_truth(monkeypatch, tmp_path):
+    import cassandra_brain
+
+    logged_rows = []
+    monkeypatch.setattr(cassandra_brain, "record_cassandra_packet_event", lambda query, packet: "event:test")
+    monkeypatch.setattr(cassandra_brain, "load_state", lambda: dict(cassandra_brain._DEFAULT_STATE))
+    monkeypatch.setattr(cassandra_brain, "save_state", lambda state: None)
+    monkeypatch.setattr(cassandra_brain, "answer_date_awareness_query", lambda query: None)
+    monkeypatch.setattr(cassandra_brain, "_handle_operator_objective", lambda *args, **kwargs: None)
+
+    def fail_call(*args, **kwargs):
+        raise AssertionError("approval-gated universal intake route should not call a model")
+
+    def capture_log(user_text, replies, route="llm", metadata=None):
+        logged_rows.append({"route": route, "replies": replies, "metadata": metadata or {}})
+
+    monkeypatch.setattr(cassandra_brain, "_call", fail_call)
+    monkeypatch.setattr(cassandra_brain, "_log_conversation", capture_log)
+
+    for text in ("Send this to Annette.", "Follow up with Annette about the invoice."):
+        replies = cassandra_brain.handle(
+            text,
+            session={
+                "skip_followup_check": True,
+                "source_user_label": "operator",
+                "received_at_utc": FIXED_NOW,
+                "operator_intake_read_model_root": tmp_path / "read_models",
+                "operator_intake_receipt_root": tmp_path / "receipts",
+            },
+        )
+
+        assert replies == [
+            "That's a Cassandra outbound action. I logged it for Cassandra; "
+            "Guardian approval is required before execution."
+        ]
+
+    assert len(logged_rows) == 2
+    for logged in logged_rows:
+        assert logged["route"] == "universal_operator_intake"
+        assert logged["metadata"]["action_type"] == "approval_gated_action_request"
+        assert logged["metadata"]["risk_tier"] == "high"
+        assert logged["metadata"]["approval_required"] is True
+        assert logged["metadata"]["external_calls_performed"] is False
+        assert logged["metadata"]["route_confidence"] == "high"
+        assert logged["metadata"]["inferred_owner_agent"] == "cassandra"
+        assert logged["metadata"]["routed_to_agent"] == "cassandra"
+        assert logged["metadata"]["receipt_refs"]
+        receipt = json.loads(Path(logged["metadata"]["receipt_refs"][0].split("#", 1)[0]).read_text(encoding="utf-8"))
+        assert receipt["approval_required"] is True
+        assert receipt["authority_boundary"]["approval_request_created"] is False
+        assert logged["metadata"]["approval_required"] == receipt["approval_required"]
+        assert logged["metadata"]["watch_desk_refs"]
 
 
 def test_cassandra_handler_does_not_route_designated_contact_to_operator_intake(monkeypatch, tmp_path):

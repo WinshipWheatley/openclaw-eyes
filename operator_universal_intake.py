@@ -50,6 +50,7 @@ SUPPORTED_ACTION_TYPES = (
     "identity_signature_preference",
     "agent_lane_request",
     "approval_gated_action_request",
+    "operator_clarification_event",
 )
 LOCAL_OPERATOR_SKILL_ACTION_TYPES = set(LOCAL_LOG_SKILL_ACTION_TYPES)
 
@@ -461,6 +462,30 @@ def _local_skill_idempotency_date(action_type: str, fields: Mapping[str, Any], r
 
 
 def _operator_skill_for_action(action_type: str) -> dict[str, Any]:
+    if action_type == "operator_clarification_event":
+        return {
+            "schema_version": "OPERATOR_SKILL_V0",
+            "skill_id": "operator_skill:operator_clarification_event:v0",
+            "action_type": "operator_clarification_event",
+            "owner_agent": "chief",
+            "owner_lane": "chief_runtime",
+            "risk_tier": "low",
+            "external": False,
+            "required_fields": ["action_type"],
+            "optional_fields": ["requested_detail", "surface", "receiving_agent"],
+            "safe_local_action": "",
+            "approval_action": None,
+            "receipt_schema": "operator_clarification_event_receipt_v0",
+            "watch_desk_lane": "chief_runtime",
+            "push_class": "needs_operator",
+            "must_not": [
+                "execute vague request",
+                "create approval request",
+                "call external services",
+            ],
+            "clarify_when": ["action_type"],
+            "reference_data_needed": [],
+        }
     return get_operator_skill(action_type)
 
 
@@ -474,6 +499,15 @@ def _local_skill_intake_id(
     received_at_utc: str,
 ) -> str:
     skill = _operator_skill_for_action(action_type)
+    if action_type == "operator_clarification_event":
+        return _row_id(
+            "operator_intake",
+            skill["skill_id"],
+            surface,
+            operator,
+            _parse_datetime(received_at_utc).date().isoformat(),
+            _normalized_text(raw_text),
+        )
     if action_type not in LOCAL_OPERATOR_SKILL_ACTION_TYPES or skill.get("external"):
         text_hash = "sha256:" + _sha256_text(_normalized_text(raw_text))
         return _row_id("operator_intake", surface, operator, received_at_utc, text_hash)
@@ -553,10 +587,14 @@ def _initial_cross_link_refs(parsed_result: Mapping[str, Any]) -> list[str]:
 def _base_parse_result() -> dict[str, Any]:
     return {
         "parsed": {
-            "action_type": "unknown",
-            "lane": "operator_intake",
-            "fields": {},
-            "confidence": 0.2,
+            "action_type": "operator_clarification_event",
+            "lane": "chief_runtime",
+            "fields": {
+                "requested_detail": "action_type",
+                "execution_performed": False,
+                "external_action_allowed": False,
+            },
+            "confidence": 0.35,
         },
         "risk_tier": "low",
         "normalized_summary": "Needs clarification before OpenClaw can classify this intake.",
@@ -1055,7 +1093,7 @@ def is_universal_operator_intake_candidate(raw_text: str) -> bool:
         parsed = item["parsed_result"]
         action_type = str(parsed["parsed"]["action_type"])
         confidence = float(parsed["parsed"].get("confidence") or 0)
-        if action_type not in SUPPORTED_ACTION_TYPES or confidence < 0.8:
+        if action_type == "operator_clarification_event" or action_type not in SUPPORTED_ACTION_TYPES or confidence < 0.8:
             return False
     return True
 
@@ -1083,6 +1121,29 @@ def _safe_action_for(action_type: str) -> str:
         "agent_lane_request": "record_local_agent_lane_request_receipt",
         "approval_gated_action_request": "record_local_approval_gated_request_receipt",
     }.get(action_type, "")
+
+
+def _refresh_watch_desk_feed(
+    *,
+    read_model_root: str | Path,
+    generated_at: str,
+) -> dict[str, Any]:
+    try:
+        from watch_desk_feed import export_watch_desk_feed
+
+        return export_watch_desk_feed(
+            read_model_root=read_model_root,
+            export_root=read_model_root,
+            generated_at=generated_at,
+        )
+    except Exception as exc:
+        return {
+            "read_model_path": "",
+            "item_count": 0,
+            "new_push_candidate_count": 0,
+            "live_push_allowed": False,
+            "refresh_error": type(exc).__name__,
+        }
 
 
 def format_operator_intake_reply(event: Mapping[str, Any]) -> str:
@@ -1126,6 +1187,8 @@ def _watch_plain_line(event: Mapping[str, Any]) -> str:
         return str(event.get("normalized_summary") or "Agent lane request staged locally.")
     if action_type == "approval_gated_action_request":
         return "Guardian approval required before execution: outbound action request logged locally."
+    if action_type == "operator_clarification_event":
+        return "Needs clarification before routing: what kind of action is it?"
     return "Operator intake needs clarification."
 
 
@@ -1158,6 +1221,8 @@ def _owner_for_parsed(parsed_result: Mapping[str, Any]) -> tuple[str, str]:
         agent_id = str(fields.get("agent_id") or "")
         if agent_id:
             return agent_id, str(_execution_status_for_agent(agent_id)["lane"])
+    if action_type == "operator_clarification_event":
+        return "", "chief_runtime"
     if lane == "hermes":
         return "hermes", "hermes"
     if lane == "niles_creative":
@@ -1193,7 +1258,7 @@ def _route_decision(
     score = float(parsed.get("confidence") or 0.0)
     confidence = (
         "low"
-        if str(parsed["action_type"]) == "unknown" or "known_agent_lane" in parsed_result.get("needs_clarification", [])
+        if str(parsed["action_type"]) == "operator_clarification_event" or "known_agent_lane" in parsed_result.get("needs_clarification", [])
         else _confidence_label(score)
     )
     routed_from = receiving_agent or addressed_agent
@@ -1259,7 +1324,7 @@ def _operator_visible_reply(event: Mapping[str, Any]) -> str:
         fields = event.get("parsed", {}).get("fields") if isinstance(event.get("parsed"), Mapping) else {}
         if action_type == "income_payment_log" and isinstance(fields, Mapping) and fields.get("amount") is None:
             return str(event.get("normalized_summary") or "Need payment amount before logging income.")
-        if action_type == "unknown":
+        if action_type == "operator_clarification_event":
             return "I need one detail before routing that: what kind of action is it?"
     if confidence == "low":
         if "known_agent_lane" in event.get("needs_clarification", []):
@@ -1524,12 +1589,19 @@ def process_operator_intake(
     approval_required = _approval_required_for(parsed_result)
     clarifications = set(parsed_result["needs_clarification"])
     missing_required = _skill_required_missing(skill, clarifications)
-    blocking_clarification = action_type == "unknown" or bool(
+    blocking_clarification = action_type == "operator_clarification_event" or bool(
         clarifications.intersection({"referent:this", "referent:that", "referent:it"})
         or "known_agent_lane" in clarifications
         or missing_required
     )
-    should_write_local_receipt = action_type in SUPPORTED_ACTION_TYPES and safe_action and not blocking_clarification
+    should_write_clarification_proof = (
+        action_type == "operator_clarification_event"
+        and is_operator_intake_clarification_candidate(raw_text)
+    )
+    should_write_local_receipt = (
+        (action_type in SUPPORTED_ACTION_TYPES and safe_action and not blocking_clarification)
+        or should_write_clarification_proof
+    )
 
     event: dict[str, Any] = {
         "schema_version": OPERATOR_INTAKE_SCHEMA_VERSION,
@@ -1545,7 +1617,7 @@ def process_operator_intake(
         "referent_refs": parsed_result["referent_refs"],
         "cross_link_refs": _initial_cross_link_refs(parsed_result),
         "proposed_actions": parsed_result["proposed_actions"],
-        "safe_actions_taken": [safe_action] if should_write_local_receipt else [],
+        "safe_actions_taken": [safe_action] if safe_action and should_write_local_receipt else [],
         "approval_required": approval_required,
         "receipts": [],
         "receipt_refs": [],
@@ -1599,8 +1671,12 @@ def process_operator_intake(
             event["watch_desk_items"] = [
                 item for item in existing.get("watch_desk_items", []) if isinstance(item, Mapping)
             ]
-            event["safe_actions_taken"] = ["reuse_existing_local_receipt_ref"]
+            event["safe_actions_taken"] = ["reuse_existing_local_receipt_ref"] if safe_action else []
             event["stop_condition"] = "duplicate_local_receipt_reused"
+            event["watch_desk_feed_refresh"] = _refresh_watch_desk_feed(
+                read_model_root=read_model_root,
+                generated_at=utc_now(),
+            )
             return event
         created_at = utc_now()
         receipt = _write_receipt(event, receipt_root=receipt_root, created_at_utc=created_at)
@@ -1611,9 +1687,15 @@ def process_operator_intake(
         event["watch_desk_items"] = [watch_item]
         if approval_required:
             event["stop_condition"] = "guardian_approval_required_local_receipt_written"
+        elif should_write_clarification_proof:
+            event["stop_condition"] = "clarification_proof_written"
         else:
             event["stop_condition"] = "local_receipt_written"
         _write_read_model(event, read_model_root=read_model_root, generated_at=created_at)
+        event["watch_desk_feed_refresh"] = _refresh_watch_desk_feed(
+            read_model_root=read_model_root,
+            generated_at=created_at,
+        )
 
     return event
 
@@ -1677,6 +1759,10 @@ def process_operator_intake_batch(
             event["receipt_refs"] = [receipt_ref]
             event["watch_desk_items"] = [_build_watch_item(event, receipt_ref)]
             _write_read_model(event, read_model_root=read_model_root, generated_at=created_at)
+            event["watch_desk_feed_refresh"] = _refresh_watch_desk_feed(
+                read_model_root=read_model_root,
+                generated_at=created_at,
+            )
     return events
 
 
@@ -1867,7 +1953,7 @@ def infer_agent_lane_target(raw_text: str, *, default_agent_id: str = "") -> dic
         owner_lane = str(_execution_status_for_agent(resolved_default)["lane"])
     addressed = _extract_addressed_agent(text)
     basis = "explicit_agent_prefix" if addressed["agent_id"] and addressed["agent_id"] == owner_agent else "content_inference"
-    if str(parsed["parsed"]["action_type"]) == "unknown":
+    if str(parsed["parsed"]["action_type"]) == "operator_clarification_event":
         basis = "unknown"
     confidence = float(parsed["parsed"].get("confidence") or 0.0)
     return {

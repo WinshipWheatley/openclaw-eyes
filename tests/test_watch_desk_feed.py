@@ -414,6 +414,44 @@ def test_intake_watch_item_preserves_skill_owner_missing_fields_and_info_push_cl
     assert item["push_candidate"] is False
 
 
+def test_clarification_proof_item_is_useful_and_non_pushy(tmp_path):
+    receipt_path = "/tmp/openclaw-mission-control/receipts/operator_clarification_event_receipt.json"
+    event = _intake_event(
+        intake_id="operator_intake:clarify",
+        action_type="operator_clarification_event",
+        lane="chief_runtime",
+        summary="Needs clarification before routing: what kind of action is it?",
+        receipt_path=receipt_path,
+        watch_item=True,
+    )
+    event["needs_clarification"] = ["action_type"]
+    event["watch_desk_items"][0].update(
+        {
+            "lane": "chief_runtime",
+            "owner_agent": "chief",
+            "owner_lane": "chief_runtime",
+            "skill_id": "operator_skill:operator_clarification_event:v0",
+            "missing_fields": ["action_type"],
+            "push_class": "needs_operator",
+        }
+    )
+    _write_json(tmp_path / "operator_intake_events.json", _operator_intake_read_model([event]))
+
+    first = _build(tmp_path, intake_stub=False)
+    second = _build(tmp_path, intake_stub=False)
+    item = first["feed_items"][0]
+
+    assert item["item_id"] == "operator_intake:operator_intake:clarify"
+    assert item["plain_line"] == "Needs clarification before routing: what kind of action is it?"
+    assert item["source_receipt_ref"] == f"{receipt_path}#receipt"
+    assert item["missing_fields"] == ["action_type"]
+    assert item["push_allowed"] is False
+    assert item["push_candidate"] is False
+    assert [feed_item["item_id"] for feed_item in first["feed_items"]] == [
+        feed_item["item_id"] for feed_item in second["feed_items"]
+    ]
+
+
 def test_stale_or_missing_operator_intake_read_model_warns_without_crashing(tmp_path):
     missing = _build(tmp_path, intake_stub=False)
 
