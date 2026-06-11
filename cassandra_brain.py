@@ -57,6 +57,7 @@ from business_ops_packet import assemble_business_ops_packet, BusinessOpsPacket
 from business_ops_intent import classify_business_ops_intent
 from hitl_pending_store import propose_action as _hitl_propose
 from cassandra_custom_tools import handle_operator_objective as _handle_operator_objective
+from operator_universal_intake import try_process_surface_operator_intake as _try_universal_operator_intake
 from cassandra_pii_hooks import (
     tokenize_prompt as _pii_tokenize,
     rehydrate_reply as _pii_rehydrate_reply,
@@ -5778,6 +5779,38 @@ def handle(text: str, session: dict | None = None) -> list[str]:
         return [status_reply]
 
     query = _strip_prefix(text)
+    if str(session_meta.get("source_user_label") or "operator") == "operator":
+        intake_kwargs: dict[str, Any] = {}
+        if session_meta.get("received_at_utc"):
+            intake_kwargs["received_at_utc"] = str(session_meta["received_at_utc"])
+        if session_meta.get("operator_intake_read_model_root"):
+            intake_kwargs["read_model_root"] = session_meta["operator_intake_read_model_root"]
+        if session_meta.get("operator_intake_receipt_root"):
+            intake_kwargs["receipt_root"] = session_meta["operator_intake_receipt_root"]
+        intake_response = _try_universal_operator_intake(
+            query,
+            surface="telegram",
+            operator="Winship",
+            **intake_kwargs,
+        )
+        if intake_response is not None:
+            reply = [str(intake_response["reply"])]
+            save_state(state)
+            _log_conversation(
+                text,
+                reply,
+                route="universal_operator_intake",
+                metadata={
+                    "event_id": event_id,
+                    "intake_id": intake_response["intake_id"],
+                    "action_type": intake_response["action_type"],
+                    "risk_tier": intake_response["risk_tier"],
+                    "approval_required": False,
+                    "external_calls_performed": False,
+                },
+            )
+            return reply
+
     _update_cues(state, query)
     _remember_finance_entity(query, state)
 

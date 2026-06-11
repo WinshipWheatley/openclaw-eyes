@@ -39,7 +39,9 @@ SUPPORTED_ACTION_TYPES = (
 
 SURFACE_WIRING_STATUS = {
     "local_api": True,
-    "telegram_live_listener": False,
+    "telegram_cassandra_route_hook": True,
+    "telegram_live_listener_restart_required": True,
+    "mac_composer_callable_contract": True,
     "mac_composer_live_bridge": False,
 }
 
@@ -339,6 +341,49 @@ def parse_operator_intake_text(
     return _base_parse_result()
 
 
+def _excluded_route_text(raw_text: str) -> bool:
+    lowered = _lower_text(raw_text)
+    exact_send_or_guardian_terms = (
+        "approve exact send request",
+        "approve the exact send request",
+        "exact send request",
+        "exact_send_authority_request",
+        "send authority request",
+        "prepare the send authority",
+        "draft is approved",
+        "draft approved",
+        "approved with this exact text",
+        "operator_action_approval_request",
+        "guardian approval",
+        "guardian decision",
+    )
+    if any(term in lowered for term in exact_send_or_guardian_terms):
+        return True
+
+    reminder_terms = (
+        "remind me",
+        "remind us",
+        "set a reminder",
+        "send a reminder",
+        "check back",
+        "check again",
+        "follow up tomorrow",
+        "follow-up tomorrow",
+    )
+    return any(term in lowered for term in reminder_terms)
+
+
+def is_universal_operator_intake_candidate(raw_text: str) -> bool:
+    """Return True only for clear low-risk local intake phrases."""
+
+    if not raw_text or not raw_text.strip() or _excluded_route_text(raw_text):
+        return False
+    parsed = parse_operator_intake_text(raw_text)
+    action_type = str(parsed["parsed"]["action_type"])
+    confidence = float(parsed["parsed"].get("confidence") or 0)
+    return action_type in SUPPORTED_ACTION_TYPES and confidence >= 0.8
+
+
 def _safe_action_for(action_type: str) -> str:
     return {
         "income_payment_log": "record_local_income_payment_receipt",
@@ -346,6 +391,17 @@ def _safe_action_for(action_type: str) -> str:
         "gig_event_log": "record_local_gig_event_receipt",
         "identity_signature_preference": "record_local_identity_preference_stage",
     }.get(action_type, "")
+
+
+def format_operator_intake_reply(event: Mapping[str, Any]) -> str:
+    if event.get("watch_desk_items"):
+        item = event["watch_desk_items"][0]
+        if isinstance(item, Mapping) and item.get("plain_line"):
+            return str(item["plain_line"])
+    action_type = str(event.get("parsed", {}).get("action_type") or "")
+    if action_type == "identity_signature_preference" and event.get("needs_clarification"):
+        return f"{event['normalized_summary']} No external action taken."
+    return str(event.get("normalized_summary") or "I need one more detail before I can log that.")
 
 
 def _watch_plain_line(event: Mapping[str, Any]) -> str:
@@ -554,6 +610,77 @@ def process_operator_intake(
         _write_read_model(event, read_model_root=read_model_root, generated_at=created_at)
 
     return event
+
+
+def try_process_surface_operator_intake(
+    raw_text: str,
+    *,
+    surface: str,
+    operator: str = "Winship",
+    received_at_utc: str | None = None,
+    session_context: Mapping[str, Any] | None = None,
+    read_model_root: str | Path = DEFAULT_EXPORT_ROOT,
+    receipt_root: str | Path = DEFAULT_RECEIPT_ROOT,
+) -> dict[str, Any] | None:
+    if not is_universal_operator_intake_candidate(raw_text):
+        return None
+    event = process_operator_intake(
+        raw_text=raw_text,
+        surface=surface,
+        operator=operator,
+        received_at_utc=received_at_utc,
+        session_context=session_context,
+        read_model_root=read_model_root,
+        receipt_root=receipt_root,
+    )
+    return {
+        "schema_version": "operator_intake_surface_response_v0",
+        "handled": True,
+        "surface": surface,
+        "intake_id": event["intake_id"],
+        "action_type": event["parsed"]["action_type"],
+        "lane": event["parsed"]["lane"],
+        "risk_tier": event["risk_tier"],
+        "reply": format_operator_intake_reply(event),
+        "event": event,
+        "approval_required": False,
+        "external_calls_performed": False,
+    }
+
+
+def process_mac_composer_operator_intake(
+    raw_text: str,
+    *,
+    operator: str = "Winship",
+    received_at_utc: str | None = None,
+    session_context: Mapping[str, Any] | None = None,
+    read_model_root: str | Path = DEFAULT_EXPORT_ROOT,
+    receipt_root: str | Path = DEFAULT_RECEIPT_ROOT,
+) -> dict[str, Any]:
+    routed = try_process_surface_operator_intake(
+        raw_text,
+        surface="mac_composer",
+        operator=operator,
+        received_at_utc=received_at_utc,
+        session_context=session_context,
+        read_model_root=read_model_root,
+        receipt_root=receipt_root,
+    )
+    if routed is not None:
+        return routed
+    parsed = parse_operator_intake_text(raw_text, received_at_utc=received_at_utc, session_context=session_context)
+    return {
+        "schema_version": "operator_intake_surface_response_v0",
+        "handled": False,
+        "surface": "mac_composer",
+        "action_type": parsed["parsed"]["action_type"],
+        "lane": parsed["parsed"]["lane"],
+        "risk_tier": parsed["risk_tier"],
+        "reply": parsed["normalized_summary"],
+        "needs_clarification": parsed["needs_clarification"],
+        "approval_required": False,
+        "external_calls_performed": False,
+    }
 
 
 def load_operator_intake_read_model(*, read_model_root: str | Path = DEFAULT_EXPORT_ROOT) -> dict[str, Any]:

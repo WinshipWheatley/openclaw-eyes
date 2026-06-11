@@ -443,6 +443,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 session_meta={
                     "sender_name": sender_name,
                     "sender_chat_id": sender_chat_id,
+                    "source_message_id": str(getattr(update, "update_id", "")) or "",
+                    "source_user_label": source_user_label,
                 },
                 send_reply=_send_if_current,
                 is_authorized_user=is_authorized_user,

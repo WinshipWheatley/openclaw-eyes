@@ -4,8 +4,11 @@ from pathlib import Path
 from operator_universal_intake import (
     JSON_EXPORT_NAME,
     SUPPORTED_ACTION_TYPES,
+    is_universal_operator_intake_candidate,
     parse_operator_intake_text,
+    process_mac_composer_operator_intake,
     process_operator_intake,
+    try_process_surface_operator_intake,
 )
 from watch_desk_feed import build_watch_desk_feed
 
@@ -152,3 +155,171 @@ def test_no_external_or_approval_side_effects_for_supported_local_events(tmp_pat
         "gig_event_log",
         "identity_signature_preference",
     }
+
+
+def test_telegram_style_phrases_route_to_universal_intake(tmp_path):
+    examples = [
+        ("I got paid $900 from Live Arts MD.", "income_payment_log", "Logged income: $900 from Live Arts MD."),
+        ("I spent $106 on Claude Code Fable 5.", "expense_log", "Logged expense: $106 Claude Code Fable 5"),
+        ("I did a St. Anne's gig tonight.", "gig_event_log", "Logged gig: St. Anne's on 2026-06-11."),
+    ]
+
+    for text, action_type, reply_part in examples:
+        routed = try_process_surface_operator_intake(
+            text,
+            surface="telegram",
+            received_at_utc=FIXED_NOW,
+            read_model_root=tmp_path / "read_models",
+            receipt_root=tmp_path / "receipts",
+        )
+        assert routed is not None
+        assert routed["handled"] is True
+        assert routed["action_type"] == action_type
+        assert reply_part in routed["reply"]
+        assert routed["approval_required"] is False
+        assert routed["external_calls_performed"] is False
+
+
+def test_telegram_sign_this_routes_to_clarification_not_mutation(tmp_path):
+    routed = try_process_surface_operator_intake(
+        "Sign this as Winship.",
+        surface="telegram",
+        received_at_utc=FIXED_NOW,
+        read_model_root=tmp_path / "read_models",
+        receipt_root=tmp_path / "receipts",
+    )
+
+    assert routed is not None
+    event = routed["event"]
+    assert event["needs_clarification"] == ["referent:this"]
+    assert event["safe_actions_taken"] == []
+    assert event["receipts"] == []
+    assert "Need the target item" in routed["reply"]
+    assert not (tmp_path / "read_models" / JSON_EXPORT_NAME).exists()
+
+
+def test_route_exclusions_do_not_intercept_approval_reminder_or_generic_chat():
+    exact_send_approval = (
+        "Approve exact send request exact_send_authority_request:abc123 for "
+        "Annette.Sunga@hilton.com."
+    )
+    guardian_text = "Guardian approval request operator_action_approval_request:34EF3C91 approved."
+    draft_approval = (
+        "Cassandra, the Annette follow-up draft is approved with this exact text:\n\n"
+        "Subject: Follow-up on Winship invoice\n\n"
+        "Hi Annette,\n\nPlease follow up.\n\nPrepare the send authority request."
+    )
+
+    assert is_universal_operator_intake_candidate(exact_send_approval) is False
+    assert is_universal_operator_intake_candidate(guardian_text) is False
+    assert is_universal_operator_intake_candidate(draft_approval) is False
+    assert is_universal_operator_intake_candidate("Remind me tomorrow to check the invoice.") is False
+    assert is_universal_operator_intake_candidate("What's the state of Cassandra today?") is False
+
+
+def test_mac_composer_callable_contract_routes_fixture_text(tmp_path):
+    response = process_mac_composer_operator_intake(
+        "Start using Clara Reid.",
+        received_at_utc=FIXED_NOW,
+        read_model_root=tmp_path / "read_models",
+        receipt_root=tmp_path / "receipts",
+    )
+
+    assert response["schema_version"] == "operator_intake_surface_response_v0"
+    assert response["handled"] is True
+    assert response["surface"] == "mac_composer"
+    assert response["action_type"] == "identity_signature_preference"
+    assert response["reply"] == "Staged identity preference: use Clara Reid locally."
+    assert response["approval_required"] is False
+    assert response["external_calls_performed"] is False
+
+
+def test_cassandra_handler_routes_operator_telegram_text_to_universal_intake(monkeypatch, tmp_path):
+    import cassandra_brain
+
+    logged = {}
+    monkeypatch.setattr(cassandra_brain, "record_cassandra_packet_event", lambda query, packet: "event:test")
+    monkeypatch.setattr(cassandra_brain, "load_state", lambda: dict(cassandra_brain._DEFAULT_STATE))
+    monkeypatch.setattr(cassandra_brain, "save_state", lambda state: None)
+    monkeypatch.setattr(cassandra_brain, "answer_date_awareness_query", lambda query: None)
+    monkeypatch.setattr(cassandra_brain, "_handle_operator_objective", lambda *args, **kwargs: None)
+
+    def fail_call(*args, **kwargs):
+        raise AssertionError("universal intake route should not call a model")
+
+    def capture_log(user_text, replies, route="llm", metadata=None):
+        logged["route"] = route
+        logged["replies"] = replies
+        logged["metadata"] = metadata or {}
+
+    monkeypatch.setattr(cassandra_brain, "_call", fail_call)
+    monkeypatch.setattr(cassandra_brain, "_log_conversation", capture_log)
+
+    replies = cassandra_brain.handle(
+        "I got paid $900 from Live Arts MD.",
+        session={
+            "skip_followup_check": True,
+            "source_user_label": "operator",
+            "received_at_utc": FIXED_NOW,
+            "operator_intake_read_model_root": tmp_path / "read_models",
+            "operator_intake_receipt_root": tmp_path / "receipts",
+        },
+    )
+
+    assert replies == ["Logged income: $900 from Live Arts MD. Missing: invoice/project link, payment method."]
+    assert logged["route"] == "universal_operator_intake"
+    assert logged["metadata"]["action_type"] == "income_payment_log"
+    assert logged["metadata"]["approval_required"] is False
+    assert logged["metadata"]["external_calls_performed"] is False
+
+
+def test_cassandra_handler_does_not_route_designated_contact_to_operator_intake(monkeypatch, tmp_path):
+    import cassandra_brain
+
+    monkeypatch.setattr(cassandra_brain, "record_cassandra_packet_event", lambda query, packet: "event:test")
+    monkeypatch.setattr(cassandra_brain, "load_state", lambda: dict(cassandra_brain._DEFAULT_STATE))
+    monkeypatch.setattr(cassandra_brain, "save_state", lambda state: None)
+    monkeypatch.setattr(cassandra_brain, "answer_date_awareness_query", lambda query: None)
+    monkeypatch.setattr(cassandra_brain, "_handle_operator_objective", lambda *args, **kwargs: None)
+    monkeypatch.setattr(cassandra_brain, "_detect_financial_intent", lambda query: None)
+    monkeypatch.setattr(cassandra_brain, "_detect_future_action_intent", lambda query: False)
+    monkeypatch.setattr(cassandra_brain, "_detect_calendar_delete_intent", lambda query: False)
+    monkeypatch.setattr(cassandra_brain, "_detect_calendar_create_intent", lambda query: False)
+    monkeypatch.setattr(cassandra_brain, "_detect_outreach_email_intent", lambda query: False)
+    monkeypatch.setattr(cassandra_brain, "_detect_send_email_intent", lambda query: False)
+    monkeypatch.setattr(cassandra_brain, "_detect_invoice_intent", lambda query: False)
+    monkeypatch.setattr(cassandra_brain, "_detect_file_verify_intent", lambda query: False)
+    monkeypatch.setattr(cassandra_brain, "_detect_payment_verify_intent", lambda query: False)
+    monkeypatch.setattr(cassandra_brain, "detect_finance_status_intent", lambda query: False)
+    monkeypatch.setattr(cassandra_brain, "_call", lambda *args, **kwargs: "normal Cassandra path")
+    monkeypatch.setattr(cassandra_brain, "_pii_tokenize", lambda prompt: (prompt, None))
+    monkeypatch.setattr(cassandra_brain, "_pii_rehydrate_reply", lambda reply, ctx: reply)
+    monkeypatch.setattr(cassandra_brain, "_cassandra_context_clean", lambda *args, **kwargs: False)
+    monkeypatch.setattr(cassandra_brain, "registry_context_for_query", lambda query: None)
+    monkeypatch.setattr(cassandra_brain, "_fetch_calendar_context", lambda query, **kwargs: "")
+    monkeypatch.setattr(cassandra_brain, "_fetch_gmail_context", lambda query, **kwargs: "")
+    monkeypatch.setattr(cassandra_brain, "_fetch_contacts_context", lambda query, **kwargs: "")
+    monkeypatch.setattr(cassandra_brain, "_fetch_payment_verify_context", lambda query, **kwargs: "")
+    monkeypatch.setattr(cassandra_brain, "format_finance_context", lambda query: "")
+    monkeypatch.setattr(cassandra_brain, "_format_reality_context", lambda query: "")
+    monkeypatch.setattr(cassandra_brain, "_format_session_fact_override_context", lambda query, state: "")
+    monkeypatch.setattr(cassandra_brain, "_should_use_deep", lambda query: False)
+    monkeypatch.setattr(cassandra_brain, "_use_small_cassandra_reply_model", lambda query: True)
+    monkeypatch.setattr(cassandra_brain, "gate_reply", lambda reply, query, **kwargs: reply)
+    monkeypatch.setattr(cassandra_brain, "tts_clean", lambda reply: reply)
+    monkeypatch.setattr(cassandra_brain, "build_context_snapshot", lambda state: "")
+    monkeypatch.setattr(cassandra_brain, "is_focus_mode", lambda: False)
+    monkeypatch.setattr(cassandra_brain, "is_social_mode", lambda: False)
+
+    replies = cassandra_brain.handle(
+        "I got paid $900 from Live Arts MD.",
+        session={
+            "skip_followup_check": True,
+            "source_user_label": "designated_contact",
+            "operator_intake_read_model_root": tmp_path / "read_models",
+            "operator_intake_receipt_root": tmp_path / "receipts",
+        },
+    )
+
+    assert replies == ["normal Cassandra path"]
+    assert not (tmp_path / "read_models" / JSON_EXPORT_NAME).exists()
