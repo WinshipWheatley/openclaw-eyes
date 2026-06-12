@@ -431,6 +431,10 @@ def _normalize_topic_text(text: str) -> str:
     return " ".join(re.sub(r"[^a-z0-9'$]+", " ", lowered).split())
 
 
+def _contains_any(normalized_text: str, phrases: Sequence[str]) -> bool:
+    return any(phrase in normalized_text for phrase in phrases)
+
+
 def _canonical_topic_id(topic: str) -> str:
     value = str(topic or "").strip()
     return LEGACY_TOPIC_ALIASES.get(value, value)
@@ -516,6 +520,100 @@ def _looks_like_non_review_operator_action(text: str) -> bool:
     if normalized in {"what broke", "what broke in the build", "can you handle that thing"}:
         return True
     return False
+
+
+def _answer_topic_hint(text: str) -> str:
+    normalized = _normalize_topic_text(text)
+    if not normalized:
+        return ""
+    payment_terms = (
+        "direct deposit",
+        "zelle",
+        "payment instruction",
+        "payment instructions",
+        "payment privacy",
+        "manual approval",
+        "raw payment",
+        "bank",
+        "routing",
+        "account number",
+        "home address",
+        "phone exposure",
+    )
+    check_payment = "check" in normalized and _contains_any(normalized, ("zelle", "payment", "direct deposit"))
+    if _contains_any(normalized, payment_terms) or check_payment:
+        return TOPIC_PAYMENT_PRIVACY
+    if _contains_any(normalized, ("clara reid", "signature", "from name", "from-name", "persona", "winship default")):
+        return TOPIC_PERSONA_IDENTITY
+    if _contains_any(normalized, ("invoice numbering", "invoice number", "payee", "invoice terms", "payment terms")):
+        return TOPIC_INVOICE_POLICY
+    if _contains_any(normalized, ("rate", "client", "payer", "venue", "capital hilton", "live arts", "st anne")):
+        return TOPIC_RATES_CLIENTS_VENUES
+    return ""
+
+
+def _question_topic_hint(question: Mapping[str, Any]) -> str:
+    category = str(question.get("category") or "")
+    text = _normalize_topic_text(
+        " ".join(
+            str(question.get(key) or "")
+            for key in ("category", "question_text", "context_summary", "risk_if_wrong")
+        )
+    )
+    if category == "payment privacy" or _contains_any(
+        text,
+        (
+            "direct deposit",
+            "zelle",
+            "payment instructions",
+            "payment privacy",
+            "payment contact details",
+            "payment or contact details",
+            "trust gated",
+            "raw payment",
+        ),
+    ):
+        return TOPIC_PAYMENT_PRIVACY
+    if category in {"identity/persona policy", "Clara Reid use", "Niles public technical-director use"}:
+        return TOPIC_PERSONA_IDENTITY
+    if category == "invoice numbering/payee policy" or _contains_any(
+        text,
+        ("invoice numbering", "invoice number", "payee", "invoice terms", "payment terms"),
+    ):
+        return TOPIC_INVOICE_POLICY
+    if category in {"rates", "clients/payers", "venues"}:
+        return TOPIC_RATES_CLIENTS_VENUES
+    return ""
+
+
+def _topic_short_label(topic: str) -> str:
+    labels = {
+        TOPIC_PAYMENT_PRIVACY: "payment/privacy",
+        TOPIC_PERSONA_IDENTITY: "identity/persona",
+        TOPIC_INVOICE_POLICY: "invoice policy",
+        TOPIC_RATES_CLIENTS_VENUES: "rates/clients/venues",
+    }
+    return labels.get(_canonical_topic_id(topic), "that topic")
+
+
+def _answer_topic_mismatch(answer_text: str, question: Mapping[str, Any]) -> dict[str, str]:
+    answer_topic = _answer_topic_hint(answer_text)
+    question_topic = _question_topic_hint(question)
+    protected_topics = {
+        TOPIC_PAYMENT_PRIVACY,
+        TOPIC_PERSONA_IDENTITY,
+        TOPIC_INVOICE_POLICY,
+        TOPIC_RATES_CLIENTS_VENUES,
+    }
+    if answer_topic and question_topic and answer_topic != question_topic:
+        if answer_topic in protected_topics and question_topic in protected_topics:
+            return {
+                "answer_topic": answer_topic,
+                "question_topic": question_topic,
+                "answer_topic_label": _topic_short_label(answer_topic),
+                "question_topic_label": _topic_short_label(question_topic),
+            }
+    return {}
 
 
 def _topic_suggestion(topic_id: str) -> dict[str, str]:
@@ -1071,6 +1169,28 @@ def _append_coach_interaction(
             "question_id": question_id,
             "selected_option_id": selected_option_id,
             "created_at_utc": now,
+            "authoritative": False,
+            "runtime_policy_changed": False,
+        }
+    )
+
+
+def _append_topic_mismatch_clarification(
+    session: dict[str, Any],
+    *,
+    question_id: str,
+    now: str,
+    mismatch: Mapping[str, str],
+) -> None:
+    session.setdefault("coach_interactions", []).append(
+        {
+            "schema_version": "REVIEW_COACH_INTERACTION_V0",
+            "command": "topic_mismatch_clarification",
+            "question_id": question_id,
+            "detected_answer_topic": str(mismatch.get("answer_topic") or ""),
+            "active_question_topic": str(mismatch.get("question_topic") or ""),
+            "created_at_utc": now,
+            "answer_recorded": False,
             "authoritative": False,
             "runtime_policy_changed": False,
         }
@@ -1836,22 +1956,38 @@ def process_guided_review_message(
             _mark_current_question(session, status="deferred", now=now)
             reply = _format_question_reply(session, prefix="Deferred.")
         else:
-            _apply_answer(
-                session,
-                raw_text,
-                surface=surface,
-                review_root=root,
-                receipt_root=receipt_root,
-                now=now,
-            )
-            if not session.get("current_question_id"):
-                session = complete_session(session, review_root=root, now=now)
+            question = _question_by_id(session, str(session.get("current_question_id") or ""))
+            mismatch = _answer_topic_mismatch(raw_text, question or {}) if question else {}
+            if mismatch:
+                _enable_coach_mode(session)
+                _append_topic_mismatch_clarification(
+                    session,
+                    question_id=str(question.get("question_id") or "") if question else "",
+                    now=now,
+                    mismatch=mismatch,
+                )
                 reply = (
-                    f"Recorded. All questions are answered, skipped, or deferred. "
-                    f"I wrote the promotion prompt: {_prompt_path(root, str(session['review_session_id'])).as_posix()}"
+                    f"That sounds like a {mismatch['answer_topic_label']} answer, but we're currently reviewing "
+                    f"{mismatch['question_topic_label']}. Should I switch to {mismatch['answer_topic_label']} "
+                    "and record it there? I have not recorded it yet."
                 )
             else:
-                reply = _format_question_reply(session, prefix="Recorded.")
+                _apply_answer(
+                    session,
+                    raw_text,
+                    surface=surface,
+                    review_root=root,
+                    receipt_root=receipt_root,
+                    now=now,
+                )
+                if not session.get("current_question_id"):
+                    session = complete_session(session, review_root=root, now=now)
+                    reply = (
+                        f"Recorded. All questions are answered, skipped, or deferred. "
+                        f"I wrote the promotion prompt: {_prompt_path(root, str(session['review_session_id'])).as_posix()}"
+                    )
+                else:
+                    reply = _format_question_reply(session, prefix="Recorded.")
         session["updated_at_utc"] = now
         _persist_session(session, review_root=root)
 

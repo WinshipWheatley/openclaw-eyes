@@ -274,6 +274,47 @@ def test_revise_previous_supersedes_old_answer_and_rewinds(tmp_path):
     assert active_answers[0]["question_id"] == first_question_id
 
 
+def test_direct_deposit_answer_is_not_recorded_against_identity_question(tmp_path):
+    _start(tmp_path)
+    first = guided.process_guided_review_message(
+        "use your recommendation",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:01:00+00:00",
+    )
+    first_session = _load_session(first)
+    identity_question_id = first_session["current_question_id"]
+    identity_question = next(
+        question for question in first_session["question_queue"] if question["question_id"] == identity_question_id
+    )
+
+    assert identity_question["category"] == "identity/persona policy"
+
+    mismatch = guided.process_guided_review_message(
+        "Direct deposit stays manual approval only. Zelle and check are okay by default.",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:02:00+00:00",
+    )
+    session = _load_session(mismatch)
+
+    assert "That sounds like a payment/privacy answer" in mismatch["reply_text"]
+    assert "we're currently reviewing identity/persona" in mismatch["reply_text"]
+    assert "I have not recorded it yet" in mismatch["reply_text"]
+    assert session["current_question_id"] == identity_question_id
+    assert len(session["answer_records"]) == 1
+    assert len(session["receipt_refs"]) == 1
+    assert session["answered_questions"] == first_session["answered_questions"]
+    assert all(
+        "Direct deposit stays manual approval only" not in answer["raw_answer_text"]
+        for answer in session["answer_records"]
+    )
+    assert session["coach_interactions"][-1]["command"] == "topic_mismatch_clarification"
+    assert session["coach_interactions"][-1]["answer_recorded"] is False
+    assert session["runtime_policy_changed"] is False
+    assert session["authoritative"] is False
+
+
 def test_cpa_and_legal_flags_propagate_to_answers_and_receipts(tmp_path):
     promotion = _promotion_review(tmp_path / "review" / "promotion_review.json")
     rates = guided.process_guided_review_message(
