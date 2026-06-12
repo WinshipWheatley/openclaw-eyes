@@ -15,6 +15,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
+from cassandra_review_coach import build_coach_card, coach_command, detect_coach_intent, render_coach_reply
+
 
 ROOT = Path(__file__).resolve().parent
 DEFAULT_REVIEW_ROOT = Path("/tmp/openclaw-mission-control/operator_skill_factory_v0")
@@ -50,7 +52,20 @@ AUTHORITY_BOUNDARY = {
     "tax_or_legal_advice_given": False,
 }
 
-CONTROL_WORDS = {"skip", "defer", "done", "summarize", "summary", "next", "next question", "revise previous"}
+CONTROL_WORDS = {
+    "skip",
+    "defer",
+    "done",
+    "summarize",
+    "summary",
+    "next",
+    "next question",
+    "revise previous",
+    "why",
+    "recommend",
+    "examples",
+    "use your recommendation",
+}
 
 EXCLUDED_ROUTE_TERMS = (
     "approve exact send request",
@@ -377,6 +392,9 @@ def _relative_or_absolute(path: Path) -> str:
 
 
 def _control_text(text: str) -> str:
+    command = coach_command(text)
+    if command:
+        return command
     lowered = " ".join(text.strip().lower().split())
     lowered = lowered.strip(" .!?")
     if lowered in {"summary", "summarize", "summarise"}:
@@ -390,7 +408,7 @@ def _control_text(text: str) -> str:
     if lowered in {"next", "next question"}:
         return "next question"
     if lowered in {"revise previous", "revise last", "change previous", "change last"}:
-        return "revise previous"
+        return "revise_previous"
     return ""
 
 
@@ -462,6 +480,11 @@ def _has_review_intent(normalized_text: str) -> bool:
         "still need to answer",
         "need to answer",
         "work better",
+        "coach",
+        "coach me through",
+        "help me think through",
+        "help me decide",
+        "walk me through",
     )
     return any(term in normalized_text for term in review_terms)
 
@@ -790,8 +813,6 @@ def _category_for_record(record: Mapping[str, Any]) -> str:
         return "Niles public technical-director use"
     if "log rhythm" in text:
         return "Log Rhythm exclusion"
-    if any(term in text for term in ("identity", "winship", "sender", "persona")):
-        return "identity/persona policy"
     if any(term in text for term in ("rate", "$500", "$125", "$62.50", "speaker rental", "a/v")):
         return "rates"
     if any(term in text for term in ("client", "payer", "capital hilton", "statler", "live arts", "st. anne", "annapolis choral", "annette", "will")):
@@ -804,6 +825,8 @@ def _category_for_record(record: Mapping[str, Any]) -> str:
         return "expense categories"
     if str(record.get("review_category") or "") == "do_not_import":
         return "do-not-import rules"
+    if any(term in text for term in ("identity", "winship", "sender", "persona")):
+        return "identity/persona policy"
     return "data room review"
 
 
@@ -863,7 +886,7 @@ def _topic_matches(record: Mapping[str, Any], topic: str) -> bool:
     category = _category_for_record(record)
     if topic == TOPIC_PERSONA_IDENTITY:
         return category in {"identity/persona policy", "Clara Reid use", "Niles public technical-director use"} or any(
-            term in text for term in ("clara", "winship", "sender", "signature", "persona", "identity", "niles")
+            term in text for term in ("clara", "sender", "signature", "persona", "identity", "niles")
         )
     if topic == TOPIC_INVOICE_POLICY:
         return category == "invoice numbering/payee policy" or any(
@@ -975,6 +998,9 @@ def create_data_room_review_session(
         "generated_prompt_refs": [],
         "receipt_refs": [],
         "watch_desk_refs": [],
+        "coach_mode_enabled": True,
+        "coaching_style": "concise",
+        "coach_interactions": [],
         "authoritative": False,
         "runtime_policy_changed": False,
     }
@@ -1003,6 +1029,52 @@ def _replace_question(session: dict[str, Any], updated: Mapping[str, Any]) -> No
             queue[index] = dict(updated)
             session["question_queue"] = queue
             return
+
+
+def _coach_mode_enabled(session: Mapping[str, Any]) -> bool:
+    return bool(session.get("coach_mode_enabled"))
+
+
+def _enable_coach_mode(session: dict[str, Any], *, style: str = "concise") -> None:
+    session["coach_mode_enabled"] = True
+    session.setdefault("coaching_style", style)
+    session.setdefault("coach_interactions", [])
+
+
+def _coach_card_for_question(session: dict[str, Any], question: Mapping[str, Any]) -> dict[str, Any]:
+    current = question.get("coach_card")
+    if isinstance(current, Mapping) and current.get("schema_version") == "REVIEW_COACH_CARD_V0":
+        card = dict(current)
+    else:
+        card = build_coach_card(question)
+        updated = dict(question)
+        updated["coach_card"] = card
+        _replace_question(session, updated)
+    progress = _progress(session)
+    card["question_number"] = progress["current_number"]
+    card["question_total"] = progress["total"]
+    return card
+
+
+def _append_coach_interaction(
+    session: dict[str, Any],
+    *,
+    command: str,
+    question_id: str,
+    now: str,
+    selected_option_id: str = "",
+) -> None:
+    session.setdefault("coach_interactions", []).append(
+        {
+            "schema_version": "REVIEW_COACH_INTERACTION_V0",
+            "command": command,
+            "question_id": question_id,
+            "selected_option_id": selected_option_id,
+            "created_at_utc": now,
+            "authoritative": False,
+            "runtime_policy_changed": False,
+        }
+    )
 
 
 def _next_unanswered_question_id(session: Mapping[str, Any], *, after_question_id: str = "") -> str:
@@ -1076,6 +1148,18 @@ def _format_question_reply(session: Mapping[str, Any], *, prefix: str = "") -> s
     question = _question_by_id(session, question_id)
     if not question:
         return "No active question is available. Say done to generate the promotion prompt."
+    if _coach_mode_enabled(session):
+        session_dict = dict(session)
+        card = _coach_card_for_question(session_dict, question)
+        if isinstance(session, dict):
+            session.update(session_dict)
+        reply = render_coach_reply(
+            card,
+            "question",
+            surface=str(session.get("surface") or "telegram"),
+            style=str(session.get("coaching_style") or "concise"),
+        )
+        return f"{prefix}\n\n{reply}" if prefix else reply
     progress = _progress(session)
     lead = f"{prefix}\n\n" if prefix else ""
     return (
@@ -1109,6 +1193,10 @@ def _write_answer_receipt(
         "answer_id": answer["answer_id"],
         "normalized_answer": answer["normalized_answer"],
         "affected_records": answer["affected_record_ids"],
+        "selected_option_id": str(answer.get("selected_option_id") or ""),
+        "needs_professional_review": bool(answer.get("needs_professional_review")),
+        "cpa_review_recommended": bool(answer.get("cpa_review_recommended")),
+        "legal_review_recommended": bool(answer.get("legal_review_recommended")),
         "authoritative": False,
         "runtime_policy_changed": False,
         "external_calls_performed": False,
@@ -1129,6 +1217,8 @@ def _apply_answer(
     review_root: Path,
     receipt_root: str | Path | None,
     now: str,
+    selected_option_id: str = "",
+    selected_option_label: str = "",
 ) -> None:
     question_id = str(session.get("current_question_id") or "")
     question = _question_by_id(session, question_id)
@@ -1136,6 +1226,9 @@ def _apply_answer(
         return
     normalized, confidence, sensitive = _normalize_answer(answer_text, question)
     redacted_raw, _ = _redact_sensitive_text(answer_text)
+    card = _coach_card_for_question(session, question) if _coach_mode_enabled(session) else {}
+    cpa_flag = bool(card.get("cpa_review_recommended"))
+    legal_flag = bool(card.get("legal_review_recommended"))
     answer = {
         "schema_version": ANSWER_SCHEMA_VERSION,
         "answer_id": _answer_id(session["review_session_id"], question_id, redacted_raw, now),
@@ -1144,12 +1237,19 @@ def _apply_answer(
         "raw_answer_text": redacted_raw,
         "normalized_answer": normalized,
         "affected_record_ids": list(question.get("affected_records") or question.get("source_record_ids") or []),
+        "selected_option_id": selected_option_id,
+        "selected_option_label": selected_option_label,
         "confidence": confidence,
         "needs_followup": normalized.startswith("needs_followup:"),
+        "needs_professional_review": bool(cpa_flag or legal_flag),
+        "cpa_review_recommended": cpa_flag,
+        "legal_review_recommended": legal_flag,
         "created_at_utc": now,
         "source_surface": surface,
         "authoritative": False,
         "review_status": "answered_pending_promotion",
+        "active_for_promotion": True,
+        "superseded": False,
         "runtime_policy_changed": False,
         "sensitive_detail_redacted": sensitive,
     }
@@ -1158,12 +1258,72 @@ def _apply_answer(
     question["answer_status"] = "answered"
     question["answer_text"] = redacted_raw
     question["normalized_answer"] = normalized
+    question["selected_option_id"] = selected_option_id
+    question["needs_professional_review"] = bool(cpa_flag or legal_flag)
+    question["cpa_review_recommended"] = cpa_flag
+    question["legal_review_recommended"] = legal_flag
     question["authoritative"] = False
     _replace_question(session, question)
     session.setdefault("answer_records", []).append(answer)
     session.setdefault("receipt_refs", []).append(receipt_ref)
     session["current_question_id"] = _next_unanswered_question_id(session, after_question_id=question_id)
     _refresh_session_lists(session)
+
+
+def _active_answer_records(session: Mapping[str, Any]) -> list[dict[str, Any]]:
+    answers: list[dict[str, Any]] = []
+    for answer in session.get("answer_records", []):
+        if not isinstance(answer, Mapping):
+            continue
+        if answer.get("superseded") or answer.get("review_status") == "superseded":
+            continue
+        answers.append(dict(answer))
+    return answers
+
+
+def _latest_active_answer(session: Mapping[str, Any]) -> dict[str, Any] | None:
+    for answer in reversed(list(session.get("answer_records", []))):
+        if not isinstance(answer, Mapping):
+            continue
+        if answer.get("superseded") or answer.get("review_status") == "superseded":
+            continue
+        if answer.get("review_status") == "answered_pending_promotion":
+            return dict(answer)
+    return None
+
+
+def _rewind_to_previous_answer(session: dict[str, Any], *, now: str) -> str:
+    previous = _latest_active_answer(session)
+    if not previous:
+        return ""
+    previous_answer_id = str(previous.get("answer_id") or "")
+    question_id = str(previous.get("question_id") or "")
+    for answer in session.get("answer_records", []):
+        if isinstance(answer, dict) and answer.get("answer_id") == previous_answer_id:
+            answer["superseded"] = True
+            answer["active_for_promotion"] = False
+            answer["review_status"] = "superseded"
+            answer["superseded_at_utc"] = now
+            break
+    question = _question_by_id(session, question_id)
+    if question:
+        question["answer_status"] = "unanswered"
+        question["answer_text"] = ""
+        question["normalized_answer"] = ""
+        question["selected_option_id"] = ""
+        question["authoritative"] = False
+        _replace_question(session, question)
+    session["current_question_id"] = question_id
+    _refresh_session_lists(session)
+    return question_id
+
+
+def _recommended_option(card: Mapping[str, Any]) -> dict[str, Any]:
+    options = [option for option in card.get("options", []) if isinstance(option, Mapping)]
+    for option in options:
+        if option.get("recommended"):
+            return dict(option)
+    return dict(options[0]) if options else {}
 
 
 def _mark_current_question(
@@ -1223,16 +1383,35 @@ def _write_operator_summary(session: Mapping[str, Any], *, review_root: Path) ->
         f"- Deferred: {progress['deferred']}",
         f"- Skipped: {progress['skipped']}",
         f"- Remaining: {progress['remaining']}",
+        f"- Coach mode: {str(bool(session.get('coach_mode_enabled'))).lower()}",
         f"- Authoritative: false",
         f"- Runtime policy changed: false",
         "",
         "## Answers",
     ]
-    if session.get("answer_records"):
-        for answer in session["answer_records"]:
-            lines.append(f"- * {answer['question_id']}: {answer['normalized_answer']}")
+    active_answers = _active_answer_records(session)
+    if active_answers:
+        for answer in active_answers:
+            professional = ""
+            if answer.get("cpa_review_recommended") and answer.get("legal_review_recommended"):
+                professional = " [CPA/legal review before promotion]"
+            elif answer.get("cpa_review_recommended"):
+                professional = " [CPA review before promotion]"
+            elif answer.get("legal_review_recommended"):
+                professional = " [legal review before promotion]"
+            selected = f" option={answer['selected_option_id']}" if answer.get("selected_option_id") else ""
+            lines.append(f"- * {answer['question_id']}{selected}: {answer['normalized_answer']}{professional}")
     else:
         lines.append("- * No answers recorded.")
+    superseded = [
+        answer
+        for answer in session.get("answer_records", [])
+        if isinstance(answer, Mapping) and (answer.get("superseded") or answer.get("review_status") == "superseded")
+    ]
+    if superseded:
+        lines.extend(["", "## Superseded Answers"])
+        for answer in superseded:
+            lines.append(f"- * Ignored for promotion: {answer.get('answer_id')} for {answer.get('question_id')}")
     lines.extend(["", "## Unresolved Questions"])
     unresolved = set(session.get("unresolved_questions", []))
     for question in session.get("question_queue", []):
@@ -1247,6 +1426,32 @@ def _write_promotion_prompt(session: Mapping[str, Any], *, review_root: Path) ->
     path = _prompt_path(review_root, str(session["review_session_id"]))
     promotion_refs = [ref for ref in session.get("source_artifact_refs", []) if "promotion_review" in str(ref)]
     promotion_ref = promotion_refs[0] if promotion_refs else "openclaw_data_room_promotion_review_v0.json"
+    active_answers = _active_answer_records(session)
+    answer_lines = []
+    flagged_lines = []
+    for answer in active_answers:
+        selected = f"; selected_option_id={answer.get('selected_option_id')}" if answer.get("selected_option_id") else ""
+        flags = []
+        if answer.get("cpa_review_recommended"):
+            flags.append("CPA review recommended")
+        if answer.get("legal_review_recommended"):
+            flags.append("legal review recommended")
+        flag_text = f"; professional_review_flags={', '.join(flags)}" if flags else ""
+        line = f"- {answer.get('question_id')}: {answer.get('normalized_answer')}{selected}{flag_text}"
+        answer_lines.append(line)
+        if flags:
+            flagged_lines.append(line)
+    superseded_answers = [
+        answer
+        for answer in session.get("answer_records", [])
+        if isinstance(answer, Mapping) and (answer.get("superseded") or answer.get("review_status") == "superseded")
+    ]
+    rendered_answers = "\n".join(answer_lines) if answer_lines else "- No active coach answers recorded."
+    rendered_flags = "\n".join(flagged_lines) if flagged_lines else "- No CPA/legal professional-review flags on active answers."
+    rendered_superseded = "\n".join(
+        f"- Ignore superseded answer {answer.get('answer_id')} for {answer.get('question_id')}"
+        for answer in superseded_answers
+    ) or "- No superseded answers."
     prompt = f"""Task: OPENCLAW_DATA_ROOM_CONFIRMED_REFERENCE_PROMOTION_V0
 
 Repo:
@@ -1259,8 +1464,19 @@ Inputs:
 - Answer artifact: {session_path.as_posix()}
 - Promotion review artifact: {promotion_ref}
 
+Active coach answers:
+{rendered_answers}
+
+Professional-review flags:
+{rendered_flags}
+
+Superseded answers:
+{rendered_superseded}
+
 Rules:
 - Promote only answered/confirmed items with sufficient confidence.
+- Ignore superseded answers.
+- Keep CPA/legal-flagged items provisional pending professional review.
 - Keep unresolved, skipped, deferred, source-needed, and ambiguous items provisional.
 - Preserve conflicts that Winship did not explicitly resolve.
 - Do not import raw bank, routing, account, tax, SSN, EIN, token, credential, OAuth, API key, secret, or private-note material.
@@ -1311,6 +1527,9 @@ def _session_read_model_item(session: Mapping[str, Any]) -> dict[str, Any]:
     status = str(session.get("status") or "active")
     verb = "in progress" if status in {"active", "paused"} else status
     topic_display = str(session.get("topic_display_name") or _topic_display_name(str(session.get("topic") or TOPIC_DATA_ROOM)))
+    active_answers = _active_answer_records(session)
+    cpa_flagged_count = len([answer for answer in active_answers if answer.get("cpa_review_recommended")])
+    legal_flagged_count = len([answer for answer in active_answers if answer.get("legal_review_recommended")])
     return {
         "item_id": f"guided_review:{session_id}",
         "lane": "chief_runtime",
@@ -1326,6 +1545,9 @@ def _session_read_model_item(session: Mapping[str, Any]) -> dict[str, Any]:
         "topic_id": str(session.get("topic") or ""),
         "topic_display_name": topic_display,
         "status": status,
+        "coach_mode": bool(session.get("coach_mode_enabled")),
+        "cpa_flagged_count": cpa_flagged_count,
+        "legal_flagged_count": legal_flagged_count,
         "answered_count": progress["answered"],
         "deferred_count": progress["deferred"],
         "remaining_count": progress["remaining"],
@@ -1481,6 +1703,7 @@ def process_guided_review_message(
                 promotion_review_path=promotion_review_path,
                 created_at_utc=now,
             )
+            session["coach_start_phrase_detected"] = detect_coach_intent(raw_text)
         except (OSError, json.JSONDecodeError, ValueError) as exc:
             blocked = {
                 "schema_version": SESSION_SCHEMA_VERSION,
@@ -1528,7 +1751,73 @@ def process_guided_review_message(
             return None
         if not control and not resolution.get("should_resume_active_session") and not topic and _looks_like_non_review_operator_action(raw_text):
             return None
-        if not control and (resolution.get("should_resume_active_session") or topic):
+        if control in {"why", "recommend", "examples"}:
+            _enable_coach_mode(session)
+            question = _question_by_id(session, str(session.get("current_question_id") or ""))
+            if not question:
+                reply = "No active question is available. Say done to generate the promotion prompt."
+            else:
+                card = _coach_card_for_question(session, question)
+                _append_coach_interaction(
+                    session,
+                    command=control,
+                    question_id=str(question.get("question_id") or ""),
+                    now=now,
+                )
+                reply = render_coach_reply(
+                    card,
+                    control,
+                    surface=surface,
+                    style=str(session.get("coaching_style") or "concise"),
+                )
+        elif control == "use_recommendation":
+            _enable_coach_mode(session)
+            question = _question_by_id(session, str(session.get("current_question_id") or ""))
+            if not question:
+                reply = "No active question is available. Say done to generate the promotion prompt."
+            else:
+                card = _coach_card_for_question(session, question)
+                option = _recommended_option(card)
+                selected_option_id = str(option.get("option_id") or "recommended_default")
+                selected_option_label = str(option.get("label") or "recommended default")
+                answer_text = str(option.get("answer_text") or card.get("recommended_default") or selected_option_label)
+                _append_coach_interaction(
+                    session,
+                    command=control,
+                    question_id=str(question.get("question_id") or ""),
+                    selected_option_id=selected_option_id,
+                    now=now,
+                )
+                _apply_answer(
+                    session,
+                    answer_text,
+                    surface=surface,
+                    review_root=root,
+                    receipt_root=receipt_root,
+                    now=now,
+                    selected_option_id=selected_option_id,
+                    selected_option_label=selected_option_label,
+                )
+                if not session.get("current_question_id"):
+                    session = complete_session(session, review_root=root, now=now)
+                    reply = (
+                        f"Recorded my recommendation. All questions are answered, skipped, or deferred. "
+                        f"I wrote the promotion prompt: {_prompt_path(root, str(session['review_session_id'])).as_posix()}"
+                    )
+                else:
+                    reply = _format_question_reply(session, prefix="Recorded my recommendation.")
+        elif control == "revise_previous":
+            _enable_coach_mode(session)
+            question_id = _rewind_to_previous_answer(session, now=now)
+            if not question_id:
+                reply = "I do not have a previous answer to revise yet."
+            else:
+                _append_coach_interaction(session, command=control, question_id=question_id, now=now)
+                reply = _format_question_reply(
+                    session,
+                    prefix="I reopened the previous answered question. The old answer stays in the audit trail but is ignored for promotion.",
+                )
+        elif not control and (resolution.get("should_resume_active_session") or topic):
             topic_display = str(session.get("topic_display_name") or _topic_display_name(str(session.get("topic") or TOPIC_DATA_ROOM)))
             reply = _format_question_reply(session, prefix=f"Continuing the active {topic_display}.")
         elif control == "summarize":
@@ -1546,8 +1835,6 @@ def process_guided_review_message(
         elif control == "defer":
             _mark_current_question(session, status="deferred", now=now)
             reply = _format_question_reply(session, prefix="Deferred.")
-        elif control == "revise previous":
-            reply = "Send the corrected answer now. I will record it against the current question unless you say done."
         else:
             _apply_answer(
                 session,

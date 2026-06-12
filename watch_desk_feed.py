@@ -151,6 +151,7 @@ def _new_item(
         "plain_line": plain_line,
         "source_receipt_ref": source_receipt_ref,
         "one_next_safe_action": one_next_safe_action,
+        "state": dict(state),
         "state_hash": _hash_state(state),
         "push_allowed": False,
         "push_candidate": push_candidate,
@@ -649,6 +650,9 @@ def _guided_review_items(read_model: Mapping[str, Any]) -> list[dict[str, Any]]:
                 state={
                     "review_session_id": str(item.get("review_session_id") or ""),
                     "status": status,
+                    "coach_mode": bool(item.get("coach_mode")),
+                    "cpa_flagged_count": _safe_int(item.get("cpa_flagged_count")),
+                    "legal_flagged_count": _safe_int(item.get("legal_flagged_count")),
                     "answered_count": _safe_int(item.get("answered_count")),
                     "deferred_count": _safe_int(item.get("deferred_count")),
                     "remaining_count": _safe_int(item.get("remaining_count")),
