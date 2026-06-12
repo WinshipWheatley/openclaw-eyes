@@ -476,7 +476,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if wav_path is not None:
                 send_voice_note(str(wav_path), chat_id=str(sender_chat_id))
     except Exception as e:
-        print(f"[cassandra_listener] voice error (suppressed): {e}", flush=True)
+        print(f"[VOICE_SIDE_EFFECT] cassandra_listener voice_reply_error: {e}", flush=True)
 
 
 # ── Voice input handler (Whisper relay) ──────────────────────────────────────
@@ -560,7 +560,7 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if wav_path is not None:
                 send_voice_note(str(wav_path), chat_id=str(sender_chat_id))
     except Exception as e:
-        print(f"[cassandra_listener] voice reply error (suppressed): {e}", flush=True)
+        print(f"[VOICE_SIDE_EFFECT] cassandra_listener voice_reply_error: {e}", flush=True)
 
 
 def main() -> None:
