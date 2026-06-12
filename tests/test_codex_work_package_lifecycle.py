@@ -1,5 +1,6 @@
 import json
 import sqlite3
+import subprocess
 import sys
 from pathlib import Path
 
@@ -426,6 +427,30 @@ def test_cli_list_show_dispatch_and_ingest_fixture_result(tmp_path, capsys):
     ingested = json.loads(capsys.readouterr().out)
     assert ingested["validation_receipt"]["validation_status"] == "validation_passed"
     assert ingested["package_state"]["state"] == lifecycle.STATE_VALIDATION_PASSED
+
+
+def test_cli_script_runs_directly_from_repo_root(tmp_path):
+    _minimal_package(tmp_path)
+    result = subprocess.run(
+        [
+            sys.executable,
+            "scripts/openclaw_run.py",
+            "--sqlite-path",
+            str(tmp_path / "codex_work_package_lifecycle.sqlite"),
+            "--package-root",
+            str(tmp_path / "work_packages"),
+            "status",
+        ],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    payload = json.loads(result.stdout)
+    assert payload["status"] == "OPENCLAW_CODEX_WORK_PACKAGE_LIFECYCLE_READY"
+    assert payload["sqlite_path"].endswith("codex_work_package_lifecycle.sqlite")
 
 
 def test_legacy_tmp_package_file_fallback(tmp_path):
