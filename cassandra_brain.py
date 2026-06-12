@@ -58,6 +58,7 @@ from business_ops_intent import classify_business_ops_intent
 from hitl_pending_store import propose_action as _hitl_propose
 from cassandra_custom_tools import handle_operator_objective as _handle_operator_objective
 from operator_universal_intake import try_process_surface_operator_intake as _try_universal_operator_intake
+from cassandra_guided_review import process_guided_review_message as _process_guided_review_message
 from cassandra_pii_hooks import (
     tokenize_prompt as _pii_tokenize,
     rehydrate_reply as _pii_rehydrate_reply,
@@ -5780,6 +5781,46 @@ def handle(text: str, session: dict | None = None) -> list[str]:
 
     query = _strip_prefix(text)
     if str(session_meta.get("source_user_label") or "operator") == "operator":
+        guided_review_kwargs: dict[str, Any] = {}
+        if session_meta.get("received_at_utc"):
+            guided_review_kwargs["generated_at_utc"] = str(session_meta["received_at_utc"])
+        if session_meta.get("guided_review_root"):
+            guided_review_kwargs["review_root"] = session_meta["guided_review_root"]
+        if session_meta.get("guided_review_read_model_root"):
+            guided_review_kwargs["read_model_root"] = session_meta["guided_review_read_model_root"]
+        if session_meta.get("guided_review_receipt_root"):
+            guided_review_kwargs["receipt_root"] = session_meta["guided_review_receipt_root"]
+        if session_meta.get("guided_review_promotion_review_path"):
+            guided_review_kwargs["promotion_review_path"] = session_meta["guided_review_promotion_review_path"]
+        guided_review_response = _process_guided_review_message(
+            query,
+            surface="telegram",
+            operator="Winship",
+            **guided_review_kwargs,
+        )
+        if guided_review_response is not None:
+            reply = [str(guided_review_response["reply_text"])]
+            save_state(state)
+            _log_conversation(
+                text,
+                reply,
+                route="guided_review_session",
+                metadata={
+                    "event_id": event_id,
+                    "review_session_id": guided_review_response.get("review_session_id", ""),
+                    "current_question_id": guided_review_response.get("current_question_id", ""),
+                    "status": guided_review_response.get("status", ""),
+                    "progress": guided_review_response.get("progress", {}),
+                    "artifact_refs": guided_review_response.get("artifact_refs", {}),
+                    "receipt_refs": guided_review_response.get("receipt_refs", []),
+                    "watch_desk_refs": guided_review_response.get("watch_desk_refs", []),
+                    "authoritative": False,
+                    "runtime_policy_changed": False,
+                    "external_calls_performed": False,
+                },
+            )
+            return reply
+
         intake_kwargs: dict[str, Any] = {}
         if session_meta.get("received_at_utc"):
             intake_kwargs["received_at_utc"] = str(session_meta["received_at_utc"])

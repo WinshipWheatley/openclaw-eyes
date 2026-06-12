@@ -46,6 +46,7 @@ SYNC_HEALTH_REF = "generated/read_models/sync_health.json"
 SERVICE_KEEPER_REF = "generated/read_models/openclaw_service_keeper_status.json"
 PROOF_TO_RESPONSE_REF = "generated/read_models/proof_to_response_latest.json"
 OPERATOR_INTAKE_REF = "generated/read_models/operator_intake_events.json"
+GUIDED_REVIEW_REF = "generated/read_models/guided_review_sessions.json"
 
 
 def utc_now() -> str:
@@ -618,6 +619,46 @@ def _operator_intake_items(
     return feed_items, freshness
 
 
+def _guided_review_items(read_model: Mapping[str, Any]) -> list[dict[str, Any]]:
+    if not read_model:
+        return []
+    items: list[dict[str, Any]] = []
+    top_items = read_model.get("watch_desk_items")
+    if not isinstance(top_items, list):
+        return items
+    for item in top_items:
+        if not isinstance(item, Mapping):
+            continue
+        item_id = str(item.get("item_id") or "").strip()
+        plain_line = str(item.get("plain_line") or "").strip()
+        source_ref = str(item.get("source_receipt_ref") or "").strip()
+        if not item_id or not plain_line or not source_ref:
+            continue
+        status = str(item.get("status") or "")
+        items.append(
+            _new_item(
+                item_id=item_id,
+                lane="chief_runtime",
+                urgency=str(item.get("urgency") or ("needs_operator" if status in {"active", "paused"} else "info")),
+                plain_line=plain_line,
+                source_receipt_ref=source_ref,
+                one_next_safe_action=str(
+                    item.get("one_next_safe_action")
+                    or "Continue the guided review with Cassandra, or say done to generate the promotion prompt."
+                ),
+                state={
+                    "review_session_id": str(item.get("review_session_id") or ""),
+                    "status": status,
+                    "answered_count": _safe_int(item.get("answered_count")),
+                    "deferred_count": _safe_int(item.get("deferred_count")),
+                    "remaining_count": _safe_int(item.get("remaining_count")),
+                },
+                push_class=str(item.get("push_class") or "info"),
+            )
+        )
+    return items
+
+
 def _dedupe_items(items: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
     deduped: dict[str, dict[str, Any]] = {}
     for item in items:
@@ -686,7 +727,10 @@ def build_watch_desk_feed(
         _load_json(read_root / Path(OPERATOR_INTAKE_REF).name),
         feed_generated_at=generated_at,
     )
-    feed_items = _dedupe_items([item for item in candidate_items if item is not None] + operator_intake_items)
+    guided_review_items = _guided_review_items(_load_json(read_root / Path(GUIDED_REVIEW_REF).name))
+    feed_items = _dedupe_items(
+        [item for item in candidate_items if item is not None] + operator_intake_items + guided_review_items
+    )
     source_refs = sorted({item["source_receipt_ref"] for item in feed_items})
     new_candidates = _push_candidates(feed_items, previous_item_states)
 
