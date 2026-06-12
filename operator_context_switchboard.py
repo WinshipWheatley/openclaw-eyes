@@ -10,7 +10,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
@@ -108,6 +108,21 @@ def _normalize(text: str) -> str:
     return " ".join(re.sub(r"[^a-z0-9'$.:_-]+", " ", lowered).split())
 
 
+def _parse_utc(value: Any) -> datetime | None:
+    if not value:
+        return None
+    text = str(value).strip()
+    if not text:
+        return None
+    try:
+        parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
 def _display_topic(context: Mapping[str, Any] | None) -> str:
     if not context:
         return "current task"
@@ -198,6 +213,45 @@ def _pending_reply(text: str, active_context: Mapping[str, Any] | None) -> bool:
     }
 
 
+def _pending_switchboard_clarification(contexts: Sequence[Mapping[str, Any]]) -> Mapping[str, Any] | None:
+    for context in reversed(list(contexts)):
+        if str(context.get("context_type") or "") != "switchboard_clarification":
+            continue
+        if str(context.get("status") or "") != "pending":
+            continue
+        pending = context.get("pending_interaction")
+        if isinstance(pending, Mapping) and pending.get("clarification_type") == "current_or_new_task":
+            return context
+    return None
+
+
+def _clarification_resolution(text: str) -> str:
+    normalized = _normalize(text).strip(". ")
+    current_terms = {
+        "current",
+        "current question",
+        "this question",
+        "the current question",
+        "stay here",
+        "keep it here",
+        "review question",
+        "data room question",
+    }
+    new_task_terms = {
+        "new",
+        "new task",
+        "a new task",
+        "route it as a new task",
+        "separate task",
+        "something new",
+    }
+    if normalized in current_terms:
+        return "current_question"
+    if normalized in new_task_terms:
+        return "new_task"
+    return ""
+
+
 def _current_task_control(text: str) -> str:
     command = coach_command(text)
     if command:
@@ -257,10 +311,22 @@ def _ambiguous_command(text: str) -> bool:
     }
 
 
-def _health_or_status_note(text: str) -> bool:
+def _health_or_status_note(text: str, active_context: Mapping[str, Any] | None = None) -> bool:
     normalized = _normalize(text)
     if "system health" in normalized or "health check" in normalized:
         return False
+    explicit_marker = any(
+        normalized.startswith(marker)
+        for marker in (
+            "health update:",
+            "status note:",
+            "wellbeing update:",
+            "well being update:",
+            "operator status:",
+        )
+    )
+    if active_context:
+        return explicit_marker
     return any(
         phrase in normalized
         for phrase in (
@@ -318,14 +384,55 @@ def _active_context_stack_from_read_model(read_model_root: str | Path | None) ->
     return [dict(item) for item in contexts if isinstance(item, Mapping)]
 
 
+def _context_semantic_key(context: Mapping[str, Any]) -> str:
+    context_type = str(context.get("context_type") or "")
+    topic = str(context.get("topic") or "")
+    owner_agent = str(context.get("owner_agent") or "")
+    if context_type and topic and owner_agent:
+        return f"{context_type}\0{topic}\0{owner_agent}"
+    return ""
+
+
+def _context_expired(context: Mapping[str, Any], generated_at: str) -> bool:
+    if str(context.get("context_type") or "") != "operator_status_note":
+        return False
+    if str(context.get("status") or "") != "completed":
+        return False
+    generated = _parse_utc(generated_at)
+    last_turn = _parse_utc(context.get("last_turn_at_utc"))
+    if generated is None or last_turn is None:
+        return False
+    return generated - last_turn >= timedelta(hours=24)
+
+
+def _dedupe_contexts(contexts: Sequence[Mapping[str, Any]], generated_at: str) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    indexes: dict[str, int] = {}
+    for context in contexts:
+        row = dict(context)
+        if _context_expired(row, generated_at):
+            continue
+        key = _context_semantic_key(row) or str(row.get("active_context_id") or "")
+        if key and key in indexes:
+            rows[indexes[key]] = row
+            continue
+        if key:
+            indexes[key] = len(rows)
+        rows.append(row)
+    return rows
+
+
 def _upsert_context(contexts: list[dict[str, Any]], context: Mapping[str, Any]) -> list[dict[str, Any]]:
     context_id = str(context.get("active_context_id") or "")
-    if not context_id:
+    semantic_key = _context_semantic_key(context)
+    if not context_id and not semantic_key:
         return contexts
     updated = False
     rows: list[dict[str, Any]] = []
     for item in contexts:
-        if str(item.get("active_context_id") or "") == context_id:
+        item_id = str(item.get("active_context_id") or "")
+        item_key = _context_semantic_key(item)
+        if (context_id and item_id == context_id) or (semantic_key and item_key == semantic_key):
             rows.append(dict(context))
             updated = True
         else:
@@ -385,7 +492,7 @@ def write_operator_active_contexts_read_model(
     generated_at_utc: str | None = None,
 ) -> Path:
     generated_at = generated_at_utc or utc_now()
-    context_rows = [dict(item) for item in contexts]
+    context_rows = _dedupe_contexts(contexts, generated_at)
     decision_rows = [dict(item) for item in decisions or []][-50:]
     watch_items = [
         item
@@ -738,6 +845,78 @@ def process_operator_context_switchboard_message(
     if _guided_review_should_own(raw_text, active_context, active_contexts):
         return None
 
+    pending_clarification = _pending_switchboard_clarification(active_contexts)
+    if pending_clarification:
+        resolution = _clarification_resolution(raw_text)
+        completed_context = dict(pending_clarification)
+        completed_context["status"] = "completed"
+        completed_context["last_turn_at_utc"] = created_at
+        active_contexts = _upsert_context(active_contexts, completed_context)
+        active_owner = str((active_context or {}).get("owner_agent") or "cassandra")
+        active_lane = str((active_context or {}).get("context_type") or "guided_review_session")
+        if resolution == "current_question":
+            decision = _base_decision(
+                raw_text=raw_text,
+                surface=surface,
+                source_agent=source_agent,
+                created_at=created_at,
+                active_contexts=active_contexts,
+                current_context_id=current_context_id,
+                detected_intent="switchboard_clarification_reply",
+                detected_lane=active_owner,
+                detected_action_type="resolve_current_question",
+                confidence=0.94,
+                decision="current_task_control",
+                routed_to_agent=active_owner,
+                routed_to_lane=active_lane,
+                current_task_action="leave_active",
+                handoff_reason="Resolved ambiguous operator instruction back to the current task without recording the resolution as an answer.",
+                operator_visible_reply=f"Okay, staying with the current {_display_topic(active_context)} question.",
+            )
+        elif resolution == "new_task":
+            decision = _base_decision(
+                raw_text=raw_text,
+                surface=surface,
+                source_agent=source_agent,
+                created_at=created_at,
+                active_contexts=active_contexts,
+                current_context_id=current_context_id,
+                detected_intent="switchboard_clarification_reply",
+                detected_lane="operator_context_switchboard",
+                detected_action_type="resolve_new_task",
+                confidence=0.94,
+                decision="clarification_needed",
+                routed_to_agent="cassandra",
+                routed_to_lane="operator_context_switchboard",
+                current_task_action="leave_active",
+                handoff_reason="Resolved ambiguous operator instruction as a separate task request before active-review answer capture.",
+                operator_visible_reply="Okay. What new task should I route?",
+            )
+        else:
+            completed_context["status"] = "pending"
+            active_contexts = _upsert_context(active_contexts, completed_context)
+            decision = _base_decision(
+                raw_text=raw_text,
+                surface=surface,
+                source_agent=source_agent,
+                created_at=created_at,
+                active_contexts=active_contexts,
+                current_context_id=current_context_id,
+                detected_intent="switchboard_clarification_reply",
+                detected_lane="operator_context_switchboard",
+                detected_action_type="clarification_unresolved",
+                confidence=0.7,
+                decision="clarification_needed",
+                routed_to_agent="cassandra",
+                routed_to_lane="operator_context_switchboard",
+                current_task_action="leave_active",
+                handoff_reason="Clarification reply did not resolve current task vs new task.",
+                operator_visible_reply=f"Please say 'current question' or 'new task' so I do not record that into {_display_topic(active_context)}.",
+            )
+        _append_decision_to_read_model(decision, read_model_root=read_model_root, contexts=active_contexts, generated_at_utc=created_at)
+        _refresh_watch_desk(read_model_root, created_at)
+        return decision
+
     guided_resolution = resolve_guided_review_topic(raw_text, active_session_context=active_context or active_contexts)
     if (
         guided_resolution.get("clarification_question")
@@ -872,7 +1051,7 @@ def process_operator_context_switchboard_message(
         _refresh_watch_desk(read_model_root, created_at)
         return decision
 
-    if _health_or_status_note(raw_text):
+    if _health_or_status_note(raw_text, active_context):
         receipt, receipt_ref = _write_status_note_receipt(
             raw_text,
             surface=surface,
@@ -1050,6 +1229,26 @@ def process_operator_context_switchboard_message(
 
     if _ambiguous_command(raw_text):
         reply = f"Is that about the current {_display_topic(active_context)} question, or a new task?"
+        clarification_context = {
+            "active_context_id": f"switchboard_clarification:{_short_hash(current_context_id + raw_text)}",
+            "context_type": "switchboard_clarification",
+            "owner_agent": "cassandra",
+            "topic": "current_or_new_task",
+            "status": "pending",
+            "last_turn_at_utc": created_at,
+            "resume_phrase": "",
+            "source_session_ref": "",
+            "current_question_id": str((active_context or {}).get("current_question_id") or ""),
+            "interrupted_by_refs": [],
+            "resume_context_ref": current_context_id,
+            "pending_interaction": {
+                "clarification_type": "current_or_new_task",
+                "prompt": reply,
+                "source_context_ref": current_context_id,
+            },
+            "resume_suggestion": "Say 'current question' or 'new task'.",
+        }
+        active_contexts = _upsert_context(active_contexts, clarification_context)
         decision = _base_decision(
             raw_text=raw_text,
             surface=surface,

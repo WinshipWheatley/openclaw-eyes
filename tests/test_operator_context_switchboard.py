@@ -11,6 +11,7 @@ from operator_context_switchboard import (
     ACTIVE_CONTEXTS_SCHEMA_VERSION,
     SCHEMA_VERSION,
     process_operator_context_switchboard_message,
+    write_operator_active_contexts_read_model,
 )
 from watch_desk_feed import build_watch_desk_feed
 
@@ -248,6 +249,24 @@ def test_health_update_creates_operator_status_note_and_no_medical_advice(tmp_pa
     assert receipt["external_calls_performed"] is False
 
 
+def test_mid_sentence_feeling_off_stays_with_review_not_health_note(tmp_path):
+    start = _start(tmp_path)
+    _force_current_question(start, "identity/persona policy")
+
+    decision = _switch(tmp_path, "Honestly feeling off about exposing my home address on invoices.")
+    contexts_path = _paths(tmp_path)["read_model_root"] / "operator_active_contexts.json"
+    contexts_model = json.loads(contexts_path.read_text(encoding="utf-8")) if contexts_path.exists() else {}
+
+    assert decision["decision"] == "current_task_continue"
+    assert decision["detected_action_type"] == "guided_review_answer_candidate"
+    assert decision["receipt_refs"] == []
+    assert all(
+        context.get("context_type") != "operator_status_note"
+        for context in contexts_model.get("active_contexts", [])
+    )
+    assert _load_session(start)["answer_records"] == []
+
+
 def test_album_routes_to_niles_without_daw_media_or_csv_mutation(tmp_path):
     start = _start(tmp_path)
     decision = _switch(tmp_path, "album")
@@ -326,12 +345,45 @@ def test_ambiguous_handle_that_thing_asks_short_clarification(tmp_path):
     start = _start(tmp_path)
     decision = _switch(tmp_path, "handle that thing")
     session = _load_session(start)
+    contexts_model = json.loads((_paths(tmp_path)["read_model_root"] / "operator_active_contexts.json").read_text(encoding="utf-8"))
 
     assert decision["decision"] == "clarification_needed"
     assert "current" in decision["operator_visible_reply"]
     assert "new task" in decision["operator_visible_reply"]
+    assert any(
+        context.get("context_type") == "switchboard_clarification"
+        and context.get("status") == "pending"
+        for context in contexts_model["active_contexts"]
+    )
     assert session["answer_records"] == []
     assert session["status"] == "active"
+
+
+def test_ambiguous_clarification_current_question_is_terminal_not_review_answer(tmp_path):
+    start = _start(tmp_path)
+    _switch(tmp_path, "handle that thing")
+
+    decision = _switch(tmp_path, "current question", at="2026-06-12T12:02:00+00:00")
+    session = _load_session(start)
+
+    assert decision["decision"] == "current_task_control"
+    assert decision["detected_action_type"] == "resolve_current_question"
+    assert "staying with the current" in decision["operator_visible_reply"]
+    assert session["answer_records"] == []
+
+
+def test_ambiguous_clarification_new_task_is_terminal_not_review_answer(tmp_path):
+    start = _start(tmp_path)
+    _switch(tmp_path, "handle that thing")
+
+    decision = _switch(tmp_path, "new task", at="2026-06-12T12:02:00+00:00")
+    session = _load_session(start)
+
+    assert decision["decision"] == "clarification_needed"
+    assert decision["detected_action_type"] == "resolve_new_task"
+    assert decision["routed_to_lane"] == "operator_context_switchboard"
+    assert "What new task should I route" in decision["operator_visible_reply"]
+    assert session["answer_records"] == []
 
 
 def test_resume_data_room_reopens_paused_review(tmp_path):
@@ -402,6 +454,90 @@ def test_back_to_niles_resumes_niles_context_not_data_room(tmp_path):
     assert decision["routed_to_agent"] == "niles"
     assert decision["routed_to_lane"] == "niles_album_progression"
     assert session["status"] == "paused"
+
+
+def test_duplicate_niles_album_context_upserts_on_next_write(tmp_path):
+    _start(tmp_path)
+    _switch(tmp_path, "album")
+    _switch(tmp_path, "album", at="2026-06-12T12:02:00+00:00")
+
+    contexts_model = json.loads((_paths(tmp_path)["read_model_root"] / "operator_active_contexts.json").read_text(encoding="utf-8"))
+    niles_contexts = [
+        context
+        for context in contexts_model["active_contexts"]
+        if context.get("context_type") == "niles_album_progression"
+    ]
+
+    assert len(niles_contexts) == 1
+    assert niles_contexts[0]["last_turn_at_utc"] == "2026-06-12T12:02:00+00:00"
+
+
+def test_completed_operator_status_context_expires_after_24_hours(tmp_path):
+    read_model_root = _paths(tmp_path)["read_model_root"]
+    write_operator_active_contexts_read_model(
+        [
+            {
+                "active_context_id": "operator_status_note:old",
+                "context_type": "operator_status_note",
+                "owner_agent": "cassandra",
+                "topic": "operator_status_note",
+                "status": "completed",
+                "last_turn_at_utc": "2026-06-11T12:00:00+00:00",
+                "source_session_ref": "receipt.json#receipt",
+            }
+        ],
+        read_model_root=read_model_root,
+        generated_at_utc="2026-06-12T12:00:01+00:00",
+    )
+    contexts_model = json.loads((read_model_root / "operator_active_contexts.json").read_text(encoding="utf-8"))
+
+    assert contexts_model["active_contexts"] == []
+
+
+def test_cassandra_brain_continue_album_returns_niles_without_guided_fallthrough(monkeypatch, tmp_path):
+    import cassandra_brain
+
+    _start(tmp_path)
+    logged_rows = []
+
+    monkeypatch.setattr(cassandra_brain, "record_cassandra_packet_event", lambda query, packet: "event:test")
+    monkeypatch.setattr(cassandra_brain, "load_state", lambda: dict(cassandra_brain._DEFAULT_STATE))
+    monkeypatch.setattr(cassandra_brain, "save_state", lambda state: None)
+    monkeypatch.setattr(cassandra_brain, "answer_date_awareness_query", lambda query: None)
+    monkeypatch.setattr(cassandra_brain, "_handle_operator_objective", lambda *args, **kwargs: None)
+
+    def fail_call(*args, **kwargs):
+        raise AssertionError("switchboard terminal resume should not call a model")
+
+    def capture_log(user_text, replies, route="llm", metadata=None):
+        logged_rows.append({"route": route, "replies": replies, "metadata": metadata or {}})
+
+    monkeypatch.setattr(cassandra_brain, "_call", fail_call)
+    monkeypatch.setattr(cassandra_brain, "_log_conversation", capture_log)
+
+    session = {
+        "skip_followup_check": True,
+        "source_user_label": "operator",
+        "received_at_utc": "2026-06-12T12:01:00+00:00",
+        "operator_timezone": "America/New_York",
+        "guided_review_root": _paths(tmp_path)["review_root"],
+        "guided_review_read_model_root": _paths(tmp_path)["read_model_root"],
+        "operator_context_switchboard_receipt_root": _paths(tmp_path)["switch_receipts"],
+        "operator_intake_read_model_root": _paths(tmp_path)["read_model_root"],
+        "operator_intake_receipt_root": _paths(tmp_path)["intake_receipts"],
+    }
+    staged = cassandra_brain.handle("album", session=session)
+    session["received_at_utc"] = "2026-06-12T12:02:00+00:00"
+    resumed = cassandra_brain.handle("continue album", session=session)
+    session_payload = _load_session({"artifact_refs": {"session_json": str(next(_paths(tmp_path)["review_root"].glob("data_room_guided_review_session_*.json")))}})
+
+    assert "Staged album progression for Niles" in staged[0]
+    assert resumed == ["Continuing Niles album/progression. No DAW, media, or CSV changes."]
+    assert logged_rows[-1]["route"] == "operator_context_switchboard"
+    assert logged_rows[-1]["metadata"]["decision"] == "resume_task"
+    assert logged_rows[-1]["metadata"]["routed_to_lane"] == "niles_album_progression"
+    assert session_payload["status"] == "paused"
+    assert session_payload["answer_records"] == []
 
 
 def test_watch_desk_shows_paused_review_and_staged_task_without_duplicate_feed(tmp_path):

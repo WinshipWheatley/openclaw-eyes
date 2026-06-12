@@ -5846,6 +5846,50 @@ def handle(text: str, session: dict | None = None) -> list[str]:
                     },
                 )
                 return reply
+            if switch_decision == "resume_task" and str(switchboard_decision.get("routed_to_lane") or "") != "guided_review_session":
+                reply = [str(switchboard_decision.get("operator_visible_reply") or "Continuing that task.")]
+                save_state(state)
+                _log_conversation(
+                    text,
+                    reply,
+                    route="operator_context_switchboard",
+                    metadata={
+                        "event_id": event_id,
+                        "decision_id": switchboard_decision.get("decision_id", ""),
+                        "decision": switch_decision,
+                        "detected_intent": switchboard_decision.get("detected_intent", ""),
+                        "detected_lane": switchboard_decision.get("detected_lane", ""),
+                        "routed_to_agent": switchboard_decision.get("routed_to_agent", ""),
+                        "routed_to_lane": switchboard_decision.get("routed_to_lane", ""),
+                        "current_task_action": switchboard_decision.get("current_task_action", ""),
+                        "receipt_refs": switchboard_decision.get("receipt_refs", []),
+                        "watch_desk_refs": switchboard_decision.get("watch_desk_refs", []),
+                        "safety_flags": switchboard_decision.get("safety_flags", {}),
+                    },
+                )
+                return reply
+            if switch_decision == "current_task_control" and switchboard_decision.get("operator_visible_reply"):
+                reply = [str(switchboard_decision.get("operator_visible_reply"))]
+                save_state(state)
+                _log_conversation(
+                    text,
+                    reply,
+                    route="operator_context_switchboard",
+                    metadata={
+                        "event_id": event_id,
+                        "decision_id": switchboard_decision.get("decision_id", ""),
+                        "decision": switch_decision,
+                        "detected_intent": switchboard_decision.get("detected_intent", ""),
+                        "detected_lane": switchboard_decision.get("detected_lane", ""),
+                        "routed_to_agent": switchboard_decision.get("routed_to_agent", ""),
+                        "routed_to_lane": switchboard_decision.get("routed_to_lane", ""),
+                        "current_task_action": switchboard_decision.get("current_task_action", ""),
+                        "receipt_refs": switchboard_decision.get("receipt_refs", []),
+                        "watch_desk_refs": switchboard_decision.get("watch_desk_refs", []),
+                        "safety_flags": switchboard_decision.get("safety_flags", {}),
+                    },
+                )
+                return reply
             if switch_decision == "approval_passthrough":
                 skip_guided_review = True
                 skip_universal_intake = True
