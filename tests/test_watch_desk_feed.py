@@ -218,6 +218,44 @@ def test_stale_sync_fixture_produces_exactly_one_item(tmp_path):
     assert item["push_allowed"] is False
 
 
+def test_pending_model_consult_permission_fixture_produces_watch_item(tmp_path):
+    _write_json(
+        tmp_path / "model_work_package_router_status.json",
+        {
+            "schema_version": "model_work_package_router_status_v0",
+            "watch_desk_items": [
+                {
+                    "item_id": "model_consult_permission:fixture",
+                    "lane": "guardian_approval",
+                    "urgency": "needs_operator",
+                    "plain_line": "Model consult permission pending for Fable 5-class.",
+                    "source_receipt_ref": "model_consult_permission:fixture#permission_request",
+                    "one_next_safe_action": "Review the model consult permission request; no model call is allowed.",
+                    "push_class": "approval_waiting",
+                    "state": {
+                        "package_id": "model_work_package:fixture",
+                        "permission_request_id": "model_consult_permission:fixture",
+                        "model_class": "external_deep_reasoner",
+                        "operator_decision": "PENDING",
+                        "execution_allowed": False,
+                    },
+                }
+            ],
+        },
+    )
+
+    payload = _build(tmp_path)
+
+    assert payload["item_count"] == 1
+    item = payload["feed_items"][0]
+    assert item["item_id"] == "model_consult_permission:fixture"
+    assert item["lane"] == "guardian_approval"
+    assert item["urgency"] == "needs_operator"
+    assert item["push_candidate"] is True
+    assert item["push_allowed"] is False
+    assert item["state"]["execution_allowed"] is False
+
+
 def test_unchanged_state_produces_zero_new_push_candidates(tmp_path):
     _write_json(tmp_path / "approval_request_queue.json", _pending_approval_queue())
     first = _build(tmp_path)

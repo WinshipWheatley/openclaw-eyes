@@ -47,6 +47,7 @@ SERVICE_KEEPER_REF = "generated/read_models/openclaw_service_keeper_status.json"
 PROOF_TO_RESPONSE_REF = "generated/read_models/proof_to_response_latest.json"
 OPERATOR_INTAKE_REF = "generated/read_models/operator_intake_events.json"
 GUIDED_REVIEW_REF = "generated/read_models/guided_review_sessions.json"
+MODEL_WORK_PACKAGE_ROUTER_REF = "generated/read_models/model_work_package_router_status.json"
 
 
 def utc_now() -> str:
@@ -663,6 +664,47 @@ def _guided_review_items(read_model: Mapping[str, Any]) -> list[dict[str, Any]]:
     return items
 
 
+def _model_work_package_items(read_model: Mapping[str, Any]) -> list[dict[str, Any]]:
+    if not read_model:
+        return []
+    items: list[dict[str, Any]] = []
+    top_items = read_model.get("watch_desk_items")
+    if not isinstance(top_items, list):
+        return items
+    for item in top_items:
+        if not isinstance(item, Mapping):
+            continue
+        item_id = str(item.get("item_id") or "").strip()
+        plain_line = str(item.get("plain_line") or "").strip()
+        source_ref = str(item.get("source_receipt_ref") or "").strip()
+        if not item_id or not plain_line or not source_ref:
+            continue
+        state = item.get("state") if isinstance(item.get("state"), Mapping) else {}
+        items.append(
+            _new_item(
+                item_id=item_id,
+                lane=_watch_lane(item.get("lane") or "guardian_approval"),
+                urgency=str(item.get("urgency") or "needs_operator"),
+                plain_line=plain_line,
+                source_receipt_ref=source_ref,
+                one_next_safe_action=str(
+                    item.get("one_next_safe_action")
+                    or "Review the model work package; do not call a model from Watch Desk."
+                ),
+                state={
+                    "package_id": str(state.get("package_id") or item.get("package_id") or ""),
+                    "permission_request_id": str(state.get("permission_request_id") or ""),
+                    "model_class": str(state.get("model_class") or state.get("resolved_model_class") or ""),
+                    "operator_decision": str(state.get("operator_decision") or ""),
+                    "status": str(state.get("status") or item.get("status") or ""),
+                    "execution_allowed": False,
+                },
+                push_class=str(item.get("push_class") or "approval_waiting"),
+            )
+        )
+    return items
+
+
 def _dedupe_items(items: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
     deduped: dict[str, dict[str, Any]] = {}
     for item in items:
@@ -732,8 +774,12 @@ def build_watch_desk_feed(
         feed_generated_at=generated_at,
     )
     guided_review_items = _guided_review_items(_load_json(read_root / Path(GUIDED_REVIEW_REF).name))
+    model_work_items = _model_work_package_items(_load_json(read_root / Path(MODEL_WORK_PACKAGE_ROUTER_REF).name))
     feed_items = _dedupe_items(
-        [item for item in candidate_items if item is not None] + operator_intake_items + guided_review_items
+        [item for item in candidate_items if item is not None]
+        + operator_intake_items
+        + guided_review_items
+        + model_work_items
     )
     source_refs = sorted({item["source_receipt_ref"] for item in feed_items})
     new_candidates = _push_candidates(feed_items, previous_item_states)
