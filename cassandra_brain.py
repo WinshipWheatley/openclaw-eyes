@@ -5793,6 +5793,10 @@ def handle(text: str, session: dict | None = None) -> list[str]:
             guided_review_kwargs["receipt_root"] = session_meta["guided_review_receipt_root"]
         if session_meta.get("guided_review_promotion_review_path"):
             guided_review_kwargs["promotion_review_path"] = session_meta["guided_review_promotion_review_path"]
+        if session_meta.get("chatgpt55_provider"):
+            guided_review_kwargs["chatgpt55_provider"] = session_meta["chatgpt55_provider"]
+        if session_meta.get("chatgpt55_env"):
+            guided_review_kwargs["chatgpt55_env"] = session_meta["chatgpt55_env"]
         switchboard_read_model_root = guided_review_kwargs.get("read_model_root") or session_meta.get("operator_intake_read_model_root")
         switchboard_review_root = guided_review_kwargs.get("review_root")
         if switchboard_review_root is None and (

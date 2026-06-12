@@ -50,6 +50,7 @@ GUIDED_REVIEW_REF = "generated/read_models/guided_review_sessions.json"
 OPERATOR_ACTIVE_CONTEXTS_REF = "generated/read_models/operator_active_contexts.json"
 MODEL_WORK_PACKAGE_ROUTER_REF = "generated/read_models/model_work_package_router_status.json"
 CODEX_WORK_PACKAGE_LIFECYCLE_REF = "generated/read_models/codex_work_package_lifecycle.json"
+DATA_ROOM_LIVE_CHATGPT55_REF = "generated/read_models/data_room_live_chatgpt55_lane.json"
 
 
 def utc_now() -> str:
@@ -746,6 +747,55 @@ def _model_work_package_items(read_model: Mapping[str, Any]) -> list[dict[str, A
     return items
 
 
+def _data_room_live_chatgpt55_items(read_model: Mapping[str, Any]) -> list[dict[str, Any]]:
+    if not read_model:
+        return []
+    top_items = read_model.get("watch_desk_items")
+    if not isinstance(top_items, list):
+        return []
+    items: list[dict[str, Any]] = []
+    for item in top_items:
+        if not isinstance(item, Mapping):
+            continue
+        item_id = str(item.get("item_id") or "").strip()
+        plain_line = str(item.get("plain_line") or "").strip()
+        source_ref = str(item.get("source_receipt_ref") or "").strip()
+        if not item_id or not plain_line or not source_ref:
+            continue
+        state = item.get("state") if isinstance(item.get("state"), Mapping) else {}
+        live_ready = bool(state.get("live_ready", read_model.get("live_ready", False)))
+        items.append(
+            _new_item(
+                item_id=item_id,
+                lane=_watch_lane(item.get("lane") or "cassandra_ar"),
+                urgency=str(item.get("urgency") or ("watch" if live_ready else "blocked")),
+                plain_line=plain_line,
+                source_receipt_ref=source_ref,
+                one_next_safe_action=str(
+                    item.get("one_next_safe_action")
+                    or "Continue the Data Room review in Cassandra; model advice remains advisory-only."
+                ),
+                state={
+                    "lane_status": str(state.get("lane_status") or read_model.get("lane_status") or ""),
+                    "live_ready": live_ready,
+                    "model_label": str(state.get("model_label") or read_model.get("model_label") or ""),
+                    "active_review_session_id": str(
+                        state.get("active_review_session_id") or read_model.get("active_review_session_id") or ""
+                    ),
+                    "current_question_id": str(state.get("current_question_id") or read_model.get("current_question_id") or ""),
+                    "blocked_reason": str(state.get("blocked_reason") or read_model.get("blocked_reason") or ""),
+                    "external_action_allowed": False,
+                    "runtime_mutation_allowed": False,
+                    "confirmed_reference_data_allowed": False,
+                    "hydration_allowed": False,
+                    "execution_allowed": False,
+                },
+                push_class=str(item.get("push_class") or ("info" if live_ready else "failure")),
+            )
+        )
+    return items
+
+
 def _codex_work_package_lifecycle_items(read_model: Mapping[str, Any]) -> list[dict[str, Any]]:
     if not read_model:
         return []
@@ -875,6 +925,9 @@ def build_watch_desk_feed(
     guided_review_items = _guided_review_items(_load_json(read_root / Path(GUIDED_REVIEW_REF).name))
     active_context_items = _operator_active_context_items(_load_json(read_root / Path(OPERATOR_ACTIVE_CONTEXTS_REF).name))
     model_work_items = _model_work_package_items(_load_json(read_root / Path(MODEL_WORK_PACKAGE_ROUTER_REF).name))
+    data_room_live_chatgpt55_items = _data_room_live_chatgpt55_items(
+        _load_json(read_root / Path(DATA_ROOM_LIVE_CHATGPT55_REF).name)
+    )
     codex_work_items = _codex_work_package_lifecycle_items(_load_json(read_root / Path(CODEX_WORK_PACKAGE_LIFECYCLE_REF).name))
     feed_items = _dedupe_items(
         [item for item in candidate_items if item is not None]
@@ -882,6 +935,7 @@ def build_watch_desk_feed(
         + guided_review_items
         + active_context_items
         + model_work_items
+        + data_room_live_chatgpt55_items
         + codex_work_items
     )
     source_refs = sorted({item["source_receipt_ref"] for item in feed_items})

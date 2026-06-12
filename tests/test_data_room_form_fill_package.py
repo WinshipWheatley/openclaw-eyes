@@ -8,6 +8,7 @@ if str(ROOT) not in sys.path:
 
 import cassandra_guided_review as guided
 import data_room_form_fill_package as form_fill
+import openclaw_chatgpt55_adapter as chatgpt55
 
 
 FIXED_NOW = "2026-06-12T12:00:00+00:00"
@@ -122,6 +123,52 @@ def _turn_result(package: dict, *, confirmed: bool, question_id: str = "") -> di
         "done_criteria_met": False,
         "safety_flags": dict(form_fill.TURN_SAFETY_FLAGS),
     }
+
+
+def _live_result(request: dict, *, intent: str = "explain", reply: str = "I have the form and can help.", answer: str = "") -> dict:
+    return {
+        "schema_version": chatgpt55.TURN_RESULT_SCHEMA_VERSION,
+        "request_id": request["request_id"],
+        "review_session_id": request["review_session_id"],
+        "question_id": request["current_question_id"],
+        "assistant_reply": reply,
+        "operator_intent": intent,
+        "proposed_answer": {
+            "plain_english": answer,
+            "normalized_decision": answer.lower(),
+            "confidence": "medium" if answer else "low",
+            "conditions": [],
+            "caveats": [],
+            "professional_review_flags": [],
+        },
+        "requires_winship_confirmation": bool(answer),
+        "confirmed_by_winship": False,
+        "should_record_now": False,
+        "next_question_id": "",
+        "chat_log_summary_update": "ChatGPT55 helped with the current Data Room question.",
+        "done_criteria_met": False,
+        "facts_used": [request["current_question_id"]],
+        "safety_flags": dict(chatgpt55.SAFE_TURN_SAFETY_FLAGS),
+    }
+
+
+def _fake_provider(calls: list[dict], *, intent: str = "explain", reply: str = "I have the form and can help.", answer: str = ""):
+    def provider(*, request_payload: dict, request_body: dict, model_label: str, timeout_seconds: int) -> dict:
+        calls.append(
+            {
+                "request_payload": request_payload,
+                "request_body": request_body,
+                "model_label": model_label,
+                "timeout_seconds": timeout_seconds,
+            }
+        )
+        return {
+            "id": f"resp_fake_{len(calls)}",
+            "status": "completed",
+            "output_text": json.dumps(_live_result(request_payload, intent=intent, reply=reply, answer=answer)),
+        }
+
+    return provider
 
 
 def test_package_contains_all_active_review_questions(tmp_path):
@@ -328,3 +375,136 @@ def test_cassandra_command_surface_writes_package_and_prompt(tmp_path, monkeypat
     assert Path(refs["operator_openable_copy"]["operator_copy_path"]).is_file()
     assert "My brain for this Data Room lane is ChatGPT 5.5" not in response["reply_text"]
     assert response["review_session_id"] == start["review_session_id"]
+
+
+def test_live_chatgpt55_command_sends_readiness_only_after_live_call(tmp_path, monkeypatch):
+    start = _start(tmp_path)
+    calls: list[dict] = []
+    monkeypatch.setenv("OPENCLAW_ENABLE_LIVE_CHATGPT55", "1")
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-test-redacted")
+    monkeypatch.setattr(chatgpt55, "DEFAULT_LIVE_LANE_READ_MODEL_PATH", tmp_path / "read_models" / "data_room_live_chatgpt55_lane.json")
+    monkeypatch.setattr(chatgpt55, "DEFAULT_LIVE_LANE_PRIMARY_ROOT", tmp_path / "live_lane")
+    monkeypatch.setattr(chatgpt55, "DEFAULT_LIVE_LANE_DURABLE_ROOT", tmp_path / "durable_live_lane")
+
+    response = guided.process_guided_review_message(
+        "Cassandra, start the ChatGPT 5.5 Data Room brain.",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:02:00+00:00",
+        chatgpt55_provider=_fake_provider(calls),
+    )
+    session = _load_session(response)
+    lane = json.loads((tmp_path / "read_models" / "data_room_live_chatgpt55_lane.json").read_text(encoding="utf-8"))
+
+    assert response["reply_text"] == form_fill.LIVE_CHATGPT55_READINESS_NOTIFICATION
+    assert calls and "tools" not in calls[0]["request_body"]
+    assert session["live_chatgpt55_data_room_lane"]["live_ready"] is True
+    assert session["live_chatgpt55_data_room_lane"]["active"] is True
+    assert lane["live_ready"] is True
+    assert lane["active_review_session_id"] == start["review_session_id"]
+    assert lane["external_action_allowed"] is False
+    assert lane["runtime_mutation_allowed"] is False
+
+
+def test_live_chatgpt55_command_blocks_without_live_wording_when_config_missing(tmp_path, monkeypatch):
+    _start(tmp_path)
+    monkeypatch.delenv("OPENCLAW_ENABLE_LIVE_CHATGPT55", raising=False)
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.setattr(chatgpt55, "DEFAULT_LIVE_LANE_READ_MODEL_PATH", tmp_path / "read_models" / "data_room_live_chatgpt55_lane.json")
+    monkeypatch.setattr(chatgpt55, "DEFAULT_LIVE_LANE_PRIMARY_ROOT", tmp_path / "live_lane")
+    monkeypatch.setattr(chatgpt55, "DEFAULT_LIVE_LANE_DURABLE_ROOT", tmp_path / "durable_live_lane")
+
+    response = guided.process_guided_review_message(
+        "Cassandra, open the ChatGPT 5.5 lane for the Data Room form.",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:02:00+00:00",
+        chatgpt55_provider=_fake_provider([]),
+    )
+    lane = json.loads((tmp_path / "read_models" / "data_room_live_chatgpt55_lane.json").read_text(encoding="utf-8"))
+
+    assert "My brain for this Data Room lane is ChatGPT 5.5" not in response["reply_text"]
+    assert "blocked_provider_disabled" in response["reply_text"]
+    assert lane["live_ready"] is False
+    assert lane["blocked_reason"] == "blocked_provider_disabled"
+
+
+def test_live_chatgpt55_eli5_turn_calls_provider_and_creates_no_answer_record(tmp_path, monkeypatch):
+    start = _start(tmp_path)
+    calls: list[dict] = []
+    monkeypatch.setenv("OPENCLAW_ENABLE_LIVE_CHATGPT55", "1")
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-test-redacted")
+    monkeypatch.setattr(chatgpt55, "DEFAULT_LIVE_LANE_READ_MODEL_PATH", tmp_path / "read_models" / "data_room_live_chatgpt55_lane.json")
+    monkeypatch.setattr(chatgpt55, "DEFAULT_LIVE_LANE_PRIMARY_ROOT", tmp_path / "live_lane")
+    monkeypatch.setattr(chatgpt55, "DEFAULT_LIVE_LANE_DURABLE_ROOT", tmp_path / "durable_live_lane")
+    guided.process_guided_review_message(
+        "Cassandra, start the ChatGPT 5.5 Data Room brain.",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:02:00+00:00",
+        chatgpt55_provider=_fake_provider(calls),
+    )
+
+    response = guided.process_guided_review_message(
+        "eli5",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:03:00+00:00",
+        chatgpt55_provider=_fake_provider(calls, intent="eli5", reply="Small version: we are choosing a safe default."),
+    )
+    session = _load_session(response)
+
+    assert response["reply_text"] == "Small version: we are choosing a safe default."
+    assert len(calls) == 2
+    assert session["answer_records"] == []
+    assert session["current_question_id"] == start["current_question_id"]
+
+
+def test_live_chatgpt55_answer_candidate_waits_for_winship_confirmation(tmp_path, monkeypatch):
+    calls: list[dict] = []
+    monkeypatch.setenv("OPENCLAW_ENABLE_LIVE_CHATGPT55", "1")
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-test-redacted")
+    monkeypatch.setattr(chatgpt55, "DEFAULT_LIVE_LANE_READ_MODEL_PATH", tmp_path / "read_models" / "data_room_live_chatgpt55_lane.json")
+    monkeypatch.setattr(chatgpt55, "DEFAULT_LIVE_LANE_PRIMARY_ROOT", tmp_path / "live_lane")
+    monkeypatch.setattr(chatgpt55, "DEFAULT_LIVE_LANE_DURABLE_ROOT", tmp_path / "durable_live_lane")
+    _start(tmp_path)
+    guided.process_guided_review_message(
+        "Cassandra, start the ChatGPT 5.5 Data Room brain.",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:02:00+00:00",
+        chatgpt55_provider=_fake_provider(calls),
+    )
+
+    candidate = guided.process_guided_review_message(
+        "I think manual approval is the answer.",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:03:00+00:00",
+        chatgpt55_provider=_fake_provider(
+            calls,
+            intent="answer_candidate",
+            reply="That sounds like a candidate. Should I record this as manual approval only?",
+            answer="Use manual approval only for private payment details.",
+        ),
+    )
+    session = _load_session(candidate)
+
+    assert candidate["reply_text"] == "That sounds like a candidate. Should I record this as manual approval only?"
+    assert session["pending_interaction"]["kind"] == "answer_candidate"
+    assert session["answer_records"] == []
+
+    confirmed = guided.process_guided_review_message(
+        "yes",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:04:00+00:00",
+        chatgpt55_provider=_fake_provider(calls, reply="This should not be called for confirmation."),
+    )
+    confirmed_session = _load_session(confirmed)
+
+    assert confirmed_session["pending_interaction"] == {}
+    assert len(confirmed_session["answer_records"]) == 1
+    assert confirmed_session["answer_records"][0]["schema_version"] == "REVIEW_ANSWER_V0"
+    assert confirmed_session["answer_records"][0]["answer_source"] == "natural_candidate_confirmed"
+    assert len(calls) == 2

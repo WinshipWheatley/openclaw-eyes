@@ -7,6 +7,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import cassandra_guided_review as guided
+import openclaw_chatgpt55_adapter as chatgpt55
 from operator_context_switchboard import (
     ACTIVE_CONTEXTS_SCHEMA_VERSION,
     SCHEMA_VERSION,
@@ -536,6 +537,98 @@ def test_cassandra_brain_continue_album_returns_niles_without_guided_fallthrough
     assert logged_rows[-1]["route"] == "operator_context_switchboard"
     assert logged_rows[-1]["metadata"]["decision"] == "resume_task"
     assert logged_rows[-1]["metadata"]["routed_to_lane"] == "niles_album_progression"
+    assert session_payload["status"] == "paused"
+    assert session_payload["answer_records"] == []
+
+
+def test_cassandra_brain_context_switchboard_detour_precedes_live_chatgpt55_lane(monkeypatch, tmp_path):
+    import cassandra_brain
+
+    promotion = _promotion_review(_paths(tmp_path)["review_root"] / "promotion_review.json")
+    monkeypatch.setenv("OPENCLAW_ENABLE_LIVE_CHATGPT55", "1")
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-test-redacted")
+    monkeypatch.setattr(
+        chatgpt55,
+        "DEFAULT_LIVE_LANE_READ_MODEL_PATH",
+        _paths(tmp_path)["read_model_root"] / "data_room_live_chatgpt55_lane.json",
+    )
+    monkeypatch.setattr(chatgpt55, "DEFAULT_LIVE_LANE_PRIMARY_ROOT", tmp_path / "live_lane")
+    monkeypatch.setattr(chatgpt55, "DEFAULT_LIVE_LANE_DURABLE_ROOT", tmp_path / "durable_live_lane")
+    monkeypatch.setattr(cassandra_brain, "record_cassandra_packet_event", lambda query, packet: "event:test")
+    monkeypatch.setattr(cassandra_brain, "load_state", lambda: dict(cassandra_brain._DEFAULT_STATE))
+    monkeypatch.setattr(cassandra_brain, "save_state", lambda state: None)
+    monkeypatch.setattr(cassandra_brain, "answer_date_awareness_query", lambda query: None)
+    monkeypatch.setattr(cassandra_brain, "_handle_operator_objective", lambda *args, **kwargs: None)
+
+    calls: list[dict] = []
+
+    def fake_provider(*, request_payload: dict, request_body: dict, model_label: str, timeout_seconds: int) -> dict:
+        calls.append({"request_payload": request_payload, "request_body": request_body})
+        result = {
+            "schema_version": chatgpt55.TURN_RESULT_SCHEMA_VERSION,
+            "request_id": request_payload["request_id"],
+            "review_session_id": request_payload["review_session_id"],
+            "question_id": request_payload["current_question_id"],
+            "assistant_reply": "I have the form and can help.",
+            "operator_intent": "explain",
+            "proposed_answer": {
+                "plain_english": "",
+                "normalized_decision": "",
+                "confidence": "low",
+                "conditions": [],
+                "caveats": [],
+                "professional_review_flags": [],
+            },
+            "requires_winship_confirmation": False,
+            "confirmed_by_winship": False,
+            "should_record_now": False,
+            "next_question_id": "",
+            "chat_log_summary_update": "Ready.",
+            "done_criteria_met": False,
+            "facts_used": [request_payload["current_question_id"]],
+            "safety_flags": dict(chatgpt55.SAFE_TURN_SAFETY_FLAGS),
+        }
+        return {"id": "resp_fake", "status": "completed", "output_text": json.dumps(result)}
+
+    guided.process_guided_review_message(
+        "Cassandra, coach me through the Data Room.",
+        surface="telegram",
+        review_root=_paths(tmp_path)["review_root"],
+        read_model_root=_paths(tmp_path)["read_model_root"],
+        promotion_review_path=promotion,
+        generated_at_utc=FIXED_NOW,
+    )
+    guided.process_guided_review_message(
+        "Cassandra, start the ChatGPT 5.5 Data Room brain.",
+        surface="telegram",
+        review_root=_paths(tmp_path)["review_root"],
+        read_model_root=_paths(tmp_path)["read_model_root"],
+        generated_at_utc="2026-06-12T12:01:00+00:00",
+        chatgpt55_provider=fake_provider,
+    )
+    calls.clear()
+
+    replies = cassandra_brain.handle(
+        "I got paid $900 from Live Arts MD.",
+        session={
+            "skip_followup_check": True,
+            "source_user_label": "operator",
+            "guided_review_root": _paths(tmp_path)["review_root"],
+            "guided_review_read_model_root": _paths(tmp_path)["read_model_root"],
+            "guided_review_promotion_review_path": promotion,
+            "operator_context_switchboard_receipt_root": _paths(tmp_path)["switch_receipts"],
+            "operator_intake_receipt_root": _paths(tmp_path)["intake_receipts"],
+            "operator_intake_read_model_root": _paths(tmp_path)["read_model_root"],
+            "received_at_utc": "2026-06-12T12:02:00+00:00",
+            "operator_timezone": "America/New_York",
+            "chatgpt55_provider": fake_provider,
+        },
+    )
+    session_payload = _load_session({"artifact_refs": {"session_json": str(next(_paths(tmp_path)["review_root"].glob("data_room_guided_review_session_*.json")))}})
+
+    assert "Logged the $900 Live Arts MD income note" in replies[0]
+    assert "Back to Data Room:" in replies[0]
+    assert calls == []
     assert session_payload["status"] == "paused"
     assert session_payload["answer_records"] == []
 

@@ -853,6 +853,20 @@ def _start_topic(text: str) -> str:
     return ""
 
 
+def _is_live_chatgpt55_data_room_start_request(text: str) -> bool:
+    normalized = _normalize_topic_text(text)
+    phrases = (
+        "cassandra start the chatgpt 5 5 data room brain",
+        "start the chatgpt 5 5 data room brain",
+        "cassandra open the chatgpt 5 5 lane for the data room form",
+        "open the chatgpt 5 5 lane for the data room form",
+        "open chatgpt 5 5 lane for the data room form",
+        "cassandra use chatgpt 5 5 to help me fill this out",
+        "use chatgpt 5 5 to help me fill this out",
+    )
+    return any(phrase in normalized for phrase in phrases)
+
+
 def _load_session(review_root: Path, session_id: str) -> dict[str, Any] | None:
     path = _session_path(review_root, session_id)
     if not path.is_file():
@@ -960,6 +974,8 @@ def set_guided_review_context_status(
 def is_guided_review_message(text: str, *, review_root: str | Path | None = None) -> bool:
     if not text or not text.strip() or _excluded_route_text(text):
         return False
+    if _is_live_chatgpt55_data_room_start_request(text):
+        return True
     active = _find_active_session(_review_root(review_root))
     resolution = resolve_guided_review_topic(text, active_session_context=active)
     if resolution.get("should_start_session") or resolution.get("should_resume_active_session"):
@@ -2541,6 +2557,234 @@ def _clarification_response(resolution: Mapping[str, Any], *, reply_text: str) -
     }
 
 
+def _live_chatgpt55_lane_active(session: Mapping[str, Any]) -> bool:
+    lane = session.get("live_chatgpt55_data_room_lane")
+    return bool(isinstance(lane, Mapping) and lane.get("active") is True and lane.get("live_ready") is True)
+
+
+def _write_live_chatgpt55_state(
+    session: dict[str, Any],
+    *,
+    package: Mapping[str, Any],
+    result: Mapping[str, Any] | None,
+    lane_status: str,
+    live_ready: bool,
+    blocked_reason: str,
+    now: str,
+) -> dict[str, Any]:
+    import openclaw_chatgpt55_adapter as chatgpt55
+
+    state = chatgpt55.build_data_room_live_chatgpt55_lane_state(
+        package=package,
+        result=result or {},
+        availability=chatgpt55.is_live_chatgpt55_available(),
+        lane_status=lane_status,
+        live_ready=live_ready,
+        blocked_reason=blocked_reason,
+        generated_at_utc=now,
+        recent_chat_summary=str((result or {}).get("chat_log_summary_update") or package.get("prior_chat_log_summary") or ""),
+        model=chatgpt55.model_label(),
+    )
+    refs = chatgpt55.write_data_room_live_chatgpt55_lane_state(state)
+    state["artifact_refs"] = refs
+    session["live_chatgpt55_data_room_lane"] = {
+        "schema_version": "DATA_ROOM_LIVE_CHATGPT55_SESSION_LANE_V0",
+        "active": bool(live_ready and lane_status == "active"),
+        "live_ready": bool(live_ready),
+        "lane_status": lane_status,
+        "model_label": state["model_label"],
+        "last_advisory_request_id": state.get("last_advisory_request_id", ""),
+        "last_result_id": state.get("last_result_id", ""),
+        "blocked_reason": blocked_reason,
+        "state_refs": refs,
+        "updated_at_utc": now,
+        "advisory_only": True,
+        "runtime_mutation_allowed": False,
+        "execution_allowed": False,
+        "confirmed_reference_data_allowed": False,
+        "hydration_allowed": False,
+        "external_action_allowed": False,
+    }
+    watch_refs = list(session.get("watch_desk_refs") or [])
+    for item in state.get("watch_desk_items") or []:
+        if isinstance(item, Mapping):
+            item_id = str(item.get("item_id") or "")
+            if item_id and item_id not in watch_refs:
+                watch_refs.append(item_id)
+    session["watch_desk_refs"] = watch_refs
+    return state
+
+
+def _activate_live_chatgpt55_data_room_lane(
+    session: dict[str, Any],
+    *,
+    raw_text: str,
+    review_root: Path,
+    read_model_root: str | Path | None,
+    now: str,
+    chatgpt55_provider=None,
+    chatgpt55_env: Mapping[str, str] | None = None,
+) -> str:
+    from data_room_form_fill_package import (
+        LIVE_CHATGPT55_READINESS_NOTIFICATION,
+        build_data_room_form_fill_package,
+        write_data_room_form_fill_artifacts,
+    )
+    import openclaw_chatgpt55_adapter as chatgpt55
+
+    package = build_data_room_form_fill_package(session, created_at_utc=now)
+    try:
+        result = chatgpt55.call_chatgpt55_data_room_advisory(
+            package,
+            chatgpt55.READINESS_PROMPT,
+            str(package.get("prior_chat_log_summary") or ""),
+            provider=chatgpt55_provider,
+            created_at_utc=now,
+            env=chatgpt55_env,
+        )
+    except chatgpt55.ChatGPT55AdapterError as exc:
+        state = _write_live_chatgpt55_state(
+            session,
+            package=package,
+            result=None,
+            lane_status="blocked",
+            live_ready=False,
+            blocked_reason=exc.reason,
+            now=now,
+        )
+        session.setdefault("data_room_form_fill_refs", []).append(
+            {
+                "schema_version": "DATA_ROOM_LIVE_CHATGPT55_ARTIFACT_REFS_V0",
+                "package_id": package.get("package_id", ""),
+                "review_session_id": package.get("review_session_id", ""),
+                "live_ready": False,
+                "blocked_reason": exc.reason,
+                "live_lane_state_refs": dict(state.get("artifact_refs") or {}),
+                "external_model_invoked": False,
+                "confirmed_reference_data_created": False,
+                "runtime_policy_changed": False,
+            }
+        )
+        return f"ChatGPT 5.5 Data Room lane blocked: {exc.reason}. {chatgpt55.safe_next_operator_step(exc.reason)}"
+
+    form_fill_refs = write_data_room_form_fill_artifacts(package, export_operator_copy=False)
+    state = _write_live_chatgpt55_state(
+        session,
+        package=package,
+        result=result,
+        lane_status="active",
+        live_ready=True,
+        blocked_reason="",
+        now=now,
+    )
+    live_refs = dict(form_fill_refs)
+    live_refs.update(
+        {
+            "live_ready": True,
+            "live_lane_state_refs": dict(state.get("artifact_refs") or {}),
+            "last_advisory_request_id": state.get("last_advisory_request_id", ""),
+            "last_result_id": state.get("last_result_id", ""),
+            "external_model_invoked": True,
+            "advisory_only": True,
+            "runtime_policy_changed": False,
+            "confirmed_reference_data_created": False,
+            "hydration_allowed": False,
+        }
+    )
+    session.setdefault("data_room_form_fill_refs", []).append(live_refs)
+    generated_refs = list(session.get("generated_prompt_refs") or [])
+    for ref in (
+        form_fill_refs.get("primary", {}).get("package_path", ""),
+        form_fill_refs.get("durable", {}).get("package_path", ""),
+        state.get("artifact_refs", {}).get("read_model_path", ""),
+    ):
+        if ref and ref not in generated_refs:
+            generated_refs.append(ref)
+    session["generated_prompt_refs"] = generated_refs
+    session["latest_data_room_form_fill_package_id"] = package["package_id"]
+    return LIVE_CHATGPT55_READINESS_NOTIFICATION
+
+
+def _handle_live_chatgpt55_data_room_turn(
+    session: dict[str, Any],
+    *,
+    raw_text: str,
+    surface: str,
+    review_root: Path,
+    now: str,
+    chatgpt55_provider=None,
+    chatgpt55_env: Mapping[str, str] | None = None,
+) -> str:
+    from data_room_form_fill_package import build_data_room_form_fill_package
+    import openclaw_chatgpt55_adapter as chatgpt55
+
+    package = build_data_room_form_fill_package(session, created_at_utc=now)
+    try:
+        result = chatgpt55.call_chatgpt55_data_room_advisory(
+            package,
+            raw_text,
+            str(package.get("prior_chat_log_summary") or ""),
+            provider=chatgpt55_provider,
+            created_at_utc=now,
+            env=chatgpt55_env,
+        )
+    except chatgpt55.ChatGPT55AdapterError as exc:
+        _write_live_chatgpt55_state(
+            session,
+            package=package,
+            result=None,
+            lane_status="unavailable",
+            live_ready=False,
+            blocked_reason=exc.reason,
+            now=now,
+        )
+        return (
+            f"The ChatGPT 5.5 Data Room lane is temporarily unavailable ({exc.reason}). "
+            "I am falling back to the deterministic review coach.\n\n"
+            f"{_format_question_reply(session)}"
+        )
+
+    _write_live_chatgpt55_state(
+        session,
+        package=package,
+        result=result,
+        lane_status="active",
+        live_ready=True,
+        blocked_reason="",
+        now=now,
+    )
+    answer = result.get("proposed_answer") if isinstance(result.get("proposed_answer"), Mapping) else {}
+    candidate_text = str(answer.get("plain_english") or answer.get("normalized_decision") or "").strip()
+    intent = str(result.get("operator_intent") or "")
+    if candidate_text and intent in {"answer_candidate", "conditional", "revise", "thought_dump"}:
+        question_id = str(result.get("question_id") or session.get("current_question_id") or "")
+        pending_candidate = _set_pending_answer_candidate(
+            session,
+            candidate_text=candidate_text,
+            source_intent={
+                "schema_version": "LIVE_CHATGPT55_PENDING_CANDIDATE_SOURCE_V0",
+                "intent": intent,
+                "request_id": str(result.get("request_id") or ""),
+                "result_id": chatgpt55.result_id_for(result),
+                "should_record_now": False,
+                "confirmed_by_winship": False,
+                "safety_flags": dict(result.get("safety_flags") or {}),
+            },
+            current_question_id=question_id,
+            now=now,
+            surface=surface,
+        )
+        _append_pending_interaction_event(
+            session,
+            command="live_chatgpt55_pending_answer_candidate_created",
+            question_id=question_id,
+            now=now,
+            answer_recorded=False,
+        )
+        session["pending_interaction"] = pending_candidate
+    return str(result.get("assistant_reply") or "")
+
+
 def process_guided_review_message(
     raw_text: str,
     *,
@@ -2551,6 +2795,8 @@ def process_guided_review_message(
     promotion_review_path: str | Path | None = None,
     receipt_root: str | Path | None = None,
     generated_at_utc: str | None = None,
+    chatgpt55_provider=None,
+    chatgpt55_env: Mapping[str, str] | None = None,
 ) -> dict[str, Any] | None:
     """Process a Cassandra guided-review turn without external side effects."""
 
@@ -2560,12 +2806,15 @@ def process_guided_review_message(
     now = generated_at_utc or utc_now()
     active = _find_active_session(root)
     resolution = resolve_guided_review_topic(raw_text, active_session_context=active)
+    live_start_request = _is_live_chatgpt55_data_room_start_request(raw_text)
     topic = str(resolution.get("matched_topic_id") or "")
+    if live_start_request and not topic:
+        topic = TOPIC_DATA_ROOM
     if not active and not topic and not resolution.get("clarification_question"):
         return None
-    if not active and resolution.get("clarification_question") and not resolution.get("should_start_session"):
+    if not active and resolution.get("clarification_question") and not resolution.get("should_start_session") and not live_start_request:
         return _clarification_response(resolution, reply_text=str(resolution["clarification_question"]))
-    if not active and not resolution.get("should_start_session"):
+    if not active and not resolution.get("should_start_session") and not live_start_request:
         return None
     if not active:
         try:
@@ -2610,14 +2859,25 @@ def process_guided_review_message(
                 read_model_root=read_model_root,
                 handled=True,
             )
-        total = len(session["question_queue"])
-        topic_display = str(session.get("topic_display_name") or _topic_display_name(topic or TOPIC_DATA_ROOM))
-        intro = (
-            f"Cool. I found {total} provisional {topic_display} items. I'll walk you through "
-            "the highest-impact questions first: identity, payment privacy, rates, clients, "
-            "invoice numbering. You can answer, skip, defer, revise, summarize, or say done."
-        )
-        reply = _format_question_reply(session, prefix=intro)
+        if live_start_request:
+            reply = _activate_live_chatgpt55_data_room_lane(
+                session,
+                raw_text=raw_text,
+                review_root=root,
+                read_model_root=read_model_root,
+                now=now,
+                chatgpt55_provider=chatgpt55_provider,
+                chatgpt55_env=chatgpt55_env,
+            )
+        else:
+            total = len(session["question_queue"])
+            topic_display = str(session.get("topic_display_name") or _topic_display_name(topic or TOPIC_DATA_ROOM))
+            intro = (
+                f"Cool. I found {total} provisional {topic_display} items. I'll walk you through "
+                "the highest-impact questions first: identity, payment privacy, rates, clients, "
+                "invoice numbering. You can answer, skip, defer, revise, summarize, or say done."
+            )
+            reply = _format_question_reply(session, prefix=intro)
     else:
         session = dict(active)
         control = _control_text(raw_text)
@@ -2640,7 +2900,18 @@ def process_guided_review_message(
             write_data_room_form_fill_artifacts,
         )
 
-        if is_data_room_form_fill_request(raw_text):
+        if live_start_request:
+            reply = _activate_live_chatgpt55_data_room_lane(
+                session,
+                raw_text=raw_text,
+                review_root=root,
+                read_model_root=read_model_root,
+                now=now,
+                chatgpt55_provider=chatgpt55_provider,
+                chatgpt55_env=chatgpt55_env,
+            )
+            form_fill_handled = True
+        elif is_data_room_form_fill_request(raw_text):
             package = build_data_room_form_fill_package(session, created_at_utc=now)
             live_chatgpt55_connected = live_chatgpt55_advisory_path_verified()
             form_fill_refs = write_data_room_form_fill_artifacts(
@@ -2678,6 +2949,24 @@ def process_guided_review_message(
             pass
         elif pending_handled:
             pass
+        elif _live_chatgpt55_lane_active(session) and control not in {
+            "done",
+            "summarize",
+            "skip",
+            "defer",
+            "next question",
+            "use_recommendation",
+            "revise_previous",
+        }:
+            reply = _handle_live_chatgpt55_data_room_turn(
+                session,
+                raw_text=raw_text,
+                surface=surface,
+                review_root=root,
+                now=now,
+                chatgpt55_provider=chatgpt55_provider,
+                chatgpt55_env=chatgpt55_env,
+            )
         elif control in {"why", "recommend", "examples"}:
             _enable_coach_mode(session)
             question = _question_by_id(session, str(session.get("current_question_id") or ""))

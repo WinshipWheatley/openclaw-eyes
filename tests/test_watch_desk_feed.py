@@ -302,6 +302,54 @@ def test_codex_work_package_lifecycle_fixture_produces_watch_item(tmp_path):
     assert item["state"]["approval_created"] is False
 
 
+def test_data_room_live_chatgpt55_lane_fixture_produces_watch_item(tmp_path):
+    _write_json(
+        tmp_path / "data_room_live_chatgpt55_lane.json",
+        {
+            "schema_version": "DATA_ROOM_LIVE_CHATGPT55_LANE_STATE_V0",
+            "lane_id": "data_room_live_chatgpt55",
+            "lane_status": "active",
+            "live_ready": True,
+            "model_label": "gpt-5.5",
+            "active_review_session_id": "data_room_review:test",
+            "current_question_id": "review_question:payment",
+            "last_advisory_request_id": "live_chatgpt55_data_room_advisory:test",
+            "last_result_id": "resp_fake",
+            "blocked_reason": "",
+            "watch_desk_items": [
+                {
+                    "item_id": "data_room_live_chatgpt55:data_room_review:test",
+                    "lane": "cassandra_ar",
+                    "urgency": "watch",
+                    "plain_line": "ChatGPT 5.5 Data Room lane active for data_room_review:test.",
+                    "source_receipt_ref": "generated/read_models/data_room_live_chatgpt55_lane.json#lane",
+                    "one_next_safe_action": "Continue the Data Room review in Cassandra; model advice remains advisory-only.",
+                    "push_class": "info",
+                    "state": {
+                        "lane_status": "active",
+                        "live_ready": True,
+                        "model_label": "gpt-5.5",
+                        "active_review_session_id": "data_room_review:test",
+                        "current_question_id": "review_question:payment",
+                        "external_action_allowed": False,
+                        "runtime_mutation_allowed": False,
+                    },
+                }
+            ],
+        },
+    )
+
+    payload = _build(tmp_path)
+    item = payload["feed_items"][0]
+
+    assert item["item_id"] == "data_room_live_chatgpt55:data_room_review:test"
+    assert item["lane"] == "cassandra_ar"
+    assert item["push_allowed"] is False
+    assert item["state"]["live_ready"] is True
+    assert item["state"]["external_action_allowed"] is False
+    assert item["state"]["runtime_mutation_allowed"] is False
+
+
 def test_unchanged_state_produces_zero_new_push_candidates(tmp_path):
     _write_json(tmp_path / "approval_request_queue.json", _pending_approval_queue())
     first = _build(tmp_path)

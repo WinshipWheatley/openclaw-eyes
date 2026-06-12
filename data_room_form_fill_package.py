@@ -666,13 +666,16 @@ def write_data_room_form_fill_artifacts(
 
 
 def live_chatgpt55_advisory_path_verified() -> bool:
-    """Return true only when a future live ChatGPT 5.5 advisory adapter is proven.
+    """Return true only when the live lane state and adapter gate are both ready."""
 
-    The current v0 lane is intentionally a manual package/handoff lane, so this
-    fails closed.
-    """
+    try:
+        import openclaw_chatgpt55_adapter as chatgpt55
 
-    return False
+        state = chatgpt55.load_data_room_live_chatgpt55_lane_state()
+        availability = chatgpt55.is_live_chatgpt55_available()
+        return bool(state.get("live_ready") is True and state.get("lane_status") == "active" and availability.get("available"))
+    except Exception:
+        return False
 
 
 def readiness_notification_text(*, live_chatgpt55_connected: bool) -> str:
