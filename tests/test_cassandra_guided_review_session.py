@@ -139,31 +139,50 @@ def _load_session(response: dict) -> dict:
 
 def test_default_promotion_path_prefers_durable_generated_artifact(tmp_path, monkeypatch):
     legacy_path = tmp_path / "tmp" / "openclaw_data_room_promotion_review_v0.json"
-    durable_path = tmp_path / "generated" / "system_knowledge" / "operator_skill_factory_v0" / "openclaw_data_room_promotion_review_v0.json"
+    durable_path = tmp_path / "generated" / "system_knowledge" / "operator_skill_factory" / "openclaw_data_room_promotion_review_v0.json"
+    legacy_durable_path = tmp_path / "generated" / "system_knowledge" / "operator_skill_factory_v0" / "openclaw_data_room_promotion_review_v0.json"
     _promotion_review(durable_path)
 
     monkeypatch.setattr(guided, "DEFAULT_PROMOTION_REVIEW_PATH", legacy_path)
     monkeypatch.setattr(guided, "DEFAULT_DURABLE_PROMOTION_REVIEW_PATH", durable_path)
+    monkeypatch.setattr(guided, "DEFAULT_LEGACY_DURABLE_PROMOTION_REVIEW_PATH", legacy_durable_path)
 
     assert guided._promotion_path(None) == durable_path
 
 
-def test_default_promotion_path_falls_back_to_legacy_tmp_path(tmp_path, monkeypatch):
+def test_default_promotion_path_accepts_legacy_durable_generated_artifact(tmp_path, monkeypatch):
     legacy_path = tmp_path / "tmp" / "openclaw_data_room_promotion_review_v0.json"
-    durable_path = tmp_path / "generated" / "system_knowledge" / "operator_skill_factory_v0" / "openclaw_data_room_promotion_review_v0.json"
+    durable_path = tmp_path / "generated" / "system_knowledge" / "operator_skill_factory" / "openclaw_data_room_promotion_review_v0.json"
+    legacy_durable_path = tmp_path / "generated" / "system_knowledge" / "operator_skill_factory_v0" / "openclaw_data_room_promotion_review_v0.json"
+    _promotion_review(legacy_durable_path)
 
     monkeypatch.setattr(guided, "DEFAULT_PROMOTION_REVIEW_PATH", legacy_path)
     monkeypatch.setattr(guided, "DEFAULT_DURABLE_PROMOTION_REVIEW_PATH", durable_path)
+    monkeypatch.setattr(guided, "DEFAULT_LEGACY_DURABLE_PROMOTION_REVIEW_PATH", legacy_durable_path)
+
+    assert guided._promotion_path(None) == legacy_durable_path
+
+
+def test_default_promotion_path_falls_back_to_legacy_tmp_path(tmp_path, monkeypatch):
+    legacy_path = tmp_path / "tmp" / "openclaw_data_room_promotion_review_v0.json"
+    durable_path = tmp_path / "generated" / "system_knowledge" / "operator_skill_factory" / "openclaw_data_room_promotion_review_v0.json"
+    legacy_durable_path = tmp_path / "generated" / "system_knowledge" / "operator_skill_factory_v0" / "openclaw_data_room_promotion_review_v0.json"
+
+    monkeypatch.setattr(guided, "DEFAULT_PROMOTION_REVIEW_PATH", legacy_path)
+    monkeypatch.setattr(guided, "DEFAULT_DURABLE_PROMOTION_REVIEW_PATH", durable_path)
+    monkeypatch.setattr(guided, "DEFAULT_LEGACY_DURABLE_PROMOTION_REVIEW_PATH", legacy_durable_path)
 
     assert guided._promotion_path(None) == legacy_path
 
 
 def test_missing_promotion_review_returns_clear_blocked_response(tmp_path, monkeypatch):
     legacy_path = tmp_path / "tmp" / "openclaw_data_room_promotion_review_v0.json"
-    durable_path = tmp_path / "generated" / "system_knowledge" / "operator_skill_factory_v0" / "openclaw_data_room_promotion_review_v0.json"
+    durable_path = tmp_path / "generated" / "system_knowledge" / "operator_skill_factory" / "openclaw_data_room_promotion_review_v0.json"
+    legacy_durable_path = tmp_path / "generated" / "system_knowledge" / "operator_skill_factory_v0" / "openclaw_data_room_promotion_review_v0.json"
 
     monkeypatch.setattr(guided, "DEFAULT_PROMOTION_REVIEW_PATH", legacy_path)
     monkeypatch.setattr(guided, "DEFAULT_DURABLE_PROMOTION_REVIEW_PATH", durable_path)
+    monkeypatch.setattr(guided, "DEFAULT_LEGACY_DURABLE_PROMOTION_REVIEW_PATH", legacy_durable_path)
 
     response = guided.process_guided_review_message(
         "Cassandra, let's go over the Data Room.",

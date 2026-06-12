@@ -19,10 +19,12 @@ from typing import Any, Mapping, Sequence
 ROOT = Path(__file__).resolve().parent
 DEFAULT_REVIEW_ROOT = Path("/tmp/openclaw-mission-control/operator_skill_factory_v0")
 DEFAULT_READ_MODEL_ROOT = Path("generated/read_models")
-DEFAULT_DURABLE_REVIEW_ROOT = Path("generated/system_knowledge/operator_skill_factory_v0")
+DEFAULT_DURABLE_REVIEW_ROOT = Path("generated/system_knowledge/operator_skill_factory")
+DEFAULT_LEGACY_DURABLE_REVIEW_ROOT = Path("generated/system_knowledge/operator_skill_factory_v0")
 DEFAULT_PROMOTION_REVIEW_FILENAME = "openclaw_data_room_promotion_review_v0.json"
 DEFAULT_PROMOTION_REVIEW_PATH = DEFAULT_REVIEW_ROOT / DEFAULT_PROMOTION_REVIEW_FILENAME
 DEFAULT_DURABLE_PROMOTION_REVIEW_PATH = DEFAULT_DURABLE_REVIEW_ROOT / DEFAULT_PROMOTION_REVIEW_FILENAME
+DEFAULT_LEGACY_DURABLE_PROMOTION_REVIEW_PATH = DEFAULT_LEGACY_DURABLE_REVIEW_ROOT / DEFAULT_PROMOTION_REVIEW_FILENAME
 DEFAULT_RECEIPT_DIR_NAME = "data_room_guided_review_receipts"
 
 SESSION_SCHEMA_VERSION = "REVIEW_SESSION_V0"
@@ -340,9 +342,10 @@ def _read_model_root(root: str | Path | None) -> Path:
 def _promotion_path(path: str | Path | None) -> Path:
     if path is not None:
         return _rooted(path)
-    durable_path = _rooted(DEFAULT_DURABLE_PROMOTION_REVIEW_PATH)
-    if durable_path.exists():
-        return durable_path
+    for candidate in (DEFAULT_DURABLE_PROMOTION_REVIEW_PATH, DEFAULT_LEGACY_DURABLE_PROMOTION_REVIEW_PATH):
+        durable_path = _rooted(candidate)
+        if durable_path.exists():
+            return durable_path
     return _rooted(DEFAULT_PROMOTION_REVIEW_PATH)
 
 
