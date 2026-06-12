@@ -64,6 +64,53 @@ def test_relative_tonight_normalizes_to_absolute_date():
     assert parsed["parsed"]["fields"]["date_basis"] == "implied_tonight"
 
 
+def test_telegram_tonight_uses_operator_local_date_at_utc_rollover(tmp_path):
+    result = _process(
+        tmp_path,
+        "I did a St. Anne's gig tonight.",
+        surface="telegram",
+        received_at_utc="2026-06-12T00:10:00+00:00",
+    )
+
+    fields = result["parsed"]["fields"]
+    assert result["received_at_utc"] == "2026-06-12T00:10:00+00:00"
+    assert result["operator_local_timezone"] == "America/New_York"
+    assert result["operator_local_date"] == "2026-06-11"
+    assert result["normalized_event_date"] == "2026-06-11"
+    assert fields["operator_local_timezone"] == "America/New_York"
+    assert fields["operator_local_date"] == "2026-06-11"
+    assert fields["event_date"] == "2026-06-11"
+    assert fields["normalized_event_date"] == "2026-06-11"
+    assert fields["date_basis"] == "implied_tonight"
+
+    receipt = json.loads(Path(result["receipt_refs"][0].split("#", 1)[0]).read_text(encoding="utf-8"))
+    assert receipt["created_at_utc"]
+    assert receipt["operator_local_timezone"] == "America/New_York"
+    assert receipt["operator_local_date"] == "2026-06-11"
+    assert receipt["normalized_event_date"] == "2026-06-11"
+
+    feed = build_watch_desk_feed(read_model_root=tmp_path / "read_models", task_root=tmp_path / "tasks")
+    item = next(item for item in feed["feed_items"] if item.get("action_type") == "gig_event_log")
+    assert item["plain_line"] == "Logged gig: St. Anne's on 2026-06-11. Missing: payment amount?"
+    assert item["operator_local_date"] == "2026-06-11"
+    assert item["normalized_event_date"] == "2026-06-11"
+
+
+def test_today_yesterday_and_tomorrow_use_operator_local_date_at_utc_rollover():
+    received = "2026-06-12T00:10:00Z"
+
+    today = parse_operator_intake_text("I did a St. Anne's gig today.", received_at_utc=received)
+    yesterday = parse_operator_intake_text("I did a St. Anne's gig yesterday.", received_at_utc=received)
+    tomorrow = parse_operator_intake_text("I did a St. Anne's gig tomorrow.", received_at_utc=received)
+
+    assert today["parsed"]["fields"]["event_date"] == "2026-06-11"
+    assert today["parsed"]["fields"]["date_basis"] == "implied_today"
+    assert yesterday["parsed"]["fields"]["event_date"] == "2026-06-10"
+    assert yesterday["parsed"]["fields"]["date_basis"] == "implied_yesterday"
+    assert tomorrow["parsed"]["fields"]["event_date"] == "2026-06-12"
+    assert tomorrow["parsed"]["fields"]["date_basis"] == "implied_tomorrow"
+
+
 def test_low_risk_income_writes_receipt_read_model_and_watch_item(tmp_path):
     result = _process(tmp_path, "I got paid $900 from Live Arts MD.")
     read_model_path = tmp_path / "read_models" / JSON_EXPORT_NAME
@@ -101,6 +148,10 @@ def test_low_risk_income_writes_receipt_read_model_and_watch_item(tmp_path):
     assert receipt["owner_agent"] == "cassandra"
     assert receipt["owner_lane"] == "cassandra_ar"
     assert receipt["source_surface"] == "local_cli"
+    assert receipt["created_at_utc"]
+    assert receipt["operator_local_timezone"] == "America/New_York"
+    assert receipt["operator_local_date"] == "2026-06-11"
+    assert receipt["normalized_event_date"] == "2026-06-11"
     assert receipt["invoice_marked_paid"] is False
     assert receipt["cross_link_refs"] == []
     assert receipt["mutation_scope"] == "local_receipt_read_model_only"
@@ -110,6 +161,9 @@ def test_low_risk_income_writes_receipt_read_model_and_watch_item(tmp_path):
     assert read_model["operator_skill_schema_version"] == "OPERATOR_SKILL_V0"
     assert len(read_model["operator_skill_rows"]) == 4
     assert read_model["events"][0]["parsed"]["fields"]["amount"] == 900
+    assert read_model["events"][0]["operator_local_timezone"] == "America/New_York"
+    assert read_model["events"][0]["operator_local_date"] == "2026-06-11"
+    assert read_model["events"][0]["normalized_event_date"] == "2026-06-11"
     assert read_model["events"][0]["direct_surface_available"] is True
     assert read_model["events"][0]["fallback_route_available"] is True
     assert read_model["events"][0]["safe_actions_taken"] == ["record_local_income_payment_receipt"]
@@ -125,6 +179,8 @@ def test_low_risk_income_writes_receipt_read_model_and_watch_item(tmp_path):
     assert item["owner_lane"] == "cassandra_ar"
     assert item["missing_fields"] == ["invoice/project link", "payment method"]
     assert item["push_class"] == "info"
+    assert item["operator_local_date"] == "2026-06-11"
+    assert item["normalized_event_date"] == "2026-06-11"
 
 
 def test_ambiguous_sign_this_asks_for_referent_and_does_not_mutate(tmp_path):

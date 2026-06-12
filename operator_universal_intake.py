@@ -10,9 +10,10 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Mapping
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from operator_skill_registry import (
     LOCAL_LOG_SKILL_ACTION_TYPES,
@@ -28,6 +29,7 @@ READ_MODEL_VERSION = "operator_intake_events_read_model_v0"
 DEFAULT_EXPORT_ROOT = Path("generated/read_models")
 DEFAULT_RECEIPT_ROOT = Path("/tmp/openclaw-mission-control/openclaw_universal_operator_intake_v0/receipts")
 JSON_EXPORT_NAME = "operator_intake_events.json"
+DEFAULT_OPERATOR_TIMEZONE = "America/New_York"
 
 SUPPORTED_SURFACES = (
     "telegram",
@@ -307,6 +309,24 @@ def _canonical_received_at(value: str | None) -> str:
     return _parse_datetime(value).isoformat()
 
 
+def _operator_timezone_name(value: str | None) -> str:
+    candidate = str(value or "").strip() or DEFAULT_OPERATOR_TIMEZONE
+    try:
+        ZoneInfo(candidate)
+    except ZoneInfoNotFoundError:
+        return DEFAULT_OPERATOR_TIMEZONE
+    return candidate
+
+
+def _operator_local_datetime(received_at_utc: str | None, operator_timezone: str | None = None) -> datetime:
+    timezone_name = _operator_timezone_name(operator_timezone)
+    return _parse_datetime(received_at_utc).astimezone(ZoneInfo(timezone_name))
+
+
+def _operator_local_date(received_at_utc: str | None, operator_timezone: str | None = None) -> str:
+    return _operator_local_datetime(received_at_utc, operator_timezone).date().isoformat()
+
+
 def _normalized_text(text: str) -> str:
     return " ".join(text.replace("\u2019", "'").replace("\u2018", "'").strip().split())
 
@@ -437,28 +457,63 @@ def _confidence_label(score: float) -> str:
     return "low"
 
 
-def _today_date(received_at_utc: str | None) -> str:
-    return _parse_datetime(received_at_utc).date().isoformat()
-
-
-def _date_fields(text: str, received_at_utc: str | None) -> dict[str, str]:
+def _date_fields(
+    text: str,
+    received_at_utc: str | None,
+    *,
+    operator_timezone: str | None = None,
+) -> dict[str, str]:
     lower = _lower_text(text)
+    timezone_name = _operator_timezone_name(operator_timezone)
+    local_dt = _operator_local_datetime(received_at_utc, timezone_name)
+    local_date = local_dt.date()
     explicit = re.search(r"\b(20\d{2})-(\d{2})-(\d{2})\b", lower)
     if explicit:
-        return {"event_date": explicit.group(0), "date_basis": "explicit_iso_date"}
+        event_date = explicit.group(0)
+        return {
+            "event_date": event_date,
+            "normalized_event_date": event_date,
+            "date_basis": "explicit_iso_date",
+            "operator_local_timezone": timezone_name,
+            "operator_local_date": local_date.isoformat(),
+        }
     if "tonight" in lower:
-        return {"event_date": _today_date(received_at_utc), "date_basis": "implied_tonight"}
+        event_date = local_date
+        basis = "implied_tonight"
+    elif "yesterday" in lower:
+        event_date = local_date - timedelta(days=1)
+        basis = "implied_yesterday"
+    elif "tomorrow" in lower:
+        event_date = local_date + timedelta(days=1)
+        basis = "implied_tomorrow"
     if "today" in lower:
-        return {"event_date": _today_date(received_at_utc), "date_basis": "implied_today"}
-    return {"event_date": _today_date(received_at_utc), "date_basis": "default_received_date"}
+        event_date = local_date
+        basis = "implied_today"
+    elif "tonight" not in lower and "yesterday" not in lower and "tomorrow" not in lower:
+        event_date = local_date
+        basis = "default_received_local_date"
+    event_date_text = event_date.isoformat()
+    return {
+        "event_date": event_date_text,
+        "normalized_event_date": event_date_text,
+        "date_basis": basis,
+        "operator_local_timezone": timezone_name,
+        "operator_local_date": local_date.isoformat(),
+    }
 
 
-def _local_skill_idempotency_date(action_type: str, fields: Mapping[str, Any], received_at_utc: str) -> str:
+def _local_skill_idempotency_date(
+    action_type: str,
+    fields: Mapping[str, Any],
+    received_at_utc: str,
+    *,
+    operator_timezone: str | None = None,
+) -> str:
     if action_type == "gig_event_log" and fields.get("event_date"):
         return str(fields["event_date"])
     if fields.get("associated_gig_date"):
         return str(fields["associated_gig_date"])
-    return _parse_datetime(received_at_utc).date().isoformat()
+    return _operator_local_date(received_at_utc, operator_timezone)
 
 
 def _operator_skill_for_action(action_type: str) -> dict[str, Any]:
@@ -497,6 +552,7 @@ def _local_skill_intake_id(
     surface: str,
     operator: str,
     received_at_utc: str,
+    operator_timezone: str | None = None,
 ) -> str:
     skill = _operator_skill_for_action(action_type)
     if action_type == "operator_clarification_event":
@@ -505,7 +561,7 @@ def _local_skill_intake_id(
             skill["skill_id"],
             surface,
             operator,
-            _parse_datetime(received_at_utc).date().isoformat(),
+            _operator_local_date(received_at_utc, operator_timezone),
             _normalized_text(raw_text),
         )
     if action_type not in LOCAL_OPERATOR_SKILL_ACTION_TYPES or skill.get("external"):
@@ -807,6 +863,7 @@ def parse_operator_intake_text(
     raw_text: str,
     *,
     received_at_utc: str | None = None,
+    operator_timezone: str | None = None,
     session_context: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Parse supported low-risk operator text without side effects."""
@@ -979,7 +1036,7 @@ def parse_operator_intake_text(
         }
 
     if ("gig" in lower or "show" in lower or "played" in lower or "did a" in lower) and _mentions_st_annes(text):
-        date_info = _date_fields(text, received_at_utc)
+        date_info = _date_fields(text, received_at_utc, operator_timezone=operator_timezone)
         return {
             "parsed": {
                 "action_type": "gig_event_log",
@@ -987,7 +1044,10 @@ def parse_operator_intake_text(
                 "fields": {
                     "venue": "St. Anne's",
                     "event_date": date_info["event_date"],
+                    "normalized_event_date": date_info["normalized_event_date"],
                     "date_basis": date_info["date_basis"],
+                    "operator_local_timezone": date_info["operator_local_timezone"],
+                    "operator_local_date": date_info["operator_local_date"],
                     "local_receipt_only": True,
                     "external_calendar_or_invoice_mutated": False,
                     "missing": ["payment amount"],
@@ -1034,6 +1094,7 @@ def parse_operator_intake_texts(
     raw_text: str,
     *,
     received_at_utc: str | None = None,
+    operator_timezone: str | None = None,
     session_context: Mapping[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     parts = split_operator_intake_text(raw_text)
@@ -1042,7 +1103,12 @@ def parse_operator_intake_texts(
     recent_gigs = list(local_context.get("recent_gigs") or [])
     local_context["recent_gigs"] = recent_gigs
     for part in parts:
-        parsed = parse_operator_intake_text(part, received_at_utc=received_at_utc, session_context=local_context)
+        parsed = parse_operator_intake_text(
+            part,
+            received_at_utc=received_at_utc,
+            operator_timezone=operator_timezone,
+            session_context=local_context,
+        )
         parsed_items.append({"raw_text": part, "parsed_result": parsed})
         if parsed["parsed"]["action_type"] == "gig_event_log":
             recent_gigs.append({"parsed": parsed["parsed"], "intake_id": ""})
@@ -1374,6 +1440,9 @@ def _build_watch_item(event: Mapping[str, Any], receipt_ref: str) -> dict[str, A
         "plain_line": _watch_plain_line(event),
         "source_receipt_ref": receipt_ref,
         "missing_fields": list(event.get("needs_clarification", [])),
+        "operator_local_timezone": event.get("operator_local_timezone", DEFAULT_OPERATOR_TIMEZONE),
+        "operator_local_date": event.get("operator_local_date", ""),
+        "normalized_event_date": event.get("normalized_event_date", ""),
         "one_next_safe_action": "Review the local receipt; keep external mutation behind the existing approval spine.",
         "push_class": str(skill.get("push_class") or "on_demand"),
         "received_surface": event.get("received_surface", ""),
@@ -1412,6 +1481,9 @@ def _receipt_payload(event: Mapping[str, Any], created_at_utc: str) -> dict[str,
         "must_not": list(skill.get("must_not", [])),
         "reference_data_needed": list(skill.get("reference_data_needed", [])),
         "source_surface": event.get("surface", ""),
+        "operator_local_timezone": event.get("operator_local_timezone", DEFAULT_OPERATOR_TIMEZONE),
+        "operator_local_date": event.get("operator_local_date", ""),
+        "normalized_event_date": event.get("normalized_event_date", ""),
         "received_surface": event.get("received_surface", ""),
         "addressed_agent": event.get("addressed_agent", ""),
         "inferred_owner_agent": event.get("inferred_owner_agent", ""),
@@ -1539,6 +1611,7 @@ def process_operator_intake(
     surface: str = "local_cli",
     operator: str = "Winship",
     received_at_utc: str | None = None,
+    operator_timezone: str | None = None,
     session_context: Mapping[str, Any] | None = None,
     receiving_agent_id: str | None = None,
     read_model_root: str | Path = DEFAULT_EXPORT_ROOT,
@@ -1549,9 +1622,12 @@ def process_operator_intake(
     if surface not in SUPPORTED_SURFACES:
         raise ValueError(f"unsupported surface: {surface}")
     received = _canonical_received_at(received_at_utc)
+    timezone_name = _operator_timezone_name(operator_timezone)
+    operator_local_date = _operator_local_date(received, timezone_name)
     parsed_result = parse_operator_intake_text(
         raw_text,
         received_at_utc=received,
+        operator_timezone=timezone_name,
         session_context=session_context,
     )
     route_decision = _route_decision(
@@ -1572,6 +1648,7 @@ def process_operator_intake(
         surface=surface,
         operator=operator,
         received_at_utc=received,
+        operator_timezone=timezone_name,
     )
     idempotency_key = _sha256_text(
         "|".join(
@@ -1579,7 +1656,12 @@ def process_operator_intake(
                 str(skill.get("skill_id", "")),
                 surface,
                 operator,
-                _local_skill_idempotency_date(action_type, parsed_fields, received),
+                _local_skill_idempotency_date(
+                    action_type,
+                    parsed_fields,
+                    received,
+                    operator_timezone=timezone_name,
+                ),
                 _normalized_text(raw_text),
                 _stable_compact_json(parsed_fields),
             ]
@@ -1610,6 +1692,14 @@ def process_operator_intake(
         "surface": surface,
         "received_surface": route_decision["received_surface"],
         "operator": operator,
+        "operator_local_timezone": timezone_name,
+        "operator_local_date": operator_local_date,
+        "normalized_event_date": str(
+            parsed_fields.get("normalized_event_date")
+            or parsed_fields.get("event_date")
+            or parsed_fields.get("associated_gig_date")
+            or operator_local_date
+        ),
         "normalized_summary": parsed_result["normalized_summary"],
         "parsed": parsed_result["parsed"],
         "risk_tier": parsed_result["risk_tier"],
@@ -1706,6 +1796,7 @@ def process_operator_intake_batch(
     surface: str = "local_cli",
     operator: str = "Winship",
     received_at_utc: str | None = None,
+    operator_timezone: str | None = None,
     session_context: Mapping[str, Any] | None = None,
     receiving_agent_id: str | None = None,
     read_model_root: str | Path = DEFAULT_EXPORT_ROOT,
@@ -1714,6 +1805,7 @@ def process_operator_intake_batch(
     if surface not in SUPPORTED_SURFACES:
         raise ValueError(f"unsupported surface: {surface}")
     received = _canonical_received_at(received_at_utc)
+    timezone_name = _operator_timezone_name(operator_timezone)
     local_context: dict[str, Any] = dict(session_context or {})
     recent_gigs = list(local_context.get("recent_gigs") or [])
     local_context["recent_gigs"] = recent_gigs
@@ -1724,6 +1816,7 @@ def process_operator_intake_batch(
             surface=surface,
             operator=operator,
             received_at_utc=received,
+            operator_timezone=timezone_name,
             session_context=local_context,
             receiving_agent_id=receiving_agent_id,
             read_model_root=read_model_root,
@@ -1816,6 +1909,9 @@ def _surface_response_from_events(
         "lane": "multi_lane" if len(set(lanes)) > 1 else lanes[0],
         "lanes": lanes,
         "risk_tier": "high" if "high" in risk_tiers else "low",
+        "operator_local_timezone": primary.get("operator_local_timezone", DEFAULT_OPERATOR_TIMEZONE),
+        "operator_local_date": primary.get("operator_local_date", ""),
+        "normalized_event_date": primary.get("normalized_event_date", ""),
         "received_surface": primary.get("received_surface", surface),
         "addressed_agent": primary.get("addressed_agent", ""),
         "inferred_owner_agent": primary.get("inferred_owner_agent", ""),
@@ -1849,6 +1945,7 @@ def try_process_surface_operator_intake(
     surface: str,
     operator: str = "Winship",
     received_at_utc: str | None = None,
+    operator_timezone: str | None = None,
     session_context: Mapping[str, Any] | None = None,
     receiving_agent_id: str | None = None,
     read_model_root: str | Path = DEFAULT_EXPORT_ROOT,
@@ -1863,6 +1960,7 @@ def try_process_surface_operator_intake(
         surface=surface,
         operator=operator,
         received_at_utc=received_at_utc,
+        operator_timezone=operator_timezone,
         session_context=session_context,
         receiving_agent_id=receiving_agent_id,
         read_model_root=read_model_root,
@@ -1879,6 +1977,7 @@ def process_mac_composer_operator_intake(
     *,
     operator: str = "Winship",
     received_at_utc: str | None = None,
+    operator_timezone: str | None = None,
     session_context: Mapping[str, Any] | None = None,
     read_model_root: str | Path = DEFAULT_EXPORT_ROOT,
     receipt_root: str | Path = DEFAULT_RECEIPT_ROOT,
@@ -1888,6 +1987,7 @@ def process_mac_composer_operator_intake(
         surface="mac_composer",
         operator=operator,
         received_at_utc=received_at_utc,
+        operator_timezone=operator_timezone,
         session_context=session_context,
         receiving_agent_id="mac_composer",
         read_model_root=read_model_root,
@@ -1900,6 +2000,7 @@ def process_mac_composer_operator_intake(
         surface="mac_composer",
         operator=operator,
         received_at_utc=received_at_utc,
+        operator_timezone=operator_timezone,
         session_context=session_context,
         receiving_agent_id="mac_composer",
         read_model_root=read_model_root,
@@ -1912,6 +2013,9 @@ def process_mac_composer_operator_intake(
         "action_type": event["parsed"]["action_type"],
         "lane": event["parsed"]["lane"],
         "risk_tier": event["risk_tier"],
+        "operator_local_timezone": event["operator_local_timezone"],
+        "operator_local_date": event["operator_local_date"],
+        "normalized_event_date": event["normalized_event_date"],
         "received_surface": event["received_surface"],
         "addressed_agent": event["addressed_agent"],
         "inferred_owner_agent": event["inferred_owner_agent"],
@@ -1941,11 +2045,16 @@ def process_mac_composer_operator_intake(
     }
 
 
-def infer_agent_lane_target(raw_text: str, *, default_agent_id: str = "") -> dict[str, Any]:
+def infer_agent_lane_target(
+    raw_text: str,
+    *,
+    default_agent_id: str = "",
+    operator_timezone: str | None = None,
+) -> dict[str, Any]:
     """Infer the intended agent lane without executing or writing anything."""
 
     text = _normalized_text(raw_text)
-    parsed = parse_operator_intake_text(text)
+    parsed = parse_operator_intake_text(text, operator_timezone=operator_timezone)
     owner_agent, owner_lane = _owner_for_parsed(parsed)
     resolved_default = _resolve_agent_id(default_agent_id) if default_agent_id else ""
     if not owner_agent and resolved_default in AGENT_EXECUTION_MODE_REGISTRY_V0:
@@ -2065,6 +2174,7 @@ def process_direct_agent_surface_operator_intake(
     agent_id: str,
     operator: str = "Winship",
     received_at_utc: str | None = None,
+    operator_timezone: str | None = None,
     session_context: Mapping[str, Any] | None = None,
     read_model_root: str | Path = DEFAULT_EXPORT_ROOT,
     receipt_root: str | Path = DEFAULT_RECEIPT_ROOT,
@@ -2073,13 +2183,14 @@ def process_direct_agent_surface_operator_intake(
 
     resolved = _resolve_agent_id(agent_id)
     status = direct_agent_surface_status(resolved)
-    target = infer_agent_lane_target(raw_text, default_agent_id=resolved)
+    target = infer_agent_lane_target(raw_text, default_agent_id=resolved, operator_timezone=operator_timezone)
     surface = _direct_surface_for_agent(resolved)
     routed = try_process_surface_operator_intake(
         raw_text,
         surface=surface,
         operator=operator,
         received_at_utc=received_at_utc,
+        operator_timezone=operator_timezone,
         session_context=session_context,
         receiving_agent_id=resolved,
         read_model_root=read_model_root,
@@ -2093,6 +2204,7 @@ def process_direct_agent_surface_operator_intake(
         surface=surface,
         operator=operator,
         received_at_utc=received_at_utc,
+        operator_timezone=operator_timezone,
         session_context=session_context,
         receiving_agent_id=resolved,
         read_model_root=read_model_root,
@@ -2109,6 +2221,9 @@ def process_direct_agent_surface_operator_intake(
         "action_type": event["parsed"]["action_type"],
         "lane": event["parsed"]["lane"],
         "risk_tier": event["risk_tier"],
+        "operator_local_timezone": event["operator_local_timezone"],
+        "operator_local_date": event["operator_local_date"],
+        "normalized_event_date": event["normalized_event_date"],
         "received_surface": event["received_surface"],
         "addressed_agent": event["addressed_agent"],
         "inferred_owner_agent": event["inferred_owner_agent"],

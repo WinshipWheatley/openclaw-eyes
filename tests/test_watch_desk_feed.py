@@ -399,6 +399,9 @@ def test_intake_watch_item_preserves_skill_owner_missing_fields_and_info_push_cl
             "owner_lane": "cassandra_ar",
             "missing_fields": ["invoice/project link", "payment method"],
             "push_class": "info",
+            "operator_local_timezone": "America/New_York",
+            "operator_local_date": "2026-06-11",
+            "normalized_event_date": "2026-06-11",
         }
     )
     _write_json(tmp_path / "operator_intake_events.json", _operator_intake_read_model([event]))
@@ -412,6 +415,9 @@ def test_intake_watch_item_preserves_skill_owner_missing_fields_and_info_push_cl
     assert item["missing_fields"] == ["invoice/project link", "payment method"]
     assert item["push_class"] == "info"
     assert item["push_candidate"] is False
+    assert item["operator_local_timezone"] == "America/New_York"
+    assert item["operator_local_date"] == "2026-06-11"
+    assert item["normalized_event_date"] == "2026-06-11"
 
 
 def test_clarification_proof_item_is_useful_and_non_pushy(tmp_path):

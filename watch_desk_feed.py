@@ -455,7 +455,16 @@ def _operator_item_from_mapping(
         push_class=str(item.get("push_class") or "on_demand"),
         occurred_at=occurred_at,
     )
-    for key in ("owner_agent", "owner_lane", "skill_id", "action_type", "missing_fields"):
+    for key in (
+        "owner_agent",
+        "owner_lane",
+        "skill_id",
+        "action_type",
+        "missing_fields",
+        "operator_local_timezone",
+        "operator_local_date",
+        "normalized_event_date",
+    ):
         if key in item:
             feed_item[key] = item[key]
         elif fallback_event and key in fallback_event:

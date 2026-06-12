@@ -5783,6 +5783,8 @@ def handle(text: str, session: dict | None = None) -> list[str]:
         intake_kwargs: dict[str, Any] = {}
         if session_meta.get("received_at_utc"):
             intake_kwargs["received_at_utc"] = str(session_meta["received_at_utc"])
+        if session_meta.get("operator_timezone"):
+            intake_kwargs["operator_timezone"] = str(session_meta["operator_timezone"])
         if session_meta.get("operator_intake_read_model_root"):
             intake_kwargs["read_model_root"] = session_meta["operator_intake_read_model_root"]
         if session_meta.get("operator_intake_receipt_root"):
