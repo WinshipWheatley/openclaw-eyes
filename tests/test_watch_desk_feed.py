@@ -256,6 +256,52 @@ def test_pending_model_consult_permission_fixture_produces_watch_item(tmp_path):
     assert item["state"]["execution_allowed"] is False
 
 
+def test_codex_work_package_lifecycle_fixture_produces_watch_item(tmp_path):
+    _write_json(
+        tmp_path / "codex_work_package_lifecycle.json",
+        {
+            "schema_version": "codex_work_package_lifecycle_v0",
+            "watch_desk_items": [
+                {
+                    "item_id": "codex_work_package:fixture",
+                    "lane": "chief_runtime",
+                    "urgency": "watch",
+                    "plain_line": "Worker package codex_work_package:fixture is claimed.",
+                    "source_receipt_ref": "generated/read_models/codex_work_package_lifecycle.json#codex_work_package:fixture",
+                    "one_next_safe_action": "Wait for the assigned worker output, then ingest the result.",
+                    "push_class": "on_demand",
+                    "push_allowed": False,
+                    "package_id": "codex_work_package:fixture",
+                    "status": "claimed",
+                    "state": {
+                        "package_id": "codex_work_package:fixture",
+                        "objective_id": "operator_objective:fixture",
+                        "capability_id": "read_only_email_lookup",
+                        "status": "claimed",
+                        "claimed_by": "pc_codex",
+                        "execution_allowed": False,
+                        "external_call_allowed": False,
+                        "approval_created": False,
+                    },
+                }
+            ],
+        },
+    )
+
+    payload = _build(tmp_path)
+
+    assert payload["item_count"] == 1
+    item = payload["feed_items"][0]
+    assert item["item_id"] == "codex_work_package:fixture"
+    assert item["lane"] == "chief_runtime"
+    assert item["urgency"] == "watch"
+    assert item["push_allowed"] is False
+    assert item["state"]["package_id"] == "codex_work_package:fixture"
+    assert item["state"]["execution_allowed"] is False
+    assert item["state"]["external_call_allowed"] is False
+    assert item["state"]["approval_created"] is False
+
+
 def test_unchanged_state_produces_zero_new_push_candidates(tmp_path):
     _write_json(tmp_path / "approval_request_queue.json", _pending_approval_queue())
     first = _build(tmp_path)

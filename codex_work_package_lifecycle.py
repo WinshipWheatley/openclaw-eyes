@@ -28,7 +28,8 @@ DEFAULT_EXPORT_ROOT = Path("generated/read_models")
 DEFAULT_BRIDGE_ROOT = Path("/mnt/e/openclaw/generated/read_models")
 DEFAULT_WIKI_PATH = Path("generated/wiki/openclaw/Codex Work Package Lifecycle.md")
 DEFAULT_SQLITE_PATH = Path("generated/system_knowledge/codex_work_package_lifecycle.sqlite")
-DEFAULT_PACKAGE_ROOT = Path("/tmp/openclaw-mission-control/codex_work_packages")
+DEFAULT_PACKAGE_ROOT = Path("generated/system_knowledge/work_packages")
+LEGACY_PACKAGE_ROOT = Path("/tmp/openclaw-mission-control/codex_work_packages")
 
 SCHEMA_VERSION = "codex_work_package_lifecycle_v0"
 READ_MODEL_ID = "codex_work_package_lifecycle"
@@ -57,6 +58,12 @@ STATE_ACTIVATED = "activated"
 STATE_DISABLED = "disabled"
 
 ALLOWED_WORKER_KINDS = (
+    "pc_codex",
+    "mac_codex",
+    "gemini",
+    "fable",
+    "human",
+    "local_script",
     "codex_desktop",
     "codex_vscode",
     "codex_cli_if_available",
@@ -474,9 +481,119 @@ def _store_bridge(conn: sqlite3.Connection, bridge: Mapping[str, Any]) -> None:
     )
 
 
+def _store_claim(conn: sqlite3.Connection, claim: Mapping[str, Any]) -> None:
+    conn.execute(
+        """
+        INSERT OR REPLACE INTO package_claims
+        (claim_id, package_id, claimed_at, claim_json)
+        VALUES (?, ?, ?, ?)
+        """,
+        (claim["claim_id"], claim["package_id"], claim["claimed_at"], stable_json(claim)),
+    )
+
+
 def _all_states(conn: sqlite3.Connection) -> list[dict[str, Any]]:
     rows = conn.execute("SELECT state_json FROM package_states ORDER BY updated_at").fetchall()
     return [json.loads(row["state_json"]) for row in rows]
+
+
+def _latest_claims(conn: sqlite3.Connection) -> list[dict[str, Any]]:
+    rows = conn.execute("SELECT claim_json FROM package_claims ORDER BY claimed_at DESC").fetchall()
+    return [json.loads(row["claim_json"]) for row in rows]
+
+
+def _latest_results(conn: sqlite3.Connection) -> list[dict[str, Any]]:
+    rows = conn.execute("SELECT result_json FROM package_results ORDER BY submitted_at DESC").fetchall()
+    return [json.loads(row["result_json"]) for row in rows]
+
+
+def _latest_validations(conn: sqlite3.Connection) -> list[dict[str, Any]]:
+    rows = conn.execute("SELECT receipt_json FROM validation_receipts ORDER BY created_at DESC").fetchall()
+    return [json.loads(row["receipt_json"]) for row in rows]
+
+
+def _latest_activation_decisions(conn: sqlite3.Connection) -> list[dict[str, Any]]:
+    rows = conn.execute("SELECT decision_json FROM activation_decisions ORDER BY created_at DESC").fetchall()
+    return [json.loads(row["decision_json"]) for row in rows]
+
+
+def _claim_for_package(claims: Sequence[Mapping[str, Any]], package_id: str) -> dict[str, Any]:
+    for claim in claims:
+        if str(claim.get("package_id") or "") == package_id:
+            return dict(claim)
+    return {}
+
+
+def _result_for_package(results: Sequence[Mapping[str, Any]], package_id: str) -> dict[str, Any]:
+    for result in results:
+        if str(result.get("package_id") or "") == package_id:
+            return dict(result)
+    return {}
+
+
+def _validation_for_package(validations: Sequence[Mapping[str, Any]], package_id: str) -> dict[str, Any]:
+    for validation in validations:
+        if str(validation.get("package_id") or "") == package_id:
+            return dict(validation)
+    return {}
+
+
+def _activation_for_package(decisions: Sequence[Mapping[str, Any]], package_id: str) -> dict[str, Any]:
+    for decision in decisions:
+        if str(decision.get("package_id") or "") == package_id:
+            return dict(decision)
+    return {}
+
+
+def _package_json_exists(files: Mapping[str, Any]) -> bool:
+    package_json_path = str(files.get("package_json_path") or "")
+    return bool(package_json_path and Path(package_json_path).is_file())
+
+
+def _legacy_package_files(package_id: str) -> dict[str, str]:
+    return _package_files(package_id, LEGACY_PACKAGE_ROOT)
+
+
+def ensure_package_files_for_state(
+    state: Mapping[str, Any],
+    *,
+    package_root: Path = DEFAULT_PACKAGE_ROOT,
+) -> tuple[dict[str, Any], str]:
+    """Ensure a package file exists without relying on volatile /tmp storage."""
+
+    updated = dict(state)
+    current_files = dict(updated.get("package_files") or {}) if isinstance(updated.get("package_files"), Mapping) else {}
+    if _package_json_exists(current_files):
+        current_root = str(current_files.get("package_dir") or "")
+        requested_root = Path(package_root).as_posix()
+        status = "present" if current_root.startswith(requested_root) else "legacy_tmp_present"
+        updated["package_file_status"] = status
+        return updated, status
+
+    package_id = str(updated.get("package_id") or "")
+    legacy_files = _legacy_package_files(package_id)
+    if _package_json_exists(legacy_files):
+        updated["package_files"] = legacy_files
+        updated["package_file_status"] = "legacy_tmp_present"
+        return updated, "legacy_tmp_present"
+
+    package = updated.get("package_json") if isinstance(updated.get("package_json"), Mapping) else {}
+    if package:
+        objective = {
+            "objective_id": str(updated.get("objective_id") or package.get("objective_id") or ""),
+            "operator_goal_text": str(package.get("operator_goal_text") or package.get("task_type") or package.get("capability_id") or ""),
+            "requested_outcome": str(package.get("requested_outcome") or ""),
+        }
+        files = write_package_files(package, objective=objective, package_root=package_root)
+        updated["package_files"] = files
+        updated["package_file_status"] = "reemitted_from_sqlite_package_json"
+        return updated, "reemitted_from_sqlite_package_json"
+
+    updated["package_file_status"] = "package_file_missing"
+    updated["blocker_ref"] = str(updated.get("blocker_ref") or "package_file_missing")
+    if str(updated.get("state") or "") not in {STATE_BLOCKED, STATE_VALIDATION_FAILED}:
+        updated["state"] = STATE_BLOCKED
+    return updated, "package_file_missing"
 
 
 def queue_codex_work_package(
@@ -552,6 +669,137 @@ def load_lifecycle_for_objective(objective_id: str, *, sqlite_path: Path = DEFAU
         "latest_package_result": json.loads(result_row["result_json"]) if result_row else {},
         "latest_activation_decision": json.loads(activation_row["decision_json"]) if activation_row else {},
         "package_files": state.get("package_files") if isinstance(state.get("package_files"), Mapping) else {},
+        "authority_boundary": dict(AUTHORITY_BOUNDARY),
+    }
+
+
+def build_dispatch_claim(
+    state: Mapping[str, Any],
+    *,
+    worker_kind: str,
+    dispatched_by: str,
+    note: str = "",
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    generated_at = generated_at or utc_now()
+    package_id = str(state.get("package_id") or "")
+    return {
+        "schema_version": PACKAGE_CLAIM_SCHEMA,
+        "claim_id": f"codex_work_package_claim:{_short_hash(package_id, worker_kind, dispatched_by, generated_at)}",
+        "package_id": package_id,
+        "worker_kind": worker_kind,
+        "dispatched_by": dispatched_by,
+        "note": note,
+        "claimed_at": generated_at,
+        "manual_dispatch_only": True,
+        "model_invoked": False,
+        "external_api_called": False,
+        "approval_created": False,
+        "authority_boundary": dict(AUTHORITY_BOUNDARY),
+    }
+
+
+def record_dispatch(
+    package_id: str,
+    worker_kind: str,
+    dispatched_by: str,
+    note: str = "",
+    *,
+    sqlite_path: Path = DEFAULT_SQLITE_PATH,
+    package_root: Path = DEFAULT_PACKAGE_ROOT,
+    generated_at: str | None = None,
+    mark_in_progress: bool = False,
+) -> dict[str, Any]:
+    """Record a manual package handoff without invoking any worker."""
+
+    generated_at = generated_at or utc_now()
+    worker_kind = str(worker_kind or "").strip()
+    if worker_kind not in ALLOWED_WORKER_KINDS:
+        state = {
+            "schema_version": PACKAGE_STATE_SCHEMA,
+            "package_id": package_id,
+            "state": STATE_BLOCKED,
+            "blocker_ref": "unsupported_worker_kind",
+            "updated_at": generated_at,
+            "authority_boundary": dict(AUTHORITY_BOUNDARY),
+        }
+        return {
+            "schema_version": SCHEMA_VERSION,
+            "status": "dispatch_rejected",
+            "reason": "unsupported_worker_kind",
+            "package_state": state,
+            "authority_boundary": dict(AUTHORITY_BOUNDARY),
+        }
+
+    with _connect(sqlite_path) as conn:
+        row = conn.execute("SELECT state_json FROM package_states WHERE package_id = ?", (package_id,)).fetchone()
+        if not row:
+            state = {
+                "schema_version": PACKAGE_STATE_SCHEMA,
+                "package_id": package_id,
+                "state": STATE_BLOCKED,
+                "blocker_ref": "unknown_package_id",
+                "updated_at": generated_at,
+                "authority_boundary": dict(AUTHORITY_BOUNDARY),
+            }
+            return {
+                "schema_version": SCHEMA_VERSION,
+                "status": "dispatch_rejected",
+                "reason": "unknown_package_id",
+                "package_state": state,
+                "authority_boundary": dict(AUTHORITY_BOUNDARY),
+            }
+        state = json.loads(row["state_json"])
+        state, package_file_status = ensure_package_files_for_state(state, package_root=package_root)
+        claim = build_dispatch_claim(
+            state,
+            worker_kind=worker_kind,
+            dispatched_by=str(dispatched_by or "operator"),
+            note=str(note or ""),
+            generated_at=generated_at,
+        )
+        new_state = dict(state)
+        previous_state = str(new_state.get("state") or "")
+        if previous_state in {
+            STATE_QUEUED,
+            STATE_AWAITING_WORKER_BRIDGE,
+            STATE_VALIDATION_PASSED,
+            STATE_CLAIMED,
+            STATE_IN_PROGRESS,
+        }:
+            next_state = STATE_IN_PROGRESS if mark_in_progress else STATE_CLAIMED
+            new_state.update(
+                {
+                    "state": next_state,
+                    "updated_at": generated_at,
+                    "claimed_by": worker_kind,
+                    "claim_ref": claim["claim_id"],
+                    "blocker_ref": "" if package_file_status != "package_file_missing" else "package_file_missing",
+                    "receipt_ref": f"codex_work_package_state_receipt:{_short_hash(package_id, next_state, generated_at)}",
+                    "package_file_status": package_file_status,
+                }
+            )
+        else:
+            new_state.update(
+                {
+                    "updated_at": generated_at,
+                    "claimed_by": worker_kind,
+                    "claim_ref": claim["claim_id"],
+                    "package_file_status": package_file_status,
+                }
+            )
+        _store_claim(conn, claim)
+        _store_state(conn, new_state)
+        queue = build_package_queue(_all_states(conn), generated_at=generated_at)
+        _store_queue(conn, queue)
+        conn.commit()
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "status": "dispatch_recorded",
+        "package_claim": claim,
+        "package_state": new_state,
+        "package_queue": queue,
+        "package_file_status": package_file_status,
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
     }
 
@@ -812,6 +1060,125 @@ def _store_registry(conn: sqlite3.Connection, state: Mapping[str, Any], decision
         """,
         (registry["capability_id"], _scope_key(scope), registry["status"], generated_at, stable_json(registry)),
     )
+    if registry["capability_id"] == read_only_email_lookup_connector.CAPABILITY_ID:
+        legacy_registry = dict(registry)
+        legacy_registry["capability_id"] = read_only_email_lookup_connector.LEGACY_CAPABILITY_ID
+        legacy_registry["canonical_capability_id"] = read_only_email_lookup_connector.CAPABILITY_ID
+        conn.execute(
+            """
+            INSERT OR REPLACE INTO capability_registry
+            (capability_id, scope_key, status, updated_at, registry_json)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (
+                legacy_registry["capability_id"],
+                _scope_key(scope),
+                legacy_registry["status"],
+                generated_at,
+                stable_json(legacy_registry),
+            ),
+        )
+
+
+def parse_worker_result_text(raw_text: str) -> tuple[dict[str, Any] | None, str]:
+    """Parse worker output as JSON or markdown containing one JSON object."""
+
+    text = str(raw_text or "").strip()
+    if not text:
+        return None, "empty_worker_result"
+    candidates = [text]
+    fenced = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, flags=re.IGNORECASE | re.DOTALL)
+    if fenced:
+        candidates.insert(0, fenced.group(1).strip())
+    brace_index = text.find("{")
+    if brace_index >= 0:
+        candidates.append(text[brace_index:])
+
+    decoder = json.JSONDecoder()
+    for candidate in candidates:
+        try:
+            parsed = json.loads(candidate)
+        except json.JSONDecodeError:
+            try:
+                parsed, _ = decoder.raw_decode(candidate)
+            except json.JSONDecodeError:
+                continue
+        if isinstance(parsed, Mapping):
+            return dict(parsed), ""
+        return None, "worker_result_not_json_object"
+    return None, "worker_result_json_parse_failed"
+
+
+def reject_worker_result(
+    package_id: str,
+    reason: str,
+    *,
+    sqlite_path: Path = DEFAULT_SQLITE_PATH,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    generated_at = generated_at or utc_now()
+    with _connect(sqlite_path) as conn:
+        row = conn.execute("SELECT state_json FROM package_states WHERE package_id = ?", (package_id,)).fetchone()
+        if row:
+            state = json.loads(row["state_json"])
+            state.update(
+                {
+                    "state": STATE_VALIDATION_FAILED,
+                    "updated_at": generated_at,
+                    "result_ref": f"codex_work_package_result:{_short_hash(package_id, reason, generated_at)}",
+                    "validation_ref": f"codex_work_package_validation:{_short_hash(package_id, reason, generated_at)}",
+                    "blocker_ref": reason,
+                    "receipt_ref": f"codex_work_package_state_receipt:{_short_hash(package_id, 'result_rejected', generated_at)}",
+                }
+            )
+        else:
+            state = {
+                "schema_version": PACKAGE_STATE_SCHEMA,
+                "package_id": package_id,
+                "objective_id": "",
+                "capability_id": "",
+                "state": STATE_BLOCKED,
+                "run_mode": "production",
+                "authority_grant_ref": "",
+                "created_at": generated_at,
+                "updated_at": generated_at,
+                "claimed_by": "",
+                "result_ref": "",
+                "validation_ref": "",
+                "blocker_ref": reason or "unknown_package_id",
+                "receipt_ref": f"codex_work_package_state_receipt:{_short_hash(package_id, reason, generated_at)}",
+                "package_files": {},
+                "package_json": {},
+                "authority_boundary": dict(AUTHORITY_BOUNDARY),
+            }
+        result = {
+            "schema_version": PACKAGE_RESULT_SCHEMA,
+            "result_id": f"codex_work_package_result:{_short_hash(package_id, reason, generated_at)}",
+            "package_id": package_id,
+            "worker_kind": "unknown",
+            "status": "result_rejected",
+            "rejection_reason": reason,
+            "submitted_at": generated_at,
+            "authority_boundary": dict(AUTHORITY_BOUNDARY),
+        }
+        validation = build_validation_receipt(package_id, errors=[reason], validation_logs=[], generated_at=generated_at)
+        decision = build_activation_decision(state, result, validation, generated_at=generated_at)
+        _store_state(conn, state)
+        _store_result(conn, result)
+        _store_validation(conn, validation)
+        _store_activation(conn, decision)
+        queue = build_package_queue(_all_states(conn), generated_at=generated_at)
+        _store_queue(conn, queue)
+        conn.commit()
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "package_result": result,
+        "validation_receipt": validation,
+        "activation_decision": decision,
+        "package_state": state,
+        "package_queue": queue,
+        "authority_boundary": dict(AUTHORITY_BOUNDARY),
+    }
 
 
 def ingest_worker_result(
@@ -912,15 +1279,166 @@ def ingest_worker_result(
     }
 
 
-def build_read_model(*, sqlite_path: Path = DEFAULT_SQLITE_PATH, generated_at: str | None = None) -> dict[str, Any]:
+def ingest_worker_result_text(
+    package_id: str,
+    raw_text: str,
+    *,
+    sqlite_path: Path = DEFAULT_SQLITE_PATH,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    parsed, reason = parse_worker_result_text(raw_text)
+    if parsed is None:
+        return reject_worker_result(package_id, reason, sqlite_path=sqlite_path, generated_at=generated_at)
+    parsed_package_id = str(parsed.get("package_id") or "")
+    if parsed_package_id and parsed_package_id != package_id:
+        return reject_worker_result(package_id, "package_id_mismatch", sqlite_path=sqlite_path, generated_at=generated_at)
+    parsed["package_id"] = package_id
+    return ingest_worker_result(parsed, sqlite_path=sqlite_path, generated_at=generated_at)
+
+
+WATCH_DESK_STATES = {
+    STATE_AWAITING_WORKER_BRIDGE,
+    STATE_CLAIMED,
+    STATE_IN_PROGRESS,
+    STATE_RESULT_SUBMITTED,
+    STATE_VALIDATION_FAILED,
+    STATE_VALIDATION_PASSED,
+    STATE_READY_FOR_ACTIVATION,
+    STATE_BLOCKED,
+}
+
+
+def _next_action_for_state(state: Mapping[str, Any], validation: Mapping[str, Any], activation: Mapping[str, Any]) -> str:
+    state_value = str(state.get("state") or "")
+    if state_value == STATE_AWAITING_WORKER_BRIDGE:
+        return "Dispatch this package manually with scripts/openclaw_run.py dispatch; do not invoke a worker automatically."
+    if state_value == STATE_CLAIMED:
+        return "Wait for the assigned worker output, then ingest the result through scripts/openclaw_run.py ingest."
+    if state_value == STATE_IN_PROGRESS:
+        return "Monitor the manual worker run and ingest a bounded result when available."
+    if state_value == STATE_RESULT_SUBMITTED:
+        return "Run lifecycle validation before any activation decision."
+    if state_value == STATE_VALIDATION_FAILED:
+        errors = validation.get("validation_errors") if isinstance(validation.get("validation_errors"), list) else []
+        suffix = f" Latest error: {errors[0]}." if errors else ""
+        return "Review the validation failure and request a corrected worker result." + suffix
+    if state_value == STATE_VALIDATION_PASSED:
+        if activation.get("connector_configured") is False:
+            return "Validation passed; complete the missing human connector setup before activation."
+        return "Review the validation receipt and decide whether activation is still needed."
+    if state_value == STATE_READY_FOR_ACTIVATION:
+        return "Review the activation decision through the existing guarded process; do not auto-activate."
+    if state_value == STATE_BLOCKED:
+        return "Resolve the blocker or regenerate the package from stored package data."
+    return "Review lifecycle state and keep execution manual."
+
+
+def _package_summary(
+    state: Mapping[str, Any],
+    *,
+    claim: Mapping[str, Any],
+    result: Mapping[str, Any],
+    validation: Mapping[str, Any],
+    activation: Mapping[str, Any],
+) -> dict[str, Any]:
+    package_id = str(state.get("package_id") or "")
+    return {
+        "package_id": package_id,
+        "objective_id": str(state.get("objective_id") or ""),
+        "capability_id": str(state.get("capability_id") or ""),
+        "state": str(state.get("state") or ""),
+        "updated_at": str(state.get("updated_at") or ""),
+        "claimed_by": str(state.get("claimed_by") or ""),
+        "claim_ref": str(state.get("claim_ref") or claim.get("claim_id") or ""),
+        "package_file_status": str(state.get("package_file_status") or ""),
+        "package_json_path": str((state.get("package_files") or {}).get("package_json_path") or "") if isinstance(state.get("package_files"), Mapping) else "",
+        "latest_result_status": str(result.get("status") or ""),
+        "latest_validation_status": str(validation.get("validation_status") or ""),
+        "latest_activation_decision": str(activation.get("decision") or ""),
+        "next_action": _next_action_for_state(state, validation, activation),
+        "authority_boundary": dict(AUTHORITY_BOUNDARY),
+    }
+
+
+def _watch_item_for_package(summary: Mapping[str, Any], *, generated_at: str) -> dict[str, Any] | None:
+    state_value = str(summary.get("state") or "")
+    if state_value not in WATCH_DESK_STATES:
+        return None
+    package_id = str(summary.get("package_id") or "")
+    if not package_id:
+        return None
+    urgency = "blocked" if state_value in {STATE_BLOCKED, STATE_VALIDATION_FAILED} else "needs_operator" if state_value in {STATE_AWAITING_WORKER_BRIDGE, STATE_READY_FOR_ACTIVATION} else "watch"
+    push_class = "failure" if urgency == "blocked" else "on_demand"
+    return {
+        "item_id": f"codex_work_package:{_safe_id(package_id)}",
+        "lane": "chief_runtime",
+        "urgency": urgency,
+        "plain_line": f"Worker package {package_id} is {state_value}.",
+        "source_receipt_ref": f"generated/read_models/{JSON_EXPORT_NAME}#{package_id}",
+        "one_next_safe_action": str(summary.get("next_action") or "Review the package lifecycle state."),
+        "push_class": push_class,
+        "push_allowed": False,
+        "package_id": package_id,
+        "status": state_value,
+        "occurred_at": str(summary.get("updated_at") or generated_at),
+        "state": {
+            "package_id": package_id,
+            "objective_id": str(summary.get("objective_id") or ""),
+            "capability_id": str(summary.get("capability_id") or ""),
+            "status": state_value,
+            "claimed_by": str(summary.get("claimed_by") or ""),
+            "package_file_status": str(summary.get("package_file_status") or ""),
+            "execution_allowed": False,
+            "external_call_allowed": False,
+            "approval_created": False,
+        },
+    }
+
+
+def build_read_model(
+    *,
+    sqlite_path: Path = DEFAULT_SQLITE_PATH,
+    package_root: Path = DEFAULT_PACKAGE_ROOT,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
     generated_at = generated_at or utc_now()
     with _connect(sqlite_path) as conn:
-        states = _all_states(conn)
+        states = []
+        for state in _all_states(conn):
+            ensured, _ = ensure_package_files_for_state(state, package_root=package_root)
+            if ensured != state:
+                _store_state(conn, ensured)
+            states.append(ensured)
+        if states:
+            queue = build_package_queue(states, generated_at=generated_at)
+            _store_queue(conn, queue)
+        else:
+            queue = build_package_queue(states, generated_at=generated_at)
         queue_row = conn.execute("SELECT queue_json FROM package_queue ORDER BY updated_at DESC LIMIT 1").fetchone()
         bridge_rows = conn.execute("SELECT status_json FROM worker_bridge_status ORDER BY updated_at DESC").fetchall()
         registry_rows = conn.execute("SELECT registry_json FROM capability_registry ORDER BY updated_at DESC").fetchall()
+        claims = _latest_claims(conn)
+        results = _latest_results(conn)
+        validations = _latest_validations(conn)
+        activation_decisions = _latest_activation_decisions(conn)
+        conn.commit()
     queued = [state for state in states if state.get("state") in {STATE_QUEUED, STATE_AWAITING_WORKER_BRIDGE, STATE_CLAIMED, STATE_IN_PROGRESS}]
     blocked = [state for state in states if state.get("state") in {STATE_BLOCKED, STATE_VALIDATION_FAILED, STATE_AWAITING_WORKER_BRIDGE}]
+    package_summaries = [
+        _package_summary(
+            state,
+            claim=_claim_for_package(claims, str(state.get("package_id") or "")),
+            result=_result_for_package(results, str(state.get("package_id") or "")),
+            validation=_validation_for_package(validations, str(state.get("package_id") or "")),
+            activation=_activation_for_package(activation_decisions, str(state.get("package_id") or "")),
+        )
+        for state in states
+    ]
+    watch_desk_items = [
+        item
+        for item in (_watch_item_for_package(summary, generated_at=generated_at) for summary in package_summaries)
+        if item is not None
+    ]
     return {
         "schema_version": SCHEMA_VERSION,
         "read_model_id": READ_MODEL_ID,
@@ -934,13 +1452,45 @@ def build_read_model(*, sqlite_path: Path = DEFAULT_SQLITE_PATH, generated_at: s
             PACKAGE_RESULT_SCHEMA,
             ACTIVATION_DECISION_SCHEMA,
         ],
+        "package_ids": [str(state.get("package_id") or "") for state in states if state.get("package_id")],
+        "counts": {
+            "total": len(states),
+            "queued": len([state for state in states if state.get("state") == STATE_QUEUED]),
+            "awaiting_worker_bridge": len([state for state in states if state.get("state") == STATE_AWAITING_WORKER_BRIDGE]),
+            "claimed": len([state for state in states if state.get("state") == STATE_CLAIMED]),
+            "in_progress": len([state for state in states if state.get("state") == STATE_IN_PROGRESS]),
+            "validation_failed": len([state for state in states if state.get("state") == STATE_VALIDATION_FAILED]),
+            "validation_passed": len([state for state in states if state.get("state") == STATE_VALIDATION_PASSED]),
+            "ready_for_activation": len([state for state in states if state.get("state") == STATE_READY_FOR_ACTIVATION]),
+            "blocked": len([state for state in states if state.get("state") == STATE_BLOCKED]),
+        },
         "active_objectives": sorted({str(state.get("objective_id") or "") for state in queued if state.get("objective_id")}),
         "queued_packages": queued,
         "blocked_packages": blocked,
-        "package_queue": json.loads(queue_row["queue_json"]) if queue_row else build_package_queue(states, generated_at=generated_at),
+        "package_summaries": package_summaries,
+        "waiting_on_operator": [
+            summary
+            for summary in package_summaries
+            if summary.get("state") in {STATE_AWAITING_WORKER_BRIDGE, STATE_READY_FOR_ACTIVATION, STATE_VALIDATION_FAILED, STATE_BLOCKED}
+        ],
+        "dispatch_records": claims,
+        "validation_results": validations,
+        "latest_results": results,
+        "activation_decisions": activation_decisions,
+        "watch_desk_items": watch_desk_items,
+        "next_action": "Dispatch waiting packages manually or ingest completed worker results; no automatic model execution is allowed.",
+        "package_queue": json.loads(queue_row["queue_json"]) if queue_row else queue,
         "worker_bridge_statuses": [json.loads(row["status_json"]) for row in bridge_rows],
         "capability_registry": [json.loads(row["registry_json"]) for row in registry_rows],
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
+        "machine_proof": {
+            "model_calls_performed": False,
+            "external_api_calls_performed": False,
+            "approval_created": False,
+            "runtime_policy_mutated": False,
+            "business_system_mutated": False,
+            "push_allowed_false_for_all_watch_items": all(item.get("push_allowed") is False for item in watch_desk_items),
+        },
     }
 
 
@@ -967,9 +1517,10 @@ def export_codex_work_package_lifecycle(
     bridge_root: Path | None = DEFAULT_BRIDGE_ROOT,
     wiki_path: Path = DEFAULT_WIKI_PATH,
     sqlite_path: Path = DEFAULT_SQLITE_PATH,
+    package_root: Path = DEFAULT_PACKAGE_ROOT,
     generated_at: str | None = None,
 ) -> dict[str, str]:
-    payload = build_read_model(sqlite_path=sqlite_path, generated_at=generated_at)
+    payload = build_read_model(sqlite_path=sqlite_path, package_root=package_root, generated_at=generated_at)
     export_root = _rooted(export_root)
     export_root.mkdir(parents=True, exist_ok=True)
     read_model_path = export_root / JSON_EXPORT_NAME
@@ -1009,12 +1560,14 @@ def main() -> None:
     parser.add_argument("--bridge-root", default=str(DEFAULT_BRIDGE_ROOT))
     parser.add_argument("--wiki-path", default=str(DEFAULT_WIKI_PATH))
     parser.add_argument("--sqlite-path", default=str(DEFAULT_SQLITE_PATH))
+    parser.add_argument("--package-root", default=str(DEFAULT_PACKAGE_ROOT))
     args = parser.parse_args()
     result = export_codex_work_package_lifecycle(
         export_root=Path(args.export_root),
         bridge_root=Path(args.bridge_root) if args.bridge_root else None,
         wiki_path=Path(args.wiki_path),
         sqlite_path=Path(args.sqlite_path),
+        package_root=Path(args.package_root),
     )
     print(stable_json(result))
 

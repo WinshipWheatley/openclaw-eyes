@@ -49,6 +49,7 @@ OPERATOR_INTAKE_REF = "generated/read_models/operator_intake_events.json"
 GUIDED_REVIEW_REF = "generated/read_models/guided_review_sessions.json"
 OPERATOR_ACTIVE_CONTEXTS_REF = "generated/read_models/operator_active_contexts.json"
 MODEL_WORK_PACKAGE_ROUTER_REF = "generated/read_models/model_work_package_router_status.json"
+CODEX_WORK_PACKAGE_LIFECYCLE_REF = "generated/read_models/codex_work_package_lifecycle.json"
 
 
 def utc_now() -> str:
@@ -745,6 +746,64 @@ def _model_work_package_items(read_model: Mapping[str, Any]) -> list[dict[str, A
     return items
 
 
+def _codex_work_package_lifecycle_items(read_model: Mapping[str, Any]) -> list[dict[str, Any]]:
+    if not read_model:
+        return []
+    items: list[dict[str, Any]] = []
+    top_items = read_model.get("watch_desk_items")
+    if not isinstance(top_items, list):
+        return items
+    for item in top_items:
+        if not isinstance(item, Mapping):
+            continue
+        item_id = str(item.get("item_id") or "").strip()
+        plain_line = str(item.get("plain_line") or "").strip()
+        source_ref = str(item.get("source_receipt_ref") or "").strip()
+        package_id = str(item.get("package_id") or "").strip()
+        if not item_id or not plain_line or not source_ref:
+            continue
+        state = item.get("state") if isinstance(item.get("state"), Mapping) else {}
+        status = str(state.get("status") or item.get("status") or "")
+        if status not in {
+            "awaiting_worker_bridge",
+            "claimed",
+            "in_progress",
+            "result_submitted",
+            "validation_failed",
+            "validation_passed",
+            "ready_for_activation",
+            "blocked",
+        }:
+            continue
+        items.append(
+            _new_item(
+                item_id=item_id,
+                lane="chief_runtime",
+                urgency=str(item.get("urgency") or ("blocked" if status in {"blocked", "validation_failed"} else "watch")),
+                plain_line=plain_line,
+                source_receipt_ref=source_ref,
+                one_next_safe_action=str(
+                    item.get("one_next_safe_action")
+                    or "Review the worker package lifecycle and keep worker execution manual."
+                ),
+                state={
+                    "package_id": package_id or str(state.get("package_id") or ""),
+                    "objective_id": str(state.get("objective_id") or ""),
+                    "capability_id": str(state.get("capability_id") or ""),
+                    "status": status,
+                    "claimed_by": str(state.get("claimed_by") or ""),
+                    "package_file_status": str(state.get("package_file_status") or ""),
+                    "execution_allowed": False,
+                    "external_call_allowed": False,
+                    "approval_created": False,
+                },
+                push_class=str(item.get("push_class") or "on_demand"),
+                occurred_at=str(item.get("occurred_at") or ""),
+            )
+        )
+    return items
+
+
 def _dedupe_items(items: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
     deduped: dict[str, dict[str, Any]] = {}
     for item in items:
@@ -816,12 +875,14 @@ def build_watch_desk_feed(
     guided_review_items = _guided_review_items(_load_json(read_root / Path(GUIDED_REVIEW_REF).name))
     active_context_items = _operator_active_context_items(_load_json(read_root / Path(OPERATOR_ACTIVE_CONTEXTS_REF).name))
     model_work_items = _model_work_package_items(_load_json(read_root / Path(MODEL_WORK_PACKAGE_ROUTER_REF).name))
+    codex_work_items = _codex_work_package_lifecycle_items(_load_json(read_root / Path(CODEX_WORK_PACKAGE_LIFECYCLE_REF).name))
     feed_items = _dedupe_items(
         [item for item in candidate_items if item is not None]
         + operator_intake_items
         + guided_review_items
         + active_context_items
         + model_work_items
+        + codex_work_items
     )
     source_refs = sorted({item["source_receipt_ref"] for item in feed_items})
     new_candidates = _push_candidates(feed_items, previous_item_states)

@@ -10,6 +10,7 @@ if str(ROOT) not in sys.path:
 import codex_work_package_lifecycle as lifecycle
 import make_it_so_objective_loop as make_loop
 import operator_conversation_router
+import scripts.openclaw_run as openclaw_run
 
 
 FIXED_NOW = "2026-06-09T14:00:00+00:00"
@@ -58,6 +59,40 @@ def _valid_result(package, grant, **extra):
     return result
 
 
+def _minimal_package(tmp_path, *, package_id="codex_work_package:test"):
+    package = {
+        "schema_version": "CODEX_WORK_PACKAGE_V0",
+        "package_id": package_id,
+        "objective_id": "operator_objective:test",
+        "capability_id": "test_capability",
+        "run_mode": "test_dry_run",
+        "created_at": FIXED_NOW,
+        "worktree_root": "/home/openclaw",
+        "allowed_file_paths": ["read_only_email_lookup_connector.py"],
+        "denied_file_paths": [".chief.env", ".google-secrets/"],
+        "denied_commands": list(lifecycle.DENIED_COMMAND_PHRASES),
+        "allowed_commands": ["python3 -m py_compile read_only_email_lookup_connector.py"],
+        "validation_commands": ["python3 -m py_compile read_only_email_lookup_connector.py"],
+        "unsafe_scan": "required",
+        "authority_boundary": dict(lifecycle.AUTHORITY_BOUNDARY),
+    }
+    objective = {
+        "objective_id": "operator_objective:test",
+        "operator_goal_text": "Fixture worker lifecycle package.",
+        "requested_outcome": "Prove manual dispatch and ingest lifecycle.",
+    }
+    authority_grant = {"grant_id": "authority_grant:test"}
+    lifecycle.queue_codex_work_package(
+        package,
+        objective=objective,
+        authority_grant=authority_grant,
+        sqlite_path=tmp_path / "codex_work_package_lifecycle.sqlite",
+        package_root=tmp_path / "work_packages",
+        generated_at=FIXED_NOW,
+    )
+    return package, authority_grant
+
+
 def test_make_it_so_grant_queues_codex_work_package(tmp_path):
     _, grant, _ = _start_and_grant(tmp_path)
 
@@ -75,6 +110,11 @@ def test_package_state_is_persisted(tmp_path):
 
     assert state["package_id"] == package_id
     assert state["state"] == lifecycle.STATE_AWAITING_WORKER_BRIDGE
+
+
+def test_default_package_root_is_durable_system_knowledge():
+    assert lifecycle.DEFAULT_PACKAGE_ROOT == Path("generated/system_knowledge/work_packages")
+    assert str(lifecycle.DEFAULT_PACKAGE_ROOT).startswith("generated/system_knowledge")
 
 
 def test_package_state_survives_reload(tmp_path):
@@ -117,6 +157,33 @@ def test_package_file_directory_contains_required_files(tmp_path):
         assert (package_dir / name).exists(), name
 
 
+def test_dispatch_records_claim_and_updates_package_state(tmp_path):
+    _, grant, _ = _start_and_grant(tmp_path)
+    package_id = grant["codex_work_package"]["package_id"]
+
+    result = lifecycle.record_dispatch(
+        package_id,
+        "pc_codex",
+        "chief",
+        "Manual handoff to PC Codex.",
+        sqlite_path=tmp_path / "codex_work_package_lifecycle.sqlite",
+        generated_at=FIXED_NOW,
+    )
+    con = sqlite3.connect(tmp_path / "codex_work_package_lifecycle.sqlite")
+    try:
+        row = con.execute("select claim_json from package_claims where package_id = ?", (package_id,)).fetchone()
+    finally:
+        con.close()
+
+    assert result["status"] == "dispatch_recorded"
+    assert result["package_claim"]["worker_kind"] == "pc_codex"
+    assert result["package_claim"]["model_invoked"] is False
+    assert result["package_claim"]["external_api_called"] is False
+    assert result["package_state"]["state"] == lifecycle.STATE_CLAIMED
+    assert row is not None
+    assert json.loads(row[0])["dispatched_by"] == "chief"
+
+
 def test_no_worker_bridge_available_creates_awaiting_bridge_blocker_once(tmp_path):
     _, grant, _ = _start_and_grant(tmp_path)
     first = grant["codex_work_package_lifecycle"]
@@ -151,6 +218,21 @@ def test_result_ingestion_rejects_unknown_package_id(tmp_path):
     assert result["package_result"]["status"] == "failed"
     assert result["package_state"]["state"] == lifecycle.STATE_BLOCKED
     assert "unknown_package_id" in result["validation_receipt"]["validation_errors"]
+
+
+def test_malformed_ingest_result_rejected_safely(tmp_path):
+    package, _ = _minimal_package(tmp_path)
+
+    result = lifecycle.ingest_worker_result_text(
+        package["package_id"],
+        "not a JSON result",
+        sqlite_path=tmp_path / "codex_work_package_lifecycle.sqlite",
+        generated_at=FIXED_NOW,
+    )
+
+    assert result["package_result"]["status"] == "result_rejected"
+    assert result["package_state"]["state"] == lifecycle.STATE_VALIDATION_FAILED
+    assert "worker_result_json_parse_failed" in result["validation_receipt"]["validation_errors"]
 
 
 def test_result_ingestion_rejects_authority_mismatch(tmp_path):
@@ -257,6 +339,148 @@ def test_capability_registry_records_human_setup_until_connector_configured(tmp_
     finally:
         con.close()
     assert row[0] == "human_setup_required"
+
+
+def test_read_model_projects_dispatch_validation_and_next_action(tmp_path):
+    package, grant = _minimal_package(tmp_path)
+    lifecycle.record_dispatch(
+        package["package_id"],
+        "human",
+        "Winship",
+        "Fixture dispatch.",
+        sqlite_path=tmp_path / "codex_work_package_lifecycle.sqlite",
+        package_root=tmp_path / "work_packages",
+        generated_at=FIXED_NOW,
+    )
+    read_model = lifecycle.build_read_model(
+        sqlite_path=tmp_path / "codex_work_package_lifecycle.sqlite",
+        package_root=tmp_path / "work_packages",
+        generated_at=FIXED_NOW,
+    )
+
+    assert package["package_id"] in read_model["package_ids"]
+    assert read_model["counts"]["claimed"] == 1
+    assert read_model["dispatch_records"][0]["worker_kind"] == "human"
+    assert read_model["watch_desk_items"]
+    assert read_model["watch_desk_items"][0]["lane"] == "chief_runtime"
+    assert read_model["watch_desk_items"][0]["push_allowed"] is False
+    assert read_model["machine_proof"]["model_calls_performed"] is False
+    assert read_model["machine_proof"]["external_api_calls_performed"] is False
+    assert read_model["machine_proof"]["approval_created"] is False
+    assert grant["grant_id"] == "authority_grant:test"
+
+
+def test_cli_list_show_dispatch_and_ingest_fixture_result(tmp_path, capsys):
+    package, grant = _minimal_package(tmp_path)
+    sqlite_path = tmp_path / "codex_work_package_lifecycle.sqlite"
+    package_root = tmp_path / "work_packages"
+
+    assert openclaw_run.main(["--sqlite-path", str(sqlite_path), "--package-root", str(package_root), "list"]) == 0
+    listed = json.loads(capsys.readouterr().out)
+    assert package["package_id"] in listed["package_ids"]
+
+    assert openclaw_run.main(["--sqlite-path", str(sqlite_path), "--package-root", str(package_root), "show", package["package_id"]]) == 0
+    shown = json.loads(capsys.readouterr().out)
+    assert shown["package"]["package_id"] == package["package_id"]
+
+    assert openclaw_run.main([
+        "--sqlite-path",
+        str(sqlite_path),
+        "--package-root",
+        str(package_root),
+        "dispatch",
+        package["package_id"],
+        "--worker",
+        "local_script",
+        "--note",
+        "Fixture local script handoff.",
+    ]) == 0
+    dispatched = json.loads(capsys.readouterr().out)
+    assert dispatched["package_state"]["state"] == lifecycle.STATE_CLAIMED
+
+    result_path = tmp_path / "worker_result.json"
+    result_path.write_text(
+        json.dumps(
+            _valid_result(
+                package,
+                grant,
+                worker_kind="local_script",
+                files_changed=["read_only_email_lookup_connector.py"],
+                commands_run=["python3 -m py_compile read_only_email_lookup_connector.py"],
+                validation_run=["python3 -m py_compile read_only_email_lookup_connector.py"],
+                capability_status="test_ready",
+            )
+        ),
+        encoding="utf-8",
+    )
+    assert openclaw_run.main([
+        "--sqlite-path",
+        str(sqlite_path),
+        "--package-root",
+        str(package_root),
+        "ingest",
+        package["package_id"],
+        "--file",
+        str(result_path),
+    ]) == 0
+    ingested = json.loads(capsys.readouterr().out)
+    assert ingested["validation_receipt"]["validation_status"] == "validation_passed"
+    assert ingested["package_state"]["state"] == lifecycle.STATE_VALIDATION_PASSED
+
+
+def test_legacy_tmp_package_file_fallback(tmp_path):
+    package, _ = _minimal_package(tmp_path)
+    legacy_root = tmp_path / "codex_work_packages"
+    lifecycle.queue_codex_work_package(
+        package,
+        objective={"operator_goal_text": "Legacy package root fixture."},
+        authority_grant={"grant_id": "authority_grant:test"},
+        sqlite_path=tmp_path / "legacy.sqlite",
+        package_root=legacy_root,
+        generated_at=FIXED_NOW,
+    )
+
+    read_model = lifecycle.build_read_model(
+        sqlite_path=tmp_path / "legacy.sqlite",
+        package_root=tmp_path / "new_work_packages",
+        generated_at=FIXED_NOW,
+    )
+    summary = read_model["package_summaries"][0]
+
+    assert summary["package_file_status"] == "legacy_tmp_present"
+    assert summary["package_json_path"].startswith(str(legacy_root))
+
+
+def test_package_file_missing_status_does_not_crash(tmp_path):
+    db = tmp_path / "missing.sqlite"
+    state = {
+        "schema_version": lifecycle.PACKAGE_STATE_SCHEMA,
+        "package_id": "codex_work_package:missing_file",
+        "objective_id": "operator_objective:missing_file",
+        "capability_id": "test_capability",
+        "state": lifecycle.STATE_CLAIMED,
+        "run_mode": "test_dry_run",
+        "authority_grant_ref": "authority_grant:missing_file",
+        "created_at": FIXED_NOW,
+        "updated_at": FIXED_NOW,
+        "claimed_by": "human",
+        "result_ref": "",
+        "validation_ref": "",
+        "blocker_ref": "",
+        "receipt_ref": "receipt:missing_file",
+        "package_files": {"package_json_path": str(tmp_path / "missing" / "package.json")},
+        "package_json": {},
+        "authority_boundary": dict(lifecycle.AUTHORITY_BOUNDARY),
+    }
+    with lifecycle._connect(db) as conn:
+        lifecycle._store_state(conn, state)
+        conn.commit()
+
+    read_model = lifecycle.build_read_model(sqlite_path=db, package_root=tmp_path / "work_packages", generated_at=FIXED_NOW)
+    summary = read_model["package_summaries"][0]
+
+    assert summary["state"] == lifecycle.STATE_BLOCKED
+    assert summary["package_file_status"] == "package_file_missing"
 
 
 def test_read_only_email_lookup_package_does_not_grant_protected_email_or_browser(tmp_path):
