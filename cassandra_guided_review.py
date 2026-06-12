@@ -329,6 +329,10 @@ def _short_hash(*parts: object) -> str:
     return hashlib.sha256(blob.encode("utf-8")).hexdigest()[:20]
 
 
+def _text_hash(text: str) -> str:
+    return "sha256:" + hashlib.sha256(str(text).encode("utf-8")).hexdigest()
+
+
 def _safe_filename(value: str) -> str:
     return re.sub(r"[^A-Za-z0-9_.-]+", "_", value).strip("_")
 
@@ -374,6 +378,10 @@ def _operator_path(review_root: Path, session_id: str) -> Path:
 
 def _prompt_path(review_root: Path, session_id: str) -> Path:
     return review_root / f"{PROMPT_PREFIX}_{_safe_filename(session_id)}.md"
+
+
+def _parked_note_path(review_root: Path, note_id: str) -> Path:
+    return review_root / f"consult_parked_note_{_safe_filename(note_id)}.json"
 
 
 def _active_index_path(review_root: Path) -> Path:
@@ -613,6 +621,16 @@ def _topic_short_label(topic: str) -> str:
         TOPIC_RATES_CLIENTS_VENUES: "rates/clients/venues",
     }
     return labels.get(_canonical_topic_id(topic), "that topic")
+
+
+def _topic_storage_label(topic: str) -> str:
+    labels = {
+        TOPIC_PAYMENT_PRIVACY: "payment privacy",
+        TOPIC_PERSONA_IDENTITY: "identity/persona",
+        TOPIC_INVOICE_POLICY: "invoice policy",
+        TOPIC_RATES_CLIENTS_VENUES: "rates/clients/venues",
+    }
+    return labels.get(_canonical_topic_id(topic), _short_topic_name(topic))
 
 
 def _answer_topic_mismatch(answer_text: str, question: Mapping[str, Any]) -> dict[str, str]:
@@ -1150,6 +1168,8 @@ def create_data_room_review_session(
         "generated_prompt_refs": [],
         "receipt_refs": [],
         "watch_desk_refs": [],
+        "pending_interaction": {},
+        "parked_note_refs": [],
         "coach_mode_enabled": True,
         "coaching_style": "concise",
         "coach_interactions": [],
@@ -1249,6 +1269,207 @@ def _append_topic_mismatch_clarification(
             "runtime_policy_changed": False,
         }
     )
+
+
+def _append_pending_interaction_event(
+    session: dict[str, Any],
+    *,
+    command: str,
+    question_id: str,
+    now: str,
+    detected_topic: str = "",
+    answer_recorded: bool = False,
+    note_ref: str = "",
+) -> None:
+    event = {
+        "schema_version": "REVIEW_COACH_INTERACTION_V0",
+        "command": command,
+        "question_id": question_id,
+        "detected_answer_topic": detected_topic,
+        "created_at_utc": now,
+        "answer_recorded": answer_recorded,
+        "authoritative": False,
+        "runtime_policy_changed": False,
+    }
+    if note_ref:
+        event["parked_note_ref"] = note_ref
+    session.setdefault("coach_interactions", []).append(event)
+
+
+def _parse_utc_timestamp(value: str) -> datetime | None:
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except (TypeError, ValueError):
+        return None
+
+
+def _active_pending_interaction(session: Mapping[str, Any], *, now: str) -> dict[str, Any]:
+    pending = session.get("pending_interaction")
+    if not isinstance(pending, Mapping) or pending.get("kind") != "topic_switch":
+        return {}
+    if int(pending.get("turns_remaining") or 0) <= 0:
+        return {}
+    created = _parse_utc_timestamp(str(pending.get("created_at_utc") or ""))
+    current = _parse_utc_timestamp(now)
+    if created and current and (current - created).total_seconds() > 30 * 60:
+        return {}
+    return dict(pending)
+
+
+def _clear_pending_interaction(session: dict[str, Any], *, now: str, reason: str) -> None:
+    pending = session.get("pending_interaction")
+    question_id = ""
+    detected_topic = ""
+    if isinstance(pending, Mapping):
+        question_id = str(pending.get("current_question_id") or "")
+        detected_topic = str(pending.get("detected_topic_id") or pending.get("detected_topic") or "")
+    session["pending_interaction"] = {}
+    _append_pending_interaction_event(
+        session,
+        command=f"pending_interaction_{reason}",
+        question_id=question_id,
+        detected_topic=detected_topic,
+        now=now,
+        answer_recorded=False,
+    )
+
+
+def _pending_prompt(pending: Mapping[str, Any]) -> str:
+    detected_label = str(pending.get("detected_topic_prompt_label") or pending.get("detected_topic") or "that topic")
+    current_label = str(pending.get("current_question_prompt_label") or "this question")
+    return (
+        f"That sounds like a {detected_label} answer, but this question is about {current_label}. "
+        f"Should I switch to {detected_label} and record it there? I have not recorded it yet."
+    )
+
+
+def _pending_reply_intent(text: str) -> str:
+    normalized = _normalize_topic_text(text)
+    if normalized in {"yes", "y", "switch", "yes switch", "yes please switch", "please switch"}:
+        return "switch"
+    if normalized.startswith("yes switch") or normalized.startswith("yes please switch"):
+        return "switch"
+    if normalized.startswith("yes") and "switch" in normalized:
+        return "switch"
+    if normalized in {"no", "nope", "no thanks", "do not switch", "dont switch", "don't switch"}:
+        return "no"
+    if normalized in {"cancel", "never mind", "nevermind", "stop"}:
+        return "cancel"
+    if normalized in {"here", "record here", "record it here", "here anyway", "record here anyway", "record it here anyway"}:
+        return "here"
+    return "other"
+
+
+def _is_global_control_allowed_during_pending(control: str) -> bool:
+    return control in {"done", "summarize", "skip", "defer", "next question"}
+
+
+def _is_bare_yes(text: str) -> bool:
+    return _normalize_topic_text(text) in {"yes", "y", "confirm", "confirmed", "looks good", "approve"}
+
+
+def _question_matches_topic(question: Mapping[str, Any], topic_id: str) -> bool:
+    topic_id = _canonical_topic_id(topic_id)
+    question_topic = _question_topic_hint(question)
+    if topic_id == TOPIC_PAYMENT_PRIVACY:
+        text = _normalize_topic_text(
+            " ".join(str(question.get(key) or "") for key in ("category", "question_text", "context_summary"))
+        )
+        return question_topic == TOPIC_PAYMENT_PRIVACY or _contains_any(
+            text,
+            (
+                "payment privacy",
+                "payment instruction",
+                "payment instructions",
+                "payment method",
+                "payment methods",
+                "direct deposit",
+                "zelle",
+                "check",
+                "checks",
+            ),
+        )
+    return question_topic == topic_id
+
+
+def _find_unanswered_matching_question_id(session: Mapping[str, Any], topic_id: str) -> str:
+    for question in session.get("question_queue", []):
+        if not isinstance(question, Mapping):
+            continue
+        if question.get("answer_status") != "unanswered":
+            continue
+        if _question_matches_topic(question, topic_id):
+            return str(question.get("question_id") or "")
+    return ""
+
+
+def _set_pending_topic_switch(
+    session: dict[str, Any],
+    *,
+    original_text: str,
+    mismatch: Mapping[str, str],
+    question: Mapping[str, Any],
+    now: str,
+    surface: str,
+) -> dict[str, Any]:
+    redacted_original, _ = _redact_sensitive_text(original_text)
+    answer_topic = str(mismatch.get("answer_topic") or "")
+    target_question_id = _find_unanswered_matching_question_id(session, answer_topic)
+    pending = {
+        "kind": "topic_switch",
+        "original_utterance": redacted_original,
+        "original_utterance_hash": _text_hash(redacted_original),
+        "detected_topic": _topic_storage_label(answer_topic),
+        "detected_topic_id": answer_topic,
+        "detected_topic_prompt_label": str(mismatch.get("answer_topic_label") or _topic_short_label(answer_topic)),
+        "current_question_id": str(question.get("question_id") or ""),
+        "current_question_prompt_label": str(mismatch.get("question_topic_label") or _topic_short_label(str(mismatch.get("question_topic") or ""))),
+        "target_question_id": target_question_id,
+        "created_at_utc": now,
+        "surface": surface,
+        "turns_remaining": 3,
+        "authoritative": False,
+        "runtime_policy_changed": False,
+    }
+    session["pending_interaction"] = pending
+    return pending
+
+
+def _write_parked_note(
+    session: dict[str, Any],
+    pending: Mapping[str, Any],
+    *,
+    review_root: Path,
+    now: str,
+) -> str:
+    note_id = _short_hash(
+        session.get("review_session_id", ""),
+        pending.get("original_utterance_hash", ""),
+        pending.get("current_question_id", ""),
+        now,
+    )
+    path = _parked_note_path(review_root, note_id)
+    note = {
+        "schema_version": "CONSULT_PARKED_NOTE_V0",
+        "note_id": f"consult_parked_note:{note_id}",
+        "created_at_utc": now,
+        "authoritative": False,
+        "runtime_policy_changed": False,
+        "confirmed_reference_data_generated": False,
+        "original_utterance": str(pending.get("original_utterance") or ""),
+        "original_utterance_hash": str(pending.get("original_utterance_hash") or ""),
+        "detected_topic": str(pending.get("detected_topic") or ""),
+        "source_session_id": str(session.get("review_session_id") or ""),
+        "source_question_id": str(pending.get("current_question_id") or ""),
+        "reason": "no_matching_question_in_current_session",
+    }
+    _write_json(path, note)
+    ref = f"{path.as_posix()}#parked_note"
+    parked_refs = list(session.get("parked_note_refs") or [])
+    if ref not in parked_refs:
+        parked_refs.append(ref)
+    session["parked_note_refs"] = parked_refs
+    return ref
 
 
 def _next_unanswered_question_id(session: Mapping[str, Any], *, after_question_id: str = "") -> str:
@@ -1378,9 +1599,15 @@ def _write_answer_receipt(
         "question_id": answer["question_id"],
         "question_category": answer.get("question_category", ""),
         "answer_id": answer["answer_id"],
+        "raw_answer_text": answer.get("raw_answer_text", ""),
         "normalized_answer": answer["normalized_answer"],
         "affected_records": answer["affected_record_ids"],
         "selected_option_id": str(answer.get("selected_option_id") or ""),
+        "answer_source": str(answer.get("answer_source") or "operator_reply"),
+        "switched_from_question_id": str(answer.get("switched_from_question_id") or ""),
+        "category_mismatch_resolved": bool(answer.get("category_mismatch_resolved")),
+        "category_mismatch_acknowledged": bool(answer.get("category_mismatch_acknowledged")),
+        "mismatch_original_hint": str(answer.get("mismatch_original_hint") or ""),
         "needs_professional_review": bool(answer.get("needs_professional_review")),
         "cpa_review_recommended": bool(answer.get("cpa_review_recommended")),
         "legal_review_recommended": bool(answer.get("legal_review_recommended")),
@@ -1406,8 +1633,10 @@ def _apply_answer(
     now: str,
     selected_option_id: str = "",
     selected_option_label: str = "",
+    question_id_override: str = "",
+    extra_answer_fields: Mapping[str, Any] | None = None,
 ) -> None:
-    question_id = str(session.get("current_question_id") or "")
+    question_id = question_id_override or str(session.get("current_question_id") or "")
     question = _question_by_id(session, question_id)
     if not question:
         return
@@ -1441,6 +1670,8 @@ def _apply_answer(
         "runtime_policy_changed": False,
         "sensitive_detail_redacted": sensitive,
     }
+    if extra_answer_fields:
+        answer.update(dict(extra_answer_fields))
     receipt_ref = _write_answer_receipt(answer, review_root=review_root, receipt_root=receipt_root)
     answer["receipt_ref"] = receipt_ref
     question["answer_status"] = "answered"
@@ -1456,6 +1687,158 @@ def _apply_answer(
     session.setdefault("receipt_refs", []).append(receipt_ref)
     session["current_question_id"] = _next_unanswered_question_id(session, after_question_id=question_id)
     _refresh_session_lists(session)
+
+
+def _handle_pending_interaction(
+    session: dict[str, Any],
+    *,
+    pending: Mapping[str, Any],
+    raw_text: str,
+    surface: str,
+    review_root: Path,
+    receipt_root: str | Path | None,
+    now: str,
+) -> str:
+    intent = _pending_reply_intent(raw_text)
+    original = str(pending.get("original_utterance") or "")
+    current_question_id = str(pending.get("current_question_id") or session.get("current_question_id") or "")
+    detected_topic_id = str(pending.get("detected_topic_id") or "")
+    detected_label = str(pending.get("detected_topic_prompt_label") or pending.get("detected_topic") or "that topic")
+
+    if intent == "switch":
+        target_question_id = str(pending.get("target_question_id") or "")
+        if target_question_id:
+            _apply_answer(
+                session,
+                original,
+                surface=surface,
+                review_root=review_root,
+                receipt_root=receipt_root,
+                now=now,
+                question_id_override=target_question_id,
+                extra_answer_fields={
+                    "answer_source": "topic_switch_confirmed",
+                    "switched_from_question_id": current_question_id,
+                    "category_mismatch_resolved": True,
+                },
+            )
+            session["pending_interaction"] = {}
+            _append_pending_interaction_event(
+                session,
+                command="pending_interaction_switched",
+                question_id=target_question_id,
+                detected_topic=detected_topic_id,
+                now=now,
+                answer_recorded=True,
+            )
+            if not session.get("current_question_id"):
+                completed = complete_session(session, review_root=review_root, now=now)
+                session.clear()
+                session.update(completed)
+                return (
+                    f"Recorded the original {detected_label} answer. All questions are answered, skipped, or deferred. "
+                    f"I wrote the promotion prompt: {_prompt_path(review_root, str(session['review_session_id'])).as_posix()}"
+                )
+            return _format_question_reply(session, prefix=f"Recorded the original {detected_label} answer in the matching question.")
+        note_ref = _write_parked_note(session, pending, review_root=review_root, now=now)
+        session["pending_interaction"] = {}
+        _append_pending_interaction_event(
+            session,
+            command="pending_interaction_parked_note",
+            question_id=current_question_id,
+            detected_topic=detected_topic_id,
+            note_ref=note_ref,
+            now=now,
+            answer_recorded=False,
+        )
+        return (
+            f"I parked that {detected_label} note because this session does not have an unanswered matching question. "
+            "I have not imported it or changed runtime policy."
+        )
+
+    if intent == "no":
+        session["pending_interaction"] = {}
+        _append_pending_interaction_event(
+            session,
+            command="pending_interaction_declined",
+            question_id=current_question_id,
+            detected_topic=detected_topic_id,
+            now=now,
+            answer_recorded=False,
+        )
+        return _format_question_reply(session, prefix="Okay. I did not record that. Staying on this question.")
+
+    if intent == "cancel":
+        session["pending_interaction"] = {}
+        _append_pending_interaction_event(
+            session,
+            command="pending_interaction_cancelled",
+            question_id=current_question_id,
+            detected_topic=detected_topic_id,
+            now=now,
+            answer_recorded=False,
+        )
+        return _format_question_reply(session, prefix="Cancelled. I did not record that.")
+
+    if intent == "here":
+        _apply_answer(
+            session,
+            original,
+            surface=surface,
+            review_root=review_root,
+            receipt_root=receipt_root,
+            now=now,
+            question_id_override=current_question_id,
+            extra_answer_fields={
+                "answer_source": "topic_mismatch_recorded_here",
+                "category_mismatch_acknowledged": True,
+                "mismatch_original_hint": str(pending.get("detected_topic") or detected_label),
+            },
+        )
+        session["pending_interaction"] = {}
+        _append_pending_interaction_event(
+            session,
+            command="pending_interaction_recorded_here",
+            question_id=current_question_id,
+            detected_topic=detected_topic_id,
+            now=now,
+            answer_recorded=True,
+        )
+        if not session.get("current_question_id"):
+            completed = complete_session(session, review_root=review_root, now=now)
+            session.clear()
+            session.update(completed)
+            return (
+                "Recorded it here with the topic mismatch acknowledged. "
+                f"I wrote the promotion prompt: {_prompt_path(review_root, str(session['review_session_id'])).as_posix()}"
+            )
+        return _format_question_reply(session, prefix="Recorded it here with the topic mismatch acknowledged.")
+
+    turns_remaining = max(int(pending.get("turns_remaining") or 1) - 1, 0)
+    if turns_remaining <= 0:
+        session["pending_interaction"] = {}
+        _append_pending_interaction_event(
+            session,
+            command="pending_interaction_expired",
+            question_id=current_question_id,
+            detected_topic=detected_topic_id,
+            now=now,
+            answer_recorded=False,
+        )
+        return _format_question_reply(session, prefix="I let that pending switch expire and did not record it.")
+
+    updated = dict(pending)
+    updated["turns_remaining"] = turns_remaining
+    session["pending_interaction"] = updated
+    _append_pending_interaction_event(
+        session,
+        command="pending_interaction_reprompted",
+        question_id=current_question_id,
+        detected_topic=detected_topic_id,
+        now=now,
+        answer_recorded=False,
+    )
+    return _pending_prompt(updated)
 
 
 def _active_answer_records(session: Mapping[str, Any]) -> list[dict[str, Any]]:
@@ -1939,7 +2322,27 @@ def process_guided_review_message(
             return None
         if not control and not resolution.get("should_resume_active_session") and not topic and _looks_like_non_review_operator_action(raw_text):
             return None
-        if control in {"why", "recommend", "examples"}:
+        pending = _active_pending_interaction(session, now=now)
+        if session.get("pending_interaction") and not pending:
+            _clear_pending_interaction(session, now=now, reason="expired")
+        pending_handled = False
+        if pending and not _is_global_control_allowed_during_pending(control):
+            reply = _handle_pending_interaction(
+                session,
+                pending=pending,
+                raw_text=raw_text,
+                surface=surface,
+                review_root=root,
+                receipt_root=receipt_root,
+                now=now,
+            )
+            pending_handled = True
+        elif pending and _is_global_control_allowed_during_pending(control):
+            _clear_pending_interaction(session, now=now, reason=f"interrupted_by_{control.replace(' ', '_')}")
+
+        if pending_handled:
+            pass
+        elif control in {"why", "recommend", "examples"}:
             _enable_coach_mode(session)
             question = _question_by_id(session, str(session.get("current_question_id") or ""))
             if not question:
@@ -2025,37 +2428,44 @@ def process_guided_review_message(
             reply = _format_question_reply(session, prefix="Deferred.")
         else:
             question = _question_by_id(session, str(session.get("current_question_id") or ""))
-            mismatch = _answer_topic_mismatch(raw_text, question or {}) if question else {}
-            if mismatch:
-                _enable_coach_mode(session)
-                _append_topic_mismatch_clarification(
-                    session,
-                    question_id=str(question.get("question_id") or "") if question else "",
-                    now=now,
-                    mismatch=mismatch,
-                )
-                reply = (
-                    f"That sounds like a {mismatch['answer_topic_label']} answer, but we're currently reviewing "
-                    f"{mismatch['question_topic_label']}. Should I switch to {mismatch['answer_topic_label']} "
-                    "and record it there? I have not recorded it yet."
-                )
+            if _is_bare_yes(raw_text):
+                reply = "Yes to what? Can you give me the answer in a sentence?"
             else:
-                _apply_answer(
-                    session,
-                    raw_text,
-                    surface=surface,
-                    review_root=root,
-                    receipt_root=receipt_root,
-                    now=now,
-                )
-                if not session.get("current_question_id"):
-                    session = complete_session(session, review_root=root, now=now)
-                    reply = (
-                        f"Recorded. All questions are answered, skipped, or deferred. "
-                        f"I wrote the promotion prompt: {_prompt_path(root, str(session['review_session_id'])).as_posix()}"
+                mismatch = _answer_topic_mismatch(raw_text, question or {}) if question else {}
+                if mismatch:
+                    _enable_coach_mode(session)
+                    pending = _set_pending_topic_switch(
+                        session,
+                        original_text=raw_text,
+                        mismatch=mismatch,
+                        question=question or {},
+                        now=now,
+                        surface=surface,
                     )
+                    _append_topic_mismatch_clarification(
+                        session,
+                        question_id=str(question.get("question_id") or "") if question else "",
+                        now=now,
+                        mismatch=mismatch,
+                    )
+                    reply = _pending_prompt(pending)
                 else:
-                    reply = _format_question_reply(session, prefix=_recorded_answer_prefix(raw_text, question or {}))
+                    _apply_answer(
+                        session,
+                        raw_text,
+                        surface=surface,
+                        review_root=root,
+                        receipt_root=receipt_root,
+                        now=now,
+                    )
+                    if not session.get("current_question_id"):
+                        session = complete_session(session, review_root=root, now=now)
+                        reply = (
+                            f"Recorded. All questions are answered, skipped, or deferred. "
+                            f"I wrote the promotion prompt: {_prompt_path(root, str(session['review_session_id'])).as_posix()}"
+                        )
+                    else:
+                        reply = _format_question_reply(session, prefix=_recorded_answer_prefix(raw_text, question or {}))
         session["updated_at_utc"] = now
         _persist_session(session, review_root=root)
 

@@ -2,6 +2,8 @@ import json
 import sys
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -157,6 +159,25 @@ def _payment_instructions_review(path: Path) -> Path:
     )
 
 
+def _identity_only_review(path: Path) -> Path:
+    return _write_json(
+        path,
+        {
+            "schema_version": "OPENCLAW_DATA_ROOM_PROMOTION_REVIEW_V0",
+            "authoritative": False,
+            "source_artifacts": ["fixture_sleepy_capture.json"],
+            "review_records": [
+                _record(
+                    "identity:general",
+                    "policy_decision",
+                    "Identity and sender rules are provisional.",
+                    "When should Winship be used?",
+                ),
+            ],
+        },
+    )
+
+
 def _start(tmp_path: Path, text: str = "Cassandra, coach me through the Data Room."):
     promotion = _promotion_review(tmp_path / "review" / "promotion_review.json")
     return guided.process_guided_review_message(
@@ -171,6 +192,34 @@ def _start(tmp_path: Path, text: str = "Cassandra, coach me through the Data Roo
 
 def _load_session(response: dict) -> dict:
     return json.loads(Path(response["artifact_refs"]["session_json"]).read_text(encoding="utf-8"))
+
+
+def _force_current_question(response: dict, question_id: str) -> dict:
+    session_path = Path(response["artifact_refs"]["session_json"])
+    session = json.loads(session_path.read_text(encoding="utf-8"))
+    session["current_question_id"] = question_id
+    _write_json(session_path, session)
+    return session
+
+
+def _start_identity_question_with_unanswered_payment(tmp_path: Path):
+    start = _start(tmp_path)
+    session = _load_session(start)
+    payment_question = next(question for question in session["question_queue"] if question["category"] == "payment privacy")
+    identity_question = next(question for question in session["question_queue"] if question["category"] == "identity/persona policy")
+    _force_current_question(start, identity_question["question_id"])
+    return payment_question, identity_question
+
+
+def _trigger_payment_privacy_mismatch(tmp_path: Path):
+    payment_question, identity_question = _start_identity_question_with_unanswered_payment(tmp_path)
+    mismatch = guided.process_guided_review_message(
+        "Direct deposit stays manual approval only. Zelle and check are okay by default.",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:01:00+00:00",
+    )
+    return mismatch, payment_question, identity_question
 
 
 def test_coach_packs_exist_for_all_required_categories():
@@ -301,44 +350,186 @@ def test_revise_previous_supersedes_old_answer_and_rewinds(tmp_path):
 
 
 def test_direct_deposit_answer_is_not_recorded_against_identity_question(tmp_path):
-    _start(tmp_path)
-    first = guided.process_guided_review_message(
-        "use your recommendation",
-        review_root=tmp_path / "review",
-        read_model_root=tmp_path / "read_models",
-        generated_at_utc="2026-06-12T12:01:00+00:00",
-    )
-    first_session = _load_session(first)
-    identity_question_id = first_session["current_question_id"]
-    identity_question = next(
-        question for question in first_session["question_queue"] if question["question_id"] == identity_question_id
-    )
-
-    assert identity_question["category"] == "identity/persona policy"
-
-    mismatch = guided.process_guided_review_message(
-        "Direct deposit stays manual approval only. Zelle and check are okay by default.",
-        review_root=tmp_path / "review",
-        read_model_root=tmp_path / "read_models",
-        generated_at_utc="2026-06-12T12:02:00+00:00",
-    )
+    mismatch, payment_question, identity_question = _trigger_payment_privacy_mismatch(tmp_path)
     session = _load_session(mismatch)
+    pending = session["pending_interaction"]
 
     assert "That sounds like a payment/privacy answer" in mismatch["reply_text"]
-    assert "we're currently reviewing identity/persona" in mismatch["reply_text"]
+    assert "this question is about identity/persona" in mismatch["reply_text"]
     assert "I have not recorded it yet" in mismatch["reply_text"]
-    assert session["current_question_id"] == identity_question_id
-    assert len(session["answer_records"]) == 1
-    assert len(session["receipt_refs"]) == 1
-    assert session["answered_questions"] == first_session["answered_questions"]
-    assert all(
-        "Direct deposit stays manual approval only" not in answer["raw_answer_text"]
-        for answer in session["answer_records"]
-    )
+    assert session["current_question_id"] == identity_question["question_id"]
+    assert session["answer_records"] == []
+    assert session["receipt_refs"] == []
+    assert pending["kind"] == "topic_switch"
+    assert pending["original_utterance"] == "Direct deposit stays manual approval only. Zelle and check are okay by default."
+    assert pending["original_utterance_hash"].startswith("sha256:")
+    assert pending["detected_topic"] == "payment privacy"
+    assert pending["current_question_id"] == identity_question["question_id"]
+    assert pending["target_question_id"] == payment_question["question_id"]
+    assert pending["turns_remaining"] == 3
+    assert pending["authoritative"] is False
+    assert pending["runtime_policy_changed"] is False
     assert session["coach_interactions"][-1]["command"] == "topic_mismatch_clarification"
     assert session["coach_interactions"][-1]["answer_recorded"] is False
     assert session["runtime_policy_changed"] is False
     assert session["authoritative"] is False
+
+    confirmed = guided.process_guided_review_message(
+        "yes",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:02:00+00:00",
+    )
+    confirmed_session = _load_session(confirmed)
+    answer = confirmed_session["answer_records"][0]
+    receipt = json.loads(Path(answer["receipt_ref"].split("#", 1)[0]).read_text(encoding="utf-8"))
+
+    assert confirmed_session["pending_interaction"] == {}
+    assert confirmed_session["current_question_id"] == identity_question["question_id"]
+    assert answer["question_id"] == payment_question["question_id"]
+    assert answer["question_category"] == "payment privacy"
+    assert answer["raw_answer_text"] == "Direct deposit stays manual approval only. Zelle and check are okay by default."
+    assert "manual_approval_only" in answer["normalized_answer"]
+    assert answer["answer_source"] == "topic_switch_confirmed"
+    assert answer["switched_from_question_id"] == identity_question["question_id"]
+    assert answer["category_mismatch_resolved"] is True
+    assert receipt["raw_answer_text"] == answer["raw_answer_text"]
+    assert receipt["answer_source"] == "topic_switch_confirmed"
+    assert receipt["category_mismatch_resolved"] is True
+    assert receipt["authoritative"] is False
+    assert receipt["runtime_policy_changed"] is False
+
+
+@pytest.mark.parametrize("switch_phrase", ["switch", "yes switch", "yes, switch to payment privacy"])
+def test_pending_switch_phrase_variants_record_original_without_loop(tmp_path, switch_phrase):
+    case_root = tmp_path / switch_phrase.replace(" ", "_").replace(",", "")
+    mismatch, payment_question, _identity_question = _trigger_payment_privacy_mismatch(case_root)
+    session = _load_session(mismatch)
+
+    assert session["pending_interaction"]["target_question_id"] == payment_question["question_id"]
+
+    switched = guided.process_guided_review_message(
+        switch_phrase,
+        review_root=case_root / "review",
+        read_model_root=case_root / "read_models",
+        generated_at_utc="2026-06-12T12:02:00+00:00",
+    )
+    switched_session = _load_session(switched)
+    answer = switched_session["answer_records"][0]
+
+    assert "That sounds like a payment/privacy answer" not in switched["reply_text"]
+    assert switched_session["pending_interaction"] == {}
+    assert answer["question_id"] == payment_question["question_id"]
+    assert answer["raw_answer_text"] == "Direct deposit stays manual approval only. Zelle and check are okay by default."
+    assert answer["answer_source"] == "topic_switch_confirmed"
+    assert "switch" not in answer["raw_answer_text"].lower()
+
+
+def test_pending_no_clears_without_recording_and_keeps_current_question(tmp_path):
+    _mismatch, _payment_question, identity_question = _trigger_payment_privacy_mismatch(tmp_path)
+
+    declined = guided.process_guided_review_message(
+        "no",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:02:00+00:00",
+    )
+    session = _load_session(declined)
+
+    assert "I did not record that" in declined["reply_text"]
+    assert session["pending_interaction"] == {}
+    assert session["current_question_id"] == identity_question["question_id"]
+    assert session["answer_records"] == []
+    assert session["receipt_refs"] == []
+
+
+def test_pending_record_it_here_requires_explicit_acknowledgement(tmp_path):
+    _mismatch, _payment_question, identity_question = _trigger_payment_privacy_mismatch(tmp_path)
+
+    recorded = guided.process_guided_review_message(
+        "record it here",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:02:00+00:00",
+    )
+    session = _load_session(recorded)
+    answer = session["answer_records"][0]
+    receipt = json.loads(Path(answer["receipt_ref"].split("#", 1)[0]).read_text(encoding="utf-8"))
+
+    assert session["pending_interaction"] == {}
+    assert answer["question_id"] == identity_question["question_id"]
+    assert answer["question_category"] == "identity/persona policy"
+    assert answer["raw_answer_text"] == "Direct deposit stays manual approval only. Zelle and check are okay by default."
+    assert answer["answer_source"] == "topic_mismatch_recorded_here"
+    assert answer["category_mismatch_acknowledged"] is True
+    assert answer["mismatch_original_hint"] == "payment privacy"
+    assert receipt["category_mismatch_acknowledged"] is True
+    assert receipt["mismatch_original_hint"] == "payment privacy"
+
+
+def test_pending_switch_without_matching_target_writes_parked_note(tmp_path):
+    promotion = _identity_only_review(tmp_path / "review" / "promotion_review.json")
+    guided.process_guided_review_message(
+        "Cassandra, walk me through the Data Room setup.",
+        surface="telegram",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        promotion_review_path=promotion,
+        generated_at_utc=FIXED_NOW,
+    )
+    mismatch = guided.process_guided_review_message(
+        "Direct deposit stays manual approval only. Zelle and check are okay by default.",
+        surface="telegram",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        promotion_review_path=promotion,
+        generated_at_utc="2026-06-12T12:01:00+00:00",
+    )
+    mismatch_session = _load_session(mismatch)
+
+    assert mismatch_session["pending_interaction"]["target_question_id"] == ""
+
+    parked = guided.process_guided_review_message(
+        "yes",
+        surface="telegram",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        promotion_review_path=promotion,
+        generated_at_utc="2026-06-12T12:02:00+00:00",
+    )
+    session = _load_session(parked)
+    parked_ref = session["parked_note_refs"][0]
+    parked_note = json.loads(Path(parked_ref.split("#", 1)[0]).read_text(encoding="utf-8"))
+
+    assert "I parked that payment/privacy note" in parked["reply_text"]
+    assert session["pending_interaction"] == {}
+    assert session["answer_records"] == []
+    assert session["receipt_refs"] == []
+    assert parked_note["authoritative"] is False
+    assert parked_note["runtime_policy_changed"] is False
+    assert parked_note["confirmed_reference_data_generated"] is False
+    assert parked_note["original_utterance_hash"].startswith("sha256:")
+    assert parked_note["detected_topic"] == "payment privacy"
+    assert parked_note["reason"] == "no_matching_question_in_current_session"
+    assert not list((tmp_path / "review").glob("*confirmed_reference*"))
+
+
+def test_bare_yes_outside_pending_does_not_record_confirmation(tmp_path):
+    start = _start(tmp_path)
+    first_question_id = start["current_question_id"]
+
+    response = guided.process_guided_review_message(
+        "yes",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:01:00+00:00",
+    )
+    session = _load_session(response)
+
+    assert response["reply_text"] == "Yes to what? Can you give me the answer in a sentence?"
+    assert session["current_question_id"] == first_question_id
+    assert session["answer_records"] == []
+    assert session["receipt_refs"] == []
 
 
 def test_payment_instructions_sequence_records_payment_privacy_not_identity(tmp_path):
@@ -463,11 +654,13 @@ def test_payment_answer_still_prompts_mismatch_for_true_identity_question(tmp_pa
     session = _load_session(mismatch)
 
     assert "That sounds like a payment/privacy answer" in mismatch["reply_text"]
-    assert "we're currently reviewing identity/persona" in mismatch["reply_text"]
+    assert "this question is about identity/persona" in mismatch["reply_text"]
     assert "I have not recorded it yet" in mismatch["reply_text"]
     assert session["current_question_id"] == identity_question_id
     assert len(session["answer_records"]) == 1
     assert len(session["receipt_refs"]) == 1
+    assert session["pending_interaction"]["kind"] == "topic_switch"
+    assert session["pending_interaction"]["target_question_id"] == ""
     assert session["coach_interactions"][-1]["command"] == "topic_mismatch_clarification"
     assert session["coach_interactions"][-1]["answer_recorded"] is False
 
