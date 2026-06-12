@@ -137,6 +137,51 @@ def _load_session(response: dict) -> dict:
     return json.loads(Path(response["artifact_refs"]["session_json"]).read_text(encoding="utf-8"))
 
 
+def test_default_promotion_path_prefers_durable_generated_artifact(tmp_path, monkeypatch):
+    legacy_path = tmp_path / "tmp" / "openclaw_data_room_promotion_review_v0.json"
+    durable_path = tmp_path / "generated" / "system_knowledge" / "operator_skill_factory_v0" / "openclaw_data_room_promotion_review_v0.json"
+    _promotion_review(durable_path)
+
+    monkeypatch.setattr(guided, "DEFAULT_PROMOTION_REVIEW_PATH", legacy_path)
+    monkeypatch.setattr(guided, "DEFAULT_DURABLE_PROMOTION_REVIEW_PATH", durable_path)
+
+    assert guided._promotion_path(None) == durable_path
+
+
+def test_default_promotion_path_falls_back_to_legacy_tmp_path(tmp_path, monkeypatch):
+    legacy_path = tmp_path / "tmp" / "openclaw_data_room_promotion_review_v0.json"
+    durable_path = tmp_path / "generated" / "system_knowledge" / "operator_skill_factory_v0" / "openclaw_data_room_promotion_review_v0.json"
+
+    monkeypatch.setattr(guided, "DEFAULT_PROMOTION_REVIEW_PATH", legacy_path)
+    monkeypatch.setattr(guided, "DEFAULT_DURABLE_PROMOTION_REVIEW_PATH", durable_path)
+
+    assert guided._promotion_path(None) == legacy_path
+
+
+def test_missing_promotion_review_returns_clear_blocked_response(tmp_path, monkeypatch):
+    legacy_path = tmp_path / "tmp" / "openclaw_data_room_promotion_review_v0.json"
+    durable_path = tmp_path / "generated" / "system_knowledge" / "operator_skill_factory_v0" / "openclaw_data_room_promotion_review_v0.json"
+
+    monkeypatch.setattr(guided, "DEFAULT_PROMOTION_REVIEW_PATH", legacy_path)
+    monkeypatch.setattr(guided, "DEFAULT_DURABLE_PROMOTION_REVIEW_PATH", durable_path)
+
+    response = guided.process_guided_review_message(
+        "Cassandra, let's go over the Data Room.",
+        surface="telegram",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc=FIXED_NOW,
+    )
+
+    assert response["handled"] is True
+    assert response["status"] == "blocked"
+    assert "promotion review artifact is unavailable" in response["reply_text"]
+    assert guided._promotion_path(None) == legacy_path
+    assert response["safety_flags"]["external_calls_performed"] is False
+    assert not Path(response["artifact_refs"]["session_json"]).exists()
+    assert not list((tmp_path / "review").glob("data_room_guided_review_session_*.json"))
+
+
 def test_data_room_session_creation_loads_questions_and_returns_first_question(tmp_path):
     response = _start(tmp_path)
     session = _load_session(response)
