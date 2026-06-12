@@ -15,7 +15,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
-from cassandra_review_coach import build_coach_card, coach_command, detect_coach_intent, render_coach_reply
+from cassandra_review_coach import (
+    build_coach_card,
+    coach_command,
+    detect_coach_intent,
+    parse_natural_reply_intent,
+    render_coach_reply,
+)
 
 
 ROOT = Path(__file__).resolve().parent
@@ -1376,7 +1382,7 @@ def _parse_utc_timestamp(value: str) -> datetime | None:
 
 def _active_pending_interaction(session: Mapping[str, Any], *, now: str) -> dict[str, Any]:
     pending = session.get("pending_interaction")
-    if not isinstance(pending, Mapping) or pending.get("kind") != "topic_switch":
+    if not isinstance(pending, Mapping) or pending.get("kind") not in {"topic_switch", "answer_candidate"}:
         return {}
     if int(pending.get("turns_remaining") or 0) <= 0:
         return {}
@@ -1416,17 +1422,24 @@ def _pending_prompt(pending: Mapping[str, Any]) -> str:
 
 def _pending_reply_intent(text: str) -> str:
     normalized = _normalize_topic_text(text)
+    natural = parse_natural_reply_intent(text)
     if normalized in {"yes", "y", "switch", "yes switch", "yes please switch", "please switch"}:
+        return "switch"
+    if natural.get("intent") == "confirm_candidate":
         return "switch"
     if normalized.startswith("yes switch") or normalized.startswith("yes please switch"):
         return "switch"
     if normalized.startswith("yes") and "switch" in normalized:
+        return "switch"
+    if normalized in {"yeah switch it", "put it there", "yes put it there", "record it under payment privacy", "yes put it under payment privacy"}:
         return "switch"
     if normalized in {"no", "nope", "no thanks", "do not switch", "dont switch", "don't switch"}:
         return "no"
     if normalized in {"cancel", "never mind", "nevermind", "stop"}:
         return "cancel"
     if normalized in {"here", "record here", "record it here", "here anyway", "record here anyway", "record it here anyway"}:
+        return "here"
+    if normalized in {"no keep it here", "no record it here", "no keep here", "keep it here"}:
         return "here"
     return "other"
 
@@ -1436,7 +1449,9 @@ def _is_global_control_allowed_during_pending(control: str) -> bool:
 
 
 def _is_bare_yes(text: str) -> bool:
-    return _normalize_topic_text(text) in {"yes", "y", "confirm", "confirmed", "looks good", "approve"}
+    if _normalize_topic_text(text) in {"yes", "y", "confirm", "confirmed", "looks good", "approve"}:
+        return True
+    return parse_natural_reply_intent(text).get("intent") == "confirm_candidate"
 
 
 def _question_matches_topic(question: Mapping[str, Any], topic_id: str) -> bool:
@@ -1488,6 +1503,12 @@ def _set_pending_topic_switch(
     target_question_id = _find_unanswered_matching_question_id(session, answer_topic)
     pending = {
         "kind": "topic_switch",
+        "pending_interaction_id": "pending_topic_switch:" + _short_hash(
+            redacted_original,
+            answer_topic,
+            question.get("question_id", ""),
+            now,
+        ),
         "original_utterance": redacted_original,
         "original_utterance_hash": _text_hash(redacted_original),
         "detected_topic": _topic_storage_label(answer_topic),
@@ -1504,6 +1525,97 @@ def _set_pending_topic_switch(
     }
     session["pending_interaction"] = pending
     return pending
+
+
+def _candidate_prompt(candidate_text: str) -> str:
+    return f"Should I record this as: {str(candidate_text).strip(' .?')}?"
+
+
+def _candidate_from_thought_dump(raw_text: str) -> str:
+    text = " ".join(str(raw_text or "").strip(" .").split())
+    patterns = (
+        r"^let me ramble(?: for a second)?[:,-]?\s*(.+)$",
+        r"^here'?s the messy version[:,-]?\s*(.+)$",
+        r"^i'?m not sure what matters[, ]+but\s+(.+)$",
+        r"^i kind of feel like\s+(.+)$",
+        r"^i don'?t know[, ]+but\s+(.+)$",
+        r"^help me find the thread[:,-]?\s*(.+)$",
+    )
+    for pattern in patterns:
+        match = re.match(pattern, text, flags=re.IGNORECASE)
+        if match:
+            return " ".join(match.group(1).strip(" .").split())
+    return text
+
+
+def _candidate_from_condition(raw_text: str, condition_text: str) -> str:
+    text = " ".join(str(raw_text or condition_text or "").strip(" .").split())
+    normalized = _normalize_topic_text(text)
+    if "trusted clients" in normalized and ("new clients" in normalized or "for new clients" in normalized):
+        return "Use a case-by-case rule: for new clients no, for trusted clients yes."
+    if "trusted clients" in normalized and "direct deposit" in normalized:
+        return "Direct deposit is manual-only except for trusted clients who specifically request it."
+    if normalized in {"sometimes", "it depends", "depends", "case by case"}:
+        return ""
+    return text
+
+
+def _set_pending_answer_candidate(
+    session: dict[str, Any],
+    *,
+    candidate_text: str,
+    source_intent: Mapping[str, Any],
+    current_question_id: str,
+    now: str,
+    surface: str,
+) -> dict[str, Any]:
+    redacted_candidate, _ = _redact_sensitive_text(candidate_text)
+    pending_id = "pending_answer_candidate:" + _short_hash(
+        session.get("review_session_id", ""),
+        current_question_id,
+        redacted_candidate,
+        now,
+    )
+    pending = {
+        "kind": "answer_candidate",
+        "pending_interaction_id": pending_id,
+        "candidate_text": redacted_candidate,
+        "candidate_text_hash": _text_hash(redacted_candidate),
+        "current_question_id": current_question_id,
+        "created_at_utc": now,
+        "surface": surface,
+        "turns_remaining": 3,
+        "source_intent": dict(source_intent),
+        "authoritative": False,
+        "runtime_policy_changed": False,
+    }
+    session["pending_interaction"] = pending
+    return pending
+
+
+def _update_pending_answer_candidate(
+    session: dict[str, Any],
+    pending: Mapping[str, Any],
+    *,
+    candidate_text: str,
+    source_intent: Mapping[str, Any],
+    now: str,
+) -> dict[str, Any]:
+    redacted_candidate, _ = _redact_sensitive_text(candidate_text)
+    updated = dict(pending)
+    updated.update(
+        {
+            "candidate_text": redacted_candidate,
+            "candidate_text_hash": _text_hash(redacted_candidate),
+            "updated_at_utc": now,
+            "turns_remaining": 3,
+            "source_intent": dict(source_intent),
+            "authoritative": False,
+            "runtime_policy_changed": False,
+        }
+    )
+    session["pending_interaction"] = updated
+    return updated
 
 
 def _write_parked_note(
@@ -1651,6 +1763,41 @@ def _session_summary_reply(session: Mapping[str, Any]) -> str:
     return f"{str(session.get('topic_display_name') or _topic_display_name(str(session.get('topic') or TOPIC_DATA_ROOM)))} progress: {_progress_line(session)}"
 
 
+def _natural_explanation_reply(session: dict[str, Any], question: Mapping[str, Any], intent: str) -> str:
+    if not question:
+        return "No active question is available. Say done to generate the promotion prompt."
+    _enable_coach_mode(session)
+    card = _coach_card_for_question(session, question)
+    if intent == "ask_examples":
+        return render_coach_reply(
+            card,
+            "examples",
+            surface=str(session.get("surface") or "telegram"),
+            style=str(session.get("coaching_style") or "concise"),
+        )
+    if intent == "ask_recommendation":
+        return render_coach_reply(
+            card,
+            "recommend",
+            surface=str(session.get("surface") or "telegram"),
+            style=str(session.get("coaching_style") or "concise"),
+        )
+    category = str(card.get("category") or "review")
+    recommendation = str(card.get("recommended_default") or "Use the conservative default for now.")
+    why = str(card.get("why_it_matters") or "This affects what can safely be promoted later.")
+    if intent == "ask_eli5":
+        return (
+            f"ELI5 - {category}: we are deciding the safe default before OpenClaw can reuse this information. "
+            f"My recommendation: {recommendation}"
+        )
+    if intent == "ask_analogy":
+        return (
+            f"Analogy - {category}: treat this like labeling a box before putting it on the shared shelf. "
+            f"If the label is wrong, future work can pick the wrong thing. My recommendation: {recommendation}"
+        )
+    return f"{category}: {why} My recommendation: {recommendation}"
+
+
 def _answer_id(session_id: str, question_id: str, answer_text: str, created_at: str) -> str:
     return "review_answer:" + _short_hash(session_id, question_id, answer_text, created_at)
 
@@ -1770,6 +1917,90 @@ def _handle_pending_interaction(
     receipt_root: str | Path | None,
     now: str,
 ) -> str:
+    natural_intent = parse_natural_reply_intent(raw_text, pending)
+    if pending.get("kind") == "answer_candidate":
+        candidate_text = str(pending.get("candidate_text") or "")
+        current_question_id = str(pending.get("current_question_id") or session.get("current_question_id") or "")
+        natural_kind = str(natural_intent.get("intent") or "")
+        if natural_kind == "confirm_candidate":
+            _apply_answer(
+                session,
+                candidate_text,
+                surface=surface,
+                review_root=review_root,
+                receipt_root=receipt_root,
+                now=now,
+                question_id_override=current_question_id,
+                extra_answer_fields={"answer_source": "natural_candidate_confirmed"},
+            )
+            session["pending_interaction"] = {}
+            _append_pending_interaction_event(
+                session,
+                command="pending_answer_candidate_confirmed",
+                question_id=current_question_id,
+                now=now,
+                answer_recorded=True,
+            )
+            if not session.get("current_question_id"):
+                completed = complete_session(session, review_root=review_root, now=now)
+                session.clear()
+                session.update(completed)
+                return (
+                    f"Recorded that answer. I wrote the promotion prompt: "
+                    f"{_prompt_path(review_root, str(session['review_session_id'])).as_posix()}"
+                )
+            return _format_question_reply(session, prefix="Recorded that answer.")
+        if natural_kind == "reject_candidate":
+            session["pending_interaction"] = {}
+            _append_pending_interaction_event(
+                session,
+                command="pending_answer_candidate_declined",
+                question_id=current_question_id,
+                now=now,
+                answer_recorded=False,
+            )
+            return _format_question_reply(session, prefix="Okay. I did not record that candidate.")
+        if natural_kind == "revise_candidate":
+            revised = str(natural_intent.get("extracted_revision_text") or "").strip()
+            if revised:
+                updated = _update_pending_answer_candidate(
+                    session,
+                    pending,
+                    candidate_text=revised,
+                    source_intent=natural_intent,
+                    now=now,
+                )
+                _append_pending_interaction_event(
+                    session,
+                    command="pending_answer_candidate_revised",
+                    question_id=current_question_id,
+                    now=now,
+                    answer_recorded=False,
+                )
+                return _candidate_prompt(str(updated.get("candidate_text") or revised))
+        if natural_kind == "conditional_answer":
+            candidate = _candidate_from_condition(raw_text, str(natural_intent.get("condition_text") or ""))
+            if candidate:
+                updated = _update_pending_answer_candidate(
+                    session,
+                    pending,
+                    candidate_text=candidate,
+                    source_intent=natural_intent,
+                    now=now,
+                )
+                _append_pending_interaction_event(
+                    session,
+                    command="pending_answer_candidate_conditioned",
+                    question_id=current_question_id,
+                    now=now,
+                    answer_recorded=False,
+                )
+                return _candidate_prompt(str(updated.get("candidate_text") or candidate))
+            return "What condition should decide it?"
+        if natural_kind in {"ask_explanation", "ask_eli5", "ask_analogy", "ask_examples", "ask_recommendation"}:
+            question = _question_by_id(session, current_question_id)
+            return _natural_explanation_reply(session, question or {}, natural_kind)
+
     intent = _pending_reply_intent(raw_text)
     original = str(pending.get("original_utterance") or "")
     current_question_id = str(pending.get("current_question_id") or session.get("current_question_id") or "")
@@ -2499,8 +2730,73 @@ def process_guided_review_message(
             reply = _format_question_reply(session, prefix="Deferred.")
         else:
             question = _question_by_id(session, str(session.get("current_question_id") or ""))
+            natural_intent = parse_natural_reply_intent(raw_text)
+            natural_kind = str(natural_intent.get("intent") or "")
             if _is_bare_yes(raw_text):
                 reply = "Yes to what? Can you give me the answer in a sentence?"
+            elif natural_kind in {"ask_explanation", "ask_eli5", "ask_analogy", "ask_examples", "ask_recommendation"}:
+                if question:
+                    _append_coach_interaction(
+                        session,
+                        command=natural_kind,
+                        question_id=str(question.get("question_id") or ""),
+                        now=now,
+                    )
+                reply = _natural_explanation_reply(session, question or {}, natural_kind)
+            elif natural_kind in {"revise_candidate", "thought_dump", "conditional_answer", "soften_candidate", "strengthen_candidate"}:
+                if not question:
+                    reply = "No active question is available. Say done to generate the promotion prompt."
+                elif natural_kind in {"soften_candidate", "strengthen_candidate"}:
+                    reply = "What wording should I change? Give me the sentence you want me to consider."
+                elif natural_kind == "conditional_answer":
+                    candidate = _candidate_from_condition(raw_text, str(natural_intent.get("condition_text") or ""))
+                    if not candidate:
+                        reply = "What condition should decide it?"
+                    else:
+                        pending_candidate = _set_pending_answer_candidate(
+                            session,
+                            candidate_text=candidate,
+                            source_intent=natural_intent,
+                            current_question_id=str(question.get("question_id") or ""),
+                            now=now,
+                            surface=surface,
+                        )
+                        _append_pending_interaction_event(
+                            session,
+                            command="pending_answer_candidate_created",
+                            question_id=str(question.get("question_id") or ""),
+                            now=now,
+                            answer_recorded=False,
+                        )
+                        reply = _candidate_prompt(str(pending_candidate.get("candidate_text") or candidate))
+                else:
+                    candidate = (
+                        str(natural_intent.get("extracted_revision_text") or "").strip()
+                        if natural_kind == "revise_candidate"
+                        else _candidate_from_thought_dump(raw_text)
+                    )
+                    if not candidate:
+                        reply = "Can you give me the answer in a sentence?"
+                    else:
+                        pending_candidate = _set_pending_answer_candidate(
+                            session,
+                            candidate_text=candidate,
+                            source_intent=natural_intent,
+                            current_question_id=str(question.get("question_id") or ""),
+                            now=now,
+                            surface=surface,
+                        )
+                        _append_pending_interaction_event(
+                            session,
+                            command="pending_answer_candidate_created",
+                            question_id=str(question.get("question_id") or ""),
+                            now=now,
+                            answer_recorded=False,
+                        )
+                        if natural_kind == "thought_dump":
+                            reply = f"Here's the thread I'm hearing: {candidate}\n{_candidate_prompt(candidate)}"
+                        else:
+                            reply = _candidate_prompt(candidate)
             else:
                 mismatch = _answer_topic_mismatch(raw_text, question or {}) if question else {}
                 if mismatch:

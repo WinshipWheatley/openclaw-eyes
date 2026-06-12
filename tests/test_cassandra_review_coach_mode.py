@@ -532,6 +532,191 @@ def test_bare_yes_outside_pending_does_not_record_confirmation(tmp_path):
     assert session["receipt_refs"] == []
 
 
+def test_natural_pending_confirmation_records_candidate_not_confirmation_phrase(tmp_path):
+    start = _start(tmp_path)
+    first_question_id = start["current_question_id"]
+
+    proposed = guided.process_guided_review_message(
+        "let me ramble for a second: direct deposit should stay manual unless trusted clients ask for it.",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:01:00+00:00",
+    )
+    proposed_session = _load_session(proposed)
+
+    assert "Here's the thread I'm hearing" in proposed["reply_text"]
+    assert "Should I record this as:" in proposed["reply_text"]
+    assert proposed_session["pending_interaction"]["kind"] == "answer_candidate"
+    assert proposed_session["current_question_id"] == first_question_id
+    assert proposed_session["answer_records"] == []
+    assert proposed_session["receipt_refs"] == []
+
+    confirmed = guided.process_guided_review_message(
+        "yes that’s right",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:02:00+00:00",
+    )
+    session = _load_session(confirmed)
+    answer = session["answer_records"][0]
+
+    assert session["pending_interaction"] == {}
+    assert answer["question_id"] == first_question_id
+    assert answer["raw_answer_text"] == "direct deposit should stay manual unless trusted clients ask for it"
+    assert "yes" not in answer["raw_answer_text"].lower()
+    assert answer["answer_source"] == "natural_candidate_confirmed"
+    assert answer["authoritative"] is False
+    assert answer["runtime_policy_changed"] is False
+
+
+def test_natural_yes_variant_without_pending_asks_yes_to_what(tmp_path):
+    start = _start(tmp_path)
+    first_question_id = start["current_question_id"]
+
+    response = guided.process_guided_review_message(
+        "yes that’s right",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:01:00+00:00",
+    )
+    session = _load_session(response)
+
+    assert response["reply_text"] == "Yes to what? Can you give me the answer in a sentence?"
+    assert session["current_question_id"] == first_question_id
+    assert session["answer_records"] == []
+    assert session["receipt_refs"] == []
+
+
+def test_pending_candidate_revision_creates_revised_candidate_without_receipt(tmp_path):
+    _start(tmp_path)
+    guided.process_guided_review_message(
+        "let me ramble for a second: use the loose version for clients.",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:01:00+00:00",
+    )
+
+    revised = guided.process_guided_review_message(
+        "no, but maybe direct deposit is manual-only except for trusted clients who ask.",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:02:00+00:00",
+    )
+    session = _load_session(revised)
+
+    assert "Should I record this as:" in revised["reply_text"]
+    assert "direct deposit is manual-only except for trusted clients who ask" in revised["reply_text"]
+    assert session["pending_interaction"]["kind"] == "answer_candidate"
+    assert session["pending_interaction"]["candidate_text"] == "direct deposit is manual-only except for trusted clients who ask"
+    assert session["answer_records"] == []
+    assert session["receipt_refs"] == []
+
+
+def test_pending_candidate_conditional_answer_stays_unrecorded_until_confirmed(tmp_path):
+    _start(tmp_path)
+    guided.process_guided_review_message(
+        "let me ramble for a second: direct deposit is usually manual approval only.",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:01:00+00:00",
+    )
+
+    conditional = guided.process_guided_review_message(
+        "for new clients no, for trusted clients yes",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:02:00+00:00",
+    )
+    session = _load_session(conditional)
+
+    assert "Should I record this as:" in conditional["reply_text"]
+    assert "for new clients no, for trusted clients yes" in conditional["reply_text"].lower()
+    assert session["pending_interaction"]["kind"] == "answer_candidate"
+    assert session["answer_records"] == []
+    assert session["receipt_refs"] == []
+
+
+def test_bare_conditional_answer_asks_for_condition_without_recording(tmp_path):
+    start = _start(tmp_path)
+
+    response = guided.process_guided_review_message(
+        "sometimes",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:01:00+00:00",
+    )
+    session = _load_session(response)
+
+    assert response["reply_text"] == "What condition should decide it?"
+    assert session["current_question_id"] == start["current_question_id"]
+    assert session["answer_records"] == []
+    assert session["receipt_refs"] == []
+
+
+@pytest.mark.parametrize(
+    "text,expected",
+    [
+        ("eli5", "ELI5"),
+        ("give me an analogy", "Analogy"),
+        ("what does that mean?", "My recommendation:"),
+        ("examples", "Example answers:"),
+    ],
+)
+def test_natural_explanation_variants_do_not_record_answers(tmp_path, text, expected):
+    start = _start(tmp_path)
+
+    response = guided.process_guided_review_message(
+        text,
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:01:00+00:00",
+    )
+    session = _load_session(response)
+
+    assert expected in response["reply_text"]
+    assert session["current_question_id"] == start["current_question_id"]
+    assert session["answer_records"] == []
+    assert session["receipt_refs"] == []
+
+
+def test_thought_dump_proposes_candidate_without_receipt(tmp_path):
+    start = _start(tmp_path)
+
+    response = guided.process_guided_review_message(
+        "I don’t know, but trusted repeat clients can use Zelle and everyone else should stay manual.",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:01:00+00:00",
+    )
+    session = _load_session(response)
+
+    assert "Here's the thread I'm hearing" in response["reply_text"]
+    assert "Should I record this as:" in response["reply_text"]
+    assert session["current_question_id"] == start["current_question_id"]
+    assert session["pending_interaction"]["kind"] == "answer_candidate"
+    assert session["answer_records"] == []
+    assert session["receipt_refs"] == []
+
+
+def test_pending_topic_switch_natural_confirmation_records_original_under_target(tmp_path):
+    _mismatch, payment_question, _identity_question = _trigger_payment_privacy_mismatch(tmp_path)
+
+    confirmed = guided.process_guided_review_message(
+        "yes, put it under payment privacy",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:02:00+00:00",
+    )
+    session = _load_session(confirmed)
+    answer = session["answer_records"][0]
+
+    assert session["pending_interaction"] == {}
+    assert answer["question_id"] == payment_question["question_id"]
+    assert answer["question_category"] == "payment privacy"
+    assert answer["raw_answer_text"] == "Direct deposit stays manual approval only. Zelle and check are okay by default."
+    assert answer["answer_source"] == "topic_switch_confirmed"
+
+
 def test_payment_instructions_sequence_records_payment_privacy_not_identity(tmp_path):
     promotion = _payment_instructions_review(tmp_path / "review" / "promotion_review.json")
     review_root = tmp_path / "review"

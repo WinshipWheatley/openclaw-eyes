@@ -10,12 +10,215 @@ from cassandra_review_coach_packs import coach_pack_for_category
 
 REVIEW_OPTION_SCHEMA_VERSION = "REVIEW_OPTION_V0"
 REVIEW_COACH_CARD_SCHEMA_VERSION = "REVIEW_COACH_CARD_V0"
+NATURAL_REPLY_INTENT_SCHEMA_VERSION = "NATURAL_REPLY_INTENT_V0"
+
+NATURAL_REPLY_SAFETY_FLAGS = {
+    "external_calls_performed": False,
+    "runtime_policy_changed": False,
+    "approval_created": False,
+    "invoice_or_ledger_mutated": False,
+    "confirmed_reference_data_generated": False,
+}
 
 
 def _normalize(text: str) -> str:
     lowered = str(text or "").lower()
+    lowered = lowered.replace("\u2019", "'").replace("\u2018", "'").replace("\u201c", '"').replace("\u201d", '"')
     lowered = lowered.replace("?", " ").replace("!", " ")
     return " ".join(re.sub(r"[^a-z0-9']+", " ", lowered).split())
+
+
+def _text_hash(text: str) -> str:
+    import hashlib
+
+    return "sha256:" + hashlib.sha256(str(text or "").encode("utf-8")).hexdigest()
+
+
+def _has_pending(pending_interaction: Mapping[str, Any] | None) -> bool:
+    return bool(pending_interaction and pending_interaction.get("kind"))
+
+
+def _extract_revision_text(raw_text: str, normalized: str) -> str:
+    patterns = (
+        r"^\s*no[, ]+but maybe\s+(.+)$",
+        r"^\s*not exactly[, ]+(.+)$",
+        r"^\s*(?:that'?s\s+)?close[, ]+but\s+(.+)$",
+        r"^\s*that'?s close[, ]+make it\s+(.+)$",
+        r"^\s*maybe say\s+(.+)$",
+        r"^\s*i mean\s+(.+)$",
+        r"^\s*revise that to\s+(.+)$",
+        r"^\s*change that to\s+(.+)$",
+        r"^\s*make it(?: say)?\s+(.+)$",
+    )
+    for pattern in patterns:
+        match = re.match(pattern, str(raw_text or "").strip(), flags=re.IGNORECASE)
+        if match:
+            return " ".join(match.group(1).strip(" .").split())
+    marker_patterns = (
+        ("no but maybe ", 13),
+        ("not exactly ", 12),
+        ("close but ", 10),
+        ("that's close make it ", 21),
+        ("thats close make it ", 20),
+        ("maybe say ", 10),
+        ("i mean ", 7),
+        ("revise that to ", 15),
+    )
+    for marker, length in marker_patterns:
+        if normalized.startswith(marker):
+            return normalized[length:].strip()
+    return ""
+
+
+def _condition_text(raw_text: str, normalized: str) -> str:
+    if normalized in {"sometimes", "it depends", "depends", "case by case"}:
+        return ""
+    for marker in ("it depends on ", "depends on ", "only for ", "for "):
+        if normalized.startswith(marker):
+            return " ".join(str(raw_text).strip(" .").split())
+    if any(phrase in normalized for phrase in ("case by case", "depends on whether", "it depends whether")):
+        return " ".join(str(raw_text).strip(" .").split())
+    return ""
+
+
+def parse_natural_reply_intent(text: str, pending_interaction: Mapping[str, Any] | None = None) -> dict[str, Any]:
+    """Classify natural review-coach replies without creating truth or authority."""
+
+    raw = str(text or "")
+    normalized = _normalize(raw)
+    pending_id = ""
+    if pending_interaction:
+        pending_id = str(
+            pending_interaction.get("pending_interaction_id")
+            or pending_interaction.get("candidate_id")
+            or pending_interaction.get("original_utterance_hash")
+            or ""
+        )
+    intent = "ambiguous"
+    confidence = 0.35
+    extracted_revision_text = ""
+    condition_text = ""
+
+    confirmation_phrases = {
+        "yes",
+        "y",
+        "yes that's right",
+        "yes thats right",
+        "yeah that's right",
+        "yeah thats right",
+        "that's right",
+        "thats right",
+        "correct",
+        "exactly",
+        "yep",
+        "yup",
+        "go with that",
+        "yeah go with that",
+        "use that",
+        "record that",
+        "that works",
+        "sounds right",
+        "yes record that",
+        "yes go with that",
+    }
+    switch_confirm_phrases = {
+        "yeah switch it",
+        "yes switch it",
+        "put it there",
+        "yes put it there",
+        "record it under payment privacy",
+        "yes put it under payment privacy",
+        "yes record it under payment privacy",
+    }
+    rejection_phrases = {"no", "nope", "not that", "no thanks", "reject that"}
+
+    if normalized in confirmation_phrases or normalized in switch_confirm_phrases:
+        intent = "confirm_candidate"
+        confidence = 0.95
+    elif normalized in rejection_phrases:
+        intent = "reject_candidate"
+        confidence = 0.9
+    elif normalized in {"eli5", "explain like i'm five", "explain like im five", "explain simply"}:
+        intent = "ask_eli5"
+        confidence = 0.95
+    elif "analogy" in normalized:
+        intent = "ask_analogy"
+        confidence = 0.9
+    elif normalized in {"examples", "example", "show examples", "give examples"}:
+        intent = "ask_examples"
+        confidence = 0.95
+    elif normalized in {
+        "what do you recommend",
+        "what would you recommend",
+        "what would a normal small business do",
+        "what should i do",
+    }:
+        intent = "ask_recommendation"
+        confidence = 0.9
+    elif normalized in {
+        "what does that mean",
+        "help me understand",
+        "why does this matter",
+        "what could go wrong",
+    }:
+        intent = "ask_explanation"
+        confidence = 0.9
+    elif normalized in {"skip", "skip this", "skip question", "next", "next question"}:
+        intent = "skip"
+        confidence = 0.95
+    elif normalized in {"defer", "defer this", "defer question", "i don't know", "i dont know"}:
+        intent = "defer"
+        confidence = 0.85
+    elif normalized in {"done", "finish", "complete", "that's all", "thats all"}:
+        intent = "done"
+        confidence = 0.95
+    elif normalized in {"make it softer", "say it softer", "softer"}:
+        intent = "soften_candidate"
+        confidence = 0.85
+    elif normalized in {"make it stricter", "say it stricter", "stricter"}:
+        intent = "strengthen_candidate"
+        confidence = 0.85
+    else:
+        extracted_revision_text = _extract_revision_text(raw, normalized)
+        if extracted_revision_text:
+            intent = "revise_candidate"
+            confidence = 0.9
+        elif any(
+            phrase in normalized
+            for phrase in (
+                "let me ramble",
+                "here's the messy version",
+                "heres the messy version",
+                "i'm not sure what matters",
+                "im not sure what matters",
+                "i kind of feel like",
+                "help me find the thread",
+                "i don't know but",
+                "i dont know but",
+            )
+        ):
+            intent = "thought_dump"
+            confidence = 0.75
+        else:
+            condition_text = _condition_text(raw, normalized)
+            if condition_text or normalized in {"sometimes", "it depends", "depends", "case by case"}:
+                intent = "conditional_answer"
+                confidence = 0.8 if condition_text else 0.65
+
+    pending = _has_pending(pending_interaction)
+    return {
+        "schema_version": NATURAL_REPLY_INTENT_SCHEMA_VERSION,
+        "raw_text_hash": _text_hash(raw),
+        "intent": intent,
+        "confidence": confidence,
+        "extracted_revision_text": extracted_revision_text,
+        "condition_text": condition_text,
+        "target_pending_interaction_id": pending_id,
+        "should_record_now": bool(pending and intent == "confirm_candidate"),
+        "requires_confirmation": intent
+        in {"revise_candidate", "conditional_answer", "thought_dump", "soften_candidate", "strengthen_candidate"},
+        "safety_flags": dict(NATURAL_REPLY_SAFETY_FLAGS),
+    }
 
 
 def detect_coach_intent(text: str) -> bool:
@@ -189,9 +392,11 @@ def render_coach_reply(
 __all__ = [
     "REVIEW_COACH_CARD_SCHEMA_VERSION",
     "REVIEW_OPTION_SCHEMA_VERSION",
+    "NATURAL_REPLY_INTENT_SCHEMA_VERSION",
     "build_coach_card",
     "build_review_options",
     "coach_command",
     "detect_coach_intent",
+    "parse_natural_reply_intent",
     "render_coach_reply",
 ]
