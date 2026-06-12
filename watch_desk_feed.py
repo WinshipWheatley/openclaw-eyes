@@ -47,6 +47,7 @@ SERVICE_KEEPER_REF = "generated/read_models/openclaw_service_keeper_status.json"
 PROOF_TO_RESPONSE_REF = "generated/read_models/proof_to_response_latest.json"
 OPERATOR_INTAKE_REF = "generated/read_models/operator_intake_events.json"
 GUIDED_REVIEW_REF = "generated/read_models/guided_review_sessions.json"
+OPERATOR_ACTIVE_CONTEXTS_REF = "generated/read_models/operator_active_contexts.json"
 MODEL_WORK_PACKAGE_ROUTER_REF = "generated/read_models/model_work_package_router_status.json"
 
 
@@ -664,6 +665,45 @@ def _guided_review_items(read_model: Mapping[str, Any]) -> list[dict[str, Any]]:
     return items
 
 
+def _operator_active_context_items(read_model: Mapping[str, Any]) -> list[dict[str, Any]]:
+    if not read_model:
+        return []
+    top_items = read_model.get("watch_desk_items")
+    if not isinstance(top_items, list):
+        return []
+    items: list[dict[str, Any]] = []
+    for item in top_items:
+        if not isinstance(item, Mapping):
+            continue
+        item_id = str(item.get("item_id") or "").strip()
+        plain_line = str(item.get("plain_line") or "").strip()
+        source_ref = str(item.get("source_receipt_ref") or "").strip()
+        if not item_id or not plain_line or not source_ref:
+            continue
+        state = item.get("state") if isinstance(item.get("state"), Mapping) else {}
+        items.append(
+            _new_item(
+                item_id=item_id,
+                lane=str(item.get("lane") or "chief_runtime"),
+                urgency=str(item.get("urgency") or "watch"),
+                plain_line=plain_line,
+                source_receipt_ref=source_ref,
+                one_next_safe_action=str(item.get("one_next_safe_action") or "Review the staged operator context safely."),
+                state={
+                    "context_type": str(state.get("context_type") or ""),
+                    "status": str(state.get("status") or ""),
+                    "resume_context_ref": str(state.get("resume_context_ref") or ""),
+                    "external_calls_performed": bool(state.get("external_calls_performed", False)),
+                    "medical_advice_given": bool(state.get("medical_advice_given", False)),
+                    "daws_or_media_mutated": bool(state.get("daws_or_media_mutated", False)),
+                    "csv_mutated": bool(state.get("csv_mutated", False)),
+                },
+                push_class=str(item.get("push_class") or "info"),
+            )
+        )
+    return items
+
+
 def _model_work_package_items(read_model: Mapping[str, Any]) -> list[dict[str, Any]]:
     if not read_model:
         return []
@@ -774,11 +814,13 @@ def build_watch_desk_feed(
         feed_generated_at=generated_at,
     )
     guided_review_items = _guided_review_items(_load_json(read_root / Path(GUIDED_REVIEW_REF).name))
+    active_context_items = _operator_active_context_items(_load_json(read_root / Path(OPERATOR_ACTIVE_CONTEXTS_REF).name))
     model_work_items = _model_work_package_items(_load_json(read_root / Path(MODEL_WORK_PACKAGE_ROUTER_REF).name))
     feed_items = _dedupe_items(
         [item for item in candidate_items if item is not None]
         + operator_intake_items
         + guided_review_items
+        + active_context_items
         + model_work_items
     )
     source_refs = sorted({item["source_receipt_ref"] for item in feed_items})

@@ -885,6 +885,72 @@ def has_active_guided_review_session(*, review_root: str | Path | None = None) -
     return _find_active_session(_review_root(review_root)) is not None
 
 
+def get_active_guided_review_context(
+    *,
+    review_root: str | Path | None = None,
+) -> dict[str, Any] | None:
+    """Return a compact active-session context for routing gates."""
+
+    session = _find_active_session(_review_root(review_root))
+    if session is None:
+        return None
+    progress = _progress(session)
+    session_id = str(session.get("review_session_id") or "")
+    topic = str(session.get("topic") or TOPIC_DATA_ROOM)
+    current_question_id = str(session.get("current_question_id") or "")
+    pending = session.get("pending_interaction") if isinstance(session.get("pending_interaction"), Mapping) else {}
+    return {
+        "active_context_id": f"guided_review:{session_id}",
+        "context_type": "guided_review_session",
+        "owner_agent": "cassandra",
+        "topic": topic,
+        "topic_display_name": str(session.get("topic_display_name") or _topic_display_name(topic)),
+        "status": str(session.get("status") or "active"),
+        "last_turn_at_utc": str(session.get("updated_at_utc") or session.get("created_at_utc") or ""),
+        "resume_phrase": "continue Data Room",
+        "source_session_ref": _session_path(_review_root(review_root), session_id).as_posix(),
+        "review_session_id": session_id,
+        "current_question_id": current_question_id,
+        "pending_interaction": dict(pending),
+        "remaining_count": progress["remaining"],
+        "answered_count": progress["answered"],
+        "deferred_count": progress["deferred"],
+        "resume_suggestion": "Say 'continue Data Room' when ready.",
+    }
+
+
+def set_guided_review_context_status(
+    status: str,
+    *,
+    review_root: str | Path | None = None,
+    read_model_root: str | Path | None = None,
+    interrupted_by_ref: str = "",
+    generated_at_utc: str | None = None,
+) -> dict[str, Any] | None:
+    """Set active guided-review status to active/paused without answering."""
+
+    if status not in {"active", "paused"}:
+        raise ValueError("guided review status must be active or paused")
+    root = _review_root(review_root)
+    session = _find_active_session(root)
+    if session is None:
+        return None
+    now = generated_at_utc or utc_now()
+    session = dict(session)
+    session["status"] = status
+    session["updated_at_utc"] = now
+    if interrupted_by_ref:
+        refs = list(session.get("interrupted_by_refs") or [])
+        if interrupted_by_ref not in refs:
+            refs.append(interrupted_by_ref)
+        session["interrupted_by_refs"] = refs
+    session_path = _persist_session(session, review_root=root)
+    session["session_artifact_ref"] = session_path.as_posix()
+    write_guided_review_read_model([session], read_model_root=read_model_root, generated_at_utc=now)
+    _refresh_watch_desk(read_model_root, now)
+    return get_active_guided_review_context(review_root=root)
+
+
 def is_guided_review_message(text: str, *, review_root: str | Path | None = None) -> bool:
     if not text or not text.strip() or _excluded_route_text(text):
         return False
@@ -2096,7 +2162,7 @@ def _session_read_model_item(session: Mapping[str, Any]) -> dict[str, Any]:
     if session.get("session_artifact_ref"):
         session_ref = str(session["session_artifact_ref"])
     status = str(session.get("status") or "active")
-    verb = "in progress" if status in {"active", "paused"} else status
+    verb = "in progress" if status == "active" else ("paused" if status == "paused" else status)
     topic_display = str(session.get("topic_display_name") or _topic_display_name(str(session.get("topic") or TOPIC_DATA_ROOM)))
     active_answers = _active_answer_records(session)
     cpa_flagged_count = len([answer for answer in active_answers if answer.get("cpa_review_recommended")])

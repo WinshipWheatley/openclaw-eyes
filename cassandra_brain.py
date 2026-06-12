@@ -59,6 +59,7 @@ from hitl_pending_store import propose_action as _hitl_propose
 from cassandra_custom_tools import handle_operator_objective as _handle_operator_objective
 from operator_universal_intake import try_process_surface_operator_intake as _try_universal_operator_intake
 from cassandra_guided_review import process_guided_review_message as _process_guided_review_message
+from operator_context_switchboard import process_operator_context_switchboard_message as _process_operator_context_switchboard_message
 from cassandra_pii_hooks import (
     tokenize_prompt as _pii_tokenize,
     rehydrate_reply as _pii_rehydrate_reply,
@@ -5792,12 +5793,71 @@ def handle(text: str, session: dict | None = None) -> list[str]:
             guided_review_kwargs["receipt_root"] = session_meta["guided_review_receipt_root"]
         if session_meta.get("guided_review_promotion_review_path"):
             guided_review_kwargs["promotion_review_path"] = session_meta["guided_review_promotion_review_path"]
-        guided_review_response = _process_guided_review_message(
+        switchboard_read_model_root = guided_review_kwargs.get("read_model_root") or session_meta.get("operator_intake_read_model_root")
+        switchboard_review_root = guided_review_kwargs.get("review_root")
+        if switchboard_review_root is None and (
+            session_meta.get("operator_intake_read_model_root") or session_meta.get("operator_intake_receipt_root")
+        ):
+            switchboard_review_root = (
+                Path(switchboard_read_model_root).parent / "guided_review"
+                if switchboard_read_model_root
+                else Path(session_meta["operator_intake_receipt_root"]).parent / "guided_review"
+            )
+        switchboard_kwargs: dict[str, Any] = {
+            "review_root": switchboard_review_root,
+            "read_model_root": switchboard_read_model_root,
+            "receipt_root": session_meta.get("operator_context_switchboard_receipt_root"),
+            "operator_intake_receipt_root": session_meta.get("operator_intake_receipt_root"),
+        }
+        if session_meta.get("received_at_utc"):
+            switchboard_kwargs["received_at_utc"] = str(session_meta["received_at_utc"])
+        if session_meta.get("operator_timezone"):
+            switchboard_kwargs["operator_timezone"] = str(session_meta["operator_timezone"])
+        switchboard_decision = _process_operator_context_switchboard_message(
             query,
             surface="telegram",
+            source_agent="cassandra",
             operator="Winship",
-            **guided_review_kwargs,
+            **switchboard_kwargs,
         )
+        skip_guided_review = False
+        skip_universal_intake = False
+        if switchboard_decision is not None:
+            switch_decision = str(switchboard_decision.get("decision") or "")
+            if switch_decision in {"new_task_interrupt", "new_task_stage", "clarification_needed", "unsupported_but_logged"}:
+                reply = [str(switchboard_decision.get("operator_visible_reply") or "I need one quick clarification before I route that.")]
+                save_state(state)
+                _log_conversation(
+                    text,
+                    reply,
+                    route="operator_context_switchboard",
+                    metadata={
+                        "event_id": event_id,
+                        "decision_id": switchboard_decision.get("decision_id", ""),
+                        "decision": switch_decision,
+                        "detected_intent": switchboard_decision.get("detected_intent", ""),
+                        "detected_lane": switchboard_decision.get("detected_lane", ""),
+                        "routed_to_agent": switchboard_decision.get("routed_to_agent", ""),
+                        "routed_to_lane": switchboard_decision.get("routed_to_lane", ""),
+                        "current_task_action": switchboard_decision.get("current_task_action", ""),
+                        "receipt_refs": switchboard_decision.get("receipt_refs", []),
+                        "watch_desk_refs": switchboard_decision.get("watch_desk_refs", []),
+                        "safety_flags": switchboard_decision.get("safety_flags", {}),
+                    },
+                )
+                return reply
+            if switch_decision == "approval_passthrough":
+                skip_guided_review = True
+                skip_universal_intake = True
+
+        guided_review_response = None
+        if not skip_guided_review:
+            guided_review_response = _process_guided_review_message(
+                query,
+                surface="telegram",
+                operator="Winship",
+                **guided_review_kwargs,
+            )
         if guided_review_response is not None:
             reply = [str(guided_review_response["reply_text"])]
             save_state(state)
@@ -5830,12 +5890,14 @@ def handle(text: str, session: dict | None = None) -> list[str]:
             intake_kwargs["read_model_root"] = session_meta["operator_intake_read_model_root"]
         if session_meta.get("operator_intake_receipt_root"):
             intake_kwargs["receipt_root"] = session_meta["operator_intake_receipt_root"]
-        intake_response = _try_universal_operator_intake(
-            query,
-            surface="telegram",
-            operator="Winship",
-            **intake_kwargs,
-        )
+        intake_response = None
+        if not skip_universal_intake:
+            intake_response = _try_universal_operator_intake(
+                query,
+                surface="telegram",
+                operator="Winship",
+                **intake_kwargs,
+            )
         if intake_response is not None:
             reply = [str(intake_response["reply"])]
             save_state(state)
