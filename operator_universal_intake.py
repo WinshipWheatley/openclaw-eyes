@@ -1531,6 +1531,13 @@ def _write_receipt(event: Mapping[str, Any], *, receipt_root: str | Path, create
     }
 
 
+def _receipt_path_exists(receipt: Mapping[str, Any]) -> bool:
+    path = str(receipt.get("path") or "")
+    if not path:
+        return False
+    return Path(path).is_file()
+
+
 def _read_model_path(read_model_root: str | Path) -> Path:
     return _rooted(read_model_root) / JSON_EXPORT_NAME
 
@@ -1753,6 +1760,26 @@ def process_operator_intake(
             event["duplicate_detected"] = True
             event["duplicate_of_intake_id"] = intake_id
             event["receipts"] = [receipt for receipt in existing.get("receipts", []) if isinstance(receipt, Mapping)]
+            missing_receipt_path = not event["receipts"] or any(
+                not _receipt_path_exists(receipt)
+                for receipt in event["receipts"]
+                if isinstance(receipt, Mapping)
+            )
+            if missing_receipt_path:
+                created_at = utc_now()
+                receipt = _write_receipt(event, receipt_root=receipt_root, created_at_utc=created_at)
+                receipt_ref = f"{receipt['path']}#receipt"
+                event["receipts"] = [receipt]
+                event["receipt_refs"] = [receipt_ref]
+                event["watch_desk_items"] = [_build_watch_item(event, receipt_ref)]
+                event["safe_actions_taken"] = ["repair_missing_local_receipt_ref"] if safe_action else []
+                event["stop_condition"] = "duplicate_local_receipt_rematerialized"
+                _write_read_model(event, read_model_root=read_model_root, generated_at=created_at)
+                event["watch_desk_feed_refresh"] = _refresh_watch_desk_feed(
+                    read_model_root=read_model_root,
+                    generated_at=created_at,
+                )
+                return event
             event["receipt_refs"] = [
                 f"{receipt['path']}#receipt"
                 for receipt in event["receipts"]

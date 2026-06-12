@@ -119,6 +119,10 @@ def _load_receipt(ref: str) -> dict:
     return json.loads(Path(ref.split("#", 1)[0]).read_text(encoding="utf-8"))
 
 
+def _ref_path(ref: str) -> Path:
+    return Path(ref.split("#", 1)[0])
+
+
 def _force_current_question(response: dict, category: str) -> dict:
     session_path = Path(response["artifact_refs"]["session_json"])
     session = json.loads(session_path.read_text(encoding="utf-8"))
@@ -185,17 +189,44 @@ def test_payment_log_interrupts_review_without_recording_answer(tmp_path):
     session = _load_session(start)
     intake_model = json.loads((_paths(tmp_path)["read_model_root"] / "operator_intake_events.json").read_text(encoding="utf-8"))
     event = intake_model["events"][0]
+    feed = build_watch_desk_feed(read_model_root=_paths(tmp_path)["read_model_root"], generated_at="2026-06-12T12:02:00+00:00")
 
     assert decision["decision"] == "new_task_interrupt"
     assert decision["detected_action_type"] == "income_payment_log"
     assert decision["safety_flags"]["external_calls_performed"] is False
-    assert "Data Room review is still open" in decision["operator_visible_reply"]
+    assert "Logged the $900 Live Arts MD income note" in decision["operator_visible_reply"]
+    assert "I did not mark any invoice paid" in decision["operator_visible_reply"]
+    assert "Back to Data Room:" in decision["operator_visible_reply"]
+    assert all(_ref_path(ref).is_file() for ref in decision["receipt_refs"])
     assert session["answer_records"] == []
     assert session["status"] == "paused"
     assert event["parsed"]["action_type"] == "income_payment_log"
     assert event["parsed"]["fields"]["amount"] == 900.0
     assert event["parsed"]["fields"]["payer"] == "Live Arts MD"
     assert event["parsed"]["fields"]["invoice_marked_paid"] is False
+    assert all(
+        not item.get("source_receipt_ref") or _ref_path(str(item["source_receipt_ref"])).is_file()
+        for item in feed["feed_items"]
+        if item["item_id"].startswith("operator_intake:")
+    )
+
+
+def test_duplicate_payment_log_repairs_missing_local_receipt_ref(tmp_path):
+    _start(tmp_path)
+    first = _switch(tmp_path, "I got paid $900 from Live Arts MD.")
+    first_path = _ref_path(first["receipt_refs"][0])
+    assert first_path.is_file()
+
+    first_path.unlink()
+    second = _switch(tmp_path, "I got paid $900 from Live Arts MD.", at="2026-06-12T12:02:00+00:00")
+    intake_model = json.loads((_paths(tmp_path)["read_model_root"] / "operator_intake_events.json").read_text(encoding="utf-8"))
+
+    assert second["decision"] == "new_task_interrupt"
+    assert second["receipt_refs"]
+    assert all(_ref_path(ref).is_file() for ref in second["receipt_refs"])
+    assert intake_model["event_count"] == 1
+    assert intake_model["events"][0]["duplicate_detected"] is True
+    assert intake_model["events"][0]["stop_condition"] == "duplicate_local_receipt_rematerialized"
 
 
 def test_health_update_creates_operator_status_note_and_no_medical_advice(tmp_path):
@@ -226,7 +257,8 @@ def test_album_routes_to_niles_without_daw_media_or_csv_mutation(tmp_path):
     assert decision["decision"] == "new_task_stage"
     assert decision["routed_to_agent"] == "niles"
     assert decision["detected_action_type"] == "niles_album_progression"
-    assert "No DAW or media files touched" in decision["operator_visible_reply"]
+    assert "No DAW, media, or CSV changes" in decision["operator_visible_reply"]
+    assert "Back to Data Room:" in decision["operator_visible_reply"]
     assert session["answer_records"] == []
     assert session["status"] == "paused"
     assert receipt["action_type"] == "niles_album_progression"
@@ -244,7 +276,8 @@ def test_what_broke_routes_to_chief_system_lane(tmp_path):
     assert decision["decision"] == "new_task_stage"
     assert decision["routed_to_agent"] == "chief"
     assert decision["detected_action_type"] == "agent_lane_request"
-    assert "Data Room review is still open" in decision["operator_visible_reply"]
+    assert "Routed that to Chief/system review" in decision["operator_visible_reply"]
+    assert "Back to Data Room:" in decision["operator_visible_reply"]
     assert session["answer_records"] == []
     assert session["status"] == "paused"
 
@@ -312,6 +345,63 @@ def test_resume_data_room_reopens_paused_review(tmp_path):
     assert decision["decision"] == "resume_task"
     assert decision["current_task_action"] == "resume"
     assert resumed["status"] == "active"
+
+
+def test_data_room_opener_uses_guided_review_route_not_switchboard(tmp_path):
+    _start(tmp_path)
+    text = "Cassandra, let's go over the thing where the system needs to know more specifics about gigs and payments."
+
+    decision = _switch(tmp_path, text)
+    assert decision is None
+
+    response = guided.process_guided_review_message(
+        text,
+        review_root=_paths(tmp_path)["review_root"],
+        read_model_root=_paths(tmp_path)["read_model_root"],
+        generated_at_utc="2026-06-12T12:02:00+00:00",
+    )
+    assert response["handled"] is True
+    assert "Continuing the active OpenClaw Data Room" in response["reply_text"]
+    assert response["authoritative"] is False
+    assert response["runtime_policy_changed"] is False
+
+
+def test_vague_business_review_prompt_asks_guided_clarification_not_chief(tmp_path):
+    _start(tmp_path)
+    text = "review business stuff"
+
+    decision = _switch(tmp_path, text)
+    assert decision["decision"] == "clarification_needed"
+    assert decision["routed_to_lane"] == "guided_review_session"
+    assert "OpenClaw Data Room / Reference Data Review" in decision["operator_visible_reply"]
+    assert "Invoice Policy Review" in decision["operator_visible_reply"]
+
+
+def test_continue_album_resumes_niles_context_not_data_room(tmp_path):
+    start = _start(tmp_path)
+    _switch(tmp_path, "album")
+
+    decision = _switch(tmp_path, "continue album", at="2026-06-12T12:02:00+00:00")
+    session = _load_session(start)
+
+    assert decision["decision"] == "resume_task"
+    assert decision["routed_to_agent"] == "niles"
+    assert decision["routed_to_lane"] == "niles_album_progression"
+    assert "Continuing Niles album/progression" in decision["operator_visible_reply"]
+    assert session["status"] == "paused"
+
+
+def test_back_to_niles_resumes_niles_context_not_data_room(tmp_path):
+    start = _start(tmp_path)
+    _switch(tmp_path, "album")
+
+    decision = _switch(tmp_path, "back to niles", at="2026-06-12T12:02:00+00:00")
+    session = _load_session(start)
+
+    assert decision["decision"] == "resume_task"
+    assert decision["routed_to_agent"] == "niles"
+    assert decision["routed_to_lane"] == "niles_album_progression"
+    assert session["status"] == "paused"
 
 
 def test_watch_desk_shows_paused_review_and_staged_task_without_duplicate_feed(tmp_path):

@@ -16,6 +16,7 @@ from typing import Any, Mapping, Sequence
 
 from cassandra_guided_review import (
     get_active_guided_review_context,
+    resolve_guided_review_topic,
     set_guided_review_context_status,
 )
 from cassandra_review_coach import coach_command
@@ -234,7 +235,9 @@ def _resume_command(text: str) -> bool:
             "finish that review",
             "finish this review",
             "continue album",
+            "continue niles",
             "back to niles",
+            "back to album",
         )
     )
 
@@ -479,10 +482,105 @@ def _base_decision(
     }
 
 
+def _guided_review_should_own(
+    raw_text: str,
+    active_context: Mapping[str, Any] | None,
+    context_stack: Sequence[Mapping[str, Any]],
+) -> bool:
+    normalized = _normalize(raw_text).strip(". ")
+    if not normalized:
+        return False
+    if _ambiguous_command(raw_text) or _resume_command(raw_text):
+        return False
+    resolution = resolve_guided_review_topic(raw_text, active_session_context=active_context or context_stack)
+    return bool(resolution.get("should_start_session"))
+
+
+def _session_question_preview(active_context: Mapping[str, Any] | None) -> str:
+    if not active_context:
+        return ""
+    session_ref = str(active_context.get("source_session_ref") or "")
+    if not session_ref:
+        return ""
+    session_path = Path(session_ref.split("#", 1)[0])
+    session = _load_json(session_path)
+    questions = session.get("question_queue")
+    current_question_id = str(active_context.get("current_question_id") or session.get("current_question_id") or "")
+    if not isinstance(questions, list) or not current_question_id:
+        return ""
+    for question in questions:
+        if not isinstance(question, Mapping):
+            continue
+        if str(question.get("question_id") or "") != current_question_id:
+            continue
+        text = " ".join(str(question.get("question_text") or "").split())
+        return text[:140]
+    return ""
+
+
 def _breadcrumb(active_context: Mapping[str, Any] | None) -> str:
     if not active_context:
         return ""
-    return " Data Room review is still open - say 'continue Data Room' when ready."
+    preview = _session_question_preview(active_context)
+    if preview:
+        return f" Back to Data Room: {preview}"
+    return " Back to Data Room: say 'continue Data Room' when ready."
+
+
+def _context_by_resume_command(
+    raw_text: str,
+    active_context: Mapping[str, Any] | None,
+    context_stack: Sequence[Mapping[str, Any]],
+) -> Mapping[str, Any] | None:
+    normalized = _normalize(raw_text).strip(". ")
+    niles_requested = normalized in {"continue album", "back to niles", "continue niles", "back to album"} or any(
+        phrase in normalized
+        for phrase in (
+            "continue album",
+            "back to niles",
+            "continue niles",
+            "back to album",
+        )
+    )
+    data_room_requested = normalized in {"continue", "resume", "keep going", "next question", "back to the questions"} or any(
+        phrase in normalized
+        for phrase in (
+            "resume data room",
+            "continue data room",
+            "back to data room",
+            "finish that review",
+            "finish this review",
+        )
+    )
+    if niles_requested:
+        for context in reversed(list(context_stack)):
+            if str(context.get("context_type") or "") == "niles_album_progression":
+                return context
+    if data_room_requested:
+        return active_context
+    return active_context
+
+
+def _intake_reply(intake: Mapping[str, Any], active_context: Mapping[str, Any] | None) -> str:
+    action_type = str(intake.get("action_type") or "")
+    event = intake.get("event") if isinstance(intake.get("event"), Mapping) else {}
+    fields = {}
+    parsed = event.get("parsed") if isinstance(event.get("parsed"), Mapping) else {}
+    if isinstance(parsed.get("fields"), Mapping):
+        fields = dict(parsed["fields"])
+    if action_type == "income_payment_log":
+        amount = fields.get("amount")
+        payer = str(fields.get("payer") or "the payer")
+        amount_text = f"${amount:,.0f}" if isinstance(amount, (int, float)) and not isinstance(amount, bool) else "that income"
+        return (
+            f"Logged the {amount_text} {payer} income note. "
+            "I did not mark any invoice paid."
+        ) + _breadcrumb(active_context)
+    if action_type == "agent_lane_request":
+        routed_to = str(intake.get("routed_to_agent") or intake.get("inferred_owner_agent") or "")
+        if routed_to == "chief":
+            return "Routed that to Chief/system review." + _breadcrumb(active_context)
+    return str(intake.get("reply") or intake.get("reply_text") or "Logged.") + _breadcrumb(active_context)
 
 
 def _write_status_note_receipt(
@@ -637,6 +735,37 @@ def process_operator_context_switchboard_message(
     if not active_context and not _guardian_or_exact_send_reply(raw_text):
         return None
 
+    if _guided_review_should_own(raw_text, active_context, active_contexts):
+        return None
+
+    guided_resolution = resolve_guided_review_topic(raw_text, active_session_context=active_context or active_contexts)
+    if (
+        guided_resolution.get("clarification_question")
+        and not _ambiguous_command(raw_text)
+        and not _is_external_lane_passthrough(raw_text)
+    ):
+        decision = _base_decision(
+            raw_text=raw_text,
+            surface=surface,
+            source_agent=source_agent,
+            created_at=created_at,
+            active_contexts=active_contexts,
+            current_context_id=current_context_id,
+            detected_intent="guided_review_topic_clarification",
+            detected_lane="guided_review_session",
+            detected_action_type="clarify_guided_review_topic",
+            confidence=_confidence_value(guided_resolution.get("confidence"), 0.74),
+            decision="clarification_needed",
+            routed_to_agent="cassandra",
+            routed_to_lane="guided_review_session",
+            current_task_action="leave_active",
+            handoff_reason="Vague review request should clarify the guided-review topic instead of routing to a new system task.",
+            operator_visible_reply=str(guided_resolution.get("clarification_question") or "Which review should we use?"),
+        )
+        _append_decision_to_read_model(decision, read_model_root=read_model_root, contexts=active_contexts, generated_at_utc=created_at)
+        _refresh_watch_desk(read_model_root, created_at)
+        return decision
+
     if _guardian_or_exact_send_reply(raw_text):
         return _base_decision(
             raw_text=raw_text,
@@ -699,32 +828,45 @@ def process_operator_context_switchboard_message(
         )
 
     if _resume_command(raw_text):
-        resumed = _resume_active_context(
-            active_context,
-            review_root=review_root,
-            read_model_root=read_model_root,
-            generated_at_utc=created_at,
-        )
-        if resumed:
-            active_context = resumed
-            active_contexts = _upsert_context(active_contexts, resumed)
+        resume_target = _context_by_resume_command(raw_text, active_context, active_contexts)
+        resumed = None
+        if str((resume_target or {}).get("context_type") or "") == "guided_review_session":
+            resumed = _resume_active_context(
+                active_context,
+                review_root=review_root,
+                read_model_root=read_model_root,
+                generated_at_utc=created_at,
+            )
+            if resumed:
+                active_context = resumed
+                resume_target = resumed
+                active_contexts = _upsert_context(active_contexts, resumed)
+        elif resume_target:
+            resume_target = dict(resume_target)
+            resume_target["status"] = "active"
+            resume_target["last_turn_at_utc"] = created_at
+            active_contexts = _upsert_context(active_contexts, resume_target)
         decision = _base_decision(
             raw_text=raw_text,
             surface=surface,
             source_agent=source_agent,
             created_at=created_at,
             active_contexts=active_contexts,
-            current_context_id=_active_context_id(active_context),
+            current_context_id=_active_context_id(resume_target),
             detected_intent="resume_task",
-            detected_lane=str(active_context.get("owner_agent") or "cassandra"),
+            detected_lane=str((resume_target or {}).get("owner_agent") or "cassandra"),
             detected_action_type="resume_active_context",
             confidence=0.95,
             decision="resume_task",
-            routed_to_agent=str(active_context.get("owner_agent") or "cassandra"),
-            routed_to_lane=str(active_context.get("context_type") or "guided_review_session"),
+            routed_to_agent=str((resume_target or {}).get("owner_agent") or "cassandra"),
+            routed_to_lane=str((resume_target or {}).get("context_type") or "guided_review_session"),
             current_task_action="resume",
             handoff_reason="Operator explicitly asked to resume a prior task.",
-            operator_visible_reply=f"Continuing {_display_topic(active_context)}.",
+            operator_visible_reply=(
+                "Continuing Niles album/progression. No DAW, media, or CSV changes."
+                if str((resume_target or {}).get("context_type") or "") == "niles_album_progression"
+                else f"Continuing {_display_topic(resume_target)}."
+            ),
         )
         _append_decision_to_read_model(decision, read_model_root=read_model_root, contexts=active_contexts, generated_at_utc=created_at)
         _refresh_watch_desk(read_model_root, created_at)
@@ -764,7 +906,7 @@ def process_operator_context_switchboard_message(
         }
         active_contexts = _upsert_context(active_contexts, status_context)
         watch_ref = f"operator_context:{status_context['active_context_id']}"
-        reply = "I logged that as an operator status note. No medical advice or external action taken." + _breadcrumb(active_context)
+        reply = "Logged that as an operator status note. No medical advice or external action taken." + _breadcrumb(active_context)
         decision = _base_decision(
             raw_text=raw_text,
             surface=surface,
@@ -823,10 +965,7 @@ def process_operator_context_switchboard_message(
         }
         active_contexts = _upsert_context(active_contexts, album_context)
         watch_ref = f"operator_context:{album_context['active_context_id']}"
-        reply = (
-            "I routed this to Niles album/progression. We can pick up the album tracker. "
-            "No DAW or media files touched."
-        ) + _breadcrumb(active_context)
+        reply = "Staged album progression for Niles. No DAW, media, or CSV changes." + _breadcrumb(active_context)
         decision = _base_decision(
             raw_text=raw_text,
             surface=surface,
@@ -876,7 +1015,7 @@ def process_operator_context_switchboard_message(
             if paused:
                 active_context = paused
                 active_contexts = _upsert_context(active_contexts, paused)
-            reply = str(intake.get("reply") or intake.get("reply_text") or "Logged.") + _breadcrumb(active_context)
+            reply = _intake_reply(intake, active_context)
             decision_name = "new_task_stage" if str(intake.get("action_type") or "") == "agent_lane_request" else "new_task_interrupt"
             routed_to_agent = str(intake.get("routed_to_agent") or intake.get("inferred_owner_agent") or "cassandra")
             routed_to_lane = str(intake.get("inferred_owner_lane") or intake.get("lane") or "")

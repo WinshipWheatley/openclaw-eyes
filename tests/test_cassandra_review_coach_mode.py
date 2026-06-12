@@ -665,6 +665,64 @@ def test_payment_answer_still_prompts_mismatch_for_true_identity_question(tmp_pa
     assert session["coach_interactions"][-1]["answer_recorded"] is False
 
 
+def test_payment_contact_trust_gate_stays_payment_privacy_without_legal_flag(tmp_path):
+    review_root = tmp_path / "review"
+    read_model_root = tmp_path / "read_models"
+    promotion = _write_json(
+        review_root / "promotion_review.json",
+        {
+            "schema_version": "OPENCLAW_DATA_ROOM_PROMOTION_REVIEW_V0",
+            "authoritative": False,
+            "source_artifacts": ["fixture_payment_contact_review.json"],
+            "review_records": [
+                _record(
+                    "business_identity:payment_contact_details",
+                    "policy_decision",
+                    "Payment/contact details may need trust-gated handling.",
+                    "Which payment/contact details are trust-gated?",
+                    risk="Could expose payment or contact details too broadly.",
+                ),
+                _record(
+                    "identity:general",
+                    "policy_decision",
+                    "Identity and sender rules are provisional.",
+                    "When should Winship be used?",
+                ),
+            ],
+        },
+    )
+
+    start = guided.process_guided_review_message(
+        "Cassandra, walk me through the Data Room setup.",
+        surface="telegram",
+        review_root=review_root,
+        read_model_root=read_model_root,
+        promotion_review_path=promotion,
+        generated_at_utc=FIXED_NOW,
+    )
+    session = _load_session(start)
+    first_question = session["question_queue"][0]
+
+    assert first_question["category"] == "payment privacy"
+    assert first_question["coach_card"]["category"] == "payment privacy"
+    assert first_question["coach_card"]["legal_review_recommended"] is False
+
+    answer = guided.process_guided_review_message(
+        "use your recommendation",
+        surface="telegram",
+        review_root=review_root,
+        read_model_root=read_model_root,
+        promotion_review_path=promotion,
+        generated_at_utc="2026-06-12T12:01:00+00:00",
+    )
+    answer_session = _load_session(answer)
+    answer_record = answer_session["answer_records"][0]
+
+    assert answer_record["question_category"] == "payment privacy"
+    assert answer_record["legal_review_recommended"] is False
+    assert answer_record["authoritative"] is False
+
+
 def test_cpa_and_legal_flags_propagate_to_answers_and_receipts(tmp_path):
     promotion = _promotion_review(tmp_path / "review" / "promotion_review.json")
     rates = guided.process_guided_review_message(
