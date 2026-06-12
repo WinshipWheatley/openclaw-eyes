@@ -131,6 +131,32 @@ def _promotion_review(path: Path) -> Path:
     )
 
 
+def _payment_instructions_review(path: Path) -> Path:
+    return _write_json(
+        path,
+        {
+            "schema_version": "OPENCLAW_DATA_ROOM_PROMOTION_REVIEW_V0",
+            "authoritative": False,
+            "source_artifacts": ["fixture_sleepy_capture.json"],
+            "review_records": [
+                _record(
+                    "business_identity:payment_instructions",
+                    "policy_decision",
+                    "Operator note includes business identity field label: payment instructions.",
+                    "What payment instructions are safe to show by default?",
+                    risk="Could expose private payment instructions.",
+                ),
+                _record(
+                    "identity:general",
+                    "policy_decision",
+                    "Identity and sender rules are provisional.",
+                    "When should Winship be used?",
+                ),
+            ],
+        },
+    )
+
+
 def _start(tmp_path: Path, text: str = "Cassandra, coach me through the Data Room."):
     promotion = _promotion_review(tmp_path / "review" / "promotion_review.json")
     return guided.process_guided_review_message(
@@ -313,6 +339,137 @@ def test_direct_deposit_answer_is_not_recorded_against_identity_question(tmp_pat
     assert session["coach_interactions"][-1]["answer_recorded"] is False
     assert session["runtime_policy_changed"] is False
     assert session["authoritative"] is False
+
+
+def test_payment_instructions_sequence_records_payment_privacy_not_identity(tmp_path):
+    promotion = _payment_instructions_review(tmp_path / "review" / "promotion_review.json")
+    review_root = tmp_path / "review"
+    read_model_root = tmp_path / "read_models"
+
+    start = guided.process_guided_review_message(
+        "Cassandra, walk me through the Data Room setup.",
+        surface="telegram",
+        review_root=review_root,
+        read_model_root=read_model_root,
+        promotion_review_path=promotion,
+        generated_at_utc=FIXED_NOW,
+    )
+    start_session = _load_session(start)
+    first_question = start_session["question_queue"][0]
+
+    assert first_question["question_text"].startswith("What payment instructions are safe to show by default?")
+    assert first_question["category"] == "payment privacy"
+    assert first_question["coach_card"]["category"] == "payment privacy"
+    assert "direct deposit" in first_question["coach_card"]["recommended_default"].lower()
+    assert "winship as the default business identity" not in start["reply_text"].lower()
+
+    recommended = guided.process_guided_review_message(
+        "use your recommendation",
+        surface="telegram",
+        review_root=review_root,
+        read_model_root=read_model_root,
+        promotion_review_path=promotion,
+        generated_at_utc="2026-06-12T12:01:00+00:00",
+    )
+    recommended_session = _load_session(recommended)
+    first_answer = recommended_session["answer_records"][0]
+    first_receipt = json.loads(Path(first_answer["receipt_ref"].split("#", 1)[0]).read_text(encoding="utf-8"))
+
+    assert first_answer["question_id"] == first_question["question_id"]
+    assert first_answer["question_category"] == "payment privacy"
+    assert first_answer["selected_option_id"] == "recommended_default"
+    assert first_answer["legal_review_recommended"] is False
+    assert first_receipt["question_category"] == "payment privacy"
+    assert first_receipt["legal_review_recommended"] is False
+    assert "safer payment privacy default" in first_answer["raw_answer_text"].lower()
+
+    revised = guided.process_guided_review_message(
+        "revise previous",
+        surface="telegram",
+        review_root=review_root,
+        read_model_root=read_model_root,
+        promotion_review_path=promotion,
+        generated_at_utc="2026-06-12T12:02:00+00:00",
+    )
+    revised_session = _load_session(revised)
+    assert revised_session["current_question_id"] == first_question["question_id"]
+    assert revised_session["answer_records"][0]["superseded"] is True
+    assert "Question 1 of 2 - payment privacy" in revised["reply_text"]
+
+    corrected = guided.process_guided_review_message(
+        "Direct deposit stays manual approval only. Zelle and check are okay by default.",
+        surface="telegram",
+        review_root=review_root,
+        read_model_root=read_model_root,
+        promotion_review_path=promotion,
+        generated_at_utc="2026-06-12T12:03:00+00:00",
+    )
+    corrected_session = _load_session(corrected)
+    active_answers = [answer for answer in corrected_session["answer_records"] if not answer.get("superseded")]
+    corrected_answer = active_answers[0]
+    corrected_receipt = json.loads(Path(corrected_answer["receipt_ref"].split("#", 1)[0]).read_text(encoding="utf-8"))
+
+    assert "That sounds like a payment/privacy answer" not in corrected["reply_text"]
+    assert "Recorded: direct deposit stays manual approval only; Zelle and check are okay by default (provisional)." in corrected["reply_text"]
+    assert corrected_answer["question_id"] == first_question["question_id"]
+    assert corrected_answer["question_category"] == "payment privacy"
+    assert corrected_answer["legal_review_recommended"] is False
+    assert corrected_receipt["question_category"] == "payment privacy"
+    assert corrected_receipt["authoritative"] is False
+    assert corrected_receipt["runtime_policy_changed"] is False
+    assert corrected_receipt["external_calls_performed"] is False
+    assert corrected_receipt["approval_created"] is False
+    assert corrected_receipt["invoice_or_ledger_mutated"] is False
+    assert "routing number" not in corrected_answer["raw_answer_text"].lower()
+    assert "account number" not in corrected_answer["raw_answer_text"].lower()
+
+
+def test_payment_answer_still_prompts_mismatch_for_true_identity_question(tmp_path):
+    promotion = _payment_instructions_review(tmp_path / "review" / "promotion_review.json")
+    review_root = tmp_path / "review"
+    read_model_root = tmp_path / "read_models"
+
+    guided.process_guided_review_message(
+        "Cassandra, walk me through the Data Room setup.",
+        surface="telegram",
+        review_root=review_root,
+        read_model_root=read_model_root,
+        promotion_review_path=promotion,
+        generated_at_utc=FIXED_NOW,
+    )
+    recommended = guided.process_guided_review_message(
+        "use your recommendation",
+        surface="telegram",
+        review_root=review_root,
+        read_model_root=read_model_root,
+        promotion_review_path=promotion,
+        generated_at_utc="2026-06-12T12:01:00+00:00",
+    )
+    session_before = _load_session(recommended)
+    identity_question_id = session_before["current_question_id"]
+    identity_question = next(
+        question for question in session_before["question_queue"] if question["question_id"] == identity_question_id
+    )
+    assert identity_question["category"] == "identity/persona policy"
+
+    mismatch = guided.process_guided_review_message(
+        "Direct deposit stays manual approval only. Zelle and check are okay by default.",
+        surface="telegram",
+        review_root=review_root,
+        read_model_root=read_model_root,
+        promotion_review_path=promotion,
+        generated_at_utc="2026-06-12T12:03:00+00:00",
+    )
+    session = _load_session(mismatch)
+
+    assert "That sounds like a payment/privacy answer" in mismatch["reply_text"]
+    assert "we're currently reviewing identity/persona" in mismatch["reply_text"]
+    assert "I have not recorded it yet" in mismatch["reply_text"]
+    assert session["current_question_id"] == identity_question_id
+    assert len(session["answer_records"]) == 1
+    assert len(session["receipt_refs"]) == 1
+    assert session["coach_interactions"][-1]["command"] == "topic_mismatch_clarification"
+    assert session["coach_interactions"][-1]["answer_recorded"] is False
 
 
 def test_cpa_and_legal_flags_propagate_to_answers_and_receipts(tmp_path):

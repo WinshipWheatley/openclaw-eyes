@@ -527,12 +527,21 @@ def _answer_topic_hint(text: str) -> str:
     if not normalized:
         return ""
     payment_terms = (
+        "ach",
+        "address exposure",
+        "bank transfer",
+        "check payment",
+        "checks",
         "direct deposit",
-        "zelle",
-        "payment instruction",
-        "payment instructions",
-        "payment privacy",
+        "invoice payment details",
         "manual approval",
+        "payment info",
+        "payment information",
+        "payment instruction",
+        "zelle",
+        "payment method",
+        "payment methods",
+        "payment privacy",
         "raw payment",
         "bank",
         "routing",
@@ -563,14 +572,24 @@ def _question_topic_hint(question: Mapping[str, Any]) -> str:
     if category == "payment privacy" or _contains_any(
         text,
         (
+            "ach",
+            "address exposure",
+            "bank transfer",
+            "check payment",
+            "checks",
             "direct deposit",
-            "zelle",
+            "invoice payment details",
+            "payment info",
+            "payment information",
             "payment instructions",
+            "payment method",
+            "payment methods",
             "payment privacy",
             "payment contact details",
             "payment or contact details",
             "trust gated",
             "raw payment",
+            "zelle",
         ),
     ):
         return TOPIC_PAYMENT_PRIVACY
@@ -903,7 +922,42 @@ def _category_for_record(record: Mapping[str, Any]) -> str:
         str(record.get(key) or "")
         for key in ("record_id", "provisional_fact", "proposed_promoted_value", "review_category")
     ).lower()
-    if any(term in text for term in ("direct deposit", "payment privacy", "home address", "public phone", "bank account", "routing number", "tax identifiers", "ssn", "ein", "tokens", "credentials", "secrets", "payment_policy")):
+    text = re.sub(r"[_-]+", " ", text)
+    if any(
+        term in text
+        for term in (
+            "ach",
+            "address exposure",
+            "bank account",
+            "bank transfer",
+            "check",
+            "checks",
+            "direct deposit",
+            "home address",
+            "invoice payment details",
+            "payment contact exposure",
+            "payment info",
+            "payment information",
+            "payment instruction",
+            "payment instructions",
+            "payment method",
+            "payment methods",
+            "payment policy",
+            "payment privacy",
+            "phone exposure",
+            "public phone",
+            "raw account",
+            "raw payment",
+            "routing number",
+            "tax identifiers",
+            "zelle",
+            "ssn",
+            "ein",
+            "tokens",
+            "credentials",
+            "secrets",
+        )
+    ):
         return "payment privacy"
     if "clara" in text:
         return "Clara Reid use"
@@ -1289,6 +1343,18 @@ def _format_question_reply(session: Mapping[str, Any], *, prefix: str = "") -> s
     )
 
 
+def _recorded_answer_prefix(answer_text: str, question: Mapping[str, Any]) -> str:
+    redacted, _ = _redact_sensitive_text(answer_text)
+    normalized = _normalize_topic_text(redacted)
+    if _question_topic_hint(question) == TOPIC_PAYMENT_PRIVACY:
+        mentions_direct_deposit = "direct deposit" in normalized
+        mentions_zelle = "zelle" in normalized
+        mentions_check = "check" in normalized or "checks" in normalized
+        if mentions_direct_deposit and (mentions_zelle or mentions_check):
+            return "Recorded: direct deposit stays manual approval only; Zelle and check are okay by default (provisional)."
+    return "Recorded."
+
+
 def _session_summary_reply(session: Mapping[str, Any]) -> str:
     return f"{str(session.get('topic_display_name') or _topic_display_name(str(session.get('topic') or TOPIC_DATA_ROOM)))} progress: {_progress_line(session)}"
 
@@ -1310,6 +1376,7 @@ def _write_answer_receipt(
         "schema_version": "REVIEW_ANSWER_RECEIPT_V0",
         "review_session_id": answer["review_session_id"],
         "question_id": answer["question_id"],
+        "question_category": answer.get("question_category", ""),
         "answer_id": answer["answer_id"],
         "normalized_answer": answer["normalized_answer"],
         "affected_records": answer["affected_record_ids"],
@@ -1354,6 +1421,7 @@ def _apply_answer(
         "answer_id": _answer_id(session["review_session_id"], question_id, redacted_raw, now),
         "review_session_id": session["review_session_id"],
         "question_id": question_id,
+        "question_category": str(question.get("category") or ""),
         "raw_answer_text": redacted_raw,
         "normalized_answer": normalized,
         "affected_record_ids": list(question.get("affected_records") or question.get("source_record_ids") or []),
@@ -1987,7 +2055,7 @@ def process_guided_review_message(
                         f"I wrote the promotion prompt: {_prompt_path(root, str(session['review_session_id'])).as_posix()}"
                     )
                 else:
-                    reply = _format_question_reply(session, prefix="Recorded.")
+                    reply = _format_question_reply(session, prefix=_recorded_answer_prefix(raw_text, question or {}))
         session["updated_at_utc"] = now
         _persist_session(session, review_root=root)
 
