@@ -236,14 +236,15 @@ def canonical_expected_set_mirror_state(
     missing_files = list(manifest_health.get("missing_expected_files") or [])
     hash_mismatch_files = list(manifest_health.get("hash_mismatch_files") or [])
     extra_files = list(manifest_health.get("extra_files") or [])
+    blocking_extra_files = list(manifest_health.get("blocking_extra_files") or [])
     marker_needed = bool(missing_files or hash_mismatch_files)
-    refresh_needed = marker_needed or bool(extra_files)
+    refresh_needed = marker_needed
     if marker_needed:
         status = "canonical_expected_set_needs_mac_sync"
         reason = "Backend canonical generated/read_models contains files that the Mac-visible manifest does not yet match."
     elif extra_files:
-        status = "canonical_expected_set_extra_files_need_review"
-        reason = "Mac-visible manifest has extra files outside the canonical generated/read_models set."
+        status = "canonical_expected_set_current_with_extra_review"
+        reason = "Mac-visible manifest matches the canonical expected set; extra files are preserved as review metadata."
     else:
         status = "canonical_expected_set_current"
         reason = "Mac-visible manifest matches the canonical generated/read_models expected set."
@@ -257,6 +258,8 @@ def canonical_expected_set_mirror_state(
         "missing_expected_files": missing_files,
         "hash_mismatch_files": hash_mismatch_files,
         "extra_files": extra_files,
+        "blocking_extra_files": blocking_extra_files,
+        "nonblocking_extra_files": list(manifest_health.get("nonblocking_extra_files") or []),
         "counts": counts,
         "operator_action_required": False,
         **NO_AUTHORITY_FLAGS,

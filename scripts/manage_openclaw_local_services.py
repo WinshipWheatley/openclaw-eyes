@@ -19,13 +19,14 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from business_ops_ledger import DEFAULT_DB_PATH
-from generated_read_model_files import canonical_generated_read_model_records, sha256_file
+from generated_read_model_files import canonical_generated_read_model_records
 from local_automation_registry import (
     NO_AUTHORITY_FLAGS,
     record_service_status,
     seed_local_automation_registry,
     stable_json,
 )
+from sync_health import compare_manifest_to_backend as sync_health_compare_manifest_to_backend
 
 
 MANAGER_VERSION = "openclaw_local_automation_services_v0"
@@ -306,59 +307,7 @@ def _launchd_state(*, runner: Runner = default_runner) -> dict[str, Any]:
 
 
 def compare_manifest_to_backend(manifest_path: str | Path = PC_MANIFEST_PATH) -> dict[str, Any]:
-    manifest = Path(manifest_path)
-    expected_records = {item["relative_path"]: item for item in canonical_generated_read_model_records()}
-    expected = set(expected_records)
-    if not manifest.is_file():
-        return {
-            "manifest_present": False,
-            "manifest_path": manifest.as_posix(),
-            "counts": {
-                "canonical_expected": len(expected),
-                "observed": 0,
-                "missing_expected": len(expected),
-                "extra": 0,
-                "hash_mismatch": 0,
-                "matched_hash": 0,
-            },
-            "missing_expected_files": sorted(expected),
-            "extra_files": [],
-            "hash_mismatch_files": [],
-        }
-    payload = json.loads(manifest.read_text(encoding="utf-8"))
-    records = payload.get("path_records", [])
-    observed_records = {
-        record.get("relative_path"): record
-        for record in records
-        if isinstance(record, dict) and isinstance(record.get("relative_path"), str)
-    }
-    observed = set(observed_records)
-    common = expected & observed
-    matched = []
-    mismatched = []
-    for relative_path in sorted(common):
-        expected_hash = expected_records[relative_path].get("sha256")
-        observed_hash = observed_records[relative_path].get("content_hash")
-        if expected_hash and observed_hash and expected_hash == observed_hash:
-            matched.append(relative_path)
-        elif expected_hash and observed_hash and expected_hash != observed_hash:
-            mismatched.append(relative_path)
-    return {
-        "manifest_present": True,
-        "manifest_path": manifest.as_posix(),
-        "manifest_sha256": sha256_file(manifest),
-        "counts": {
-            "canonical_expected": len(expected),
-            "observed": len(observed),
-            "missing_expected": len(expected - observed),
-            "extra": len(observed - expected),
-            "hash_mismatch": len(mismatched),
-            "matched_hash": len(matched),
-        },
-        "missing_expected_files": sorted(expected - observed),
-        "extra_files": sorted(observed - expected),
-        "hash_mismatch_files": mismatched,
-    }
+    return sync_health_compare_manifest_to_backend(manifest_path=manifest_path)
 
 
 def _pc_import_state_hash(state_path: Path = ROOT / ".openclaw" / "state" / "read_model_import_agent_state.json") -> str | None:
@@ -429,7 +378,7 @@ def doctor_report(
                     "Mac mirror is stale; run the unified PC/WSL sync command to write the request marker, "
                     "then let the Mac LaunchAgent respond."
                 )
-        elif counts["extra"] > 0:
+        elif counts.get("blocking_extra", counts["extra"]) > 0:
             next_status = "review_needed"
             next_safe_move = "Review extra files in the Mac mirror before treating it as current."
         elif _pc_import_state_hash() != manifest_health.get("manifest_sha256"):

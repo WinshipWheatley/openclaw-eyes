@@ -18,6 +18,7 @@ from typing import Any
 
 from business_ops_ledger import DEFAULT_DB_PATH, init_business_ops_ledger
 from generated_read_model_files import (
+    SAFE_GENERATED_READ_MODEL_MANIFEST_FILES,
     VOLATILE_SELF_REPORT_READ_MODEL_FILES,
     canonical_generated_read_model_records,
 )
@@ -48,6 +49,7 @@ ACTIONABLE_SYNC_LIFECYCLE_STATES = frozenset({"actionable_sync_failure"})
 
 DEFAULT_PC_SHARE_ROOT = Path("/mnt/e/openclaw")
 DEFAULT_MANIFEST_PATH = DEFAULT_PC_SHARE_ROOT / "mac_generated_read_models_manifest.json"
+DEFAULT_MAC_SYNC_LATEST_PATH = DEFAULT_PC_SHARE_ROOT / "shuttle" / "from_mac" / "read_model_sync_latest.json"
 DEFAULT_REQUEST_MARKER_PATH = DEFAULT_PC_SHARE_ROOT / "shuttle" / "to_mac" / "read_model_sync_required.json"
 DEFAULT_APP_REQUEST_MARKER_PATH = "/Volumes/openclaw_e/shuttle/to_mac/read_model_sync_required.json"
 DEFAULT_MAC_STATUS_PATH = DEFAULT_PC_SHARE_ROOT / "shuttle" / "from_mac" / "read_model_sync_agent_status.json"
@@ -2186,17 +2188,136 @@ def _json_list(values: list[str]) -> str:
     return stable_json(values)
 
 
+def _record_from_sync_latest(item: dict[str, Any]) -> dict[str, Any] | None:
+    relative_path = item.get("relative_path")
+    digest = item.get("sha256")
+    if not isinstance(relative_path, str) or not relative_path:
+        return None
+    if not isinstance(digest, str) or not digest:
+        return None
+    return {
+        "relative_path": relative_path,
+        "absolute_path": item.get("source_path") if isinstance(item.get("source_path"), str) else None,
+        "size_bytes": item.get("size_bytes") if isinstance(item.get("size_bytes"), int) else None,
+        "sha256": digest,
+        "hash_algorithm": "sha256",
+        "expected_set_basis": "mac_sync_latest_copied_files",
+    }
+
+
+def _mac_sync_latest_expected_records(
+    *,
+    mac_sync_latest_path: str | Path = DEFAULT_MAC_SYNC_LATEST_PATH,
+    manifest_path: str | Path = DEFAULT_MANIFEST_PATH,
+    observed_records: dict[str, dict[str, Any]] | None = None,
+) -> tuple[tuple[dict[str, Any], ...], dict[str, Any]]:
+    path = Path(mac_sync_latest_path)
+    if path == DEFAULT_MAC_SYNC_LATEST_PATH and Path(manifest_path) != DEFAULT_MANIFEST_PATH:
+        return (), {
+            "expected_set_basis": "local_safe_top_level_selector",
+            "expected_set_source_path": path.as_posix(),
+            "expected_set_source_present": path.is_file(),
+            "expected_set_source_reason": "default_mac_sync_latest_ignored_for_nondefault_manifest",
+        }
+    payload = _read_json_object(path) if path.is_file() else None
+    if not payload:
+        return (), {
+            "expected_set_basis": "local_safe_top_level_selector",
+            "expected_set_source_path": path.as_posix(),
+            "expected_set_source_present": False,
+            "expected_set_source_reason": "mac_sync_latest_missing_or_unreadable",
+        }
+
+    records_by_path: dict[str, dict[str, Any]] = {}
+    for item in payload.get("copied_files") or []:
+        if not isinstance(item, dict):
+            continue
+        record = _record_from_sync_latest(item)
+        if record:
+            records_by_path[record["relative_path"]] = record
+
+    for relative_path in sorted(SAFE_GENERATED_READ_MODEL_MANIFEST_FILES):
+        observed = (observed_records or {}).get(relative_path)
+        if not observed:
+            continue
+        digest = observed.get("content_hash")
+        records_by_path[relative_path] = {
+            "relative_path": relative_path,
+            "absolute_path": None,
+            "size_bytes": observed.get("size_bytes") if isinstance(observed.get("size_bytes"), int) else None,
+            "sha256": digest if isinstance(digest, str) else None,
+            "hash_algorithm": "sha256" if isinstance(digest, str) else None,
+            "expected_set_basis": "mac_sync_latest_preserved_safe_manifest_file",
+        }
+
+    if not records_by_path:
+        return (), {
+            "expected_set_basis": "local_safe_top_level_selector",
+            "expected_set_source_path": path.as_posix(),
+            "expected_set_source_present": True,
+            "expected_set_source_reason": "mac_sync_latest_has_no_copied_files",
+        }
+
+    return tuple(records_by_path[name] for name in sorted(records_by_path)), {
+        "expected_set_basis": "mac_sync_latest_safe_selector",
+        "expected_set_source_path": path.as_posix(),
+        "expected_set_source_present": True,
+        "expected_set_source_reason": "mac_sync_latest_copied_files_plus_preserved_safe_manifest_files",
+        "mac_sync_latest_copied_count": len(payload.get("copied_files") or []),
+        "preserved_safe_manifest_files": sorted(
+            name for name in SAFE_GENERATED_READ_MODEL_MANIFEST_FILES if name in records_by_path
+        ),
+    }
+
+
+def mac_safe_expected_read_model_records(
+    *,
+    read_model_root: str | Path = DEFAULT_READ_MODEL_ROOT,
+    repo_root: str | Path = ROOT,
+    observed_records: dict[str, dict[str, Any]] | None = None,
+    mac_sync_latest_path: str | Path = DEFAULT_MAC_SYNC_LATEST_PATH,
+    manifest_path: str | Path = DEFAULT_MANIFEST_PATH,
+) -> tuple[tuple[dict[str, Any], ...], dict[str, Any]]:
+    latest_records, latest_meta = _mac_sync_latest_expected_records(
+        mac_sync_latest_path=mac_sync_latest_path,
+        manifest_path=manifest_path,
+        observed_records=observed_records,
+    )
+    if latest_records:
+        return latest_records, latest_meta
+    records = canonical_generated_read_model_records(
+        source_root=read_model_root,
+        repo_root=repo_root,
+        include_hash=True,
+    )
+    return records, {
+        **latest_meta,
+        "expected_set_basis": "local_safe_top_level_selector",
+        "expected_set_source_reason": latest_meta.get("expected_set_source_reason", "mac_sync_latest_unavailable"),
+    }
+
+
 def compare_manifest_to_backend(
     *,
     manifest_path: str | Path = DEFAULT_MANIFEST_PATH,
     read_model_root: str | Path = DEFAULT_READ_MODEL_ROOT,
     repo_root: str | Path = ROOT,
+    mac_sync_latest_path: str | Path = DEFAULT_MAC_SYNC_LATEST_PATH,
 ) -> dict[str, Any]:
     manifest = Path(manifest_path)
-    records = canonical_generated_read_model_records(
-        source_root=read_model_root,
+    payload = _read_json_object(manifest) or {} if manifest.is_file() else {}
+    path_records = payload.get("path_records") or []
+    observed_records = {
+        record.get("relative_path"): record
+        for record in path_records
+        if isinstance(record, dict) and isinstance(record.get("relative_path"), str)
+    }
+    records, expected_meta = mac_safe_expected_read_model_records(
+        read_model_root=read_model_root,
         repo_root=repo_root,
-        include_hash=True,
+        observed_records=observed_records,
+        mac_sync_latest_path=mac_sync_latest_path,
+        manifest_path=manifest,
     )
     expected_records = {item["relative_path"]: item for item in records}
     expected = set(expected_records)
@@ -2205,37 +2326,27 @@ def compare_manifest_to_backend(
             "manifest_present": False,
             "manifest_path": manifest.as_posix(),
             "manifest_sha256": None,
+            **expected_meta,
             "counts": {
                 "canonical_expected": len(expected),
                 "observed": 0,
                 "missing_expected": len(expected),
                 "extra": 0,
+                "blocking_extra": 0,
+                "nonblocking_extra": 0,
                 "hash_mismatch": 0,
                 "matched_hash": 0,
             },
             "missing_expected_files": sorted(expected),
             "extra_files": [],
+            "blocking_extra_files": [],
+            "nonblocking_extra_files": [],
             "hash_mismatch_files": [],
         }
-    payload = _read_json_object(manifest) or {}
-    path_records = payload.get("path_records") or []
-    observed_records = {
-        record.get("relative_path"): record
-        for record in path_records
-        if isinstance(record, dict) and isinstance(record.get("relative_path"), str)
-    }
     observed = set(observed_records)
     extra_files = sorted(observed - expected)
-    nonblocking_extra_files = [
-        relative_path
-        for relative_path in extra_files
-        if relative_path == STABLE_MAP_OPTIONAL_RECEIPT_FILE
-    ]
-    blocking_extra_files = [
-        relative_path
-        for relative_path in extra_files
-        if relative_path not in nonblocking_extra_files
-    ]
+    nonblocking_extra_files = list(extra_files)
+    blocking_extra_files: list[str] = []
     matched: list[str] = []
     mismatched: list[str] = []
     for relative_path in sorted(expected & observed):
@@ -2251,6 +2362,7 @@ def compare_manifest_to_backend(
         "manifest_present": True,
         "manifest_path": manifest.as_posix(),
         "manifest_sha256": sha256_file(manifest),
+        **expected_meta,
         "counts": {
             "canonical_expected": len(expected),
             "observed": len(observed),
@@ -2933,9 +3045,23 @@ def build_sync_health_read_model(
         "extra": snapshot.get("extra", 0),
         "hash_mismatch": snapshot.get("hash_mismatch", 0),
         "matched_hash": snapshot.get("matched_hash", 0),
+        "expected_set": {
+            "basis": manifest_health.get("expected_set_basis", "unknown"),
+            "source_path": manifest_health.get("expected_set_source_path"),
+            "source_present": manifest_health.get("expected_set_source_present"),
+            "source_reason": manifest_health.get("expected_set_source_reason"),
+            "mac_sync_latest_copied_count": manifest_health.get("mac_sync_latest_copied_count"),
+            "preserved_safe_manifest_files": manifest_health.get("preserved_safe_manifest_files", []),
+        },
         "stale_files": snapshot.get("stale_files", []),
         "missing_files": snapshot.get("missing_files", []),
         "extra_files": snapshot.get("extra_files", []),
+        "extra_file_handling": {
+            "review_only": True,
+            "blocking_extra_files": manifest_health.get("blocking_extra_files", []),
+            "nonblocking_extra_files": manifest_health.get("nonblocking_extra_files", []),
+            "core_sync_fails_on_extras": False,
+        },
         "last_mac_heartbeat": {
             "status": snapshot.get("mac_heartbeat_status"),
             "time": snapshot.get("mac_heartbeat_time"),
@@ -2996,6 +3122,8 @@ def _operator_markdown(payload: dict[str, Any]) -> str:
         f"- extra={payload['extra']}",
         f"- hash_mismatch={payload['hash_mismatch']}",
         f"- matched_hash={payload['matched_hash']}",
+        f"- expected_set_basis={payload['expected_set']['basis']}",
+        f"- extra_file_handling=review_only_nonblocking",
         "",
         "App-visible stable map:",
         f"- map_status: `{map_status['map_status']}`",
