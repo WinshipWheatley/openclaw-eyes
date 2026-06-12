@@ -144,9 +144,11 @@ def test_data_room_session_creation_loads_questions_and_returns_first_question(t
     assert response["handled"] is True
     assert response["status"] == "active"
     assert response["review_session_id"].startswith("data_room_review:")
-    assert "Cool. I found 9 provisional Data Room review items" in response["reply_text"]
+    assert "Cool. I found 9 provisional OpenClaw Data Room / Reference Data Review items" in response["reply_text"]
     assert "Question 1 of 9" in response["reply_text"]
     assert session["schema_version"] == "REVIEW_SESSION_V0"
+    assert session["topic"] == "data_room_reference_review"
+    assert session["topic_display_name"] == "OpenClaw Data Room / Reference Data Review"
     assert session["authoritative"] is False
     assert session["runtime_policy_changed"] is False
     assert len(session["question_queue"]) == 9
@@ -210,7 +212,7 @@ def test_question_flow_records_answers_skip_defer_summary_and_done_artifacts(tmp
         read_model_root=read_model_root,
         generated_at_utc="2026-06-12T12:05:00+00:00",
     )
-    assert "Data Room review progress:" in summary["reply_text"]
+    assert "OpenClaw Data Room / Reference Data Review progress:" in summary["reply_text"]
 
     done = guided.process_guided_review_message(
         "done",
@@ -302,6 +304,11 @@ def test_routing_recognizes_guided_review_without_swallowing_generic_or_exact_se
         review_root=tmp_path / "review",
         promotion_review_path=promotion,
     ) is None
+    assert guided.process_guided_review_message(
+        "I got paid $900 from Live Arts MD.",
+        review_root=tmp_path / "review",
+        promotion_review_path=promotion,
+    ) is None
 
     income = try_process_surface_operator_intake(
         "I got paid $900 from Live Arts MD.",
@@ -354,7 +361,195 @@ def test_active_session_appears_in_watch_desk_without_duplicates(tmp_path):
     guided_items = [item for item in first["feed_items"] if item["item_id"].startswith("guided_review:")]
 
     assert len(guided_items) == 1
-    assert "Data Room review in progress:" in guided_items[0]["plain_line"]
+    assert "OpenClaw Data Room / Reference Data Review in progress:" in guided_items[0]["plain_line"]
     assert guided_items[0]["source_receipt_ref"].endswith("#session")
     assert guided_items[0]["push_allowed"] is False
     assert [item["item_id"] for item in first["feed_items"]] == [item["item_id"] for item in second["feed_items"]]
+
+
+def test_reviewable_topic_resolver_high_confidence_examples():
+    cases = [
+        ("Cassandra, let's go over the Data Room.", "data_room_reference_review"),
+        (
+            "Let's go over the thing where the system needs to know more specifics about gigs and details and payments.",
+            "data_room_reference_review",
+        ),
+        ("What does the system still need to know about rates and venues?", "rates_clients_venues_review"),
+        ("Can we review the payment privacy stuff?", "payment_privacy_review"),
+        ("Let's talk through the Clara Reid rules.", "persona_identity_review"),
+        ("Let's go over Niles music setup questions.", "niles_creative_reference_review"),
+        ("What broke?", "system_status_review"),
+    ]
+
+    for text, topic_id in cases:
+        resolution = guided.resolve_guided_review_topic(text)
+        assert resolution["matched_topic_id"] == topic_id
+        assert resolution["confidence"] == "high"
+        if topic_id == "system_status_review":
+            assert resolution["should_start_session"] is False
+        else:
+            assert resolution["should_start_session"] is True
+
+
+def test_reviewable_topic_resolver_medium_and_low_clarification():
+    medium = guided.resolve_guided_review_topic("Let's go over the business stuff.")
+    assert medium["matched_topic_id"] == "data_room_reference_review"
+    assert medium["confidence"] == "medium"
+    assert medium["should_start_session"] is False
+    assert "I think you mean OpenClaw Data Room / Reference Data Review" in medium["clarification_question"]
+    assert [topic["topic_id"] for topic in medium["suggested_topics"]] == [
+        "data_room_reference_review",
+        "invoice_policy_review",
+        "rates_clients_venues_review",
+    ]
+
+    low = guided.resolve_guided_review_topic("Let's go over the thing.")
+    assert low["matched_topic_id"] == ""
+    assert low["confidence"] == "low"
+    assert low["should_start_session"] is False
+    assert "I'm not sure which review you mean" in low["clarification_question"]
+
+
+def test_medium_and_low_confidence_do_not_create_sessions(tmp_path):
+    promotion = _promotion_review(tmp_path / "review" / "promotion_review.json")
+
+    medium = guided.process_guided_review_message(
+        "Let's go over the business stuff.",
+        surface="telegram",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        promotion_review_path=promotion,
+        generated_at_utc=FIXED_NOW,
+    )
+    assert medium["status"] == "clarification_required"
+    assert medium["review_session_id"] == ""
+    assert "I think you mean" in medium["reply_text"]
+    assert not list((tmp_path / "review").glob("data_room_guided_review_session_*.json"))
+
+    low = guided.process_guided_review_message(
+        "Let's go over the thing.",
+        surface="telegram",
+        review_root=tmp_path / "low_review",
+        read_model_root=tmp_path / "read_models",
+        promotion_review_path=promotion,
+        generated_at_utc=FIXED_NOW,
+    )
+    assert low["status"] == "clarification_required"
+    assert "Data Room, invoice policy" in low["reply_text"]
+    assert not list((tmp_path / "low_review").glob("data_room_guided_review_session_*.json"))
+
+
+def test_fuzzy_data_room_request_starts_review_and_watch_desk_uses_resolved_display_name(tmp_path):
+    promotion = _promotion_review(tmp_path / "review" / "promotion_review.json")
+    response = guided.process_guided_review_message(
+        "Let's go over the thing where the system needs to know more specifics about gigs and details and payments.",
+        surface="telegram",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        promotion_review_path=promotion,
+        generated_at_utc=FIXED_NOW,
+    )
+    session = _load_session(response)
+    read_model = json.loads((tmp_path / "read_models" / guided.READ_MODEL_NAME).read_text(encoding="utf-8"))
+
+    assert response["status"] == "active"
+    assert session["topic"] == "data_room_reference_review"
+    assert session["topic_display_name"] == "OpenClaw Data Room / Reference Data Review"
+    assert read_model["watch_desk_items"][0]["topic_display_name"] == "OpenClaw Data Room / Reference Data Review"
+    assert read_model["watch_desk_items"][0]["plain_line"].startswith("OpenClaw Data Room / Reference Data Review")
+
+
+def test_specific_review_topics_start_filtered_sessions(tmp_path):
+    promotion = _promotion_review(tmp_path / "review" / "promotion_review.json")
+
+    payment = guided.process_guided_review_message(
+        "Can we review the payment/privacy stuff?",
+        surface="telegram",
+        review_root=tmp_path / "payment_review",
+        read_model_root=tmp_path / "read_models",
+        promotion_review_path=promotion,
+        generated_at_utc=FIXED_NOW,
+    )
+    payment_session = _load_session(payment)
+    assert payment_session["topic"] == "payment_privacy_review"
+    assert payment_session["topic_display_name"] == "Payment Privacy Review"
+    assert all("direct deposit" in q["question_text"].lower() or "payment" in q["question_text"].lower() for q in payment_session["question_queue"])
+
+    rates = guided.process_guided_review_message(
+        "What does the system still need to know about rates and venues?",
+        surface="telegram",
+        review_root=tmp_path / "rates_review",
+        read_model_root=tmp_path / "read_models",
+        promotion_review_path=promotion,
+        generated_at_utc=FIXED_NOW,
+    )
+    rates_session = _load_session(rates)
+    categories = {question["category"] for question in rates_session["question_queue"]}
+    assert rates_session["topic"] == "rates_clients_venues_review"
+    assert {"rates", "clients/payers", "venues"} & categories
+
+    niles = guided.process_guided_review_message(
+        "Let's go over Niles music setup questions.",
+        surface="telegram",
+        review_root=tmp_path / "niles_review",
+        read_model_root=tmp_path / "read_models",
+        promotion_review_path=promotion,
+        generated_at_utc=FIXED_NOW,
+    )
+    niles_session = _load_session(niles)
+    assert niles_session["topic"] == "niles_creative_reference_review"
+    assert all("niles" in q["question_text"].lower() for q in niles_session["question_queue"])
+
+
+def test_active_session_fuzzy_reference_resumes_without_duplicate_watch_item(tmp_path):
+    start = _start(tmp_path)
+    review_root = tmp_path / "review"
+    read_model_root = tmp_path / "read_models"
+
+    resumed = guided.process_guided_review_message(
+        "let's finish that thing",
+        surface="telegram",
+        review_root=review_root,
+        read_model_root=read_model_root,
+        generated_at_utc="2026-06-12T12:01:00+00:00",
+    )
+    assert resumed["review_session_id"] == start["review_session_id"]
+    assert "Continuing the active OpenClaw Data Room / Reference Data Review." in resumed["reply_text"]
+
+    feed = build_watch_desk_feed(
+        read_model_root=read_model_root,
+        task_root=tmp_path / "tasks",
+        generated_at=FIXED_NOW,
+    )
+    guided_items = [item for item in feed["feed_items"] if item["item_id"].startswith("guided_review:")]
+    assert len(guided_items) == 1
+
+
+def test_system_status_review_resolver_does_not_swallow_chief_route(tmp_path):
+    promotion = _promotion_review(tmp_path / "review" / "promotion_review.json")
+    response = guided.process_guided_review_message(
+        "What broke?",
+        review_root=tmp_path / "review",
+        promotion_review_path=promotion,
+        generated_at_utc=FIXED_NOW,
+    )
+    assert response is None
+
+
+def test_route_exclusions_do_not_intercept_guardian_or_universal_intake_phrases(tmp_path):
+    promotion = _promotion_review(tmp_path / "review" / "promotion_review.json")
+    _start(tmp_path)
+
+    for text in [
+        "Approve exact send request exact_send_authority_request:abc123",
+        "I got paid $900 from Live Arts MD.",
+        "I spent $106 on Claude Code Fable 5.",
+        "I did a St. Anne's gig tonight.",
+        "Send this to Annette.",
+    ]:
+        assert guided.process_guided_review_message(
+            text,
+            review_root=tmp_path / "review",
+            promotion_review_path=promotion,
+            generated_at_utc=FIXED_NOW,
+        ) is None

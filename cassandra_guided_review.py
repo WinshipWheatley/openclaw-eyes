@@ -61,6 +61,233 @@ EXCLUDED_ROUTE_TERMS = (
     "guardian decision",
 )
 
+REVIEWABLE_TOPIC_REGISTRY_SCHEMA_VERSION = "REVIEWABLE_TOPIC_REGISTRY_V0"
+TOPIC_DATA_ROOM = "data_room_reference_review"
+TOPIC_INVOICE_POLICY = "invoice_policy_review"
+TOPIC_PERSONA_IDENTITY = "persona_identity_review"
+TOPIC_PAYMENT_PRIVACY = "payment_privacy_review"
+TOPIC_RATES_CLIENTS_VENUES = "rates_clients_venues_review"
+TOPIC_NILES_CREATIVE = "niles_creative_reference_review"
+TOPIC_SYSTEM_STATUS = "system_status_review"
+
+LEGACY_TOPIC_ALIASES = {
+    "data_room": TOPIC_DATA_ROOM,
+    "invoice_policy": TOPIC_INVOICE_POLICY,
+    "clara_reid_rules": TOPIC_PERSONA_IDENTITY,
+}
+
+REVIEWABLE_TOPIC_REGISTRY_V0: tuple[dict[str, Any], ...] = (
+    {
+        "topic_id": TOPIC_DATA_ROOM,
+        "display_name": "OpenClaw Data Room / Reference Data Review",
+        "short_description": (
+            "Review what OpenClaw needs to know about gigs, payments, rates, venues, "
+            "clients, invoice identity, persona rules, and business defaults."
+        ),
+        "aliases": (
+            "data room",
+            "business info",
+            "reference data",
+            "skill factory data",
+            "stuff the system needs to know",
+            "things OpenClaw needs from me",
+            "gigs and payments",
+            "rates and venues",
+            "client info",
+            "business details",
+            "invoice data",
+            "payment details",
+            "OpenClaw setup questions",
+        ),
+        "keyword_groups": (
+            ("gigs", "venues", "rates", "payments"),
+            ("clients", "payers", "invoices", "billing"),
+            ("identity", "Clara Reid", "Winship Live", "Niles"),
+            ("expense categories", "tax labels", "business info"),
+            ("missing questions", "reference data", "data room"),
+            ("system needs to know", "gigs", "details", "payments"),
+        ),
+        "example_utterances": (
+            "Cassandra, let's go over the Data Room.",
+            "Let's go over the thing where the system needs to know more specifics about gigs and details and payments.",
+            "Can we review the stuff OpenClaw still needs from me?",
+            "What do I still need to answer for OpenClaw to work better?",
+        ),
+        "source_artifact_refs": (
+            "/tmp/openclaw-mission-control/operator_skill_factory_v0/openclaw_data_room_promotion_review_v0.json",
+            "/tmp/openclaw-mission-control/operator_skill_factory_v0/openclaw_data_room_tomorrow_review_questions_v0.md",
+        ),
+        "related_subtopics": (
+            TOPIC_INVOICE_POLICY,
+            TOPIC_PERSONA_IDENTITY,
+            TOPIC_PAYMENT_PRIVACY,
+            TOPIC_RATES_CLIENTS_VENUES,
+            TOPIC_NILES_CREATIVE,
+        ),
+        "owner_agent": "cassandra",
+        "review_session_builder": "create_data_room_review_session",
+        "risk_level": "low",
+        "start_allowed": True,
+        "requires_clarification_if": ("business stuff",),
+        "must_not": tuple(AUTHORITY_BOUNDARY.keys()),
+    },
+    {
+        "topic_id": TOPIC_INVOICE_POLICY,
+        "display_name": "Invoice Policy Review",
+        "short_description": "Review invoice numbering, identity, payee rules, payment instructions, and billing terms.",
+        "aliases": (
+            "invoice policy",
+            "invoice numbering",
+            "invoice identity",
+            "payee rules",
+            "payment instructions",
+            "due on receipt",
+            "direct deposit policy",
+            "Zelle policy",
+            "billing terms",
+        ),
+        "keyword_groups": (("invoice", "policy"), ("invoice", "numbering"), ("payee", "payment instructions")),
+        "example_utterances": ("Go over the invoice policy thing.",),
+        "source_artifact_refs": ("/tmp/openclaw-mission-control/operator_skill_factory_v0/openclaw_data_room_promotion_review_v0.json",),
+        "related_subtopics": (TOPIC_DATA_ROOM, TOPIC_PAYMENT_PRIVACY),
+        "owner_agent": "cassandra",
+        "review_session_builder": "create_data_room_review_session",
+        "risk_level": "low",
+        "start_allowed": True,
+        "requires_clarification_if": (),
+        "must_not": tuple(AUTHORITY_BOUNDARY.keys()),
+    },
+    {
+        "topic_id": TOPIC_PERSONA_IDENTITY,
+        "display_name": "Identity / Persona Rules Review",
+        "short_description": "Review Clara Reid, Winship identity, Niles public-facing, sender, signature, and from-name rules.",
+        "aliases": (
+            "Clara Reid rules",
+            "Winship identity",
+            "Niles public-facing",
+            "sender identity",
+            "signature rules",
+            "from-name rules",
+            "persona policy",
+        ),
+        "keyword_groups": (("Clara Reid", "rules"), ("Winship", "sender"), ("Niles", "public-facing"), ("signature", "persona")),
+        "example_utterances": ("Let's talk through the Clara Reid rules.",),
+        "source_artifact_refs": ("/tmp/openclaw-mission-control/operator_skill_factory_v0/openclaw_data_room_promotion_review_v0.json",),
+        "related_subtopics": (TOPIC_DATA_ROOM, TOPIC_NILES_CREATIVE),
+        "owner_agent": "cassandra",
+        "review_session_builder": "create_data_room_review_session",
+        "risk_level": "low",
+        "start_allowed": True,
+        "requires_clarification_if": (),
+        "must_not": tuple(AUTHORITY_BOUNDARY.keys()),
+    },
+    {
+        "topic_id": TOPIC_PAYMENT_PRIVACY,
+        "display_name": "Payment Privacy Review",
+        "short_description": "Review address, phone, direct deposit, Zelle, trust tier, and private payment information rules.",
+        "aliases": (
+            "payment privacy",
+            "address and phone",
+            "direct deposit",
+            "Zelle",
+            "bank details",
+            "who can see payment info",
+            "trust tier",
+            "private payment info",
+        ),
+        "keyword_groups": (("payment", "privacy"), ("direct deposit", "Zelle"), ("bank", "details"), ("address", "phone")),
+        "example_utterances": ("Can we review the payment privacy stuff?",),
+        "source_artifact_refs": ("/tmp/openclaw-mission-control/operator_skill_factory_v0/openclaw_data_room_promotion_review_v0.json",),
+        "related_subtopics": (TOPIC_DATA_ROOM, TOPIC_INVOICE_POLICY),
+        "owner_agent": "cassandra",
+        "review_session_builder": "create_data_room_review_session",
+        "risk_level": "low",
+        "start_allowed": True,
+        "requires_clarification_if": (),
+        "must_not": tuple(AUTHORITY_BOUNDARY.keys()),
+    },
+    {
+        "topic_id": TOPIC_RATES_CLIENTS_VENUES,
+        "display_name": "Rates, Clients, Venues Review",
+        "short_description": "Review rates, rate cards, client roster, payer list, venues, gigs, and billing contacts.",
+        "aliases": (
+            "rates",
+            "rate card",
+            "client roster",
+            "payer list",
+            "venues",
+            "gigs",
+            "Capital Hilton",
+            "Live Arts",
+            "St. Anne's",
+            "billing contacts",
+        ),
+        "keyword_groups": (("rates", "venues"), ("clients", "payers"), ("gigs", "billing contacts"), ("Capital Hilton", "Live Arts", "St. Anne")),
+        "example_utterances": ("What does the system still need to know about rates and venues?",),
+        "source_artifact_refs": ("/tmp/openclaw-mission-control/operator_skill_factory_v0/openclaw_data_room_promotion_review_v0.json",),
+        "related_subtopics": (TOPIC_DATA_ROOM, TOPIC_INVOICE_POLICY),
+        "owner_agent": "cassandra",
+        "review_session_builder": "create_data_room_review_session",
+        "risk_level": "low",
+        "start_allowed": True,
+        "requires_clarification_if": (),
+        "must_not": tuple(AUTHORITY_BOUNDARY.keys()),
+    },
+    {
+        "topic_id": TOPIC_NILES_CREATIVE,
+        "display_name": "Niles Creative Reference Review",
+        "short_description": "Review Niles setup, live set notes, music metadata, songs, setlists, Struna, Fundo, and session notes.",
+        "aliases": (
+            "Niles setup",
+            "live set notes",
+            "music metadata",
+            "songs",
+            "setlists",
+            "Struna",
+            "Fundo",
+            "creative prep",
+            "session notes",
+            "Niles music setup",
+        ),
+        "keyword_groups": (("Niles", "music"), ("songs", "setlists"), ("Struna", "Fundo"), ("creative", "session notes")),
+        "example_utterances": ("Let's go over the Niles music setup questions.",),
+        "source_artifact_refs": ("/tmp/openclaw-mission-control/operator_skill_factory_v0/openclaw_data_room_promotion_review_v0.json",),
+        "related_subtopics": (TOPIC_DATA_ROOM, TOPIC_PERSONA_IDENTITY),
+        "owner_agent": "niles",
+        "review_session_builder": "create_data_room_review_session",
+        "risk_level": "low",
+        "start_allowed": True,
+        "requires_clarification_if": (),
+        "must_not": tuple(AUTHORITY_BOUNDARY.keys()),
+    },
+    {
+        "topic_id": TOPIC_SYSTEM_STATUS,
+        "display_name": "System / Build Status Review",
+        "short_description": "Review system status, build issues, what needs fixing, what needs Winship, health, and Watch Desk.",
+        "aliases": (
+            "what broke",
+            "system status",
+            "build issues",
+            "what needs fixing",
+            "what needs me",
+            "health check",
+            "Watch Desk",
+        ),
+        "keyword_groups": (("what broke", "build"), ("system", "status"), ("needs fixing", "Watch Desk")),
+        "example_utterances": ("What broke?",),
+        "source_artifact_refs": (),
+        "related_subtopics": (),
+        "owner_agent": "chief",
+        "review_session_builder": "",
+        "risk_level": "low",
+        "start_allowed": False,
+        "requires_clarification_if": (),
+        "must_not": tuple(AUTHORITY_BOUNDARY.keys()),
+    },
+)
+
+TOPICS_BY_ID = {topic["topic_id"]: topic for topic in REVIEWABLE_TOPIC_REGISTRY_V0}
+
 
 def stable_json(payload: Any) -> str:
     return json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
@@ -157,20 +384,297 @@ def _control_text(text: str) -> str:
 
 
 def _excluded_route_text(text: str) -> bool:
-    lowered = " ".join(text.lower().split())
-    return any(term in lowered for term in EXCLUDED_ROUTE_TERMS)
+    lowered = " ".join(str(text).lower().split())
+    normalized = _normalize_topic_text(text) if "_normalize_topic_text" in globals() else lowered
+    return any(term in lowered or _normalize_topic_text(term) in normalized for term in EXCLUDED_ROUTE_TERMS)
+
+
+def _normalize_topic_text(text: str) -> str:
+    lowered = str(text or "").lower()
+    lowered = (
+        lowered.replace("\u2019", "'")
+        .replace("\u2018", "'")
+        .replace("\u201c", '"')
+        .replace("\u201d", '"')
+        .replace("/", " ")
+        .replace("-", " ")
+    )
+    return " ".join(re.sub(r"[^a-z0-9'$]+", " ", lowered).split())
+
+
+def _canonical_topic_id(topic: str) -> str:
+    value = str(topic or "").strip()
+    return LEGACY_TOPIC_ALIASES.get(value, value)
+
+
+def _topic_record(topic_id: str) -> Mapping[str, Any]:
+    return TOPICS_BY_ID.get(_canonical_topic_id(topic_id), TOPICS_BY_ID[TOPIC_DATA_ROOM])
+
+
+def _topic_display_name(topic_id: str) -> str:
+    return str(_topic_record(topic_id).get("display_name") or "Data Room review")
+
+
+def _short_topic_name(topic_id: str) -> str:
+    topic_id = _canonical_topic_id(topic_id)
+    names = {
+        TOPIC_DATA_ROOM: "Data Room",
+        TOPIC_INVOICE_POLICY: "invoice policy",
+        TOPIC_PERSONA_IDENTITY: "Clara Reid/persona rules",
+        TOPIC_PAYMENT_PRIVACY: "payment privacy",
+        TOPIC_RATES_CLIENTS_VENUES: "rates/venues",
+        TOPIC_NILES_CREATIVE: "Niles creative setup",
+        TOPIC_SYSTEM_STATUS: "system status",
+    }
+    return names.get(topic_id, _topic_display_name(topic_id))
+
+
+def _contains_topic_phrase(normalized_text: str, phrase: str) -> bool:
+    normalized_phrase = _normalize_topic_text(phrase)
+    if not normalized_phrase:
+        return False
+    return normalized_phrase in normalized_text
+
+
+def _has_review_intent(normalized_text: str) -> bool:
+    review_terms = (
+        "go over",
+        "review",
+        "talk through",
+        "finish",
+        "questions",
+        "what does the system still need to know",
+        "system still need to know",
+        "system needs to know",
+        "openclaw still needs from me",
+        "openclaw needs from me",
+        "still need to answer",
+        "need to answer",
+        "work better",
+    )
+    return any(term in normalized_text for term in review_terms)
+
+
+def _active_session_reference(normalized_text: str) -> bool:
+    phrases = (
+        "continue",
+        "keep going",
+        "next question",
+        "finish that",
+        "finish this",
+        "finish the questions",
+        "back to the questions",
+        "that thing",
+        "this thing",
+        "the questions",
+    )
+    return any(phrase in normalized_text for phrase in phrases)
+
+
+def _looks_like_non_review_operator_action(text: str) -> bool:
+    normalized = _normalize_topic_text(text)
+    if _has_review_intent(normalized):
+        return False
+    if normalized.startswith(("i got paid", "i spent ", "i did ")):
+        return True
+    if normalized.startswith(("follow up with ", "send this to ", "hermes ", "niles ")):
+        return True
+    if normalized in {"what broke", "what broke in the build", "can you handle that thing"}:
+        return True
+    return False
+
+
+def _topic_suggestion(topic_id: str) -> dict[str, str]:
+    record = _topic_record(topic_id)
+    return {
+        "topic_id": str(record["topic_id"]),
+        "display_name": str(record["display_name"]),
+    }
+
+
+def _clarification_question_for(confidence: str, suggested_topic_ids: Sequence[str]) -> str:
+    if confidence == "medium" and suggested_topic_ids:
+        primary = _topic_display_name(suggested_topic_ids[0])
+        alternatives = [_topic_display_name(topic_id) for topic_id in suggested_topic_ids[1:3]]
+        if alternatives:
+            return f"I think you mean {primary}. Is that right? I can also review {' or '.join(alternatives)}."
+        return f"I think you mean {primary}. Is that right?"
+    if confidence == "low":
+        return (
+            "I'm not sure which review you mean. Do you want Data Room, invoice policy, "
+            "Clara Reid/persona rules, payment privacy, rates/venues, Niles creative setup, or system status?"
+        )
+    return ""
+
+
+def _score_topic(normalized_text: str, topic: Mapping[str, Any], *, review_intent: bool) -> dict[str, Any]:
+    topic_id = str(topic["topic_id"])
+    aliases = [str(alias) for alias in topic.get("aliases", [])]
+    matched_aliases = [alias for alias in aliases if _contains_topic_phrase(normalized_text, alias)]
+    matched_keywords: list[str] = []
+    score = 0
+
+    for alias in matched_aliases:
+        score += 6 if review_intent else 4
+        matched_keywords.extend(_normalize_topic_text(alias).split())
+
+    for group in topic.get("keyword_groups", []):
+        if not isinstance(group, (list, tuple)):
+            continue
+        group_hits = [str(term) for term in group if _contains_topic_phrase(normalized_text, str(term))]
+        if len(group_hits) >= 2:
+            score += len(group_hits) + 1
+            matched_keywords.extend(group_hits)
+        elif group_hits and review_intent:
+            score += 1
+            matched_keywords.extend(group_hits)
+
+    if topic_id == TOPIC_DATA_ROOM and review_intent:
+        broad_hits = [
+            term
+            for term in ("system", "openclaw", "specifics", "details", "payments", "gigs", "business")
+            if term in normalized_text
+        ]
+        if len(broad_hits) >= 3:
+            score += len(broad_hits) + 2
+            matched_keywords.extend(broad_hits)
+
+    if topic_id == TOPIC_SYSTEM_STATUS and any(term in normalized_text for term in ("what broke", "build issues", "system status", "health check")):
+        score += 7
+        matched_keywords.append("system status")
+
+    return {
+        "topic_id": topic_id,
+        "score": score,
+        "matched_aliases": sorted(set(matched_aliases)),
+        "matched_keywords": sorted(set(matched_keywords)),
+    }
+
+
+def resolve_guided_review_topic(raw_text: str, active_session_context: Any = None) -> dict[str, Any]:
+    """Resolve fuzzy operator review requests to a guided review topic.
+
+    This is local classification only. It does not create sessions, promote
+    reference data, or call external services.
+    """
+
+    normalized = _normalize_topic_text(raw_text)
+    if not normalized or _excluded_route_text(normalized):
+        return {
+            "schema_version": "guided_review_topic_resolution_v0",
+            "matched_topic_id": "",
+            "confidence": "low",
+            "matched_aliases": [],
+            "matched_keywords": [],
+            "suggested_topics": [],
+            "clarification_question": "",
+            "should_start_session": False,
+            "should_resume_active_session": False,
+        }
+
+    active_sessions: list[Mapping[str, Any]] = []
+    if isinstance(active_session_context, Mapping):
+        active_sessions = [active_session_context]
+    elif isinstance(active_session_context, Sequence) and not isinstance(active_session_context, (str, bytes)):
+        active_sessions = [item for item in active_session_context if isinstance(item, Mapping)]
+
+    if active_sessions and _active_session_reference(normalized):
+        if len(active_sessions) == 1:
+            topic_id = _canonical_topic_id(str(active_sessions[0].get("topic") or TOPIC_DATA_ROOM))
+            return {
+                "schema_version": "guided_review_topic_resolution_v0",
+                "matched_topic_id": topic_id,
+                "confidence": "high",
+                "matched_aliases": [],
+                "matched_keywords": ["active_session"],
+                "suggested_topics": [_topic_suggestion(topic_id)],
+                "clarification_question": "",
+                "should_start_session": False,
+                "should_resume_active_session": True,
+            }
+        suggestions = [_topic_suggestion(str(session.get("topic") or TOPIC_DATA_ROOM)) for session in active_sessions[:3]]
+        labels = ", ".join(item["display_name"] for item in suggestions)
+        return {
+            "schema_version": "guided_review_topic_resolution_v0",
+            "matched_topic_id": "",
+            "confidence": "medium",
+            "matched_aliases": [],
+            "matched_keywords": ["active_session"],
+            "suggested_topics": suggestions,
+            "clarification_question": f"Which review should I continue: {labels}?",
+            "should_start_session": False,
+            "should_resume_active_session": False,
+        }
+
+    review_intent = _has_review_intent(normalized)
+    system_status_intent = any(term in normalized for term in ("what broke", "system status", "build issues", "health check"))
+    if not review_intent and not system_status_intent:
+        return {
+            "schema_version": "guided_review_topic_resolution_v0",
+            "matched_topic_id": "",
+            "confidence": "low",
+            "matched_aliases": [],
+            "matched_keywords": [],
+            "suggested_topics": [],
+            "clarification_question": "",
+            "should_start_session": False,
+            "should_resume_active_session": False,
+        }
+
+    scores = [_score_topic(normalized, topic, review_intent=review_intent) for topic in REVIEWABLE_TOPIC_REGISTRY_V0]
+    scores = sorted(scores, key=lambda row: int(row["score"]), reverse=True)
+
+    if review_intent and "business stuff" in normalized:
+        preferred = [TOPIC_DATA_ROOM, TOPIC_INVOICE_POLICY, TOPIC_RATES_CLIENTS_VENUES]
+        return {
+            "schema_version": "guided_review_topic_resolution_v0",
+            "matched_topic_id": TOPIC_DATA_ROOM,
+            "confidence": "medium",
+            "matched_aliases": [],
+            "matched_keywords": ["business"],
+            "suggested_topics": [_topic_suggestion(topic_id) for topic_id in preferred],
+            "clarification_question": _clarification_question_for("medium", preferred),
+            "should_start_session": False,
+            "should_resume_active_session": False,
+        }
+
+    top = scores[0] if scores else {"score": 0, "topic_id": ""}
+    second_score = int(scores[1]["score"]) if len(scores) > 1 else 0
+    top_score = int(top.get("score") or 0)
+    suggested_topic_ids = [str(row["topic_id"]) for row in scores if int(row["score"]) > 0][:3]
+    if not suggested_topic_ids:
+        suggested_topic_ids = [TOPIC_DATA_ROOM, TOPIC_INVOICE_POLICY, TOPIC_PERSONA_IDENTITY]
+
+    if top_score >= 6 and top_score - second_score >= 2:
+        confidence = "high"
+    elif top_score >= 3:
+        confidence = "medium"
+    else:
+        confidence = "low"
+
+    matched_topic_id = str(top.get("topic_id") or "") if confidence != "low" else ""
+    topic = _topic_record(matched_topic_id) if matched_topic_id else {}
+    should_start = bool(confidence == "high" and topic.get("start_allowed", False))
+    if confidence == "low":
+        suggested_topic_ids = [TOPIC_DATA_ROOM, TOPIC_INVOICE_POLICY, TOPIC_PERSONA_IDENTITY]
+
+    return {
+        "schema_version": "guided_review_topic_resolution_v0",
+        "matched_topic_id": matched_topic_id,
+        "confidence": confidence,
+        "matched_aliases": list(top.get("matched_aliases") or []) if confidence != "low" else [],
+        "matched_keywords": list(top.get("matched_keywords") or []) if confidence != "low" else [],
+        "suggested_topics": [_topic_suggestion(topic_id) for topic_id in suggested_topic_ids],
+        "clarification_question": _clarification_question_for(confidence, suggested_topic_ids),
+        "should_start_session": should_start,
+        "should_resume_active_session": False,
+    }
 
 
 def _start_topic(text: str) -> str:
-    lowered = " ".join(text.lower().split()).strip(" .!?")
-    if _excluded_route_text(lowered):
-        return ""
-    if "data room" in lowered and any(term in lowered for term in ("go over", "review", "finish", "questions")):
-        return "data_room"
-    if "clara reid" in lowered and any(term in lowered for term in ("go over", "review", "rules")):
-        return "clara_reid_rules"
-    if "invoice policy" in lowered and any(term in lowered for term in ("go over", "review", "finish")):
-        return "invoice_policy"
+    resolution = resolve_guided_review_topic(text)
+    if resolution.get("should_start_session"):
+        return str(resolution.get("matched_topic_id") or "")
     return ""
 
 
@@ -215,9 +719,12 @@ def has_active_guided_review_session(*, review_root: str | Path | None = None) -
 def is_guided_review_message(text: str, *, review_root: str | Path | None = None) -> bool:
     if not text or not text.strip() or _excluded_route_text(text):
         return False
-    if _start_topic(text):
-        return True
     active = _find_active_session(_review_root(review_root))
+    resolution = resolve_guided_review_topic(text, active_session_context=active)
+    if resolution.get("should_start_session") or resolution.get("should_resume_active_session"):
+        return True
+    if resolution.get("clarification_question"):
+        return True
     if not active:
         return False
     if _control_text(text):
@@ -335,16 +842,34 @@ def _question_text(record: Mapping[str, Any]) -> str:
 
 
 def _topic_matches(record: Mapping[str, Any], topic: str) -> bool:
-    if topic in {"", "data_room"}:
+    topic = _canonical_topic_id(topic)
+    if topic in {"", TOPIC_DATA_ROOM}:
         return True
     text = " ".join(
         str(record.get(key) or "")
         for key in ("record_id", "provisional_fact", "proposed_promoted_value", "review_category")
     ).lower()
-    if topic == "clara_reid_rules":
-        return "clara" in text
-    if topic == "invoice_policy":
-        return any(term in text for term in ("invoice", "payee", "payment", "zelle", "direct deposit", "terms", "numbering", "status"))
+    category = _category_for_record(record)
+    if topic == TOPIC_PERSONA_IDENTITY:
+        return category in {"identity/persona policy", "Clara Reid use", "Niles public technical-director use"} or any(
+            term in text for term in ("clara", "winship", "sender", "signature", "persona", "identity", "niles")
+        )
+    if topic == TOPIC_INVOICE_POLICY:
+        return category == "invoice numbering/payee policy" or any(
+            term in text for term in ("invoice", "payee", "terms", "numbering", "status", "billing")
+        )
+    if topic == TOPIC_PAYMENT_PRIVACY:
+        return category == "payment privacy" or any(
+            term in text for term in ("payment privacy", "direct deposit", "zelle", "bank", "address", "phone", "trust tier")
+        )
+    if topic == TOPIC_RATES_CLIENTS_VENUES:
+        return category in {"rates", "clients/payers", "venues"} or any(
+            term in text for term in ("rate", "client", "payer", "venue", "gig", "capital hilton", "live arts", "st. anne")
+        )
+    if topic == TOPIC_NILES_CREATIVE:
+        return "niles" in text or any(term in text for term in ("song", "setlist", "struna", "fundo", "music", "session"))
+    if topic == TOPIC_SYSTEM_STATUS:
+        return False
     return True
 
 
@@ -411,6 +936,7 @@ def create_data_room_review_session(
     root = _review_root(review_root)
     promotion_path = _promotion_path(promotion_review_path)
     promotion = _load_json(promotion_path)
+    topic = _canonical_topic_id(topic or TOPIC_DATA_ROOM)
     created = created_at_utc or utc_now()
     questions = build_data_room_review_questions(promotion, topic=topic)
     session_id = "data_room_review:" + _short_hash(topic, operator, created, len(questions))
@@ -421,6 +947,7 @@ def create_data_room_review_session(
         "schema_version": SESSION_SCHEMA_VERSION,
         "review_session_id": session_id,
         "topic": topic,
+        "topic_display_name": _topic_display_name(topic),
         "source_artifact_refs": sorted(set(source_refs)),
         "created_at_utc": created,
         "updated_at_utc": created,
@@ -548,7 +1075,7 @@ def _format_question_reply(session: Mapping[str, Any], *, prefix: str = "") -> s
 
 
 def _session_summary_reply(session: Mapping[str, Any]) -> str:
-    return f"Data Room review progress: {_progress_line(session)}"
+    return f"{str(session.get('topic_display_name') or _topic_display_name(str(session.get('topic') or TOPIC_DATA_ROOM)))} progress: {_progress_line(session)}"
 
 
 def _answer_id(session_id: str, question_id: str, answer_text: str, created_at: str) -> str:
@@ -673,11 +1200,13 @@ def _persist_session(
 def _write_operator_summary(session: Mapping[str, Any], *, review_root: Path) -> str:
     path = _operator_path(review_root, str(session["review_session_id"]))
     progress = _progress(session)
+    topic_display = str(session.get("topic_display_name") or _topic_display_name(str(session.get("topic") or TOPIC_DATA_ROOM)))
     lines = [
-        f"# Data Room Guided Review Session {session['review_session_id']}",
+        f"# {topic_display} Guided Review Session {session['review_session_id']}",
         "",
         "Every item remains provisional until Winship explicitly runs a later promotion task.",
         "",
+        f"- Topic: {topic_display}",
         f"- Status: {session['status']}",
         f"- Answered: {progress['answered']}",
         f"- Deferred: {progress['deferred']}",
@@ -770,18 +1299,21 @@ def _session_read_model_item(session: Mapping[str, Any]) -> dict[str, Any]:
         session_ref = str(session["session_artifact_ref"])
     status = str(session.get("status") or "active")
     verb = "in progress" if status in {"active", "paused"} else status
+    topic_display = str(session.get("topic_display_name") or _topic_display_name(str(session.get("topic") or TOPIC_DATA_ROOM)))
     return {
         "item_id": f"guided_review:{session_id}",
         "lane": "chief_runtime",
         "urgency": "needs_operator" if status in {"active", "paused"} else "info",
         "plain_line": (
-            f"Data Room review {verb}: {progress['answered']} answered, "
+            f"{topic_display} {verb}: {progress['answered']} answered, "
             f"{progress['deferred']} deferred, {progress['remaining']} remaining."
         ),
         "source_receipt_ref": f"{session_ref}#session",
         "one_next_safe_action": "Continue the guided review with Cassandra, or say done to generate the Codex promotion prompt.",
         "push_class": "info",
         "review_session_id": session_id,
+        "topic_id": str(session.get("topic") or ""),
+        "topic_display_name": topic_display,
         "status": status,
         "answered_count": progress["answered"],
         "deferred_count": progress["deferred"],
@@ -880,6 +1412,28 @@ def _response(
     }
 
 
+def _clarification_response(resolution: Mapping[str, Any], *, reply_text: str) -> dict[str, Any]:
+    return {
+        "schema_version": "guided_review_surface_response_v0",
+        "handled": True,
+        "reply_text": reply_text,
+        "reply": reply_text,
+        "review_session_id": "",
+        "current_question_id": "",
+        "progress": {},
+        "status": "clarification_required",
+        "artifact_refs": {},
+        "receipt_refs": [],
+        "watch_desk_refs": [],
+        "watch_desk_refresh": {},
+        "topic_resolution": dict(resolution),
+        "safety_flags": dict(AUTHORITY_BOUNDARY),
+        "authoritative": False,
+        "runtime_policy_changed": False,
+        "external_calls_performed": False,
+    }
+
+
 def process_guided_review_message(
     raw_text: str,
     *,
@@ -898,13 +1452,18 @@ def process_guided_review_message(
     root = _review_root(review_root)
     now = generated_at_utc or utc_now()
     active = _find_active_session(root)
-    topic = _start_topic(raw_text)
-    if not active and not topic:
+    resolution = resolve_guided_review_topic(raw_text, active_session_context=active)
+    topic = str(resolution.get("matched_topic_id") or "")
+    if not active and not topic and not resolution.get("clarification_question"):
+        return None
+    if not active and resolution.get("clarification_question") and not resolution.get("should_start_session"):
+        return _clarification_response(resolution, reply_text=str(resolution["clarification_question"]))
+    if not active and not resolution.get("should_start_session"):
         return None
     if not active:
         try:
             session = create_data_room_review_session(
-                topic=topic or "data_room",
+                topic=topic or TOPIC_DATA_ROOM,
                 operator=operator,
                 surface=surface,
                 review_root=root,
@@ -915,7 +1474,8 @@ def process_guided_review_message(
             blocked = {
                 "schema_version": SESSION_SCHEMA_VERSION,
                 "review_session_id": "data_room_review:blocked",
-                "topic": topic or "data_room",
+                "topic": topic or TOPIC_DATA_ROOM,
+                "topic_display_name": _topic_display_name(topic or TOPIC_DATA_ROOM),
                 "source_artifact_refs": [str(_promotion_path(promotion_review_path))],
                 "created_at_utc": now,
                 "updated_at_utc": now,
@@ -943,8 +1503,9 @@ def process_guided_review_message(
                 handled=True,
             )
         total = len(session["question_queue"])
+        topic_display = str(session.get("topic_display_name") or _topic_display_name(topic or TOPIC_DATA_ROOM))
         intro = (
-            f"Cool. I found {total} provisional Data Room review items. I'll walk you through "
+            f"Cool. I found {total} provisional {topic_display} items. I'll walk you through "
             "the highest-impact questions first: identity, payment privacy, rates, clients, "
             "invoice numbering. You can answer, skip, defer, revise, summarize, or say done."
         )
@@ -952,8 +1513,13 @@ def process_guided_review_message(
     else:
         session = dict(active)
         control = _control_text(raw_text)
-        if topic:
-            reply = _format_question_reply(session, prefix="Continuing the active Data Room review.")
+        if topic and not _topic_record(topic).get("start_allowed", False):
+            return None
+        if not control and not resolution.get("should_resume_active_session") and not topic and _looks_like_non_review_operator_action(raw_text):
+            return None
+        if not control and (resolution.get("should_resume_active_session") or topic):
+            topic_display = str(session.get("topic_display_name") or _topic_display_name(str(session.get("topic") or TOPIC_DATA_ROOM)))
+            reply = _format_question_reply(session, prefix=f"Continuing the active {topic_display}.")
         elif control == "summarize":
             reply = _session_summary_reply(session)
         elif control == "done":
@@ -1020,6 +1586,7 @@ __all__ = [
     "has_active_guided_review_session",
     "is_guided_review_message",
     "process_guided_review_message",
+    "resolve_guided_review_topic",
     "stable_json",
     "write_guided_review_read_model",
 ]
