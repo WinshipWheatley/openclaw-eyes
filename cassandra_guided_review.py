@@ -2482,6 +2482,7 @@ def _artifact_refs(session: Mapping[str, Any], *, review_root: Path, read_model_
         "session_json": session_path.as_posix(),
         "operator_markdown": _operator_path(review_root, str(session["review_session_id"])).as_posix(),
         "promotion_prompt": _prompt_path(review_root, str(session["review_session_id"])).as_posix(),
+        "data_room_form_fill_refs": list(session.get("data_room_form_fill_refs", [])),
         "guided_review_read_model": (_read_model_root(read_model_root) / READ_MODEL_NAME).as_posix(),
         "receipts": list(session.get("receipt_refs", [])),
         "generated_prompt_refs": list(session.get("generated_prompt_refs", [])),
@@ -2628,7 +2629,30 @@ def process_guided_review_message(
         if session.get("pending_interaction") and not pending:
             _clear_pending_interaction(session, now=now, reason="expired")
         pending_handled = False
-        if pending and not _is_global_control_allowed_during_pending(control):
+        form_fill_handled = False
+        from data_room_form_fill_package import (
+            EXPECTED_PACKAGE_REPLY,
+            build_data_room_form_fill_package,
+            is_data_room_form_fill_request,
+            write_data_room_form_fill_artifacts,
+        )
+
+        if is_data_room_form_fill_request(raw_text):
+            package = build_data_room_form_fill_package(session, created_at_utc=now)
+            form_fill_refs = write_data_room_form_fill_artifacts(package)
+            session.setdefault("data_room_form_fill_refs", []).append(form_fill_refs)
+            generated_refs = list(session.get("generated_prompt_refs") or [])
+            for ref in (
+                form_fill_refs.get("primary", {}).get("prompt_path", ""),
+                form_fill_refs.get("durable", {}).get("prompt_path", ""),
+            ):
+                if ref and ref not in generated_refs:
+                    generated_refs.append(ref)
+            session["generated_prompt_refs"] = generated_refs
+            session["latest_data_room_form_fill_package_id"] = package["package_id"]
+            reply = EXPECTED_PACKAGE_REPLY
+            form_fill_handled = True
+        elif pending and not _is_global_control_allowed_during_pending(control):
             reply = _handle_pending_interaction(
                 session,
                 pending=pending,
@@ -2642,7 +2666,9 @@ def process_guided_review_message(
         elif pending and _is_global_control_allowed_during_pending(control):
             _clear_pending_interaction(session, now=now, reason=f"interrupted_by_{control.replace(' ', '_')}")
 
-        if pending_handled:
+        if form_fill_handled:
+            pass
+        elif pending_handled:
             pass
         elif control in {"why", "recommend", "examples"}:
             _enable_coach_mode(session)
