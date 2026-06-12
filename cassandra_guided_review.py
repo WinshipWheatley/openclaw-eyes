@@ -2631,15 +2631,23 @@ def process_guided_review_message(
         pending_handled = False
         form_fill_handled = False
         from data_room_form_fill_package import (
+            DEFAULT_OPERATOR_REPORT_ROOT,
             EXPECTED_PACKAGE_REPLY,
+            LIVE_CHATGPT55_PACKAGE_REPLY,
             build_data_room_form_fill_package,
             is_data_room_form_fill_request,
+            live_chatgpt55_advisory_path_verified,
             write_data_room_form_fill_artifacts,
         )
 
         if is_data_room_form_fill_request(raw_text):
             package = build_data_room_form_fill_package(session, created_at_utc=now)
-            form_fill_refs = write_data_room_form_fill_artifacts(package)
+            live_chatgpt55_connected = live_chatgpt55_advisory_path_verified()
+            form_fill_refs = write_data_room_form_fill_artifacts(
+                package,
+                export_operator_copy=True,
+                operator_report_root=DEFAULT_OPERATOR_REPORT_ROOT,
+            )
             session.setdefault("data_room_form_fill_refs", []).append(form_fill_refs)
             generated_refs = list(session.get("generated_prompt_refs") or [])
             for ref in (
@@ -2650,7 +2658,7 @@ def process_guided_review_message(
                     generated_refs.append(ref)
             session["generated_prompt_refs"] = generated_refs
             session["latest_data_room_form_fill_package_id"] = package["package_id"]
-            reply = EXPECTED_PACKAGE_REPLY
+            reply = LIVE_CHATGPT55_PACKAGE_REPLY if live_chatgpt55_connected else EXPECTED_PACKAGE_REPLY
             form_fill_handled = True
         elif pending and not _is_global_control_allowed_during_pending(control):
             reply = _handle_pending_interaction(

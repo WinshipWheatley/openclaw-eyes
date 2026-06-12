@@ -11,10 +11,12 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 import cassandra_guided_review as guided
+from scripts.operator_artifact_link_normalizer import export_operator_artifact
 
 
 PACKAGE_SCHEMA_VERSION = "DATA_ROOM_FORM_FILL_PACKAGE_V0"
@@ -25,11 +27,27 @@ TURN_LOG_SCHEMA_VERSION = "DATA_ROOM_FORM_FILL_TURN_LOG_ENTRY_V0"
 
 DEFAULT_FORM_FILL_ROOT = guided.DEFAULT_REVIEW_ROOT / "data_room_form_fill"
 DEFAULT_DURABLE_FORM_FILL_ROOT = guided.DEFAULT_DURABLE_REVIEW_ROOT / "data_room_form_fill"
+DEFAULT_OPERATOR_REPORT_ROOT: Path | None = None
 
 EXPECTED_PACKAGE_REPLY = (
-    "I packaged the Data Room form for ChatGPT 5.5. It includes the current question, "
-    "progress, safety rules, and output schema. Paste this prompt into ChatGPT, then "
-    "bring the structured result back here."
+    "I packaged the Data Room form for ChatGPT 5.5. Paste the prompt into ChatGPT 5.5, "
+    "then bring the structured result back here. I'll keep the rails and recording safe."
+)
+
+LIVE_CHATGPT55_PACKAGE_REPLY = (
+    "I have the Data Room form and this lane is backed by ChatGPT 5.5. I'll help you "
+    "fill it out conversationally and only record confirmed answers."
+)
+
+MANUAL_HANDOFF_READINESS_NOTIFICATION = (
+    "I'm here. I have the Data Room form packaged for ChatGPT 5.5, and I'm ready to help "
+    "you fill it out. I'm not pretending ChatGPT is live inside me yet — this is a safe "
+    "package/handoff lane."
+)
+
+LIVE_CHATGPT55_READINESS_NOTIFICATION = (
+    "I'm here. My brain for this Data Room lane is ChatGPT 5.5, I have the form, and "
+    "I'm ready to help you fill it out."
 )
 
 TURN_SAFETY_FLAGS = {
@@ -116,6 +134,17 @@ def _form_fill_root(root: str | Path | None) -> Path:
 
 def _durable_form_fill_root(root: str | Path | None) -> Path:
     return _rooted(root or DEFAULT_DURABLE_FORM_FILL_ROOT)
+
+
+def _date_for_task_id(package: Mapping[str, Any]) -> str:
+    created = str(package.get("created_at_utc") or "")
+    if re.match(r"^\d{4}-\d{2}-\d{2}", created):
+        return created[:10]
+    return datetime.utcnow().date().isoformat()
+
+
+def _operator_task_id(package: Mapping[str, Any], explicit: str | None = None) -> str:
+    return explicit or f"data_room_form_fill_{_date_for_task_id(package)}"
 
 
 def _package_filename(session_id: str) -> str:
@@ -596,6 +625,9 @@ def write_data_room_form_fill_artifacts(
     prompt: str | None = None,
     output_root: str | Path | None = None,
     durable_root: str | Path | None = None,
+    export_operator_copy: bool = False,
+    operator_report_root: str | Path | None = None,
+    operator_task_id: str | None = None,
 ) -> dict[str, Any]:
     """Write temp and durable copies of the package and prompt."""
 
@@ -609,17 +641,44 @@ def write_data_room_form_fill_artifacts(
         rendered_prompt,
         output_root=_durable_form_fill_root(durable_root),
     )
+    operator_copy: dict[str, Any] = {}
+    if export_operator_copy:
+        operator_copy = export_operator_artifact(
+            primary_refs["prompt_path"],
+            task_id=_operator_task_id(package, operator_task_id),
+            description=(
+                "Paste-ready ChatGPT 5.5 prompt for the manual OpenClaw Data Room "
+                "form-fill lane. Original artifacts were copied, not moved."
+            ),
+            report_root=operator_report_root,
+        )
     return {
         "schema_version": "DATA_ROOM_FORM_FILL_ARTIFACT_REFS_V0",
         "package_id": package.get("package_id", ""),
         "review_session_id": package.get("review_session_id", ""),
         "primary": primary_refs,
         "durable": durable_refs,
-        "operator_openable_copy": {},
+        "operator_openable_copy": operator_copy,
         "external_model_invoked": False,
         "confirmed_reference_data_created": False,
         "runtime_policy_changed": False,
     }
+
+
+def live_chatgpt55_advisory_path_verified() -> bool:
+    """Return true only when a future live ChatGPT 5.5 advisory adapter is proven.
+
+    The current v0 lane is intentionally a manual package/handoff lane, so this
+    fails closed.
+    """
+
+    return False
+
+
+def readiness_notification_text(*, live_chatgpt55_connected: bool) -> str:
+    if live_chatgpt55_connected:
+        return LIVE_CHATGPT55_READINESS_NOTIFICATION
+    return MANUAL_HANDOFF_READINESS_NOTIFICATION
 
 
 def load_form_fill_turn_result(source: str | Path | Mapping[str, Any]) -> dict[str, Any]:

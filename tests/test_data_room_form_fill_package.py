@@ -171,6 +171,28 @@ def test_prompt_includes_role_rules_schema_and_done_criteria(tmp_path):
     assert "Form package:" in prompt
 
 
+def test_manual_handoff_does_not_claim_live_chatgpt_brain(tmp_path):
+    session = _load_session(_start(tmp_path))
+    package = form_fill.build_data_room_form_fill_package(session, created_at_utc=FIXED_NOW)
+
+    assert form_fill.live_chatgpt55_advisory_path_verified() is False
+    notification = form_fill.readiness_notification_text(live_chatgpt55_connected=False)
+    prompt = form_fill.render_chatgpt55_form_fill_prompt(package)
+
+    assert "My brain for this Data Room lane is ChatGPT 5.5" not in notification
+    assert "not pretending ChatGPT is live inside me yet" in notification
+    assert "You do not mutate OpenClaw." in prompt
+
+
+def test_live_notification_wording_requires_verified_live_flag():
+    manual = form_fill.readiness_notification_text(live_chatgpt55_connected=False)
+    live = form_fill.readiness_notification_text(live_chatgpt55_connected=True)
+
+    assert "My brain for this Data Room lane is ChatGPT 5.5" not in manual
+    assert "safe package/handoff lane" in manual
+    assert "My brain for this Data Room lane is ChatGPT 5.5" in live
+
+
 def test_forbidden_sensitive_data_is_redacted(tmp_path):
     session = _load_session(_start(tmp_path, sensitive=True))
 
@@ -181,6 +203,26 @@ def test_forbidden_sensitive_data_is_redacted(tmp_path):
     assert "987654321" not in rendered
     assert "123-45-6789" not in rendered
     assert "[REDACTED_SENSITIVE_DETAIL]" in rendered
+
+
+def test_artifact_link_normalizer_creates_operator_openable_path(tmp_path):
+    session = _load_session(_start(tmp_path))
+    package = form_fill.build_data_room_form_fill_package(session, created_at_utc=FIXED_NOW)
+
+    refs = form_fill.write_data_room_form_fill_artifacts(
+        package,
+        output_root=tmp_path / "form_fill",
+        durable_root=tmp_path / "durable_form_fill",
+        export_operator_copy=True,
+        operator_report_root=tmp_path / "operator_reports",
+        operator_task_id="data_room_form_fill_test",
+    )
+    operator_copy = refs["operator_openable_copy"]
+
+    assert Path(operator_copy["operator_copy_path"]).is_file()
+    assert Path(operator_copy["manifest_path"]).is_file()
+    assert Path(operator_copy["open_me_path"]).is_file()
+    assert "Open from Windows" in "\n".join(operator_copy["open_instructions"])
 
 
 def test_turn_result_validates(tmp_path):
@@ -266,6 +308,7 @@ def test_cassandra_command_surface_writes_package_and_prompt(tmp_path, monkeypat
     start = _start(tmp_path)
     monkeypatch.setattr(form_fill, "DEFAULT_FORM_FILL_ROOT", tmp_path / "form_fill")
     monkeypatch.setattr(form_fill, "DEFAULT_DURABLE_FORM_FILL_ROOT", tmp_path / "durable_form_fill")
+    monkeypatch.setattr(form_fill, "DEFAULT_OPERATOR_REPORT_ROOT", tmp_path / "operator_reports")
 
     response = guided.process_guided_review_message(
         "Cassandra, open a ChatGPT 5.5 lane for this Data Room form.",
@@ -282,4 +325,6 @@ def test_cassandra_command_surface_writes_package_and_prompt(tmp_path, monkeypat
     assert Path(refs["primary"]["prompt_path"]).is_file()
     assert Path(refs["durable"]["package_path"]).is_file()
     assert Path(refs["durable"]["prompt_path"]).is_file()
+    assert Path(refs["operator_openable_copy"]["operator_copy_path"]).is_file()
+    assert "My brain for this Data Room lane is ChatGPT 5.5" not in response["reply_text"]
     assert response["review_session_id"] == start["review_session_id"]
