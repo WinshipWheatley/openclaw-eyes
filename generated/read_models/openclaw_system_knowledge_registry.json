@@ -1,0 +1,786 @@
+{
+  "agent_roles": [
+    {
+      "agent_name": "Cassandra",
+      "authority_notes": "No send/draft/business mutation without Guardian and operator gates.",
+      "evidence_paths": [
+        "cassandra_brain.py",
+        "cassandra_guided_review.py",
+        ".claude/commands/cassandra.md"
+      ],
+      "evidence_status": "CONFIRMED_LOCAL",
+      "role_id": "role_cassandra",
+      "role_summary": "Business ops, AR/client follow-up, universal intake, guided review, exact-send state."
+    },
+    {
+      "agent_name": "Chief",
+      "authority_notes": "No push/merge/protected mutation from registry.",
+      "evidence_paths": [
+        "chief_router.py",
+        "chief_ops_brain.py"
+      ],
+      "evidence_status": "CONFIRMED_LOCAL",
+      "role_id": "role_chief",
+      "role_summary": "System status, diagnostics, build coordination, and routing."
+    },
+    {
+      "agent_name": "Guardian",
+      "authority_notes": "Approves/denies; does not execute business logic.",
+      "evidence_paths": [
+        "guardian_protected_access_gate_spec.py",
+        "hitl_action_service.py"
+      ],
+      "evidence_status": "CONFIRMED_LOCAL",
+      "role_id": "role_guardian",
+      "role_summary": "Safety and approval boundary."
+    },
+    {
+      "agent_name": "Niles",
+      "authority_notes": "No DAW/session/media daemon authority.",
+      "evidence_paths": [
+        ".claude/commands/niles.md",
+        "agent_lane_registry.py"
+      ],
+      "evidence_status": "CONFIRMED_LOCAL_LOGICAL",
+      "role_id": "role_niles",
+      "role_summary": "Creative/music lane, logical/spawned context."
+    },
+    {
+      "agent_name": "Hermes",
+      "authority_notes": "Unsafe_to_start unless separately approved and verified.",
+      "evidence_paths": [
+        ".claude/commands/hermes.md",
+        "openclaw_hermes_sidecar.py"
+      ],
+      "evidence_status": "CONFIRMED_LOCAL_BOUNDARY",
+      "role_id": "role_hermes",
+      "role_summary": "Architecture/system direction and adapter boundary."
+    }
+  ],
+  "artifact_policies": [
+    {
+      "allowed_surfaces": "/mnt/e/OpenClaw_Operator_Reports or /tmp/openclaw-mission-control/operator_reports",
+      "artifact_name": "Operator-facing reports",
+      "blocked_actions": "No secret-looking paths, no moving originals, no raw private proof export.",
+      "evidence_basis": "scripts/operator_artifact_link_normalizer.py",
+      "evidence_status": "CONFIRMED_LOCAL",
+      "policy_id": "policy_operator_reports"
+    },
+    {
+      "allowed_surfaces": "generated/read_models and generated/system_knowledge",
+      "artifact_name": "System knowledge registry artifacts",
+      "blocked_actions": "No runtime policy mutation, no live action grants, no external calls.",
+      "evidence_basis": "this module and tests",
+      "evidence_status": "CONFIRMED_LOCAL",
+      "policy_id": "policy_system_knowledge_registry"
+    }
+  ],
+  "authority_boundaries": [
+    {
+      "allowed": "true",
+      "blocked": "false",
+      "boundary_id": "documentation_read_model_sqlite_only",
+      "boundary_name": "documentation read model sqlite only",
+      "evidence_basis": "AUTHORITY_BOUNDARY constant",
+      "notes": "Only documentation_read_model_sqlite_only may be true."
+    },
+    {
+      "allowed": "false",
+      "blocked": "true",
+      "boundary_id": "live_automation_granted",
+      "boundary_name": "live automation granted",
+      "evidence_basis": "AUTHORITY_BOUNDARY constant",
+      "notes": "Only documentation_read_model_sqlite_only may be true."
+    },
+    {
+      "allowed": "false",
+      "blocked": "true",
+      "boundary_id": "runtime_service_mutation_allowed",
+      "boundary_name": "runtime service mutation allowed",
+      "evidence_basis": "AUTHORITY_BOUNDARY constant",
+      "notes": "Only documentation_read_model_sqlite_only may be true."
+    },
+    {
+      "allowed": "false",
+      "blocked": "true",
+      "boundary_id": "email_gmail_send_or_draft_allowed",
+      "boundary_name": "email gmail send or draft allowed",
+      "evidence_basis": "AUTHORITY_BOUNDARY constant",
+      "notes": "Only documentation_read_model_sqlite_only may be true."
+    },
+    {
+      "allowed": "false",
+      "blocked": "true",
+      "boundary_id": "browser_coupa_bank_access_allowed",
+      "boundary_name": "browser coupa bank access allowed",
+      "evidence_basis": "AUTHORITY_BOUNDARY constant",
+      "notes": "Only documentation_read_model_sqlite_only may be true."
+    },
+    {
+      "allowed": "false",
+      "blocked": "true",
+      "boundary_id": "workbook_pdf_ledger_invoice_mutation_allowed",
+      "boundary_name": "workbook pdf ledger invoice mutation allowed",
+      "evidence_basis": "AUTHORITY_BOUNDARY constant",
+      "notes": "Only documentation_read_model_sqlite_only may be true."
+    },
+    {
+      "allowed": "false",
+      "blocked": "true",
+      "boundary_id": "confirmed_reference_data_mutation_allowed",
+      "boundary_name": "confirmed reference data mutation allowed",
+      "evidence_basis": "AUTHORITY_BOUNDARY constant",
+      "notes": "Only documentation_read_model_sqlite_only may be true."
+    },
+    {
+      "allowed": "false",
+      "blocked": "true",
+      "boundary_id": "daw_media_session_mutation_allowed",
+      "boundary_name": "daw media session mutation allowed",
+      "evidence_basis": "AUTHORITY_BOUNDARY constant",
+      "notes": "Only documentation_read_model_sqlite_only may be true."
+    },
+    {
+      "allowed": "false",
+      "blocked": "true",
+      "boundary_id": "live_model_invocation_allowed",
+      "boundary_name": "live model invocation allowed",
+      "evidence_basis": "AUTHORITY_BOUNDARY constant",
+      "notes": "Only documentation_read_model_sqlite_only may be true."
+    },
+    {
+      "allowed": "false",
+      "blocked": "true",
+      "boundary_id": "guardian_approval_bypass_allowed",
+      "boundary_name": "guardian approval bypass allowed",
+      "evidence_basis": "AUTHORITY_BOUNDARY constant",
+      "notes": "Only documentation_read_model_sqlite_only may be true."
+    },
+    {
+      "allowed": "false",
+      "blocked": "true",
+      "boundary_id": "git_push_or_merge_allowed",
+      "boundary_name": "git push or merge allowed",
+      "evidence_basis": "AUTHORITY_BOUNDARY constant",
+      "notes": "Only documentation_read_model_sqlite_only may be true."
+    },
+    {
+      "allowed": "false",
+      "blocked": "true",
+      "boundary_id": "hermes_start_allowed",
+      "boundary_name": "hermes start allowed",
+      "evidence_basis": "AUTHORITY_BOUNDARY constant",
+      "notes": "Only documentation_read_model_sqlite_only may be true."
+    },
+    {
+      "allowed": "false",
+      "blocked": "true",
+      "boundary_id": "niles_daw_daemon_start_allowed",
+      "boundary_name": "niles daw daemon start allowed",
+      "evidence_basis": "AUTHORITY_BOUNDARY constant",
+      "notes": "Only documentation_read_model_sqlite_only may be true."
+    }
+  ],
+  "authority_boundary": {
+    "browser_coupa_bank_access_allowed": false,
+    "confirmed_reference_data_mutation_allowed": false,
+    "daw_media_session_mutation_allowed": false,
+    "documentation_read_model_sqlite_only": true,
+    "email_gmail_send_or_draft_allowed": false,
+    "git_push_or_merge_allowed": false,
+    "guardian_approval_bypass_allowed": false,
+    "hermes_start_allowed": false,
+    "live_automation_granted": false,
+    "live_model_invocation_allowed": false,
+    "niles_daw_daemon_start_allowed": false,
+    "runtime_service_mutation_allowed": false,
+    "workbook_pdf_ledger_invoice_mutation_allowed": false
+  },
+  "build_tasks": [
+    {
+      "boundary": "Mac applies patch and runs local validation; no PC push.",
+      "owner_lane": "Mac Codex",
+      "rationale": "PC cannot push due CONNECT tunnel 403; Mac should apply and push if validation passes.",
+      "status": "ready_for_mac_apply",
+      "task_id": "task_verify_mac_patch_apply",
+      "task_rank": 1,
+      "title": "Apply and validate registry patch on Mac"
+    },
+    {
+      "boundary": "No provisional answer becomes runtime truth automatically.",
+      "owner_lane": "Cassandra / Codex",
+      "rationale": "Hydration is blocked until confirmed reference data exists.",
+      "status": "blocked_until_operator_confirmation",
+      "task_id": "task_promote_confirmed_reference_data",
+      "task_rank": 2,
+      "title": "Promote confirmed Data Room reference answers"
+    },
+    {
+      "boundary": "No external model call without explicit approved adapter and receipts.",
+      "owner_lane": "Hermes / Guardian",
+      "rationale": "Manual form-fill package is ready, but live adapter claims must fail closed.",
+      "status": "future_gated",
+      "task_id": "task_live_chatgpt_adapter_readiness",
+      "task_rank": 3,
+      "title": "Prove or reject live ChatGPT 5.5 advisory adapter"
+    },
+    {
+      "boundary": "Registry does not run sync or Mac jobs.",
+      "owner_lane": "PC/Mac Sync",
+      "rationale": "Map import was explicitly separate from read-model sync repair.",
+      "status": "separate_lane_required",
+      "task_id": "task_map_import_gap",
+      "task_rank": 4,
+      "title": "Resolve Mac map import gap separately"
+    },
+    {
+      "boundary": "No voice fix or daemon start here.",
+      "owner_lane": "Cassandra",
+      "rationale": "Text route is canonical and voice side effects should not block core operator workflows.",
+      "status": "known_caveat",
+      "task_id": "task_voice_caveat",
+      "task_rank": 5,
+      "title": "Keep voice/Kokoro caveat separate"
+    }
+  ],
+  "capabilities": [
+    {
+      "boundary": "authoritative=false; runtime_policy_changed=false; promotion later",
+      "capability_id": "capability_guided_review",
+      "capability_name": "Provisional guided review with coach explanation",
+      "component_id": "guided_review_coach",
+      "evidence_basis": "cassandra_guided_review.py and cassandra_review_coach.py",
+      "evidence_status": "CONFIRMED_LOCAL"
+    },
+    {
+      "boundary": "manual handoff only; no live model call by registry",
+      "capability_id": "capability_form_fill_prompt",
+      "capability_name": "Redacted manual ChatGPT 5.5 form-fill prompt",
+      "component_id": "data_room_form_fill_lane",
+      "evidence_basis": "data_room_form_fill_package.py",
+      "evidence_status": "CONFIRMED_LOCAL"
+    },
+    {
+      "boundary": "local receipt only; no protected business action",
+      "capability_id": "capability_operator_intake",
+      "capability_name": "Local operator intake classification and receipts",
+      "component_id": "universal_intake",
+      "evidence_basis": "operator_universal_intake.py",
+      "evidence_status": "CONFIRMED_LOCAL"
+    },
+    {
+      "boundary": "no worker/model/API call unless separately approved",
+      "capability_id": "capability_worker_lifecycle",
+      "capability_name": "Worker package dispatch/claim/ingest lifecycle",
+      "component_id": "worker_run_manager",
+      "evidence_basis": "worker_run_manager.py and scripts/openclaw_run.py",
+      "evidence_status": "CONFIRMED_LOCAL"
+    },
+    {
+      "boundary": "copy intended artifacts only; no secret path export",
+      "capability_id": "capability_artifact_export",
+      "capability_name": "Operator-openable artifact copy and manifest",
+      "component_id": "artifact_link_normalizer",
+      "evidence_basis": "scripts/operator_artifact_link_normalizer.py",
+      "evidence_status": "CONFIRMED_LOCAL"
+    }
+  ],
+  "component_inventory": [
+    {
+      "authority_boundary": "Cassandra must not send email, create drafts, mutate business systems, create approvals, or promote reference data without separate gates.",
+      "component_id": "cassandra",
+      "component_type": "operator_agent",
+      "display_name": "Cassandra",
+      "evidence_paths": [
+        "cassandra_listener.py",
+        "cassandra_brain.py",
+        "cassandra_guided_review.py",
+        ".claude/commands/cassandra.md"
+      ],
+      "evidence_status": "CONFIRMED_LOCAL",
+      "summary": "Cassandra owns operator communications, guided review, universal intake surfaces, and exact-send request state."
+    },
+    {
+      "authority_boundary": "Chief records and routes; it does not bypass Guardian, push, merge, or execute protected business actions.",
+      "component_id": "chief",
+      "component_type": "operator_agent",
+      "display_name": "Chief",
+      "evidence_paths": [
+        "chief_router.py",
+        "chief_listener.py",
+        "chief_ops_brain.py"
+      ],
+      "evidence_status": "CONFIRMED_LOCAL",
+      "summary": "Chief coordinates system status, diagnostics, routing, and operator-facing build/readiness work."
+    },
+    {
+      "authority_boundary": "Guardian approves or denies; it does not execute business logic or mutate protected systems.",
+      "component_id": "guardian",
+      "component_type": "safety_agent",
+      "display_name": "Guardian",
+      "evidence_paths": [
+        "guardian_protected_access_gate_spec.py",
+        "chief_guardian_listener.py",
+        "hitl_action_service.py"
+      ],
+      "evidence_status": "CONFIRMED_LOCAL",
+      "summary": "Guardian is the approval and protected-action boundary for high-risk requests."
+    },
+    {
+      "authority_boundary": "No Niles DAW daemon or media/session mutation is authorized by this registry.",
+      "component_id": "niles",
+      "component_type": "creative_lane",
+      "display_name": "Niles",
+      "evidence_paths": [
+        ".claude/commands/niles.md",
+        "agent_lane_registry.py",
+        "niles_album_metadata_intake_packet.py"
+      ],
+      "evidence_status": "CONFIRMED_LOCAL_LOGICAL",
+      "summary": "Niles is a logical/spawned creative lane for music and album context."
+    },
+    {
+      "authority_boundary": "Hermes remains unsafe_to_start here; no generic sidecar launch is authorized.",
+      "component_id": "hermes",
+      "component_type": "architecture_lane",
+      "display_name": "Hermes",
+      "evidence_paths": [
+        ".claude/commands/hermes.md",
+        "openclaw_hermes_sidecar.py",
+        "tool_protocol_adapter_registry_contract.py"
+      ],
+      "evidence_status": "CONFIRMED_LOCAL_BOUNDARY",
+      "summary": "Hermes is an architecture and adapter-boundary lane with sidecar planning artifacts."
+    },
+    {
+      "authority_boundary": "Display and triage only; no automatic execution authority.",
+      "component_id": "watch_desk",
+      "component_type": "operator_display",
+      "display_name": "Watch Desk",
+      "evidence_paths": [
+        "watch_desk_feed.py",
+        "generated/read_models/watch_desk_feed.json"
+      ],
+      "evidence_status": "CONFIRMED_LOCAL",
+      "summary": "Watch Desk projects current operator-facing items from read models and receipts."
+    },
+    {
+      "authority_boundary": "Local receipt/intake only; no invoice paid marking, email send, or ledger/workbook mutation.",
+      "component_id": "universal_intake",
+      "component_type": "intake_router",
+      "display_name": "Universal Operator Intake",
+      "evidence_paths": [
+        "operator_universal_intake.py",
+        "operator_intake_events.py",
+        "generated/read_models/operator_intake_events.json"
+      ],
+      "evidence_status": "CONFIRMED_LOCAL",
+      "summary": "Universal Intake classifies local operator messages into income, expense, gig, identity, lane, and approval-gated request records."
+    },
+    {
+      "authority_boundary": "Context routing is not authority to answer stale questions or mutate unrelated lanes.",
+      "component_id": "context_switchboard",
+      "component_type": "context_router",
+      "display_name": "Operator Context Switchboard",
+      "evidence_paths": [
+        "operator_context_switchboard.py",
+        "generated/read_models/operator_active_contexts.json",
+        "cassandra_brain.py"
+      ],
+      "evidence_status": "CONFIRMED_LOCAL",
+      "summary": "Context Switchboard maintains active/resumable operator contexts and protects lane switching."
+    },
+    {
+      "authority_boundary": "Review sessions remain authoritative=false and runtime_policy_changed=false until later promotion.",
+      "component_id": "guided_review_coach",
+      "component_type": "review_system",
+      "display_name": "Guided Review / Coach Mode",
+      "evidence_paths": [
+        "cassandra_guided_review.py",
+        "cassandra_review_coach.py",
+        "cassandra_review_coach_packs.py"
+      ],
+      "evidence_status": "CONFIRMED_LOCAL",
+      "summary": "Guided Review and Coach Mode run provisional Data Room review sessions with explanatory coach replies."
+    },
+    {
+      "authority_boundary": "Manual handoff only unless a separate live adapter is verified; model text advises and OpenClaw records only confirmed provisional answers.",
+      "component_id": "data_room_form_fill_lane",
+      "component_type": "manual_model_handoff",
+      "display_name": "Data Room form-fill lane",
+      "evidence_paths": [
+        "data_room_form_fill_package.py",
+        "tests/test_data_room_form_fill_package.py"
+      ],
+      "evidence_status": "CONFIRMED_LOCAL",
+      "summary": "Packages the Data Room review as a redacted form and paste-ready manual ChatGPT 5.5 prompt."
+    },
+    {
+      "authority_boundary": "No model/package output directly mutates runtime or protected state.",
+      "component_id": "model_work_package_router",
+      "component_type": "work_package_router",
+      "display_name": "Model Work Package Router",
+      "evidence_paths": [
+        "model_work_package_router.py",
+        "tests/test_model_work_package_router.py"
+      ],
+      "evidence_status": "CONFIRMED_LOCAL",
+      "summary": "Routes model/work packages through bounded metadata and permission boundaries."
+    },
+    {
+      "authority_boundary": "READY requires proof; parking lot and Watch Desk are status surfaces, not authority grants.",
+      "component_id": "assignment_loop_contract",
+      "component_type": "worker_contract",
+      "display_name": "Assignment Loop Contract",
+      "evidence_paths": [
+        "assignment_loop_contract.py",
+        "tests/test_assignment_loop_contract.py"
+      ],
+      "evidence_status": "CONFIRMED_LOCAL",
+      "summary": "Defines bounded worker assignments with goal, sources, standard, proof, permissions, and stop conditions."
+    },
+    {
+      "authority_boundary": "Lifecycle bookkeeping only unless a separate worker execution is explicitly approved.",
+      "component_id": "worker_run_manager",
+      "component_type": "worker_lifecycle",
+      "display_name": "Worker Run Manager",
+      "evidence_paths": [
+        "scripts/openclaw_run.py",
+        "worker_run_manager.py",
+        "tests/test_codex_work_package_lifecycle.py"
+      ],
+      "evidence_status": "CONFIRMED_LOCAL",
+      "summary": "Manages package lifecycle, dispatch claims, ingest records, and package read models without calling external workers."
+    },
+    {
+      "authority_boundary": "Blocked until confirmed reference data exists; no provisional review answer is runtime truth.",
+      "component_id": "reference_data_hydration",
+      "component_type": "data_room_pipeline",
+      "display_name": "Reference Data Hydration",
+      "evidence_paths": [
+        "reference_data_hydration.py",
+        "generated/read_models/reference_data_hydration_status.json"
+      ],
+      "evidence_status": "CONFIRMED_BLOCKED_UNTIL_CONFIRMED_DATA",
+      "summary": "Hydrates confirmed Data Room reference data when confirmed data exists."
+    },
+    {
+      "authority_boundary": "Copies only intended artifacts; refuses secret-looking paths and never moves originals.",
+      "component_id": "artifact_link_normalizer",
+      "component_type": "operator_artifact_export",
+      "display_name": "Artifact Link Normalizer",
+      "evidence_paths": [
+        "scripts/operator_artifact_link_normalizer.py",
+        "docs/operator_artifact_links.md",
+        "tests/test_operator_artifact_link_normalizer.py"
+      ],
+      "evidence_status": "CONFIRMED_LOCAL",
+      "summary": "Copies intended operator-facing artifacts to Windows-openable report folders and writes manifests."
+    },
+    {
+      "authority_boundary": "Registry does not sync, copy, delete, quarantine, import maps, or start Mac jobs.",
+      "component_id": "pc_mac_sync",
+      "component_type": "sync_boundary",
+      "display_name": "PC/Mac Sync",
+      "evidence_paths": [
+        "read_model_shuttle.py",
+        "generated/read_models/sync_health.json",
+        "/mnt/e/openclaw/mac_generated_read_models_manifest.json"
+      ],
+      "evidence_status": "PARTIAL_LOCAL",
+      "summary": "Tracks read-model shuttle and PC/Mac generated artifact sync posture."
+    },
+    {
+      "authority_boundary": "No paid marking, ledger posting, workbook mutation, Coupa/browser/Gmail access, or submit action is authorized.",
+      "component_id": "invoice_ledger_discovery",
+      "component_type": "finance_boundary",
+      "display_name": "Invoice/Ledger discovery",
+      "evidence_paths": [
+        "capital_hilton_*",
+        "proof_to_response_runtime.py",
+        "operator_controller_event_router.py"
+      ],
+      "evidence_status": "CONFIRMED_LOCAL_BOUNDARY",
+      "summary": "Finance routes can explain proof state, payment watch, and candidate evidence posture."
+    },
+    {
+      "authority_boundary": "Registry does not fix, start, or depend on voice playback.",
+      "component_id": "voice_kokoro_caveat",
+      "component_type": "voice_side_effect",
+      "display_name": "Voice/Kokoro caveat",
+      "evidence_paths": [
+        "cassandra_voice.py",
+        "cassandra_listener.py",
+        "/mnt/c/OpenClaw/logs/cassandra_listener.out"
+      ],
+      "evidence_status": "CONFIRMED_DEGRADED_OR_NONCANONICAL",
+      "summary": "Voice/Kokoro may be degraded or side-effect-only; text route is canonical."
+    }
+  ],
+  "coverage_assessment": {
+    "build_task_count": 5,
+    "component_count": 18,
+    "covered_high_level_areas": [
+      "Cassandra",
+      "Chief",
+      "Guardian",
+      "Niles",
+      "Hermes",
+      "Watch Desk",
+      "Universal Intake",
+      "Context Switchboard",
+      "Guided Review / Coach Mode",
+      "Data Room form-fill lane",
+      "Model Work Package Router",
+      "Assignment Loop Contract",
+      "Worker Run Manager",
+      "Reference Data Hydration",
+      "Artifact Link Normalizer",
+      "PC/Mac Sync",
+      "Invoice/Ledger discovery",
+      "Voice/Kokoro caveat"
+    ],
+    "known_unknown_count": 6,
+    "seeded_component_ids": [
+      "cassandra",
+      "chief",
+      "guardian",
+      "niles",
+      "hermes",
+      "watch_desk",
+      "universal_intake",
+      "context_switchboard",
+      "guided_review_coach",
+      "data_room_form_fill_lane",
+      "model_work_package_router",
+      "assignment_loop_contract",
+      "worker_run_manager",
+      "reference_data_hydration",
+      "artifact_link_normalizer",
+      "pc_mac_sync",
+      "invoice_ledger_discovery",
+      "voice_kokoro_caveat"
+    ]
+  },
+  "current_safety_posture": [
+    {
+      "evidence_basis": "standard-library local file/sqlite exporter only",
+      "next_safe_action": "Keep network/push on Mac apply task, not PC export task.",
+      "operator_summary": "Registry exporter writes local artifacts only.",
+      "posture_id": "posture_no_external_calls",
+      "posture_name": "No external calls",
+      "state": "enforced_by_design"
+    },
+    {
+      "evidence_basis": "authority boundary false flags and tests",
+      "next_safe_action": "Use separate Guardian/operator approval lanes for protected actions.",
+      "operator_summary": "Registry output cannot authorize model, tool, runtime, finance, or business action.",
+      "posture_id": "posture_no_live_grants",
+      "posture_name": "No live action grants",
+      "state": "closed"
+    }
+  ],
+  "current_status": "OPENCLAW_SYSTEM_KNOWLEDGE_REGISTRY_REBUILT",
+  "generated_at": "2026-06-13T00:00:00+00:00",
+  "generated_outputs": {
+    "json": "generated/read_models/openclaw_system_knowledge_registry.json",
+    "operator_markdown": "generated/read_models/openclaw_system_knowledge_registry_OPERATOR.md",
+    "schema_sql": "generated/system_knowledge/openclaw_system_knowledge_registry_SCHEMA.sql",
+    "seed_sql": "generated/system_knowledge/openclaw_system_knowledge_registry_SEED.sql",
+    "sqlite": "generated/system_knowledge/openclaw_system_knowledge_registry.sqlite"
+  },
+  "knowledge_claims": [
+    {
+      "claim": "Models advise; OpenClaw records deterministic state after validation and confirmation.",
+      "claim_id": "claim_models_advise_openclaw_records",
+      "confidence": "high",
+      "evidence_paths": [
+        "data_room_form_fill_package.py",
+        "proof_to_response_runtime.py"
+      ],
+      "evidence_status": "CONFIRMED_LOCAL_DOCTRINE",
+      "subject": "Model authority"
+    },
+    {
+      "claim": "Guardian approval remains separate from business execution and cannot be bypassed by registry output.",
+      "claim_id": "claim_guardian_approval_boundary",
+      "confidence": "high",
+      "evidence_paths": [
+        "guardian_protected_access_gate_spec.py",
+        "hitl_action_service.py"
+      ],
+      "evidence_status": "CONFIRMED_LOCAL_DOCTRINE",
+      "subject": "Guardian"
+    },
+    {
+      "claim": "Guided review and form-fill outputs are provisional until a later promotion/hydration lane runs.",
+      "claim_id": "claim_reference_data_not_confirmed_by_review",
+      "confidence": "high",
+      "evidence_paths": [
+        "cassandra_guided_review.py",
+        "reference_data_hydration.py"
+      ],
+      "evidence_status": "CONFIRMED_LOCAL",
+      "subject": "Data Room"
+    },
+    {
+      "claim": "Text route is canonical; voice/Kokoro can degrade without blocking text operation.",
+      "claim_id": "claim_text_route_canonical",
+      "confidence": "medium",
+      "evidence_paths": [
+        "cassandra_listener.py",
+        "cassandra_voice.py"
+      ],
+      "evidence_status": "CONFIRMED_LOCAL_CAVEAT",
+      "subject": "Cassandra voice"
+    }
+  ],
+  "known_unknowns": [
+    {
+      "next_safe_check": "Use this rebuilt branch/patch as the review source unless the original commit is later restored.",
+      "reason": "Commit c5b83f6cda91daf25b95367e6d94e0d8890ffea3, branch, and patch were not found locally.",
+      "subject": "Reported local registry commit",
+      "unknown_id": "unknown_missing_prior_commit",
+      "unknown_status": "UNKNOWN_UNREACHABLE"
+    },
+    {
+      "next_safe_check": "Build a separate approved adapter readiness lane before claiming a live ChatGPT brain.",
+      "reason": "Current form-fill lane can package manual prompts; no verified live ChatGPT 5.5 adapter is proven by this registry.",
+      "subject": "Live ChatGPT 5.5 advisory path",
+      "unknown_id": "unknown_live_chatgpt55_adapter",
+      "unknown_status": "NOT_VERIFIED_AS_LIVE_ADAPTER"
+    },
+    {
+      "next_safe_check": "Create or run mac_map_import_agent in a separate sync lane.",
+      "reason": "Prior sync verification separated map import gap from read-model sync.",
+      "subject": "Mac stable map import",
+      "unknown_id": "unknown_mac_map_import_agent",
+      "unknown_status": "KNOWN_GAP"
+    },
+    {
+      "next_safe_check": "Run a separate promotion task over confirmed guided-review answers.",
+      "reason": "Hydration waits for confirmed reference data; this registry does not create it.",
+      "subject": "Confirmed reference data",
+      "unknown_id": "unknown_confirmed_reference_data",
+      "unknown_status": "BLOCKING_ABSENCE_OR_NOT_CONFIRMED_HERE"
+    },
+    {
+      "next_safe_check": "Use a verify-only runtime readiness lane if service freshness matters.",
+      "reason": "Task prohibits runtime service mutation; registry does not assert current daemon freshness.",
+      "subject": "Runtime service state",
+      "unknown_id": "unknown_runtime_service_freshness",
+      "unknown_status": "OUT_OF_SCOPE"
+    },
+    {
+      "next_safe_check": "Use redacted proof-bundle and evidence-intake lanes with explicit permission.",
+      "reason": "Registry does not inspect raw private finance documents, ledgers, workbooks, bank records, or portal data.",
+      "subject": "Private finance proofs",
+      "unknown_id": "unknown_private_finance_truth",
+      "unknown_status": "BLOCKED_BY_BOUNDARY"
+    }
+  ],
+  "no_external_calls": true,
+  "no_live_action_grants": true,
+  "no_runtime_mutation": true,
+  "no_secrets": true,
+  "registry_id": "openclaw_system_knowledge_registry",
+  "registry_name": "OpenClaw System Knowledge Registry",
+  "repo": {
+    "local_path": "/home/openclaw",
+    "rebuild_reason": "reported commit and patch were unavailable in this PC checkout",
+    "target_branch": "codex/system-knowledge-registry-v0",
+    "target_repo": "WinshipWheatley/openclaw-eyes"
+  },
+  "required_sqlite_tables": [
+    "system_component",
+    "capability",
+    "workflow_rail",
+    "knowledge_claim",
+    "known_unknown",
+    "build_task",
+    "agent_role",
+    "artifact_policy",
+    "authority_boundary",
+    "safety_posture"
+  ],
+  "required_tables": [
+    "system_component",
+    "capability",
+    "workflow_rail",
+    "knowledge_claim",
+    "known_unknown",
+    "build_task",
+    "agent_role",
+    "artifact_policy",
+    "authority_boundary",
+    "safety_posture"
+  ],
+  "safety_assertions": {
+    "no_external_calls": true,
+    "no_live_action_grants": true,
+    "no_runtime_mutation": true,
+    "no_secrets": true
+  },
+  "schema_version": "openclaw_system_knowledge_registry_v0",
+  "source_audit": {
+    "checked_path_count": 44,
+    "missing_checked_paths": [
+      "generated/read_models/reference_data_hydration_status.json",
+      "operator_intake_events.py",
+      "reference_data_hydration.py",
+      "worker_run_manager.py"
+    ],
+    "path_check_note": "Absolute paths and wildcard evidence are recorded but not file-existence checked.",
+    "repo_root": "/home/openclaw"
+  },
+  "sqlite_contract": {
+    "explicit_sqlite_internal_tables_defined": false,
+    "required_tables": [
+      "system_component",
+      "capability",
+      "workflow_rail",
+      "knowledge_claim",
+      "known_unknown",
+      "build_task",
+      "agent_role",
+      "artifact_policy",
+      "authority_boundary",
+      "safety_posture"
+    ],
+    "sqlite_table_prefix_rule": "Registry schema must not explicitly define sqlite_* tables."
+  },
+  "workflow_rails": [
+    {
+      "boundary": "answers are provisional pending promotion",
+      "component_id": "guided_review_coach",
+      "evidence_basis": "guided_review_sessions read model and Cassandra guided review code",
+      "evidence_status": "CONFIRMED_LOCAL",
+      "rail_name": "Data Room provisional guided review",
+      "workflow_id": "rail_data_room_review"
+    },
+    {
+      "boundary": "external model response is candidate text, not truth",
+      "component_id": "data_room_form_fill_lane",
+      "evidence_basis": "package/prompt/state artifacts",
+      "evidence_status": "CONFIRMED_LOCAL",
+      "rail_name": "Manual ChatGPT 5.5 Data Room form-fill handoff",
+      "workflow_id": "rail_data_room_form_fill"
+    },
+    {
+      "boundary": "explain/attach proof only; no mark paid or ledger mutation",
+      "component_id": "invoice_ledger_discovery",
+      "evidence_basis": "proof_to_response_runtime.py and controller event router status",
+      "evidence_status": "CONFIRMED_LOCAL_BOUNDARY",
+      "rail_name": "Finance payment watch proof-to-response",
+      "workflow_id": "rail_payment_watch"
+    },
+    {
+      "boundary": "no READY without proof and receipts",
+      "component_id": "assignment_loop_contract",
+      "evidence_basis": "assignment_loop_contract.py",
+      "evidence_status": "CONFIRMED_LOCAL",
+      "rail_name": "Bounded assignment lifecycle",
+      "workflow_id": "rail_assignment_loop"
+    }
+  ]
+}

@@ -1,0 +1,956 @@
+"""OpenClaw System Knowledge Registry v0.
+
+This registry is an inert documentation/read-model/SQLite surface for the
+current local OpenClaw repo. It records safely discoverable components,
+boundaries, unknowns, and build tasks. It does not call external services,
+start runtimes, inspect credentials, mutate business records, or grant
+authority.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sqlite3
+import sys
+import tempfile
+from pathlib import Path
+from typing import Any
+
+
+ROOT = Path(__file__).resolve().parent
+READ_MODEL_ID = "openclaw_system_knowledge_registry"
+SCHEMA_VERSION = "openclaw_system_knowledge_registry_v0"
+REGISTRY_NAME = "OpenClaw System Knowledge Registry"
+DEFAULT_GENERATED_AT = "2026-06-13T00:00:00+00:00"
+
+READ_MODEL_DIR = Path("generated/read_models")
+SYSTEM_KNOWLEDGE_DIR = Path("generated/system_knowledge")
+JSON_EXPORT_NAME = f"{READ_MODEL_ID}.json"
+OPERATOR_EXPORT_NAME = f"{READ_MODEL_ID}_OPERATOR.md"
+SQLITE_EXPORT_NAME = f"{READ_MODEL_ID}.sqlite"
+SCHEMA_SQL_EXPORT_NAME = f"{READ_MODEL_ID}_SCHEMA.sql"
+SEED_SQL_EXPORT_NAME = f"{READ_MODEL_ID}_SEED.sql"
+
+REQUIRED_TABLES = (
+    "system_component",
+    "capability",
+    "workflow_rail",
+    "knowledge_claim",
+    "known_unknown",
+    "build_task",
+    "agent_role",
+    "artifact_policy",
+    "authority_boundary",
+    "safety_posture",
+)
+
+TABLE_COLUMNS: dict[str, tuple[str, ...]] = {
+    "system_component": (
+        "component_id",
+        "display_name",
+        "component_type",
+        "evidence_status",
+        "evidence_paths_json",
+        "summary",
+        "authority_boundary",
+    ),
+    "capability": (
+        "capability_id",
+        "component_id",
+        "capability_name",
+        "evidence_status",
+        "evidence_basis",
+        "boundary",
+    ),
+    "workflow_rail": (
+        "workflow_id",
+        "component_id",
+        "rail_name",
+        "evidence_status",
+        "evidence_basis",
+        "boundary",
+    ),
+    "knowledge_claim": (
+        "claim_id",
+        "subject",
+        "claim",
+        "evidence_status",
+        "evidence_paths_json",
+        "confidence",
+    ),
+    "known_unknown": (
+        "unknown_id",
+        "subject",
+        "unknown_status",
+        "reason",
+        "next_safe_check",
+    ),
+    "build_task": (
+        "task_id",
+        "task_rank",
+        "title",
+        "owner_lane",
+        "rationale",
+        "status",
+        "boundary",
+    ),
+    "agent_role": (
+        "role_id",
+        "agent_name",
+        "role_summary",
+        "evidence_status",
+        "evidence_paths_json",
+        "authority_notes",
+    ),
+    "artifact_policy": (
+        "policy_id",
+        "artifact_name",
+        "allowed_surfaces",
+        "blocked_actions",
+        "evidence_basis",
+        "evidence_status",
+    ),
+    "authority_boundary": (
+        "boundary_id",
+        "boundary_name",
+        "allowed",
+        "blocked",
+        "evidence_basis",
+        "notes",
+    ),
+    "safety_posture": (
+        "posture_id",
+        "posture_name",
+        "state",
+        "evidence_basis",
+        "operator_summary",
+        "next_safe_action",
+    ),
+}
+
+AUTHORITY_BOUNDARY = {
+    "documentation_read_model_sqlite_only": True,
+    "live_automation_granted": False,
+    "runtime_service_mutation_allowed": False,
+    "email_gmail_send_or_draft_allowed": False,
+    "browser_coupa_bank_access_allowed": False,
+    "workbook_pdf_ledger_invoice_mutation_allowed": False,
+    "confirmed_reference_data_mutation_allowed": False,
+    "daw_media_session_mutation_allowed": False,
+    "live_model_invocation_allowed": False,
+    "guardian_approval_bypass_allowed": False,
+    "git_push_or_merge_allowed": False,
+    "hermes_start_allowed": False,
+    "niles_daw_daemon_start_allowed": False,
+}
+
+
+def _component(
+    component_id: str,
+    display_name: str,
+    component_type: str,
+    evidence_status: str,
+    evidence_paths: list[str],
+    summary: str,
+    authority_boundary: str,
+) -> dict[str, Any]:
+    return {
+        "component_id": component_id,
+        "display_name": display_name,
+        "component_type": component_type,
+        "evidence_status": evidence_status,
+        "evidence_paths": evidence_paths,
+        "summary": summary,
+        "authority_boundary": authority_boundary,
+    }
+
+
+COMPONENTS: tuple[dict[str, Any], ...] = (
+    _component(
+        "cassandra",
+        "Cassandra",
+        "operator_agent",
+        "CONFIRMED_LOCAL",
+        [
+            "cassandra_listener.py",
+            "cassandra_brain.py",
+            "cassandra_guided_review.py",
+            ".claude/commands/cassandra.md",
+        ],
+        "Cassandra owns operator communications, guided review, universal intake surfaces, and exact-send request state.",
+        "Cassandra must not send email, create drafts, mutate business systems, create approvals, or promote reference data without separate gates.",
+    ),
+    _component(
+        "chief",
+        "Chief",
+        "operator_agent",
+        "CONFIRMED_LOCAL",
+        ["chief_router.py", "chief_listener.py", "chief_ops_brain.py"],
+        "Chief coordinates system status, diagnostics, routing, and operator-facing build/readiness work.",
+        "Chief records and routes; it does not bypass Guardian, push, merge, or execute protected business actions.",
+    ),
+    _component(
+        "guardian",
+        "Guardian",
+        "safety_agent",
+        "CONFIRMED_LOCAL",
+        ["guardian_protected_access_gate_spec.py", "chief_guardian_listener.py", "hitl_action_service.py"],
+        "Guardian is the approval and protected-action boundary for high-risk requests.",
+        "Guardian approves or denies; it does not execute business logic or mutate protected systems.",
+    ),
+    _component(
+        "niles",
+        "Niles",
+        "creative_lane",
+        "CONFIRMED_LOCAL_LOGICAL",
+        [".claude/commands/niles.md", "agent_lane_registry.py", "niles_album_metadata_intake_packet.py"],
+        "Niles is a logical/spawned creative lane for music and album context.",
+        "No Niles DAW daemon or media/session mutation is authorized by this registry.",
+    ),
+    _component(
+        "hermes",
+        "Hermes",
+        "architecture_lane",
+        "CONFIRMED_LOCAL_BOUNDARY",
+        [".claude/commands/hermes.md", "openclaw_hermes_sidecar.py", "tool_protocol_adapter_registry_contract.py"],
+        "Hermes is an architecture and adapter-boundary lane with sidecar planning artifacts.",
+        "Hermes remains unsafe_to_start here; no generic sidecar launch is authorized.",
+    ),
+    _component(
+        "watch_desk",
+        "Watch Desk",
+        "operator_display",
+        "CONFIRMED_LOCAL",
+        ["watch_desk_feed.py", "generated/read_models/watch_desk_feed.json"],
+        "Watch Desk projects current operator-facing items from read models and receipts.",
+        "Display and triage only; no automatic execution authority.",
+    ),
+    _component(
+        "universal_intake",
+        "Universal Operator Intake",
+        "intake_router",
+        "CONFIRMED_LOCAL",
+        ["operator_universal_intake.py", "operator_intake_events.py", "generated/read_models/operator_intake_events.json"],
+        "Universal Intake classifies local operator messages into income, expense, gig, identity, lane, and approval-gated request records.",
+        "Local receipt/intake only; no invoice paid marking, email send, or ledger/workbook mutation.",
+    ),
+    _component(
+        "context_switchboard",
+        "Operator Context Switchboard",
+        "context_router",
+        "CONFIRMED_LOCAL",
+        ["operator_context_switchboard.py", "generated/read_models/operator_active_contexts.json", "cassandra_brain.py"],
+        "Context Switchboard maintains active/resumable operator contexts and protects lane switching.",
+        "Context routing is not authority to answer stale questions or mutate unrelated lanes.",
+    ),
+    _component(
+        "guided_review_coach",
+        "Guided Review / Coach Mode",
+        "review_system",
+        "CONFIRMED_LOCAL",
+        ["cassandra_guided_review.py", "cassandra_review_coach.py", "cassandra_review_coach_packs.py"],
+        "Guided Review and Coach Mode run provisional Data Room review sessions with explanatory coach replies.",
+        "Review sessions remain authoritative=false and runtime_policy_changed=false until later promotion.",
+    ),
+    _component(
+        "data_room_form_fill_lane",
+        "Data Room form-fill lane",
+        "manual_model_handoff",
+        "CONFIRMED_LOCAL",
+        ["data_room_form_fill_package.py", "tests/test_data_room_form_fill_package.py"],
+        "Packages the Data Room review as a redacted form and paste-ready manual ChatGPT 5.5 prompt.",
+        "Manual handoff only unless a separate live adapter is verified; model text advises and OpenClaw records only confirmed provisional answers.",
+    ),
+    _component(
+        "model_work_package_router",
+        "Model Work Package Router",
+        "work_package_router",
+        "CONFIRMED_LOCAL",
+        ["model_work_package_router.py", "tests/test_model_work_package_router.py"],
+        "Routes model/work packages through bounded metadata and permission boundaries.",
+        "No model/package output directly mutates runtime or protected state.",
+    ),
+    _component(
+        "assignment_loop_contract",
+        "Assignment Loop Contract",
+        "worker_contract",
+        "CONFIRMED_LOCAL",
+        ["assignment_loop_contract.py", "tests/test_assignment_loop_contract.py"],
+        "Defines bounded worker assignments with goal, sources, standard, proof, permissions, and stop conditions.",
+        "READY requires proof; parking lot and Watch Desk are status surfaces, not authority grants.",
+    ),
+    _component(
+        "worker_run_manager",
+        "Worker Run Manager",
+        "worker_lifecycle",
+        "CONFIRMED_LOCAL",
+        ["scripts/openclaw_run.py", "worker_run_manager.py", "tests/test_codex_work_package_lifecycle.py"],
+        "Manages package lifecycle, dispatch claims, ingest records, and package read models without calling external workers.",
+        "Lifecycle bookkeeping only unless a separate worker execution is explicitly approved.",
+    ),
+    _component(
+        "reference_data_hydration",
+        "Reference Data Hydration",
+        "data_room_pipeline",
+        "CONFIRMED_BLOCKED_UNTIL_CONFIRMED_DATA",
+        ["reference_data_hydration.py", "generated/read_models/reference_data_hydration_status.json"],
+        "Hydrates confirmed Data Room reference data when confirmed data exists.",
+        "Blocked until confirmed reference data exists; no provisional review answer is runtime truth.",
+    ),
+    _component(
+        "artifact_link_normalizer",
+        "Artifact Link Normalizer",
+        "operator_artifact_export",
+        "CONFIRMED_LOCAL",
+        ["scripts/operator_artifact_link_normalizer.py", "docs/operator_artifact_links.md", "tests/test_operator_artifact_link_normalizer.py"],
+        "Copies intended operator-facing artifacts to Windows-openable report folders and writes manifests.",
+        "Copies only intended artifacts; refuses secret-looking paths and never moves originals.",
+    ),
+    _component(
+        "pc_mac_sync",
+        "PC/Mac Sync",
+        "sync_boundary",
+        "PARTIAL_LOCAL",
+        ["read_model_shuttle.py", "generated/read_models/sync_health.json", "/mnt/e/openclaw/mac_generated_read_models_manifest.json"],
+        "Tracks read-model shuttle and PC/Mac generated artifact sync posture.",
+        "Registry does not sync, copy, delete, quarantine, import maps, or start Mac jobs.",
+    ),
+    _component(
+        "invoice_ledger_discovery",
+        "Invoice/Ledger discovery",
+        "finance_boundary",
+        "CONFIRMED_LOCAL_BOUNDARY",
+        ["capital_hilton_*", "proof_to_response_runtime.py", "operator_controller_event_router.py"],
+        "Finance routes can explain proof state, payment watch, and candidate evidence posture.",
+        "No paid marking, ledger posting, workbook mutation, Coupa/browser/Gmail access, or submit action is authorized.",
+    ),
+    _component(
+        "voice_kokoro_caveat",
+        "Voice/Kokoro caveat",
+        "voice_side_effect",
+        "CONFIRMED_DEGRADED_OR_NONCANONICAL",
+        ["cassandra_voice.py", "cassandra_listener.py", "/mnt/c/OpenClaw/logs/cassandra_listener.out"],
+        "Voice/Kokoro may be degraded or side-effect-only; text route is canonical.",
+        "Registry does not fix, start, or depend on voice playback.",
+    ),
+)
+
+CAPABILITIES: tuple[dict[str, str], ...] = (
+    {
+        "capability_id": "capability_guided_review",
+        "component_id": "guided_review_coach",
+        "capability_name": "Provisional guided review with coach explanation",
+        "evidence_status": "CONFIRMED_LOCAL",
+        "evidence_basis": "cassandra_guided_review.py and cassandra_review_coach.py",
+        "boundary": "authoritative=false; runtime_policy_changed=false; promotion later",
+    },
+    {
+        "capability_id": "capability_form_fill_prompt",
+        "component_id": "data_room_form_fill_lane",
+        "capability_name": "Redacted manual ChatGPT 5.5 form-fill prompt",
+        "evidence_status": "CONFIRMED_LOCAL",
+        "evidence_basis": "data_room_form_fill_package.py",
+        "boundary": "manual handoff only; no live model call by registry",
+    },
+    {
+        "capability_id": "capability_operator_intake",
+        "component_id": "universal_intake",
+        "capability_name": "Local operator intake classification and receipts",
+        "evidence_status": "CONFIRMED_LOCAL",
+        "evidence_basis": "operator_universal_intake.py",
+        "boundary": "local receipt only; no protected business action",
+    },
+    {
+        "capability_id": "capability_worker_lifecycle",
+        "component_id": "worker_run_manager",
+        "capability_name": "Worker package dispatch/claim/ingest lifecycle",
+        "evidence_status": "CONFIRMED_LOCAL",
+        "evidence_basis": "worker_run_manager.py and scripts/openclaw_run.py",
+        "boundary": "no worker/model/API call unless separately approved",
+    },
+    {
+        "capability_id": "capability_artifact_export",
+        "component_id": "artifact_link_normalizer",
+        "capability_name": "Operator-openable artifact copy and manifest",
+        "evidence_status": "CONFIRMED_LOCAL",
+        "evidence_basis": "scripts/operator_artifact_link_normalizer.py",
+        "boundary": "copy intended artifacts only; no secret path export",
+    },
+)
+
+WORKFLOW_RAILS: tuple[dict[str, str], ...] = (
+    {
+        "workflow_id": "rail_data_room_review",
+        "component_id": "guided_review_coach",
+        "rail_name": "Data Room provisional guided review",
+        "evidence_status": "CONFIRMED_LOCAL",
+        "evidence_basis": "guided_review_sessions read model and Cassandra guided review code",
+        "boundary": "answers are provisional pending promotion",
+    },
+    {
+        "workflow_id": "rail_data_room_form_fill",
+        "component_id": "data_room_form_fill_lane",
+        "rail_name": "Manual ChatGPT 5.5 Data Room form-fill handoff",
+        "evidence_status": "CONFIRMED_LOCAL",
+        "evidence_basis": "package/prompt/state artifacts",
+        "boundary": "external model response is candidate text, not truth",
+    },
+    {
+        "workflow_id": "rail_payment_watch",
+        "component_id": "invoice_ledger_discovery",
+        "rail_name": "Finance payment watch proof-to-response",
+        "evidence_status": "CONFIRMED_LOCAL_BOUNDARY",
+        "evidence_basis": "proof_to_response_runtime.py and controller event router status",
+        "boundary": "explain/attach proof only; no mark paid or ledger mutation",
+    },
+    {
+        "workflow_id": "rail_assignment_loop",
+        "component_id": "assignment_loop_contract",
+        "rail_name": "Bounded assignment lifecycle",
+        "evidence_status": "CONFIRMED_LOCAL",
+        "evidence_basis": "assignment_loop_contract.py",
+        "boundary": "no READY without proof and receipts",
+    },
+)
+
+KNOWLEDGE_CLAIMS: tuple[dict[str, Any], ...] = (
+    {
+        "claim_id": "claim_models_advise_openclaw_records",
+        "subject": "Model authority",
+        "claim": "Models advise; OpenClaw records deterministic state after validation and confirmation.",
+        "evidence_status": "CONFIRMED_LOCAL_DOCTRINE",
+        "evidence_paths": ["data_room_form_fill_package.py", "proof_to_response_runtime.py"],
+        "confidence": "high",
+    },
+    {
+        "claim_id": "claim_guardian_approval_boundary",
+        "subject": "Guardian",
+        "claim": "Guardian approval remains separate from business execution and cannot be bypassed by registry output.",
+        "evidence_status": "CONFIRMED_LOCAL_DOCTRINE",
+        "evidence_paths": ["guardian_protected_access_gate_spec.py", "hitl_action_service.py"],
+        "confidence": "high",
+    },
+    {
+        "claim_id": "claim_reference_data_not_confirmed_by_review",
+        "subject": "Data Room",
+        "claim": "Guided review and form-fill outputs are provisional until a later promotion/hydration lane runs.",
+        "evidence_status": "CONFIRMED_LOCAL",
+        "evidence_paths": ["cassandra_guided_review.py", "reference_data_hydration.py"],
+        "confidence": "high",
+    },
+    {
+        "claim_id": "claim_text_route_canonical",
+        "subject": "Cassandra voice",
+        "claim": "Text route is canonical; voice/Kokoro can degrade without blocking text operation.",
+        "evidence_status": "CONFIRMED_LOCAL_CAVEAT",
+        "evidence_paths": ["cassandra_listener.py", "cassandra_voice.py"],
+        "confidence": "medium",
+    },
+)
+
+KNOWN_UNKNOWNS: tuple[dict[str, str], ...] = (
+    {
+        "unknown_id": "unknown_missing_prior_commit",
+        "subject": "Reported local registry commit",
+        "unknown_status": "UNKNOWN_UNREACHABLE",
+        "reason": "Commit c5b83f6cda91daf25b95367e6d94e0d8890ffea3, branch, and patch were not found locally.",
+        "next_safe_check": "Use this rebuilt branch/patch as the review source unless the original commit is later restored.",
+    },
+    {
+        "unknown_id": "unknown_live_chatgpt55_adapter",
+        "subject": "Live ChatGPT 5.5 advisory path",
+        "unknown_status": "NOT_VERIFIED_AS_LIVE_ADAPTER",
+        "reason": "Current form-fill lane can package manual prompts; no verified live ChatGPT 5.5 adapter is proven by this registry.",
+        "next_safe_check": "Build a separate approved adapter readiness lane before claiming a live ChatGPT brain.",
+    },
+    {
+        "unknown_id": "unknown_mac_map_import_agent",
+        "subject": "Mac stable map import",
+        "unknown_status": "KNOWN_GAP",
+        "reason": "Prior sync verification separated map import gap from read-model sync.",
+        "next_safe_check": "Create or run mac_map_import_agent in a separate sync lane.",
+    },
+    {
+        "unknown_id": "unknown_confirmed_reference_data",
+        "subject": "Confirmed reference data",
+        "unknown_status": "BLOCKING_ABSENCE_OR_NOT_CONFIRMED_HERE",
+        "reason": "Hydration waits for confirmed reference data; this registry does not create it.",
+        "next_safe_check": "Run a separate promotion task over confirmed guided-review answers.",
+    },
+    {
+        "unknown_id": "unknown_runtime_service_freshness",
+        "subject": "Runtime service state",
+        "unknown_status": "OUT_OF_SCOPE",
+        "reason": "Task prohibits runtime service mutation; registry does not assert current daemon freshness.",
+        "next_safe_check": "Use a verify-only runtime readiness lane if service freshness matters.",
+    },
+    {
+        "unknown_id": "unknown_private_finance_truth",
+        "subject": "Private finance proofs",
+        "unknown_status": "BLOCKED_BY_BOUNDARY",
+        "reason": "Registry does not inspect raw private finance documents, ledgers, workbooks, bank records, or portal data.",
+        "next_safe_check": "Use redacted proof-bundle and evidence-intake lanes with explicit permission.",
+    },
+)
+
+BUILD_TASKS: tuple[dict[str, Any], ...] = (
+    {
+        "task_id": "task_verify_mac_patch_apply",
+        "task_rank": 1,
+        "title": "Apply and validate registry patch on Mac",
+        "owner_lane": "Mac Codex",
+        "rationale": "PC cannot push due CONNECT tunnel 403; Mac should apply and push if validation passes.",
+        "status": "ready_for_mac_apply",
+        "boundary": "Mac applies patch and runs local validation; no PC push.",
+    },
+    {
+        "task_id": "task_promote_confirmed_reference_data",
+        "task_rank": 2,
+        "title": "Promote confirmed Data Room reference answers",
+        "owner_lane": "Cassandra / Codex",
+        "rationale": "Hydration is blocked until confirmed reference data exists.",
+        "status": "blocked_until_operator_confirmation",
+        "boundary": "No provisional answer becomes runtime truth automatically.",
+    },
+    {
+        "task_id": "task_live_chatgpt_adapter_readiness",
+        "task_rank": 3,
+        "title": "Prove or reject live ChatGPT 5.5 advisory adapter",
+        "owner_lane": "Hermes / Guardian",
+        "rationale": "Manual form-fill package is ready, but live adapter claims must fail closed.",
+        "status": "future_gated",
+        "boundary": "No external model call without explicit approved adapter and receipts.",
+    },
+    {
+        "task_id": "task_map_import_gap",
+        "task_rank": 4,
+        "title": "Resolve Mac map import gap separately",
+        "owner_lane": "PC/Mac Sync",
+        "rationale": "Map import was explicitly separate from read-model sync repair.",
+        "status": "separate_lane_required",
+        "boundary": "Registry does not run sync or Mac jobs.",
+    },
+    {
+        "task_id": "task_voice_caveat",
+        "task_rank": 5,
+        "title": "Keep voice/Kokoro caveat separate",
+        "owner_lane": "Cassandra",
+        "rationale": "Text route is canonical and voice side effects should not block core operator workflows.",
+        "status": "known_caveat",
+        "boundary": "No voice fix or daemon start here.",
+    },
+)
+
+AGENT_ROLES: tuple[dict[str, Any], ...] = (
+    {
+        "role_id": "role_cassandra",
+        "agent_name": "Cassandra",
+        "role_summary": "Business ops, AR/client follow-up, universal intake, guided review, exact-send state.",
+        "evidence_status": "CONFIRMED_LOCAL",
+        "evidence_paths": ["cassandra_brain.py", "cassandra_guided_review.py", ".claude/commands/cassandra.md"],
+        "authority_notes": "No send/draft/business mutation without Guardian and operator gates.",
+    },
+    {
+        "role_id": "role_chief",
+        "agent_name": "Chief",
+        "role_summary": "System status, diagnostics, build coordination, and routing.",
+        "evidence_status": "CONFIRMED_LOCAL",
+        "evidence_paths": ["chief_router.py", "chief_ops_brain.py"],
+        "authority_notes": "No push/merge/protected mutation from registry.",
+    },
+    {
+        "role_id": "role_guardian",
+        "agent_name": "Guardian",
+        "role_summary": "Safety and approval boundary.",
+        "evidence_status": "CONFIRMED_LOCAL",
+        "evidence_paths": ["guardian_protected_access_gate_spec.py", "hitl_action_service.py"],
+        "authority_notes": "Approves/denies; does not execute business logic.",
+    },
+    {
+        "role_id": "role_niles",
+        "agent_name": "Niles",
+        "role_summary": "Creative/music lane, logical/spawned context.",
+        "evidence_status": "CONFIRMED_LOCAL_LOGICAL",
+        "evidence_paths": [".claude/commands/niles.md", "agent_lane_registry.py"],
+        "authority_notes": "No DAW/session/media daemon authority.",
+    },
+    {
+        "role_id": "role_hermes",
+        "agent_name": "Hermes",
+        "role_summary": "Architecture/system direction and adapter boundary.",
+        "evidence_status": "CONFIRMED_LOCAL_BOUNDARY",
+        "evidence_paths": [".claude/commands/hermes.md", "openclaw_hermes_sidecar.py"],
+        "authority_notes": "Unsafe_to_start unless separately approved and verified.",
+    },
+)
+
+ARTIFACT_POLICIES: tuple[dict[str, str], ...] = (
+    {
+        "policy_id": "policy_operator_reports",
+        "artifact_name": "Operator-facing reports",
+        "allowed_surfaces": "/mnt/e/OpenClaw_Operator_Reports or /tmp/openclaw-mission-control/operator_reports",
+        "blocked_actions": "No secret-looking paths, no moving originals, no raw private proof export.",
+        "evidence_basis": "scripts/operator_artifact_link_normalizer.py",
+        "evidence_status": "CONFIRMED_LOCAL",
+    },
+    {
+        "policy_id": "policy_system_knowledge_registry",
+        "artifact_name": "System knowledge registry artifacts",
+        "allowed_surfaces": "generated/read_models and generated/system_knowledge",
+        "blocked_actions": "No runtime policy mutation, no live action grants, no external calls.",
+        "evidence_basis": "this module and tests",
+        "evidence_status": "CONFIRMED_LOCAL",
+    },
+)
+
+AUTHORITY_ROWS: tuple[dict[str, str], ...] = (
+    {
+        "boundary_id": key,
+        "boundary_name": key.replace("_", " "),
+        "allowed": str(value).lower(),
+        "blocked": str(not value).lower(),
+        "evidence_basis": "AUTHORITY_BOUNDARY constant",
+        "notes": "Only documentation_read_model_sqlite_only may be true.",
+    }
+    for key, value in AUTHORITY_BOUNDARY.items()
+)
+
+SAFETY_POSTURE: tuple[dict[str, str], ...] = (
+    {
+        "posture_id": "posture_no_external_calls",
+        "posture_name": "No external calls",
+        "state": "enforced_by_design",
+        "evidence_basis": "standard-library local file/sqlite exporter only",
+        "operator_summary": "Registry exporter writes local artifacts only.",
+        "next_safe_action": "Keep network/push on Mac apply task, not PC export task.",
+    },
+    {
+        "posture_id": "posture_no_live_grants",
+        "posture_name": "No live action grants",
+        "state": "closed",
+        "evidence_basis": "authority boundary false flags and tests",
+        "operator_summary": "Registry output cannot authorize model, tool, runtime, finance, or business action.",
+        "next_safe_action": "Use separate Guardian/operator approval lanes for protected actions.",
+    },
+)
+
+
+def stable_json(payload: Any) -> str:
+    return json.dumps(payload, indent=2, sort_keys=True) + "\n"
+
+
+def compact_json(payload: Any) -> str:
+    return json.dumps(payload, separators=(",", ":"), sort_keys=True)
+
+
+def generated_paths(repo_root: Path) -> dict[str, Path]:
+    return {
+        "json": repo_root / READ_MODEL_DIR / JSON_EXPORT_NAME,
+        "operator_markdown": repo_root / READ_MODEL_DIR / OPERATOR_EXPORT_NAME,
+        "sqlite": repo_root / SYSTEM_KNOWLEDGE_DIR / SQLITE_EXPORT_NAME,
+        "schema_sql": repo_root / SYSTEM_KNOWLEDGE_DIR / SCHEMA_SQL_EXPORT_NAME,
+        "seed_sql": repo_root / SYSTEM_KNOWLEDGE_DIR / SEED_SQL_EXPORT_NAME,
+    }
+
+
+def _path_exists(repo_root: Path, path_text: str) -> bool | None:
+    if path_text.startswith("/") or "*" in path_text:
+        return None
+    return (repo_root / path_text).exists()
+
+
+def _source_audit(repo_root: Path) -> dict[str, Any]:
+    evidence_paths: list[str] = []
+    for component in COMPONENTS:
+        evidence_paths.extend(component["evidence_paths"])
+    checked = [
+        {"path": path, "exists": _path_exists(repo_root, path)}
+        for path in sorted(set(evidence_paths))
+        if _path_exists(repo_root, path) is not None
+    ]
+    return {
+        "repo_root": str(repo_root),
+        "checked_path_count": len(checked),
+        "missing_checked_paths": [item["path"] for item in checked if item["exists"] is False],
+        "path_check_note": "Absolute paths and wildcard evidence are recorded but not file-existence checked.",
+    }
+
+
+def build_registry(repo_root: Path | str | None = None, generated_at: str = DEFAULT_GENERATED_AT) -> dict[str, Any]:
+    root = Path(repo_root) if repo_root is not None else ROOT
+    output_paths = generated_paths(root)
+    coverage = {
+        "component_count": len(COMPONENTS),
+        "seeded_component_ids": [component["component_id"] for component in COMPONENTS],
+        "known_unknown_count": len(KNOWN_UNKNOWNS),
+        "build_task_count": len(BUILD_TASKS),
+        "covered_high_level_areas": [
+            "Cassandra",
+            "Chief",
+            "Guardian",
+            "Niles",
+            "Hermes",
+            "Watch Desk",
+            "Universal Intake",
+            "Context Switchboard",
+            "Guided Review / Coach Mode",
+            "Data Room form-fill lane",
+            "Model Work Package Router",
+            "Assignment Loop Contract",
+            "Worker Run Manager",
+            "Reference Data Hydration",
+            "Artifact Link Normalizer",
+            "PC/Mac Sync",
+            "Invoice/Ledger discovery",
+            "Voice/Kokoro caveat",
+        ],
+    }
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "registry_id": READ_MODEL_ID,
+        "registry_name": REGISTRY_NAME,
+        "current_status": "OPENCLAW_SYSTEM_KNOWLEDGE_REGISTRY_REBUILT",
+        "generated_at": generated_at,
+        "repo": {
+            "local_path": str(root),
+            "target_repo": "WinshipWheatley/openclaw-eyes",
+            "target_branch": "codex/system-knowledge-registry-v0",
+            "rebuild_reason": "reported commit and patch were unavailable in this PC checkout",
+        },
+        "authority_boundary": AUTHORITY_BOUNDARY,
+        "current_safety_posture": list(SAFETY_POSTURE),
+        "required_tables": list(REQUIRED_TABLES),
+        "required_sqlite_tables": list(REQUIRED_TABLES),
+        "sqlite_contract": {
+            "required_tables": list(REQUIRED_TABLES),
+            "sqlite_table_prefix_rule": "Registry schema must not explicitly define sqlite_* tables.",
+            "explicit_sqlite_internal_tables_defined": False,
+        },
+        "component_inventory": list(COMPONENTS),
+        "capabilities": list(CAPABILITIES),
+        "workflow_rails": list(WORKFLOW_RAILS),
+        "knowledge_claims": list(KNOWLEDGE_CLAIMS),
+        "known_unknowns": list(KNOWN_UNKNOWNS),
+        "build_tasks": list(BUILD_TASKS),
+        "agent_roles": list(AGENT_ROLES),
+        "artifact_policies": list(ARTIFACT_POLICIES),
+        "authority_boundaries": list(AUTHORITY_ROWS),
+        "coverage_assessment": coverage,
+        "source_audit": _source_audit(root),
+        "generated_outputs": {name: str(path.relative_to(root)) for name, path in output_paths.items()},
+        "no_secrets": True,
+        "no_live_action_grants": True,
+        "no_runtime_mutation": True,
+        "no_external_calls": True,
+        "safety_assertions": {
+            "no_secrets": True,
+            "no_live_action_grants": True,
+            "no_runtime_mutation": True,
+            "no_external_calls": True,
+        },
+    }
+
+
+def sqlite_rows(payload: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
+    return {
+        "system_component": [
+            {
+                "component_id": row["component_id"],
+                "display_name": row["display_name"],
+                "component_type": row["component_type"],
+                "evidence_status": row["evidence_status"],
+                "evidence_paths_json": compact_json(row["evidence_paths"]),
+                "summary": row["summary"],
+                "authority_boundary": row["authority_boundary"],
+            }
+            for row in payload["component_inventory"]
+        ],
+        "capability": list(payload["capabilities"]),
+        "workflow_rail": list(payload["workflow_rails"]),
+        "knowledge_claim": [
+            {
+                "claim_id": row["claim_id"],
+                "subject": row["subject"],
+                "claim": row["claim"],
+                "evidence_status": row["evidence_status"],
+                "evidence_paths_json": compact_json(row["evidence_paths"]),
+                "confidence": row["confidence"],
+            }
+            for row in payload["knowledge_claims"]
+        ],
+        "known_unknown": list(payload["known_unknowns"]),
+        "build_task": list(payload["build_tasks"]),
+        "agent_role": [
+            {
+                "role_id": row["role_id"],
+                "agent_name": row["agent_name"],
+                "role_summary": row["role_summary"],
+                "evidence_status": row["evidence_status"],
+                "evidence_paths_json": compact_json(row["evidence_paths"]),
+                "authority_notes": row["authority_notes"],
+            }
+            for row in payload["agent_roles"]
+        ],
+        "artifact_policy": list(payload["artifact_policies"]),
+        "authority_boundary": list(payload["authority_boundaries"]),
+        "safety_posture": list(payload["current_safety_posture"]),
+    }
+
+
+def schema_sql() -> str:
+    statements = [
+        "-- OpenClaw System Knowledge Registry schema",
+        "-- Generated for documentation/read-model/SQLite review only.",
+    ]
+    for table in REQUIRED_TABLES:
+        columns = TABLE_COLUMNS[table]
+        lines = []
+        for column in columns:
+            if table == "build_task" and column == "task_rank":
+                lines.append("  task_rank INTEGER NOT NULL")
+            else:
+                lines.append(f"  {column} TEXT NOT NULL")
+        lines.append(f"  PRIMARY KEY ({columns[0]})")
+        statements.append(f"CREATE TABLE IF NOT EXISTS {table} (\n" + ",\n".join(lines) + "\n);")
+    return "\n\n".join(statements) + "\n"
+
+
+def _sql_literal(value: Any) -> str:
+    if isinstance(value, int):
+        return str(value)
+    return "'" + str(value).replace("'", "''") + "'"
+
+
+def seed_sql(payload: dict[str, Any]) -> str:
+    rows_by_table = sqlite_rows(payload)
+    lines = [
+        "-- OpenClaw System Knowledge Registry seed data",
+        "-- Generated for documentation/read-model/SQLite review only.",
+    ]
+    for table in REQUIRED_TABLES:
+        columns = TABLE_COLUMNS[table]
+        lines.append(f"DELETE FROM {table};")
+        for row in rows_by_table[table]:
+            column_list = ", ".join(columns)
+            values = ", ".join(_sql_literal(row[column]) for column in columns)
+            lines.append(f"INSERT INTO {table} ({column_list}) VALUES ({values});")
+        lines.append("")
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def render_operator_markdown(payload: dict[str, Any]) -> str:
+    coverage = payload["coverage_assessment"]
+    lines = [
+        "# OpenClaw System Knowledge Registry",
+        "",
+        "## Summary",
+        f"- Registry ID: `{payload['registry_id']}`",
+        f"- Schema version: `{payload['schema_version']}`",
+        f"- Component count: {coverage['component_count']}",
+        f"- Known unknown count: {coverage['known_unknown_count']}",
+        f"- Build task count: {coverage['build_task_count']}",
+        "- Boundary: documentation/read-model/SQLite only.",
+        "- READY means registry artifacts validated; it does not grant runtime, business, model, or GitHub authority.",
+        "",
+        "## Authority Boundaries",
+    ]
+    for key, value in payload["authority_boundary"].items():
+        lines.append(f"- `{key}`: {str(value).lower()}")
+    lines.extend(["", "## Components"])
+    for component in payload["component_inventory"]:
+        lines.append(f"- `{component['component_id']}`: {component['evidence_status']} - {component['summary']}")
+    lines.extend(["", "## Known Unknowns"])
+    for unknown in payload["known_unknowns"]:
+        lines.append(
+            f"- `{unknown['unknown_id']}`: {unknown['subject']} - {unknown['unknown_status']}. "
+            f"Next: {unknown['next_safe_check']}"
+        )
+    lines.extend(["", "## Build Tasks"])
+    for task in payload["build_tasks"]:
+        lines.append(f"{task['task_rank']}. {task['title']} ({task['owner_lane']}) - {task['status']}")
+    lines.extend(["", "## Current Safety Posture"])
+    for posture in payload["current_safety_posture"]:
+        lines.append(f"- `{posture['posture_id']}`: {posture['state']} - {posture['operator_summary']}")
+    lines.extend(["", "## Generated Outputs"])
+    for name, path in payload["generated_outputs"].items():
+        lines.append(f"- `{name}`: `{path}`")
+    return "\n".join(lines) + "\n"
+
+
+def write_text(path: Path, text: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
+
+
+def write_sqlite(path: Path, payload: dict[str, Any]) -> None:
+    rows_by_table = sqlite_rows(payload)
+
+    def build_database(database_path: Path) -> None:
+        with sqlite3.connect(database_path) as conn:
+            conn.executescript(schema_sql())
+            for table in REQUIRED_TABLES:
+                columns = TABLE_COLUMNS[table]
+                placeholders = ", ".join("?" for _ in columns)
+                column_list = ", ".join(columns)
+                values = [tuple(row[column] for column in columns) for row in rows_by_table[table]]
+                conn.executemany(f"INSERT INTO {table} ({column_list}) VALUES ({placeholders})", values)
+            conn.commit()
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="openclaw_system_registry_") as temp_dir:
+        temp_path = Path(temp_dir) / path.name
+        build_database(temp_path)
+        new_bytes = temp_path.read_bytes()
+    if path.exists() and path.read_bytes() == new_bytes:
+        return
+    path.write_bytes(new_bytes)
+
+
+def export_registry(repo_root: Path | str | None = None, generated_at: str = DEFAULT_GENERATED_AT) -> dict[str, Any]:
+    root = Path(repo_root) if repo_root is not None else ROOT
+    payload = build_registry(root, generated_at=generated_at)
+    paths = generated_paths(root)
+    write_text(paths["json"], stable_json(payload))
+    write_text(paths["operator_markdown"], render_operator_markdown(payload))
+    write_text(paths["schema_sql"], schema_sql())
+    write_text(paths["seed_sql"], seed_sql(payload))
+    write_sqlite(paths["sqlite"], payload)
+    return {
+        "payload": payload,
+        "paths": paths,
+        "component_count": len(payload["component_inventory"]),
+        "known_unknown_count": len(payload["known_unknowns"]),
+    }
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="Export the OpenClaw System Knowledge Registry.")
+    parser.add_argument("--repo-root", default=str(ROOT), help="Repository root for generated outputs.")
+    parser.add_argument(
+        "--format",
+        choices=("paths", "json", "markdown", "sqlite", "all"),
+        default="all",
+        help="Output view after writing all registry artifacts.",
+    )
+    args = parser.parse_args(argv)
+    result = export_registry(Path(args.repo_root))
+    payload = result["payload"]
+    paths: dict[str, Path] = result["paths"]
+    root = Path(args.repo_root)
+    if args.format == "paths":
+        for key in ("json", "operator_markdown", "sqlite", "schema_sql", "seed_sql"):
+            print(paths[key].relative_to(root))
+    elif args.format == "json":
+        print(stable_json(payload), end="")
+    elif args.format == "markdown":
+        print(render_operator_markdown(payload), end="")
+    elif args.format == "sqlite":
+        print(paths["sqlite"].relative_to(root))
+    else:
+        print(f"{READ_MODEL_ID}: components={result['component_count']} known_unknowns={result['known_unknown_count']}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv[1:]))
