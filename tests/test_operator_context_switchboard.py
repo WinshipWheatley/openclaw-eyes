@@ -8,6 +8,7 @@ if str(ROOT) not in sys.path:
 
 import cassandra_guided_review as guided
 import openclaw_chatgpt55_adapter as chatgpt55
+import openclaw_gemini_form_adapter as gemini
 from operator_context_switchboard import (
     ACTIVE_CONTEXTS_SCHEMA_VERSION,
     SCHEMA_VERSION,
@@ -117,6 +118,43 @@ def _load_session(start_response: dict) -> dict:
     return json.loads(Path(start_response["artifact_refs"]["session_json"]).read_text(encoding="utf-8"))
 
 
+def _gemini_result(request: dict) -> dict:
+    return {
+        "schema_version": gemini.TURN_RESULT_SCHEMA_VERSION,
+        "request_id": request["request_id"],
+        "form_session_id": request["form_session_id"],
+        "review_session_id": request["review_session_id"],
+        "question_id": request["current_question_id"],
+        "assistant_reply": "I have the form and can help.",
+        "operator_intent": "explain",
+        "proposed_answer": {
+            "plain_english": "",
+            "normalized_decision": "",
+            "confidence": "low",
+            "conditions": [],
+            "caveats": [],
+            "professional_review_flags": [],
+        },
+        "requires_winship_confirmation": False,
+        "confirmed_by_winship": False,
+        "should_record_now": False,
+        "next_question_id": "",
+        "chat_log_summary_update": "Gemini is ready.",
+        "done_criteria_met": False,
+        "facts_used": [request["current_question_id"]],
+        "codex_finalization_recommended": False,
+        "safety_flags": dict(gemini.SAFE_TURN_SAFETY_FLAGS),
+    }
+
+
+def _fake_gemini_provider(calls: list[dict]):
+    def provider(*, request_payload: dict, request_body: dict, model_label: str, timeout_seconds: int) -> dict:
+        calls.append({"request_payload": request_payload, "request_body": request_body})
+        return {"candidates": [{"content": {"parts": [{"text": json.dumps(_gemini_result(request_payload))}]}}]}
+
+    return provider
+
+
 def _load_receipt(ref: str) -> dict:
     return json.loads(Path(ref.split("#", 1)[0]).read_text(encoding="utf-8"))
 
@@ -211,6 +249,34 @@ def test_payment_log_interrupts_review_without_recording_answer(tmp_path):
         for item in feed["feed_items"]
         if item["item_id"].startswith("operator_intake:")
     )
+
+
+def test_payment_log_interrupts_live_gemini_lane_without_calling_gemini(tmp_path, monkeypatch):
+    _start(tmp_path)
+    calls: list[dict] = []
+    monkeypatch.setenv("OPENCLAW_ENABLE_LIVE_GEMINI_FORM", "1")
+    monkeypatch.setenv("GEMINI_API_KEY", "test-redacted")
+    monkeypatch.setattr(gemini, "DEFAULT_FORM_SESSION_READ_MODEL_PATH", _paths(tmp_path)["read_model_root"] / "data_room_gemini_form_session.json")
+    monkeypatch.setattr(gemini, "DEFAULT_FORM_PRIMARY_ROOT", tmp_path / "gemini_form")
+    monkeypatch.setattr(gemini, "DEFAULT_FORM_DURABLE_ROOT", tmp_path / "durable_gemini_form")
+
+    guided.process_guided_review_message(
+        "Cassandra, start the Gemini Data Room form lane.",
+        review_root=_paths(tmp_path)["review_root"],
+        read_model_root=_paths(tmp_path)["read_model_root"],
+        generated_at_utc="2026-06-12T12:01:00+00:00",
+        gemini_form_provider=_fake_gemini_provider(calls),
+    )
+    calls.clear()
+
+    decision = _switch(tmp_path, "I got paid $900 from Live Arts MD.", at="2026-06-12T12:02:00+00:00")
+    session = guided._find_active_session(guided._review_root(_paths(tmp_path)["review_root"]))
+
+    assert decision["decision"] == "new_task_interrupt"
+    assert decision["safety_flags"]["external_calls_performed"] is False
+    assert calls == []
+    assert session["answer_records"] == []
+    assert session["status"] == "paused"
 
 
 def test_duplicate_payment_log_repairs_missing_local_receipt_ref(tmp_path):

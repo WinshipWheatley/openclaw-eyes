@@ -8,6 +8,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import watch_desk_feed as feed
+import openclaw_gemini_form_adapter as gemini
 
 
 FIXED_NOW = "2026-06-10T21:10:00+00:00"
@@ -348,6 +349,43 @@ def test_data_room_live_chatgpt55_lane_fixture_produces_watch_item(tmp_path):
     assert item["state"]["live_ready"] is True
     assert item["state"]["external_action_allowed"] is False
     assert item["state"]["runtime_mutation_allowed"] is False
+
+
+def test_data_room_gemini_form_lane_fixture_produces_watch_items(tmp_path):
+    state = gemini.build_data_room_gemini_form_session_state(
+        package={
+            "review_session_id": "data_room_review:test",
+            "current_question_id": "review_question:payment",
+            "current_question_index": 3,
+            "total_questions": 23,
+            "answered_questions": [],
+            "skipped_questions": [],
+            "deferred_questions": [],
+            "unresolved_questions": [{"question_id": "review_question:payment"}],
+            "done_criteria": {"done": False},
+        },
+        result={"request_id": "gemini_data_room_form_turn:test", "chat_log_summary_update": "Ready."},
+        availability={"available": True, "provider_enabled": True, "credential_present": True, "model_label_present": True},
+        lane_status="active",
+        live_ready=True,
+        blocked_reason="",
+        generated_at_utc=FIXED_NOW,
+        codex_finalizer_status="waiting_for_codex_dispatch",
+        codex_finalizer_package_ref="codex_work_package:data_room_review:test",
+    )
+    _write_json(tmp_path / "data_room_gemini_form_session.json", state)
+
+    payload = _build(tmp_path)
+    item_ids = {item["item_id"] for item in payload["feed_items"]}
+
+    assert "data_room_gemini_form:data_room_review:test" in item_ids
+    assert "data_room_gemini_form_codex_finalizer:data_room_review:test" in item_ids
+    for item in payload["feed_items"]:
+        if item["item_id"].startswith("data_room_gemini_form"):
+            assert item["lane"] == "cassandra_ar"
+            assert item["push_allowed"] is False
+            assert item["state"]["external_action_allowed"] is False
+            assert item["state"]["runtime_mutation_allowed"] is False
 
 
 def test_unchanged_state_produces_zero_new_push_candidates(tmp_path):

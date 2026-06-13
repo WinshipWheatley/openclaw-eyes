@@ -5797,6 +5797,10 @@ def handle(text: str, session: dict | None = None) -> list[str]:
             guided_review_kwargs["chatgpt55_provider"] = session_meta["chatgpt55_provider"]
         if session_meta.get("chatgpt55_env"):
             guided_review_kwargs["chatgpt55_env"] = session_meta["chatgpt55_env"]
+        if session_meta.get("gemini_form_provider"):
+            guided_review_kwargs["gemini_form_provider"] = session_meta["gemini_form_provider"]
+        if session_meta.get("gemini_form_env"):
+            guided_review_kwargs["gemini_form_env"] = session_meta["gemini_form_env"]
         switchboard_read_model_root = guided_review_kwargs.get("read_model_root") or session_meta.get("operator_intake_read_model_root")
         switchboard_review_root = guided_review_kwargs.get("review_root")
         if switchboard_review_root is None and (

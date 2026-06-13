@@ -867,6 +867,19 @@ def _is_live_chatgpt55_data_room_start_request(text: str) -> bool:
     return any(phrase in normalized for phrase in phrases)
 
 
+def _is_live_gemini_form_start_request(text: str) -> bool:
+    normalized = _normalize_topic_text(text)
+    phrases = (
+        "cassandra start the gemini data room form lane",
+        "start the gemini data room form lane",
+        "cassandra use gemini to help me fill this data room form",
+        "use gemini to help me fill this data room form",
+        "cassandra open the gemini form assistant",
+        "open the gemini form assistant",
+    )
+    return any(phrase in normalized for phrase in phrases)
+
+
 def _load_session(review_root: Path, session_id: str) -> dict[str, Any] | None:
     path = _session_path(review_root, session_id)
     if not path.is_file():
@@ -974,7 +987,7 @@ def set_guided_review_context_status(
 def is_guided_review_message(text: str, *, review_root: str | Path | None = None) -> bool:
     if not text or not text.strip() or _excluded_route_text(text):
         return False
-    if _is_live_chatgpt55_data_room_start_request(text):
+    if _is_live_chatgpt55_data_room_start_request(text) or _is_live_gemini_form_start_request(text):
         return True
     active = _find_active_session(_review_root(review_root))
     resolution = resolve_guided_review_topic(text, active_session_context=active)
@@ -2785,6 +2798,428 @@ def _handle_live_chatgpt55_data_room_turn(
     return str(result.get("assistant_reply") or "")
 
 
+def _live_gemini_form_lane_active(session: Mapping[str, Any]) -> bool:
+    lane = session.get("data_room_gemini_form_session")
+    return bool(isinstance(lane, Mapping) and lane.get("active") is True and lane.get("live_ready") is True)
+
+
+def _write_live_gemini_form_state(
+    session: dict[str, Any],
+    *,
+    package: Mapping[str, Any],
+    result: Mapping[str, Any] | None,
+    lane_status: str,
+    live_ready: bool,
+    blocked_reason: str,
+    now: str,
+    gemini_env: Mapping[str, str] | None = None,
+    pending_candidate: Mapping[str, Any] | None = None,
+    codex_finalizer_package_ref: str = "",
+    codex_finalizer_status: str = "",
+) -> dict[str, Any]:
+    import openclaw_gemini_form_adapter as gemini
+
+    existing = session.get("data_room_gemini_form_session") if isinstance(session.get("data_room_gemini_form_session"), Mapping) else {}
+    chat_summary = str(
+        (result or {}).get("chat_log_summary_update")
+        or existing.get("chat_log_summary")
+        or package.get("prior_chat_log_summary")
+        or ""
+    )
+    state = gemini.build_data_room_gemini_form_session_state(
+        package=package,
+        result=result or {},
+        availability=gemini.is_live_gemini_form_available(gemini_env),
+        lane_status=lane_status,
+        live_ready=live_ready,
+        blocked_reason=blocked_reason,
+        generated_at_utc=now,
+        chat_log_summary=chat_summary,
+        pending_candidate=pending_candidate or {},
+        codex_finalizer_package_ref=codex_finalizer_package_ref or str(existing.get("codex_finalizer_package_ref") or ""),
+        codex_finalizer_status=codex_finalizer_status or str(existing.get("codex_finalizer_status") or ""),
+        model=gemini.model_label(gemini_env),
+    )
+    refs = gemini.write_data_room_gemini_form_session_state(state)
+    state["artifact_refs"] = refs
+    session["data_room_gemini_form_session"] = {
+        "schema_version": gemini.FORM_SESSION_SCHEMA_VERSION,
+        "form_session_id": state["form_session_id"],
+        "active": bool(live_ready and lane_status == "active"),
+        "live_ready": bool(live_ready),
+        "lane_status": lane_status,
+        "model_label": state["model_label"],
+        "last_gemini_request_id": state.get("last_gemini_request_id", ""),
+        "last_gemini_result_id": state.get("last_gemini_result_id", ""),
+        "running_chat_log_ref": state.get("running_chat_log_ref", ""),
+        "chat_log_summary": state.get("chat_log_summary", ""),
+        "blocked_reason": blocked_reason,
+        "codex_finalizer_package_ref": state.get("codex_finalizer_package_ref", ""),
+        "codex_finalizer_status": state.get("codex_finalizer_status", ""),
+        "state_refs": refs,
+        "updated_at_utc": now,
+        "advisory_only": True,
+        "runtime_mutation_allowed": False,
+        "execution_allowed": False,
+        "confirmed_reference_data_allowed": False,
+        "hydration_allowed": False,
+        "external_action_allowed": False,
+    }
+    watch_refs = list(session.get("watch_desk_refs") or [])
+    for item in state.get("watch_desk_items") or []:
+        if isinstance(item, Mapping):
+            item_id = str(item.get("item_id") or "")
+            if item_id and item_id not in watch_refs:
+                watch_refs.append(item_id)
+    session["watch_desk_refs"] = watch_refs
+    generated_refs = list(session.get("generated_prompt_refs") or [])
+    for ref in refs.values():
+        if ref and ref not in generated_refs:
+            generated_refs.append(ref)
+    session["generated_prompt_refs"] = generated_refs
+    return state
+
+
+def _activate_live_gemini_form_lane(
+    session: dict[str, Any],
+    *,
+    raw_text: str,
+    review_root: Path,
+    read_model_root: str | Path | None,
+    now: str,
+    gemini_form_provider=None,
+    gemini_form_env: Mapping[str, str] | None = None,
+) -> str:
+    from data_room_form_fill_package import build_data_room_form_fill_package
+    import openclaw_gemini_form_adapter as gemini
+
+    package = build_data_room_form_fill_package(session, created_at_utc=now)
+    try:
+        result = gemini.call_gemini_data_room_form_turn(
+            package,
+            gemini.READINESS_PROMPT,
+            str(package.get("prior_chat_log_summary") or ""),
+            provider=gemini_form_provider,
+            created_at_utc=now,
+            env=gemini_form_env,
+        )
+    except gemini.GeminiFormAdapterError as exc:
+        state = _write_live_gemini_form_state(
+            session,
+            package=package,
+            result=None,
+            lane_status="blocked",
+            live_ready=False,
+            blocked_reason=exc.reason,
+            now=now,
+            gemini_env=gemini_form_env,
+        )
+        session.setdefault("data_room_gemini_form_refs", []).append(
+            {
+                "schema_version": "DATA_ROOM_GEMINI_FORM_ARTIFACT_REFS_V0",
+                "package_id": package.get("package_id", ""),
+                "review_session_id": package.get("review_session_id", ""),
+                "live_ready": False,
+                "blocked_reason": exc.reason,
+                "gemini_form_state_refs": dict(state.get("artifact_refs") or {}),
+                "external_model_invoked": False,
+                "confirmed_reference_data_created": False,
+                "runtime_policy_changed": False,
+            }
+        )
+        return f"Gemini Data Room form lane blocked: {exc.reason}. {gemini.safe_next_operator_step(exc.reason)}"
+
+    log_refs = gemini.append_data_room_gemini_form_turn_log(
+        package=package,
+        result=result,
+        user_turn=gemini.READINESS_PROMPT,
+        candidate_created=False,
+        created_at_utc=now,
+    )
+    state = _write_live_gemini_form_state(
+        session,
+        package=package,
+        result=result,
+        lane_status="active",
+        live_ready=True,
+        blocked_reason="",
+        now=now,
+        gemini_env=gemini_form_env,
+    )
+    session.setdefault("data_room_gemini_form_refs", []).append(
+        {
+            "schema_version": "DATA_ROOM_GEMINI_FORM_ARTIFACT_REFS_V0",
+            "package_id": package.get("package_id", ""),
+            "review_session_id": package.get("review_session_id", ""),
+            "live_ready": True,
+            "gemini_form_state_refs": dict(state.get("artifact_refs") or {}),
+            "turn_log_refs": log_refs,
+            "last_gemini_request_id": state.get("last_gemini_request_id", ""),
+            "last_gemini_result_id": state.get("last_gemini_result_id", ""),
+            "external_model_invoked": True,
+            "advisory_only": True,
+            "runtime_policy_changed": False,
+            "confirmed_reference_data_created": False,
+            "hydration_allowed": False,
+        }
+    )
+    session["latest_data_room_gemini_form_package_id"] = package["package_id"]
+    return gemini.GEMINI_FORM_READINESS_NOTIFICATION
+
+
+def _handle_live_gemini_form_turn(
+    session: dict[str, Any],
+    *,
+    raw_text: str,
+    surface: str,
+    review_root: Path,
+    now: str,
+    gemini_form_provider=None,
+    gemini_form_env: Mapping[str, str] | None = None,
+) -> str:
+    from data_room_form_fill_package import build_data_room_form_fill_package
+    import openclaw_gemini_form_adapter as gemini
+
+    package = build_data_room_form_fill_package(session, created_at_utc=now)
+    try:
+        result = gemini.call_gemini_data_room_form_turn(
+            package,
+            raw_text,
+            str((session.get("data_room_gemini_form_session") or {}).get("chat_log_summary") or package.get("prior_chat_log_summary") or ""),
+            provider=gemini_form_provider,
+            created_at_utc=now,
+            env=gemini_form_env,
+        )
+    except gemini.GeminiFormAdapterError as exc:
+        _write_live_gemini_form_state(
+            session,
+            package=package,
+            result=None,
+            lane_status="unavailable",
+            live_ready=False,
+            blocked_reason=exc.reason,
+            now=now,
+            gemini_env=gemini_form_env,
+        )
+        return (
+            f"The Gemini Data Room form lane is temporarily unavailable ({exc.reason}). "
+            "I am falling back to the deterministic review coach.\n\n"
+            f"{_format_question_reply(session)}"
+        )
+
+    answer = result.get("proposed_answer") if isinstance(result.get("proposed_answer"), Mapping) else {}
+    candidate_text = str(answer.get("plain_english") or answer.get("normalized_decision") or "").strip()
+    intent = str(result.get("operator_intent") or "")
+    candidate_created = False
+    pending_candidate: dict[str, Any] | None = None
+    if candidate_text and intent in {"answer_candidate", "conditional", "revise", "thought_dump"}:
+        question_id = str(result.get("question_id") or session.get("current_question_id") or "")
+        pending_candidate = _set_pending_answer_candidate(
+            session,
+            candidate_text=candidate_text,
+            source_intent={
+                "schema_version": "DATA_ROOM_GEMINI_PENDING_CANDIDATE_SOURCE_V0",
+                "intent": intent,
+                "request_id": str(result.get("request_id") or ""),
+                "result_id": gemini.result_id_for(result),
+                "result_snapshot": dict(result),
+                "should_record_now": False,
+                "confirmed_by_winship": False,
+                "safety_flags": dict(result.get("safety_flags") or {}),
+            },
+            current_question_id=question_id,
+            now=now,
+            surface=surface,
+        )
+        _append_pending_interaction_event(
+            session,
+            command="live_gemini_pending_answer_candidate_created",
+            question_id=question_id,
+            now=now,
+            answer_recorded=False,
+        )
+        session["pending_interaction"] = pending_candidate
+        candidate_created = True
+
+    gemini.append_data_room_gemini_form_turn_log(
+        package=package,
+        result=result,
+        user_turn=raw_text,
+        candidate_created=candidate_created,
+        created_at_utc=now,
+    )
+    _write_live_gemini_form_state(
+        session,
+        package=package,
+        result=result,
+        lane_status="active",
+        live_ready=True,
+        blocked_reason="",
+        now=now,
+        gemini_env=gemini_form_env,
+        pending_candidate=pending_candidate or {},
+    )
+    return str(result.get("assistant_reply") or "")
+
+
+def _append_gemini_confirmation_log_if_needed(
+    session: dict[str, Any],
+    *,
+    pending: Mapping[str, Any],
+    before_answer_count: int,
+    raw_text: str,
+    now: str,
+    gemini_form_env: Mapping[str, str] | None = None,
+) -> None:
+    source = pending.get("source_intent") if isinstance(pending.get("source_intent"), Mapping) else {}
+    if source.get("schema_version") != "DATA_ROOM_GEMINI_PENDING_CANDIDATE_SOURCE_V0":
+        return
+    answers = session.get("answer_records") if isinstance(session.get("answer_records"), list) else []
+    if len(answers) <= before_answer_count:
+        return
+    import openclaw_gemini_form_adapter as gemini
+    from data_room_form_fill_package import build_data_room_form_fill_package
+
+    result = source.get("result_snapshot") if isinstance(source.get("result_snapshot"), Mapping) else {}
+    latest = answers[-1] if answers and isinstance(answers[-1], Mapping) else {}
+    package = build_data_room_form_fill_package(session, created_at_utc=now)
+    gemini.append_data_room_gemini_form_turn_log(
+        package=package,
+        result=result,
+        user_turn=raw_text,
+        candidate_created=False,
+        confirmed_answer_id=str(latest.get("answer_id") or latest.get("receipt_ref") or ""),
+        created_at_utc=now,
+    )
+    _write_live_gemini_form_state(
+        session,
+        package=package,
+        result=result,
+        lane_status="active",
+        live_ready=True,
+        blocked_reason="",
+        now=now,
+        gemini_env=gemini_form_env,
+    )
+
+
+def _gemini_done_criteria_ready(session: Mapping[str, Any]) -> bool:
+    progress = _progress(session)
+    pending = session.get("pending_interaction") if isinstance(session.get("pending_interaction"), Mapping) else {}
+    unsafe = any(bool(value) for value in (session.get("safety_flags") or {}).values()) if isinstance(session.get("safety_flags"), Mapping) else False
+    return bool(progress["remaining"] == 0 and not pending and not unsafe)
+
+
+def _gemini_finalizer_pending(session: Mapping[str, Any]) -> bool:
+    pending = session.get("data_room_gemini_form_finalization")
+    return bool(isinstance(pending, Mapping) and pending.get("awaiting_winship_confirmation") is True)
+
+
+def _begin_gemini_finalizer_confirmation(
+    session: dict[str, Any],
+    *,
+    now: str,
+    gemini_form_env: Mapping[str, str] | None = None,
+) -> str:
+    from data_room_form_fill_package import build_data_room_form_fill_package
+
+    package = build_data_room_form_fill_package(session, created_at_utc=now)
+    session["data_room_gemini_form_finalization"] = {
+        "schema_version": "DATA_ROOM_GEMINI_FORM_FINALIZATION_CONFIRMATION_V0",
+        "awaiting_winship_confirmation": True,
+        "created_at_utc": now,
+        "prompt": "Do you want Codex to promote the confirmed answers and run hydration?",
+        "confirmed_reference_data_created": False,
+        "hydration_started": False,
+        "codex_package_created": False,
+    }
+    _write_live_gemini_form_state(
+        session,
+        package=package,
+        result=None,
+        lane_status="active",
+        live_ready=True,
+        blocked_reason="",
+        now=now,
+        gemini_env=gemini_form_env,
+        codex_finalizer_status="awaiting_winship_confirmation",
+    )
+    return (
+        f"Here is where we are: {_progress_line(session)}. "
+        "Do you want Codex to promote the confirmed answers and run hydration?"
+    )
+
+
+def _handle_gemini_finalizer_confirmation(
+    session: dict[str, Any],
+    *,
+    raw_text: str,
+    now: str,
+    read_model_root: str | Path | None,
+    gemini_form_env: Mapping[str, str] | None = None,
+) -> str:
+    import codex_work_package_lifecycle as lifecycle
+    import openclaw_gemini_form_adapter as gemini
+    from data_room_form_fill_package import build_data_room_form_fill_package
+
+    natural = parse_natural_reply_intent(raw_text, session.get("data_room_gemini_form_finalization") or {})
+    if not _is_bare_yes(raw_text) and natural.get("intent") != "confirm_candidate":
+        session["data_room_gemini_form_finalization"] = {}
+        package = build_data_room_form_fill_package(session, created_at_utc=now)
+        _write_live_gemini_form_state(
+            session,
+            package=package,
+            result=None,
+            lane_status="active",
+            live_ready=True,
+            blocked_reason="",
+            now=now,
+            gemini_env=gemini_form_env,
+            codex_finalizer_status="cancelled_by_winship",
+        )
+        return "Okay. I did not create the Codex finalizer package."
+
+    queue_result = gemini.queue_codex_finalizer_work_package(session, generated_at_utc=now)
+    try:
+        lifecycle.export_codex_work_package_lifecycle(
+            sqlite_path=gemini.DEFAULT_CODEX_FINALIZER_SQLITE_PATH,
+            package_root=gemini.DEFAULT_CODEX_FINALIZER_PACKAGE_ROOT,
+            export_root=_read_model_root(read_model_root),
+            bridge_root=None,
+            wiki_path=_read_model_root(read_model_root) / "Codex Work Package Lifecycle.md",
+        )
+    except Exception:
+        pass
+    package = build_data_room_form_fill_package(session, created_at_utc=now)
+    session["data_room_gemini_form_finalization"] = {
+        "schema_version": "DATA_ROOM_GEMINI_FORM_FINALIZATION_CONFIRMATION_V0",
+        "awaiting_winship_confirmation": False,
+        "confirmed_at_utc": now,
+        "codex_package_created": True,
+        "codex_finalizer_package_ref": queue_result["package_id"],
+        "codex_finalizer_status": queue_result["status"],
+        "codex_automatic_dispatch_real": False,
+        "confirmed_reference_data_created": False,
+        "hydration_started": False,
+    }
+    _write_live_gemini_form_state(
+        session,
+        package=package,
+        result=None,
+        lane_status="active",
+        live_ready=True,
+        blocked_reason="",
+        now=now,
+        gemini_env=gemini_form_env,
+        codex_finalizer_package_ref=queue_result["package_id"],
+        codex_finalizer_status=queue_result["status"],
+    )
+    return (
+        "I queued the Codex finalizer package. It is waiting for Codex dispatch; "
+        "there is no approved automatic Codex invocation bridge configured yet."
+    )
+
+
 def process_guided_review_message(
     raw_text: str,
     *,
@@ -2797,6 +3232,8 @@ def process_guided_review_message(
     generated_at_utc: str | None = None,
     chatgpt55_provider=None,
     chatgpt55_env: Mapping[str, str] | None = None,
+    gemini_form_provider=None,
+    gemini_form_env: Mapping[str, str] | None = None,
 ) -> dict[str, Any] | None:
     """Process a Cassandra guided-review turn without external side effects."""
 
@@ -2807,14 +3244,21 @@ def process_guided_review_message(
     active = _find_active_session(root)
     resolution = resolve_guided_review_topic(raw_text, active_session_context=active)
     live_start_request = _is_live_chatgpt55_data_room_start_request(raw_text)
+    gemini_start_request = _is_live_gemini_form_start_request(raw_text)
     topic = str(resolution.get("matched_topic_id") or "")
-    if live_start_request and not topic:
+    if (live_start_request or gemini_start_request) and not topic:
         topic = TOPIC_DATA_ROOM
     if not active and not topic and not resolution.get("clarification_question"):
         return None
-    if not active and resolution.get("clarification_question") and not resolution.get("should_start_session") and not live_start_request:
+    if (
+        not active
+        and resolution.get("clarification_question")
+        and not resolution.get("should_start_session")
+        and not live_start_request
+        and not gemini_start_request
+    ):
         return _clarification_response(resolution, reply_text=str(resolution["clarification_question"]))
-    if not active and not resolution.get("should_start_session") and not live_start_request:
+    if not active and not resolution.get("should_start_session") and not live_start_request and not gemini_start_request:
         return None
     if not active:
         try:
@@ -2859,7 +3303,17 @@ def process_guided_review_message(
                 read_model_root=read_model_root,
                 handled=True,
             )
-        if live_start_request:
+        if gemini_start_request:
+            reply = _activate_live_gemini_form_lane(
+                session,
+                raw_text=raw_text,
+                review_root=root,
+                read_model_root=read_model_root,
+                now=now,
+                gemini_form_provider=gemini_form_provider,
+                gemini_form_env=gemini_form_env,
+            )
+        elif live_start_request:
             reply = _activate_live_chatgpt55_data_room_lane(
                 session,
                 raw_text=raw_text,
@@ -2900,7 +3354,18 @@ def process_guided_review_message(
             write_data_room_form_fill_artifacts,
         )
 
-        if live_start_request:
+        if gemini_start_request:
+            reply = _activate_live_gemini_form_lane(
+                session,
+                raw_text=raw_text,
+                review_root=root,
+                read_model_root=read_model_root,
+                now=now,
+                gemini_form_provider=gemini_form_provider,
+                gemini_form_env=gemini_form_env,
+            )
+            form_fill_handled = True
+        elif live_start_request:
             reply = _activate_live_chatgpt55_data_room_lane(
                 session,
                 raw_text=raw_text,
@@ -2931,7 +3396,18 @@ def process_guided_review_message(
             session["latest_data_room_form_fill_package_id"] = package["package_id"]
             reply = LIVE_CHATGPT55_PACKAGE_REPLY if live_chatgpt55_connected else EXPECTED_PACKAGE_REPLY
             form_fill_handled = True
+        elif _gemini_finalizer_pending(session):
+            reply = _handle_gemini_finalizer_confirmation(
+                session,
+                raw_text=raw_text,
+                now=now,
+                read_model_root=read_model_root,
+                gemini_form_env=gemini_form_env,
+            )
+            form_fill_handled = True
         elif pending and not _is_global_control_allowed_during_pending(control):
+            pending_snapshot = dict(pending)
+            before_answer_count = len(session.get("answer_records") or [])
             reply = _handle_pending_interaction(
                 session,
                 pending=pending,
@@ -2941,6 +3417,14 @@ def process_guided_review_message(
                 receipt_root=receipt_root,
                 now=now,
             )
+            _append_gemini_confirmation_log_if_needed(
+                session,
+                pending=pending_snapshot,
+                before_answer_count=before_answer_count,
+                raw_text=raw_text,
+                now=now,
+                gemini_form_env=gemini_form_env,
+            )
             pending_handled = True
         elif pending and _is_global_control_allowed_during_pending(control):
             _clear_pending_interaction(session, now=now, reason=f"interrupted_by_{control.replace(' ', '_')}")
@@ -2949,6 +3433,36 @@ def process_guided_review_message(
             pass
         elif pending_handled:
             pass
+        elif _live_gemini_form_lane_active(session) and control == "done":
+            if _gemini_done_criteria_ready(session):
+                reply = _begin_gemini_finalizer_confirmation(
+                    session,
+                    now=now,
+                    gemini_form_env=gemini_form_env,
+                )
+            else:
+                reply = (
+                    f"Not ready for Codex finalization yet: {_progress_line(session)}. "
+                    "Every question needs to be answered, skipped, or deferred, and no candidate can be pending."
+                )
+        elif _live_gemini_form_lane_active(session) and control not in {
+            "done",
+            "summarize",
+            "skip",
+            "defer",
+            "next question",
+            "use_recommendation",
+            "revise_previous",
+        }:
+            reply = _handle_live_gemini_form_turn(
+                session,
+                raw_text=raw_text,
+                surface=surface,
+                review_root=root,
+                now=now,
+                gemini_form_provider=gemini_form_provider,
+                gemini_form_env=gemini_form_env,
+            )
         elif _live_chatgpt55_lane_active(session) and control not in {
             "done",
             "summarize",

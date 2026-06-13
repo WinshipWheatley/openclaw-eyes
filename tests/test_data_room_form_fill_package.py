@@ -7,8 +7,10 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import cassandra_guided_review as guided
+import codex_work_package_lifecycle as codex_lifecycle
 import data_room_form_fill_package as form_fill
 import openclaw_chatgpt55_adapter as chatgpt55
+import openclaw_gemini_form_adapter as gemini
 
 
 FIXED_NOW = "2026-06-12T12:00:00+00:00"
@@ -169,6 +171,110 @@ def _fake_provider(calls: list[dict], *, intent: str = "explain", reply: str = "
         }
 
     return provider
+
+
+def _gemini_result(
+    request: dict,
+    *,
+    intent: str = "explain",
+    reply: str = "I have the form and can help.",
+    answer: str = "",
+    done: bool = False,
+) -> dict:
+    return {
+        "schema_version": gemini.TURN_RESULT_SCHEMA_VERSION,
+        "request_id": request["request_id"],
+        "form_session_id": request["form_session_id"],
+        "review_session_id": request["review_session_id"],
+        "question_id": request["current_question_id"],
+        "assistant_reply": reply,
+        "operator_intent": intent,
+        "proposed_answer": {
+            "plain_english": answer,
+            "normalized_decision": answer.lower(),
+            "confidence": "medium" if answer else "low",
+            "conditions": [],
+            "caveats": [],
+            "professional_review_flags": [],
+        },
+        "requires_winship_confirmation": bool(answer),
+        "confirmed_by_winship": False,
+        "should_record_now": False,
+        "next_question_id": "",
+        "chat_log_summary_update": "Gemini helped with the current Data Room question.",
+        "done_criteria_met": done,
+        "facts_used": [request["current_question_id"]],
+        "codex_finalization_recommended": False,
+        "safety_flags": dict(gemini.SAFE_TURN_SAFETY_FLAGS),
+    }
+
+
+def _fake_gemini_provider(
+    calls: list[dict],
+    *,
+    intent: str = "explain",
+    reply: str = "I have the form and can help.",
+    answer: str = "",
+    done: bool = False,
+):
+    def provider(*, request_payload: dict, request_body: dict, model_label: str, timeout_seconds: int) -> dict:
+        calls.append(
+            {
+                "request_payload": request_payload,
+                "request_body": request_body,
+                "model_label": model_label,
+                "timeout_seconds": timeout_seconds,
+            }
+        )
+        return {
+            "candidates": [
+                {
+                    "content": {
+                        "parts": [
+                            {
+                                "text": json.dumps(
+                                    _gemini_result(
+                                        request_payload,
+                                        intent=intent,
+                                        reply=reply,
+                                        answer=answer,
+                                        done=done,
+                                    )
+                                )
+                            }
+                        ]
+                    }
+                }
+            ]
+        }
+
+    return provider
+
+
+def _patch_gemini_paths(tmp_path, monkeypatch):
+    monkeypatch.setattr(gemini, "DEFAULT_FORM_SESSION_READ_MODEL_PATH", tmp_path / "read_models" / "data_room_gemini_form_session.json")
+    monkeypatch.setattr(gemini, "DEFAULT_FORM_PRIMARY_ROOT", tmp_path / "gemini_form")
+    monkeypatch.setattr(gemini, "DEFAULT_FORM_DURABLE_ROOT", tmp_path / "durable_gemini_form")
+    monkeypatch.setattr(gemini, "DEFAULT_CODEX_FINALIZER_SQLITE_PATH", tmp_path / "codex_work_package_lifecycle.sqlite")
+    monkeypatch.setattr(gemini, "DEFAULT_CODEX_FINALIZER_PACKAGE_ROOT", tmp_path / "work_packages")
+
+
+def _answer_all_questions(response: dict, tmp_path: Path) -> dict:
+    session = _load_session(response)
+    now = "2026-06-12T12:10:00+00:00"
+    for question in list(session["question_queue"]):
+        guided._apply_answer(
+            session,
+            "Confirmed provisional setup answer.",
+            surface="test",
+            review_root=tmp_path / "review",
+            receipt_root=None,
+            now=now,
+            question_id_override=question["question_id"],
+            extra_answer_fields={"affected_record_ids": question["source_record_ids"]},
+        )
+    guided._persist_session(session, review_root=tmp_path / "review")
+    return session
 
 
 def test_package_contains_all_active_review_questions(tmp_path):
@@ -508,3 +614,184 @@ def test_live_chatgpt55_answer_candidate_waits_for_winship_confirmation(tmp_path
     assert confirmed_session["answer_records"][0]["schema_version"] == "REVIEW_ANSWER_V0"
     assert confirmed_session["answer_records"][0]["answer_source"] == "natural_candidate_confirmed"
     assert len(calls) == 2
+
+
+def test_live_gemini_command_sends_readiness_only_after_live_call(tmp_path, monkeypatch):
+    start = _start(tmp_path)
+    calls: list[dict] = []
+    monkeypatch.setenv("OPENCLAW_ENABLE_LIVE_GEMINI_FORM", "1")
+    monkeypatch.setenv("GEMINI_API_KEY", "test-redacted")
+    _patch_gemini_paths(tmp_path, monkeypatch)
+
+    response = guided.process_guided_review_message(
+        "Cassandra, start the Gemini Data Room form lane.",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:02:00+00:00",
+        gemini_form_provider=_fake_gemini_provider(calls),
+    )
+    session = _load_session(response)
+    lane = json.loads((tmp_path / "read_models" / "data_room_gemini_form_session.json").read_text(encoding="utf-8"))
+
+    assert response["reply_text"] == gemini.GEMINI_FORM_READINESS_NOTIFICATION
+    assert calls and "tools" not in calls[0]["request_body"]
+    assert "toolConfig" not in calls[0]["request_body"]
+    assert session["data_room_gemini_form_session"]["live_ready"] is True
+    assert session["data_room_gemini_form_session"]["active"] is True
+    assert lane["live_ready"] is True
+    assert lane["review_session_id"] == start["review_session_id"]
+    assert lane["external_action_allowed"] is False
+    assert lane["runtime_mutation_allowed"] is False
+    assert Path(lane["running_chat_log_ref"]).is_file()
+
+
+def test_live_gemini_command_blocks_without_live_wording_when_config_missing(tmp_path, monkeypatch):
+    _start(tmp_path)
+    monkeypatch.delenv("OPENCLAW_ENABLE_LIVE_GEMINI_FORM", raising=False)
+    for name in gemini.GEMINI_CREDENTIAL_ENVS:
+        monkeypatch.delenv(name, raising=False)
+    _patch_gemini_paths(tmp_path, monkeypatch)
+
+    response = guided.process_guided_review_message(
+        "Cassandra, open the Gemini form assistant.",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:02:00+00:00",
+        gemini_form_provider=_fake_gemini_provider([]),
+    )
+    lane = json.loads((tmp_path / "read_models" / "data_room_gemini_form_session.json").read_text(encoding="utf-8"))
+
+    assert "My Data Room brain is Gemini Flash" not in response["reply_text"]
+    assert "blocked_provider_disabled" in response["reply_text"]
+    assert lane["live_ready"] is False
+    assert lane["blocked_reason"] == "blocked_provider_disabled"
+
+
+def test_live_gemini_eli5_turn_updates_chat_log_without_recording(tmp_path, monkeypatch):
+    start = _start(tmp_path)
+    calls: list[dict] = []
+    monkeypatch.setenv("OPENCLAW_ENABLE_LIVE_GEMINI_FORM", "1")
+    monkeypatch.setenv("GEMINI_API_KEY", "test-redacted")
+    _patch_gemini_paths(tmp_path, monkeypatch)
+    guided.process_guided_review_message(
+        "Cassandra, start the Gemini Data Room form lane.",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:02:00+00:00",
+        gemini_form_provider=_fake_gemini_provider(calls),
+    )
+
+    response = guided.process_guided_review_message(
+        "eli5",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:03:00+00:00",
+        gemini_form_provider=_fake_gemini_provider(calls, intent="eli5", reply="Small version: choose a safe default."),
+    )
+    session = _load_session(response)
+    lane = json.loads((tmp_path / "read_models" / "data_room_gemini_form_session.json").read_text(encoding="utf-8"))
+    turn_log = Path(lane["running_chat_log_ref"]).read_text(encoding="utf-8").strip().splitlines()
+
+    assert response["reply_text"] == "Small version: choose a safe default."
+    assert len(calls) == 2
+    assert session["answer_records"] == []
+    assert session["current_question_id"] == start["current_question_id"]
+    assert len(turn_log) == 2
+    assert lane["chat_log_summary"] == "Gemini helped with the current Data Room question."
+
+
+def test_live_gemini_answer_candidate_waits_for_winship_confirmation(tmp_path, monkeypatch):
+    calls: list[dict] = []
+    monkeypatch.setenv("OPENCLAW_ENABLE_LIVE_GEMINI_FORM", "1")
+    monkeypatch.setenv("GEMINI_API_KEY", "test-redacted")
+    _patch_gemini_paths(tmp_path, monkeypatch)
+    _start(tmp_path)
+    guided.process_guided_review_message(
+        "Cassandra, use Gemini to help me fill this Data Room form.",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:02:00+00:00",
+        gemini_form_provider=_fake_gemini_provider(calls),
+    )
+
+    candidate = guided.process_guided_review_message(
+        "I think manual approval is the answer.",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:03:00+00:00",
+        gemini_form_provider=_fake_gemini_provider(
+            calls,
+            intent="answer_candidate",
+            reply="That is a candidate. Should I record manual approval only?",
+            answer="Use manual approval only for private payment details.",
+        ),
+    )
+    session = _load_session(candidate)
+
+    assert candidate["reply_text"] == "That is a candidate. Should I record manual approval only?"
+    assert session["pending_interaction"]["kind"] == "answer_candidate"
+    assert session["answer_records"] == []
+
+    confirmed = guided.process_guided_review_message(
+        "yes",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:04:00+00:00",
+        gemini_form_provider=_fake_gemini_provider(calls, reply="This should not be called for confirmation."),
+    )
+    confirmed_session = _load_session(confirmed)
+    lane = json.loads((tmp_path / "read_models" / "data_room_gemini_form_session.json").read_text(encoding="utf-8"))
+    log_entries = [json.loads(line) for line in Path(lane["running_chat_log_ref"]).read_text(encoding="utf-8").splitlines()]
+
+    assert confirmed_session["pending_interaction"] == {}
+    assert len(confirmed_session["answer_records"]) == 1
+    assert confirmed_session["answer_records"][0]["schema_version"] == "REVIEW_ANSWER_V0"
+    assert confirmed_session["answer_records"][0]["answer_source"] == "natural_candidate_confirmed"
+    assert len(calls) == 2
+    assert any(entry.get("confirmed_answer_id") for entry in log_entries)
+
+
+def test_gemini_done_confirmation_creates_codex_finalizer_waiting_for_dispatch(tmp_path, monkeypatch):
+    start = _start(tmp_path)
+    calls: list[dict] = []
+    monkeypatch.setenv("OPENCLAW_ENABLE_LIVE_GEMINI_FORM", "1")
+    monkeypatch.setenv("GEMINI_API_KEY", "test-redacted")
+    _patch_gemini_paths(tmp_path, monkeypatch)
+    ready = guided.process_guided_review_message(
+        "Cassandra, start the Gemini Data Room form lane.",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:02:00+00:00",
+        gemini_form_provider=_fake_gemini_provider(calls),
+    )
+    _answer_all_questions(ready, tmp_path)
+
+    done = guided.process_guided_review_message(
+        "done",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:15:00+00:00",
+        gemini_form_provider=_fake_gemini_provider(calls),
+    )
+    assert "Do you want Codex to promote the confirmed answers and run hydration?" in done["reply_text"]
+
+    finalized = guided.process_guided_review_message(
+        "yes",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:16:00+00:00",
+        gemini_form_provider=_fake_gemini_provider(calls),
+    )
+    session = _load_session(finalized)
+    gemini_state = json.loads((tmp_path / "read_models" / "data_room_gemini_form_session.json").read_text(encoding="utf-8"))
+    package_id = session["data_room_gemini_form_session"]["codex_finalizer_package_ref"]
+    lifecycle_state = codex_lifecycle.load_package_state(package_id, sqlite_path=tmp_path / "codex_work_package_lifecycle.sqlite")
+
+    assert start["review_session_id"] in package_id
+    assert "waiting for Codex dispatch" in finalized["reply_text"]
+    assert session["data_room_gemini_form_session"]["codex_finalizer_status"] == "waiting_for_codex_dispatch"
+    assert gemini_state["codex_finalizer_status"] == "waiting_for_codex_dispatch"
+    assert lifecycle_state["state"] == codex_lifecycle.STATE_AWAITING_WORKER_BRIDGE
+    assert lifecycle_state["package_json"]["capability_id"] == gemini.CODEX_FINALIZER_CAPABILITY_ID
+    assert lifecycle_state["package_json"]["hydration_only_after_confirmed_data"] is True
+    assert not list(tmp_path.rglob("*openclaw_confirmed_reference_data_v0.json"))
