@@ -21,7 +21,7 @@ from cassandra_guided_review import (
     resolve_guided_review_topic,
     set_guided_review_context_status,
 )
-from cassandra_review_coach import coach_command
+from cassandra_review_coach import coach_command, parse_natural_reply_intent
 from operator_universal_intake import (
     is_universal_operator_intake_candidate,
     try_process_surface_operator_intake,
@@ -199,6 +199,9 @@ def _pending_reply(text: str, active_context: Mapping[str, Any] | None) -> bool:
     if not isinstance(pending, Mapping) or not pending:
         return False
     normalized = _normalize(text).strip(". ")
+    natural_intent = parse_natural_reply_intent(text, pending)
+    if natural_intent.get("intent") in {"confirm_candidate", "reject_candidate"}:
+        return True
     return normalized in {
         "yes",
         "yes switch",

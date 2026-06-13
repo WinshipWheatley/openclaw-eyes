@@ -569,6 +569,38 @@ def test_natural_pending_confirmation_records_candidate_not_confirmation_phrase(
     assert answer["runtime_policy_changed"] is False
 
 
+def test_natural_pending_confirmation_accepts_ok_confirming_typo(tmp_path):
+    start = _start(tmp_path)
+    first_question_id = start["current_question_id"]
+
+    proposed = guided.process_guided_review_message(
+        "let me ramble for a second: direct deposit should stay manual unless trusted clients ask for it.",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:01:00+00:00",
+    )
+    proposed_session = _load_session(proposed)
+
+    assert proposed_session["pending_interaction"]["kind"] == "answer_candidate"
+    assert proposed_session["answer_records"] == []
+
+    confirmed = guided.process_guided_review_message(
+        "ok, i am confriming that",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:02:00+00:00",
+    )
+    session = _load_session(confirmed)
+    answer = session["answer_records"][0]
+
+    assert session["pending_interaction"] == {}
+    assert answer["question_id"] == first_question_id
+    assert "confriming" not in answer["raw_answer_text"].lower()
+    assert answer["answer_source"] == "natural_candidate_confirmed"
+    assert answer["authoritative"] is False
+    assert answer["runtime_policy_changed"] is False
+
+
 def test_natural_yes_variant_without_pending_asks_yes_to_what(tmp_path):
     start = _start(tmp_path)
     first_question_id = start["current_question_id"]
