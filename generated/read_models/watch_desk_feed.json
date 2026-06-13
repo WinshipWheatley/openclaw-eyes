@@ -224,6 +224,32 @@
       "urgency": "needs_operator"
     },
     {
+      "item_id": "data_room_live_lm_brain:data_room_review:badad6523a5a22f458b8",
+      "lane": "cassandra_ar",
+      "one_next_safe_action": "Winship can continue the Data Room form with Cassandra.",
+      "plain_line": "Data Room LM brain ready for data_room_review:badad6523a5a22f458b8 via openai_codex_cli.",
+      "push_allowed": false,
+      "push_candidate": false,
+      "push_class": "info",
+      "source_receipt_ref": "generated/read_models/data_room_live_lm_brain_status.json#status",
+      "state": {
+        "access_mode": "openai_codex_cli",
+        "active_session_id": "data_room_review:badad6523a5a22f458b8",
+        "confirmed_reference_data_allowed": false,
+        "current_question_id": "review_question:7192be9cf0b013080319",
+        "execution_allowed": false,
+        "external_action_allowed": false,
+        "hydration_allowed": false,
+        "last_error": "",
+        "live_lm_brain_ready": true,
+        "provider": "openai",
+        "runtime_mutation_allowed": false,
+        "worker_kind": "openai_codex_cli"
+      },
+      "state_hash": "sha256:befc49bf33869365f2d52b614a6720be58e705b2e62fab0509649aa890138c20",
+      "urgency": "watch"
+    },
+    {
       "action_type": "income_payment_log",
       "item_id": "operator_intake:operator_intake:09096dcc78504f93b174",
       "lane": "cassandra_ar",
@@ -477,6 +503,30 @@
         "surface": "telegram"
       },
       "state_hash": "sha256:c2056d1083c2002ac03354d94469d87d20ec2a24d9cebf0801060621985e3bb5",
+      "urgency": "watch"
+    },
+    {
+      "item_id": "codex_work_package:codex_work_package_0e5fcfedcbc4c4f3",
+      "lane": "chief_runtime",
+      "occurred_at": "2026-06-13T18:16:16+00:00",
+      "one_next_safe_action": "Review the validation receipt and decide whether activation is still needed.",
+      "plain_line": "Worker package codex_work_package:0e5fcfedcbc4c4f3 is validation_passed.",
+      "push_allowed": false,
+      "push_candidate": false,
+      "push_class": "on_demand",
+      "source_receipt_ref": "generated/read_models/codex_work_package_lifecycle.json#codex_work_package:0e5fcfedcbc4c4f3",
+      "state": {
+        "approval_created": false,
+        "capability_id": "assignment_loop_worker_package",
+        "claimed_by": "openai_codex_cli",
+        "execution_allowed": false,
+        "external_call_allowed": false,
+        "objective_id": "assignment_loop:ec8814974d8673d7",
+        "package_file_status": "present",
+        "package_id": "codex_work_package:0e5fcfedcbc4c4f3",
+        "status": "validation_passed"
+      },
+      "state_hash": "sha256:9dacbe8343983efc70243aaa082a0a0a8fd93318341440a3d9242abffb828635",
       "urgency": "watch"
     },
     {
@@ -1041,8 +1091,8 @@
       "urgency": "watch"
     }
   ],
-  "generated_at": "2026-06-13T17:37:16+00:00",
-  "item_count": 43,
+  "generated_at": "2026-06-13T18:22:01+00:00",
+  "item_count": 45,
   "machine_proof": {
     "all_items_have_source_receipt_ref": true,
     "external_calls_performed": false,
@@ -1243,12 +1293,14 @@
     "/tmp/openclaw-mission-control/operator_universal_intake_v0/receipts/operator_intake_90bc0718e69c096e9182_agent_lane_request_receipt.json#receipt",
     "generated/read_models/approval_request_queue.json#pending",
     "generated/read_models/cassandra_draft_worker_readback.json#readback",
+    "generated/read_models/codex_work_package_lifecycle.json#codex_work_package:0e5fcfedcbc4c4f3",
     "generated/read_models/codex_work_package_lifecycle.json#codex_work_package:a2024b63d2f7cd2f",
     "generated/read_models/codex_work_package_lifecycle.json#codex_work_package:b30f224d2670cbd6",
     "generated/read_models/codex_work_package_lifecycle.json#codex_work_package:c78f07928e9e08f1",
     "generated/read_models/codex_work_package_lifecycle.json#codex_work_package:df78b5c829f637bd",
     "generated/read_models/data_room_gemini_form_session.json#lane",
     "generated/read_models/data_room_live_chatgpt55_lane.json#lane",
+    "generated/read_models/data_room_live_lm_brain_status.json#status",
     "generated/read_models/openclaw_lm_consult_spine_status.json#status",
     "polish_loop/tasks/chief-cassandra-failure-20260610T205623.md#generated_by"
   ]

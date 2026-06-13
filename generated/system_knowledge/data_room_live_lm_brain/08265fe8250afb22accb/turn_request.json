@@ -1,0 +1,59 @@
+{
+  "advisory_only": true,
+  "allowed_fact_refs": [
+    "current_question",
+    "current_question_category",
+    "current_session_progress",
+    "form_goal",
+    "safety_boundaries",
+    "user_turn_redacted",
+    "why_it_matters"
+  ],
+  "allowed_inputs": [
+    "current question text",
+    "current question category",
+    "form goal",
+    "why it matters",
+    "redacted user turn",
+    "recent chat summary",
+    "current session progress"
+  ],
+  "authority_boundary": {
+    "advisory_only": true,
+    "approval_created": false,
+    "confirmed_reference_data_allowed": false,
+    "email_send_allowed": false,
+    "execution_allowed": false,
+    "external_action_allowed": false,
+    "hydration_allowed": false,
+    "model_output_direct_record_allowed": false,
+    "runtime_mutation_allowed": false,
+    "tools_exposed_to_model": false
+  },
+  "confirmed_reference_data_allowed": false,
+  "created_at_utc": "2026-06-13T18:16:16+00:00",
+  "current_question_category": "identity/persona policy",
+  "current_question_id": "review_question:7192be9cf0b013080319",
+  "current_question_text": "Which payment/contact details are trust-gated? Context: Operator note does not define which payment or contact details are trust-gated.",
+  "current_session_progress": "2 answered; 21 unanswered.",
+  "execution_allowed": false,
+  "expected_output_schema": "DATA_ROOM_LIVE_LM_TURN_RESULT_V0",
+  "forbidden_inputs": [
+    "secrets or credentials",
+    "raw private finance documents",
+    "raw bank/account/routing values",
+    "raw email/Coupa/Gmail/browser content",
+    "confirmed reference data creation",
+    "hydration",
+    "tool authority"
+  ],
+  "form_goal": "Help Winship fill the OpenClaw Data Room form conversationally while keeping answers provisional.",
+  "hydration_allowed": false,
+  "recent_chat_summary": "",
+  "request_id": "data_room_live_lm_turn_request:6d391a39e023fd4aee8e",
+  "review_session_id": "data_room_review:badad6523a5a22f458b8",
+  "runtime_mutation_allowed": false,
+  "schema_version": "DATA_ROOM_LIVE_LM_TURN_REQUEST_V0",
+  "user_turn_redacted": "I’m ready to start. Acknowledge that you have the form and can help me fill it out. Do not answer the form yet.",
+  "why_it_matters": "Private payment or contact details could be exposed without review."
+}

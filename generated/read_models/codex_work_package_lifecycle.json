@@ -25,6 +25,45 @@
       },
       "capability_id": "assignment_loop_worker_package",
       "connector_configured": true,
+      "created_at": "2026-06-13T18:16:16+00:00",
+      "decision": "blocked",
+      "decision_id": "capability_activation_decision:71da5bdba1f8f822",
+      "denied_actions_preserved": true,
+      "email_connector_status": {},
+      "objective_id": "assignment_loop:ec8814974d8673d7",
+      "package_id": "codex_work_package:0e5fcfedcbc4c4f3",
+      "production_ready": false,
+      "reason": "Validation, scan, or authority boundary is incomplete.",
+      "receipt_ref": "codex_work_package_validation:ee76bfaae70ebe4c",
+      "schema_version": "CAPABILITY_ACTIVATION_DECISION_V0",
+      "tests_passed": true,
+      "unsafe_scan_passed": true
+    },
+    {
+      "activation_scope": {},
+      "authority_boundary": {
+        "authority_granted_from_raw_text_allowed": false,
+        "browser_access_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "external_model_allowed": false,
+        "git_push_allowed": false,
+        "gmail_allowed": false,
+        "gmail_ui_allowed": false,
+        "ledger_mutation_allowed": false,
+        "ledger_posting_allowed": false,
+        "lm2_tool_expansion_allowed": false,
+        "merge_allowed": false,
+        "paid": false,
+        "paid_marking_allowed": false,
+        "pdf_export_allowed": false,
+        "portal_submit_allowed": false,
+        "sent": false,
+        "workbook_mutation_allowed": false,
+        "worker_spawn_allowed": false
+      },
+      "capability_id": "assignment_loop_worker_package",
+      "connector_configured": true,
       "created_at": "2026-06-13T17:35:30+00:00",
       "decision": "blocked",
       "decision_id": "capability_activation_decision:64f073297144da6a",
@@ -776,11 +815,45 @@
     "in_progress": 0,
     "queued": 0,
     "ready_for_activation": 0,
-    "total": 4,
+    "total": 5,
     "validation_failed": 1,
-    "validation_passed": 2
+    "validation_passed": 3
   },
   "dispatch_records": [
+    {
+      "approval_created": false,
+      "authority_boundary": {
+        "authority_granted_from_raw_text_allowed": false,
+        "browser_access_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "external_model_allowed": false,
+        "git_push_allowed": false,
+        "gmail_allowed": false,
+        "gmail_ui_allowed": false,
+        "ledger_mutation_allowed": false,
+        "ledger_posting_allowed": false,
+        "lm2_tool_expansion_allowed": false,
+        "merge_allowed": false,
+        "paid": false,
+        "paid_marking_allowed": false,
+        "pdf_export_allowed": false,
+        "portal_submit_allowed": false,
+        "sent": false,
+        "workbook_mutation_allowed": false,
+        "worker_spawn_allowed": false
+      },
+      "claim_id": "codex_work_package_claim:1c16cb07ef57a29b",
+      "claimed_at": "2026-06-13T18:16:16+00:00",
+      "dispatched_by": "chief",
+      "external_api_called": false,
+      "manual_dispatch_only": true,
+      "model_invoked": false,
+      "note": "Data Room live LM brain advisory turn.",
+      "package_id": "codex_work_package:0e5fcfedcbc4c4f3",
+      "schema_version": "CODEX_WORK_PACKAGE_CLAIM_V0",
+      "worker_kind": "openai_codex_cli"
+    },
     {
       "approval_created": false,
       "authority_boundary": {
@@ -884,8 +957,103 @@
       "worker_kind": "pc_codex"
     }
   ],
-  "generated_at": "2026-06-13T17:37:16+00:00",
+  "generated_at": "2026-06-13T18:22:01+00:00",
   "latest_results": [
+    {
+      "authority_boundary": {
+        "authority_granted_from_raw_text_allowed": false,
+        "browser_access_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "external_model_allowed": false,
+        "git_push_allowed": false,
+        "gmail_allowed": false,
+        "gmail_ui_allowed": false,
+        "ledger_mutation_allowed": false,
+        "ledger_posting_allowed": false,
+        "lm2_tool_expansion_allowed": false,
+        "merge_allowed": false,
+        "paid": false,
+        "paid_marking_allowed": false,
+        "pdf_export_allowed": false,
+        "portal_submit_allowed": false,
+        "sent": false,
+        "workbook_mutation_allowed": false,
+        "worker_spawn_allowed": false
+      },
+      "authority_grant_ref": "no_runtime_authority:909c66dcb2111b57",
+      "blocker_summary": "",
+      "capability_status": "data_room_live_lm_turn_validated",
+      "commands_run": [
+        "codex exec data room advisory turn"
+      ],
+      "commit_hash": "",
+      "confirmed_reference_data_created": false,
+      "data_room_live_lm_turn_request_id": "data_room_live_lm_turn_request:6d391a39e023fd4aee8e",
+      "data_room_live_lm_turn_result": {
+        "assistant_reply": "I have the Data Room form and can help you fill it out conversationally. I’ll keep answers provisional and won’t answer or record this form question until you provide the proposed details and confirm them.",
+        "chat_log_summary_update": "Winship is ready to start the Data Room form; no form answer has been proposed yet.",
+        "confirmed_by_winship": false,
+        "facts_used": [
+          "form_goal",
+          "current_question",
+          "current_session_progress",
+          "safety_boundaries",
+          "user_turn_redacted",
+          "why_it_matters"
+        ],
+        "next_question_id": "",
+        "operator_intent": "clarification",
+        "proposed_answer": {
+          "caveats": [],
+          "conditions": [],
+          "confidence": "",
+          "normalized_decision": "",
+          "plain_english": "",
+          "professional_review_flags": []
+        },
+        "question_id": "review_question:7192be9cf0b013080319",
+        "request_id": "data_room_live_lm_turn_request:6d391a39e023fd4aee8e",
+        "requires_winship_confirmation": false,
+        "review_session_id": "data_room_review:badad6523a5a22f458b8",
+        "safety_flags": {
+          "approval_created": false,
+          "authoritative": false,
+          "confirmed_reference_data_created": false,
+          "email_sent": false,
+          "external_action_performed": false,
+          "hydration_run": false,
+          "runtime_mutation_performed": false,
+          "runtime_policy_changed": false
+        },
+        "schema_version": "DATA_ROOM_LIVE_LM_TURN_RESULT_V0",
+        "should_record_now": false
+      },
+      "denied_actions_reported": [],
+      "external_business_action_performed": false,
+      "files_changed": [],
+      "hydration_run": false,
+      "introduced_strings": [],
+      "model_or_cli_used": "codex",
+      "package_id": "codex_work_package:0e5fcfedcbc4c4f3",
+      "receipt_refs": [
+        "data_room_live_lm_turn:data_room_live_lm_turn_request:6d391a39e023fd4aee8e"
+      ],
+      "result_id": "codex_work_package_result:5ef68bd385ffd7f0",
+      "runtime_mutation_performed": false,
+      "schema_version": "CODEX_WORK_PACKAGE_RESULT_V0",
+      "status": "completed",
+      "subagents_used": false,
+      "submitted_at": "2026-06-13T18:16:16+00:00",
+      "unsafe_scan_summary": {
+        "hits": [],
+        "passed": true
+      },
+      "validation_run": [
+        "git diff --check"
+      ],
+      "worker_kind": "openai_codex_cli"
+    },
     {
       "authority_boundary": {
         "authority_granted_from_raw_text_allowed": false,
@@ -1265,10 +1433,11 @@
     "codex_work_package:df78b5c829f637bd",
     "codex_work_package:c78f07928e9e08f1",
     "codex_work_package:a2024b63d2f7cd2f",
-    "codex_work_package:b30f224d2670cbd6"
+    "codex_work_package:b30f224d2670cbd6",
+    "codex_work_package:0e5fcfedcbc4c4f3"
   ],
   "package_queue": {
-    "active_package_count": 4,
+    "active_package_count": 5,
     "allowed_worker_kinds": [
       "pc_codex",
       "mac_codex",
@@ -1313,12 +1482,13 @@
       "codex_work_package:df78b5c829f637bd",
       "codex_work_package:c78f07928e9e08f1",
       "codex_work_package:a2024b63d2f7cd2f",
-      "codex_work_package:b30f224d2670cbd6"
+      "codex_work_package:b30f224d2670cbd6",
+      "codex_work_package:0e5fcfedcbc4c4f3"
     ],
     "queue_id": "codex_work_package_queue:make_it_so",
-    "receipt_ref": "codex_work_package_queue_receipt:e1c77fca8468c392",
+    "receipt_ref": "codex_work_package_queue_receipt:3c930e2bc14a508f",
     "schema_version": "CODEX_WORK_PACKAGE_QUEUE_V0",
-    "updated_at": "2026-06-13T17:37:16+00:00",
+    "updated_at": "2026-06-13T18:22:01+00:00",
     "worktree_root": "/home/openclaw"
   },
   "package_summaries": [
@@ -1485,6 +1655,47 @@
       "role_context_strategy": "compact_role_card",
       "state": "validation_passed",
       "updated_at": "2026-06-13T17:35:30+00:00"
+    },
+    {
+      "agent_role_ref": "agent_role_card:cassandra",
+      "authority_boundary": {
+        "authority_granted_from_raw_text_allowed": false,
+        "browser_access_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "external_model_allowed": false,
+        "git_push_allowed": false,
+        "gmail_allowed": false,
+        "gmail_ui_allowed": false,
+        "ledger_mutation_allowed": false,
+        "ledger_posting_allowed": false,
+        "lm2_tool_expansion_allowed": false,
+        "merge_allowed": false,
+        "paid": false,
+        "paid_marking_allowed": false,
+        "pdf_export_allowed": false,
+        "portal_submit_allowed": false,
+        "sent": false,
+        "workbook_mutation_allowed": false,
+        "worker_spawn_allowed": false
+      },
+      "capability_id": "assignment_loop_worker_package",
+      "claim_ref": "codex_work_package_claim:1c16cb07ef57a29b",
+      "claimed_by": "openai_codex_cli",
+      "latest_activation_decision": "blocked",
+      "latest_result_status": "completed",
+      "latest_validation_status": "validation_passed",
+      "next_action": "Review the validation receipt and decide whether activation is still needed.",
+      "objective_id": "assignment_loop:ec8814974d8673d7",
+      "owner_agent": "cassandra",
+      "package_file_status": "present",
+      "package_id": "codex_work_package:0e5fcfedcbc4c4f3",
+      "package_json_path": "generated/system_knowledge/work_packages/codex_work_package_0e5fcfedcbc4c4f3/package.json",
+      "proof_verification_status": "not_required",
+      "requested_by_agent": "chief",
+      "role_context_strategy": "compact_role_card",
+      "state": "validation_passed",
+      "updated_at": "2026-06-13T18:16:16+00:00"
     }
   ],
   "queued_packages": [
@@ -1622,6 +1833,52 @@
   "schema_version": "codex_work_package_lifecycle_v0",
   "status": "OPENCLAW_CODEX_WORK_PACKAGE_LIFECYCLE_READY",
   "validation_results": [
+    {
+      "authority_boundary": {
+        "authority_granted_from_raw_text_allowed": false,
+        "browser_access_allowed": false,
+        "coupa_allowed": false,
+        "email_send_allowed": false,
+        "external_model_allowed": false,
+        "git_push_allowed": false,
+        "gmail_allowed": false,
+        "gmail_ui_allowed": false,
+        "ledger_mutation_allowed": false,
+        "ledger_posting_allowed": false,
+        "lm2_tool_expansion_allowed": false,
+        "merge_allowed": false,
+        "paid": false,
+        "paid_marking_allowed": false,
+        "pdf_export_allowed": false,
+        "portal_submit_allowed": false,
+        "sent": false,
+        "workbook_mutation_allowed": false,
+        "worker_spawn_allowed": false
+      },
+      "created_at": "2026-06-13T18:16:16+00:00",
+      "package_id": "codex_work_package:0e5fcfedcbc4c4f3",
+      "proof_verification": {
+        "errors": [],
+        "fail_closed": false,
+        "proof_refs": [],
+        "proof_verification_status": "not_required",
+        "schema_version": "LM2_WORKER_PROOF_VERIFICATION_V0",
+        "verifier_id": "",
+        "verifier_receipt_refs": []
+      },
+      "schema_version": "CODEX_WORK_PACKAGE_VALIDATION_RECEIPT_V0",
+      "validation_errors": [],
+      "validation_id": "codex_work_package_validation:ee76bfaae70ebe4c",
+      "validation_logs": [
+        {
+          "command": "git diff --check",
+          "returncode": 0,
+          "stderr_path": "generated/system_knowledge/work_packages/codex_work_package_0e5fcfedcbc4c4f3/validation_logs/validation_0_stderr.txt",
+          "stdout_path": "generated/system_knowledge/work_packages/codex_work_package_0e5fcfedcbc4c4f3/validation_logs/validation_0_stdout.txt"
+        }
+      ],
+      "validation_status": "validation_passed"
+    },
     {
       "authority_boundary": {
         "authority_granted_from_raw_text_allowed": false,
@@ -2011,6 +2268,34 @@
       },
       "status": "validation_passed",
       "urgency": "watch"
+    },
+    {
+      "item_id": "codex_work_package:codex_work_package_0e5fcfedcbc4c4f3",
+      "lane": "chief_runtime",
+      "occurred_at": "2026-06-13T18:16:16+00:00",
+      "one_next_safe_action": "Review the validation receipt and decide whether activation is still needed.",
+      "package_id": "codex_work_package:0e5fcfedcbc4c4f3",
+      "plain_line": "Worker package codex_work_package:0e5fcfedcbc4c4f3 is validation_passed.",
+      "push_allowed": false,
+      "push_class": "on_demand",
+      "source_receipt_ref": "generated/read_models/codex_work_package_lifecycle.json#codex_work_package:0e5fcfedcbc4c4f3",
+      "state": {
+        "agent_role_ref": "agent_role_card:cassandra",
+        "approval_created": false,
+        "capability_id": "assignment_loop_worker_package",
+        "claimed_by": "openai_codex_cli",
+        "execution_allowed": false,
+        "external_call_allowed": false,
+        "objective_id": "assignment_loop:ec8814974d8673d7",
+        "owner_agent": "cassandra",
+        "package_file_status": "present",
+        "package_id": "codex_work_package:0e5fcfedcbc4c4f3",
+        "proof_verification_status": "not_required",
+        "requested_by_agent": "chief",
+        "status": "validation_passed"
+      },
+      "status": "validation_passed",
+      "urgency": "watch"
     }
   ],
   "worker_bridge_statuses": [
@@ -2038,15 +2323,15 @@
       },
       "available": true,
       "bridge_id": "codex_worker_bridge:manual_codex_handoff",
-      "claim_path": "generated/system_knowledge/work_packages/codex_work_package_b30f224d2670cbd6",
+      "claim_path": "generated/system_knowledge/work_packages/codex_work_package_0e5fcfedcbc4c4f3",
       "human_setup_required": true,
-      "last_seen": "2026-06-13T17:35:30+00:00",
+      "last_seen": "2026-06-13T18:16:16+00:00",
       "limitations": [
         "No approved programmatic Codex Desktop or VS Code Codex bridge is configured.",
         "Manual handoff files are available for an operator-approved Codex worker.",
         "No package is executed by this lifecycle."
       ],
-      "result_path": "generated/system_knowledge/work_packages/codex_work_package_b30f224d2670cbd6/results",
+      "result_path": "generated/system_knowledge/work_packages/codex_work_package_0e5fcfedcbc4c4f3/results",
       "schema_version": "CODEX_WORKER_BRIDGE_STATUS_V0",
       "worker_kind": "manual_codex_handoff"
     }

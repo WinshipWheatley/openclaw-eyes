@@ -52,6 +52,7 @@ MODEL_WORK_PACKAGE_ROUTER_REF = "generated/read_models/model_work_package_router
 CODEX_WORK_PACKAGE_LIFECYCLE_REF = "generated/read_models/codex_work_package_lifecycle.json"
 DATA_ROOM_LIVE_CHATGPT55_REF = "generated/read_models/data_room_live_chatgpt55_lane.json"
 DATA_ROOM_GEMINI_FORM_REF = "generated/read_models/data_room_gemini_form_session.json"
+DATA_ROOM_LIVE_LM_BRAIN_REF = "generated/read_models/data_room_live_lm_brain_status.json"
 LM_CONSULT_SPINE_REF = "generated/read_models/openclaw_lm_consult_spine_status.json"
 
 
@@ -926,6 +927,54 @@ def _data_room_gemini_form_items(read_model: Mapping[str, Any]) -> list[dict[str
     return items
 
 
+def _data_room_live_lm_brain_items(read_model: Mapping[str, Any]) -> list[dict[str, Any]]:
+    if not read_model:
+        return []
+    top_items = read_model.get("watch_desk_items")
+    if not isinstance(top_items, list):
+        return []
+    items: list[dict[str, Any]] = []
+    for item in top_items:
+        if not isinstance(item, Mapping):
+            continue
+        item_id = str(item.get("item_id") or "").strip()
+        plain_line = str(item.get("plain_line") or "").strip()
+        source_ref = str(item.get("source_receipt_ref") or "").strip()
+        if not item_id or not plain_line or not source_ref:
+            continue
+        state = item.get("state") if isinstance(item.get("state"), Mapping) else {}
+        live_ready = bool(state.get("live_lm_brain_ready", read_model.get("live_lm_brain_ready", False)))
+        items.append(
+            _new_item(
+                item_id=item_id,
+                lane=_watch_lane(item.get("lane") or "cassandra_ar"),
+                urgency=str(item.get("urgency") or ("watch" if live_ready else "blocked")),
+                plain_line=plain_line,
+                source_receipt_ref=source_ref,
+                one_next_safe_action=str(
+                    item.get("one_next_safe_action")
+                    or "Continue the Data Room review in Cassandra; LM advice remains advisory-only."
+                ),
+                state={
+                    "live_lm_brain_ready": live_ready,
+                    "provider": str(state.get("provider") or read_model.get("provider") or ""),
+                    "access_mode": str(state.get("access_mode") or read_model.get("access_mode") or ""),
+                    "worker_kind": str(state.get("worker_kind") or read_model.get("worker_kind") or ""),
+                    "active_session_id": str(state.get("active_session_id") or read_model.get("active_session_id") or ""),
+                    "current_question_id": str(state.get("current_question_id") or read_model.get("current_question_id") or ""),
+                    "last_error": str(state.get("last_error") or read_model.get("last_error") or ""),
+                    "external_action_allowed": False,
+                    "runtime_mutation_allowed": False,
+                    "confirmed_reference_data_allowed": False,
+                    "hydration_allowed": False,
+                    "execution_allowed": False,
+                },
+                push_class=str(item.get("push_class") or ("info" if live_ready else "failure")),
+            )
+        )
+    return items
+
+
 def _codex_work_package_lifecycle_items(read_model: Mapping[str, Any]) -> list[dict[str, Any]]:
     if not read_model:
         return []
@@ -1060,6 +1109,9 @@ def build_watch_desk_feed(
         _load_json(read_root / Path(DATA_ROOM_LIVE_CHATGPT55_REF).name)
     )
     data_room_gemini_form_items = _data_room_gemini_form_items(_load_json(read_root / Path(DATA_ROOM_GEMINI_FORM_REF).name))
+    data_room_live_lm_brain_items = _data_room_live_lm_brain_items(
+        _load_json(read_root / Path(DATA_ROOM_LIVE_LM_BRAIN_REF).name)
+    )
     codex_work_items = _codex_work_package_lifecycle_items(_load_json(read_root / Path(CODEX_WORK_PACKAGE_LIFECYCLE_REF).name))
     feed_items = _dedupe_items(
         [item for item in candidate_items if item is not None]
@@ -1070,6 +1122,7 @@ def build_watch_desk_feed(
         + lm_consult_spine_items
         + data_room_live_chatgpt55_items
         + data_room_gemini_form_items
+        + data_room_live_lm_brain_items
         + codex_work_items
     )
     source_refs = sorted({item["source_receipt_ref"] for item in feed_items})

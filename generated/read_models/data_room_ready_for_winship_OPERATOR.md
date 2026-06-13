@@ -1,25 +1,21 @@
-# Data Room Ready For Winship
+# Data Room Live LM Brain Readiness
 
-Status: OPENCLAW_DATA_ROOM_READY_FOR_WINSHIP_SAFE_FALLBACK_NOTIFIED
+Status: OPENCLAW_DATA_ROOM_LIVE_LM_BRAIN_READY_NOTIFIED
 
-Cassandra has the active Data Room form session and the deterministic coach is ready. The live LM brain is not truthfully available: Gemini is blocked by `blocked_provider_rate_limited` / `RESOURCE_EXHAUSTED`, and the ChatGPT 5.5 lane is `blocked_provider_disabled`.
+Cassandra sent the live readiness notification after one bounded Codex CLI LM2 turn passed validation.
 
-Notification sent: yes
+Notification sent:
+I’m here. I have an LM brain for this Data Room form, I have the form, I know the task, I know why it matters, and I’m ready to help you fill it out.
 
-Notification text:
-I’m here. I have the Data Room form and I’m ready to help you fill it out safely. The live LM brain is not connected yet, so I’ll use the local deterministic coach until that provider is available.
+Provider/access mode: openai / openai_codex_cli
+Worker kind: openai_codex_cli
+Package: codex_work_package:0e5fcfedcbc4c4f3
+Result: codex_work_package_result:5ef68bd385ffd7f0
+Validation: codex_work_package_validation:ee76bfaae70ebe4c
 
-Active session: `data_room_review:badad6523a5a22f458b8`
-Topic: `data_room_reference_review`
+Active session: data_room_review:badad6523a5a22f458b8
 Current question: Which payment/contact details are trust-gated? Context: Operator note does not define which payment or contact details are trust-gated.
-Progress: 2 answered, 21 remaining, 23 total.
 
-Local smoke: passed. Explanation and uncertainty turns did not record answers; candidate and conditional answers required confirmation.
+Next instruction for Winship: Open Cassandra Telegram and continue the Data Room form. Answer the current question in plain English; any LM-suggested answer stays a candidate until you confirm it.
 
-Prompt 2: no-go. `go_signal_for_prompt_2=false`.
-
-Watch Desk refs: data_room_gemini_form:data_room_review:badad6523a5a22f458b8, data_room_live_chatgpt55:data_room_review:badad6523a5a22f458b8, lm_consult_spine:gemini:blocked, guided_review:data_room_review:badad6523a5a22f458b8
-
-Safety: no confirmed reference data created, hydration remains blocked/no confirmed data, no runtime policy change, no Guardian approval, no invoice/ledger/workbook/PDF/business-system mutation.
-
-When Winship returns: open Cassandra Telegram and say `continue Data Room`.
+Safety: no confirmed reference data was created, no hydration ran, no runtime policy changed, no business system was touched, and model output cannot record answers directly.

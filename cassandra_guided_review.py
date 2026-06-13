@@ -880,6 +880,19 @@ def _is_live_gemini_form_start_request(text: str) -> bool:
     return any(phrase in normalized for phrase in phrases)
 
 
+def _is_data_room_live_lm_brain_start_request(text: str) -> bool:
+    normalized = _normalize_topic_text(text)
+    phrases = (
+        "cassandra start the data room lm brain",
+        "start the data room lm brain",
+        "cassandra use the lm brain for this data room form",
+        "use the lm brain for this data room form",
+        "cassandra start helping me fill this form with the lm brain",
+        "start helping me fill this form with the lm brain",
+    )
+    return any(phrase in normalized for phrase in phrases)
+
+
 def _load_session(review_root: Path, session_id: str) -> dict[str, Any] | None:
     path = _session_path(review_root, session_id)
     if not path.is_file():
@@ -987,7 +1000,11 @@ def set_guided_review_context_status(
 def is_guided_review_message(text: str, *, review_root: str | Path | None = None) -> bool:
     if not text or not text.strip() or _excluded_route_text(text):
         return False
-    if _is_live_chatgpt55_data_room_start_request(text) or _is_live_gemini_form_start_request(text):
+    if (
+        _is_live_chatgpt55_data_room_start_request(text)
+        or _is_live_gemini_form_start_request(text)
+        or _is_data_room_live_lm_brain_start_request(text)
+    ):
         return True
     active = _find_active_session(_review_root(review_root))
     resolution = resolve_guided_review_topic(text, active_session_context=active)
@@ -2864,6 +2881,174 @@ def _handle_live_chatgpt55_data_room_turn(
     return str(result.get("assistant_reply") or "")
 
 
+def _data_room_live_lm_brain_read_model_path(read_model_root: str | Path | None) -> Path:
+    if read_model_root:
+        return _read_model_root(read_model_root) / "data_room_live_lm_brain_status.json"
+    return Path("generated/read_models/data_room_live_lm_brain_status.json")
+
+
+def _live_lm_brain_active(session: Mapping[str, Any]) -> bool:
+    lane = session.get("data_room_live_lm_brain")
+    return bool(isinstance(lane, Mapping) and lane.get("active") is True and lane.get("live_lm_brain_ready") is True)
+
+
+def _set_data_room_live_lm_brain_session_state(
+    session: dict[str, Any],
+    *,
+    run: Mapping[str, Any],
+    now: str,
+    read_model_root: str | Path | None,
+) -> None:
+    import data_room_live_lm_brain as lm_brain
+
+    status = run.get("status_read_model") if isinstance(run.get("status_read_model"), Mapping) else {}
+    request = run.get("request") if isinstance(run.get("request"), Mapping) else {}
+    turn_result = run.get("turn_result") if isinstance(run.get("turn_result"), Mapping) else {}
+    ready = bool(status.get("live_lm_brain_ready"))
+    state_refs = {
+        "read_model_path": _data_room_live_lm_brain_read_model_path(read_model_root).as_posix(),
+        "request_ref": str(status.get("readiness_turn_request_ref") or ""),
+        "result_ref": str(status.get("readiness_turn_result_ref") or ""),
+    }
+    session["data_room_live_lm_brain"] = {
+        "schema_version": "DATA_ROOM_LIVE_LM_BRAIN_SESSION_LANE_V0",
+        "active": ready,
+        "live_lm_brain_ready": ready,
+        "provider": str(status.get("provider") or "openai"),
+        "access_mode": str(status.get("access_mode") or "openai_codex_cli"),
+        "worker_kind": str(status.get("worker_kind") or "openai_codex_cli"),
+        "last_request_id": str(request.get("request_id") or ""),
+        "last_package_id": str(status.get("readiness_turn_package_ref") or ""),
+        "last_result_ref": str(status.get("result_ref") or ""),
+        "last_validation_ref": str(status.get("validation_ref") or ""),
+        "blocked_reason": str(status.get("last_error") or ""),
+        "chat_log_summary": str(turn_result.get("chat_log_summary_update") or status.get("chat_log_summary_update") or ""),
+        "state_refs": state_refs,
+        "updated_at_utc": now,
+        "advisory_only": True,
+        "runtime_mutation_allowed": False,
+        "execution_allowed": False,
+        "confirmed_reference_data_allowed": False,
+        "hydration_allowed": False,
+        "external_action_allowed": False,
+    }
+    generated_refs = list(session.get("generated_prompt_refs") or [])
+    for ref in state_refs.values():
+        if ref and ref not in generated_refs:
+            generated_refs.append(ref)
+    session["generated_prompt_refs"] = generated_refs
+    watch_refs = list(session.get("watch_desk_refs") or [])
+    watch_ref = str(status.get("watch_desk_ref") or f"data_room_live_lm_brain:{session.get('review_session_id') or 'unknown'}")
+    if watch_ref and watch_ref not in watch_refs:
+        watch_refs.append(watch_ref)
+    session["watch_desk_refs"] = watch_refs
+    if ready:
+        session["data_room_live_lm_brain_notification_text"] = lm_brain.READY_NOTIFICATION_TEXT
+
+
+def _activate_data_room_live_lm_brain(
+    session: dict[str, Any],
+    *,
+    read_model_root: str | Path | None,
+    now: str,
+    live_lm_brain_runner=None,
+    live_lm_brain_timeout_seconds: int = 90,
+    live_lm_brain_sqlite_path: str | Path | None = None,
+    live_lm_brain_package_root: str | Path | None = None,
+    live_lm_brain_turn_root: str | Path | None = None,
+) -> str:
+    import data_room_live_lm_brain as lm_brain
+    import codex_work_package_lifecycle as lifecycle
+
+    run = lm_brain.run_live_lm_turn(
+        session,
+        lm_brain.READINESS_USER_TURN,
+        created_at_utc=now,
+        codex_runner=live_lm_brain_runner,
+        timeout_seconds=live_lm_brain_timeout_seconds,
+        sqlite_path=Path(live_lm_brain_sqlite_path) if live_lm_brain_sqlite_path else lifecycle.DEFAULT_SQLITE_PATH,
+        package_root=Path(live_lm_brain_package_root) if live_lm_brain_package_root else lifecycle.DEFAULT_PACKAGE_ROOT,
+        turn_root=Path(live_lm_brain_turn_root) if live_lm_brain_turn_root else lm_brain.DEFAULT_TURN_ROOT,
+        read_model_path=_data_room_live_lm_brain_read_model_path(read_model_root),
+    )
+    _set_data_room_live_lm_brain_session_state(session, run=run, now=now, read_model_root=read_model_root)
+    if run.get("status") == "ready":
+        return lm_brain.READY_NOTIFICATION_TEXT
+    status = run.get("status_read_model") if isinstance(run.get("status_read_model"), Mapping) else {}
+    reason = str(run.get("reason") or status.get("last_error") or run.get("status") or "blocked")
+    return f"Data Room LM brain blocked: {reason}. I did not send a live-LM readiness claim."
+
+
+def _handle_data_room_live_lm_brain_turn(
+    session: dict[str, Any],
+    *,
+    raw_text: str,
+    surface: str,
+    read_model_root: str | Path | None,
+    now: str,
+    live_lm_brain_runner=None,
+    live_lm_brain_timeout_seconds: int = 90,
+    live_lm_brain_sqlite_path: str | Path | None = None,
+    live_lm_brain_package_root: str | Path | None = None,
+    live_lm_brain_turn_root: str | Path | None = None,
+) -> str:
+    import data_room_live_lm_brain as lm_brain
+    import codex_work_package_lifecycle as lifecycle
+
+    lane = session.get("data_room_live_lm_brain") if isinstance(session.get("data_room_live_lm_brain"), Mapping) else {}
+    run = lm_brain.run_live_lm_turn(
+        session,
+        raw_text,
+        created_at_utc=now,
+        recent_chat_summary=str(lane.get("chat_log_summary") or ""),
+        codex_runner=live_lm_brain_runner,
+        timeout_seconds=live_lm_brain_timeout_seconds,
+        sqlite_path=Path(live_lm_brain_sqlite_path) if live_lm_brain_sqlite_path else lifecycle.DEFAULT_SQLITE_PATH,
+        package_root=Path(live_lm_brain_package_root) if live_lm_brain_package_root else lifecycle.DEFAULT_PACKAGE_ROOT,
+        turn_root=Path(live_lm_brain_turn_root) if live_lm_brain_turn_root else lm_brain.DEFAULT_TURN_ROOT,
+        read_model_path=_data_room_live_lm_brain_read_model_path(read_model_root),
+    )
+    _set_data_room_live_lm_brain_session_state(session, run=run, now=now, read_model_root=read_model_root)
+    if run.get("status") != "ready":
+        status = run.get("status_read_model") if isinstance(run.get("status_read_model"), Mapping) else {}
+        reason = str(run.get("reason") or status.get("last_error") or run.get("status") or "blocked")
+        return (
+            f"The Data Room LM brain failed on this turn ({reason}). "
+            "I am falling back to the deterministic review coach for this turn.\n\n"
+            f"{_format_question_reply(session)}"
+        )
+    result = run.get("turn_result") if isinstance(run.get("turn_result"), Mapping) else {}
+    answer = result.get("proposed_answer") if isinstance(result.get("proposed_answer"), Mapping) else {}
+    candidate_text = str(answer.get("plain_english") or answer.get("normalized_decision") or "").strip()
+    intent = str(result.get("operator_intent") or "")
+    if candidate_text and intent in {"answer_candidate", "conditional", "thought_dump"}:
+        question_id = str(result.get("question_id") or session.get("current_question_id") or "")
+        pending_candidate = _set_pending_answer_candidate(
+            session,
+            candidate_text=candidate_text,
+            source_intent={
+                "schema_version": "DATA_ROOM_LIVE_LM_BRAIN_PENDING_CANDIDATE_SOURCE_V0",
+                "intent": intent,
+                "request_id": str(result.get("request_id") or ""),
+                "should_record_now": False,
+                "confirmed_by_winship": False,
+                "safety_flags": dict(result.get("safety_flags") or {}),
+            },
+            current_question_id=question_id,
+            now=now,
+            surface=surface,
+        )
+        _append_pending_interaction_event(
+            session,
+            command="data_room_live_lm_brain_pending_answer_candidate_created",
+            question_id=question_id,
+            now=now,
+            answer_recorded=False,
+        )
+        session["pending_interaction"] = pending_candidate
+    return str(result.get("assistant_reply") or "")
+
+
 def _live_gemini_form_lane_active(session: Mapping[str, Any]) -> bool:
     lane = session.get("data_room_gemini_form_session")
     return bool(isinstance(lane, Mapping) and lane.get("active") is True and lane.get("live_ready") is True)
@@ -3385,6 +3570,11 @@ def process_guided_review_message(
     chatgpt55_env: Mapping[str, str] | None = None,
     gemini_form_provider=None,
     gemini_form_env: Mapping[str, str] | None = None,
+    live_lm_brain_runner=None,
+    live_lm_brain_timeout_seconds: int = 90,
+    live_lm_brain_sqlite_path: str | Path | None = None,
+    live_lm_brain_package_root: str | Path | None = None,
+    live_lm_brain_turn_root: str | Path | None = None,
 ) -> dict[str, Any] | None:
     """Process a Cassandra guided-review turn without external side effects."""
 
@@ -3396,8 +3586,9 @@ def process_guided_review_message(
     resolution = resolve_guided_review_topic(raw_text, active_session_context=active)
     live_start_request = _is_live_chatgpt55_data_room_start_request(raw_text)
     gemini_start_request = _is_live_gemini_form_start_request(raw_text)
+    lm_brain_start_request = _is_data_room_live_lm_brain_start_request(raw_text)
     topic = str(resolution.get("matched_topic_id") or "")
-    if (live_start_request or gemini_start_request) and not topic:
+    if (live_start_request or gemini_start_request or lm_brain_start_request) and not topic:
         topic = TOPIC_DATA_ROOM
     if not active and not topic and not resolution.get("clarification_question"):
         return None
@@ -3407,9 +3598,16 @@ def process_guided_review_message(
         and not resolution.get("should_start_session")
         and not live_start_request
         and not gemini_start_request
+        and not lm_brain_start_request
     ):
         return _clarification_response(resolution, reply_text=str(resolution["clarification_question"]))
-    if not active and not resolution.get("should_start_session") and not live_start_request and not gemini_start_request:
+    if (
+        not active
+        and not resolution.get("should_start_session")
+        and not live_start_request
+        and not gemini_start_request
+        and not lm_brain_start_request
+    ):
         return None
     if not active:
         try:
@@ -3464,6 +3662,17 @@ def process_guided_review_message(
                 gemini_form_provider=gemini_form_provider,
                 gemini_form_env=gemini_form_env,
             )
+        elif lm_brain_start_request:
+            reply = _activate_data_room_live_lm_brain(
+                session,
+                read_model_root=read_model_root,
+                now=now,
+                live_lm_brain_runner=live_lm_brain_runner,
+                live_lm_brain_timeout_seconds=live_lm_brain_timeout_seconds,
+                live_lm_brain_sqlite_path=live_lm_brain_sqlite_path,
+                live_lm_brain_package_root=live_lm_brain_package_root,
+                live_lm_brain_turn_root=live_lm_brain_turn_root,
+            )
         elif live_start_request:
             reply = _activate_live_chatgpt55_data_room_lane(
                 session,
@@ -3514,6 +3723,18 @@ def process_guided_review_message(
                 now=now,
                 gemini_form_provider=gemini_form_provider,
                 gemini_form_env=gemini_form_env,
+            )
+            form_fill_handled = True
+        elif lm_brain_start_request:
+            reply = _activate_data_room_live_lm_brain(
+                session,
+                read_model_root=read_model_root,
+                now=now,
+                live_lm_brain_runner=live_lm_brain_runner,
+                live_lm_brain_timeout_seconds=live_lm_brain_timeout_seconds,
+                live_lm_brain_sqlite_path=live_lm_brain_sqlite_path,
+                live_lm_brain_package_root=live_lm_brain_package_root,
+                live_lm_brain_turn_root=live_lm_brain_turn_root,
             )
             form_fill_handled = True
         elif live_start_request:
@@ -3584,6 +3805,27 @@ def process_guided_review_message(
             pass
         elif pending_handled:
             pass
+        elif _live_lm_brain_active(session) and control not in {
+            "done",
+            "summarize",
+            "skip",
+            "defer",
+            "next question",
+            "use_recommendation",
+            "revise_previous",
+        }:
+            reply = _handle_data_room_live_lm_brain_turn(
+                session,
+                raw_text=raw_text,
+                surface=surface,
+                read_model_root=read_model_root,
+                now=now,
+                live_lm_brain_runner=live_lm_brain_runner,
+                live_lm_brain_timeout_seconds=live_lm_brain_timeout_seconds,
+                live_lm_brain_sqlite_path=live_lm_brain_sqlite_path,
+                live_lm_brain_package_root=live_lm_brain_package_root,
+                live_lm_brain_turn_root=live_lm_brain_turn_root,
+            )
         elif _live_gemini_form_lane_active(session) and control == "done":
             if _gemini_done_criteria_ready(session):
                 reply = _begin_gemini_finalizer_confirmation(
