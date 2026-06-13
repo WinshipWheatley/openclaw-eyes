@@ -1125,7 +1125,12 @@ def _test_dry_run_action_result(
     target_ref: str,
 ) -> dict[str, Any]:
     run_mode_context = request.get("run_mode_context") if isinstance(request.get("run_mode_context"), Mapping) else global_run_mode_context.default_run_mode_context(generated_at=generated_at)
-    effect_kind = test_effect_adapters.SQLITE_WRITE if action_kind == "test_sqlite_write" else test_effect_adapters.EMAIL_SEND
+    if action_kind == "test_sqlite_write":
+        effect_kind = test_effect_adapters.SQLITE_WRITE
+    elif action_kind == "dry_run_calendar_event":
+        effect_kind = test_effect_adapters.CALENDAR_EVENT
+    else:
+        effect_kind = test_effect_adapters.EMAIL_SEND
     effect_request = test_effect_adapters.build_test_effect_request(
         effect_kind=effect_kind,
         run_mode_context=run_mode_context,
@@ -1309,6 +1314,16 @@ def route_conversation_text(
             sqlite_path=sqlite_path,
             action_kind="test_sqlite_write",
             target_ref=f"{world}/{thread}",
+        )
+    if run_mode_context.get("run_mode") == global_run_mode_context.TEST_DRY_RUN and (
+        "calendar" in lowered or "calandar" in lowered or "gcal" in lowered
+    ) and ("test" in lowered or "event" in lowered or "tomorrow" in lowered):
+        return _test_dry_run_action_result(
+            request,
+            generated_at=generated_at,
+            sqlite_path=sqlite_path,
+            action_kind="dry_run_calendar_event",
+            target_ref=f"{world}/{thread}/calendar_test",
         )
     if "winshiplive@gmail.com" in lowered and ("email" in lowered or "mail" in lowered):
         return _test_dry_run_action_result(

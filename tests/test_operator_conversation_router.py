@@ -7,6 +7,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import first_class_operator_envelope as operator_authority
+import global_run_mode_context
 import operator_controller_event_router as controller_router
 import operator_conversation_router as router
 
@@ -228,6 +229,41 @@ def test_stale_context_returns_needs_verification(tmp_path):
     assert result["route_status"] == router.ROUTE_STATUS_NEEDS_VERIFICATION
     assert result["operator_display"]["headline"] == "Needs verification"
     assert result["workflow_package_staged"] is False
+
+
+def test_test_mode_calendar_request_records_dry_run_receipt_without_event_mutation(tmp_path):
+    run_mode_state = global_run_mode_context.build_run_mode_state(
+        run_mode=global_run_mode_context.TEST_DRY_RUN,
+        scope={"scope": "session", "target_world_ref": "ops", "target_thread_ref": "calendar_tests"},
+        generated_at=FIXED_NOW,
+    )
+    run_mode_context = global_run_mode_context.context_from_state(
+        run_mode_state,
+        source="operator_conversation_router_test",
+        generated_at=FIXED_NOW,
+    )
+
+    result = router.route_conversation_text(
+        _request(
+            "Can you make a test Google Calendar event for tomorrow and delete it after I review?",
+            world="ops",
+            thread="calendar_tests",
+            run_mode_context=run_mode_context,
+        ),
+        generated_at=FIXED_NOW,
+        sqlite_path=tmp_path / "proof.sqlite",
+    )
+    receipt = result["test_effect_receipt"]
+
+    assert result["route_status"] == router.ROUTE_STATUS_TEXT_RESPONSE
+    assert result["backend_route"] == "global_run_mode_context.test_execution_receipt"
+    assert receipt["effect_kind"] == "calendar_event"
+    assert receipt["status"] == "DRY_RUN_RECORDED"
+    assert receipt["external_effect"] is False
+    assert receipt["calendar_api_called"] is False
+    assert receipt["calendar_event_created"] is False
+    assert receipt["calendar_event_deleted"] is False
+    assert result["machine_proof"]["production_action_performed"] is False
 
 
 def test_protected_merge_request_blocked_as_text_response(tmp_path):

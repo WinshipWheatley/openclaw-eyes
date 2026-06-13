@@ -1,5 +1,6 @@
 {
   "authority_boundary": {
+    "calendar_api_called": false,
     "calendar_called": false,
     "calendar_event_created": false,
     "calendar_event_deleted": false,
@@ -19,13 +20,13 @@
     "pending_interaction_empty": true,
     "unsafe_true_paths": []
   },
-  "generated_at": "2026-06-13T22:20:00+00:00",
+  "generated_at": "2026-06-13T21:45:00+00:00",
   "lab_summary_path": "/tmp/openclaw-mission-control/human_edge_lab/cassandra_human_edge_lab_summary.json",
   "read_model_id": "cassandra_human_edge_lab",
   "read_model_path": "/home/openclaw/generated/read_models/cassandra_human_edge_lab.json",
   "router_scenario_ref": "/tmp/openclaw-mission-control/human_edge_lab/router/router_human_edge_summary.json",
   "router_summary": {
-    "calendar_test_adapter_status": "not_configured_no_calendar_call_performed",
+    "calendar_test_adapter_status": "dry_run_calendar_receipt_recorded_no_calendar_call_performed",
     "case_count": 4,
     "unsafe_true_paths": []
   },
@@ -39,13 +40,13 @@
   "source_catalog": [
     {
       "exists": true,
-      "line_count": 6872,
+      "line_count": 6873,
       "path": "/mnt/c/OpenClaw/logs/cassandra_conversations.jsonl",
       "privacy_posture": "raw_debug_log_catalog_only",
       "raw_body_ingested": false,
       "raw_content_sampled": false,
       "schema_version": "CASSANDRA_CONVERSATION_SOURCE_CATALOG_ITEM_V0",
-      "size_bytes": 2599697,
+      "size_bytes": 2600904,
       "source_id": "conversation_source:17c55fdbf4b3a528",
       "source_kind": "raw_cassandra_conversation_log",
       "test_marker": "OPENCLAW_TEST_ONLY_DO_NOT_USE_AS_PROOF_V0",
@@ -53,13 +54,13 @@
     },
     {
       "exists": true,
-      "line_count": 2915,
+      "line_count": 2916,
       "path": "/mnt/c/OpenClaw/logs/cassandra_listener.out",
       "privacy_posture": "runtime_status_catalog_only",
       "raw_body_ingested": false,
       "raw_content_sampled": false,
       "schema_version": "CASSANDRA_CONVERSATION_SOURCE_CATALOG_ITEM_V0",
-      "size_bytes": 197009,
+      "size_bytes": 197027,
       "source_id": "conversation_source:5899905f82e69bf4",
       "source_kind": "cassandra_listener_runtime_log",
       "test_marker": "OPENCLAW_TEST_ONLY_DO_NOT_USE_AS_PROOF_V0",

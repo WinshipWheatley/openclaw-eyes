@@ -38,6 +38,7 @@ AUTHORITY_BOUNDARY = {
     "gmail_called": False,
     "email_sent": False,
     "calendar_called": False,
+    "calendar_api_called": False,
     "calendar_event_created": False,
     "calendar_event_deleted": False,
     "external_api_called": False,
@@ -152,6 +153,7 @@ def _unsafe_true_paths(value: Any, path: str = "$") -> list[str]:
         "gmail_called",
         "email_sent",
         "calendar_called",
+        "calendar_api_called",
         "calendar_event_created",
         "calendar_event_deleted",
         "external_api_called",
@@ -340,11 +342,18 @@ def run_router_human_edge_scenario(
                 "test_marker": receipt.get("test_marker") or context.get("test_marker"),
                 "external_effect": bool(receipt.get("external_effect")) if receipt else False,
                 "email_send_performed": bool(receipt.get("email_send_performed")) if receipt else False,
-                "calendar_event_created": False,
-                "calendar_event_deleted": False,
+                "calendar_api_called": bool(receipt.get("calendar_api_called")) if receipt else False,
+                "calendar_event_created": bool(receipt.get("calendar_event_created")) if receipt else False,
+                "calendar_event_deleted": bool(receipt.get("calendar_event_deleted")) if receipt else False,
                 "unsafe_true_paths": _unsafe_true_paths(result),
             }
         )
+    calendar_case = next((item for item in results if item["case_id"] == "calendar_test_gap"), {})
+    calendar_adapter_status = (
+        "dry_run_calendar_receipt_recorded_no_calendar_call_performed"
+        if calendar_case.get("test_effect_status") == "DRY_RUN_RECORDED"
+        else "not_configured_no_calendar_call_performed"
+    )
     summary = {
         "schema_version": "CASSANDRA_HUMAN_EDGE_ROUTER_SCENARIO_V0",
         "scenario_id": "conversation_router_messy_human_effect_boundaries",
@@ -355,7 +364,7 @@ def run_router_human_edge_scenario(
         "proof_read_model_root": proof_read_root.as_posix(),
         "sqlite_path": sqlite_path.as_posix(),
         "results": results,
-        "calendar_test_adapter_status": "not_configured_no_calendar_call_performed",
+        "calendar_test_adapter_status": calendar_adapter_status,
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
     }
     summary["unsafe_true_paths"] = _unsafe_true_paths(summary)

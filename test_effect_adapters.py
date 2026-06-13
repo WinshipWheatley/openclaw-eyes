@@ -39,12 +39,14 @@ TEST_EXECUTION_AUTHORITY_SCHEMA = global_run_mode_context.TEST_EXECUTION_AUTHORI
 
 SQLITE_WRITE = "sqlite_write"
 EMAIL_SEND = "email_send"
+CALENDAR_EVENT = "calendar_event"
 FILE_WORKSPACE_COPY = "file_workspace_copy"
 FILE_WRITE = "file_write"
 LOGIC_PROJECT_COPY = "logic_project_copy"
 EFFECT_KINDS = {
     SQLITE_WRITE,
     EMAIL_SEND,
+    CALENDAR_EVENT,
     FILE_WORKSPACE_COPY,
     FILE_WRITE,
     LOGIC_PROJECT_COPY,
@@ -70,6 +72,9 @@ DENIED_ACTIONS = tuple(global_run_mode_context.DENIED_ACTIONS) + (
 
 AUTHORITY_BOUNDARY = {
     "business_email_send_allowed": False,
+    "calendar_access_allowed": False,
+    "calendar_event_create_allowed": False,
+    "calendar_event_delete_allowed": False,
     "gmail_ui_allowed": False,
     "browser_access_allowed": False,
     "coupa_submit_allowed": False,
@@ -105,6 +110,7 @@ ALLOWED_TEST_CLAIMS = {
     "test_dry_run_recorded",
     "test_sqlite_write_recorded",
     "test_workspace_copy_created",
+    "test_calendar_event_dry_run_recorded",
     "test_live_email_sent_to_allowlisted_recipient",
     "production_rejection_guard_worked",
 }
@@ -244,9 +250,9 @@ def build_test_effect_request(
     run_mode = str(context.get("run_mode") or global_run_mode_context.PRODUCTION)
     test_run_id = str(context.get("test_run_id") or "")
     if requires_test_live is None:
-        requires_test_live = effect_kind in {EMAIL_SEND, SQLITE_WRITE, FILE_WORKSPACE_COPY, FILE_WRITE, LOGIC_PROJECT_COPY}
+        requires_test_live = effect_kind in {EMAIL_SEND, CALENDAR_EVENT, SQLITE_WRITE, FILE_WORKSPACE_COPY, FILE_WRITE, LOGIC_PROJECT_COPY}
     if requires_test_authority is None:
-        requires_test_authority = effect_kind in {EMAIL_SEND, SQLITE_WRITE, FILE_WORKSPACE_COPY, FILE_WRITE, LOGIC_PROJECT_COPY}
+        requires_test_authority = effect_kind in {EMAIL_SEND, CALENDAR_EVENT, SQLITE_WRITE, FILE_WORKSPACE_COPY, FILE_WRITE, LOGIC_PROJECT_COPY}
     target_value = str(target or original_target or source_path or "")
     request = {
         "schema_version": TEST_EFFECT_REQUEST_SCHEMA,
@@ -327,6 +333,9 @@ def _base_receipt(request: Mapping[str, Any], *, status: str, actual_target: str
         "production_safe": False,
         "production_write_performed": False,
         "email_send_performed": False,
+        "calendar_api_called": False,
+        "calendar_event_created": False,
+        "calendar_event_deleted": False,
         "gmail_access_performed": False,
         "browser_access_performed": False,
         "coupa_access_performed": False,
@@ -346,6 +355,9 @@ def _base_receipt(request: Mapping[str, Any], *, status: str, actual_target: str
             "test_marker_present": bool(request.get("test_marker")),
             "production_action_performed": False,
             "business_email_send_performed": False,
+            "calendar_api_called": False,
+            "calendar_event_created": False,
+            "calendar_event_deleted": False,
             "gmail_ui_opened": False,
             "browser_opened": False,
             "coupa_submitted": False,
@@ -469,6 +481,37 @@ def _email_send(sqlite_path: Path, request: Mapping[str, Any], generated_at: str
     return receipt
 
 
+def _calendar_event(sqlite_path: Path, request: Mapping[str, Any], generated_at: str, authority: Mapping[str, Any] | None) -> dict[str, Any]:
+    run_mode = str(request.get("run_mode") or "")
+    target = str(request.get("target") or "test_calendar")
+    if run_mode == global_run_mode_context.PRODUCTION:
+        return _base_receipt(request, status=BLOCKED_BY_RUN_MODE, actual_target=target, generated_at=generated_at)
+    if run_mode == global_run_mode_context.TEST_DRY_RUN:
+        receipt = _base_receipt(request, status=DRY_RUN_RECORDED, actual_target=target, generated_at=generated_at)
+        receipt["calendar_preview"] = {
+            "calendar_ref": target,
+            "payload_summary": str(request.get("payload_summary") or ""),
+            "calendar_api_called": False,
+            "calendar_event_created": False,
+            "calendar_event_deleted": False,
+            "body_has_test_marker": str(request.get("content") or request.get("payload_summary") or "").startswith(TEST_MARKER),
+        }
+        receipt["adapter_missing_reason"] = "Calendar dry-run recorded only; no Calendar API call or event mutation was performed."
+        return receipt
+    if not _valid_test_authority(authority, CALENDAR_EVENT, target, str(request.get("test_run_id") or "")):
+        return _base_receipt(request, status=BLOCKED_BY_AUTHORITY, actual_target=target, generated_at=generated_at)
+    receipt = _base_receipt(request, status=TEST_ADAPTER_MISSING, actual_target=target, generated_at=generated_at)
+    receipt["calendar_preview"] = {
+        "calendar_ref": target,
+        "payload_summary": str(request.get("payload_summary") or ""),
+        "calendar_api_called": False,
+        "calendar_event_created": False,
+        "calendar_event_deleted": False,
+    }
+    receipt["adapter_missing_reason"] = "No safe Calendar transport is configured for test_live V0; credentials/secrets were not read."
+    return receipt
+
+
 def _count_live_test_emails(sqlite_path: Path, test_run_id: str) -> int:
     sqlite_path = _rooted(sqlite_path)
     if not sqlite_path.exists():
@@ -588,6 +631,8 @@ def execute_test_effect(
         receipt = _sqlite_write(sqlite_path, request, generated_at, test_execution_authority)
     elif effect_kind == EMAIL_SEND:
         receipt = _email_send(sqlite_path, request, generated_at, test_execution_authority, email_transport_available)
+    elif effect_kind == CALENDAR_EVENT:
+        receipt = _calendar_event(sqlite_path, request, generated_at, test_execution_authority)
     elif effect_kind in {FILE_WORKSPACE_COPY, FILE_WRITE, LOGIC_PROJECT_COPY}:
         receipt = _workspace_copy(sqlite_path, request, generated_at, test_execution_authority, workspace_root)
     else:

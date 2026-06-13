@@ -21,6 +21,7 @@ def _unsafe_true_paths(value, path="$"):
         "gmail_called",
         "email_sent",
         "calendar_called",
+        "calendar_api_called",
         "calendar_event_created",
         "calendar_event_deleted",
         "external_api_called",
@@ -96,9 +97,12 @@ def test_router_human_edge_lab_uses_test_effects_and_blocks_calendar_mutation(tm
     assert by_case["dry_run_email"]["test_effect_actual_target"] == "winshiplive@gmail.com"
     assert by_case["dry_run_email"]["external_effect"] is False
     assert by_case["dry_run_email"]["email_send_performed"] is False
+    assert by_case["calendar_test_gap"]["test_effect_status"] == "DRY_RUN_RECORDED"
+    assert by_case["calendar_test_gap"]["route_status"] == "TEXT_RESPONSE_READY"
+    assert by_case["calendar_test_gap"]["calendar_api_called"] is False
     assert by_case["calendar_test_gap"]["calendar_event_created"] is False
     assert by_case["calendar_test_gap"]["calendar_event_deleted"] is False
-    assert result["calendar_test_adapter_status"] == "not_configured_no_calendar_call_performed"
+    assert result["calendar_test_adapter_status"] == "dry_run_calendar_receipt_recorded_no_calendar_call_performed"
     assert _unsafe_true_paths(result) == []
     assert result["unsafe_true_paths"] == []
 
