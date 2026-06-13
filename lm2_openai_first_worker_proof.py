@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -67,6 +68,8 @@ SECRET_VALUE_PATTERN = re.compile(
     r"(?i)(api[_-]?key|password|token|secret|credential)\s*[:=]\s*([^\s]+)"
 )
 
+CODEX_CLI_ENV_VAR = "OPENCLAW_CODEX_CLI_PATH"
+
 
 def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
@@ -97,9 +100,22 @@ def _safe_excerpt(value: Any, *, max_chars: int = 1200) -> str:
     return redacted[:max_chars] + ("...[truncated]" if len(redacted) > max_chars else "")
 
 
+def resolve_codex_cli_path() -> str:
+    configured = os.environ.get(CODEX_CLI_ENV_VAR, "").strip()
+    candidates = [configured] if configured else []
+    discovered = shutil.which("codex")
+    if discovered:
+        candidates.append(discovered)
+    candidates.extend(str(path) for path in sorted(Path.home().glob(".nvm/versions/node/*/bin/codex"), reverse=True))
+    for candidate in candidates:
+        if candidate and Path(candidate).is_file():
+            return candidate
+    return "codex"
+
+
 def codex_cli_worker_command(*, scratch_dir: Path, schema_path: Path, output_path: Path) -> list[str]:
     return [
-        "codex",
+        resolve_codex_cli_path(),
         "--cd",
         str(scratch_dir),
         "--sandbox",

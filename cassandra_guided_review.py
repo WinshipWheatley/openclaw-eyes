@@ -893,6 +893,23 @@ def _is_data_room_live_lm_brain_start_request(text: str) -> bool:
     return any(phrase in normalized for phrase in phrases)
 
 
+def is_data_room_guided_review_start_request(text: str) -> bool:
+    normalized = _normalize_topic_text(text)
+    phrases = (
+        "start data room",
+        "start the data room",
+        "let's start data room",
+        "let's start the data room",
+        "lets start data room",
+        "lets start the data room",
+        "go over data room",
+        "go over the data room",
+        "walk me through data room",
+        "walk me through the data room",
+    )
+    return any(phrase in normalized for phrase in phrases)
+
+
 def _load_session(review_root: Path, session_id: str) -> dict[str, Any] | None:
     path = _session_path(review_root, session_id)
     if not path.is_file():
@@ -1004,6 +1021,7 @@ def is_guided_review_message(text: str, *, review_root: str | Path | None = None
         _is_live_chatgpt55_data_room_start_request(text)
         or _is_live_gemini_form_start_request(text)
         or _is_data_room_live_lm_brain_start_request(text)
+        or is_data_room_guided_review_start_request(text)
     ):
         return True
     active = _find_active_session(_review_root(review_root))
@@ -1606,6 +1624,38 @@ def _candidate_from_condition(raw_text: str, condition_text: str) -> str:
     return text
 
 
+def _candidate_from_direct_answer(raw_text: str) -> str:
+    text = " ".join(str(raw_text or "").strip(" .").split())
+    normalized = _normalize_topic_text(text)
+    if not text or normalized in {
+        "yes",
+        "no",
+        "switch",
+        "cancel",
+        "skip",
+        "defer",
+        "done",
+        "summarize",
+        "next question",
+        "what does that mean",
+        "what do you recommend",
+    }:
+        return ""
+    prefix_patterns = (
+        r"^candidate answer[:,-]?\s*(.+)$",
+        r"^answer[:,-]?\s*(.+)$",
+        r"^record this as[:,-]?\s*(.+)$",
+        r"^record it as[:,-]?\s*(.+)$",
+    )
+    for pattern in prefix_patterns:
+        match = re.match(pattern, text, flags=re.IGNORECASE)
+        if match:
+            return " ".join(match.group(1).strip(" .").split())
+    if len(normalized.split()) < 4:
+        return ""
+    return text
+
+
 def _set_pending_condition_request(
     session: dict[str, Any],
     *,
@@ -2074,6 +2124,64 @@ def _handle_pending_interaction(
         if natural_kind in {"ask_explanation", "ask_eli5", "ask_analogy", "ask_examples", "ask_recommendation"}:
             question = _question_by_id(session, current_question_id)
             return _natural_explanation_reply(session, question or {}, natural_kind)
+        question = _question_by_id(session, current_question_id)
+        mismatch = _answer_topic_mismatch(raw_text, question or {}) if question else {}
+        if mismatch:
+            _enable_coach_mode(session)
+            pending_switch = _set_pending_topic_switch(
+                session,
+                original_text=raw_text,
+                mismatch=mismatch,
+                question=question or {},
+                now=now,
+                surface=surface,
+            )
+            _append_topic_mismatch_clarification(
+                session,
+                question_id=current_question_id,
+                now=now,
+                mismatch=mismatch,
+            )
+            return _pending_prompt(pending_switch)
+        candidate = _candidate_from_direct_answer(raw_text)
+        if candidate:
+            updated = _update_pending_answer_candidate(
+                session,
+                pending,
+                candidate_text=candidate,
+                source_intent=natural_intent,
+                now=now,
+            )
+            _append_pending_interaction_event(
+                session,
+                command="pending_answer_candidate_replaced",
+                question_id=current_question_id,
+                now=now,
+                answer_recorded=False,
+            )
+            return _candidate_prompt(str(updated.get("candidate_text") or candidate))
+        turns_remaining = max(int(pending.get("turns_remaining") or 1) - 1, 0)
+        if turns_remaining <= 0:
+            session["pending_interaction"] = {}
+            _append_pending_interaction_event(
+                session,
+                command="pending_answer_candidate_expired",
+                question_id=current_question_id,
+                now=now,
+                answer_recorded=False,
+            )
+            return _format_question_reply(session, prefix="I let that pending candidate expire and did not record it.")
+        updated = dict(pending)
+        updated["turns_remaining"] = turns_remaining
+        session["pending_interaction"] = updated
+        _append_pending_interaction_event(
+            session,
+            command="pending_answer_candidate_reprompted",
+            question_id=current_question_id,
+            now=now,
+            answer_recorded=False,
+        )
+        return _candidate_prompt(candidate_text)
     if pending.get("kind") == "condition_request":
         current_question_id = str(pending.get("current_question_id") or session.get("current_question_id") or "")
         natural_kind = str(natural_intent.get("intent") or "")
@@ -3587,8 +3695,9 @@ def process_guided_review_message(
     live_start_request = _is_live_chatgpt55_data_room_start_request(raw_text)
     gemini_start_request = _is_live_gemini_form_start_request(raw_text)
     lm_brain_start_request = _is_data_room_live_lm_brain_start_request(raw_text)
+    data_room_start_request = is_data_room_guided_review_start_request(raw_text)
     topic = str(resolution.get("matched_topic_id") or "")
-    if (live_start_request or gemini_start_request or lm_brain_start_request) and not topic:
+    if (live_start_request or gemini_start_request or lm_brain_start_request or data_room_start_request) and not topic:
         topic = TOPIC_DATA_ROOM
     if not active and not topic and not resolution.get("clarification_question"):
         return None
@@ -3599,6 +3708,7 @@ def process_guided_review_message(
         and not live_start_request
         and not gemini_start_request
         and not lm_brain_start_request
+        and not data_room_start_request
     ):
         return _clarification_response(resolution, reply_text=str(resolution["clarification_question"]))
     if (
@@ -3607,6 +3717,7 @@ def process_guided_review_message(
         and not live_start_request
         and not gemini_start_request
         and not lm_brain_start_request
+        and not data_room_start_request
     ):
         return None
     if not active:

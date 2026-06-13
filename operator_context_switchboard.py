@@ -16,6 +16,7 @@ from typing import Any, Mapping, Sequence
 
 from cassandra_guided_review import (
     get_active_guided_review_context,
+    is_data_room_guided_review_start_request,
     resolve_guided_review_topic,
     set_guided_review_context_status,
 )
@@ -278,6 +279,8 @@ def _current_task_control(text: str) -> str:
 
 def _resume_command(text: str) -> bool:
     normalized = _normalize(text).strip(". ")
+    if is_data_room_guided_review_start_request(text):
+        return True
     if normalized in {"continue", "resume", "keep going", "next question", "back to the questions"}:
         return True
     return any(
@@ -597,6 +600,8 @@ def _guided_review_should_own(
     normalized = _normalize(raw_text).strip(". ")
     if not normalized:
         return False
+    if is_data_room_guided_review_start_request(raw_text):
+        return True
     if _ambiguous_command(raw_text) or _resume_command(raw_text):
         return False
     resolution = resolve_guided_review_topic(raw_text, active_session_context=active_context or context_stack)

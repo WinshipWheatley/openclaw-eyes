@@ -952,6 +952,86 @@ def test_payment_contact_trust_gate_stays_payment_privacy_without_legal_flag(tmp
     assert answer_record["authoritative"] is False
 
 
+def test_pending_candidate_direct_answer_stays_on_payment_contact_trust_gate_question(tmp_path):
+    start = _start(tmp_path)
+    session_path = Path(start["artifact_refs"]["session_json"])
+    session = json.loads(session_path.read_text(encoding="utf-8"))
+    question = session["question_queue"][0]
+    question["category"] = "identity/persona policy"
+    question["question_text"] = "Which payment/contact details are trust-gated?"
+    question["context_summary"] = "Operator note does not define which payment or contact details are trust-gated."
+    session["current_question_id"] = question["question_id"]
+    session["pending_interaction"] = {
+        "kind": "answer_candidate",
+        "pending_interaction_id": "pending_answer_candidate:test",
+        "candidate_text": "Gate private payment and contact details.",
+        "candidate_text_hash": "sha256:test",
+        "current_question_id": question["question_id"],
+        "created_at_utc": "2026-06-12T12:01:00+00:00",
+        "surface": "telegram",
+        "turns_remaining": 3,
+        "source_intent": {"intent": "answer_candidate"},
+        "authoritative": False,
+        "runtime_policy_changed": False,
+    }
+    _write_json(session_path, session)
+
+    response = guided.process_guided_review_message(
+        "Candidate answer: Direct deposit and raw payment/contact details stay trust-gated and manual approval only. "
+        "Zelle or check can be mentioned only when I explicitly confirm it for that client.",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:02:00+00:00",
+    )
+    updated_session = _load_session(response)
+    pending = updated_session["pending_interaction"]
+
+    assert "That sounds like a" not in response["reply_text"]
+    assert "Should I record this as:" in response["reply_text"]
+    assert pending["kind"] == "answer_candidate"
+    assert pending["current_question_id"] == question["question_id"]
+    assert pending["candidate_text"].startswith("Direct deposit and raw payment/contact details stay trust-gated")
+    assert updated_session["answer_records"] == []
+    assert updated_session["receipt_refs"] == []
+    assert updated_session["coach_interactions"][-1]["command"] == "pending_answer_candidate_replaced"
+
+
+def test_pending_candidate_direct_deposit_still_switches_for_true_identity_question(tmp_path):
+    payment_question, identity_question = _start_identity_question_with_unanswered_payment(tmp_path)
+    session_path = next((tmp_path / "review").glob("data_room_guided_review_session_*.json"))
+    session = json.loads(session_path.read_text(encoding="utf-8"))
+    session["pending_interaction"] = {
+        "kind": "answer_candidate",
+        "pending_interaction_id": "pending_answer_candidate:test_identity",
+        "candidate_text": "Keep Winship as the default business identity.",
+        "candidate_text_hash": "sha256:test",
+        "current_question_id": identity_question["question_id"],
+        "created_at_utc": "2026-06-12T12:01:00+00:00",
+        "surface": "telegram",
+        "turns_remaining": 3,
+        "source_intent": {"intent": "answer_candidate"},
+        "authoritative": False,
+        "runtime_policy_changed": False,
+    }
+    _write_json(session_path, session)
+
+    response = guided.process_guided_review_message(
+        "Candidate answer: Direct deposit stays manual approval only. Zelle and check are okay by default.",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:02:00+00:00",
+    )
+    updated_session = _load_session(response)
+    pending = updated_session["pending_interaction"]
+
+    assert "That sounds like a payment/privacy answer" in response["reply_text"]
+    assert "this question is about identity/persona" in response["reply_text"]
+    assert pending["kind"] == "topic_switch"
+    assert pending["target_question_id"] == payment_question["question_id"]
+    assert updated_session["answer_records"] == []
+    assert updated_session["receipt_refs"] == []
+
+
 def test_cpa_and_legal_flags_propagate_to_answers_and_receipts(tmp_path):
     promotion = _promotion_review(tmp_path / "review" / "promotion_review.json")
     rates = guided.process_guided_review_message(

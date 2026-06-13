@@ -485,6 +485,25 @@ def test_data_room_opener_uses_guided_review_route_not_switchboard(tmp_path):
     assert response["runtime_policy_changed"] is False
 
 
+def test_plain_data_room_start_phrase_uses_guided_review_not_lane_request(tmp_path):
+    _start(tmp_path)
+    text = "All right, let's start the Data room"
+
+    decision = _switch(tmp_path, text)
+    assert decision is None
+
+    response = guided.process_guided_review_message(
+        text,
+        review_root=_paths(tmp_path)["review_root"],
+        read_model_root=_paths(tmp_path)["read_model_root"],
+        generated_at_utc="2026-06-12T12:02:00+00:00",
+    )
+    assert response["handled"] is True
+    assert "Continuing the active OpenClaw Data Room" in response["reply_text"]
+    assert response["authoritative"] is False
+    assert response["runtime_policy_changed"] is False
+
+
 def test_vague_business_review_prompt_asks_guided_clarification_not_chief(tmp_path):
     _start(tmp_path)
     text = "review business stuff"

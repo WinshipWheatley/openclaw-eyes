@@ -180,6 +180,39 @@ def test_codex_cli_command_builder_uses_verified_short_approval_flag(tmp_path):
     assert command[command.index("--cd") + 1] == str(tmp_path / "scratch")
 
 
+def test_codex_cli_worker_command_resolves_service_safe_absolute_path(tmp_path, monkeypatch):
+    fake_codex = tmp_path / ".nvm" / "versions" / "node" / "v99" / "bin" / "codex"
+    fake_codex.parent.mkdir(parents=True)
+    fake_codex.write_text("#!/usr/bin/env node\n", encoding="utf-8")
+    monkeypatch.delenv(openai_proof.CODEX_CLI_ENV_VAR, raising=False)
+    monkeypatch.setattr(openai_proof.shutil, "which", lambda _name: "")
+    monkeypatch.setattr(openai_proof.Path, "home", lambda: tmp_path)
+
+    command = openai_proof.codex_cli_worker_command(
+        scratch_dir=tmp_path / "scratch",
+        schema_path=tmp_path / "schema.json",
+        output_path=tmp_path / "result.json",
+    )
+
+    assert command[0] == str(fake_codex)
+    assert command[command.index("-a") + 1] == "never"
+
+
+def test_codex_cli_worker_command_honors_explicit_env_path(tmp_path, monkeypatch):
+    configured = tmp_path / "bin" / "codex"
+    configured.parent.mkdir(parents=True)
+    configured.write_text("#!/usr/bin/env node\n", encoding="utf-8")
+    monkeypatch.setenv(openai_proof.CODEX_CLI_ENV_VAR, str(configured))
+
+    command = openai_proof.codex_cli_worker_command(
+        scratch_dir=tmp_path / "scratch",
+        schema_path=tmp_path / "schema.json",
+        output_path=tmp_path / "result.json",
+    )
+
+    assert command[0] == str(configured)
+
+
 def test_codex_cli_worker_timeout_returns_blocked_envelope(tmp_path, monkeypatch):
     def raise_timeout(*args, **kwargs):
         raise subprocess.TimeoutExpired(args[0], timeout=1, output="", stderr="")
