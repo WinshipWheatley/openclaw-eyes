@@ -310,6 +310,28 @@ def _is_finance_capital_hilton(world: str, thread: str) -> bool:
     return world.strip().lower() == "finance" and thread.strip().lower() == "capital_hilton"
 
 
+def _is_next_step_help_request(lowered_text: str) -> bool:
+    return any(
+        phrase in lowered_text
+        for phrase in (
+            "what should i do",
+            "what do i do",
+            "what am i supposed to do",
+            "what is next",
+            "what's next",
+            "what next",
+            "next step",
+            "next safe move",
+            "i don't know what to do",
+            "i do not know what to do",
+            "not sure what to do",
+            "help me decide what to do",
+            "walk me through what to do",
+            "talk to me like a coworker",
+        )
+    )
+
+
 def resolve_finance_capital_hilton_intent(text: str) -> str:
     """Resolve lane-local Finance / Capital Hilton chat text without model calls."""
 
@@ -335,7 +357,7 @@ def resolve_finance_capital_hilton_intent(text: str) -> str:
         return "forbidden_scope_explanation"
     if any(phrase in lowered for phrase in ("why can't", "why can’t", "why cannot", "marked paid", "mark paid", "update the ledger", "touch the ledger", "ledger")):
         return "paid_or_ledger_blocker"
-    if any(phrase in lowered for phrase in ("what should i do", "what is next", "what's next", "what next", "next step", "what is the next")):
+    if _is_next_step_help_request(lowered):
         return "payment_watch_next_step"
     return "fallback_lane_answer"
 

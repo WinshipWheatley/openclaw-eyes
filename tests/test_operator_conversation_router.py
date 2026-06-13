@@ -100,6 +100,23 @@ def test_capital_hilton_what_should_i_do_here_payment_evidence_needed(tmp_path):
     assert result["machine_proof"]["coupa_access_performed"] is False
 
 
+def test_capital_hilton_messy_coworker_help_routes_to_next_step(tmp_path):
+    result = router.route_conversation_text(
+        _request("I don't know what to do here. Can you talk to me like a coworker and tell me the next safe move?"),
+        generated_at=FIXED_NOW,
+        sqlite_path=tmp_path / "proof.sqlite",
+    )
+    display = result["operator_display"]
+
+    assert result["backend_route"] == "proof_to_response_runtime.publish_response"
+    assert result["conversation_intent_class"] == "payment_watch_next_step"
+    assert display["headline"] == "Payment evidence needed"
+    assert "payment evidence" in display["plain_summary"].lower()
+    assert "stronger proof" not in display["plain_summary"].lower()
+    assert result["workflow_package_staged"] is False
+    assert result["machine_proof"]["external_api_called"] is False
+
+
 def test_capital_hilton_why_cannot_mark_paid_blocks_paid_and_ledger(tmp_path):
     result = router.route_conversation_text(
         _request("Why can't this be marked paid?"),
