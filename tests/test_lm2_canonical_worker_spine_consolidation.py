@@ -18,7 +18,7 @@ FIXED_NOW = "2026-06-13T16:00:00+00:00"
 
 
 def _assignment():
-    return assignment_loop_contract.build_assignment_loop(
+    assignment = assignment_loop_contract.build_assignment_loop(
         requested_by="operator",
         owner_agent="chief",
         worker_type="pc_codex",
@@ -30,6 +30,8 @@ def _assignment():
         current_status="active",
         created_at_utc=FIXED_NOW,
     )
+    assignment["expected_output_schema"] = "LM2_CANONICAL_SPINE_SMOKE_RESULT_V0"
+    return assignment
 
 
 def _consult_request():
@@ -63,6 +65,7 @@ def test_assignment_loop_can_create_canonical_worker_package(tmp_path):
     assert result["status"] == "canonical_worker_package_queued"
     assert state["state"] == lifecycle.STATE_AWAITING_WORKER_BRIDGE
     assert package["canonical_worker_spine_schema_version"] == lifecycle.LM2_CANONICAL_SPINE_V0
+    assert package["expected_output_schema"] == "LM2_CANONICAL_SPINE_SMOKE_RESULT_V0"
     assert package["assignment_loop_ref"].startswith("assignment_loop:")
     assert package["execution_allowed"] is False
     assert package["runtime_mutation_allowed"] is False

@@ -625,6 +625,7 @@ def create_worker_package_from_assignment_loop(
         provider_metadata={"worker_kind": selected_worker, "access_mode": str(dispatch_mode or "manual_dispatch")},
         assignment_loop_ref=str(assignment_loop.get("assignment_id") or ""),
         permission_boundary=assignment_loop.get("permission_boundary") if isinstance(assignment_loop.get("permission_boundary"), Mapping) else {},
+        expected_output_schema=assignment_loop.get("expected_output_schema") or "bounded_worker_result_v0",
     )
     objective = {
         "objective_id": package["objective_id"],
