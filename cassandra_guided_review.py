@@ -22,6 +22,7 @@ from cassandra_review_coach import (
     parse_natural_reply_intent,
     render_coach_reply,
 )
+import global_run_mode_context
 
 
 ROOT = Path(__file__).resolve().parent
@@ -57,6 +58,8 @@ AUTHORITY_BOUNDARY = {
     "workbook_pdf_coupa_bank_mutated": False,
     "tax_or_legal_advice_given": False,
 }
+
+RUN_MODE_TEST_SURFACES = {"telegram_dryrun", "dryrun", "test", "test_dry_run"}
 
 CONTROL_WORDS = {
     "skip",
@@ -396,6 +399,98 @@ def _active_index_path(review_root: Path) -> Path:
 
 def _receipt_root(review_root: Path, receipt_root: str | Path | None = None) -> Path:
     return _rooted(receipt_root) if receipt_root else review_root / DEFAULT_RECEIPT_DIR_NAME
+
+
+def _run_mode_scope(session: Mapping[str, Any] | None = None) -> dict[str, str]:
+    return {
+        "scope": "session",
+        "target_world_ref": "data_room",
+        "target_thread_ref": str((session or {}).get("review_session_id") or "guided_review"),
+        "target_project_ref": "openclaw_data_room_form_fill",
+    }
+
+
+def _context_for_test_surface(surface: str, *, active: Mapping[str, Any] | None, generated_at: str) -> dict[str, Any]:
+    state = global_run_mode_context.build_run_mode_state(
+        run_mode=global_run_mode_context.TEST_DRY_RUN,
+        scope=_run_mode_scope(active),
+        generated_at=generated_at,
+    )
+    return global_run_mode_context.context_from_state(
+        state,
+        source=f"guided_review_surface:{surface}",
+        generated_at=generated_at,
+    )
+
+
+def _resolve_guided_review_run_mode_context(
+    raw_text: str,
+    *,
+    surface: str,
+    active: Mapping[str, Any] | None,
+    provided_context: Mapping[str, Any] | None,
+    run_mode_sqlite_path: str | Path | None,
+    generated_at: str,
+) -> dict[str, Any]:
+    if isinstance(provided_context, Mapping) and provided_context.get("schema_version") == global_run_mode_context.RUN_MODE_CONTEXT_SCHEMA:
+        return dict(provided_context)
+    if str(surface or "").strip().lower() in RUN_MODE_TEST_SURFACES:
+        return _context_for_test_surface(surface, active=active, generated_at=generated_at)
+    request = {
+        "operator_text": raw_text,
+        "text": raw_text,
+        "current_world_ref": "data_room",
+        "current_thread_ref": str((active or {}).get("review_session_id") or "guided_review"),
+        "target_project_ref": "openclaw_data_room_form_fill",
+        "requested_scope": "session",
+    }
+    sqlite_path = _rooted(run_mode_sqlite_path or global_run_mode_context.DEFAULT_SQLITE_PATH)
+    return global_run_mode_context.resolve_run_mode_context(sqlite_path, request, generated_at=generated_at)
+
+
+def _safe_run_mode_context(context: Mapping[str, Any] | None) -> dict[str, Any]:
+    if not isinstance(context, Mapping):
+        context = global_run_mode_context.default_run_mode_context(source="guided_review_default")
+    run_mode = str(context.get("run_mode") or global_run_mode_context.PRODUCTION)
+    test_mode = bool(context.get("test_mode")) or run_mode in {global_run_mode_context.TEST_DRY_RUN, global_run_mode_context.TEST_LIVE}
+    return {
+        "schema_version": global_run_mode_context.RUN_MODE_CONTEXT_SCHEMA,
+        "run_mode": run_mode,
+        "test_mode": test_mode,
+        "test_run_id": str(context.get("test_run_id") or ""),
+        "test_marker": str(context.get("test_marker") or (global_run_mode_context.TEST_MARKER if test_mode else "")),
+        "allowed_test_capabilities": list(context.get("allowed_test_capabilities") or []),
+        "live_external_effects_allowed": bool(context.get("live_external_effects_allowed")) if run_mode == global_run_mode_context.TEST_LIVE else False,
+        "allowlisted_recipients": list(context.get("allowlisted_recipients") or []),
+        "resolution_status": str(context.get("resolution_status") or "resolved"),
+        "blockers": list(context.get("blockers") or []),
+        "source": str(context.get("source") or "guided_review"),
+        "state_ref": str(context.get("state_ref") or ""),
+        "receipt_ref": str(context.get("receipt_ref") or ""),
+        "authority_boundary": dict(global_run_mode_context.AUTHORITY_BOUNDARY),
+    }
+
+
+def _run_mode_fields(context: Mapping[str, Any] | None) -> dict[str, Any]:
+    safe = _safe_run_mode_context(context)
+    test_mode = bool(safe["test_mode"])
+    return {
+        "run_mode": safe["run_mode"],
+        "test_mode": test_mode,
+        "test_run_id": safe["test_run_id"] if test_mode else "",
+        "test_marker": safe["test_marker"] if test_mode else "",
+        "test_artifact": test_mode,
+        "production_claim_allowed": not test_mode,
+        "production_rejection_required": test_mode,
+        "production_proof_from_test_artifact_allowed": False,
+        "real_work_requires_first_class_operator_permission": True,
+    }
+
+
+def _stamp_run_mode_context(session: dict[str, Any], context: Mapping[str, Any] | None) -> None:
+    safe = _safe_run_mode_context(context)
+    session["run_mode_context"] = safe
+    session.update(_run_mode_fields(safe))
 
 
 def _relative_or_absolute(path: Path) -> str:
@@ -1338,6 +1433,7 @@ def create_data_room_review_session(
     review_root: str | Path | None = None,
     promotion_review_path: str | Path | None = None,
     created_at_utc: str | None = None,
+    run_mode_context: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     root = _review_root(review_root)
     promotion_path = _promotion_path(promotion_review_path)
@@ -1378,6 +1474,7 @@ def create_data_room_review_session(
         "authoritative": False,
         "runtime_policy_changed": False,
     }
+    _stamp_run_mode_context(session, run_mode_context)
     _persist_session(session, review_root=root)
     return session
 
@@ -1447,6 +1544,7 @@ def _append_coach_interaction(
             "created_at_utc": now,
             "authoritative": False,
             "runtime_policy_changed": False,
+            **_run_mode_fields(session.get("run_mode_context")),
         }
     )
 
@@ -1469,6 +1567,7 @@ def _append_topic_mismatch_clarification(
             "answer_recorded": False,
             "authoritative": False,
             "runtime_policy_changed": False,
+            **_run_mode_fields(session.get("run_mode_context")),
         }
     )
 
@@ -1492,6 +1591,7 @@ def _append_pending_interaction_event(
         "answer_recorded": answer_recorded,
         "authoritative": False,
         "runtime_policy_changed": False,
+        **_run_mode_fields(session.get("run_mode_context")),
     }
     if note_ref:
         event["parked_note_ref"] = note_ref
@@ -1647,6 +1747,7 @@ def _set_pending_topic_switch(
         "turns_remaining": 3,
         "authoritative": False,
         "runtime_policy_changed": False,
+        **_run_mode_fields(session.get("run_mode_context")),
     }
     session["pending_interaction"] = pending
     return pending
@@ -1740,6 +1841,7 @@ def _set_pending_condition_request(
         "source_intent": dict(source_intent),
         "authoritative": False,
         "runtime_policy_changed": False,
+        **_run_mode_fields(session.get("run_mode_context")),
     }
     session["pending_interaction"] = pending
     return pending
@@ -1773,6 +1875,7 @@ def _set_pending_answer_candidate(
         "source_intent": dict(source_intent),
         "authoritative": False,
         "runtime_policy_changed": False,
+        **_run_mode_fields(session.get("run_mode_context")),
     }
     session["pending_interaction"] = pending
     return pending
@@ -1830,6 +1933,7 @@ def _write_parked_note(
         "source_session_id": str(session.get("review_session_id") or ""),
         "source_question_id": str(pending.get("current_question_id") or ""),
         "reason": "no_matching_question_in_current_session",
+        **_run_mode_fields(session.get("run_mode_context")),
     }
     _write_json(path, note)
     ref = f"{path.as_posix()}#parked_note"
@@ -2045,11 +2149,16 @@ def _write_answer_receipt(
         "legal_review_recommended": bool(answer.get("legal_review_recommended")),
         "authoritative": False,
         "runtime_policy_changed": False,
+        "production_write_performed": False,
         "external_calls_performed": False,
         "approval_created": False,
+        "email_sent": False,
+        "gmail_draft_created": False,
         "invoice_or_ledger_mutated": False,
+        "workbook_pdf_coupa_bank_mutated": False,
         "sensitive_detail_redacted": bool(answer.get("sensitive_detail_redacted")),
         "created_at_utc": answer["created_at_utc"],
+        **_run_mode_fields(answer.get("run_mode_context")),
     }
     _write_json(path, receipt)
     return f"{path.as_posix()}#receipt"
@@ -2101,6 +2210,8 @@ def _apply_answer(
         "superseded": False,
         "runtime_policy_changed": False,
         "sensitive_detail_redacted": sensitive,
+        "run_mode_context": _safe_run_mode_context(session.get("run_mode_context")),
+        **_run_mode_fields(session.get("run_mode_context")),
     }
     if extra_answer_fields:
         answer.update(dict(extra_answer_fields))
@@ -2546,6 +2657,7 @@ def _persist_session(
                 "updated_at_utc": session.get("updated_at_utc"),
                 "authoritative": False,
                 "runtime_policy_changed": False,
+                **_run_mode_fields(session.get("run_mode_context")),
             },
         )
     return path
@@ -2555,6 +2667,12 @@ def _write_operator_summary(session: Mapping[str, Any], *, review_root: Path) ->
     path = _operator_path(review_root, str(session["review_session_id"]))
     progress = _progress(session)
     topic_display = str(session.get("topic_display_name") or _topic_display_name(str(session.get("topic") or TOPIC_DATA_ROOM)))
+    run_mode = _run_mode_fields(session.get("run_mode_context"))
+    test_line = (
+        f"- Test marker: {run_mode['test_marker']}"
+        if run_mode["test_mode"]
+        else "- Test marker: none"
+    )
     lines = [
         f"# {topic_display} Guided Review Session {session['review_session_id']}",
         "",
@@ -2562,6 +2680,10 @@ def _write_operator_summary(session: Mapping[str, Any], *, review_root: Path) ->
         "",
         f"- Topic: {topic_display}",
         f"- Status: {session['status']}",
+        f"- Run mode: {run_mode['run_mode']}",
+        test_line,
+        f"- Production claim allowed: {str(run_mode['production_claim_allowed']).lower()}",
+        "- Real work requires first-class operator permission: true",
         f"- Answered: {progress['answered']}",
         f"- Deferred: {progress['deferred']}",
         f"- Skipped: {progress['skipped']}",
@@ -2635,6 +2757,15 @@ def _write_promotion_prompt(session: Mapping[str, Any], *, review_root: Path) ->
         f"- Ignore superseded answer {answer.get('answer_id')} for {answer.get('question_id')}"
         for answer in superseded_answers
     ) or "- No superseded answers."
+    run_mode = _run_mode_fields(session.get("run_mode_context"))
+    test_boundary = (
+        "\nTEST-ONLY BOUNDARY:\n"
+        f"- This is a test artifact marked {run_mode['test_marker']}.\n"
+        "- Do not promote these answers into production confirmed reference data from this artifact.\n"
+        "- A later real run must be completed under production mode with first-class operator permission.\n"
+        if run_mode["test_mode"]
+        else ""
+    )
     prompt = f"""Task: OPENCLAW_DATA_ROOM_CONFIRMED_REFERENCE_PROMOTION_V0
 
 Repo:
@@ -2655,9 +2786,11 @@ Professional-review flags:
 
 Superseded answers:
 {rendered_superseded}
+{test_boundary}
 
 Rules:
 - Promote only answered/confirmed items with sufficient confidence.
+- If this artifact has the OpenClaw test marker, block production promotion and report test-only completion instead.
 - Ignore superseded answers.
 - Keep CPA/legal-flagged items provisional pending professional review.
 - Keep unresolved, skipped, deferred, source-needed, and ambiguous items provisional.
@@ -2713,6 +2846,7 @@ def _session_read_model_item(session: Mapping[str, Any]) -> dict[str, Any]:
     active_answers = _active_answer_records(session)
     cpa_flagged_count = len([answer for answer in active_answers if answer.get("cpa_review_recommended")])
     legal_flagged_count = len([answer for answer in active_answers if answer.get("legal_review_recommended")])
+    run_mode = _run_mode_fields(session.get("run_mode_context"))
     return {
         "item_id": f"guided_review:{session_id}",
         "lane": "chief_runtime",
@@ -2734,6 +2868,7 @@ def _session_read_model_item(session: Mapping[str, Any]) -> dict[str, Any]:
         "answered_count": progress["answered"],
         "deferred_count": progress["deferred"],
         "remaining_count": progress["remaining"],
+        **run_mode,
     }
 
 
@@ -2761,6 +2896,7 @@ def write_guided_review_read_model(
         "sessions": session_rows,
         "watch_desk_items": [_session_read_model_item(session) for session in session_rows],
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
+        "contains_test_artifacts": any(bool(_run_mode_fields(session.get("run_mode_context"))["test_mode"]) for session in session_rows),
     }
     path = root / READ_MODEL_NAME
     path.write_text(stable_json(payload), encoding="utf-8")
@@ -2809,6 +2945,7 @@ def _response(
     handled: bool = True,
 ) -> dict[str, Any]:
     progress = _progress(session)
+    run_mode = _run_mode_fields(session.get("run_mode_context"))
     return {
         "schema_version": "guided_review_surface_response_v0",
         "handled": handled,
@@ -2826,6 +2963,7 @@ def _response(
         "authoritative": False,
         "runtime_policy_changed": False,
         "external_calls_performed": False,
+        **run_mode,
     }
 
 
@@ -3773,6 +3911,8 @@ def process_guided_review_message(
     live_lm_brain_sqlite_path: str | Path | None = None,
     live_lm_brain_package_root: str | Path | None = None,
     live_lm_brain_turn_root: str | Path | None = None,
+    run_mode_context: Mapping[str, Any] | None = None,
+    run_mode_sqlite_path: str | Path | None = None,
 ) -> dict[str, Any] | None:
     """Process a Cassandra guided-review turn without external side effects."""
 
@@ -3781,6 +3921,48 @@ def process_guided_review_message(
     root = _review_root(review_root)
     now = generated_at_utc or utc_now()
     active = _find_active_session(root)
+    resolved_run_mode_context = _resolve_guided_review_run_mode_context(
+        raw_text,
+        surface=surface,
+        active=active,
+        provided_context=run_mode_context,
+        run_mode_sqlite_path=run_mode_sqlite_path,
+        generated_at=now,
+    )
+    if str(resolved_run_mode_context.get("resolution_status") or "resolved") == "rejected":
+        blocked = {
+            "schema_version": SESSION_SCHEMA_VERSION,
+            "review_session_id": "data_room_review:run_mode_blocked",
+            "topic": TOPIC_DATA_ROOM,
+            "topic_display_name": _topic_display_name(TOPIC_DATA_ROOM),
+            "source_artifact_refs": [str(_promotion_path(promotion_review_path))],
+            "created_at_utc": now,
+            "updated_at_utc": now,
+            "operator": operator,
+            "surface": surface,
+            "status": "blocked",
+            "question_queue": [],
+            "current_question_id": "",
+            "answered_questions": [],
+            "skipped_questions": [],
+            "deferred_questions": [],
+            "unresolved_questions": [],
+            "answer_records": [],
+            "generated_prompt_refs": [],
+            "receipt_refs": [],
+            "watch_desk_refs": [],
+            "authoritative": False,
+            "runtime_policy_changed": False,
+        }
+        _stamp_run_mode_context(blocked, resolved_run_mode_context)
+        blockers = ", ".join(str(item) for item in resolved_run_mode_context.get("blockers") or []) or "run_mode_context_rejected"
+        return _response(
+            session=blocked,
+            reply_text=f"I blocked this Data Room review turn because the run-mode context was rejected: {blockers}.",
+            review_root=root,
+            read_model_root=read_model_root,
+            handled=True,
+        )
     resolution = resolve_guided_review_topic(raw_text, active_session_context=active)
     live_start_request = _is_live_chatgpt55_data_room_start_request(raw_text)
     gemini_start_request = _is_live_gemini_form_start_request(raw_text)
@@ -3819,6 +4001,7 @@ def process_guided_review_message(
                 review_root=root,
                 promotion_review_path=promotion_review_path,
                 created_at_utc=now,
+                run_mode_context=resolved_run_mode_context,
             )
             session["coach_start_phrase_detected"] = detect_coach_intent(raw_text)
         except (OSError, json.JSONDecodeError, ValueError) as exc:
@@ -3846,6 +4029,7 @@ def process_guided_review_message(
                 "authoritative": False,
                 "runtime_policy_changed": False,
             }
+            _stamp_run_mode_context(blocked, resolved_run_mode_context)
             return _response(
                 session=blocked,
                 reply_text=f"I could not start the Data Room review because the promotion review artifact is unavailable: {type(exc).__name__}.",
@@ -3895,6 +4079,7 @@ def process_guided_review_message(
             reply = _format_question_reply(session, prefix=intro)
     else:
         session = dict(active)
+        _stamp_run_mode_context(session, session.get("run_mode_context") or resolved_run_mode_context)
         control = _control_text(raw_text)
         if topic and not _topic_record(topic).get("start_allowed", False):
             return None

@@ -8,6 +8,7 @@ if str(ROOT) not in sys.path:
 
 import cassandra_brain
 import cassandra_guided_review as guided
+import global_run_mode_context
 from operator_universal_intake import try_process_surface_operator_intake
 from watch_desk_feed import build_watch_desk_feed
 
@@ -294,6 +295,89 @@ def test_question_flow_records_answers_skip_defer_summary_and_done_artifacts(tmp
     assert done["artifact_refs"]["session_json"] in prompt
     assert "Keep unresolved, skipped, deferred" in prompt
     assert "Do not import Log Rhythm Records" in prompt
+
+
+def test_telegram_dryrun_guided_review_saves_test_only_artifacts(tmp_path):
+    promotion = _promotion_review(tmp_path / "review" / "promotion_review.json")
+    review_root = tmp_path / "review"
+    read_model_root = tmp_path / "read_models"
+
+    start = guided.process_guided_review_message(
+        "Cassandra, let's go over the Data Room.",
+        surface="telegram_dryrun",
+        review_root=review_root,
+        read_model_root=read_model_root,
+        promotion_review_path=promotion,
+        generated_at_utc=FIXED_NOW,
+    )
+    answer = guided.process_guided_review_message(
+        "Direct deposit stays manual approval only; Zelle is okay for trusted clients.",
+        surface="telegram_dryrun",
+        review_root=review_root,
+        read_model_root=read_model_root,
+        promotion_review_path=promotion,
+        generated_at_utc="2026-06-12T12:01:00+00:00",
+    )
+    done = guided.process_guided_review_message(
+        "done",
+        surface="telegram_dryrun",
+        review_root=review_root,
+        read_model_root=read_model_root,
+        promotion_review_path=promotion,
+        generated_at_utc="2026-06-12T12:02:00+00:00",
+    )
+
+    session = _load_session(answer)
+    receipt = json.loads(Path(session["answer_records"][0]["receipt_ref"].split("#", 1)[0]).read_text(encoding="utf-8"))
+    read_model = json.loads((read_model_root / guided.READ_MODEL_NAME).read_text(encoding="utf-8"))
+    prompt = Path(done["artifact_refs"]["promotion_prompt"]).read_text(encoding="utf-8")
+
+    assert start["run_mode"] == global_run_mode_context.TEST_DRY_RUN
+    assert answer["test_marker"] == global_run_mode_context.TEST_MARKER
+    assert session["run_mode"] == global_run_mode_context.TEST_DRY_RUN
+    assert session["test_mode"] is True
+    assert session["test_artifact"] is True
+    assert session["production_claim_allowed"] is False
+    assert session["production_proof_from_test_artifact_allowed"] is False
+    assert session["real_work_requires_first_class_operator_permission"] is True
+    assert session["answer_records"][0]["test_marker"] == global_run_mode_context.TEST_MARKER
+    assert session["answer_records"][0]["production_claim_allowed"] is False
+    assert receipt["test_marker"] == global_run_mode_context.TEST_MARKER
+    assert receipt["production_write_performed"] is False
+    assert receipt["external_calls_performed"] is False
+    assert receipt["email_sent"] is False
+    assert receipt["gmail_draft_created"] is False
+    assert read_model["contains_test_artifacts"] is True
+    assert read_model["sessions"][0]["test_marker"] == global_run_mode_context.TEST_MARKER
+    assert read_model["watch_desk_items"][0]["test_marker"] == global_run_mode_context.TEST_MARKER
+    assert "TEST-ONLY BOUNDARY" in prompt
+    assert global_run_mode_context.TEST_MARKER in prompt
+    assert global_run_mode_context.production_claim_accepts_artifact(session, "client_was_emailed") is False
+    assert done["safety_flags"]["email_sent"] is False
+    assert done["safety_flags"]["gmail_draft_created"] is False
+
+
+def test_production_guided_review_saves_without_test_marker(tmp_path):
+    start = _start(tmp_path)
+    answer = guided.process_guided_review_message(
+        "Direct deposit stays manual approval only; Zelle is okay for trusted clients.",
+        surface="telegram",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:01:00+00:00",
+    )
+
+    session = _load_session(answer)
+    receipt = json.loads(Path(session["answer_records"][0]["receipt_ref"].split("#", 1)[0]).read_text(encoding="utf-8"))
+
+    assert start["run_mode"] == global_run_mode_context.PRODUCTION
+    assert session["run_mode"] == global_run_mode_context.PRODUCTION
+    assert session["test_mode"] is False
+    assert session["test_marker"] == ""
+    assert session["production_claim_allowed"] is True
+    assert session["real_work_requires_first_class_operator_permission"] is True
+    assert session["answer_records"][0]["test_marker"] == ""
+    assert receipt["test_marker"] == ""
 
 
 def test_safety_redacts_sensitive_patterns_and_never_promotes(tmp_path):
