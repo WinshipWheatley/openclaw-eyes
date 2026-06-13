@@ -1973,10 +1973,8 @@ def _refresh_session_lists(session: dict[str, Any]) -> None:
             answered.append(question_id)
         elif status == "skipped":
             skipped.append(question_id)
-            unresolved.append(question_id)
         elif status == "deferred":
             deferred.append(question_id)
-            unresolved.append(question_id)
         else:
             unresolved.append(question_id)
     session["answered_questions"] = answered

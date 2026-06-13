@@ -357,6 +357,58 @@ def test_telegram_dryrun_guided_review_saves_test_only_artifacts(tmp_path):
     assert done["safety_flags"]["gmail_draft_created"] is False
 
 
+def test_telegram_dryrun_full_form_resolution_has_no_unresolved_questions(tmp_path):
+    promotion = _promotion_review(tmp_path / "review" / "promotion_review.json")
+    review_root = tmp_path / "review"
+    read_model_root = tmp_path / "read_models"
+
+    response = guided.process_guided_review_message(
+        "Cassandra, let's go over the Data Room.",
+        surface="telegram_dryrun",
+        review_root=review_root,
+        read_model_root=read_model_root,
+        promotion_review_path=promotion,
+        generated_at_utc=FIXED_NOW,
+    )
+    response = guided.process_guided_review_message(
+        "Direct deposit stays manual approval only; Zelle is okay for trusted clients.",
+        surface="telegram_dryrun",
+        review_root=review_root,
+        read_model_root=read_model_root,
+        promotion_review_path=promotion,
+        generated_at_utc="2026-06-12T12:01:00+00:00",
+    )
+    minute = 2
+    while response["progress"]["remaining"] > 0:
+        command = "defer" if minute % 3 == 0 else "skip"
+        response = guided.process_guided_review_message(
+            command,
+            surface="telegram_dryrun",
+            review_root=review_root,
+            read_model_root=read_model_root,
+            promotion_review_path=promotion,
+            generated_at_utc=f"2026-06-12T12:{minute:02d}:00+00:00",
+        )
+        minute += 1
+
+    done = guided.process_guided_review_message(
+        "done",
+        surface="telegram_dryrun",
+        review_root=review_root,
+        read_model_root=read_model_root,
+        promotion_review_path=promotion,
+        generated_at_utc="2026-06-12T12:59:00+00:00",
+    )
+    session = _load_session(done)
+    total_resolved = len(session["answered_questions"]) + len(session["skipped_questions"]) + len(session["deferred_questions"])
+
+    assert done["status"] == "completed"
+    assert total_resolved == len(session["question_queue"])
+    assert session["unresolved_questions"] == []
+    assert session["test_marker"] == global_run_mode_context.TEST_MARKER
+    assert "TEST-ONLY BOUNDARY" in Path(done["artifact_refs"]["promotion_prompt"]).read_text(encoding="utf-8")
+
+
 def test_production_guided_review_saves_without_test_marker(tmp_path):
     start = _start(tmp_path)
     answer = guided.process_guided_review_message(
