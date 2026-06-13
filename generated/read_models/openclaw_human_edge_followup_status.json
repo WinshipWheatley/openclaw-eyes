@@ -1,0 +1,347 @@
+{
+  "artifact_paths": {
+    "bridge_graph_path": "/mnt/e/openclaw/generated/read_models/openclaw_human_edge_test_coverage_graph.json",
+    "bridge_path": "/mnt/e/openclaw/generated/read_models/openclaw_human_edge_followup_status.json",
+    "graph_path": "/home/openclaw/generated/read_models/openclaw_human_edge_test_coverage_graph.json",
+    "read_model_path": "/home/openclaw/generated/read_models/openclaw_human_edge_followup_status.json",
+    "wiki_path": "/home/openclaw/generated/wiki/openclaw/OpenClaw Human Edge Followup Status.md"
+  },
+  "authority_boundary": {
+    "calendar_api_called": false,
+    "calendar_event_created": false,
+    "calendar_event_deleted": false,
+    "confirmed_reference_data_created": false,
+    "email_sent": false,
+    "external_api_called": false,
+    "gmail_called": false,
+    "guardian_approval_created": false,
+    "hermes_started": false,
+    "invoice_marked_paid": false,
+    "ledger_mutated": false,
+    "model_invoked": false,
+    "runtime_policy_changed": false,
+    "telegram_send_performed": false,
+    "workbook_mutated": false,
+    "worker_spawned": false
+  },
+  "completed_local_outcomes": [
+    {
+      "email_send_performed": false,
+      "external_effect": false,
+      "label": "Dry-run email route",
+      "outcome_id": "dry_run_email_to_operator",
+      "result": "receipt_recorded_no_send"
+    },
+    {
+      "calendar_api_called": false,
+      "calendar_event_created": false,
+      "calendar_event_deleted": false,
+      "external_effect": false,
+      "label": "Dry-run calendar route",
+      "outcome_id": "dry_run_calendar_event",
+      "result": "receipt_recorded_no_calendar_call"
+    },
+    {
+      "label": "Finance payment-watch answer",
+      "ledger_mutation_allowed": false,
+      "outcome_id": "finance_payment_watch_coworker_help",
+      "paid_marking_allowed": false,
+      "result": "returns_payment_evidence_guidance"
+    },
+    {
+      "confirmed_reference_data_created": false,
+      "label": "Data Room pending-candidate explanation",
+      "outcome_id": "data_room_pending_candidate_scope",
+      "result": "explains_provisional_scope_without_recording",
+      "runtime_policy_changed": false
+    }
+  ],
+  "coverage_graph": {
+    "edges": [
+      {
+        "id": "edge:7a2e3ebd3137c695",
+        "relationship": "preserves active review context",
+        "source": "operator-context-switchboard",
+        "target": "cassandra-guided-review"
+      },
+      {
+        "id": "edge:2d21652a296987a7",
+        "relationship": "replays messy Data Room phrases",
+        "source": "human-edge-lab",
+        "target": "cassandra-guided-review"
+      },
+      {
+        "id": "edge:52596e957c85be85",
+        "relationship": "probes detours and resume behavior",
+        "source": "human-edge-lab",
+        "target": "operator-context-switchboard"
+      },
+      {
+        "id": "edge:3e389375b61561a9",
+        "relationship": "supports labeled dry-run receipts",
+        "source": "test-effect-adapters",
+        "target": "human-edge-lab"
+      },
+      {
+        "id": "edge:8797d4a2b063e3c4",
+        "relationship": "implements dry-run email receipt",
+        "source": "test-effect-adapters",
+        "target": "dry-run-email"
+      },
+      {
+        "id": "edge:dfc05d658603ca18",
+        "relationship": "implements dry-run calendar receipt",
+        "source": "test-effect-adapters",
+        "target": "dry-run-calendar"
+      },
+      {
+        "id": "edge:21c7f869b03d5c5f",
+        "relationship": "contrasts dry-run proof with live transport",
+        "source": "dry-run-email",
+        "target": "live-email-transport"
+      },
+      {
+        "id": "edge:13317de5b3bd83f5",
+        "relationship": "contrasts dry-run proof with live transport",
+        "source": "dry-run-calendar",
+        "target": "live-calendar-transport"
+      },
+      {
+        "id": "edge:71ec5a42f11e220c",
+        "relationship": "depends on correct lane routing",
+        "source": "finance-payment-watch",
+        "target": "operator-context-switchboard"
+      },
+      {
+        "id": "edge:2a2e7ead6dded23f",
+        "relationship": "guards provisional answers",
+        "source": "data-room-pending-candidates",
+        "target": "cassandra-guided-review"
+      },
+      {
+        "id": "edge:174e646673e8ff27",
+        "relationship": "improves candidate wording",
+        "source": "industry-best-practices-fix",
+        "target": "data-room-pending-candidates"
+      },
+      {
+        "id": "edge:d62bbaf34e59148f",
+        "relationship": "explains pending candidate scope",
+        "source": "scope-question-fix",
+        "target": "data-room-pending-candidates"
+      },
+      {
+        "id": "edge:fcf690e018a6621e",
+        "relationship": "prevents bogus lane request",
+        "source": "scope-question-fix",
+        "target": "operator-context-switchboard"
+      },
+      {
+        "id": "edge:879518213eca2806",
+        "relationship": "requires separate boundary test",
+        "source": "hermes-boundary",
+        "target": "human-edge-lab"
+      }
+    ],
+    "graph_id": "openclaw_human_edge_test_coverage_graph",
+    "nodes": [
+      {
+        "description": "Data Room question flow for provisional review answers and confirmation handling.",
+        "id": "cassandra-guided-review",
+        "label": "Cassandra Guided Review",
+        "metadata": {
+          "authority": "provisional_only",
+          "status": "tested_local"
+        },
+        "type": "project"
+      },
+      {
+        "description": "Routes messy operator language across active review, detours, and protected-action boundaries.",
+        "id": "operator-context-switchboard",
+        "label": "Operator Context Switchboard",
+        "metadata": {
+          "authority": "routing_only",
+          "status": "tested_local"
+        },
+        "type": "project"
+      },
+      {
+        "description": "Local dry-run harness for messy human-language probes.",
+        "id": "human-edge-lab",
+        "label": "Human Edge Lab",
+        "metadata": {
+          "run_mode": "test_dry_run",
+          "status": "ready"
+        },
+        "type": "project"
+      },
+      {
+        "description": "Converts risky effects into labeled dry-run receipts during Test Mode.",
+        "id": "test-effect-adapters",
+        "label": "Test Effect Adapters",
+        "metadata": {
+          "external_effects": "blocked",
+          "status": "ready"
+        },
+        "type": "technology"
+      },
+      {
+        "description": "Records test email intent without sending mail or calling Gmail.",
+        "id": "dry-run-email",
+        "label": "Dry-Run Email Receipt",
+        "metadata": {
+          "email_send_performed": false,
+          "target": "winshiplive@gmail.com"
+        },
+        "type": "solution"
+      },
+      {
+        "description": "Records test calendar intent without calling Calendar or creating/deleting an event.",
+        "id": "dry-run-calendar",
+        "label": "Dry-Run Calendar Receipt",
+        "metadata": {
+          "calendar_api_called": false,
+          "calendar_event_created": false
+        },
+        "type": "solution"
+      },
+      {
+        "description": "Finance / Capital Hilton proof-to-response lane for missing payment evidence.",
+        "id": "finance-payment-watch",
+        "label": "Finance Payment Watch",
+        "metadata": {
+          "paid_marking_allowed": false,
+          "status": "tested_local"
+        },
+        "type": "project"
+      },
+      {
+        "description": "Candidate answers remain unrecorded until explicit confirmation.",
+        "id": "data-room-pending-candidates",
+        "label": "Data Room Pending Candidates",
+        "metadata": {
+          "confirmed_reference_data_created": false,
+          "runtime_policy_changed": false
+        },
+        "type": "concept"
+      },
+      {
+        "description": "Normalizes vague best-practice replies into a concrete trust-gating candidate.",
+        "id": "industry-best-practices-fix",
+        "label": "Industry Best Practices Fix",
+        "metadata": {
+          "commit": "86d5156"
+        },
+        "type": "solution"
+      },
+      {
+        "description": "Explains where a pending candidate would go instead of treating the question as a new lane.",
+        "id": "scope-question-fix",
+        "label": "Recording-Scope Question Fix",
+        "metadata": {
+          "commit": "86d5156"
+        },
+        "type": "solution"
+      },
+      {
+        "description": "Live Gmail/email transport was not tested; dry-run receipts must not be treated as sends.",
+        "id": "live-email-transport",
+        "label": "Live Email Transport",
+        "metadata": {
+          "status": "blocked_pending_explicit_transport_test"
+        },
+        "type": "issue"
+      },
+      {
+        "description": "Live Calendar create/delete was not tested; dry-run receipts must not be treated as events.",
+        "id": "live-calendar-transport",
+        "label": "Live Calendar Transport",
+        "metadata": {
+          "status": "blocked_pending_explicit_transport_test"
+        },
+        "type": "issue"
+      },
+      {
+        "description": "Hermes was not started and remains outside this local dry-run pass.",
+        "id": "hermes-boundary",
+        "label": "Hermes Boundary",
+        "metadata": {
+          "status": "not_started"
+        },
+        "type": "issue"
+      }
+    ],
+    "schema_version": "OPENCLAW_HUMAN_EDGE_TEST_COVERAGE_GRAPH_V0",
+    "title": "OpenClaw Human-Edge Test Coverage Map"
+  },
+  "generated_at": "2026-06-13T23:00:00+00:00",
+  "graphiffy_status": {
+    "connector": "Ace Knowledge Graph",
+    "latest_result": "connector_timeout",
+    "local_fallback_graph_id": "openclaw_human_edge_test_coverage_graph",
+    "operator_note": "Graph connector did not return a durable artifact; local graph JSON is the fallback truth.",
+    "requested": true
+  },
+  "next_safe_live_test_sequence": [
+    "Verify the Data Room pending-candidate fix through live Telegram with operator-sent messages only.",
+    "Keep email and Calendar in dry-run until explicit live transport packets exist.",
+    "Treat Hermes as a separate boundary test; do not start it from this follow-up."
+  ],
+  "read_model_id": "openclaw_human_edge_followup_status",
+  "remaining_work": [
+    {
+      "gap_id": "live_email_transport_not_proven",
+      "next_safe_action": "Create an allowlisted live-email transport smoke packet with Guardian/HITL boundary before any send.",
+      "reason": "Dry-run email routing is proven, but no live Gmail/send path was exercised.",
+      "status": "blocked_pending_explicit_transport_test"
+    },
+    {
+      "gap_id": "live_calendar_transport_not_proven",
+      "next_safe_action": "Create an allowlisted live-calendar create/delete smoke packet before any Calendar call.",
+      "reason": "Dry-run calendar routing is proven, but no Calendar API create/delete path was exercised.",
+      "status": "blocked_pending_explicit_transport_test"
+    },
+    {
+      "gap_id": "graphiffy_connector_timeout",
+      "next_safe_action": "Retry Ace later or use the local fallback graph JSON for operator review.",
+      "reason": "Ace Knowledge Graph timed out after schema-compliant retry.",
+      "status": "partial_local_fallback_available"
+    },
+    {
+      "gap_id": "hermes_not_started",
+      "next_safe_action": "Run a separate Hermes boundary/status probe before any Hermes live behavior test.",
+      "reason": "Hermes was outside the local dry-run pass and should not be started as a generic sidecar.",
+      "status": "not_tested_by_design"
+    },
+    {
+      "gap_id": "post_fix_live_cassandra_smoke_needed",
+      "next_safe_action": "Ask Cassandra: 'use industry best practices' and then 'are you just recording it or is it going into the Data Room thing?'",
+      "reason": "Code tests pass and Cassandra was restarted, but no post-restart live Telegram turn has verified the new reply.",
+      "status": "waiting_for_operator_telegram_message"
+    }
+  ],
+  "safety_confirmation": {
+    "business_systems_mutated": false,
+    "dry_run_outputs_labeled": true,
+    "external_apis_called_by_generator": false,
+    "live_transport_not_claimed": true,
+    "models_invoked_by_generator": false
+  },
+  "schema_version": "openclaw_human_edge_followup_status_v0",
+  "source_commits": [
+    {
+      "commit": "588dab7",
+      "summary": "add Cassandra human edge lab"
+    },
+    {
+      "commit": "6dd5273",
+      "summary": "add calendar dry run test receipt"
+    },
+    {
+      "commit": "86d5156",
+      "summary": "fix Data Room pending candidate explanations"
+    }
+  ],
+  "status": "OPENCLAW_HUMAN_EDGE_SWARM_FOLLOWUP_READY",
+  "unsafe_true_paths": []
+}
