@@ -407,6 +407,199 @@ def test_http_404_classifies_as_model_label_block():
     assert validation["provider_error_category"] == "model_label"
 
 
+def test_http_400_model_not_found_classifies_as_model_label_block():
+    body = json.dumps(
+        {
+            "error": {
+                "code": 400,
+                "status": "INVALID_ARGUMENT",
+                "message": "models/gemini-3.5-flash is not found for API version v1beta.",
+            }
+        }
+    ).encode("utf-8")
+    exc = HTTPError("https://provider.invalid", 400, "Bad Request", {}, BytesIO(body))
+
+    reason, validation = spine.provider_http_error_classification(
+        exc,
+        request_body={"generationConfig": {"responseSchema": {"type": "object"}}},
+        model_label=TEST_MODEL,
+    )
+
+    assert reason == "blocked_model_label"
+    assert validation["provider_status_code"] == 400
+    assert validation["provider_error_category"] == "model_label"
+    assert validation["provider_error_code"] == "INVALID_ARGUMENT"
+    assert "not found" in validation["provider_error_message_redacted"]
+    assert validation["effective_model_label"] == TEST_MODEL
+    assert validation["endpoint_family"] == spine.GEMINI_ENDPOINT_FAMILY
+    assert validation["structured_output_enabled"] is True
+    assert validation["request_shape_version"] == spine.GEMINI_REQUEST_SHAPE_VERSION
+    assert validation["request_body_logged"] is False
+    assert validation["credential_value_logged"] is False
+
+
+def test_http_400_schema_error_classifies_as_structured_output_schema():
+    body = json.dumps(
+        {
+            "error": {
+                "code": 400,
+                "status": "INVALID_ARGUMENT",
+                "message": "Unknown name responseSchema at generationConfig: Cannot find field.",
+            }
+        }
+    ).encode("utf-8")
+    exc = HTTPError("https://provider.invalid", 400, "Bad Request", {}, BytesIO(body))
+
+    reason, validation = spine.provider_http_error_classification(
+        exc,
+        request_body={"generationConfig": {"responseSchema": {"type": "object"}}},
+        model_label=TEST_MODEL,
+    )
+
+    assert reason == "blocked_structured_output_schema"
+    assert validation["provider_error_category"] == "structured_output_schema"
+    assert validation["structured_output_enabled"] is True
+    assert "responseSchema" in validation["provider_error_message_redacted"]
+    assert "GEMINI_API_KEY" not in json.dumps(validation)
+
+
+def test_http_400_generic_bad_request_keeps_redacted_provider_message():
+    body = json.dumps(
+        {
+            "error": {
+                "code": 400,
+                "status": "INVALID_ARGUMENT",
+                "message": "Bad request: debug token AIzaFakeSecretValue should not appear.",
+            }
+        }
+    ).encode("utf-8")
+    exc = HTTPError("https://provider.invalid", 400, "Bad Request", {}, BytesIO(body))
+
+    reason, validation = spine.provider_http_error_classification(
+        exc,
+        request_body={"generationConfig": {"responseMimeType": "application/json"}},
+        model_label=TEST_MODEL,
+    )
+    rendered = json.dumps(validation, sort_keys=True)
+
+    assert reason == "adapter_api_http_400"
+    assert validation["provider_error_category"] == "provider_http_error"
+    assert "AIzaFakeSecretValue" not in rendered
+    assert "generationConfig" not in rendered
+    assert "responseMimeType" not in rendered
+    assert validation["request_body_logged"] is False
+    assert validation["credential_value_logged"] is False
+
+
+def test_schema_error_falls_back_to_json_prompt_mode():
+    request = _consult_request()
+    calls: list[dict] = []
+
+    def transport(*, request_payload: dict, request_body: dict, model_label: str, timeout_seconds: int) -> dict:
+        calls.append(
+            {
+                "request_payload": request_payload,
+                "request_body": request_body,
+                "model_label": model_label,
+                "timeout_seconds": timeout_seconds,
+            }
+        )
+        if len(calls) == 1:
+            raise spine.LMConsultError(
+                "blocked_structured_output_schema",
+                validation={
+                    "provider_status_code": 400,
+                    "provider_error_code": "INVALID_ARGUMENT",
+                    "provider_error_message_redacted": "Unknown name responseSchema at generationConfig.",
+                    "provider_error_category": "structured_output_schema",
+                    "structured_output_enabled": True,
+                    "request_body_logged": False,
+                    "credential_value_logged": False,
+                },
+            )
+        return {"candidates": [{"content": {"parts": [{"text": json.dumps(_safe_payload(request_payload))}]}}]}
+
+    adapter = spine.GeminiProviderAdapter(
+        env={
+            "OPENCLAW_ENABLE_LM_CONSULTS": "1",
+            "OPENCLAW_LM_PROVIDER": "gemini",
+            "OPENCLAW_GEMINI_MODEL": TEST_MODEL,
+            "GEMINI_API_KEY": "test-redacted",
+        },
+        transport=transport,
+    )
+
+    result = spine.request_lm_consult(request, provider_adapter=adapter)
+
+    assert result["status"] == "result_accepted"
+    assert result["structured_output_mode"] == spine.STRUCTURED_OUTPUT_JSON_PROMPT_FALLBACK
+    assert len(calls) == 2
+    assert "responseSchema" in calls[0]["request_body"]["generationConfig"]
+    assert "responseSchema" not in calls[1]["request_body"]["generationConfig"]
+    assert "tools" not in calls[1]["request_body"]
+
+
+def test_schema_fallback_failure_preserves_native_schema_diagnostic():
+    request = _consult_request()
+    calls: list[dict] = []
+
+    def transport(*, request_payload: dict, request_body: dict, model_label: str, timeout_seconds: int) -> dict:
+        calls.append(
+            {
+                "request_payload": request_payload,
+                "request_body": request_body,
+                "model_label": model_label,
+                "timeout_seconds": timeout_seconds,
+            }
+        )
+        if len(calls) == 1:
+            raise spine.LMConsultError(
+                "blocked_structured_output_schema",
+                validation={
+                    "provider_status_code": 400,
+                    "provider_error_code": "INVALID_ARGUMENT",
+                    "provider_error_message_redacted": "Unknown name responseSchema at generationConfig.",
+                    "provider_error_category": "structured_output_schema",
+                    "structured_output_enabled": True,
+                    "request_body_logged": False,
+                    "credential_value_logged": False,
+                },
+            )
+        raise spine.LMConsultError(
+            "blocked_provider_rate_limited",
+            validation={
+                "provider_status_code": 429,
+                "provider_error_code": "RESOURCE_EXHAUSTED",
+                "provider_error_message_redacted": "Prepayment credits are depleted.",
+                "provider_error_category": "rate_limited",
+                "structured_output_enabled": False,
+                "request_body_logged": False,
+                "credential_value_logged": False,
+            },
+        )
+
+    adapter = spine.GeminiProviderAdapter(
+        env={
+            "OPENCLAW_ENABLE_LM_CONSULTS": "1",
+            "OPENCLAW_LM_PROVIDER": "gemini",
+            "OPENCLAW_GEMINI_MODEL": TEST_MODEL,
+            "GEMINI_API_KEY": "test-redacted",
+        },
+        transport=transport,
+    )
+
+    result = spine.request_lm_consult(request, provider_adapter=adapter)
+    status = spine.build_lm_consult_spine_status(env=adapter.env, latest_request=request, latest_result=result)
+
+    assert result["status"] == "blocked_provider_rate_limited"
+    assert status["provider_error_category"] == "rate_limited"
+    assert status["structured_output_mode"] == spine.STRUCTURED_OUTPUT_JSON_PROMPT_FALLBACK
+    assert status["native_schema_provider_status_code"] == 400
+    assert status["native_schema_provider_error_category"] == "structured_output_schema"
+    assert "responseSchema" in status["native_schema_provider_error_message_redacted"]
+    assert len(calls) == 2
+
+
 def test_status_payload_does_not_contain_secret_value():
     env = {
         "OPENCLAW_ENABLE_LM_CONSULTS": "1",

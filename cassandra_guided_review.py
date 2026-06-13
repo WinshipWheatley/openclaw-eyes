@@ -2816,6 +2816,7 @@ def _write_live_gemini_form_state(
     pending_candidate: Mapping[str, Any] | None = None,
     codex_finalizer_package_ref: str = "",
     codex_finalizer_status: str = "",
+    provider_error: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     import openclaw_gemini_form_adapter as gemini
 
@@ -2839,6 +2840,7 @@ def _write_live_gemini_form_state(
         codex_finalizer_package_ref=codex_finalizer_package_ref or str(existing.get("codex_finalizer_package_ref") or ""),
         codex_finalizer_status=codex_finalizer_status or str(existing.get("codex_finalizer_status") or ""),
         model=gemini.model_label(gemini_env),
+        provider_error=provider_error or {},
     )
     refs = gemini.write_data_room_gemini_form_session_state(state)
     state["artifact_refs"] = refs
@@ -2913,6 +2915,7 @@ def _activate_live_gemini_form_lane(
             blocked_reason=exc.reason,
             now=now,
             gemini_env=gemini_form_env,
+            provider_error=exc.validation,
         )
         session.setdefault("data_room_gemini_form_refs", []).append(
             {
@@ -3000,6 +3003,7 @@ def _handle_live_gemini_form_turn(
             blocked_reason=exc.reason,
             now=now,
             gemini_env=gemini_form_env,
+            provider_error=exc.validation,
         )
         return (
             f"The Gemini Data Room form lane is temporarily unavailable ({exc.reason}). "

@@ -200,6 +200,92 @@ def test_fake_provider_valid_schema_returns_structured_result_and_no_tools(monke
     assert capture["model_label"] == TEST_MODEL
 
 
+def test_schema_error_fallback_valid_json_is_accepted_after_validation(monkeypatch):
+    _enable_gemini(monkeypatch)
+    calls: list[dict] = []
+
+    def provider(*, request_payload: dict, request_body: dict, model_label: str, timeout_seconds: int) -> dict:
+        calls.append(
+            {
+                "request_payload": request_payload,
+                "request_body": request_body,
+                "model_label": model_label,
+                "timeout_seconds": timeout_seconds,
+            }
+        )
+        if len(calls) == 1:
+            raise spine.LMConsultError(
+                "blocked_structured_output_schema",
+                validation={
+                    "provider_status_code": 400,
+                    "provider_error_code": "INVALID_ARGUMENT",
+                    "provider_error_message_redacted": "Unknown name responseSchema at generationConfig.",
+                    "provider_error_category": "structured_output_schema",
+                    "structured_output_enabled": True,
+                    "request_body_logged": False,
+                    "credential_value_logged": False,
+                },
+            )
+        return {"candidates": [{"content": {"parts": [{"text": json.dumps(_safe_result(request_payload))}]}}]}
+
+    result = adapter.call_gemini_data_room_form_turn(
+        _package(),
+        adapter.READINESS_PROMPT,
+        "",
+        provider=provider,
+        created_at_utc=FIXED_NOW,
+    )
+
+    assert result["assistant_reply"] == "I have the form and can help."
+    assert result["_structured_output_mode"] == "json_prompt_fallback"
+    assert len(calls) == 2
+    assert "responseSchema" in calls[0]["request_body"]["generationConfig"]
+    assert "responseSchema" not in calls[1]["request_body"]["generationConfig"]
+    assert "tools" not in calls[1]["request_body"]
+
+
+def test_schema_error_fallback_invalid_json_is_rejected(monkeypatch):
+    _enable_gemini(monkeypatch)
+    calls: list[dict] = []
+
+    def provider(*, request_payload: dict, request_body: dict, model_label: str, timeout_seconds: int) -> dict:
+        calls.append(
+            {
+                "request_payload": request_payload,
+                "request_body": request_body,
+                "model_label": model_label,
+                "timeout_seconds": timeout_seconds,
+            }
+        )
+        if len(calls) == 1:
+            raise spine.LMConsultError(
+                "blocked_structured_output_schema",
+                validation={
+                    "provider_status_code": 400,
+                    "provider_error_category": "structured_output_schema",
+                    "structured_output_enabled": True,
+                    "request_body_logged": False,
+                    "credential_value_logged": False,
+                },
+            )
+        bad = _safe_result(request_payload)
+        bad["schema_version"] = "WRONG_SCHEMA"
+        return {"candidates": [{"content": {"parts": [{"text": json.dumps(bad)}]}}]}
+
+    with pytest.raises(adapter.GeminiFormAdapterError) as exc:
+        adapter.call_gemini_data_room_form_turn(
+            _package(),
+            adapter.READINESS_PROMPT,
+            "",
+            provider=provider,
+            created_at_utc=FIXED_NOW,
+        )
+
+    assert exc.value.reason == "adapter_validation_failed"
+    assert "invalid_schema_version" in exc.value.validation["errors"]
+    assert len(calls) == 2
+
+
 def test_form_model_missing_falls_back_to_generic_model(monkeypatch):
     _enable_gemini(monkeypatch)
     availability = adapter.is_live_gemini_form_available()

@@ -59,6 +59,10 @@ GEMINI_MODEL_ENV = "OPENCLAW_GEMINI_MODEL"
 GEMINI_FORM_MODEL_ENV = "OPENCLAW_GEMINI_FORM_MODEL"
 GEMINI_CREDENTIAL_ENVS = ("GEMINI_API_KEY", "GOOGLE_API_KEY", "GOOGLE_GENERATIVE_AI_API_KEY")
 GEMINI_GENERATE_CONTENT_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models"
+GEMINI_ENDPOINT_FAMILY = "gemini_generate_content"
+GEMINI_REQUEST_SHAPE_VERSION = "GEMINI_GENERATE_CONTENT_JSON_V1"
+STRUCTURED_OUTPUT_NATIVE_SCHEMA = "native_schema"
+STRUCTURED_OUTPUT_JSON_PROMPT_FALLBACK = "json_prompt_fallback"
 
 DEFAULT_STOP_CONDITION = "Stop after advisory output. Do not execute, record, approve, submit, hydrate, or mutate runtime."
 DEFAULT_EXPECTED_OUTPUT_SCHEMA = "concise_advisory_response_v0"
@@ -500,26 +504,101 @@ def _safe_provider_error_text(exc: urllib.error.HTTPError) -> str:
     return text[:500]
 
 
-def provider_http_error_classification(exc: urllib.error.HTTPError) -> tuple[str, dict[str, Any]]:
+def _redact_provider_message(value: Any) -> str:
+    text = re.sub(r"\s+", " ", str(value or "")).strip()
+    text = re.sub(r"AIza[0-9A-Za-z_-]+", "[REDACTED_CREDENTIAL]", text)
+    text = re.sub(r"(?i)(api[_ -]?key|token|secret|credential|password)[^,\n.]*", "[REDACTED_SECRET_REF]", text)
+    if any(marker in text for marker in ('"contents"', '"systemInstruction"', '"parts"', '"redacted_context_summary"')):
+        return "[REDACTED_PROVIDER_MESSAGE_WITH_REQUEST_CONTENT]"
+    return text[:350]
+
+
+def _provider_error_fields(provider_text: str, status_code: int) -> tuple[str, str]:
+    if not provider_text:
+        return str(status_code or ""), ""
+    try:
+        parsed = json.loads(provider_text)
+    except Exception:
+        return str(status_code or ""), _redact_provider_message(provider_text)
+    if isinstance(parsed, Mapping):
+        error = parsed.get("error")
+        if isinstance(error, Mapping):
+            code = str(error.get("status") or error.get("code") or status_code or "")
+            message = _redact_provider_message(error.get("message") or provider_text)
+            return code, message
+    return str(status_code or ""), _redact_provider_message(provider_text)
+
+
+def _structured_output_enabled(request_body: Mapping[str, Any] | None) -> bool:
+    generation_config = request_body.get("generationConfig") if isinstance(request_body, Mapping) else {}
+    return isinstance(generation_config, Mapping) and bool(generation_config.get("responseSchema"))
+
+
+def _provider_error_category(status_code: int, provider_text: str, provider_code: str) -> tuple[str, str]:
+    lower = f"{provider_text} {provider_code}".lower()
+    reason = f"adapter_api_http_{status_code}" if status_code else "adapter_api_http_error"
+    category = "provider_http_error"
+    if status_code == 429:
+        return "blocked_provider_rate_limited", "rate_limited"
+    if status_code in {400, 404} and (
+        status_code == 404
+        or (
+            "model" in lower
+            and any(term in lower for term in ("not found", "not supported", "invalid", "unsupported", "not available"))
+        )
+    ):
+        return "blocked_model_label", "model_label"
+    if status_code == 400 and any(
+        term in lower
+        for term in (
+            "responseschema",
+            "response schema",
+            "structured output",
+            "structured-output",
+            "generationconfig",
+            "unknown name",
+            "cannot find field",
+            "invalid json schema",
+            "schema",
+        )
+    ):
+        return "blocked_structured_output_schema", "structured_output_schema"
+    if status_code in {400, 401, 403} and any(
+        term in lower for term in ("api key", "permission", "forbidden", "unauthorized", "project", "quota project")
+    ):
+        return "blocked_provider_auth_or_permission", "credential_or_permission"
+    return reason, category
+
+
+def _gemini_model_path(model_label: str) -> str:
+    label = str(model_label or "").strip()
+    if label.startswith("models/"):
+        label = label[len("models/") :]
+    return urllib.parse.quote(label, safe="")
+
+
+def provider_http_error_classification(
+    exc: urllib.error.HTTPError,
+    *,
+    request_body: Mapping[str, Any] | None = None,
+    model_label: str = "",
+    request_shape_version: str = GEMINI_REQUEST_SHAPE_VERSION,
+    endpoint_family: str = GEMINI_ENDPOINT_FAMILY,
+) -> tuple[str, dict[str, Any]]:
     status_code = int(getattr(exc, "code", 0) or 0)
     provider_text = _safe_provider_error_text(exc)
-    lower = provider_text.lower()
-    category = "provider_http_error"
-    reason = f"adapter_api_http_{status_code}" if status_code else "adapter_api_http_error"
-    if status_code == 429:
-        category = "rate_limited"
-        reason = "blocked_provider_rate_limited"
-    elif status_code in {400, 404} and (
-        status_code == 404
-        or ("model" in lower and any(term in lower for term in ("not found", "not supported", "invalid", "unsupported")))
-    ):
-        category = "model_label"
-        reason = "blocked_model_label"
-    elif status_code in {401, 403}:
-        category = "credential_or_permission"
+    provider_code, provider_message = _provider_error_fields(provider_text, status_code)
+    reason, category = _provider_error_category(status_code, provider_text, provider_code)
     validation: dict[str, Any] = {
         "provider_status_code": status_code,
+        "provider_error_code": provider_code,
+        "provider_error_message_redacted": provider_message,
         "provider_error_category": category,
+        "effective_model_label": str(model_label or ""),
+        "endpoint_family": endpoint_family,
+        "structured_output_enabled": _structured_output_enabled(request_body),
+        "structured_output_mode": STRUCTURED_OUTPUT_NATIVE_SCHEMA,
+        "request_shape_version": request_shape_version,
         "request_body_logged": False,
         "credential_value_logged": False,
     }
@@ -580,7 +659,12 @@ class GeminiProviderAdapter:
             "blocked_reason": blocked_reason,
         }
 
-    def build_payload(self, request: Mapping[str, Any]) -> dict[str, Any]:
+    def build_payload(
+        self,
+        request: Mapping[str, Any],
+        *,
+        structured_output_mode: str = STRUCTURED_OUTPUT_NATIVE_SCHEMA,
+    ) -> dict[str, Any]:
         input_payload = self.legacy_request_payload or dict(request)
         system = (
             "You are an advisory model inside the OpenClaw LM Consult Spine. Return JSON only. "
@@ -588,18 +672,61 @@ class GeminiProviderAdapter:
             "You must not execute, mutate runtime, create confirmed data, create approvals, send, submit, "
             "hydrate, mark paid, or perform external actions."
         )
+        user_payload = input_payload
+        if structured_output_mode == STRUCTURED_OUTPUT_JSON_PROMPT_FALLBACK:
+            user_payload = {
+                "json_only_instruction": (
+                    "Return JSON only. Do not use markdown. Match the expected_output_schema and keep all "
+                    "OpenClaw safety boundaries false."
+                ),
+                "request": input_payload,
+            }
         generation_config: dict[str, Any] = {
             "temperature": 0.2,
             "responseMimeType": "application/json",
         }
         expected_schema = request.get("expected_output_schema") or input_payload.get("expected_output_schema")
-        if isinstance(expected_schema, Mapping):
+        if structured_output_mode == STRUCTURED_OUTPUT_NATIVE_SCHEMA and isinstance(expected_schema, Mapping):
             generation_config["responseSchema"] = dict(expected_schema)
         return {
             "systemInstruction": {"parts": [{"text": system}]},
-            "contents": [{"role": "user", "parts": [{"text": stable_json(input_payload)}]}],
+            "contents": [{"role": "user", "parts": [{"text": stable_json(user_payload)}]}],
             "generationConfig": generation_config,
         }
+
+    def _request_body_for_mode(self, request: Mapping[str, Any], structured_output_mode: str) -> dict[str, Any]:
+        return self.build_payload(request, structured_output_mode=structured_output_mode)
+
+    def _call_transport(
+        self,
+        request: Mapping[str, Any],
+        *,
+        request_payload: Mapping[str, Any],
+        request_body: Mapping[str, Any],
+        timeout_seconds: int,
+        structured_output_mode: str,
+    ) -> dict[str, Any]:
+        transport = self.transport or self._perform_http_call
+        try:
+            raw_response = transport(
+                request_payload=request_payload,
+                request_body=request_body,
+                model_label=self.model_label,
+                timeout_seconds=timeout_seconds,
+            )
+        except LMConsultError as exc:
+            validation = dict(exc.validation)
+            validation.setdefault("structured_output_mode", structured_output_mode)
+            raise LMConsultError(exc.reason, validation=validation) from exc
+        except TimeoutError as exc:
+            raise LMConsultError("adapter_timeout") from exc
+        except Exception as exc:
+            raise LMConsultError("adapter_api_error") from exc
+        return self._build_result_from_raw_response(
+            request,
+            raw_response,
+            structured_output_mode=structured_output_mode,
+        )
 
     def _perform_http_call(
         self,
@@ -612,7 +739,7 @@ class GeminiProviderAdapter:
         api_key = _credential_value(self.env, GEMINI_CREDENTIAL_ENVS)
         if not api_key:
             raise LMConsultError("blocked_provider_config_required")
-        model_path = urllib.parse.quote(model_label, safe="")
+        model_path = _gemini_model_path(model_label)
         url = f"{GEMINI_GENERATE_CONTENT_BASE_URL}/{model_path}:generateContent?key={urllib.parse.quote(api_key, safe='')}"
         request = urllib.request.Request(
             url,
@@ -624,7 +751,13 @@ class GeminiProviderAdapter:
             with urllib.request.urlopen(request, timeout=timeout_seconds) as response:
                 return json.loads(response.read().decode("utf-8"))
         except urllib.error.HTTPError as exc:
-            reason, validation = provider_http_error_classification(exc)
+            reason, validation = provider_http_error_classification(
+                exc,
+                request_body=request_body,
+                model_label=model_label,
+                request_shape_version=GEMINI_REQUEST_SHAPE_VERSION,
+                endpoint_family=GEMINI_ENDPOINT_FAMILY,
+            )
             raise LMConsultError(reason, validation=validation) from exc
         except TimeoutError as exc:
             raise LMConsultError("adapter_timeout") from exc
@@ -655,26 +788,13 @@ class GeminiProviderAdapter:
                 return value
         raise LMConsultError("adapter_missing_output_text")
 
-    def call(self, request: Mapping[str, Any], *, timeout_seconds: int = 45) -> dict[str, Any]:
-        availability = self.is_available()
-        if not availability.get("available"):
-            raise LMConsultError(str(availability.get("blocked_reason") or "blocked_provider_config_required"))
-        request_body = self.build_payload(request)
-        request_payload = self.legacy_request_payload or dict(request)
-        transport = self.transport or self._perform_http_call
-        try:
-            raw_response = transport(
-                request_payload=request_payload,
-                request_body=request_body,
-                model_label=self.model_label,
-                timeout_seconds=timeout_seconds,
-            )
-        except LMConsultError:
-            raise
-        except TimeoutError as exc:
-            raise LMConsultError("adapter_timeout") from exc
-        except Exception as exc:
-            raise LMConsultError("adapter_api_error") from exc
+    def _build_result_from_raw_response(
+        self,
+        request: Mapping[str, Any],
+        raw_response: Mapping[str, Any],
+        *,
+        structured_output_mode: str,
+    ) -> dict[str, Any]:
         output_text = self._extract_text(raw_response)
         try:
             structured = json.loads(output_text)
@@ -682,7 +802,7 @@ class GeminiProviderAdapter:
             raise LMConsultError("adapter_invalid_json") from exc
         if not isinstance(structured, dict):
             raise LMConsultError("adapter_invalid_json")
-        return build_lm_consult_result(
+        result = build_lm_consult_result(
             request,
             provider=self.provider,
             model_class=str(request.get("preferred_model_class") or "external_fast_worker"),
@@ -694,6 +814,47 @@ class GeminiProviderAdapter:
             used_for="candidate_decision" if request.get("consult_kind") == "form_fill" else "explanation",
             status="result_ready",
         )
+        result["structured_output_mode"] = structured_output_mode
+        return result
+
+    def call(self, request: Mapping[str, Any], *, timeout_seconds: int = 45) -> dict[str, Any]:
+        availability = self.is_available()
+        if not availability.get("available"):
+            raise LMConsultError(str(availability.get("blocked_reason") or "blocked_provider_config_required"))
+        request_payload = self.legacy_request_payload or dict(request)
+        native_body = self._request_body_for_mode(request, STRUCTURED_OUTPUT_NATIVE_SCHEMA)
+        try:
+            return self._call_transport(
+                request,
+                request_payload=request_payload,
+                request_body=native_body,
+                timeout_seconds=timeout_seconds,
+                structured_output_mode=STRUCTURED_OUTPUT_NATIVE_SCHEMA,
+            )
+        except LMConsultError as native_exc:
+            if native_exc.reason != "blocked_structured_output_schema":
+                raise
+            fallback_body = self._request_body_for_mode(request, STRUCTURED_OUTPUT_JSON_PROMPT_FALLBACK)
+            try:
+                return self._call_transport(
+                    request,
+                    request_payload=request_payload,
+                    request_body=fallback_body,
+                    timeout_seconds=timeout_seconds,
+                    structured_output_mode=STRUCTURED_OUTPUT_JSON_PROMPT_FALLBACK,
+                )
+            except LMConsultError as fallback_exc:
+                validation = dict(fallback_exc.validation)
+                validation.setdefault("provider_error_category", native_exc.validation.get("provider_error_category"))
+                validation.setdefault("provider_status_code", native_exc.validation.get("provider_status_code"))
+                validation.setdefault("provider_error_code", native_exc.validation.get("provider_error_code"))
+                validation.setdefault(
+                    "provider_error_message_redacted",
+                    native_exc.validation.get("provider_error_message_redacted"),
+                )
+                validation["native_schema_error"] = dict(native_exc.validation)
+                validation["structured_output_mode"] = STRUCTURED_OUTPUT_JSON_PROMPT_FALLBACK
+                raise LMConsultError(fallback_exc.reason, validation=validation) from fallback_exc
 
     def validate_result(self, result: Mapping[str, Any], request: Mapping[str, Any]) -> dict[str, Any]:
         return validate_lm_consult_result(result, request)
@@ -752,7 +913,7 @@ def request_lm_consult(
     try:
         result = adapter.call(request, timeout_seconds=timeout_seconds)
     except LMConsultError as exc:
-        return build_lm_consult_result(
+        result = build_lm_consult_result(
             request,
             provider=str(getattr(adapter, "provider", request.get("preferred_provider") or "manual")),
             model_class=str(request.get("preferred_model_class") or "manual_handoff"),
@@ -763,6 +924,9 @@ def request_lm_consult(
             used_for="explanation",
             status=exc.reason,
         )
+        if exc.validation.get("structured_output_mode"):
+            result["structured_output_mode"] = exc.validation.get("structured_output_mode")
+        return result
     validation = adapter.validate_result(result, request)
     if not validation["valid"]:
         result = dict(result)
@@ -920,6 +1084,9 @@ def build_lm_consult_spine_status(
     latest_validation = latest_payload.get("validation") if isinstance(latest_payload, Mapping) else {}
     if not isinstance(latest_validation, Mapping):
         latest_validation = {}
+    native_schema_error = latest_validation.get("native_schema_error")
+    if not isinstance(native_schema_error, Mapping):
+        native_schema_error = {}
     blocked_reason = ""
     if not live_ready:
         if not provider_config_ready:
@@ -945,7 +1112,23 @@ def build_lm_consult_spine_status(
         "model_label_mismatch": bool(availability.get("model_label_mismatch")),
         "model_label_source": str(availability.get("model_label_source") or ""),
         "provider_status_code": latest_validation.get("provider_status_code"),
+        "provider_error_code": str(latest_validation.get("provider_error_code") or ""),
+        "provider_error_message_redacted": str(latest_validation.get("provider_error_message_redacted") or ""),
         "provider_error_category": str(latest_validation.get("provider_error_category") or ""),
+        "endpoint_family": str(latest_validation.get("endpoint_family") or GEMINI_ENDPOINT_FAMILY),
+        "structured_output_enabled": latest_validation.get("structured_output_enabled"),
+        "structured_output_mode": str(
+            (latest_result or {}).get("structured_output_mode")
+            or latest_validation.get("structured_output_mode")
+            or STRUCTURED_OUTPUT_NATIVE_SCHEMA
+        ),
+        "request_shape_version": str(latest_validation.get("request_shape_version") or GEMINI_REQUEST_SHAPE_VERSION),
+        "native_schema_provider_status_code": native_schema_error.get("provider_status_code"),
+        "native_schema_provider_error_code": str(native_schema_error.get("provider_error_code") or ""),
+        "native_schema_provider_error_category": str(native_schema_error.get("provider_error_category") or ""),
+        "native_schema_provider_error_message_redacted": str(
+            native_schema_error.get("provider_error_message_redacted") or ""
+        ),
         "retry_after_seconds": latest_validation.get("retry_after_seconds"),
         "availability": availability,
         "latest_request_id": str((latest_request or {}).get("request_id") or ""),
@@ -984,7 +1167,10 @@ def build_watch_desk_items_for_status(status: Mapping[str, Any]) -> list[dict[st
                 "Check quota/rate limits/model availability or wait and retry."
             )
         elif reason in {"blocked_model_label", "blocked_model_label_mismatch"}:
-            next_action = "Fix the approved Gemini model label configuration, then retry one bounded readiness call."
+            next_action = (
+                "Set OPENCLAW_GEMINI_MODEL and OPENCLAW_GEMINI_FORM_MODEL to a Gemini model available to this "
+                "API key/project, then retry one bounded readiness call."
+            )
         else:
             next_action = "Configure the provider through approved env/config, without printing credential values."
     return [

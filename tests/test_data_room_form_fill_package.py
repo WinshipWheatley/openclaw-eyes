@@ -11,6 +11,7 @@ import codex_work_package_lifecycle as codex_lifecycle
 import data_room_form_fill_package as form_fill
 import openclaw_chatgpt55_adapter as chatgpt55
 import openclaw_gemini_form_adapter as gemini
+import openclaw_lm_consult_spine as spine
 
 
 FIXED_NOW = "2026-06-12T12:00:00+00:00"
@@ -673,6 +674,60 @@ def test_live_gemini_model_mismatch_blocks_notification_before_provider(tmp_path
     assert lane["live_ready"] is False
     assert lane["blocked_reason"] == "blocked_model_label_mismatch"
     assert lane["model_label_mismatch"] is True
+
+
+def test_live_gemini_provider_400_blocks_notification_with_redacted_diagnostics(tmp_path, monkeypatch):
+    _start(tmp_path)
+    calls: list[dict] = []
+    monkeypatch.setenv("OPENCLAW_ENABLE_LIVE_GEMINI_FORM", "1")
+    monkeypatch.setenv("OPENCLAW_GEMINI_MODEL", GEMINI_TEST_MODEL)
+    monkeypatch.setenv("GEMINI_API_KEY", "test-redacted")
+    _patch_gemini_paths(tmp_path, monkeypatch)
+
+    def provider(**kwargs):
+        calls.append(kwargs)
+        raise spine.LMConsultError(
+            "blocked_model_label",
+            validation={
+                "provider_status_code": 400,
+                "provider_error_code": "INVALID_ARGUMENT",
+                "provider_error_message_redacted": "models/gemini-3.5-flash is not found for API version v1beta.",
+                "provider_error_category": "model_label",
+                "effective_model_label": GEMINI_TEST_MODEL,
+                "endpoint_family": "gemini_generate_content",
+                "structured_output_enabled": True,
+                "structured_output_mode": "native_schema",
+                "request_shape_version": "GEMINI_GENERATE_CONTENT_JSON_V1",
+                "request_body_logged": False,
+                "credential_value_logged": False,
+            },
+        )
+
+    response = guided.process_guided_review_message(
+        "Cassandra, start the Gemini Data Room form lane.",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:02:00+00:00",
+        gemini_form_provider=provider,
+    )
+    lane = json.loads((tmp_path / "read_models" / "data_room_gemini_form_session.json").read_text(encoding="utf-8"))
+    rendered = json.dumps(lane, sort_keys=True)
+
+    assert response["reply_text"] != gemini.GEMINI_FORM_READINESS_NOTIFICATION
+    assert "blocked_model_label" in response["reply_text"]
+    assert len(calls) == 1
+    assert lane["live_ready"] is False
+    assert lane["blocked_reason"] == "blocked_model_label"
+    assert lane["provider_status_code"] == 400
+    assert lane["provider_error_category"] == "model_label"
+    assert lane["provider_error_code"] == "INVALID_ARGUMENT"
+    assert lane["endpoint_family"] == "gemini_generate_content"
+    assert lane["structured_output_enabled"] is True
+    assert lane["structured_output_mode"] == "native_schema"
+    assert lane["request_body_logged"] is False
+    assert lane["credential_value_logged"] is False
+    assert "test-redacted" not in rendered
+    assert "responseSchema" not in rendered
 
 
 def test_live_gemini_command_blocks_without_live_wording_when_config_missing(tmp_path, monkeypatch):

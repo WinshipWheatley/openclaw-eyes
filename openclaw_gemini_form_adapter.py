@@ -225,7 +225,10 @@ def safe_next_operator_step(reason: str) -> str:
             "Check quota/rate limits/model availability or wait and retry."
         )
     if reason == "blocked_model_label":
-        return "Check the approved Gemini model label for availability, correct it, and retry one bounded readiness call."
+        return (
+            "Set OPENCLAW_GEMINI_MODEL and OPENCLAW_GEMINI_FORM_MODEL to a Gemini model available to this "
+            "API key/project, then retry one bounded readiness call."
+        )
     return "Review generated/read_models/data_room_gemini_form_session.json, fix the adapter failure, and retry the Cassandra command."
 
 
@@ -518,7 +521,10 @@ def _perform_gemini_generate_content_call(
     api_key = _credential_value_from_env()
     if not api_key:
         raise GeminiFormAdapterError("blocked_operator_config_required")
-    model_path = urllib.parse.quote(model_label, safe="")
+    normalized_model = str(model_label or "").strip()
+    if normalized_model.startswith("models/"):
+        normalized_model = normalized_model[len("models/") :]
+    model_path = urllib.parse.quote(normalized_model, safe="")
     url = f"{GEMINI_GENERATE_CONTENT_BASE_URL}/{model_path}:generateContent?key={urllib.parse.quote(api_key, safe='')}"
     data = json.dumps(request_body).encode("utf-8")
     request = urllib.request.Request(
@@ -531,7 +537,14 @@ def _perform_gemini_generate_content_call(
         with urllib.request.urlopen(request, timeout=timeout_seconds) as response:
             return json.loads(response.read().decode("utf-8"))
     except urllib.error.HTTPError as exc:
-        raise GeminiFormAdapterError(f"adapter_api_http_{exc.code}") from exc
+        import openclaw_lm_consult_spine as consult_spine
+
+        reason, validation = consult_spine.provider_http_error_classification(
+            exc,
+            request_body=request_body,
+            model_label=model_label,
+        )
+        raise GeminiFormAdapterError(reason, validation=validation) from exc
     except TimeoutError as exc:
         raise GeminiFormAdapterError("adapter_timeout") from exc
     except Exception as exc:
@@ -772,6 +785,7 @@ def call_gemini_data_room_form_turn(
     validation = validate_gemini_form_turn_result(parsed, package=package, request_payload=request_payload)
     if not validation["valid"]:
         raise GeminiFormAdapterError("adapter_validation_failed", validation=validation, availability=availability)
+    parsed["_structured_output_mode"] = str(consult_result.get("structured_output_mode") or "native_schema")
     return parsed
 
 
@@ -936,12 +950,23 @@ def build_data_room_gemini_form_session_state(
     codex_finalizer_package_ref: str = "",
     codex_finalizer_status: str = "",
     model: str = "",
+    provider_error: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     package = package or {}
     result = result or {}
+    provider_error = dict(provider_error or {})
+    nested_provider_error = provider_error.get("validation")
+    if isinstance(nested_provider_error, Mapping):
+        provider_error = dict(nested_provider_error)
+    native_schema_error = provider_error.get("native_schema_error")
+    if not isinstance(native_schema_error, Mapping):
+        native_schema_error = {}
     availability = dict(availability or is_live_gemini_form_available())
     review_session_id = str(package.get("review_session_id") or result.get("review_session_id") or "")
     effective_model = model or str(availability.get("effective_model_label") or "")
+    structured_output_mode = str(
+        result.get("_structured_output_mode") or provider_error.get("structured_output_mode") or "native_schema"
+    )
     state = {
         "schema_version": FORM_SESSION_SCHEMA_VERSION,
         "form_session_id": str(result.get("form_session_id") or form_session_id_for(review_session_id)),
@@ -958,6 +983,22 @@ def build_data_room_gemini_form_session_state(
         "lane_status": lane_status,
         "live_ready": bool(live_ready),
         "availability_check": availability,
+        "provider_status_code": provider_error.get("provider_status_code"),
+        "provider_error_code": str(provider_error.get("provider_error_code") or ""),
+        "provider_error_message_redacted": str(provider_error.get("provider_error_message_redacted") or ""),
+        "provider_error_category": str(provider_error.get("provider_error_category") or ""),
+        "endpoint_family": str(provider_error.get("endpoint_family") or "gemini_generate_content"),
+        "structured_output_enabled": provider_error.get("structured_output_enabled"),
+        "structured_output_mode": structured_output_mode,
+        "request_shape_version": str(provider_error.get("request_shape_version") or "GEMINI_GENERATE_CONTENT_JSON_V1"),
+        "native_schema_provider_status_code": native_schema_error.get("provider_status_code"),
+        "native_schema_provider_error_code": str(native_schema_error.get("provider_error_code") or ""),
+        "native_schema_provider_error_category": str(native_schema_error.get("provider_error_category") or ""),
+        "native_schema_provider_error_message_redacted": str(
+            native_schema_error.get("provider_error_message_redacted") or ""
+        ),
+        "request_body_logged": bool(provider_error.get("request_body_logged", False)),
+        "credential_value_logged": bool(provider_error.get("credential_value_logged", False)),
         "current_question_id": str(package.get("current_question_id") or result.get("question_id") or ""),
         "current_question_index": int(package.get("current_question_index") or 0),
         "total_questions": int(package.get("total_questions") or 0),
