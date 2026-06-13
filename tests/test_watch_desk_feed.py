@@ -388,6 +388,51 @@ def test_data_room_gemini_form_lane_fixture_produces_watch_items(tmp_path):
             assert item["state"]["runtime_mutation_allowed"] is False
 
 
+def test_lm_consult_spine_status_fixture_produces_watch_item(tmp_path):
+    _write_json(
+        tmp_path / "openclaw_lm_consult_spine_status.json",
+        {
+            "schema_version": "LM_CONSULT_SPINE_STATUS_V0",
+            "read_model_id": "openclaw_lm_consult_spine_status",
+            "spine_built": True,
+            "live_ready": False,
+            "provider": "gemini",
+            "blocked_reason": "blocked_provider_config_required",
+            "watch_desk_items": [
+                {
+                    "item_id": "lm_consult_spine:gemini:blocked",
+                    "lane": "chief_runtime",
+                    "urgency": "blocked",
+                    "plain_line": "LM consult spine built, but gemini is blocked: blocked_provider_config_required.",
+                    "source_receipt_ref": "generated/read_models/openclaw_lm_consult_spine_status.json#status",
+                    "one_next_safe_action": "Configure the provider through approved env/config.",
+                    "push_class": "failure",
+                    "state": {
+                        "provider": "gemini",
+                        "live_ready": False,
+                        "blocked_reason": "blocked_provider_config_required",
+                        "advisory_only": True,
+                        "tools_exposed": False,
+                        "execution_allowed": False,
+                        "runtime_mutation_allowed": False,
+                        "external_action_allowed": False,
+                    },
+                }
+            ],
+        },
+    )
+
+    payload = _build(tmp_path)
+
+    items = {item["item_id"]: item for item in payload["feed_items"]}
+    assert "lm_consult_spine:gemini:blocked" in items
+    item = items["lm_consult_spine:gemini:blocked"]
+    assert item["urgency"] == "blocked"
+    assert item["push_allowed"] is False
+    assert item["state"]["tools_exposed"] is False
+    assert item["state"]["execution_allowed"] is False
+
+
 def test_unchanged_state_produces_zero_new_push_candidates(tmp_path):
     _write_json(tmp_path / "approval_request_queue.json", _pending_approval_queue())
     first = _build(tmp_path)

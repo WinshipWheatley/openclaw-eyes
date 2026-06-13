@@ -131,6 +131,7 @@
 !openclaw_business_object_layer_audit.py
 !openclaw_lm_child_package_gate.py
 !openclaw_hermes_sidecar.py
+!openclaw_lm_consult_spine.py
 !openclaw_system_knowledge_registry.py
 !openclaw_external_registry_materializer.py
 !openclaw_event_bridge_contract.py
@@ -1066,6 +1067,7 @@
 !tests/test_openclaw_business_object_layer_audit.py
 !tests/test_openclaw_lm_child_package_gate.py
 !tests/test_openclaw_hermes_sidecar.py
+!tests/test_openclaw_lm_consult_spine.py
 !tests/test_openclaw_system_knowledge_registry.py
 !tests/test_helm_calm_surface.py
 !tests/test_external_system_knowledge_registry_materializer.py

@@ -52,6 +52,7 @@ MODEL_WORK_PACKAGE_ROUTER_REF = "generated/read_models/model_work_package_router
 CODEX_WORK_PACKAGE_LIFECYCLE_REF = "generated/read_models/codex_work_package_lifecycle.json"
 DATA_ROOM_LIVE_CHATGPT55_REF = "generated/read_models/data_room_live_chatgpt55_lane.json"
 DATA_ROOM_GEMINI_FORM_REF = "generated/read_models/data_room_gemini_form_session.json"
+LM_CONSULT_SPINE_REF = "generated/read_models/openclaw_lm_consult_spine_status.json"
 
 
 def utc_now() -> str:
@@ -748,6 +749,81 @@ def _model_work_package_items(read_model: Mapping[str, Any]) -> list[dict[str, A
     return items
 
 
+def _lm_consult_spine_items(read_model: Mapping[str, Any]) -> list[dict[str, Any]]:
+    if not read_model:
+        return []
+    top_items = read_model.get("watch_desk_items")
+    if isinstance(top_items, list):
+        items: list[dict[str, Any]] = []
+        for item in top_items:
+            if not isinstance(item, Mapping):
+                continue
+            item_id = str(item.get("item_id") or "").strip()
+            plain_line = str(item.get("plain_line") or "").strip()
+            source_ref = str(item.get("source_receipt_ref") or "").strip()
+            if not item_id or not plain_line or not source_ref:
+                continue
+            state = item.get("state") if isinstance(item.get("state"), Mapping) else {}
+            items.append(
+                _new_item(
+                    item_id=item_id,
+                    lane=_watch_lane(item.get("lane") or "chief_runtime"),
+                    urgency=str(item.get("urgency") or ("watch" if read_model.get("live_ready") else "blocked")),
+                    plain_line=plain_line,
+                    source_receipt_ref=source_ref,
+                    one_next_safe_action=str(
+                        item.get("one_next_safe_action")
+                        or "Use the generic LM consult spine for advisory-only model help."
+                    ),
+                    state={
+                        "provider": str(state.get("provider") or read_model.get("provider") or ""),
+                        "live_ready": bool(state.get("live_ready", read_model.get("live_ready", False))),
+                        "blocked_reason": str(state.get("blocked_reason") or read_model.get("blocked_reason") or ""),
+                        "advisory_only": True,
+                        "tools_exposed": False,
+                        "execution_allowed": False,
+                        "runtime_mutation_allowed": False,
+                        "external_action_allowed": False,
+                    },
+                    push_class=str(item.get("push_class") or ("info" if read_model.get("live_ready") else "failure")),
+                )
+            )
+        return items
+
+    provider = str(read_model.get("provider") or read_model.get("preferred_provider") or "unknown")
+    live_ready = bool(read_model.get("live_ready"))
+    blocked_reason = str(read_model.get("blocked_reason") or "")
+    return [
+        _new_item(
+            item_id=f"lm_consult_spine:{provider}:{'ready' if live_ready else 'blocked'}",
+            lane="chief_runtime",
+            urgency="watch" if live_ready else "blocked",
+            plain_line=(
+                f"LM consult spine ready with {provider}."
+                if live_ready
+                else f"LM consult spine built, but {provider} is blocked: {blocked_reason or 'blocked_provider_config_required'}."
+            ),
+            source_receipt_ref=f"{LM_CONSULT_SPINE_REF}#status",
+            one_next_safe_action=(
+                "Use the generic consult spine for advisory-only model help."
+                if live_ready
+                else "Configure the provider through approved env/config without printing credential values."
+            ),
+            state={
+                "provider": provider,
+                "live_ready": live_ready,
+                "blocked_reason": blocked_reason or ("" if live_ready else "blocked_provider_config_required"),
+                "advisory_only": True,
+                "tools_exposed": False,
+                "execution_allowed": False,
+                "runtime_mutation_allowed": False,
+                "external_action_allowed": False,
+            },
+            push_class="info" if live_ready else "failure",
+        )
+    ]
+
+
 def _data_room_live_chatgpt55_items(read_model: Mapping[str, Any]) -> list[dict[str, Any]]:
     if not read_model:
         return []
@@ -979,6 +1055,7 @@ def build_watch_desk_feed(
     guided_review_items = _guided_review_items(_load_json(read_root / Path(GUIDED_REVIEW_REF).name))
     active_context_items = _operator_active_context_items(_load_json(read_root / Path(OPERATOR_ACTIVE_CONTEXTS_REF).name))
     model_work_items = _model_work_package_items(_load_json(read_root / Path(MODEL_WORK_PACKAGE_ROUTER_REF).name))
+    lm_consult_spine_items = _lm_consult_spine_items(_load_json(read_root / Path(LM_CONSULT_SPINE_REF).name))
     data_room_live_chatgpt55_items = _data_room_live_chatgpt55_items(
         _load_json(read_root / Path(DATA_ROOM_LIVE_CHATGPT55_REF).name)
     )
@@ -990,6 +1067,7 @@ def build_watch_desk_feed(
         + guided_review_items
         + active_context_items
         + model_work_items
+        + lm_consult_spine_items
         + data_room_live_chatgpt55_items
         + data_room_gemini_form_items
         + codex_work_items

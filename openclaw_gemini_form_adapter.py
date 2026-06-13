@@ -1,8 +1,9 @@
-"""Live Gemini advisory adapter for Cassandra's Data Room form lane.
+"""Live Gemini advisory wrapper for Cassandra's Data Room form lane.
 
-This module owns the narrow external Gemini call and the additive Gemini form
-session artifacts. Gemini advises only; OpenClaw records only deterministic,
-Winship-confirmed answers.
+This module owns Data Room-specific redaction, schema validation, and additive
+Gemini form session artifacts. The actual provider call routes through the
+systemwide LM Consult Spine. Gemini advises only; OpenClaw records only
+deterministic, Winship-confirmed answers.
 """
 
 from __future__ import annotations
@@ -680,27 +681,63 @@ def call_gemini_data_room_form_turn(
         created_at_utc=created_at_utc,
     )
     selected_model = model_label(env)
-    request_body = _gemini_payload(request_payload)
-    call_provider = provider or _perform_gemini_generate_content_call
+    consult_env = dict(env)
+    consult_env.setdefault("OPENCLAW_ENABLE_LM_CONSULTS", "1")
+    consult_env.setdefault("OPENCLAW_LM_PROVIDER", "gemini")
+    consult_env.setdefault("OPENCLAW_GEMINI_MODEL", selected_model)
+    import openclaw_lm_consult_spine as consult_spine
+
     try:
-        raw_response = call_provider(
-            request_payload=request_payload,
-            request_body=request_body,
+        consult_request = consult_spine.build_lm_consult_request(
+            request_id=request_payload["request_id"],
+            created_at_utc=created_at_utc,
+            requested_by_agent="cassandra",
+            owner_agent="cassandra",
+            source_surface="cassandra_data_room_gemini_form",
+            source_context_ref=str(package.get("review_session_id") or package.get("package_id") or ""),
+            task_type="data_room_form_fill",
+            consult_kind="form_fill",
+            preferred_model_class="external_fast_worker",
+            preferred_provider="gemini",
+            provider_model_label=selected_model,
+            reason_for_model_choice="Gemini Flash-class is the preferred fast advisory model for redacted Data Room form-fill.",
+            context_refs=[
+                str(package.get("package_id") or ""),
+                str(package.get("review_session_id") or ""),
+                str(package.get("current_question_id") or ""),
+            ],
+            redacted_context_summary=stable_json(request_payload),
+            allowed_inputs=request_payload.get("allowed_inputs") or [],
+            forbidden_inputs=request_payload.get("forbidden_inputs") or [],
+            expected_output_schema=request_payload.get("expected_output_schema") or expected_gemini_turn_result_shape(),
+            stop_condition="Stop after returning a Data Room turn result. Do not record or confirm answers.",
+            permission_required=False,
+            status="ready_for_provider_call",
+        )
+        adapter = consult_spine.GeminiProviderAdapter(
+            env=consult_env,
+            transport=provider,
+            legacy_request_payload=request_payload,
             model_label=selected_model,
+        )
+        consult_result = consult_spine.request_lm_consult(
+            consult_request,
+            provider_adapter=adapter,
             timeout_seconds=timeout_seconds,
         )
-    except GeminiFormAdapterError:
-        raise
+    except consult_spine.LMConsultError as exc:
+        raise GeminiFormAdapterError(exc.reason, validation=exc.validation, availability=availability) from exc
     except TimeoutError as exc:
         raise GeminiFormAdapterError("adapter_timeout") from exc
     except Exception as exc:
         raise GeminiFormAdapterError("adapter_api_error") from exc
+    if consult_result.get("status") != "result_accepted":
+        reason = str(consult_result.get("status") or "adapter_api_error")
+        validation_payload = consult_result.get("structured_payload")
+        validation = validation_payload if isinstance(validation_payload, Mapping) else {}
+        raise GeminiFormAdapterError(reason, validation=validation, availability=availability)
 
-    output_text = _extract_output_text(raw_response)
-    try:
-        parsed = json.loads(output_text)
-    except json.JSONDecodeError as exc:
-        raise GeminiFormAdapterError("adapter_invalid_json") from exc
+    parsed = consult_result.get("structured_payload")
     if not isinstance(parsed, dict):
         raise GeminiFormAdapterError("adapter_invalid_json")
     validation = validate_gemini_form_turn_result(parsed, package=package, request_payload=request_payload)
