@@ -15,21 +15,23 @@ This is an access-mode audit only. It did not invoke models, send prompts, inspe
 - api_key_overage_routes
 
 ## Access Modes
-- openai_codex_cli: cli_authenticated
+- openai_codex_cli: cli_authenticated_billing_unknown
   - installed: True
-  - auth_status: unknown
+  - auth_status: authenticated_unknown_billing
   - subscription_backed: unknown
   - api_billing_required: unknown
   - worker_candidate: True
+  - worker_ready: False
   - live_conversation_candidate: False
   - recommended_use: code_worker
-  - next_probe_required: operator-approved auth/status probe and one bounded worker package dry run before automated dispatch
+  - next_probe_required: operator-approved bounded dry-run only after subscription backing is proven
 - openai_codex_desktop_app: desktop_app_manual
   - installed: False
   - auth_status: unknown
   - subscription_backed: unknown
   - api_billing_required: unknown
   - worker_candidate: False
+  - worker_ready: False
   - live_conversation_candidate: False
   - recommended_use: manual_only
   - next_probe_required: operator review of supported Codex app-server/desktop bridge before any automation
@@ -39,33 +41,37 @@ This is an access-mode audit only. It did not invoke models, send prompts, inspe
   - subscription_backed: unknown
   - api_billing_required: False
   - worker_candidate: False
+  - worker_ready: False
   - live_conversation_candidate: False
   - recommended_use: manual_only
   - next_probe_required: operator-confirmed supported bridge or keep manual handoff only
-- google_gemini_cli: cli_authenticated
+- google_gemini_cli: cli_installed_auth_unknown
   - installed: True
   - auth_status: unknown
   - subscription_backed: unknown
   - api_billing_required: unknown
   - worker_candidate: True
+  - worker_ready: False
   - live_conversation_candidate: False
   - recommended_use: form_fill_advisor
-  - next_probe_required: operator-approved auth/billing-mode proof before use as a subscription-backed worker
-- google_antigravity_cli: cli_authenticated
+  - next_probe_required: find a documented safe Gemini CLI auth/status command or keep manual/API routes separate
+- google_antigravity_cli: cli_installed_auth_unknown
   - installed: True
   - auth_status: unknown
   - subscription_backed: unknown
   - api_billing_required: unknown
   - worker_candidate: True
+  - worker_ready: False
   - live_conversation_candidate: False
   - recommended_use: architecture_review
-  - next_probe_required: operator-approved auth/billing-mode proof and no-tools/no-file boundary review
-- anthropic_claude_cli: cli_authenticated
+  - next_probe_required: find a documented safe Antigravity auth/status command and prove no broad workspace/tool access
+- anthropic_claude_cli: cli_authenticated_subscription
   - installed: True
-  - auth_status: unknown
-  - subscription_backed: unknown
-  - api_billing_required: unknown
+  - auth_status: authenticated_subscription
+  - subscription_backed: True
+  - api_billing_required: False
   - worker_candidate: True
+  - worker_ready: True
   - live_conversation_candidate: False
   - recommended_use: architecture_review
   - next_probe_required: operator-approved claude auth status/proof of subscription mode and one no-tools package smoke
@@ -75,6 +81,7 @@ This is an access-mode audit only. It did not invoke models, send prompts, inspe
   - subscription_backed: False
   - api_billing_required: False
   - worker_candidate: True
+  - worker_ready: False
   - live_conversation_candidate: False
   - recommended_use: local_redaction
   - next_probe_required: operator-approved local invocation boundary before any model run
@@ -84,6 +91,7 @@ This is an access-mode audit only. It did not invoke models, send prompts, inspe
   - subscription_backed: False
   - api_billing_required: True
   - worker_candidate: False
+  - worker_ready: False
   - live_conversation_candidate: False
   - recommended_use: blocked
   - next_probe_required: none unless operator explicitly chooses API fallback

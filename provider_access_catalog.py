@@ -351,6 +351,7 @@ def _record(
     api_billing_required: bool | str,
     features: Mapping[str, bool] | None = None,
     can_be_worker_run_manager_provider: bool = False,
+    worker_run_manager_ready: bool = False,
     can_be_live_conversation_provider: bool = False,
     can_be_manual_handoff_provider: bool = False,
     recommended_use: str = "blocked",
@@ -381,6 +382,7 @@ def _record(
         "supports_working_directory": bool(features.get("supports_working_directory", False)),
         "supports_timeout": bool(features.get("supports_timeout", False)),
         "can_be_worker_run_manager_provider": bool(can_be_worker_run_manager_provider),
+        "worker_run_manager_ready": bool(worker_run_manager_ready),
         "can_be_live_conversation_provider": bool(can_be_live_conversation_provider),
         "can_be_manual_handoff_provider": bool(can_be_manual_handoff_provider),
         "recommended_use": recommended_use,
@@ -410,7 +412,7 @@ def build_provider_records(observations: Mapping[str, Mapping[str, Any]]) -> lis
     return [
         _record(
             provider="openai_codex_cli",
-            access_mode="cli_authenticated" if _installed(observations, "codex_which") else "unavailable",
+            access_mode="cli_installed_auth_unknown" if _installed(observations, "codex_which") else "unavailable",
             tool_name="codex",
             installed=_installed(observations, "codex_which"),
             version=_version(observations, "codex_version"),
@@ -492,7 +494,7 @@ def build_provider_records(observations: Mapping[str, Mapping[str, Any]]) -> lis
         ),
         _record(
             provider="google_gemini_cli",
-            access_mode="cli_authenticated" if _installed(observations, "gemini_which") else "unavailable",
+            access_mode="cli_installed_auth_unknown" if _installed(observations, "gemini_which") else "unavailable",
             tool_name="gemini",
             installed=_installed(observations, "gemini_which"),
             version=_version(observations, "gemini_version"),
@@ -521,7 +523,7 @@ def build_provider_records(observations: Mapping[str, Mapping[str, Any]]) -> lis
         ),
         _record(
             provider="google_antigravity_cli",
-            access_mode="cli_authenticated" if _installed(observations, "agy_which") else "unavailable",
+            access_mode="cli_installed_auth_unknown" if _installed(observations, "agy_which") else "unavailable",
             tool_name="agy",
             installed=_installed(observations, "agy_which"),
             version=_version(observations, "agy_version"),
@@ -550,7 +552,7 @@ def build_provider_records(observations: Mapping[str, Mapping[str, Any]]) -> lis
         ),
         _record(
             provider="anthropic_claude_cli",
-            access_mode="cli_authenticated" if _installed(observations, "claude_which") else "unavailable",
+            access_mode="cli_installed_auth_unknown" if _installed(observations, "claude_which") else "unavailable",
             tool_name="claude",
             installed=_installed(observations, "claude_which"),
             version=_version(observations, "claude_version"),
@@ -637,7 +639,16 @@ def preferred_access_order(records: Sequence[Mapping[str, Any]]) -> list[str]:
     subscription_cli = [
         str(record["provider"])
         for record in records
-        if record.get("access_mode") == "cli_authenticated" and record.get("installed") is True
+        if (
+            record.get("access_mode")
+            in {
+                "cli_authenticated",
+                "cli_authenticated_subscription",
+                "cli_authenticated_billing_unknown",
+                "cli_installed_auth_unknown",
+            }
+            and record.get("installed") is True
+        )
     ]
     manual = [
         str(record["provider"])
@@ -782,6 +793,7 @@ def render_operator_markdown(payload: Mapping[str, Any]) -> str:
                 f"  - subscription_backed: {record.get('subscription_backed')}",
                 f"  - api_billing_required: {record.get('api_billing_required')}",
                 f"  - worker_candidate: {record.get('can_be_worker_run_manager_provider')}",
+                f"  - worker_ready: {record.get('worker_run_manager_ready')}",
                 f"  - live_conversation_candidate: {record.get('can_be_live_conversation_provider')}",
                 f"  - recommended_use: {record.get('recommended_use')}",
                 f"  - next_probe_required: {record.get('next_probe_required')}",
