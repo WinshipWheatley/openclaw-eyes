@@ -22,6 +22,7 @@ import global_run_mode_context
 import make_it_so_objective_loop
 import test_effect_adapters
 import proof_to_response_runtime as proof_runtime
+from operator_human_message_normalizer import normalize_human_text
 
 
 ROOT = Path(__file__).resolve().parent
@@ -335,7 +336,7 @@ def _is_next_step_help_request(lowered_text: str) -> bool:
 def resolve_finance_capital_hilton_intent(text: str) -> str:
     """Resolve lane-local Finance / Capital Hilton chat text without model calls."""
 
-    lowered = text.lower()
+    lowered = normalize_human_text(text)
     if any(phrase in lowered for phrase in ("what package", "lm2 get", "worker get", "context would", "worker context")):
         return "package_context_explanation"
     if any(phrase in lowered for phrase in ("already been tried", "already tried", "already been decided", "what has been tried", "what has already", "decision trace", "decided here")):
@@ -1179,7 +1180,7 @@ def _test_dry_run_action_result(
 
 
 def _scenario_for_context(text: str, world: str, thread: str) -> str:
-    lowered = text.lower()
+    lowered = normalize_human_text(text)
     world = world.lower()
     thread = thread.lower()
     if "live_arts" in thread or "live arts" in thread:
@@ -1196,12 +1197,12 @@ def _scenario_for_context(text: str, world: str, thread: str) -> str:
 
 
 def _explicit_stage_request(text: str) -> bool:
-    lowered = text.lower()
+    lowered = normalize_human_text(text)
     return any(phrase in lowered for phrase in ("stage a plan", "stage the plan", "build a plan", "stage package", "prepare a package"))
 
 
 def _protected_request(text: str) -> bool:
-    lowered = text.lower()
+    lowered = normalize_human_text(text)
     return any(term in lowered for term in PROTECTED_TERMS)
 
 
@@ -1292,7 +1293,7 @@ def route_conversation_text(
     ctx = _context(request)
     world = ctx["world"]
     thread = ctx["thread"]
-    lowered = text.lower()
+    lowered = normalize_human_text(text)
     run_mode_context = request.get("run_mode_context") if isinstance(request.get("run_mode_context"), Mapping) else global_run_mode_context.default_run_mode_context(generated_at=generated_at)
 
     if not world or not thread:
@@ -1316,7 +1317,7 @@ def route_conversation_text(
             target_ref=f"{world}/{thread}",
         )
     if run_mode_context.get("run_mode") == global_run_mode_context.TEST_DRY_RUN and (
-        "calendar" in lowered or "calandar" in lowered or "gcal" in lowered
+        "calendar" in lowered or "gcal" in lowered
     ) and ("test" in lowered or "event" in lowered or "tomorrow" in lowered):
         return _test_dry_run_action_result(
             request,
@@ -1325,7 +1326,8 @@ def route_conversation_text(
             action_kind="dry_run_calendar_event",
             target_ref=f"{world}/{thread}/calendar_test",
         )
-    if "winshiplive@gmail.com" in lowered and ("email" in lowered or "mail" in lowered):
+    operator_email_targeted = "winshiplive@gmail.com" in text.lower() or "winshiplive gmail.com" in lowered
+    if operator_email_targeted and ("email" in lowered or "mail" in lowered):
         return _test_dry_run_action_result(
             request,
             generated_at=generated_at,

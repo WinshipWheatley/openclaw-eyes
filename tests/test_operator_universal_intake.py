@@ -674,6 +674,49 @@ def test_unknown_agent_asks_clarification_without_receipt_or_read_model(tmp_path
     assert not (tmp_path / "read_models" / JSON_EXPORT_NAME).exists()
 
 
+def test_low_signal_comma_prefix_is_not_unknown_agent_and_can_still_parse_income(tmp_path):
+    routed = try_process_surface_operator_intake(
+        "ok, i got payd $900 frm Live Arts MD",
+        surface="telegram",
+        received_at_utc=FIXED_NOW,
+        read_model_root=tmp_path / "read_models",
+        receipt_root=tmp_path / "receipts",
+    )
+
+    assert routed is not None
+    assert routed["action_type"] == "income_payment_log"
+    assert routed["addressed_agent"] == ""
+    assert routed["event"]["parsed"]["fields"]["amount"] == 900
+    assert routed["event"]["parsed"]["fields"]["payer"] == "Live Arts MD"
+    assert routed["event"]["parsed"]["fields"]["invoice_marked_paid"] is False
+
+
+def test_typo_heavy_agent_lane_requests_resolve_to_existing_lanes(tmp_path):
+    niles = try_process_surface_operator_intake(
+        "Niels, prep the albm progression",
+        surface="telegram",
+        received_at_utc=FIXED_NOW,
+        read_model_root=tmp_path / "read_models",
+        receipt_root=tmp_path / "receipts",
+    )
+    chief = try_process_surface_operator_intake(
+        "wat brok",
+        surface="telegram",
+        received_at_utc="2026-06-11T15:01:00+00:00",
+        read_model_root=tmp_path / "read_models",
+        receipt_root=tmp_path / "receipts",
+    )
+
+    assert niles is not None
+    assert niles["action_type"] == "agent_lane_request"
+    assert niles["inferred_owner_agent"] == "niles"
+    assert niles["event"]["parsed"]["fields"]["daw_action_taken"] is False
+    assert chief is not None
+    assert chief["action_type"] == "agent_lane_request"
+    assert chief["inferred_owner_agent"] == "chief"
+    assert chief["event"]["parsed"]["fields"]["request_label"] == "what broke"
+
+
 def test_multi_intent_message_splits_and_writes_stable_child_receipts(tmp_path):
     text = "I did a St. Anne's gig tonight, got paid $1250 from St. Anne's, and spent $106 on Claude Code Fable 5."
 

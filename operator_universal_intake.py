@@ -21,6 +21,7 @@ from operator_skill_registry import (
     operator_skill_reference_data_needs_manifest,
     operator_skill_rows,
 )
+from operator_human_message_normalizer import is_low_signal_address_prefix, normalize_human_text
 
 
 ROOT = Path(__file__).resolve().parent
@@ -332,7 +333,7 @@ def _normalized_text(text: str) -> str:
 
 
 def _lower_text(text: str) -> str:
-    return _normalized_text(text).lower()
+    return normalize_human_text(_normalized_text(text))
 
 
 def _mentions_st_annes(text: str) -> bool:
@@ -368,7 +369,7 @@ def _agent_display_name(agent_id: str) -> str:
 
 
 def _resolve_agent_id(value: str) -> str:
-    normalized = _clean_phrase(value).lower().replace("-", " ").replace("_", " ")
+    normalized = normalize_human_text(_clean_phrase(value)).replace("-", " ").replace("_", " ")
     if normalized in {"mac composer", "mission control composer"}:
         return "mac_composer"
     if normalized in {"watch desk", "watchdesk"}:
@@ -424,8 +425,11 @@ def _extract_addressed_agent(raw_text: str) -> dict[str, str]:
     if not match:
         return {"requested_agent": "", "agent_id": "", "request_text": _clean_phrase(_normalized_text(raw_text))}
     requested_agent = _clean_phrase(match.group(1))
-    agent_id = AGENT_LANE_ALIASES.get(requested_agent.lower()) or (
-        "mac_composer" if requested_agent.lower() in {"mac composer", "mission control composer"} else ""
+    if is_low_signal_address_prefix(requested_agent):
+        return {"requested_agent": "", "agent_id": "", "request_text": _clean_phrase(_normalized_text(raw_text))}
+    normalized_agent = normalize_human_text(requested_agent).replace("_", " ").replace("-", " ")
+    agent_id = AGENT_LANE_ALIASES.get(normalized_agent) or (
+        "mac_composer" if normalized_agent in {"mac composer", "mission control composer"} else ""
     )
     return {
         "requested_agent": requested_agent,
@@ -671,7 +675,7 @@ def _recipient_label(request_text: str) -> str:
 def _approval_gated_action_request(raw_text: str) -> dict[str, Any] | None:
     addressed = _extract_addressed_agent(raw_text)
     request_text = addressed["request_text"]
-    lower = request_text.lower()
+    lower = _lower_text(request_text)
     send_like = bool(re.search(r"\b(send|email|message|reply|draft)\b", lower))
     follow_up_like = bool(re.search(r"\bfollow[- ]?up\b", lower) or re.search(r"\bfollow\s+up\b", lower))
     outbound_target = bool(re.search(r"\b(to|with)\s+[A-Z][A-Za-z0-9 .'-]+", request_text)) or "annette" in lower
@@ -774,7 +778,7 @@ def _agent_lane_request(raw_text: str) -> dict[str, Any] | None:
         "receipt_required": execution_status["receipt_required"],
         "current_status": execution_status["current_status"],
     }
-    lower_request = request_text.lower()
+    lower_request = _lower_text(request_text)
     if agent_id == "niles":
         topic = request_text
         prep_match = re.search(r"\bprep\s+(?:my\s+)?(.+)", request_text, flags=re.IGNORECASE)
@@ -836,7 +840,7 @@ def _implicit_agent_lane_request(raw_text: str) -> dict[str, Any] | None:
     if addressed["requested_agent"]:
         return None
     request_text = addressed["request_text"]
-    lower = request_text.lower()
+    lower = _lower_text(request_text)
     if re.search(r"\b(prep|prepare|plan|organize)\b.*\b(live set|setlist|set notes|song|session|struna|fundo)\b", lower) or re.search(
         r"\b(open|review|find)\b.*\b(fundo|struna|song|session|setlist)\b", lower
     ):
@@ -872,7 +876,7 @@ def parse_operator_intake_text(
         raise ValueError("raw_text is required")
 
     text = _normalized_text(raw_text)
-    lower = text.lower()
+    lower = _lower_text(text)
 
     approval_gated = _approval_gated_action_request(text)
     if approval_gated is not None:
@@ -934,7 +938,7 @@ def parse_operator_intake_text(
             "stop_condition": "local_receipt_written",
         }
 
-    income_missing_amount = re.search(r"\b(?:got\s+)?paid\s+for\s+(.+)$", text, flags=re.IGNORECASE)
+    income_missing_amount = re.search(r"\b(?:got\s+)?(?:paid|payd|payed|paied)\s+for\s+(.+)$", text, flags=re.IGNORECASE)
     if income_missing_amount:
         context_label = _clean_phrase(income_missing_amount.group(1))
         fields: dict[str, Any] = {
@@ -963,7 +967,11 @@ def parse_operator_intake_text(
             "stop_condition": "clarification_required",
         }
 
-    income_match = re.search(r"\b(?:got\s+)?paid\s+\$?([\d,]+(?:\.\d+)?)\s+from\s+(.+)$", text, flags=re.IGNORECASE)
+    income_match = re.search(
+        r"\b(?:got\s+)?(?:paid|payd|payed|paied)\s+\$?([\d,]+(?:\.\d+)?)\s+(?:from|frm|frum)\s+(.+)$",
+        text,
+        flags=re.IGNORECASE,
+    )
     if income_match:
         amount = _amount_value(income_match.group(1))
         payer = _clean_phrase(income_match.group(2))
@@ -996,7 +1004,7 @@ def parse_operator_intake_text(
             "stop_condition": "local_receipt_written",
         }
 
-    expense_match = re.search(r"\bspent\s+\$?([\d,]+(?:\.\d+)?)\s+on\s+(.+)$", text, flags=re.IGNORECASE)
+    expense_match = re.search(r"\b(?:spent|spnt)\s+\$?([\d,]+(?:\.\d+)?)\s+on\s+(.+)$", text, flags=re.IGNORECASE)
     if expense_match:
         amount = _amount_value(expense_match.group(1))
         purchase = _clean_phrase(expense_match.group(2))

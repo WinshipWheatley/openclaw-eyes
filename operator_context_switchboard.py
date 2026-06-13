@@ -26,6 +26,7 @@ from operator_universal_intake import (
     is_universal_operator_intake_candidate,
     try_process_surface_operator_intake,
 )
+from operator_human_message_normalizer import normalize_human_text
 
 
 SCHEMA_VERSION = "OPERATOR_CONTEXT_SWITCHBOARD_DECISION_V0"
@@ -105,9 +106,7 @@ def _short_hash(text: str) -> str:
 
 
 def _normalize(text: str) -> str:
-    lowered = str(text or "").lower()
-    lowered = lowered.replace("?", " ").replace("!", " ")
-    return " ".join(re.sub(r"[^a-z0-9'$.:_-]+", " ", lowered).split())
+    return normalize_human_text(text)
 
 
 def _parse_utc(value: Any) -> datetime | None:
@@ -293,8 +292,12 @@ def _resume_command(text: str) -> bool:
             "resume data room",
             "continue data room",
             "back to data room",
+            "get back to that provisional answer",
+            "get back to that question",
+            "get back to this question",
             "finish that review",
             "finish this review",
+            "provisional answer question",
             "continue album",
             "continue niles",
             "back to niles",

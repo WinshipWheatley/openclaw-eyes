@@ -266,6 +266,71 @@ def test_test_mode_calendar_request_records_dry_run_receipt_without_event_mutati
     assert result["machine_proof"]["production_action_performed"] is False
 
 
+def test_typo_heavy_finance_next_step_still_routes_to_payment_watch(tmp_path):
+    result = router.route_conversation_text(
+        _request("wut do i do here??"),
+        generated_at=FIXED_NOW,
+        sqlite_path=tmp_path / "proof.sqlite",
+    )
+
+    assert result["conversation_intent_class"] == "payment_watch_next_step"
+    assert result["operator_display"]["headline"] == "Payment evidence needed"
+    assert result["machine_proof"]["paid_marking_performed"] is False
+
+
+def test_typo_heavy_attach_proof_question_gets_specific_answer(tmp_path):
+    result = router.route_conversation_text(
+        _request("wat hapens if i attch prof?"),
+        generated_at=FIXED_NOW,
+        sqlite_path=tmp_path / "proof.sqlite",
+    )
+    summary = result["operator_display"]["plain_summary"].lower()
+
+    assert result["conversation_intent_class"] == "attach_proof_hypothetical"
+    assert "candidate" in summary
+    assert "ledger stays untouched" in summary
+
+
+def test_typo_heavy_test_calendar_and_email_stay_dry_run(tmp_path):
+    run_mode_state = global_run_mode_context.build_run_mode_state(
+        run_mode=global_run_mode_context.TEST_DRY_RUN,
+        scope={"scope": "session", "target_world_ref": "ops", "target_thread_ref": "calendar_tests"},
+        generated_at=FIXED_NOW,
+    )
+    run_mode_context = global_run_mode_context.context_from_state(
+        run_mode_state,
+        source="operator_conversation_router_test",
+        generated_at=FIXED_NOW,
+    )
+
+    calendar = router.route_conversation_text(
+        _request(
+            "plz maek a test calndr event tomorrow",
+            world="ops",
+            thread="calendar_tests",
+            run_mode_context=run_mode_context,
+        ),
+        generated_at=FIXED_NOW,
+        sqlite_path=tmp_path / "proof.sqlite",
+    )
+    email = router.route_conversation_text(
+        _request(
+            "emial winshiplive@gmail.com this is a dry run",
+            world="ops",
+            thread="email_tests",
+            run_mode_context=run_mode_context,
+        ),
+        generated_at=FIXED_NOW,
+        sqlite_path=tmp_path / "email.sqlite",
+    )
+
+    assert calendar["test_effect_receipt"]["status"] == "DRY_RUN_RECORDED"
+    assert calendar["test_effect_receipt"]["calendar_api_called"] is False
+    assert calendar["test_effect_receipt"]["calendar_event_created"] is False
+    assert email["test_effect_receipt"]["status"] == "DRY_RUN_RECORDED"
+    assert email["test_effect_receipt"]["email_send_performed"] is False
+
+
 def test_protected_merge_request_blocked_as_text_response(tmp_path):
     result = router.route_conversation_text(
         _request("Can you merge and push this?", world="build", thread="workrooms"),

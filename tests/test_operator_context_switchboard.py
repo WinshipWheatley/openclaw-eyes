@@ -825,3 +825,45 @@ def test_mac_composer_uses_same_switchboard_behavior(tmp_path):
     assert decision["detected_action_type"] == "income_payment_log"
     assert session["answer_records"] == []
     assert session["status"] == "paused"
+
+
+def test_low_signal_comma_prefix_does_not_become_unknown_agent_lane(tmp_path):
+    start = _start(tmp_path)
+
+    decision = _switch(tmp_path, "ok, so lets get back to that provisional answer question i had for you")
+    session = _load_session(start)
+
+    assert decision["decision"] == "resume_task"
+    assert decision["detected_action_type"] == "resume_active_context"
+    assert "active lane named ok" not in decision["operator_visible_reply"].lower()
+    assert session["answer_records"] == []
+
+
+def test_typo_heavy_income_note_routes_to_income_intake(tmp_path):
+    start = _start(tmp_path)
+
+    decision = _switch(tmp_path, "idk, i got payd $900 frm Live Arts MD")
+    session = _load_session(start)
+
+    assert decision["decision"] == "new_task_interrupt"
+    assert decision["detected_action_type"] == "income_payment_log"
+    assert "Logged the $900 Live Arts MD income note" in decision["operator_visible_reply"]
+    assert decision["safety_flags"]["invoice_marked_paid"] is False
+    assert session["answer_records"] == []
+
+
+def test_typo_heavy_system_and_album_requests_route_without_command_syntax(tmp_path):
+    start = _start(tmp_path)
+    album = _switch(tmp_path, "albm")
+    resumed = _switch(tmp_path, "cont albm", at="2026-06-12T12:02:00+00:00")
+    chief = _switch(tmp_path, "wat brok", at="2026-06-12T12:03:00+00:00")
+    session = _load_session(start)
+
+    assert album["detected_action_type"] == "niles_album_progression"
+    assert resumed["decision"] == "resume_task"
+    assert resumed["routed_to_agent"] == "niles"
+    assert "Continuing Niles album/progression" in resumed["operator_visible_reply"]
+    assert chief["decision"] == "new_task_stage"
+    assert chief["routed_to_agent"] == "chief"
+    assert "Routed that to Chief/system review" in chief["operator_visible_reply"]
+    assert session["answer_records"] == []
