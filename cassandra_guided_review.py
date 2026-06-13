@@ -2079,11 +2079,27 @@ def _session_summary_reply(session: Mapping[str, Any]) -> str:
     return f"{str(session.get('topic_display_name') or _topic_display_name(str(session.get('topic') or TOPIC_DATA_ROOM)))} progress: {_progress_line(session)}"
 
 
-def _natural_explanation_reply(session: dict[str, Any], question: Mapping[str, Any], intent: str) -> str:
+def _cross_topic_help_reply(question: Mapping[str, Any], raw_text: str) -> str:
+    mismatch = _answer_topic_mismatch(raw_text, question)
+    if not mismatch:
+        return ""
+    answer_label = str(mismatch.get("answer_topic_label") or "that topic")
+    current_label = str(mismatch.get("question_topic_label") or "this question")
+    question_text = str(question.get("question_text") or "the current question").strip()
+    return (
+        f"That term sounds like {answer_label}, but this question is about {current_label}. "
+        f"I have not recorded anything. The active question is: {question_text}"
+    )
+
+
+def _natural_explanation_reply(session: dict[str, Any], question: Mapping[str, Any], intent: str, *, raw_text: str = "") -> str:
     if not question:
         return "No active question is available. Say done to generate the promotion prompt."
     _enable_coach_mode(session)
     card = _coach_card_for_question(session, question)
+    cross_topic = _cross_topic_help_reply(question, raw_text)
+    if cross_topic:
+        return cross_topic
     if intent == "ask_examples":
         return render_coach_reply(
             card,
@@ -2322,7 +2338,7 @@ def _handle_pending_interaction(
             return "What condition should decide it?"
         if natural_kind in {"ask_explanation", "ask_eli5", "ask_analogy", "ask_examples", "ask_recommendation"}:
             question = _question_by_id(session, current_question_id)
-            return _natural_explanation_reply(session, question or {}, natural_kind)
+            return _natural_explanation_reply(session, question or {}, natural_kind, raw_text=raw_text)
         question = _question_by_id(session, current_question_id)
         mismatch = _answer_topic_mismatch(raw_text, question or {}) if question else {}
         if mismatch:
@@ -2406,7 +2422,7 @@ def _handle_pending_interaction(
             return "What condition should decide it?"
         if natural_kind in {"ask_explanation", "ask_eli5", "ask_analogy", "ask_examples", "ask_recommendation"}:
             question = _question_by_id(session, current_question_id)
-            return f"{_natural_explanation_reply(session, question or {}, natural_kind)}\nWhat condition should decide it?"
+            return f"{_natural_explanation_reply(session, question or {}, natural_kind, raw_text=raw_text)}\nWhat condition should decide it?"
         if natural_kind == "confirm_candidate":
             return "Yes to what? Tell me the condition first."
         if natural_kind == "reject_candidate":
@@ -4362,7 +4378,7 @@ def process_guided_review_message(
                         question_id=str(question.get("question_id") or ""),
                         now=now,
                     )
-                reply = _natural_explanation_reply(session, question or {}, natural_kind)
+                reply = _natural_explanation_reply(session, question or {}, natural_kind, raw_text=raw_text)
             elif natural_kind in {"revise_candidate", "thought_dump", "conditional_answer", "soften_candidate", "strengthen_candidate"}:
                 if not question:
                     reply = "No active question is available. Say done to generate the promotion prompt."

@@ -76,6 +76,10 @@ def _condition_text(raw_text: str, normalized: str) -> str:
     for marker in ("it depends on ", "depends on ", "only for ", "for "):
         if normalized.startswith(marker):
             return " ".join(str(raw_text).strip(" .").split())
+    if normalized.startswith("sometimes "):
+        return " ".join(str(raw_text).strip(" .").split())
+    if "trusted clients" in normalized and "new clients" in normalized and any(term in normalized for term in (" yes", " no", "yes ", "no ")):
+        return " ".join(str(raw_text).strip(" .").split())
     if any(phrase in normalized for phrase in ("case by case", "depends on whether", "it depends whether")):
         return " ".join(str(raw_text).strip(" .").split())
     return ""
@@ -138,14 +142,16 @@ def parse_natural_reply_intent(text: str, pending_interaction: Mapping[str, Any]
     elif normalized in rejection_phrases:
         intent = "reject_candidate"
         confidence = 0.9
-    elif normalized in {
-        "eli5",
-        "explain it like i'm five",
-        "explain it like im five",
-        "explain like i'm five",
-        "explain like im five",
-        "explain simply",
-    }:
+    elif normalized in {"eli5"} or any(
+        phrase in normalized
+        for phrase in (
+            "explain it like i'm five",
+            "explain it like im five",
+            "explain like i'm five",
+            "explain like im five",
+            "explain simply",
+        )
+    ):
         intent = "ask_eli5"
         confidence = 0.95
     elif "analogy" in normalized:
@@ -154,29 +160,30 @@ def parse_natural_reply_intent(text: str, pending_interaction: Mapping[str, Any]
     elif normalized in {"examples", "example", "show examples", "give examples"}:
         intent = "ask_examples"
         confidence = 0.95
-    elif normalized in {
-        "what do you recommend",
-        "what would you recommend",
-        "what do you think",
-        "what do you think?",
-        "hmm what do you think",
-        "hmm what do you think?",
-        "what would you do",
-        "what would a normal small business do",
-        "what should i do",
-        "i don't know",
-        "i dont know",
-    }:
+    elif any(
+        phrase in normalized
+        for phrase in (
+            "what do you recommend",
+            "what would you recommend",
+            "what do you think",
+            "what would you do",
+            "what would a normal small business do",
+            "what should i do",
+        )
+    ) or normalized in {"i don't know", "i dont know"}:
         intent = "ask_recommendation"
         confidence = 0.9
-    elif normalized in {
-        "what does that mean",
-        "what does that mean exactly",
-        "what does that mean exactly?",
-        "help me understand",
-        "why does this matter",
-        "what could go wrong",
-    }:
+    elif (
+        normalized.startswith("what does ") and " mean" in normalized
+    ) or any(
+        phrase in normalized
+        for phrase in (
+            "help me understand",
+            "why does this matter",
+            "why would this matter",
+            "what could go wrong",
+        )
+    ):
         intent = "ask_explanation"
         confidence = 0.9
     elif normalized in {"skip", "skip this", "skip question", "next", "next question"}:
@@ -257,14 +264,9 @@ def coach_command(text: str) -> str:
     normalized = _normalize(text)
     if normalized in {"why", "why does this matter"}:
         return "why"
-    if normalized in {
-        "recommend",
-        "recommendation",
-        "what do you recommend",
-        "what would you recommend",
-        "what's your recommendation",
-        "whats your recommendation",
-    }:
+    if normalized in {"recommend", "recommendation", "what's your recommendation", "whats your recommendation"} or any(
+        phrase in normalized for phrase in ("what do you recommend", "what would you recommend")
+    ):
         return "recommend"
     if normalized in {"examples", "example", "show examples", "give examples"}:
         return "examples"

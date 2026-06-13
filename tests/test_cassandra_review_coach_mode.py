@@ -698,11 +698,14 @@ def test_pending_condition_request_accepts_condition_then_requires_confirmation(
     [
         ("eli5", "ELI5"),
         ("explain it like I’m five", "ELI5"),
+        ("I don't know what that means. Explain it like I'm five.", "ELI5"),
         ("give me an analogy", "Analogy"),
         ("what does that mean?", "My recommendation:"),
         ("what does that mean exactly?", "My recommendation:"),
+        ("what does invoice numbering mean here?", "I have not recorded anything."),
         ("hmm what do you think?", "My recommendation:"),
         ("I don't know", "My recommendation:"),
+        ("what do you recommend and why?", "My recommendation:"),
         ("examples", "Example answers:"),
     ],
 )
@@ -721,6 +724,24 @@ def test_natural_explanation_variants_do_not_record_answers(tmp_path, text, expe
     assert session["current_question_id"] == start["current_question_id"]
     assert session["answer_records"] == []
     assert session["receipt_refs"] == []
+
+
+def test_conditional_answer_sentence_creates_candidate_not_topic_mismatch(tmp_path):
+    start = _start(tmp_path)
+
+    response = guided.process_guided_review_message(
+        "Sometimes yes for trusted clients, no for new clients.",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:01:00+00:00",
+    )
+    session = _load_session(response)
+
+    assert "Should I record this as:" in response["reply_text"]
+    assert session["current_question_id"] == start["current_question_id"]
+    assert session["answer_records"] == []
+    assert session["pending_interaction"]["kind"] == "answer_candidate"
+    assert session["coach_interactions"][-1]["command"] == "pending_answer_candidate_created"
 
 
 def test_thought_dump_proposes_candidate_without_receipt(tmp_path):
