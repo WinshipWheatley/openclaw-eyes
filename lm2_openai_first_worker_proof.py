@@ -10,8 +10,10 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import shutil
 import subprocess
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping, Sequence
@@ -44,6 +46,7 @@ DEFAULT_EXPORT_ROOT = Path("generated/read_models")
 DEFAULT_BRIDGE_ROOT = Path("/mnt/e/openclaw/generated/read_models")
 DEFAULT_WIKI_PATH = Path("generated/wiki/openclaw/LM2 OpenAI First Worker Proof.md")
 JSON_EXPORT_NAME = "lm2_openai_first_worker_proof.json"
+TINY_READONLY_REVIEW_RESULT_SCHEMA = "LM2_TINY_READONLY_REVIEW_RESULT_V0"
 
 AUTHORITY_BOUNDARY = {
     "direct_openai_api_call_performed": False,
@@ -59,6 +62,10 @@ AUTHORITY_BOUNDARY = {
     "claude_fable_used": False,
     "gemini_agy_ollama_generation_used": False,
 }
+
+SECRET_VALUE_PATTERN = re.compile(
+    r"(?i)(api[_-]?key|password|token|secret|credential)\s*[:=]\s*([^\s]+)"
+)
 
 
 def utc_now() -> str:
@@ -82,6 +89,130 @@ def _write_json(path: Path, payload: Mapping[str, Any]) -> None:
 def _write_text(path: Path, text: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text, encoding="utf-8")
+
+
+def _safe_excerpt(value: Any, *, max_chars: int = 1200) -> str:
+    text = value.decode("utf-8", errors="replace") if isinstance(value, bytes) else str(value or "")
+    redacted = SECRET_VALUE_PATTERN.sub(r"\1=[REDACTED]", text)
+    return redacted[:max_chars] + ("...[truncated]" if len(redacted) > max_chars else "")
+
+
+def codex_cli_worker_command(*, scratch_dir: Path, schema_path: Path, output_path: Path) -> list[str]:
+    return [
+        "codex",
+        "--cd",
+        str(scratch_dir),
+        "--sandbox",
+        "read-only",
+        "-a",
+        "never",
+        "exec",
+        "--ephemeral",
+        "--ignore-rules",
+        "--skip-git-repo-check",
+        "--output-schema",
+        str(schema_path),
+        "--output-last-message",
+        str(output_path),
+        "--color",
+        "never",
+        "-",
+    ]
+
+
+def run_codex_cli_worker(
+    *,
+    prompt: str,
+    response_schema: Mapping[str, Any],
+    scratch_dir: Path,
+    output_dir: Path,
+    result_prefix: str,
+    timeout_seconds: int = 90,
+) -> dict[str, Any]:
+    scratch_dir.mkdir(parents=True, exist_ok=True)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    schema_path = output_dir / f"{result_prefix}_schema.json"
+    prompt_path = output_dir / f"{result_prefix}_prompt.txt"
+    output_path = output_dir / f"{result_prefix}_result.json"
+    stdout_path = output_dir / f"{result_prefix}_stdout.txt"
+    stderr_path = output_dir / f"{result_prefix}_stderr.txt"
+    _write_json(schema_path, response_schema)
+    _write_text(prompt_path, prompt)
+    command = codex_cli_worker_command(
+        scratch_dir=scratch_dir,
+        schema_path=schema_path,
+        output_path=output_path,
+    )
+    started = time.monotonic()
+    try:
+        completed = subprocess.run(
+            command,
+            input=prompt,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=timeout_seconds,
+            check=False,
+        )
+    except subprocess.TimeoutExpired as exc:
+        elapsed = round(time.monotonic() - started, 3)
+        stdout = _safe_excerpt(exc.stdout, max_chars=8000)
+        stderr = _safe_excerpt(exc.stderr, max_chars=8000) or "timeout"
+        stdout_path.write_text(stdout, encoding="utf-8")
+        stderr_path.write_text(stderr, encoding="utf-8")
+        result_file_exists = output_path.exists()
+        raw_result_text = output_path.read_text(encoding="utf-8") if result_file_exists else stdout
+        status = "timeout_with_partial_result" if str(raw_result_text or "").strip() else "timeout_with_no_result"
+        return {
+            "status": status,
+            "command": command[:],
+            "returncode": 124,
+            "elapsed_seconds": elapsed,
+            "timeout_seconds": timeout_seconds,
+            "result_file_exists": result_file_exists,
+            "output_path": output_path.as_posix(),
+            "schema_path": schema_path.as_posix(),
+            "prompt_path": prompt_path.as_posix(),
+            "stdout_path": stdout_path.as_posix(),
+            "stderr_path": stderr_path.as_posix(),
+            "stdout_line_count": len(stdout.splitlines()),
+            "stderr_line_count": len(stderr.splitlines()),
+            "stdout_excerpt": _safe_excerpt(stdout),
+            "stderr_excerpt": _safe_excerpt(stderr),
+            "raw_result_text": raw_result_text,
+            "authority_boundary": dict(AUTHORITY_BOUNDARY),
+        }
+    elapsed = round(time.monotonic() - started, 3)
+    stdout = completed.stdout or ""
+    stderr = completed.stderr or ""
+    stdout_path.write_text(stdout, encoding="utf-8")
+    stderr_path.write_text(stderr, encoding="utf-8")
+    result_file_exists = output_path.exists()
+    raw_result_text = output_path.read_text(encoding="utf-8") if result_file_exists else stdout
+    if raw_result_text and not result_file_exists:
+        output_path.write_text(raw_result_text, encoding="utf-8")
+        result_file_exists = True
+    return {
+        "status": "codex_cli_completed" if completed.returncode == 0 else "codex_cli_failed",
+        "command": command[:],
+        "returncode": completed.returncode,
+        "elapsed_seconds": elapsed,
+        "timeout_seconds": timeout_seconds,
+        "result_file_exists": result_file_exists,
+        "output_path": output_path.as_posix(),
+        "schema_path": schema_path.as_posix(),
+        "prompt_path": prompt_path.as_posix(),
+        "stdout_path": stdout_path.as_posix(),
+        "stderr_path": stderr_path.as_posix(),
+        "stdout_line_count": len(stdout.splitlines()),
+        "stderr_line_count": len(stderr.splitlines()),
+        "stdout_first_line": next((line.strip() for line in stdout.splitlines() if line.strip()), ""),
+        "stderr_first_line": next((line.strip() for line in stderr.splitlines() if line.strip()), ""),
+        "stdout_excerpt": _safe_excerpt(stdout),
+        "stderr_excerpt": _safe_excerpt(stderr),
+        "raw_result_text": raw_result_text,
+        "authority_boundary": dict(AUTHORITY_BOUNDARY),
+    }
 
 
 def _safe_command_observation(command_id: str, command: Sequence[str], *, timeout_seconds: int = 8) -> dict[str, Any]:
@@ -291,6 +422,127 @@ def validate_codex_response_schema(schema: Mapping[str, Any] | None = None) -> d
     }
 
 
+def tiny_readonly_review_result_json_schema() -> dict[str, Any]:
+    return {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "additionalProperties": False,
+        "required": [
+            "schema_version",
+            "status",
+            "worker",
+            "summary",
+            "files_reviewed",
+            "next_safe_action",
+            "execution_attempted",
+            "runtime_mutation_performed",
+            "external_business_action_performed",
+            "confirmed_reference_data_created",
+            "hydration_run",
+        ],
+        "properties": {
+            "schema_version": {"type": "string", "enum": [TINY_READONLY_REVIEW_RESULT_SCHEMA]},
+            "status": {"type": "string", "enum": ["ready", "partial", "blocked"]},
+            "worker": {"type": "string", "enum": ["openai_codex_cli"]},
+            "summary": {"type": "string"},
+            "files_reviewed": {"type": "array", "items": {"type": "string"}},
+            "next_safe_action": {"type": "string"},
+            "execution_attempted": {"type": "boolean"},
+            "runtime_mutation_performed": {"type": "boolean"},
+            "external_business_action_performed": {"type": "boolean"},
+            "confirmed_reference_data_created": {"type": "boolean"},
+            "hydration_run": {"type": "boolean"},
+        },
+    }
+
+
+def tiny_readonly_review_prompt(*, source_bundle_root: Path) -> str:
+    return (
+        "You are running one tiny OpenClaw LM2 read-only review.\n"
+        "Inspect only the files in this scratch source bundle. Do not inspect outside it. "
+        "Do not edit files. Do not run mutation commands. Do not call external systems.\n"
+        f"Source bundle root: {source_bundle_root}\n"
+        "Question: Summarize whether the canonical LM2 worker spine exists and name the next safe action.\n"
+        "Emit valid JSON first if possible. If blocked, return blocked JSON. If partial, return partial JSON. "
+        "Never intentionally produce empty output. Keep the answer concise.\n"
+        f"Return only {TINY_READONLY_REVIEW_RESULT_SCHEMA} JSON."
+    )
+
+
+def validate_tiny_readonly_review_result(payload: Mapping[str, Any]) -> list[str]:
+    expected_false = [
+        "execution_attempted",
+        "runtime_mutation_performed",
+        "external_business_action_performed",
+        "confirmed_reference_data_created",
+        "hydration_run",
+    ]
+    errors: list[str] = []
+    if payload.get("schema_version") != TINY_READONLY_REVIEW_RESULT_SCHEMA:
+        errors.append("schema_version_mismatch")
+    if payload.get("status") not in {"ready", "partial", "blocked"}:
+        errors.append("status_invalid")
+    if payload.get("worker") != "openai_codex_cli":
+        errors.append("worker_mismatch")
+    if not str(payload.get("summary") or "").strip():
+        errors.append("summary_missing")
+    if not str(payload.get("next_safe_action") or "").strip():
+        errors.append("next_safe_action_missing")
+    if not isinstance(payload.get("files_reviewed"), list):
+        errors.append("files_reviewed_not_list")
+    for key in expected_false:
+        if payload.get(key) is not False:
+            errors.append(f"{key}_must_be_false")
+    return errors
+
+
+def adapt_tiny_readonly_review_result(
+    payload: Mapping[str, Any],
+    *,
+    package_state: Mapping[str, Any],
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    generated_at = generated_at or utc_now()
+    errors = validate_tiny_readonly_review_result(payload)
+    if errors:
+        return {
+            "status": "blocked_invalid_tiny_readonly_review_result",
+            "errors": errors,
+            "adapted": None,
+            "authority_boundary": dict(AUTHORITY_BOUNDARY),
+        }
+    return {
+        "status": "adapted",
+        "errors": [],
+        "adapted": {
+            "schema_version": lifecycle.PACKAGE_RESULT_SCHEMA,
+            "package_id": str(package_state.get("package_id") or ""),
+            "worker_kind": "openai_codex_cli",
+            "status": "completed" if payload.get("status") in {"ready", "partial"} else "blocked",
+            "authority_grant_ref": str(package_state.get("authority_grant_ref") or ""),
+            "files_changed": [],
+            "commands_run": ["codex exec tiny read-only review"],
+            "validation_run": ["git diff --check"],
+            "unsafe_scan_summary": {"passed": True, "hits": []},
+            "commit_hash": "",
+            "blocker_summary": "" if payload.get("status") in {"ready", "partial"} else str(payload.get("summary") or ""),
+            "receipt_refs": ["lm2_tiny_readonly_review:worker_result"],
+            "submitted_at": generated_at,
+            "denied_actions_reported": [],
+            "introduced_strings": [],
+            "capability_status": "advisory_review_completed",
+            "lm2_tiny_readonly_review_result": dict(payload),
+            "model_or_cli_used": "codex",
+            "subagents_used": False,
+            "runtime_mutation_performed": False,
+            "external_business_action_performed": False,
+            "confirmed_reference_data_created": False,
+            "hydration_run": False,
+        },
+        "authority_boundary": dict(AUTHORITY_BOUNDARY),
+    }
+
+
 def build_synthetic_assignment_loop(*, created_at_utc: str | None = None) -> dict[str, Any]:
     created_at_utc = created_at_utc or utc_now()
     assignment = assignment_loop_contract.build_assignment_loop(
@@ -446,86 +698,18 @@ def run_codex_cli_dry_run(
     output_dir: Path,
     timeout_seconds: int = 90,
 ) -> dict[str, Any]:
-    scratch_dir.mkdir(parents=True, exist_ok=True)
-    output_dir.mkdir(parents=True, exist_ok=True)
-    schema_path = output_dir / "openai_codex_cli_dry_run_schema.json"
-    prompt_path = output_dir / "openai_codex_cli_dry_run_prompt.txt"
-    output_path = output_dir / "openai_codex_cli_dry_run_result.json"
-    _write_json(schema_path, dry_run_result_json_schema())
-    _write_text(prompt_path, codex_dry_run_prompt())
-    command = codex_cli_dry_run_command(
+    return run_codex_cli_worker(
+        prompt=codex_dry_run_prompt(),
+        response_schema=dry_run_result_json_schema(),
         scratch_dir=scratch_dir,
-        schema_path=schema_path,
-        output_path=output_path,
+        output_dir=output_dir,
+        result_prefix="openai_codex_cli_dry_run",
+        timeout_seconds=timeout_seconds,
     )
-    try:
-        completed = subprocess.run(
-            command,
-            input=prompt_path.read_text(encoding="utf-8"),
-            text=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            timeout=timeout_seconds,
-            check=False,
-        )
-    except subprocess.TimeoutExpired:
-        return {
-            "status": "codex_cli_timeout",
-            "command": command[:],
-            "returncode": 124,
-            "output_path": output_path.as_posix(),
-            "stdout_line_count": 0,
-            "stderr_line_count": 1,
-            "raw_result_text": "",
-            "authority_boundary": dict(AUTHORITY_BOUNDARY),
-        }
-    stdout = completed.stdout or ""
-    raw_result_text = output_path.read_text(encoding="utf-8") if output_path.exists() else stdout
-    stdout_path = output_dir / "openai_codex_cli_dry_run_stdout.txt"
-    stderr_path = output_dir / "openai_codex_cli_dry_run_stderr.txt"
-    stdout_path.write_text(stdout, encoding="utf-8")
-    stderr_path.write_text(completed.stderr or "", encoding="utf-8")
-    if raw_result_text and not output_path.exists():
-        output_path.write_text(raw_result_text, encoding="utf-8")
-    return {
-        "status": "codex_cli_completed" if completed.returncode == 0 else "codex_cli_failed",
-        "command": command[:],
-        "returncode": completed.returncode,
-        "output_path": output_path.as_posix(),
-        "schema_path": schema_path.as_posix(),
-        "prompt_path": prompt_path.as_posix(),
-        "stdout_path": stdout_path.as_posix(),
-        "stderr_path": stderr_path.as_posix(),
-        "stdout_line_count": len(stdout.splitlines()),
-        "stderr_line_count": len((completed.stderr or "").splitlines()),
-        "stdout_first_line": next((line.strip() for line in stdout.splitlines() if line.strip()), ""),
-        "stderr_first_line": next((line.strip() for line in (completed.stderr or "").splitlines() if line.strip()), ""),
-        "raw_result_text": raw_result_text,
-        "authority_boundary": dict(AUTHORITY_BOUNDARY),
-    }
 
 
 def codex_cli_dry_run_command(*, scratch_dir: Path, schema_path: Path, output_path: Path) -> list[str]:
-    return [
-        "codex",
-        "--cd",
-        str(scratch_dir),
-        "--sandbox",
-        "read-only",
-        "-a",
-        "never",
-        "exec",
-        "--ephemeral",
-        "--ignore-rules",
-        "--skip-git-repo-check",
-        "--output-schema",
-        str(schema_path),
-        "--output-last-message",
-        str(output_path),
-        "--color",
-        "never",
-        "-",
-    ]
+    return codex_cli_worker_command(scratch_dir=scratch_dir, schema_path=schema_path, output_path=output_path)
 
 
 def execute_openai_first_worker_proof(

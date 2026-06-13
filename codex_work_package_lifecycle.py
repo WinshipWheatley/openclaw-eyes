@@ -149,6 +149,9 @@ AUTHORITY_BOUNDARY = {
 
 SECRET_PATTERN = re.compile(r"(?i)(api[_-]?key|password|token|secret)\s*[:=]\s*\S+")
 METACHARS = set(";|&`><")
+DEFAULT_MAX_SOURCES_PER_WORKER_RUN = 6
+DEFAULT_WORKER_TIME_BUDGET_SECONDS = 90
+PACKAGE_SIZE_CLASSES = ("tiny", "small", "medium", "large", "too_large")
 
 
 def stable_json(payload: Any) -> str:
@@ -183,6 +186,76 @@ def _as_list(values: Any) -> list[str]:
     if isinstance(values, (list, tuple, set)):
         return [str(value) for value in values if str(value).strip()]
     return [str(values)] if str(values).strip() else []
+
+
+def _positive_int(value: Any, default: int) -> int:
+    if isinstance(value, bool):
+        return default
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return default
+    return parsed if parsed > 0 else default
+
+
+def estimate_worker_package_size(
+    *,
+    sources: Sequence[Any],
+    goal: str,
+    standard: str,
+    proof_required: Sequence[Any],
+    stop_condition: str,
+    context_refs: Sequence[Any] | None = None,
+    worker_time_budget_seconds: int = DEFAULT_WORKER_TIME_BUDGET_SECONDS,
+    max_sources_per_worker_run: int = DEFAULT_MAX_SOURCES_PER_WORKER_RUN,
+) -> dict[str, Any]:
+    """Classify package size before a Codex CLI worker is allowed to run."""
+
+    source_list = _as_list(sources)
+    context_ref_list = _as_list(context_refs)
+    proof_list = _as_list(proof_required)
+    estimated_prompt_chars = len(
+        "\n".join(
+            [
+                str(goal or ""),
+                str(standard or ""),
+                str(stop_condition or ""),
+                "\n".join(source_list),
+                "\n".join(proof_list),
+                "\n".join(context_ref_list),
+            ]
+        )
+    )
+    source_count = len(source_list)
+    context_refs_count = len(context_ref_list)
+    max_sources = _positive_int(max_sources_per_worker_run, DEFAULT_MAX_SOURCES_PER_WORKER_RUN)
+    time_budget = _positive_int(worker_time_budget_seconds, DEFAULT_WORKER_TIME_BUDGET_SECONDS)
+
+    if source_count <= 2 and estimated_prompt_chars <= 2500 and context_refs_count <= 2:
+        size_class = "tiny"
+    elif source_count <= max_sources and estimated_prompt_chars <= 6000:
+        size_class = "small"
+    elif source_count <= 10 and estimated_prompt_chars <= 12000:
+        size_class = "medium"
+    elif source_count <= 20 and estimated_prompt_chars <= 24000:
+        size_class = "large"
+    else:
+        size_class = "too_large"
+
+    operator_approval_required = size_class == "medium"
+    split_recommended = size_class in {"large", "too_large"} or source_count > max_sources
+    cli_dispatch_allowed = size_class in {"tiny", "small"}
+    return {
+        "estimated_source_count": source_count,
+        "estimated_prompt_chars": estimated_prompt_chars,
+        "estimated_context_refs_count": context_refs_count,
+        "worker_time_budget_seconds": time_budget,
+        "package_size_class": size_class,
+        "split_recommended": split_recommended,
+        "max_sources_per_worker_run": max_sources,
+        "operator_approval_required_for_cli": operator_approval_required,
+        "cli_dispatch_allowed": cli_dispatch_allowed,
+    }
 
 
 def _safe_source_paths(sources: Sequence[str]) -> list[str]:
@@ -408,6 +481,17 @@ def _prompt_text(package: Mapping[str, Any], objective: Mapping[str, Any]) -> st
             "## Validation",
             validation,
             "",
+            "## Worker output discipline",
+            f"Package size class: {package.get('package_size_class') or 'unknown'}",
+            f"Worker time budget seconds: {package.get('worker_time_budget_seconds') or DEFAULT_WORKER_TIME_BUDGET_SECONDS}",
+            "- Emit a valid JSON result first if possible.",
+            "- If blocked, return a blocked JSON result.",
+            "- If partial, return a partial JSON result with the evidence reviewed so far.",
+            "- Never intentionally produce empty output.",
+            "- Keep output concise.",
+            "- Do not inspect outside bounded sources.",
+            "- Do not edit files unless the package explicitly allows edits.",
+            "",
             "## Return format",
             "Return a CODEX_WORK_PACKAGE_RESULT_V0 JSON object in the result inbox. Include files_changed, commands_run, validation_run, unsafe_scan_summary, blocker_summary, and receipt_refs.",
             "",
@@ -540,6 +624,23 @@ def _base_worker_package(
         role_context_strategy=role_context_strategy,
         updated_at_utc=created_at,
     )
+    context_refs = _as_list(role_context.get("full_context_refs"))
+    sizing = estimate_worker_package_size(
+        sources=sources,
+        goal=goal,
+        standard=standard,
+        proof_required=proof_required,
+        stop_condition=stop_condition,
+        context_refs=context_refs,
+        worker_time_budget_seconds=_positive_int(
+            boundary.get("worker_time_budget_seconds"),
+            DEFAULT_WORKER_TIME_BUDGET_SECONDS,
+        ),
+        max_sources_per_worker_run=_positive_int(
+            boundary.get("max_sources_per_worker_run"),
+            DEFAULT_MAX_SOURCES_PER_WORKER_RUN,
+        ),
+    )
     return {
         "schema_version": "CODEX_WORK_PACKAGE_V0",
         "canonical_worker_spine_schema_version": CANONICAL_WORKER_SPINE_SCHEMA_VERSION,
@@ -562,6 +663,7 @@ def _base_worker_package(
         "source_ref": source_ref,
         "source_schema_version": source_schema_version,
         "expected_output_schema": expected_output_schema,
+        **sizing,
         "provider_access_metadata": {
             "provider": str(metadata.get("provider") or metadata.get("preferred_provider") or "manual"),
             "access_mode": str(metadata.get("access_mode") or "metadata_only"),

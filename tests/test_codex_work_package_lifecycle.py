@@ -12,6 +12,7 @@ import codex_work_package_lifecycle as lifecycle
 import make_it_so_objective_loop as make_loop
 import operator_conversation_router
 import scripts.openclaw_run as openclaw_run
+import assignment_loop_contract
 
 
 FIXED_NOW = "2026-06-09T14:00:00+00:00"
@@ -207,6 +208,79 @@ def test_manual_handoff_package_is_complete_and_self_contained(tmp_path):
     assert "Denied actions" in prompt
     assert "Return format" in prompt
     assert "Do not push" in prompt
+
+
+def test_worker_package_sizing_marks_tiny_package_cli_allowed(tmp_path):
+    assignment = assignment_loop_contract.build_assignment_loop(
+        requested_by="chief",
+        owner_agent="chief",
+        worker_type="openai_codex_cli",
+        goal="Summarize the canonical LM2 worker spine status.",
+        sources=[
+            "generated/read_models/lm2_worker_spine_status.json",
+            "generated/system_knowledge/worker_spine_consolidation/lm2_canonical_worker_spine_v0.json",
+        ],
+        standard="Return concise read-only JSON.",
+        permission_boundary={"worker_time_budget_seconds": 90, "max_sources_per_worker_run": 6},
+        proof_required=["source manifest", "validation receipt"],
+        stop_condition="Stop after one read-only result.",
+        current_status="active",
+        created_at_utc=FIXED_NOW,
+    )
+    result = lifecycle.create_worker_package_from_assignment_loop(
+        assignment,
+        worker_kind="openai_codex_cli",
+        sqlite_path=tmp_path / "codex_work_package_lifecycle.sqlite",
+        package_root=tmp_path / "work_packages",
+        generated_at=FIXED_NOW,
+    )
+    package = result["package_state"]["package_json"]
+
+    assert package["estimated_source_count"] == 2
+    assert package["package_size_class"] == "tiny"
+    assert package["split_recommended"] is False
+    assert package["cli_dispatch_allowed"] is True
+    assert package["worker_time_budget_seconds"] == 90
+
+
+def test_worker_package_sizing_recommends_split_for_large_package(tmp_path):
+    sources = [f"generated/read_models/source_{index}.json" for index in range(17)]
+    assignment = assignment_loop_contract.build_assignment_loop(
+        requested_by="chief",
+        owner_agent="chief",
+        worker_type="openai_codex_cli",
+        goal="Review a broad readiness surface.",
+        sources=sources,
+        standard="Return concise read-only JSON.",
+        permission_boundary={"worker_time_budget_seconds": 120, "max_sources_per_worker_run": 6},
+        proof_required=["source manifest", "validation receipt"],
+        stop_condition="Stop after one read-only result.",
+        current_status="active",
+        created_at_utc=FIXED_NOW,
+    )
+    result = lifecycle.create_worker_package_from_assignment_loop(
+        assignment,
+        worker_kind="openai_codex_cli",
+        sqlite_path=tmp_path / "codex_work_package_lifecycle.sqlite",
+        package_root=tmp_path / "work_packages",
+        generated_at=FIXED_NOW,
+    )
+    package = result["package_state"]["package_json"]
+
+    assert package["estimated_source_count"] == 17
+    assert package["package_size_class"] == "large"
+    assert package["split_recommended"] is True
+    assert package["cli_dispatch_allowed"] is False
+
+
+def test_codex_worker_prompt_requires_blocked_or_partial_json(tmp_path):
+    _, grant, _ = _start_and_grant(tmp_path)
+    prompt = Path(grant["codex_work_package_lifecycle"]["package_files"]["prompt_path"]).read_text(encoding="utf-8")
+
+    assert "If blocked, return a blocked JSON result." in prompt
+    assert "If partial, return a partial JSON result" in prompt
+    assert "Never intentionally produce empty output." in prompt
+    assert "Do not inspect outside bounded sources." in prompt
 
 
 def test_result_ingestion_rejects_unknown_package_id(tmp_path):

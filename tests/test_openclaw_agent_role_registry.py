@@ -1,4 +1,5 @@
 import json
+import subprocess
 import sys
 from pathlib import Path
 
@@ -179,6 +180,53 @@ def test_codex_cli_command_builder_uses_verified_short_approval_flag(tmp_path):
     assert command[command.index("--cd") + 1] == str(tmp_path / "scratch")
 
 
+def test_codex_cli_worker_timeout_returns_blocked_envelope(tmp_path, monkeypatch):
+    def raise_timeout(*args, **kwargs):
+        raise subprocess.TimeoutExpired(args[0], timeout=1, output="", stderr="")
+
+    monkeypatch.setattr(openai_proof.subprocess, "run", raise_timeout)
+    result = openai_proof.run_codex_cli_worker(
+        prompt="Return JSON.",
+        response_schema=openai_proof.tiny_readonly_review_result_json_schema(),
+        scratch_dir=tmp_path / "scratch",
+        output_dir=tmp_path / "results",
+        result_prefix="timeout_fixture",
+        timeout_seconds=1,
+    )
+
+    assert result["status"] == "timeout_with_no_result"
+    assert result["returncode"] == 124
+    assert result["result_file_exists"] is False
+    assert result["elapsed_seconds"] >= 0
+    assert Path(result["stdout_path"]).exists()
+    assert Path(result["stderr_path"]).read_text(encoding="utf-8") == "timeout"
+
+
+def test_codex_cli_worker_timeout_preserves_redacted_partial_output(tmp_path, monkeypatch):
+    def raise_timeout(*args, **kwargs):
+        raise subprocess.TimeoutExpired(
+            args[0],
+            timeout=1,
+            output='{"status":"partial"} token=abc123',
+            stderr="still working",
+        )
+
+    monkeypatch.setattr(openai_proof.subprocess, "run", raise_timeout)
+    result = openai_proof.run_codex_cli_worker(
+        prompt="Return JSON.",
+        response_schema=openai_proof.tiny_readonly_review_result_json_schema(),
+        scratch_dir=tmp_path / "scratch",
+        output_dir=tmp_path / "results",
+        result_prefix="partial_fixture",
+        timeout_seconds=1,
+    )
+
+    assert result["status"] == "timeout_with_partial_result"
+    assert result["returncode"] == 124
+    assert "token=[REDACTED]" in result["stdout_excerpt"]
+    assert "abc123" not in result["stdout_excerpt"]
+
+
 def test_dry_run_output_schema_uses_codex_compatible_typed_enums():
     schema = openai_proof.dry_run_result_json_schema()
 
@@ -285,6 +333,41 @@ def test_synthetic_codex_result_schema_can_be_adapted_and_ingested(tmp_path):
     assert read_model["watch_desk_items"]
     assert read_model["watch_desk_items"][0]["state"]["owner_agent"] == "chief"
     assert read_model["watch_desk_items"][0]["push_allowed"] is False
+
+
+def test_tiny_readonly_review_result_can_be_adapted_and_ingested(tmp_path):
+    package_result = lifecycle.create_worker_package_from_assignment_loop(
+        _assignment("chief"),
+        worker_kind="openai_codex_cli",
+        dispatch_mode="subscription_cli_candidate",
+        sqlite_path=tmp_path / "codex_work_package_lifecycle.sqlite",
+        package_root=tmp_path / "packages",
+        generated_at=FIXED_NOW,
+    )
+    state = package_result["package_state"]
+    tiny_result = {
+        "schema_version": openai_proof.TINY_READONLY_REVIEW_RESULT_SCHEMA,
+        "status": "ready",
+        "worker": "openai_codex_cli",
+        "summary": "The canonical LM2 worker spine exists.",
+        "files_reviewed": ["generated/read_models/lm2_worker_spine_status.json"],
+        "next_safe_action": "Keep Worker Run Manager as the canonical path.",
+        "execution_attempted": False,
+        "runtime_mutation_performed": False,
+        "external_business_action_performed": False,
+        "confirmed_reference_data_created": False,
+        "hydration_run": False,
+    }
+    adapted = openai_proof.adapt_tiny_readonly_review_result(tiny_result, package_state=state, generated_at=FIXED_NOW)
+    ingested = lifecycle.ingest_worker_result(
+        adapted["adapted"],
+        sqlite_path=tmp_path / "codex_work_package_lifecycle.sqlite",
+        generated_at=FIXED_NOW,
+    )
+
+    assert adapted["status"] == "adapted"
+    assert ingested["validation_receipt"]["validation_status"] == "validation_passed"
+    assert ingested["package_state"]["state"] == lifecycle.STATE_VALIDATION_PASSED
 
 
 def test_bad_synthetic_codex_result_fails_closed(tmp_path):
