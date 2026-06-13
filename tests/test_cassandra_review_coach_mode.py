@@ -1053,6 +1053,64 @@ def test_pending_candidate_direct_deposit_still_switches_for_true_identity_quest
     assert updated_session["receipt_refs"] == []
 
 
+def test_backend_status_question_is_not_recorded_as_data_room_answer(tmp_path):
+    start = _start(tmp_path)
+
+    response = guided.process_guided_review_message(
+        "How is your back end fix going?",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:01:00+00:00",
+    )
+    session = _load_session(response)
+
+    assert "Chief/system status question" in response["reply_text"]
+    assert "I did not record it" in response["reply_text"]
+    assert session["current_question_id"] == start["current_question_id"]
+    assert session["answer_records"] == []
+    assert session["receipt_refs"] == []
+    assert session["coach_interactions"][-1]["command"] == "system_status_question_not_recorded"
+
+
+def test_health_status_note_is_not_recorded_as_data_room_answer(tmp_path):
+    start = _start(tmp_path)
+
+    response = guided.process_guided_review_message(
+        "Health update: I slept badly and feel off today.",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:01:00+00:00",
+    )
+    session = _load_session(response)
+
+    assert "operator status note" in response["reply_text"]
+    assert "I did not record it" in response["reply_text"]
+    assert "not giving medical advice" in response["reply_text"]
+    assert session["current_question_id"] == start["current_question_id"]
+    assert session["answer_records"] == []
+    assert session["receipt_refs"] == []
+    assert session["coach_interactions"][-1]["command"] == "operator_status_note_not_recorded"
+
+
+def test_provisional_answer_glossary_does_not_switch_topics_or_record(tmp_path):
+    start = _start(tmp_path)
+
+    response = guided.process_guided_review_message(
+        "What does provisional answer mean?",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:01:00+00:00",
+    )
+    session = _load_session(response)
+
+    assert "draft review answer only" in response["reply_text"]
+    assert "not confirmed reference data" in response["reply_text"]
+    assert "identity/persona" not in response["reply_text"]
+    assert session["current_question_id"] == start["current_question_id"]
+    assert session["answer_records"] == []
+    assert session["receipt_refs"] == []
+
+
 def test_cpa_and_legal_flags_propagate_to_answers_and_receipts(tmp_path):
     promotion = _promotion_review(tmp_path / "review" / "promotion_review.json")
     rates = guided.process_guided_review_message(

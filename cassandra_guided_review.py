@@ -605,6 +605,55 @@ def classify_conversation_permission_boundary(text: str) -> dict[str, Any]:
     }
 
 
+def classify_guided_review_non_answer(text: str) -> dict[str, Any]:
+    """Detect active-review utterances that should not be recorded as answers."""
+
+    normalized = _normalize_topic_text(text)
+    if not normalized:
+        return {}
+    if "system health" in normalized or "health check" in normalized:
+        return {}
+    health_terms = (
+        "health update",
+        "wellbeing update",
+        "well being update",
+        "operator status",
+        "status note",
+        "i slept",
+        "slept badly",
+        "slept poorly",
+        "feel off",
+        "feeling off",
+    )
+    if _contains_any(normalized, health_terms):
+        return {
+            "classification": "operator_status_note",
+            "reason": "health_or_wellbeing_note_not_form_answer",
+            "answer_record_allowed": False,
+            "medical_advice_allowed": False,
+        }
+    system_terms = (
+        "back end fix",
+        "backend fix",
+        "backend status",
+        "system fix",
+        "how is your back end",
+        "how is your backend",
+        "what broke",
+        "build broke",
+        "build status",
+        "fix going",
+    )
+    if _contains_any(normalized, system_terms):
+        return {
+            "classification": "system_status_question",
+            "reason": "system_status_question_not_form_answer",
+            "answer_record_allowed": False,
+            "medical_advice_allowed": False,
+        }
+    return {}
+
+
 def _canonical_topic_id(topic: str) -> str:
     value = str(topic or "").strip()
     return LEGACY_TOPIC_ALIASES.get(value, value)
@@ -2063,6 +2112,46 @@ def _handle_conversation_permission_boundary(
     return _format_question_reply(session, prefix=prefix)
 
 
+def _handle_guided_review_non_answer(
+    session: dict[str, Any],
+    classification: Mapping[str, Any],
+    *,
+    now: str,
+) -> str:
+    kind = str(classification.get("classification") or "off_topic_note")
+    question_id = str(session.get("current_question_id") or "")
+    pending = session.get("pending_interaction") if isinstance(session.get("pending_interaction"), Mapping) else {}
+    session.setdefault("coach_interactions", []).append(
+        {
+            "schema_version": "REVIEW_COACH_INTERACTION_V0",
+            "command": f"{kind}_not_recorded",
+            "question_id": question_id,
+            "created_at_utc": now,
+            "answer_recorded": False,
+            "pending_interaction_preserved": bool(pending),
+            "authoritative": False,
+            "runtime_policy_changed": False,
+            "external_action_allowed": False,
+            "medical_advice_given": False,
+        }
+    )
+    if kind == "operator_status_note":
+        prefix = (
+            "That sounds like an operator status note, not a Data Room answer. "
+            "I did not record it in the review, and I am not giving medical advice."
+        )
+    elif kind == "system_status_question":
+        prefix = (
+            "That sounds like a Chief/system status question, not a Data Room answer. "
+            "I did not record it in the review."
+        )
+    else:
+        prefix = "That does not look like a Data Room answer, so I did not record it."
+    if pending:
+        prefix += " I kept the pending candidate unchanged."
+    return _format_question_reply(session, prefix=prefix)
+
+
 def _recorded_answer_prefix(answer_text: str, question: Mapping[str, Any]) -> str:
     redacted, _ = _redact_sensitive_text(answer_text)
     normalized = _normalize_topic_text(redacted)
@@ -2092,9 +2181,20 @@ def _cross_topic_help_reply(question: Mapping[str, Any], raw_text: str) -> str:
     )
 
 
+def _asks_provisional_answer_meaning(raw_text: str) -> bool:
+    normalized = _normalize_topic_text(raw_text)
+    return "provisional" in normalized and ("answer" in normalized or "mean" in normalized or "means" in normalized)
+
+
 def _natural_explanation_reply(session: dict[str, Any], question: Mapping[str, Any], intent: str, *, raw_text: str = "") -> str:
     if not question:
         return "No active question is available. Say done to generate the promotion prompt."
+    if _asks_provisional_answer_meaning(raw_text):
+        _enable_coach_mode(session)
+        return (
+            "A provisional answer is a draft review answer only. It can help build the later promotion packet, "
+            "but it is not confirmed reference data, does not change runtime policy, and does not grant action authority."
+        )
     _enable_coach_mode(session)
     card = _coach_card_for_question(session, question)
     cross_topic = _cross_topic_help_reply(question, raw_text)
@@ -4171,6 +4271,13 @@ def process_guided_review_message(
             form_fill_handled = True
         elif classify_conversation_permission_boundary(raw_text):
             reply = _handle_conversation_permission_boundary(session, now=now)
+            boundary_handled = True
+        elif non_answer_classification := classify_guided_review_non_answer(raw_text):
+            reply = _handle_guided_review_non_answer(
+                session,
+                non_answer_classification,
+                now=now,
+            )
             boundary_handled = True
         elif _gemini_finalizer_pending(session):
             reply = _handle_gemini_finalizer_confirmation(

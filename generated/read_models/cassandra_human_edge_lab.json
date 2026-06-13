@@ -1,0 +1,142 @@
+{
+  "authority_boundary": {
+    "calendar_called": false,
+    "calendar_event_created": false,
+    "calendar_event_deleted": false,
+    "confirmed_reference_data_created": false,
+    "email_sent": false,
+    "external_api_called": false,
+    "gmail_called": false,
+    "hydration_performed": false,
+    "live_model_called": false,
+    "production_write_performed": false,
+    "raw_log_body_ingested": false,
+    "telegram_send_performed": false
+  },
+  "data_room_scenario_ref": "/tmp/openclaw-mission-control/human_edge_lab/data_room/human_edge_transcript_summary.json",
+  "data_room_summary": {
+    "answer_count": 1,
+    "pending_interaction_empty": true,
+    "unsafe_true_paths": []
+  },
+  "generated_at": "2026-06-13T22:20:00+00:00",
+  "lab_summary_path": "/tmp/openclaw-mission-control/human_edge_lab/cassandra_human_edge_lab_summary.json",
+  "read_model_id": "cassandra_human_edge_lab",
+  "read_model_path": "/home/openclaw/generated/read_models/cassandra_human_edge_lab.json",
+  "router_scenario_ref": "/tmp/openclaw-mission-control/human_edge_lab/router/router_human_edge_summary.json",
+  "router_summary": {
+    "calendar_test_adapter_status": "not_configured_no_calendar_call_performed",
+    "case_count": 4,
+    "unsafe_true_paths": []
+  },
+  "run_mode": "test_dry_run",
+  "safety_confirmation": {
+    "all_outputs_test_marked": true,
+    "no_external_actions": true,
+    "raw_logs_cataloged_not_ingested": true
+  },
+  "schema_version": "cassandra_human_edge_lab_v0",
+  "source_catalog": [
+    {
+      "exists": true,
+      "line_count": 6872,
+      "path": "/mnt/c/OpenClaw/logs/cassandra_conversations.jsonl",
+      "privacy_posture": "raw_debug_log_catalog_only",
+      "raw_body_ingested": false,
+      "raw_content_sampled": false,
+      "schema_version": "CASSANDRA_CONVERSATION_SOURCE_CATALOG_ITEM_V0",
+      "size_bytes": 2599697,
+      "source_id": "conversation_source:17c55fdbf4b3a528",
+      "source_kind": "raw_cassandra_conversation_log",
+      "test_marker": "OPENCLAW_TEST_ONLY_DO_NOT_USE_AS_PROOF_V0",
+      "usable_for_edge_tests": false
+    },
+    {
+      "exists": true,
+      "line_count": 2915,
+      "path": "/mnt/c/OpenClaw/logs/cassandra_listener.out",
+      "privacy_posture": "runtime_status_catalog_only",
+      "raw_body_ingested": false,
+      "raw_content_sampled": false,
+      "schema_version": "CASSANDRA_CONVERSATION_SOURCE_CATALOG_ITEM_V0",
+      "size_bytes": 197009,
+      "source_id": "conversation_source:5899905f82e69bf4",
+      "source_kind": "cassandra_listener_runtime_log",
+      "test_marker": "OPENCLAW_TEST_ONLY_DO_NOT_USE_AS_PROOF_V0",
+      "usable_for_edge_tests": false
+    },
+    {
+      "exists": true,
+      "line_count": 423,
+      "path": "/mnt/c/OpenClaw/logs/cassandra_model_routes.jsonl",
+      "privacy_posture": "route_metadata_catalog_only",
+      "raw_body_ingested": false,
+      "raw_content_sampled": false,
+      "schema_version": "CASSANDRA_CONVERSATION_SOURCE_CATALOG_ITEM_V0",
+      "size_bytes": 119681,
+      "source_id": "conversation_source:9e84e3b031ca2b6e",
+      "source_kind": "cassandra_model_route_log",
+      "test_marker": "OPENCLAW_TEST_ONLY_DO_NOT_USE_AS_PROOF_V0",
+      "usable_for_edge_tests": true
+    },
+    {
+      "exists": true,
+      "line_count": 110,
+      "path": "/mnt/c/OpenClaw/logs/cassandra_correspondence.jsonl",
+      "privacy_posture": "correspondence_metadata_catalog_only",
+      "raw_body_ingested": false,
+      "raw_content_sampled": false,
+      "schema_version": "CASSANDRA_CONVERSATION_SOURCE_CATALOG_ITEM_V0",
+      "size_bytes": 46324,
+      "source_id": "conversation_source:e9beb680acac1810",
+      "source_kind": "cassandra_correspondence_log",
+      "test_marker": "OPENCLAW_TEST_ONLY_DO_NOT_USE_AS_PROOF_V0",
+      "usable_for_edge_tests": false
+    },
+    {
+      "exists": true,
+      "line_count": 1526,
+      "path": "/home/openclaw/generated/read_models/operator_conversation_journal.json",
+      "privacy_posture": "safe_summary_read_model",
+      "raw_body_ingested": false,
+      "raw_content_sampled": false,
+      "schema_version": "CASSANDRA_CONVERSATION_SOURCE_CATALOG_ITEM_V0",
+      "size_bytes": 79476,
+      "source_id": "conversation_source:92806df05fb35ef4",
+      "source_kind": "operator_conversation_journal_read_model",
+      "test_marker": "OPENCLAW_TEST_ONLY_DO_NOT_USE_AS_PROOF_V0",
+      "usable_for_edge_tests": true
+    },
+    {
+      "exists": true,
+      "line_count": 743,
+      "path": "/home/openclaw/generated/system_knowledge/operator_conversation_journal.sqlite",
+      "privacy_posture": "safe_summary_sqlite",
+      "raw_body_ingested": false,
+      "raw_content_sampled": false,
+      "schema_version": "CASSANDRA_CONVERSATION_SOURCE_CATALOG_ITEM_V0",
+      "size_bytes": 77824,
+      "source_id": "conversation_source:81177deca0be5797",
+      "source_kind": "operator_conversation_journal_sqlite",
+      "test_marker": "OPENCLAW_TEST_ONLY_DO_NOT_USE_AS_PROOF_V0",
+      "usable_for_edge_tests": true
+    },
+    {
+      "exists": true,
+      "line_count": 1392,
+      "path": "/home/openclaw/generated/read_models/guided_review_sessions.json",
+      "privacy_posture": "safe_summary_read_model",
+      "raw_body_ingested": false,
+      "raw_content_sampled": false,
+      "schema_version": "CASSANDRA_CONVERSATION_SOURCE_CATALOG_ITEM_V0",
+      "size_bytes": 70405,
+      "source_id": "conversation_source:3ae819bf91e2a90d",
+      "source_kind": "guided_review_sessions_read_model",
+      "test_marker": "OPENCLAW_TEST_ONLY_DO_NOT_USE_AS_PROOF_V0",
+      "usable_for_edge_tests": true
+    }
+  ],
+  "status": "CASSANDRA_HUMAN_EDGE_LAB_READY",
+  "test_marker": "OPENCLAW_TEST_ONLY_DO_NOT_USE_AS_PROOF_V0",
+  "unsafe_true_paths": []
+}
