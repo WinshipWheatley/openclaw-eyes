@@ -22,6 +22,13 @@ MODEL_CONSULT_RESULT_SCHEMA_VERSION = "MODEL_CONSULT_RESULT_V0"
 MODEL_WORK_PACKAGE_RECEIPT_SCHEMA_VERSION = "MODEL_WORK_PACKAGE_RECEIPT_V0"
 MODEL_CONSULT_RESULT_RECEIPT_SCHEMA_VERSION = "MODEL_CONSULT_RESULT_RECEIPT_V0"
 TEAM_WORKFLOW_SCHEMA_VERSION = "MODEL_WORK_TEAM_WORKFLOW_V0"
+MODULE_ROLE = "support_metadata"
+CANONICAL_RUNTIME_SPINE_REF = "codex_work_package_lifecycle.py"
+MIGRATION_NOTE = (
+    "Retained for deterministic model consult/package metadata. Runtime queue, dispatch, "
+    "ingest, proof verification, and Watch Desk projection are canonical in "
+    "codex_work_package_lifecycle.py."
+)
 
 DEFAULT_REDACTION_POLICY = "redacted_refs_and_summaries_only"
 DEFAULT_EXPECTED_OUTPUT_SCHEMA = "concise_advisory_response_v0"

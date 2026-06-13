@@ -24,6 +24,13 @@ SCHEMA_VERSION = "spawned_worker_package_lifecycle_v0"
 READ_MODEL_ID = "spawned_worker_package_lifecycle"
 JSON_EXPORT_NAME = f"{READ_MODEL_ID}.json"
 LIFECYCLE_STATUS = "SPAWNED_WORKER_PACKAGE_LIFECYCLE_READY"
+MODULE_ROLE = "contract_only"
+CANONICAL_RUNTIME_SPINE_REF = "codex_work_package_lifecycle.py"
+MIGRATION_NOTE = (
+    "Retained as a spawned-worker lifecycle contract/read model. Runtime queue, dispatch, "
+    "result ingest, proof verification, and Watch Desk projection are canonical in "
+    "codex_work_package_lifecycle.py."
+)
 
 LIFECYCLE_STATES = (
     "PACKAGE_STAGED",

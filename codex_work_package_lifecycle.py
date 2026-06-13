@@ -4,6 +4,10 @@ Persists bounded CODEX_WORK_PACKAGE_V0 packages through queue, handoff,
 result ingestion, validation, and activation decisions. It does not spawn
 workers, push/merge, invoke models, open Gmail/browser/Coupa, send email, or
 grant authority from raw text.
+
+Canonical LM2 role: OpenClaw canonical worker run registry and result-ingest
+spine. Adjacent worker/package modules are contract/support metadata unless
+they explicitly queue through this module.
 """
 
 from __future__ import annotations
@@ -35,6 +39,10 @@ SCHEMA_VERSION = "codex_work_package_lifecycle_v0"
 READ_MODEL_ID = "codex_work_package_lifecycle"
 JSON_EXPORT_NAME = f"{READ_MODEL_ID}.json"
 READY_STATUS = "OPENCLAW_CODEX_WORK_PACKAGE_LIFECYCLE_READY"
+CANONICAL_WORKER_SPINE_SCHEMA_VERSION = "LM2_CANONICAL_SPINE_V0"
+LM2_CANONICAL_SPINE_V0 = CANONICAL_WORKER_SPINE_SCHEMA_VERSION
+CANONICAL_WORKER_SPINE_ROLE = "OpenClaw canonical worker run registry and result-ingest spine"
+CANONICAL_SQLITE_REGISTRY_PATH = DEFAULT_SQLITE_PATH.as_posix()
 
 PACKAGE_STATE_SCHEMA = "CODEX_WORK_PACKAGE_STATE_V0"
 PACKAGE_QUEUE_SCHEMA = "CODEX_WORK_PACKAGE_QUEUE_V0"
@@ -165,6 +173,28 @@ def _short_hash(*parts: Any, length: int = 16) -> str:
 
 def _safe_id(value: str) -> str:
     return re.sub(r"[^A-Za-z0-9_.-]+", "_", value).strip("_") or "package"
+
+
+def _as_list(values: Any) -> list[str]:
+    if values is None:
+        return []
+    if isinstance(values, (list, tuple, set)):
+        return [str(value) for value in values if str(value).strip()]
+    return [str(values)] if str(values).strip() else []
+
+
+def _safe_source_paths(sources: Sequence[str]) -> list[str]:
+    paths: list[str] = []
+    for source in sources:
+        value = str(source or "").split("#", 1)[0].strip()
+        if not value or "://" in value or value.startswith(("/", "~", "../")):
+            continue
+        if SECRET_PATTERN.search(value):
+            continue
+        if any(part in value.lower() for part in (".env", "secret", "token", "credential", "password")):
+            continue
+        paths.append(value)
+    return sorted(dict.fromkeys(paths))
 
 
 def _write_json(path: Path, payload: Mapping[str, Any]) -> None:
@@ -443,6 +473,285 @@ def build_package_queue(states: Sequence[Mapping[str, Any]], *, generated_at: st
         "updated_at": generated_at,
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
     }
+
+
+def canonical_spine_metadata() -> dict[str, Any]:
+    return {
+        "schema_version": CANONICAL_WORKER_SPINE_SCHEMA_VERSION,
+        "canonical_spine_id": "lm2_canonical_worker_spine",
+        "canonical_spine_file": "codex_work_package_lifecycle.py",
+        "sqlite_registry_path": CANONICAL_SQLITE_REGISTRY_PATH,
+        "role": CANONICAL_WORKER_SPINE_ROLE,
+        "cli_surface": "scripts/openclaw_run.py",
+        "task_container": "assignment_loop_contract.py",
+        "consult_transport": "openclaw_lm_consult_spine.py",
+        "provider_metadata_sources": ["provider_access_catalog.py", "provider_access_auth_status.py"],
+        "proof_verifier": "proof_to_response_verifier.py",
+        "projection": "watch_desk_feed.py",
+        "model_invocation_allowed": False,
+        "runtime_mutation_allowed": False,
+        "execution_allowed": False,
+        "authority_boundary": dict(AUTHORITY_BOUNDARY),
+    }
+
+
+def _base_worker_package(
+    *,
+    package_id: str,
+    objective_id: str,
+    capability_id: str,
+    goal: str,
+    sources: Sequence[str],
+    standard: str,
+    proof_required: Sequence[str],
+    stop_condition: str,
+    worker_kind: str,
+    source_ref: str,
+    source_schema_version: str,
+    created_at: str,
+    provider_metadata: Mapping[str, Any] | None = None,
+    assignment_loop_ref: str = "",
+    lm_consult_request_ref: str = "",
+    permission_boundary: Mapping[str, Any] | None = None,
+    expected_output_schema: Any = "bounded_worker_result_v0",
+) -> dict[str, Any]:
+    allowed_paths = _safe_source_paths(sources) or ["generated/read_models/"]
+    metadata = dict(provider_metadata or {})
+    boundary = dict(permission_boundary or {})
+    return {
+        "schema_version": "CODEX_WORK_PACKAGE_V0",
+        "canonical_worker_spine_schema_version": CANONICAL_WORKER_SPINE_SCHEMA_VERSION,
+        "package_id": package_id,
+        "objective_id": objective_id,
+        "capability_id": capability_id,
+        "created_at": created_at,
+        "run_mode": "test_dry_run",
+        "worktree_root": "/home/openclaw",
+        "task_type": capability_id,
+        "operator_goal_text": goal,
+        "requested_outcome": goal,
+        "sources": list(sources),
+        "standard": standard,
+        "proof_required": list(proof_required),
+        "stop_condition": stop_condition,
+        "assignment_loop_ref": assignment_loop_ref,
+        "lm_consult_request_ref": lm_consult_request_ref,
+        "source_ref": source_ref,
+        "source_schema_version": source_schema_version,
+        "expected_output_schema": expected_output_schema,
+        "provider_access_metadata": {
+            "provider": str(metadata.get("provider") or metadata.get("preferred_provider") or "manual"),
+            "access_mode": str(metadata.get("access_mode") or "metadata_only"),
+            "tool_name": str(metadata.get("tool_name") or ""),
+            "worker_kind": str(worker_kind or metadata.get("worker_kind") or "human"),
+            "subscription_backed": metadata.get("subscription_backed", "unknown"),
+            "api_billing_required": metadata.get("api_billing_required", "unknown"),
+            "model_or_capability_route_ref": str(
+                metadata.get("model_or_capability_route_ref")
+                or metadata.get("preferred_model_class")
+                or metadata.get("provider_model_label")
+                or ""
+            ),
+            "metadata_grants_authority": False,
+        },
+        "permission_boundary": {
+            **boundary,
+            "advisory_only": True,
+            "execution_allowed": False,
+            "runtime_mutation_allowed": False,
+            "external_action_allowed": False,
+            "model_output_runtime_mutation_allowed": False,
+        },
+        "allowed_file_paths": allowed_paths,
+        "denied_file_paths": [".env", ".chief.env", ".google-secrets/", ".config/", "generated/system_knowledge/*.sqlite"],
+        "denied_commands": list(DENIED_COMMAND_PHRASES),
+        "allowed_commands": ["git diff --check"],
+        "validation_commands": ["git diff --check"],
+        "unsafe_scan": "required",
+        "authority_grant_ref": "",
+        "receipt_ref": f"codex_work_package_receipt:{_short_hash(package_id, created_at)}",
+        "authority_boundary": dict(AUTHORITY_BOUNDARY),
+        "execution_allowed": False,
+        "runtime_mutation_allowed": False,
+        "external_action_allowed": False,
+        "tools_allowed": False,
+    }
+
+
+def create_worker_package_from_assignment_loop(
+    assignment_loop: Mapping[str, Any],
+    worker_kind: str | None = None,
+    dispatch_mode: str | None = None,
+    *,
+    sqlite_path: Path = DEFAULT_SQLITE_PATH,
+    package_root: Path = DEFAULT_PACKAGE_ROOT,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    generated_at = generated_at or utc_now()
+    required = ("assignment_id", "goal", "sources", "standard", "permission_boundary", "proof_required", "stop_condition")
+    missing = [field for field in required if not assignment_loop.get(field)]
+    if assignment_loop.get("schema_version") != "ASSIGNMENT_LOOP_V0":
+        missing.append("schema_version")
+    if missing:
+        return {
+            "schema_version": SCHEMA_VERSION,
+            "status": "blocked_missing_assignment_loop_fields",
+            "missing_fields": sorted(set(missing)),
+            "queued": False,
+            "authority_boundary": dict(AUTHORITY_BOUNDARY),
+        }
+    selected_worker = str(worker_kind or assignment_loop.get("worker_type") or "human")
+    if selected_worker not in ALLOWED_WORKER_KINDS:
+        selected_worker = "human"
+    package_id = "codex_work_package:" + _short_hash(
+        "assignment_loop",
+        assignment_loop.get("assignment_id"),
+        selected_worker,
+        generated_at,
+    )
+    package = _base_worker_package(
+        package_id=package_id,
+        objective_id=str(assignment_loop.get("assignment_id") or ""),
+        capability_id="assignment_loop_worker_package",
+        goal=str(assignment_loop.get("goal") or ""),
+        sources=_as_list(assignment_loop.get("sources")),
+        standard=str(assignment_loop.get("standard") or ""),
+        proof_required=_as_list(assignment_loop.get("proof_required")),
+        stop_condition=str(assignment_loop.get("stop_condition") or ""),
+        worker_kind=selected_worker,
+        source_ref=str(assignment_loop.get("assignment_id") or ""),
+        source_schema_version=str(assignment_loop.get("schema_version") or ""),
+        created_at=generated_at,
+        provider_metadata={"worker_kind": selected_worker, "access_mode": str(dispatch_mode or "manual_dispatch")},
+        assignment_loop_ref=str(assignment_loop.get("assignment_id") or ""),
+        permission_boundary=assignment_loop.get("permission_boundary") if isinstance(assignment_loop.get("permission_boundary"), Mapping) else {},
+    )
+    objective = {
+        "objective_id": package["objective_id"],
+        "operator_goal_text": package["operator_goal_text"],
+        "requested_outcome": package["requested_outcome"],
+    }
+    result = queue_codex_work_package(
+        package,
+        objective=objective,
+        authority_grant={"grant_id": f"no_runtime_authority:{_short_hash(package_id)}"},
+        sqlite_path=sqlite_path,
+        package_root=package_root,
+        generated_at=generated_at,
+    )
+    result.update(
+        {
+            "status": "canonical_worker_package_queued",
+            "source_adapter": "assignment_loop",
+            "assignment_loop_ref": str(assignment_loop.get("assignment_id") or ""),
+            "canonical_spine": canonical_spine_metadata(),
+        }
+    )
+    return result
+
+
+def create_worker_package_from_lm_consult_request(
+    lm_consult_request: Mapping[str, Any],
+    worker_kind: str | None = None,
+    *,
+    sqlite_path: Path = DEFAULT_SQLITE_PATH,
+    package_root: Path = DEFAULT_PACKAGE_ROOT,
+    generated_at: str | None = None,
+) -> dict[str, Any]:
+    generated_at = generated_at or utc_now()
+    required = (
+        "request_id",
+        "requested_by_agent",
+        "owner_agent",
+        "source_context_ref",
+        "task_type",
+        "consult_kind",
+        "preferred_model_class",
+        "preferred_provider",
+        "expected_output_schema",
+    )
+    missing = [field for field in required if not lm_consult_request.get(field)]
+    if lm_consult_request.get("schema_version") != "LM_CONSULT_REQUEST_V0":
+        missing.append("schema_version")
+    if missing:
+        return {
+            "schema_version": SCHEMA_VERSION,
+            "status": "blocked_invalid_lm_consult_request",
+            "missing_fields": sorted(set(missing)),
+            "queued": False,
+            "authority_boundary": dict(AUTHORITY_BOUNDARY),
+        }
+    if any(bool(lm_consult_request.get(key)) for key in ("execution_allowed", "runtime_mutation_allowed", "external_action_allowed", "tools_exposed")):
+        return {
+            "schema_version": SCHEMA_VERSION,
+            "status": "blocked_lm_consult_requested_authority",
+            "queued": False,
+            "authority_boundary": dict(AUTHORITY_BOUNDARY),
+        }
+    selected_worker = str(worker_kind or lm_consult_request.get("preferred_provider") or "human")
+    worker_map = {"gemini": "gemini", "openai": "codex_cli_if_available", "manual": "human", "local": "local_script"}
+    selected_worker = worker_map.get(selected_worker, selected_worker)
+    if selected_worker not in ALLOWED_WORKER_KINDS:
+        selected_worker = "human"
+    request_id = str(lm_consult_request.get("request_id") or "")
+    package_id = "codex_work_package:" + _short_hash("lm_consult", request_id, selected_worker, generated_at)
+    sources = _as_list(lm_consult_request.get("context_refs")) or [str(lm_consult_request.get("source_context_ref") or "")]
+    provider_metadata = {
+        "provider": lm_consult_request.get("preferred_provider"),
+        "preferred_provider": lm_consult_request.get("preferred_provider"),
+        "preferred_model_class": lm_consult_request.get("preferred_model_class"),
+        "provider_model_label": lm_consult_request.get("provider_model_label"),
+        "worker_kind": selected_worker,
+        "access_mode": "lm_consult_metadata_only",
+        "subscription_backed": "unknown",
+        "api_billing_required": "unknown",
+    }
+    package = _base_worker_package(
+        package_id=package_id,
+        objective_id=request_id,
+        capability_id="lm_consult_worker_package",
+        goal=str(lm_consult_request.get("task_type") or ""),
+        sources=sources,
+        standard=f"Return {lm_consult_request.get('expected_output_schema')} using only allowed inputs.",
+        proof_required=["lm consult request ref", "worker result receipt", "validation receipt"],
+        stop_condition=str(lm_consult_request.get("stop_condition") or "Stop after advisory output; do not execute or mutate runtime."),
+        worker_kind=selected_worker,
+        source_ref=request_id,
+        source_schema_version=str(lm_consult_request.get("schema_version") or ""),
+        created_at=generated_at,
+        provider_metadata=provider_metadata,
+        assignment_loop_ref=str(lm_consult_request.get("assignment_loop_ref") or ""),
+        lm_consult_request_ref=request_id,
+        permission_boundary={
+            "advisory_only": True,
+            "execution_allowed": False,
+            "runtime_mutation_allowed": False,
+            "external_action_allowed": False,
+        },
+        expected_output_schema=lm_consult_request.get("expected_output_schema"),
+    )
+    objective = {
+        "objective_id": package["objective_id"],
+        "operator_goal_text": package["operator_goal_text"],
+        "requested_outcome": "bounded advisory worker result",
+    }
+    result = queue_codex_work_package(
+        package,
+        objective=objective,
+        authority_grant={"grant_id": f"no_runtime_authority:{_short_hash(package_id)}"},
+        sqlite_path=sqlite_path,
+        package_root=package_root,
+        generated_at=generated_at,
+    )
+    result.update(
+        {
+            "status": "canonical_worker_package_queued",
+            "source_adapter": "lm_consult_request",
+            "lm_consult_request_ref": request_id,
+            "canonical_spine": canonical_spine_metadata(),
+        }
+    )
+    return result
 
 
 def _store_state(conn: sqlite3.Connection, state: Mapping[str, Any]) -> None:
@@ -839,6 +1148,91 @@ def _safe_validation_command(command: str, package: Mapping[str, Any]) -> bool:
     return command.startswith(("python3 -m py_compile ", "python3 -m json.tool ", "python3 -m pytest tests/")) or command == "git diff --check"
 
 
+def _proof_verification_for_result(
+    result: Mapping[str, Any],
+    state: Mapping[str, Any],
+) -> dict[str, Any]:
+    package = state.get("package_json") if isinstance(state.get("package_json"), Mapping) else {}
+    spec = result.get("proof_verification") if isinstance(result.get("proof_verification"), Mapping) else {}
+    bundle = (
+        result.get("proof_bundle")
+        if isinstance(result.get("proof_bundle"), Mapping)
+        else spec.get("proof_bundle")
+        if isinstance(spec.get("proof_bundle"), Mapping)
+        else package.get("proof_bundle")
+        if isinstance(package.get("proof_bundle"), Mapping)
+        else {}
+    )
+    candidate = (
+        result.get("candidate_response")
+        if isinstance(result.get("candidate_response"), Mapping)
+        else result.get("proof_to_response_candidate")
+        if isinstance(result.get("proof_to_response_candidate"), Mapping)
+        else spec.get("candidate_response")
+        if isinstance(spec.get("candidate_response"), Mapping)
+        else {}
+    )
+    required = bool(
+        result.get("proof_verification_required")
+        or spec.get("required")
+        or package.get("proof_verification_required")
+        or bundle
+        or candidate
+    )
+    if not required:
+        return {
+            "schema_version": "LM2_WORKER_PROOF_VERIFICATION_V0",
+            "proof_verification_status": "not_required",
+            "proof_refs": [],
+            "verifier_receipt_refs": [],
+            "errors": [],
+            "verifier_id": "",
+            "fail_closed": False,
+        }
+    proof_refs = _as_list(result.get("proof_refs")) or _as_list(spec.get("proof_refs")) or _as_list(package.get("proof_required"))
+    if not bundle or not candidate:
+        return {
+            "schema_version": "LM2_WORKER_PROOF_VERIFICATION_V0",
+            "proof_verification_status": "blocked",
+            "proof_refs": proof_refs,
+            "verifier_receipt_refs": [],
+            "errors": ["proof_bundle_or_candidate_response_missing"],
+            "verifier_id": "proof_to_response_verifier_v0",
+            "fail_closed": True,
+        }
+    try:
+        import proof_to_response_verifier
+
+        verifier_result = proof_to_response_verifier.verify_lm_shadow_response(
+            candidate,
+            bundle,
+            read_model_root=DEFAULT_EXPORT_ROOT,
+        )
+    except Exception as exc:  # pragma: no cover - defensive fail-closed guard
+        return {
+            "schema_version": "LM2_WORKER_PROOF_VERIFICATION_V0",
+            "proof_verification_status": "blocked",
+            "proof_refs": proof_refs,
+            "verifier_receipt_refs": [],
+            "errors": [f"proof_verifier_exception:{type(exc).__name__}"],
+            "verifier_id": "proof_to_response_verifier_v0",
+            "fail_closed": True,
+        }
+    passed = bool(verifier_result.get("publishable"))
+    errors = _as_list(verifier_result.get("errors"))
+    receipt_ref = f"proof_to_response_verifier:{_short_hash(result.get('package_id'), bundle.get('proof_bundle_id'), passed, errors)}"
+    return {
+        "schema_version": "LM2_WORKER_PROOF_VERIFICATION_V0",
+        "proof_verification_status": "passed" if passed else "failed",
+        "proof_refs": proof_refs or _as_list(bundle.get("proof_refs")),
+        "verifier_receipt_refs": [receipt_ref],
+        "errors": errors,
+        "verifier_id": str(verifier_result.get("verifier_id") or "proof_to_response_verifier_v0"),
+        "proof_bundle_id": str(bundle.get("proof_bundle_id") or ""),
+        "fail_closed": not passed,
+    }
+
+
 def _run_backend_validation(commands: Sequence[Any], package: Mapping[str, Any], package_files: Mapping[str, Any]) -> tuple[list[dict[str, Any]], list[str]]:
     logs: list[dict[str, Any]] = []
     errors: list[str] = []
@@ -921,6 +1315,7 @@ def build_validation_receipt(
     *,
     errors: Sequence[str],
     validation_logs: Sequence[Mapping[str, Any]],
+    proof_verification: Mapping[str, Any] | None = None,
     generated_at: str | None = None,
 ) -> dict[str, Any]:
     generated_at = generated_at or utc_now()
@@ -931,6 +1326,16 @@ def build_validation_receipt(
         "validation_status": "validation_failed" if errors else "validation_passed",
         "validation_errors": list(errors),
         "validation_logs": [dict(item) for item in validation_logs],
+        "proof_verification": dict(
+            proof_verification
+            or {
+                "schema_version": "LM2_WORKER_PROOF_VERIFICATION_V0",
+                "proof_verification_status": "not_required",
+                "proof_refs": [],
+                "verifier_receipt_refs": [],
+                "errors": [],
+            }
+        ),
         "created_at": generated_at,
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
     }
@@ -1230,6 +1635,15 @@ def ingest_worker_result(
             return {"schema_version": SCHEMA_VERSION, "package_result": result, "validation_receipt": validation, "activation_decision": decision, "package_state": state, "authority_boundary": dict(AUTHORITY_BOUNDARY)}
         state = json.loads(row["state_json"])
         errors, validation_logs = _validate_result(worker_result, state)
+        proof_verification = _proof_verification_for_result(worker_result, state)
+        if proof_verification.get("proof_verification_status") in {"failed", "blocked"}:
+            proof_errors = _as_list(proof_verification.get("errors"))
+            errors.append(
+                "proof_verification_failed"
+                if proof_verification.get("proof_verification_status") == "failed"
+                else "proof_verification_blocked"
+            )
+            errors.extend(f"proof_verification:{error}" for error in proof_errors)
         result_status = "completed" if not errors and str(worker_result.get("status") or "") == "completed" else "failed"
         result = {
             **dict(worker_result),
@@ -1240,7 +1654,13 @@ def ingest_worker_result(
             "submitted_at": str(worker_result.get("submitted_at") or generated_at),
             "authority_boundary": dict(AUTHORITY_BOUNDARY),
         }
-        validation = build_validation_receipt(package_id, errors=errors, validation_logs=validation_logs, generated_at=generated_at)
+        validation = build_validation_receipt(
+            package_id,
+            errors=errors,
+            validation_logs=validation_logs,
+            proof_verification=proof_verification,
+            generated_at=generated_at,
+        )
         decision = build_activation_decision(state, result, validation, generated_at=generated_at)
         new_state = dict(state)
         if decision["decision"] == "activate":
@@ -1354,6 +1774,12 @@ def _package_summary(
         "package_json_path": str((state.get("package_files") or {}).get("package_json_path") or "") if isinstance(state.get("package_files"), Mapping) else "",
         "latest_result_status": str(result.get("status") or ""),
         "latest_validation_status": str(validation.get("validation_status") or ""),
+        "proof_verification_status": str(
+            (validation.get("proof_verification") if isinstance(validation.get("proof_verification"), Mapping) else {}).get(
+                "proof_verification_status",
+                "not_required",
+            )
+        ),
         "latest_activation_decision": str(activation.get("decision") or ""),
         "next_action": _next_action_for_state(state, validation, activation),
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
@@ -1388,6 +1814,7 @@ def _watch_item_for_package(summary: Mapping[str, Any], *, generated_at: str) ->
             "status": state_value,
             "claimed_by": str(summary.get("claimed_by") or ""),
             "package_file_status": str(summary.get("package_file_status") or ""),
+            "proof_verification_status": str(summary.get("proof_verification_status") or "not_required"),
             "execution_allowed": False,
             "external_call_allowed": False,
             "approval_created": False,
@@ -1445,13 +1872,16 @@ def build_read_model(
         "status": READY_STATUS,
         "generated_at": generated_at,
         "contracts": [
+            CANONICAL_WORKER_SPINE_SCHEMA_VERSION,
             PACKAGE_STATE_SCHEMA,
             PACKAGE_QUEUE_SCHEMA,
             WORKER_BRIDGE_STATUS_SCHEMA,
             PACKAGE_CLAIM_SCHEMA,
             PACKAGE_RESULT_SCHEMA,
             ACTIVATION_DECISION_SCHEMA,
+            "LM2_WORKER_PROOF_VERIFICATION_V0",
         ],
+        "canonical_spine": canonical_spine_metadata(),
         "package_ids": [str(state.get("package_id") or "") for state in states if state.get("package_id")],
         "counts": {
             "total": len(states),

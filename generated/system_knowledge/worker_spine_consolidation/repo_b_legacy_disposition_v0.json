@@ -1,0 +1,66 @@
+{
+  "blocked_legacy_patterns": [
+    "old OAuth",
+    "google_access_broker",
+    "credential bridge",
+    "automatic external broker",
+    "autonomous repair loop"
+  ],
+  "candidate_pattern_only": [
+    {
+      "pattern": "watcher summaries",
+      "repo_a_expression": "Watch Desk item sourced from canonical read models and receipts only."
+    },
+    {
+      "pattern": "queue balancing",
+      "repo_a_expression": "Worker Run Manager queue metadata, not a separate live queue."
+    },
+    {
+      "pattern": "capability registry language",
+      "repo_a_expression": "Capability status read models and Assignment Loop proof requirements."
+    }
+  ],
+  "hard_rule": "Repo B is reference-only and not runtime authority; useful patterns must be re-expressed through Repo A rails.",
+  "repo_b_code_imported": false,
+  "repo_b_root": "/home/openclaw_external/openclaw-runtime",
+  "represented_in_repo_a": [
+    {
+      "disposition": "represented_in_repo_a",
+      "repo_a_rail": "Operator Context Switchboard, agent_lane_registry.py, openclaw_lm_consult_spine.py",
+      "repo_b_concept": "chief_router.py routing/orchestration"
+    },
+    {
+      "disposition": "represented_in_repo_a",
+      "repo_a_rail": "watch_desk_feed.py and generated/read_models status projections",
+      "repo_b_concept": "chief_watcher_brain.py watch/status ideas"
+    },
+    {
+      "disposition": "represented_in_repo_a",
+      "repo_a_rail": "codex_work_package_lifecycle.py plus Assignment Loop",
+      "repo_b_concept": "chief_worker.py / ceo_briefing_worker.py worker concepts"
+    }
+  ],
+  "runtime_authority": "reference_only",
+  "schema_version": "REPO_B_LEGACY_DISPOSITION_V0",
+  "superseded": [
+    {
+      "repo_a_replacement": "scripts/openclaw_run.py dispatch/ingest and canonical package SQLite registry",
+      "repo_b_concept": "older bridge/broker package flow"
+    },
+    {
+      "repo_a_replacement": "Guardian/HITL exact-send approval spine, kept separate from LM2.",
+      "repo_b_concept": "legacy approval bridge concepts"
+    }
+  ],
+  "unknown_needs_review": [
+    "Any Repo B file not explicitly classified here.",
+    "Any broker/repair capability whose safety cannot be proven from current Repo A receipts."
+  ],
+  "unsafe_blocked": [
+    "google_access_broker.py OAuth/token/credential bridge patterns",
+    "legacy OAuth refresh or credential storage paths",
+    "automatic broker-based Gmail/Calendar/Contacts access",
+    "autonomous repair loops that mutate runtime or restart services without current rails",
+    "old bridge code that bypasses Guardian/HITL or package receipts"
+  ]
+}

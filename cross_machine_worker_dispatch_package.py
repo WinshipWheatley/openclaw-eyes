@@ -29,6 +29,12 @@ READ_MODEL_ID = "cross_machine_worker_dispatch_package"
 JSON_EXPORT_NAME = f"{READ_MODEL_ID}.json"
 OPERATOR_EXPORT_NAME = f"{READ_MODEL_ID}_OPERATOR.md"
 CONTRACT_STATUS = "DETERMINISTIC_NON_EXECUTING_CROSS_MACHINE_WORKER_DISPATCH_PACKAGE"
+MODULE_ROLE = "support_metadata"
+CANONICAL_RUNTIME_SPINE_REF = "codex_work_package_lifecycle.py"
+MIGRATION_NOTE = (
+    "Retained for cross-machine packaging metadata. It must not dispatch workers directly; "
+    "canonical runtime package lifecycle is codex_work_package_lifecycle.py."
+)
 
 TARGET_WORKER_TYPES = (
     "MAC_CODEX",

@@ -34,6 +34,12 @@ SCHEMA_EXPORT_NAME = f"{READ_MODEL_ID}_SCHEMA.sql"
 SEED_EXPORT_NAME = f"{READ_MODEL_ID}_SEED.sql"
 CONTRACT_STATUS = "DETERMINISTIC_LM_CHILD_PACKAGE_GATE_CONTRACT_NO_RUNTIME_SWARMS"
 READINESS = "READY_FOR_CONTRACT_NOT_RUNTIME_SPAWNING"
+MODULE_ROLE = "contract_only"
+CANONICAL_RUNTIME_SPINE_REF = "codex_work_package_lifecycle.py"
+MIGRATION_NOTE = (
+    "Retained as a future child-package gate contract. It must not spawn LM2 or child workers; "
+    "canonical runtime package queue and result ingest are codex_work_package_lifecycle.py."
+)
 
 DECISIONS = (
     "ALLOW",
