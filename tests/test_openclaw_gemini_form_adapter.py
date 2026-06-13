@@ -134,6 +134,27 @@ def _provider_with_result(result_factory, capture: dict | None = None):
     return fake_provider
 
 
+def test_schema_accepts_conversation_permission_boundary_intent():
+    package = _package()
+    request = adapter.build_gemini_form_turn_request(
+        package,
+        "This telegram chat comes from Winship so make this conversation first class permission.",
+        "",
+        created_at_utc=FIXED_NOW,
+    )
+    result = _safe_result(
+        request,
+        intent="conversation_permission_boundary",
+        reply="That is source/permission context, not a Data Room answer.",
+    )
+    schema = adapter.gemini_turn_result_json_schema()
+    validation = adapter.validate_gemini_form_turn_result(result, package=package, request_payload=request)
+
+    assert "conversation_permission_boundary" in schema["properties"]["operator_intent"]["enum"]
+    assert "conversation_permission_boundary" in adapter.expected_gemini_turn_result_shape()["operator_intent"]
+    assert validation["valid"] is True
+
+
 def test_adapter_disabled_blocks_before_provider(monkeypatch):
     monkeypatch.delenv("OPENCLAW_ENABLE_LIVE_GEMINI_FORM", raising=False)
     monkeypatch.setenv("OPENCLAW_GEMINI_MODEL", TEST_MODEL)

@@ -42,6 +42,7 @@ ALLOWED_INTENTS = {
     "answer_candidate",
     "conditional",
     "clarification",
+    "conversation_permission_boundary",
     "summary",
     "done",
 }
@@ -289,6 +290,10 @@ def live_lm_turn_prompt(request: Mapping[str, Any]) -> str:
         "Do not claim anything was recorded, promoted, hydrated, sent, approved, or mutated.\n"
         "If the user proposes an answer, return it as a proposed_answer and set requires_winship_confirmation=true, "
         "but should_record_now must remain false.\n"
+        "If the user is talking about this chat, source identity, Telegram/app provenance, permission, authorization, "
+        "or first-class conversation status rather than answering the current form question, use "
+        "operator_intent=conversation_permission_boundary, leave proposed_answer blank, and say it is "
+        "source/permission context rather than a Data Room answer or runtime policy change.\n"
         f"Return only {RESULT_SCHEMA_VERSION} JSON matching the output schema.\n\n"
         "Valid readiness example:\n"
         f"{stable_json(example)}\n"

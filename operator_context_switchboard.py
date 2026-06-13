@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 from cassandra_guided_review import (
+    classify_conversation_permission_boundary,
     get_active_guided_review_context,
     is_data_room_guided_review_start_request,
     resolve_guided_review_topic,
@@ -639,6 +640,13 @@ def _breadcrumb(active_context: Mapping[str, Any] | None) -> str:
     return " Back to Data Room: say 'continue Data Room' when ready."
 
 
+def _conversation_permission_boundary_reply(active_context: Mapping[str, Any] | None) -> str:
+    return (
+        "I can treat this chat as the conversation source for this lane, but that is not a Data Room answer "
+        "and it does not change runtime policy or grant external-action permission."
+    ) + _breadcrumb(active_context)
+
+
 def _context_by_resume_command(
     raw_text: str,
     active_context: Mapping[str, Any] | None,
@@ -969,6 +977,38 @@ def process_operator_context_switchboard_message(
             handoff_reason="Guardian/HITL/exact-send reply must not be captured by active tasks.",
             operator_visible_reply="",
         )
+
+    permission_boundary = classify_conversation_permission_boundary(raw_text)
+    if permission_boundary:
+        decision = _base_decision(
+            raw_text=raw_text,
+            surface=surface,
+            source_agent=source_agent,
+            created_at=created_at,
+            active_contexts=active_contexts,
+            current_context_id=current_context_id,
+            detected_intent="conversation_permission_boundary",
+            detected_lane=str(active_context.get("owner_agent") or "cassandra"),
+            detected_action_type="conversation_permission_boundary",
+            confidence=0.92,
+            decision="current_task_control",
+            routed_to_agent=str(active_context.get("owner_agent") or "cassandra"),
+            routed_to_lane=str(active_context.get("context_type") or "guided_review_session"),
+            current_task_action="leave_active",
+            handoff_reason=(
+                "Conversation source/permission statements are boundary context, not active-review answers "
+                "or external-action approvals."
+            ),
+            operator_visible_reply=_conversation_permission_boundary_reply(active_context),
+            safety_flags={
+                "external_calls_performed": False,
+                "runtime_policy_changed": False,
+                "approval_created": False,
+            },
+        )
+        _append_decision_to_read_model(decision, read_model_root=read_model_root, contexts=active_contexts, generated_at_utc=created_at)
+        _refresh_watch_desk(read_model_root, created_at)
+        return decision
 
     if _pending_reply(raw_text, active_context):
         return _base_decision(

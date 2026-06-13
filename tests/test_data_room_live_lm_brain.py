@@ -211,6 +211,63 @@ def test_candidate_result_creates_pending_candidate_only_then_confirmation_recor
     assert confirmed_session["answer_records"][0]["answer_source"] == "natural_candidate_confirmed"
 
 
+def test_permission_boundary_turn_does_not_replace_live_lm_pending_candidate(tmp_path):
+    _start_response, paths = _start(tmp_path)
+    guided.process_guided_review_message(
+        "Cassandra, start the Data Room LM brain.",
+        review_root=paths["review_root"],
+        read_model_root=paths["read_model_root"],
+        receipt_root=paths["receipt_root"],
+        generated_at_utc="2026-06-13T18:01:00+00:00",
+        live_lm_brain_runner=_runner(),
+        live_lm_brain_sqlite_path=paths["sqlite_path"],
+        live_lm_brain_package_root=paths["package_root"],
+        live_lm_brain_turn_root=paths["turn_root"],
+    )
+    candidate = guided.process_guided_review_message(
+        "Let's go with context specific.",
+        review_root=paths["review_root"],
+        read_model_root=paths["read_model_root"],
+        receipt_root=paths["receipt_root"],
+        generated_at_utc="2026-06-13T18:02:00+00:00",
+        live_lm_brain_runner=_runner(
+            intent="answer_candidate",
+            answer="Payment/contact details should be trust-gated based on the surrounding context.",
+            reply="That is a provisional answer. I still need confirmation before anything is recorded.",
+        ),
+        live_lm_brain_sqlite_path=paths["sqlite_path"],
+        live_lm_brain_package_root=paths["package_root"],
+        live_lm_brain_turn_root=paths["turn_root"],
+    )
+    first_session = _load_session(candidate)
+    first_pending = dict(first_session["pending_interaction"])
+    assert first_pending["candidate_text"] == "Payment/contact details should be trust-gated based on the surrounding context."
+
+    boundary = guided.process_guided_review_message(
+        'If you were to record anything it would be "messages from Winship\'s confirmed telegram or app are first class, so permission is given via that context" or something',
+        review_root=paths["review_root"],
+        read_model_root=paths["read_model_root"],
+        receipt_root=paths["receipt_root"],
+        generated_at_utc="2026-06-13T18:03:00+00:00",
+        live_lm_brain_runner=lambda **_kwargs: (_ for _ in ()).throw(
+            AssertionError("permission-boundary turn should not invoke the Data Room LM brain")
+        ),
+        live_lm_brain_sqlite_path=paths["sqlite_path"],
+        live_lm_brain_package_root=paths["package_root"],
+        live_lm_brain_turn_root=paths["turn_root"],
+    )
+    boundary_session = _load_session(boundary)
+
+    assert "not a Data Room answer" in boundary["reply_text"]
+    assert "Should I record this as" not in boundary["reply_text"]
+    assert boundary_session["pending_interaction"]["candidate_text"] == first_pending["candidate_text"]
+    assert boundary_session["answer_records"] == []
+    assert any(
+        event["command"] == "conversation_permission_boundary_noted"
+        for event in boundary_session["coach_interactions"]
+    )
+
+
 def test_model_result_cannot_record_directly(tmp_path):
     request = brain.build_live_lm_turn_request(
         {
@@ -225,6 +282,29 @@ def test_model_result_cannot_record_directly(tmp_path):
     result["should_record_now"] = True
 
     assert "should_record_now_must_be_false" in brain.validate_live_lm_turn_result(result, request)
+
+
+def test_live_lm_schema_allows_conversation_permission_boundary_intent():
+    request = brain.build_live_lm_turn_request(
+        {
+            "review_session_id": "data_room_review:test",
+            "current_question_id": "review_question:test",
+            "question_queue": [{"question_id": "review_question:test", "question_text": "Question?", "category": "payment"}],
+        },
+        "This telegram chat comes from Winship so make this conversation first class permission.",
+        created_at_utc=FIXED_NOW,
+    )
+    schema = brain.live_lm_turn_result_json_schema(request)
+    result = _result_for_request(
+        request,
+        intent="conversation_permission_boundary",
+        reply="That is channel context, not a Data Room answer.",
+    )
+    prompt = brain.live_lm_turn_prompt(request)
+
+    assert "conversation_permission_boundary" in schema["properties"]["operator_intent"]["enum"]
+    assert "source/permission" in prompt
+    assert brain.validate_live_lm_turn_result(result, request) == []
 
 
 def test_malformed_lm_result_blocks_without_ready_status(tmp_path):

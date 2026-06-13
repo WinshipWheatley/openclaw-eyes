@@ -61,6 +61,7 @@ OPERATOR_INTENTS = {
     "summary",
     "done",
     "clarification",
+    "conversation_permission_boundary",
 }
 
 SAFE_TURN_SAFETY_FLAGS = {
@@ -348,7 +349,7 @@ def expected_gemini_turn_result_shape() -> dict[str, Any]:
         "review_session_id": "",
         "question_id": "",
         "assistant_reply": "",
-        "operator_intent": "explain|eli5|analogy|recommendation|thought_dump|answer_candidate|confirm|revise|conditional|skip|defer|summary|done|clarification",
+        "operator_intent": "explain|eli5|analogy|recommendation|thought_dump|answer_candidate|confirm|revise|conditional|skip|defer|summary|done|clarification|conversation_permission_boundary",
         "proposed_answer": {
             "plain_english": "",
             "normalized_decision": "",
@@ -519,7 +520,8 @@ def _gemini_payload(request_payload: Mapping[str, Any]) -> dict[str, Any]:
         "Return strict JSON only. You have no tools. You do not execute, mutate runtime, create confirmed "
         "reference data, hydrate data, create approvals, send email, or perform external actions. "
         "You may advise conversationally and propose answer candidates, but OpenClaw records only after "
-        "Winship confirms through deterministic rails."
+        "Winship confirms through deterministic rails. If Winship is talking about source/permission context "
+        "for the chat itself, use operator_intent=conversation_permission_boundary and do not propose a form answer."
     )
     return {
         "systemInstruction": {"parts": [{"text": system}]},

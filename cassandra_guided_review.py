@@ -449,6 +449,67 @@ def _contains_any(normalized_text: str, phrases: Sequence[str]) -> bool:
     return any(phrase in normalized_text for phrase in phrases)
 
 
+def classify_conversation_permission_boundary(text: str) -> dict[str, Any]:
+    """Detect source/channel authority statements that are not form answers."""
+
+    normalized = _normalize_topic_text(text)
+    if not normalized:
+        return {}
+    explicit_boundary_phrases = (
+        "first class permission",
+        "first class conversation",
+        "make this conversation first class",
+        "permission is given via",
+        "permission given via",
+        "permission is given through",
+        "permission given through",
+        "permission via this context",
+        "permission through this context",
+        "this telegram chat comes from winship",
+        "this chat comes from winship",
+        "messages from winship",
+        "confirmed telegram",
+        "confirmed app",
+    )
+    has_explicit_boundary = _contains_any(normalized, explicit_boundary_phrases)
+    has_channel_source = _contains_any(
+        normalized,
+        (
+            "telegram",
+            "app",
+            "chat",
+            "conversation",
+            "surface",
+            "from winship",
+            "winship confirmed",
+        ),
+    )
+    has_authority_term = _contains_any(
+        normalized,
+        (
+            "permission",
+            "authority",
+            "authorize",
+            "first class",
+            "trusted source",
+            "operator source",
+            "given via",
+            "given through",
+        ),
+    )
+    if not has_explicit_boundary and not (has_channel_source and has_authority_term):
+        return {}
+    return {
+        "schema_version": "CONVERSATION_PERMISSION_BOUNDARY_CLASSIFICATION_V0",
+        "detected": True,
+        "classification": "conversation_permission_boundary",
+        "reason": "channel_source_or_permission_statement_not_form_answer",
+        "runtime_policy_changed": False,
+        "external_action_allowed": False,
+        "answer_record_allowed": False,
+    }
+
+
 def _canonical_topic_id(topic: str) -> str:
     value = str(topic or "").strip()
     return LEGACY_TOPIC_ALIASES.get(value, value)
@@ -1869,6 +1930,35 @@ def _format_question_reply(session: Mapping[str, Any], *, prefix: str = "") -> s
         f"{question['category']}: {question['question_text']}\n"
         "Reply with an answer, skip, defer, summarize, or done."
     )
+
+
+def _handle_conversation_permission_boundary(
+    session: dict[str, Any],
+    *,
+    now: str,
+) -> str:
+    question_id = str(session.get("current_question_id") or "")
+    pending = session.get("pending_interaction") if isinstance(session.get("pending_interaction"), Mapping) else {}
+    session.setdefault("coach_interactions", []).append(
+        {
+            "schema_version": "REVIEW_COACH_INTERACTION_V0",
+            "command": "conversation_permission_boundary_noted",
+            "question_id": question_id,
+            "created_at_utc": now,
+            "answer_recorded": False,
+            "pending_interaction_preserved": bool(pending),
+            "authoritative": False,
+            "runtime_policy_changed": False,
+            "external_action_allowed": False,
+        }
+    )
+    prefix = (
+        "I can treat this chat as the conversation source for this lane, but that is not a Data Room answer "
+        "and it does not change runtime policy or grant external-action permission."
+    )
+    if pending:
+        prefix += " I kept the pending candidate unchanged."
+    return _format_question_reply(session, prefix=prefix)
 
 
 def _recorded_answer_prefix(answer_text: str, question: Mapping[str, Any]) -> str:
@@ -3815,6 +3905,7 @@ def process_guided_review_message(
             _clear_pending_interaction(session, now=now, reason="expired")
         pending_handled = False
         form_fill_handled = False
+        boundary_handled = False
         from data_room_form_fill_package import (
             DEFAULT_OPERATOR_REPORT_ROOT,
             EXPECTED_PACKAGE_REPLY,
@@ -3879,6 +3970,9 @@ def process_guided_review_message(
             session["latest_data_room_form_fill_package_id"] = package["package_id"]
             reply = LIVE_CHATGPT55_PACKAGE_REPLY if live_chatgpt55_connected else EXPECTED_PACKAGE_REPLY
             form_fill_handled = True
+        elif classify_conversation_permission_boundary(raw_text):
+            reply = _handle_conversation_permission_boundary(session, now=now)
+            boundary_handled = True
         elif _gemini_finalizer_pending(session):
             reply = _handle_gemini_finalizer_confirmation(
                 session,
@@ -3913,6 +4007,8 @@ def process_guided_review_message(
             _clear_pending_interaction(session, now=now, reason=f"interrupted_by_{control.replace(' ', '_')}")
 
         if form_fill_handled:
+            pass
+        elif boundary_handled:
             pass
         elif pending_handled:
             pass
@@ -4215,6 +4311,7 @@ __all__ = [
     "READ_MODEL_NAME",
     "SESSION_SCHEMA_VERSION",
     "build_data_room_review_questions",
+    "classify_conversation_permission_boundary",
     "complete_session",
     "create_data_room_review_session",
     "has_active_guided_review_session",

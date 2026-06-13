@@ -589,6 +589,10 @@ def test_active_session_fuzzy_reference_resumes_without_duplicate_watch_item(tmp
     assert len(guided_items) == 1
 
 
+def test_permission_boundary_classifier_does_not_swallow_source_evidence_answers():
+    assert guided.classify_conversation_permission_boundary("The source is confirmed by the client message.") == {}
+
+
 def test_system_status_review_resolver_does_not_swallow_chief_route(tmp_path):
     promotion = _promotion_review(tmp_path / "review" / "promotion_review.json")
     response = guided.process_guided_review_message(
