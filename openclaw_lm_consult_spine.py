@@ -57,10 +57,13 @@ GENERIC_ENABLE_ENV = "OPENCLAW_ENABLE_LM_CONSULTS"
 GENERIC_PROVIDER_ENV = "OPENCLAW_LM_PROVIDER"
 GEMINI_MODEL_ENV = "OPENCLAW_GEMINI_MODEL"
 GEMINI_FORM_MODEL_ENV = "OPENCLAW_GEMINI_FORM_MODEL"
-GEMINI_CREDENTIAL_ENVS = ("GEMINI_API_KEY", "GOOGLE_API_KEY", "GOOGLE_GENERATIVE_AI_API_KEY")
+GEMINI_CREDENTIAL_ENVS = ("GOOGLE_API_KEY", "GEMINI_API_KEY", "GOOGLE_GENERATIVE_AI_API_KEY")
 GEMINI_GENERATE_CONTENT_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models"
 GEMINI_ENDPOINT_FAMILY = "gemini_generate_content"
 GEMINI_REQUEST_SHAPE_VERSION = "GEMINI_GENERATE_CONTENT_JSON_V1"
+GEMINI_MINIMAL_PROBE_SCHEMA_VERSION = "GEMINI_MINIMAL_PROVIDER_PROBE_V0"
+GEMINI_MINIMAL_PROBE_REQUEST_SHAPE_VERSION = "GEMINI_MINIMAL_PROBE_V1"
+GEMINI_MINIMAL_PROBE_TEXT = "Return the word ready."
 STRUCTURED_OUTPUT_NATIVE_SCHEMA = "native_schema"
 STRUCTURED_OUTPUT_JSON_PROMPT_FALLBACK = "json_prompt_fallback"
 
@@ -471,6 +474,24 @@ def _credential_present(env: Mapping[str, str], names: Sequence[str]) -> bool:
     return any(bool(str(env.get(name) or "").strip()) for name in names)
 
 
+def gemini_credential_status(env: Mapping[str, str] | None = None) -> dict[str, Any]:
+    """Return Gemini credential presence metadata without exposing values."""
+
+    env = env or os.environ
+    populated = [name for name in GEMINI_CREDENTIAL_ENVS if str(env.get(name) or "").strip()]
+    warning = "multiple credential vars present; provider precedence may be ambiguous" if len(populated) > 1 else ""
+    return {
+        "credential_present": bool(populated),
+        "credential_env_present_count": len(populated),
+        "credential_env_selected": populated[0] if populated else "",
+        "credential_env_populated_names": populated,
+        "credential_precedence": list(GEMINI_CREDENTIAL_ENVS),
+        "multiple_credential_vars_present": len(populated) > 1,
+        "credential_warning": warning,
+        "credential_value_logged": False,
+    }
+
+
 def _credential_value(env: Mapping[str, str], names: Sequence[str]) -> str:
     for name in names:
         value = env.get(name, "")
@@ -577,6 +598,22 @@ def _gemini_model_path(model_label: str) -> str:
     return urllib.parse.quote(label, safe="")
 
 
+def _build_gemini_generate_content_request(
+    *,
+    api_key: str,
+    model_label: str,
+    request_body: Mapping[str, Any],
+) -> urllib.request.Request:
+    model_path = _gemini_model_path(model_label)
+    url = f"{GEMINI_GENERATE_CONTENT_BASE_URL}/{model_path}:generateContent"
+    return urllib.request.Request(
+        url,
+        data=json.dumps(request_body).encode("utf-8"),
+        headers={"Content-Type": "application/json", "x-goog-api-key": api_key},
+        method="POST",
+    )
+
+
 def provider_http_error_classification(
     exc: urllib.error.HTTPError,
     *,
@@ -608,6 +645,168 @@ def provider_http_error_classification(
     return reason, validation
 
 
+def build_minimal_gemini_probe_payload() -> dict[str, Any]:
+    return {
+        "contents": [{"role": "user", "parts": [{"text": GEMINI_MINIMAL_PROBE_TEXT}]}],
+        "generationConfig": {
+            "temperature": 0,
+            "maxOutputTokens": 8,
+        },
+    }
+
+
+def _extract_gemini_text(raw_response: Mapping[str, Any]) -> str:
+    prompt_feedback = raw_response.get("promptFeedback")
+    if isinstance(prompt_feedback, Mapping) and prompt_feedback.get("blockReason"):
+        raise LMConsultError("adapter_prompt_blocked")
+    candidates = raw_response.get("candidates")
+    if isinstance(candidates, list):
+        for candidate in candidates:
+            if not isinstance(candidate, Mapping):
+                continue
+            content = candidate.get("content")
+            if not isinstance(content, Mapping):
+                continue
+            parts = content.get("parts")
+            if not isinstance(parts, list):
+                continue
+            for part in parts:
+                if isinstance(part, Mapping) and isinstance(part.get("text"), str) and part["text"].strip():
+                    return str(part["text"])
+    for key in ("output_text", "text"):
+        value = raw_response.get(key)
+        if isinstance(value, str) and value.strip():
+            return value
+    raise LMConsultError("adapter_missing_output_text")
+
+
+def _minimal_probe_block_reason(reason: str, validation: Mapping[str, Any]) -> str:
+    status_code = int(validation.get("provider_status_code") or 0)
+    if reason == "blocked_model_label":
+        return "blocked_model_label"
+    if reason == "blocked_provider_rate_limited":
+        return "blocked_provider_rate_limited"
+    if reason == "blocked_provider_auth_or_permission":
+        return "blocked_auth_or_project"
+    if status_code == 400:
+        return "blocked_provider_bad_request"
+    return reason or "blocked_provider_probe_failed"
+
+
+def run_minimal_gemini_probe(
+    *,
+    env: Mapping[str, str] | None = None,
+    model_label: str = "",
+    transport: ProviderTransport | None = None,
+    timeout_seconds: int = 20,
+    generated_at_utc: str | None = None,
+) -> dict[str, Any]:
+    """Run a harmless Gemini generateContent probe without Data Room context."""
+
+    env = dict(env or os.environ)
+    model_status = gemini_model_label_status(env, explicit_model_label=model_label)
+    effective_model = str(model_status.get("effective_model_label") or "")
+    credential = gemini_credential_status(env)
+    request_payload = {
+        "schema_version": GEMINI_MINIMAL_PROBE_SCHEMA_VERSION,
+        "probe_text": GEMINI_MINIMAL_PROBE_TEXT,
+        "data_room_context_included": False,
+        "structured_output_enabled": False,
+        "tools_exposed": False,
+    }
+    request_body = build_minimal_gemini_probe_payload()
+    base = {
+        "schema_version": GEMINI_MINIMAL_PROBE_SCHEMA_VERSION,
+        "generated_at_utc": generated_at_utc or utc_now(),
+        "probe_attempted": False,
+        "provider_reached": False,
+        "success": False,
+        "status": "",
+        "model_label": effective_model,
+        "effective_model_label": effective_model,
+        **model_status,
+        **credential,
+        "provider_status_code": None,
+        "provider_error_code": "",
+        "provider_error_category": "",
+        "provider_error_message_redacted": "",
+        "endpoint_family": GEMINI_ENDPOINT_FAMILY,
+        "request_shape_version": GEMINI_MINIMAL_PROBE_REQUEST_SHAPE_VERSION,
+        "structured_output_enabled": False,
+        "structured_output_mode": "none",
+        "request_body_logged": False,
+        "credential_value_logged": False,
+        "raw_data_room_context_included": False,
+        "tools_exposed": False,
+    }
+    if model_status.get("model_label_mismatch"):
+        return {**base, "status": "blocked_model_label_mismatch"}
+    if not effective_model:
+        return {**base, "status": "blocked_model_missing"}
+    if not credential.get("credential_present"):
+        return {**base, "status": "blocked_provider_config_required"}
+
+    call = transport
+    try:
+        base["probe_attempted"] = True
+        if call is None:
+            api_key = _credential_value(env, GEMINI_CREDENTIAL_ENVS)
+            request = _build_gemini_generate_content_request(
+                api_key=api_key,
+                model_label=effective_model,
+                request_body=request_body,
+            )
+            with urllib.request.urlopen(request, timeout=timeout_seconds) as response:
+                raw_response = json.loads(response.read().decode("utf-8"))
+        else:
+            raw_response = call(
+                request_payload=request_payload,
+                request_body=request_body,
+                model_label=effective_model,
+                timeout_seconds=timeout_seconds,
+            )
+        base["provider_reached"] = True
+        text = _extract_gemini_text(raw_response)
+        return {
+            **base,
+            "success": bool(text.strip()),
+            "status": "probe_succeeded" if text.strip() else "adapter_missing_output_text",
+            "provider_reached": True,
+        }
+    except urllib.error.HTTPError as exc:
+        reason, validation = provider_http_error_classification(
+            exc,
+            request_body=request_body,
+            model_label=effective_model,
+            request_shape_version=GEMINI_MINIMAL_PROBE_REQUEST_SHAPE_VERSION,
+            endpoint_family=GEMINI_ENDPOINT_FAMILY,
+        )
+        blocked_reason = _minimal_probe_block_reason(reason, validation)
+        return {
+            **base,
+            **validation,
+            "probe_attempted": True,
+            "provider_reached": True,
+            "success": False,
+            "status": blocked_reason,
+        }
+    except LMConsultError as exc:
+        validation = dict(exc.validation)
+        blocked_reason = _minimal_probe_block_reason(exc.reason, validation)
+        return {
+            **base,
+            **validation,
+            "probe_attempted": True,
+            "provider_reached": bool(validation.get("provider_status_code") or validation.get("provider_reached")),
+            "success": False,
+            "status": blocked_reason,
+        }
+    except TimeoutError:
+        return {**base, "probe_attempted": True, "status": "adapter_timeout"}
+    except Exception:
+        return {**base, "probe_attempted": True, "status": "adapter_api_error"}
+
+
 class GeminiProviderAdapter:
     provider = "gemini"
 
@@ -628,7 +827,8 @@ class GeminiProviderAdapter:
     def is_available(self) -> dict[str, Any]:
         provider_enabled = _truthy(self.env.get(GENERIC_ENABLE_ENV))
         provider_selected = str(self.env.get(GENERIC_PROVIDER_ENV) or "").strip().lower() in {"", "gemini"}
-        credential_present = _credential_present(self.env, GEMINI_CREDENTIAL_ENVS)
+        credential = gemini_credential_status(self.env)
+        credential_present = bool(credential.get("credential_present"))
         model_label_present = bool(str(self.model_label or "").strip())
         model_label_mismatch = bool(self.model_label_status.get("model_label_mismatch"))
         available = bool(provider_enabled and provider_selected and credential_present and model_label_present and not model_label_mismatch)
@@ -652,7 +852,7 @@ class GeminiProviderAdapter:
             "provider": self.provider,
             "provider_enabled": provider_enabled,
             "provider_selected": provider_selected,
-            "credential_present": credential_present,
+            **credential,
             "model_label_present": model_label_present,
             **self.model_label_status,
             "missing_config": missing,
@@ -739,13 +939,10 @@ class GeminiProviderAdapter:
         api_key = _credential_value(self.env, GEMINI_CREDENTIAL_ENVS)
         if not api_key:
             raise LMConsultError("blocked_provider_config_required")
-        model_path = _gemini_model_path(model_label)
-        url = f"{GEMINI_GENERATE_CONTENT_BASE_URL}/{model_path}:generateContent?key={urllib.parse.quote(api_key, safe='')}"
-        request = urllib.request.Request(
-            url,
-            data=json.dumps(request_body).encode("utf-8"),
-            headers={"Content-Type": "application/json"},
-            method="POST",
+        request = _build_gemini_generate_content_request(
+            api_key=api_key,
+            model_label=model_label,
+            request_body=request_body,
         )
         try:
             with urllib.request.urlopen(request, timeout=timeout_seconds) as response:
@@ -765,28 +962,7 @@ class GeminiProviderAdapter:
             raise LMConsultError("adapter_api_error") from exc
 
     def _extract_text(self, raw_response: Mapping[str, Any]) -> str:
-        prompt_feedback = raw_response.get("promptFeedback")
-        if isinstance(prompt_feedback, Mapping) and prompt_feedback.get("blockReason"):
-            raise LMConsultError("adapter_prompt_blocked")
-        candidates = raw_response.get("candidates")
-        if isinstance(candidates, list):
-            for candidate in candidates:
-                if not isinstance(candidate, Mapping):
-                    continue
-                content = candidate.get("content")
-                if not isinstance(content, Mapping):
-                    continue
-                parts = content.get("parts")
-                if not isinstance(parts, list):
-                    continue
-                for part in parts:
-                    if isinstance(part, Mapping) and isinstance(part.get("text"), str) and part["text"].strip():
-                        return str(part["text"])
-        for key in ("output_text", "text"):
-            value = raw_response.get(key)
-            if isinstance(value, str) and value.strip():
-                return value
-        raise LMConsultError("adapter_missing_output_text")
+        return _extract_gemini_text(raw_response)
 
     def _build_result_from_raw_response(
         self,
@@ -1061,6 +1237,7 @@ def build_lm_consult_spine_status(
     env: Mapping[str, str] | None = None,
     latest_request: Mapping[str, Any] | None = None,
     latest_result: Mapping[str, Any] | None = None,
+    latest_probe: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     env = dict(env or os.environ)
     provider = str(env.get(GENERIC_PROVIDER_ENV) or "gemini").strip().lower() or "gemini"
@@ -1087,12 +1264,15 @@ def build_lm_consult_spine_status(
     native_schema_error = latest_validation.get("native_schema_error")
     if not isinstance(native_schema_error, Mapping):
         native_schema_error = {}
+    latest_probe = dict(latest_probe or {})
     blocked_reason = ""
     if not live_ready:
         if not provider_config_ready:
             blocked_reason = str(availability.get("blocked_reason") or "blocked_provider_config_required")
         elif latest_status:
             blocked_reason = latest_status
+        elif latest_probe.get("status") and not latest_probe.get("success"):
+            blocked_reason = str(latest_probe.get("status") or "")
         else:
             blocked_reason = "readiness_call_required"
     status = {
@@ -1111,6 +1291,25 @@ def build_lm_consult_spine_status(
         "form_model_label_present": bool(availability.get("form_model_label_present")),
         "model_label_mismatch": bool(availability.get("model_label_mismatch")),
         "model_label_source": str(availability.get("model_label_source") or ""),
+        "minimal_probe_attempted": bool(latest_probe.get("probe_attempted")),
+        "minimal_probe_success": bool(latest_probe.get("success")),
+        "minimal_probe_status": str(latest_probe.get("status") or ""),
+        "minimal_probe_provider_reached": bool(latest_probe.get("provider_reached")),
+        "minimal_probe_provider_status_code": latest_probe.get("provider_status_code"),
+        "minimal_probe_provider_error_code": str(latest_probe.get("provider_error_code") or ""),
+        "minimal_probe_provider_error_category": str(latest_probe.get("provider_error_category") or ""),
+        "minimal_probe_provider_error_message_redacted": str(
+            latest_probe.get("provider_error_message_redacted") or ""
+        ),
+        "minimal_probe_request_shape_version": str(
+            latest_probe.get("request_shape_version") or GEMINI_MINIMAL_PROBE_REQUEST_SHAPE_VERSION
+        ),
+        "minimal_probe_structured_output_enabled": bool(latest_probe.get("structured_output_enabled", False)),
+        "minimal_probe_raw_data_room_context_included": bool(
+            latest_probe.get("raw_data_room_context_included", False)
+        ),
+        "multiple_credential_vars_present": bool(availability.get("multiple_credential_vars_present")),
+        "credential_warning": str(availability.get("credential_warning") or ""),
         "provider_status_code": latest_validation.get("provider_status_code"),
         "provider_error_code": str(latest_validation.get("provider_error_code") or ""),
         "provider_error_message_redacted": str(latest_validation.get("provider_error_message_redacted") or ""),
@@ -1166,6 +1365,10 @@ def build_watch_desk_items_for_status(status: Mapping[str, Any]) -> list[dict[st
                 "Gemini credential/config reached the provider, but the provider returned 429. "
                 "Check quota/rate limits/model availability or wait and retry."
             )
+        elif reason == "blocked_auth_or_project":
+            next_action = "Check the approved Gemini key/project access without printing credential values, then retry one bounded probe."
+        elif reason == "blocked_provider_bad_request":
+            next_action = "Review the minimal Gemini probe request shape and model label, then retry one bounded probe."
         elif reason in {"blocked_model_label", "blocked_model_label_mismatch"}:
             next_action = (
                 "Set OPENCLAW_GEMINI_MODEL and OPENCLAW_GEMINI_FORM_MODEL to a Gemini model available to this "
@@ -1222,6 +1425,9 @@ __all__ = [
     "FORBIDDEN_INPUTS",
     "GEMINI_CREDENTIAL_ENVS",
     "GEMINI_FORM_MODEL_ENV",
+    "GEMINI_MINIMAL_PROBE_REQUEST_SHAPE_VERSION",
+    "GEMINI_MINIMAL_PROBE_SCHEMA_VERSION",
+    "GEMINI_MINIMAL_PROBE_TEXT",
     "GEMINI_MODEL_ENV",
     "GENERIC_ENABLE_ENV",
     "GENERIC_PROVIDER_ENV",
@@ -1238,13 +1444,16 @@ __all__ = [
     "build_lm_consult_request",
     "build_lm_consult_result",
     "build_lm_consult_spine_status",
+    "build_minimal_gemini_probe_payload",
     "build_review_answer_from_consult_result",
     "build_watch_desk_items_for_status",
     "cassandra_lm_brain_claim",
+    "gemini_credential_status",
     "gemini_model_label_status",
     "provider_adapter_for",
     "provider_http_error_classification",
     "request_lm_consult",
+    "run_minimal_gemini_probe",
     "stable_json",
     "utc_now",
     "validate_lm_consult_request",

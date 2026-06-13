@@ -2817,6 +2817,7 @@ def _write_live_gemini_form_state(
     codex_finalizer_package_ref: str = "",
     codex_finalizer_status: str = "",
     provider_error: Mapping[str, Any] | None = None,
+    minimal_probe: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     import openclaw_gemini_form_adapter as gemini
 
@@ -2841,6 +2842,7 @@ def _write_live_gemini_form_state(
         codex_finalizer_status=codex_finalizer_status or str(existing.get("codex_finalizer_status") or ""),
         model=gemini.model_label(gemini_env),
         provider_error=provider_error or {},
+        minimal_probe=minimal_probe or {},
     )
     refs = gemini.write_data_room_gemini_form_session_state(state)
     state["artifact_refs"] = refs
@@ -2896,6 +2898,77 @@ def _activate_live_gemini_form_lane(
     import openclaw_gemini_form_adapter as gemini
 
     package = build_data_room_form_fill_package(session, created_at_utc=now)
+    availability = gemini.is_live_gemini_form_available(gemini_form_env)
+    availability_reason = gemini.availability_blocked_reason(availability)
+    if availability_reason:
+        state = _write_live_gemini_form_state(
+            session,
+            package=package,
+            result=None,
+            lane_status="blocked",
+            live_ready=False,
+            blocked_reason=availability_reason,
+            now=now,
+            gemini_env=gemini_form_env,
+        )
+        session.setdefault("data_room_gemini_form_refs", []).append(
+            {
+                "schema_version": "DATA_ROOM_GEMINI_FORM_ARTIFACT_REFS_V0",
+                "package_id": package.get("package_id", ""),
+                "review_session_id": package.get("review_session_id", ""),
+                "live_ready": False,
+                "blocked_reason": availability_reason,
+                "minimal_probe_attempted": False,
+                "minimal_probe_success": False,
+                "data_room_readiness_attempted": False,
+                "gemini_form_state_refs": dict(state.get("artifact_refs") or {}),
+                "external_model_invoked": False,
+                "confirmed_reference_data_created": False,
+                "runtime_policy_changed": False,
+            }
+        )
+        return f"Gemini Data Room form lane blocked: {availability_reason}. {gemini.safe_next_operator_step(availability_reason)}"
+    selected_model = gemini.model_label(gemini_form_env)
+    import openclaw_lm_consult_spine as consult_spine
+
+    probe = consult_spine.run_minimal_gemini_probe(
+        env=gemini_form_env,
+        model_label=selected_model,
+        transport=gemini_form_provider,
+        timeout_seconds=20,
+        generated_at_utc=now,
+    )
+    if not probe.get("success"):
+        reason = str(probe.get("status") or "blocked_provider_probe_failed")
+        state = _write_live_gemini_form_state(
+            session,
+            package=package,
+            result=None,
+            lane_status="blocked",
+            live_ready=False,
+            blocked_reason=reason,
+            now=now,
+            gemini_env=gemini_form_env,
+            provider_error=probe,
+            minimal_probe=probe,
+        )
+        session.setdefault("data_room_gemini_form_refs", []).append(
+            {
+                "schema_version": "DATA_ROOM_GEMINI_FORM_ARTIFACT_REFS_V0",
+                "package_id": package.get("package_id", ""),
+                "review_session_id": package.get("review_session_id", ""),
+                "live_ready": False,
+                "blocked_reason": reason,
+                "minimal_probe_attempted": bool(probe.get("probe_attempted")),
+                "minimal_probe_success": False,
+                "data_room_readiness_attempted": False,
+                "gemini_form_state_refs": dict(state.get("artifact_refs") or {}),
+                "external_model_invoked": bool(probe.get("probe_attempted")),
+                "confirmed_reference_data_created": False,
+                "runtime_policy_changed": False,
+            }
+        )
+        return f"Gemini Data Room form lane blocked: {reason}. {gemini.safe_next_operator_step(reason)}"
     try:
         result = gemini.call_gemini_data_room_form_turn(
             package,
@@ -2916,6 +2989,7 @@ def _activate_live_gemini_form_lane(
             now=now,
             gemini_env=gemini_form_env,
             provider_error=exc.validation,
+            minimal_probe=probe,
         )
         session.setdefault("data_room_gemini_form_refs", []).append(
             {
@@ -2924,8 +2998,11 @@ def _activate_live_gemini_form_lane(
                 "review_session_id": package.get("review_session_id", ""),
                 "live_ready": False,
                 "blocked_reason": exc.reason,
+                "minimal_probe_attempted": bool(probe.get("probe_attempted")),
+                "minimal_probe_success": bool(probe.get("success")),
+                "data_room_readiness_attempted": True,
                 "gemini_form_state_refs": dict(state.get("artifact_refs") or {}),
-                "external_model_invoked": False,
+                "external_model_invoked": True,
                 "confirmed_reference_data_created": False,
                 "runtime_policy_changed": False,
             }
@@ -2948,6 +3025,7 @@ def _activate_live_gemini_form_lane(
         blocked_reason="",
         now=now,
         gemini_env=gemini_form_env,
+        minimal_probe=probe,
     )
     session.setdefault("data_room_gemini_form_refs", []).append(
         {
@@ -2955,6 +3033,9 @@ def _activate_live_gemini_form_lane(
             "package_id": package.get("package_id", ""),
             "review_session_id": package.get("review_session_id", ""),
             "live_ready": True,
+            "minimal_probe_attempted": bool(probe.get("probe_attempted")),
+            "minimal_probe_success": bool(probe.get("success")),
+            "data_room_readiness_attempted": True,
             "gemini_form_state_refs": dict(state.get("artifact_refs") or {}),
             "turn_log_refs": log_refs,
             "last_gemini_request_id": state.get("last_gemini_request_id", ""),

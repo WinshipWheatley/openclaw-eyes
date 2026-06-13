@@ -23,7 +23,7 @@ from typing import Any, Callable, Mapping
 ENABLE_ENV = "OPENCLAW_ENABLE_LIVE_GEMINI_FORM"
 MODEL_ENV = "OPENCLAW_GEMINI_FORM_MODEL"
 GENERIC_MODEL_ENV = "OPENCLAW_GEMINI_MODEL"
-GEMINI_CREDENTIAL_ENVS = ("GEMINI_API_KEY", "GOOGLE_API_KEY", "GOOGLE_GENERATIVE_AI_API_KEY")
+GEMINI_CREDENTIAL_ENVS = ("GOOGLE_API_KEY", "GEMINI_API_KEY", "GOOGLE_GENERATIVE_AI_API_KEY")
 DEFAULT_MODEL_LABEL = ""
 GEMINI_GENERATE_CONTENT_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models"
 
@@ -155,6 +155,22 @@ def _credential_present(env: Mapping[str, str]) -> bool:
     return any(bool(str(env.get(name) or "").strip()) for name in GEMINI_CREDENTIAL_ENVS)
 
 
+def _credential_status(env: Mapping[str, str]) -> dict[str, Any]:
+    populated = [name for name in GEMINI_CREDENTIAL_ENVS if str(env.get(name) or "").strip()]
+    return {
+        "credential_present": bool(populated),
+        "credential_env_present_count": len(populated),
+        "credential_env_selected": populated[0] if populated else "",
+        "credential_env_populated_names": populated,
+        "credential_precedence": list(GEMINI_CREDENTIAL_ENVS),
+        "multiple_credential_vars_present": len(populated) > 1,
+        "credential_warning": (
+            "multiple credential vars present; provider precedence may be ambiguous" if len(populated) > 1 else ""
+        ),
+        "credential_value_logged": False,
+    }
+
+
 def _credential_value_from_env() -> str:
     for name in GEMINI_CREDENTIAL_ENVS:
         value = os.environ.get(name, "")
@@ -168,14 +184,15 @@ def is_live_gemini_form_available(env: Mapping[str, str] | None = None) -> dict[
 
     env = env or os.environ
     provider_enabled = _truthy(env.get(ENABLE_ENV))
-    credential_present = _credential_present(env)
+    credential = _credential_status(env)
+    credential_present = bool(credential.get("credential_present"))
     model_status = model_label_resolution(env)
     model_label_present = bool(model_status.get("effective_model_label"))
     model_label_mismatch = bool(model_status.get("model_label_mismatch"))
     return {
         "adapter_present": True,
         "provider_enabled": provider_enabled,
-        "credential_present": credential_present,
+        **credential,
         "model_label_present": model_label_present,
         **model_status,
         "available": bool(provider_enabled and credential_present and model_label_present and not model_label_mismatch),
@@ -224,6 +241,10 @@ def safe_next_operator_step(reason: str) -> str:
             "Gemini credential/config was accepted far enough to reach the provider, but the provider returned 429. "
             "Check quota/rate limits/model availability or wait and retry."
         )
+    if reason == "blocked_auth_or_project":
+        return "Check the approved Gemini key/project access without printing credential values, then retry one bounded probe."
+    if reason == "blocked_provider_bad_request":
+        return "Review the minimal Gemini probe request shape and model label, then retry one bounded probe."
     if reason == "blocked_model_label":
         return (
             "Set OPENCLAW_GEMINI_MODEL and OPENCLAW_GEMINI_FORM_MODEL to a Gemini model available to this "
@@ -525,12 +546,12 @@ def _perform_gemini_generate_content_call(
     if normalized_model.startswith("models/"):
         normalized_model = normalized_model[len("models/") :]
     model_path = urllib.parse.quote(normalized_model, safe="")
-    url = f"{GEMINI_GENERATE_CONTENT_BASE_URL}/{model_path}:generateContent?key={urllib.parse.quote(api_key, safe='')}"
+    url = f"{GEMINI_GENERATE_CONTENT_BASE_URL}/{model_path}:generateContent"
     data = json.dumps(request_body).encode("utf-8")
     request = urllib.request.Request(
         url,
         data=data,
-        headers={"Content-Type": "application/json"},
+        headers={"Content-Type": "application/json", "x-goog-api-key": api_key},
         method="POST",
     )
     try:
@@ -951,9 +972,11 @@ def build_data_room_gemini_form_session_state(
     codex_finalizer_status: str = "",
     model: str = "",
     provider_error: Mapping[str, Any] | None = None,
+    minimal_probe: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     package = package or {}
     result = result or {}
+    minimal_probe = dict(minimal_probe or {})
     provider_error = dict(provider_error or {})
     nested_provider_error = provider_error.get("validation")
     if isinstance(nested_provider_error, Mapping):
@@ -983,6 +1006,23 @@ def build_data_room_gemini_form_session_state(
         "lane_status": lane_status,
         "live_ready": bool(live_ready),
         "availability_check": availability,
+        "minimal_probe_attempted": bool(minimal_probe.get("probe_attempted")),
+        "minimal_probe_success": bool(minimal_probe.get("success")),
+        "minimal_probe_status": str(minimal_probe.get("status") or ""),
+        "minimal_probe_provider_reached": bool(minimal_probe.get("provider_reached")),
+        "minimal_probe_provider_status_code": minimal_probe.get("provider_status_code"),
+        "minimal_probe_provider_error_code": str(minimal_probe.get("provider_error_code") or ""),
+        "minimal_probe_provider_error_category": str(minimal_probe.get("provider_error_category") or ""),
+        "minimal_probe_provider_error_message_redacted": str(
+            minimal_probe.get("provider_error_message_redacted") or ""
+        ),
+        "minimal_probe_request_shape_version": str(
+            minimal_probe.get("request_shape_version") or "GEMINI_MINIMAL_PROBE_V1"
+        ),
+        "minimal_probe_structured_output_enabled": bool(minimal_probe.get("structured_output_enabled", False)),
+        "minimal_probe_raw_data_room_context_included": bool(
+            minimal_probe.get("raw_data_room_context_included", False)
+        ),
         "provider_status_code": provider_error.get("provider_status_code"),
         "provider_error_code": str(provider_error.get("provider_error_code") or ""),
         "provider_error_message_redacted": str(provider_error.get("provider_error_message_redacted") or ""),

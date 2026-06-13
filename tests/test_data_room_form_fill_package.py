@@ -228,6 +228,8 @@ def _fake_gemini_provider(
                 "timeout_seconds": timeout_seconds,
             }
         )
+        if request_payload.get("schema_version") == "GEMINI_MINIMAL_PROVIDER_PROBE_V0":
+            return {"candidates": [{"content": {"parts": [{"text": "ready"}]}}]}
         return {
             "candidates": [
                 {
@@ -639,9 +641,16 @@ def test_live_gemini_command_sends_readiness_only_after_live_call(tmp_path, monk
     assert response["reply_text"] == gemini.GEMINI_FORM_READINESS_NOTIFICATION
     assert calls and "tools" not in calls[0]["request_body"]
     assert "toolConfig" not in calls[0]["request_body"]
+    assert calls[0]["request_payload"]["schema_version"] == "GEMINI_MINIMAL_PROVIDER_PROBE_V0"
+    assert calls[0]["request_payload"]["data_room_context_included"] is False
+    assert "responseSchema" not in calls[0]["request_body"]["generationConfig"]
+    assert calls[1]["request_payload"]["schema_version"] == gemini.REQUEST_SCHEMA_VERSION
     assert session["data_room_gemini_form_session"]["live_ready"] is True
     assert session["data_room_gemini_form_session"]["active"] is True
     assert lane["live_ready"] is True
+    assert lane["minimal_probe_attempted"] is True
+    assert lane["minimal_probe_success"] is True
+    assert lane["minimal_probe_raw_data_room_context_included"] is False
     assert lane["review_session_id"] == start["review_session_id"]
     assert lane["external_action_allowed"] is False
     assert lane["runtime_mutation_allowed"] is False
@@ -695,9 +704,9 @@ def test_live_gemini_provider_400_blocks_notification_with_redacted_diagnostics(
                 "provider_error_category": "model_label",
                 "effective_model_label": GEMINI_TEST_MODEL,
                 "endpoint_family": "gemini_generate_content",
-                "structured_output_enabled": True,
-                "structured_output_mode": "native_schema",
-                "request_shape_version": "GEMINI_GENERATE_CONTENT_JSON_V1",
+                "structured_output_enabled": False,
+                "structured_output_mode": "none",
+                "request_shape_version": "GEMINI_MINIMAL_PROBE_V1",
                 "request_body_logged": False,
                 "credential_value_logged": False,
             },
@@ -718,12 +727,15 @@ def test_live_gemini_provider_400_blocks_notification_with_redacted_diagnostics(
     assert len(calls) == 1
     assert lane["live_ready"] is False
     assert lane["blocked_reason"] == "blocked_model_label"
+    assert lane["minimal_probe_attempted"] is True
+    assert lane["minimal_probe_success"] is False
     assert lane["provider_status_code"] == 400
     assert lane["provider_error_category"] == "model_label"
     assert lane["provider_error_code"] == "INVALID_ARGUMENT"
     assert lane["endpoint_family"] == "gemini_generate_content"
-    assert lane["structured_output_enabled"] is True
-    assert lane["structured_output_mode"] == "native_schema"
+    assert lane["structured_output_enabled"] is False
+    assert lane["structured_output_mode"] == "none"
+    assert lane["minimal_probe_request_shape_version"] == "GEMINI_MINIMAL_PROBE_V1"
     assert lane["request_body_logged"] is False
     assert lane["credential_value_logged"] is False
     assert "test-redacted" not in rendered
@@ -780,7 +792,7 @@ def test_live_gemini_eli5_turn_updates_chat_log_without_recording(tmp_path, monk
     turn_log = Path(lane["running_chat_log_ref"]).read_text(encoding="utf-8").strip().splitlines()
 
     assert response["reply_text"] == "Small version: choose a safe default."
-    assert len(calls) == 2
+    assert len(calls) == 3
     assert session["answer_records"] == []
     assert session["current_question_id"] == start["current_question_id"]
     assert len(turn_log) == 2
@@ -835,7 +847,7 @@ def test_live_gemini_answer_candidate_waits_for_winship_confirmation(tmp_path, m
     assert len(confirmed_session["answer_records"]) == 1
     assert confirmed_session["answer_records"][0]["schema_version"] == "REVIEW_ANSWER_V0"
     assert confirmed_session["answer_records"][0]["answer_source"] == "natural_candidate_confirmed"
-    assert len(calls) == 2
+    assert len(calls) == 3
     assert any(entry.get("confirmed_answer_id") for entry in log_entries)
 
 

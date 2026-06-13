@@ -397,6 +397,164 @@ def test_http_429_classifies_without_request_or_credential_leakage():
     assert validation["credential_value_logged"] is False
 
 
+def test_gemini_generate_content_request_uses_header_auth_not_query_param():
+    request = spine._build_gemini_generate_content_request(
+        api_key="test-redacted",
+        model_label=TEST_MODEL,
+        request_body={"contents": []},
+    )
+
+    assert "key=" not in request.full_url
+    assert request.get_header("X-goog-api-key") == "test-redacted"
+
+
+def test_minimal_gemini_probe_success_uses_no_schema_or_tools():
+    calls: list[dict] = []
+
+    def transport(*, request_payload: dict, request_body: dict, model_label: str, timeout_seconds: int) -> dict:
+        calls.append(
+            {
+                "request_payload": request_payload,
+                "request_body": request_body,
+                "model_label": model_label,
+                "timeout_seconds": timeout_seconds,
+            }
+        )
+        return {"candidates": [{"content": {"parts": [{"text": "ready"}]}}]}
+
+    result = spine.run_minimal_gemini_probe(
+        env={
+            "OPENCLAW_ENABLE_LM_CONSULTS": "1",
+            "OPENCLAW_LM_PROVIDER": "gemini",
+            "OPENCLAW_GEMINI_MODEL": TEST_MODEL,
+            "GEMINI_API_KEY": "test-redacted",
+        },
+        transport=transport,
+    )
+
+    assert result["success"] is True
+    assert result["status"] == "probe_succeeded"
+    assert result["probe_attempted"] is True
+    assert result["provider_reached"] is True
+    assert result["structured_output_enabled"] is False
+    assert result["raw_data_room_context_included"] is False
+    assert result["credential_env_selected"] == "GEMINI_API_KEY"
+    assert calls[0]["request_payload"]["schema_version"] == spine.GEMINI_MINIMAL_PROBE_SCHEMA_VERSION
+    assert calls[0]["request_payload"]["data_room_context_included"] is False
+    assert "responseSchema" not in calls[0]["request_body"]["generationConfig"]
+    assert "tools" not in calls[0]["request_body"]
+
+
+def test_gemini_credential_status_prefers_google_api_key_without_values():
+    status = spine.gemini_credential_status(
+        {
+            "GEMINI_API_KEY": "gemini-test-secret",
+            "GOOGLE_API_KEY": "google-test-secret",
+        }
+    )
+    rendered = json.dumps(status, sort_keys=True)
+
+    assert status["credential_present"] is True
+    assert status["credential_env_selected"] == "GOOGLE_API_KEY"
+    assert status["multiple_credential_vars_present"] is True
+    assert "multiple credential vars present" in status["credential_warning"]
+    assert "google-test-secret" not in rendered
+    assert "gemini-test-secret" not in rendered
+
+
+def test_minimal_gemini_probe_400_blocks_as_provider_bad_request():
+    def transport(**kwargs):
+        body = json.dumps(
+            {
+                "error": {
+                    "code": 400,
+                    "status": "INVALID_ARGUMENT",
+                    "message": "Bad request for minimal probe.",
+                }
+            }
+        ).encode("utf-8")
+        raise HTTPError("https://provider.invalid", 400, "Bad Request", {}, BytesIO(body))
+
+    result = spine.run_minimal_gemini_probe(
+        env={
+            "OPENCLAW_ENABLE_LM_CONSULTS": "1",
+            "OPENCLAW_LM_PROVIDER": "gemini",
+            "OPENCLAW_GEMINI_MODEL": TEST_MODEL,
+            "GEMINI_API_KEY": "test-redacted",
+        },
+        transport=transport,
+    )
+    rendered = json.dumps(result, sort_keys=True)
+
+    assert result["success"] is False
+    assert result["status"] == "blocked_provider_bad_request"
+    assert result["provider_status_code"] == 400
+    assert result["provider_error_category"] == "provider_http_error"
+    assert result["request_shape_version"] == spine.GEMINI_MINIMAL_PROBE_REQUEST_SHAPE_VERSION
+    assert "current_question" not in rendered
+    assert "test-redacted" not in rendered
+
+
+def test_minimal_gemini_probe_429_returns_rate_limited_category():
+    def transport(**kwargs):
+        body = json.dumps(
+            {
+                "error": {
+                    "code": 429,
+                    "status": "RESOURCE_EXHAUSTED",
+                    "message": "Prepayment credits are depleted.",
+                }
+            }
+        ).encode("utf-8")
+        raise HTTPError("https://provider.invalid", 429, "Too Many Requests", {}, BytesIO(body))
+
+    result = spine.run_minimal_gemini_probe(
+        env={
+            "OPENCLAW_ENABLE_LM_CONSULTS": "1",
+            "OPENCLAW_LM_PROVIDER": "gemini",
+            "OPENCLAW_GEMINI_MODEL": TEST_MODEL,
+            "GEMINI_API_KEY": "test-redacted",
+        },
+        transport=transport,
+    )
+
+    assert result["success"] is False
+    assert result["status"] == "blocked_provider_rate_limited"
+    assert result["provider_status_code"] == 429
+    assert result["provider_error_category"] == "rate_limited"
+    assert result["provider_error_code"] == "RESOURCE_EXHAUSTED"
+
+
+def test_minimal_gemini_probe_model_not_found_returns_model_label_category():
+    def transport(**kwargs):
+        body = json.dumps(
+            {
+                "error": {
+                    "code": 400,
+                    "status": "INVALID_ARGUMENT",
+                    "message": "models/gemini-3.5-flash is not found for API version v1beta.",
+                }
+            }
+        ).encode("utf-8")
+        raise HTTPError("https://provider.invalid", 400, "Bad Request", {}, BytesIO(body))
+
+    result = spine.run_minimal_gemini_probe(
+        env={
+            "OPENCLAW_ENABLE_LM_CONSULTS": "1",
+            "OPENCLAW_LM_PROVIDER": "gemini",
+            "OPENCLAW_GEMINI_MODEL": TEST_MODEL,
+            "GEMINI_API_KEY": "test-redacted",
+        },
+        transport=transport,
+    )
+
+    assert result["success"] is False
+    assert result["status"] == "blocked_model_label"
+    assert result["provider_status_code"] == 400
+    assert result["provider_error_category"] == "model_label"
+    assert "not found" in result["provider_error_message_redacted"]
+
+
 def test_http_404_classifies_as_model_label_block():
     exc = HTTPError("https://provider.invalid", 404, "Not Found", {}, BytesIO(b'{"error":"model not found"}'))
 
