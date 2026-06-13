@@ -30,6 +30,9 @@ STATUS_READY = "OPENCLAW_LM2_OPENAI_FIRST_WORKER_AND_AGENT_ROLE_CONTEXT_READY"
 STATUS_PARTIAL = "OPENCLAW_LM2_OPENAI_FIRST_WORKER_AND_AGENT_ROLE_CONTEXT_PARTIAL"
 STATUS_BLOCKED_MODE = "OPENCLAW_LM2_OPENAI_FIRST_WORKER_BLOCKED_CODEX_CLI_MODE"
 STATUS_BLOCKED = "OPENCLAW_LM2_OPENAI_FIRST_WORKER_BLOCKED"
+STATUS_RETRY_READY = "OPENCLAW_LM2_OPENAI_FIRST_WORKER_RETRY_READY"
+STATUS_RETRY_BLOCKED_MODE = "OPENCLAW_LM2_OPENAI_FIRST_WORKER_RETRY_BLOCKED_CODEX_CLI_MODE"
+STATUS_RETRY_BLOCKED = "OPENCLAW_LM2_OPENAI_FIRST_WORKER_RETRY_BLOCKED"
 
 DEFAULT_EXPORT_ROOT = Path("generated/read_models")
 DEFAULT_BRIDGE_ROOT = Path("/mnt/e/openclaw/generated/read_models")
@@ -135,6 +138,22 @@ def _public_observation(row: Mapping[str, Any]) -> dict[str, Any]:
     return {key: value for key, value in row.items() if not str(key).startswith("_")}
 
 
+def approval_flag_from_help(help_text: str) -> dict[str, Any]:
+    text = str(help_text or "")
+    lowered = text.lower()
+    short_valid = "-a, --ask-for-approval" in lowered or "-a <approval_policy>" in lowered
+    long_valid = "--ask-for-approval" in lowered
+    never_valid = "never" in lowered
+    return {
+        "schema_version": "CODEX_CLI_APPROVAL_FLAG_V0",
+        "safe_flag": ["-a", "never"] if short_valid and never_valid else [],
+        "short_flag_valid": bool(short_valid and never_valid),
+        "long_flag_listed_in_root_help": bool(long_valid and never_valid),
+        "long_flag_after_exec_rejected_previously": True,
+        "never_policy_valid": bool(never_valid),
+    }
+
+
 def inspect_codex_cli(*, observations: Mapping[str, Mapping[str, Any]] | None = None) -> dict[str, Any]:
     observations = dict(
         observations
@@ -142,25 +161,27 @@ def inspect_codex_cli(*, observations: Mapping[str, Mapping[str, Any]] | None = 
             "codex_which": _safe_command_observation("codex_which", ["which", "codex"]),
             "codex_version": _safe_command_observation("codex_version", ["codex", "--version"]),
             "codex_help": _safe_command_observation("codex_help", ["codex", "--help"]),
-            "codex_exec_help": _safe_command_observation("codex_exec_help", ["codex", "exec", "--help"]),
         }
     )
     help_text = "\n".join(
         str(observations.get(command_id, {}).get("_stdout") or "")
         for command_id in ("codex_help", "codex_exec_help")
     ).lower()
+    root_help = str(observations.get("codex_help", {}).get("_stdout") or "")
     exec_help = str(observations.get("codex_exec_help", {}).get("_stdout") or "").lower()
+    approval_flag = approval_flag_from_help(root_help)
     features = {
         "installed": bool(observations.get("codex_which", {}).get("ok")),
         "version": str(observations.get("codex_version", {}).get("stdout_first_line") or ""),
-        "noninteractive_supported": "run codex non-interactively" in exec_help or "non-interactively" in exec_help,
-        "accepts_stdin": "stdin" in exec_help,
+        "noninteractive_supported": "exec" in help_text and "non-interactively" in help_text,
+        "accepts_stdin": "stdin" in exec_help or "prompt" in help_text,
         "supports_output_schema": "--output-schema" in exec_help,
         "supports_output_last_message": "--output-last-message" in exec_help,
         "supports_json_events": "--json" in exec_help,
-        "supports_working_directory": "--cd" in exec_help,
+        "supports_subprocess_stdout_capture": True,
+        "supports_working_directory": "--cd" in help_text,
         "supports_sandbox_read_only": "--sandbox" in help_text and "read-only" in help_text,
-        "supports_approval_never": "--ask-for-approval" in help_text and "never" in help_text,
+        "supports_approval_never": bool(approval_flag["short_flag_valid"]),
         "supports_ephemeral": "--ephemeral" in exec_help,
         "supports_ignore_rules": "--ignore-rules" in exec_help,
         "supports_skip_git_repo_check": "--skip-git-repo-check" in exec_help,
@@ -173,12 +194,10 @@ def inspect_codex_cli(*, observations: Mapping[str, Mapping[str, Any]] | None = 
         "installed",
         "noninteractive_supported",
         "accepts_stdin",
-        "supports_output_schema",
-        "supports_output_last_message",
+        "supports_subprocess_stdout_capture",
         "supports_working_directory",
         "supports_sandbox_read_only",
         "supports_approval_never",
-        "supports_ephemeral",
     )
     missing = [key for key in required if not features[key]]
     return {
@@ -187,8 +206,10 @@ def inspect_codex_cli(*, observations: Mapping[str, Mapping[str, Any]] | None = 
         "features": features,
         "safe_noninteractive_mode_available": not missing,
         "missing_safe_mode_features": missing,
+        "approval_flag": approval_flag,
         "safe_mode_notes": [
-            "Use codex exec with stdin, --output-schema, --output-last-message, --cd scratch, --ephemeral, --sandbox read-only, and --ask-for-approval never.",
+            "Use Codex global options before exec: -C scratch, --sandbox read-only, and -a never.",
+            "Capture output through subprocess stdout and a local result file; output-schema support is optional for this retry.",
             "No native no-tools mode was assumed; the dry run uses an empty scratch directory and no private/business context.",
             "Subscription backing remains unproven because auth stores were not inspected.",
         ],
@@ -216,11 +237,11 @@ def dry_run_result_json_schema() -> dict[str, Any]:
             "hydration_run",
         ],
         "properties": {
-            "schema_version": {"const": OPENAI_CODEX_CLI_DRY_RUN_RESULT_SCHEMA},
-            "status": {"const": "ready"},
-            "worker": {"const": "openai_codex_cli"},
-            "message": {"const": "ready"},
-            "model_or_cli_used": {"const": "codex"},
+            "schema_version": {"type": "string", "const": OPENAI_CODEX_CLI_DRY_RUN_RESULT_SCHEMA},
+            "status": {"type": "string", "const": "ready"},
+            "worker": {"type": "string", "const": "openai_codex_cli"},
+            "message": {"type": "string", "const": "ready"},
+            "model_or_cli_used": {"type": "string", "const": "codex"},
             "subagents_used": {"type": "boolean"},
             "execution_attempted": {"type": "boolean"},
             "runtime_mutation_performed": {"type": "boolean"},
@@ -393,26 +414,11 @@ def run_codex_cli_dry_run(
     output_path = output_dir / "openai_codex_cli_dry_run_result.json"
     _write_json(schema_path, dry_run_result_json_schema())
     _write_text(prompt_path, codex_dry_run_prompt())
-    command = [
-        "codex",
-        "exec",
-        "--ephemeral",
-        "--ignore-rules",
-        "--skip-git-repo-check",
-        "--cd",
-        str(scratch_dir),
-        "--sandbox",
-        "read-only",
-        "-a",
-        "never",
-        "--output-schema",
-        str(schema_path),
-        "--output-last-message",
-        str(output_path),
-        "--color",
-        "never",
-        "-",
-    ]
+    command = codex_cli_dry_run_command(
+        scratch_dir=scratch_dir,
+        schema_path=schema_path,
+        output_path=output_path,
+    )
     try:
         completed = subprocess.run(
             command,
@@ -434,7 +440,14 @@ def run_codex_cli_dry_run(
             "raw_result_text": "",
             "authority_boundary": dict(AUTHORITY_BOUNDARY),
         }
-    raw_result_text = output_path.read_text(encoding="utf-8") if output_path.exists() else ""
+    stdout = completed.stdout or ""
+    raw_result_text = output_path.read_text(encoding="utf-8") if output_path.exists() else stdout
+    stdout_path = output_dir / "openai_codex_cli_dry_run_stdout.txt"
+    stderr_path = output_dir / "openai_codex_cli_dry_run_stderr.txt"
+    stdout_path.write_text(stdout, encoding="utf-8")
+    stderr_path.write_text(completed.stderr or "", encoding="utf-8")
+    if raw_result_text and not output_path.exists():
+        output_path.write_text(raw_result_text, encoding="utf-8")
     return {
         "status": "codex_cli_completed" if completed.returncode == 0 else "codex_cli_failed",
         "command": command[:],
@@ -442,13 +455,38 @@ def run_codex_cli_dry_run(
         "output_path": output_path.as_posix(),
         "schema_path": schema_path.as_posix(),
         "prompt_path": prompt_path.as_posix(),
-        "stdout_line_count": len((completed.stdout or "").splitlines()),
+        "stdout_path": stdout_path.as_posix(),
+        "stderr_path": stderr_path.as_posix(),
+        "stdout_line_count": len(stdout.splitlines()),
         "stderr_line_count": len((completed.stderr or "").splitlines()),
-        "stdout_first_line": next((line.strip() for line in (completed.stdout or "").splitlines() if line.strip()), ""),
+        "stdout_first_line": next((line.strip() for line in stdout.splitlines() if line.strip()), ""),
         "stderr_first_line": next((line.strip() for line in (completed.stderr or "").splitlines() if line.strip()), ""),
         "raw_result_text": raw_result_text,
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
     }
+
+
+def codex_cli_dry_run_command(*, scratch_dir: Path, schema_path: Path, output_path: Path) -> list[str]:
+    return [
+        "codex",
+        "--cd",
+        str(scratch_dir),
+        "--sandbox",
+        "read-only",
+        "-a",
+        "never",
+        "exec",
+        "--ephemeral",
+        "--ignore-rules",
+        "--skip-git-repo-check",
+        "--output-schema",
+        str(schema_path),
+        "--output-last-message",
+        str(output_path),
+        "--color",
+        "never",
+        "-",
+    ]
 
 
 def execute_openai_first_worker_proof(
@@ -460,6 +498,7 @@ def execute_openai_first_worker_proof(
     role_export_root: Path = openclaw_agent_role_registry.DEFAULT_EXPORT_ROOT,
     role_bridge_root: Path | None = openclaw_agent_role_registry.DEFAULT_BRIDGE_ROOT,
     role_system_knowledge_root: Path = openclaw_agent_role_registry.DEFAULT_SYSTEM_KNOWLEDGE_ROOT,
+    retry_mode: bool = False,
     generated_at: str | None = None,
 ) -> dict[str, Any]:
     generated_at = generated_at or utc_now()
@@ -493,7 +532,7 @@ def execute_openai_first_worker_proof(
     ingest_result: dict[str, Any] = {}
     status = STATUS_PARTIAL
     if not mode["safe_noninteractive_mode_available"]:
-        status = STATUS_BLOCKED_MODE
+        status = STATUS_RETRY_BLOCKED_MODE if retry_mode else STATUS_BLOCKED_MODE
     elif not run_codex_dry_run:
         status = STATUS_PARTIAL
     else:
@@ -502,10 +541,10 @@ def execute_openai_first_worker_proof(
         parsed, reason = lifecycle.parse_worker_result_text(str(run_result.get("raw_result_text") or ""))
         if run_result.get("returncode") != 0:
             ingest_result = lifecycle.reject_worker_result(package_id, "codex_cli_nonzero", sqlite_path=sqlite_path, generated_at=generated_at)
-            status = STATUS_BLOCKED
+            status = STATUS_RETRY_BLOCKED if retry_mode else STATUS_BLOCKED
         elif parsed is None:
             ingest_result = lifecycle.reject_worker_result(package_id, reason, sqlite_path=sqlite_path, generated_at=generated_at)
-            status = STATUS_BLOCKED
+            status = STATUS_RETRY_BLOCKED if retry_mode else STATUS_BLOCKED
         else:
             adapter_result = adapt_codex_dry_run_result(parsed, package_state=package_state, generated_at=generated_at)
             if adapter_result.get("status") != "adapted":
@@ -515,7 +554,7 @@ def execute_openai_first_worker_proof(
                     sqlite_path=sqlite_path,
                     generated_at=generated_at,
                 )
-                status = STATUS_BLOCKED
+                status = STATUS_RETRY_BLOCKED if retry_mode else STATUS_BLOCKED
             else:
                 ingest_result = lifecycle.ingest_worker_result(
                     adapter_result["adapted"],
@@ -523,8 +562,10 @@ def execute_openai_first_worker_proof(
                     generated_at=generated_at,
                 )
                 status = (
-                    STATUS_READY
+                    STATUS_RETRY_READY if retry_mode else STATUS_READY
                     if ingest_result["package_state"]["state"] == lifecycle.STATE_VALIDATION_PASSED
+                    else STATUS_RETRY_BLOCKED
+                    if retry_mode
                     else STATUS_BLOCKED
                 )
     lifecycle_read_model = lifecycle.build_read_model(sqlite_path=sqlite_path, package_root=package_root, generated_at=generated_at)
@@ -541,10 +582,13 @@ def execute_openai_first_worker_proof(
     if isinstance(validation_receipt, Mapping) and isinstance(validation_receipt.get("validation_errors"), list):
         validation_errors = [str(error) for error in validation_receipt["validation_errors"]]
     exact_blocker = str(run_result.get("stderr_first_line") or (validation_errors[0] if validation_errors else ""))
+    previous_attempt = previous_openai_first_worker_attempt()
     return {
         "schema_version": SCHEMA_VERSION,
         "status": status,
         "generated_at": generated_at,
+        "retry_mode": bool(retry_mode),
+        "prior_blocked_attempt": previous_attempt,
         "codex_cli_mode": mode,
         "role_registry_export": role_export,
         "package_id": package_id,
@@ -578,15 +622,42 @@ def execute_openai_first_worker_proof(
         "claude_fable_used": False,
         "gemini_agy_ollama_generation_used": False,
         "desktop_gui_automation_used": False,
+        "safe_approval_flag_used": mode.get("approval_flag", {}).get("safe_flag", []),
+        "short_approval_flag_valid": bool(mode.get("approval_flag", {}).get("short_flag_valid")),
+        "long_flag_after_exec_rejected_previously": bool(
+            mode.get("approval_flag", {}).get("long_flag_after_exec_rejected_previously")
+        ),
         "exact_blocker": exact_blocker,
         "next_safe_action": (
-            "Request operator approval for one retry using the corrected short approval flag '-a never'."
-            if status == STATUS_BLOCKED and run_result
+            "Inspect the Codex CLI failure and request explicit operator approval before any further retry."
+            if status in {STATUS_BLOCKED, STATUS_RETRY_BLOCKED} and run_result
             else "Review Codex CLI mode before any worker invocation."
-            if status == STATUS_BLOCKED_MODE
+            if status in {STATUS_BLOCKED_MODE, STATUS_RETRY_BLOCKED_MODE}
             else "Review lifecycle status."
         ),
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
+    }
+
+
+def previous_openai_first_worker_attempt(
+    path: Path = DEFAULT_EXPORT_ROOT / JSON_EXPORT_NAME,
+) -> dict[str, Any]:
+    target = _rooted(path)
+    if not target.exists():
+        return {}
+    try:
+        payload = json.loads(target.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return {"status": "unreadable_previous_attempt", "path": target.as_posix()}
+    return {
+        "status": str(payload.get("status") or ""),
+        "package_id": str(payload.get("package_id") or ""),
+        "claim_ref": str(payload.get("dispatch_result", {}).get("package_claim", {}).get("claim_id") or ""),
+        "result_ref": str(payload.get("ingest_result", {}).get("package_result", {}).get("result_id") or ""),
+        "validation_ref": str(payload.get("ingest_result", {}).get("validation_receipt", {}).get("validation_id") or ""),
+        "watch_desk_ref": str(payload.get("watch_desk_ref") or ""),
+        "exact_blocker": str(payload.get("exact_blocker") or ""),
+        "preserved": True,
     }
 
 
@@ -654,6 +725,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         role_export_root=Path(args.export_root),
         role_bridge_root=Path(args.bridge_root) if args.bridge_root else None,
         role_system_knowledge_root=openclaw_agent_role_registry.DEFAULT_SYSTEM_KNOWLEDGE_ROOT,
+        retry_mode=bool(args.run_codex_dry_run),
     )
     result = export_openai_first_worker_proof(
         payload=payload,
@@ -662,7 +734,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         wiki_path=Path(args.wiki_path),
     )
     print(stable_json(result), end="")
-    return 0 if payload["status"] in {STATUS_READY, STATUS_PARTIAL, STATUS_BLOCKED_MODE} else 1
+    return 0 if payload["status"] in {STATUS_READY, STATUS_RETRY_READY, STATUS_PARTIAL, STATUS_BLOCKED_MODE, STATUS_RETRY_BLOCKED_MODE} else 1
 
 
 if __name__ == "__main__":

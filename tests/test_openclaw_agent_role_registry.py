@@ -153,11 +153,71 @@ def test_codex_cli_mode_detection_uses_safe_noninteractive_controls():
     assert mode["safe_noninteractive_mode_available"] is True
     assert mode["features"]["noninteractive_supported"] is True
     assert mode["features"]["accepts_stdin"] is True
-    assert mode["features"]["supports_output_schema"] is True
-    assert mode["features"]["supports_output_last_message"] is True
+    assert mode["features"]["supports_subprocess_stdout_capture"] is True
     assert mode["features"]["supports_sandbox_read_only"] is True
     assert mode["features"]["supports_approval_never"] is True
+    assert mode["approval_flag"]["safe_flag"] == ["-a", "never"]
+    assert mode["approval_flag"]["short_flag_valid"] is True
     assert mode["features"]["auth_store_inspected"] is False
+
+
+def test_codex_cli_command_builder_uses_verified_short_approval_flag(tmp_path):
+    command = openai_proof.codex_cli_dry_run_command(
+        scratch_dir=tmp_path / "scratch",
+        schema_path=tmp_path / "schema.json",
+        output_path=tmp_path / "result.json",
+    )
+
+    assert "--ask-for-approval" not in command
+    assert command[command.index("-a") + 1] == "never"
+    assert command.index("-a") < command.index("exec")
+    assert command[command.index("--sandbox") + 1] == "read-only"
+    assert command[command.index("--cd") + 1] == str(tmp_path / "scratch")
+
+
+def test_dry_run_output_schema_declares_types_for_const_fields():
+    schema = openai_proof.dry_run_result_json_schema()
+
+    for field in ("schema_version", "status", "worker", "message", "model_or_cli_used"):
+        assert schema["properties"][field]["type"] == "string"
+        assert schema["properties"][field]["const"]
+
+
+def test_bad_long_approval_flag_after_exec_is_not_used_in_retry_command(tmp_path):
+    previous_bad_command = ["codex", "exec", "--ask-for-approval", "never"]
+    retry_command = openai_proof.codex_cli_dry_run_command(
+        scratch_dir=tmp_path / "scratch",
+        schema_path=tmp_path / "schema.json",
+        output_path=tmp_path / "result.json",
+    )
+
+    assert previous_bad_command.index("--ask-for-approval") > previous_bad_command.index("exec")
+    assert "--ask-for-approval" not in retry_command
+    assert retry_command.index("-a") < retry_command.index("exec")
+
+
+def test_previous_blocked_attempt_is_preserved(tmp_path):
+    previous = {
+        "status": "OPENCLAW_LM2_OPENAI_FIRST_WORKER_BLOCKED",
+        "package_id": "codex_work_package:previous",
+        "dispatch_result": {"package_claim": {"claim_id": "codex_work_package_claim:previous"}},
+        "ingest_result": {
+            "package_result": {"result_id": "codex_work_package_result:previous"},
+            "validation_receipt": {"validation_id": "codex_work_package_validation:previous"},
+        },
+        "watch_desk_ref": "codex_work_package:previous",
+        "exact_blocker": "error: unexpected argument '--ask-for-approval' found",
+    }
+    path = tmp_path / "previous.json"
+    path.write_text(json.dumps(previous), encoding="utf-8")
+
+    preserved = openai_proof.previous_openai_first_worker_attempt(path)
+
+    assert preserved["preserved"] is True
+    assert preserved["package_id"] == "codex_work_package:previous"
+    assert preserved["claim_ref"] == "codex_work_package_claim:previous"
+    assert preserved["result_ref"] == "codex_work_package_result:previous"
+    assert preserved["validation_ref"] == "codex_work_package_validation:previous"
 
 
 def test_synthetic_codex_result_schema_can_be_adapted_and_ingested(tmp_path):
