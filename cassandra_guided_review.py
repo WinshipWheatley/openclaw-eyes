@@ -1411,7 +1411,7 @@ def _parse_utc_timestamp(value: str) -> datetime | None:
 
 def _active_pending_interaction(session: Mapping[str, Any], *, now: str) -> dict[str, Any]:
     pending = session.get("pending_interaction")
-    if not isinstance(pending, Mapping) or pending.get("kind") not in {"topic_switch", "answer_candidate"}:
+    if not isinstance(pending, Mapping) or pending.get("kind") not in {"topic_switch", "answer_candidate", "condition_request"}:
         return {}
     if int(pending.get("turns_remaining") or 0) <= 0:
         return {}
@@ -1587,6 +1587,34 @@ def _candidate_from_condition(raw_text: str, condition_text: str) -> str:
     if normalized in {"sometimes", "it depends", "depends", "case by case"}:
         return ""
     return text
+
+
+def _set_pending_condition_request(
+    session: dict[str, Any],
+    *,
+    source_intent: Mapping[str, Any],
+    current_question_id: str,
+    now: str,
+    surface: str,
+) -> dict[str, Any]:
+    pending_id = "pending_condition_request:" + _short_hash(
+        session.get("review_session_id", ""),
+        current_question_id,
+        now,
+    )
+    pending = {
+        "kind": "condition_request",
+        "pending_interaction_id": pending_id,
+        "current_question_id": current_question_id,
+        "created_at_utc": now,
+        "surface": surface,
+        "turns_remaining": 3,
+        "source_intent": dict(source_intent),
+        "authoritative": False,
+        "runtime_policy_changed": False,
+    }
+    session["pending_interaction"] = pending
+    return pending
 
 
 def _set_pending_answer_candidate(
@@ -2029,6 +2057,44 @@ def _handle_pending_interaction(
         if natural_kind in {"ask_explanation", "ask_eli5", "ask_analogy", "ask_examples", "ask_recommendation"}:
             question = _question_by_id(session, current_question_id)
             return _natural_explanation_reply(session, question or {}, natural_kind)
+    if pending.get("kind") == "condition_request":
+        current_question_id = str(pending.get("current_question_id") or session.get("current_question_id") or "")
+        natural_kind = str(natural_intent.get("intent") or "")
+        if natural_kind == "conditional_answer":
+            candidate = _candidate_from_condition(raw_text, str(natural_intent.get("condition_text") or ""))
+            if candidate:
+                pending_candidate = _set_pending_answer_candidate(
+                    session,
+                    candidate_text=candidate,
+                    source_intent=natural_intent,
+                    current_question_id=current_question_id,
+                    now=now,
+                    surface=surface,
+                )
+                _append_pending_interaction_event(
+                    session,
+                    command="pending_condition_candidate_created",
+                    question_id=current_question_id,
+                    now=now,
+                    answer_recorded=False,
+                )
+                return _candidate_prompt(str(pending_candidate.get("candidate_text") or candidate))
+            return "What condition should decide it?"
+        if natural_kind in {"ask_explanation", "ask_eli5", "ask_analogy", "ask_examples", "ask_recommendation"}:
+            question = _question_by_id(session, current_question_id)
+            return f"{_natural_explanation_reply(session, question or {}, natural_kind)}\nWhat condition should decide it?"
+        if natural_kind == "confirm_candidate":
+            return "Yes to what? Tell me the condition first."
+        if natural_kind == "reject_candidate":
+            session["pending_interaction"] = {}
+            _append_pending_interaction_event(
+                session,
+                command="pending_condition_declined",
+                question_id=current_question_id,
+                now=now,
+                answer_recorded=False,
+            )
+            return _format_question_reply(session, prefix="Okay. I did not record a conditional answer.")
 
     intent = _pending_reply_intent(raw_text)
     original = str(pending.get("original_utterance") or "")
@@ -3673,6 +3739,20 @@ def process_guided_review_message(
                 elif natural_kind == "conditional_answer":
                     candidate = _candidate_from_condition(raw_text, str(natural_intent.get("condition_text") or ""))
                     if not candidate:
+                        _set_pending_condition_request(
+                            session,
+                            source_intent=natural_intent,
+                            current_question_id=str(question.get("question_id") or ""),
+                            now=now,
+                            surface=surface,
+                        )
+                        _append_pending_interaction_event(
+                            session,
+                            command="pending_condition_requested",
+                            question_id=str(question.get("question_id") or ""),
+                            now=now,
+                            answer_recorded=False,
+                        )
                         reply = "What condition should decide it?"
                     else:
                         pending_candidate = _set_pending_answer_candidate(

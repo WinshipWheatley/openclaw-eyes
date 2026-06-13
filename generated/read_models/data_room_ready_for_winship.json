@@ -1,0 +1,87 @@
+{
+  "active_session_id": "data_room_review:badad6523a5a22f458b8",
+  "active_session_status": "active",
+  "current_question": {
+    "answer_status": "unanswered",
+    "category": "identity/persona policy",
+    "question_id": "review_question:7192be9cf0b013080319",
+    "question_text": "Which payment/contact details are trust-gated? Context: Operator note does not define which payment or contact details are trust-gated."
+  },
+  "exact_instruction_for_winship": "Open Cassandra Telegram and say: continue Data Room",
+  "fallback_status": {
+    "candidate_answers_require_confirmation": true,
+    "context_switchboard_detours_tested": true,
+    "deterministic_coach_ready": true,
+    "explanation_turns_record_answers": false,
+    "natural_reply_grammar_ready": true,
+    "uncertainty_turns_record_answers": false
+  },
+  "generated_at_utc": "2026-06-13T17:54:32+00:00",
+  "go_signal_for_prompt_2": false,
+  "live_lm_status": {
+    "chatgpt55_blocked_reason": "blocked_provider_disabled",
+    "chatgpt55_live_ready": false,
+    "gemini_blocked_reason": "blocked_provider_rate_limited",
+    "gemini_live_ready": false,
+    "gemini_provider_error_code": "RESOURCE_EXHAUSTED",
+    "gemini_provider_status_code": 429,
+    "live_ready": false,
+    "lm_consult_blocked_reason": "blocked_provider_rate_limited",
+    "lm_consult_provider": "gemini"
+  },
+  "lm2_small_readonly_review_recommended": false,
+  "next_safe_action": "Winship can continue the Data Room guided review with Cassandra using the deterministic coach while live LM providers remain blocked/unavailable.",
+  "notification": {
+    "channel": "cassandra_telegram",
+    "mode": "safe_deterministic_fallback",
+    "sent": true,
+    "text": "I’m here. I have the Data Room form and I’m ready to help you fill it out safely. The live LM brain is not connected yet, so I’ll use the local deterministic coach until that provider is available."
+  },
+  "progress": {
+    "active_answer_count": 2,
+    "deferred_count": 0,
+    "remaining_count": 21,
+    "total_questions": 23
+  },
+  "prompt_2_should_run": false,
+  "readiness_status": "safe_deterministic_fallback_ready",
+  "safety_confirmation": {
+    "authoritative": false,
+    "confirmed_reference_data_created": false,
+    "external_business_systems_touched": false,
+    "guardian_approval_created": false,
+    "hydration_status": "OPENCLAW_REFERENCE_DATA_HYDRATION_BLOCKED_NO_CONFIRMED_DATA",
+    "invoice_or_ledger_mutated": false,
+    "provider_generation_invoked_in_this_run": false,
+    "runtime_policy_changed": false
+  },
+  "schema_version": "OPENCLAW_DATA_ROOM_READY_FOR_WINSHIP_V0",
+  "smoke_result": {
+    "candidate_confirmation_recorded_only_candidate": true,
+    "conditional_followup_preserved_pending_state": true,
+    "confirmed_reference_data_created": false,
+    "explanation_and_uncertainty_recorded_answers": false,
+    "hydration_run": false,
+    "local_disposable_smoke": "passed",
+    "messages_checked": [
+      "continue Data Room",
+      "ELI5",
+      "what does that mean exactly?",
+      "I don't know",
+      "no, but maybe keep direct deposit manual-only unless a trusted client specifically asks for it",
+      "yes that's right",
+      "it depends",
+      "only for trusted clients",
+      "yes that's right"
+    ]
+  },
+  "status": "OPENCLAW_DATA_ROOM_READY_FOR_WINSHIP_SAFE_FALLBACK_NOTIFIED",
+  "topic": "data_room_reference_review",
+  "topic_display_name": "OpenClaw Data Room / Reference Data Review",
+  "watch_desk_refs": [
+    "data_room_gemini_form:data_room_review:badad6523a5a22f458b8",
+    "data_room_live_chatgpt55:data_room_review:badad6523a5a22f458b8",
+    "lm_consult_spine:gemini:blocked",
+    "guided_review:data_room_review:badad6523a5a22f458b8"
+  ]
+}

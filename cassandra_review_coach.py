@@ -138,7 +138,14 @@ def parse_natural_reply_intent(text: str, pending_interaction: Mapping[str, Any]
     elif normalized in rejection_phrases:
         intent = "reject_candidate"
         confidence = 0.9
-    elif normalized in {"eli5", "explain like i'm five", "explain like im five", "explain simply"}:
+    elif normalized in {
+        "eli5",
+        "explain it like i'm five",
+        "explain it like im five",
+        "explain like i'm five",
+        "explain like im five",
+        "explain simply",
+    }:
         intent = "ask_eli5"
         confidence = 0.95
     elif "analogy" in normalized:
@@ -150,13 +157,22 @@ def parse_natural_reply_intent(text: str, pending_interaction: Mapping[str, Any]
     elif normalized in {
         "what do you recommend",
         "what would you recommend",
+        "what do you think",
+        "what do you think?",
+        "hmm what do you think",
+        "hmm what do you think?",
+        "what would you do",
         "what would a normal small business do",
         "what should i do",
+        "i don't know",
+        "i dont know",
     }:
         intent = "ask_recommendation"
         confidence = 0.9
     elif normalized in {
         "what does that mean",
+        "what does that mean exactly",
+        "what does that mean exactly?",
         "help me understand",
         "why does this matter",
         "what could go wrong",
@@ -166,7 +182,7 @@ def parse_natural_reply_intent(text: str, pending_interaction: Mapping[str, Any]
     elif normalized in {"skip", "skip this", "skip question", "next", "next question"}:
         intent = "skip"
         confidence = 0.95
-    elif normalized in {"defer", "defer this", "defer question", "i don't know", "i dont know"}:
+    elif normalized in {"defer", "defer this", "defer question"}:
         intent = "defer"
         confidence = 0.85
     elif normalized in {"done", "finish", "complete", "that's all", "thats all"}:

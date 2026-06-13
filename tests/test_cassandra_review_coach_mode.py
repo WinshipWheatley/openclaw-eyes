@@ -649,16 +649,60 @@ def test_bare_conditional_answer_asks_for_condition_without_recording(tmp_path):
 
     assert response["reply_text"] == "What condition should decide it?"
     assert session["current_question_id"] == start["current_question_id"]
+    assert session["pending_interaction"]["kind"] == "condition_request"
     assert session["answer_records"] == []
     assert session["receipt_refs"] == []
+
+
+def test_pending_condition_request_accepts_condition_then_requires_confirmation(tmp_path):
+    start = _start(tmp_path)
+    first_question_id = start["current_question_id"]
+
+    guided.process_guided_review_message(
+        "it depends",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:01:00+00:00",
+    )
+
+    candidate = guided.process_guided_review_message(
+        "only for trusted clients",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:02:00+00:00",
+    )
+    candidate_session = _load_session(candidate)
+
+    assert "Should I record this as: only for trusted clients?" in candidate["reply_text"]
+    assert candidate_session["pending_interaction"]["kind"] == "answer_candidate"
+    assert candidate_session["pending_interaction"]["candidate_text"] == "only for trusted clients"
+    assert candidate_session["current_question_id"] == first_question_id
+    assert candidate_session["answer_records"] == []
+    assert candidate_session["receipt_refs"] == []
+
+    confirmed = guided.process_guided_review_message(
+        "yes that's right",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:03:00+00:00",
+    )
+    session = _load_session(confirmed)
+
+    assert session["pending_interaction"] == {}
+    assert session["answer_records"][0]["raw_answer_text"] == "only for trusted clients"
+    assert session["answer_records"][0]["question_id"] == first_question_id
 
 
 @pytest.mark.parametrize(
     "text,expected",
     [
         ("eli5", "ELI5"),
+        ("explain it like I’m five", "ELI5"),
         ("give me an analogy", "Analogy"),
         ("what does that mean?", "My recommendation:"),
+        ("what does that mean exactly?", "My recommendation:"),
+        ("hmm what do you think?", "My recommendation:"),
+        ("I don't know", "My recommendation:"),
         ("examples", "Example answers:"),
     ],
 )
