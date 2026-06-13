@@ -1,7 +1,70 @@
 {
-  "adapter_result": {},
-  "api_billing_used": "unknown_not_proven",
-  "assignment_loop_ref": "assignment_loop:030ddcbd24d5aafe",
+  "adapter_result": {
+    "adapted": {
+      "authority_grant_ref": "no_runtime_authority:6a1442ce195eec6a",
+      "blocker_summary": "",
+      "capability_status": "test_dry_run_ready",
+      "commands_run": [
+        "codex exec bounded synthetic dry run"
+      ],
+      "commit_hash": "",
+      "confirmed_reference_data_created": false,
+      "denied_actions_reported": [],
+      "external_business_action_performed": false,
+      "files_changed": [],
+      "hydration_run": false,
+      "introduced_strings": [],
+      "model_or_cli_used": "codex",
+      "openai_codex_cli_dry_run_result": {
+        "confirmed_reference_data_created": false,
+        "execution_attempted": false,
+        "external_business_action_performed": false,
+        "hydration_run": false,
+        "message": "ready",
+        "model_or_cli_used": "codex",
+        "runtime_mutation_performed": false,
+        "schema_version": "OPENAI_CODEX_CLI_DRY_RUN_RESULT_V0",
+        "status": "ready",
+        "subagents_used": false,
+        "worker": "openai_codex_cli"
+      },
+      "package_id": "codex_work_package:480219d70c30c571",
+      "receipt_refs": [
+        "openai_codex_cli_dry_run:synthetic_noop"
+      ],
+      "runtime_mutation_performed": false,
+      "schema_version": "CODEX_WORK_PACKAGE_RESULT_V0",
+      "status": "completed",
+      "subagents_used": false,
+      "submitted_at": "2026-06-13T17:15:29+00:00",
+      "unsafe_scan_summary": {
+        "hits": [],
+        "passed": true
+      },
+      "validation_run": [
+        "git diff --check"
+      ],
+      "worker_kind": "openai_codex_cli"
+    },
+    "authority_boundary": {
+      "claude_fable_used": false,
+      "confirmed_reference_data_created": false,
+      "desktop_gui_automation_performed": false,
+      "direct_openai_api_call_performed": false,
+      "external_business_action_performed": false,
+      "gemini_agy_ollama_generation_used": false,
+      "guardian_approval_created": false,
+      "hydration_run": false,
+      "model_output_business_mutation_allowed": false,
+      "model_output_runtime_mutation_allowed": false,
+      "runtime_mutation_performed": false,
+      "secret_inspection_performed": false
+    },
+    "errors": [],
+    "status": "adapted"
+  },
+  "api_billing_used": "unknown_via_codex_cli_path",
+  "assignment_loop_ref": "assignment_loop:9b9ad006ad9cd142",
   "authority_boundary": {
     "claude_fable_used": false,
     "confirmed_reference_data_created": false,
@@ -148,27 +211,26 @@
       "--ignore-rules",
       "--skip-git-repo-check",
       "--output-schema",
-      "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_8221f8da68623722/results/openai_codex_cli_dry_run_schema.json",
+      "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_480219d70c30c571/results/openai_codex_cli_dry_run_schema.json",
       "--output-last-message",
-      "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_8221f8da68623722/results/openai_codex_cli_dry_run_result.json",
+      "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_480219d70c30c571/results/openai_codex_cli_dry_run_result.json",
       "--color",
       "never",
       "-"
     ],
-    "output_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_8221f8da68623722/results/openai_codex_cli_dry_run_result.json",
-    "prompt_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_8221f8da68623722/results/openai_codex_cli_dry_run_prompt.txt",
-    "returncode": 1,
-    "schema_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_8221f8da68623722/results/openai_codex_cli_dry_run_schema.json",
-    "status": "codex_cli_failed",
-    "stderr_first_line": "2026-06-13T16:52:06.169679Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/home/openclaw/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json",
-    "stderr_line_count": 93,
-    "stderr_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_8221f8da68623722/results/openai_codex_cli_dry_run_stderr.txt",
-    "stdout_first_line": "",
-    "stdout_line_count": 0,
-    "stdout_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_8221f8da68623722/results/openai_codex_cli_dry_run_stdout.txt",
-    "terminal_failure_summary": "invalid_json_schema: response_format codex_output_schema property 'message' must have a type key"
+    "output_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_480219d70c30c571/results/openai_codex_cli_dry_run_result.json",
+    "prompt_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_480219d70c30c571/results/openai_codex_cli_dry_run_prompt.txt",
+    "returncode": 0,
+    "schema_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_480219d70c30c571/results/openai_codex_cli_dry_run_schema.json",
+    "status": "codex_cli_completed",
+    "stderr_first_line": "2026-06-13T17:15:30.318804Z  WARN codex_core_plugins::manifest: ignoring interface.defaultPrompt[0]: prompt must be at most 128 characters path=/home/openclaw/.codex/.tmp/plugins/plugins/ngs-analysis/.codex-plugin/plugin.json",
+    "stderr_line_count": 77,
+    "stderr_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_480219d70c30c571/results/openai_codex_cli_dry_run_stderr.txt",
+    "stdout_first_line": "{\"confirmed_reference_data_created\":false,\"execution_attempted\":false,\"external_business_action_performed\":false,\"hydration_run\":false,\"message\":\"ready\",\"model_or_cli_used\":\"codex\",\"runtime_mutation_performed\":false,\"schema_version\":\"OPENAI_CODEX_CLI_DRY_RUN_RESULT_V0\",\"status\":\"ready\",\"subagents_used\":false,\"worker\":\"openai_codex_cli\"}",
+    "stdout_line_count": 1,
+    "stdout_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_480219d70c30c571/results/openai_codex_cli_dry_run_stdout.txt"
   },
-  "codex_worker_run_manager_ready": false,
+  "codex_worker_run_manager_ready": true,
   "desktop_gui_automation_used": false,
   "direct_openai_api_call_used": false,
   "dispatch_result": {
@@ -216,20 +278,20 @@
         "workbook_mutation_allowed": false,
         "worker_spawn_allowed": false
       },
-      "claim_id": "codex_work_package_claim:18ab18d240dba164",
-      "claimed_at": "2026-06-13T16:52:05+00:00",
+      "claim_id": "codex_work_package_claim:94ee159de417d2f1",
+      "claimed_at": "2026-06-13T17:15:29+00:00",
       "dispatched_by": "chief",
       "external_api_called": false,
       "manual_dispatch_only": true,
       "model_invoked": false,
       "note": "Synthetic OpenAI/Codex CLI no-op worker dry run.",
-      "package_id": "codex_work_package:8221f8da68623722",
+      "package_id": "codex_work_package:480219d70c30c571",
       "schema_version": "CODEX_WORK_PACKAGE_CLAIM_V0",
       "worker_kind": "openai_codex_cli"
     },
     "package_file_status": "present",
     "package_queue": {
-      "active_package_count": 2,
+      "active_package_count": 3,
       "allowed_worker_kinds": [
         "pc_codex",
         "mac_codex",
@@ -272,12 +334,13 @@
       ],
       "package_refs": [
         "codex_work_package:8b3039ff2a631d24",
-        "codex_work_package:8221f8da68623722"
+        "codex_work_package:8221f8da68623722",
+        "codex_work_package:480219d70c30c571"
       ],
       "queue_id": "codex_work_package_queue:make_it_so",
-      "receipt_ref": "codex_work_package_queue_receipt:ce83a54a143d6616",
+      "receipt_ref": "codex_work_package_queue_receipt:a947bf4120410c8e",
       "schema_version": "CODEX_WORK_PACKAGE_QUEUE_V0",
-      "updated_at": "2026-06-13T16:52:05+00:00",
+      "updated_at": "2026-06-13T17:15:29+00:00",
       "worktree_root": "/home/openclaw"
     },
     "package_state": {
@@ -302,27 +365,27 @@
         "workbook_mutation_allowed": false,
         "worker_spawn_allowed": false
       },
-      "authority_grant_ref": "no_runtime_authority:5334ba3cc700a603",
+      "authority_grant_ref": "no_runtime_authority:6a1442ce195eec6a",
       "blocker_ref": "",
       "capability_id": "assignment_loop_worker_package",
-      "claim_ref": "codex_work_package_claim:18ab18d240dba164",
+      "claim_ref": "codex_work_package_claim:94ee159de417d2f1",
       "claimed_by": "openai_codex_cli",
-      "created_at": "2026-06-13T16:52:05+00:00",
-      "objective_id": "assignment_loop:030ddcbd24d5aafe",
+      "created_at": "2026-06-13T17:15:29+00:00",
+      "objective_id": "assignment_loop:9b9ad006ad9cd142",
       "package_file_status": "present",
       "package_files": {
-        "allowed_paths_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_8221f8da68623722/allowed_paths.txt",
-        "denied_paths_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_8221f8da68623722/denied_paths.txt",
-        "expected_result_schema_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_8221f8da68623722/expected_result_schema.json",
-        "package_dir": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_8221f8da68623722",
-        "package_json_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_8221f8da68623722/package.json",
-        "prompt_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_8221f8da68623722/prompt.md",
-        "receipts_required_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_8221f8da68623722/receipts_required.md",
-        "result_inbox_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_8221f8da68623722/results",
-        "unsafe_scan_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_8221f8da68623722/unsafe_scan.txt",
-        "validation_commands_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_8221f8da68623722/validation_commands.txt"
+        "allowed_paths_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_480219d70c30c571/allowed_paths.txt",
+        "denied_paths_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_480219d70c30c571/denied_paths.txt",
+        "expected_result_schema_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_480219d70c30c571/expected_result_schema.json",
+        "package_dir": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_480219d70c30c571",
+        "package_json_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_480219d70c30c571/package.json",
+        "prompt_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_480219d70c30c571/prompt.md",
+        "receipts_required_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_480219d70c30c571/receipts_required.md",
+        "result_inbox_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_480219d70c30c571/results",
+        "unsafe_scan_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_480219d70c30c571/unsafe_scan.txt",
+        "validation_commands_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_480219d70c30c571/validation_commands.txt"
       },
-      "package_id": "codex_work_package:8221f8da68623722",
+      "package_id": "codex_work_package:480219d70c30c571",
       "package_json": {
         "adapter_native_agent_command": "",
         "agent_role_card": {
@@ -401,7 +464,7 @@
           "lm2_openai_first_worker_proof.py",
           "openclaw_agent_role_registry.py"
         ],
-        "assignment_loop_ref": "assignment_loop:030ddcbd24d5aafe",
+        "assignment_loop_ref": "assignment_loop:9b9ad006ad9cd142",
         "authority_boundary": {
           "authority_granted_from_raw_text_allowed": false,
           "browser_access_allowed": false,
@@ -426,7 +489,7 @@
         "authority_grant_ref": "",
         "canonical_worker_spine_schema_version": "LM2_CANONICAL_SPINE_V0",
         "capability_id": "assignment_loop_worker_package",
-        "created_at": "2026-06-13T16:52:05+00:00",
+        "created_at": "2026-06-13T17:15:29+00:00",
         "denied_commands": [
           "git push",
           "git merge",
@@ -458,10 +521,10 @@
           "agent_lane_registry.py#chief"
         ],
         "lm_consult_request_ref": "",
-        "objective_id": "assignment_loop:030ddcbd24d5aafe",
+        "objective_id": "assignment_loop:9b9ad006ad9cd142",
         "operator_goal_text": "Prove OpenAI/Codex CLI can receive an LM2 package and return a structured no-op worker result.",
         "owner_agent": "chief",
-        "package_id": "codex_work_package:8221f8da68623722",
+        "package_id": "codex_work_package:480219d70c30c571",
         "permission_boundary": {
           "advisory_only": true,
           "approval_bypass_allowed": false,
@@ -502,7 +565,7 @@
           "tool_name": "",
           "worker_kind": "openai_codex_cli"
         },
-        "receipt_ref": "codex_work_package_receipt:9b18e3e3613ab592",
+        "receipt_ref": "codex_work_package_receipt:932736f742548975",
         "requested_by_agent": "chief",
         "requested_outcome": "Prove OpenAI/Codex CLI can receive an LM2 package and return a structured no-op worker result.",
         "role_context_inlined_full_docs": false,
@@ -510,7 +573,7 @@
         "run_mode": "test_dry_run",
         "runtime_mutation_allowed": false,
         "schema_version": "CODEX_WORK_PACKAGE_V0",
-        "source_ref": "assignment_loop:030ddcbd24d5aafe",
+        "source_ref": "assignment_loop:9b9ad006ad9cd142",
         "source_schema_version": "ASSIGNMENT_LOOP_V0",
         "sources": [
           "codex_work_package_lifecycle.py",
@@ -527,20 +590,20 @@
         ],
         "worktree_root": "/home/openclaw"
       },
-      "receipt_ref": "codex_work_package_state_receipt:6e7793ff457436c9",
+      "receipt_ref": "codex_work_package_state_receipt:5f81b6a6d802b520",
       "result_ref": "",
       "run_mode": "test_dry_run",
       "schema_version": "CODEX_WORK_PACKAGE_STATE_V0",
       "state": "in_progress",
-      "updated_at": "2026-06-13T16:52:05+00:00",
+      "updated_at": "2026-06-13T17:15:29+00:00",
       "validation_ref": ""
     },
     "schema_version": "codex_work_package_lifecycle_v0",
     "status": "dispatch_recorded"
   },
-  "exact_blocker": "invalid_json_schema: response_format codex_output_schema property 'message' must have a type key",
+  "exact_blocker": "",
   "gemini_agy_ollama_generation_used": false,
-  "generated_at": "2026-06-13T16:52:05+00:00",
+  "generated_at": "2026-06-13T17:15:29+00:00",
   "ingest_result": {
     "activation_decision": {
       "activation_scope": {},
@@ -567,19 +630,19 @@
       },
       "capability_id": "assignment_loop_worker_package",
       "connector_configured": true,
-      "created_at": "2026-06-13T16:52:05+00:00",
+      "created_at": "2026-06-13T17:15:29+00:00",
       "decision": "blocked",
-      "decision_id": "capability_activation_decision:dae8454d1b296002",
+      "decision_id": "capability_activation_decision:28a392697713a3f0",
       "denied_actions_preserved": true,
       "email_connector_status": {},
-      "objective_id": "assignment_loop:030ddcbd24d5aafe",
-      "package_id": "codex_work_package:8221f8da68623722",
+      "objective_id": "assignment_loop:9b9ad006ad9cd142",
+      "package_id": "codex_work_package:480219d70c30c571",
       "production_ready": false,
       "reason": "Validation, scan, or authority boundary is incomplete.",
-      "receipt_ref": "codex_work_package_validation:dc77714933d58222",
+      "receipt_ref": "codex_work_package_validation:baed59a2c266889f",
       "schema_version": "CAPABILITY_ACTIVATION_DECISION_V0",
-      "tests_passed": false,
-      "unsafe_scan_passed": false
+      "tests_passed": true,
+      "unsafe_scan_passed": true
     },
     "authority_boundary": {
       "authority_granted_from_raw_text_allowed": false,
@@ -603,7 +666,7 @@
       "worker_spawn_allowed": false
     },
     "package_queue": {
-      "active_package_count": 2,
+      "active_package_count": 3,
       "allowed_worker_kinds": [
         "pc_codex",
         "mac_codex",
@@ -646,12 +709,13 @@
       ],
       "package_refs": [
         "codex_work_package:8b3039ff2a631d24",
-        "codex_work_package:8221f8da68623722"
+        "codex_work_package:8221f8da68623722",
+        "codex_work_package:480219d70c30c571"
       ],
       "queue_id": "codex_work_package_queue:make_it_so",
-      "receipt_ref": "codex_work_package_queue_receipt:ce83a54a143d6616",
+      "receipt_ref": "codex_work_package_queue_receipt:a947bf4120410c8e",
       "schema_version": "CODEX_WORK_PACKAGE_QUEUE_V0",
-      "updated_at": "2026-06-13T16:52:05+00:00",
+      "updated_at": "2026-06-13T17:15:29+00:00",
       "worktree_root": "/home/openclaw"
     },
     "package_result": {
@@ -676,13 +740,51 @@
         "workbook_mutation_allowed": false,
         "worker_spawn_allowed": false
       },
-      "package_id": "codex_work_package:8221f8da68623722",
-      "rejection_reason": "codex_cli_nonzero",
-      "result_id": "codex_work_package_result:acd37a3c9c8df113",
+      "authority_grant_ref": "no_runtime_authority:6a1442ce195eec6a",
+      "blocker_summary": "",
+      "capability_status": "test_dry_run_ready",
+      "commands_run": [
+        "codex exec bounded synthetic dry run"
+      ],
+      "commit_hash": "",
+      "confirmed_reference_data_created": false,
+      "denied_actions_reported": [],
+      "external_business_action_performed": false,
+      "files_changed": [],
+      "hydration_run": false,
+      "introduced_strings": [],
+      "model_or_cli_used": "codex",
+      "openai_codex_cli_dry_run_result": {
+        "confirmed_reference_data_created": false,
+        "execution_attempted": false,
+        "external_business_action_performed": false,
+        "hydration_run": false,
+        "message": "ready",
+        "model_or_cli_used": "codex",
+        "runtime_mutation_performed": false,
+        "schema_version": "OPENAI_CODEX_CLI_DRY_RUN_RESULT_V0",
+        "status": "ready",
+        "subagents_used": false,
+        "worker": "openai_codex_cli"
+      },
+      "package_id": "codex_work_package:480219d70c30c571",
+      "receipt_refs": [
+        "openai_codex_cli_dry_run:synthetic_noop"
+      ],
+      "result_id": "codex_work_package_result:6fda57d07c43da22",
+      "runtime_mutation_performed": false,
       "schema_version": "CODEX_WORK_PACKAGE_RESULT_V0",
-      "status": "result_rejected",
-      "submitted_at": "2026-06-13T16:52:05+00:00",
-      "worker_kind": "unknown"
+      "status": "completed",
+      "subagents_used": false,
+      "submitted_at": "2026-06-13T17:15:29+00:00",
+      "unsafe_scan_summary": {
+        "hits": [],
+        "passed": true
+      },
+      "validation_run": [
+        "git diff --check"
+      ],
+      "worker_kind": "openai_codex_cli"
     },
     "package_state": {
       "authority_boundary": {
@@ -706,27 +808,27 @@
         "workbook_mutation_allowed": false,
         "worker_spawn_allowed": false
       },
-      "authority_grant_ref": "no_runtime_authority:5334ba3cc700a603",
-      "blocker_ref": "codex_cli_nonzero",
+      "authority_grant_ref": "no_runtime_authority:6a1442ce195eec6a",
+      "blocker_ref": "validation_failed",
       "capability_id": "assignment_loop_worker_package",
-      "claim_ref": "codex_work_package_claim:18ab18d240dba164",
+      "claim_ref": "codex_work_package_claim:94ee159de417d2f1",
       "claimed_by": "openai_codex_cli",
-      "created_at": "2026-06-13T16:52:05+00:00",
-      "objective_id": "assignment_loop:030ddcbd24d5aafe",
+      "created_at": "2026-06-13T17:15:29+00:00",
+      "objective_id": "assignment_loop:9b9ad006ad9cd142",
       "package_file_status": "present",
       "package_files": {
-        "allowed_paths_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_8221f8da68623722/allowed_paths.txt",
-        "denied_paths_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_8221f8da68623722/denied_paths.txt",
-        "expected_result_schema_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_8221f8da68623722/expected_result_schema.json",
-        "package_dir": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_8221f8da68623722",
-        "package_json_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_8221f8da68623722/package.json",
-        "prompt_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_8221f8da68623722/prompt.md",
-        "receipts_required_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_8221f8da68623722/receipts_required.md",
-        "result_inbox_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_8221f8da68623722/results",
-        "unsafe_scan_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_8221f8da68623722/unsafe_scan.txt",
-        "validation_commands_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_8221f8da68623722/validation_commands.txt"
+        "allowed_paths_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_480219d70c30c571/allowed_paths.txt",
+        "denied_paths_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_480219d70c30c571/denied_paths.txt",
+        "expected_result_schema_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_480219d70c30c571/expected_result_schema.json",
+        "package_dir": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_480219d70c30c571",
+        "package_json_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_480219d70c30c571/package.json",
+        "prompt_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_480219d70c30c571/prompt.md",
+        "receipts_required_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_480219d70c30c571/receipts_required.md",
+        "result_inbox_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_480219d70c30c571/results",
+        "unsafe_scan_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_480219d70c30c571/unsafe_scan.txt",
+        "validation_commands_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_480219d70c30c571/validation_commands.txt"
       },
-      "package_id": "codex_work_package:8221f8da68623722",
+      "package_id": "codex_work_package:480219d70c30c571",
       "package_json": {
         "adapter_native_agent_command": "",
         "agent_role_card": {
@@ -805,7 +907,7 @@
           "lm2_openai_first_worker_proof.py",
           "openclaw_agent_role_registry.py"
         ],
-        "assignment_loop_ref": "assignment_loop:030ddcbd24d5aafe",
+        "assignment_loop_ref": "assignment_loop:9b9ad006ad9cd142",
         "authority_boundary": {
           "authority_granted_from_raw_text_allowed": false,
           "browser_access_allowed": false,
@@ -830,7 +932,7 @@
         "authority_grant_ref": "",
         "canonical_worker_spine_schema_version": "LM2_CANONICAL_SPINE_V0",
         "capability_id": "assignment_loop_worker_package",
-        "created_at": "2026-06-13T16:52:05+00:00",
+        "created_at": "2026-06-13T17:15:29+00:00",
         "denied_commands": [
           "git push",
           "git merge",
@@ -862,10 +964,10 @@
           "agent_lane_registry.py#chief"
         ],
         "lm_consult_request_ref": "",
-        "objective_id": "assignment_loop:030ddcbd24d5aafe",
+        "objective_id": "assignment_loop:9b9ad006ad9cd142",
         "operator_goal_text": "Prove OpenAI/Codex CLI can receive an LM2 package and return a structured no-op worker result.",
         "owner_agent": "chief",
-        "package_id": "codex_work_package:8221f8da68623722",
+        "package_id": "codex_work_package:480219d70c30c571",
         "permission_boundary": {
           "advisory_only": true,
           "approval_bypass_allowed": false,
@@ -906,7 +1008,7 @@
           "tool_name": "",
           "worker_kind": "openai_codex_cli"
         },
-        "receipt_ref": "codex_work_package_receipt:9b18e3e3613ab592",
+        "receipt_ref": "codex_work_package_receipt:932736f742548975",
         "requested_by_agent": "chief",
         "requested_outcome": "Prove OpenAI/Codex CLI can receive an LM2 package and return a structured no-op worker result.",
         "role_context_inlined_full_docs": false,
@@ -914,7 +1016,7 @@
         "run_mode": "test_dry_run",
         "runtime_mutation_allowed": false,
         "schema_version": "CODEX_WORK_PACKAGE_V0",
-        "source_ref": "assignment_loop:030ddcbd24d5aafe",
+        "source_ref": "assignment_loop:9b9ad006ad9cd142",
         "source_schema_version": "ASSIGNMENT_LOOP_V0",
         "sources": [
           "codex_work_package_lifecycle.py",
@@ -931,13 +1033,13 @@
         ],
         "worktree_root": "/home/openclaw"
       },
-      "receipt_ref": "codex_work_package_state_receipt:deb966602ae87f8c",
-      "result_ref": "codex_work_package_result:acd37a3c9c8df113",
+      "receipt_ref": "codex_work_package_state_receipt:a8a641d7a3b63056",
+      "result_ref": "codex_work_package_result:6fda57d07c43da22",
       "run_mode": "test_dry_run",
       "schema_version": "CODEX_WORK_PACKAGE_STATE_V0",
-      "state": "validation_failed",
-      "updated_at": "2026-06-13T16:52:05+00:00",
-      "validation_ref": "codex_work_package_validation:acd37a3c9c8df113"
+      "state": "validation_passed",
+      "updated_at": "2026-06-13T17:15:29+00:00",
+      "validation_ref": "codex_work_package_validation:baed59a2c266889f"
     },
     "schema_version": "codex_work_package_lifecycle_v0",
     "validation_receipt": {
@@ -962,22 +1064,29 @@
         "workbook_mutation_allowed": false,
         "worker_spawn_allowed": false
       },
-      "created_at": "2026-06-13T16:52:05+00:00",
-      "package_id": "codex_work_package:8221f8da68623722",
+      "created_at": "2026-06-13T17:15:29+00:00",
+      "package_id": "codex_work_package:480219d70c30c571",
       "proof_verification": {
         "errors": [],
+        "fail_closed": false,
         "proof_refs": [],
         "proof_verification_status": "not_required",
         "schema_version": "LM2_WORKER_PROOF_VERIFICATION_V0",
+        "verifier_id": "",
         "verifier_receipt_refs": []
       },
       "schema_version": "CODEX_WORK_PACKAGE_VALIDATION_RECEIPT_V0",
-      "validation_errors": [
-        "codex_cli_nonzero"
+      "validation_errors": [],
+      "validation_id": "codex_work_package_validation:baed59a2c266889f",
+      "validation_logs": [
+        {
+          "command": "git diff --check",
+          "returncode": 0,
+          "stderr_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_480219d70c30c571/validation_logs/validation_0_stderr.txt",
+          "stdout_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_480219d70c30c571/validation_logs/validation_0_stdout.txt"
+        }
       ],
-      "validation_id": "codex_work_package_validation:dc77714933d58222",
-      "validation_logs": [],
-      "validation_status": "validation_failed"
+      "validation_status": "validation_passed"
     }
   },
   "lifecycle_summary_after": {
@@ -1004,30 +1113,30 @@
       "worker_spawn_allowed": false
     },
     "capability_id": "assignment_loop_worker_package",
-    "claim_ref": "codex_work_package_claim:18ab18d240dba164",
+    "claim_ref": "codex_work_package_claim:94ee159de417d2f1",
     "claimed_by": "openai_codex_cli",
     "latest_activation_decision": "blocked",
-    "latest_result_status": "result_rejected",
-    "latest_validation_status": "validation_failed",
-    "next_action": "Review the validation failure and request a corrected worker result. Latest error: codex_cli_nonzero.",
-    "objective_id": "assignment_loop:030ddcbd24d5aafe",
+    "latest_result_status": "completed",
+    "latest_validation_status": "validation_passed",
+    "next_action": "Review the validation receipt and decide whether activation is still needed.",
+    "objective_id": "assignment_loop:9b9ad006ad9cd142",
     "owner_agent": "chief",
     "package_file_status": "present",
-    "package_id": "codex_work_package:8221f8da68623722",
-    "package_json_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_8221f8da68623722/package.json",
+    "package_id": "codex_work_package:480219d70c30c571",
+    "package_json_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_480219d70c30c571/package.json",
     "proof_verification_status": "not_required",
     "requested_by_agent": "chief",
     "role_context_strategy": "compact_role_card",
-    "state": "validation_failed",
-    "updated_at": "2026-06-13T16:52:05+00:00"
+    "state": "validation_passed",
+    "updated_at": "2026-06-13T17:15:29+00:00"
   },
   "lifecycle_summary_before": {
-    "package_count": 2,
-    "watch_desk_item_count": 2
+    "package_count": 3,
+    "watch_desk_item_count": 3
   },
   "long_flag_after_exec_rejected_previously": true,
-  "next_safe_action": "Do not retry without explicit operator approval; next fix is to use the corrected JSON schema with explicit type keys for const string fields.",
-  "package_id": "codex_work_package:8221f8da68623722",
+  "next_safe_action": "No further invocation is approved by this packet; review the Worker Run Manager receipts.",
+  "package_id": "codex_work_package:480219d70c30c571",
   "package_role_context": {
     "agent_role_ref": "agent_role_card:chief",
     "agent_role_summary": "Act for Chief as a bounded implementation or runtime-review worker. Follow the package sources, proof, stop condition, and validation plan; do not push, approve, or mutate runtime.",
@@ -1062,25 +1171,25 @@
       "workbook_mutation_allowed": false,
       "worker_spawn_allowed": false
     },
-    "authority_grant_ref": "no_runtime_authority:5334ba3cc700a603",
-    "blocker_ref": "codex_worker_bridge_blocker:f3f93539420aaba9",
+    "authority_grant_ref": "no_runtime_authority:6a1442ce195eec6a",
+    "blocker_ref": "codex_worker_bridge_blocker:3557155faea9492e",
     "capability_id": "assignment_loop_worker_package",
     "claimed_by": "",
-    "created_at": "2026-06-13T16:52:05+00:00",
-    "objective_id": "assignment_loop:030ddcbd24d5aafe",
+    "created_at": "2026-06-13T17:15:29+00:00",
+    "objective_id": "assignment_loop:9b9ad006ad9cd142",
     "package_files": {
-      "allowed_paths_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_8221f8da68623722/allowed_paths.txt",
-      "denied_paths_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_8221f8da68623722/denied_paths.txt",
-      "expected_result_schema_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_8221f8da68623722/expected_result_schema.json",
-      "package_dir": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_8221f8da68623722",
-      "package_json_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_8221f8da68623722/package.json",
-      "prompt_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_8221f8da68623722/prompt.md",
-      "receipts_required_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_8221f8da68623722/receipts_required.md",
-      "result_inbox_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_8221f8da68623722/results",
-      "unsafe_scan_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_8221f8da68623722/unsafe_scan.txt",
-      "validation_commands_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_8221f8da68623722/validation_commands.txt"
+      "allowed_paths_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_480219d70c30c571/allowed_paths.txt",
+      "denied_paths_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_480219d70c30c571/denied_paths.txt",
+      "expected_result_schema_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_480219d70c30c571/expected_result_schema.json",
+      "package_dir": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_480219d70c30c571",
+      "package_json_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_480219d70c30c571/package.json",
+      "prompt_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_480219d70c30c571/prompt.md",
+      "receipts_required_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_480219d70c30c571/receipts_required.md",
+      "result_inbox_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_480219d70c30c571/results",
+      "unsafe_scan_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_480219d70c30c571/unsafe_scan.txt",
+      "validation_commands_path": "/tmp/openclaw-mission-control/lm2_openai_first_worker/packages/codex_work_package_480219d70c30c571/validation_commands.txt"
     },
-    "package_id": "codex_work_package:8221f8da68623722",
+    "package_id": "codex_work_package:480219d70c30c571",
     "package_json": {
       "adapter_native_agent_command": "",
       "agent_role_card": {
@@ -1159,7 +1268,7 @@
         "lm2_openai_first_worker_proof.py",
         "openclaw_agent_role_registry.py"
       ],
-      "assignment_loop_ref": "assignment_loop:030ddcbd24d5aafe",
+      "assignment_loop_ref": "assignment_loop:9b9ad006ad9cd142",
       "authority_boundary": {
         "authority_granted_from_raw_text_allowed": false,
         "browser_access_allowed": false,
@@ -1184,7 +1293,7 @@
       "authority_grant_ref": "",
       "canonical_worker_spine_schema_version": "LM2_CANONICAL_SPINE_V0",
       "capability_id": "assignment_loop_worker_package",
-      "created_at": "2026-06-13T16:52:05+00:00",
+      "created_at": "2026-06-13T17:15:29+00:00",
       "denied_commands": [
         "git push",
         "git merge",
@@ -1216,10 +1325,10 @@
         "agent_lane_registry.py#chief"
       ],
       "lm_consult_request_ref": "",
-      "objective_id": "assignment_loop:030ddcbd24d5aafe",
+      "objective_id": "assignment_loop:9b9ad006ad9cd142",
       "operator_goal_text": "Prove OpenAI/Codex CLI can receive an LM2 package and return a structured no-op worker result.",
       "owner_agent": "chief",
-      "package_id": "codex_work_package:8221f8da68623722",
+      "package_id": "codex_work_package:480219d70c30c571",
       "permission_boundary": {
         "advisory_only": true,
         "approval_bypass_allowed": false,
@@ -1260,7 +1369,7 @@
         "tool_name": "",
         "worker_kind": "openai_codex_cli"
       },
-      "receipt_ref": "codex_work_package_receipt:9b18e3e3613ab592",
+      "receipt_ref": "codex_work_package_receipt:932736f742548975",
       "requested_by_agent": "chief",
       "requested_outcome": "Prove OpenAI/Codex CLI can receive an LM2 package and return a structured no-op worker result.",
       "role_context_inlined_full_docs": false,
@@ -1268,7 +1377,7 @@
       "run_mode": "test_dry_run",
       "runtime_mutation_allowed": false,
       "schema_version": "CODEX_WORK_PACKAGE_V0",
-      "source_ref": "assignment_loop:030ddcbd24d5aafe",
+      "source_ref": "assignment_loop:9b9ad006ad9cd142",
       "source_schema_version": "ASSIGNMENT_LOOP_V0",
       "sources": [
         "codex_work_package_lifecycle.py",
@@ -1285,23 +1394,23 @@
       ],
       "worktree_root": "/home/openclaw"
     },
-    "receipt_ref": "codex_work_package_state_receipt:80fb39c24ba3845d",
+    "receipt_ref": "codex_work_package_state_receipt:dbf1bf88b8499873",
     "result_ref": "",
     "run_mode": "test_dry_run",
     "schema_version": "CODEX_WORK_PACKAGE_STATE_V0",
     "state": "awaiting_worker_bridge",
-    "updated_at": "2026-06-13T16:52:05+00:00",
+    "updated_at": "2026-06-13T17:15:29+00:00",
     "validation_ref": ""
   },
   "prior_blocked_attempt": {
-    "claim_ref": "codex_work_package_claim:ce3137181ca3c8e4",
-    "exact_blocker": "error: unexpected argument '--ask-for-approval' found",
-    "package_id": "codex_work_package:8b3039ff2a631d24",
+    "claim_ref": "codex_work_package_claim:18ab18d240dba164",
+    "exact_blocker": "invalid_json_schema: response_format codex_output_schema property 'message' must have a type key",
+    "package_id": "codex_work_package:8221f8da68623722",
     "preserved": true,
-    "result_ref": "codex_work_package_result:77d7c36585359411",
-    "status": "OPENCLAW_LM2_OPENAI_FIRST_WORKER_BLOCKED",
-    "validation_ref": "codex_work_package_validation:e703cf080e87e43f",
-    "watch_desk_ref": "codex_work_package:codex_work_package_8b3039ff2a631d24"
+    "result_ref": "codex_work_package_result:acd37a3c9c8df113",
+    "status": "OPENCLAW_LM2_OPENAI_FIRST_WORKER_RETRY_BLOCKED",
+    "validation_ref": "codex_work_package_validation:dc77714933d58222",
+    "watch_desk_ref": "codex_work_package:codex_work_package_8221f8da68623722"
   },
   "retry_mode": true,
   "role_registry_export": {
@@ -1315,9 +1424,23 @@
     "-a",
     "never"
   ],
+  "schema_retry_mode": true,
+  "schema_validation": {
+    "errors": [],
+    "message_property": {
+      "enum": [
+        "ready"
+      ],
+      "type": "string"
+    },
+    "required_count": 11,
+    "schema_version": "CODEX_RESPONSE_SCHEMA_LOCAL_VALIDATION_V0",
+    "valid": true
+  },
   "schema_version": "LM2_OPENAI_FIRST_WORKER_PROOF_V0",
   "short_approval_flag_valid": true,
-  "status": "OPENCLAW_LM2_OPENAI_FIRST_WORKER_RETRY_BLOCKED",
+  "status": "OPENCLAW_LM2_OPENAI_FIRST_WORKER_SCHEMA_RETRY_READY",
+  "subscription_backing": "unknown_not_proven",
   "subscription_backing_proven": false,
-  "watch_desk_ref": "codex_work_package:codex_work_package_8221f8da68623722"
+  "watch_desk_ref": "codex_work_package:codex_work_package_480219d70c30c571"
 }

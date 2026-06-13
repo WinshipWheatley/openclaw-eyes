@@ -78,6 +78,10 @@ Options:
     }
 
 
+def _safe_codex_mode() -> dict:
+    return openai_proof.inspect_codex_cli(observations=_fake_codex_observations())
+
+
 def test_agent_role_cards_exist_for_required_agents():
     payload = roles.build_registry(generated_at=FIXED_NOW)
 
@@ -175,12 +179,35 @@ def test_codex_cli_command_builder_uses_verified_short_approval_flag(tmp_path):
     assert command[command.index("--cd") + 1] == str(tmp_path / "scratch")
 
 
-def test_dry_run_output_schema_declares_types_for_const_fields():
+def test_dry_run_output_schema_uses_codex_compatible_typed_enums():
     schema = openai_proof.dry_run_result_json_schema()
 
-    for field in ("schema_version", "status", "worker", "message", "model_or_cli_used"):
+    expected = {
+        "schema_version": [openai_proof.OPENAI_CODEX_CLI_DRY_RUN_RESULT_SCHEMA],
+        "status": ["ready"],
+        "worker": ["openai_codex_cli"],
+        "message": ["ready"],
+        "model_or_cli_used": ["codex"],
+    }
+    for field, enum_value in expected.items():
         assert schema["properties"][field]["type"] == "string"
-        assert schema["properties"][field]["const"]
+        assert schema["properties"][field]["enum"] == enum_value
+        assert "const" not in schema["properties"][field]
+
+
+def test_codex_response_schema_validator_blocks_const_and_missing_type():
+    valid = openai_proof.validate_codex_response_schema()
+    invalid_schema = openai_proof.dry_run_result_json_schema()
+    invalid_schema["properties"]["message"] = {"const": "ready"}
+
+    invalid = openai_proof.validate_codex_response_schema(invalid_schema)
+
+    assert valid["valid"] is True
+    assert valid["message_property"]["type"] == "string"
+    assert valid["message_property"]["enum"] == ["ready"]
+    assert invalid["valid"] is False
+    assert "required_property_type_missing:message" in invalid["errors"]
+    assert "unsupported_const_keyword:message" in invalid["errors"]
 
 
 def test_bad_long_approval_flag_after_exec_is_not_used_in_retry_command(tmp_path):
@@ -289,6 +316,77 @@ def test_bad_synthetic_codex_result_fails_closed(tmp_path):
     assert "subagents_used_must_be_false" in adapted["errors"]
 
 
+def test_schema_retry_blocks_before_cli_when_schema_invalid(tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        openai_proof,
+        "validate_codex_response_schema",
+        lambda: {
+            "schema_version": "CODEX_RESPONSE_SCHEMA_LOCAL_VALIDATION_V0",
+            "valid": False,
+            "errors": ["unsupported_const_keyword:message"],
+            "message_property": {"const": "ready"},
+            "required_count": 11,
+        },
+    )
+
+    def fail_if_inspected():
+        raise AssertionError("Codex CLI should not be inspected when schema is invalid")
+
+    monkeypatch.setattr(openai_proof, "inspect_codex_cli", fail_if_inspected)
+    payload = openai_proof.execute_openai_first_worker_proof(
+        run_codex_dry_run=True,
+        sqlite_path=tmp_path / "codex_work_package_lifecycle.sqlite",
+        package_root=tmp_path / "packages",
+        scratch_dir=tmp_path / "scratch",
+        role_export_root=tmp_path / "read_models",
+        role_bridge_root=None,
+        role_system_knowledge_root=tmp_path / "agent_roles",
+        retry_mode=True,
+        schema_retry_mode=True,
+        generated_at=FIXED_NOW,
+    )
+
+    assert payload["status"] == openai_proof.STATUS_SCHEMA_RETRY_BLOCKED_SCHEMA_INVALID
+    assert payload["codex_dry_run_executed"] is False
+    assert payload["package_id"] == ""
+
+
+def test_schema_retry_codex_cli_error_fails_closed(tmp_path, monkeypatch):
+    safe_mode = _safe_codex_mode()
+    monkeypatch.setattr(openai_proof, "inspect_codex_cli", lambda: safe_mode)
+    monkeypatch.setattr(
+        openai_proof,
+        "run_codex_cli_dry_run",
+        lambda **_: {
+            "status": "codex_cli_failed",
+            "returncode": 2,
+            "stdout_line_count": 0,
+            "stderr_line_count": 1,
+            "stderr_first_line": "schema rejected",
+            "raw_result_text": "",
+            "authority_boundary": dict(openai_proof.AUTHORITY_BOUNDARY),
+        },
+    )
+
+    payload = openai_proof.execute_openai_first_worker_proof(
+        run_codex_dry_run=True,
+        sqlite_path=tmp_path / "codex_work_package_lifecycle.sqlite",
+        package_root=tmp_path / "packages",
+        scratch_dir=tmp_path / "scratch",
+        role_export_root=tmp_path / "read_models",
+        role_bridge_root=None,
+        role_system_knowledge_root=tmp_path / "agent_roles",
+        retry_mode=True,
+        schema_retry_mode=True,
+        generated_at=FIXED_NOW,
+    )
+
+    assert payload["status"] == openai_proof.STATUS_SCHEMA_RETRY_BLOCKED
+    assert payload["codex_dry_run_executed"] is True
+    assert payload["ingest_result"]["validation_receipt"]["validation_status"] == "validation_failed"
+    assert payload["exact_blocker"] == "schema rejected"
+
+
 def test_no_disallowed_model_routes_are_used_in_proof_payload(tmp_path):
     payload = openai_proof.execute_openai_first_worker_proof(
         run_codex_dry_run=False,
@@ -301,9 +399,12 @@ def test_no_disallowed_model_routes_are_used_in_proof_payload(tmp_path):
         generated_at=FIXED_NOW,
     )
     assert payload["codex_dry_run_executed"] is False
+    assert payload["schema_validation"]["valid"] is True
     assert payload["claude_fable_used"] is False
     assert payload["gemini_agy_ollama_generation_used"] is False
     assert payload["desktop_gui_automation_used"] is False
+    assert payload["subscription_backing"] == "unknown_not_proven"
+    assert payload["api_billing_used"] == "unknown_via_codex_cli_path"
     assert payload["dispatch_result"]["package_claim"]["worker_kind"] == "openai_codex_cli"
     assert payload["package_state"]["package_json"]["provider_access_metadata"]["worker_kind"] == "openai_codex_cli"
     assert payload["package_state"]["package_json"]["provider_access_metadata"]["provider"] != "anthropic"

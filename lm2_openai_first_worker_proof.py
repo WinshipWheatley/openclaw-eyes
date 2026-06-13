@@ -33,6 +33,12 @@ STATUS_BLOCKED = "OPENCLAW_LM2_OPENAI_FIRST_WORKER_BLOCKED"
 STATUS_RETRY_READY = "OPENCLAW_LM2_OPENAI_FIRST_WORKER_RETRY_READY"
 STATUS_RETRY_BLOCKED_MODE = "OPENCLAW_LM2_OPENAI_FIRST_WORKER_RETRY_BLOCKED_CODEX_CLI_MODE"
 STATUS_RETRY_BLOCKED = "OPENCLAW_LM2_OPENAI_FIRST_WORKER_RETRY_BLOCKED"
+STATUS_SCHEMA_RETRY_READY = "OPENCLAW_LM2_OPENAI_FIRST_WORKER_SCHEMA_RETRY_READY"
+STATUS_SCHEMA_RETRY_BLOCKED_SCHEMA_INVALID = (
+    "OPENCLAW_LM2_OPENAI_FIRST_WORKER_RETRY_SCHEMA_FIX_BLOCKED_SCHEMA_INVALID"
+)
+STATUS_SCHEMA_RETRY_BLOCKED_CODEX_CLI = "OPENCLAW_LM2_OPENAI_FIRST_WORKER_SCHEMA_RETRY_BLOCKED_CODEX_CLI"
+STATUS_SCHEMA_RETRY_BLOCKED = "OPENCLAW_LM2_OPENAI_FIRST_WORKER_SCHEMA_RETRY_BLOCKED"
 
 DEFAULT_EXPORT_ROOT = Path("generated/read_models")
 DEFAULT_BRIDGE_ROOT = Path("/mnt/e/openclaw/generated/read_models")
@@ -237,11 +243,11 @@ def dry_run_result_json_schema() -> dict[str, Any]:
             "hydration_run",
         ],
         "properties": {
-            "schema_version": {"type": "string", "const": OPENAI_CODEX_CLI_DRY_RUN_RESULT_SCHEMA},
-            "status": {"type": "string", "const": "ready"},
-            "worker": {"type": "string", "const": "openai_codex_cli"},
-            "message": {"type": "string", "const": "ready"},
-            "model_or_cli_used": {"type": "string", "const": "codex"},
+            "schema_version": {"type": "string", "enum": [OPENAI_CODEX_CLI_DRY_RUN_RESULT_SCHEMA]},
+            "status": {"type": "string", "enum": ["ready"]},
+            "worker": {"type": "string", "enum": ["openai_codex_cli"]},
+            "message": {"type": "string", "enum": ["ready"]},
+            "model_or_cli_used": {"type": "string", "enum": ["codex"]},
             "subagents_used": {"type": "boolean"},
             "execution_attempted": {"type": "boolean"},
             "runtime_mutation_performed": {"type": "boolean"},
@@ -249,6 +255,39 @@ def dry_run_result_json_schema() -> dict[str, Any]:
             "confirmed_reference_data_created": {"type": "boolean"},
             "hydration_run": {"type": "boolean"},
         },
+    }
+
+
+def validate_codex_response_schema(schema: Mapping[str, Any] | None = None) -> dict[str, Any]:
+    schema = dict(schema or dry_run_result_json_schema())
+    errors: list[str] = []
+    if schema.get("type") != "object":
+        errors.append("root_type_must_be_object")
+    properties = schema.get("properties")
+    required = schema.get("required")
+    if not isinstance(properties, Mapping):
+        errors.append("properties_missing")
+        properties = {}
+    if not isinstance(required, list):
+        errors.append("required_missing")
+        required = []
+    for field in required:
+        prop = properties.get(field)
+        if not isinstance(prop, Mapping):
+            errors.append(f"required_property_missing:{field}")
+            continue
+        if "type" not in prop:
+            errors.append(f"required_property_type_missing:{field}")
+        if "const" in prop:
+            errors.append(f"unsupported_const_keyword:{field}")
+        if prop.get("type") not in {"string", "boolean", "number", "integer", "object", "array"}:
+            errors.append(f"unsupported_property_type:{field}")
+    return {
+        "schema_version": "CODEX_RESPONSE_SCHEMA_LOCAL_VALIDATION_V0",
+        "valid": not errors,
+        "errors": errors,
+        "message_property": dict(properties.get("message") or {}),
+        "required_count": len(required),
     }
 
 
@@ -499,10 +538,61 @@ def execute_openai_first_worker_proof(
     role_bridge_root: Path | None = openclaw_agent_role_registry.DEFAULT_BRIDGE_ROOT,
     role_system_knowledge_root: Path = openclaw_agent_role_registry.DEFAULT_SYSTEM_KNOWLEDGE_ROOT,
     retry_mode: bool = False,
+    schema_retry_mode: bool = False,
     generated_at: str | None = None,
 ) -> dict[str, Any]:
     generated_at = generated_at or utc_now()
+    schema_validation = validate_codex_response_schema()
+    previous_attempt = previous_openai_first_worker_attempt()
+    if run_codex_dry_run and schema_retry_mode and not schema_validation["valid"]:
+        return {
+            "schema_version": SCHEMA_VERSION,
+            "status": STATUS_SCHEMA_RETRY_BLOCKED_SCHEMA_INVALID,
+            "generated_at": generated_at,
+            "retry_mode": bool(retry_mode),
+            "schema_retry_mode": bool(schema_retry_mode),
+            "prior_blocked_attempt": previous_attempt,
+            "schema_validation": schema_validation,
+            "codex_cli_mode": {},
+            "role_registry_export": {},
+            "package_id": "",
+            "assignment_loop_ref": "",
+            "package_state": {},
+            "package_role_context": {},
+            "dispatch_result": {},
+            "codex_dry_run_requested": bool(run_codex_dry_run),
+            "codex_dry_run_executed": False,
+            "codex_dry_run_result": {},
+            "adapter_result": {},
+            "ingest_result": {},
+            "lifecycle_summary_before": {},
+            "lifecycle_summary_after": {},
+            "watch_desk_ref": "",
+            "codex_worker_run_manager_ready": False,
+            "subscription_backing": "unknown_not_proven",
+            "subscription_backing_proven": False,
+            "api_billing_used": "unknown_via_codex_cli_path",
+            "direct_openai_api_call_used": False,
+            "claude_fable_used": False,
+            "gemini_agy_ollama_generation_used": False,
+            "desktop_gui_automation_used": False,
+            "safe_approval_flag_used": [],
+            "short_approval_flag_valid": False,
+            "long_flag_after_exec_rejected_previously": True,
+            "exact_blocker": schema_validation["errors"][0] if schema_validation["errors"] else "schema_invalid",
+            "next_safe_action": "Fix the Codex response schema before any further worker retry.",
+            "authority_boundary": dict(AUTHORITY_BOUNDARY),
+        }
     mode = inspect_codex_cli()
+    ready_status = STATUS_SCHEMA_RETRY_READY if schema_retry_mode else STATUS_RETRY_READY if retry_mode else STATUS_READY
+    blocked_mode_status = (
+        STATUS_SCHEMA_RETRY_BLOCKED_CODEX_CLI
+        if schema_retry_mode
+        else STATUS_RETRY_BLOCKED_MODE
+        if retry_mode
+        else STATUS_BLOCKED_MODE
+    )
+    blocked_status = STATUS_SCHEMA_RETRY_BLOCKED if schema_retry_mode else STATUS_RETRY_BLOCKED if retry_mode else STATUS_BLOCKED
     role_export = openclaw_agent_role_registry.export_agent_role_registry(
         export_root=role_export_root,
         bridge_root=role_bridge_root,
@@ -532,7 +622,7 @@ def execute_openai_first_worker_proof(
     ingest_result: dict[str, Any] = {}
     status = STATUS_PARTIAL
     if not mode["safe_noninteractive_mode_available"]:
-        status = STATUS_RETRY_BLOCKED_MODE if retry_mode else STATUS_BLOCKED_MODE
+        status = blocked_mode_status
     elif not run_codex_dry_run:
         status = STATUS_PARTIAL
     else:
@@ -541,10 +631,10 @@ def execute_openai_first_worker_proof(
         parsed, reason = lifecycle.parse_worker_result_text(str(run_result.get("raw_result_text") or ""))
         if run_result.get("returncode") != 0:
             ingest_result = lifecycle.reject_worker_result(package_id, "codex_cli_nonzero", sqlite_path=sqlite_path, generated_at=generated_at)
-            status = STATUS_RETRY_BLOCKED if retry_mode else STATUS_BLOCKED
+            status = blocked_status
         elif parsed is None:
             ingest_result = lifecycle.reject_worker_result(package_id, reason, sqlite_path=sqlite_path, generated_at=generated_at)
-            status = STATUS_RETRY_BLOCKED if retry_mode else STATUS_BLOCKED
+            status = blocked_status
         else:
             adapter_result = adapt_codex_dry_run_result(parsed, package_state=package_state, generated_at=generated_at)
             if adapter_result.get("status") != "adapted":
@@ -554,20 +644,14 @@ def execute_openai_first_worker_proof(
                     sqlite_path=sqlite_path,
                     generated_at=generated_at,
                 )
-                status = STATUS_RETRY_BLOCKED if retry_mode else STATUS_BLOCKED
+                status = blocked_status
             else:
                 ingest_result = lifecycle.ingest_worker_result(
                     adapter_result["adapted"],
                     sqlite_path=sqlite_path,
                     generated_at=generated_at,
                 )
-                status = (
-                    STATUS_RETRY_READY if retry_mode else STATUS_READY
-                    if ingest_result["package_state"]["state"] == lifecycle.STATE_VALIDATION_PASSED
-                    else STATUS_RETRY_BLOCKED
-                    if retry_mode
-                    else STATUS_BLOCKED
-                )
+                status = ready_status if ingest_result["package_state"]["state"] == lifecycle.STATE_VALIDATION_PASSED else blocked_status
     lifecycle_read_model = lifecycle.build_read_model(sqlite_path=sqlite_path, package_root=package_root, generated_at=generated_at)
     latest_summary = next(
         (row for row in lifecycle_read_model.get("package_summaries", []) if row.get("package_id") == package_id),
@@ -581,14 +665,28 @@ def execute_openai_first_worker_proof(
     validation_receipt = ingest_result.get("validation_receipt") if isinstance(ingest_result, Mapping) else {}
     if isinstance(validation_receipt, Mapping) and isinstance(validation_receipt.get("validation_errors"), list):
         validation_errors = [str(error) for error in validation_receipt["validation_errors"]]
-    exact_blocker = str(run_result.get("stderr_first_line") or (validation_errors[0] if validation_errors else ""))
-    previous_attempt = previous_openai_first_worker_attempt()
+    failed_statuses = {
+        STATUS_BLOCKED,
+        STATUS_BLOCKED_MODE,
+        STATUS_RETRY_BLOCKED,
+        STATUS_RETRY_BLOCKED_MODE,
+        STATUS_SCHEMA_RETRY_BLOCKED,
+        STATUS_SCHEMA_RETRY_BLOCKED_CODEX_CLI,
+        STATUS_SCHEMA_RETRY_BLOCKED_SCHEMA_INVALID,
+    }
+    exact_blocker = (
+        str(run_result.get("stderr_first_line") or (validation_errors[0] if validation_errors else ""))
+        if status in failed_statuses
+        else ""
+    )
     return {
         "schema_version": SCHEMA_VERSION,
         "status": status,
         "generated_at": generated_at,
         "retry_mode": bool(retry_mode),
+        "schema_retry_mode": bool(schema_retry_mode),
         "prior_blocked_attempt": previous_attempt,
+        "schema_validation": schema_validation,
         "codex_cli_mode": mode,
         "role_registry_export": role_export,
         "package_id": package_id,
@@ -615,9 +713,10 @@ def execute_openai_first_worker_proof(
         },
         "lifecycle_summary_after": latest_summary,
         "watch_desk_ref": watch_item.get("item_id", ""),
-        "codex_worker_run_manager_ready": status == STATUS_READY,
+        "codex_worker_run_manager_ready": status in {STATUS_READY, STATUS_RETRY_READY, STATUS_SCHEMA_RETRY_READY},
+        "subscription_backing": "unknown_not_proven",
         "subscription_backing_proven": False,
-        "api_billing_used": "unknown_not_proven",
+        "api_billing_used": "unknown_via_codex_cli_path",
         "direct_openai_api_call_used": False,
         "claude_fable_used": False,
         "gemini_agy_ollama_generation_used": False,
@@ -630,9 +729,11 @@ def execute_openai_first_worker_proof(
         "exact_blocker": exact_blocker,
         "next_safe_action": (
             "Inspect the Codex CLI failure and request explicit operator approval before any further retry."
-            if status in {STATUS_BLOCKED, STATUS_RETRY_BLOCKED} and run_result
+            if status in {STATUS_BLOCKED, STATUS_RETRY_BLOCKED, STATUS_SCHEMA_RETRY_BLOCKED, STATUS_SCHEMA_RETRY_BLOCKED_CODEX_CLI} and run_result
             else "Review Codex CLI mode before any worker invocation."
-            if status in {STATUS_BLOCKED_MODE, STATUS_RETRY_BLOCKED_MODE}
+            if status in {STATUS_BLOCKED_MODE, STATUS_RETRY_BLOCKED_MODE, STATUS_SCHEMA_RETRY_BLOCKED_CODEX_CLI}
+            else "No further invocation is approved by this packet; review the Worker Run Manager receipts."
+            if status in {STATUS_READY, STATUS_RETRY_READY, STATUS_SCHEMA_RETRY_READY}
             else "Review lifecycle status."
         ),
         "authority_boundary": dict(AUTHORITY_BOUNDARY),
@@ -662,6 +763,7 @@ def previous_openai_first_worker_attempt(
 
 
 def render_wiki(payload: Mapping[str, Any]) -> str:
+    schema_validation = payload.get("schema_validation") if isinstance(payload.get("schema_validation"), Mapping) else {}
     return "\n".join(
         [
             "# LM2 OpenAI First Worker Proof",
@@ -669,10 +771,15 @@ def render_wiki(payload: Mapping[str, Any]) -> str:
             f"Status: `{payload.get('status')}`",
             "",
             f"Package: `{payload.get('package_id')}`",
+            f"Schema validation valid: `{schema_validation.get('valid')}`",
+            f"Schema validation errors: `{schema_validation.get('errors')}`",
             f"Codex dry run executed: `{payload.get('codex_dry_run_executed')}`",
             f"Codex Worker Run Manager ready: `{payload.get('codex_worker_run_manager_ready')}`",
+            f"Subscription backing: `{payload.get('subscription_backing')}`",
             f"Subscription backing proven: `{payload.get('subscription_backing_proven')}`",
             f"API billing used: `{payload.get('api_billing_used')}`",
+            f"Exact blocker: `{payload.get('exact_blocker')}`",
+            f"Next safe action: `{payload.get('next_safe_action')}`",
             "",
             "The proof uses the existing `codex_work_package_lifecycle.py` SQLite spine and `scripts/openclaw_run.py` compatible lifecycle. It does not create a new worker registry or router.",
             "",
@@ -726,6 +833,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         role_bridge_root=Path(args.bridge_root) if args.bridge_root else None,
         role_system_knowledge_root=openclaw_agent_role_registry.DEFAULT_SYSTEM_KNOWLEDGE_ROOT,
         retry_mode=bool(args.run_codex_dry_run),
+        schema_retry_mode=bool(args.run_codex_dry_run),
     )
     result = export_openai_first_worker_proof(
         payload=payload,
@@ -734,7 +842,15 @@ def main(argv: Sequence[str] | None = None) -> int:
         wiki_path=Path(args.wiki_path),
     )
     print(stable_json(result), end="")
-    return 0 if payload["status"] in {STATUS_READY, STATUS_RETRY_READY, STATUS_PARTIAL, STATUS_BLOCKED_MODE, STATUS_RETRY_BLOCKED_MODE} else 1
+    ok_statuses = {
+        STATUS_READY,
+        STATUS_RETRY_READY,
+        STATUS_SCHEMA_RETRY_READY,
+        STATUS_PARTIAL,
+        STATUS_BLOCKED_MODE,
+        STATUS_RETRY_BLOCKED_MODE,
+    }
+    return 0 if payload["status"] in ok_statuses else 1
 
 
 if __name__ == "__main__":
