@@ -56,6 +56,7 @@ AGENTS = {"cassandra", "chief", "hermes", "guardian", "niles", "openclaw", "watc
 GENERIC_ENABLE_ENV = "OPENCLAW_ENABLE_LM_CONSULTS"
 GENERIC_PROVIDER_ENV = "OPENCLAW_LM_PROVIDER"
 GEMINI_MODEL_ENV = "OPENCLAW_GEMINI_MODEL"
+GEMINI_FORM_MODEL_ENV = "OPENCLAW_GEMINI_FORM_MODEL"
 GEMINI_CREDENTIAL_ENVS = ("GEMINI_API_KEY", "GOOGLE_API_KEY", "GOOGLE_GENERATIVE_AI_API_KEY")
 GEMINI_GENERATE_CONTENT_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models"
 
@@ -148,12 +149,48 @@ def _provider_model_label(provider: str, model_label: str = "", env: Mapping[str
     if model_label:
         return model_label
     if provider == "gemini":
-        return str(env.get(GEMINI_MODEL_ENV) or "gemini-flash-class").strip()
+        return str(env.get(GEMINI_MODEL_ENV) or "").strip()
     if provider == "manual":
         return "manual_handoff"
     if provider == "local":
         return "local_stub"
     return "provider_stub"
+
+
+def gemini_model_label_status(
+    env: Mapping[str, str] | None = None,
+    *,
+    explicit_model_label: str = "",
+) -> dict[str, Any]:
+    """Return Gemini model-label metadata without exposing credential values."""
+
+    env = env or os.environ
+    explicit = str(explicit_model_label or "").strip()
+    generic = str(env.get(GEMINI_MODEL_ENV) or "").strip()
+    form = str(env.get(GEMINI_FORM_MODEL_ENV) or "").strip()
+    mismatch = bool(generic and form and generic != form)
+    if mismatch:
+        effective = ""
+        source = "blocked_model_label_mismatch"
+    elif explicit:
+        effective = explicit
+        source = "explicit_request_model_label"
+    elif form:
+        effective = form
+        source = GEMINI_FORM_MODEL_ENV
+    elif generic:
+        effective = generic
+        source = GEMINI_MODEL_ENV
+    else:
+        effective = ""
+        source = ""
+    return {
+        "effective_model_label": effective,
+        "generic_model_label_present": bool(generic),
+        "form_model_label_present": bool(form),
+        "model_label_mismatch": mismatch,
+        "model_label_source": source,
+    }
 
 
 def build_lm_consult_request(
@@ -438,6 +475,60 @@ def _credential_value(env: Mapping[str, str], names: Sequence[str]) -> str:
     return ""
 
 
+def _retry_after_seconds(headers: Any) -> int | None:
+    try:
+        value = headers.get("Retry-After")
+    except Exception:
+        return None
+    if value is None:
+        return None
+    text = str(value).strip()
+    return int(text) if text.isdigit() else None
+
+
+def _safe_provider_error_text(exc: urllib.error.HTTPError) -> str:
+    try:
+        raw = exc.read(4096)
+    except Exception:
+        return ""
+    try:
+        text = raw.decode("utf-8", errors="ignore")
+    except Exception:
+        return ""
+    text = re.sub(r"AIza[0-9A-Za-z_-]+", "[REDACTED_CREDENTIAL]", text)
+    text = re.sub(r"(?i)(api[_ -]?key|token|secret|credential)[^,\n.]*", "[REDACTED_SECRET_REF]", text)
+    return text[:500]
+
+
+def provider_http_error_classification(exc: urllib.error.HTTPError) -> tuple[str, dict[str, Any]]:
+    status_code = int(getattr(exc, "code", 0) or 0)
+    provider_text = _safe_provider_error_text(exc)
+    lower = provider_text.lower()
+    category = "provider_http_error"
+    reason = f"adapter_api_http_{status_code}" if status_code else "adapter_api_http_error"
+    if status_code == 429:
+        category = "rate_limited"
+        reason = "blocked_provider_rate_limited"
+    elif status_code in {400, 404} and (
+        status_code == 404
+        or ("model" in lower and any(term in lower for term in ("not found", "not supported", "invalid", "unsupported")))
+    ):
+        category = "model_label"
+        reason = "blocked_model_label"
+    elif status_code in {401, 403}:
+        category = "credential_or_permission"
+    validation: dict[str, Any] = {
+        "provider_status_code": status_code,
+        "provider_error_category": category,
+        "request_body_logged": False,
+        "credential_value_logged": False,
+    }
+    retry_after = _retry_after_seconds(getattr(exc, "headers", None))
+    if retry_after is not None:
+        validation["retry_after_seconds"] = retry_after
+    return reason, validation
+
+
 class GeminiProviderAdapter:
     provider = "gemini"
 
@@ -452,14 +543,16 @@ class GeminiProviderAdapter:
         self.env = dict(env or os.environ)
         self.transport = transport
         self.legacy_request_payload = dict(legacy_request_payload or {})
-        self.model_label = model_label or _provider_model_label("gemini", env=self.env)
+        self.model_label_status = gemini_model_label_status(self.env, explicit_model_label=model_label)
+        self.model_label = str(self.model_label_status.get("effective_model_label") or "")
 
     def is_available(self) -> dict[str, Any]:
         provider_enabled = _truthy(self.env.get(GENERIC_ENABLE_ENV))
         provider_selected = str(self.env.get(GENERIC_PROVIDER_ENV) or "").strip().lower() in {"", "gemini"}
         credential_present = _credential_present(self.env, GEMINI_CREDENTIAL_ENVS)
         model_label_present = bool(str(self.model_label or "").strip())
-        available = bool(provider_enabled and provider_selected and credential_present and model_label_present)
+        model_label_mismatch = bool(self.model_label_status.get("model_label_mismatch"))
+        available = bool(provider_enabled and provider_selected and credential_present and model_label_present and not model_label_mismatch)
         missing: list[str] = []
         if not provider_enabled:
             missing.append(GENERIC_ENABLE_ENV)
@@ -469,6 +562,11 @@ class GeminiProviderAdapter:
             missing.append("gemini_credential_env")
         if not model_label_present:
             missing.append(GEMINI_MODEL_ENV)
+        blocked_reason = ""
+        if model_label_mismatch:
+            blocked_reason = "blocked_model_label_mismatch"
+        elif not available:
+            blocked_reason = "blocked_provider_config_required"
         return {
             "adapter_present": True,
             "available": available,
@@ -477,8 +575,9 @@ class GeminiProviderAdapter:
             "provider_selected": provider_selected,
             "credential_present": credential_present,
             "model_label_present": model_label_present,
+            **self.model_label_status,
             "missing_config": missing,
-            "blocked_reason": "" if available else "blocked_provider_config_required",
+            "blocked_reason": blocked_reason,
         }
 
     def build_payload(self, request: Mapping[str, Any]) -> dict[str, Any]:
@@ -489,13 +588,17 @@ class GeminiProviderAdapter:
             "You must not execute, mutate runtime, create confirmed data, create approvals, send, submit, "
             "hydrate, mark paid, or perform external actions."
         )
+        generation_config: dict[str, Any] = {
+            "temperature": 0.2,
+            "responseMimeType": "application/json",
+        }
+        expected_schema = request.get("expected_output_schema") or input_payload.get("expected_output_schema")
+        if isinstance(expected_schema, Mapping):
+            generation_config["responseSchema"] = dict(expected_schema)
         return {
             "systemInstruction": {"parts": [{"text": system}]},
             "contents": [{"role": "user", "parts": [{"text": stable_json(input_payload)}]}],
-            "generationConfig": {
-                "temperature": 0.2,
-                "responseMimeType": "application/json",
-            },
+            "generationConfig": generation_config,
         }
 
     def _perform_http_call(
@@ -521,7 +624,8 @@ class GeminiProviderAdapter:
             with urllib.request.urlopen(request, timeout=timeout_seconds) as response:
                 return json.loads(response.read().decode("utf-8"))
         except urllib.error.HTTPError as exc:
-            raise LMConsultError(f"adapter_api_http_{exc.code}") from exc
+            reason, validation = provider_http_error_classification(exc)
+            raise LMConsultError(reason, validation=validation) from exc
         except TimeoutError as exc:
             raise LMConsultError("adapter_timeout") from exc
         except Exception as exc:
@@ -812,13 +916,18 @@ def build_lm_consult_spine_status(
     latest_status = str((latest_result or {}).get("status") or "")
     readiness_validated = provider_config_ready and latest_status in {"result_accepted", "readiness_validated"}
     live_ready = bool(readiness_validated)
+    latest_payload = latest_result.get("structured_payload") if isinstance(latest_result, Mapping) else {}
+    latest_validation = latest_payload.get("validation") if isinstance(latest_payload, Mapping) else {}
+    if not isinstance(latest_validation, Mapping):
+        latest_validation = {}
     blocked_reason = ""
     if not live_ready:
-        blocked_reason = (
-            "readiness_call_required"
-            if provider_config_ready
-            else str(availability.get("blocked_reason") or "blocked_provider_config_required")
-        )
+        if not provider_config_ready:
+            blocked_reason = str(availability.get("blocked_reason") or "blocked_provider_config_required")
+        elif latest_status:
+            blocked_reason = latest_status
+        else:
+            blocked_reason = "readiness_call_required"
     status = {
         "schema_version": LM_CONSULT_SPINE_STATUS_SCHEMA_VERSION,
         "read_model_id": "openclaw_lm_consult_spine_status",
@@ -830,6 +939,14 @@ def build_lm_consult_spine_status(
         "provider": str(availability.get("provider") or provider),
         "preferred_provider": provider,
         "blocked_reason": blocked_reason,
+        "effective_model_label": str(availability.get("effective_model_label") or ""),
+        "generic_model_label_present": bool(availability.get("generic_model_label_present")),
+        "form_model_label_present": bool(availability.get("form_model_label_present")),
+        "model_label_mismatch": bool(availability.get("model_label_mismatch")),
+        "model_label_source": str(availability.get("model_label_source") or ""),
+        "provider_status_code": latest_validation.get("provider_status_code"),
+        "provider_error_category": str(latest_validation.get("provider_error_category") or ""),
+        "retry_after_seconds": latest_validation.get("retry_after_seconds"),
         "availability": availability,
         "latest_request_id": str((latest_request or {}).get("request_id") or ""),
         "latest_result_id": str((latest_result or {}).get("result_id") or ""),
@@ -861,7 +978,15 @@ def build_watch_desk_items_for_status(status: Mapping[str, Any]) -> list[dict[st
         plain = f"LM consult spine built, but {provider} is blocked: {reason}."
         urgency = "blocked"
         push_class = "failure"
-        next_action = "Configure the provider through approved env/config, without printing credential values."
+        if reason == "blocked_provider_rate_limited":
+            next_action = (
+                "Gemini credential/config reached the provider, but the provider returned 429. "
+                "Check quota/rate limits/model availability or wait and retry."
+            )
+        elif reason in {"blocked_model_label", "blocked_model_label_mismatch"}:
+            next_action = "Fix the approved Gemini model label configuration, then retry one bounded readiness call."
+        else:
+            next_action = "Configure the provider through approved env/config, without printing credential values."
     return [
         {
             "item_id": item_id,
@@ -910,6 +1035,7 @@ __all__ = [
     "DEFAULT_STATUS_PATH",
     "FORBIDDEN_INPUTS",
     "GEMINI_CREDENTIAL_ENVS",
+    "GEMINI_FORM_MODEL_ENV",
     "GEMINI_MODEL_ENV",
     "GENERIC_ENABLE_ENV",
     "GENERIC_PROVIDER_ENV",
@@ -929,7 +1055,9 @@ __all__ = [
     "build_review_answer_from_consult_result",
     "build_watch_desk_items_for_status",
     "cassandra_lm_brain_claim",
+    "gemini_model_label_status",
     "provider_adapter_for",
+    "provider_http_error_classification",
     "request_lm_consult",
     "stable_json",
     "utc_now",

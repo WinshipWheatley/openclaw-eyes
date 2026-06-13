@@ -22,8 +22,9 @@ from typing import Any, Callable, Mapping
 
 ENABLE_ENV = "OPENCLAW_ENABLE_LIVE_GEMINI_FORM"
 MODEL_ENV = "OPENCLAW_GEMINI_FORM_MODEL"
+GENERIC_MODEL_ENV = "OPENCLAW_GEMINI_MODEL"
 GEMINI_CREDENTIAL_ENVS = ("GEMINI_API_KEY", "GOOGLE_API_KEY", "GOOGLE_GENERATIVE_AI_API_KEY")
-DEFAULT_MODEL_LABEL = "gemini-2.5-flash"
+DEFAULT_MODEL_LABEL = ""
 GEMINI_GENERATE_CONTENT_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models"
 
 REQUEST_SCHEMA_VERSION = "DATA_ROOM_GEMINI_FORM_TURN_REQUEST_V0"
@@ -107,7 +108,7 @@ class GeminiFormAdapterError(RuntimeError):
         reason: str,
         *,
         validation: Mapping[str, Any] | None = None,
-        availability: Mapping[str, bool] | None = None,
+        availability: Mapping[str, Any] | None = None,
     ) -> None:
         super().__init__(reason)
         self.reason = reason
@@ -141,7 +142,13 @@ def _safe_filename(value: str) -> str:
 
 def model_label(env: Mapping[str, str] | None = None) -> str:
     env = env or os.environ
-    return str(env.get(MODEL_ENV) or DEFAULT_MODEL_LABEL).strip() or DEFAULT_MODEL_LABEL
+    return str(model_label_resolution(env).get("effective_model_label") or "")
+
+
+def model_label_resolution(env: Mapping[str, str] | None = None) -> dict[str, Any]:
+    import openclaw_lm_consult_spine as consult_spine
+
+    return consult_spine.gemini_model_label_status(env or os.environ)
 
 
 def _credential_present(env: Mapping[str, str]) -> bool:
@@ -156,30 +163,36 @@ def _credential_value_from_env() -> str:
     return ""
 
 
-def is_live_gemini_form_available(env: Mapping[str, str] | None = None) -> dict[str, bool]:
+def is_live_gemini_form_available(env: Mapping[str, str] | None = None) -> dict[str, Any]:
     """Return booleans only; never expose credential values."""
 
     env = env or os.environ
     provider_enabled = _truthy(env.get(ENABLE_ENV))
     credential_present = _credential_present(env)
-    model_label_present = bool(model_label(env))
+    model_status = model_label_resolution(env)
+    model_label_present = bool(model_status.get("effective_model_label"))
+    model_label_mismatch = bool(model_status.get("model_label_mismatch"))
     return {
         "adapter_present": True,
         "provider_enabled": provider_enabled,
         "credential_present": credential_present,
         "model_label_present": model_label_present,
-        "available": bool(provider_enabled and credential_present and model_label_present),
+        **model_status,
+        "available": bool(provider_enabled and credential_present and model_label_present and not model_label_mismatch),
         "blocked_provider_disabled": not provider_enabled,
         "blocked_operator_config_required": provider_enabled and not credential_present,
-        "blocked_model_missing": provider_enabled and credential_present and not model_label_present,
+        "blocked_model_missing": provider_enabled and credential_present and not model_label_present and not model_label_mismatch,
+        "blocked_model_label_mismatch": model_label_mismatch,
     }
 
 
-def availability_blocked_reason(availability: Mapping[str, bool]) -> str:
+def availability_blocked_reason(availability: Mapping[str, Any]) -> str:
     if not availability.get("provider_enabled"):
         return "blocked_provider_disabled"
     if not availability.get("credential_present"):
         return "blocked_operator_config_required"
+    if availability.get("model_label_mismatch"):
+        return "blocked_model_label_mismatch"
     if not availability.get("model_label_present"):
         return "blocked_model_missing"
     if not availability.get("available"):
@@ -200,7 +213,19 @@ def safe_next_operator_step(reason: str) -> str:
             "without printing it, then restart only cassandra-listener.service."
         )
     if reason == "blocked_model_missing":
-        return "Set OPENCLAW_GEMINI_FORM_MODEL to the operator-approved Gemini Flash-class model label, then retry."
+        return "Set OPENCLAW_GEMINI_MODEL to the operator-approved Gemini Flash-class model label, then retry."
+    if reason == "blocked_model_label_mismatch":
+        return (
+            "OPENCLAW_GEMINI_MODEL and OPENCLAW_GEMINI_FORM_MODEL differ. "
+            "Remove the Data Room override or set it to the same approved model label, then retry."
+        )
+    if reason == "blocked_provider_rate_limited":
+        return (
+            "Gemini credential/config was accepted far enough to reach the provider, but the provider returned 429. "
+            "Check quota/rate limits/model availability or wait and retry."
+        )
+    if reason == "blocked_model_label":
+        return "Check the approved Gemini model label for availability, correct it, and retry one bounded readiness call."
     return "Review generated/read_models/data_room_gemini_form_session.json, fix the adapter failure, and retry the Cassandra command."
 
 
@@ -709,7 +734,7 @@ def call_gemini_data_room_form_turn(
             redacted_context_summary=stable_json(request_payload),
             allowed_inputs=request_payload.get("allowed_inputs") or [],
             forbidden_inputs=request_payload.get("forbidden_inputs") or [],
-            expected_output_schema=request_payload.get("expected_output_schema") or expected_gemini_turn_result_shape(),
+            expected_output_schema=gemini_turn_result_json_schema(),
             stop_condition="Stop after returning a Data Room turn result. Do not record or confirm answers.",
             permission_required=False,
             status="ready_for_provider_call",
@@ -735,6 +760,10 @@ def call_gemini_data_room_form_turn(
         reason = str(consult_result.get("status") or "adapter_api_error")
         validation_payload = consult_result.get("structured_payload")
         validation = validation_payload if isinstance(validation_payload, Mapping) else {}
+        if reason == "result_rejected":
+            reason = "adapter_validation_failed"
+            nested = validation.get("validation")
+            validation = nested if isinstance(nested, Mapping) else validation
         raise GeminiFormAdapterError(reason, validation=validation, availability=availability)
 
     parsed = consult_result.get("structured_payload")
@@ -912,6 +941,7 @@ def build_data_room_gemini_form_session_state(
     result = result or {}
     availability = dict(availability or is_live_gemini_form_available())
     review_session_id = str(package.get("review_session_id") or result.get("review_session_id") or "")
+    effective_model = model or str(availability.get("effective_model_label") or "")
     state = {
         "schema_version": FORM_SESSION_SCHEMA_VERSION,
         "form_session_id": str(result.get("form_session_id") or form_session_id_for(review_session_id)),
@@ -919,7 +949,12 @@ def build_data_room_gemini_form_session_state(
         "created_at_utc": str(package.get("created_at_utc") or generated_at_utc or utc_now()),
         "updated_at_utc": generated_at_utc or utc_now(),
         "model_class": "external_fast_worker",
-        "model_label": model or model_label(),
+        "model_label": effective_model,
+        "effective_model_label": effective_model,
+        "generic_model_label_present": bool(availability.get("generic_model_label_present")),
+        "form_model_label_present": bool(availability.get("form_model_label_present")),
+        "model_label_mismatch": bool(availability.get("model_label_mismatch")),
+        "model_label_source": str(availability.get("model_label_source") or ""),
         "lane_status": lane_status,
         "live_ready": bool(live_ready),
         "availability_check": availability,

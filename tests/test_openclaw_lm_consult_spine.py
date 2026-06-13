@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import json
 import sys
+from io import BytesIO
 from pathlib import Path
+from urllib.error import HTTPError
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -13,6 +15,7 @@ import watch_desk_feed
 
 
 FIXED_NOW = "2026-06-13T05:30:00+00:00"
+TEST_MODEL = "gemini-3.5-flash"
 
 
 def _consult_request(**overrides):
@@ -26,7 +29,7 @@ def _consult_request(**overrides):
         "consult_kind": "form_fill",
         "preferred_model_class": "external_fast_worker",
         "preferred_provider": "gemini",
-        "provider_model_label": "gemini-2.5-flash",
+        "provider_model_label": TEST_MODEL,
         "reason_for_model_choice": "Fast advisory reasoning over redacted Data Room proof.",
         "context_refs": ["guided_review_session:test", "question:test"],
         "redacted_context_summary": "Current question only. No private proof.",
@@ -108,7 +111,7 @@ def test_fake_gemini_provider_valid_result_is_accepted():
         env={
             "OPENCLAW_ENABLE_LM_CONSULTS": "1",
             "OPENCLAW_LM_PROVIDER": "gemini",
-            "OPENCLAW_GEMINI_MODEL": "gemini-2.5-flash",
+            "OPENCLAW_GEMINI_MODEL": TEST_MODEL,
             "GEMINI_API_KEY": "test-redacted",
         },
         transport=_fake_gemini_transport(calls),
@@ -132,7 +135,7 @@ def test_fake_unsafe_result_is_rejected():
         env={
             "OPENCLAW_ENABLE_LM_CONSULTS": "1",
             "OPENCLAW_LM_PROVIDER": "gemini",
-            "OPENCLAW_GEMINI_MODEL": "gemini-2.5-flash",
+            "OPENCLAW_GEMINI_MODEL": TEST_MODEL,
             "GEMINI_API_KEY": "test-redacted",
         },
         transport=_fake_gemini_transport(calls, unsafe),
@@ -199,7 +202,7 @@ def test_model_result_cannot_record_directly():
         request,
         provider="gemini",
         model_class="external_fast_worker",
-        model_label="gemini-2.5-flash",
+        model_label=TEST_MODEL,
         assistant_reply="Candidate ready.",
         structured_payload={"assistant_reply": "Candidate ready.", "should_record_now": True},
     )
@@ -216,7 +219,7 @@ def test_confirmation_records_only_after_winship_confirmation():
         request,
         provider="gemini",
         model_class="external_fast_worker",
-        model_label="gemini-2.5-flash",
+        model_label=TEST_MODEL,
         assistant_reply="Use manual approval for payment privacy.",
         structured_payload={
             "proposed_answer": {"plain_english": "Use manual approval for payment privacy."},
@@ -299,7 +302,7 @@ def test_provider_config_alone_is_not_live_ready_without_readiness_result():
         env={
             "OPENCLAW_ENABLE_LM_CONSULTS": "1",
             "OPENCLAW_LM_PROVIDER": "gemini",
-            "OPENCLAW_GEMINI_MODEL": "gemini-2.5-flash",
+            "OPENCLAW_GEMINI_MODEL": TEST_MODEL,
             "GEMINI_API_KEY": "test-redacted",
         }
     )
@@ -309,6 +312,113 @@ def test_provider_config_alone_is_not_live_ready_without_readiness_result():
     assert status["live_ready"] is False
     assert status["blocked_reason"] == "readiness_call_required"
     assert spine.cassandra_lm_brain_claim(status) == "The LM consult spine is built, but Gemini readiness has not succeeded yet."
+
+
+def test_gemini_model_label_status_reports_matching_labels():
+    status = spine.gemini_model_label_status(
+        {
+            "OPENCLAW_GEMINI_MODEL": TEST_MODEL,
+            "OPENCLAW_GEMINI_FORM_MODEL": TEST_MODEL,
+        }
+    )
+
+    assert status["effective_model_label"] == TEST_MODEL
+    assert status["generic_model_label_present"] is True
+    assert status["form_model_label_present"] is True
+    assert status["model_label_mismatch"] is False
+    assert status["model_label_source"] == "OPENCLAW_GEMINI_FORM_MODEL"
+
+
+def test_gemini_model_label_mismatch_blocks_provider_config():
+    status = spine.build_lm_consult_spine_status(
+        env={
+            "OPENCLAW_ENABLE_LM_CONSULTS": "1",
+            "OPENCLAW_LM_PROVIDER": "gemini",
+            "OPENCLAW_GEMINI_MODEL": TEST_MODEL,
+            "OPENCLAW_GEMINI_FORM_MODEL": "gemini-2.5-flash",
+            "GEMINI_API_KEY": "test-redacted",
+        }
+    )
+
+    assert status["provider_config_ready"] is False
+    assert status["live_ready"] is False
+    assert status["blocked_reason"] == "blocked_model_label_mismatch"
+    assert status["model_label_mismatch"] is True
+    assert status["effective_model_label"] == ""
+
+
+def test_rate_limited_result_keeps_live_ready_false():
+    request = _consult_request()
+
+    def rate_limited_transport(**kwargs):
+        raise spine.LMConsultError(
+            "blocked_provider_rate_limited",
+            validation={
+                "provider_status_code": 429,
+                "provider_error_category": "rate_limited",
+                "retry_after_seconds": 60,
+                "request_body_logged": False,
+                "credential_value_logged": False,
+            },
+        )
+
+    adapter = spine.GeminiProviderAdapter(
+        env={
+            "OPENCLAW_ENABLE_LM_CONSULTS": "1",
+            "OPENCLAW_LM_PROVIDER": "gemini",
+            "OPENCLAW_GEMINI_MODEL": TEST_MODEL,
+            "GEMINI_API_KEY": "test-redacted",
+        },
+        transport=rate_limited_transport,
+    )
+
+    result = spine.request_lm_consult(request, provider_adapter=adapter)
+    status = spine.build_lm_consult_spine_status(env=adapter.env, latest_request=request, latest_result=result)
+
+    assert result["status"] == "blocked_provider_rate_limited"
+    assert status["live_ready"] is False
+    assert status["blocked_reason"] == "blocked_provider_rate_limited"
+    assert status["provider_status_code"] == 429
+    assert status["provider_error_category"] == "rate_limited"
+    assert status["retry_after_seconds"] == 60
+
+
+def test_http_429_classifies_without_request_or_credential_leakage():
+    headers = {"Retry-After": "30"}
+    exc = HTTPError("https://provider.invalid", 429, "Too Many Requests", headers, BytesIO(b'{"error":"quota"}'))
+
+    reason, validation = spine.provider_http_error_classification(exc)
+
+    assert reason == "blocked_provider_rate_limited"
+    assert validation["provider_status_code"] == 429
+    assert validation["provider_error_category"] == "rate_limited"
+    assert validation["retry_after_seconds"] == 30
+    assert validation["request_body_logged"] is False
+    assert validation["credential_value_logged"] is False
+
+
+def test_http_404_classifies_as_model_label_block():
+    exc = HTTPError("https://provider.invalid", 404, "Not Found", {}, BytesIO(b'{"error":"model not found"}'))
+
+    reason, validation = spine.provider_http_error_classification(exc)
+
+    assert reason == "blocked_model_label"
+    assert validation["provider_status_code"] == 404
+    assert validation["provider_error_category"] == "model_label"
+
+
+def test_status_payload_does_not_contain_secret_value():
+    env = {
+        "OPENCLAW_ENABLE_LM_CONSULTS": "1",
+        "OPENCLAW_LM_PROVIDER": "gemini",
+        "OPENCLAW_GEMINI_MODEL": TEST_MODEL,
+        "GEMINI_API_KEY": "test-secret-value-not-for-output",
+    }
+
+    status = spine.build_lm_consult_spine_status(env=env)
+    rendered = json.dumps(status, sort_keys=True)
+
+    assert "test-secret-value-not-for-output" not in rendered
 
 
 def test_all_agents_can_construct_consult_request_fixtures():

@@ -14,6 +14,7 @@ import openclaw_gemini_form_adapter as gemini
 
 
 FIXED_NOW = "2026-06-12T12:00:00+00:00"
+GEMINI_TEST_MODEL = "gemini-3.5-flash"
 
 
 def _write_json(path: Path, payload: dict) -> Path:
@@ -620,6 +621,7 @@ def test_live_gemini_command_sends_readiness_only_after_live_call(tmp_path, monk
     start = _start(tmp_path)
     calls: list[dict] = []
     monkeypatch.setenv("OPENCLAW_ENABLE_LIVE_GEMINI_FORM", "1")
+    monkeypatch.setenv("OPENCLAW_GEMINI_MODEL", GEMINI_TEST_MODEL)
     monkeypatch.setenv("GEMINI_API_KEY", "test-redacted")
     _patch_gemini_paths(tmp_path, monkeypatch)
 
@@ -643,11 +645,40 @@ def test_live_gemini_command_sends_readiness_only_after_live_call(tmp_path, monk
     assert lane["external_action_allowed"] is False
     assert lane["runtime_mutation_allowed"] is False
     assert Path(lane["running_chat_log_ref"]).is_file()
+    assert lane["effective_model_label"] == GEMINI_TEST_MODEL
+    assert lane["model_label_source"] == "OPENCLAW_GEMINI_MODEL"
+
+
+def test_live_gemini_model_mismatch_blocks_notification_before_provider(tmp_path, monkeypatch):
+    _start(tmp_path)
+    calls: list[dict] = []
+    monkeypatch.setenv("OPENCLAW_ENABLE_LIVE_GEMINI_FORM", "1")
+    monkeypatch.setenv("OPENCLAW_GEMINI_MODEL", GEMINI_TEST_MODEL)
+    monkeypatch.setenv("OPENCLAW_GEMINI_FORM_MODEL", "gemini-2.5-flash")
+    monkeypatch.setenv("GEMINI_API_KEY", "test-redacted")
+    _patch_gemini_paths(tmp_path, monkeypatch)
+
+    response = guided.process_guided_review_message(
+        "Cassandra, start the Gemini Data Room form lane.",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:02:00+00:00",
+        gemini_form_provider=_fake_gemini_provider(calls),
+    )
+    lane = json.loads((tmp_path / "read_models" / "data_room_gemini_form_session.json").read_text(encoding="utf-8"))
+
+    assert response["reply_text"] != gemini.GEMINI_FORM_READINESS_NOTIFICATION
+    assert "blocked_model_label_mismatch" in response["reply_text"]
+    assert calls == []
+    assert lane["live_ready"] is False
+    assert lane["blocked_reason"] == "blocked_model_label_mismatch"
+    assert lane["model_label_mismatch"] is True
 
 
 def test_live_gemini_command_blocks_without_live_wording_when_config_missing(tmp_path, monkeypatch):
     _start(tmp_path)
     monkeypatch.delenv("OPENCLAW_ENABLE_LIVE_GEMINI_FORM", raising=False)
+    monkeypatch.delenv("OPENCLAW_GEMINI_MODEL", raising=False)
     for name in gemini.GEMINI_CREDENTIAL_ENVS:
         monkeypatch.delenv(name, raising=False)
     _patch_gemini_paths(tmp_path, monkeypatch)
@@ -671,6 +702,7 @@ def test_live_gemini_eli5_turn_updates_chat_log_without_recording(tmp_path, monk
     start = _start(tmp_path)
     calls: list[dict] = []
     monkeypatch.setenv("OPENCLAW_ENABLE_LIVE_GEMINI_FORM", "1")
+    monkeypatch.setenv("OPENCLAW_GEMINI_MODEL", GEMINI_TEST_MODEL)
     monkeypatch.setenv("GEMINI_API_KEY", "test-redacted")
     _patch_gemini_paths(tmp_path, monkeypatch)
     guided.process_guided_review_message(
@@ -703,6 +735,7 @@ def test_live_gemini_eli5_turn_updates_chat_log_without_recording(tmp_path, monk
 def test_live_gemini_answer_candidate_waits_for_winship_confirmation(tmp_path, monkeypatch):
     calls: list[dict] = []
     monkeypatch.setenv("OPENCLAW_ENABLE_LIVE_GEMINI_FORM", "1")
+    monkeypatch.setenv("OPENCLAW_GEMINI_MODEL", GEMINI_TEST_MODEL)
     monkeypatch.setenv("GEMINI_API_KEY", "test-redacted")
     _patch_gemini_paths(tmp_path, monkeypatch)
     _start(tmp_path)
@@ -755,6 +788,7 @@ def test_gemini_done_confirmation_creates_codex_finalizer_waiting_for_dispatch(t
     start = _start(tmp_path)
     calls: list[dict] = []
     monkeypatch.setenv("OPENCLAW_ENABLE_LIVE_GEMINI_FORM", "1")
+    monkeypatch.setenv("OPENCLAW_GEMINI_MODEL", GEMINI_TEST_MODEL)
     monkeypatch.setenv("GEMINI_API_KEY", "test-redacted")
     _patch_gemini_paths(tmp_path, monkeypatch)
     ready = guided.process_guided_review_message(

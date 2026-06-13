@@ -9,9 +9,30 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import openclaw_gemini_form_adapter as adapter
+import openclaw_lm_consult_spine as spine
 
 
 FIXED_NOW = "2026-06-12T12:00:00+00:00"
+TEST_MODEL = "gemini-3.5-flash"
+
+
+@pytest.fixture(autouse=True)
+def _clear_gemini_env(monkeypatch):
+    for name in (
+        "OPENCLAW_ENABLE_LIVE_GEMINI_FORM",
+        "OPENCLAW_GEMINI_MODEL",
+        "OPENCLAW_GEMINI_FORM_MODEL",
+        *adapter.GEMINI_CREDENTIAL_ENVS,
+    ):
+        monkeypatch.delenv(name, raising=False)
+
+
+def _enable_gemini(monkeypatch, *, generic_model: str = TEST_MODEL, form_model: str | None = None) -> None:
+    monkeypatch.setenv("OPENCLAW_ENABLE_LIVE_GEMINI_FORM", "1")
+    monkeypatch.setenv("OPENCLAW_GEMINI_MODEL", generic_model)
+    if form_model is not None:
+        monkeypatch.setenv("OPENCLAW_GEMINI_FORM_MODEL", form_model)
+    monkeypatch.setenv("GEMINI_API_KEY", "test-redacted")
 
 
 def _package() -> dict:
@@ -115,6 +136,7 @@ def _provider_with_result(result_factory, capture: dict | None = None):
 
 def test_adapter_disabled_blocks_before_provider(monkeypatch):
     monkeypatch.delenv("OPENCLAW_ENABLE_LIVE_GEMINI_FORM", raising=False)
+    monkeypatch.setenv("OPENCLAW_GEMINI_MODEL", TEST_MODEL)
     monkeypatch.setenv("GEMINI_API_KEY", "test-redacted")
     called = False
 
@@ -135,6 +157,7 @@ def test_adapter_disabled_blocks_before_provider(monkeypatch):
 
 def test_missing_credential_blocks_without_printing_secret(monkeypatch, capsys):
     monkeypatch.setenv("OPENCLAW_ENABLE_LIVE_GEMINI_FORM", "1")
+    monkeypatch.setenv("OPENCLAW_GEMINI_MODEL", TEST_MODEL)
     for name in adapter.GEMINI_CREDENTIAL_ENVS:
         monkeypatch.delenv(name, raising=False)
 
@@ -156,8 +179,7 @@ def test_missing_credential_blocks_without_printing_secret(monkeypatch, capsys):
 
 
 def test_fake_provider_valid_schema_returns_structured_result_and_no_tools(monkeypatch):
-    monkeypatch.setenv("OPENCLAW_ENABLE_LIVE_GEMINI_FORM", "1")
-    monkeypatch.setenv("GEMINI_API_KEY", "test-redacted")
+    _enable_gemini(monkeypatch)
     capture: dict = {}
 
     result = adapter.call_gemini_data_room_form_turn(
@@ -175,12 +197,113 @@ def test_fake_provider_valid_schema_returns_structured_result_and_no_tools(monke
     assert "toolConfig" not in capture["request_body"]
     assert capture["request_body"]["generationConfig"]["responseMimeType"] == "application/json"
     assert capture["request_body"]["generationConfig"]["responseSchema"]["type"] == "object"
-    assert capture["model_label"] == adapter.DEFAULT_MODEL_LABEL
+    assert capture["model_label"] == TEST_MODEL
+
+
+def test_form_model_missing_falls_back_to_generic_model(monkeypatch):
+    _enable_gemini(monkeypatch)
+    availability = adapter.is_live_gemini_form_available()
+
+    assert availability["available"] is True
+    assert availability["effective_model_label"] == TEST_MODEL
+    assert availability["generic_model_label_present"] is True
+    assert availability["form_model_label_present"] is False
+    assert availability["model_label_source"] == "OPENCLAW_GEMINI_MODEL"
+
+
+def test_matching_form_model_override_is_allowed(monkeypatch):
+    _enable_gemini(monkeypatch, form_model=TEST_MODEL)
+    availability = adapter.is_live_gemini_form_available()
+
+    assert availability["available"] is True
+    assert availability["effective_model_label"] == TEST_MODEL
+    assert availability["form_model_label_present"] is True
+    assert availability["model_label_mismatch"] is False
+
+
+def test_mismatched_form_model_blocks_before_provider(monkeypatch):
+    _enable_gemini(monkeypatch, form_model="gemini-2.5-flash")
+    called = False
+
+    def provider(**kwargs):
+        nonlocal called
+        called = True
+        return {}
+
+    with pytest.raises(adapter.GeminiFormAdapterError) as exc:
+        adapter.call_gemini_data_room_form_turn(
+            _package(),
+            adapter.READINESS_PROMPT,
+            "",
+            provider=provider,
+            created_at_utc=FIXED_NOW,
+        )
+
+    assert exc.value.reason == "blocked_model_label_mismatch"
+    assert exc.value.availability["model_label_mismatch"] is True
+    assert called is False
+
+
+def test_rate_limited_provider_failure_is_preserved(monkeypatch):
+    _enable_gemini(monkeypatch)
+
+    def provider(**kwargs):
+        raise spine.LMConsultError(
+            "blocked_provider_rate_limited",
+            validation={
+                "provider_status_code": 429,
+                "provider_error_category": "rate_limited",
+                "retry_after_seconds": 45,
+                "request_body_logged": False,
+                "credential_value_logged": False,
+            },
+        )
+
+    with pytest.raises(adapter.GeminiFormAdapterError) as exc:
+        adapter.call_gemini_data_room_form_turn(
+            _package(),
+            adapter.READINESS_PROMPT,
+            "",
+            provider=provider,
+            created_at_utc=FIXED_NOW,
+        )
+
+    assert exc.value.reason == "blocked_provider_rate_limited"
+    assert exc.value.validation["validation"]["provider_status_code"] == 429
+    assert exc.value.validation["validation"]["provider_error_category"] == "rate_limited"
+    assert exc.value.validation["validation"]["retry_after_seconds"] == 45
+
+
+def test_invalid_model_provider_failure_is_preserved(monkeypatch):
+    _enable_gemini(monkeypatch)
+
+    def provider(**kwargs):
+        raise spine.LMConsultError(
+            "blocked_model_label",
+            validation={
+                "provider_status_code": 404,
+                "provider_error_category": "model_label",
+                "request_body_logged": False,
+                "credential_value_logged": False,
+            },
+        )
+
+    with pytest.raises(adapter.GeminiFormAdapterError) as exc:
+        adapter.call_gemini_data_room_form_turn(
+            _package(),
+            adapter.READINESS_PROMPT,
+            "",
+            provider=provider,
+            created_at_utc=FIXED_NOW,
+        )
+
+    assert exc.value.reason == "blocked_model_label"
+    assert exc.value.validation["validation"]["provider_status_code"] == 404
+    assert exc.value.validation["validation"]["provider_error_category"] == "model_label"
 
 
 def test_invalid_json_fails_closed(monkeypatch):
-    monkeypatch.setenv("OPENCLAW_ENABLE_LIVE_GEMINI_FORM", "1")
-    monkeypatch.setenv("GEMINI_API_KEY", "test-redacted")
+    _enable_gemini(monkeypatch)
 
     with pytest.raises(adapter.GeminiFormAdapterError) as exc:
         adapter.call_gemini_data_room_form_turn(
@@ -195,8 +318,7 @@ def test_invalid_json_fails_closed(monkeypatch):
 
 
 def test_unsafe_safety_flag_fails_closed(monkeypatch):
-    monkeypatch.setenv("OPENCLAW_ENABLE_LIVE_GEMINI_FORM", "1")
-    monkeypatch.setenv("GEMINI_API_KEY", "test-redacted")
+    _enable_gemini(monkeypatch)
 
     def unsafe(request):
         result = _safe_result(request)
@@ -210,10 +332,10 @@ def test_unsafe_safety_flag_fails_closed(monkeypatch):
             "",
             provider=_provider_with_result(unsafe),
             created_at_utc=FIXED_NOW,
-        )
+    )
 
     assert exc.value.reason == "adapter_validation_failed"
-    assert "safety_flags_not_clean" in exc.value.validation["errors"]
+    assert "safety_flag_true:external_action_performed" in exc.value.validation["errors"]
 
 
 @pytest.mark.parametrize(
@@ -225,8 +347,7 @@ def test_unsafe_safety_flag_fails_closed(monkeypatch):
     ],
 )
 def test_tax_legal_medical_advice_is_rejected(monkeypatch, reply):
-    monkeypatch.setenv("OPENCLAW_ENABLE_LIVE_GEMINI_FORM", "1")
-    monkeypatch.setenv("GEMINI_API_KEY", "test-redacted")
+    _enable_gemini(monkeypatch)
 
     def unsafe(request):
         return _safe_result(request, reply=reply)
@@ -244,8 +365,7 @@ def test_tax_legal_medical_advice_is_rejected(monkeypatch, reply):
 
 
 def test_model_result_cannot_record_directly(monkeypatch):
-    monkeypatch.setenv("OPENCLAW_ENABLE_LIVE_GEMINI_FORM", "1")
-    monkeypatch.setenv("GEMINI_API_KEY", "test-redacted")
+    _enable_gemini(monkeypatch)
 
     def unsafe(request):
         result = _safe_result(request, intent="answer_candidate")
