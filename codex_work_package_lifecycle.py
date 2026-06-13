@@ -24,6 +24,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
+import openclaw_agent_role_registry
 import read_only_email_lookup_connector
 
 
@@ -74,6 +75,7 @@ ALLOWED_WORKER_KINDS = (
     "local_script",
     "codex_desktop",
     "codex_vscode",
+    "openai_codex_cli",
     "codex_cli_if_available",
     "manual_codex_handoff",
 )
@@ -370,9 +372,19 @@ def _prompt_text(package: Mapping[str, Any], objective: Mapping[str, Any]) -> st
     denied_paths = "\n".join(f"- {item}" for item in package.get("denied_file_paths", []))
     denied_commands = "\n".join(f"- {item}" for item in package.get("denied_commands", []))
     validation = "\n".join(f"- {item}" for item in package.get("validation_commands", []))
+    full_context_refs = "\n".join(f"- {item}" for item in package.get("full_agent_context_refs", []))
     return "\n".join(
         [
             "# Codex Work Package",
+            "",
+            "## Agent role",
+            f"Requested by: {package.get('requested_by_agent') or 'operator'}",
+            f"Owner agent: {package.get('owner_agent') or 'chief'}",
+            f"Role context strategy: {package.get('role_context_strategy') or 'compact_role_card'}",
+            str(package.get("agent_role_summary") or ""),
+            "",
+            "Full role context refs:",
+            full_context_refs,
             "",
             "## Objective",
             str(objective.get("operator_goal_text") or objective.get("requested_outcome") or package.get("capability_id") or ""),
@@ -485,6 +497,7 @@ def canonical_spine_metadata() -> dict[str, Any]:
         "cli_surface": "scripts/openclaw_run.py",
         "task_container": "assignment_loop_contract.py",
         "consult_transport": "openclaw_lm_consult_spine.py",
+        "agent_role_registry": "openclaw_agent_role_registry.py",
         "provider_metadata_sources": ["provider_access_catalog.py", "provider_access_auth_status.py"],
         "proof_verifier": "proof_to_response_verifier.py",
         "projection": "watch_desk_feed.py",
@@ -514,10 +527,19 @@ def _base_worker_package(
     lm_consult_request_ref: str = "",
     permission_boundary: Mapping[str, Any] | None = None,
     expected_output_schema: Any = "bounded_worker_result_v0",
+    requested_by_agent: str = "operator",
+    owner_agent: str = "chief",
+    role_context_strategy: str = "compact_role_card",
 ) -> dict[str, Any]:
     allowed_paths = _safe_source_paths(sources) or ["generated/read_models/"]
     metadata = dict(provider_metadata or {})
     boundary = dict(permission_boundary or {})
+    role_context = openclaw_agent_role_registry.package_role_context(
+        requested_by_agent=requested_by_agent,
+        owner_agent=owner_agent,
+        role_context_strategy=role_context_strategy,
+        updated_at_utc=created_at,
+    )
     return {
         "schema_version": "CODEX_WORK_PACKAGE_V0",
         "canonical_worker_spine_schema_version": CANONICAL_WORKER_SPINE_SCHEMA_VERSION,
@@ -534,6 +556,7 @@ def _base_worker_package(
         "standard": standard,
         "proof_required": list(proof_required),
         "stop_condition": stop_condition,
+        **role_context,
         "assignment_loop_ref": assignment_loop_ref,
         "lm_consult_request_ref": lm_consult_request_ref,
         "source_ref": source_ref,
@@ -626,6 +649,9 @@ def create_worker_package_from_assignment_loop(
         assignment_loop_ref=str(assignment_loop.get("assignment_id") or ""),
         permission_boundary=assignment_loop.get("permission_boundary") if isinstance(assignment_loop.get("permission_boundary"), Mapping) else {},
         expected_output_schema=assignment_loop.get("expected_output_schema") or "bounded_worker_result_v0",
+        requested_by_agent=str(assignment_loop.get("requested_by") or "operator"),
+        owner_agent=str(assignment_loop.get("owner_agent") or "chief"),
+        role_context_strategy=str(assignment_loop.get("role_context_strategy") or "compact_role_card"),
     )
     objective = {
         "objective_id": package["objective_id"],
@@ -690,7 +716,7 @@ def create_worker_package_from_lm_consult_request(
             "authority_boundary": dict(AUTHORITY_BOUNDARY),
         }
     selected_worker = str(worker_kind or lm_consult_request.get("preferred_provider") or "human")
-    worker_map = {"gemini": "gemini", "openai": "codex_cli_if_available", "manual": "human", "local": "local_script"}
+    worker_map = {"gemini": "gemini", "openai": "openai_codex_cli", "manual": "human", "local": "local_script"}
     selected_worker = worker_map.get(selected_worker, selected_worker)
     if selected_worker not in ALLOWED_WORKER_KINDS:
         selected_worker = "human"
@@ -730,6 +756,9 @@ def create_worker_package_from_lm_consult_request(
             "external_action_allowed": False,
         },
         expected_output_schema=lm_consult_request.get("expected_output_schema"),
+        requested_by_agent=str(lm_consult_request.get("requested_by_agent") or "operator"),
+        owner_agent=str(lm_consult_request.get("owner_agent") or "chief"),
+        role_context_strategy=str(lm_consult_request.get("role_context_strategy") or "compact_role_card"),
     )
     objective = {
         "objective_id": package["objective_id"],
@@ -1770,6 +1799,10 @@ def _package_summary(
         "state": str(state.get("state") or ""),
         "updated_at": str(state.get("updated_at") or ""),
         "claimed_by": str(state.get("claimed_by") or ""),
+        "requested_by_agent": str((state.get("package_json") or {}).get("requested_by_agent") or "") if isinstance(state.get("package_json"), Mapping) else "",
+        "owner_agent": str((state.get("package_json") or {}).get("owner_agent") or "") if isinstance(state.get("package_json"), Mapping) else "",
+        "agent_role_ref": str((state.get("package_json") or {}).get("agent_role_ref") or "") if isinstance(state.get("package_json"), Mapping) else "",
+        "role_context_strategy": str((state.get("package_json") or {}).get("role_context_strategy") or "") if isinstance(state.get("package_json"), Mapping) else "",
         "claim_ref": str(state.get("claim_ref") or claim.get("claim_id") or ""),
         "package_file_status": str(state.get("package_file_status") or ""),
         "package_json_path": str((state.get("package_files") or {}).get("package_json_path") or "") if isinstance(state.get("package_files"), Mapping) else "",
@@ -1814,6 +1847,9 @@ def _watch_item_for_package(summary: Mapping[str, Any], *, generated_at: str) ->
             "capability_id": str(summary.get("capability_id") or ""),
             "status": state_value,
             "claimed_by": str(summary.get("claimed_by") or ""),
+            "requested_by_agent": str(summary.get("requested_by_agent") or ""),
+            "owner_agent": str(summary.get("owner_agent") or ""),
+            "agent_role_ref": str(summary.get("agent_role_ref") or ""),
             "package_file_status": str(summary.get("package_file_status") or ""),
             "proof_verification_status": str(summary.get("proof_verification_status") or "not_required"),
             "execution_allowed": False,

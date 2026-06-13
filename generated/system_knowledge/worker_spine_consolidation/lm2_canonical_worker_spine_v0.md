@@ -19,6 +19,7 @@ LM2 is the spawned advisory/worker layer: a bounded model/worker instance receiv
 - `scripts/openclaw_run.py`: cli_control_surface / canonical_cli
 - `assignment_loop_contract.py`: task_container / canonical_contract
 - `openclaw_lm_consult_spine.py`: consult_transport / canonical_transport
+- `openclaw_agent_role_registry.py`: agent_role_context / canonical_contract
 - `provider_access_catalog.py`: provider_access_metadata / support_metadata
 - `provider_access_auth_status.py`: provider_auth_metadata / support_metadata
 - `proof_to_response_verifier.py`: proof_verification / canonical_verifier

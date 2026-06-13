@@ -1,0 +1,265 @@
+import json
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+import assignment_loop_contract
+import codex_work_package_lifecycle as lifecycle
+import lm2_openai_first_worker_proof as openai_proof
+import openclaw_agent_role_registry as roles
+import provider_access_catalog
+
+
+FIXED_NOW = "2026-06-13T18:00:00+00:00"
+
+
+def _assignment(owner_agent: str = "cassandra") -> dict:
+    assignment = assignment_loop_contract.build_assignment_loop(
+        requested_by="chief",
+        owner_agent=owner_agent,
+        worker_type="openai_codex_cli",
+        goal="Return a bounded advisory result for the owner agent.",
+        sources=["codex_work_package_lifecycle.py", "openclaw_agent_role_registry.py"],
+        standard="Return structured JSON only.",
+        proof_required=["package receipt", "validation receipt"],
+        stop_condition="Stop after structured result; do not mutate runtime.",
+        current_status="active",
+        created_at_utc=FIXED_NOW,
+    )
+    assignment["expected_output_schema"] = openai_proof.OPENAI_CODEX_CLI_DRY_RUN_RESULT_SCHEMA
+    return assignment
+
+
+def _fake_observation(stdout: str, *, ok: bool = True) -> dict:
+    return {
+        "ok": ok,
+        "returncode": 0 if ok else 1,
+        "stdout_first_line": stdout.splitlines()[0] if stdout.splitlines() else "",
+        "stderr_first_line": "",
+        "stdout_line_count": len(stdout.splitlines()),
+        "stderr_line_count": 0,
+        "_stdout": stdout,
+        "_stderr": "",
+        "raw_output_stored": False,
+    }
+
+
+def _fake_codex_observations() -> dict:
+    exec_help = """Run Codex non-interactively
+Arguments:
+  [PROMPT] instructions are read from stdin
+Options:
+  --output-schema <FILE>
+  -o, --output-last-message <FILE>
+  -C, --cd <DIR>
+  -s, --sandbox <SANDBOX_MODE> [possible values: read-only, workspace-write, danger-full-access]
+  -a, --ask-for-approval <APPROVAL_POLICY> [possible values: never]
+  --ephemeral
+  --ignore-rules
+  --skip-git-repo-check
+  --json
+"""
+    root_help = """Codex CLI
+Commands:
+  exec            Run Codex non-interactively
+Options:
+  -m, --model <MODEL>
+  -s, --sandbox <SANDBOX_MODE> [possible values: read-only]
+  -a, --ask-for-approval <APPROVAL_POLICY> [possible values: never]
+"""
+    return {
+        "codex_which": _fake_observation("/usr/bin/codex\n"),
+        "codex_version": _fake_observation("codex-cli 0.139.0\n"),
+        "codex_help": _fake_observation(root_help),
+        "codex_exec_help": _fake_observation(exec_help),
+    }
+
+
+def test_agent_role_cards_exist_for_required_agents():
+    payload = roles.build_registry(generated_at=FIXED_NOW)
+
+    assert payload["status"] == roles.STATUS_READY
+    assert set(roles.REQUIRED_AGENT_IDS).issubset(payload["role_cards"])
+    for agent_id in roles.REQUIRED_AGENT_IDS:
+        card = payload["role_cards"][agent_id]
+        assert card["schema_version"] == roles.SCHEMA_VERSION
+        assert card["agent_role_ref"] == f"agent_role_card:{agent_id}"
+        assert card["package_context_summary"]
+        assert card["full_context_refs"]
+        assert card["authority_boundary"]["tool_authority_granted"] is False
+
+
+def test_compact_role_card_included_in_lm2_package(tmp_path):
+    result = lifecycle.create_worker_package_from_assignment_loop(
+        _assignment("cassandra"),
+        worker_kind="openai_codex_cli",
+        dispatch_mode="subscription_cli_candidate",
+        sqlite_path=tmp_path / "codex_work_package_lifecycle.sqlite",
+        package_root=tmp_path / "packages",
+        generated_at=FIXED_NOW,
+    )
+    package = result["package_state"]["package_json"]
+
+    assert package["requested_by_agent"] == "chief"
+    assert package["owner_agent"] == "cassandra"
+    assert package["agent_role_ref"] == "agent_role_card:cassandra"
+    assert package["role_context_strategy"] == "compact_role_card"
+    assert package["agent_role_card"]["display_name"] == "Cassandra"
+    assert package["agent_role_summary"].startswith("Act for Cassandra")
+    assert ".claude/commands/cassandra.md" in package["full_agent_context_refs"]
+    assert package["role_context_inlined_full_docs"] is False
+
+
+def test_full_context_refs_are_referenced_not_inlined_by_default(tmp_path):
+    result = lifecycle.create_worker_package_from_assignment_loop(
+        _assignment("niles"),
+        sqlite_path=tmp_path / "codex_work_package_lifecycle.sqlite",
+        package_root=tmp_path / "packages",
+        generated_at=FIXED_NOW,
+    )
+    package = result["package_state"]["package_json"]
+    prompt = Path(result["package_files"]["prompt_path"]).read_text(encoding="utf-8")
+
+    assert package["agent_role_card"]["display_name"] == "Niles"
+    assert package["full_agent_context_refs"]
+    assert package["role_context_inlined_full_docs"] is False
+    assert "Full role context refs:" in prompt
+    assert "## Agent role" in prompt
+    assert "Niles" in prompt
+    assert "## Hard Boundaries" not in prompt
+
+
+def test_cli_native_slash_agents_are_optional_and_subagents_metadata_only():
+    card = roles.compact_role_card("chief", updated_at_utc=FIXED_NOW)
+
+    assert card["native_agent_command_policy"]["slash_agent_command_required"] is False
+    assert card["native_agent_command_policy"]["slash_agent_command_allowed_only_if_proven"] is True
+    assert card["subagent_policy"]["extra_authority_granted"] is False
+    assert card["subagent_policy"]["worker_run_manager_tracks_parent_only_v0"] is True
+
+
+def test_openai_codex_cli_worker_kind_exists():
+    assert "openai_codex_cli" in lifecycle.ALLOWED_WORKER_KINDS
+    assert "claude" not in lifecycle.ALLOWED_WORKER_KINDS
+    assert "opus" not in lifecycle.ALLOWED_WORKER_KINDS
+
+
+def test_codex_cli_mode_detection_uses_safe_noninteractive_controls():
+    mode = openai_proof.inspect_codex_cli(observations=_fake_codex_observations())
+
+    assert mode["safe_noninteractive_mode_available"] is True
+    assert mode["features"]["noninteractive_supported"] is True
+    assert mode["features"]["accepts_stdin"] is True
+    assert mode["features"]["supports_output_schema"] is True
+    assert mode["features"]["supports_output_last_message"] is True
+    assert mode["features"]["supports_sandbox_read_only"] is True
+    assert mode["features"]["supports_approval_never"] is True
+    assert mode["features"]["auth_store_inspected"] is False
+
+
+def test_synthetic_codex_result_schema_can_be_adapted_and_ingested(tmp_path):
+    package_result = openai_proof.create_synthetic_codex_package(
+        sqlite_path=tmp_path / "codex_work_package_lifecycle.sqlite",
+        package_root=tmp_path / "packages",
+        generated_at=FIXED_NOW,
+    )
+    state = package_result["package_state"]
+    dry_result = {
+        "schema_version": openai_proof.OPENAI_CODEX_CLI_DRY_RUN_RESULT_SCHEMA,
+        "status": "ready",
+        "worker": "openai_codex_cli",
+        "message": "ready",
+        "model_or_cli_used": "codex",
+        "subagents_used": False,
+        "execution_attempted": False,
+        "runtime_mutation_performed": False,
+        "external_business_action_performed": False,
+        "confirmed_reference_data_created": False,
+        "hydration_run": False,
+    }
+    adapted = openai_proof.adapt_codex_dry_run_result(dry_result, package_state=state, generated_at=FIXED_NOW)
+    ingested = lifecycle.ingest_worker_result(
+        adapted["adapted"],
+        sqlite_path=tmp_path / "codex_work_package_lifecycle.sqlite",
+        generated_at=FIXED_NOW,
+    )
+    read_model = lifecycle.build_read_model(
+        sqlite_path=tmp_path / "codex_work_package_lifecycle.sqlite",
+        package_root=tmp_path / "packages",
+        generated_at=FIXED_NOW,
+    )
+
+    assert adapted["status"] == "adapted"
+    assert ingested["validation_receipt"]["validation_status"] == "validation_passed"
+    assert ingested["package_state"]["state"] == lifecycle.STATE_VALIDATION_PASSED
+    assert read_model["watch_desk_items"]
+    assert read_model["watch_desk_items"][0]["state"]["owner_agent"] == "chief"
+    assert read_model["watch_desk_items"][0]["push_allowed"] is False
+
+
+def test_bad_synthetic_codex_result_fails_closed(tmp_path):
+    package_result = openai_proof.create_synthetic_codex_package(
+        sqlite_path=tmp_path / "codex_work_package_lifecycle.sqlite",
+        package_root=tmp_path / "packages",
+        generated_at=FIXED_NOW,
+    )
+    state = package_result["package_state"]
+    adapted = openai_proof.adapt_codex_dry_run_result(
+        {
+            "schema_version": openai_proof.OPENAI_CODEX_CLI_DRY_RUN_RESULT_SCHEMA,
+            "status": "ready",
+            "worker": "openai_codex_cli",
+            "message": "ready",
+            "model_or_cli_used": "codex",
+            "subagents_used": True,
+            "execution_attempted": False,
+            "runtime_mutation_performed": False,
+            "external_business_action_performed": False,
+            "confirmed_reference_data_created": False,
+            "hydration_run": False,
+        },
+        package_state=state,
+        generated_at=FIXED_NOW,
+    )
+
+    assert adapted["status"] == "blocked_invalid_openai_codex_cli_dry_run_result"
+    assert "subagents_used_must_be_false" in adapted["errors"]
+
+
+def test_no_disallowed_model_routes_are_used_in_proof_payload(tmp_path):
+    payload = openai_proof.execute_openai_first_worker_proof(
+        run_codex_dry_run=False,
+        sqlite_path=tmp_path / "codex_work_package_lifecycle.sqlite",
+        package_root=tmp_path / "packages",
+        scratch_dir=tmp_path / "scratch",
+        role_export_root=tmp_path / "read_models",
+        role_bridge_root=None,
+        role_system_knowledge_root=tmp_path / "agent_roles",
+        generated_at=FIXED_NOW,
+    )
+    assert payload["codex_dry_run_executed"] is False
+    assert payload["claude_fable_used"] is False
+    assert payload["gemini_agy_ollama_generation_used"] is False
+    assert payload["desktop_gui_automation_used"] is False
+    assert payload["dispatch_result"]["package_claim"]["worker_kind"] == "openai_codex_cli"
+    assert payload["package_state"]["package_json"]["provider_access_metadata"]["worker_kind"] == "openai_codex_cli"
+    assert payload["package_state"]["package_json"]["provider_access_metadata"]["provider"] != "anthropic"
+
+
+def test_provider_catalog_maps_openai_to_codex_worker_kind():
+    observations = provider_access_catalog.build_provider_records(
+        {
+            "codex_which": _fake_observation("/usr/bin/codex\n"),
+            "codex_version": _fake_observation("codex-cli 0.139.0\n"),
+            "codex_help": _fake_observation("Codex CLI\nCommands:\n  exec Run Codex non-interactively\nOptions:\n  -m, --model <MODEL>\n  -C, --cd <DIR>\n"),
+            "codex_exec_help": _fake_observation("Run Codex non-interactively\nstdin\n--json\n--output-schema <FILE>\n"),
+        }
+    )
+    codex = next(row for row in observations if row["provider"] == "openai_codex_cli")
+
+    assert codex["worker_run_manager_mapping"]["worker_kind"] == "openai_codex_cli"
+    assert codex["api_billing_required"] == "unknown"
+    assert codex["worker_run_manager_mapping"]["result_can_mutate_runtime_directly"] is False

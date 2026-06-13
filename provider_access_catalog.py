@@ -432,8 +432,8 @@ def build_provider_records(observations: Mapping[str, Mapping[str, Any]]) -> lis
             ),
             next_probe_required="operator-approved auth/status probe and one bounded worker package dry run before automated dispatch",
             worker_mapping=_worker_mapping(
-                worker_kind="codex_cli_if_available",
-                dispatch_method="scripts/openclaw_run.py dispatch <package_id> --worker codex_cli_if_available",
+                worker_kind="openai_codex_cli",
+                dispatch_method="scripts/openclaw_run.py dispatch <package_id> --worker openai_codex_cli",
                 expected_output="result JSON or output-last-message report file",
                 proof_requirement="package claim, command transcript summary, diff/test receipts, unsafe scan",
                 stop_condition="stop before push, external business action, or unsupported authority claim",

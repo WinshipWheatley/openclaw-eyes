@@ -73,6 +73,12 @@ def repo_a_module_roles() -> list[dict[str, str]]:
             "reason": "Provider-neutral advisory request/result contract; can stage work that becomes a canonical worker package.",
         },
         {
+            "path": "openclaw_agent_role_registry.py",
+            "role": "agent_role_context",
+            "disposition": "canonical_contract",
+            "reason": "Provides compact role cards and full context refs for LM2 packages without inlining large agent docs.",
+        },
+        {
             "path": "provider_access_catalog.py",
             "role": "provider_access_metadata",
             "disposition": "support_metadata",
