@@ -200,7 +200,7 @@ def _pending_reply(text: str, active_context: Mapping[str, Any] | None) -> bool:
         return False
     normalized = _normalize(text).strip(". ")
     natural_intent = parse_natural_reply_intent(text, pending)
-    if natural_intent.get("intent") in {"confirm_candidate", "reject_candidate"}:
+    if natural_intent.get("intent") in {"confirm_candidate", "reject_candidate", "ask_pending_recording_scope"}:
         return True
     return normalized in {
         "yes",

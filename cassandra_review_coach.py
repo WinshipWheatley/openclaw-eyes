@@ -102,6 +102,7 @@ def parse_natural_reply_intent(text: str, pending_interaction: Mapping[str, Any]
     confidence = 0.35
     extracted_revision_text = ""
     condition_text = ""
+    pending = _has_pending(pending_interaction)
 
     confirmation_phrases = {
         "yes",
@@ -189,6 +190,18 @@ def parse_natural_reply_intent(text: str, pending_interaction: Mapping[str, Any]
     ) or normalized in {"i don't know", "i dont know"}:
         intent = "ask_recommendation"
         confidence = 0.9
+    elif any(
+        phrase in normalized
+        for phrase in (
+            "industry best practice",
+            "industry best practices",
+            "best practices approach",
+            "standard practices",
+            "default practices",
+        )
+    ):
+        intent = "thought_dump"
+        confidence = 0.78
     elif (
         normalized.startswith("what does ") and " mean" in normalized
     ) or any(
@@ -202,6 +215,24 @@ def parse_natural_reply_intent(text: str, pending_interaction: Mapping[str, Any]
     ):
         intent = "ask_explanation"
         confidence = 0.9
+    elif pending and any(
+        phrase in normalized
+        for phrase in (
+            "are you just recording",
+            "are you recording",
+            "is this going into",
+            "is it going into",
+            "where is this going",
+            "where does this go",
+            "what are you recording",
+            "did you record",
+            "will you record",
+            "data room thing",
+            "willy nilly",
+        )
+    ):
+        intent = "ask_pending_recording_scope"
+        confidence = 0.92
     elif normalized in {"skip", "skip this", "skip question", "next", "next question"}:
         intent = "skip"
         confidence = 0.95
@@ -244,7 +275,6 @@ def parse_natural_reply_intent(text: str, pending_interaction: Mapping[str, Any]
                 intent = "conditional_answer"
                 confidence = 0.8 if condition_text else 0.65
 
-    pending = _has_pending(pending_interaction)
     return {
         "schema_version": NATURAL_REPLY_INTENT_SCHEMA_VERSION,
         "raw_text_hash": _text_hash(raw),

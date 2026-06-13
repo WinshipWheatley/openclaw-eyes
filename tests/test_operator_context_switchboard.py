@@ -442,6 +442,38 @@ def test_pending_candidate_ok_confirming_typo_is_not_stolen_by_switchboard(tmp_p
     assert "confriming" not in session["answer_records"][0]["raw_answer_text"].lower()
 
 
+def test_pending_candidate_recording_scope_question_is_not_stolen_by_switchboard(tmp_path):
+    start = _start(tmp_path)
+    proposed = guided.process_guided_review_message(
+        "lets do the industry best practices approach",
+        review_root=_paths(tmp_path)["review_root"],
+        read_model_root=_paths(tmp_path)["read_model_root"],
+        generated_at_utc="2026-06-12T12:01:00+00:00",
+    )
+    assert _load_session(proposed)["pending_interaction"]["kind"] == "answer_candidate"
+
+    decision = _switch(
+        tmp_path,
+        "idk, are you just recording it willy nilly or is it going into the data room thing we are working on?",
+        at="2026-06-12T12:02:00+00:00",
+    )
+    assert decision["decision"] == "current_task_continue"
+    assert decision["detected_action_type"] == "guided_review_pending_interaction"
+    assert decision["operator_visible_reply"] == ""
+
+    response = guided.process_guided_review_message(
+        "idk, are you just recording it willy nilly or is it going into the data room thing we are working on?",
+        review_root=_paths(tmp_path)["review_root"],
+        read_model_root=_paths(tmp_path)["read_model_root"],
+        generated_at_utc="2026-06-12T12:03:00+00:00",
+    )
+    assert "I have not recorded it yet" in response["reply_text"]
+    assert "provisional Data Room answer candidate" in response["reply_text"]
+    session = _load_session(response)
+    assert session["pending_interaction"]["kind"] == "answer_candidate"
+    assert session["answer_records"] == []
+
+
 def test_guardian_approval_phrase_passes_through_untouched(tmp_path):
     start = _start(tmp_path)
     decision = _switch(tmp_path, "YES:operator_action_approval_request_123")

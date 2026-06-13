@@ -1049,6 +1049,74 @@ def test_pending_candidate_direct_answer_stays_on_payment_contact_trust_gate_que
     assert updated_session["coach_interactions"][-1]["command"] == "pending_answer_candidate_replaced"
 
 
+def test_industry_best_practices_candidate_is_normalized_for_payment_contact_question(tmp_path):
+    start = _start(tmp_path)
+    session_path = Path(start["artifact_refs"]["session_json"])
+    session = json.loads(session_path.read_text(encoding="utf-8"))
+    question = session["question_queue"][0]
+    question["category"] = "identity/persona policy"
+    question["question_text"] = "Which payment/contact details are trust-gated?"
+    question["context_summary"] = "Operator note does not define which payment or contact details are trust-gated."
+    session["current_question_id"] = question["question_id"]
+    _write_json(session_path, session)
+
+    response = guided.process_guided_review_message(
+        "lets do the industry best practices approach",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:02:00+00:00",
+    )
+    updated_session = _load_session(response)
+    pending = updated_session["pending_interaction"]
+
+    assert pending["kind"] == "answer_candidate"
+    assert pending["candidate_text"].startswith("Use conservative industry-standard trust gating")
+    assert "lets do" not in pending["candidate_text"].lower()
+    assert "Should I record this as: Use conservative industry-standard trust gating" in response["reply_text"]
+    assert updated_session["answer_records"] == []
+    assert updated_session["receipt_refs"] == []
+
+
+def test_pending_candidate_recording_scope_question_explains_not_records(tmp_path):
+    start = _start(tmp_path)
+    session_path = Path(start["artifact_refs"]["session_json"])
+    session = json.loads(session_path.read_text(encoding="utf-8"))
+    question = session["question_queue"][0]
+    question["category"] = "identity/persona policy"
+    question["question_text"] = "Which payment/contact details are trust-gated?"
+    question["context_summary"] = "Operator note does not define which payment or contact details are trust-gated."
+    session["current_question_id"] = question["question_id"]
+    session["pending_interaction"] = {
+        "kind": "answer_candidate",
+        "pending_interaction_id": "pending_answer_candidate:test",
+        "candidate_text": "Use conservative industry-standard trust gating.",
+        "candidate_text_hash": "sha256:test",
+        "current_question_id": question["question_id"],
+        "created_at_utc": "2026-06-12T12:01:00+00:00",
+        "surface": "telegram",
+        "turns_remaining": 3,
+        "source_intent": {"intent": "answer_candidate"},
+        "authoritative": False,
+        "runtime_policy_changed": False,
+    }
+    _write_json(session_path, session)
+
+    response = guided.process_guided_review_message(
+        "idk, are you just recording it willy nilly or is it going into the data room thing we are working on?",
+        review_root=tmp_path / "review",
+        read_model_root=tmp_path / "read_models",
+        generated_at_utc="2026-06-12T12:02:00+00:00",
+    )
+    updated_session = _load_session(response)
+
+    assert "I have not recorded it yet" in response["reply_text"]
+    assert "provisional Data Room answer candidate" in response["reply_text"]
+    assert "will not create confirmed reference data" in response["reply_text"]
+    assert updated_session["pending_interaction"]["kind"] == "answer_candidate"
+    assert updated_session["answer_records"] == []
+    assert updated_session["receipt_refs"] == []
+
+
 def test_pending_candidate_direct_deposit_still_switches_for_true_identity_question(tmp_path):
     payment_question, identity_question = _start_identity_question_with_unanswered_payment(tmp_path)
     session_path = next((tmp_path / "review").glob("data_room_guided_review_session_*.json"))

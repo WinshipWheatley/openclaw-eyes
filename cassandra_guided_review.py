@@ -1806,6 +1806,17 @@ def _candidate_prompt(candidate_text: str) -> str:
     return f"Should I record this as: {str(candidate_text).strip(' .?')}?"
 
 
+def _pending_candidate_scope_reply(session: Mapping[str, Any], pending: Mapping[str, Any], question: Mapping[str, Any] | None) -> str:
+    candidate = str(pending.get("candidate_text") or "").strip()
+    question_text = " ".join(str((question or {}).get("question_text") or "the current Data Room question").split())
+    return (
+        "I have not recorded it yet. It is a provisional Data Room answer candidate for this question: "
+        f"{question_text} If you confirm, I will record the candidate as: {candidate}. "
+        "It will still be provisional review evidence only; it will not create confirmed reference data, "
+        "change runtime policy, or grant action authority."
+    )
+
+
 def _candidate_from_thought_dump(raw_text: str) -> str:
     text = " ".join(str(raw_text or "").strip(" .").split())
     patterns = (
@@ -1867,6 +1878,28 @@ def _candidate_from_direct_answer(raw_text: str) -> str:
     return text
 
 
+def _normalize_candidate_for_question(candidate_text: str, question: Mapping[str, Any] | None) -> str:
+    text = " ".join(str(candidate_text or "").strip(" .").split())
+    normalized = _normalize_topic_text(text)
+    question_text = _normalize_topic_text(
+        " ".join(
+            str((question or {}).get(key) or "")
+            for key in ("category", "question_text", "context_summary")
+        )
+    )
+    if (
+        "industry" in normalized
+        and ("best practices" in normalized or "best practice" in normalized or "standard practices" in normalized)
+        and ("payment" in question_text or "contact" in question_text or "trust gated" in question_text)
+    ):
+        return (
+            "Use conservative industry-standard trust gating: keep raw payment details and direct personal contact "
+            "details private by default, and share only redacted, role-based, public/business, or explicitly reviewed "
+            "values outside trusted contexts."
+        )
+    return text
+
+
 def _set_pending_condition_request(
     session: dict[str, Any],
     *,
@@ -1905,6 +1938,8 @@ def _set_pending_answer_candidate(
     now: str,
     surface: str,
 ) -> dict[str, Any]:
+    question = _question_by_id(session, current_question_id)
+    candidate_text = _normalize_candidate_for_question(candidate_text, question)
     redacted_candidate, _ = _redact_sensitive_text(candidate_text)
     pending_id = "pending_answer_candidate:" + _short_hash(
         session.get("review_session_id", ""),
@@ -1938,6 +1973,8 @@ def _update_pending_answer_candidate(
     source_intent: Mapping[str, Any],
     now: str,
 ) -> dict[str, Any]:
+    question = _question_by_id(session, str(pending.get("current_question_id") or session.get("current_question_id") or ""))
+    candidate_text = _normalize_candidate_for_question(candidate_text, question)
     redacted_candidate, _ = _redact_sensitive_text(candidate_text)
     updated = dict(pending)
     updated.update(
@@ -2361,6 +2398,9 @@ def _handle_pending_interaction(
         candidate_text = str(pending.get("candidate_text") or "")
         current_question_id = str(pending.get("current_question_id") or session.get("current_question_id") or "")
         natural_kind = str(natural_intent.get("intent") or "")
+        if natural_kind == "ask_pending_recording_scope":
+            question = _question_by_id(session, current_question_id)
+            return _pending_candidate_scope_reply(session, pending, question)
         if natural_kind == "confirm_candidate":
             _apply_answer(
                 session,
@@ -4551,7 +4591,8 @@ def process_guided_review_message(
                             answer_recorded=False,
                         )
                         if natural_kind == "thought_dump":
-                            reply = f"Here's the thread I'm hearing: {candidate}\n{_candidate_prompt(candidate)}"
+                            normalized_candidate = str(pending_candidate.get("candidate_text") or candidate)
+                            reply = f"Here's the thread I'm hearing: {normalized_candidate}\n{_candidate_prompt(normalized_candidate)}"
                         else:
                             reply = _candidate_prompt(candidate)
             else:
