@@ -16,7 +16,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from business_ops_ledger import append_event, append_packet_receipt, init_business_ops_ledger
+from business_ops_ledger import append_event, append_packet_receipt, init_business_ops_ledger, record_canonical_fact
 
 
 GIG_INTAKE_VERSION = "gig_intake_v0"
@@ -411,6 +411,9 @@ def record_gig_in_business_ops_ledger(
     state: GigIntakeState | dict[str, Any],
     *,
     db_path: str | Path | None = None,
+    source_file: str | None = None,
+    source_commit: str | None = None,
+    source_description: str | None = None,
 ) -> dict[str, Any]:
     payload = state.to_dict() if isinstance(state, GigIntakeState) else dict(state)
     fields = payload["fields"]
@@ -463,13 +466,48 @@ def record_gig_in_business_ops_ledger(
         event_id=event_id,
         db_path=path,
     )
+    canonical_fact_id = _stable_id(
+        "canonical_gig",
+        {
+            "venue_name": fields.get("venue_name"),
+            "date": fields.get("date"),
+            "start_time": fields.get("start_time"),
+            "end_time": fields.get("end_time"),
+        },
+    )
+    canonical_fact_text = (
+        f"{fields.get('venue_name')} gig on {fields.get('date')} from "
+        f"{fields.get('start_time')} to {fields.get('end_time')} for "
+        f"{fields.get('currency') or 'USD'} {fields.get('fee_amount')}; "
+        "candidate booking record from operator-provided source. "
+        "Intro email and invoice remain pending approval; no send performed."
+    )
+    fact_ok = record_canonical_fact(
+        fact_id=canonical_fact_id,
+        source_file=source_file or "operator_provided_gig_intake",
+        section_heading="gig_booking",
+        source_commit=source_commit or "operator_provided_unversioned",
+        fact_text=canonical_fact_text,
+        sensitivity_class="operational_canonical",
+        allowed_actors=["cassandra", "chief", "guardian", "winship"],
+        doc_category="gig_intake",
+        temporal_or_doctrine="event_specific",
+        source_description=source_description or payload.get("source_summary") or "operator-provided gig intake",
+        truth_source_id=event_id,
+        truth_status="operator_reported_candidate",
+        verification_required=1,
+        verification_evidence_id=packet_id,
+        db_path=path,
+    )
     return {
         "db_path": path,
         "event_id": event_id,
         "packet_id": packet_id,
-        "recorded": bool(event_ok and packet_ok),
+        "canonical_fact_id": canonical_fact_id,
+        "recorded": bool(event_ok and packet_ok and fact_ok),
         "event_recorded": bool(event_ok),
         "packet_receipt_recorded": bool(packet_ok),
+        "canonical_fact_recorded": bool(fact_ok),
     }
 
 
@@ -479,12 +517,21 @@ def emit_gig_handoff_packets(
     db_path: str | Path | None = None,
     source_channel: str = "gig_intake",
     requested_by: str = "winship",
+    source_file: str | None = None,
+    source_commit: str | None = None,
+    source_description: str | None = None,
 ) -> dict[str, Any]:
     payload = state.to_dict() if isinstance(state, GigIntakeState) else dict(state)
     if payload.get("status") != "ready_for_packet_handoff":
         raise ValueError("gig intake must be confirmed before packet handoff")
     fields = payload["fields"]
-    ledger_record = record_gig_in_business_ops_ledger(payload, db_path=db_path)
+    ledger_record = record_gig_in_business_ops_ledger(
+        payload,
+        db_path=db_path,
+        source_file=source_file,
+        source_commit=source_commit,
+        source_description=source_description,
+    )
 
     from chief_compose import compose
 

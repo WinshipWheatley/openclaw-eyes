@@ -797,9 +797,9 @@ KNOWN_UNKNOWNS: tuple[dict[str, str], ...] = (
     {
         "unknown_id": "unknown_reynolds_canonical_ledger_row",
         "subject": "Reynolds gig canonical ledger row",
-        "unknown_status": "NEXT_TASK_PC16",
-        "reason": "Reynolds gig facts are still primarily an orchestration artifact until landed through the gig-intake ledger path.",
-        "next_safe_check": "Run PC-16 through the tested gig-intake pipeline with provenance.",
+        "unknown_status": "RESOLVED_PC16",
+        "reason": "PC-16 landed Reynolds through the gig-intake path as a candidate gig event, packet receipt, and sanitized canonical fact.",
+        "next_safe_check": "Use the pending approval packet ids for future approved draft/send work; do not send under SEND_HOLD.",
     },
     {
         "unknown_id": "unknown_graphiffy_atlas_staleness",
@@ -880,8 +880,8 @@ BUILD_TASKS: tuple[dict[str, Any], ...] = (
         "title": "Land Reynolds gig as canonical business record",
         "owner_lane": "PC Codex",
         "rationale": "PC-16 should dogfood gig intake by moving Reynolds facts from share artifact to canonical ledger.",
-        "status": "pending",
-        "boundary": "Use provenance and no send/invoice execution.",
+        "status": "completed_pc16",
+        "boundary": "Recorded candidate gig/canonical fact only; no send or invoice execution.",
     },
     {
         "task_id": "task_refresh_graphiffy_atlas",

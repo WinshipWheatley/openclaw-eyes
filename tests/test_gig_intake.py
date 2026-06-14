@@ -12,6 +12,7 @@ from gig_intake import (
     start_gig_intake_session,
 )
 from intent_router import route_operator_intent
+from scripts.land_reynolds_gig import land_reynolds_gig
 
 
 FIXTURE = {
@@ -143,6 +144,50 @@ def test_confirmed_reynolds_gig_emits_intro_and_invoice_pending_packets(tmp_path
         ).fetchall()
         assert len(events) == 1
         assert "draft sends remain approval-gated" in events[0][1]
+        facts = conn.execute(
+            "SELECT fact_text, source_file, source_commit, truth_status, verification_required "
+            "FROM canonical_facts WHERE doc_category = 'gig_intake'"
+        ).fetchall()
+        assert len(facts) == 1
+        fact_text, source_file, source_commit, truth_status, verification_required = facts[0]
+        assert "Reynolds Tavern gig on 2026-06-27" in fact_text
+        assert "no send performed" in fact_text
+        assert "@" not in fact_text
+        assert source_file == "operator_provided_gig_intake"
+        assert source_commit == "operator_provided_unversioned"
+        assert truth_status == "operator_reported_candidate"
+        assert verification_required == 1
+    finally:
+        conn.close()
+
+
+def test_land_reynolds_gig_script_is_idempotent_and_no_send(tmp_path):
+    fixture_path = tmp_path / "gig_facts.json"
+    fixture_path.write_text(json.dumps(FIXTURE, indent=2), encoding="utf-8")
+    db_path = _db(tmp_path)
+
+    first = land_reynolds_gig(fixture_path=fixture_path, db_path=db_path, source_commit="test_commit")
+    second = land_reynolds_gig(fixture_path=fixture_path, db_path=db_path, source_commit="test_commit")
+
+    assert first["status"] == "recorded"
+    assert first["ledger_record"]["canonical_fact_recorded"] is True
+    assert first["email_send_performed"] is False
+    assert first["invoice_send_performed"] is False
+    assert first["external_send_performed"] is False
+    assert second["status"] == "already_recorded"
+    assert second["after_counts"] == first["after_counts"]
+
+    conn = sqlite3.connect(db_path)
+    try:
+        assert conn.execute("SELECT COUNT(*) FROM events WHERE event_type = 'gig_intake_recorded'").fetchone()[0] == 1
+        assert conn.execute("SELECT COUNT(*) FROM canonical_facts WHERE doc_category = 'gig_intake'").fetchone()[0] == 1
+        packets = conn.execute(
+            "SELECT intent_category, execution_allowed, action_created FROM agent_work_packets ORDER BY intent_category"
+        ).fetchall()
+        assert sorted((row[0], row[1], row[2]) for row in packets) == [
+            ("email_send", 0, 0),
+            ("invoice_send", 0, 0),
+        ]
     finally:
         conn.close()
 

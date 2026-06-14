@@ -78,7 +78,7 @@
 - `unknown_runtime_service_freshness`: Runtime service state - OUT_OF_SCOPE. Next: Use a verify-only runtime readiness lane if service freshness matters.
 - `unknown_private_finance_truth`: Private finance proofs - BLOCKED_BY_BOUNDARY. Next: Use redacted proof-bundle and evidence-intake lanes with explicit permission.
 - `unknown_correspondence_gmail_scope`: Correspondence watcher Gmail scope - OPERATOR_SCOPE_DECISION_REQUIRED. Next: Ask Winship whether Gmail readonly body scope is allowed for the correspondence watcher.
-- `unknown_reynolds_canonical_ledger_row`: Reynolds gig canonical ledger row - NEXT_TASK_PC16. Next: Run PC-16 through the tested gig-intake pipeline with provenance.
+- `unknown_reynolds_canonical_ledger_row`: Reynolds gig canonical ledger row - RESOLVED_PC16. Next: Use the pending approval packet ids for future approved draft/send work; do not send under SEND_HOLD.
 - `unknown_graphiffy_atlas_staleness`: Graphiffy/atlas freshness - NEXT_TASK_PC17. Next: Run the existing atlas/graphiffy generator without inventing a new path.
 
 ## Build Tasks
@@ -89,7 +89,7 @@
 5. Keep voice/Kokoro caveat separate (Cassandra) - known_caveat
 6. Wire correspondence watcher loop safely (PC Codex) - pending_send_hold_safetied
 7. Scaffold email_send executor unregistered (PC Codex) - pending_send_hold_safetied
-8. Land Reynolds gig as canonical business record (PC Codex) - pending
+8. Land Reynolds gig as canonical business record (PC Codex) - completed_pc16
 9. Refresh atlas/Graphiffy after compose/orchestration wiring (PC Codex) - pending
 
 ## Current Safety Posture

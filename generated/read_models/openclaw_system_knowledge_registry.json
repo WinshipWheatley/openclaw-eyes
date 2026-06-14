@@ -363,10 +363,10 @@
       "title": "Scaffold email_send executor unregistered"
     },
     {
-      "boundary": "Use provenance and no send/invoice execution.",
+      "boundary": "Recorded candidate gig/canonical fact only; no send or invoice execution.",
       "owner_lane": "PC Codex",
       "rationale": "PC-16 should dogfood gig intake by moving Reynolds facts from share artifact to canonical ledger.",
-      "status": "pending",
+      "status": "completed_pc16",
       "task_id": "task_land_reynolds_gig",
       "task_rank": 8,
       "title": "Land Reynolds gig as canonical business record"
@@ -953,11 +953,11 @@
       "unknown_status": "OPERATOR_SCOPE_DECISION_REQUIRED"
     },
     {
-      "next_safe_check": "Run PC-16 through the tested gig-intake pipeline with provenance.",
-      "reason": "Reynolds gig facts are still primarily an orchestration artifact until landed through the gig-intake ledger path.",
+      "next_safe_check": "Use the pending approval packet ids for future approved draft/send work; do not send under SEND_HOLD.",
+      "reason": "PC-16 landed Reynolds through the gig-intake path as a candidate gig event, packet receipt, and sanitized canonical fact.",
       "subject": "Reynolds gig canonical ledger row",
       "unknown_id": "unknown_reynolds_canonical_ledger_row",
-      "unknown_status": "NEXT_TASK_PC16"
+      "unknown_status": "RESOLVED_PC16"
     },
     {
       "next_safe_check": "Run the existing atlas/graphiffy generator without inventing a new path.",

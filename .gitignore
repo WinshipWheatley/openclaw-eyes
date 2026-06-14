@@ -1000,6 +1000,7 @@
 !scripts/export_openclaw_hermes_sidecar.py
 !scripts/export_openclaw_system_knowledge_registry.py
 !scripts/import_external_system_knowledge_registry.py
+!scripts/land_reynolds_gig.py
 !tests/test_external_ai_context_packager.py
 !tests/test_work_board.py
 !tests/test_chief_compose_contract.py
