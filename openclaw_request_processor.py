@@ -13,6 +13,7 @@ import argparse
 import fnmatch
 import hashlib
 import json
+import os
 import re
 import sys
 import time
@@ -49,7 +50,10 @@ import workflow_execution_package_compiler
 
 DEFAULT_EXPORT_ROOT = Path("generated/read_models")
 APPROVED_INBOX = Path("/mnt/e/openclaw/mission_control_capture_requests/inbox")
-DEFAULT_RESPONSE_DIR = Path("/mnt/e/openclaw/mission_control_responses/to_mac")
+RESPONSE_BRIDGE_ROOT_ENV_VAR = "OPENCLAW_RESPONSE_BRIDGE_ROOT"
+DEFAULT_RESPONSE_DIR = Path(
+    os.environ.get(RESPONSE_BRIDGE_ROOT_ENV_VAR, "/mnt/e/openclaw/mission_control_responses/to_mac")
+)
 
 SCHEMA_VERSION = "openclaw_request_processor_v0"
 STATUS_READ_MODEL_ID = "openclaw_request_processor_status"

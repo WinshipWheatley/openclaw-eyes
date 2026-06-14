@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import builtins
 import os
 import sqlite3
 from pathlib import Path
@@ -19,11 +20,14 @@ _ISOLATED_ROOT = _REPO_ROOT / ".pytest_openclaw"
 _ISOLATED_LEDGER = _REPO_ROOT / ".pytest_openclaw" / "business_ops" / "ledger.sqlite"
 _ISOLATED_EXPENSE_LOG = _ISOLATED_ROOT / "logs" / "expense_log.json"
 _ISOLATED_GOOGLE_TOKEN = _ISOLATED_ROOT / "secrets" / "token.json"
+_ISOLATED_MAC_RESPONSE_BRIDGE = _ISOLATED_ROOT / "mission_control_responses" / "to_mac"
 _LIVE_BUSINESS_LEDGER = Path("/home/openclaw/.openclaw/business_ops/ledger.sqlite").resolve(strict=False)
+_LIVE_MAC_RESPONSE_BRIDGE = Path("/mnt/e/openclaw/mission_control_responses/to_mac").resolve(strict=False)
 
 os.environ.setdefault("OPENCLAW_LEDGER_PATH", str(_ISOLATED_LEDGER))
 os.environ.setdefault("OPENCLAW_EXPENSE_LOG_PATH", str(_ISOLATED_EXPENSE_LOG))
 os.environ.setdefault("OPENCLAW_GOOGLE_TOKEN_FILE", str(_ISOLATED_GOOGLE_TOKEN))
+os.environ.setdefault("OPENCLAW_RESPONSE_BRIDGE_ROOT", str(_ISOLATED_MAC_RESPONSE_BRIDGE))
 os.environ.setdefault("OPENCLAW_TEST_MODE", "1")
 os.environ.setdefault("OPENCLAW_SEND_HOLD", "1")
 os.environ.setdefault("PII_VAULT_KEY", "pytest-local-placeholder")
@@ -36,6 +40,49 @@ if not _ISOLATED_GOOGLE_TOKEN.exists():
     _ISOLATED_GOOGLE_TOKEN.write_text("{}\n", encoding="utf-8")
 
 _ORIGINAL_SQLITE_CONNECT = sqlite3.connect
+_ORIGINAL_BUILTINS_OPEN = builtins.open
+_ORIGINAL_PATH_OPEN = Path.open
+
+
+def _resolved_path(value: object) -> Path | None:
+    try:
+        raw = os.fspath(value)  # type: ignore[arg-type]
+    except TypeError:
+        return None
+    if isinstance(raw, bytes):
+        raw = raw.decode("utf-8", errors="ignore")
+    try:
+        return Path(str(raw)).expanduser().resolve(strict=False)
+    except OSError:
+        return None
+
+
+def _is_live_mac_response_bridge_path(path: Path | None) -> bool:
+    if path is None:
+        return False
+    try:
+        path.relative_to(_LIVE_MAC_RESPONSE_BRIDGE)
+        return True
+    except ValueError:
+        return False
+
+
+def _raise_if_live_mac_response_bridge(path: Path | None) -> None:
+    if _is_live_mac_response_bridge_path(path):
+        raise RuntimeError(
+            "pytest attempted to open the live Mac response bridge; "
+            f"use OPENCLAW_RESPONSE_BRIDGE_ROOT instead: {_LIVE_MAC_RESPONSE_BRIDGE}"
+        )
+
+
+def _guarded_open(file: object, *args: object, **kwargs: object):
+    _raise_if_live_mac_response_bridge(_resolved_path(file))
+    return _ORIGINAL_BUILTINS_OPEN(file, *args, **kwargs)
+
+
+def _guarded_path_open(self: Path, *args: object, **kwargs: object):
+    _raise_if_live_mac_response_bridge(self.resolve(strict=False))
+    return _ORIGINAL_PATH_OPEN(self, *args, **kwargs)
 
 
 def _path_from_sqlite_database_arg(database: object) -> Path | None:
@@ -70,3 +117,5 @@ def _guarded_sqlite_connect(database: object, *args: object, **kwargs: object):
 
 
 sqlite3.connect = _guarded_sqlite_connect
+builtins.open = _guarded_open
+Path.open = _guarded_path_open
