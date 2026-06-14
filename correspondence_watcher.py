@@ -21,9 +21,27 @@ from business_ops_ledger import (
     append_side_effect,
     init_business_ops_ledger,
 )
+from agent_voice_profiles import voice_profile_ref_for_speaker
 
 
 CORRESPONDENCE_WATCHER_VERSION = "correspondence_watcher_v0"
+NILES_PERSONA_SOURCE_REF = ".claude/commands/niles.md"
+WINSHIP_REPLY_VOICE_PROFILE_REF = voice_profile_ref_for_speaker("niles")
+WINSHIP_REPLY_VIBE_PROFILE_REF = "agent_vibe_profile:niles"
+WINSHIP_REPLY_AUTHOR = "winship_via_niles_voice"
+GMAIL_SCOPE_DECISION_FOR_WINSHIP = {
+    "decision_owner": "Winship",
+    "decision_status": "pending",
+    "watcher_recommended_scope": "https://www.googleapis.com/auth/gmail.readonly",
+    "watcher_reason": "The correspondence watcher needs readonly access only to inspect selected thread bodies before drafting grounded replies.",
+    "watcher_scopes_not_requested": (
+        "https://www.googleapis.com/auth/gmail.modify",
+        "https://www.googleapis.com/auth/gmail.compose",
+        "https://www.googleapis.com/auth/gmail.send",
+    ),
+    "future_send_scope_decision": "A live email_send transport needs a separate Winship decision after SEND_HOLD lifts; this module does not request or activate send scope.",
+    "send_authority_granted": False,
+}
 REYNOLDS_GIG_CONTEXT = {
     "venue_name": "Reynolds Tavern",
     "date": "2026-06-27",
@@ -51,6 +69,12 @@ class CorrespondencePlan:
     calendar_event_created: bool = False
     raw_body_stored: bool = False
     scope_upgrade_required: bool = False
+    gmail_scope_decision_required: bool = False
+    gmail_scope_decision: dict[str, Any] = field(default_factory=dict)
+    voice_profile_ref: str = WINSHIP_REPLY_VOICE_PROFILE_REF
+    vibe_profile_ref: str = WINSHIP_REPLY_VIBE_PROFILE_REF
+    voice_persona_source_ref: str = NILES_PERSONA_SOURCE_REF
+    draft_author: str = WINSHIP_REPLY_AUTHOR
     receipts: dict[str, str | None] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -70,6 +94,12 @@ class CorrespondencePlan:
             "calendar_event_created": self.calendar_event_created,
             "raw_body_stored": self.raw_body_stored,
             "scope_upgrade_required": self.scope_upgrade_required,
+            "gmail_scope_decision_required": self.gmail_scope_decision_required,
+            "gmail_scope_decision": dict(self.gmail_scope_decision),
+            "voice_profile_ref": self.voice_profile_ref,
+            "vibe_profile_ref": self.vibe_profile_ref,
+            "voice_persona_source_ref": self.voice_persona_source_ref,
+            "draft_author": self.draft_author,
             "receipts": dict(self.receipts),
         }
 
@@ -103,22 +133,44 @@ def _draft_reynolds_reply(classification: str, gig_context: dict[str, Any]) -> s
         return (
             "Hi Sally,\n\n"
             f"Great, thank you. I have {display_date}, {display_time} at {venue} "
-            f"for covering {covering_for}. Looking forward to it.\n\n"
-            "Best,\nWinship"
+            f"for covering {covering_for}. I will keep the set tidy and easy for the room. "
+            "Looking forward to it.\n\n"
+            "Warmly,\nWinship"
         )
     if classification == "question":
         return (
             "Hi Sally,\n\n"
             f"Thanks for checking in. I have {display_date}, {display_time} at {venue} "
-            "as the working booking details. Let me know what you need clarified and I will tighten it up.\n\n"
-            "Best,\nWinship"
+            "as the working booking details. Tell me what needs clarifying and I will tighten it up.\n\n"
+            "Warmly,\nWinship"
         )
     return (
         "Hi Sally,\n\n"
         f"Thanks for the update. I have {display_date}, {display_time} at {venue} "
         "as the current booking context. I will review the details before anything goes out.\n\n"
-        "Best,\nWinship"
+        "Warmly,\nWinship"
     )
+
+
+def _gmail_scope_decision_packet(*, event_id: str, thread_id: str, sender_name: str) -> dict[str, Any]:
+    decision = dict(GMAIL_SCOPE_DECISION_FOR_WINSHIP)
+    return {
+        "packet_id": _stable_id("gmail_scope_decision", thread_id, sender_name),
+        "intent_name": "gmail_scope_decision",
+        "request_category": "winship_scope_decision_required",
+        "actor_name": "guardian",
+        "execution_authority": False,
+        "approval_required": True,
+        "approval_tier": "winship_gmail_scope_decision",
+        "action_status": "blocked_pending_winship_scope_decision",
+        "thread_id": thread_id,
+        "sender_name": sender_name,
+        "decision_for_winship": decision,
+        "event_ref": event_id,
+        "raw_body_stored": False,
+        "gmail_api_called": False,
+        "email_send_performed": False,
+    }
 
 
 def plan_reynolds_correspondence_reply(
@@ -144,17 +196,23 @@ def plan_reynolds_correspondence_reply(
     event_id = _stable_id("correspondence_watch", thread_id, safe_summary or "scope_needed")
 
     if not safe_summary:
+        scope_packet = _gmail_scope_decision_packet(
+            event_id=event_id,
+            thread_id=thread_id,
+            sender_name=sender_name,
+        )
         append_event(
             event_id=event_id,
             event_type="correspondence_watch_scope_needed",
-            actor="cassandra",
+            actor="guardian",
             operator_visible_summary="Gmail reply metadata is visible, but body reading needs explicit scope approval.",
             raw_sensitive_data_stored=False,
             replay_safe=True,
             db_path=path,
         )
+        append_packet_receipt(scope_packet, event_id=event_id, db_path=path)
         append_retrieval_receipt(
-            packet_id=event_id,
+            packet_id=scope_packet["packet_id"],
             source="gmail.readonly",
             attempted=True,
             blocked=True,
@@ -170,7 +228,13 @@ def plan_reynolds_correspondence_reply(
             packet_id=None,
             side_effect_id=None,
             scope_upgrade_required=True,
-            receipts={"event_id": event_id, "retrieval_receipt": event_id},
+            gmail_scope_decision_required=True,
+            gmail_scope_decision=dict(GMAIL_SCOPE_DECISION_FOR_WINSHIP),
+            receipts={
+                "event_id": event_id,
+                "scope_decision_packet_id": scope_packet["packet_id"],
+                "retrieval_receipt_packet_id": scope_packet["packet_id"],
+            },
         )
 
     classification = _classify_reply(safe_summary)
@@ -181,8 +245,8 @@ def plan_reynolds_correspondence_reply(
     append_event(
         event_id=event_id,
         event_type="correspondence_reply_candidate",
-        actor="cassandra",
-        operator_visible_summary=f"Prepared draft-only Reynolds reply candidate for {sender_name}; no send.",
+        actor="niles",
+        operator_visible_summary=f"Prepared draft-only Winship/Niles-voice Reynolds reply candidate for {sender_name}; no send.",
         raw_sensitive_data_stored=False,
         replay_safe=True,
         db_path=path,
@@ -216,7 +280,11 @@ def plan_reynolds_correspondence_reply(
             "packet_id": _stable_id("correspondence_packet", thread_id, packet_id or "no_packet"),
             "intent_name": "monitored_email_conversation",
             "request_category": "email_reply_candidate",
-            "actor_name": "cassandra",
+            "actor_name": "niles",
+            "draft_author": WINSHIP_REPLY_AUTHOR,
+            "voice_profile_ref": WINSHIP_REPLY_VOICE_PROFILE_REF,
+            "vibe_profile_ref": WINSHIP_REPLY_VIBE_PROFILE_REF,
+            "voice_persona_source_ref": NILES_PERSONA_SOURCE_REF,
             "execution_authority": False,
             "approval_required": True,
             "approval_tier": "operator_final_send",
@@ -225,7 +293,7 @@ def plan_reynolds_correspondence_reply(
             "sender_name": sender_name,
             "sender_email_present": bool(sender_email),
             "classification": classification,
-            "draft_summary": "Winship-voice Reynolds reply candidate prepared from fixture or approved summary.",
+            "draft_summary": "Winship/Niles-voice Reynolds reply candidate prepared from fixture or approved summary.",
             "raw_body_stored": False,
             "email_send_performed": False,
             "gmail_api_called": False,
@@ -248,6 +316,10 @@ def plan_reynolds_correspondence_reply(
 __all__ = [
     "CORRESPONDENCE_WATCHER_VERSION",
     "CorrespondencePlan",
+    "GMAIL_SCOPE_DECISION_FOR_WINSHIP",
+    "NILES_PERSONA_SOURCE_REF",
     "REYNOLDS_GIG_CONTEXT",
+    "WINSHIP_REPLY_AUTHOR",
+    "WINSHIP_REPLY_VOICE_PROFILE_REF",
     "plan_reynolds_correspondence_reply",
 ]
