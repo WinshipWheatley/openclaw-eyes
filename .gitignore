@@ -25,6 +25,7 @@
 !chief_listener.py
 !chief_router.py
 !chief_compose.py
+!approval_gate_convergence.py
 !compose_contract.py
 !chief_session_manager.py
 !chief_sender.py
@@ -1079,6 +1080,7 @@
 !tests/test_openclaw_api_server.py
 !tests/test_gig_intake.py
 !tests/test_orbit_compose_wiring.py
+!tests/test_approval_gate_convergence.py
 !tests/test_openclaw_system_knowledge_registry.py
 !tests/test_helm_calm_surface.py
 !tests/test_external_system_knowledge_registry_materializer.py

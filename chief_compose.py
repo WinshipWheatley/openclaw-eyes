@@ -41,6 +41,12 @@ def _segments_from_routed(routed: dict[str, Any]) -> list[str]:
     return [str(reply)] if reply and str(reply).strip() else []
 
 
+def _gate_convergence_preview(surface: str) -> dict[str, Any]:
+    from approval_gate_convergence import convergence_for_surface
+
+    return convergence_for_surface(surface)
+
+
 def compose(
     text: str,
     *,
@@ -99,6 +105,7 @@ def compose(
                 "execution_allowed": getattr(packet, "execution_allowed", False),
                 "button_label": _button_label_for_surface(surface),
                 "packet_hash": packet_state.packet_hash,
+                "gate_convergence": _gate_convergence_preview(surface),
             },
             run_id=getattr(result, "run_id", None),
             next_safe_move=getattr(result, "next_safe_move", None),
