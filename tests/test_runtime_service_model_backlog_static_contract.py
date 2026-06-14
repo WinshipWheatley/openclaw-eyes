@@ -21,7 +21,7 @@ def test_service_management_freeze_is_runtime_neutral_and_ordered():
     assert "Runtime-neutral documentation freeze only" in text
     assert "It does not start, stop, restart, reload, enable, disable, install, remove" in text
     assert "It also does not authorize new runtime behavior" in text
-    assert "Do not expand any of these controls in this slice" in text
+    assert "Do not expand any of these controls under this freeze" in text
     assert "Any future service operation" in text
 
     slice_markers = [
@@ -29,9 +29,9 @@ def test_service_management_freeze_is_runtime_neutral_and_ordered():
         "Slice 3: harden install script behavior behind dry-run/explicit flags.",
         "Slice 4: deprecate or guard legacy launch scripts.",
         "Slice 5: reconcile Hermes template vs installed unit through the narrow Hermes-only installer.",
-        "Slice 6: add repo templates or documented external owners for `openclaw-gateway` and drift-control.",
-        "Slice 7: unify drift-control scheduler.",
-        "Slice 8: decide legacy polling/loop supervisor ownership.",
+        "Slice 6: record owner classification for `openclaw-gateway` and drift-control; no repo templates are added without enough source evidence.",
+        "Slice 7: record static drift-control scheduler-owner classification without selecting an owner.",
+        "Slice 8: record static legacy polling/loop supervisor ownership disposition.",
     ]
     positions = [text.index(marker) for marker in slice_markers]
 
