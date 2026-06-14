@@ -638,6 +638,16 @@ def replace_current_with_candidate(
     old_active_record = _record_from_mapping(existing_mapping)
     source_request_id = str(raw_request.get("request_id") or "unknown_candidate_replacement_request")
     replacement_record: ClientInvoiceWorkbookRecord | None = None
+    operator_text = " ".join(
+        str(raw_request.get(key) or "")
+        for key in ("operator_message", "operator_text", "message", "text")
+    ).lower()
+    confirms_existing_current = (
+        candidate_record is None
+        and old_active_record is not None
+        and "current" in operator_text
+        and ("workbook" in operator_text or "work book" in operator_text)
+    )
     if candidate_record is not None and candidate_record.client_ref == client_ref and candidate_record.workflow_ref == workflow_ref:
         replacement_record = ClientInvoiceWorkbookRecord(
             client_ref=candidate_record.client_ref,
@@ -666,13 +676,39 @@ def replace_current_with_candidate(
                 break
         if not replaced:
             records.append(replacement_mapping)
+    elif confirms_existing_current and old_active_record is not None:
+        replacement_record = ClientInvoiceWorkbookRecord(
+            client_ref=old_active_record.client_ref,
+            client_display_name=old_active_record.client_display_name,
+            tenant_scope=old_active_record.tenant_scope,
+            workflow_ref=old_active_record.workflow_ref,
+            workbook_ref=old_active_record.workbook_ref,
+            workbook_display_name=old_active_record.workbook_display_name,
+            workbook_path_ref=old_active_record.workbook_path_ref,
+            workbook_extension=old_active_record.workbook_extension,
+            workbook_exists_status=old_active_record.workbook_exists_status,
+            workbook_status="WORKBOOK_CONFIRMED",
+            intended_use=old_active_record.intended_use,
+            approved_for_metadata_read=old_active_record.approved_for_metadata_read,
+            approved_for_cell_read=False,
+            source_request_id=old_active_record.source_request_id,
+            source_file_metadata_ref=old_active_record.source_file_metadata_ref,
+            next_safe_move="Next: confirm the invoice field mapping before audit.",
+        )
+        for index, record in enumerate(records):
+            if record.get("client_ref") == client_ref and record.get("workflow_ref") == workflow_ref:
+                records[index] = asdict(replacement_record)
+                break
     readback_status = "WORKBOOK_REPLACEMENT_CONFIRMED" if replacement_record else "WORKBOOK_REGISTRATION_BLOCKED"
     readback = WorkbookRegistrationReadback(
         readback_id=f"workbook_registration_readback:{_short_hash(source_request_id, 'candidate_replaced')}",
         status=readback_status,
         operator_headline="Capital Hilton workbook updated" if replacement_record else "No workbook candidate found",
         operator_message=(
-            "OpenClaw made the new workbook the current Capital Hilton running invoice workbook. "
+            "OpenClaw confirmed the current Capital Hilton source workbook. "
+            "Nothing was deleted from disk. No workbook body or cells were read."
+            if confirms_existing_current
+            else "OpenClaw made the new workbook the current Capital Hilton running invoice workbook. "
             "The previous workbook is no longer the active workbook reference. Nothing was deleted from disk. "
             "No workbook body or cells were read."
             if replacement_record
@@ -722,6 +758,9 @@ def replace_current_with_candidate(
         active_record=replacement_record,
         candidate_record=None,
         duplicate_result=(
+            "CURRENT_WORKBOOK_CONFIRMED_BY_OPERATOR"
+            if confirms_existing_current
+            else
             "CANDIDATE_CONFIRMED_AS_CURRENT_WORKBOOK_BY_OPERATOR"
             if replacement_record
             else "NO_STAGED_CANDIDATE_TO_CONFIRM"
@@ -730,12 +769,13 @@ def replace_current_with_candidate(
     )
     payload["operator_choice_request"] = {
         "source_request_id": source_request_id,
-        "operator_choice": "MAKE_CANDIDATE_CURRENT_WORKBOOK",
+        "operator_choice": "CONFIRM_CURRENT_WORKBOOK" if confirms_existing_current else "MAKE_CANDIDATE_CURRENT_WORKBOOK",
         "client_ref": client_ref,
         "workflow_ref": workflow_ref,
         "previous_workbook_ref": old_active_record.workbook_ref if old_active_record else "",
         "current_workbook_ref": replacement_record.workbook_ref if replacement_record else "",
-        "workbook_replacement_performed": replacement_record is not None,
+        "workbook_replacement_performed": replacement_record is not None and not confirms_existing_current,
+        "current_workbook_confirmation_performed": confirms_existing_current,
         "workbook_body_read_performed": False,
         "spreadsheet_cell_read_performed": False,
         "external_action_performed": False,
@@ -745,11 +785,12 @@ def replace_current_with_candidate(
     payload["machine_proof"].update(
         {
             "operator_candidate_replace_choice_recorded": True,
-            "current_workbook_preserved": False,
+            "current_workbook_preserved": confirms_existing_current,
             "candidate_preserved": False,
-            "workbook_replacement_performed": replacement_record is not None,
+            "workbook_replacement_performed": replacement_record is not None and not confirms_existing_current,
             "candidate_promoted_to_authoritative": False,
-            "candidate_promoted_to_current_workbook": replacement_record is not None,
+            "candidate_promoted_to_current_workbook": replacement_record is not None and not confirms_existing_current,
+            "current_workbook_confirmation_performed": confirms_existing_current,
             "invoice_sent_or_submitted": False,
             "ledger_posted": False,
         }

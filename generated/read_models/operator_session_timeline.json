@@ -19,23 +19,23 @@
   },
   "completed_history_event_count": 2,
   "device_ref": "pc",
-  "event_count": 29,
+  "event_count": 17,
   "event_type_counts": {
-    "approval_requested": 1,
+    "approval_requested": 0,
     "card_resolved": 2,
     "controller_event": 2,
-    "dynamic_card_shown": 9,
-    "evidence_recorded": 2,
-    "lane_entered": 1,
-    "package_staged": 1,
+    "dynamic_card_shown": 8,
+    "evidence_recorded": 1,
+    "lane_entered": 0,
+    "package_staged": 0,
     "proof_attached": 1,
-    "receipt_recorded": 5,
-    "review_decision_recorded": 2,
+    "receipt_recorded": 0,
+    "review_decision_recorded": 1,
     "session_closed": 1,
     "session_started": 1,
-    "world_entered": 1
+    "world_entered": 0
   },
-  "generated_at": "2026-06-05T04:41:51+00:00",
+  "generated_at": "2026-06-05T20:00:00+00:00",
   "machine_proof": {
     "business_action_performed": false,
     "client_pii_beyond_protected_refs_stored": false,
@@ -67,7 +67,7 @@
       "observed_status": "OPERATOR_CONTROLLER_EVENT_ROUTER_READY",
       "precondition_ref": "operator_controller_event_live_route",
       "ready": true,
-      "source_ref": "generated/read_models/operator_controller_event_router_status.json"
+      "source_ref": "generated/read_models/operator_controller_event_router_contract.json"
     },
     {
       "accepted_statuses": [
@@ -76,7 +76,7 @@
       "observed_status": "UNIVERSAL_RECEIPT_ENVELOPE_READY",
       "precondition_ref": "universal_receipt_envelope",
       "ready": true,
-      "source_ref": "generated/read_models/universal_receipt_envelope_status.json"
+      "source_ref": "generated/read_models/universal_receipt_envelope_contract.json"
     },
     {
       "accepted_statuses": [
@@ -97,16 +97,17 @@
       "observed_status": "EVIDENCE_INTAKE_READY",
       "precondition_ref": "verified_evidence_intake",
       "ready": true,
-      "source_ref": "generated/read_models/evidence_intake_status.json"
+      "source_ref": "generated/read_models/evidence_intake_contract.json"
     },
     {
       "accepted_statuses": [
-        "WORKROOM_REVIEW_DECISION_CONSUMER_READY"
+        "WORKROOM_REVIEW_DECISION_CONSUMER_READY",
+        "WORKROOM_REVIEW_DECISION_CONTRACT_READY"
       ],
-      "observed_status": "WORKROOM_REVIEW_DECISION_CONSUMER_READY",
+      "observed_status": "WORKROOM_REVIEW_DECISION_CONTRACT_READY",
       "precondition_ref": "workroom_review_decision_consumer",
       "ready": true,
-      "source_ref": "generated/read_models/workroom_review_decision_status.json"
+      "source_ref": "generated/read_models/workroom_review_decision_contract.json"
     }
   ],
   "read_model_id": "operator_session_timeline",
@@ -121,39 +122,64 @@
   ],
   "schema_version": "operator_session_timeline_v0",
   "session_ref": "operator_session:2026-06-05:pc",
-  "sqlite_path": "/home/openclaw/generated/system_knowledge/operator_session_timeline.sqlite",
-  "sqlite_row_count": 29,
+  "sqlite_path": "/home/openclaw/worktrees/pc3-bd-readmodels/generated/system_knowledge/operator_session_timeline.sqlite",
+  "sqlite_row_count": 17,
   "status": "OPERATOR_SESSION_TIMELINE_READY",
   "timeline_events": [
     {
-      "card_id": "dynamic_card.build.review_packet.completed_historical_receipt",
-      "controller_event_type": "mark_review_packet_informational",
+      "card_id": "dynamic_card.system.check_engine.diagnostic",
+      "controller_event_type": "",
       "developer_proof_only": false,
       "device_ref": "pc",
       "hidden_machine_refs": [
-        "generated/read_models/workroom_review_decision_status.json",
-        "generated/read_models/workroom_review_packet_index.json"
+        "generated/read_models/dynamic_card_packet_latest.json",
+        "generated/read_models/chief_check_engine_diagnostic_package.json",
+        "generated/read_models/operator_action_payloads.json"
       ],
-      "human_summary": "Workroom review was marked informational and moved to completed history; no merge or push.",
+      "human_summary": "Controller showed `gate_lock_card` for the current scene.",
       "operator_ref": "operator:winship",
       "privacy_class": "operator_history",
       "proof_refs": [
-        "generated/read_models/workroom_review_decision_status.json",
-        "generated/read_models/workroom_review_decision_contract.json",
-        "workroom_review_decision_consumer:6789b934558a0457"
+        "generated/read_models/chief_check_engine_diagnostic_package.json",
+        "generated/read_models/operator_action_payloads.json"
       ],
-      "receipt_ref": "workroom_review_decision_consumer:6789b934558a0457",
+      "receipt_ref": "",
       "schema_version": "operator_session_timeline_v0",
       "session_ref": "operator_session:2026-06-05:pc",
-      "thread_ref": "workroom_review",
-      "timeline_event_id": "timeline_event:review_decision_recorded:52a782952c36ea06",
-      "timeline_event_type": "review_decision_recorded",
-      "timestamp": "2026-06-03T17:02:47+00:00",
+      "thread_ref": "check_engine",
+      "timeline_event_id": "timeline_event:dynamic_card_shown:56095ebfc1f07f55",
+      "timeline_event_type": "dynamic_card_shown",
+      "timestamp": "2026-05-20T04:07:48+00:00",
       "visible_in_history": true,
-      "world_ref": "build"
+      "world_ref": "system"
     },
     {
-      "card_id": "dynamic_card.operator_controller_event.65fde17f1f18",
+      "card_id": "dynamic_card.finance.capital_hilton.workbook_registration",
+      "controller_event_type": "",
+      "developer_proof_only": false,
+      "device_ref": "pc",
+      "hidden_machine_refs": [
+        "generated/read_models/dynamic_card_packet_latest.json",
+        "generated/read_models/client_invoice_workbook_registry.json"
+      ],
+      "human_summary": "Controller showed `current_focus_card` for the current scene.",
+      "operator_ref": "operator:winship",
+      "privacy_class": "operator_history",
+      "proof_refs": [
+        "generated/read_models/client_invoice_workbook_registry.json"
+      ],
+      "receipt_ref": "",
+      "schema_version": "operator_session_timeline_v0",
+      "session_ref": "operator_session:2026-06-05:pc",
+      "thread_ref": "capital_hilton",
+      "timeline_event_id": "timeline_event:dynamic_card_shown:fea8af3bd2a3d07b",
+      "timeline_event_type": "dynamic_card_shown",
+      "timestamp": "2026-05-26T00:00:00+00:00",
+      "visible_in_history": true,
+      "world_ref": "finance"
+    },
+    {
+      "card_id": "dynamic_card.finance.capital_hilton.payment_watch",
       "controller_event_type": "ask_why",
       "developer_proof_only": false,
       "device_ref": "pc",
@@ -161,475 +187,27 @@
         "generated/read_models/operator_controller_event_router_status.json",
         "generated/read_models/operator_controller_event_router_contract.json"
       ],
-      "human_summary": "Lane-aware `ask_why` controller event returned payment-watch context without execution.",
+      "human_summary": "Finance / Capital Hilton `ask_why` returned payment-watch context without execution.",
       "operator_ref": "operator:winship",
       "privacy_class": "operator_history",
       "proof_refs": [
-        "generated/read_models/system_question_answer_contract.json",
-        "generated/read_models/dynamic_card_packet_latest.json",
-        "generated/read_models/operator_controller_event_router_status.json",
-        "generated/read_models/operator_controller_event_router_contract.json",
-        "operator_controller_event_router:8dd7614b41ecfecc"
+        "/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/capital_hilton_invoice_operator_run_full_automation_report_20260601T222036Z.md",
+        "/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/2026-06-01/Invoice_Capital_Hilton_2026-06-01.pdf",
+        "/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/capital_hilton_invoice_operator_run_receipt_20260601T221600Z.json",
+        "/mnt/e/openclaw/artifacts/invoice_workbooks/capital_hilton/capital_hilton_invoice_operator_run_report_20260601T221600Z.md",
+        "generated/read_models/capital_hilton_invoice_operator_run_status.json",
+        "generated/read_models/lm_bounded_operator_orchestration_latest.json",
+        "generated/read_models/operator_action_payloads.json"
       ],
-      "receipt_ref": "operator_controller_event_router:8dd7614b41ecfecc",
+      "receipt_ref": "generated/read_models/operator_action_payloads.json#action_payloads.capital_hilton.payment.ask_why",
       "schema_version": "operator_session_timeline_v0",
       "session_ref": "operator_session:2026-06-05:pc",
       "thread_ref": "capital_hilton",
-      "timeline_event_id": "timeline_event:controller_event:e2626d6b90d7a479",
+      "timeline_event_id": "timeline_event:controller_event:ddf7aaefd1bc6ae1",
       "timeline_event_type": "controller_event",
-      "timestamp": "2026-06-05T03:32:58+00:00",
+      "timestamp": "2026-06-01T22:28:55+00:00",
       "visible_in_history": true,
       "world_ref": "finance"
-    },
-    {
-      "card_id": "",
-      "controller_event_type": "",
-      "developer_proof_only": false,
-      "device_ref": "pc",
-      "hidden_machine_refs": [
-        "generated/read_models/operator_controller_event_router_status.json"
-      ],
-      "human_summary": "Entered `capital_hilton` lane in `finance`.",
-      "operator_ref": "operator:winship",
-      "privacy_class": "operator_history",
-      "proof_refs": [
-        "generated/read_models/operator_controller_event_router_status.json"
-      ],
-      "receipt_ref": "",
-      "schema_version": "operator_session_timeline_v0",
-      "session_ref": "operator_session:2026-06-05:pc",
-      "thread_ref": "capital_hilton",
-      "timeline_event_id": "timeline_event:lane_entered:743e9799ade7a31b",
-      "timeline_event_type": "lane_entered",
-      "timestamp": "2026-06-05T03:32:58+00:00",
-      "visible_in_history": true,
-      "world_ref": "finance"
-    },
-    {
-      "card_id": "",
-      "controller_event_type": "",
-      "developer_proof_only": false,
-      "device_ref": "pc",
-      "hidden_machine_refs": [
-        "generated/read_models/operator_controller_event_router_status.json"
-      ],
-      "human_summary": "Entered `finance` world for controller work.",
-      "operator_ref": "operator:winship",
-      "privacy_class": "operator_history",
-      "proof_refs": [
-        "generated/read_models/operator_controller_event_router_status.json"
-      ],
-      "receipt_ref": "",
-      "schema_version": "operator_session_timeline_v0",
-      "session_ref": "operator_session:2026-06-05:pc",
-      "thread_ref": "world",
-      "timeline_event_id": "timeline_event:world_entered:6752abf5d210d7ef",
-      "timeline_event_type": "world_entered",
-      "timestamp": "2026-06-05T03:32:58+00:00",
-      "visible_in_history": true,
-      "world_ref": "finance"
-    },
-    {
-      "card_id": "dynamic_card.finance.live_arts_md.evidence_intake.payment_processing",
-      "controller_event_type": "attach_proof",
-      "developer_proof_only": false,
-      "device_ref": "pc",
-      "hidden_machine_refs": [
-        "generated/read_models/evidence_intake_status.json",
-        "/home/openclaw/generated/system_knowledge/evidence_intake.sqlite"
-      ],
-      "human_summary": "Evidence candidate recorded; paid and ledger truth were not inferred.",
-      "operator_ref": "operator:winship",
-      "privacy_class": "protected_reference",
-      "proof_refs": [
-        "generated/read_models/evidence_intake_status.json",
-        "artifact:evidence_intake_56cda4b43a6b7054",
-        "/home/openclaw/generated/system_knowledge/evidence_intake.sqlite",
-        "/home/openclaw/generated/system_knowledge/artifact_lineage_registry.sqlite"
-      ],
-      "receipt_ref": "",
-      "schema_version": "operator_session_timeline_v0",
-      "session_ref": "operator_session:2026-06-05:pc",
-      "thread_ref": "live_arts_md",
-      "timeline_event_id": "timeline_event:evidence_recorded:c7a0419efb03baf7",
-      "timeline_event_type": "evidence_recorded",
-      "timestamp": "2026-06-05T04:07:26+00:00",
-      "visible_in_history": true,
-      "world_ref": "finance"
-    },
-    {
-      "card_id": "dynamic_card.finance.live_arts_md.evidence_intake.payment_processing",
-      "controller_event_type": "attach_proof",
-      "developer_proof_only": false,
-      "device_ref": "pc",
-      "hidden_machine_refs": [
-        "generated/read_models/evidence_intake_status.json",
-        "/home/openclaw/generated/system_knowledge/artifact_lineage_registry.sqlite"
-      ],
-      "human_summary": "Proof was attached as protected local evidence metadata for a finance lane.",
-      "operator_ref": "operator:winship",
-      "privacy_class": "protected_reference",
-      "proof_refs": [
-        "generated/read_models/evidence_intake_status.json",
-        "artifact:evidence_intake_56cda4b43a6b7054",
-        "/home/openclaw/generated/system_knowledge/evidence_intake.sqlite",
-        "/home/openclaw/generated/system_knowledge/artifact_lineage_registry.sqlite"
-      ],
-      "receipt_ref": "",
-      "schema_version": "operator_session_timeline_v0",
-      "session_ref": "operator_session:2026-06-05:pc",
-      "thread_ref": "live_arts_md",
-      "timeline_event_id": "timeline_event:proof_attached:a1041f74ac18bf08",
-      "timeline_event_type": "proof_attached",
-      "timestamp": "2026-06-05T04:07:26+00:00",
-      "visible_in_history": true,
-      "world_ref": "finance"
-    },
-    {
-      "card_id": "",
-      "controller_event_type": "",
-      "developer_proof_only": false,
-      "device_ref": "pc",
-      "hidden_machine_refs": [
-        "generated/read_models/universal_receipt_envelope_status.json",
-        "generated/system_knowledge/approval_request_queue.sqlite"
-      ],
-      "human_summary": "Approval need recorded; approval receipt is not execution proof.",
-      "operator_ref": "operator:winship",
-      "privacy_class": "operator_history",
-      "proof_refs": [
-        "generated/read_models/approval_request_queue.json"
-      ],
-      "receipt_ref": "universal_receipt:approval_recorded:5429b11043dd6c5a",
-      "schema_version": "operator_session_timeline_v0",
-      "session_ref": "operator_session:2026-06-05:pc",
-      "thread_ref": "capital_hilton",
-      "timeline_event_id": "timeline_event:approval_requested:5295bb42191898aa",
-      "timeline_event_type": "approval_requested",
-      "timestamp": "2026-06-05T04:21:23+00:00",
-      "visible_in_history": true,
-      "world_ref": "finance"
-    },
-    {
-      "card_id": "dynamic_card.finance.capital_hilton.payment_watch",
-      "controller_event_type": "ask_why",
-      "developer_proof_only": false,
-      "device_ref": "pc",
-      "hidden_machine_refs": [
-        "generated/read_models/universal_receipt_envelope_status.json"
-      ],
-      "human_summary": "Controller event recorded for the current lane; route stayed safe and non-executing.",
-      "operator_ref": "operator:winship",
-      "privacy_class": "operator_history",
-      "proof_refs": [
-        "generated/read_models/operator_controller_event_router_status.json"
-      ],
-      "receipt_ref": "universal_receipt:controller_event_received:6860b1549da9e7a4",
-      "schema_version": "operator_session_timeline_v0",
-      "session_ref": "operator_session:2026-06-05:pc",
-      "thread_ref": "capital_hilton",
-      "timeline_event_id": "timeline_event:controller_event:52299e52a3e0f0ac",
-      "timeline_event_type": "controller_event",
-      "timestamp": "2026-06-05T04:21:23+00:00",
-      "visible_in_history": true,
-      "world_ref": "finance"
-    },
-    {
-      "card_id": "dynamic_card.finance.capital_hilton.payment_watch",
-      "controller_event_type": "",
-      "developer_proof_only": false,
-      "device_ref": "pc",
-      "hidden_machine_refs": [
-        "generated/read_models/universal_receipt_envelope_status.json"
-      ],
-      "human_summary": "Receipt-backed dynamic card emitted for Mission Control.",
-      "operator_ref": "operator:winship",
-      "privacy_class": "operator_history",
-      "proof_refs": [
-        "generated/read_models/dynamic_card_packet_latest.json",
-        "sha256:dynamic_card_packet_latest:capital_hilton_payment_watch"
-      ],
-      "receipt_ref": "universal_receipt:dynamic_card_emitted:e811c126f7bdf8d4",
-      "schema_version": "operator_session_timeline_v0",
-      "session_ref": "operator_session:2026-06-05:pc",
-      "thread_ref": "capital_hilton",
-      "timeline_event_id": "timeline_event:dynamic_card_shown:4afc96e1702082b2",
-      "timeline_event_type": "dynamic_card_shown",
-      "timestamp": "2026-06-05T04:21:23+00:00",
-      "visible_in_history": true,
-      "world_ref": "finance"
-    },
-    {
-      "card_id": "",
-      "controller_event_type": "attach_proof",
-      "developer_proof_only": false,
-      "device_ref": "pc",
-      "hidden_machine_refs": [
-        "generated/read_models/universal_receipt_envelope_status.json",
-        "generated/system_knowledge/evidence_intake.sqlite"
-      ],
-      "human_summary": "Protected evidence candidate recorded; ledger and paid truth remain separate.",
-      "operator_ref": "operator:winship",
-      "privacy_class": "protected_reference",
-      "proof_refs": [
-        "generated/read_models/evidence_intake_status.json"
-      ],
-      "receipt_ref": "universal_receipt:evidence_recorded:d575c566537ac901",
-      "schema_version": "operator_session_timeline_v0",
-      "session_ref": "operator_session:2026-06-05:pc",
-      "thread_ref": "live_arts_md",
-      "timeline_event_id": "timeline_event:evidence_recorded:8082ec37705fc5a2",
-      "timeline_event_type": "evidence_recorded",
-      "timestamp": "2026-06-05T04:21:23+00:00",
-      "visible_in_history": true,
-      "world_ref": "finance"
-    },
-    {
-      "card_id": "",
-      "controller_event_type": "",
-      "developer_proof_only": false,
-      "device_ref": "pc",
-      "hidden_machine_refs": [
-        "generated/read_models/universal_receipt_envelope_status.json",
-        "generated/system_knowledge/workflow_package_queue.sqlite"
-      ],
-      "human_summary": "Package staged for operator review; no send, submit, or business execution.",
-      "operator_ref": "operator:winship",
-      "privacy_class": "operator_history",
-      "proof_refs": [
-        "generated/read_models/workflow_package_request_consumer_status.json"
-      ],
-      "receipt_ref": "universal_receipt:package_staged:7901f9da098e3f3f",
-      "schema_version": "operator_session_timeline_v0",
-      "session_ref": "operator_session:2026-06-05:pc",
-      "thread_ref": "capital_hilton",
-      "timeline_event_id": "timeline_event:package_staged:62b84c387d6bcfe9",
-      "timeline_event_type": "package_staged",
-      "timestamp": "2026-06-05T04:21:23+00:00",
-      "visible_in_history": true,
-      "world_ref": "business_development"
-    },
-    {
-      "card_id": "",
-      "controller_event_type": "",
-      "developer_proof_only": false,
-      "device_ref": "pc",
-      "hidden_machine_refs": [
-        "generated/read_models/universal_receipt_envelope_status.json"
-      ],
-      "human_summary": "Universal receipt recorded as summarized history.",
-      "operator_ref": "operator:winship",
-      "privacy_class": "operator_history",
-      "proof_refs": [
-        "generated/read_models/gate_decision_ledger.json"
-      ],
-      "receipt_ref": "universal_receipt:package_rejected:56aeb61b1c5347d4",
-      "schema_version": "operator_session_timeline_v0",
-      "session_ref": "operator_session:2026-06-05:pc",
-      "thread_ref": "capital_hilton",
-      "timeline_event_id": "timeline_event:receipt_recorded:317e0f618f9e6404",
-      "timeline_event_type": "receipt_recorded",
-      "timestamp": "2026-06-05T04:21:23+00:00",
-      "visible_in_history": true,
-      "world_ref": "business_development"
-    },
-    {
-      "card_id": "",
-      "controller_event_type": "",
-      "developer_proof_only": false,
-      "device_ref": "pc",
-      "hidden_machine_refs": [
-        "generated/read_models/universal_receipt_envelope_status.json",
-        "generated/system_knowledge/gate_decision_ledger.sqlite"
-      ],
-      "human_summary": "Protected gate blocked; no authority was granted.",
-      "operator_ref": "operator:winship",
-      "privacy_class": "operator_history",
-      "proof_refs": [
-        "generated/read_models/gate_decision_ledger.json"
-      ],
-      "receipt_ref": "universal_receipt:gate_blocked:6c271847b98e5c34",
-      "schema_version": "operator_session_timeline_v0",
-      "session_ref": "operator_session:2026-06-05:pc",
-      "thread_ref": "capital_hilton",
-      "timeline_event_id": "timeline_event:receipt_recorded:6f0a95eed551fedd",
-      "timeline_event_type": "receipt_recorded",
-      "timestamp": "2026-06-05T04:21:23+00:00",
-      "visible_in_history": true,
-      "world_ref": "finance"
-    },
-    {
-      "card_id": "",
-      "controller_event_type": "",
-      "developer_proof_only": false,
-      "device_ref": "pc",
-      "hidden_machine_refs": [
-        "generated/read_models/universal_receipt_envelope_status.json"
-      ],
-      "human_summary": "Universal receipt recorded as summarized history.",
-      "operator_ref": "operator:winship",
-      "privacy_class": "operator_history",
-      "proof_refs": [
-        "generated/read_models/workflow_composer_latest.json"
-      ],
-      "receipt_ref": "universal_receipt:workflow_plan_staged:2447e7779cd06414",
-      "schema_version": "operator_session_timeline_v0",
-      "session_ref": "operator_session:2026-06-05:pc",
-      "thread_ref": "capital_hilton",
-      "timeline_event_id": "timeline_event:receipt_recorded:8dd32335d4bcacb4",
-      "timeline_event_type": "receipt_recorded",
-      "timestamp": "2026-06-05T04:21:23+00:00",
-      "visible_in_history": true,
-      "world_ref": "business_development"
-    },
-    {
-      "card_id": "",
-      "controller_event_type": "",
-      "developer_proof_only": false,
-      "device_ref": "pc",
-      "hidden_machine_refs": [
-        "generated/read_models/universal_receipt_envelope_status.json"
-      ],
-      "human_summary": "Universal receipt recorded as summarized history.",
-      "operator_ref": "operator:winship",
-      "privacy_class": "operator_history",
-      "proof_refs": [
-        "generated/read_models/memory_promotion_gate.json"
-      ],
-      "receipt_ref": "universal_receipt:memory_candidate_recorded:63074b7c3fa6c70d",
-      "schema_version": "operator_session_timeline_v0",
-      "session_ref": "operator_session:2026-06-05:pc",
-      "thread_ref": "promotion_gate",
-      "timeline_event_id": "timeline_event:receipt_recorded:9f4f7577a847cdc4",
-      "timeline_event_type": "receipt_recorded",
-      "timestamp": "2026-06-05T04:21:23+00:00",
-      "visible_in_history": true,
-      "world_ref": "memory"
-    },
-    {
-      "card_id": "",
-      "controller_event_type": "",
-      "developer_proof_only": false,
-      "device_ref": "pc",
-      "hidden_machine_refs": [
-        "generated/read_models/universal_receipt_envelope_status.json"
-      ],
-      "human_summary": "Universal receipt recorded as summarized history.",
-      "operator_ref": "operator:winship",
-      "privacy_class": "operator_history",
-      "proof_refs": [
-        "generated/read_models/universal_receipt_envelope_contract.json"
-      ],
-      "receipt_ref": "universal_receipt:worker_result_recorded_future:ec9d11ff4ac3f877",
-      "schema_version": "operator_session_timeline_v0",
-      "session_ref": "operator_session:2026-06-05:pc",
-      "thread_ref": "future_worker_results",
-      "timeline_event_id": "timeline_event:receipt_recorded:abac2687d1582c4c",
-      "timeline_event_type": "receipt_recorded",
-      "timestamp": "2026-06-05T04:21:23+00:00",
-      "visible_in_history": true,
-      "world_ref": "build"
-    },
-    {
-      "card_id": "",
-      "controller_event_type": "",
-      "developer_proof_only": false,
-      "device_ref": "pc",
-      "hidden_machine_refs": [
-        "generated/read_models/universal_receipt_envelope_status.json"
-      ],
-      "human_summary": "Review decision recorded as receipt history; no merge or push.",
-      "operator_ref": "operator:winship",
-      "privacy_class": "operator_history",
-      "proof_refs": [
-        "generated/read_models/workroom_review_decision_status.json"
-      ],
-      "receipt_ref": "universal_receipt:review_decision_recorded:a8d1a6f2053629b9",
-      "schema_version": "operator_session_timeline_v0",
-      "session_ref": "operator_session:2026-06-05:pc",
-      "thread_ref": "workroom_review",
-      "timeline_event_id": "timeline_event:review_decision_recorded:51b1b67a8ac7f075",
-      "timeline_event_type": "review_decision_recorded",
-      "timestamp": "2026-06-05T04:21:23+00:00",
-      "visible_in_history": true,
-      "world_ref": "build"
-    },
-    {
-      "card_id": "",
-      "controller_event_type": "",
-      "developer_proof_only": false,
-      "device_ref": "pc",
-      "hidden_machine_refs": [
-        "generated/read_models/operator_session_timeline.json"
-      ],
-      "human_summary": "Operator session timeline closed as summarized history.",
-      "operator_ref": "operator:winship",
-      "privacy_class": "session_metadata",
-      "proof_refs": [
-        "generated/read_models/operator_session_timeline.json"
-      ],
-      "receipt_ref": "",
-      "schema_version": "operator_session_timeline_v0",
-      "session_ref": "operator_session:2026-06-05:pc",
-      "thread_ref": "session",
-      "timeline_event_id": "timeline_event:session_closed:f3bef7cc2966d4f1",
-      "timeline_event_type": "session_closed",
-      "timestamp": "2026-06-05T04:41:51+00:00",
-      "visible_in_history": true,
-      "world_ref": "system"
-    },
-    {
-      "card_id": "",
-      "controller_event_type": "",
-      "developer_proof_only": false,
-      "device_ref": "pc",
-      "hidden_machine_refs": [
-        "generated/read_models/operator_session_timeline.json"
-      ],
-      "human_summary": "Operator session timeline started for PC Mission Control handoff.",
-      "operator_ref": "operator:winship",
-      "privacy_class": "session_metadata",
-      "proof_refs": [
-        "generated/read_models/operator_session_timeline.json"
-      ],
-      "receipt_ref": "",
-      "schema_version": "operator_session_timeline_v0",
-      "session_ref": "operator_session:2026-06-05:pc",
-      "thread_ref": "session",
-      "timeline_event_id": "timeline_event:session_started:004ee52d25e6e506",
-      "timeline_event_type": "session_started",
-      "timestamp": "2026-06-05T04:41:51+00:00",
-      "visible_in_history": true,
-      "world_ref": "system"
-    },
-    {
-      "card_id": "dynamic_card.business_development.capital_hilton.proposal",
-      "controller_event_type": "",
-      "developer_proof_only": false,
-      "device_ref": "pc",
-      "hidden_machine_refs": [
-        "generated/read_models/dynamic_card_packet_latest.json",
-        "generated/read_models/capital_hilton_business_development_proposal.json"
-      ],
-      "human_summary": "Controller showed `workflow_composer_plan_card` for the current scene.",
-      "operator_ref": "operator:winship",
-      "privacy_class": "operator_history",
-      "proof_refs": [
-        "/mnt/e/openclaw/artifacts/proposals/capital_hilton/fight_weekend_2026/capital_hilton_fight_weekend_proposal_review_receipt.json",
-        "/mnt/e/openclaw/artifacts/proposals/capital_hilton/fight_weekend_2026/capital_hilton_proposal_email_sent_receipt_20260601T223704Z.json",
-        "/mnt/e/openclaw/artifacts/proposals/capital_hilton/fight_weekend_2026/capital_hilton_fight_weekend_proposal_packet.json",
-        "/mnt/e/openclaw/artifacts/proposals/capital_hilton/fight_weekend_2026/Capital_Hilton_Fight_Weekend_Entertainment_Proposal_DRAFT.pdf",
-        "generated/read_models/capital_hilton_business_development_proposal.json"
-      ],
-      "receipt_ref": "",
-      "schema_version": "operator_session_timeline_v0",
-      "session_ref": "operator_session:2026-06-05:pc",
-      "thread_ref": "capital_hilton",
-      "timeline_event_id": "timeline_event:dynamic_card_shown:23af51b5eda8a37b",
-      "timeline_event_type": "dynamic_card_shown",
-      "timestamp": "{'generated/read_models/capital_hilton_business_development_proposal.json': '2026-06-01T22:39:43+00:00'}",
-      "visible_in_history": true,
-      "world_ref": "business_development"
     },
     {
       "card_id": "dynamic_card.finance.capital_hilton.contextual_question",
@@ -654,9 +232,9 @@
       "schema_version": "operator_session_timeline_v0",
       "session_ref": "operator_session:2026-06-05:pc",
       "thread_ref": "capital_hilton",
-      "timeline_event_id": "timeline_event:dynamic_card_shown:8adbc3f65b99fc9d",
+      "timeline_event_id": "timeline_event:dynamic_card_shown:9b0aadbda86e04bb",
       "timeline_event_type": "dynamic_card_shown",
-      "timestamp": "{'generated/read_models/capital_hilton_invoice_operator_run_status.json': '2026-06-01T22:28:55+00:00', 'generated/read_models/finance_thread_index.json': '', 'generated/read_models/system_question_answer_contract.json': '2026-06-05T04:07:25+00:00'}",
+      "timestamp": "2026-06-01T22:28:55+00:00",
       "visible_in_history": true,
       "world_ref": "finance"
     },
@@ -687,91 +265,92 @@
       "schema_version": "operator_session_timeline_v0",
       "session_ref": "operator_session:2026-06-05:pc",
       "thread_ref": "capital_hilton",
-      "timeline_event_id": "timeline_event:dynamic_card_shown:807101aded03fb58",
+      "timeline_event_id": "timeline_event:dynamic_card_shown:cdb74e45840d823a",
       "timeline_event_type": "dynamic_card_shown",
-      "timestamp": "{'generated/read_models/capital_hilton_invoice_operator_run_status.json': '2026-06-01T22:28:55+00:00', 'generated/read_models/lm_bounded_operator_orchestration_latest.json': '2026-06-04T03:01:19+00:00', 'generated/read_models/operator_action_payloads.json': '2026-06-03T20:56:13+00:00'}",
+      "timestamp": "2026-06-01T22:28:55+00:00",
       "visible_in_history": true,
       "world_ref": "finance"
     },
     {
-      "card_id": "dynamic_card.system.check_engine.diagnostic",
+      "card_id": "dynamic_card.business_development.capital_hilton.proposal",
       "controller_event_type": "",
       "developer_proof_only": false,
       "device_ref": "pc",
       "hidden_machine_refs": [
         "generated/read_models/dynamic_card_packet_latest.json",
-        "generated/read_models/chief_check_engine_diagnostic_package.json",
-        "generated/read_models/operator_action_payloads.json"
+        "generated/read_models/capital_hilton_business_development_proposal.json"
       ],
-      "human_summary": "Controller showed `gate_lock_card` for the current scene.",
+      "human_summary": "Controller showed `workflow_composer_plan_card` for the current scene.",
       "operator_ref": "operator:winship",
       "privacy_class": "operator_history",
       "proof_refs": [
-        "generated/read_models/chief_check_engine_diagnostic_package.json",
-        "generated/read_models/operator_action_payloads.json"
-      ],
-      "receipt_ref": "",
-      "schema_version": "operator_session_timeline_v0",
-      "session_ref": "operator_session:2026-06-05:pc",
-      "thread_ref": "check_engine",
-      "timeline_event_id": "timeline_event:dynamic_card_shown:fbd477499d77dda1",
-      "timeline_event_type": "dynamic_card_shown",
-      "timestamp": "{'generated/read_models/chief_check_engine_diagnostic_package.json': '2026-05-20T04:07:48+00:00', 'generated/read_models/operator_action_payloads.json': '2026-06-03T20:56:13+00:00'}",
-      "visible_in_history": true,
-      "world_ref": "system"
-    },
-    {
-      "card_id": "dynamic_card.finance.capital_hilton.workbook_registration",
-      "controller_event_type": "",
-      "developer_proof_only": false,
-      "device_ref": "pc",
-      "hidden_machine_refs": [
-        "generated/read_models/dynamic_card_packet_latest.json",
-        "generated/read_models/client_invoice_workbook_registry.json"
-      ],
-      "human_summary": "Controller showed `current_focus_card` for the current scene.",
-      "operator_ref": "operator:winship",
-      "privacy_class": "operator_history",
-      "proof_refs": [
-        "generated/read_models/client_invoice_workbook_registry.json"
+        "/mnt/e/openclaw/artifacts/proposals/capital_hilton/fight_weekend_2026/capital_hilton_fight_weekend_proposal_review_receipt.json",
+        "/mnt/e/openclaw/artifacts/proposals/capital_hilton/fight_weekend_2026/capital_hilton_proposal_email_sent_receipt_20260601T223704Z.json",
+        "/mnt/e/openclaw/artifacts/proposals/capital_hilton/fight_weekend_2026/capital_hilton_fight_weekend_proposal_packet.json",
+        "/mnt/e/openclaw/artifacts/proposals/capital_hilton/fight_weekend_2026/Capital_Hilton_Fight_Weekend_Entertainment_Proposal_DRAFT.pdf",
+        "generated/read_models/capital_hilton_business_development_proposal.json"
       ],
       "receipt_ref": "",
       "schema_version": "operator_session_timeline_v0",
       "session_ref": "operator_session:2026-06-05:pc",
       "thread_ref": "capital_hilton",
-      "timeline_event_id": "timeline_event:dynamic_card_shown:fce8315d4dd4e207",
+      "timeline_event_id": "timeline_event:dynamic_card_shown:cc17c88d85bf2f75",
       "timeline_event_type": "dynamic_card_shown",
-      "timestamp": "{'generated/read_models/client_invoice_workbook_registry.json': '2026-05-26T00:00:00+00:00'}",
+      "timestamp": "2026-06-01T22:39:43+00:00",
       "visible_in_history": true,
-      "world_ref": "finance"
+      "world_ref": "business_development"
     },
     {
-      "card_id": "dynamic_card.finance.live_arts_md.evidence_intake.payment_processing",
+      "card_id": "dynamic_card.finance.st_annes.work_log_review",
       "controller_event_type": "",
       "developer_proof_only": false,
       "device_ref": "pc",
       "hidden_machine_refs": [
         "generated/read_models/dynamic_card_packet_latest.json",
-        "generated/read_models/evidence_intake_status.json"
+        "generated/read_models/st_annes_work_log_review_surface.json"
       ],
-      "human_summary": "Controller showed `evidence_intake_receipt_card` for the current scene.",
+      "human_summary": "Resolved controller card moved to completed history.",
       "operator_ref": "operator:winship",
       "privacy_class": "operator_history",
       "proof_refs": [
-        "artifact:evidence_intake_56cda4b43a6b7054",
-        "mission_control_drop:live_arts_md_payment_processing_screenshot_invoice_2026-1001",
-        "/home/openclaw/generated/system_knowledge/evidence_intake.sqlite",
-        "generated/read_models/evidence_intake_status.json"
+        "generated/read_models/st_annes_work_log_review_surface.json"
       ],
       "receipt_ref": "",
       "schema_version": "operator_session_timeline_v0",
       "session_ref": "operator_session:2026-06-05:pc",
-      "thread_ref": "live_arts_md",
-      "timeline_event_id": "timeline_event:dynamic_card_shown:9383ffdcce1ee2d6",
-      "timeline_event_type": "dynamic_card_shown",
-      "timestamp": "{'generated/read_models/evidence_intake_status.json': '2026-06-05T04:07:26+00:00'}",
+      "thread_ref": "st_annes",
+      "timeline_event_id": "timeline_event:card_resolved:e6e12bf9920c708e",
+      "timeline_event_type": "card_resolved",
+      "timestamp": "2026-06-02T21:57:46+00:00",
       "visible_in_history": true,
       "world_ref": "finance"
+    },
+    {
+      "card_id": "dynamic_card.build.review_packet.completed_historical_receipt",
+      "controller_event_type": "mark_review_packet_informational",
+      "developer_proof_only": false,
+      "device_ref": "pc",
+      "hidden_machine_refs": [
+        "generated/read_models/workroom_review_decision_status.json",
+        "generated/read_models/workroom_review_packet_index.json"
+      ],
+      "human_summary": "Workroom review was marked informational and moved to completed history; no merge or push.",
+      "operator_ref": "operator:winship",
+      "privacy_class": "operator_history",
+      "proof_refs": [
+        "generated/read_models/workroom_review_decision_status.json",
+        "generated/read_models/workroom_review_decision_contract.json",
+        "workroom_review_decision:f19e1a68e1c67c01"
+      ],
+      "receipt_ref": "workroom_review_decision:f19e1a68e1c67c01",
+      "schema_version": "operator_session_timeline_v0",
+      "session_ref": "operator_session:2026-06-05:pc",
+      "thread_ref": "workroom_review",
+      "timeline_event_id": "timeline_event:review_decision_recorded:4d186e7cfcc5a34f",
+      "timeline_event_type": "review_decision_recorded",
+      "timestamp": "2026-06-03T03:48:39+00:00",
+      "visible_in_history": true,
+      "world_ref": "build"
     },
     {
       "card_id": "dynamic_card.controller.safe_next.what_should_i_do",
@@ -796,11 +375,68 @@
       "schema_version": "operator_session_timeline_v0",
       "session_ref": "operator_session:2026-06-05:pc",
       "thread_ref": "safe_next",
-      "timeline_event_id": "timeline_event:dynamic_card_shown:801fea610f1e1c07",
+      "timeline_event_id": "timeline_event:dynamic_card_shown:c6c82f3b4b0f7d3f",
       "timeline_event_type": "dynamic_card_shown",
-      "timestamp": "{'generated/read_models/operator_controller_design_brief.json': '2026-06-05T02:06:39Z', 'generated/read_models/operator_controller_protocol.json': '2026-06-04T21:45:00+00:00', 'generated/read_models/system_question_answer_contract.json': '2026-06-05T04:07:25+00:00'}",
+      "timestamp": "2026-06-05T02:06:39Z",
       "visible_in_history": true,
       "world_ref": "controller"
+    },
+    {
+      "card_id": "dynamic_card.finance.capital_hilton.approval_request.coupa_submit",
+      "controller_event_type": "ask_why",
+      "developer_proof_only": false,
+      "device_ref": "pc",
+      "hidden_machine_refs": [
+        "generated/read_models/operator_controller_event_router_status.json",
+        "generated/read_models/operator_controller_event_router_contract.json"
+      ],
+      "human_summary": "Finance / Capital Hilton `ask_why` returned payment-watch context without execution.",
+      "operator_ref": "operator:winship",
+      "privacy_class": "operator_history",
+      "proof_refs": [
+        "generated/read_models/gate_decision_ledger.json",
+        "generated/read_models/operator_action_payloads.json",
+        "generated/read_models/operator_controller_protocol.json"
+      ],
+      "receipt_ref": "generated/read_models/operator_action_payloads.json#action_payloads.guardian_gate.coupa_submit.explain",
+      "schema_version": "operator_session_timeline_v0",
+      "session_ref": "operator_session:2026-06-05:pc",
+      "thread_ref": "capital_hilton",
+      "timeline_event_id": "timeline_event:controller_event:98e266bf8edde9aa",
+      "timeline_event_type": "controller_event",
+      "timestamp": "2026-06-05T04:07:25+00:00",
+      "visible_in_history": true,
+      "world_ref": "finance"
+    },
+    {
+      "card_id": "dynamic_card.build.review_packet.completed_historical_receipt",
+      "controller_event_type": "",
+      "developer_proof_only": false,
+      "device_ref": "pc",
+      "hidden_machine_refs": [
+        "generated/read_models/dynamic_card_packet_latest.json",
+        "generated/read_models/workroom_review_decision_status.json",
+        "generated/read_models/workroom_review_packet_index.json",
+        "generated/read_models/workroom_review_decision_contract.json"
+      ],
+      "human_summary": "Resolved controller card moved to completed history.",
+      "operator_ref": "operator:winship",
+      "privacy_class": "operator_history",
+      "proof_refs": [
+        "workroom_review_decision_consumer:80dc2fab0833c207",
+        "generated/read_models/workroom_review_decision_status.json",
+        "generated/read_models/workroom_review_packet_index.json",
+        "generated/read_models/workroom_review_decision_contract.json"
+      ],
+      "receipt_ref": "",
+      "schema_version": "operator_session_timeline_v0",
+      "session_ref": "operator_session:2026-06-05:pc",
+      "thread_ref": "review_packet",
+      "timeline_event_id": "timeline_event:card_resolved:7b6a96ad55dd42d4",
+      "timeline_event_type": "card_resolved",
+      "timestamp": "2026-06-05T17:38:57+00:00",
+      "visible_in_history": true,
+      "world_ref": "build"
     },
     {
       "card_id": "dynamic_card.build.review_packet.current",
@@ -825,66 +461,143 @@
       "schema_version": "operator_session_timeline_v0",
       "session_ref": "operator_session:2026-06-05:pc",
       "thread_ref": "review_packet",
-      "timeline_event_id": "timeline_event:dynamic_card_shown:517b7fc9c80618ae",
+      "timeline_event_id": "timeline_event:dynamic_card_shown:1d8ec3b92f9796e8",
       "timeline_event_type": "dynamic_card_shown",
-      "timestamp": "{'generated/read_models/spawned_worker_package_lifecycle.json#pc_backend_package_review': '', 'generated/read_models/workroom_review_decision_status.json': '2026-06-05T04:07:26+00:00', 'generated/read_models/workroom_review_packet_index.json': '2026-06-03T12:07:06+00:00'}",
+      "timestamp": "2026-06-05T17:38:57+00:00",
       "visible_in_history": true,
       "world_ref": "build"
     },
     {
-      "card_id": "dynamic_card.finance.st_annes.work_log_review",
+      "card_id": "dynamic_card.finance.live_arts_md.evidence_intake.payment_processing",
       "controller_event_type": "",
       "developer_proof_only": false,
       "device_ref": "pc",
       "hidden_machine_refs": [
         "generated/read_models/dynamic_card_packet_latest.json",
-        "generated/read_models/st_annes_work_log_review_surface.json"
+        "generated/read_models/evidence_intake_status.json"
       ],
-      "human_summary": "Resolved controller card moved to completed history.",
+      "human_summary": "Controller showed `evidence_intake_receipt_card` for the current scene.",
       "operator_ref": "operator:winship",
       "privacy_class": "operator_history",
       "proof_refs": [
-        "generated/read_models/st_annes_work_log_review_surface.json"
+        "artifact:evidence_intake_66a81b39dbf34ce3",
+        "/private/tmp/openclaw-mission-control/screenshots/generic_controller_v3_clean_test_proof.png",
+        "/home/openclaw/generated/system_knowledge/evidence_intake.sqlite",
+        "generated/read_models/evidence_intake_status.json"
       ],
       "receipt_ref": "",
       "schema_version": "operator_session_timeline_v0",
       "session_ref": "operator_session:2026-06-05:pc",
-      "thread_ref": "st_annes",
-      "timeline_event_id": "timeline_event:card_resolved:b9cfaa679cecf3de",
-      "timeline_event_type": "card_resolved",
-      "timestamp": "{'generated/read_models/st_annes_work_log_review_surface.json': '2026-06-02T21:57:46+00:00'}",
+      "thread_ref": "live_arts_md",
+      "timeline_event_id": "timeline_event:dynamic_card_shown:2e3602d190916bb2",
+      "timeline_event_type": "dynamic_card_shown",
+      "timestamp": "2026-06-05T18:44:27+00:00",
       "visible_in_history": true,
       "world_ref": "finance"
     },
     {
-      "card_id": "dynamic_card.build.review_packet.completed_historical_receipt",
-      "controller_event_type": "",
+      "card_id": "dynamic_card.finance.live_arts_md.evidence_intake.payment_processing",
+      "controller_event_type": "attach_proof",
       "developer_proof_only": false,
       "device_ref": "pc",
       "hidden_machine_refs": [
-        "generated/read_models/dynamic_card_packet_latest.json",
-        "generated/read_models/workroom_review_decision_status.json",
-        "generated/read_models/workroom_review_packet_index.json",
-        "generated/read_models/workroom_review_decision_contract.json"
+        "generated/read_models/evidence_intake_status.json",
+        "generated/read_models/evidence_intake_contract.json"
       ],
-      "human_summary": "Resolved controller card moved to completed history.",
+      "human_summary": "Evidence candidate recorded; paid and ledger truth were not inferred.",
       "operator_ref": "operator:winship",
-      "privacy_class": "operator_history",
+      "privacy_class": "protected_reference",
       "proof_refs": [
-        "workroom_review_decision_consumer:6789b934558a0457",
-        "generated/read_models/workroom_review_decision_status.json",
-        "generated/read_models/workroom_review_packet_index.json",
-        "generated/read_models/workroom_review_decision_contract.json"
+        "artifact:evidence_intake_66a81b39dbf34ce3",
+        "/private/tmp/openclaw-mission-control/screenshots/generic_controller_v3_clean_test_proof.png",
+        "/home/openclaw/generated/system_knowledge/evidence_intake.sqlite",
+        "generated/read_models/evidence_intake_status.json"
       ],
       "receipt_ref": "",
       "schema_version": "operator_session_timeline_v0",
       "session_ref": "operator_session:2026-06-05:pc",
-      "thread_ref": "review_packet",
-      "timeline_event_id": "timeline_event:card_resolved:a014651fbbe42662",
-      "timeline_event_type": "card_resolved",
-      "timestamp": "{'generated/read_models/workroom_review_decision_contract.json': '', 'generated/read_models/workroom_review_decision_status.json': '2026-06-05T04:07:26+00:00', 'generated/read_models/workroom_review_packet_index.json': '2026-06-03T12:07:06+00:00'}",
+      "thread_ref": "live_arts_md",
+      "timeline_event_id": "timeline_event:evidence_recorded:46114039de6fa7e4",
+      "timeline_event_type": "evidence_recorded",
+      "timestamp": "2026-06-05T18:44:27+00:00",
       "visible_in_history": true,
-      "world_ref": "build"
+      "world_ref": "finance"
+    },
+    {
+      "card_id": "dynamic_card.finance.live_arts_md.evidence_intake.payment_processing",
+      "controller_event_type": "attach_proof",
+      "developer_proof_only": false,
+      "device_ref": "pc",
+      "hidden_machine_refs": [
+        "generated/read_models/evidence_intake_status.json",
+        "generated/read_models/evidence_intake_contract.json"
+      ],
+      "human_summary": "Proof was attached as protected local evidence metadata for a finance lane.",
+      "operator_ref": "operator:winship",
+      "privacy_class": "protected_reference",
+      "proof_refs": [
+        "artifact:evidence_intake_66a81b39dbf34ce3",
+        "/private/tmp/openclaw-mission-control/screenshots/generic_controller_v3_clean_test_proof.png",
+        "/home/openclaw/generated/system_knowledge/evidence_intake.sqlite",
+        "generated/read_models/evidence_intake_status.json"
+      ],
+      "receipt_ref": "",
+      "schema_version": "operator_session_timeline_v0",
+      "session_ref": "operator_session:2026-06-05:pc",
+      "thread_ref": "live_arts_md",
+      "timeline_event_id": "timeline_event:proof_attached:9b13dffe5039d6a4",
+      "timeline_event_type": "proof_attached",
+      "timestamp": "2026-06-05T18:44:27+00:00",
+      "visible_in_history": true,
+      "world_ref": "finance"
+    },
+    {
+      "card_id": "",
+      "controller_event_type": "",
+      "developer_proof_only": false,
+      "device_ref": "pc",
+      "hidden_machine_refs": [
+        "generated/read_models/operator_session_timeline.json"
+      ],
+      "human_summary": "Operator session timeline closed as summarized history.",
+      "operator_ref": "operator:winship",
+      "privacy_class": "session_metadata",
+      "proof_refs": [
+        "generated/read_models/operator_session_timeline.json"
+      ],
+      "receipt_ref": "",
+      "schema_version": "operator_session_timeline_v0",
+      "session_ref": "operator_session:2026-06-05:pc",
+      "thread_ref": "session",
+      "timeline_event_id": "timeline_event:session_closed:d482c47fee01416a",
+      "timeline_event_type": "session_closed",
+      "timestamp": "2026-06-05T20:00:00+00:00",
+      "visible_in_history": true,
+      "world_ref": "system"
+    },
+    {
+      "card_id": "",
+      "controller_event_type": "",
+      "developer_proof_only": false,
+      "device_ref": "pc",
+      "hidden_machine_refs": [
+        "generated/read_models/operator_session_timeline.json"
+      ],
+      "human_summary": "Operator session timeline started for PC Mission Control handoff.",
+      "operator_ref": "operator:winship",
+      "privacy_class": "session_metadata",
+      "proof_refs": [
+        "generated/read_models/operator_session_timeline.json"
+      ],
+      "receipt_ref": "",
+      "schema_version": "operator_session_timeline_v0",
+      "session_ref": "operator_session:2026-06-05:pc",
+      "thread_ref": "session",
+      "timeline_event_id": "timeline_event:session_started:cfafe7b74096d5d9",
+      "timeline_event_type": "session_started",
+      "timestamp": "2026-06-05T20:00:00+00:00",
+      "visible_in_history": true,
+      "world_ref": "system"
     }
   ]
 }

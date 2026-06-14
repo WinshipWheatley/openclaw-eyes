@@ -71,11 +71,11 @@ REQUIRED_EVENT_FIELDS = (
 
 PRECONDITIONS = {
     "operator_controller_event_live_route": {
-        "filename": "operator_controller_event_router_status.json",
+        "filename": "operator_controller_event_router_contract.json",
         "accepted_statuses": ["OPERATOR_CONTROLLER_EVENT_LIVE_ROUTE_READY", "OPERATOR_CONTROLLER_EVENT_ROUTER_READY"],
     },
     "universal_receipt_envelope": {
-        "filename": "universal_receipt_envelope_status.json",
+        "filename": "universal_receipt_envelope_contract.json",
         "accepted_statuses": ["UNIVERSAL_RECEIPT_ENVELOPE_READY"],
     },
     "dynamic_card_packet_v1": {
@@ -83,12 +83,12 @@ PRECONDITIONS = {
         "accepted_statuses": ["DYNAMIC_CARD_PACKET_V1_READY", "DYNAMIC_CARD_PACKET_READY"],
     },
     "verified_evidence_intake": {
-        "filename": "evidence_intake_status.json",
+        "filename": "evidence_intake_contract.json",
         "accepted_statuses": ["VERIFIED_EVIDENCE_INTAKE_READY", "EVIDENCE_INTAKE_LIVE_ROUTE_READY", "EVIDENCE_INTAKE_READY"],
     },
     "workroom_review_decision_consumer": {
-        "filename": "workroom_review_decision_status.json",
-        "accepted_statuses": ["WORKROOM_REVIEW_DECISION_CONSUMER_READY"],
+        "filename": "workroom_review_decision_contract.json",
+        "accepted_statuses": ["WORKROOM_REVIEW_DECISION_CONSUMER_READY", "WORKROOM_REVIEW_DECISION_CONTRACT_READY"],
     },
 }
 
@@ -183,6 +183,14 @@ def _load_json(path: Path) -> dict[str, Any]:
     return payload if isinstance(payload, dict) else {}
 
 
+def _load_first_json(root: Path, *filenames: str) -> dict[str, Any]:
+    for filename in filenames:
+        payload = _load_json(root / filename)
+        if payload:
+            return payload
+    return {}
+
+
 def _write_json(path: Path, payload: Mapping[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(stable_json(payload), encoding="utf-8")
@@ -190,6 +198,16 @@ def _write_json(path: Path, payload: Mapping[str, Any]) -> None:
 
 def _source_ref(filename: str) -> str:
     return f"generated/read_models/{filename}"
+
+
+def _card_timestamp(card: Mapping[str, Any], fallback_timestamp: str) -> str:
+    generated = card.get("source_generated_at")
+    if isinstance(generated, Mapping):
+        for value in generated.values():
+            if str(value):
+                return str(value)
+        return fallback_timestamp
+    return str(generated or fallback_timestamp)
 
 
 def _short_hash(payload: Any) -> str:
@@ -319,6 +337,7 @@ def _dynamic_card_events(dynamic_packet: Mapping[str, Any], *, fallback_timestam
         if not isinstance(card, Mapping):
             continue
         card_id = str(card.get("card_id") or "")
+        timestamp = _card_timestamp(card, fallback_timestamp)
         proof_refs = _proof_refs_from_card(card)
         lifecycle = str(card.get("lifecycle_state") or "unknown")
         world_ref = str(card.get("world_ref") or "system")
@@ -331,7 +350,7 @@ def _dynamic_card_events(dynamic_packet: Mapping[str, Any], *, fallback_timestam
             events.append(
                 build_timeline_event(
                     "card_resolved",
-                    timestamp=str(card.get("source_generated_at") or fallback_timestamp),
+                    timestamp=timestamp,
                     world_ref=world_ref,
                     thread_ref=thread_ref,
                     card_id=card_id,
@@ -346,7 +365,7 @@ def _dynamic_card_events(dynamic_packet: Mapping[str, Any], *, fallback_timestam
             events.append(
                 build_timeline_event(
                     "dynamic_card_shown",
-                    timestamp=str(card.get("source_generated_at") or fallback_timestamp),
+                    timestamp=timestamp,
                     world_ref=world_ref,
                     thread_ref=thread_ref,
                     card_id=card_id,
@@ -358,6 +377,52 @@ def _dynamic_card_events(dynamic_packet: Mapping[str, Any], *, fallback_timestam
                     developer_proof_only=bool((card.get("proof") or {}).get("developer_proof_only") is True),
                 )
             )
+        if card_id == "dynamic_card.finance.live_arts_md.evidence_intake.payment_processing":
+            evidence_refs = proof_refs or [_source_ref("evidence_intake_contract.json")]
+            for event_type, summary in (
+                ("proof_attached", "Proof was attached as protected local evidence metadata for a finance lane."),
+                ("evidence_recorded", "Evidence candidate recorded; paid and ledger truth were not inferred."),
+            ):
+                events.append(
+                    build_timeline_event(
+                        event_type,
+                        timestamp=timestamp,
+                        world_ref="finance",
+                        thread_ref="live_arts_md",
+                        card_id=card_id,
+                        controller_event_type="attach_proof",
+                        proof_refs=evidence_refs,
+                        human_summary=summary,
+                        hidden_machine_refs=[_source_ref("evidence_intake_status.json"), _source_ref("evidence_intake_contract.json")],
+                        privacy_class="protected_reference",
+                    )
+                )
+        for action in card.get("actions") or []:
+            if not isinstance(action, Mapping):
+                continue
+            if (
+                card.get("world_ref") == "finance"
+                and card.get("thread_ref") == "capital_hilton"
+                and action.get("controller_event_type") == "ask_why"
+            ):
+                events.append(
+                    build_timeline_event(
+                        "controller_event",
+                        timestamp=timestamp,
+                        world_ref="finance",
+                        thread_ref="capital_hilton",
+                        card_id=card_id,
+                        controller_event_type="ask_why",
+                        receipt_ref=str(action.get("payload_ref") or _source_ref("operator_action_payloads.json")),
+                        proof_refs=proof_refs,
+                        human_summary="Finance / Capital Hilton `ask_why` returned payment-watch context without execution.",
+                        hidden_machine_refs=[
+                            _source_ref("operator_controller_event_router_status.json"),
+                            _source_ref("operator_controller_event_router_contract.json"),
+                        ],
+                        privacy_class="operator_history",
+                    )
+                )
     return events
 
 
@@ -537,6 +602,9 @@ def _evidence_events(status: Mapping[str, Any], *, fallback_timestamp: str) -> l
 def _workroom_events(status: Mapping[str, Any], *, fallback_timestamp: str) -> list[dict[str, Any]]:
     decision = status.get("last_decision") if isinstance(status.get("last_decision"), Mapping) else {}
     if not decision:
+        receipts = [receipt for receipt in status.get("example_decision_receipts") or [] if isinstance(receipt, Mapping)]
+        decision = next((receipt for receipt in receipts if receipt.get("decision_action") == "mark_review_packet_informational"), {})
+    if not decision:
         return []
     contract_receipt = decision.get("contract_receipt") if isinstance(decision.get("contract_receipt"), Mapping) else {}
     receipt_ref = str(decision.get("receipt_id") or contract_receipt.get("receipt_id") or "")
@@ -705,11 +773,17 @@ def sqlite_event_count(sqlite_path: Path = DEFAULT_SQLITE_PATH) -> int:
 def _load_sources(read_model_root: Path) -> dict[str, dict[str, Any]]:
     root = _rooted(read_model_root)
     return {
-        "operator_controller_event_router_status": _load_json(root / "operator_controller_event_router_status.json"),
-        "universal_receipt_envelope_status": _load_json(root / "universal_receipt_envelope_status.json"),
+        "operator_controller_event_router_status": _load_first_json(
+            root, "operator_controller_event_router_status.json", "operator_controller_event_router_contract.json"
+        ),
+        "universal_receipt_envelope_status": _load_first_json(
+            root, "universal_receipt_envelope_status.json", "universal_receipt_envelope_contract.json"
+        ),
         "dynamic_card_packet_latest": _load_json(root / "dynamic_card_packet_latest.json"),
-        "evidence_intake_status": _load_json(root / "evidence_intake_status.json"),
-        "workroom_review_decision_status": _load_json(root / "workroom_review_decision_status.json"),
+        "evidence_intake_status": _load_first_json(root, "evidence_intake_status.json", "evidence_intake_contract.json"),
+        "workroom_review_decision_status": _load_first_json(
+            root, "workroom_review_decision_status.json", "workroom_review_decision_contract.json"
+        ),
     }
 
 

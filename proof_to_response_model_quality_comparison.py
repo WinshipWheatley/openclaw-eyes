@@ -48,19 +48,19 @@ PRECONDITIONS = {
         "accepted_statuses": ("LOCAL_LM_PROOF_RESPONSE_PILOT_POSTMORTEM_READY",),
     },
     "external_synthetic_fact_alignment": {
-        "filename": "external_lm_synthetic_response_capture_status.json",
-        "accepted_statuses": ("EXTERNAL_SYNTHETIC_FACT_ALIGNMENT_READY",),
+        "filename": "external_lm_synthetic_response_capture_contract.json",
+        "accepted_statuses": ("EXTERNAL_SYNTHETIC_FACT_ALIGNMENT_READY", "EXTERNAL_LM_SYNTHETIC_RESPONSE_CAPTURE_READY"),
     },
     "external_lm_synthetic_response_capture": {
         "filename": "external_lm_synthetic_response_capture_contract.json",
         "accepted_statuses": ("EXTERNAL_LM_SYNTHETIC_RESPONSE_CAPTURE_READY",),
     },
     "proof_to_response_schema_adapter": {
-        "filename": "proof_to_response_schema_adapter_status.json",
+        "filename": "proof_to_response_schema_adapter_contract.json",
         "accepted_statuses": ("PROOF_TO_RESPONSE_SCHEMA_ADAPTER_READY",),
     },
     "proof_to_response_runtime": {
-        "filename": "proof_to_response_runtime_status.json",
+        "filename": "proof_to_response_runtime_contract.json",
         "accepted_statuses": ("PROOF_TO_RESPONSE_RUNTIME_READY",),
     },
     "external_lm_synthetic_test_packet": {
@@ -291,11 +291,32 @@ def _local_qwen_row(postmortem: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def _external_synthetic_row(capture_status: Mapping[str, Any]) -> dict[str, Any]:
+    sample_capture = capture_status.get("sample_capture") if isinstance(capture_status.get("sample_capture"), Mapping) else {}
     smoke = capture_status.get("smoke_result") if isinstance(capture_status.get("smoke_result"), Mapping) else {}
+    if not smoke and isinstance(sample_capture.get("adapter_result"), Mapping):
+        adapter_result = sample_capture["adapter_result"]
+        verifier_result = adapter_result.get("verifier_result") if isinstance(adapter_result.get("verifier_result"), Mapping) else {}
+        smoke = {
+            "adapter_parse_status": adapter_result.get("parse_status"),
+            "verifier_pass": sample_capture.get("verifier_pass") is True or verifier_result.get("publishable") is True,
+            "verifier_status": "verifier_pass" if sample_capture.get("verifier_pass") is True or verifier_result.get("publishable") is True else "",
+            "verification_errors": adapter_result.get("verifier_failure_reasons") or verifier_result.get("verification_errors") or [],
+        }
     candidate = capture_status.get("manual_candidate") if isinstance(capture_status.get("manual_candidate"), Mapping) else {}
+    if not candidate:
+        adapted = sample_capture.get("adapted_candidate") if isinstance(sample_capture.get("adapted_candidate"), Mapping) else {}
+        candidate = {
+            "body": adapted.get("draft_body"),
+            "next_step": adapted.get("draft_next_step"),
+        }
     body = str(candidate.get("body") or "")
     next_step = str(candidate.get("next_step") or "")
     errors = [str(error) for error in smoke.get("verification_errors") or []]
+    alignment = capture_status.get("alignment_decision") if isinstance(capture_status.get("alignment_decision"), Mapping) else {}
+    if not alignment:
+        bundle = capture_status.get("synthetic_verifier_proof_bundle") if isinstance(capture_status.get("synthetic_verifier_proof_bundle"), Mapping) else {}
+        fact_ids = [str(fact.get("fact_id")) for fact in bundle.get("known_facts") or [] if isinstance(fact, Mapping) and str(fact.get("fact_id"))]
+        alignment = {"canonical_fact_ids": fact_ids}
     metrics = {
         "schema_compliance": smoke.get("adapter_parse_status") == "PARSED",
         "verifier_pass": smoke.get("verifier_pass") is True,
@@ -317,7 +338,7 @@ def _external_synthetic_row(capture_status: Mapping[str, Any]) -> dict[str, Any]
             "adapter_parse_status": str(smoke.get("adapter_parse_status") or ""),
             "verifier_status": str(smoke.get("verifier_status") or ""),
             "verification_errors": errors,
-            "canonical_fact_ids": list((capture_status.get("alignment_decision") or {}).get("canonical_fact_ids") or []),
+            "canonical_fact_ids": list(alignment.get("canonical_fact_ids") or []),
             "synthetic_only": True,
             "published_as_real_finance_truth": False,
         },
@@ -385,8 +406,8 @@ def build_comparison_read_model(
     generated_at = generated_at or utc_now()
     root = _rooted(read_model_root)
     postmortem = _load_json(root / "local_lm_proof_response_pilot_postmortem.json")
-    capture_status = _load_json(root / "external_lm_synthetic_response_capture_status.json")
-    schema_status = _load_json(root / "proof_to_response_schema_adapter_status.json")
+    capture_status = _load_json(root / "external_lm_synthetic_response_capture_contract.json")
+    schema_status = _load_json(root / "proof_to_response_schema_adapter_contract.json")
     packet = _load_json(root / "external_lm_synthetic_test_packet.json")
     shadow_pilot = _load_json(root / "proof_to_response_lm_shadow_pilot.json")
 
@@ -404,8 +425,8 @@ def build_comparison_read_model(
     ]
     source_filenames = [
         "local_lm_proof_response_pilot_postmortem.json",
-        "external_lm_synthetic_response_capture_status.json",
-        "proof_to_response_schema_adapter_status.json",
+        "external_lm_synthetic_response_capture_contract.json",
+        "proof_to_response_schema_adapter_contract.json",
         "external_lm_synthetic_test_packet.json",
         "proof_to_response_lm_shadow_pilot.json",
     ]

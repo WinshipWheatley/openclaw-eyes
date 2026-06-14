@@ -5671,9 +5671,12 @@ def _process_workbook_candidate_replace_choice_request(
     message = str(readback["operator_message"])
     next_action = str(readback["next_action"])
     response_files = (registry_json.as_posix(), registry_operator.as_posix())
-    replacement_performed = bool(registry_payload.get("machine_proof", {}).get("workbook_replacement_performed"))
+    machine_proof = registry_payload.get("machine_proof", {})
+    replacement_performed = bool(machine_proof.get("workbook_replacement_performed"))
+    current_workbook_confirmed = bool(machine_proof.get("current_workbook_confirmation_performed"))
+    workbook_confirmed_for_source = replacement_performed or current_workbook_confirmed
     source_workbook_payload: dict[str, Any] | None = None
-    if replacement_performed and active_record:
+    if workbook_confirmed_for_source and active_record:
         source_workbook_payload = invoice_review_action_request_handler.process_source_workbook_selection_result_request(
             {
                 "request_id": str(raw_request.get("request_id") or "workbook_candidate_replace_choice"),
@@ -5725,6 +5728,7 @@ def _process_workbook_candidate_replace_choice_request(
             "operator_choice_request": registry_payload.get("operator_choice_request"),
             "duplicate_result": registry_payload.get("duplicate_result"),
             "workbook_replacement_performed": replacement_performed,
+            "current_workbook_confirmation_performed": current_workbook_confirmed,
             "candidate_promoted_to_current_workbook": bool(
                 registry_payload.get("machine_proof", {}).get("candidate_promoted_to_current_workbook")
             ),
@@ -5755,8 +5759,8 @@ def _process_workbook_candidate_replace_choice_request(
                 if source_workbook_payload and source_workbook_payload.get("status") == "GUIDED_RESULT_RECORDED"
                 else message
             ),
-            "primary_status": "Workbook updated" if replacement_performed else "Workbook update blocked",
-            "primary_blocker": "None" if replacement_performed else "No staged workbook candidate",
+            "primary_status": "Workbook updated" if workbook_confirmed_for_source else "Workbook update blocked",
+            "primary_blocker": "None" if workbook_confirmed_for_source else "No staged workbook candidate",
             "next_action": (
                 "Next: select the invoice page/period again from the confirmed workbook."
                 if source_workbook_payload and source_workbook_payload.get("status") == "GUIDED_RESULT_RECORDED"
@@ -5785,7 +5789,7 @@ def _process_workbook_candidate_replace_choice_request(
         source_request_filename=request_path.name,
         workflow_ref=str(raw_request.get("workflow_ref") or "capital_hilton_invoice_workflow"),
         request_type="CHAT",
-        internal_status="RESPONSE_READY" if replacement_performed else "BLOCKED_WITH_REASON",
+        internal_status="RESPONSE_READY" if workbook_confirmed_for_source else "BLOCKED_WITH_REASON",
         operator_headline=headline,
         operator_message=(
             "Capital Hilton source workbook confirmed. Nothing was deleted from disk and workbook cells were not read. Next: select the invoice page/period again from this workbook."
@@ -5797,6 +5801,8 @@ def _process_workbook_candidate_replace_choice_request(
         what_happened=(
             "PC consumed the operator workbook choice request from the approved inbox.",
             "PC confirmed the staged workbook candidate as the Capital Hilton source workbook."
+            if source_workbook_payload and source_workbook_payload.get("status") == "GUIDED_RESULT_RECORDED" and replacement_performed
+            else "PC confirmed the existing Capital Hilton workbook as the source workbook."
             if source_workbook_payload and source_workbook_payload.get("status") == "GUIDED_RESULT_RECORDED"
             else "PC made the staged workbook candidate the current running workbook reference."
             if replacement_performed
@@ -5806,6 +5812,8 @@ def _process_workbook_candidate_replace_choice_request(
         why_it_happened=(
             "The operator said the previous workbook was a test and the new workbook is the real Capital Hilton running workbook."
             if replacement_performed
+            else "The operator clarified that the already captured Capital Hilton workbook is the current source workbook."
+            if current_workbook_confirmed
             else "There was no staged candidate in the workbook registry read-model."
         ),
         how_to_fix=(
@@ -5822,7 +5830,7 @@ def _process_workbook_candidate_replace_choice_request(
                     "Nothing was sent, submitted, posted, exported, or marked paid.",
                     next_action,
                 ),
-                "status_tone": "ready" if replacement_performed else "blocked",
+                "status_tone": "ready" if workbook_confirmed_for_source else "blocked",
             },
         ),
         cards_available=True,
@@ -5830,7 +5838,7 @@ def _process_workbook_candidate_replace_choice_request(
         file_readback_refs=(registry_json.as_posix(),),
         worker_route_refs=(),
         context_package_refs=(),
-        blocked_reason=None if replacement_performed else "No staged workbook candidate.",
+        blocked_reason=None if workbook_confirmed_for_source else "No staged workbook candidate.",
         detail_disclosure=detail,
         readback_files=response_files,
         next_safe_move=(
