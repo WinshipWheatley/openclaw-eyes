@@ -37,6 +37,20 @@ MAX_PREVIEW_CHARS = 180
 
 SOURCE_KINDS = set(ALLOWED_SOURCE_KINDS)
 INTENT_CATEGORIES = {
+    "invoice_send",
+    "email_send",
+    "sms_send",
+    "phone_log",
+    "calendar_create",
+    "ledger_mutation",
+    "coupa_submit",
+    "obs_launch",
+    "livestream_setup",
+    "invoice_status_lookup",
+    "pending_approval_lookup",
+    "schedule_lookup",
+    "approval_explainer",
+    "capability_query",
     "markdown_reorg_request",
     "file_context_request",
     "read_model_refresh_request",
@@ -49,6 +63,28 @@ INTENT_CATEGORIES = {
     "unknown_review",
 }
 INTENT_STATUSES = {"routed", "needs_operator_review", "rejected"}
+ACTION_INTENT_CATEGORIES = {
+    "invoice_send",
+    "email_send",
+    "sms_send",
+    "phone_log",
+    "calendar_create",
+    "ledger_mutation",
+    "coupa_submit",
+    "obs_launch",
+    "livestream_setup",
+}
+READ_ONLY_INTENT_CATEGORIES = {
+    "invoice_status_lookup",
+    "pending_approval_lookup",
+    "schedule_lookup",
+    "communication_summary_request",
+    "status_orientation_request",
+    "safety_review_request",
+    "approval_explainer",
+    "capability_query",
+}
+ROUTER_CANDIDATE_ACTION_TYPES = set(ALLOWED_ACTIONS) | ACTION_INTENT_CATEGORIES
 
 NO_AUTHORITY_FLAGS = {
     "agent_activation_allowed": False,
@@ -392,6 +428,56 @@ def _detect_agent(phrase_text: str, aliases: dict[str, str]) -> tuple[str | None
 def _category_for_text(phrase_text: str, explicit_agent_id: str | None) -> tuple[str, str]:
     has = lambda *phrases: any(_contains_phrase(phrase_text, phrase) for phrase in phrases)
     contains = lambda *needles: any(needle in phrase_text for needle in needles)
+    asks_status = contains("did ", "what happened", "status", "go out", "went out", "sent yet", "already sent")
+    asks_pending = contains("pending", "waiting for approval", "needs approval", "approval card")
+    asks_explain = contains("explain", "eli5", "like i am five", "like i'm five", "what does", "what is")
+    actionish = has(
+        "send",
+        "submit",
+        "create",
+        "make",
+        "add",
+        "schedule",
+        "update",
+        "mark",
+        "post",
+        "launch",
+        "start",
+        "go live",
+        "text",
+        "email",
+        "call",
+    )
+
+    if asks_explain and contains("pending_approval", "approval", "packet", "approval card", "checklist card"):
+        return "approval_explainer", "approval explainer wording matched"
+    if asks_pending or has("what is pending", "what's pending", "show pending"):
+        return "pending_approval_lookup", "pending approval/status lookup wording matched"
+    if (contains("invoice", "bill", "paid", "payment") and asks_status) or has("did the invoice thing go out"):
+        return "invoice_status_lookup", "invoice/payment status lookup wording matched"
+    if (contains("calendar", "schedule", "today", "tomorrow", "meeting") and not actionish) or contains("what is on the schedule", "what's on the schedule"):
+        return "schedule_lookup", "schedule lookup wording matched"
+    if contains("what can you do", "can you", "are you able", "capability", "capabilities"):
+        return "capability_query", "capability query wording matched"
+
+    if contains("coupa"):
+        return "coupa_submit", "Coupa action wording matched"
+    if contains("ledger") or has("mark paid", "mark as paid", "post to ledger", "touch the ledger"):
+        return "ledger_mutation", "ledger/payment mutation wording matched"
+    if contains("gmail", "email") and (has("send", "write", "draft", "create") or actionish):
+        return "email_send", "email/Gmail action wording matched"
+    if contains("invoice", "bill") and has("send", "issue", "deliver", "email", "send out", "bill"):
+        return "invoice_send", "invoice send wording matched"
+    if has("text", "sms", "message") and has("send", "text", "message"):
+        return "sms_send", "SMS/text action wording matched"
+    if has("call", "phone"):
+        return "phone_log", "phone/call action wording matched"
+    if contains("calendar", "event", "meeting") and has("make", "create", "add", "schedule"):
+        return "calendar_create", "calendar event creation wording matched"
+    if contains("obs"):
+        return "obs_launch", "OBS launch wording matched"
+    if has("go live", "live stream", "livestream", "set up the live stream"):
+        return "livestream_setup", "livestream setup wording matched"
 
     if has("safe", "safety", "risk", "guardian") or contains("no go", "no_go", "secret", "credential"):
         return "safety_review_request", "safety/risk wording matched"
@@ -415,6 +501,23 @@ def _category_for_text(phrase_text: str, explicit_agent_id: str | None) -> tuple
 
 
 def _default_agent_for_category(category: str, phrase_text: str) -> tuple[str | None, str]:
+    if category in {
+        "invoice_send",
+        "email_send",
+        "sms_send",
+        "phone_log",
+        "calendar_create",
+        "ledger_mutation",
+        "coupa_submit",
+        "invoice_status_lookup",
+        "pending_approval_lookup",
+        "schedule_lookup",
+        "approval_explainer",
+        "capability_query",
+    }:
+        return "cassandra", f"default Cassandra route for {category}"
+    if category in {"obs_launch", "livestream_setup"}:
+        return "chief", f"default Chief route for {category}"
     if category in {"markdown_reorg_request", "read_model_refresh_request", "project_capsule_request", "status_orientation_request"}:
         return "chief", f"default Chief route for {category}"
     if category == "file_context_request":
@@ -433,6 +536,12 @@ def _default_agent_for_category(category: str, phrase_text: str) -> tuple[str | 
 
 
 def _world_for(agent_id: str | None, category: str) -> str:
+    if category in {"invoice_send", "invoice_status_lookup", "ledger_mutation", "coupa_submit"}:
+        return "finance"
+    if category in {"email_send", "sms_send", "phone_log", "calendar_create", "pending_approval_lookup", "schedule_lookup", "approval_explainer", "capability_query"}:
+        return "communications"
+    if category in {"obs_launch", "livestream_setup"}:
+        return "operations"
     if agent_id == "niles" or category in {"music_project_request", "file_context_request"}:
         return "music_art"
     if agent_id == "guardian" or category == "safety_review_request":
@@ -449,6 +558,8 @@ def _world_for(agent_id: str | None, category: str) -> str:
 
 
 def _candidate_action_for(category: str, phrase_text: str) -> str | None:
+    if category in ACTION_INTENT_CATEGORIES:
+        return category
     if category != "read_model_refresh_request":
         return None
     if "report bridge" in phrase_text:
@@ -463,6 +574,21 @@ def _candidate_action_for(category: str, phrase_text: str) -> str | None:
 
 
 def _next_safe_move(category: str, agent_id: str | None, candidate_action_type: str | None) -> str:
+    if category in ACTION_INTENT_CATEGORIES:
+        return (
+            f"Prepare an approval card for `{category}`. Nothing has been sent yet; "
+            "execution remains blocked until explicit operator approval."
+        )
+    if category == "invoice_status_lookup":
+        return "Look up invoice/payment status from receipts and read models; do not create a new action packet."
+    if category == "pending_approval_lookup":
+        return "List pending approval cards and receipts; do not create a new action packet."
+    if category == "schedule_lookup":
+        return "Answer from available schedule context; do not create or modify calendar events."
+    if category == "approval_explainer":
+        return "Explain approval state in plain language; do not create a new action packet."
+    if category == "capability_query":
+        return "Explain current capabilities and boundaries in plain language; do not create a new action packet."
     if category == "markdown_reorg_request":
         return "Query Markdown Knowledge Atlas and draft an advisory reorg/archive plan; do not move files."
     if category == "file_context_request":
@@ -818,7 +944,7 @@ def route_operator_intent(
                     routed_agent_id = "chief"
                     routing_reason += "; Recent File Context resolved generated read-model metadata, routing to Chief"
         candidate_action_type = _candidate_action_for(category, phrase_text)
-        if candidate_action_type not in ALLOWED_ACTIONS:
+        if candidate_action_type not in ROUTER_CANDIDATE_ACTION_TYPES:
             candidate_action_type = None
         world_hint = _world_for(routed_agent_id, category)
         routed_lane_id = agents.get(routed_agent_id, {}).get("lane_id") if routed_agent_id else None

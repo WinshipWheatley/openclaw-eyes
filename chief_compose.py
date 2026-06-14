@@ -74,11 +74,15 @@ def compose(
         return ComposeResult.blocked(intent, str(reason), run_id=getattr(result, "run_id", None))
 
     if branch == "gated":
-        from agent_work_packet import build_agent_work_packet
+        from agent_work_packet import build_agent_work_packet, get_agent_work_packet_approval_state
 
         packet = build_agent_work_packet(
             intent_id=getattr(result, "intent_id", None),
             run_id=getattr(result, "run_id", None),
+            db_path=db_path,
+        )
+        packet_state = get_agent_work_packet_approval_state(
+            packet_id=getattr(packet, "packet_id", "unknown"),
             db_path=db_path,
         )
         goal = getattr(packet, "goal", "") or "Proposed action"
@@ -87,12 +91,14 @@ def compose(
             intent=intent,
             packet_id=getattr(packet, "packet_id", "unknown"),
             surface=surface,
-            segments=[goal, "Approve to proceed, or tell me what to change."],
+            segments=[goal, "Nothing has been sent yet.", "Review the approval card, then approve, edit, or cancel."],
             preview={
                 "goal": goal,
                 "candidate_action_type": getattr(result, "candidate_action_type", None),
                 "world_hint": getattr(result, "world_hint", None),
                 "execution_allowed": getattr(packet, "execution_allowed", False),
+                "button_label": _button_label_for_surface(surface),
+                "packet_hash": packet_state.packet_hash,
             },
             run_id=getattr(result, "run_id", None),
             next_safe_move=getattr(result, "next_safe_move", None),
@@ -123,6 +129,21 @@ def compose(
     )
 
 
+def _button_label_for_surface(surface: str) -> str:
+    labels = {
+        "invoice_send": "Approve invoice send",
+        "email_send": "Approve email send",
+        "sms_send": "Approve text send",
+        "phone_log": "Approve phone action",
+        "calendar_create": "Approve calendar create",
+        "ledger_mutation": "Approve ledger change",
+        "coupa_submit": "Approve Coupa submit",
+        "obs_launch": "Approve OBS launch",
+        "livestream_setup": "Approve livestream setup",
+    }
+    return labels.get(surface, f"Approve {surface.replace('_', ' ')}")
+
+
 EXECUTORS: dict[str, Callable[..., ExecutionReceipt]] = {}
 
 
@@ -131,6 +152,48 @@ def register_executor(surface: str, fn: Callable[..., ExecutionReceipt]) -> None
 
 
 def execute_packet(packet_id: str, *, surface: str, db_path: str | None = None) -> ExecutionReceipt:
+    return execute_packet_with_state(packet_id, surface=surface, db_path=db_path)
+
+
+def get_packet_approval_state(
+    packet_id: str,
+    *,
+    expected_packet_hash: str | None = None,
+    db_path: str | None = None,
+) -> dict[str, Any]:
+    from agent_work_packet import get_agent_work_packet_approval_state
+
+    return get_agent_work_packet_approval_state(
+        packet_id=packet_id,
+        expected_packet_hash=expected_packet_hash,
+        db_path=db_path,
+    ).to_dict()
+
+
+def execute_packet_with_state(
+    packet_id: str,
+    *,
+    surface: str,
+    db_path: str | None = None,
+    expected_packet_hash: str | None = None,
+) -> ExecutionReceipt:
+    if expected_packet_hash is not None:
+        try:
+            state = get_packet_approval_state(
+                packet_id,
+                expected_packet_hash=expected_packet_hash,
+                db_path=db_path,
+            )
+        except ValueError as exc:
+            return ExecutionReceipt(packet_id=packet_id, surface=surface, ok=False, detail=str(exc))
+        if state["stale"]:
+            return ExecutionReceipt(
+                packet_id=packet_id,
+                surface=surface,
+                ok=False,
+                detail="Packet stale-hash check failed. Nothing was sent.",
+                meta={"approval_state": state},
+            )
     fn = EXECUTORS.get(surface)
     if fn is None:
         return ExecutionReceipt(

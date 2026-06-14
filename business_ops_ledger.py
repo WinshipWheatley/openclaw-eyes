@@ -633,7 +633,7 @@ def append_side_effect(
     replay_safe: bool = False,
     external_ref: Optional[str] = None,
     db_path: str | None = None,
-) -> bool:
+) -> str | None:
     query = """
         INSERT INTO side_effects (
             packet_id, effect_type, status, approval_required,
@@ -649,7 +649,18 @@ def append_side_effect(
         1 if replay_safe else 0,
         external_ref,
     )
-    return _execute_write(query, params, db_path)
+    path = db_path or DEFAULT_DB_PATH
+    try:
+        conn = sqlite3.connect(path)
+        cursor = conn.cursor()
+        cursor.execute(query, params)
+        side_effect_id = f"side_effect:{cursor.lastrowid}"
+        conn.commit()
+        conn.close()
+        return side_effect_id
+    except Exception as e:
+        logger.error(f"Ledger side-effect write failure: {e}")
+        return None
 
 
 def append_operator_explanation(
