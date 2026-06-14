@@ -2372,10 +2372,15 @@ def _normalize_contact_entry(nickname: str, raw: object) -> dict:
 
 def _find_designated_contact(sender_name: str | None = None, sender_chat_id: object | None = None) -> dict | None:
     _sync_identity_nicknames_path()
-    return _cassandra_identity._find_designated_contact(
-        sender_name=sender_name,
-        sender_chat_id=sender_chat_id,
-    )
+    name_key = sender_name.strip().lower() if isinstance(sender_name, str) and sender_name.strip() else ""
+    chat_key = str(sender_chat_id) if sender_chat_id not in (None, "") else ""
+    for nickname, raw in _load_nicknames().items():
+        entry = _normalize_contact_entry(nickname, raw)
+        if name_key and name_key in entry["sender_names"]:
+            return entry
+        if chat_key and chat_key in entry["chat_ids"]:
+            return entry
+    return None
 
 
 def find_contact_by_nickname(nickname: str) -> dict | None:
@@ -5863,6 +5868,7 @@ def handle(text: str, session: dict | None = None) -> list[str]:
         )
         skip_guided_review = False
         skip_universal_intake = False
+        email_send_request = gmail_decision.allowed and _detect_send_email_intent(query)
         if switchboard_decision is not None:
             switch_decision = str(switchboard_decision.get("decision") or "")
             if switch_decision in {"new_task_interrupt", "new_task_stage", "clarification_needed", "unsupported_but_logged"}:
@@ -5934,6 +5940,8 @@ def handle(text: str, session: dict | None = None) -> list[str]:
             if switch_decision == "approval_passthrough":
                 skip_guided_review = True
                 skip_universal_intake = True
+        if email_send_request:
+            skip_universal_intake = True
 
         guided_review_response = None
         if not skip_guided_review:

@@ -793,8 +793,16 @@ def _next_safe_move(category: str, agent_id: str | None, candidate_action_type: 
     return "Ask the operator for a clearer target agent, file, world, or allowed action; do not execute anything."
 
 
-def _approval_required_for(status: str, candidate_action_type: str | None) -> bool:
+def _approval_required_for(
+    status: str,
+    candidate_action_type: str | None,
+    *,
+    category: str | None = None,
+    agent_id: str | None = None,
+) -> bool:
     """Only cleanly routed, non-action requests may use the read-only fast path."""
+    if agent_id == "guardian" or category == "safety_review_request":
+        return True
     return status != "routed" or bool(candidate_action_type)
 
 
@@ -1203,7 +1211,12 @@ ON CONFLICT(run_id) DO UPDATE SET
         )
 
         next_safe_move = _next_safe_move(category, routed_agent_id, candidate_action_type)
-        approval_required = _approval_required_for(status, candidate_action_type)
+        approval_required = _approval_required_for(
+            status,
+            candidate_action_type,
+            category=category,
+            agent_id=routed_agent_id,
+        )
         conn.execute(
             """
 INSERT INTO intent_records (
@@ -1311,7 +1324,12 @@ ON CONFLICT(candidate_id) DO UPDATE SET
             status = "needs_operator_review"
             routing_reason += "; file reference is unresolved in recent File Event Queue metadata"
             next_safe_move = _next_safe_move(category, routed_agent_id, candidate_action_type)
-            approval_required = _approval_required_for(status, candidate_action_type)
+            approval_required = _approval_required_for(
+                status,
+                candidate_action_type,
+                category=category,
+                agent_id=routed_agent_id,
+            )
             conn.execute(
                 """
 UPDATE intent_records
