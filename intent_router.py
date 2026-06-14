@@ -46,6 +46,7 @@ INTENT_CATEGORIES = {
     "coupa_submit",
     "obs_launch",
     "livestream_setup",
+    "gig_intake",
     "invoice_status_lookup",
     "pending_approval_lookup",
     "schedule_lookup",
@@ -83,6 +84,7 @@ READ_ONLY_INTENT_CATEGORIES = {
     "safety_review_request",
     "approval_explainer",
     "capability_query",
+    "gig_intake",
 }
 ROUTER_CANDIDATE_ACTION_TYPES = set(ALLOWED_ACTIONS) | ACTION_INTENT_CATEGORIES
 
@@ -460,6 +462,30 @@ def _category_for_text(phrase_text: str, explicit_agent_id: str | None) -> tuple
     if contains("what can you do", "can you", "are you able", "capability", "capabilities"):
         return "capability_query", "capability query wording matched"
 
+    booking_phrase = has(
+        "booked",
+        "you are booked",
+        "youre booked",
+        "you're booked",
+        "all set",
+        "you are all set",
+        "youre all set",
+        "you're all set",
+        "covering",
+        "covering for",
+    )
+    venue_signal = contains("venue", "tavern", "hotel", "club", "bar", "restaurant", "reynolds")
+    date_signal = bool(
+        re.search(
+            r"\b(20\d{2}|jan|january|feb|february|mar|march|apr|april|may|jun|june|jul|july|aug|august|sep|sept|september|oct|october|nov|november|dec|december)\b",
+            phrase_text,
+        )
+    )
+    time_signal = bool(re.search(r"\b\d{1,2}\s+\d{1,2}\s*(am|pm)\b|\b\d{1,2}\s*(am|pm)\b", phrase_text))
+    money_signal = bool(re.search(r"\b\d{2,6}\b", phrase_text)) or contains("usd", "dollar", "fee", "pay", "paid")
+    if booking_phrase and sum(bool(signal) for signal in (venue_signal, date_signal, time_signal, money_signal)) >= 3:
+        return "gig_intake", "gig booking intake wording matched"
+
     if contains("coupa"):
         return "coupa_submit", "Coupa action wording matched"
     if contains("ledger") or has("mark paid", "mark as paid", "post to ledger", "touch the ledger"):
@@ -514,6 +540,7 @@ def _default_agent_for_category(category: str, phrase_text: str) -> tuple[str | 
         "schedule_lookup",
         "approval_explainer",
         "capability_query",
+        "gig_intake",
     }:
         return "cassandra", f"default Cassandra route for {category}"
     if category in {"obs_launch", "livestream_setup"}:
@@ -540,6 +567,8 @@ def _world_for(agent_id: str | None, category: str) -> str:
         return "finance"
     if category in {"email_send", "sms_send", "phone_log", "calendar_create", "pending_approval_lookup", "schedule_lookup", "approval_explainer", "capability_query"}:
         return "communications"
+    if category == "gig_intake":
+        return "business_development"
     if category in {"obs_launch", "livestream_setup"}:
         return "operations"
     if agent_id == "niles" or category in {"music_project_request", "file_context_request"}:
@@ -589,6 +618,8 @@ def _next_safe_move(category: str, agent_id: str | None, candidate_action_type: 
         return "Explain approval state in plain language; do not create a new action packet."
     if category == "capability_query":
         return "Explain current capabilities and boundaries in plain language; do not create a new action packet."
+    if category == "gig_intake":
+        return "Start a Cassandra gig-intake session, pre-fill extractable booking details, and ask only for missing confirmation fields. No send or invoice execution is allowed."
     if category == "markdown_reorg_request":
         return "Query Markdown Knowledge Atlas and draft an advisory reorg/archive plan; do not move files."
     if category == "file_context_request":
